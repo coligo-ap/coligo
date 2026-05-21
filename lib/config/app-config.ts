@@ -1,0 +1,46 @@
+export const APP_CONFIG = {
+  name: process.env.NEXT_PUBLIC_APP_NAME ?? "Coligo",
+  shortName: process.env.NEXT_PUBLIC_APP_SHORT_NAME ?? "Coligo",
+  tagline:
+    process.env.NEXT_PUBLIC_APP_TAGLINE ??
+    "Commandez à l'avance chez vos commerces de proximité",
+  description:
+    process.env.NEXT_PUBLIC_APP_DESCRIPTION ??
+    "Marketplace algérienne de commande à l'avance",
+
+  domains: {
+    customer: process.env.NEXT_PUBLIC_APP_DOMAIN ?? "coligo.app",
+    merchant: process.env.NEXT_PUBLIC_MERCHANT_DOMAIN ?? "commercant.coligo.app",
+    admin: process.env.NEXT_PUBLIC_ADMIN_DOMAIN ?? "admin.coligo.app",
+  },
+
+  locale: {
+    country: process.env.NEXT_PUBLIC_DEFAULT_COUNTRY ?? "DZ",
+    currency: process.env.NEXT_PUBLIC_DEFAULT_CURRENCY ?? "DA",
+    phonePrefix: process.env.NEXT_PUBLIC_PHONE_PREFIX ?? "+213",
+    locales: ["fr", "ar"] as const,
+    defaultLocale: "fr" as const,
+  },
+
+  contact: {
+    supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@coligo.app",
+    salesEmail: process.env.NEXT_PUBLIC_SALES_EMAIL ?? "hello@coligo.app",
+  },
+
+  brand: {
+    primary: process.env.NEXT_PUBLIC_BRAND_PRIMARY ?? "#0d9488",
+    accent: process.env.NEXT_PUBLIC_BRAND_ACCENT ?? "#d97706",
+  },
+} as const;
+
+export function isMerchantHost(host: string | null | undefined): boolean {
+  if (!host) return false;
+  if (host.startsWith("commercant.")) return true;
+  return host === APP_CONFIG.domains.merchant;
+}
+
+export function isAdminHost(host: string | null | undefined): boolean {
+  if (!host) return false;
+  if (host.startsWith("admin.")) return true;
+  return host === APP_CONFIG.domains.admin;
+}

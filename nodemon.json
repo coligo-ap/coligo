@@ -1,0 +1,26 @@
+{
+  "watch": [
+    ".env",
+    ".env.local",
+    ".env.development",
+    ".env.production",
+    "next.config.ts",
+    "next.config.js",
+    "next.config.mjs",
+    "tsconfig.json",
+    "tailwind.config.ts",
+    "tailwind.config.js",
+    "postcss.config.mjs",
+    "postcss.config.js"
+  ],
+  "ext": "ts,js,mjs,json",
+  "ignore": [
+    ".next/**",
+    "node_modules/**",
+    "**/*.test.*",
+    "**/*.spec.*"
+  ],
+  "exec": "npm run dev:next",
+  "delay": 500,
+  "verbose": false
+}
