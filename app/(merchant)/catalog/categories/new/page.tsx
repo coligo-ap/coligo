@@ -1,11 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ProductForm } from "@/components/merchant/product-form";
-import { getMerchantCategories } from "@/lib/data/catalog";
+import { CategoryForm } from "@/components/merchant/category-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewProductPage() {
+export default async function NewCategoryPage() {
   const supabase = await createClient();
 
   const {
@@ -20,7 +19,5 @@ export default async function NewProductPage() {
     .maybeSingle();
   if (!merchant) redirect("/login?error=no_merchant");
 
-  const categories = await getMerchantCategories();
-
-  return <ProductForm merchantId={merchant.id} categories={categories} />;
+  return <CategoryForm merchantId={merchant.id} />;
 }

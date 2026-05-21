@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProductForm } from "@/components/merchant/product-form";
+import { getMerchantCategories } from "@/lib/data/catalog";
 import type { Product } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -37,20 +38,13 @@ export default async function EditProductPage({
 
   if (!product) notFound();
 
-  const { data: rows } = await supabase
-    .from("products")
-    .select("category")
-    .not("category", "is", null);
-
-  const existingCategories = Array.from(
-    new Set((rows ?? []).map((r) => r.category).filter(Boolean) as string[])
-  ).sort((a, b) => a.localeCompare(b, "fr"));
+  const categories = await getMerchantCategories();
 
   return (
     <ProductForm
       merchantId={merchant.id}
       product={product as Product}
-      existingCategories={existingCategories}
+      categories={categories}
     />
   );
 }

@@ -123,6 +123,17 @@ export const PRODUCT_UNIT_META: Record<
   custom: { label: "Autre / sur mesure", short: "unité" },
 };
 
+export type Category = {
+  id: string;
+  merchant_id: string;
+  title: string;
+  description: string | null;
+  image_url: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Product = {
   id: string;
   merchant_id: string;
@@ -132,9 +143,30 @@ export type Product = {
   description_ar: string | null;
   price_da: number;
   unit: ProductUnit;
+  /** @deprecated remplacé par category_id (conservé pour compat). */
   category: string | null;
+  category_id: string | null;
+  stock_qty: number | null;
   image_url: string | null;
   is_available: boolean;
   created_at: string;
   updated_at: string;
 };
+
+/** Produit avec le titre de sa catégorie (jointure). */
+export type ProductWithCategory = Product & {
+  categories: { id: string; title: string } | null;
+};
+
+export type StockState = "untracked" | "out" | "low" | "ok";
+
+/** État de stock d'un produit, selon stock_qty et un seuil « stock bas ». */
+export function stockState(
+  stockQty: number | null,
+  lowThreshold: number
+): StockState {
+  if (stockQty === null) return "untracked";
+  if (stockQty <= 0) return "out";
+  if (stockQty <= lowThreshold) return "low";
+  return "ok";
+}

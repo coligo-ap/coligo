@@ -10,19 +10,26 @@ import {
   Trash2,
   X,
   ArrowRight,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { PRODUCT_UNIT_META, type Product, type ProductUnit } from "@/lib/types";
+import {
+  PRODUCT_UNIT_META,
+  type Category,
+  type Product,
+  type ProductUnit,
+} from "@/lib/types";
 import {
   createProduct,
   updateProduct,
   deleteProduct,
   type ProductFormState,
 } from "@/app/(merchant)/catalog/actions";
+import { quickCreateCategory } from "@/app/(merchant)/catalog/categories/actions";
 
 const SELECT_CLASS =
   "appearance-none flex h-12 w-full rounded-[12px] border border-border-strong bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 disabled:cursor-not-allowed disabled:opacity-50";
@@ -37,16 +44,24 @@ const UNIT_OPTIONS = Object.entries(PRODUCT_UNIT_META) as [
 export function ProductForm({
   merchantId,
   product,
-  existingCategories,
+  categories,
 }: {
   merchantId: string;
   product?: Product;
-  existingCategories: string[];
+  categories: Category[];
 }) {
   const isEdit = !!product;
 
   const action = isEdit ? updateProduct.bind(null, product!.id) : createProduct;
   const [state, formAction, pending] = useActionState(action, initialState);
+
+  // Liste locale de catégories (permet l'ajout « à la volée »).
+  const [cats, setCats] = useState<{ id: string; title: string }[]>(
+    categories.map((c) => ({ id: c.id, title: c.title }))
+  );
+  const [categoryId, setCategoryId] = useState<string>(
+    product?.category_id ?? ""
+  );
 
   const [imageUrl, setImageUrl] = useState<string | null>(
     product?.image_url ?? null
@@ -242,20 +257,47 @@ export function ProductForm({
             </Field>
           </div>
 
-          <Field label="Catégorie">
-            <Input
-              name="category"
-              defaultValue={product?.category ?? ""}
-              placeholder="Pains, Viennoiseries, Boissons…"
-              list="product-categories"
-              disabled={pending}
-            />
-            <datalist id="product-categories">
-              {existingCategories.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-          </Field>
+          <input type="hidden" name="category_id" value={categoryId} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Catégorie">
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                disabled={pending}
+                className={SELECT_CLASS}
+              >
+                <option value="">Aucune catégorie</option>
+                {cats.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+              <QuickCategory
+                disabled={pending}
+                onCreated={(c) => {
+                  setCats((prev) => [...prev, c]);
+                  setCategoryId(c.id);
+                }}
+              />
+            </Field>
+
+            <Field label="Stock">
+              <Input
+                name="stock_qty"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                defaultValue={product?.stock_qty ?? ""}
+                placeholder="Laisser vide = non suivi"
+                disabled={pending}
+              />
+              <p className="text-subtle text-xs">
+                Vide = stock non suivi · 0 = épuisé
+              </p>
+            </Field>
+          </div>
 
           <label className="flex items-center gap-3 pt-1">
             <input
@@ -342,6 +384,89 @@ function DeleteProduct({ productId }: { productId: string }) {
         )}
         Supprimer ce produit
       </button>
+    </div>
+  );
+}
+
+function QuickCategory({
+  disabled,
+  onCreated,
+}: {
+  disabled?: boolean;
+  onCreated: (cat: { id: string; title: string }) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function create() {
+    const clean = title.trim();
+    if (!clean) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await quickCreateCategory(clean);
+      if (res.error || !res.id) {
+        setError(res.error ?? "Échec.");
+        return;
+      }
+      onCreated({ id: res.id, title: res.title! });
+      setTitle("");
+      setOpen(false);
+    });
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        disabled={disabled}
+        className="text-primary-700 hover:text-primary-800 inline-flex items-center gap-1 text-xs font-medium disabled:opacity-50"
+      >
+        <Plus className="size-3.5" />
+        Nouvelle catégorie
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            create();
+          }
+        }}
+        placeholder="Nom de la catégorie"
+        autoFocus
+        disabled={pending}
+        className="h-10"
+      />
+      <Button
+        type="button"
+        size="sm"
+        onClick={create}
+        disabled={pending || !title.trim()}
+      >
+        {pending ? <Loader2 className="size-4 animate-spin" /> : "Créer"}
+      </Button>
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(false);
+          setTitle("");
+          setError(null);
+        }}
+        disabled={pending}
+        className="text-muted hover:text-foreground text-xs"
+      >
+        Annuler
+      </button>
+      {error && <span className="text-danger-600 text-xs">{error}</span>}
     </div>
   );
 }

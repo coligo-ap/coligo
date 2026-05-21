@@ -37,7 +37,8 @@ function parseForm(formData: FormData) {
     description_ar: formData.get("description_ar"),
     price_da: formData.get("price_da"),
     unit: formData.get("unit"),
-    category: formData.get("category"),
+    category_id: formData.get("category_id"),
+    stock_qty: formData.get("stock_qty"),
     image_url: formData.get("image_url"),
     is_available: formData.get("is_available"),
   });
@@ -117,6 +118,76 @@ export async function toggleProductAvailability(
     return { error: error.message };
   }
 
+  revalidatePath("/catalog");
+  return {};
+}
+
+/**
+ * Duplique un produit (copie tous les champs sauf l'id) et redirige vers
+ * l'édition de la copie pour ajustement.
+ */
+export async function duplicateProduct(
+  productId: string
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+
+  const { data: src, error: readError } = await supabase
+    .from("products")
+    .select(
+      `merchant_id, name_fr, name_ar, description_fr, description_ar,
+       price_da, unit, category_id, stock_qty, image_url, is_available`
+    )
+    .eq("id", productId)
+    .maybeSingle();
+
+  if (readError || !src) {
+    return { error: readError?.message ?? "Produit introuvable." };
+  }
+
+  const { data: copy, error: insertError } = await supabase
+    .from("products")
+    .insert({ ...src, name_fr: `${src.name_fr} (copie)` })
+    .select("id")
+    .single();
+
+  if (insertError || !copy) {
+    return { error: insertError?.message ?? "Échec de la duplication." };
+  }
+
+  revalidatePath("/catalog");
+  redirect(`/catalog/${copy.id}`);
+}
+
+/** Rend disponibles/masqués plusieurs produits d'un coup. */
+export async function bulkSetAvailability(
+  productIds: string[],
+  isAvailable: boolean
+): Promise<{ error?: string }> {
+  if (productIds.length === 0) return {};
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("products")
+    .update({ is_available: isAvailable })
+    .in("id", productIds);
+
+  if (error) return { error: error.message };
+  revalidatePath("/catalog");
+  return {};
+}
+
+/** Assigne (ou retire, si null) une catégorie à plusieurs produits. */
+export async function bulkAssignCategory(
+  productIds: string[],
+  categoryId: string | null
+): Promise<{ error?: string }> {
+  if (productIds.length === 0) return {};
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("products")
+    .update({ category_id: categoryId })
+    .in("id", productIds);
+
+  if (error) return { error: error.message };
   revalidatePath("/catalog");
   return {};
 }

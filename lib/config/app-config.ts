@@ -37,6 +37,13 @@ export const APP_CONFIG = {
   commission: {
     rate: Number(process.env.NEXT_PUBLIC_COMMISSION_RATE ?? "0.05"),
   },
+
+  catalog: {
+    // En-dessous (ou égal), un produit suivi en stock est signalé « stock bas ».
+    lowStockThreshold: Number(
+      process.env.NEXT_PUBLIC_LOW_STOCK_THRESHOLD ?? "5"
+    ),
+  },
 } as const;
 
 /** Part commission Coligo (en DA, arrondie) pour un montant donné. */
