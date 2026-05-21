@@ -45,10 +45,12 @@ export function ProductForm({
   merchantId,
   product,
   categories,
+  initialCategoryId,
 }: {
   merchantId: string;
   product?: Product;
   categories: Category[];
+  initialCategoryId?: string;
 }) {
   const isEdit = !!product;
 
@@ -60,7 +62,7 @@ export function ProductForm({
     categories.map((c) => ({ id: c.id, title: c.title }))
   );
   const [categoryId, setCategoryId] = useState<string>(
-    product?.category_id ?? ""
+    product?.category_id ?? initialCategoryId ?? ""
   );
 
   const [imageUrl, setImageUrl] = useState<string | null>(

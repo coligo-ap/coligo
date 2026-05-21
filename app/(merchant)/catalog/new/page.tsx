@@ -5,7 +5,11 @@ import { getMerchantCategories } from "@/lib/data/catalog";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewProductPage() {
+export default async function NewProductPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
   const supabase = await createClient();
 
   const {
@@ -21,6 +25,17 @@ export default async function NewProductPage() {
   if (!merchant) redirect("/login?error=no_merchant");
 
   const categories = await getMerchantCategories();
+  const { category } = await searchParams;
+  // Pré-sélection uniquement si la catégorie appartient bien au commerçant.
+  const initialCategoryId = categories.some((c) => c.id === category)
+    ? category
+    : undefined;
 
-  return <ProductForm merchantId={merchant.id} categories={categories} />;
+  return (
+    <ProductForm
+      merchantId={merchant.id}
+      categories={categories}
+      initialCategoryId={initialCategoryId}
+    />
+  );
 }

@@ -67,11 +67,11 @@ export function CatalogView({
   const [grouped, setGrouped] = useState(categories.length > 0);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // Catégories repliées (vue groupée). Tout est déplié par défaut.
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // Catégories dépliées (vue groupée). Tout est fermé par défaut.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  function toggleCollapsed(key: string) {
-    setCollapsed((prev) => {
+  function toggleExpanded(key: string) {
+    setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -142,13 +142,16 @@ export function CatalogView({
         byCat.get(p.category_id)!.push(p);
       }
     }
+    // En vue par défaut (sans recherche ni filtre), on montre TOUTES les
+    // catégories — même vides — pour pouvoir y ajouter un produit directement.
+    const showEmpty = query.trim() === "" && categoryId === ALL;
     const ordered = categories
-      .filter((c) => byCat.has(c.id))
+      .filter((c) => showEmpty || byCat.has(c.id))
       .map((c) => ({
         key: c.id,
         title: c.title,
         image: c.image_url,
-        items: byCat.get(c.id)!,
+        items: byCat.get(c.id) ?? [],
       }));
     if (uncategorized.length > 0)
       ordered.push({
@@ -158,14 +161,14 @@ export function CatalogView({
         items: uncategorized,
       });
     return ordered;
-  }, [grouped, filtered, categories]);
+  }, [grouped, filtered, categories, query, categoryId]);
 
-  const allCollapsed =
-    !!groups && groups.length > 0 && groups.every((g) => collapsed.has(g.key));
+  const allExpanded =
+    !!groups && groups.length > 0 && groups.every((g) => expanded.has(g.key));
 
   function toggleAll() {
     if (!groups) return;
-    setCollapsed(allCollapsed ? new Set() : new Set(groups.map((g) => g.key)));
+    setExpanded(allExpanded ? new Set() : new Set(groups.map((g) => g.key)));
   }
 
   return (
@@ -185,10 +188,18 @@ export function CatalogView({
         <div className="flex flex-wrap gap-2">
           <Link
             href="/catalog/categories"
-            className={buttonVariants({ variant: "outline" })}
+            className={buttonVariants({ variant: "ghost" })}
+            title="Gérer (réordonner, supprimer…)"
           >
             <Tags className="size-4" />
-            Catégories
+            Gérer
+          </Link>
+          <Link
+            href="/catalog/categories/new"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            <Plus className="size-4" />
+            Nouvelle catégorie
           </Link>
           <Link href="/catalog/new" className={buttonVariants()}>
             <Plus className="size-4" />
@@ -229,12 +240,12 @@ export function CatalogView({
               onClick={toggleAll}
               className="border-border-strong text-muted hover:bg-surface-2 inline-flex h-11 items-center gap-1.5 rounded-[12px] border px-3 text-xs font-medium whitespace-nowrap"
             >
-              {allCollapsed ? (
-                <ChevronsDownUp className="size-4 rotate-180" />
-              ) : (
+              {allExpanded ? (
                 <ChevronsDownUp className="size-4" />
+              ) : (
+                <ChevronsDownUp className="size-4 rotate-180" />
               )}
-              {allCollapsed ? "Tout déplier" : "Tout replier"}
+              {allExpanded ? "Tout replier" : "Tout déplier"}
             </button>
           )}
 
@@ -302,16 +313,28 @@ export function CatalogView({
               title={g.title}
               image={g.image}
               count={g.items.length}
-              open={!collapsed.has(g.key)}
-              onToggle={() => toggleCollapsed(g.key)}
+              open={expanded.has(g.key)}
+              onToggle={() => toggleExpanded(g.key)}
+              editHref={g.key !== NONE ? `/catalog/categories/${g.key}` : null}
+              addHref={
+                g.key !== NONE
+                  ? `/catalog/new?category=${g.key}`
+                  : "/catalog/new"
+              }
             >
-              <ProductGrid
-                products={g.items}
-                lowStockThreshold={lowStockThreshold}
-                selectMode={selectMode}
-                selected={selected}
-                onToggleSelect={toggleSelect}
-              />
+              {g.items.length === 0 ? (
+                <p className="text-muted py-4 text-center text-sm">
+                  Aucun produit dans cette catégorie.
+                </p>
+              ) : (
+                <ProductGrid
+                  products={g.items}
+                  lowStockThreshold={lowStockThreshold}
+                  selectMode={selectMode}
+                  selected={selected}
+                  onToggleSelect={toggleSelect}
+                />
+              )}
             </CategorySection>
           ))}
         </div>
@@ -402,6 +425,8 @@ function CategorySection({
   count,
   open,
   onToggle,
+  editHref,
+  addHref,
   children,
 }: {
   title: string;
@@ -409,42 +434,71 @@ function CategorySection({
   count: number;
   open: boolean;
   onToggle: () => void;
+  editHref: string | null;
+  addHref: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="border-border bg-surface overflow-hidden rounded-[16px] border">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
-      >
-        <div className="bg-surface-3 relative size-9 shrink-0 overflow-hidden rounded-[8px]">
-          {image ? (
-            <Image
-              src={image}
-              alt={title}
-              fill
-              sizes="36px"
-              className="object-cover"
-            />
-          ) : (
-            <span className="text-subtle flex h-full items-center justify-center">
-              <ImageOff className="size-4" />
-            </span>
-          )}
-        </div>
-        <span className="text-sm font-semibold">{title}</span>
-        <span className="bg-surface-3 text-muted rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums">
-          {count}
-        </span>
-        <ChevronDown
-          className={cn(
-            "text-muted ml-auto size-5 transition-transform",
-            open && "rotate-180"
-          )}
-        />
-      </button>
+      <div className="hover:bg-surface-2 flex items-center gap-2 px-3 py-2.5 transition-colors">
+        {/* Zone cliquable : déplie/replie */}
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <div className="bg-surface-3 relative size-9 shrink-0 overflow-hidden rounded-[8px]">
+            {image ? (
+              <Image
+                src={image}
+                alt={title}
+                fill
+                sizes="36px"
+                className="object-cover"
+              />
+            ) : (
+              <span className="text-subtle flex h-full items-center justify-center">
+                <ImageOff className="size-4" />
+              </span>
+            )}
+          </div>
+          <span className="truncate text-sm font-semibold">{title}</span>
+          <span className="bg-surface-3 text-muted rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums">
+            {count}
+          </span>
+        </button>
+
+        {/* Actions directes sur la catégorie */}
+        <Link
+          href={addHref}
+          title="Ajouter un produit à cette catégorie"
+          className="text-primary-700 hover:bg-primary-50 inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-xs font-medium"
+        >
+          <Plus className="size-3.5" />
+          <span className="hidden sm:inline">Produit</span>
+        </Link>
+        {editHref && (
+          <Link
+            href={editHref}
+            title="Modifier la catégorie"
+            className="text-muted hover:bg-surface-3 hover:text-foreground inline-flex items-center rounded-[8px] p-1.5"
+          >
+            <Pencil className="size-4" />
+          </Link>
+        )}
+
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={open ? "Replier" : "Déplier"}
+          className="text-muted hover:bg-surface-3 inline-flex items-center rounded-[8px] p-1.5"
+        >
+          <ChevronDown
+            className={cn("size-5 transition-transform", open && "rotate-180")}
+          />
+        </button>
+      </div>
 
       {open && <div className="px-4 pt-1 pb-4">{children}</div>}
     </section>
