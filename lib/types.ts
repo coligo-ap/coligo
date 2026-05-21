@@ -69,3 +69,35 @@ export type OrderItem = {
 export type OrderWithItems = Order & {
   order_items: OrderItem[];
 };
+
+// ===========================================================================
+// Produits (catalogue)
+// ===========================================================================
+export type ProductUnit = "piece" | "kg" | "l" | "m" | "custom";
+
+export const PRODUCT_UNIT_META: Record<
+  ProductUnit,
+  { label: string; short: string }
+> = {
+  piece: { label: "À la pièce", short: "pièce" },
+  kg: { label: "Au kilo", short: "kg" },
+  l: { label: "Au litre", short: "L" },
+  m: { label: "Au mètre", short: "m" },
+  custom: { label: "Autre / sur mesure", short: "unité" },
+};
+
+export type Product = {
+  id: string;
+  merchant_id: string;
+  name_fr: string;
+  name_ar: string | null;
+  description_fr: string | null;
+  description_ar: string | null;
+  price_da: number;
+  unit: ProductUnit;
+  category: string | null;
+  image_url: string | null;
+  is_available: boolean;
+  created_at: string;
+  updated_at: string;
+};

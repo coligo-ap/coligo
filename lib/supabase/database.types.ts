@@ -97,6 +97,61 @@ export type Database = {
           },
         ];
       };
+      products: {
+        Row: {
+          id: string;
+          merchant_id: string;
+          name_fr: string;
+          name_ar: string | null;
+          description_fr: string | null;
+          description_ar: string | null;
+          price_da: number;
+          unit: Database["public"]["Enums"]["product_unit"];
+          category: string | null;
+          image_url: string | null;
+          is_available: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          merchant_id: string;
+          name_fr: string;
+          name_ar?: string | null;
+          description_fr?: string | null;
+          description_ar?: string | null;
+          price_da: number;
+          unit?: Database["public"]["Enums"]["product_unit"];
+          category?: string | null;
+          image_url?: string | null;
+          is_available?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          merchant_id?: string;
+          name_fr?: string;
+          name_ar?: string | null;
+          description_fr?: string | null;
+          description_ar?: string | null;
+          price_da?: number;
+          unit?: Database["public"]["Enums"]["product_unit"];
+          category?: string | null;
+          image_url?: string | null;
+          is_available?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "products_merchant_id_fkey";
+            columns: ["merchant_id"];
+            referencedRelation: "merchants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       order_items: {
         Row: {
           id: string;
@@ -142,6 +197,7 @@ export type Database = {
         | "ready"
         | "completed"
         | "cancelled";
+      product_unit: "piece" | "kg" | "l" | "m" | "custom";
     };
     CompositeTypes: Record<never, never>;
   };

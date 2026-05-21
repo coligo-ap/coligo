@@ -1,6 +1,6 @@
 import { MerchantShell } from "@/components/merchant/merchant-shell";
 
-export default function DashboardLayout({
+export default function CatalogLayout({
   children,
 }: {
   children: React.ReactNode;
