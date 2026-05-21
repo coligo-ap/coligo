@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingBag,
+  QrCode,
   BarChart3,
   Wallet,
   Settings,
@@ -25,6 +26,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/orders", label: "Commandes", icon: ShoppingBag, disabled: true },
+  { href: "/orders/validate", label: "Valider retrait", icon: QrCode },
   { href: "/catalog", label: "Catalogue", icon: Package },
   { href: "/stats", label: "Statistiques", icon: BarChart3, disabled: true },
   { href: "/finances", label: "Finances", icon: Wallet, disabled: true },

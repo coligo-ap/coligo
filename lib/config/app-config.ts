@@ -29,10 +29,20 @@ export const APP_CONFIG = {
   },
 
   brand: {
-    primary: process.env.NEXT_PUBLIC_BRAND_PRIMARY ?? "#0d9488",
+    primary: process.env.NEXT_PUBLIC_BRAND_PRIMARY ?? "#5C5CE0",
     accent: process.env.NEXT_PUBLIC_BRAND_ACCENT ?? "#d97706",
   },
+
+  // Commission prélevée par Coligo sur chaque commande (affichage commerçant).
+  commission: {
+    rate: Number(process.env.NEXT_PUBLIC_COMMISSION_RATE ?? "0.05"),
+  },
 } as const;
+
+/** Part commission Coligo (en DA, arrondie) pour un montant donné. */
+export function commissionDA(totalDa: number): number {
+  return Math.round(totalDa * APP_CONFIG.commission.rate);
+}
 
 export function isMerchantHost(host: string | null | undefined): boolean {
   if (!host) return false;

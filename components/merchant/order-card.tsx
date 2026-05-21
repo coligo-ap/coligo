@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { ORDER_STATUS_META, type OrderWithItems } from "@/lib/types";
 import {
@@ -22,7 +23,10 @@ export function OrderCard({ order, variant = "compact" }: OrderCardProps) {
 
   if (variant === "compact") {
     return (
-      <article className="border-border hover:border-border-strong cursor-pointer rounded-[10px] border bg-white p-3 transition-all hover:shadow-sm">
+      <Link
+        href={`/orders/${order.id}`}
+        className="border-border hover:border-border-strong block cursor-pointer rounded-[10px] border bg-white p-3 transition-all hover:shadow-sm"
+      >
         {/* Header */}
         <div className="mb-2 flex items-center justify-between gap-2">
           <span className="text-foreground font-mono text-xs font-semibold">
@@ -53,13 +57,16 @@ export function OrderCard({ order, variant = "compact" }: OrderCardProps) {
             {formatDA(order.total_da)}
           </span>
         </div>
-      </article>
+      </Link>
     );
   }
 
   // variant === "detail" (mobile)
   return (
-    <article className="border-border hover:border-border-strong rounded-[14px] border bg-white p-4 transition-all">
+    <Link
+      href={`/orders/${order.id}`}
+      className="border-border hover:border-border-strong block rounded-[14px] border bg-white p-4 transition-all"
+    >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="mb-0.5 flex items-center gap-1.5">
@@ -100,6 +107,6 @@ export function OrderCard({ order, variant = "compact" }: OrderCardProps) {
           {formatDA(order.total_da)}
         </span>
       </div>
-    </article>
+    </Link>
   );
 }

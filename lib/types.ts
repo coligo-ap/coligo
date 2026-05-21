@@ -22,6 +22,43 @@ export const ORDER_STATUS_META: Record<
   cancelled: { label: "Annulée", tone: "rose", kanbanColumn: -1 },
 };
 
+/**
+ * Étapes du cycle de vie d'une commande (hors annulation), dans l'ordre.
+ * Sert à la timeline du détail commande.
+ */
+export const ORDER_FLOW: { status: OrderStatus; label: string }[] = [
+  { status: "pending", label: "Confirmée" },
+  { status: "accepted", label: "Acceptée" },
+  { status: "preparing", label: "En préparation" },
+  { status: "ready", label: "Prête" },
+  { status: "completed", label: "Récupérée" },
+];
+
+/** Index de l'étape courante dans ORDER_FLOW (-1 si annulée/inconnue). */
+export function orderFlowIndex(status: OrderStatus): number {
+  return ORDER_FLOW.findIndex((s) => s.status === status);
+}
+
+/**
+ * Action principale proposée selon le statut courant (transition « en avant »).
+ * `null` quand il n'y a plus d'action directe (prête → passe par la validation
+ * de retrait ; récupérée / annulée → terminal).
+ */
+export function nextOrderAction(
+  status: OrderStatus
+): { to: OrderStatus; label: string } | null {
+  switch (status) {
+    case "pending":
+      return { to: "accepted", label: "Accepter la commande" };
+    case "accepted":
+      return { to: "preparing", label: "Mettre en préparation" };
+    case "preparing":
+      return { to: "ready", label: "Marquer comme prête" };
+    default:
+      return null;
+  }
+}
+
 export const KANBAN_COLUMNS = [
   { id: 0, title: "À confirmer", statuses: ["pending"] as OrderStatus[] },
   {

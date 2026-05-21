@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  ShoppingBag,
+  QrCode,
   Package,
   BarChart3,
   Settings,
@@ -20,7 +20,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/orders", label: "Commandes", icon: ShoppingBag, disabled: true },
+  { href: "/orders/validate", label: "Valider", icon: QrCode },
   { href: "/catalog", label: "Catalogue", icon: Package },
   { href: "/stats", label: "Stats", icon: BarChart3, disabled: true },
   { href: "/settings", label: "Réglages", icon: Settings, disabled: true },

@@ -2,8 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { KpiCard } from "@/components/merchant/kpi-card";
 import { KanbanBoard } from "@/components/merchant/kanban-board";
 import { MobileOrderList } from "@/components/merchant/order-list-mobile";
-import { Inbox, ShoppingBag, TrendingUp, Clock } from "lucide-react";
-import { formatDA } from "@/lib/utils";
+import Link from "next/link";
+import { Inbox, ShoppingBag, TrendingUp, Clock, QrCode } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { formatDA, cn } from "@/lib/utils";
 import type { OrderWithItems } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -73,6 +75,13 @@ export default async function DashboardPage() {
             <span>Vos commandes en temps réel</span>
           </p>
         </div>
+        <Link
+          href="/orders/validate"
+          className={cn(buttonVariants({ size: "sm" }), "shrink-0")}
+        >
+          <QrCode className="size-4" />
+          <span className="hidden sm:inline">Valider un retrait</span>
+        </Link>
       </header>
 
       {/* KPIs */}
