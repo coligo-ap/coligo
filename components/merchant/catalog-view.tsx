@@ -1098,60 +1098,63 @@ function ProductCard({
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="border-border flex items-center justify-between gap-1 border-t px-3 py-2">
-        <button
-          type="button"
-          onClick={onToggle}
-          disabled={pending}
-          aria-pressed={available}
-          className="inline-flex items-center gap-1.5 text-xs font-medium disabled:opacity-50"
+      {/* Actions — disposées pour des zones de touche larges et espacées */}
+      {/* Ligne 1 : disponibilité (toute la largeur) */}
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={pending}
+        aria-pressed={available}
+        className="border-border hover:bg-surface-2 flex h-11 w-full items-center gap-2 border-t px-3 text-xs font-medium transition-colors disabled:opacity-50"
+      >
+        <span
+          className={cn(
+            "relative h-5 w-9 shrink-0 rounded-full transition-colors",
+            available ? "bg-success-500" : "bg-border-strong"
+          )}
         >
           <span
             className={cn(
-              "relative h-4 w-7 rounded-full transition-colors",
-              available ? "bg-success-500" : "bg-border-strong"
+              "absolute top-0.5 size-4 rounded-full bg-white transition-all",
+              available ? "left-4.5" : "left-0.5"
             )}
-          >
-            <span
-              className={cn(
-                "absolute top-0.5 size-3 rounded-full bg-white transition-all",
-                available ? "left-3.5" : "left-0.5"
-              )}
-            />
-          </span>
-          <span className={available ? "text-success-700" : "text-muted"}>
-            {available ? "Dispo" : "Masqué"}
-          </span>
-        </button>
+          />
+        </span>
+        <span className={available ? "text-success-700" : "text-muted"}>
+          {available ? "Disponible" : "Masqué"}
+        </span>
+      </button>
 
-        <div className="flex items-center">
-          <button
-            type="button"
-            onClick={onDuplicate}
-            disabled={dupPending}
-            title="Dupliquer"
-            className="text-muted hover:text-primary-700 inline-flex items-center p-1 disabled:opacity-50"
-          >
-            <Copy className="size-3.5" />
-          </button>
-          <Link
-            href={`/catalog/${product.id}`}
-            title="Modifier"
-            className="text-muted hover:text-primary-700 inline-flex items-center p-1"
-          >
-            <Pencil className="size-3.5" />
-          </Link>
-          <button
-            type="button"
-            onClick={onDelete}
-            disabled={delPending}
-            title="Supprimer"
-            className="text-muted hover:text-danger-600 inline-flex items-center p-1 disabled:opacity-50"
-          >
-            <Trash2 className="size-3.5" />
-          </button>
-        </div>
+      {/* Ligne 2 : dupliquer / modifier / supprimer (3 grandes cellules) */}
+      <div className="border-border divide-border grid grid-cols-3 divide-x border-t">
+        <button
+          type="button"
+          onClick={onDuplicate}
+          disabled={dupPending}
+          title="Dupliquer"
+          className="text-muted hover:bg-surface-2 hover:text-primary-700 flex h-11 items-center justify-center gap-1.5 text-xs font-medium transition-colors disabled:opacity-50"
+        >
+          <Copy className="size-4" />
+          <span className="hidden lg:inline">Dupliquer</span>
+        </button>
+        <Link
+          href={`/catalog/${product.id}`}
+          title="Modifier"
+          className="text-muted hover:bg-surface-2 hover:text-primary-700 flex h-11 items-center justify-center gap-1.5 text-xs font-medium transition-colors"
+        >
+          <Pencil className="size-4" />
+          <span className="hidden lg:inline">Modifier</span>
+        </Link>
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={delPending}
+          title="Supprimer"
+          className="text-muted hover:bg-danger-50 hover:text-danger-600 flex h-11 items-center justify-center gap-1.5 text-xs font-medium transition-colors disabled:opacity-50"
+        >
+          <Trash2 className="size-4" />
+          <span className="hidden lg:inline">Suppr.</span>
+        </button>
       </div>
     </div>
   );
