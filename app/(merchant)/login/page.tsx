@@ -38,15 +38,15 @@ function LoginContent() {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-5">
       {/* Colonne marketing à gauche (desktop only) */}
-      <aside className="hidden lg:flex lg:col-span-2 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 text-white p-12 flex-col justify-between">
+      <aside className="from-primary-500 via-primary-600 to-primary-700 hidden flex-col justify-between bg-gradient-to-br p-12 text-white lg:col-span-2 lg:flex">
         <Logo variant="amber" size="xl" iconOnly className="!gap-0" />
 
         <div>
-          <h1 className="text-4xl font-bold mb-4 leading-tight">
+          <h1 className="mb-4 text-4xl leading-tight font-bold">
             Gérez vos commandes <br />
             en temps réel.
           </h1>
-          <p className="text-lg text-primary-50/90 mb-8">
+          <p className="text-primary-50/90 mb-8 text-lg">
             La plateforme pensée pour les commerces de proximité algériens.
           </p>
 
@@ -58,25 +58,25 @@ function LoginContent() {
           </div>
         </div>
 
-        <p className="text-xs text-primary-50/70">
+        <p className="text-primary-50/70 text-xs">
           © {new Date().getFullYear()} {APP_CONFIG.name} · Tous droits réservés
         </p>
       </aside>
 
       {/* Formulaire à droite */}
-      <main className="lg:col-span-3 flex items-center justify-center p-4 lg:p-12 bg-surface-2 lg:bg-white">
+      <main className="bg-surface-2 flex items-center justify-center p-4 lg:col-span-3 lg:bg-white lg:p-12">
         <div className="w-full max-w-md">
           {/* Logo mobile uniquement */}
-          <div className="lg:hidden flex justify-center mb-8">
+          <div className="mb-8 flex justify-center lg:hidden">
             <Logo variant="amber" size="lg" />
           </div>
 
-          <div className="bg-white lg:bg-transparent rounded-[14px] lg:rounded-none border lg:border-0 border-border p-6 lg:p-0 shadow-sm lg:shadow-none">
+          <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
             <div className="mb-6">
-              <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">
+              <h2 className="text-foreground mb-2 text-2xl font-bold lg:text-3xl">
                 Bonjour
               </h2>
-              <p className="text-sm lg:text-base text-muted">
+              <p className="text-muted text-sm lg:text-base">
                 Connectez-vous à votre espace commerçant.
               </p>
             </div>
@@ -85,7 +85,7 @@ function LoginContent() {
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-subtle pointer-events-none" />
+                  <Mail className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                   <Input
                     id="email"
                     name="email"
@@ -104,13 +104,13 @@ function LoginContent() {
                   <Label htmlFor="password">Mot de passe</Label>
                   <button
                     type="button"
-                    className="text-xs text-muted hover:text-primary-700"
+                    className="text-muted hover:text-primary-700 text-xs"
                   >
                     Oublié ?
                   </button>
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-subtle pointer-events-none" />
+                  <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                   <Input
                     id="password"
                     name="password"
@@ -125,7 +125,7 @@ function LoginContent() {
               </div>
 
               {(state.error || urlErrorMessage) && (
-                <div className="rounded-[10px] bg-rose-50 border border-rose-200 px-3 py-2.5 text-sm text-rose-800">
+                <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
                   {state.error ?? urlErrorMessage}
                 </div>
               )}
@@ -136,7 +136,9 @@ function LoginContent() {
                 className="w-full"
                 disabled={pending}
               >
-                {pending ? "Connexion…" : (
+                {pending ? (
+                  "Connexion…"
+                ) : (
                   <>
                     Se connecter
                     <ArrowRight className="size-4" />
@@ -145,7 +147,7 @@ function LoginContent() {
               </Button>
             </form>
 
-            <div className="mt-6 pt-6 border-t border-border text-center text-sm text-muted">
+            <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
               Pas encore inscrit ?{" "}
               <Link
                 href="/signup"
@@ -164,8 +166,12 @@ function LoginContent() {
 function Feature({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="size-6 rounded-full bg-primary-400/30 flex items-center justify-center shrink-0">
-        <svg className="size-3.5 text-white" viewBox="0 0 20 20" fill="currentColor">
+      <div className="bg-primary-400/30 flex size-6 shrink-0 items-center justify-center rounded-full">
+        <svg
+          className="size-3.5 text-white"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
           <path
             fillRule="evenodd"
             d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"

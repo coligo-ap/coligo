@@ -1,11 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans:
+    var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Code", monospace;
 
   /* === Palette violette/indigo (kit e-commerce) === */
-  --color-violet-50:  #eeeefb;
+  --color-violet-50: #eeeefb;
   --color-violet-100: #e0e0f8;
   --color-violet-200: #c4c4f1;
   --color-violet-300: #a3a3e8;
@@ -17,7 +18,7 @@
   --color-violet-900: #313178;
 
   /* Couleur primaire = violet du kit (#5C5CE0) */
-  --color-primary-50:  #eeeefb;
+  --color-primary-50: #eeeefb;
   --color-primary-100: #e0e0f8;
   --color-primary-200: #c4c4f1;
   --color-primary-300: #a3a3e8;
@@ -29,19 +30,19 @@
   --color-primary-900: #313178;
 
   /* Accents sémantiques */
-  --color-success-50:  #ecfdf5;
+  --color-success-50: #ecfdf5;
   --color-success-100: #d1fae5;
   --color-success-500: #10b981;
   --color-success-600: #059669;
   --color-success-700: #047857;
 
-  --color-warning-50:  #fffbeb;
+  --color-warning-50: #fffbeb;
   --color-warning-100: #fef3c7;
   --color-warning-500: #f59e0b;
   --color-warning-600: #d97706;
   --color-warning-700: #b45309;
 
-  --color-danger-50:  #fef2f2;
+  --color-danger-50: #fef2f2;
   --color-danger-100: #fee2e2;
   --color-danger-500: #ef4444;
   --color-danger-600: #dc2626;
@@ -65,8 +66,13 @@
   --radius-2xl: 28px;
 }
 
-* { border-color: var(--color-border); }
-html, body { height: 100%; }
+* {
+  border-color: var(--color-border);
+}
+html,
+body {
+  height: 100%;
+}
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -78,11 +84,19 @@ body {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .animate-fade-in {
   animation: fade-in 0.4s ease-out both;

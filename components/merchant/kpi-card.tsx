@@ -29,14 +29,14 @@ export function KpiCard({
   tone = "stone",
 }: KpiCardProps) {
   return (
-    <div className="bg-white border border-border rounded-[14px] p-4 lg:p-5">
-      <div className="flex items-start justify-between gap-3 mb-3 lg:mb-4">
-        <span className="text-xs lg:text-sm text-muted font-medium">
+    <div className="border-border rounded-[14px] border bg-white p-4 lg:p-5">
+      <div className="mb-3 flex items-start justify-between gap-3 lg:mb-4">
+        <span className="text-muted text-xs font-medium lg:text-sm">
           {label}
         </span>
         <div
           className={cn(
-            "size-8 lg:size-9 rounded-[10px] flex items-center justify-center",
+            "flex size-8 items-center justify-center rounded-[10px] lg:size-9",
             TONES[tone]
           )}
         >
@@ -44,12 +44,12 @@ export function KpiCard({
         </div>
       </div>
 
-      <div className="text-2xl lg:text-3xl font-bold tabular-nums leading-tight">
+      <div className="text-2xl leading-tight font-bold tabular-nums lg:text-3xl">
         {value}
       </div>
 
       {delta !== undefined && (
-        <div className="flex items-center gap-1.5 mt-2 text-xs">
+        <div className="mt-2 flex items-center gap-1.5 text-xs">
           <span
             className={cn(
               "font-semibold",
@@ -58,9 +58,7 @@ export function KpiCard({
           >
             {delta >= 0 ? "↑" : "↓"} {Math.abs(delta)}%
           </span>
-          {deltaLabel && (
-            <span className="text-muted">{deltaLabel}</span>
-          )}
+          {deltaLabel && <span className="text-muted">{deltaLabel}</span>}
         </div>
       )}
     </div>

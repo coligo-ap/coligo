@@ -5,7 +5,11 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as
-    | "signup" | "magiclink" | "recovery" | "email_change" | null;
+    | "signup"
+    | "magiclink"
+    | "recovery"
+    | "email_change"
+    | null;
   const next = searchParams.get("next");
 
   if (token_hash && type) {

@@ -10,7 +10,8 @@ export const APP_CONFIG = {
 
   domains: {
     customer: process.env.NEXT_PUBLIC_APP_DOMAIN ?? "coligo.app",
-    merchant: process.env.NEXT_PUBLIC_MERCHANT_DOMAIN ?? "commercant.coligo.app",
+    merchant:
+      process.env.NEXT_PUBLIC_MERCHANT_DOMAIN ?? "commercant.coligo.app",
     admin: process.env.NEXT_PUBLIC_ADMIN_DOMAIN ?? "admin.coligo.app",
   },
 

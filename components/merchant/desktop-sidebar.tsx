@@ -35,12 +35,12 @@ export function MerchantSidebar({ merchantName }: { merchantName: string }) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-60 lg:fixed lg:inset-y-0 lg:border-r lg:border-border lg:bg-white z-30">
-      <div className="px-5 py-5 border-b border-border">
+    <aside className="lg:border-border z-30 hidden lg:fixed lg:inset-y-0 lg:flex lg:w-60 lg:flex-col lg:border-r lg:bg-white">
+      <div className="border-border border-b px-5 py-5">
         <Logo variant="amber" size="md" subtitle={merchantName} />
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = pathname.startsWith(item.href);
@@ -49,12 +49,12 @@ export function MerchantSidebar({ merchantName }: { merchantName: string }) {
             return (
               <div
                 key={item.href}
-                className="flex items-center gap-3 px-3 py-2 rounded-[10px] text-sm text-subtle cursor-not-allowed"
+                className="text-subtle flex cursor-not-allowed items-center gap-3 rounded-[10px] px-3 py-2 text-sm"
                 title="Bientôt disponible"
               >
                 <Icon className="size-4 shrink-0" />
                 <span className="flex-1">{item.label}</span>
-                <span className="text-[10px] uppercase tracking-wider text-subtle">
+                <span className="text-subtle text-[10px] tracking-wider uppercase">
                   Bientôt
                 </span>
               </div>
@@ -66,7 +66,7 @@ export function MerchantSidebar({ merchantName }: { merchantName: string }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-[10px] text-sm transition-colors",
+                "flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors",
                 active
                   ? "bg-primary-50 text-primary-900 font-medium"
                   : "text-muted hover:bg-surface-2 hover:text-foreground"
@@ -75,7 +75,7 @@ export function MerchantSidebar({ merchantName }: { merchantName: string }) {
               <Icon className="size-4 shrink-0" />
               <span className="flex-1">{item.label}</span>
               {item.badge !== undefined && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary-100 text-primary-800 font-semibold tabular-nums">
+                <span className="bg-primary-100 text-primary-800 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
                   {item.badge}
                 </span>
               )}
@@ -84,10 +84,10 @@ export function MerchantSidebar({ merchantName }: { merchantName: string }) {
         })}
       </nav>
 
-      <div className="px-3 py-4 border-t border-border">
+      <div className="border-border border-t px-3 py-4">
         <a
           href="#"
-          className="flex items-center gap-3 px-3 py-2 rounded-[10px] text-sm text-muted hover:bg-surface-2 hover:text-foreground transition-colors"
+          className="text-muted hover:bg-surface-2 hover:text-foreground flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors"
         >
           <HelpCircle className="size-4 shrink-0" />
           Centre d&apos;aide

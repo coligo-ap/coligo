@@ -31,10 +31,10 @@ export function MerchantMobileBottomNav() {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-border"
+      className="border-border fixed inset-x-0 bottom-0 z-30 border-t bg-white lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="grid grid-cols-5 h-16">
+      <div className="grid h-16 grid-cols-5">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = pathname.startsWith(item.href) && !item.disabled;

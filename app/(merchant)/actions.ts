@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import {
+  loginSchema,
+  signupSchema,
+  firstZodError,
+} from "@/lib/validation/auth";
 
 export type AuthState = {
   error?: string;
@@ -16,12 +21,16 @@ export async function login(
   _prevState: AuthState,
   formData: FormData
 ): Promise<AuthState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
+  const parsed = loginSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
 
-  if (!email || !password) {
-    return { error: "Email et mot de passe requis" };
+  if (!parsed.success) {
+    return { error: firstZodError(parsed.error) };
   }
+
+  const { email, password } = parsed.data;
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -31,7 +40,9 @@ export async function login(
       return { error: "Email ou mot de passe incorrect" };
     }
     if (error.message.includes("Email not confirmed")) {
-      return { error: "Veuillez confirmer votre email avant de vous connecter" };
+      return {
+        error: "Veuillez confirmer votre email avant de vous connecter",
+      };
     }
     return { error: error.message };
   }
@@ -47,22 +58,21 @@ export async function signup(
   _prevState: AuthState,
   formData: FormData
 ): Promise<AuthState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  const merchantName = String(formData.get("merchantName") ?? "").trim();
-  const category = String(formData.get("category") ?? "").trim();
-  const wilayaCode = String(formData.get("wilayaCode") ?? "").trim();
-  const city = String(formData.get("city") ?? "").trim();
+  const parsed = signupSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+    merchantName: formData.get("merchantName"),
+    category: formData.get("category"),
+    wilayaCode: formData.get("wilayaCode"),
+    city: formData.get("city"),
+  });
 
-  if (!email || !password || !merchantName) {
-    return { error: "Les champs marqués * sont requis" };
+  if (!parsed.success) {
+    return { error: firstZodError(parsed.error) };
   }
-  if (password.length < 8) {
-    return { error: "Le mot de passe doit contenir au moins 8 caractères" };
-  }
-  if (!email.includes("@")) {
-    return { error: "Email invalide" };
-  }
+
+  const { email, password, merchantName, category, wilayaCode, city } =
+    parsed.data;
 
   const supabase = await createClient();
 
@@ -96,7 +106,10 @@ export async function signup(
   }
 
   if (!signUpData.user) {
-    return { error: "Erreur lors de la création du compte (pas d'utilisateur retourné)" };
+    return {
+      error:
+        "Erreur lors de la création du compte (pas d'utilisateur retourné)",
+    };
   }
 
   if (signUpData.user.identities?.length === 0) {
@@ -106,9 +119,9 @@ export async function signup(
   const { error: merchantError } = await supabase.from("merchants").insert({
     user_id: signUpData.user.id,
     name: merchantName,
-    category: category || null,
-    wilaya_code: wilayaCode || null,
-    city: city || null,
+    category,
+    wilaya_code: wilayaCode,
+    city,
   });
 
   if (merchantError) {

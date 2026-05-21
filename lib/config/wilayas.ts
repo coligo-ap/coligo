@@ -55,7 +55,12 @@ export const WILAYAS: Wilaya[] = [
   { code: "47", name: "Ghardaïa", name_ar: "غرداية" },
   { code: "48", name: "Relizane", name_ar: "غليزان" },
   { code: "49", name: "Timimoun", name_ar: "تيميمون", is_new: true },
-  { code: "50", name: "Bordj Baji Mokhtar", name_ar: "برج باجي مختار", is_new: true },
+  {
+    code: "50",
+    name: "Bordj Baji Mokhtar",
+    name_ar: "برج باجي مختار",
+    is_new: true,
+  },
   { code: "51", name: "Ouled Djellal", name_ar: "أولاد جلال", is_new: true },
   { code: "52", name: "Béni Abbès", name_ar: "بني عباس", is_new: true },
   { code: "53", name: "In Salah", name_ar: "عين صالح", is_new: true },
@@ -70,7 +75,10 @@ export function getWilaya(code: string): Wilaya | undefined {
   return WILAYAS.find((w) => w.code === code);
 }
 
-export function getWilayaName(code: string, locale: "fr" | "ar" = "fr"): string {
+export function getWilayaName(
+  code: string,
+  locale: "fr" | "ar" = "fr"
+): string {
   const w = getWilaya(code);
   if (!w) return code;
   return locale === "ar" ? w.name_ar : w.name;

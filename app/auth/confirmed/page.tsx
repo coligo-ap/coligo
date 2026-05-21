@@ -21,26 +21,30 @@ export default async function ConfirmedPage() {
     : { href: "/login", label: "Se connecter" };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-surface-2 to-primary-100 flex items-center justify-center p-4">
+    <div className="from-primary-50 via-surface-2 to-primary-100 flex min-h-screen items-center justify-center bg-gradient-to-br p-4">
       <div className="w-full max-w-md">
-        <div className="flex justify-center mb-6">
+        <div className="mb-6 flex justify-center">
           <Logo variant="teal" size="lg" />
         </div>
 
-        <div className="bg-white rounded-[20px] border border-border shadow-lg p-8 lg:p-10 text-center">
-          <div className="mx-auto mb-6 size-20 rounded-full bg-green-100 flex items-center justify-center relative">
-            <CheckCircle2 className="size-12 text-green-600" strokeWidth={2.2} />
-            <Sparkles className="absolute -top-1 -right-1 size-5 text-primary-500" />
+        <div className="border-border rounded-[20px] border bg-white p-8 text-center shadow-lg lg:p-10">
+          <div className="relative mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-green-100">
+            <CheckCircle2
+              className="size-12 text-green-600"
+              strokeWidth={2.2}
+            />
+            <Sparkles className="text-primary-500 absolute -top-1 -right-1 size-5" />
           </div>
 
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-2 tracking-tight">
+          <h1 className="text-foreground mb-2 text-2xl font-bold tracking-tight lg:text-3xl">
             Inscription confirmée
           </h1>
           <p className="text-muted mb-1">
             Votre compte commerçant a bien été activé.
           </p>
-          <p className="text-subtle text-sm mb-8">
-            Bienvenue sur {APP_CONFIG.name} — vous pouvez maintenant accéder à votre espace.
+          <p className="text-subtle mb-8 text-sm">
+            Bienvenue sur {APP_CONFIG.name} — vous pouvez maintenant accéder à
+            votre espace.
           </p>
 
           <Link
@@ -51,18 +55,18 @@ export default async function ConfirmedPage() {
             <ArrowRight className="size-4" />
           </Link>
 
-          <p className="text-xs text-muted mt-6">
+          <p className="text-muted mt-6 text-xs">
             Besoin d&apos;aide ?{" "}
             <a
               href={`mailto:${APP_CONFIG.contact.supportEmail}`}
-              className="text-primary-700 hover:underline font-medium"
+              className="text-primary-700 font-medium hover:underline"
             >
               {APP_CONFIG.contact.supportEmail}
             </a>
           </p>
         </div>
 
-        <p className="text-xs text-subtle text-center mt-6">
+        <p className="text-subtle mt-6 text-center text-xs">
           © {new Date().getFullYear()} {APP_CONFIG.name}
         </p>
       </div>

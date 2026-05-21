@@ -37,7 +37,7 @@ export function Logo({
     <div className={cn("flex items-center gap-3", className)}>
       <div
         className={cn(
-          "rounded-xl flex items-center justify-center text-white font-bold shadow-sm",
+          "flex items-center justify-center rounded-xl font-bold text-white shadow-sm",
           variants[variant],
           s.box
         )}
@@ -47,7 +47,7 @@ export function Logo({
       </div>
       {!iconOnly && (
         <div className="min-w-0">
-          <div className={cn("font-semibold leading-tight", s.name)}>
+          <div className={cn("leading-tight font-semibold", s.name)}>
             {APP_CONFIG.name}
           </div>
           {subtitle && (

@@ -28,7 +28,7 @@ export default async function DashboardPage() {
   if (error) {
     return (
       <div className="p-4 lg:p-6">
-        <div className="rounded-[10px] bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-800">
+        <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           Erreur de chargement : {error.message}
         </div>
       </div>
@@ -57,14 +57,14 @@ export default async function DashboardPage() {
     .reduce((sum, o) => sum + o.total_da, 0);
 
   return (
-    <div className="p-4 lg:p-6 lg:px-8 max-w-[1600px] mx-auto">
+    <div className="mx-auto max-w-[1600px] p-4 lg:p-6 lg:px-8">
       {/* Header */}
-      <header className="mb-5 lg:mb-6 flex items-end justify-between gap-4">
+      <header className="mb-5 flex items-end justify-between gap-4 lg:mb-6">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
             Tableau de bord
           </h1>
-          <p className="text-sm text-muted mt-1 flex items-center gap-2">
+          <p className="text-muted mt-1 flex items-center gap-2 text-sm">
             <span className="inline-flex items-center gap-1.5">
               <span className="size-1.5 rounded-full bg-green-500" />
               En ligne
@@ -76,7 +76,7 @@ export default async function DashboardPage() {
       </header>
 
       {/* KPIs */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 lg:mb-8">
+      <section className="mb-6 grid grid-cols-2 gap-3 lg:mb-8 lg:grid-cols-4 lg:gap-4">
         <KpiCard
           label="À confirmer"
           value={pendingCount}
@@ -105,10 +105,11 @@ export default async function DashboardPage() {
 
       {/* Desktop : Kanban */}
       <div className="hidden lg:block">
-        <header className="flex items-center justify-between mb-4">
+        <header className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold">Commandes</h2>
-          <span className="text-xs text-muted tabular-nums">
-            {ordersList.length} commande{ordersList.length > 1 ? "s" : ""} au total
+          <span className="text-muted text-xs tabular-nums">
+            {ordersList.length} commande{ordersList.length > 1 ? "s" : ""} au
+            total
           </span>
         </header>
         <KanbanBoard orders={ordersList} />
@@ -116,7 +117,7 @@ export default async function DashboardPage() {
 
       {/* Mobile : Tabs + liste */}
       <div className="lg:hidden">
-        <h2 className="text-base font-semibold mb-3">Commandes</h2>
+        <h2 className="mb-3 text-base font-semibold">Commandes</h2>
         <MobileOrderList orders={ordersList} />
       </div>
     </div>

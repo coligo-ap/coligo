@@ -20,35 +20,44 @@ Next.js 15 (App Router) · TypeScript · Tailwind v4 · shadcn/ui · Supabase (P
 ## Lancement en local
 
 ### 1. Prérequis
+
 - Node.js 20+ (npm livré avec)
 - Un projet Supabase Cloud
 
 ### 2. Installer
+
 ```bash
 cd coligo
 npm install
 ```
 
 ### 3. Configurer Supabase
+
 Crée `.env.local` (copie depuis `.env.local.example`) :
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://TON_PROJET.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...TA_CLE_ANON
 ```
+
 Récupère ces valeurs sur https://supabase.com/dashboard/project/_/settings/api (section "Project API keys" → **anon public**, jamais le service_role).
 
 ### 4. Appliquer la migration SQL
+
 - Va sur SQL Editor : https://supabase.com/dashboard/project/_/sql/new
 - Copie tout le contenu de `supabase/migrations/0001_init.sql`
 - Colle et clique **Run**
 
 ### 5. Désactiver la confirmation email (pour tester vite)
+
 Dashboard → Authentication → Providers → Email → décoche **"Confirm email"** → Save
 
 ### 6. Lancer
+
 ```bash
 npm run dev
 ```
+
 Ouvre http://localhost:3000 → redirigé vers `/login`.
 
 ---
@@ -56,12 +65,15 @@ Ouvre http://localhost:3000 → redirigé vers `/login`.
 ## Tester
 
 ### Créer un compte
+
 1. "Créer un compte commerçant"
 2. Remplis : `Boulangerie El Karim` / `Boulangerie` / wilaya `Alger` / `Bab Ezzouar` / email / mot de passe (8+ car.)
 3. → Dashboard (vide)
 
 ### Insérer des commandes de test
+
 SQL Editor :
+
 ```sql
 -- 1. Ton merchant_id
 SELECT m.id, m.name FROM public.merchants m
@@ -82,9 +94,11 @@ SELECT o.id, 'Baguette traditionnelle', 15, 3, 45 FROM public.orders o WHERE o.c
 INSERT INTO public.order_items (order_id, product_name, unit_price_da, quantity, line_total_da)
 SELECT o.id, 'Croissant beurre', 40, 2, 80 FROM public.orders o WHERE o.customer_name = 'Karim Boudjemaa';
 ```
+
 Rafraîchis le dashboard → 5 commandes réparties dans le kanban (desktop) ou les tabs (mobile).
 
 ### Tester le responsive
+
 - **Desktop** : fenêtre large → sidebar fixe + topbar + kanban 4 colonnes
 - **Mobile** : F12 → mode device (Ctrl+Shift+M) → header compact + bottom-nav + tabs
 
@@ -93,12 +107,14 @@ Rafraîchis le dashboard → 5 commandes réparties dans le kanban (desktop) ou 
 ## Changer le nom de l'app
 
 Tout est dans `.env.local`. Pour renommer "Coligo" en autre chose :
+
 ```env
 NEXT_PUBLIC_APP_NAME=MonApp
 NEXT_PUBLIC_APP_SHORT_NAME=MonApp
 NEXT_PUBLIC_APP_DOMAIN=monapp.dz
 NEXT_PUBLIC_MERCHANT_DOMAIN=commercant.monapp.dz
 ```
+
 Redémarre `npm run dev` → tout l'affichage (logo, titres, emails) se met à jour.
 
 ---
@@ -106,6 +122,7 @@ Redémarre `npm run dev` → tout l'affichage (logo, titres, emails) se met à j
 ## Architecture multi-domaine
 
 Le projet est prêt pour 2 sous-domaines :
+
 - `commercant.coligo.app` → espace commerçant (cette version)
 - `coligo.app` → marketplace client (étape suivante)
 
@@ -156,6 +173,7 @@ coligo/
 ---
 
 ## Prochaines étapes
+
 1. **Catalogue produits** (CRUD, bilingue FR/AR)
 2. **Gestion des statuts** (accepter, préparer, prête)
 3. **QR + code 6 chiffres** pour validation retrait
@@ -165,6 +183,7 @@ coligo/
 ---
 
 ## Dépannage
+
 - **"supabaseUrl is required"** → `.env.local` manquant ou vide
 - **"Email not confirmed"** → désactive la confirmation email (étape 5)
 - **Erreur RLS au SQL Editor** → le SQL Editor bypass RLS par défaut, ça devrait passer

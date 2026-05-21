@@ -14,12 +14,7 @@
     "postcss.config.js"
   ],
   "ext": "ts,js,mjs,json",
-  "ignore": [
-    ".next/**",
-    "node_modules/**",
-    "**/*.test.*",
-    "**/*.spec.*"
-  ],
+  "ignore": [".next/**", "node_modules/**", "**/*.test.*", "**/*.spec.*"],
   "exec": "npm run dev:next",
   "delay": 500,
   "verbose": false

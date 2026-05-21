@@ -11,7 +11,15 @@ import { WILAYAS } from "@/lib/config/wilayas";
 import { MERCHANT_CATEGORIES } from "@/lib/config/categories";
 import { getCommunes } from "@/lib/config/communes";
 import { APP_CONFIG } from "@/lib/config/app-config";
-import { Mail, Lock, Store, MapPin, Tag, ArrowRight, Building2 } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  Store,
+  MapPin,
+  Tag,
+  ArrowRight,
+  Building2,
+} from "lucide-react";
 
 const initialState: AuthState = {};
 
@@ -27,16 +35,17 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-5">
       {/* Colonne marketing */}
-      <aside className="hidden lg:flex lg:col-span-2 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white p-12 flex-col justify-between">
+      <aside className="from-primary-600 via-primary-700 to-primary-800 hidden flex-col justify-between bg-gradient-to-br p-12 text-white lg:col-span-2 lg:flex">
         <Logo variant="teal" size="xl" iconOnly className="!gap-0" />
 
         <div>
-          <h1 className="text-4xl font-bold mb-4 leading-tight">
+          <h1 className="mb-4 text-4xl leading-tight font-bold">
             Rejoignez {APP_CONFIG.name}.<br />
             Vendez sans complications.
           </h1>
-          <p className="text-lg text-primary-50/90 mb-8">
-            Une plateforme gratuite à l&apos;inscription. Vous ne payez qu&apos;une commission sur les commandes.
+          <p className="text-primary-50/90 mb-8 text-lg">
+            Une plateforme gratuite à l&apos;inscription. Vous ne payez
+            qu&apos;une commission sur les commandes.
           </p>
 
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -47,24 +56,24 @@ export default function SignupPage() {
           </div>
         </div>
 
-        <p className="text-xs text-primary-50/70">
+        <p className="text-primary-50/70 text-xs">
           © {new Date().getFullYear()} {APP_CONFIG.name}
         </p>
       </aside>
 
       {/* Formulaire */}
-      <main className="lg:col-span-3 flex items-center justify-center p-4 py-8 lg:p-12 bg-surface-2 lg:bg-white">
+      <main className="bg-surface-2 flex items-center justify-center p-4 py-8 lg:col-span-3 lg:bg-white lg:p-12">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex justify-center mb-6">
+          <div className="mb-6 flex justify-center lg:hidden">
             <Logo variant="amber" size="lg" />
           </div>
 
-          <div className="bg-white lg:bg-transparent rounded-[14px] lg:rounded-none border lg:border-0 border-border p-6 lg:p-0 shadow-sm lg:shadow-none">
+          <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
             <div className="mb-6">
-              <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-2">
+              <h2 className="text-foreground mb-2 text-2xl font-bold lg:text-3xl">
                 Créer mon compte
               </h2>
-              <p className="text-sm lg:text-base text-muted">
+              <p className="text-muted text-sm lg:text-base">
                 30 secondes et vous êtes prêt à recevoir des commandes.
               </p>
             </div>
@@ -76,7 +85,7 @@ export default function SignupPage() {
                   Nom du commerce <span className="text-rose-600">*</span>
                 </Label>
                 <div className="relative">
-                  <Store className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-subtle pointer-events-none" />
+                  <Store className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                   <Input
                     id="merchantName"
                     name="merchantName"
@@ -93,7 +102,7 @@ export default function SignupPage() {
               <div className="space-y-1.5">
                 <Label htmlFor="category">Catégorie</Label>
                 <div className="relative">
-                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-subtle pointer-events-none z-10" />
+                  <Tag className="text-subtle pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2" />
                   <ChevronIcon />
                   <select
                     id="category"
@@ -117,7 +126,7 @@ export default function SignupPage() {
                 <div className="space-y-1.5">
                   <Label htmlFor="wilayaCode">Wilaya</Label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-subtle pointer-events-none z-10" />
+                    <MapPin className="text-subtle pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2" />
                     <ChevronIcon />
                     <select
                       id="wilayaCode"
@@ -140,7 +149,7 @@ export default function SignupPage() {
                 <div className="space-y-1.5">
                   <Label htmlFor="city">Commune</Label>
                   <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-subtle pointer-events-none z-10" />
+                    <Building2 className="text-subtle pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2" />
                     {communes.length > 0 ? (
                       <>
                         <ChevronIcon />
@@ -174,13 +183,13 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              <div className="border-t border-surface-3 pt-4">
+              <div className="border-surface-3 border-t pt-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="email">
                     Email <span className="text-rose-600">*</span>
                   </Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-subtle pointer-events-none" />
+                    <Mail className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                     <Input
                       id="email"
                       name="email"
@@ -194,12 +203,12 @@ export default function SignupPage() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5 mt-3">
+                <div className="mt-3 space-y-1.5">
                   <Label htmlFor="password">
                     Mot de passe <span className="text-rose-600">*</span>
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-subtle pointer-events-none" />
+                    <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                     <Input
                       id="password"
                       name="password"
@@ -216,13 +225,13 @@ export default function SignupPage() {
               </div>
 
               {state.error && (
-                <div className="rounded-[10px] bg-rose-50 border border-rose-200 px-3 py-2.5 text-sm text-rose-800">
+                <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
                   {state.error}
                 </div>
               )}
 
               {state.success && (
-                <div className="rounded-[10px] bg-green-50 border border-green-200 px-3 py-2.5 text-sm text-green-800">
+                <div className="rounded-[10px] border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-800">
                   {state.success}
                 </div>
               )}
@@ -233,7 +242,9 @@ export default function SignupPage() {
                 className="w-full"
                 disabled={pending}
               >
-                {pending ? "Création…" : (
+                {pending ? (
+                  "Création…"
+                ) : (
                   <>
                     Créer mon compte
                     <ArrowRight className="size-4" />
@@ -241,12 +252,12 @@ export default function SignupPage() {
                 )}
               </Button>
 
-              <p className="text-xs text-muted text-center pt-2">
+              <p className="text-muted pt-2 text-center text-xs">
                 En vous inscrivant, vous acceptez les CGU de {APP_CONFIG.name}.
               </p>
             </form>
 
-            <div className="mt-6 pt-6 border-t border-border text-center text-sm text-muted">
+            <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
               Déjà inscrit ?{" "}
               <Link
                 href="/login"
@@ -264,9 +275,9 @@ export default function SignupPage() {
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="bg-primary-700/40 backdrop-blur rounded-[10px] p-3">
+    <div className="bg-primary-700/40 rounded-[10px] p-3 backdrop-blur">
       <div className="text-xl font-bold">{value}</div>
-      <div className="text-xs text-primary-100/80">{label}</div>
+      <div className="text-primary-100/80 text-xs">{label}</div>
     </div>
   );
 }
@@ -274,7 +285,7 @@ function Stat({ value, label }: { value: string; label: string }) {
 function ChevronIcon() {
   return (
     <svg
-      className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-subtle pointer-events-none"
+      className="text-subtle pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 20 20"
       fill="currentColor"

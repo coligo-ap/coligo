@@ -54,7 +54,7 @@ export default async function DashboardLayout({
     .eq("status", "pending");
 
   return (
-    <div className="min-h-screen bg-surface-2">
+    <div className="bg-surface-2 min-h-screen">
       {/* Desktop sidebar */}
       <MerchantSidebar merchantName={merchant.name} />
 
@@ -65,7 +65,7 @@ export default async function DashboardLayout({
       />
 
       {/* Main */}
-      <div className="lg:pl-60 flex flex-col min-h-screen">
+      <div className="flex min-h-screen flex-col lg:pl-60">
         {/* Desktop topbar */}
         <MerchantTopbar
           userEmail={user.email ?? ""}
