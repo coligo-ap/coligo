@@ -23,6 +23,10 @@ yarn-error.log*
 
 .vercel
 
+# Supabase CLI (cache local)
+supabase/.temp/
+supabase/.branches/
+
 *.tsbuildinfo
 
 .vscode/

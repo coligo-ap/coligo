@@ -1,7 +1,7 @@
 -- =============================================================================
 -- Coligo v3 - Migration 0002 : Catalogue produits
 -- =============================================================================
--- À exécuter dans le SQL Editor Supabase (projet htxqzktwuymzetbdqghx).
+-- Appliquée automatiquement via `npm run db:push` (pooler Supabase).
 -- Crée la table `products`, ses policies RLS, le bucket Storage `products`
 -- et ses policies (chaque commerçant n'écrit que dans son dossier {merchant_id}/).
 -- =============================================================================

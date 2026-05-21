@@ -11,6 +11,9 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "db:push": "node scripts/db-push.mjs",
+    "db:status": "node scripts/db-status.mjs",
+    "db:new": "supabase migration new",
     "prepare": "husky"
   },
   "dependencies": {

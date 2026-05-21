@@ -42,11 +42,26 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...TA_CLE_ANON
 
 Récupère ces valeurs sur https://supabase.com/dashboard/project/_/settings/api (section "Project API keys" → **anon public**, jamais le service_role).
 
-### 4. Appliquer la migration SQL
+Ajoute aussi le **mot de passe de la base** (Dashboard → Settings → Database → _Database password_) :
 
-- Va sur SQL Editor : https://supabase.com/dashboard/project/_/sql/new
-- Copie tout le contenu de `supabase/migrations/0001_init.sql`
-- Colle et clique **Run**
+```env
+SUPABASE_DB_PASSWORD=ton_mot_de_passe_base
+```
+
+> La connection string du pooler est construite dans le code (`lib/config/database.ts`) ; seul le mot de passe est lu depuis l'environnement.
+
+### 4. Appliquer les migrations (automatique)
+
+Plus besoin du SQL Editor : les migrations de `supabase/migrations/` sont poussées
+vers la base distante via le pooler en une commande.
+
+```bash
+npm run db:push      # applique les migrations manquantes
+npm run db:status    # compare l'historique local vs distant
+npm run db:new <nom> # crée un nouveau fichier de migration (local)
+```
+
+`db:push` est idempotent : il ne joue que les migrations absentes de l'historique distant.
 
 ### 5. Désactiver la confirmation email (pour tester vite)
 
