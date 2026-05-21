@@ -175,6 +175,42 @@ export async function bulkSetAvailability(
   return {};
 }
 
+/** Supprime un ou plusieurs produits (sans redirection). */
+export async function deleteProducts(
+  productIds: string[]
+): Promise<{ error?: string }> {
+  if (productIds.length === 0) return {};
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("products")
+    .delete()
+    .in("id", productIds);
+
+  if (error) return { error: error.message };
+  revalidatePath("/catalog");
+  return {};
+}
+
+/**
+ * Applique un ordre manuel aux produits : position = index dans la liste.
+ * (Réordonnancement par glisser-déposer.)
+ */
+export async function reorderProducts(
+  orderedIds: string[]
+): Promise<{ error?: string }> {
+  if (orderedIds.length === 0) return {};
+  const supabase = await createClient();
+  const updates = orderedIds.map((id, index) =>
+    supabase.from("products").update({ position: index }).eq("id", id)
+  );
+  const results = await Promise.all(updates);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { error: failed.error.message };
+
+  revalidatePath("/catalog");
+  return {};
+}
+
 /** Assigne (ou retire, si null) une catégorie à plusieurs produits. */
 export async function bulkAssignCategory(
   productIds: string[],

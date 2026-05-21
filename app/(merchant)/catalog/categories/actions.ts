@@ -146,6 +146,41 @@ export async function moveCategory(
 }
 
 /**
+ * Applique un ordre manuel aux catégories : position = index dans la liste.
+ * (Réordonnancement par glisser-déposer.)
+ */
+export async function reorderCategories(
+  orderedIds: string[]
+): Promise<{ error?: string }> {
+  if (orderedIds.length === 0) return {};
+  const supabase = await createClient();
+  const updates = orderedIds.map((id, index) =>
+    supabase.from("categories").update({ position: index }).eq("id", id)
+  );
+  const results = await Promise.all(updates);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { error: failed.error.message };
+
+  revalidatePath("/catalog/categories");
+  revalidatePath("/catalog");
+  return {};
+}
+
+/** Supprime une ou plusieurs catégories (produits liés -> sans catégorie). */
+export async function deleteCategories(
+  ids: string[]
+): Promise<{ error?: string }> {
+  if (ids.length === 0) return {};
+  const supabase = await createClient();
+  const { error } = await supabase.from("categories").delete().in("id", ids);
+  if (error) return { error: error.message };
+
+  revalidatePath("/catalog/categories");
+  revalidatePath("/catalog");
+  return {};
+}
+
+/**
  * Création rapide « à la volée » depuis le formulaire produit. Renvoie la
  * catégorie créée (id + titre) pour l'ajouter au select sans rechargement.
  */

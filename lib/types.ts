@@ -147,6 +147,7 @@ export type Product = {
   category: string | null;
   category_id: string | null;
   stock_qty: number | null;
+  position: number;
   image_url: string | null;
   is_available: boolean;
   created_at: string;

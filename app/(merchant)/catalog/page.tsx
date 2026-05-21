@@ -14,10 +14,11 @@ export default async function CatalogPage() {
       .from("products")
       .select(
         `id, merchant_id, name_fr, name_ar, description_fr, description_ar,
-         price_da, unit, category, category_id, stock_qty, image_url,
+         price_da, unit, category, category_id, stock_qty, position, image_url,
          is_available, created_at, updated_at,
          categories ( id, title )`
       )
+      .order("position", { ascending: true })
       .order("created_at", { ascending: false }),
     supabase
       .from("categories")

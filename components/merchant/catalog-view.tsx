@@ -2,8 +2,25 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  rectSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   Plus,
   Search,
@@ -16,10 +33,11 @@ import {
   Square,
   LayoutGrid,
   Rows3,
-  Tags,
   X,
   ChevronDown,
   ChevronsDownUp,
+  GripVertical,
+  Trash2,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,16 +51,29 @@ import {
 import {
   toggleProductAvailability,
   duplicateProduct,
+  deleteProducts,
+  reorderProducts,
   bulkSetAvailability,
   bulkAssignCategory,
 } from "@/app/(merchant)/catalog/actions";
+import {
+  reorderCategories,
+  deleteCategories,
+} from "@/app/(merchant)/catalog/categories/actions";
 
 const ALL = "__all__";
 const NONE = "__none__";
 
-type SortKey = "recent" | "price_asc" | "price_desc" | "name" | "stock";
+type SortKey =
+  | "manual"
+  | "recent"
+  | "price_asc"
+  | "price_desc"
+  | "name"
+  | "stock";
 
 const SORT_LABELS: Record<SortKey, string> = {
+  manual: "Manuel (glisser)",
   recent: "Plus récents",
   price_asc: "Prix croissant",
   price_desc: "Prix décroissant",
@@ -60,15 +91,29 @@ export function CatalogView({
   lowStockThreshold: number;
 }) {
   const router = useRouter();
+
+  // Copies locales (réordonnancement optimiste).
+  const [cats, setCats] = useState(categories);
+  const [prods, setProds] = useState(products);
+  useEffect(() => setCats(categories), [categories]);
+  useEffect(() => setProds(products), [products]);
+
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState<string>(ALL);
-  const [sort, setSort] = useState<SortKey>("recent");
-  // Vue groupée par défaut quand il y a des catégories (navigation en accordéon).
+  const [sort, setSort] = useState<SortKey>("manual");
   const [grouped, setGrouped] = useState(categories.length > 0);
   const [selectMode, setSelectMode] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  // Catégories dépliées (vue groupée). Tout est fermé par défaut.
+  const [selProducts, setSelProducts] = useState<Set<string>>(new Set());
+  const [selCats, setSelCats] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [, startTransition] = useTransition();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    })
+  );
 
   function toggleExpanded(key: string) {
     setExpanded((prev) => {
@@ -78,10 +123,41 @@ export function CatalogView({
       return next;
     });
   }
+  function toggleSelProduct(id: string) {
+    setSelProducts((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleSelCat(id: string) {
+    setSelCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function clearSelection() {
+    setSelProducts(new Set());
+    setSelCats(new Set());
+  }
+  function selectAllInCategory(ids: string[]) {
+    setSelProducts((prev) => {
+      const next = new Set(prev);
+      const allSelected = ids.every((id) => next.has(id));
+      for (const id of ids) {
+        if (allSelected) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = products.filter((p) => {
+    const list = prods.filter((p) => {
       if (categoryId === NONE && p.category_id) return false;
       if (
         categoryId !== ALL &&
@@ -96,6 +172,8 @@ export function CatalogView({
         (p.categories?.title ?? "").toLowerCase().includes(q)
       );
     });
+
+    if (sort === "manual") return list; // ordre du tableau (= position serveur)
 
     const sorted = [...list];
     sorted.sort((a, b) => {
@@ -113,24 +191,8 @@ export function CatalogView({
       }
     });
     return sorted;
-  }, [products, query, categoryId, sort]);
+  }, [prods, query, categoryId, sort]);
 
-  function toggleSelect(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function clearSelection() {
-    setSelected(new Set());
-  }
-
-  const availableCount = products.filter((p) => p.is_available).length;
-
-  // Groupes pour la vue groupée.
   const groups = useMemo(() => {
     if (!grouped) return null;
     const byCat = new Map<string, ProductWithCategory[]>();
@@ -142,10 +204,8 @@ export function CatalogView({
         byCat.get(p.category_id)!.push(p);
       }
     }
-    // En vue par défaut (sans recherche ni filtre), on montre TOUTES les
-    // catégories — même vides — pour pouvoir y ajouter un produit directement.
     const showEmpty = query.trim() === "" && categoryId === ALL;
-    const ordered = categories
+    const ordered = cats
       .filter((c) => showEmpty || byCat.has(c.id))
       .map((c) => ({
         key: c.id,
@@ -161,15 +221,86 @@ export function CatalogView({
         items: uncategorized,
       });
     return ordered;
-  }, [grouped, filtered, categories, query, categoryId]);
+  }, [grouped, filtered, cats, query, categoryId]);
 
   const allExpanded =
     !!groups && groups.length > 0 && groups.every((g) => expanded.has(g.key));
-
   function toggleAll() {
     if (!groups) return;
     setExpanded(allExpanded ? new Set() : new Set(groups.map((g) => g.key)));
   }
+
+  // DnD : produits réordonnables en vue groupée, tri manuel, hors sélection.
+  const productsDraggable = grouped && sort === "manual" && !selectMode;
+  // DnD : catégories réordonnables en vue groupée, hors sélection.
+  const categoriesDraggable = grouped && !selectMode;
+
+  function onReorderProducts(ids: string[]) {
+    setProds((prev) => {
+      const set = new Set(ids);
+      const map = new Map(prev.map((p) => [p.id, p]));
+      const reordered = ids.map((id) => map.get(id)!);
+      const others = prev.filter((p) => !set.has(p.id));
+      return [...reordered, ...others];
+    });
+    startTransition(() => {
+      void reorderProducts(ids);
+    });
+  }
+
+  function onCategoryDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldI = cats.findIndex((c) => c.id === active.id);
+    const newI = cats.findIndex((c) => c.id === over.id);
+    if (oldI === -1 || newI === -1) return;
+    const next = arrayMove(cats, oldI, newI);
+    setCats(next);
+    startTransition(() => {
+      void reorderCategories(next.map((c) => c.id));
+    });
+  }
+
+  function deleteSelectedProducts() {
+    const ids = Array.from(selProducts);
+    if (
+      !window.confirm(
+        `Supprimer ${ids.length} produit${ids.length > 1 ? "s" : ""} ? Action irréversible.`
+      )
+    )
+      return;
+    startTransition(async () => {
+      await deleteProducts(ids);
+      clearSelection();
+      router.refresh();
+    });
+  }
+  function deleteSelectedCategories() {
+    const ids = Array.from(selCats);
+    if (
+      !window.confirm(
+        `Supprimer ${ids.length} catégorie${ids.length > 1 ? "s" : ""} ? Les produits liés deviendront « sans catégorie ».`
+      )
+    )
+      return;
+    startTransition(async () => {
+      await deleteCategories(ids);
+      clearSelection();
+      router.refresh();
+    });
+  }
+  function bulk(fn: () => Promise<unknown>) {
+    startTransition(async () => {
+      await fn();
+      clearSelection();
+      router.refresh();
+    });
+  }
+
+  const availableCount = prods.filter((p) => p.is_available).length;
+  const sortableCatKeys = (groups ?? [])
+    .filter((g) => g.key !== NONE)
+    .map((g) => g.key);
 
   return (
     <div className="mx-auto max-w-[1600px] p-4 lg:p-6 lg:px-8">
@@ -180,20 +311,13 @@ export function CatalogView({
             Catalogue
           </h1>
           <p className="text-muted mt-1 text-sm">
-            {products.length} produit{products.length > 1 ? "s" : ""} ·{" "}
+            {prods.length} produit{prods.length > 1 ? "s" : ""} ·{" "}
             {availableCount} disponible{availableCount > 1 ? "s" : ""} ·{" "}
-            {categories.length} catégorie{categories.length > 1 ? "s" : ""}
+            {cats.length} catégorie
+            {cats.length > 1 ? "s" : ""}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link
-            href="/catalog/categories"
-            className={buttonVariants({ variant: "ghost" })}
-            title="Gérer (réordonner, supprimer…)"
-          >
-            <Tags className="size-4" />
-            Gérer
-          </Link>
           <Link
             href="/catalog/categories/new"
             className={buttonVariants({ variant: "outline" })}
@@ -240,11 +364,9 @@ export function CatalogView({
               onClick={toggleAll}
               className="border-border-strong text-muted hover:bg-surface-2 inline-flex h-11 items-center gap-1.5 rounded-[12px] border px-3 text-xs font-medium whitespace-nowrap"
             >
-              {allExpanded ? (
-                <ChevronsDownUp className="size-4" />
-              ) : (
-                <ChevronsDownUp className="size-4 rotate-180" />
-              )}
+              <ChevronsDownUp
+                className={cn("size-4", !allExpanded && "rotate-180")}
+              />
               {allExpanded ? "Tout replier" : "Tout déplier"}
             </button>
           )}
@@ -275,14 +397,14 @@ export function CatalogView({
       </div>
 
       {/* Chips catégories */}
-      {categories.length > 0 && (
+      {cats.length > 0 && (
         <div className="-mx-1 mb-5 flex gap-1.5 overflow-x-auto px-1 pb-1 lg:flex-wrap lg:overflow-visible lg:pb-0">
           <CategoryChip
             label="Toutes"
             active={categoryId === ALL}
             onClick={() => setCategoryId(ALL)}
           />
-          {categories.map((c) => (
+          {cats.map((c) => (
             <CategoryChip
               key={c.id}
               label={c.title}
@@ -299,66 +421,139 @@ export function CatalogView({
       )}
 
       {/* Contenu */}
-      {products.length === 0 ? (
+      {prods.length === 0 ? (
         <EmptyState />
       ) : filtered.length === 0 ? (
         <p className="text-muted py-12 text-center text-sm">
           Aucun produit ne correspond à votre recherche.
         </p>
       ) : groups ? (
-        <div className="space-y-3">
-          {groups.map((g) => (
-            <CategorySection
-              key={g.key}
-              title={g.title}
-              image={g.image}
-              count={g.items.length}
-              open={expanded.has(g.key)}
-              onToggle={() => toggleExpanded(g.key)}
-              editHref={g.key !== NONE ? `/catalog/categories/${g.key}` : null}
-              addHref={
-                g.key !== NONE
-                  ? `/catalog/new?category=${g.key}`
-                  : "/catalog/new"
-              }
-            >
-              {g.items.length === 0 ? (
-                <p className="text-muted py-4 text-center text-sm">
-                  Aucun produit dans cette catégorie.
-                </p>
-              ) : (
-                <ProductGrid
-                  products={g.items}
-                  lowStockThreshold={lowStockThreshold}
-                  selectMode={selectMode}
-                  selected={selected}
-                  onToggleSelect={toggleSelect}
-                />
-              )}
-            </CategorySection>
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onCategoryDragEnd}
+        >
+          <SortableContext
+            items={sortableCatKeys}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-3">
+              {groups.map((g) => {
+                const ids = g.items.map((p) => p.id);
+                const allSel =
+                  ids.length > 0 && ids.every((id) => selProducts.has(id));
+                return (
+                  <SortableCategory
+                    key={g.key}
+                    id={g.key}
+                    sortable={categoriesDraggable && g.key !== NONE}
+                  >
+                    {(handle) => (
+                      <CategorySection
+                        title={g.title}
+                        image={g.image}
+                        count={g.items.length}
+                        open={expanded.has(g.key)}
+                        onToggle={() => toggleExpanded(g.key)}
+                        editHref={
+                          g.key !== NONE ? `/catalog/categories/${g.key}` : null
+                        }
+                        addHref={
+                          g.key !== NONE
+                            ? `/catalog/new?category=${g.key}`
+                            : "/catalog/new"
+                        }
+                        selectMode={selectMode}
+                        selectable={g.key !== NONE}
+                        selected={selCats.has(g.key)}
+                        onToggleSelect={() => toggleSelCat(g.key)}
+                        onDelete={
+                          g.key !== NONE
+                            ? () => {
+                                if (
+                                  window.confirm(
+                                    "Supprimer cette catégorie ? Les produits liés deviendront « sans catégorie »."
+                                  )
+                                )
+                                  bulk(() => deleteCategories([g.key]));
+                              }
+                            : null
+                        }
+                        dragHandle={handle}
+                      >
+                        {selectMode && ids.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => selectAllInCategory(ids)}
+                            className="text-primary-700 hover:bg-primary-50 mb-3 inline-flex items-center gap-1.5 rounded-[8px] px-2 py-1 text-xs font-medium"
+                          >
+                            {allSel ? (
+                              <CheckSquare className="size-4" />
+                            ) : (
+                              <Square className="size-4" />
+                            )}
+                            {allSel
+                              ? "Tout désélectionner"
+                              : "Tout sélectionner"}
+                          </button>
+                        )}
+                        {g.items.length === 0 ? (
+                          <p className="text-muted py-4 text-center text-sm">
+                            Aucun produit dans cette catégorie.
+                          </p>
+                        ) : (
+                          <ProductItems
+                            products={g.items}
+                            draggable={productsDraggable}
+                            onReorder={onReorderProducts}
+                            lowStockThreshold={lowStockThreshold}
+                            selectMode={selectMode}
+                            selected={selProducts}
+                            onToggleSelect={toggleSelProduct}
+                            onDeleted={() => router.refresh()}
+                          />
+                        )}
+                      </CategorySection>
+                    )}
+                  </SortableCategory>
+                );
+              })}
+            </div>
+          </SortableContext>
+        </DndContext>
       ) : (
-        <ProductGrid
+        <ProductItems
           products={filtered}
+          draggable={false}
+          onReorder={onReorderProducts}
           lowStockThreshold={lowStockThreshold}
           selectMode={selectMode}
-          selected={selected}
-          onToggleSelect={toggleSelect}
+          selected={selProducts}
+          onToggleSelect={toggleSelProduct}
+          onDeleted={() => router.refresh()}
         />
       )}
 
       {/* Barre d'actions groupées */}
-      {selected.size > 0 && (
+      {(selProducts.size > 0 || selCats.size > 0) && (
         <BulkBar
-          count={selected.size}
-          categories={categories}
+          productCount={selProducts.size}
+          categoryCount={selCats.size}
+          categories={cats}
           onClear={clearSelection}
-          onDone={() => {
-            clearSelection();
-            router.refresh();
-          }}
-          ids={Array.from(selected)}
+          onSetAvailability={(v) =>
+            bulk(() => bulkSetAvailability(Array.from(selProducts), v))
+          }
+          onAssign={(catId) =>
+            bulk(() =>
+              bulkAssignCategory(
+                Array.from(selProducts),
+                catId === NONE ? null : catId
+              )
+            )
+          }
+          onDeleteProducts={deleteSelectedProducts}
+          onDeleteCategories={deleteSelectedCategories}
         />
       )}
     </div>
@@ -419,6 +614,43 @@ function CategoryChip({
   );
 }
 
+type DragHandle = Pick<
+  ReturnType<typeof useSortable>,
+  "attributes" | "listeners"
+> | null;
+
+function SortableCategory({
+  id,
+  sortable,
+  children,
+}: {
+  id: string;
+  sortable: boolean;
+  children: (handle: DragHandle) => React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled: !sortable });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 20 : undefined,
+    opacity: isDragging ? 0.85 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children(sortable ? { attributes, listeners } : null)}
+    </div>
+  );
+}
+
 function CategorySection({
   title,
   image,
@@ -427,6 +659,12 @@ function CategorySection({
   onToggle,
   editHref,
   addHref,
+  selectMode,
+  selectable,
+  selected,
+  onToggleSelect,
+  onDelete,
+  dragHandle,
   children,
 }: {
   title: string;
@@ -436,12 +674,49 @@ function CategorySection({
   onToggle: () => void;
   editHref: string | null;
   addHref: string;
+  selectMode: boolean;
+  selectable: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
+  onDelete: (() => void) | null;
+  dragHandle: DragHandle;
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-border bg-surface overflow-hidden rounded-[16px] border">
+    <section
+      className={cn(
+        "border-border bg-surface overflow-hidden rounded-[16px] border",
+        selected && "ring-primary-500 ring-2"
+      )}
+    >
       <div className="hover:bg-surface-2 flex items-center gap-2 px-3 py-2.5 transition-colors">
-        {/* Zone cliquable : déplie/replie */}
+        {dragHandle && (
+          <button
+            type="button"
+            className="text-subtle hover:text-foreground -ml-1 cursor-grab touch-none active:cursor-grabbing"
+            aria-label="Déplacer la catégorie"
+            {...dragHandle.attributes}
+            {...dragHandle.listeners}
+          >
+            <GripVertical className="size-4" />
+          </button>
+        )}
+
+        {selectMode && selectable && (
+          <button
+            type="button"
+            onClick={onToggleSelect}
+            aria-pressed={selected}
+            className="inline-flex items-center"
+          >
+            {selected ? (
+              <CheckSquare className="text-primary-600 size-5" />
+            ) : (
+              <Square className="text-muted size-5" />
+            )}
+          </button>
+        )}
+
         <button
           type="button"
           onClick={onToggle}
@@ -469,7 +744,6 @@ function CategorySection({
           </span>
         </button>
 
-        {/* Actions directes sur la catégorie */}
         <Link
           href={addHref}
           title="Ajouter un produit à cette catégorie"
@@ -486,6 +760,16 @@ function CategorySection({
           >
             <Pencil className="size-4" />
           </Link>
+        )}
+        {onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            title="Supprimer la catégorie"
+            className="text-muted hover:bg-danger-50 hover:text-danger-600 inline-flex items-center rounded-[8px] p-1.5"
+          >
+            <Trash2 className="size-4" />
+          </button>
         )}
 
         <button
@@ -505,31 +789,109 @@ function CategorySection({
   );
 }
 
-function ProductGrid({
+const GRID_CLASS =
+  "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4 xl:grid-cols-5";
+
+function ProductItems({
   products,
+  draggable,
+  onReorder,
   lowStockThreshold,
   selectMode,
   selected,
   onToggleSelect,
+  onDeleted,
 }: {
   products: ProductWithCategory[];
+  draggable: boolean;
+  onReorder: (ids: string[]) => void;
   lowStockThreshold: number;
   selectMode: boolean;
   selected: Set<string>;
   onToggleSelect: (id: string) => void;
+  onDeleted: () => void;
 }) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    })
+  );
+
+  const cardProps = (p: ProductWithCategory) => ({
+    product: p,
+    lowStockThreshold,
+    selectMode,
+    selected: selected.has(p.id),
+    onToggleSelect: () => onToggleSelect(p.id),
+    onDeleted,
+  });
+
+  if (!draggable) {
+    return (
+      <div className={GRID_CLASS}>
+        {products.map((p) => (
+          <ProductCard key={p.id} {...cardProps(p)} dragHandle={null} />
+        ))}
+      </div>
+    );
+  }
+
+  const ids = products.map((p) => p.id);
+  function onDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldI = ids.indexOf(active.id as string);
+    const newI = ids.indexOf(over.id as string);
+    if (oldI === -1 || newI === -1) return;
+    onReorder(arrayMove(ids, oldI, newI));
+  }
+
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4 xl:grid-cols-5">
-      {products.map((p) => (
-        <ProductCard
-          key={p.id}
-          product={p}
-          lowStockThreshold={lowStockThreshold}
-          selectMode={selectMode}
-          selected={selected.has(p.id)}
-          onToggleSelect={() => onToggleSelect(p.id)}
-        />
-      ))}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={onDragEnd}
+    >
+      <SortableContext items={ids} strategy={rectSortingStrategy}>
+        <div className={GRID_CLASS}>
+          {products.map((p) => (
+            <SortableProduct key={p.id} id={p.id}>
+              {(handle) => (
+                <ProductCard {...cardProps(p)} dragHandle={handle} />
+              )}
+            </SortableProduct>
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+function SortableProduct({
+  id,
+  children,
+}: {
+  id: string;
+  children: (handle: DragHandle) => React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 20 : undefined,
+    opacity: isDragging ? 0.85 : undefined,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ attributes, listeners })}
     </div>
   );
 }
@@ -540,31 +902,45 @@ function ProductCard({
   selectMode,
   selected,
   onToggleSelect,
+  onDeleted,
+  dragHandle,
 }: {
   product: ProductWithCategory;
   lowStockThreshold: number;
   selectMode: boolean;
   selected: boolean;
   onToggleSelect: () => void;
+  onDeleted: () => void;
+  dragHandle: DragHandle;
 }) {
   const [available, setAvailable] = useState(product.is_available);
   const [pending, startTransition] = useTransition();
   const [dupPending, startDup] = useTransition();
+  const [delPending, startDel] = useTransition();
 
   const stock = stockState(product.stock_qty, lowStockThreshold);
 
   function onToggle() {
     const next = !available;
-    setAvailable(next); // optimiste
+    setAvailable(next);
     startTransition(async () => {
       const res = await toggleProductAvailability(product.id, next);
-      if (res?.error) setAvailable(!next); // rollback
+      if (res?.error) setAvailable(!next);
     });
   }
-
   function onDuplicate() {
     startDup(() => {
       void duplicateProduct(product.id);
+    });
+  }
+  function onDelete() {
+    if (
+      !window.confirm(`Supprimer « ${product.name_fr} » ? Action irréversible.`)
+    )
+      return;
+    startDel(async () => {
+      await deleteProducts([product.id]);
+      onDeleted();
     });
   }
 
@@ -575,6 +951,19 @@ function ProductCard({
         selected && "ring-primary-500 ring-2"
       )}
     >
+      {/* Poignée de déplacement */}
+      {dragHandle && (
+        <button
+          type="button"
+          className="bg-surface/90 text-muted hover:text-foreground absolute top-2 left-2 z-10 flex size-7 cursor-grab touch-none items-center justify-center rounded-full backdrop-blur active:cursor-grabbing"
+          aria-label="Déplacer le produit"
+          {...dragHandle.attributes}
+          {...dragHandle.listeners}
+        >
+          <GripVertical className="size-4" />
+        </button>
+      )}
+
       {/* Checkbox sélection */}
       {selectMode && (
         <button
@@ -612,8 +1001,7 @@ function ProductCard({
             <ImageOff className="size-8" />
           </div>
         )}
-        {/* Badges */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
+        <div className="absolute bottom-2 left-2 flex flex-col gap-1">
           {!available && (
             <span className="bg-foreground/70 rounded-full px-2 py-0.5 text-[10px] font-medium text-white">
               Masqué
@@ -661,7 +1049,7 @@ function ProductCard({
       </div>
 
       {/* Actions */}
-      <div className="border-border flex items-center justify-between gap-2 border-t px-3 py-2">
+      <div className="border-border flex items-center justify-between gap-1 border-t px-3 py-2">
         <button
           type="button"
           onClick={onToggle}
@@ -687,7 +1075,7 @@ function ProductCard({
           </span>
         </button>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center">
           <button
             type="button"
             onClick={onDuplicate}
@@ -704,6 +1092,15 @@ function ProductCard({
           >
             <Pencil className="size-3.5" />
           </Link>
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={delPending}
+            title="Supprimer"
+            className="text-muted hover:text-danger-600 inline-flex items-center p-1 disabled:opacity-50"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
         </div>
       </div>
     </div>
@@ -711,75 +1108,88 @@ function ProductCard({
 }
 
 function BulkBar({
-  count,
+  productCount,
+  categoryCount,
   categories,
-  ids,
   onClear,
-  onDone,
+  onSetAvailability,
+  onAssign,
+  onDeleteProducts,
+  onDeleteCategories,
 }: {
-  count: number;
+  productCount: number;
+  categoryCount: number;
   categories: Category[];
-  ids: string[];
   onClear: () => void;
-  onDone: () => void;
+  onSetAvailability: (value: boolean) => void;
+  onAssign: (categoryId: string) => void;
+  onDeleteProducts: () => void;
+  onDeleteCategories: () => void;
 }) {
-  const [pending, startTransition] = useTransition();
-
-  function setAvailability(value: boolean) {
-    startTransition(async () => {
-      await bulkSetAvailability(ids, value);
-      onDone();
-    });
-  }
-
-  function assign(categoryId: string) {
-    startTransition(async () => {
-      await bulkAssignCategory(ids, categoryId === NONE ? null : categoryId);
-      onDone();
-    });
-  }
-
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 px-4 pb-4 lg:bottom-4 lg:left-60">
       <div className="border-border bg-surface mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-[16px] border p-3 shadow-lg">
         <span className="text-sm font-medium">
-          {count} sélectionné{count > 1 ? "s" : ""}
+          {productCount > 0 &&
+            `${productCount} produit${productCount > 1 ? "s" : ""}`}
+          {productCount > 0 && categoryCount > 0 && " · "}
+          {categoryCount > 0 &&
+            `${categoryCount} catégorie${categoryCount > 1 ? "s" : ""}`}
         </span>
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={pending}
-            onClick={() => setAvailability(true)}
-          >
-            Rendre dispo
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={pending}
-            onClick={() => setAvailability(false)}
-          >
-            Masquer
-          </Button>
-          <select
-            defaultValue=""
-            disabled={pending}
-            onChange={(e) => {
-              if (e.target.value) assign(e.target.value);
-            }}
-            className="border-border-strong h-9 rounded-[10px] border bg-white px-2 text-xs focus:outline-none"
-          >
-            <option value="" disabled>
-              Assigner catégorie…
-            </option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))}
-            <option value={NONE}>Aucune catégorie</option>
-          </select>
+          {productCount > 0 && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onSetAvailability(true)}
+              >
+                Rendre dispo
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onSetAvailability(false)}
+              >
+                Masquer
+              </Button>
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  if (e.target.value) onAssign(e.target.value);
+                }}
+                className="border-border-strong h-9 rounded-[10px] border bg-white px-2 text-xs focus:outline-none"
+              >
+                <option value="" disabled>
+                  Assigner catégorie…
+                </option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+                <option value={NONE}>Aucune catégorie</option>
+              </select>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={onDeleteProducts}
+              >
+                <Trash2 className="size-4" />
+                Supprimer
+              </Button>
+            </>
+          )}
+          {categoryCount > 0 && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={onDeleteCategories}
+            >
+              <Trash2 className="size-4" />
+              Supprimer {categoryCount > 1 ? "catégories" : "catégorie"}
+            </Button>
+          )}
           <button
             type="button"
             onClick={onClear}
