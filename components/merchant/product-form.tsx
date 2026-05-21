@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useActionState, useRef, useState, useTransition } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/toast";
 import {
   ArrowLeft,
   ImagePlus,
@@ -26,7 +34,7 @@ import {
 import {
   createProduct,
   updateProduct,
-  deleteProduct,
+  deleteProducts,
   type ProductFormState,
 } from "@/app/(merchant)/catalog/actions";
 import { quickCreateCategory } from "@/app/(merchant)/catalog/categories/actions";
@@ -54,8 +62,16 @@ export function ProductForm({
 }) {
   const isEdit = !!product;
 
+  const router = useRouter();
   const action = isEdit ? updateProduct.bind(null, product!.id) : createProduct;
   const [state, formAction, pending] = useActionState(action, initialState);
+
+  useEffect(() => {
+    if (state.ok) {
+      toast.success(isEdit ? "Produit mis à jour" : "Produit créé");
+      router.push("/catalog");
+    }
+  }, [state, isEdit, router]);
 
   // Liste locale de catégories (permet l'ajout « à la volée »).
   const [cats, setCats] = useState<{ id: string; title: string }[]>(
@@ -362,12 +378,19 @@ export function ProductForm({
 }
 
 function DeleteProduct({ productId }: { productId: string }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   function onDelete() {
     if (!window.confirm("Supprimer définitivement ce produit ?")) return;
-    startTransition(() => {
-      void deleteProduct(productId);
+    startTransition(async () => {
+      const res = await deleteProducts([productId]);
+      if (res?.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Produit supprimé");
+      router.push("/catalog");
     });
   }
 
@@ -413,6 +436,7 @@ function QuickCategory({
         return;
       }
       onCreated({ id: res.id, title: res.title! });
+      toast.success(`Catégorie « ${res.title} » créée`);
       setTitle("");
       setOpen(false);
     });

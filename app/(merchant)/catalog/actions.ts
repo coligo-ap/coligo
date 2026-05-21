@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { productSchema, firstZodError } from "@/lib/validation/product";
 
 export type ProductFormState = {
   error?: string;
+  ok?: boolean;
 };
 
 /**
@@ -69,7 +69,7 @@ export async function createProduct(
   }
 
   revalidatePath("/catalog");
-  redirect("/catalog");
+  return { ok: true };
 }
 
 export async function updateProduct(
@@ -94,14 +94,7 @@ export async function updateProduct(
   }
 
   revalidatePath("/catalog");
-  redirect("/catalog");
-}
-
-export async function deleteProduct(productId: string): Promise<void> {
-  const supabase = await createClient();
-  await supabase.from("products").delete().eq("id", productId);
-  revalidatePath("/catalog");
-  redirect("/catalog");
+  return { ok: true };
 }
 
 export async function toggleProductAvailability(
@@ -128,7 +121,7 @@ export async function toggleProductAvailability(
  */
 export async function duplicateProduct(
   productId: string
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; id?: string }> {
   const supabase = await createClient();
 
   const { data: src, error: readError } = await supabase
@@ -155,7 +148,7 @@ export async function duplicateProduct(
   }
 
   revalidatePath("/catalog");
-  redirect(`/catalog/${copy.id}`);
+  return { id: copy.id };
 }
 
 /** Rend disponibles/masqués plusieurs produits d'un coup. */

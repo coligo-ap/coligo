@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import type { Category } from "@/lib/types";
 import {
@@ -36,7 +37,8 @@ export function CategoriesManager({
   function move(id: string, direction: "up" | "down") {
     setPendingId(id);
     startTransition(async () => {
-      await moveCategory(id, direction);
+      const res = await moveCategory(id, direction);
+      if (res?.error) toast.error(res.error);
       setPendingId(null);
     });
   }
@@ -166,7 +168,16 @@ function SuggestionsPanel({ suggestions }: { suggestions: string[] }) {
   function create() {
     if (selected.length === 0) return;
     startTransition(async () => {
-      await seedCategories(selected);
+      const res = await seedCategories(selected);
+      if (res?.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(
+        `${res.created ?? selected.length} catégorie${
+          (res.created ?? selected.length) > 1 ? "s" : ""
+        } créée${(res.created ?? selected.length) > 1 ? "s" : ""}`
+      );
       setDone(true);
     });
   }

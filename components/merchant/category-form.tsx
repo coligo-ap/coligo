@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useActionState, useRef, useState, useTransition } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,12 +22,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import type { Category } from "@/lib/types";
 import {
   createCategory,
   updateCategory,
-  deleteCategory,
+  deleteCategories,
   type CategoryFormState,
 } from "@/app/(merchant)/catalog/categories/actions";
 
@@ -34,10 +42,18 @@ export function CategoryForm({
   category?: Category;
 }) {
   const isEdit = !!category;
+  const router = useRouter();
   const action = isEdit
     ? updateCategory.bind(null, category!.id)
     : createCategory;
   const [state, formAction, pending] = useActionState(action, initialState);
+
+  useEffect(() => {
+    if (state.ok) {
+      toast.success(isEdit ? "Catégorie mise à jour" : "Catégorie créée");
+      router.push("/catalog/categories");
+    }
+  }, [state, isEdit, router]);
 
   const [imageUrl, setImageUrl] = useState<string | null>(
     category?.image_url ?? null
@@ -218,6 +234,7 @@ export function CategoryForm({
 }
 
 function DeleteCategory({ categoryId }: { categoryId: string }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   function onDelete() {
@@ -227,8 +244,14 @@ function DeleteCategory({ categoryId }: { categoryId: string }) {
       )
     )
       return;
-    startTransition(() => {
-      void deleteCategory(categoryId);
+    startTransition(async () => {
+      const res = await deleteCategories([categoryId]);
+      if (res?.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Catégorie supprimée");
+      router.push("/catalog/categories");
     });
   }
 

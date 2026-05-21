@@ -84,14 +84,6 @@ export async function signup(
     },
   });
 
-  console.log("[signup] supabase response:", {
-    hasUser: !!signUpData?.user,
-    userId: signUpData?.user?.id,
-    identities: signUpData?.user?.identities?.length,
-    hasSession: !!signUpData?.session,
-    error: signUpError,
-  });
-
   if (signUpError) {
     if (signUpError.message.includes("already registered")) {
       return { error: "Un compte existe déjà avec cet email" };

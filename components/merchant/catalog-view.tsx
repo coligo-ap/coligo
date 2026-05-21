@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/toast";
 import { cn, formatDA } from "@/lib/utils";
 import {
   PRODUCT_UNIT_META,
@@ -243,8 +244,9 @@ export function CatalogView({
       const others = prev.filter((p) => !set.has(p.id));
       return [...reordered, ...others];
     });
-    startTransition(() => {
-      void reorderProducts(ids);
+    startTransition(async () => {
+      const res = await reorderProducts(ids);
+      if (res?.error) toast.error(res.error);
     });
   }
 
@@ -256,8 +258,9 @@ export function CatalogView({
     if (oldI === -1 || newI === -1) return;
     const next = arrayMove(cats, oldI, newI);
     setCats(next);
-    startTransition(() => {
-      void reorderCategories(next.map((c) => c.id));
+    startTransition(async () => {
+      const res = await reorderCategories(next.map((c) => c.id));
+      if (res?.error) toast.error(res.error);
     });
   }
 
@@ -270,7 +273,14 @@ export function CatalogView({
     )
       return;
     startTransition(async () => {
-      await deleteProducts(ids);
+      const res = await deleteProducts(ids);
+      if (res?.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(
+        `${ids.length} produit${ids.length > 1 ? "s" : ""} supprimé${ids.length > 1 ? "s" : ""}`
+      );
       clearSelection();
       router.refresh();
     });
@@ -284,14 +294,29 @@ export function CatalogView({
     )
       return;
     startTransition(async () => {
-      await deleteCategories(ids);
+      const res = await deleteCategories(ids);
+      if (res?.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(
+        `${ids.length} catégorie${ids.length > 1 ? "s" : ""} supprimée${ids.length > 1 ? "s" : ""}`
+      );
       clearSelection();
       router.refresh();
     });
   }
-  function bulk(fn: () => Promise<unknown>) {
+  function bulk(
+    fn: () => Promise<{ error?: string } | void>,
+    successMsg: string
+  ) {
     startTransition(async () => {
-      await fn();
+      const res = await fn();
+      if (res?.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(successMsg);
       clearSelection();
       router.refresh();
     });
@@ -475,7 +500,10 @@ export function CatalogView({
                                     "Supprimer cette catégorie ? Les produits liés deviendront « sans catégorie »."
                                   )
                                 )
-                                  bulk(() => deleteCategories([g.key]));
+                                  bulk(
+                                    () => deleteCategories([g.key]),
+                                    "Catégorie supprimée"
+                                  );
                               }
                             : null
                         }
@@ -542,14 +570,19 @@ export function CatalogView({
           categories={cats}
           onClear={clearSelection}
           onSetAvailability={(v) =>
-            bulk(() => bulkSetAvailability(Array.from(selProducts), v))
+            bulk(
+              () => bulkSetAvailability(Array.from(selProducts), v),
+              v ? "Produits rendus disponibles" : "Produits masqués"
+            )
           }
           onAssign={(catId) =>
-            bulk(() =>
-              bulkAssignCategory(
-                Array.from(selProducts),
-                catId === NONE ? null : catId
-              )
+            bulk(
+              () =>
+                bulkAssignCategory(
+                  Array.from(selProducts),
+                  catId === NONE ? null : catId
+                ),
+              "Catégorie assignée"
             )
           }
           onDeleteProducts={deleteSelectedProducts}
@@ -913,6 +946,7 @@ function ProductCard({
   onDeleted: () => void;
   dragHandle: DragHandle;
 }) {
+  const router = useRouter();
   const [available, setAvailable] = useState(product.is_available);
   const [pending, startTransition] = useTransition();
   const [dupPending, startDup] = useTransition();
@@ -925,12 +959,23 @@ function ProductCard({
     setAvailable(next);
     startTransition(async () => {
       const res = await toggleProductAvailability(product.id, next);
-      if (res?.error) setAvailable(!next);
+      if (res?.error) {
+        setAvailable(!next);
+        toast.error(res.error);
+        return;
+      }
+      toast.success(next ? "Produit disponible" : "Produit masqué");
     });
   }
   function onDuplicate() {
-    startDup(() => {
-      void duplicateProduct(product.id);
+    startDup(async () => {
+      const res = await duplicateProduct(product.id);
+      if (res?.error || !res?.id) {
+        toast.error(res?.error ?? "Échec de la duplication.");
+        return;
+      }
+      toast.success("Produit dupliqué");
+      router.push(`/catalog/${res.id}`);
     });
   }
   function onDelete() {
@@ -939,7 +984,12 @@ function ProductCard({
     )
       return;
     startDel(async () => {
-      await deleteProducts([product.id]);
+      const res = await deleteProducts([product.id]);
+      if (res?.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Produit supprimé");
       onDeleted();
     });
   }

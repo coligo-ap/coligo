@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { categorySchema, firstZodError } from "@/lib/validation/product";
 
 export type CategoryFormState = {
   error?: string;
+  ok?: boolean;
 };
 
 async function getCurrentMerchantId(): Promise<string | null> {
@@ -67,7 +67,7 @@ export async function createCategory(
 
   revalidatePath("/catalog/categories");
   revalidatePath("/catalog");
-  redirect("/catalog/categories");
+  return { ok: true };
 }
 
 export async function updateCategory(
@@ -89,16 +89,7 @@ export async function updateCategory(
 
   revalidatePath("/catalog/categories");
   revalidatePath("/catalog");
-  redirect("/catalog/categories");
-}
-
-export async function deleteCategory(categoryId: string): Promise<void> {
-  const supabase = await createClient();
-  // ON DELETE SET NULL : les produits liés deviennent « sans catégorie ».
-  await supabase.from("categories").delete().eq("id", categoryId);
-  revalidatePath("/catalog/categories");
-  revalidatePath("/catalog");
-  redirect("/catalog/categories");
+  return { ok: true };
 }
 
 /**

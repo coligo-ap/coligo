@@ -5,8 +5,13 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Check, X, QrCode } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
-import { nextOrderAction, type OrderStatus } from "@/lib/types";
+import {
+  nextOrderAction,
+  ORDER_STATUS_META,
+  type OrderStatus,
+} from "@/lib/types";
 import { updateOrderStatus } from "@/app/(merchant)/orders/actions";
 
 /**
@@ -34,8 +39,10 @@ export function OrderActions({
       const res = await updateOrderStatus(orderId, to);
       if (res.error) {
         setError(res.error);
+        toast.error(res.error);
         return;
       }
+      toast.success(`Commande : ${ORDER_STATUS_META[to].label}`);
       router.refresh();
     });
   }
