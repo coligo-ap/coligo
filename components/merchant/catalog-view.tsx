@@ -18,6 +18,8 @@ import {
   Rows3,
   Tags,
   X,
+  ChevronDown,
+  ChevronsDownUp,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,9 +63,21 @@ export function CatalogView({
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState<string>(ALL);
   const [sort, setSort] = useState<SortKey>("recent");
-  const [grouped, setGrouped] = useState(false);
+  // Vue groupée par défaut quand il y a des catégories (navigation en accordéon).
+  const [grouped, setGrouped] = useState(categories.length > 0);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Catégories repliées (vue groupée). Tout est déplié par défaut.
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  function toggleCollapsed(key: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -130,11 +144,29 @@ export function CatalogView({
     }
     const ordered = categories
       .filter((c) => byCat.has(c.id))
-      .map((c) => ({ title: c.title, items: byCat.get(c.id)! }));
+      .map((c) => ({
+        key: c.id,
+        title: c.title,
+        image: c.image_url,
+        items: byCat.get(c.id)!,
+      }));
     if (uncategorized.length > 0)
-      ordered.push({ title: "Sans catégorie", items: uncategorized });
+      ordered.push({
+        key: NONE,
+        title: "Sans catégorie",
+        image: null,
+        items: uncategorized,
+      });
     return ordered;
   }, [grouped, filtered, categories]);
+
+  const allCollapsed =
+    !!groups && groups.length > 0 && groups.every((g) => collapsed.has(g.key));
+
+  function toggleAll() {
+    if (!groups) return;
+    setCollapsed(allCollapsed ? new Set() : new Set(groups.map((g) => g.key)));
+  }
 
   return (
     <div className="mx-auto max-w-[1600px] p-4 lg:p-6 lg:px-8">
@@ -190,6 +222,21 @@ export function CatalogView({
               </option>
             ))}
           </select>
+
+          {grouped && groups && groups.length > 0 && (
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="border-border-strong text-muted hover:bg-surface-2 inline-flex h-11 items-center gap-1.5 rounded-[12px] border px-3 text-xs font-medium whitespace-nowrap"
+            >
+              {allCollapsed ? (
+                <ChevronsDownUp className="size-4 rotate-180" />
+              ) : (
+                <ChevronsDownUp className="size-4" />
+              )}
+              {allCollapsed ? "Tout déplier" : "Tout replier"}
+            </button>
+          )}
 
           <ToolToggle
             active={grouped}
@@ -248,15 +295,16 @@ export function CatalogView({
           Aucun produit ne correspond à votre recherche.
         </p>
       ) : groups ? (
-        <div className="space-y-8">
+        <div className="space-y-3">
           {groups.map((g) => (
-            <section key={g.title}>
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                {g.title}
-                <span className="text-subtle text-xs font-normal">
-                  ({g.items.length})
-                </span>
-              </h2>
+            <CategorySection
+              key={g.key}
+              title={g.title}
+              image={g.image}
+              count={g.items.length}
+              open={!collapsed.has(g.key)}
+              onToggle={() => toggleCollapsed(g.key)}
+            >
               <ProductGrid
                 products={g.items}
                 lowStockThreshold={lowStockThreshold}
@@ -264,7 +312,7 @@ export function CatalogView({
                 selected={selected}
                 onToggleSelect={toggleSelect}
               />
-            </section>
+            </CategorySection>
           ))}
         </div>
       ) : (
@@ -345,6 +393,61 @@ function CategoryChip({
     >
       {label}
     </button>
+  );
+}
+
+function CategorySection({
+  title,
+  image,
+  count,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  image: string | null;
+  count: number;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="border-border bg-surface overflow-hidden rounded-[16px] border">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
+      >
+        <div className="bg-surface-3 relative size-9 shrink-0 overflow-hidden rounded-[8px]">
+          {image ? (
+            <Image
+              src={image}
+              alt={title}
+              fill
+              sizes="36px"
+              className="object-cover"
+            />
+          ) : (
+            <span className="text-subtle flex h-full items-center justify-center">
+              <ImageOff className="size-4" />
+            </span>
+          )}
+        </div>
+        <span className="text-sm font-semibold">{title}</span>
+        <span className="bg-surface-3 text-muted rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums">
+          {count}
+        </span>
+        <ChevronDown
+          className={cn(
+            "text-muted ml-auto size-5 transition-transform",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+
+      {open && <div className="px-4 pt-1 pb-4">{children}</div>}
+    </section>
   );
 }
 
