@@ -289,6 +289,101 @@ export type Database = {
           },
         ];
       };
+      promotions: {
+        Row: {
+          id: string;
+          merchant_id: string;
+          type: Database["public"]["Enums"]["promotion_type"];
+          title_fr: string;
+          title_ar: string | null;
+          status: Database["public"]["Enums"]["promotion_status"];
+          discount_kind: Database["public"]["Enums"]["discount_kind"] | null;
+          discount_value: number | null;
+          code: string | null;
+          buy_qty: number | null;
+          get_qty: number | null;
+          starts_at: string | null;
+          ends_at: string | null;
+          max_uses: number | null;
+          max_uses_per_customer: number | null;
+          uses_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          merchant_id: string;
+          type: Database["public"]["Enums"]["promotion_type"];
+          title_fr: string;
+          title_ar?: string | null;
+          status?: Database["public"]["Enums"]["promotion_status"];
+          discount_kind?: Database["public"]["Enums"]["discount_kind"] | null;
+          discount_value?: number | null;
+          code?: string | null;
+          buy_qty?: number | null;
+          get_qty?: number | null;
+          starts_at?: string | null;
+          ends_at?: string | null;
+          max_uses?: number | null;
+          max_uses_per_customer?: number | null;
+          uses_count?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          merchant_id?: string;
+          type?: Database["public"]["Enums"]["promotion_type"];
+          title_fr?: string;
+          title_ar?: string | null;
+          status?: Database["public"]["Enums"]["promotion_status"];
+          discount_kind?: Database["public"]["Enums"]["discount_kind"] | null;
+          discount_value?: number | null;
+          code?: string | null;
+          buy_qty?: number | null;
+          get_qty?: number | null;
+          starts_at?: string | null;
+          ends_at?: string | null;
+          max_uses?: number | null;
+          max_uses_per_customer?: number | null;
+          uses_count?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "promotions_merchant_id_fkey";
+            columns: ["merchant_id"];
+            referencedRelation: "merchants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      promotion_products: {
+        Row: {
+          promotion_id: string;
+          product_id: string;
+        };
+        Insert: {
+          promotion_id: string;
+          product_id: string;
+        };
+        Update: {
+          promotion_id?: string;
+          product_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "promotion_products_promotion_id_fkey";
+            columns: ["promotion_id"];
+            referencedRelation: "promotions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "promotion_products_product_id_fkey";
+            columns: ["product_id"];
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: Record<never, never>;
@@ -301,6 +396,9 @@ export type Database = {
         | "completed"
         | "cancelled";
       product_unit: "piece" | "kg" | "l" | "m" | "custom";
+      promotion_type: "product_discount" | "promo_code" | "quantity_offer";
+      promotion_status: "scheduled" | "active" | "expired" | "disabled";
+      discount_kind: "percent" | "amount";
     };
     CompositeTypes: Record<never, never>;
   };

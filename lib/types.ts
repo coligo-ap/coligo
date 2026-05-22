@@ -203,3 +203,72 @@ export function stockState(
   if (stockQty <= lowThreshold) return "low";
   return "ok";
 }
+
+// ===========================================================================
+// Promotions
+// ===========================================================================
+export type PromotionType =
+  | "product_discount"
+  | "promo_code"
+  | "quantity_offer";
+
+export type PromotionStatus = "scheduled" | "active" | "expired" | "disabled";
+
+export type DiscountKind = "percent" | "amount";
+
+export const PROMOTION_TYPE_META: Record<
+  PromotionType,
+  { label: string; short: string; description: string }
+> = {
+  product_discount: {
+    label: "Réduction produit",
+    short: "Réduction",
+    description: "-X % ou -X DA sur un ou plusieurs produits choisis.",
+  },
+  promo_code: {
+    label: "Code promo",
+    short: "Code",
+    description:
+      "Un code saisi au paiement, qui réduit le total de la commande.",
+  },
+  quantity_offer: {
+    label: "Offre quantité",
+    short: "Offre",
+    description: "« X achetés = Y offert(s) » sur un produit (ex. 2 = 1).",
+  },
+};
+
+export const PROMOTION_STATUS_META: Record<
+  PromotionStatus,
+  { label: string; tone: "success" | "primary" | "neutral" | "warning" }
+> = {
+  active: { label: "Active", tone: "success" },
+  scheduled: { label: "Programmée", tone: "primary" },
+  expired: { label: "Expirée", tone: "neutral" },
+  disabled: { label: "Désactivée", tone: "warning" },
+};
+
+export type Promotion = {
+  id: string;
+  merchant_id: string;
+  type: PromotionType;
+  title_fr: string;
+  title_ar: string | null;
+  status: PromotionStatus;
+  discount_kind: DiscountKind | null;
+  discount_value: number | null;
+  code: string | null;
+  buy_qty: number | null;
+  get_qty: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  max_uses: number | null;
+  max_uses_per_customer: number | null;
+  uses_count: number;
+  created_at: string;
+};
+
+/** Promotion + ids des produits liés (pour product_discount / quantity_offer). */
+export type PromotionWithProducts = Promotion & {
+  promotion_products: { product_id: string }[];
+};

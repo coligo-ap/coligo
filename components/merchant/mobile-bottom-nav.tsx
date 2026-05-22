@@ -8,6 +8,7 @@ import {
   QrCode,
   Package,
   BarChart3,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/orders", label: "Commandes", icon: ShoppingBag },
   { href: "/catalog", label: "Catalogue", icon: Package },
   { href: "/orders/validate", label: "Valider", icon: QrCode },
+  { href: "/promotions", label: "Promos", icon: Tag },
   { href: "/stats", label: "Stats", icon: BarChart3 },
 ];
 
@@ -34,7 +36,7 @@ export function MerchantMobileBottomNav() {
       className="border-border fixed inset-x-0 bottom-0 z-30 border-t bg-white lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="grid h-16 grid-cols-5">
+      <div className="grid h-16 grid-cols-6">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = pathname.startsWith(item.href) && !item.disabled;

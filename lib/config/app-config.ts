@@ -44,6 +44,12 @@ export const APP_CONFIG = {
       process.env.NEXT_PUBLIC_LOW_STOCK_THRESHOLD ?? "5"
     ),
   },
+
+  promotions: {
+    // Plancher anti-abus : un prix après réduction ne peut jamais descendre
+    // sous ce minimum (jamais 0 ni négatif). En DA.
+    minPriceDa: Number(process.env.NEXT_PUBLIC_PROMO_MIN_PRICE_DA ?? "1"),
+  },
 } as const;
 
 /** Part commission Coligo (en DA, arrondie) pour un montant donné. */
