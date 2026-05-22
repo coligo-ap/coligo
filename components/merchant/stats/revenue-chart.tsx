@@ -1,94 +1,69 @@
 "use client";
 
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { formatDA } from "@/lib/utils";
+import { useState } from "react";
+import { cn, formatDA } from "@/lib/utils";
 import type { Bucket } from "@/lib/stats";
 
-const PRIMARY = "#5C5CE0"; // primary-600
-
-function ChartTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: { value: number }[];
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="border-border rounded-[10px] border bg-white px-3 py-2 text-xs shadow-md">
-      <p className="text-muted mb-0.5">{label}</p>
-      <p className="text-foreground font-semibold tabular-nums">
-        {formatDA(payload[0].value)}
-      </p>
-    </div>
-  );
-}
-
+/**
+ * Graphique d'évolution du CA — version légère maison (aucune dépendance).
+ * Barres responsives + tooltip au survol/au toucher. Scroll horizontal quand
+ * il y a beaucoup de tranches (30 jours / 12 mois).
+ */
 export function RevenueChart({ data }: { data: Bucket[] }) {
-  // Sur beaucoup de points (30j / 12 mois), on autorise le scroll horizontal.
-  const minWidth = data.length > 14 ? data.length * 44 : undefined;
+  const [active, setActive] = useState<number | null>(null);
+  const max = Math.max(1, ...data.map((d) => d.ca));
+  const many = data.length > 14;
+  // Afficher ~6 étiquettes max pour ne pas surcharger l'axe.
+  const labelStep = Math.max(1, Math.ceil(data.length / 6));
 
   return (
-    <div className="w-full overflow-x-auto">
-      <div style={{ minWidth, height: 260 }} className="min-w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={data}
-            margin={{ top: 8, right: 12, left: 4, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="caFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={PRIMARY} stopOpacity={0.25} />
-                <stop offset="100%" stopColor={PRIMARY} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="#ECECF3"
-              vertical={false}
-            />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 11, fill: "#71717a" }}
-              tickLine={false}
-              axisLine={false}
-              interval="preserveStartEnd"
-              minTickGap={16}
-            />
-            <YAxis
-              tick={{ fontSize: 11, fill: "#71717a" }}
-              tickLine={false}
-              axisLine={false}
-              width={48}
-              tickFormatter={(v: number) =>
-                v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)
-              }
-            />
-            <Tooltip
-              content={<ChartTooltip />}
-              cursor={{ stroke: PRIMARY, strokeOpacity: 0.2 }}
-            />
-            <Area
-              type="monotone"
-              dataKey="ca"
-              stroke={PRIMARY}
-              strokeWidth={2}
-              fill="url(#caFill)"
-              dot={false}
-              activeDot={{ r: 4, fill: PRIMARY }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+    <div className="overflow-x-auto">
+      <div style={{ minWidth: many ? data.length * 34 : undefined }}>
+        {/* Barres */}
+        <div className="flex h-[200px] items-end gap-1">
+          {data.map((d, i) => {
+            const h = (d.ca / max) * 100;
+            return (
+              <button
+                key={i}
+                type="button"
+                onMouseEnter={() => setActive(i)}
+                onMouseLeave={() => setActive((a) => (a === i ? null : a))}
+                onFocus={() => setActive(i)}
+                onClick={() => setActive(i)}
+                className="group relative flex flex-1 flex-col justify-end self-stretch outline-none"
+                aria-label={`${d.label} : ${formatDA(d.ca)}`}
+              >
+                {active === i && (
+                  <span className="border-border pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 rounded-[10px] border bg-white px-2.5 py-1.5 text-center whitespace-nowrap shadow-md">
+                    <span className="text-muted block text-[10px]">
+                      {d.label}
+                    </span>
+                    <span className="text-foreground block text-xs font-semibold tabular-nums">
+                      {formatDA(d.ca)}
+                    </span>
+                  </span>
+                )}
+                <span
+                  className={cn(
+                    "mx-auto w-full max-w-[26px] rounded-t-[4px] transition-colors",
+                    active === i ? "bg-primary-600" : "bg-primary-500/70"
+                  )}
+                  style={{ height: `${h}%`, minHeight: d.ca > 0 ? 3 : 1 }}
+                />
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Axe X (étiquettes espacées) */}
+        <div className="text-subtle mt-2 flex gap-1 text-[10px]">
+          {data.map((d, i) => (
+            <span key={i} className="flex-1 text-center">
+              {i % labelStep === 0 ? d.label : ""}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );
