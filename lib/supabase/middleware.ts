@@ -26,30 +26,38 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  // IMPORTANT : ne rien intercaler entre createServerClient et getUser()
+  // (sinon la session peut ne pas être rafraîchie → déconnexions aléatoires).
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
   const isPublicAuthRoute = path === "/login" || path === "/signup";
-  const isPublicAsset = path.startsWith("/_next") || path === "/favicon.ico";
+
+  // Redirige EN RECOPIANT les cookies de session rafraîchis sur la réponse de
+  // redirection. Sans ça, NextResponse.redirect() crée une réponse SANS ces
+  // cookies → la session ne se pose jamais → boucle ERR_TOO_MANY_REDIRECTS.
+  const redirectTo = (pathname: string) => {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname;
+    const redirectResponse = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie);
+    });
+    return redirectResponse;
+  };
 
   if (path.startsWith("/dashboard") && !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    return redirectTo("/login");
   }
 
   if (user && isPublicAuthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    return redirectTo("/dashboard");
   }
 
-  if (path === "/" && !isPublicAsset) {
-    const url = request.nextUrl.clone();
-    url.pathname = user ? "/dashboard" : "/login";
-    return NextResponse.redirect(url);
+  if (path === "/") {
+    return redirectTo(user ? "/dashboard" : "/login");
   }
 
   return supabaseResponse;
