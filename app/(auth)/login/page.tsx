@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/shared/logo";
-import { login, type AuthState } from "../actions";
+import { login, type AuthState } from "@/app/(merchant)/actions";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 

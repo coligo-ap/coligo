@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/shared/logo";
-import { signup, type AuthState } from "../actions";
+import { signup, type AuthState } from "@/app/(merchant)/actions";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { MERCHANT_CATEGORIES } from "@/lib/config/categories";
 import { getCommunes } from "@/lib/config/communes";
