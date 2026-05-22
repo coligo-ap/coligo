@@ -63,7 +63,7 @@ export default async function OrderDetailPage({
   const payout = o.total_da - o.commission_da;
 
   return (
-    <div className="mx-auto max-w-[1100px] p-4 pb-28 lg:p-6 lg:px-8 lg:pb-6">
+    <div className="mx-auto max-w-[1100px] p-4 pb-[calc(13rem+env(safe-area-inset-bottom))] lg:p-6 lg:px-8 lg:pb-6">
       {/* Header */}
       <header className="mb-6">
         <Link
@@ -206,7 +206,7 @@ export default async function OrderDetailPage({
           </section>
 
           {/* Actions — sticky en bas sur mobile, carte sur desktop */}
-          <section className="border-border bg-surface fixed inset-x-0 bottom-0 z-20 border-t p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] lg:static lg:rounded-[16px] lg:border lg:p-5 lg:shadow-none">
+          <section className="border-border bg-surface fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 border-t p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] lg:static lg:bottom-auto lg:rounded-[16px] lg:border lg:p-5 lg:shadow-none">
             <h2 className="mb-3 hidden text-base font-semibold lg:block">
               Action
             </h2>
