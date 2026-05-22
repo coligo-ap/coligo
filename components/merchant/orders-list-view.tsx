@@ -174,8 +174,8 @@ export function OrdersListView({ orders }: { orders: OrderWithItems[] }) {
             </table>
           </div>
 
-          {/* Mobile : cartes */}
-          <div className="space-y-3 lg:hidden">
+          {/* Mobile : liste de cartes · Tablette : grille 2 colonnes */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:hidden">
             {filtered.map((o) => (
               <OrderMobileCard key={o.id} order={o} />
             ))}
