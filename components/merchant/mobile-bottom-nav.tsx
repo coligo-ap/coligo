@@ -7,7 +7,7 @@ import {
   ShoppingBag,
   QrCode,
   Package,
-  Settings,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/orders", label: "Commandes", icon: ShoppingBag },
   { href: "/catalog", label: "Catalogue", icon: Package },
   { href: "/orders/validate", label: "Valider", icon: QrCode },
-  { href: "/settings", label: "Réglages", icon: Settings, disabled: true },
+  { href: "/stats", label: "Stats", icon: BarChart3 },
 ];
 
 export function MerchantMobileBottomNav() {
