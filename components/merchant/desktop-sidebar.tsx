@@ -31,7 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/catalog", label: "Catalogue", icon: Package },
   { href: "/promotions", label: "Promotions", icon: Tag },
   { href: "/stats", label: "Statistiques", icon: BarChart3 },
-  { href: "/finances", label: "Finances", icon: Wallet, disabled: true },
+  { href: "/finances", label: "Finances", icon: Wallet },
   { href: "/settings", label: "Paramètres", icon: Settings, disabled: true },
 ];
 

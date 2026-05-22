@@ -272,3 +272,64 @@ export type Promotion = {
 export type PromotionWithProducts = Promotion & {
   promotion_products: { product_id: string }[];
 };
+
+// ===========================================================================
+// Wallet commerçant (finances)
+// ===========================================================================
+export type WalletEntryType = "sale" | "commission" | "payout" | "adjustment";
+
+export type PayoutStatus = "pending" | "approved" | "paid" | "rejected";
+
+export const WALLET_ENTRY_META: Record<
+  WalletEntryType,
+  { label: string; tone: "success" | "danger" | "primary" | "neutral" }
+> = {
+  sale: { label: "Vente", tone: "success" },
+  commission: { label: "Commission Coligo", tone: "danger" },
+  payout: { label: "Versement", tone: "primary" },
+  adjustment: { label: "Ajustement", tone: "neutral" },
+};
+
+export const PAYOUT_STATUS_META: Record<
+  PayoutStatus,
+  { label: string; tone: "warning" | "primary" | "success" | "danger" }
+> = {
+  pending: { label: "En attente", tone: "warning" },
+  approved: { label: "Approuvée", tone: "primary" },
+  paid: { label: "Versée", tone: "success" },
+  rejected: { label: "Refusée", tone: "danger" },
+};
+
+/** Méthodes de versement proposées (MVP, texte libre côté base). */
+export const PAYOUT_METHODS: { value: string; label: string }[] = [
+  { value: "ccp", label: "CCP" },
+  { value: "baridimob", label: "BaridiMob" },
+  { value: "bank", label: "Virement bancaire" },
+];
+
+export type WalletEntry = {
+  id: string;
+  merchant_id: string;
+  order_id: string | null;
+  type: WalletEntryType;
+  amount_da: number;
+  commission_rate: number | null;
+  note: string | null;
+  created_at: string;
+};
+
+export type PayoutRequest = {
+  id: string;
+  merchant_id: string;
+  amount_da: number;
+  status: PayoutStatus;
+  method: string;
+  details: string | null;
+  processed_at: string | null;
+  created_at: string;
+};
+
+/** Une demande « réserve » des fonds tant qu'elle n'est ni payée ni refusée. */
+export function isPayoutReserving(status: PayoutStatus): boolean {
+  return status === "pending" || status === "approved";
+}

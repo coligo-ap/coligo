@@ -29,6 +29,7 @@ export type Database = {
           city: string | null;
           wilaya_code: string | null;
           is_active: boolean;
+          commission_rate: number;
           created_at: string;
         };
         Insert: {
@@ -39,6 +40,7 @@ export type Database = {
           city?: string | null;
           wilaya_code?: string | null;
           is_active?: boolean;
+          commission_rate?: number;
           created_at?: string;
         };
         Update: {
@@ -49,6 +51,7 @@ export type Database = {
           city?: string | null;
           wilaya_code?: string | null;
           is_active?: boolean;
+          commission_rate?: number;
           created_at?: string;
         };
         Relationships: [];
@@ -384,9 +387,100 @@ export type Database = {
           },
         ];
       };
+      wallet_entries: {
+        Row: {
+          id: string;
+          merchant_id: string;
+          order_id: string | null;
+          type: Database["public"]["Enums"]["wallet_entry_type"];
+          amount_da: number;
+          commission_rate: number | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          merchant_id: string;
+          order_id?: string | null;
+          type: Database["public"]["Enums"]["wallet_entry_type"];
+          amount_da: number;
+          commission_rate?: number | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          merchant_id?: string;
+          order_id?: string | null;
+          type?: Database["public"]["Enums"]["wallet_entry_type"];
+          amount_da?: number;
+          commission_rate?: number | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wallet_entries_merchant_id_fkey";
+            columns: ["merchant_id"];
+            referencedRelation: "merchants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wallet_entries_order_id_fkey";
+            columns: ["order_id"];
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payout_requests: {
+        Row: {
+          id: string;
+          merchant_id: string;
+          amount_da: number;
+          status: Database["public"]["Enums"]["payout_status"];
+          method: string;
+          details: string | null;
+          processed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          merchant_id: string;
+          amount_da: number;
+          status?: Database["public"]["Enums"]["payout_status"];
+          method: string;
+          details?: string | null;
+          processed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          merchant_id?: string;
+          amount_da?: number;
+          status?: Database["public"]["Enums"]["payout_status"];
+          method?: string;
+          details?: string | null;
+          processed_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payout_requests_merchant_id_fkey";
+            columns: ["merchant_id"];
+            referencedRelation: "merchants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
-    Functions: Record<never, never>;
+    Functions: {
+      merchant_balance: {
+        Args: { p_merchant_id: string };
+        Returns: number;
+      };
+    };
     Enums: {
       order_status:
         | "pending"
@@ -399,6 +493,8 @@ export type Database = {
       promotion_type: "product_discount" | "promo_code" | "quantity_offer";
       promotion_status: "scheduled" | "active" | "expired" | "disabled";
       discount_kind: "percent" | "amount";
+      wallet_entry_type: "sale" | "commission" | "payout" | "adjustment";
+      payout_status: "pending" | "approved" | "paid" | "rejected";
     };
     CompositeTypes: Record<never, never>;
   };
