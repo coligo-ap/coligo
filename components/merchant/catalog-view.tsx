@@ -780,16 +780,16 @@ function CategorySection({
         <Link
           href={addHref}
           title="Ajouter un produit à cette catégorie"
-          className="text-primary-700 hover:bg-primary-50 inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-xs font-medium"
+          className="border-border-strong text-primary-700 hover:bg-primary-50 inline-flex h-9 items-center gap-1 rounded-[10px] border px-2.5 text-xs font-medium"
         >
-          <Plus className="size-3.5" />
+          <Plus className="size-4" />
           <span className="hidden sm:inline">Produit</span>
         </Link>
         {editHref && (
           <Link
             href={editHref}
             title="Modifier la catégorie"
-            className="text-muted hover:bg-surface-3 hover:text-foreground inline-flex items-center rounded-[8px] p-1.5"
+            className="text-muted hover:bg-surface-3 hover:text-foreground inline-flex size-9 items-center justify-center rounded-[10px]"
           >
             <Pencil className="size-4" />
           </Link>
@@ -799,7 +799,7 @@ function CategorySection({
             type="button"
             onClick={onDelete}
             title="Supprimer la catégorie"
-            className="text-muted hover:bg-danger-50 hover:text-danger-600 inline-flex items-center rounded-[8px] p-1.5"
+            className="text-muted hover:bg-danger-50 hover:text-danger-600 inline-flex size-9 items-center justify-center rounded-[10px]"
           >
             <Trash2 className="size-4" />
           </button>
@@ -809,7 +809,7 @@ function CategorySection({
           type="button"
           onClick={onToggle}
           aria-label={open ? "Replier" : "Déplier"}
-          className="text-muted hover:bg-surface-3 inline-flex items-center rounded-[8px] p-1.5"
+          className="text-muted hover:bg-surface-3 ml-0.5 inline-flex size-9 items-center justify-center rounded-[10px]"
         >
           <ChevronDown
             className={cn("size-5 transition-transform", open && "rotate-180")}
