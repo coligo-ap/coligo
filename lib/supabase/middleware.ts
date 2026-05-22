@@ -28,12 +28,22 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANT : ne rien intercaler entre createServerClient et getUser()
   // (sinon la session peut ne pas être rafraîchie → déconnexions aléatoires).
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // En cas d'échec réseau (Algérie : lien instable vers Supabase), on ne casse
+  // pas la navigation : on traite comme "non connecté" sans rediriger en boucle.
+  let user = null;
+  try {
+    const result = await supabase.auth.getUser();
+    user = result.data.user;
+  } catch {
+    user = null;
+  }
 
   const path = request.nextUrl.pathname;
   const isPublicAuthRoute = path === "/login" || path === "/signup";
+  // Un layout (MerchantShell / admin) renvoie parfois vers /login?error=...
+  // (pas de boutique, accès refusé, requête échouée). Dans ce cas il NE FAUT
+  // PAS renvoyer l'utilisateur connecté vers /dashboard, sinon boucle infinie.
+  const bouncedWithError = request.nextUrl.searchParams.has("error");
 
   // Redirige EN RECOPIANT les cookies de session rafraîchis sur la réponse de
   // redirection. Sans ça, NextResponse.redirect() crée une réponse SANS ces
@@ -41,6 +51,7 @@ export async function updateSession(request: NextRequest) {
   const redirectTo = (pathname: string) => {
     const url = request.nextUrl.clone();
     url.pathname = pathname;
+    url.search = ""; // évite de traîner les ?error= d'une redirection à l'autre
     const redirectResponse = NextResponse.redirect(url);
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       redirectResponse.cookies.set(cookie);
@@ -52,7 +63,9 @@ export async function updateSession(request: NextRequest) {
     return redirectTo("/login");
   }
 
-  if (user && isPublicAuthRoute) {
+  // Connecté sur /login ou /signup → /dashboard, SAUF si on y a été renvoyé
+  // avec une erreur (sinon ping-pong avec le layout qui re-renvoie ici).
+  if (user && isPublicAuthRoute && !bouncedWithError) {
     return redirectTo("/dashboard");
   }
 
