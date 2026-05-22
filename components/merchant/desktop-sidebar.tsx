@@ -28,7 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/orders", label: "Commandes", icon: ShoppingBag },
   { href: "/orders/validate", label: "Valider retrait", icon: QrCode },
   { href: "/catalog", label: "Catalogue", icon: Package },
-  { href: "/stats", label: "Statistiques", icon: BarChart3, disabled: true },
+  { href: "/stats", label: "Statistiques", icon: BarChart3 },
   { href: "/finances", label: "Finances", icon: Wallet, disabled: true },
   { href: "/settings", label: "Paramètres", icon: Settings, disabled: true },
 ];
