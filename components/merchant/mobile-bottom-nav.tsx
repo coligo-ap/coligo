@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  ShoppingBag,
   QrCode,
   Package,
-  BarChart3,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,9 +20,9 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/orders/validate", label: "Valider", icon: QrCode },
+  { href: "/orders", label: "Commandes", icon: ShoppingBag },
   { href: "/catalog", label: "Catalogue", icon: Package },
-  { href: "/stats", label: "Stats", icon: BarChart3, disabled: true },
+  { href: "/orders/validate", label: "Valider", icon: QrCode },
   { href: "/settings", label: "Réglages", icon: Settings, disabled: true },
 ];
 

@@ -1,17 +1,36 @@
 import { Check } from "lucide-react";
-import { ORDER_FLOW, orderFlowIndex, type OrderStatus } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import {
+  ORDER_FLOW,
+  orderFlowIndex,
+  type OrderEvent,
+  type OrderStatus,
+} from "@/lib/types";
+import { cn, formatTime } from "@/lib/utils";
 
 /**
  * Timeline verticale des statuts d'une commande. L'étape courante est mise en
- * avant en violet, les précédentes sont validées (check), les suivantes grisées.
- * Pour une commande annulée, on affiche un état dédié.
+ * avant en violet, les précédentes sont validées (check) avec l'horodatage issu
+ * de `order_events`, les suivantes grisées.
  */
-export function OrderStatusTimeline({ status }: { status: OrderStatus }) {
+export function OrderStatusTimeline({
+  status,
+  events = [],
+}: {
+  status: OrderStatus;
+  events?: OrderEvent[];
+}) {
+  // Horodatage du passage à chaque statut (dernier event vers ce statut).
+  const reachedAt = new Map<OrderStatus, string>();
+  for (const ev of events) reachedAt.set(ev.to_status, ev.created_at);
+
   if (status === "cancelled") {
+    const at = reachedAt.get("cancelled");
     return (
-      <div className="bg-danger-50 text-danger-700 flex items-center gap-2 rounded-[12px] px-4 py-3 text-sm font-medium">
-        Commande annulée
+      <div className="bg-danger-50 text-danger-700 flex items-center justify-between gap-2 rounded-[12px] px-4 py-3 text-sm font-medium">
+        <span>Commande annulée</span>
+        {at && (
+          <span className="text-danger-600/80 text-xs">{formatTime(at)}</span>
+        )}
       </div>
     );
   }
@@ -24,6 +43,7 @@ export function OrderStatusTimeline({ status }: { status: OrderStatus }) {
         const done = i < currentIndex;
         const current = i === currentIndex;
         const isLast = i === ORDER_FLOW.length - 1;
+        const at = reachedAt.get(step.status);
 
         return (
           <li key={step.status} className="flex gap-3">
@@ -49,8 +69,13 @@ export function OrderStatusTimeline({ status }: { status: OrderStatus }) {
               )}
             </div>
 
-            {/* Label */}
-            <div className={cn("pb-6", isLast && "pb-0")}>
+            {/* Label + horodatage */}
+            <div
+              className={cn(
+                "flex flex-1 items-start justify-between pb-6",
+                isLast && "pb-0"
+              )}
+            >
               <p
                 className={cn(
                   "text-sm leading-7",
@@ -61,6 +86,11 @@ export function OrderStatusTimeline({ status }: { status: OrderStatus }) {
               >
                 {step.label}
               </p>
+              {at && (done || current) && (
+                <span className="text-subtle mt-1 text-xs">
+                  {formatTime(at)}
+                </span>
+              )}
             </div>
           </li>
         );

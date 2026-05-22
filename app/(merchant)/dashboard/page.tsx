@@ -5,6 +5,7 @@ import { MobileOrderList } from "@/components/merchant/order-list-mobile";
 import Link from "next/link";
 import { Inbox, ShoppingBag, TrendingUp, Clock, QrCode } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { OrdersRealtime } from "@/components/merchant/orders-realtime";
 import { formatDA, cn } from "@/lib/utils";
 import type { OrderWithItems } from "@/lib/types";
 
@@ -12,6 +13,15 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: merchant } = await supabase
+    .from("merchants")
+    .select("id")
+    .eq("user_id", user?.id ?? "")
+    .maybeSingle();
 
   const { data: orders, error } = await supabase
     .from("orders")
@@ -60,6 +70,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-[1600px] p-4 lg:p-6 lg:px-8">
+      {merchant && <OrdersRealtime merchantId={merchant.id} />}
       {/* Header */}
       <header className="mb-5 flex items-end justify-between gap-4 lg:mb-6">
         <div>

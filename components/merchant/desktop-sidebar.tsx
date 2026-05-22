@@ -25,7 +25,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-  { href: "/orders", label: "Commandes", icon: ShoppingBag, disabled: true },
+  { href: "/orders", label: "Commandes", icon: ShoppingBag },
   { href: "/orders/validate", label: "Valider retrait", icon: QrCode },
   { href: "/catalog", label: "Catalogue", icon: Package },
   { href: "/stats", label: "Statistiques", icon: BarChart3, disabled: true },

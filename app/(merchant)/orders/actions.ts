@@ -2,16 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { OrderStatus } from "@/lib/types";
-
-const ALLOWED_STATUSES: OrderStatus[] = [
-  "pending",
-  "accepted",
-  "preparing",
-  "ready",
-  "completed",
-  "cancelled",
-];
+import { isValidTransition, type OrderStatus } from "@/lib/types";
 
 export type OrderActionResult = {
   error?: string;
@@ -19,41 +10,78 @@ export type OrderActionResult = {
 };
 
 /**
- * Change le statut d'une commande. La RLS (orders_update_own_merchant) garantit
- * que seul le commerçant propriétaire peut modifier sa commande.
+ * Fait avancer une commande dans son cycle de vie.
+ *
+ * - Vérifie que la transition est autorisée (sinon refus).
+ * - La RLS garantit que la commande appartient au commerçant connecté.
+ * - Idempotency : si un `clientOperationId` déjà traité est rejoué, on ne
+ *   réapplique pas (la même opération ne produit qu'un seul changement).
+ * - Audit : écrit une ligne dans `order_events` à chaque changement.
  */
 export async function updateOrderStatus(
   orderId: string,
-  status: OrderStatus
+  to: OrderStatus,
+  clientOperationId?: string
 ): Promise<OrderActionResult> {
-  if (!ALLOWED_STATUSES.includes(status)) {
-    return { error: "Statut invalide." };
+  const supabase = await createClient();
+
+  // Idempotency : opération déjà appliquée ?
+  if (clientOperationId) {
+    const { data: existing } = await supabase
+      .from("order_events")
+      .select("id")
+      .eq("client_operation_id", clientOperationId)
+      .maybeSingle();
+    if (existing) return { success: "Déjà appliqué." };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase
+  // RLS : ne renvoie la commande que si elle appartient au commerçant.
+  const { data: order, error: readError } = await supabase
     .from("orders")
-    .update({ status })
+    .select("id, status")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (readError) return { error: `Erreur : ${readError.message}` };
+  if (!order) return { error: "Commande introuvable." };
+
+  const from = order.status as OrderStatus;
+  if (from === to) return { success: "Aucun changement." };
+  if (!isValidTransition(from, to)) {
+    return { error: `Transition non autorisée (${from} → ${to}).` };
+  }
+
+  const { error: updateError } = await supabase
+    .from("orders")
+    .update({ status: to })
     .eq("id", orderId);
 
-  if (error) {
-    return { error: `Erreur lors de la mise à jour : ${error.message}` };
+  if (updateError) {
+    return { error: `Erreur lors de la mise à jour : ${updateError.message}` };
   }
 
+  // Audit (append-only). Une erreur ici ne doit pas casser l'action.
+  await supabase.from("order_events").insert({
+    order_id: orderId,
+    from_status: from,
+    to_status: to,
+    client_operation_id: clientOperationId ?? null,
+  });
+
   revalidatePath("/dashboard");
+  revalidatePath("/orders");
   revalidatePath(`/orders/${orderId}`);
   return { success: "Commande mise à jour." };
 }
 
 /**
  * Valide un retrait à partir du code à 6 chiffres : passe la commande
- * correspondante (du commerçant connecté) en « récupérée ».
- *
- * La recherche est protégée par la RLS SELECT (le commerçant ne voit que ses
- * commandes) — un code d'un autre commerçant ne renvoie donc rien.
+ * (du commerçant connecté) en « récupérée ». N'accepte que les commandes
+ * prêtes (transition ready → completed).
  */
 export async function validatePickupCode(
-  code: string
+  code: string,
+  clientOperationId?: string
 ): Promise<OrderActionResult & { orderId?: string }> {
   const normalized = code.replace(/\D/g, "");
   if (normalized.length !== 6) {
@@ -68,30 +96,21 @@ export async function validatePickupCode(
     .eq("pickup_code", normalized)
     .maybeSingle();
 
-  if (error) {
-    return { error: `Erreur : ${error.message}` };
-  }
-  if (!order) {
-    return { error: "Aucune commande ne correspond à ce code." };
-  }
+  if (error) return { error: `Erreur : ${error.message}` };
+  if (!order) return { error: "Aucune commande ne correspond à ce code." };
   if (order.status === "completed") {
     return { error: "Cette commande a déjà été récupérée." };
   }
   if (order.status === "cancelled") {
     return { error: "Cette commande a été annulée." };
   }
-
-  const { error: updateError } = await supabase
-    .from("orders")
-    .update({ status: "completed" })
-    .eq("id", order.id);
-
-  if (updateError) {
-    return { error: `Erreur lors de la validation : ${updateError.message}` };
+  if (order.status !== "ready") {
+    return { error: "Cette commande n'est pas encore prête au retrait." };
   }
 
-  revalidatePath("/dashboard");
-  revalidatePath(`/orders/${order.id}`);
+  const res = await updateOrderStatus(order.id, "completed", clientOperationId);
+  if (res.error) return { error: res.error };
+
   return {
     success: `Retrait validé pour ${order.customer_name}.`,
     orderId: order.id,

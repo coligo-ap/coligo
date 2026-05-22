@@ -61,6 +61,9 @@ export type Database = {
           customer_phone: string;
           status: Database["public"]["Enums"]["order_status"];
           total_da: number;
+          service_fee_da: number;
+          cashback_da: number;
+          commission_da: number;
           pickup_code: string;
           pickup_slot_at: string;
           notes: string | null;
@@ -73,6 +76,9 @@ export type Database = {
           customer_phone: string;
           status?: Database["public"]["Enums"]["order_status"];
           total_da: number;
+          service_fee_da?: number;
+          cashback_da?: number;
+          commission_da?: number;
           pickup_code?: string;
           pickup_slot_at: string;
           notes?: string | null;
@@ -85,6 +91,9 @@ export type Database = {
           customer_phone?: string;
           status?: Database["public"]["Enums"]["order_status"];
           total_da?: number;
+          service_fee_da?: number;
+          cashback_da?: number;
+          commission_da?: number;
           pickup_code?: string;
           pickup_slot_at?: string;
           notes?: string | null;
@@ -205,6 +214,43 @@ export type Database = {
             foreignKeyName: "categories_merchant_id_fkey";
             columns: ["merchant_id"];
             referencedRelation: "merchants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      order_events: {
+        Row: {
+          id: string;
+          order_id: string;
+          from_status: Database["public"]["Enums"]["order_status"] | null;
+          to_status: Database["public"]["Enums"]["order_status"];
+          client_operation_id: string | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          from_status?: Database["public"]["Enums"]["order_status"] | null;
+          to_status: Database["public"]["Enums"]["order_status"];
+          client_operation_id?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          from_status?: Database["public"]["Enums"]["order_status"] | null;
+          to_status?: Database["public"]["Enums"]["order_status"];
+          client_operation_id?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_events_order_id_fkey";
+            columns: ["order_id"];
+            referencedRelation: "orders";
             referencedColumns: ["id"];
           },
         ];

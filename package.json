@@ -13,6 +13,7 @@
     "format:check": "prettier --check .",
     "db:push": "node scripts/db-push.mjs",
     "db:status": "node scripts/db-status.mjs",
+    "db:seed": "node scripts/db-seed.mjs",
     "db:new": "supabase migration new",
     "prepare": "husky"
   },
@@ -44,6 +45,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.5",
     "nodemon": "^3.1.9",
+    "pg": "^8.21.0",
     "postcss": "^8.5.1",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.0",

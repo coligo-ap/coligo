@@ -5,9 +5,17 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { OrderStatusTimeline } from "@/components/merchant/order-status-timeline";
 import { OrderActions } from "@/components/merchant/order-actions";
-import { ORDER_STATUS_META, type OrderWithItems } from "@/lib/types";
-import { commissionDA } from "@/lib/config/app-config";
-import { countItems, formatDA, formatTime } from "@/lib/utils";
+import {
+  ORDER_STATUS_META,
+  type OrderEvent,
+  type OrderWithItems,
+} from "@/lib/types";
+import {
+  countItems,
+  formatDA,
+  formatRelativeTime,
+  formatTime,
+} from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -20,30 +28,46 @@ export default async function OrderDetailPage({
   const supabase = await createClient();
 
   // RLS garantit qu'on ne récupère qu'une commande du commerçant connecté.
-  const { data: order } = await supabase
-    .from("orders")
-    .select(
-      `id, merchant_id, customer_name, customer_phone, status,
-       total_da, pickup_code, pickup_slot_at, notes, created_at,
-       order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`
-    )
-    .eq("id", id)
-    .maybeSingle();
+  const [{ data: order }, { data: events }] = await Promise.all([
+    supabase
+      .from("orders")
+      .select(
+        `id, merchant_id, customer_name, customer_phone, status,
+         total_da, service_fee_da, cashback_da, commission_da,
+         pickup_code, pickup_slot_at, notes, created_at,
+         order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`
+      )
+      .eq("id", id)
+      .maybeSingle(),
+    supabase
+      .from("order_events")
+      .select(
+        "id, order_id, from_status, to_status, client_operation_id, note, created_at"
+      )
+      .eq("order_id", id)
+      .order("created_at", { ascending: true }),
+  ]);
 
   if (!order) notFound();
 
-  const o = order as OrderWithItems;
+  const o = order as OrderWithItems & {
+    service_fee_da: number;
+    cashback_da: number;
+    commission_da: number;
+  };
+  const orderEvents = (events ?? []) as OrderEvent[];
   const meta = ORDER_STATUS_META[o.status];
   const shortId = o.id.slice(0, 6).toUpperCase();
   const subtotal = o.order_items.reduce((s, it) => s + it.line_total_da, 0);
-  const commission = commissionDA(o.total_da);
+  // Montants figés (jamais recalculés).
+  const payout = o.total_da - o.commission_da;
 
   return (
-    <div className="mx-auto max-w-[1100px] p-4 lg:p-6 lg:px-8">
+    <div className="mx-auto max-w-[1100px] p-4 pb-28 lg:p-6 lg:px-8 lg:pb-6">
       {/* Header */}
       <header className="mb-6">
         <Link
-          href="/dashboard"
+          href="/orders"
           className="text-muted hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm"
         >
           <ArrowLeft className="size-4" />
@@ -56,9 +80,12 @@ export default async function OrderDetailPage({
             </h1>
             <Badge tone={meta.tone}>{meta.label}</Badge>
           </div>
-          <p className="text-muted flex items-center gap-1.5 text-sm">
-            <Clock className="size-4" />
-            Retrait à {formatTime(o.pickup_slot_at)}
+          <p className="text-muted flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span>Créée {formatRelativeTime(o.created_at)}</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="size-4" />
+              Retrait à {formatTime(o.pickup_slot_at)}
+            </span>
           </p>
         </div>
       </header>
@@ -104,25 +131,28 @@ export default async function OrderDetailPage({
               )}
             </ul>
 
-            {/* Récap */}
+            {/* Récap (montants figés à la création) */}
             <div className="border-border space-y-2 border-t px-5 py-4 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted">Sous-total</span>
-                <span className="tabular-nums">{formatDA(subtotal)}</span>
-              </div>
+              <Recap label="Sous-total" value={subtotal} />
+              {o.service_fee_da > 0 && (
+                <Recap label="Frais de service" value={o.service_fee_da} />
+              )}
+              {o.cashback_da > 0 && (
+                <Recap label="Cashback" value={-o.cashback_da} tone="muted" />
+              )}
               <div className="flex justify-between font-semibold">
                 <span>Total</span>
                 <span className="tabular-nums">{formatDA(o.total_da)}</span>
               </div>
               <div className="text-muted border-border mt-1 flex justify-between border-t pt-2 text-xs">
                 <span>Commission Coligo</span>
-                <span className="tabular-nums">−{formatDA(commission)}</span>
+                <span className="tabular-nums">
+                  −{formatDA(o.commission_da)}
+                </span>
               </div>
               <div className="text-success-700 flex justify-between text-xs font-medium">
                 <span>Vous percevez</span>
-                <span className="tabular-nums">
-                  {formatDA(o.total_da - commission)}
-                </span>
+                <span className="tabular-nums">{formatDA(payout)}</span>
               </div>
             </div>
           </section>
@@ -130,10 +160,10 @@ export default async function OrderDetailPage({
           {/* Timeline */}
           <section className="border-border bg-surface rounded-[16px] border p-5">
             <h2 className="mb-4 text-base font-semibold">Suivi</h2>
-            <OrderStatusTimeline status={o.status} />
+            <OrderStatusTimeline status={o.status} events={orderEvents} />
           </section>
 
-          {o.notes && (
+          {o.notes && o.notes !== "seed" && (
             <section className="border-border bg-surface rounded-[16px] border p-5">
               <h2 className="mb-1.5 text-base font-semibold">Note du client</h2>
               <p className="text-muted text-sm">{o.notes}</p>
@@ -175,13 +205,41 @@ export default async function OrderDetailPage({
             </p>
           </section>
 
-          {/* Actions */}
-          <section className="border-border bg-surface rounded-[16px] border p-5">
-            <h2 className="mb-3 text-base font-semibold">Action</h2>
-            <OrderActions orderId={o.id} status={o.status} />
+          {/* Actions — sticky en bas sur mobile, carte sur desktop */}
+          <section className="border-border bg-surface fixed inset-x-0 bottom-0 z-20 border-t p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] lg:static lg:rounded-[16px] lg:border lg:p-5 lg:shadow-none">
+            <h2 className="mb-3 hidden text-base font-semibold lg:block">
+              Action
+            </h2>
+            <div className="mx-auto max-w-[1100px] lg:max-w-none">
+              <OrderActions orderId={o.id} status={o.status} />
+            </div>
           </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Recap({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone?: "muted";
+}) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-muted">{label}</span>
+      <span
+        className={
+          tone === "muted" ? "text-muted tabular-nums" : "tabular-nums"
+        }
+      >
+        {value < 0 ? "−" : ""}
+        {formatDA(Math.abs(value))}
+      </span>
     </div>
   );
 }

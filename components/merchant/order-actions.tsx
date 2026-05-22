@@ -35,8 +35,9 @@ export function OrderActions({
 
   function run(to: OrderStatus) {
     setError(null);
+    const operationId = crypto.randomUUID();
     startTransition(async () => {
-      const res = await updateOrderStatus(orderId, to);
+      const res = await updateOrderStatus(orderId, to, operationId);
       if (res.error) {
         setError(res.error);
         toast.error(res.error);

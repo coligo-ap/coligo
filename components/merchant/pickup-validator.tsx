@@ -11,14 +11,15 @@ type Tab = "code" | "qr";
 type Result = { ok: boolean; message: string; orderId?: string };
 
 export function PickupValidator() {
-  const [tab, setTab] = useState<Tab>("code");
+  const [tab, setTab] = useState<Tab>("qr");
   const [result, setResult] = useState<Result | null>(null);
   const [pending, startTransition] = useTransition();
 
   function submit(code: string) {
     setResult(null);
+    const operationId = crypto.randomUUID();
     startTransition(async () => {
-      const res = await validatePickupCode(code);
+      const res = await validatePickupCode(code, operationId);
       setResult({
         ok: !res.error,
         message: res.error ?? res.success ?? "",

@@ -49,9 +49,10 @@ export function nextOrderAction(
 ): { to: OrderStatus; label: string } | null {
   switch (status) {
     case "pending":
-      return { to: "accepted", label: "Accepter la commande" };
+      // Accepter lance directement la préparation (pas d'étape intermédiaire).
+      return { to: "preparing", label: "Accepter la commande" };
     case "accepted":
-      return { to: "preparing", label: "Mettre en préparation" };
+      return { to: "preparing", label: "Commencer la préparation" };
     case "preparing":
       return { to: "ready", label: "Marquer comme prête" };
     default:
@@ -88,11 +89,42 @@ export type Order = {
   customer_phone: string;
   status: OrderStatus;
   total_da: number;
+  service_fee_da: number;
+  cashback_da: number;
+  commission_da: number;
   pickup_code: string;
   pickup_slot_at: string;
   notes: string | null;
   created_at: string;
 };
+
+export type OrderEvent = {
+  id: string;
+  order_id: string;
+  from_status: OrderStatus | null;
+  to_status: OrderStatus;
+  client_operation_id: string | null;
+  note: string | null;
+  created_at: string;
+};
+
+/**
+ * Transitions de statut autorisées. Toute transition hors de cette table est
+ * refusée par les Server Actions (ex. pending -> completed est illégal).
+ */
+export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  // Accepter une commande la met directement en préparation.
+  pending: ["preparing", "accepted", "cancelled"],
+  accepted: ["preparing", "cancelled"],
+  preparing: ["ready", "cancelled"],
+  ready: ["completed", "cancelled"],
+  completed: [],
+  cancelled: [],
+};
+
+export function isValidTransition(from: OrderStatus, to: OrderStatus): boolean {
+  return ALLOWED_TRANSITIONS[from]?.includes(to) ?? false;
+}
 
 export type OrderItem = {
   id: string;
