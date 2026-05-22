@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { MerchantSidebar } from "@/components/merchant/desktop-sidebar";
 import { MerchantTopbar } from "@/components/merchant/desktop-topbar";
 import { MerchantMobileHeader } from "@/components/merchant/mobile-header";
-import { MobileNav } from "@/components/merchant/mobile-nav";
+import { MerchantMobileBottomNav } from "@/components/merchant/mobile-bottom-nav";
+import { MobileDrawer } from "@/components/merchant/mobile-drawer";
 
 /**
  * Shell de l'espace commerçant : auth + lookup merchant + chrome (sidebar,
@@ -82,8 +83,9 @@ export async function MerchantShell({
         <main className="flex-1 pb-20 lg:pb-0">{children}</main>
       </div>
 
-      {/* Mobile bottom nav + drawer */}
-      <MobileNav merchantName={merchant.name} email={user.email ?? ""} />
+      {/* Mobile bottom nav + drawer (le hamburger du header ouvre le drawer) */}
+      <MerchantMobileBottomNav />
+      <MobileDrawer merchantName={merchant.name} email={user.email ?? ""} />
     </div>
   );
 }

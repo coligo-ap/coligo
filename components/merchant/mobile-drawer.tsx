@@ -4,11 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import {
-  BarChart3,
   HelpCircle,
   LayoutDashboard,
   LogOut,
-  QrCode,
   Settings,
   Tag,
   Wallet,
@@ -18,6 +16,10 @@ import { Logo } from "@/components/shared/logo";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { logout } from "@/app/(merchant)/actions";
+import {
+  mobileDrawer,
+  useMobileDrawerOpen,
+} from "@/components/merchant/use-mobile-drawer";
 
 type DrawerItem = {
   href: string;
@@ -26,35 +28,31 @@ type DrawerItem = {
   disabled?: boolean;
 };
 
-// Sections secondaires (retirées de la bottom-nav) + bientôt-disponibles.
+// Sections secondaires (celles retirées de la bottom-nav) + bientôt-disponibles.
 const DRAWER_ITEMS: DrawerItem[] = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-  { href: "/orders/validate", label: "Valider retrait", icon: QrCode },
   { href: "/promotions", label: "Promotions", icon: Tag },
-  { href: "/stats", label: "Statistiques", icon: BarChart3 },
   { href: "/finances", label: "Finances", icon: Wallet, disabled: true },
   { href: "/settings", label: "Paramètres", icon: Settings, disabled: true },
 ];
 
 export function MobileDrawer({
-  open,
-  onClose,
   merchantName,
   email,
 }: {
-  open: boolean;
-  onClose: () => void;
   merchantName: string;
   email: string;
 }) {
+  const open = useMobileDrawerOpen();
   const pathname = usePathname();
   const closeRef = useRef<HTMLButtonElement>(null);
+  const close = () => mobileDrawer.close();
 
   // Échap pour fermer, blocage du scroll de la page, focus sur le bouton X.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") mobileDrawer.close();
     };
     document.addEventListener("keydown", onKey);
     const previousOverflow = document.body.style.overflow;
@@ -64,13 +62,13 @@ export function MobileDrawer({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = previousOverflow;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   return (
     <div className={cn("lg:hidden", !open && "pointer-events-none")}>
       {/* Overlay sombre */}
       <div
-        onClick={onClose}
+        onClick={close}
         aria-hidden="true"
         className={cn(
           "fixed inset-0 z-40 bg-black/40 transition-opacity duration-200",
@@ -78,14 +76,14 @@ export function MobileDrawer({
         )}
       />
 
-      {/* Panneau coulissant */}
+      {/* Panneau coulissant — depuis la DROITE */}
       <aside
         role="dialog"
         aria-modal="true"
         aria-label="Menu de navigation"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[82%] max-w-xs flex-col bg-white shadow-xl transition-transform duration-200 ease-out",
-          open ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-0 right-0 z-50 flex w-[82%] max-w-xs flex-col bg-white shadow-xl transition-transform duration-200 ease-out",
+          open ? "translate-x-0" : "translate-x-full"
         )}
       >
         {/* Identité du commerce */}
@@ -100,7 +98,7 @@ export function MobileDrawer({
           <button
             ref={closeRef}
             type="button"
-            onClick={onClose}
+            onClick={close}
             aria-label="Fermer le menu"
             className="text-muted hover:bg-surface-2 hover:text-foreground flex size-10 shrink-0 items-center justify-center rounded-full"
           >
@@ -134,7 +132,7 @@ export function MobileDrawer({
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={onClose}
+                onClick={close}
                 className={cn(
                   "flex min-h-[44px] items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors",
                   active
@@ -150,7 +148,7 @@ export function MobileDrawer({
 
           <a
             href="#"
-            onClick={onClose}
+            onClick={close}
             className="text-muted hover:bg-surface-2 hover:text-foreground flex min-h-[44px] items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors"
           >
             <HelpCircle className="size-5 shrink-0" />

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, Package, BarChart3, Menu } from "lucide-react";
+import { ShoppingBag, Package, BarChart3, QrCode } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -11,21 +11,17 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
 };
 
-// 4 actions max sur mobile : les 3 plus fréquentes + le bouton Menu (drawer).
-// Les autres sections vivent dans le drawer (cf. mobile-drawer.tsx).
+// Les 4 actions les plus fréquentes du quotidien. Le menu (sections
+// secondaires) est désormais ouvert par le bouton hamburger du header,
+// en haut à droite — donc pas de bouton "Menu" ici.
 const NAV_ITEMS: NavItem[] = [
   { href: "/orders", label: "Commandes", icon: ShoppingBag },
   { href: "/catalog", label: "Catalogue", icon: Package },
   { href: "/stats", label: "Stats", icon: BarChart3 },
+  { href: "/orders/validate", label: "Valider", icon: QrCode },
 ];
 
-export function MerchantMobileBottomNav({
-  onOpenMenu,
-  menuOpen,
-}: {
-  onOpenMenu: () => void;
-  menuOpen: boolean;
-}) {
+export function MerchantMobileBottomNav() {
   const pathname = usePathname();
 
   return (
@@ -36,7 +32,14 @@ export function MerchantMobileBottomNav({
       <div className="grid h-16 grid-cols-4">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const active = pathname.startsWith(item.href);
+          // "Valider" (/orders/validate) est plus spécifique que "Commandes"
+          // (/orders) : on évite de marquer Commandes actif sur la validation.
+          const active =
+            item.href === "/orders"
+              ? pathname === "/orders" ||
+                (pathname.startsWith("/orders/") &&
+                  !pathname.startsWith("/orders/validate"))
+              : pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
@@ -51,20 +54,6 @@ export function MerchantMobileBottomNav({
             </Link>
           );
         })}
-
-        <button
-          type="button"
-          onClick={onOpenMenu}
-          aria-label="Ouvrir le menu"
-          aria-expanded={menuOpen}
-          className={cn(
-            "flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
-            menuOpen ? "text-primary-700" : "text-muted"
-          )}
-        >
-          <Menu className="size-5" />
-          <span>Menu</span>
-        </button>
       </div>
     </nav>
   );
