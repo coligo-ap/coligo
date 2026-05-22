@@ -17,16 +17,17 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
 import { cn, formatDA } from "@/lib/utils";
 import {
+  PAYMENT_METHOD_META,
   PAYOUT_METHODS,
   PAYOUT_STATUS_META,
   WALLET_ENTRY_META,
   type PayoutRequest,
-  type WalletEntry,
 } from "@/lib/types";
 import {
   requestPayout,
   type PayoutFormState,
 } from "@/app/(merchant)/finances/actions";
+import type { WalletEntryRow } from "@/lib/data/wallet";
 import type { FinancesSummary } from "@/app/(merchant)/finances/page";
 
 const initialState: PayoutFormState = {};
@@ -44,7 +45,7 @@ export function FinancesView({
   requests,
   summary,
 }: {
-  entries: WalletEntry[];
+  entries: WalletEntryRow[];
   requests: PayoutRequest[];
   summary: FinancesSummary;
 }) {
@@ -89,6 +90,19 @@ export function FinancesView({
           tone="danger"
         />
       </section>
+
+      {summary.debt > 0 && (
+        <div className="border-danger-200 bg-danger-50 mb-6 flex items-center justify-between gap-3 rounded-[16px] border px-5 py-4">
+          <div>
+            <p className="text-danger-800 text-sm font-semibold">
+              Commissions à régler : {formatDA(summary.debt)}
+            </p>
+            <p className="text-danger-700/80 mt-0.5 text-xs">
+              Commandes payées en espèces : vous devez la commission à Coligo.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         {/* Historique des écritures */}
@@ -149,14 +163,20 @@ function StatCard({
   );
 }
 
-function EntryRow({ entry }: { entry: WalletEntry }) {
+function EntryRow({ entry }: { entry: WalletEntryRow }) {
   const meta = WALLET_ENTRY_META[entry.type];
   const positive = entry.amount_da >= 0;
+  const method = entry.orders?.payment_method;
   return (
     <li className="flex items-center gap-3 px-5 py-3.5">
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge tone={meta.tone}>{meta.label}</Badge>
+          {method && (
+            <Badge tone={PAYMENT_METHOD_META[method].tone}>
+              {PAYMENT_METHOD_META[method].short}
+            </Badge>
+          )}
           {entry.order_id && (
             <Link
               href={`/orders/${entry.order_id}`}

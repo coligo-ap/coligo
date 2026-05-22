@@ -95,6 +95,11 @@ export type Order = {
   pickup_code: string;
   pickup_slot_at: string;
   notes: string | null;
+  payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
+  commission_rate_applied: number | null;
+  cashback_rate_applied: number | null;
+  chargily_fee_rate_applied: number | null;
   created_at: string;
 };
 
@@ -333,3 +338,43 @@ export type PayoutRequest = {
 export function isPayoutReserving(status: PayoutStatus): boolean {
   return status === "pending" || status === "approved";
 }
+
+// ===========================================================================
+// Modes de paiement & taux configurables (cash / online)
+// ===========================================================================
+export type PaymentMethod = "cash" | "online";
+export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
+
+export const PAYMENT_METHOD_META: Record<
+  PaymentMethod,
+  { label: string; short: string; tone: "neutral" | "primary" }
+> = {
+  cash: { label: "Espèces", short: "Cash", tone: "neutral" },
+  online: { label: "En ligne", short: "En ligne", tone: "primary" },
+};
+
+/** Taux globaux de la plateforme (ligne unique de platform_settings). */
+export type PlatformSettings = {
+  commission_cash: number;
+  commission_online: number;
+  cashback_online: number;
+  cashback_cash: number;
+  chargily_fee: number;
+  max_debt_da: number;
+  updated_at: string;
+};
+
+/** Surcharges de taux par commerçant (NULL = hérite du global). */
+export type MerchantRateOverrides = {
+  commission_cash: number | null;
+  commission_online: number | null;
+  cashback_online: number | null;
+  cashback_cash: number | null;
+};
+
+export type RateKey =
+  | "commission_cash"
+  | "commission_online"
+  | "cashback_online"
+  | "cashback_cash"
+  | "chargily_fee";

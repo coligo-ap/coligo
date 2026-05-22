@@ -1,6 +1,5 @@
 import { getPayoutRequests, getWalletEntries } from "@/lib/data/wallet";
 import {
-  availableBalance,
   reservedAmount,
   sumByType,
   walletBalance,
@@ -15,10 +14,16 @@ export default async function FinancesPage() {
     getPayoutRequests(),
   ]);
 
-  const summary = {
-    balance: walletBalance(entries),
-    available: availableBalance(entries, requests),
-    reserved: reservedAmount(requests),
+  const balance = walletBalance(entries);
+  const reserved = reservedAmount(requests);
+
+  const summary: FinancesSummary = {
+    balance,
+    // Solde négatif = dette de commissions (mode cash) à régler à Coligo.
+    debt: balance < 0 ? -balance : 0,
+    // On ne peut verser que le net positif, moins les demandes en cours.
+    available: Math.max(0, balance - reserved),
+    reserved,
     totalSales: sumByType(entries, "sale"),
     totalCommission: sumByType(entries, "commission"), // négatif
     totalPaidOut: sumByType(entries, "payout"), // négatif
@@ -31,6 +36,7 @@ export default async function FinancesPage() {
 
 export type FinancesSummary = {
   balance: number;
+  debt: number;
   available: number;
   reserved: number;
   totalSales: number;

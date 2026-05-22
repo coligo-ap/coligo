@@ -30,6 +30,11 @@ export type Database = {
           wilaya_code: string | null;
           is_active: boolean;
           commission_rate: number;
+          commission_cash: number | null;
+          commission_online: number | null;
+          cashback_online: number | null;
+          cashback_cash: number | null;
+          is_frozen: boolean;
           created_at: string;
         };
         Insert: {
@@ -41,6 +46,11 @@ export type Database = {
           wilaya_code?: string | null;
           is_active?: boolean;
           commission_rate?: number;
+          commission_cash?: number | null;
+          commission_online?: number | null;
+          cashback_online?: number | null;
+          cashback_cash?: number | null;
+          is_frozen?: boolean;
           created_at?: string;
         };
         Update: {
@@ -52,6 +62,11 @@ export type Database = {
           wilaya_code?: string | null;
           is_active?: boolean;
           commission_rate?: number;
+          commission_cash?: number | null;
+          commission_online?: number | null;
+          cashback_online?: number | null;
+          cashback_cash?: number | null;
+          is_frozen?: boolean;
           created_at?: string;
         };
         Relationships: [];
@@ -70,6 +85,11 @@ export type Database = {
           pickup_code: string;
           pickup_slot_at: string;
           notes: string | null;
+          payment_method: Database["public"]["Enums"]["payment_method"];
+          payment_status: Database["public"]["Enums"]["payment_status"];
+          commission_rate_applied: number | null;
+          cashback_rate_applied: number | null;
+          chargily_fee_rate_applied: number | null;
           created_at: string;
         };
         Insert: {
@@ -85,6 +105,11 @@ export type Database = {
           pickup_code?: string;
           pickup_slot_at: string;
           notes?: string | null;
+          payment_method?: Database["public"]["Enums"]["payment_method"];
+          payment_status?: Database["public"]["Enums"]["payment_status"];
+          commission_rate_applied?: number | null;
+          cashback_rate_applied?: number | null;
+          chargily_fee_rate_applied?: number | null;
           created_at?: string;
         };
         Update: {
@@ -100,6 +125,11 @@ export type Database = {
           pickup_code?: string;
           pickup_slot_at?: string;
           notes?: string | null;
+          payment_method?: Database["public"]["Enums"]["payment_method"];
+          payment_status?: Database["public"]["Enums"]["payment_status"];
+          commission_rate_applied?: number | null;
+          cashback_rate_applied?: number | null;
+          chargily_fee_rate_applied?: number | null;
           created_at?: string;
         };
         Relationships: [
@@ -473,11 +503,123 @@ export type Database = {
           },
         ];
       };
+      platform_settings: {
+        Row: {
+          id: boolean;
+          commission_cash: number;
+          commission_online: number;
+          cashback_online: number;
+          cashback_cash: number;
+          chargily_fee: number;
+          max_debt_da: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          commission_cash?: number;
+          commission_online?: number;
+          cashback_online?: number;
+          cashback_cash?: number;
+          chargily_fee?: number;
+          max_debt_da?: number;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          commission_cash?: number;
+          commission_online?: number;
+          cashback_online?: number;
+          cashback_cash?: number;
+          chargily_fee?: number;
+          max_debt_da?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      platform_ledger: {
+        Row: {
+          id: string;
+          order_id: string | null;
+          type: Database["public"]["Enums"]["platform_ledger_type"];
+          amount_da: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id?: string | null;
+          type: Database["public"]["Enums"]["platform_ledger_type"];
+          amount_da: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string | null;
+          type?: Database["public"]["Enums"]["platform_ledger_type"];
+          amount_da?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "platform_ledger_order_id_fkey";
+            columns: ["order_id"];
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      cashback_grants: {
+        Row: {
+          id: string;
+          order_id: string | null;
+          customer_phone: string | null;
+          amount_da: number;
+          status: Database["public"]["Enums"]["cashback_status"];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id?: string | null;
+          customer_phone?: string | null;
+          amount_da: number;
+          status?: Database["public"]["Enums"]["cashback_status"];
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string | null;
+          customer_phone?: string | null;
+          amount_da?: number;
+          status?: Database["public"]["Enums"]["cashback_status"];
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cashback_grants_order_id_fkey";
+            columns: ["order_id"];
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      platform_admins: {
+        Row: { email: string; created_at: string };
+        Insert: { email: string; created_at?: string };
+        Update: { email?: string; created_at?: string };
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: {
       merchant_balance: {
         Args: { p_merchant_id: string };
+        Returns: number;
+      };
+      is_super_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      resolve_rate: {
+        Args: { p_merchant_id: string; p_key: string };
         Returns: number;
       };
     };
@@ -495,6 +637,13 @@ export type Database = {
       discount_kind: "percent" | "amount";
       wallet_entry_type: "sale" | "commission" | "payout" | "adjustment";
       payout_status: "pending" | "approved" | "paid" | "rejected";
+      payment_method: "cash" | "online";
+      payment_status: "pending" | "paid" | "failed" | "refunded";
+      cashback_status: "pending" | "granted";
+      platform_ledger_type:
+        | "commission_income"
+        | "chargily_fee"
+        | "cashback_expense";
     };
     CompositeTypes: Record<never, never>;
   };
