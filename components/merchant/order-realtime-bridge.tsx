@@ -12,6 +12,7 @@ import { notify } from "@/lib/native";
 import { createClient } from "@/lib/supabase/client";
 import { updateOrderStatus } from "@/app/(merchant)/orders/actions";
 import { printOrderTicket } from "@/lib/ticket/print-order";
+import { fetchCategoryMap } from "@/lib/ticket/category-map";
 import type { TicketOrder } from "@/lib/ticket/build-ticket-html";
 import type { OrderStatus, PrintSettings } from "@/lib/types";
 
@@ -61,7 +62,7 @@ export function OrderRealtimeBridge({
   // déclenchent eux-mêmes une revalidation côté serveur via `setPrintSettings`).
   const settingsRef = useRef(printSettings);
 
-  /** Récupère la commande complète (+ items + nom du commerce) pour l'imprimer. */
+  /** Récupère la commande complète (+ items + catégories) pour l'imprimer. */
   const fetchTicket = useCallback(
     async (orderId: string): Promise<TicketOrder | null> => {
       const supabase = createClient();
@@ -76,6 +77,8 @@ export function OrderRealtimeBridge({
         .eq("id", orderId)
         .maybeSingle();
       if (!data) return null;
+      const names = (data.order_items ?? []).map((it) => it.product_name);
+      const categoryMap = await fetchCategoryMap(supabase, merchantId, names);
       return {
         id: data.id,
         merchant_name: merchantName,
@@ -95,10 +98,11 @@ export function OrderRealtimeBridge({
           quantity: Number(it.quantity),
           unit_price_da: it.unit_price_da,
           line_total_da: it.line_total_da,
+          category_name: categoryMap[it.product_name],
         })),
       };
     },
-    [merchantName]
+    [merchantName, merchantId]
   );
 
   const doPrint = useCallback(

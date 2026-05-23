@@ -7,6 +7,7 @@ import { OrderStatusTimeline } from "@/components/merchant/order-status-timeline
 import { OrderActions } from "@/components/merchant/order-actions";
 import { PrintOrderButton } from "@/components/ticket/print-order-button";
 import { orderToTicket } from "@/lib/ticket/order-to-ticket";
+import { fetchCategoryMap } from "@/lib/ticket/category-map";
 import {
   ORDER_STATUS_META,
   type OrderEvent,
@@ -67,7 +68,13 @@ export default async function OrderDetailPage({
     .select("name, print_width, print_copies")
     .eq("id", o.merchant_id)
     .maybeSingle();
-  const ticketOrder = orderToTicket(o, merchant?.name ?? "Coligo");
+  // Enrichit chaque item avec sa catégorie (best-effort, fallback « ARTICLES »).
+  const categoryMap = await fetchCategoryMap(
+    supabase,
+    o.merchant_id,
+    o.order_items.map((it) => it.product_name)
+  );
+  const ticketOrder = orderToTicket(o, merchant?.name ?? "Coligo", categoryMap);
   const printWidth = (merchant?.print_width ?? 58) as PrintWidth;
   const printCopies = merchant?.print_copies ?? 1;
   const orderEvents = (events ?? []) as OrderEvent[];

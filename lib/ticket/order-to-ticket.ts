@@ -3,11 +3,14 @@ import type { TicketOrder } from "@/lib/ticket/build-ticket-html";
 
 /**
  * Convertit une commande Supabase (OrderWithItems + nom du commerce) en
- * structure consommée par le builder de ticket.
+ * structure consommée par le builder de ticket. La map des catégories est
+ * facultative — sans elle, tous les items tombent sous un seul groupe
+ * « ARTICLES » côté ticket.
  */
 export function orderToTicket(
   order: OrderWithItems,
-  merchantName: string
+  merchantName: string,
+  categoryMap: Record<string, string> = {}
 ): TicketOrder {
   return {
     id: order.id,
@@ -28,6 +31,7 @@ export function orderToTicket(
       quantity: it.quantity,
       unit_price_da: it.unit_price_da,
       line_total_da: it.line_total_da,
+      category_name: categoryMap[it.product_name],
     })),
   };
 }

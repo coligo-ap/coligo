@@ -35,18 +35,21 @@ export function buildFakeTicketOrder({
         quantity: 2,
         unit_price_da: 50,
         line_total_da: 100,
+        category_name: "Boulangerie",
       },
       {
         product_name: "Croissant beurre",
         quantity: 4,
         unit_price_da: 100,
         line_total_da: 400,
+        category_name: "Viennoiseries",
       },
       {
         product_name: "Sandwich poulet maison",
         quantity: 1,
         unit_price_da: 1250,
         line_total_da: 1250,
+        category_name: "Sandwichs",
       },
     ],
   };

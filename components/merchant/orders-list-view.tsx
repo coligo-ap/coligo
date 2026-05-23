@@ -57,6 +57,7 @@ type ListProps = {
   merchantName: string;
   printWidth: PrintWidth;
   printCopies: number;
+  categoryMap: Record<string, string>;
 };
 
 export function OrdersListView({
@@ -64,6 +65,7 @@ export function OrdersListView({
   merchantName,
   printWidth,
   printCopies,
+  categoryMap,
 }: ListProps) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [query, setQuery] = useState("");
@@ -189,6 +191,7 @@ export function OrdersListView({
                     merchantName={merchantName}
                     printWidth={printWidth}
                     printCopies={printCopies}
+                    categoryMap={categoryMap}
                   />
                 ))}
               </tbody>
@@ -204,6 +207,7 @@ export function OrdersListView({
                 merchantName={merchantName}
                 printWidth={printWidth}
                 printCopies={printCopies}
+                categoryMap={categoryMap}
               />
             ))}
           </div>
@@ -240,9 +244,16 @@ type RowProps = {
   merchantName: string;
   printWidth: PrintWidth;
   printCopies: number;
+  categoryMap: Record<string, string>;
 };
 
-function OrderRow({ order, merchantName, printWidth, printCopies }: RowProps) {
+function OrderRow({
+  order,
+  merchantName,
+  printWidth,
+  printCopies,
+  categoryMap,
+}: RowProps) {
   const meta = ORDER_STATUS_META[order.status];
   const shortId = order.id.slice(0, 6).toUpperCase();
   const { next, pending, advance } = useQuickAdvance(order);
@@ -276,7 +287,7 @@ function OrderRow({ order, merchantName, printWidth, printCopies }: RowProps) {
       <td className="px-4 py-3 text-right">
         <div className="flex items-center justify-end gap-1">
           <PrintOrderButton
-            order={orderToTicket(order, merchantName)}
+            order={orderToTicket(order, merchantName, categoryMap)}
             width={printWidth}
             copies={printCopies}
             variant="icon"
@@ -322,6 +333,7 @@ function OrderMobileCard({
   merchantName,
   printWidth,
   printCopies,
+  categoryMap,
 }: RowProps) {
   const meta = ORDER_STATUS_META[order.status];
   const shortId = order.id.slice(0, 6).toUpperCase();
@@ -374,7 +386,7 @@ function OrderMobileCard({
           )
         )}
         <PrintOrderButton
-          order={orderToTicket(order, merchantName)}
+          order={orderToTicket(order, merchantName, categoryMap)}
           width={printWidth}
           copies={printCopies}
           variant="icon"

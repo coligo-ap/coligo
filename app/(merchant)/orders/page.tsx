@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { OrdersListView } from "@/components/merchant/orders-list-view";
+import { fetchCategoryMap } from "@/lib/ticket/category-map";
 import type { OrderWithItems, PrintWidth } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -39,12 +40,22 @@ export default async function OrdersPage() {
     );
   }
 
+  const ordersList = (orders ?? []) as OrderWithItems[];
+  // Une seule requête pour mapper tous les `product_name` visibles → catégorie.
+  const allNames = ordersList.flatMap((o) =>
+    o.order_items.map((it) => it.product_name)
+  );
+  const categoryMap = merchant
+    ? await fetchCategoryMap(supabase, merchant.id, allNames)
+    : {};
+
   return (
     <OrdersListView
-      orders={(orders ?? []) as OrderWithItems[]}
+      orders={ordersList}
       merchantName={merchant?.name ?? "Coligo"}
       printWidth={(merchant?.print_width ?? 58) as PrintWidth}
       printCopies={merchant?.print_copies ?? 1}
+      categoryMap={categoryMap}
     />
   );
 }
