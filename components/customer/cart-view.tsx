@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Minus,
+  Plus,
+  ShoppingBag,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatDA } from "@/lib/utils";
 import {
@@ -42,6 +49,27 @@ export function CartView() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-4 pb-24 lg:px-6 lg:py-8 lg:pb-24">
+      {/* Bouton retour vers le commerçant — visible et explicite, pour que le
+          client puisse repartir voir / ajouter / modifier ses produits sans
+          quitter la flow. */}
+      {cart.merchant_slug && (
+        <Link
+          href={`/m/${cart.merchant_slug}`}
+          className="border-border bg-surface hover:border-primary-300 mb-4 inline-flex items-center gap-2 rounded-[12px] border px-3 py-2 text-sm font-medium transition-colors"
+        >
+          <ArrowLeft className="text-primary-600 size-4" />
+          <span className="text-foreground">
+            Retour à{" "}
+            <span className="text-primary-700 font-semibold">
+              {cart.merchant_name ?? "la boutique"}
+            </span>
+          </span>
+          <span className="text-muted hidden text-xs sm:inline">
+            · ajouter d&apos;autres produits
+          </span>
+        </Link>
+      )}
+
       <header className="mb-4 flex items-baseline justify-between">
         <div>
           <h1 className="text-foreground text-2xl font-bold lg:text-3xl">

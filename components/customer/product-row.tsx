@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, ShoppingBag } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatDA } from "@/lib/utils";
 import { addItem, setItemQuantity, useCart } from "@/lib/customer/cart-store";
@@ -10,8 +10,10 @@ import type { PublicProduct } from "@/lib/data/customer-catalog";
 /**
  * Ligne de produit dans une section de catégorie (Deliveroo style).
  * - Clic n'importe où sur la ligne → ouvre le sheet détails (callback).
- * - Bouton "+" : ajout direct au panier sans ouvrir le sheet.
- * - Si déjà au panier : affiche un badge avec la quantité.
+ * - Pas encore au panier : un bouton "+" pour ajout direct.
+ * - Déjà au panier : un mini-stepper "−  qty  +" sous la miniature.
+ *   À qty=1, l'icône "−" devient une corbeille rouge pour bien indiquer
+ *   que le clic suivant SUPPRIMERA l'article.
  */
 export function ProductRow({
   merchant,
@@ -53,6 +55,16 @@ export function ProductRow({
     if (inCart) setItemQuantity(inCart.product_id, inCart.quantity + 1);
   }
 
+  function decrement(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!inCart) return;
+    // setItemQuantity(_, 0) supprime l'article (filtre dans le store).
+    setItemQuantity(inCart.product_id, inCart.quantity - 1);
+    if (inCart.quantity === 1) {
+      toast.success(`« ${product.name_fr} » retiré du panier`);
+    }
+  }
+
   return (
     <button
       type="button"
@@ -88,9 +100,9 @@ export function ProductRow({
         </div>
       </div>
 
-      {/* Thumbnail + action */}
-      <div className="relative">
-        <div className="bg-surface-2 size-20 shrink-0 overflow-hidden rounded-[12px] sm:size-24">
+      {/* Thumbnail + action(s) */}
+      <div className="flex shrink-0 flex-col items-center gap-1.5">
+        <div className="bg-surface-2 relative size-20 overflow-hidden rounded-[12px] sm:size-24">
           {product.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -103,26 +115,56 @@ export function ProductRow({
               <ShoppingBag className="text-subtle size-7" />
             </div>
           )}
+          {!inCart && (
+            <button
+              type="button"
+              onClick={quickAdd}
+              aria-label="Ajouter au panier"
+              className="bg-primary-600 hover:bg-primary-700 absolute -right-2 -bottom-2 flex size-7 items-center justify-center rounded-full border-2 border-white text-white shadow"
+            >
+              <Plus className="size-4" />
+            </button>
+          )}
         </div>
-        {inCart ? (
-          <button
-            type="button"
-            onClick={increment}
-            aria-label="Ajouter 1"
-            className="bg-primary-600 hover:bg-primary-700 absolute -right-2 -bottom-2 flex items-center gap-1 rounded-full border-2 border-white px-2.5 py-1 text-xs font-bold text-white shadow"
+
+        {inCart && (
+          <div
+            className="bg-primary-50 inline-flex items-center gap-1 rounded-full p-0.5 shadow-sm"
+            onClick={(e) => e.stopPropagation()}
           >
-            {inCart.quantity}
-            <Plus className="size-3" />
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={quickAdd}
-            aria-label="Ajouter au panier"
-            className="bg-primary-600 hover:bg-primary-700 absolute -right-2 -bottom-2 flex size-7 items-center justify-center rounded-full border-2 border-white text-white shadow"
-          >
-            <Plus className="size-4" />
-          </button>
+            <button
+              type="button"
+              onClick={decrement}
+              aria-label={
+                inCart.quantity === 1
+                  ? `Retirer ${product.name_fr} du panier`
+                  : "Retirer 1"
+              }
+              className={cn(
+                "flex size-7 items-center justify-center rounded-full transition-colors",
+                inCart.quantity === 1
+                  ? "bg-danger-50 text-danger-600 hover:bg-danger-100"
+                  : "text-primary-700 hover:bg-primary-100"
+              )}
+            >
+              {inCart.quantity === 1 ? (
+                <Trash2 className="size-3.5" />
+              ) : (
+                <Minus className="size-3.5" />
+              )}
+            </button>
+            <span className="text-foreground min-w-[1.5ch] text-center text-sm font-bold tabular-nums">
+              {inCart.quantity}
+            </span>
+            <button
+              type="button"
+              onClick={increment}
+              aria-label="Ajouter 1"
+              className="bg-primary-600 hover:bg-primary-700 flex size-7 items-center justify-center rounded-full text-white"
+            >
+              <Plus className="size-3.5" />
+            </button>
+          </div>
         )}
       </div>
     </button>
