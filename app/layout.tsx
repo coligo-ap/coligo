@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Toaster } from "@/components/ui/toast";
+import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
 import "./globals.css";
 
 const inter = Inter({
@@ -13,6 +14,32 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: `${APP_CONFIG.name} — Espace commerçant`,
   description: APP_CONFIG.description,
+  applicationName: APP_CONFIG.name,
+  appleWebApp: {
+    capable: true,
+    title: APP_CONFIG.shortName,
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: APP_CONFIG.brand.primary,
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
 };
 
 // Neutralise les attributs ajoutés par certaines extensions de navigateur
@@ -89,6 +116,7 @@ export default function RootLayout({
       <body className="antialiased" suppressHydrationWarning>
         {children}
         <Toaster />
+        <RegisterServiceWorker />
       </body>
     </html>
   );

@@ -20,6 +20,7 @@ import {
   ArrowRight,
   Building2,
 } from "lucide-react";
+import { InstallButton } from "@/components/pwa/install-button";
 
 const initialState: AuthState = {};
 
@@ -265,6 +266,10 @@ export default function SignupPage() {
               >
                 Se connecter
               </Link>
+            </div>
+
+            <div className="mt-4 flex justify-center">
+              <InstallButton variant="inline" />
             </div>
           </div>
         </div>

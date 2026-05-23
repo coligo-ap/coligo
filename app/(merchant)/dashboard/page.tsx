@@ -5,7 +5,7 @@ import { MobileOrderList } from "@/components/merchant/order-list-mobile";
 import Link from "next/link";
 import { Inbox, ShoppingBag, TrendingUp, Clock, QrCode } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { OrdersRealtime } from "@/components/merchant/orders-realtime";
+import { OrderRealtimeBridge } from "@/components/merchant/order-realtime-bridge";
 import { formatDA, cn } from "@/lib/utils";
 import type { OrderWithItems } from "@/lib/types";
 
@@ -70,7 +70,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-[1600px] p-4 lg:p-6 lg:px-8">
-      {merchant && <OrdersRealtime merchantId={merchant.id} />}
       {/* Header */}
       <header className="mb-5 flex items-end justify-between gap-4 lg:mb-6">
         <div>
@@ -94,6 +93,9 @@ export default async function DashboardPage() {
           <span className="hidden sm:inline">Valider un retrait</span>
         </Link>
       </header>
+
+      {/* Pont Realtime + son + notif (s'affiche aussi : panneau de réglages compact) */}
+      {merchant && <OrderRealtimeBridge merchantId={merchant.id} />}
 
       {/* KPIs */}
       <section className="mb-6 grid grid-cols-2 gap-3 lg:mb-8 lg:grid-cols-4 lg:gap-4">

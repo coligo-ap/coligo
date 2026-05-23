@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 import { CheckCircle2, Hash, Loader2, QrCode, XCircle } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { validatePickupCode } from "@/app/(merchant)/orders/actions";
+import { QrScanner } from "@/components/scanner/qr-scanner";
 
 type Tab = "code" | "qr";
 type Result = { ok: boolean; message: string; orderId?: string };
@@ -185,46 +186,21 @@ function QrTab({
   pending: boolean;
   onScan: (code: string) => void;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const scannedRef = useRef(false);
+  // On déduplique côté wrapper : QrScanner peut émettre plusieurs fois si on
+  // le passe en non-oneShot ailleurs, et même en oneShot on se prémunit contre
+  // un second appel concurrent.
+  const handledRef = useRef(false);
 
-  useEffect(() => {
-    let stop: (() => void) | undefined;
-    let cancelled = false;
-    scannedRef.current = false;
-
-    (async () => {
-      try {
-        const { BrowserQRCodeReader } = await import("@zxing/browser");
-        const reader = new BrowserQRCodeReader();
-        const controls = await reader.decodeFromVideoDevice(
-          undefined,
-          videoRef.current ?? undefined,
-          (res) => {
-            if (!res || scannedRef.current) return;
-            const code = res.getText().replace(/\D/g, "").slice(0, 6);
-            if (code.length === 6) {
-              scannedRef.current = true;
-              onScan(code);
-            }
-          }
-        );
-        if (cancelled) controls.stop();
-        else stop = () => controls.stop();
-      } catch {
-        if (!cancelled)
-          setError(
-            "Caméra indisponible. Autorisez l'accès ou saisissez le code manuellement."
-          );
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      stop?.();
-    };
-  }, [onScan]);
+  const handleScan = useCallback(
+    (text: string) => {
+      if (handledRef.current) return;
+      const code = text.replace(/\D/g, "").slice(0, 6);
+      if (code.length !== 6) return;
+      handledRef.current = true;
+      onScan(code);
+    },
+    [onScan]
+  );
 
   return (
     <div className="border-border bg-surface rounded-[16px] border p-5">
@@ -232,26 +208,14 @@ function QrTab({
         Présentez le QR code de la commande devant la caméra.
       </p>
 
-      <div className="relative mx-auto aspect-square w-full max-w-[280px] overflow-hidden rounded-[16px] bg-black">
-        <video
-          ref={videoRef}
-          className="size-full object-cover"
-          muted
-          playsInline
-        />
-        {/* Cadre de scan + ligne animée */}
-        <div className="pointer-events-none absolute inset-6 rounded-[12px] border-2 border-white/80" />
-        <div className="bg-primary-400/80 pointer-events-none absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 animate-pulse" />
+      <div className="relative">
+        <QrScanner onScan={handleScan} oneShot className="max-w-[280px]" />
         {pending && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+          <div className="absolute inset-0 flex items-center justify-center rounded-[16px] bg-black/50">
             <Loader2 className="size-6 animate-spin text-white" />
           </div>
         )}
       </div>
-
-      {error && (
-        <p className="text-danger-600 mt-4 text-center text-sm">{error}</p>
-      )}
     </div>
   );
 }

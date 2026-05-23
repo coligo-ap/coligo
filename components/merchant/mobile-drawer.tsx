@@ -16,6 +16,7 @@ import { Logo } from "@/components/shared/logo";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { logout } from "@/app/(merchant)/actions";
+import { InstallButton } from "@/components/pwa/install-button";
 import {
   mobileDrawer,
   useMobileDrawerOpen,
@@ -154,6 +155,8 @@ export function MobileDrawer({
             <HelpCircle className="size-5 shrink-0" />
             <span className="flex-1">Centre d&apos;aide</span>
           </a>
+
+          <InstallButton variant="nav" onAfterPrompt={close} />
         </nav>
 
         <Separator />

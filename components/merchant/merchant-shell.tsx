@@ -5,6 +5,7 @@ import { MerchantTopbar } from "@/components/merchant/desktop-topbar";
 import { MerchantMobileHeader } from "@/components/merchant/mobile-header";
 import { MerchantMobileBottomNav } from "@/components/merchant/mobile-bottom-nav";
 import { MobileDrawer } from "@/components/merchant/mobile-drawer";
+import { InstallBanner } from "@/components/pwa/install-banner";
 
 /**
  * Shell de l'espace commerçant : auth + lookup merchant + chrome (sidebar,
@@ -86,6 +87,9 @@ export async function MerchantShell({
       {/* Mobile bottom nav + drawer (le hamburger du header ouvre le drawer) */}
       <MerchantMobileBottomNav />
       <MobileDrawer merchantName={merchant.name} email={user.email ?? ""} />
+
+      {/* Bandeau install PWA — auto-caché si déjà installée ou refusée < 14j */}
+      <InstallBanner />
     </div>
   );
 }

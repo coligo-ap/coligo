@@ -10,6 +10,7 @@ import { Logo } from "@/components/shared/logo";
 import { login, type AuthState } from "@/app/(merchant)/actions";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Mail, Lock, ArrowRight } from "lucide-react";
+import { InstallButton } from "@/components/pwa/install-button";
 
 const initialState: AuthState = {};
 
@@ -155,6 +156,10 @@ function LoginContent() {
               >
                 Créer un compte commerçant
               </Link>
+            </div>
+
+            <div className="mt-4 flex justify-center">
+              <InstallButton variant="inline" />
             </div>
           </div>
         </div>
