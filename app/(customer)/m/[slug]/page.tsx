@@ -48,17 +48,19 @@ export default async function MerchantPublicPage({
           )}
         </div>
 
-        <div className="bg-surface border-border mx-3 -mt-10 rounded-[20px] border p-5 shadow-sm lg:mx-10 lg:p-6">
+        <div className="bg-surface border-border relative mx-3 -mt-10 rounded-[20px] border p-5 shadow-sm lg:mx-10 lg:p-6">
           <div className="flex flex-wrap items-start gap-4">
+            {/* Logo : décalé vers le haut pour CHEVAUCHER la cover (par-dessus,
+                pas dessous). Bordure blanche pour le détacher de la cover. */}
             {m.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={m.logo_url}
                 alt=""
-                className="border-border size-20 rounded-full border-2 bg-white object-cover"
+                className="-mt-16 size-24 shrink-0 rounded-full border-4 border-white bg-white object-cover shadow-md lg:-mt-20 lg:size-28"
               />
             ) : (
-              <div className="bg-primary-100 text-primary-700 flex size-20 items-center justify-center rounded-full text-2xl font-bold">
+              <div className="bg-primary-100 text-primary-700 -mt-16 flex size-24 shrink-0 items-center justify-center rounded-full border-4 border-white text-2xl font-bold shadow-md lg:-mt-20 lg:size-28">
                 {m.name.charAt(0)}
               </div>
             )}

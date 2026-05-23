@@ -27,7 +27,8 @@ export function MerchantCard({ merchant, cashbackPct }: Props) {
         !open && "opacity-95"
       )}
     >
-      {/* Cover */}
+      {/* Cover — overflow-hidden uniquement sur le wrapper image, pas sur le
+          conteneur global, pour que le logo puisse chevaucher proprement. */}
       <div className="bg-surface-2 relative aspect-[16/9] w-full overflow-hidden">
         {merchant.cover_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -38,17 +39,6 @@ export function MerchantCard({ merchant, cashbackPct }: Props) {
           />
         ) : (
           <div className="from-primary-500/10 via-primary-400/5 to-surface-2 absolute inset-0 bg-gradient-to-br" />
-        )}
-        {/* Logo overlay */}
-        {merchant.logo_url && (
-          <div className="border-border absolute right-3 -bottom-6 size-12 overflow-hidden rounded-full border-2 bg-white shadow">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={merchant.logo_url}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          </div>
         )}
         {/* Open/Closed badge */}
         <span
@@ -69,9 +59,21 @@ export function MerchantCard({ merchant, cashbackPct }: Props) {
         </span>
       </div>
 
-      {/* Body */}
-      <div className="space-y-1 p-3">
-        <div className="flex items-start justify-between gap-2">
+      {/* Body — le logo est positionné dans CE bloc (pas dans la cover), avec
+          un décalage négatif pour chevaucher la cover sans être tronqué. */}
+      <div className="relative space-y-1 p-3">
+        {merchant.logo_url && (
+          <div className="absolute -top-6 right-3 size-12 overflow-hidden rounded-full border-2 border-white bg-white shadow-md">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={merchant.logo_url}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          </div>
+        )}
+
+        <div className="flex items-start justify-between gap-2 pr-14">
           <h3 className="text-foreground line-clamp-1 text-sm font-semibold">
             {merchant.name}
           </h3>
