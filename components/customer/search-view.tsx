@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { getCommunes } from "@/lib/config/communes";
+import { getCategoryLabel } from "@/lib/config/categories";
 import { isOpenNow } from "@/lib/merchant/opening-hours";
 import { MerchantCard } from "@/components/customer/merchant-card";
 import type { PublicMerchant } from "@/lib/data/merchants-public";
@@ -234,7 +235,7 @@ function FilterPanel({
           <option value="">Toutes</option>
           {categories.map((c) => (
             <option key={c.name} value={c.name}>
-              {c.name} ({c.count})
+              {getCategoryLabel(c.name)} ({c.count})
             </option>
           ))}
         </select>

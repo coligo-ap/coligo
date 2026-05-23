@@ -101,3 +101,18 @@ body {
 .animate-fade-in {
   animation: fade-in 0.4s ease-out both;
 }
+
+/* =============================================================================
+ * Overlay dégradé "validé" du prompt 15 — sombre en bas, transparent en haut.
+ * Utilisé par <ImageWithOverlay /> sur toutes les photos qui portent du texte
+ * (hero fiche merchant, cartes commerce, bannière hero accueil).
+ * Texte placé en bas, en blanc, sur la zone sombre = lisibilité garantie.
+ * ============================================================================= */
+.image-overlay-gradient {
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.45) 35%,
+    rgba(0, 0, 0, 0) 70%
+  );
+}

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { cn, formatDA } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ProductDetailSheet } from "@/components/customer/product-detail-sheet";
 import { ProductRow } from "@/components/customer/product-row";

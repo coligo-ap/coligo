@@ -7,6 +7,7 @@ import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
 import { LocationBanner } from "@/components/customer/location-banner";
 import { MerchantsByZone } from "@/components/customer/merchants-by-zone";
+import { ImageWithOverlay } from "@/components/ui/image-with-overlay";
 
 export const dynamic = "force-dynamic";
 
@@ -24,30 +25,38 @@ export default async function CustomerHomePage() {
       <div className="mx-auto max-w-[1400px] px-4 py-4 lg:px-6 lg:py-8">
         <LocationBanner />
 
-        {/* Hero desktop uniquement */}
-        <section className="from-primary-600 via-primary-700 to-primary-800 mb-8 hidden overflow-hidden rounded-[20px] bg-gradient-to-br p-10 text-white shadow-sm lg:block">
-          <div className="max-w-xl">
-            <h1 className="text-4xl leading-tight font-bold">
-              Tes commerces de quartier,
-              <br />
-              en un clic.
-            </h1>
-            <p className="text-primary-50/90 mt-3 text-lg">
-              Commande à l&apos;avance, paye en ligne ou sur place, récupère
-              sans faire la queue.
-            </p>
-          </div>
+        {/* Hero desktop uniquement — photo de qualité + overlay dégradé. */}
+        <section className="mb-8 hidden overflow-hidden rounded-[20px] shadow-sm lg:block">
+          <ImageWithOverlay
+            src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=1600&auto=format"
+            alt="Étal coloré d'un commerce de proximité"
+            variant="hero"
+            aspectClassName="aspect-[21/8]"
+            priority
+            childrenPosition="bottom"
+          >
+            <div className="max-w-xl pb-2">
+              <h1 className="text-4xl leading-tight font-bold drop-shadow">
+                Tes commerces de quartier,
+                <br />
+                en un clic.
+              </h1>
+              <p className="mt-3 text-lg text-white/90">
+                Commande à l&apos;avance, paye en ligne ou sur place, récupère
+                sans faire la queue.
+              </p>
+            </div>
+          </ImageWithOverlay>
         </section>
 
-        {/* Catégories */}
-        {categories.length > 0 && (
-          <section className="mb-6 lg:mb-10">
-            <h2 className="text-foreground mb-3 text-base font-bold lg:text-xl">
-              Catégories
-            </h2>
-            <CategoryStrip categories={categories} />
-          </section>
-        )}
+        {/* Catégories — Supérette + Boulangerie + Boucherie + Tous épinglées
+            en tête, autres catégories DB ensuite. */}
+        <section className="mb-6 lg:mb-10">
+          <h2 className="text-foreground mb-3 text-base font-bold lg:text-xl">
+            Catégories
+          </h2>
+          <CategoryStrip categories={categories} />
+        </section>
 
         {/* Liste filtrée par zone (client-side) */}
         <section>

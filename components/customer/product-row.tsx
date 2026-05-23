@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn, formatDA } from "@/lib/utils";
 import { addItem, setItemQuantity, useCart } from "@/lib/customer/cart-store";
 import { toast } from "@/components/ui/toast";
+import { cldUrl } from "@/lib/images/cloudinary";
 import type { PublicProduct } from "@/lib/data/customer-catalog";
 
 /**
@@ -106,8 +107,17 @@ export function ProductRow({
           {product.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={product.image_url}
+              src={
+                cldUrl(product.image_url, {
+                  width: 200,
+                  height: 200,
+                  crop: "fill",
+                  gravity: "auto",
+                }) ?? product.image_url
+              }
               alt=""
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
             />
           ) : (

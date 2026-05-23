@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, MapPin, Navigation, X } from "lucide-react";
+import { Check, Loader2, MapPin, Navigation, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,10 @@ import {
   writeStoredLocation,
   type CustomerLocation,
 } from "@/lib/customer/location-store";
-import { updateCustomerLocation } from "@/app/(customer)/actions";
+import {
+  reverseGeocode,
+  updateCustomerLocation,
+} from "@/app/(customer)/actions";
 
 type Props = {
   /** Affiche un bouton "Annuler" / "Fermer" en haut à droite. */
@@ -23,10 +26,19 @@ type Props = {
   initial: CustomerLocation | null;
 };
 
+type Detected = {
+  wilaya_code: string | null;
+  wilaya_name: string | null;
+  commune: string | null;
+  display: string;
+};
+
 export function LocationPicker({ onClose, initial }: Props) {
   const [wilaya, setWilaya] = useState(initial?.wilaya_code ?? "");
   const [commune, setCommune] = useState(initial?.commune ?? "");
   const [saving, setSaving] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [detected, setDetected] = useState<Detected | null>(null);
   const geo = useGeolocation();
 
   const communes = useMemo(() => getCommunes(wilaya), [wilaya]);
@@ -53,6 +65,7 @@ export function LocationPicker({ onClose, initial }: Props) {
   }
 
   async function useGps() {
+    setDetected(null);
     const coords = await geo.requestOnce();
     if (!coords) {
       if (geo.error?.kind === "denied") {
@@ -62,13 +75,48 @@ export function LocationPicker({ onClose, initial }: Props) {
       }
       return;
     }
-    // En MVP : on stocke lat/long mais on garde la wilaya manuelle si déjà
-    // choisie (pas de reverse-geocoding). L'utilisateur précisera la wilaya.
+    // Reverse-geocoding pour identifier wilaya + commune à partir des GPS.
+    setResolving(true);
+    let res;
+    try {
+      res = await reverseGeocode({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
+    } finally {
+      setResolving(false);
+    }
+
+    if (!res.ok) {
+      toast.error(res.error ?? "Position détectée mais zone introuvable.");
+      // On enregistre quand même les coords pour la distance, sans wilaya.
+      await save({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        wilaya_code: wilaya || null,
+        commune: commune || null,
+      });
+      return;
+    }
+
+    const resolvedWilaya = res.wilaya_code ?? wilaya ?? null;
+    const resolvedCommune = res.commune ?? commune ?? null;
+    if (res.wilaya_code) setWilaya(res.wilaya_code);
+    if (res.commune) setCommune(res.commune);
+    setDetected({
+      wilaya_code: res.wilaya_code ?? null,
+      wilaya_name: res.wilaya_name ?? null,
+      commune: res.commune ?? null,
+      display:
+        res.display ??
+        [res.commune, res.wilaya_name].filter(Boolean).join(" · "),
+    });
+
     await save({
       latitude: coords.latitude,
       longitude: coords.longitude,
-      wilaya_code: wilaya || null,
-      commune: commune || null,
+      wilaya_code: resolvedWilaya,
+      commune: resolvedCommune,
     });
   }
 
@@ -80,6 +128,9 @@ export function LocationPicker({ onClose, initial }: Props) {
     }
     void save({ wilaya_code: wilaya, commune: commune || null });
   }
+
+  const gpsLoading = geo.loading || resolving;
+  const gpsActive = !!detected;
 
   return (
     <div className="space-y-5">
@@ -108,17 +159,36 @@ export function LocationPicker({ onClose, initial }: Props) {
         type="button"
         size="lg"
         variant="outline"
-        className="w-full"
+        className={cn(
+          "w-full",
+          gpsActive &&
+            "border-success-300 bg-success-50 text-success-800 hover:bg-success-100 hover:text-success-900"
+        )}
         onClick={useGps}
-        disabled={geo.loading || saving}
+        disabled={gpsLoading || saving}
       >
-        {geo.loading ? (
+        {gpsLoading ? (
           <Loader2 className="size-4 animate-spin" />
+        ) : gpsActive ? (
+          <Check className="text-success-700 size-4" />
         ) : (
           <Navigation className="size-4" />
         )}
-        Utiliser ma position
+        {gpsLoading
+          ? resolving
+            ? "Détection de ta zone…"
+            : "Localisation en cours…"
+          : gpsActive
+            ? `Ma position : ${detected!.display}`
+            : "Utiliser ma position"}
       </Button>
+
+      {gpsActive && !detected!.wilaya_code && (
+        <p className="text-warning-700 -mt-2 text-xs">
+          On a tes coordonnées mais pas réussi à reconnaître la wilaya —
+          précise-la ci-dessous.
+        </p>
+      )}
 
       <div className="text-muted relative text-center text-[11px] tracking-wider uppercase">
         <span className="bg-surface relative z-10 px-2">

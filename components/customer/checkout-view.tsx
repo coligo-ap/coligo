@@ -13,7 +13,6 @@ import {
   Store,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { cn, formatDA } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
 import { clearCart, useCart } from "@/lib/customer/cart-store";

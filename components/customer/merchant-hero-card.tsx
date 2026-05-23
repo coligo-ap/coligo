@@ -11,9 +11,12 @@ import {
   Wallet,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ImageWithOverlay } from "@/components/ui/image-with-overlay";
 import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badge";
 import { DAY_KEYS, DAY_LABELS, type OpeningHours } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
+import { cldUrl } from "@/lib/images/cloudinary";
+import { categoryImageFor } from "@/lib/images/category-images";
 
 /**
  * Carte de présentation COMPACTE du commerçant, sur la fiche /m/[slug].
@@ -59,27 +62,46 @@ export function MerchantHeroCard({
   const addressLine =
     [address, commune, wilaya_name].filter(Boolean).join(" · ") || null;
   const hasDescription = Boolean(description_fr || description_ar);
+  const heroSrc = cover_url ?? categoryImageFor(category) ?? null;
+  const logoOptimized = cldUrl(logo_url, {
+    width: 192,
+    height: 192,
+    crop: "fill",
+    gravity: "auto",
+  });
 
   return (
     <div>
-      {/* Cover */}
-      <div className="bg-surface-2 relative aspect-[3/1] w-full overflow-hidden rounded-[20px]">
-        {cover_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover_url} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <div className="from-primary-500/15 to-surface-2 absolute inset-0 bg-gradient-to-br" />
-        )}
-      </div>
+      {/* Cover hero — overlay dégradé sombre en bas pour lisibilité du nom. */}
+      <ImageWithOverlay
+        src={heroSrc}
+        alt={`Photo du commerce ${name}`}
+        variant="hero"
+        aspectClassName="aspect-[3/1]"
+        priority
+        className="rounded-[20px]"
+        placeholder={
+          <span className="text-primary-700/60 text-5xl font-bold">
+            {name.charAt(0)}
+          </span>
+        }
+      >
+        <h1 className="text-2xl leading-tight font-bold drop-shadow-sm lg:text-3xl">
+          {name}
+        </h1>
+        {category && <p className="mt-0.5 text-sm text-white/85">{category}</p>}
+      </ImageWithOverlay>
 
       {/* Carte info */}
       <div className="bg-surface border-border relative mx-3 -mt-10 rounded-[20px] border p-4 shadow-sm lg:mx-10 lg:p-5">
         <div className="flex flex-wrap items-start gap-4">
-          {logo_url ? (
+          {logoOptimized ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={logo_url}
+              src={logoOptimized}
               alt=""
+              loading="eager"
+              decoding="async"
               className="-mt-16 size-20 shrink-0 rounded-full border-4 border-white bg-white object-cover shadow-md lg:-mt-20 lg:size-24"
             />
           ) : (
@@ -88,16 +110,10 @@ export function MerchantHeroCard({
             </div>
           )}
 
-          <div className="min-w-0 flex-1">
-            <h1 className="text-foreground text-xl leading-tight font-bold lg:text-2xl">
-              {name}
-            </h1>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              {category && (
-                <span className="text-muted text-sm">{category}</span>
-              )}
-              <OpenStatusBadge hours={opening_hours} />
-            </div>
+          <div className="min-w-0 flex-1 pt-2">
+            {/* Le nom + la catégorie sont déjà sur l'overlay du hero — on
+                évite la duplication, on ne remet ici que le badge ouvert/fermé. */}
+            <OpenStatusBadge hours={opening_hours} />
           </div>
         </div>
 
