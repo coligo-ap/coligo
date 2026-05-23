@@ -670,8 +670,82 @@ export type Database = {
         Update: { email?: string; created_at?: string };
         Relationships: [];
       };
+      customers: {
+        Row: {
+          id: string;
+          user_id: string;
+          full_name: string;
+          phone: string;
+          email: string | null;
+          default_wilaya_code: string | null;
+          default_commune: string | null;
+          latitude: number | null;
+          longitude: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          full_name: string;
+          phone: string;
+          email?: string | null;
+          default_wilaya_code?: string | null;
+          default_commune?: string | null;
+          latitude?: number | null;
+          longitude?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          full_name?: string;
+          phone?: string;
+          email?: string | null;
+          default_wilaya_code?: string | null;
+          default_commune?: string | null;
+          latitude?: number | null;
+          longitude?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
-    Views: Record<never, never>;
+    Views: {
+      merchants_public: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          category: string | null;
+          description_fr: string | null;
+          description_ar: string | null;
+          logo_url: string | null;
+          cover_url: string | null;
+          phone_public: string | null;
+          city: string | null;
+          commune: string | null;
+          wilaya_code: string | null;
+          address: string | null;
+          latitude: number | null;
+          longitude: number | null;
+          opening_hours: Json;
+          min_order_da: number;
+          prep_time_min: number;
+          accepts_cash: boolean;
+          accepts_online: boolean;
+          pickup_slot_minutes: number;
+          max_orders_per_slot: number | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+    };
     Functions: {
       merchant_balance: {
         Args: { p_merchant_id: string };

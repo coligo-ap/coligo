@@ -39,7 +39,9 @@ export async function updateSession(request: NextRequest) {
   }
 
   const path = request.nextUrl.pathname;
-  const isPublicAuthRoute = path === "/login" || path === "/signup";
+  const isMerchantAuthRoute = path === "/login" || path === "/signup";
+  const isCustomerAuthRoute =
+    path === "/se-connecter" || path === "/inscription";
   // Un layout (MerchantShell / admin) renvoie parfois vers /login?error=...
   // (pas de boutique, accès refusé, requête échouée). Dans ce cas il NE FAUT
   // PAS renvoyer l'utilisateur connecté vers /dashboard, sinon boucle infinie.
@@ -59,19 +61,56 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   };
 
+  // /dashboard exige une session — sinon login marchand.
   if (path.startsWith("/dashboard") && !user) {
     return redirectTo("/login");
   }
 
-  // Connecté sur /login ou /signup → /dashboard, SAUF si on y a été renvoyé
-  // avec une erreur (sinon ping-pong avec le layout qui re-renvoie ici).
-  if (user && isPublicAuthRoute && !bouncedWithError) {
-    return redirectTo("/dashboard");
+  // Espace pro marchand (/login, /signup) :
+  // - connecté + déjà commerçant → /dashboard
+  // - connecté + client (a une row customers) → /
+  // - le check "merchant ou customer" est délégué à un appel léger côté DB
+  //   uniquement si on est sur ces routes (≤ 1 query supplémentaire).
+  if (user && isMerchantAuthRoute && !bouncedWithError) {
+    const target = await resolveLandingForUser(supabase, user.id);
+    return redirectTo(target);
   }
 
-  if (path === "/") {
-    return redirectTo(user ? "/dashboard" : "/login");
+  // Espace client (/se-connecter, /inscription) :
+  // - connecté + commerçant → /dashboard (pas de double identité possible)
+  // - connecté + client → / (accueil marketplace)
+  if (user && isCustomerAuthRoute && !bouncedWithError) {
+    const target = await resolveLandingForUser(supabase, user.id);
+    return redirectTo(target);
+  }
+
+  // Racine `/` : c'est le HOME CLIENT. On laisse passer les anons et les
+  // clients connectés. Un commerçant connecté est renvoyé sur son dashboard.
+  if (path === "/" && user) {
+    const { data: merchant } = await supabase
+      .from("merchants")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (merchant) return redirectTo("/dashboard");
   }
 
   return supabaseResponse;
+}
+
+/**
+ * Décide vers quelle page atterrir un user authentifié, selon qu'il est
+ * commerçant ou client. Fait au plus 2 requêtes très légères (id only).
+ */
+async function resolveLandingForUser(
+  supabase: ReturnType<typeof createServerClient<Database>>,
+  userId: string
+): Promise<string> {
+  const { data: merchant } = await supabase
+    .from("merchants")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (merchant) return "/dashboard";
+  return "/";
 }
