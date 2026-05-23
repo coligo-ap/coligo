@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 import { requireSuperAdmin } from "@/lib/auth/admin";
 import { logout } from "@/app/(merchant)/actions";
 import { APP_CONFIG } from "@/lib/config/app-config";
@@ -39,9 +39,10 @@ export default async function AdminLayout({
         <form action={logout}>
           <button
             type="submit"
-            className="text-muted hover:text-foreground text-sm font-medium"
+            className="text-danger-600 hover:bg-danger-50 inline-flex items-center gap-1.5 rounded-[8px] px-3 py-1.5 text-sm font-semibold transition-colors"
           >
-            Se déconnecter
+            <LogOut className="size-3.5" />
+            Déconnexion
           </button>
         </form>
       </header>

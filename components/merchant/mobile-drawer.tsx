@@ -165,10 +165,10 @@ export function MobileDrawer({
         <form action={logout} className="p-3">
           <button
             type="submit"
-            className="text-danger-600 hover:bg-danger-50 flex min-h-[44px] w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm font-medium transition-colors"
+            className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[10px] border px-3 py-2 text-sm font-semibold transition-colors"
           >
             <LogOut className="size-5 shrink-0" />
-            Se déconnecter
+            Déconnexion
           </button>
         </form>
       </aside>

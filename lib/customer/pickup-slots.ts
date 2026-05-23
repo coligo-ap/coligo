@@ -3,6 +3,10 @@
 // =============================================================================
 // Pure : entrées (opening_hours + jour + slot duration + prep) → liste de
 // créneaux futurs alignés à la granularité demandée.
+//
+// Supporte les horaires de NUIT (close <= open) : un créneau ouvert ce soir et
+// fermé tôt le matin → on continue à proposer des slots jusqu'à la fermeture,
+// même au-delà de minuit (ce qui peut tomber sur "demain" côté Date).
 
 import type { OpeningHours, DayKey } from "@/lib/types";
 
@@ -24,9 +28,10 @@ export type Slot = {
 };
 
 /**
- * Génère les créneaux disponibles pour AUJOURD'HUI à partir de maintenant
- * (+ délai prep), bornés par les heures d'ouverture du jour, à la granularité
- * `slotMinutes`. Renvoie max `limit` créneaux.
+ * Génère les créneaux disponibles à partir de maintenant (+ délai prep),
+ * bornés par les heures d'ouverture du jour courant et — si le commerce est
+ * ouvert en horaire de nuit — du créneau de la VEILLE qui s'étend dans la
+ * matinée d'aujourd'hui.
  */
 export function generateTodaySlots(
   hours: OpeningHours,
@@ -38,27 +43,52 @@ export function generateTodaySlots(
   }
 ): Slot[] {
   const now = opts.now ?? new Date();
-  const day = JS_DAY_TO_KEY[now.getDay()];
-  const periods = hours[day] ?? [];
-  if (periods.length === 0) return [];
 
-  // Premier créneau possible = max(maintenant + prep, début de période).
+  // On agrège les périodes pertinentes pour AUJOURD'HUI :
+  //  1) les périodes du jour courant (overnight comprises — leur fin tombera
+  //     sur demain mais on l'autorise).
+  //  2) les périodes overnight de HIER qui débordent sur ce matin.
+  const today = JS_DAY_TO_KEY[now.getDay()];
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const yKey = JS_DAY_TO_KEY[yesterday.getDay()];
+
+  type Period = { start: Date; end: Date };
+  const periods: Period[] = [];
+
+  for (const p of hours[today] ?? []) {
+    const [openH, openM] = p.open.split(":").map(Number);
+    const [closeH, closeM] = p.close.split(":").map(Number);
+    const start = new Date(now);
+    start.setHours(openH, openM, 0, 0);
+    const end = new Date(now);
+    end.setHours(closeH, closeM, 0, 0);
+    // Overnight : close <= open → la fin est le lendemain.
+    if (end.getTime() <= start.getTime()) {
+      end.setDate(end.getDate() + 1);
+    }
+    periods.push({ start, end });
+  }
+
+  for (const p of hours[yKey] ?? []) {
+    const [openH, openM] = p.open.split(":").map(Number);
+    const [closeH, closeM] = p.close.split(":").map(Number);
+    // Seulement les overnight de hier qui débordent ce matin.
+    if (p.close > p.open) continue;
+    const start = new Date(yesterday);
+    start.setHours(openH, openM, 0, 0);
+    const end = new Date(now); // close = ce matin
+    end.setHours(closeH, closeM, 0, 0);
+    periods.push({ start, end });
+  }
+
   const earliest = new Date(now.getTime() + opts.prepMinutes * 60_000);
-
   const slots: Slot[] = [];
   const limit = opts.limit ?? 16;
 
   for (const period of periods) {
-    const [openH, openM] = period.open.split(":").map(Number);
-    const [closeH, closeM] = period.close.split(":").map(Number);
-    const periodStart = new Date(now);
-    periodStart.setHours(openH, openM, 0, 0);
-    const periodEnd = new Date(now);
-    periodEnd.setHours(closeH, closeM, 0, 0);
-
-    // Aligne le premier slot sur la granularité.
-    let cursor = new Date(Math.max(periodStart.getTime(), earliest.getTime()));
-    // Roundup vers le prochain pas.
+    let cursor = new Date(Math.max(period.start.getTime(), earliest.getTime()));
+    // Aligne sur la granularité.
     const minutes = cursor.getMinutes();
     const rem = minutes % opts.slotMinutes;
     if (rem > 0) {
@@ -69,19 +99,25 @@ export function generateTodaySlots(
     }
 
     while (
-      cursor.getTime() + opts.slotMinutes * 60_000 <= periodEnd.getTime() &&
+      cursor.getTime() + opts.slotMinutes * 60_000 <= period.end.getTime() &&
       slots.length < limit
     ) {
       const end = new Date(cursor.getTime() + opts.slotMinutes * 60_000);
       const hh = String(cursor.getHours()).padStart(2, "0");
       const mm = String(cursor.getMinutes()).padStart(2, "0");
+      // Si le créneau démarre demain (overnight qui dépasse minuit), on
+      // ajoute un suffixe pour que le client ne se trompe pas de jour.
+      const startsTomorrow = cursor.getDate() !== now.getDate();
       slots.push({
         start: new Date(cursor),
         end,
-        label: `${hh}:${mm}`,
+        label: startsTomorrow ? `${hh}:${mm} (lendemain)` : `${hh}:${mm}`,
       });
       cursor = end;
     }
   }
-  return slots;
+
+  // Tri chronologique pour mixer proprement hier-overnight + aujourd'hui.
+  slots.sort((a, b) => a.start.getTime() - b.start.getTime());
+  return slots.slice(0, limit);
 }

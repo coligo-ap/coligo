@@ -105,10 +105,10 @@ export function AccountSection({
       <form action={logout}>
         <button
           type="submit"
-          className="text-danger-600 hover:bg-danger-50 inline-flex items-center gap-2 rounded-[10px] px-3 py-2 text-sm font-medium"
+          className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 inline-flex items-center gap-2 rounded-[10px] border px-3 py-2 text-sm font-semibold transition-colors"
         >
           <LogOut className="size-4" />
-          Se déconnecter
+          Déconnexion
         </button>
       </form>
     </div>

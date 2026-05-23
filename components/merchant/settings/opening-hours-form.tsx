@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Loader2, Plus, Trash2 } from "lucide-react";
+import { Copy, Info, Loader2, Moon, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ import {
   updateOpeningHours,
   type SettingsFormState,
 } from "@/app/(merchant)/settings/actions";
+import { isOvernight } from "@/lib/merchant/opening-hours";
 
 const initial: SettingsFormState = {};
 
@@ -85,6 +86,33 @@ export function OpeningHoursForm({
       {/* Champ caché : JSON sérialisé envoyé à la Server Action */}
       <input type="hidden" name="hours" value={JSON.stringify(hours)} />
 
+      {/* Hint général — explique comment saisir un horaire de nuit. */}
+      <div className="border-primary-100 bg-primary-50 text-primary-800 flex items-start gap-2 rounded-[12px] border px-3 py-2 text-xs">
+        <Info className="text-primary-600 mt-0.5 size-3.5 shrink-0" />
+        <div>
+          <p className="font-medium">Comment saisir tes horaires</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px]">
+            <li>
+              Horaire normal : ouverture <strong>09:00</strong> → fermeture{" "}
+              <strong>18:00</strong>.
+            </li>
+            <li>
+              Horaire de nuit (qui passe minuit) : ouverture{" "}
+              <strong>06:00</strong> → fermeture <strong>03:00</strong>. On
+              comprend tout seul que ça ferme à 3h du <em>lendemain</em>.
+            </li>
+            <li>
+              Tu peux ajouter plusieurs créneaux par jour (matin + soir par
+              exemple), tant qu&apos;ils ne se chevauchent pas.
+            </li>
+            <li>
+              Aucun créneau = jour fermé. Bouton « Copier » : applique la
+              journée à tous les autres jours.
+            </li>
+          </ul>
+        </div>
+      </div>
+
       <div className="space-y-2">
         {DAY_KEYS.map((day) => {
           const slots = hours[day];
@@ -128,29 +156,50 @@ export function OpeningHoursForm({
                 <p className="text-subtle text-xs">Fermé</p>
               ) : (
                 <div className="space-y-1.5">
-                  {slots.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <TimeInput
-                        value={s.open}
-                        onChange={(v) => patchSlot(day, i, "open", v)}
-                        disabled={pending}
-                      />
-                      <span className="text-muted text-xs">→</span>
-                      <TimeInput
-                        value={s.close}
-                        onChange={(v) => patchSlot(day, i, "close", v)}
-                        disabled={pending}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeSlot(day, i)}
-                        disabled={pending}
-                        className="text-danger-600 hover:bg-danger-50 ml-auto rounded-[8px] p-1.5"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  ))}
+                  {slots.map((s, i) => {
+                    const overnight = isOvernight(s);
+                    const invalid = s.open === s.close;
+                    return (
+                      <div key={i} className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <TimeInput
+                            value={s.open}
+                            onChange={(v) => patchSlot(day, i, "open", v)}
+                            disabled={pending}
+                          />
+                          <span className="text-muted text-xs">→</span>
+                          <TimeInput
+                            value={s.close}
+                            onChange={(v) => patchSlot(day, i, "close", v)}
+                            disabled={pending}
+                          />
+                          {overnight && !invalid && (
+                            <span
+                              className="bg-primary-50 text-primary-700 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                              title="Ce créneau se termine le lendemain"
+                            >
+                              <Moon className="size-3" />
+                              jusqu&apos;au lendemain
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeSlot(day, i)}
+                            disabled={pending}
+                            className="text-danger-600 hover:bg-danger-50 ml-auto rounded-[8px] p-1.5"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                        {invalid && (
+                          <p className="text-danger-600 text-[11px]">
+                            L&apos;ouverture et la fermeture doivent être
+                            différentes.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

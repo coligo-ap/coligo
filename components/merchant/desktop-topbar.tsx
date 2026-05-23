@@ -89,10 +89,10 @@ export function MerchantTopbar({
                 <form action={logout}>
                   <button
                     type="submit"
-                    className="hover:bg-surface-2 flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-rose-600"
+                    className="text-danger-700 hover:bg-danger-50 flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-semibold"
                   >
                     <LogOut className="size-3.5" />
-                    Se déconnecter
+                    Déconnexion
                   </button>
                 </form>
               </div>

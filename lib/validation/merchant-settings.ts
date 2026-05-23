@@ -40,19 +40,75 @@ export type ProfileInput = z.infer<typeof profileSchema>;
 // =============================================================================
 // Horaires d'ouverture — accepte du JSON sérialisé (string) ou direct
 // =============================================================================
+// Règles :
+//   - open et close au format HH:MM.
+//   - open == close → invalide (créneau vide, ambigu avec 24/24).
+//   - close > open → horaire de la JOURNÉE (ex. 09:00 → 18:00).
+//   - close < open → horaire de NUIT qui passe minuit (ex. 22:00 → 03:00 du
+//     lendemain). C'est explicitement autorisé : la quasi-totalité des cafés,
+//     fast-foods et boulangeries algériennes ouvertes tard l'utilisent.
 const slotSchema = z
   .object({
-    open: z.string().regex(/^\d{2}:\d{2}$/, "Format attendu HH:MM"),
-    close: z.string().regex(/^\d{2}:\d{2}$/, "Format attendu HH:MM"),
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Format HH:MM (ex. 09:00)"),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Format HH:MM (ex. 18:00)"),
   })
-  .refine((s) => s.open < s.close, {
-    message: "L'heure d'ouverture doit précéder la fermeture",
+  .refine((s) => s.open !== s.close, {
+    message:
+      "L'ouverture et la fermeture doivent être différentes (ex. 09:00 → 18:00).",
+  });
+
+// Pour empêcher deux créneaux qui se chevauchent sur un même jour. On compare
+// chaque paire en projetant chaque créneau sur l'axe minutes (avec +24h pour
+// les overnight) puis on vérifie qu'il n'y a pas de recouvrement.
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+function slotIntervals(slot: { open: string; close: string }): {
+  start: number;
+  end: number;
+}[] {
+  const start = toMinutes(slot.open);
+  const end = toMinutes(slot.close);
+  if (end > start) return [{ start, end }];
+  // Overnight : on découpe en [open..24h] + [0..close].
+  return [
+    { start, end: 24 * 60 },
+    { start: 0, end },
+  ];
+}
+function overlaps(a: { open: string; close: string }, b: typeof a): boolean {
+  for (const ia of slotIntervals(a)) {
+    for (const ib of slotIntervals(b)) {
+      if (ia.start < ib.end && ib.start < ia.end) return true;
+    }
+  }
+  return false;
+}
+
+const daySlotsSchema = z
+  .array(slotSchema)
+  .max(4)
+  .superRefine((slots, ctx) => {
+    for (let i = 0; i < slots.length; i++) {
+      for (let j = i + 1; j < slots.length; j++) {
+        if (overlaps(slots[i], slots[j])) {
+          ctx.addIssue({
+            code: "custom",
+            path: [j],
+            message:
+              "Ce créneau chevauche un autre créneau de la même journée.",
+          });
+        }
+      }
+    }
   });
 
 export const openingHoursSchema = z.object(
-  Object.fromEntries(
-    DAY_KEYS.map((k) => [k, z.array(slotSchema).max(4)])
-  ) as Record<(typeof DAY_KEYS)[number], z.ZodArray<typeof slotSchema>>
+  Object.fromEntries(DAY_KEYS.map((k) => [k, daySlotsSchema])) as Record<
+    (typeof DAY_KEYS)[number],
+    typeof daySlotsSchema
+  >
 );
 export type OpeningHoursInput = z.infer<typeof openingHoursSchema>;
 

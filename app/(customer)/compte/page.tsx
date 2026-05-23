@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import { Mail, Phone, User as UserIcon } from "lucide-react";
+import { LogOut, Mail, Phone, User as UserIcon } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
 import { customerLogout } from "@/app/(customer)/actions";
 import { WILAYAS } from "@/lib/config/wilayas";
 
@@ -63,9 +62,13 @@ export default async function CustomerAccountPage() {
         </div>
 
         <form action={customerLogout} className="mt-6">
-          <Button type="submit" variant="outline" className="w-full">
-            Se déconnecter
-          </Button>
+          <button
+            type="submit"
+            className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] border text-sm font-semibold transition-colors"
+          >
+            <LogOut className="size-4" />
+            Déconnexion
+          </button>
         </form>
 
         <p className="text-subtle mt-6 text-center text-xs">
