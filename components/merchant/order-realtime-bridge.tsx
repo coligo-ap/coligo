@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, BellOff, PartyPopper, Volume2, VolumeX, X } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
@@ -9,6 +9,11 @@ import { useAlertSound } from "@/lib/hooks/use-alert-sound";
 import { useNotifyPermission } from "@/lib/hooks/use-notify-permission";
 import { useOrderRealtime } from "@/lib/hooks/use-order-realtime";
 import { notify } from "@/lib/native";
+import { createClient } from "@/lib/supabase/client";
+import { updateOrderStatus } from "@/app/(merchant)/orders/actions";
+import { printOrderTicket } from "@/lib/ticket/print-order";
+import type { TicketOrder } from "@/lib/ticket/build-ticket-html";
+import type { OrderStatus, PrintSettings } from "@/lib/types";
 
 type IncomingOrder = {
   id: string;
@@ -16,25 +21,107 @@ type IncomingOrder = {
   total_da: number | null;
 };
 
+type Props = {
+  merchantId: string;
+  merchantName: string;
+  printSettings: PrintSettings;
+};
+
 /**
- * Pont Realtime + son + notif + toast pour le dashboard commerçant.
+ * Pont Realtime + son + notif + auto-accept + auto-print pour le dashboard.
  *
  * Sur INSERT d'une commande :
  *  - joue `alert.wav` si `prefs.alertSound`
- *  - déclenche `notify()` si `prefs.notifications` ET permission accordée
- *  - affiche un toast violet `#5C5CE0` dans la page
- *  - rafraîchit la route pour ré-hydrater le Kanban (source de vérité côté serveur)
+ *  - notifie le système si `prefs.notifications` ET permission accordée
+ *  - affiche un toast violet `#5C5CE0`
+ *  - si `print.auto_accept_orders`, déclenche la transition pending → preparing
+ *  - si `print.auto_print === 'on_receive'`, imprime le ticket
+ *  - rafraîchit la route (le Kanban est ré-hydraté depuis le serveur)
  *
- * Le panneau de réglages compact propose deux toggles (Son / Notifs) et,
- * conditionnellement, les boutons « Activer le son » (déblocage autoplay) et
- * « Autoriser les notifications ».
+ * Sur UPDATE :
+ *  - si `print.auto_print === 'on_accept'` ET la commande passe en
+ *    accepted/preparing pour la première fois, imprime
+ *
+ * Dé-doublonnage : on garde un Set d'orderId déjà imprimés par session pour
+ * éviter qu'un ré-événement (reconnexion Realtime) ne produise une 2e copie.
  */
-export function OrderRealtimeBridge({ merchantId }: { merchantId: string }) {
+export function OrderRealtimeBridge({
+  merchantId,
+  merchantName,
+  printSettings,
+}: Props) {
   const router = useRouter();
   const { prefs, update, hydrated } = useMerchantPrefs();
   const { play, unlock, unlocked } = useAlertSound();
   const { permission, request } = useNotifyPermission();
   const [toastOrder, setToastOrder] = useState<IncomingOrder | null>(null);
+  const printedOnceRef = useRef<Set<string>>(new Set());
+  // Snapshot des réglages : on n'écoute pas leur mutation pendant la session ;
+  // le commerçant doit recharger pour appliquer (les changements de réglages
+  // déclenchent eux-mêmes une revalidation côté serveur via `setPrintSettings`).
+  const settingsRef = useRef(printSettings);
+
+  /** Récupère la commande complète (+ items + nom du commerce) pour l'imprimer. */
+  const fetchTicket = useCallback(
+    async (orderId: string): Promise<TicketOrder | null> => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("orders")
+        .select(
+          `id, customer_name, customer_phone, pickup_code, pickup_slot_at,
+           created_at, notes, total_da, service_fee_da, cashback_da,
+           payment_method, payment_status,
+           order_items ( product_name, unit_price_da, quantity, line_total_da )`
+        )
+        .eq("id", orderId)
+        .maybeSingle();
+      if (!data) return null;
+      return {
+        id: data.id,
+        merchant_name: merchantName,
+        customer_name: data.customer_name,
+        customer_phone: data.customer_phone,
+        pickup_code: data.pickup_code,
+        pickup_slot_at: data.pickup_slot_at,
+        created_at: data.created_at,
+        notes: data.notes,
+        total_da: data.total_da,
+        service_fee_da: data.service_fee_da,
+        cashback_da: data.cashback_da,
+        payment_method: data.payment_method,
+        payment_status: data.payment_status,
+        items: (data.order_items ?? []).map((it) => ({
+          product_name: it.product_name,
+          quantity: Number(it.quantity),
+          unit_price_da: it.unit_price_da,
+          line_total_da: it.line_total_da,
+        })),
+      };
+    },
+    [merchantName]
+  );
+
+  const doPrint = useCallback(
+    async (orderId: string) => {
+      if (printedOnceRef.current.has(orderId)) return;
+      printedOnceRef.current.add(orderId);
+      // Les `order_items` peuvent arriver après l'INSERT sur `orders` ;
+      // un petit délai laisse la transaction se poser côté DB.
+      await new Promise((r) => setTimeout(r, 300));
+      const ticket = await fetchTicket(orderId);
+      if (!ticket) return;
+      try {
+        await printOrderTicket(ticket, {
+          width: settingsRef.current.print_width,
+          copies: settingsRef.current.print_copies,
+        });
+      } catch {
+        // Pas de toast bruyant : l'impression auto est silencieuse par
+        // construction, et le commerçant peut toujours rejouer manuellement.
+      }
+    },
+    [fetchTicket]
+  );
 
   const handleInsert = useCallback(
     async (row: {
@@ -57,14 +144,40 @@ export function OrderRealtimeBridge({ merchantId }: { merchantId: string }) {
         total_da: row.total_da,
       });
       window.setTimeout(() => setToastOrder(null), 8000);
+
+      const s = settingsRef.current;
+      // Auto-accept : on valide la commande dès sa réception (transition
+      // autorisée pending → preparing par `nextOrderAction`).
+      if (s.auto_accept_orders && row.status === "pending") {
+        const opId =
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `auto-${row.id}-${Date.now()}`;
+        void updateOrderStatus(row.id, "preparing" as OrderStatus, opId);
+      }
+      if (s.auto_print === "on_receive") {
+        void doPrint(row.id);
+      }
       router.refresh();
     },
-    [prefs.alertSound, prefs.notifications, permission, play, router]
+    [prefs.alertSound, prefs.notifications, permission, play, router, doPrint]
   );
 
-  const handleUpdate = useCallback(() => {
-    router.refresh();
-  }, [router]);
+  const handleUpdate = useCallback(
+    (row: { id: string; status: string }) => {
+      router.refresh();
+      const s = settingsRef.current;
+      // « À l'acceptation » couvre aussi 'accepted' (au cas où l'app passe par
+      // cet état) ET 'preparing' (transition principale pending → preparing).
+      if (
+        s.auto_print === "on_accept" &&
+        (row.status === "accepted" || row.status === "preparing")
+      ) {
+        void doPrint(row.id);
+      }
+    },
+    [router, doPrint]
+  );
 
   useOrderRealtime(merchantId, {
     onInsert: handleInsert,

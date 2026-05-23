@@ -35,6 +35,10 @@ export type Database = {
           cashback_online: number | null;
           cashback_cash: number | null;
           is_frozen: boolean;
+          auto_accept_orders: boolean;
+          auto_print: Database["public"]["Enums"]["auto_print_mode"];
+          print_copies: number;
+          print_width: number;
           created_at: string;
         };
         Insert: {
@@ -51,6 +55,10 @@ export type Database = {
           cashback_online?: number | null;
           cashback_cash?: number | null;
           is_frozen?: boolean;
+          auto_accept_orders?: boolean;
+          auto_print?: Database["public"]["Enums"]["auto_print_mode"];
+          print_copies?: number;
+          print_width?: number;
           created_at?: string;
         };
         Update: {
@@ -67,6 +75,10 @@ export type Database = {
           cashback_online?: number | null;
           cashback_cash?: number | null;
           is_frozen?: boolean;
+          auto_accept_orders?: boolean;
+          auto_print?: Database["public"]["Enums"]["auto_print_mode"];
+          print_copies?: number;
+          print_width?: number;
           created_at?: string;
         };
         Relationships: [];
@@ -644,6 +656,7 @@ export type Database = {
         | "commission_income"
         | "chargily_fee"
         | "cashback_expense";
+      auto_print_mode: "off" | "on_receive" | "on_accept";
     };
     CompositeTypes: Record<never, never>;
   };

@@ -25,8 +25,11 @@ import {
   nextOrderAction,
   type OrderStatus,
   type OrderWithItems,
+  type PrintWidth,
 } from "@/lib/types";
 import { updateOrderStatus } from "@/app/(merchant)/orders/actions";
+import { PrintOrderButton } from "@/components/ticket/print-order-button";
+import { orderToTicket } from "@/lib/ticket/order-to-ticket";
 
 type FilterKey =
   | "all"
@@ -49,7 +52,19 @@ const FILTERS: { key: FilterKey; label: string; statuses: OrderStatus[] }[] = [
   { key: "cancelled", label: "Annulées", statuses: ["cancelled"] },
 ];
 
-export function OrdersListView({ orders }: { orders: OrderWithItems[] }) {
+type ListProps = {
+  orders: OrderWithItems[];
+  merchantName: string;
+  printWidth: PrintWidth;
+  printCopies: number;
+};
+
+export function OrdersListView({
+  orders,
+  merchantName,
+  printWidth,
+  printCopies,
+}: ListProps) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [query, setQuery] = useState("");
 
@@ -168,7 +183,13 @@ export function OrdersListView({ orders }: { orders: OrderWithItems[] }) {
               </thead>
               <tbody className="divide-border divide-y">
                 {filtered.map((o) => (
-                  <OrderRow key={o.id} order={o} />
+                  <OrderRow
+                    key={o.id}
+                    order={o}
+                    merchantName={merchantName}
+                    printWidth={printWidth}
+                    printCopies={printCopies}
+                  />
                 ))}
               </tbody>
             </table>
@@ -177,7 +198,13 @@ export function OrdersListView({ orders }: { orders: OrderWithItems[] }) {
           {/* Mobile : liste de cartes · Tablette : grille 2 colonnes */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:hidden">
             {filtered.map((o) => (
-              <OrderMobileCard key={o.id} order={o} />
+              <OrderMobileCard
+                key={o.id}
+                order={o}
+                merchantName={merchantName}
+                printWidth={printWidth}
+                printCopies={printCopies}
+              />
             ))}
           </div>
         </>
@@ -208,7 +235,14 @@ function useQuickAdvance(order: OrderWithItems) {
   return { next, pending, advance };
 }
 
-function OrderRow({ order }: { order: OrderWithItems }) {
+type RowProps = {
+  order: OrderWithItems;
+  merchantName: string;
+  printWidth: PrintWidth;
+  printCopies: number;
+};
+
+function OrderRow({ order, merchantName, printWidth, printCopies }: RowProps) {
   const meta = ORDER_STATUS_META[order.status];
   const shortId = order.id.slice(0, 6).toUpperCase();
   const { next, pending, advance } = useQuickAdvance(order);
@@ -240,42 +274,55 @@ function OrderRow({ order }: { order: OrderWithItems }) {
         {formatTime(order.pickup_slot_at)}
       </td>
       <td className="px-4 py-3 text-right">
-        {order.status === "ready" ? (
-          <Link
-            href="/orders/validate"
-            className="text-primary-700 hover:bg-primary-50 inline-flex items-center gap-1 rounded-[8px] px-2 py-1.5 text-xs font-medium"
-          >
-            <QrCode className="size-4" />
-            Valider
-          </Link>
-        ) : next ? (
-          <button
-            type="button"
-            onClick={advance}
-            disabled={pending}
-            className="text-primary-700 hover:bg-primary-50 inline-flex items-center gap-1 rounded-[8px] px-2 py-1.5 text-xs font-medium disabled:opacity-50"
-          >
-            {pending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <ArrowRight className="size-4" />
-            )}
-            {next.label.replace("la commande", "").trim() || "Avancer"}
-          </button>
-        ) : (
-          <Link
-            href={`/orders/${order.id}`}
-            className="text-subtle hover:text-foreground inline-flex items-center"
-          >
-            <ChevronRight className="size-4" />
-          </Link>
-        )}
+        <div className="flex items-center justify-end gap-1">
+          <PrintOrderButton
+            order={orderToTicket(order, merchantName)}
+            width={printWidth}
+            copies={printCopies}
+            variant="icon"
+          />
+          {order.status === "ready" ? (
+            <Link
+              href="/orders/validate"
+              className="text-primary-700 hover:bg-primary-50 inline-flex items-center gap-1 rounded-[8px] px-2 py-1.5 text-xs font-medium"
+            >
+              <QrCode className="size-4" />
+              Valider
+            </Link>
+          ) : next ? (
+            <button
+              type="button"
+              onClick={advance}
+              disabled={pending}
+              className="text-primary-700 hover:bg-primary-50 inline-flex items-center gap-1 rounded-[8px] px-2 py-1.5 text-xs font-medium disabled:opacity-50"
+            >
+              {pending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <ArrowRight className="size-4" />
+              )}
+              {next.label.replace("la commande", "").trim() || "Avancer"}
+            </button>
+          ) : (
+            <Link
+              href={`/orders/${order.id}`}
+              className="text-subtle hover:text-foreground inline-flex items-center"
+            >
+              <ChevronRight className="size-4" />
+            </Link>
+          )}
+        </div>
       </td>
     </tr>
   );
 }
 
-function OrderMobileCard({ order }: { order: OrderWithItems }) {
+function OrderMobileCard({
+  order,
+  merchantName,
+  printWidth,
+  printCopies,
+}: RowProps) {
   const meta = ORDER_STATUS_META[order.status];
   const shortId = order.id.slice(0, 6).toUpperCase();
   const { next, pending, advance } = useQuickAdvance(order);
@@ -300,31 +347,39 @@ function OrderMobileCard({ order }: { order: OrderWithItems }) {
           </span>
         </div>
       </Link>
-      {order.status === "ready" ? (
-        <Link
-          href="/orders/validate"
-          className={cn(buttonVariants({ size: "sm" }), "w-full")}
-        >
-          <QrCode className="size-4" />
-          Valider le retrait
-        </Link>
-      ) : (
-        next && (
-          <button
-            type="button"
-            onClick={advance}
-            disabled={pending}
-            className="border-border-strong hover:bg-surface-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-[10px] border text-xs font-medium disabled:opacity-50"
+      <div className="flex items-center gap-2">
+        {order.status === "ready" ? (
+          <Link
+            href="/orders/validate"
+            className={cn(buttonVariants({ size: "sm" }), "flex-1")}
           >
-            {pending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <ArrowRight className="size-4" />
-            )}
-            {next.label}
-          </button>
-        )
-      )}
+            <QrCode className="size-4" />
+            Valider
+          </Link>
+        ) : (
+          next && (
+            <button
+              type="button"
+              onClick={advance}
+              disabled={pending}
+              className="border-border-strong hover:bg-surface-2 flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[10px] border text-xs font-medium disabled:opacity-50"
+            >
+              {pending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <ArrowRight className="size-4" />
+              )}
+              {next.label}
+            </button>
+          )
+        )}
+        <PrintOrderButton
+          order={orderToTicket(order, merchantName)}
+          width={printWidth}
+          copies={printCopies}
+          variant="icon"
+        />
+      </div>
     </div>
   );
 }

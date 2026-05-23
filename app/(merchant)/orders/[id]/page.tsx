@@ -5,10 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { OrderStatusTimeline } from "@/components/merchant/order-status-timeline";
 import { OrderActions } from "@/components/merchant/order-actions";
+import { PrintOrderButton } from "@/components/ticket/print-order-button";
+import { orderToTicket } from "@/lib/ticket/order-to-ticket";
 import {
   ORDER_STATUS_META,
   type OrderEvent,
   type OrderWithItems,
+  type PrintWidth,
 } from "@/lib/types";
 import {
   countItems,
@@ -35,6 +38,7 @@ export default async function OrderDetailPage({
         `id, merchant_id, customer_name, customer_phone, status,
          total_da, service_fee_da, cashback_da, commission_da,
          pickup_code, pickup_slot_at, notes, created_at,
+         payment_method, payment_status,
          order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`
       )
       .eq("id", id)
@@ -55,6 +59,17 @@ export default async function OrderDetailPage({
     cashback_da: number;
     commission_da: number;
   };
+
+  // Réglages d'impression + nom du commerce pour le ticket. RLS filtre déjà
+  // sur le commerçant connecté.
+  const { data: merchant } = await supabase
+    .from("merchants")
+    .select("name, print_width, print_copies")
+    .eq("id", o.merchant_id)
+    .maybeSingle();
+  const ticketOrder = orderToTicket(o, merchant?.name ?? "Coligo");
+  const printWidth = (merchant?.print_width ?? 58) as PrintWidth;
+  const printCopies = merchant?.print_copies ?? 1;
   const orderEvents = (events ?? []) as OrderEvent[];
   const meta = ORDER_STATUS_META[o.status];
   const shortId = o.id.slice(0, 6).toUpperCase();
@@ -80,13 +95,22 @@ export default async function OrderDetailPage({
             </h1>
             <Badge tone={meta.tone}>{meta.label}</Badge>
           </div>
-          <p className="text-muted flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <span>Créée {formatRelativeTime(o.created_at)}</span>
-            <span className="inline-flex items-center gap-1.5">
-              <Clock className="size-4" />
-              Retrait à {formatTime(o.pickup_slot_at)}
-            </span>
-          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <p className="text-muted flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+              <span>Créée {formatRelativeTime(o.created_at)}</span>
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="size-4" />
+                Retrait à {formatTime(o.pickup_slot_at)}
+              </span>
+            </p>
+            <PrintOrderButton
+              order={ticketOrder}
+              width={printWidth}
+              copies={printCopies}
+              size="sm"
+              label="Imprimer"
+            />
+          </div>
         </div>
       </header>
 

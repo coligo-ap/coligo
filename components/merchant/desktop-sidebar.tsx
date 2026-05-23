@@ -32,7 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/promotions", label: "Promotions", icon: Tag },
   { href: "/stats", label: "Statistiques", icon: BarChart3 },
   { href: "/finances", label: "Finances", icon: Wallet },
-  { href: "/settings", label: "Paramètres", icon: Settings, disabled: true },
+  { href: "/settings", label: "Paramètres", icon: Settings },
 ];
 
 export function MerchantSidebar({ merchantName }: { merchantName: string }) {

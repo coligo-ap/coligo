@@ -7,7 +7,12 @@ import { Inbox, ShoppingBag, TrendingUp, Clock, QrCode } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { OrderRealtimeBridge } from "@/components/merchant/order-realtime-bridge";
 import { formatDA, cn } from "@/lib/utils";
-import type { OrderWithItems } from "@/lib/types";
+import {
+  DEFAULT_PRINT_SETTINGS,
+  type OrderWithItems,
+  type PrintSettings,
+  type PrintWidth,
+} from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +24,20 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   const { data: merchant } = await supabase
     .from("merchants")
-    .select("id")
+    .select(
+      "id, name, auto_accept_orders, auto_print, print_copies, print_width"
+    )
     .eq("user_id", user?.id ?? "")
     .maybeSingle();
+
+  const printSettings: PrintSettings = merchant
+    ? {
+        auto_accept_orders: merchant.auto_accept_orders,
+        auto_print: merchant.auto_print,
+        print_copies: merchant.print_copies,
+        print_width: merchant.print_width as PrintWidth,
+      }
+    : DEFAULT_PRINT_SETTINGS;
 
   const { data: orders, error } = await supabase
     .from("orders")
@@ -94,8 +110,15 @@ export default async function DashboardPage() {
         </Link>
       </header>
 
-      {/* Pont Realtime + son + notif (s'affiche aussi : panneau de réglages compact) */}
-      {merchant && <OrderRealtimeBridge merchantId={merchant.id} />}
+      {/* Pont Realtime + son + notif + auto-accept + auto-print
+          (s'affiche aussi : panneau de réglages compact d'alertes) */}
+      {merchant && (
+        <OrderRealtimeBridge
+          merchantId={merchant.id}
+          merchantName={merchant.name}
+          printSettings={printSettings}
+        />
+      )}
 
       {/* KPIs */}
       <section className="mb-6 grid grid-cols-2 gap-3 lg:mb-8 lg:grid-cols-4 lg:gap-4">

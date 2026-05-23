@@ -34,7 +34,7 @@ const DRAWER_ITEMS: DrawerItem[] = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/promotions", label: "Promotions", icon: Tag },
   { href: "/finances", label: "Finances", icon: Wallet },
-  { href: "/settings", label: "Paramètres", icon: Settings, disabled: true },
+  { href: "/settings", label: "Paramètres", icon: Settings },
 ];
 
 export function MobileDrawer({

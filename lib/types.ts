@@ -378,3 +378,30 @@ export type RateKey =
   | "cashback_online"
   | "cashback_cash"
   | "chargily_fee";
+
+// ===========================================================================
+// Réglages d'impression du commerçant (migration 0011)
+// ===========================================================================
+export type AutoPrintMode = "off" | "on_receive" | "on_accept";
+
+export type PrintWidth = 58 | 80;
+
+export type PrintSettings = {
+  auto_accept_orders: boolean;
+  auto_print: AutoPrintMode;
+  print_copies: number;
+  print_width: PrintWidth;
+};
+
+export const AUTO_PRINT_LABEL: Record<AutoPrintMode, string> = {
+  off: "Désactivée",
+  on_receive: "À la réception",
+  on_accept: "À l'acceptation",
+};
+
+export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
+  auto_accept_orders: false,
+  auto_print: "off",
+  print_copies: 1,
+  print_width: 58,
+};
