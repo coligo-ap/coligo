@@ -1,20 +1,19 @@
 /**
- * Impression de tickets.
+ * Impression de tickets — robuste desktop + mobile.
  *
- * Approche : on monte le ticket DANS le document principal puis on appelle
- * `window.print()`. Une feuille `@media print` injectée en même temps
- *   1) masque agressivement TOUT le reste de la page (`body > *` → none, sauf
- *      le mount qu'on ré-active par un sélecteur plus spécifique) ;
- *   2) place le mount au seul emplacement visible avec `position: absolute;
- *      inset: 0` pour garantir qu'il occupe la feuille ;
- *   3) impose `@page { size: <width>mm auto; margin: 0 }` pour la thermique.
+ * Stratégie :
+ *  1. On monte le ticket dans le document principal (#__coligo-print-mount).
+ *  2. On pose une classe `coligo-printing` sur <body> qui — en mode ÉCRAN ET
+ *     en mode PRINT — masque tout sauf le mount. Pourquoi écran aussi : iOS
+ *     Safari et certains Android Chrome génèrent leur PDF de partage à
+ *     partir d'un SNAPSHOT de l'état écran au moment de `print()`. Sans
+ *     bascule visible immédiate, leur snapshot capture l'app ; le `@media
+ *     print` arrive trop tard.
+ *  3. On appelle `window.print()`, on attend `afterprint` (ou matchMedia
+ *     `print` → `screen`), puis on nettoie (mount + style + classe + scroll).
  *
- * Pourquoi pas un iframe : Chrome remonte parfois `print()` au document
- * parent → l'app entière s'imprime derrière le ticket. La technique
- * « masquer tout sauf le mount » est la seule fiable cross-browser.
- *
- * APK Sunmi/Imin : on branchera le SDK natif dans `printer.native.ts` et on
- * exposera via une bascule dans `index.ts`. Le code appelant ne change pas.
+ * APK Sunmi/Imin : on branchera le SDK natif dans `printer.native.ts` plus
+ * tard. Le code appelant ne change pas.
  */
 
 export type PrintOptions = {
@@ -25,6 +24,7 @@ export type PrintOptions = {
 
 const MOUNT_ID = "__coligo-print-mount";
 const STYLE_ID = "__coligo-print-style";
+const BODY_CLASS = "coligo-printing";
 
 export async function printTicket({
   html,
@@ -33,126 +33,116 @@ export async function printTicket({
 }: PrintOptions): Promise<void> {
   if (typeof document === "undefined") return;
 
-  // Nettoyage défensif : si un précédent print a planté, on repart propre.
+  // Nettoyage défensif : si un précédent print a planté en cours de route.
   document.getElementById(MOUNT_ID)?.remove();
   document.getElementById(STYLE_ID)?.remove();
+  document.body.classList.remove(BODY_CLASS);
+
+  // Sauvegarde de l'état utilisateur (restauré en fin de print).
+  const previousTitle = document.title;
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
+  document.title = title;
 
   const mount = document.createElement("div");
   mount.id = MOUNT_ID;
   mount.setAttribute("aria-hidden", "true");
   mount.innerHTML = html;
-  // Hors impression : caché visuellement, hors flux. On garde `display:block`
-  // pour que les styles internes du ticket s'appliquent quand même (sinon
-  // certains navigateurs ne calculent pas le layout du subtree au moment du
-  // basculement vers @media print).
-  mount.style.cssText = [
-    "position: fixed",
-    "left: -99999px",
-    "top: 0",
-    `width: ${widthMm}mm`,
-    "pointer-events: none",
-    "opacity: 0",
-    "z-index: -1",
-  ].join(";");
 
   const style = document.createElement("style");
   style.id = STYLE_ID;
-  // Sélecteurs simples et explicites. `body > #mount` est délibérément plus
-  // spécifique que `body > *` pour passer outre le hide global.
-  // ⚠️ On NE force PAS `color: #000` sur les descendants : le bandeau noir
-  // (.ticket .banner) a `color: #fff` qu'il faut préserver, sinon texte noir
-  // sur fond noir → bandeau invisible. La couleur par défaut (#000) suffit.
+  // Sélecteurs scopés à `body.coligo-printing` : effet UNIQUEMENT pendant
+  // la sequence d'impression, jamais en navigation normale.
+  // ⚠️ On NE force PAS `color:#000` sur les descendants : le bandeau noir
+  // a `color:#fff` qui doit être préservé.
   style.textContent = `
 @page { size: ${widthMm}mm auto; margin: 0; }
+
+/* ----- ÉCRAN + IMPRESSION : on masque tout sauf le mount ----- */
+body.${BODY_CLASS} {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #fff !important;
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+body.${BODY_CLASS} > * {
+  display: none !important;
+  visibility: hidden !important;
+}
+body.${BODY_CLASS} > div#${MOUNT_ID} {
+  display: block !important;
+  visibility: visible !important;
+  position: static !important;
+  width: ${widthMm}mm !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  padding: 4mm !important;
+  background: #fff !important;
+  color: #000 !important;
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+  box-sizing: border-box;
+  transform: none !important;
+  filter: none !important;
+  clip-path: none !important;
+}
+body.${BODY_CLASS} > div#${MOUNT_ID} * {
+  visibility: visible !important;
+  box-sizing: border-box;
+}
+
+/* ----- IMPRESSION SEULEMENT : @page + encrage exact des fonds noirs ----- */
 @media print {
-  html, body {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #fff !important;
-    overflow: visible !important;
-    height: auto !important;
-    min-height: 0 !important;
-  }
-  /* On masque TOUT au niveau body sans exception... */
-  body > * {
-    display: none !important;
-    visibility: hidden !important;
-  }
-  /* ...puis on ré-affiche uniquement le mount via un sélecteur plus
-     spécifique (#id battra *) avec la même charte que l'iframe d'aperçu :
-     largeur en mm, padding 4mm, sans-serif, font-size 12px (les classes
-     .ticket fixent leurs propres tailles ensuite). */
-  body > div#${MOUNT_ID} {
-    display: block !important;
-    visibility: visible !important;
-    position: absolute !important;
-    inset: 0 !important;
-    left: 0 !important;
-    top: 0 !important;
-    right: auto !important;
-    bottom: auto !important;
+  html, body.${BODY_CLASS} {
     width: ${widthMm}mm !important;
-    margin: 0 !important;
-    padding: 4mm !important;
-    opacity: 1 !important;
-    z-index: 2147483647 !important;
-    color: #000 !important;
-    background: #fff !important;
-    font-size: 12px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
-    box-sizing: border-box;
-    transform: none !important;
-    filter: none !important;
-    clip-path: none !important;
   }
-  /* Réactive la visibilité du sous-arbre (héritée de body > * caché) +
-     force l'encrage exact des blocs noirs (bandeau, encadrés). NE touche
-     pas à la couleur — elle est gérée par les classes du ticket. */
-  body > div#${MOUNT_ID} * {
-    visibility: visible !important;
+  body.${BODY_CLASS} > div#${MOUNT_ID} {
+    margin: 0 !important;
+  }
+  body.${BODY_CLASS} > div#${MOUNT_ID} * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    box-sizing: border-box;
   }
 }
 `;
 
-  // Titre dans l'aperçu PDF (Chrome l'affiche dans la barre supérieure).
-  const previousTitle = document.title;
-  document.title = title;
-
   document.head.appendChild(style);
   document.body.appendChild(mount);
+  // ORDRE IMPORTANT : on ajoute la classe APRÈS avoir mounté le ticket,
+  // sinon le body est en état « tout caché » sans le ticket visible.
+  document.body.classList.add(BODY_CLASS);
 
   await new Promise<void>((resolve) => {
     let done = false;
     const cleanup = () => {
       if (done) return;
       done = true;
+      document.body.classList.remove(BODY_CLASS);
       mount.remove();
       style.remove();
       document.title = previousTitle;
+      window.scrollTo(scrollX, scrollY);
       window.removeEventListener("afterprint", cleanup);
       mediaQuery?.removeEventListener?.("change", onMediaChange);
       resolve();
     };
 
-    // `afterprint` est l'API officielle (déclenchée après impression OU
-    // annulation), mais peu fiable sur Chrome dans certains cas.
     window.addEventListener("afterprint", cleanup, { once: true });
 
-    // Garde-fou via matchMedia : Chrome bascule `print` → `screen` quand le
-    // dialogue se ferme. C'est plus fiable que `afterprint`.
+    // matchMedia('print') fire quand le dialogue se ferme — plus fiable
+    // qu'`afterprint` sur Chrome (mobile et desktop).
     const mediaQuery = window.matchMedia?.("print");
     const onMediaChange = (e: MediaQueryListEvent) => {
       if (!e.matches) cleanup();
     };
     mediaQuery?.addEventListener?.("change", onMediaChange);
 
-    // Garde-fou ultime : timeout long.
+    // Garde-fou ultime.
     window.setTimeout(cleanup, 60_000);
 
-    // Laisse 2 frames au navigateur pour appliquer la feuille @media print.
+    // 2 frames pour laisser le navigateur appliquer la classe avant print.
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         try {

@@ -7,7 +7,7 @@
  *
  * Bump CACHE_VERSION pour invalider tout le cache à un nouveau déploiement.
  */
-const CACHE_VERSION = "coligo-v2";
+const CACHE_VERSION = "coligo-v3";
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const PRECACHE_CACHE = `${CACHE_VERSION}-precache`;
 const OFFLINE_URL = "/offline";
