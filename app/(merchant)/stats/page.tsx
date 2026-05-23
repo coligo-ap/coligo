@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { RevenueChart } from "@/components/merchant/stats/revenue-chart";
+import { Pagination } from "@/components/ui/pagination";
 import { ORDER_STATUS_META, type OrderStatus } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
 import {
@@ -21,6 +22,8 @@ import {
   variationPct,
   type StatsPeriod,
 } from "@/lib/stats";
+
+const TOP_PAGE_SIZE = 10;
 
 export const dynamic = "force-dynamic";
 
@@ -39,11 +42,15 @@ type ItemRow = {
 export default async function StatsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; topPage?: string }>;
 }) {
-  const { period: periodParam } = await searchParams;
+  const { period: periodParam, topPage: topPageParam } = await searchParams;
   const period = parsePeriod(periodParam);
   const cfg = periodConfig(period);
+  const topPage = (() => {
+    const n = Number(topPageParam);
+    return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+  })();
 
   const supabase = await createClient();
 
@@ -121,12 +128,27 @@ export default async function StatsPage({
     e.ca += it.line_total_da;
     productMap.set(it.product_name, e);
   }
-  const topProducts = Array.from(productMap.entries())
+  const allTopProducts = Array.from(productMap.entries())
     .map(([name, v]) => ({ name, ...v }))
-    .sort((a, b) => b.ca - a.ca)
-    .slice(0, 10);
+    .sort((a, b) => b.ca - a.ca);
+  const topTotal = allTopProducts.length;
+  const topPageCount = Math.max(1, Math.ceil(topTotal / TOP_PAGE_SIZE));
+  const topOffset = (topPage - 1) * TOP_PAGE_SIZE;
+  const topProducts = allTopProducts.slice(
+    topOffset,
+    topOffset + TOP_PAGE_SIZE
+  );
 
   const hasData = totalCur > 0;
+
+  const topHrefFor = (p: number): string => {
+    const params = new URLSearchParams();
+    // « 7d » est le défaut de `parsePeriod` → on l'omet de l'URL.
+    if (period !== "7d") params.set("period", period);
+    if (p > 1) params.set("topPage", String(p));
+    const qs = params.toString();
+    return qs ? `/stats?${qs}#top` : "/stats#top";
+  };
 
   return (
     <div className="mx-auto max-w-[1400px] p-4 lg:p-6 lg:px-8">
@@ -199,38 +221,59 @@ export default async function StatsPage({
           </section>
 
           {/* Top produits */}
-          <section className="border-border bg-surface rounded-[16px] border p-5 lg:col-span-3">
-            <h2 className="mb-4 text-base font-semibold">Top produits</h2>
+          <section
+            id="top"
+            className="border-border bg-surface rounded-[16px] border p-5 lg:col-span-3"
+          >
+            <header className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-base font-semibold">Top produits</h2>
+              {topTotal > 0 && (
+                <span className="text-muted text-xs tabular-nums">
+                  {topTotal} produit{topTotal > 1 ? "s" : ""}
+                </span>
+              )}
+            </header>
             {topProducts.length === 0 ? (
               <p className="text-muted text-sm">
                 Aucune vente finalisée sur la période.
               </p>
             ) : (
-              <ol className="divide-border divide-y">
-                <li className="text-muted grid grid-cols-[2rem_1fr_auto_auto] items-center gap-3 pb-2 text-xs">
-                  <span>#</span>
-                  <span>Produit</span>
-                  <span className="text-right">Qté</span>
-                  <span className="w-24 text-right">CA</span>
-                </li>
-                {topProducts.map((p, i) => (
-                  <li
-                    key={p.name}
-                    className="grid grid-cols-[2rem_1fr_auto_auto] items-center gap-3 py-2.5 text-sm"
-                  >
-                    <span className="text-primary-700 bg-primary-50 flex size-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums">
-                      {i + 1}
-                    </span>
-                    <span className="truncate font-medium">{p.name}</span>
-                    <span className="text-muted text-right tabular-nums">
-                      {p.qty}
-                    </span>
-                    <span className="w-24 text-right font-semibold tabular-nums">
-                      {formatDA(p.ca)}
-                    </span>
+              <>
+                <ol className="divide-border divide-y">
+                  <li className="text-muted grid grid-cols-[2rem_1fr_auto_auto] items-center gap-3 pb-2 text-xs">
+                    <span>#</span>
+                    <span>Produit</span>
+                    <span className="text-right">Qté</span>
+                    <span className="w-24 text-right">CA</span>
                   </li>
-                ))}
-              </ol>
+                  {topProducts.map((p, i) => (
+                    <li
+                      key={p.name}
+                      className="grid grid-cols-[2rem_1fr_auto_auto] items-center gap-3 py-2.5 text-sm"
+                    >
+                      <span className="text-primary-700 bg-primary-50 flex size-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums">
+                        {topOffset + i + 1}
+                      </span>
+                      <span className="truncate font-medium">{p.name}</span>
+                      <span className="text-muted text-right tabular-nums">
+                        {p.qty}
+                      </span>
+                      <span className="w-24 text-right font-semibold tabular-nums">
+                        {formatDA(p.ca)}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                {topPageCount > 1 && (
+                  <div className="border-border mt-4 border-t pt-3">
+                    <Pagination
+                      page={topPage}
+                      pageCount={topPageCount}
+                      hrefFor={topHrefFor}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </section>
         </div>

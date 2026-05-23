@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
 import { toast } from "@/components/ui/toast";
 import {
   cn,
@@ -23,7 +24,6 @@ import {
 import {
   ORDER_STATUS_META,
   nextOrderAction,
-  type OrderStatus,
   type OrderWithItems,
   type PrintWidth,
 } from "@/lib/types";
@@ -31,26 +31,23 @@ import { updateOrderStatus } from "@/app/(merchant)/orders/actions";
 import { PrintOrderButton } from "@/components/ticket/print-order-button";
 import { orderToTicket } from "@/lib/ticket/order-to-ticket";
 
-type FilterKey =
-  | "all"
-  | "pending"
-  | "preparing"
-  | "ready"
-  | "completed"
-  | "cancelled";
-
-const FILTERS: { key: FilterKey; label: string; statuses: OrderStatus[] }[] = [
-  { key: "all", label: "Toutes", statuses: [] },
-  { key: "pending", label: "À confirmer", statuses: ["pending"] },
-  {
-    key: "preparing",
-    label: "En préparation",
-    statuses: ["accepted", "preparing"],
-  },
-  { key: "ready", label: "Prêtes", statuses: ["ready"] },
-  { key: "completed", label: "Récupérées", statuses: ["completed"] },
-  { key: "cancelled", label: "Annulées", statuses: ["cancelled"] },
+const FILTERS: { key: string; label: string }[] = [
+  { key: "all", label: "Toutes" },
+  { key: "pending", label: "À confirmer" },
+  { key: "preparing", label: "En préparation" },
+  { key: "ready", label: "Prêtes" },
+  { key: "completed", label: "Récupérées" },
+  { key: "cancelled", label: "Annulées" },
 ];
+
+type StatusCounts = {
+  all: number;
+  pending: number;
+  preparing: number;
+  ready: number;
+  completed: number;
+  cancelled: number;
+};
 
 type ListProps = {
   orders: OrderWithItems[];
@@ -58,6 +55,11 @@ type ListProps = {
   printWidth: PrintWidth;
   printCopies: number;
   categoryMap: Record<string, string>;
+  page: number;
+  pageCount: number;
+  total: number;
+  filter: string;
+  statusCounts: StatusCounts;
 };
 
 export function OrdersListView({
@@ -66,43 +68,42 @@ export function OrdersListView({
   printWidth,
   printCopies,
   categoryMap,
+  page,
+  pageCount,
+  total,
+  filter,
+  statusCounts,
 }: ListProps) {
-  const [filter, setFilter] = useState<FilterKey>("all");
+  // Recherche : reste in-memory et ne s'applique qu'à la page courante.
+  // Pour une recherche globale, il faudrait l'envoyer en URL — overkill pour
+  // MVP où le commerçant trouve sa commande via le filtre statut + page.
   const [query, setQuery] = useState("");
-
-  const counts = useMemo(() => {
-    const map: Record<FilterKey, number> = {
-      all: orders.length,
-      pending: 0,
-      preparing: 0,
-      ready: 0,
-      completed: 0,
-      cancelled: 0,
-    };
-    for (const o of orders) {
-      if (o.status === "pending") map.pending++;
-      else if (o.status === "accepted" || o.status === "preparing")
-        map.preparing++;
-      else if (o.status === "ready") map.ready++;
-      else if (o.status === "completed") map.completed++;
-      else if (o.status === "cancelled") map.cancelled++;
-    }
-    return map;
-  }, [orders]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const statuses = FILTERS.find((f) => f.key === filter)?.statuses ?? [];
-    return orders.filter((o) => {
-      if (statuses.length > 0 && !statuses.includes(o.status)) return false;
-      if (!q) return true;
-      return (
+    if (!q) return orders;
+    return orders.filter(
+      (o) =>
         o.customer_name.toLowerCase().includes(q) ||
         o.id.slice(0, 6).toLowerCase().includes(q) ||
         o.customer_phone.includes(q)
-      );
-    });
-  }, [orders, filter, query]);
+    );
+  }, [orders, query]);
+
+  // Construit l'URL pour une page donnée en gardant le filtre courant.
+  function hrefFor(p: number): string {
+    const params = new URLSearchParams();
+    if (filter && filter !== "all") params.set("status", filter);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return qs ? `/orders?${qs}` : "/orders";
+  }
+
+  // Construit l'URL pour un filtre donné (revient page 1).
+  function filterHref(key: string): string {
+    if (key === "all") return "/orders";
+    return `/orders?status=${key}`;
+  }
 
   return (
     <div className="mx-auto max-w-[1600px] p-4 lg:p-6 lg:px-8">
@@ -112,7 +113,7 @@ export function OrdersListView({
             Commandes
           </h1>
           <p className="text-muted mt-1 text-sm">
-            {orders.length} commande{orders.length > 1 ? "s" : ""} au total
+            {total} commande{total > 1 ? "s" : ""} au total
           </p>
         </div>
         <Link
@@ -124,48 +125,54 @@ export function OrdersListView({
         </Link>
       </header>
 
-      {/* Recherche */}
+      {/* Recherche sur la page courante */}
       <div className="relative mb-4 lg:max-w-md">
         <Search className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
         <input
           type="search"
-          placeholder="Rechercher : n° de commande, client, téléphone…"
+          placeholder="Filtrer cette page : n°, client, téléphone…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="border-border-strong focus:border-primary-400 focus:ring-primary-400/40 h-11 w-full rounded-[12px] border bg-white pr-3 pl-9 text-sm focus:ring-2 focus:outline-none"
         />
       </div>
 
-      {/* Filtres par statut */}
+      {/* Filtres par statut — URL-based, comptage total de chaque statut */}
       <div className="-mx-1 mb-5 flex gap-1.5 overflow-x-auto px-1 pb-1 lg:flex-wrap lg:overflow-visible lg:pb-0">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            type="button"
-            onClick={() => setFilter(f.key)}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
-              filter === f.key
-                ? "border-primary-600 bg-primary-600 text-white"
-                : "border-border-strong text-muted hover:bg-surface-2"
-            )}
-          >
-            {f.label}
-            <span
+        {FILTERS.map((f) => {
+          const active = filter === f.key;
+          const count = statusCounts[f.key as keyof StatusCounts];
+          return (
+            <Link
+              key={f.key}
+              href={filterHref(f.key)}
+              prefetch={false}
               className={cn(
-                "tabular-nums",
-                filter === f.key ? "text-white/80" : "text-subtle"
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+                active
+                  ? "border-primary-600 bg-primary-600 text-white"
+                  : "border-border-strong text-muted hover:bg-surface-2"
               )}
             >
-              {counts[f.key]}
-            </span>
-          </button>
-        ))}
+              {f.label}
+              <span
+                className={cn(
+                  "tabular-nums",
+                  active ? "text-white/80" : "text-subtle"
+                )}
+              >
+                {count}
+              </span>
+            </Link>
+          );
+        })}
       </div>
 
       {filtered.length === 0 ? (
         <p className="text-muted py-12 text-center text-sm">
-          Aucune commande ne correspond.
+          {query
+            ? "Aucune commande sur cette page ne correspond à la recherche."
+            : "Aucune commande."}
         </p>
       ) : (
         <>
@@ -213,6 +220,16 @@ export function OrdersListView({
           </div>
         </>
       )}
+
+      <div className="mt-5">
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          hrefFor={hrefFor}
+          total={total}
+          itemLabel={{ singular: "commande", plural: "commandes" }}
+        />
+      </div>
     </div>
   );
 }

@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowDownRight,
   ArrowUpRight,
   Banknote,
+  ChevronDown,
   Loader2,
   Wallet,
 } from "lucide-react";
@@ -14,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Pagination } from "@/components/ui/pagination";
 import { toast } from "@/components/ui/toast";
 import { cn, formatDA } from "@/lib/utils";
 import {
@@ -44,11 +46,22 @@ export function FinancesView({
   entries,
   requests,
   summary,
+  page,
+  pageCount,
+  total,
 }: {
   entries: WalletEntryRow[];
   requests: PayoutRequest[];
   summary: FinancesSummary;
+  page: number;
+  pageCount: number;
+  total: number;
 }) {
+  // Si l'utilisateur a déjà cliqué sur Voir plus (ou navigue page > 1),
+  // on garde l'historique déplié — sinon on n'affiche que la 1ère ligne.
+  const [expanded, setExpanded] = useState(page > 1);
+  const visibleEntries = expanded ? entries : entries.slice(0, 1);
+  const remaining = Math.max(0, total - 1);
   return (
     <div className="mx-auto max-w-[1100px] p-4 lg:p-6 lg:px-8">
       <header className="mb-5 lg:mb-6">
@@ -105,10 +118,15 @@ export function FinancesView({
       )}
 
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
-        {/* Historique des écritures */}
+        {/* Historique des écritures — replié à 1 ligne par défaut */}
         <section className="border-border bg-surface rounded-[16px] border">
-          <header className="border-border border-b px-5 py-4">
+          <header className="border-border flex items-center justify-between gap-3 border-b px-5 py-4">
             <h2 className="text-base font-semibold">Historique</h2>
+            {total > 0 && (
+              <span className="text-muted text-xs tabular-nums">
+                {total} écriture{total > 1 ? "s" : ""}
+              </span>
+            )}
           </header>
           {entries.length === 0 ? (
             <p className="text-muted px-5 py-10 text-center text-sm">
@@ -116,11 +134,34 @@ export function FinancesView({
               qu&apos;une commande sera récupérée.
             </p>
           ) : (
-            <ul className="divide-border divide-y">
-              {entries.map((e) => (
-                <EntryRow key={e.id} entry={e} />
-              ))}
-            </ul>
+            <>
+              <ul className="divide-border divide-y">
+                {visibleEntries.map((e) => (
+                  <EntryRow key={e.id} entry={e} />
+                ))}
+              </ul>
+              {!expanded && remaining > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded(true)}
+                  className="text-primary-700 hover:bg-surface-2 border-border flex w-full items-center justify-center gap-1.5 border-t px-5 py-3 text-sm font-medium transition-colors"
+                >
+                  Voir plus ({remaining} de plus)
+                  <ChevronDown className="size-4" />
+                </button>
+              )}
+              {expanded && (
+                <div className="border-border border-t px-5 py-3">
+                  <Pagination
+                    page={page}
+                    pageCount={pageCount}
+                    hrefFor={(p) =>
+                      p > 1 ? `/finances?page=${p}` : "/finances"
+                    }
+                  />
+                </div>
+              )}
+            </>
           )}
         </section>
 

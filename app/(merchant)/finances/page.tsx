@@ -1,36 +1,58 @@
-import { getPayoutRequests, getWalletEntries } from "@/lib/data/wallet";
 import {
-  reservedAmount,
-  sumByType,
-  walletBalance,
-} from "@/lib/finances/balance";
+  getPayoutRequests,
+  getWalletEntriesPage,
+  getWalletSummary,
+} from "@/lib/data/wallet";
+import { reservedAmount } from "@/lib/finances/balance";
 import { FinancesView } from "@/components/merchant/finances/finances-view";
 
 export const dynamic = "force-dynamic";
 
-export default async function FinancesPage() {
-  const [entries, requests] = await Promise.all([
-    getWalletEntries(),
+const PAGE_SIZE = 10;
+
+function parsePage(raw?: string): number {
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+}
+
+export default async function FinancesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+  const page = parsePage(pageParam);
+
+  const [walletSummary, pageData, requests] = await Promise.all([
+    getWalletSummary(),
+    getWalletEntriesPage(page, PAGE_SIZE),
     getPayoutRequests(),
   ]);
 
-  const balance = walletBalance(entries);
   const reserved = reservedAmount(requests);
+  const balance = walletSummary.balance;
 
   const summary: FinancesSummary = {
     balance,
-    // Solde négatif = dette de commissions (mode cash) à régler à Coligo.
     debt: balance < 0 ? -balance : 0,
-    // On ne peut verser que le net positif, moins les demandes en cours.
     available: Math.max(0, balance - reserved),
     reserved,
-    totalSales: sumByType(entries, "sale"),
-    totalCommission: sumByType(entries, "commission"), // négatif
-    totalPaidOut: sumByType(entries, "payout"), // négatif
+    totalSales: walletSummary.totalSales,
+    totalCommission: walletSummary.totalCommission,
+    totalPaidOut: walletSummary.totalPaidOut,
   };
 
+  const pageCount = Math.max(1, Math.ceil(pageData.total / PAGE_SIZE));
+
   return (
-    <FinancesView entries={entries} requests={requests} summary={summary} />
+    <FinancesView
+      entries={pageData.entries}
+      requests={requests}
+      summary={summary}
+      page={page}
+      pageCount={pageCount}
+      total={pageData.total}
+    />
   );
 }
 
