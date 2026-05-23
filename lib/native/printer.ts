@@ -1,102 +1,131 @@
 /**
  * Impression de tickets.
  *
- * Aujourd'hui : iframe isolée + `window.print()` (dialogue système, marche
- * partout — Chrome/Firefox/Edge/Safari, desktop & mobile).
+ * Aujourd'hui : on monte le ticket DANS le document principal puis on appelle
+ * `window.print()`. Une feuille de style `@media print` injectée en même
+ * temps masque TOUT le reste de la page (`body > *:not(#mount)`) et impose le
+ * `@page { size: <width>mm auto; margin: 0 }`. Ainsi seul le ticket sort à
+ * l'impression — pas de « capture d'écran » de l'app en page 1.
  *
- * APK Sunmi/Imin avec imprimante thermique intégrée : à brancher dans
- * `lib/native/printer.native.ts` (SDK natif, impression directe sans dialogue)
- * et exporter via une bascule dans `index.ts`. Le code appelant ne change pas.
+ * Pourquoi pas un iframe : Chrome remonte parfois `print()` au document
+ * parent, ce qui imprime l'app derrière le ticket. La technique « hide
+ * everything except the mount » est la seule fiable cross-browser.
+ *
+ * APK Sunmi/Imin : on branchera le SDK natif dans `printer.native.ts` et on
+ * exposera via une bascule dans `index.ts`. Le code appelant ne change pas.
  */
 
 export type PrintOptions = {
-  /** HTML complet à injecter dans le ticket (sans <html>/<body> requis). */
+  /** HTML complet du ticket (peut inclure ses propres <style>). */
   html: string;
-  /** Largeur papier en mm (80 par défaut pour les rouleaux thermiques). */
+  /** Largeur papier en mm (58 ou 80). */
   widthMm?: number;
-  /** Titre éphémère de la fenêtre d'impression. */
+  /** Titre éphémère (ré-affiché brièvement dans le dialogue système). */
   title?: string;
 };
 
+const MOUNT_ID = "__coligo-print-mount";
+const STYLE_ID = "__coligo-print-style";
+
 export async function printTicket({
   html,
-  widthMm = 80,
+  widthMm = 58,
   title = "Ticket Coligo",
 }: PrintOptions): Promise<void> {
   if (typeof document === "undefined") return;
 
-  const iframe = document.createElement("iframe");
-  iframe.setAttribute("aria-hidden", "true");
-  // On la garde dans le flux mais invisible : certains navigateurs
-  // (Safari iOS) refusent d'imprimer un iframe `display:none`.
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "0";
-  document.body.appendChild(iframe);
+  // Nettoyage défensif : si un précédent print a planté, on repart propre.
+  document.getElementById(MOUNT_ID)?.remove();
+  document.getElementById(STYLE_ID)?.remove();
 
-  const doc = iframe.contentDocument;
-  const win = iframe.contentWindow;
-  if (!doc || !win) {
-    iframe.remove();
-    return;
-  }
+  const mount = document.createElement("div");
+  mount.id = MOUNT_ID;
+  mount.setAttribute("aria-hidden", "true");
+  mount.innerHTML = html;
+  // Hors impression : on cache visuellement le ticket sans `display:none`
+  // (certains navigateurs n'impriment pas les noeuds entièrement « none »
+  // au moment de basculer en print preview).
+  mount.style.position = "fixed";
+  mount.style.left = "-99999px";
+  mount.style.top = "0";
+  mount.style.width = `${widthMm}mm`;
+  mount.style.pointerEvents = "none";
+  mount.style.opacity = "0";
 
-  doc.open();
-  doc.write(`<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8" />
-<title>${escapeHtml(title)}</title>
-<style>
+  const style = document.createElement("style");
+  style.id = STYLE_ID;
+  style.textContent = `
+@media print {
   @page { size: ${widthMm}mm auto; margin: 0; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    width: ${widthMm}mm;
-    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-    font-size: 12px;
-    color: #000;
-    padding: 4mm;
+  /* On force le ticket à occuper toute la feuille et on cache TOUT le reste.
+     Reset overflow/height : si l'app a overflow:hidden sur body (drawer
+     mobile ouvert, modal, etc.) le contenu serait clippé a l'impression. */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
   }
-  * { box-sizing: border-box; }
-</style>
-</head>
-<body>${html}</body>
-</html>`);
-  doc.close();
+  body > *:not(#${MOUNT_ID}) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  body > #${MOUNT_ID} {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: ${widthMm}mm !important;
+    margin: 0 !important;
+    padding: 4mm !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: #000 !important;
+    background: #fff !important;
+    font-size: ${widthMm === 80 ? 13 : 11}px;
+    box-sizing: border-box;
+  }
+  body > #${MOUNT_ID} * {
+    color: #000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+`;
+
+  // Titre du dialogue (Chrome l'affiche dans la barre d'aperçu PDF).
+  const previousTitle = document.title;
+  document.title = title;
+
+  document.head.appendChild(style);
+  document.body.appendChild(mount);
 
   await new Promise<void>((resolve) => {
     let done = false;
-    const finish = () => {
+    const cleanup = () => {
       if (done) return;
       done = true;
+      mount.remove();
+      style.remove();
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", cleanup);
       resolve();
     };
-    // `afterprint` est l'API correcte mais peu fiable (Chrome) → fallback timeout.
-    win.addEventListener("afterprint", finish, { once: true });
-    window.setTimeout(finish, 5_000);
+    window.addEventListener("afterprint", cleanup, { once: true });
+    // Garde-fou : si `afterprint` ne se déclenche pas (Chrome connu pour
+    // l'oublier quand l'utilisateur ferme l'aperçu sans imprimer), on
+    // nettoie au bout d'un délai raisonnable.
+    window.setTimeout(cleanup, 60_000);
 
-    const trigger = () => {
+    // Laisse un tick au navigateur pour appliquer la feuille `@media print`
+    // (sinon Chrome calcule l'aperçu sur l'ancienne mise en page).
+    window.requestAnimationFrame(() => {
       try {
-        win.focus();
-        win.print();
+        window.print();
       } catch {
-        finish();
+        cleanup();
       }
-    };
-    if (doc.readyState === "complete") trigger();
-    else iframe.addEventListener("load", trigger, { once: true });
+    });
   });
-
-  iframe.remove();
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
