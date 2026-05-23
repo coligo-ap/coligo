@@ -107,7 +107,6 @@ export default async function SettingsPage() {
               {merchant.logo_url ? "Logo OK" : "Pas de logo"}
             </span>
           }
-          defaultOpen
         >
           <ProfileForm merchant={merchant} />
         </SettingsSection>
