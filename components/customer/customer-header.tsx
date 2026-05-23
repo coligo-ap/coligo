@@ -6,6 +6,7 @@ import { ChevronDown, MapPin, Search, ShoppingBag, User } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { useCustomerLocation } from "@/lib/customer/location-store";
+import { useCart, totalUnits } from "@/lib/customer/cart-store";
 import { LocationPicker } from "@/components/customer/location-picker";
 
 type Props = {
@@ -15,6 +16,8 @@ type Props = {
 
 export function CustomerHeader({ isAuth, customerName }: Props) {
   const loc = useCustomerLocation();
+  const cart = useCart();
+  const cartCount = totalUnits(cart);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const wilayaLabel = loc?.wilaya_code
@@ -63,10 +66,15 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
 
           <Link
             href="/cart"
-            className="hover:bg-surface-2 rounded-full p-2"
+            className="hover:bg-surface-2 relative rounded-full p-2"
             aria-label="Panier"
           >
             <ShoppingBag className="size-5" />
+            {cartCount > 0 && (
+              <span className="bg-primary-600 absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white">
+                {cartCount}
+              </span>
+            )}
           </Link>
 
           {isAuth ? (

@@ -138,15 +138,24 @@ export type Database = {
         Row: {
           id: string;
           merchant_id: string;
+          customer_id: string | null;
+          client_operation_id: string | null;
           customer_name: string;
           customer_phone: string;
           status: Database["public"]["Enums"]["order_status"];
           total_da: number;
+          subtotal_da: number;
+          discount_da: number;
+          cashback_estimate_da: number;
           service_fee_da: number;
           cashback_da: number;
           commission_da: number;
           pickup_code: string;
+          pickup_type: Database["public"]["Enums"]["pickup_type"];
           pickup_slot_at: string;
+          pickup_slot_start: string | null;
+          pickup_slot_end: string | null;
+          customer_note: string | null;
           notes: string | null;
           payment_method: Database["public"]["Enums"]["payment_method"];
           payment_status: Database["public"]["Enums"]["payment_status"];
@@ -158,15 +167,24 @@ export type Database = {
         Insert: {
           id?: string;
           merchant_id: string;
+          customer_id?: string | null;
+          client_operation_id?: string | null;
           customer_name: string;
           customer_phone: string;
           status?: Database["public"]["Enums"]["order_status"];
           total_da: number;
+          subtotal_da?: number;
+          discount_da?: number;
+          cashback_estimate_da?: number;
           service_fee_da?: number;
           cashback_da?: number;
           commission_da?: number;
           pickup_code?: string;
+          pickup_type?: Database["public"]["Enums"]["pickup_type"];
           pickup_slot_at: string;
+          pickup_slot_start?: string | null;
+          pickup_slot_end?: string | null;
+          customer_note?: string | null;
           notes?: string | null;
           payment_method?: Database["public"]["Enums"]["payment_method"];
           payment_status?: Database["public"]["Enums"]["payment_status"];
@@ -178,15 +196,24 @@ export type Database = {
         Update: {
           id?: string;
           merchant_id?: string;
+          customer_id?: string | null;
+          client_operation_id?: string | null;
           customer_name?: string;
           customer_phone?: string;
           status?: Database["public"]["Enums"]["order_status"];
           total_da?: number;
+          subtotal_da?: number;
+          discount_da?: number;
+          cashback_estimate_da?: number;
           service_fee_da?: number;
           cashback_da?: number;
           commission_da?: number;
           pickup_code?: string;
+          pickup_type?: Database["public"]["Enums"]["pickup_type"];
           pickup_slot_at?: string;
+          pickup_slot_start?: string | null;
+          pickup_slot_end?: string | null;
+          customer_note?: string | null;
           notes?: string | null;
           payment_method?: Database["public"]["Enums"]["payment_method"];
           payment_status?: Database["public"]["Enums"]["payment_status"];
@@ -796,6 +823,7 @@ export type Database = {
         | "chargily_fee"
         | "cashback_expense";
       auto_print_mode: "off" | "on_receive" | "on_accept";
+      pickup_type: "asap" | "slot";
     };
     CompositeTypes: Record<never, never>;
   };

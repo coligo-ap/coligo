@@ -3,9 +3,20 @@ import Link from "next/link";
 import { ArrowLeft, Clock, MapPin, Phone } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { getPublicMerchantBySlug } from "@/lib/data/merchants-public";
+import {
+  listMerchantProducts,
+  listMerchantPromotions,
+} from "@/lib/data/customer-catalog";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { DAY_KEYS, DAY_LABELS } from "@/lib/types";
 import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badge";
+import { ProductCard } from "@/components/customer/product-card";
+import { MerchantCartCta } from "@/components/customer/merchant-cart-cta";
+import {
+  discountedUnitPrice,
+  isPromotionActive,
+} from "@/lib/promotions/engine";
+import { APP_CONFIG } from "@/lib/config/app-config";
 import { formatDA } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -19,9 +30,45 @@ export default async function MerchantPublicPage({
   const m = await getPublicMerchantBySlug(slug);
   if (!m) notFound();
 
+  const [catalog, promotions] = await Promise.all([
+    listMerchantProducts(m.id),
+    listMerchantPromotions(m.id),
+  ]);
+
   const wilaya = m.wilaya_code
     ? WILAYAS.find((w) => w.code === m.wilaya_code)?.name
     : null;
+
+  // Pré-calcule un prix promo unitaire par produit (la meilleure remise produit).
+  const now = new Date();
+  const productPromos = promotions.filter(
+    (p) => p.type === "product_discount" && isPromotionActive(p as never, now)
+  );
+  const promoPriceByProduct = new Map<string, number>();
+  for (const product of catalog.products) {
+    let best = product.price_da;
+    for (const promo of productPromos) {
+      if (!promo.product_ids.includes(product.id)) continue;
+      if (!promo.discount_kind || promo.discount_value == null) continue;
+      const candidate = discountedUnitPrice(
+        product.price_da,
+        promo.discount_kind,
+        promo.discount_value,
+        APP_CONFIG.promotions.minPriceDa
+      );
+      if (candidate < best) best = candidate;
+    }
+    if (best < product.price_da) promoPriceByProduct.set(product.id, best);
+  }
+
+  // Regroupe par catégorie (titre = catégorie produit OU "Sans catégorie").
+  const byCategory = new Map<string, typeof catalog.products>();
+  for (const p of catalog.products) {
+    const key = p.category?.trim() || "Autres";
+    const arr = byCategory.get(key) ?? [];
+    arr.push(p);
+    byCategory.set(key, arr);
+  }
 
   return (
     <CustomerShell>
@@ -50,8 +97,6 @@ export default async function MerchantPublicPage({
 
         <div className="bg-surface border-border relative mx-3 -mt-10 rounded-[20px] border p-5 shadow-sm lg:mx-10 lg:p-6">
           <div className="flex flex-wrap items-start gap-4">
-            {/* Logo : décalé vers le haut pour CHEVAUCHER la cover (par-dessus,
-                pas dessous). Bordure blanche pour le détacher de la cover. */}
             {m.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -103,7 +148,44 @@ export default async function MerchantPublicPage({
           </InfoCard>
         </div>
 
-        <section className="bg-surface border-border mt-6 rounded-[16px] border p-5">
+        {/* Catalogue */}
+        <section className="mt-8">
+          <header className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-foreground text-xl font-bold">Le menu</h2>
+            <span className="text-muted text-xs">
+              {catalog.products.length} produit
+              {catalog.products.length > 1 ? "s" : ""}
+            </span>
+          </header>
+
+          {catalog.products.length === 0 ? (
+            <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-10 text-center text-sm">
+              Ce commerce n&apos;a pas encore publié son catalogue.
+            </div>
+          ) : (
+            <div className="space-y-8 pb-32 lg:pb-12">
+              {Array.from(byCategory.entries()).map(([cat, items]) => (
+                <div key={cat}>
+                  <h3 className="text-foreground mb-3 text-base font-semibold">
+                    {cat}
+                  </h3>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {items.map((p) => (
+                      <ProductCard
+                        key={p.id}
+                        merchant={{ id: m.id, slug: m.slug, name: m.name }}
+                        product={p}
+                        promoUnitPriceDa={promoPriceByProduct.get(p.id) ?? null}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="border-border bg-surface mt-8 rounded-[16px] border p-5">
           <h2 className="text-foreground mb-3 text-base font-semibold">
             Horaires
           </h2>
@@ -126,12 +208,10 @@ export default async function MerchantPublicPage({
             })}
           </ul>
         </section>
-
-        <div className="border-border bg-warning-50 text-warning-700 border-warning-100 mt-6 rounded-[14px] border p-4 text-sm">
-          Le catalogue et le panier arrivent dans une prochaine version. Reviens
-          bientôt pour commander chez <strong>{m.name}</strong> !
-        </div>
       </div>
+
+      {/* CTA panier sticky en bas (mobile + desktop), si panier de ce commerce */}
+      <MerchantCartCta merchantId={m.id} />
     </CustomerShell>
   );
 }
