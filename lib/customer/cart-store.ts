@@ -3,16 +3,25 @@
 import { useEffect, useState } from "react";
 
 // =============================================================================
-// Panier client — mono-commerce, persisté en localStorage.
+// Panier client — MULTI-commerce en localStorage, un seul "actif" à la fois.
 // =============================================================================
+// Évolution prompt 16 :
+//   - Avant : un seul panier en localStorage, ajouter un produit d'un autre
+//     commerce était BLOQUÉ avec mismatch=true.
+//   - Maintenant : on stocke autant de paniers que de commerces fréquentés
+//     (Record<merchant_id, Cart>) + un `active_merchant_id` qui définit le
+//     panier "visible". Le conflit ne se résout PAS au remplissage : il est
+//     délégué au checkout, qui propose au client deux boutons clairs
+//     ("Continuer chez A" / "Abandonner et commander chez B").
+//
 // Règles :
-//   - Un panier appartient à UN SEUL commerce à la fois. Ajouter un produit
-//     d'un autre commerce demande de vider l'existant.
-//   - Aucun calcul de prix ici : on stocke juste prix unitaire et quantité,
-//     le moteur (`lib/promotions/engine.ts`) recalcule en aval (panier +
-//     checkout) — et le serveur RE-calcule à la création de commande.
-//   - Le panier SURVIT à la connexion : on le persiste localStorage,
-//     indépendamment de la session Supabase.
+//   - addItem(M, ...) ajoute au panier de M (en le créant si besoin) ET
+//     marque M comme actif. Ne ÉCHOUE jamais sur un conflit — c'est le but.
+//   - useCart() reste compatible : renvoie le panier ACTIF (ou vide stub).
+//   - useOtherCarts() renvoie les paniers des AUTRES commerces (pour le
+//     bandeau de conflit au checkout). Vide si pas de conflit.
+//   - Migration douce depuis l'ancien format (one-cart) : on lit la clé
+//     historique au boot et on convertit en {by_merchant, active_merchant_id}.
 
 export type CartItem = {
   product_id: string;
@@ -27,8 +36,14 @@ export type Cart = {
   merchant_id: string | null;
   merchant_slug: string | null;
   merchant_name: string | null;
+  merchant_logo: string | null;
   items: CartItem[];
   updated_at: string;
+};
+
+type Store = {
+  active_merchant_id: string | null;
+  by_merchant: Record<string, Cart>;
 };
 
 const STORAGE_KEY = "coligo:customer:cart";
@@ -37,64 +52,123 @@ const EMPTY_CART: Cart = {
   merchant_id: null,
   merchant_slug: null,
   merchant_name: null,
+  merchant_logo: null,
   items: [],
   updated_at: new Date(0).toISOString(),
 };
 
-function broadcast(cart: Cart) {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent("coligo:cart:change", { detail: cart }));
-}
+const EMPTY_STORE: Store = {
+  active_merchant_id: null,
+  by_merchant: {},
+};
 
-export function readCart(): Cart {
-  if (typeof window === "undefined") return EMPTY_CART;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return EMPTY_CART;
-    const parsed = JSON.parse(raw) as Cart;
-    return {
-      merchant_id: parsed.merchant_id ?? null,
-      merchant_slug: parsed.merchant_slug ?? null,
-      merchant_name: parsed.merchant_name ?? null,
-      items: Array.isArray(parsed.items) ? parsed.items : [],
-      updated_at: parsed.updated_at ?? new Date().toISOString(),
-    };
-  } catch {
-    return EMPTY_CART;
-  }
-}
-
-export function writeCart(cart: Cart): void {
+function broadcast(store: Store) {
   if (typeof window === "undefined") return;
-  const next = { ...cart, updated_at: new Date().toISOString() };
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  broadcast(next);
-}
-
-export function clearCart(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(STORAGE_KEY);
-  broadcast(EMPTY_CART);
+  window.dispatchEvent(
+    new CustomEvent("coligo:cart:change", { detail: store })
+  );
 }
 
 /**
- * Ajoute (ou incrémente) un produit dans le panier.
- * Renvoie `mismatch: true` si on essaie d'ajouter un produit d'un autre
- * commerce que le panier courant (l'UI doit alors proposer de vider).
+ * Lit le store depuis localStorage. Supporte deux formats :
+ *   - Nouveau : { active_merchant_id, by_merchant: { [mid]: Cart } }
+ *   - Ancien (prompt 13/14) : { merchant_id, merchant_slug, merchant_name,
+ *     items, updated_at } — converti à la volée.
+ */
+function readStore(): Store {
+  if (typeof window === "undefined") return EMPTY_STORE;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return EMPTY_STORE;
+    const parsed = JSON.parse(raw) as Partial<Store> & Partial<Cart>;
+
+    // Nouveau format
+    if (parsed && typeof parsed === "object" && "by_merchant" in parsed) {
+      return {
+        active_merchant_id: parsed.active_merchant_id ?? null,
+        by_merchant: parsed.by_merchant ?? {},
+      };
+    }
+
+    // Ancien format → migration
+    if (parsed && typeof parsed === "object" && "items" in parsed) {
+      const old = parsed as Partial<Cart>;
+      if (old.merchant_id && Array.isArray(old.items) && old.items.length > 0) {
+        const cart: Cart = {
+          merchant_id: old.merchant_id,
+          merchant_slug: old.merchant_slug ?? null,
+          merchant_name: old.merchant_name ?? null,
+          merchant_logo: null,
+          items: old.items,
+          updated_at: old.updated_at ?? new Date().toISOString(),
+        };
+        return {
+          active_merchant_id: old.merchant_id,
+          by_merchant: { [old.merchant_id]: cart },
+        };
+      }
+    }
+    return EMPTY_STORE;
+  } catch {
+    return EMPTY_STORE;
+  }
+}
+
+function writeStore(store: Store): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  broadcast(store);
+}
+
+function activeCart(store: Store): Cart {
+  const id = store.active_merchant_id;
+  if (!id) return EMPTY_CART;
+  return store.by_merchant[id] ?? EMPTY_CART;
+}
+
+// =============================================================================
+// API publique — lecture
+// =============================================================================
+
+/** Lit le panier actif (compat avec l'API d'origine). */
+export function readCart(): Cart {
+  return activeCart(readStore());
+}
+
+/** Renvoie tous les paniers stockés (actif + autres). */
+export function readAllCarts(): Cart[] {
+  return Object.values(readStore().by_merchant);
+}
+
+// =============================================================================
+// API publique — mutation
+// =============================================================================
+
+/**
+ * Ajoute / incrémente un produit dans le panier du commerce donné, et
+ * BASCULE l'actif sur ce commerce. Ne bloque JAMAIS si le client avait déjà
+ * un panier chez un autre commerçant (cf. prompt 16).
  */
 export function addItem(
-  merchant: { id: string; slug: string; name: string },
+  merchant: {
+    id: string;
+    slug: string;
+    name: string;
+    logo_url?: string | null;
+  },
   item: Omit<CartItem, "quantity"> & { quantity?: number }
-): { ok: boolean; mismatch?: boolean } {
-  const current = readCart();
-  if (
-    current.merchant_id &&
-    current.items.length > 0 &&
-    current.merchant_id !== merchant.id
-  ) {
-    return { ok: false, mismatch: true };
-  }
+): { ok: true } {
+  const store = readStore();
   const qty = Math.max(1, Math.floor(item.quantity ?? 1));
+  const current: Cart = store.by_merchant[merchant.id] ?? {
+    merchant_id: merchant.id,
+    merchant_slug: merchant.slug,
+    merchant_name: merchant.name,
+    merchant_logo: merchant.logo_url ?? null,
+    items: [],
+    updated_at: new Date().toISOString(),
+  };
+
   const items = [...current.items];
   const existing = items.findIndex((i) => i.product_id === item.product_id);
   if (existing >= 0) {
@@ -112,46 +186,115 @@ export function addItem(
       category_title: item.category_title ?? null,
     });
   }
-  writeCart({
+
+  const nextCart: Cart = {
     merchant_id: merchant.id,
     merchant_slug: merchant.slug,
     merchant_name: merchant.name,
+    merchant_logo: merchant.logo_url ?? current.merchant_logo ?? null,
     items,
     updated_at: new Date().toISOString(),
-  });
+  };
+
+  const nextStore: Store = {
+    active_merchant_id: merchant.id,
+    by_merchant: { ...store.by_merchant, [merchant.id]: nextCart },
+  };
+  writeStore(nextStore);
   return { ok: true };
 }
 
+/** Modifie la quantité d'un produit dans le panier ACTIF. qty <= 0 supprime. */
 export function setItemQuantity(productId: string, quantity: number): void {
-  const current = readCart();
-  const items = current.items
+  const store = readStore();
+  const id = store.active_merchant_id;
+  if (!id) return;
+  const cart = store.by_merchant[id];
+  if (!cart) return;
+  const items = cart.items
     .map((i) =>
       i.product_id === productId
         ? { ...i, quantity: Math.max(0, Math.floor(quantity)) }
         : i
     )
     .filter((i) => i.quantity > 0);
+
   if (items.length === 0) {
-    clearCart();
+    // Plus aucun item → on retire ce panier du store, et on bascule l'actif
+    // sur un autre panier non vide s'il en reste un.
+    clearMerchantCart(id);
     return;
   }
-  writeCart({ ...current, items });
+  const nextStore: Store = {
+    ...store,
+    by_merchant: {
+      ...store.by_merchant,
+      [id]: { ...cart, items, updated_at: new Date().toISOString() },
+    },
+  };
+  writeStore(nextStore);
 }
 
 export function removeItem(productId: string): void {
   setItemQuantity(productId, 0);
 }
 
-export function useCart(): Cart {
-  const [cart, setCart] = useState<Cart>(EMPTY_CART);
+/** Vide le panier ACTIF (et bascule l'actif sur un autre cart restant, s'il y en a). */
+export function clearCart(): void {
+  const store = readStore();
+  const id = store.active_merchant_id;
+  if (!id) return;
+  clearMerchantCart(id);
+}
+
+/**
+ * Supprime le panier d'un commerce précis. Si c'était l'actif, on en
+ * réactive un autre arbitrairement (le plus récent), sinon `null`.
+ */
+export function clearMerchantCart(merchantId: string): void {
+  const store = readStore();
+  if (!store.by_merchant[merchantId]) return;
+  const next: Record<string, Cart> = {};
+  for (const [k, v] of Object.entries(store.by_merchant)) {
+    if (k !== merchantId) next[k] = v;
+  }
+  let active = store.active_merchant_id;
+  if (active === merchantId) {
+    const others = Object.values(next).sort((a, b) =>
+      b.updated_at.localeCompare(a.updated_at)
+    );
+    active = others[0]?.merchant_id ?? null;
+  }
+  writeStore({ active_merchant_id: active, by_merchant: next });
+}
+
+/** Bascule l'actif sur un commerce donné (sans muter son contenu). */
+export function setActiveMerchant(merchantId: string | null): void {
+  const store = readStore();
+  if (merchantId && !store.by_merchant[merchantId]) return;
+  if (store.active_merchant_id === merchantId) return;
+  writeStore({ ...store, active_merchant_id: merchantId });
+}
+
+/** Vide TOUS les paniers (rarement utilisé — ex: deconnexion ou reset). */
+export function clearAllCarts(): void {
+  writeStore(EMPTY_STORE);
+}
+
+// =============================================================================
+// Hooks React
+// =============================================================================
+
+function useStore(): Store {
+  const [s, setS] = useState<Store>(EMPTY_STORE);
   useEffect(() => {
-    setCart(readCart());
+    setS(readStore());
     const onChange = (e: Event) => {
-      const ce = e as CustomEvent<Cart>;
-      setCart(ce.detail ?? readCart());
+      const ce = e as CustomEvent<Store>;
+      setS(ce.detail ?? readStore());
     };
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setCart(readCart());
+      if (e.key === STORAGE_KEY) setS(readStore());
     };
     window.addEventListener("coligo:cart:change", onChange);
     window.addEventListener("storage", onStorage);
@@ -160,10 +303,43 @@ export function useCart(): Cart {
       window.removeEventListener("storage", onStorage);
     };
   }, []);
-  return cart;
+  return s;
 }
 
-/** Nb total d'unités dans le panier (pour le badge du header). */
+/** Panier ACTIF (compat avec l'API d'origine). */
+export function useCart(): Cart {
+  return activeCart(useStore());
+}
+
+/** Tous les paniers, l'actif inclus (utile pour debug). */
+export function useAllCarts(): Cart[] {
+  return Object.values(useStore().by_merchant);
+}
+
+/**
+ * Paniers des AUTRES commerces (utilisé par le bandeau de conflit au checkout
+ * — prompt 16). Vide quand il n'y a pas de conflit.
+ */
+export function useOtherCarts(): Cart[] {
+  const store = useStore();
+  const active = store.active_merchant_id;
+  return Object.values(store.by_merchant).filter(
+    (c) => c.merchant_id !== active && c.items.length > 0
+  );
+}
+
+/** Panier d'un commerce précis (ex: fiche /m/[slug] qui n'est pas l'actif). */
+export function useCartFor(merchantId: string | null | undefined): Cart {
+  const store = useStore();
+  if (!merchantId) return EMPTY_CART;
+  return store.by_merchant[merchantId] ?? EMPTY_CART;
+}
+
+// =============================================================================
+// Utilitaires PURS
+// =============================================================================
+
+/** Nb total d'unités dans un panier (pour le badge du header). */
 export function totalUnits(cart: Cart): number {
   return cart.items.reduce((s, i) => s + i.quantity, 0);
 }

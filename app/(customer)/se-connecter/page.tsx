@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,10 +19,30 @@ import {
 const initialState: CustomerAuthState = {};
 
 export default function CustomerLoginPage() {
+  // Suspense requise par Next 15 dès qu'on utilise useSearchParams dans une
+  // page rendue côté serveur statiquement.
+  return (
+    <Suspense fallback={null}>
+      <CustomerLoginInner />
+    </Suspense>
+  );
+}
+
+function CustomerLoginInner() {
   const [state, formAction, pending] = useActionState(
     customerLogin,
     initialState
   );
+  const params = useSearchParams();
+  // `next` = retour souhaité après login (ex. /checkout). Sécurité : on
+  // accepte uniquement des chemins relatifs qui commencent par "/".
+  const rawNext = params.get("next") ?? "";
+  const next =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
+  const signupHref =
+    next === "/"
+      ? "/inscription"
+      : `/inscription?next=${encodeURIComponent(next)}`;
 
   return (
     <>
@@ -62,6 +83,7 @@ export default function CustomerLoginPage() {
                 </p>
 
                 <form action={formAction} className="space-y-4">
+                  <input type="hidden" name="next" value={next} />
                   <div className="space-y-1.5">
                     <Label htmlFor="email">Email</Label>
                     <div className="relative">
@@ -121,7 +143,7 @@ export default function CustomerLoginPage() {
                 <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
                   Pas encore inscrit ?{" "}
                   <Link
-                    href="/inscription"
+                    href={signupHref}
                     className="text-primary-700 font-medium hover:underline"
                   >
                     Créer un compte

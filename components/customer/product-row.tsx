@@ -3,7 +3,12 @@
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatDA } from "@/lib/utils";
-import { addItem, setItemQuantity, useCart } from "@/lib/customer/cart-store";
+import {
+  addItem,
+  setActiveMerchant,
+  setItemQuantity,
+  useCartFor,
+} from "@/lib/customer/cart-store";
 import { toast } from "@/components/ui/toast";
 import { cldUrl } from "@/lib/images/cloudinary";
 import type { PublicProduct } from "@/lib/data/customer-catalog";
@@ -22,12 +27,19 @@ export function ProductRow({
   promoUnitPriceDa,
   onOpenDetail,
 }: {
-  merchant: { id: string; slug: string; name: string };
+  merchant: {
+    id: string;
+    slug: string;
+    name: string;
+    logo_url?: string | null;
+  };
   product: PublicProduct;
   promoUnitPriceDa: number | null;
   onOpenDetail: () => void;
 }) {
-  const cart = useCart();
+  // On regarde le panier DE CE commerce (pas l'actif), pour que le stepper
+  // reflète l'état même si l'actif est un autre commerçant.
+  const cart = useCartFor(merchant.id);
   const inCart = cart.items.find((i) => i.product_id === product.id);
   const hasPromo =
     promoUnitPriceDa != null && promoUnitPriceDa < product.price_da;
@@ -35,30 +47,29 @@ export function ProductRow({
 
   function quickAdd(e: React.MouseEvent) {
     e.stopPropagation();
-    const res = addItem(merchant, {
+    addItem(merchant, {
       product_id: product.id,
       name: product.name_fr,
       unit_price_da: product.price_da,
       image_url: product.image_url,
       category_title: product.category,
     });
-    if (!res.ok && res.mismatch) {
-      toast.error(
-        "Ton panier contient déjà des produits d'un autre commerce. Vide-le pour ajouter celui-ci."
-      );
-      return;
-    }
     toast.success("Ajouté au panier");
   }
 
   function increment(e: React.MouseEvent) {
     e.stopPropagation();
-    if (inCart) setItemQuantity(inCart.product_id, inCart.quantity + 1);
+    if (!inCart) return;
+    // S'assurer que ce commerce est actif avant de muter (sinon setItemQuantity
+    // applique sur le mauvais panier).
+    setActiveMerchant(merchant.id);
+    setItemQuantity(inCart.product_id, inCart.quantity + 1);
   }
 
   function decrement(e: React.MouseEvent) {
     e.stopPropagation();
     if (!inCart) return;
+    setActiveMerchant(merchant.id);
     // setItemQuantity(_, 0) supprime l'article (filtre dans le store).
     setItemQuantity(inCart.product_id, inCart.quantity - 1);
     if (inCart.quantity === 1) {
@@ -130,7 +141,7 @@ export function ProductRow({
               type="button"
               onClick={quickAdd}
               aria-label="Ajouter au panier"
-              className="bg-primary-600 hover:bg-primary-700 absolute -right-2 -bottom-2 flex size-7 items-center justify-center rounded-full border-2 border-white text-white shadow"
+              className="bg-primary-600 hover:bg-primary-700 absolute right-1.5 bottom-1.5 flex size-7 items-center justify-center rounded-full border-2 border-white text-white shadow-md"
             >
               <Plus className="size-4" />
             </button>

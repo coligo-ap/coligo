@@ -15,7 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn, formatDA } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
-import { clearCart, useCart } from "@/lib/customer/cart-store";
+import { clearCart, useCart, useOtherCarts } from "@/lib/customer/cart-store";
+import { CartConflictModal } from "@/components/customer/cart-conflict-modal";
 import { generateTodaySlots, type Slot } from "@/lib/customer/pickup-slots";
 import { normalizeOpeningHours } from "@/lib/merchant/opening-hours";
 import type { OpeningHours } from "@/lib/types";
@@ -33,6 +34,7 @@ type Props = {
 export function CheckoutView({ customer }: Props) {
   const router = useRouter();
   const cart = useCart();
+  const otherCarts = useOtherCarts();
   const [ctx, setCtx] = useState<CheckoutContext | null>(null);
   const [loading, startLoad] = useTransition();
   const [submitting, startSubmit] = useTransition();
@@ -40,6 +42,10 @@ export function CheckoutView({ customer }: Props) {
   const [chosenSlotIdx, setChosenSlotIdx] = useState<number | null>(null);
   const [payment, setPayment] = useState<PaymentMethod>("cash");
   const [note, setNote] = useState("");
+  // Le client peut fermer la modale s'il veut consulter le récap d'abord ;
+  // mais elle se réaffiche automatiquement tant qu'un autre panier existe.
+  const [conflictDismissed, setConflictDismissed] = useState(false);
+  const showConflict = otherCarts.length > 0 && !conflictDismissed;
 
   // Charge le contexte serveur (merchant + recalcul prix) dès qu'on a un cart.
   useEffect(() => {
@@ -158,6 +164,14 @@ export function CheckoutView({ customer }: Props) {
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-4 pb-32 lg:px-6 lg:py-8 lg:pb-12">
+      {showConflict && (
+        <CartConflictModal
+          current={cart}
+          others={otherCarts}
+          onResolved={() => setConflictDismissed(true)}
+        />
+      )}
+
       <header className="mb-5">
         <h1 className="text-foreground text-2xl font-bold lg:text-3xl">
           Finaliser ma commande

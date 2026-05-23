@@ -22,6 +22,17 @@ export type CustomerAuthState = {
 };
 
 /**
+ * Whitelist : un `next` valide doit être une URL RELATIVE à l'app commençant
+ * par `/` (jamais `//`, jamais `http://...`) pour éviter l'open-redirect.
+ */
+function safeNextPath(raw: unknown): string {
+  if (typeof raw !== "string" || raw.length === 0) return "/";
+  if (!raw.startsWith("/")) return "/";
+  if (raw.startsWith("//")) return "/";
+  return raw;
+}
+
+/**
  * Connexion CLIENT — email + mot de passe.
  * Si le compte appartient à un commerçant (rangée dans `merchants`), on le
  * renvoie vers son espace pro pour éviter la confusion.
@@ -65,8 +76,11 @@ export async function customerLogin(
     }
   }
 
+  // Retour vers `next` si fourni (panier intact survit naturellement via le
+  // localStorage côté navigateur — voir prompt 16).
+  const next = safeNextPath(formData.get("next"));
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect(next);
 }
 
 /**
@@ -130,10 +144,12 @@ export async function customerSignup(
     return { error: `Création du profil client : ${insErr.message}` };
   }
 
-  // Si Supabase a déjà créé une session (confirm email OFF), on redirige.
+  // Si Supabase a déjà créé une session (confirm email OFF), on redirige
+  // vers `next` (panier intact côté navigateur — prompt 16).
   if (data.session) {
+    const next = safeNextPath(formData.get("next"));
     revalidatePath("/", "layout");
-    redirect("/");
+    redirect(next);
   }
 
   return {

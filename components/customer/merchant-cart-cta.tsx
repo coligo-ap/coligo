@@ -2,16 +2,23 @@
 
 import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
-import { rawSubtotal, totalUnits, useCart } from "@/lib/customer/cart-store";
+import {
+  rawSubtotal,
+  setActiveMerchant,
+  totalUnits,
+  useCartFor,
+} from "@/lib/customer/cart-store";
 import { formatDA } from "@/lib/utils";
 
 /**
- * Barre sticky en bas de la fiche commerçant : si le panier contient des
- * produits DE CE commerce, propose d'aller au panier / checkout.
+ * Barre sticky en bas de la fiche commerçant : si le panier DE CE COMMERCE
+ * contient des produits, propose d'aller au panier / checkout. On utilise
+ * `useCartFor(merchantId)` pour reconnaître le panier du commerçant courant,
+ * indépendamment du panier "actif" (qui peut être un autre commerçant —
+ * prompt 16).
  */
 export function MerchantCartCta({ merchantId }: { merchantId: string }) {
-  const cart = useCart();
-  if (cart.merchant_id !== merchantId) return null;
+  const cart = useCartFor(merchantId);
   const count = totalUnits(cart);
   if (count === 0) return null;
   const subtotal = rawSubtotal(cart);
@@ -21,6 +28,7 @@ export function MerchantCartCta({ merchantId }: { merchantId: string }) {
       <div className="pointer-events-auto mx-auto max-w-md">
         <Link
           href="/cart"
+          onClick={() => setActiveMerchant(merchantId)}
           className="bg-primary-600 hover:bg-primary-700 flex items-center justify-between gap-3 rounded-[14px] px-4 py-3 text-white shadow-lg"
         >
           <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-2.5 py-1 text-sm font-semibold">

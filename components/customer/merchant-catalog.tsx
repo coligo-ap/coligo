@@ -12,7 +12,12 @@ import type {
 } from "@/lib/data/customer-catalog";
 
 type Props = {
-  merchant: { id: string; slug: string; name: string };
+  merchant: {
+    id: string;
+    slug: string;
+    name: string;
+    logo_url?: string | null;
+  };
   products: PublicProduct[];
   categories: PublicCategory[];
   /** Map productId → prix unitaire après meilleure promo produit, le cas échéant. */

@@ -9,7 +9,12 @@ import { toast } from "@/components/ui/toast";
 import type { PublicProduct } from "@/lib/data/customer-catalog";
 
 type Props = {
-  merchant: { id: string; slug: string; name: string };
+  merchant: {
+    id: string;
+    slug: string;
+    name: string;
+    logo_url?: string | null;
+  };
   product: PublicProduct | null;
   promoUnitPriceDa: number | null;
   onClose: () => void;
@@ -61,7 +66,9 @@ export function ProductDetailSheet({
       toast.success(`Quantité mise à ${qty}`);
     } else {
       // addItem ajoute par incrément ; on injecte la quantité voulue d'un coup.
-      const res = addItem(merchant, {
+      // Plus de blocage en cas de "panier d'un autre commerce" — c'est géré
+      // bienveillamment au checkout (prompt 16).
+      addItem(merchant, {
         product_id: product!.id,
         name: product!.name_fr,
         unit_price_da: product!.price_da,
@@ -69,12 +76,6 @@ export function ProductDetailSheet({
         category_title: product!.category,
         quantity: qty,
       });
-      if (!res.ok && res.mismatch) {
-        toast.error(
-          "Ton panier contient déjà des produits d'un autre commerce. Vide-le pour ajouter celui-ci."
-        );
-        return;
-      }
       toast.success(`Ajouté au panier (${qty})`);
     }
     onClose();

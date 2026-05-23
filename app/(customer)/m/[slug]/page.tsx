@@ -104,7 +104,12 @@ export default async function MerchantPublicPage({
         <div className="mt-8 pb-32 lg:pb-12">
           <h2 className="text-foreground mb-3 text-xl font-bold">Le menu</h2>
           <MerchantCatalog
-            merchant={{ id: m.id, slug: m.slug, name: m.name }}
+            merchant={{
+              id: m.id,
+              slug: m.slug,
+              name: m.name,
+              logo_url: m.logo_url,
+            }}
             products={catalog.products}
             categories={catalog.categories}
             promoPriceById={promoPriceById}

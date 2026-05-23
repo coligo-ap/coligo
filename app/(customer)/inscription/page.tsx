@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, Lock, Mail, Phone, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,10 +19,27 @@ import {
 const initialState: CustomerAuthState = {};
 
 export default function CustomerSignupPage() {
+  // Suspense requise par Next 15 dès qu'on utilise useSearchParams.
+  return (
+    <Suspense fallback={null}>
+      <CustomerSignupInner />
+    </Suspense>
+  );
+}
+
+function CustomerSignupInner() {
   const [state, formAction, pending] = useActionState(
     customerSignup,
     initialState
   );
+  const params = useSearchParams();
+  const rawNext = params.get("next") ?? "";
+  const next =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
+  const loginHref =
+    next === "/"
+      ? "/se-connecter"
+      : `/se-connecter?next=${encodeURIComponent(next)}`;
 
   return (
     <>
@@ -66,6 +84,7 @@ export default function CustomerSignupPage() {
                 </p>
 
                 <form action={formAction} className="space-y-4">
+                  <input type="hidden" name="next" value={next} />
                   <Field
                     id="full_name"
                     label="Nom complet"
@@ -157,7 +176,7 @@ export default function CustomerSignupPage() {
                 <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
                   Déjà inscrit ?{" "}
                   <Link
-                    href="/se-connecter"
+                    href={loginHref}
                     className="text-primary-700 font-medium hover:underline"
                   >
                     Se connecter
