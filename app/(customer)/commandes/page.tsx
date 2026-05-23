@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { ORDER_STATUS_META, type OrderStatus } from "@/lib/types";
 import { formatDA } from "@/lib/utils";
+import { cldUrl } from "@/lib/images/cloudinary";
 
 export const dynamic = "force-dynamic";
 
@@ -95,8 +96,17 @@ export default async function CustomerOrdersListPage() {
                     {merchant?.logo_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={merchant.logo_url}
+                        src={
+                          cldUrl(merchant.logo_url, {
+                            width: 96,
+                            height: 96,
+                            crop: "fill",
+                            gravity: "auto",
+                          }) ?? merchant.logo_url
+                        }
                         alt=""
+                        loading="lazy"
+                        decoding="async"
                         className="border-border size-12 shrink-0 rounded-full border bg-white object-cover"
                       />
                     ) : (

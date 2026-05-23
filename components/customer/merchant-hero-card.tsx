@@ -17,15 +17,25 @@ import { DAY_KEYS, DAY_LABELS, type OpeningHours } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
+import { getCategoryLabel } from "@/lib/config/categories";
 
 /**
  * Carte de présentation COMPACTE du commerçant, sur la fiche /m/[slug].
- * - Logo overlap la cover (par-dessus)
- * - Toutes les infos (adresse, téléphone, minimum) DANS la carte
- * - Horaires en accordéon FERMÉ par défaut (ne pousse pas le catalogue)
- * - Description tronquée à 2 lignes, "Voir plus" si plus longue
  *
- * Objectif : libérer l'écran pour voir le catalogue le plus vite possible.
+ * Composition (corrigée — plus de chevauchement titre/logo) :
+ *   ┌─────────────────────────────────────┐
+ *   │  COVER (photo, overlay décoratif)   │  ← juste un dégradé doux,
+ *   │                                     │    PAS de texte (évite que la
+ *   │                                     │    carte qui chevauche le masque)
+ *   └─────────────────────────────────────┘
+ *      ┌──────────────────────────────────┐
+ *      │  [logo]  Titre du commerce       │  ← carte qui chevauche -mt-10
+ *      │          Catégorie · 🟢 Ouvert   │
+ *      │  ──────────────────────────────  │
+ *      │  Description (2 lignes max)      │
+ *      │  📍 adresse · 📞 tél · min · prep │
+ *      │  ▼ Voir les horaires             │
+ *      └──────────────────────────────────┘
  */
 export function MerchantHeroCard({
   name,
@@ -69,10 +79,13 @@ export function MerchantHeroCard({
     crop: "fill",
     gravity: "auto",
   });
+  // Si `category` est un CODE (boulangerie, superette, …), on l'humanise.
+  const categoryLabel = category ? getCategoryLabel(category) : null;
 
   return (
     <div>
-      {/* Cover hero — overlay dégradé sombre en bas pour lisibilité du nom. */}
+      {/* Cover hero — overlay décoratif léger pour la profondeur visuelle.
+          PAS de texte ici : la carte info qui chevauche masquerait le bas. */}
       <ImageWithOverlay
         src={heroSrc}
         alt={`Photo du commerce ${name}`}
@@ -85,16 +98,14 @@ export function MerchantHeroCard({
             {name.charAt(0)}
           </span>
         }
-      >
-        <h1 className="text-2xl leading-tight font-bold drop-shadow-sm lg:text-3xl">
-          {name}
-        </h1>
-        {category && <p className="mt-0.5 text-sm text-white/85">{category}</p>}
-      </ImageWithOverlay>
+      />
 
-      {/* Carte info */}
+      {/* Carte info — chevauche légèrement le bas du hero (-mt-10).
+          Padding gauche augmenté à `pl-28` pour réserver la place du logo
+          qui remonte (size-20 + marge), évitant tout chevauchement texte. */}
       <div className="bg-surface border-border relative mx-3 -mt-10 rounded-[20px] border p-4 shadow-sm lg:mx-10 lg:p-5">
-        <div className="flex flex-wrap items-start gap-4">
+        {/* Logo flottant, positionné absolument pour libérer le flux du texte. */}
+        <div className="absolute -top-12 left-4 lg:-top-16 lg:left-5">
           {logoOptimized ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -102,20 +113,28 @@ export function MerchantHeroCard({
               alt=""
               loading="eager"
               decoding="async"
-              className="-mt-16 size-20 shrink-0 rounded-full border-4 border-white bg-white object-cover shadow-md lg:-mt-20 lg:size-24"
+              className="size-20 rounded-full border-4 border-white bg-white object-cover shadow-md lg:size-24"
             />
           ) : (
-            <div className="bg-primary-100 text-primary-700 -mt-16 flex size-20 shrink-0 items-center justify-center rounded-full border-4 border-white text-2xl font-bold shadow-md lg:-mt-20 lg:size-24">
+            <div className="bg-primary-100 text-primary-700 flex size-20 items-center justify-center rounded-full border-4 border-white text-2xl font-bold shadow-md lg:size-24">
               {name.charAt(0)}
             </div>
           )}
+        </div>
 
-          <div className="min-w-0 flex-1 pt-2">
-            {/* Le nom + la catégorie sont déjà sur l'overlay du hero — on
-                évite la duplication, on ne remet ici que le badge ouvert/fermé. */}
+        {/* En-tête : titre + catégorie + badge ouvert. Padding-left pour ne
+            jamais passer sous le logo (qui fait 80–96px de large + marge). */}
+        <header className="min-h-[3rem] pl-[5.5rem] lg:min-h-[3.5rem] lg:pl-[6.5rem]">
+          <h1 className="text-foreground line-clamp-2 text-xl leading-tight font-bold lg:text-2xl">
+            {name}
+          </h1>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+            {categoryLabel && (
+              <span className="text-muted text-sm">{categoryLabel}</span>
+            )}
             <OpenStatusBadge hours={opening_hours} />
           </div>
-        </div>
+        </header>
 
         {hasDescription && (
           <div className="mt-3">
