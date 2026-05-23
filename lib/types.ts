@@ -82,6 +82,75 @@ export type Merchant = {
   created_at: string;
 };
 
+// ===========================================================================
+// Horaires d'ouverture
+// ===========================================================================
+export type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+
+export const DAY_KEYS: DayKey[] = [
+  "mon",
+  "tue",
+  "wed",
+  "thu",
+  "fri",
+  "sat",
+  "sun",
+];
+
+export const DAY_LABELS: Record<DayKey, { short: string; long: string }> = {
+  mon: { short: "Lun", long: "Lundi" },
+  tue: { short: "Mar", long: "Mardi" },
+  wed: { short: "Mer", long: "Mercredi" },
+  thu: { short: "Jeu", long: "Jeudi" },
+  fri: { short: "Ven", long: "Vendredi" },
+  sat: { short: "Sam", long: "Samedi" },
+  sun: { short: "Dim", long: "Dimanche" },
+};
+
+/** Un créneau (ex: 08:00 → 12:00). open et close au format "HH:MM". */
+export type OpeningSlot = { open: string; close: string };
+
+/** Horaires complets : pour chaque jour, 0..N créneaux. Vide = fermé. */
+export type OpeningHours = Record<DayKey, OpeningSlot[]>;
+
+export const EMPTY_OPENING_HOURS: OpeningHours = {
+  mon: [],
+  tue: [],
+  wed: [],
+  thu: [],
+  fri: [],
+  sat: [],
+  sun: [],
+};
+
+/** Paramètres complets (vitrine + règles + créneaux) du commerçant. */
+export type MerchantSettings = {
+  id: string;
+  name: string;
+  slug: string;
+  category: string | null;
+  city: string | null;
+  wilaya_code: string | null;
+  commune: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  description_fr: string | null;
+  description_ar: string | null;
+  logo_url: string | null;
+  cover_url: string | null;
+  phone_public: string | null;
+  opening_hours: OpeningHours;
+  min_order_da: number;
+  prep_time_min: number;
+  accepts_cash: boolean;
+  accepts_online: boolean;
+  pickup_slot_minutes: number;
+  max_orders_per_slot: number | null;
+  commission_rate: number;
+  is_active: boolean;
+};
+
 export type Order = {
   id: string;
   merchant_id: string;
