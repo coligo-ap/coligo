@@ -1,26 +1,25 @@
 /**
  * Impression de tickets.
  *
- * Aujourd'hui : on monte le ticket DANS le document principal puis on appelle
- * `window.print()`. Une feuille de style `@media print` injectée en même
- * temps masque TOUT le reste de la page (`body > *:not(#mount)`) et impose le
- * `@page { size: <width>mm auto; margin: 0 }`. Ainsi seul le ticket sort à
- * l'impression — pas de « capture d'écran » de l'app en page 1.
+ * Approche : on monte le ticket DANS le document principal puis on appelle
+ * `window.print()`. Une feuille `@media print` injectée en même temps
+ *   1) masque agressivement TOUT le reste de la page (`body > *` → none, sauf
+ *      le mount qu'on ré-active par un sélecteur plus spécifique) ;
+ *   2) place le mount au seul emplacement visible avec `position: absolute;
+ *      inset: 0` pour garantir qu'il occupe la feuille ;
+ *   3) impose `@page { size: <width>mm auto; margin: 0 }` pour la thermique.
  *
  * Pourquoi pas un iframe : Chrome remonte parfois `print()` au document
- * parent, ce qui imprime l'app derrière le ticket. La technique « hide
- * everything except the mount » est la seule fiable cross-browser.
+ * parent → l'app entière s'imprime derrière le ticket. La technique
+ * « masquer tout sauf le mount » est la seule fiable cross-browser.
  *
  * APK Sunmi/Imin : on branchera le SDK natif dans `printer.native.ts` et on
  * exposera via une bascule dans `index.ts`. Le code appelant ne change pas.
  */
 
 export type PrintOptions = {
-  /** HTML complet du ticket (peut inclure ses propres <style>). */
   html: string;
-  /** Largeur papier en mm (58 ou 80). */
   widthMm?: number;
-  /** Titre éphémère (ré-affiché brièvement dans le dialogue système). */
   title?: string;
 };
 
@@ -42,24 +41,27 @@ export async function printTicket({
   mount.id = MOUNT_ID;
   mount.setAttribute("aria-hidden", "true");
   mount.innerHTML = html;
-  // Hors impression : on cache visuellement le ticket sans `display:none`
-  // (certains navigateurs n'impriment pas les noeuds entièrement « none »
-  // au moment de basculer en print preview).
-  mount.style.position = "fixed";
-  mount.style.left = "-99999px";
-  mount.style.top = "0";
-  mount.style.width = `${widthMm}mm`;
-  mount.style.pointerEvents = "none";
-  mount.style.opacity = "0";
+  // Hors impression : caché visuellement, hors flux. On garde `display:block`
+  // pour que les styles internes du ticket s'appliquent quand même (sinon
+  // certains navigateurs ne calculent pas le layout du subtree au moment du
+  // basculement vers @media print).
+  mount.style.cssText = [
+    "position: fixed",
+    "left: -99999px",
+    "top: 0",
+    `width: ${widthMm}mm`,
+    "pointer-events: none",
+    "opacity: 0",
+    "z-index: -1",
+  ].join(";");
 
   const style = document.createElement("style");
   style.id = STYLE_ID;
+  // Sélecteurs simples et explicites. `body > #mount` est délibérément plus
+  // spécifique que `body > *` pour passer outre le hide global.
   style.textContent = `
+@page { size: ${widthMm}mm auto; margin: 0; }
 @media print {
-  @page { size: ${widthMm}mm auto; margin: 0; }
-  /* On force le ticket à occuper toute la feuille et on cache TOUT le reste.
-     Reset overflow/height : si l'app a overflow:hidden sur body (drawer
-     mobile ouvert, modal, etc.) le contenu serait clippé a l'impression. */
   html, body {
     margin: 0 !important;
     padding: 0 !important;
@@ -68,25 +70,38 @@ export async function printTicket({
     height: auto !important;
     min-height: 0 !important;
   }
-  body > *:not(#${MOUNT_ID}) {
+  /* On masque TOUT au niveau body sans exception... */
+  body > * {
     display: none !important;
     visibility: hidden !important;
   }
-  body > #${MOUNT_ID} {
-    position: static !important;
-    left: auto !important;
-    top: auto !important;
+  /* ...puis on ré-affiche uniquement le mount, en surchargeant le hide via
+     un sélecteur plus spécifique (#id battra *). */
+  body > div#${MOUNT_ID} {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute !important;
+    inset: 0 !important;
+    left: 0 !important;
+    top: 0 !important;
+    right: auto !important;
+    bottom: auto !important;
     width: ${widthMm}mm !important;
     margin: 0 !important;
     padding: 4mm !important;
     opacity: 1 !important;
-    visibility: visible !important;
+    z-index: 2147483647 !important;
     color: #000 !important;
     background: #fff !important;
     font-size: ${widthMm === 80 ? 13 : 11}px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
     box-sizing: border-box;
+    transform: none !important;
+    filter: none !important;
+    clip-path: none !important;
   }
-  body > #${MOUNT_ID} * {
+  body > div#${MOUNT_ID} * {
+    visibility: visible !important;
     color: #000 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -94,7 +109,7 @@ export async function printTicket({
 }
 `;
 
-  // Titre du dialogue (Chrome l'affiche dans la barre d'aperçu PDF).
+  // Titre dans l'aperçu PDF (Chrome l'affiche dans la barre supérieure).
   const previousTitle = document.title;
   document.title = title;
 
@@ -110,22 +125,34 @@ export async function printTicket({
       style.remove();
       document.title = previousTitle;
       window.removeEventListener("afterprint", cleanup);
+      mediaQuery?.removeEventListener?.("change", onMediaChange);
       resolve();
     };
+
+    // `afterprint` est l'API officielle (déclenchée après impression OU
+    // annulation), mais peu fiable sur Chrome dans certains cas.
     window.addEventListener("afterprint", cleanup, { once: true });
-    // Garde-fou : si `afterprint` ne se déclenche pas (Chrome connu pour
-    // l'oublier quand l'utilisateur ferme l'aperçu sans imprimer), on
-    // nettoie au bout d'un délai raisonnable.
+
+    // Garde-fou via matchMedia : Chrome bascule `print` → `screen` quand le
+    // dialogue se ferme. C'est plus fiable que `afterprint`.
+    const mediaQuery = window.matchMedia?.("print");
+    const onMediaChange = (e: MediaQueryListEvent) => {
+      if (!e.matches) cleanup();
+    };
+    mediaQuery?.addEventListener?.("change", onMediaChange);
+
+    // Garde-fou ultime : timeout long.
     window.setTimeout(cleanup, 60_000);
 
-    // Laisse un tick au navigateur pour appliquer la feuille `@media print`
-    // (sinon Chrome calcule l'aperçu sur l'ancienne mise en page).
+    // Laisse 2 frames au navigateur pour appliquer la feuille @media print.
     window.requestAnimationFrame(() => {
-      try {
-        window.print();
-      } catch {
-        cleanup();
-      }
+      window.requestAnimationFrame(() => {
+        try {
+          window.print();
+        } catch {
+          cleanup();
+        }
+      });
     });
   });
 }
