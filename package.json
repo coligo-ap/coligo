@@ -14,6 +14,7 @@
     "db:push": "node scripts/db-push.mjs",
     "db:status": "node scripts/db-status.mjs",
     "db:seed": "node scripts/db-seed.mjs",
+    "db:seed:demo": "node scripts/db-seed-demo.mjs",
     "db:new": "supabase migration new",
     "prepare": "husky"
   },
