@@ -281,7 +281,12 @@ export type PromotionWithProducts = Promotion & {
 // ===========================================================================
 // Wallet commerçant (finances)
 // ===========================================================================
-export type WalletEntryType = "sale" | "commission" | "payout" | "adjustment";
+export type WalletEntryType =
+  | "sale"
+  | "commission"
+  | "service_fee"
+  | "payout"
+  | "adjustment";
 
 export type PayoutStatus = "pending" | "approved" | "paid" | "rejected";
 
@@ -291,6 +296,9 @@ export const WALLET_ENTRY_META: Record<
 > = {
   sale: { label: "Vente", tone: "success" },
   commission: { label: "Commission Coligo", tone: "danger" },
+  // Cash : le commerçant a encaissé les frais de service pour la plateforme,
+  // il les lui doit. C'est une dette, donc tone "danger".
+  service_fee: { label: "Frais de service à reverser", tone: "danger" },
   payout: { label: "Versement", tone: "primary" },
   adjustment: { label: "Ajustement", tone: "neutral" },
 };

@@ -20,6 +20,12 @@ export type WalletSummary = {
   balance: number;
   totalSales: number;
   totalCommission: number;
+  /**
+   * Frais de service encaissés en cash pour la plateforme : montant positif que
+   * le commerçant doit reverser. Stocké comme valeur négative dans le ledger,
+   * exposé en positif ici pour l'affichage.
+   */
+  totalServiceFeesOwed: number;
   totalPaidOut: number;
 };
 
@@ -33,6 +39,7 @@ export async function getWalletSummary(): Promise<WalletSummary> {
     balance: 0,
     totalSales: 0,
     totalCommission: 0,
+    totalServiceFeesOwed: 0,
     totalPaidOut: 0,
   };
   for (const e of data ?? []) {
@@ -40,6 +47,7 @@ export async function getWalletSummary(): Promise<WalletSummary> {
     const t = e.type as WalletEntryType;
     if (t === "sale") out.totalSales += e.amount_da;
     else if (t === "commission") out.totalCommission += e.amount_da;
+    else if (t === "service_fee") out.totalServiceFeesOwed += -e.amount_da;
     else if (t === "payout") out.totalPaidOut += e.amount_da;
   }
   return out;

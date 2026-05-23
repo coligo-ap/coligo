@@ -647,13 +647,19 @@ export type Database = {
       promotion_type: "product_discount" | "promo_code" | "quantity_offer";
       promotion_status: "scheduled" | "active" | "expired" | "disabled";
       discount_kind: "percent" | "amount";
-      wallet_entry_type: "sale" | "commission" | "payout" | "adjustment";
+      wallet_entry_type:
+        | "sale"
+        | "commission"
+        | "service_fee"
+        | "payout"
+        | "adjustment";
       payout_status: "pending" | "approved" | "paid" | "rejected";
       payment_method: "cash" | "online";
       payment_status: "pending" | "paid" | "failed" | "refunded";
       cashback_status: "pending" | "granted";
       platform_ledger_type:
         | "commission_income"
+        | "service_fee_income"
         | "chargily_fee"
         | "cashback_expense";
       auto_print_mode: "off" | "on_receive" | "on_accept";

@@ -39,6 +39,7 @@ export default async function FinancesPage({
     reserved,
     totalSales: walletSummary.totalSales,
     totalCommission: walletSummary.totalCommission,
+    totalServiceFeesOwed: walletSummary.totalServiceFeesOwed,
     totalPaidOut: walletSummary.totalPaidOut,
   };
 
@@ -63,5 +64,6 @@ export type FinancesSummary = {
   reserved: number;
   totalSales: number;
   totalCommission: number;
+  totalServiceFeesOwed: number;
   totalPaidOut: number;
 };
