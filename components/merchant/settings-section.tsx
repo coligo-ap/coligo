@@ -5,7 +5,10 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  icon: React.ComponentType<{ className?: string }>;
+  // ReactNode (pas ComponentType) : un Server Component peut ainsi passer
+  // <Printer className="size-4" /> au lieu de `Printer`. Une fonction Lucide
+  // (forwardRef) ne traverse PAS la frontière server→client dans Next 15.
+  icon: React.ReactNode;
   title: string;
   description?: string;
   /** Résumé à droite (« Auto : OFF · 58mm · 1 copie »). Optionnel. */
@@ -21,7 +24,7 @@ type Props = {
  * chaque section vit dans sa propre carte avec en-tête cliquable.
  */
 export function SettingsSection({
-  icon: Icon,
+  icon,
   title,
   description,
   summary,
@@ -38,8 +41,8 @@ export function SettingsSection({
         aria-expanded={open}
         className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-4 text-left transition-colors lg:px-5"
       >
-        <div className="bg-primary-50 text-primary-700 flex size-9 shrink-0 items-center justify-center rounded-[10px]">
-          <Icon className="size-4" />
+        <div className="bg-primary-50 text-primary-700 flex size-9 shrink-0 items-center justify-center rounded-[10px] [&>svg]:size-4">
+          {icon}
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="text-foreground text-sm font-semibold lg:text-base">

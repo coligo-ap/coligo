@@ -45,7 +45,7 @@ export default async function SettingsPage() {
 
       <div className="space-y-3">
         <SettingsSection
-          icon={Printer}
+          icon={<Printer />}
           title="Impression du ticket"
           description="Auto-acceptation, imprimante thermique et copies."
           defaultOpen
@@ -61,7 +61,7 @@ export default async function SettingsPage() {
             Le motif est en place : chaque section vit dans un accordéon
             indépendant, on en ajoute sans refactor. */}
         <SettingsSection
-          icon={Bell}
+          icon={<Bell />}
           title="Notifications"
           description="Bientôt — sons, push, e-mails."
         >
@@ -73,7 +73,7 @@ export default async function SettingsPage() {
         </SettingsSection>
 
         <SettingsSection
-          icon={User}
+          icon={<User />}
           title="Compte"
           description="Bientôt — profil et sécurité."
         >

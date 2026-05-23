@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +55,19 @@ export function PlatformSettingsForm({
       action={formAction}
       className="border-border bg-surface space-y-4 rounded-[16px] border p-5"
     >
+      <div
+        role="note"
+        className="border-warning-100 bg-warning-50 text-warning-700 flex items-start gap-2.5 rounded-[12px] border px-4 py-3 text-xs"
+      >
+        <AlertTriangle className="text-warning-600 mt-0.5 size-4 shrink-0" />
+        <p>
+          Les nouveaux taux s&apos;appliquent <strong>uniquement</strong> aux
+          commandes complétées à partir de leur enregistrement. Les commandes
+          passées conservent les taux qui étaient en vigueur au moment de leur
+          complétion (snapshot figé).
+        </p>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         {RATE_FIELDS.map((f) => (
           <div key={f.name} className="space-y-1.5">

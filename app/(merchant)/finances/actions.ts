@@ -12,7 +12,10 @@ export type PayoutFormState = {
   ok?: boolean;
 };
 
-async function getCurrentMerchantId(): Promise<string | null> {
+async function getCurrentMerchant(): Promise<{
+  id: string;
+  is_frozen: boolean;
+} | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,11 +24,11 @@ async function getCurrentMerchantId(): Promise<string | null> {
 
   const { data: merchant } = await supabase
     .from("merchants")
-    .select("id")
+    .select("id, is_frozen")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  return merchant?.id ?? null;
+  return merchant ?? null;
 }
 
 /**
@@ -46,8 +49,14 @@ export async function requestPayout(
     return { error: parsed.error.issues[0]?.message ?? "Données invalides" };
   }
 
-  const merchantId = await getCurrentMerchantId();
-  if (!merchantId) return { error: "Session expirée, reconnectez-vous." };
+  const merchant = await getCurrentMerchant();
+  if (!merchant) return { error: "Session expirée, reconnectez-vous." };
+  if (merchant.is_frozen) {
+    return {
+      error:
+        "Votre compte est gelé. Contactez le support pour régulariser votre situation.",
+    };
+  }
 
   const supabase = await createClient();
 
@@ -56,6 +65,13 @@ export async function requestPayout(
     supabase.from("wallet_entries").select("amount_da"),
     supabase.from("payout_requests").select("amount_da, status"),
   ]);
+
+  const balance = (entries ?? []).reduce((s, e) => s + e.amount_da, 0);
+  if (balance < 0) {
+    return {
+      error: `Vous devez d'abord régler vos commissions (${formatDA(-balance)}).`,
+    };
+  }
 
   const available = availableBalance(
     entries ?? [],
@@ -72,7 +88,7 @@ export async function requestPayout(
   }
 
   const { error } = await supabase.from("payout_requests").insert({
-    merchant_id: merchantId,
+    merchant_id: merchant.id,
     amount_da: parsed.data.amount_da,
     method: parsed.data.method,
     details: parsed.data.details,
