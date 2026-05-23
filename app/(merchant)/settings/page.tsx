@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
-import { Printer } from "lucide-react";
+import { Bell, Printer, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PrintSettingsForm } from "@/components/merchant/print-settings-form";
+import { SettingsSection } from "@/components/merchant/settings-section";
 import {
+  AUTO_PRINT_LABEL,
   DEFAULT_PRINT_SETTINGS,
   type PrintSettings,
   type PrintWidth,
@@ -34,34 +36,70 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-[1100px] p-4 lg:p-6 lg:px-8">
-      <header className="mb-6">
+      <header className="mb-5">
         <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
           Paramètres
         </h1>
-        <p className="text-muted mt-1 text-sm">
-          Réglages de votre boutique et de votre imprimante.
-        </p>
+        <p className="text-muted mt-1 text-sm">Réglages de votre boutique.</p>
       </header>
 
-      <section className="border-border bg-surface rounded-[16px] border p-5 lg:p-6">
-        <header className="border-border mb-5 flex items-center gap-3 border-b pb-4">
-          <div className="bg-primary-50 text-primary-700 flex size-9 items-center justify-center rounded-[10px]">
-            <Printer className="size-4" />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold">Impression du ticket</h2>
-            <p className="text-muted text-xs">
-              Acceptation automatique des commandes et configuration de
-              l&apos;imprimante thermique.
-            </p>
-          </div>
-        </header>
+      <div className="space-y-3">
+        <SettingsSection
+          icon={Printer}
+          title="Impression du ticket"
+          description="Auto-acceptation, imprimante thermique et copies."
+          defaultOpen
+          summary={<PrintSummary settings={settings} />}
+        >
+          <PrintSettingsForm
+            initial={settings}
+            merchantName={merchant?.name ?? "Coligo"}
+          />
+        </SettingsSection>
 
-        <PrintSettingsForm
-          initial={settings}
-          merchantName={merchant?.name ?? "Coligo"}
-        />
-      </section>
+        {/* Sections suivantes (placeholder) — décommenter quand prêtes.
+            Le motif est en place : chaque section vit dans un accordéon
+            indépendant, on en ajoute sans refactor. */}
+        <SettingsSection
+          icon={Bell}
+          title="Notifications"
+          description="Bientôt — sons, push, e-mails."
+        >
+          <p className="text-muted text-sm">
+            La configuration fine des notifications arrive prochainement. Pour
+            l&apos;instant, gérez le son et les notifs depuis le panneau
+            d&apos;alertes du tableau de bord.
+          </p>
+        </SettingsSection>
+
+        <SettingsSection
+          icon={User}
+          title="Compte"
+          description="Bientôt — profil et sécurité."
+        >
+          <p className="text-muted text-sm">
+            Mise à jour du nom de la boutique, changement de mot de passe, etc.
+            — bientôt disponible ici.
+          </p>
+        </SettingsSection>
+      </div>
     </div>
+  );
+}
+
+/**
+ * Résumé inline (à droite de l'en-tête de section) — un coup d'œil et le
+ * commerçant sait son état d'impression sans déplier.
+ */
+function PrintSummary({ settings }: { settings: PrintSettings }) {
+  const parts: string[] = [
+    settings.auto_accept_orders ? "Auto-accept ON" : "Auto-accept OFF",
+    `Print : ${AUTO_PRINT_LABEL[settings.auto_print]}`,
+    `${settings.print_copies}× · ${settings.print_width} mm`,
+  ];
+  return (
+    <span className="text-muted mr-2 text-xs tabular-nums">
+      {parts.join(" · ")}
+    </span>
   );
 }

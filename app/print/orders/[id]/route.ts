@@ -118,6 +118,13 @@ export async function GET(
   const title = `Ticket de commande - #${shortId}`;
   const backHrefSafe = JSON.stringify(backHref);
 
+  // Détection Sunmi serveur-side via UA → on adapte le message
+  // (« Impression directe… » au lieu de « Retour ») et on relance back()
+  // plus vite : sur un V3 configuré en auto-print, `afterprint` peut être
+  // instantané, voire ne pas fire du tout.
+  const ua = req.headers.get("user-agent") ?? "";
+  const isSunmi = /sunmi/i.test(ua);
+
   const fullHtml = `<!doctype html>
 <html lang="fr">
 <head>
@@ -157,7 +164,9 @@ export async function GET(
 </style>
 </head>
 <body>
-<a class="back-fab" href=${backHrefSafe} aria-label="Retour à la commande">&larr; Retour</a>
+<a class="back-fab" href=${backHrefSafe} aria-label="Retour à la commande">${
+    isSunmi ? "Impression en cours..." : "&larr; Retour"
+  }</a>
 ${copiesHtml.join("\n")}
 <script>
 (function() {
@@ -182,8 +191,10 @@ ${copiesHtml.join("\n")}
     }
   } catch (e) {}
   // Garde-fou : si rien ne déclenche le retour (Safari iOS qui ferme la
-  // share sheet sans afterprint), on rend la main au bout de 60s.
-  setTimeout(back, 60000);
+  // share sheet sans afterprint, Sunmi V3 en auto-print qui n'émet pas
+  // l'event), on rend la main au bout de N secondes — court sur Sunmi
+  // (auto-print = quasi instantané), long ailleurs.
+  setTimeout(back, ${isSunmi ? 3000 : 60000});
   // 2 rAF + setTimeout 50ms pour laisser le DOM + les fonts se poser AVANT
   // que le navigateur ne snapshote la page pour le PDF.
   requestAnimationFrame(function () {

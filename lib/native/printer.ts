@@ -1,20 +1,27 @@
 /**
  * Impression de tickets — robuste desktop + mobile.
  *
- * Stratégie :
+ * Fallback pour les CAS SANS NAVIGATION possible (auto-print depuis le
+ * bridge Realtime, test ticket /settings). Les impressions déclenchées par
+ * un clic utilisateur passent désormais par l'endpoint isolé
+ * `/print/orders/[id]` (cf. PrintOrderButton) — beaucoup plus fiable.
+ *
+ * Stratégie de fallback :
  *  1. On monte le ticket dans le document principal (#__coligo-print-mount).
  *  2. On pose une classe `coligo-printing` sur <body> qui — en mode ÉCRAN ET
- *     en mode PRINT — masque tout sauf le mount. Pourquoi écran aussi : iOS
- *     Safari et certains Android Chrome génèrent leur PDF de partage à
- *     partir d'un SNAPSHOT de l'état écran au moment de `print()`. Sans
- *     bascule visible immédiate, leur snapshot capture l'app ; le `@media
- *     print` arrive trop tard.
+ *     en mode PRINT — masque tout sauf le mount.
  *  3. On appelle `window.print()`, on attend `afterprint` (ou matchMedia
- *     `print` → `screen`), puis on nettoie (mount + style + classe + scroll).
+ *     `print` → `screen`), puis on nettoie.
  *
- * APK Sunmi/Imin : on branchera le SDK natif dans `printer.native.ts` plus
- * tard. Le code appelant ne change pas.
+ * Pont natif (Sunmi V3 / APK Capacitor) :
+ *  - Si `hasNativePrinterBridge()` retourne `true`, on courte-circuite
+ *    `window.print()` et on délègue au SDK natif (impression directe SANS
+ *    dialogue). Le hook `printViaNativeBridge()` reste un stub à brancher
+ *    le jour où on intègre Capacitor + plugin imprimante (voir notes
+ *    inline). Aucun changement côté code appelant.
  */
+
+import { hasNativePrinterBridge } from "./context";
 
 export type PrintOptions = {
   html: string;
@@ -26,12 +33,56 @@ const MOUNT_ID = "__coligo-print-mount";
 const STYLE_ID = "__coligo-print-style";
 const BODY_CLASS = "coligo-printing";
 
+/**
+ * Point d'extension natif. Aujourd'hui : no-op (renvoie `false` → on
+ * retombe sur `window.print()` après).
+ *
+ * BRANCHEMENTS À FAIRE LE JOUR DE L'APK :
+ *
+ * 1. Capacitor + plugin imprimante générique (recommandé pour Sunmi V3) :
+ *    ```
+ *    import { ThermalPrinter } from "@capacitor-community/thermal-printer";
+ *    await ThermalPrinter.printHtml({ html, widthMm });
+ *    return true;
+ *    ```
+ *
+ * 2. SDK Sunmi WebView (sans Capacitor — Sunmi peut injecter `sunmiPrinter`
+ *    dans leur navigateur intégré) :
+ *    ```
+ *    const bridge = (window as any).sunmiPrinter;
+ *    bridge.init();
+ *    bridge.setAlignment(1);
+ *    bridge.printString(textVersion); // ESC/POS
+ *    bridge.lineWrap(3);
+ *    bridge.cutPaper();
+ *    return true;
+ *    ```
+ *    NB : le SDK Sunmi prend du TEXTE/ESC-POS, pas du HTML — il faudra
+ *    écrire un convertisseur `htmlToEscPos(html)` dans `printer.native.ts`.
+ *
+ * Le retour `true` signale au caller qu'on a imprimé en natif ; il NE doit
+ * PAS rejouer `window.print()` derrière.
+ */
+async function printViaNativeBridge(opts: PrintOptions): Promise<boolean> {
+  // Signature préservée pour les implémentations natives (cf. doc ci-dessus).
+  // Stub no-op aujourd'hui — `void opts` signale l'intention au linter.
+  void opts;
+  return false;
+}
+
 export async function printTicket({
   html,
   widthMm = 58,
   title = "Ticket Coligo",
 }: PrintOptions): Promise<void> {
   if (typeof document === "undefined") return;
+
+  // Pont natif (APK / Sunmi WebView) : impression directe, pas de dialogue.
+  if (hasNativePrinterBridge()) {
+    const ok = await printViaNativeBridge({ html, widthMm, title });
+    if (ok) return;
+    // Échec du pont natif → on retombe sur window.print() ci-dessous.
+  }
 
   // Nettoyage défensif : si un précédent print a planté en cours de route.
   document.getElementById(MOUNT_ID)?.remove();
