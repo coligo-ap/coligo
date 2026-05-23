@@ -59,6 +59,9 @@ export async function printTicket({
   style.id = STYLE_ID;
   // Sélecteurs simples et explicites. `body > #mount` est délibérément plus
   // spécifique que `body > *` pour passer outre le hide global.
+  // ⚠️ On NE force PAS `color: #000` sur les descendants : le bandeau noir
+  // (.ticket .banner) a `color: #fff` qu'il faut préserver, sinon texte noir
+  // sur fond noir → bandeau invisible. La couleur par défaut (#000) suffit.
   style.textContent = `
 @page { size: ${widthMm}mm auto; margin: 0; }
 @media print {
@@ -75,8 +78,10 @@ export async function printTicket({
     display: none !important;
     visibility: hidden !important;
   }
-  /* ...puis on ré-affiche uniquement le mount, en surchargeant le hide via
-     un sélecteur plus spécifique (#id battra *). */
+  /* ...puis on ré-affiche uniquement le mount via un sélecteur plus
+     spécifique (#id battra *) avec la même charte que l'iframe d'aperçu :
+     largeur en mm, padding 4mm, sans-serif, font-size 12px (les classes
+     .ticket fixent leurs propres tailles ensuite). */
   body > div#${MOUNT_ID} {
     display: block !important;
     visibility: visible !important;
@@ -93,18 +98,21 @@ export async function printTicket({
     z-index: 2147483647 !important;
     color: #000 !important;
     background: #fff !important;
-    font-size: ${widthMm === 80 ? 13 : 11}px;
+    font-size: 12px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
     box-sizing: border-box;
     transform: none !important;
     filter: none !important;
     clip-path: none !important;
   }
+  /* Réactive la visibilité du sous-arbre (héritée de body > * caché) +
+     force l'encrage exact des blocs noirs (bandeau, encadrés). NE touche
+     pas à la couleur — elle est gérée par les classes du ticket. */
   body > div#${MOUNT_ID} * {
     visibility: visible !important;
-    color: #000 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    box-sizing: border-box;
   }
 }
 `;
