@@ -25,6 +25,7 @@ export type PublicCategory = {
   id: string;
   merchant_id: string;
   title: string;
+  image_url: string | null;
   position: number;
 };
 
@@ -62,7 +63,7 @@ export async function listMerchantProducts(
       .order("position", { ascending: true }),
     supabase
       .from("categories")
-      .select("id, merchant_id, title, position")
+      .select("id, merchant_id, title, image_url, position")
       .eq("merchant_id", merchantId)
       .order("position", { ascending: true }),
   ]);
