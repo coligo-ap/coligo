@@ -107,13 +107,7 @@ export function CategoryStrip({
     <div className="-mx-4 [scrollbar-width:none] overflow-x-auto px-4 lg:mx-0 lg:px-0 [&::-webkit-scrollbar]:hidden">
       <div className="flex min-w-max gap-3 pb-2 lg:min-w-0 lg:flex-wrap">
         {/* Tous les commerces — point d'entrée par défaut, en TÊTE */}
-        <Tile
-          href="/"
-          icon={LayoutGrid}
-          label="Tous"
-          hint="Voir tout"
-          highlight
-        />
+        <Tile href="/" icon={LayoutGrid} label="Tous" highlight />
 
         {/* Prioritaires : Supérettes / Boulangeries / Boucheries */}
         {priorityCards.map((p) => (
@@ -123,11 +117,6 @@ export function CategoryStrip({
             icon={iconFor(p.label)}
             image={p.image}
             label={p.label}
-            hint={
-              p.count > 0
-                ? `${p.count} commerce${p.count > 1 ? "s" : ""}`
-                : "Bientôt"
-            }
             dimmed={p.count === 0}
           />
         ))}
@@ -140,7 +129,6 @@ export function CategoryStrip({
             icon={iconFor(c.name)}
             image={categoryImageFor(c.name)}
             label={c.name}
-            hint={`${c.count} commerce${c.count > 1 ? "s" : ""}`}
           />
         ))}
       </div>
@@ -153,7 +141,6 @@ function Tile({
   icon: Icon,
   image,
   label,
-  hint,
   highlight,
   dimmed,
 }: {
@@ -161,21 +148,19 @@ function Tile({
   icon: LucideIcon;
   image?: string | null;
   label: string;
-  hint: string;
   highlight?: boolean;
   dimmed?: boolean;
 }) {
-  // Image optimisée 96×96 (DPR géré par Cloudinary) — surclassée par une
-  // pastille violet/icône si pas d'image disponible (ex. tuile "Tous").
+  // Image optimisée 80×80 (DPR géré par Cloudinary).
   const optimizedImage = image
-    ? cldUrl(image, { width: 96, height: 96, crop: "fill", gravity: "auto" })
+    ? cldUrl(image, { width: 80, height: 80, crop: "fill", gravity: "auto" })
     : null;
 
   return (
     <Link
       href={href}
       className={cn(
-        "group flex w-20 shrink-0 flex-col items-center gap-1.5 rounded-[14px] border p-2.5 text-center transition-colors lg:w-24",
+        "group flex w-16 shrink-0 flex-col items-center gap-1 rounded-[12px] border p-1.5 text-center transition-colors lg:w-20",
         highlight
           ? "border-primary-200 bg-primary-50 hover:border-primary-400 hover:bg-primary-100"
           : "border-border bg-surface hover:border-primary-300 hover:bg-primary-50",
@@ -184,7 +169,7 @@ function Tile({
     >
       <span
         className={cn(
-          "relative flex size-11 items-center justify-center overflow-hidden rounded-full lg:size-12",
+          "relative flex size-10 items-center justify-center overflow-hidden rounded-full",
           highlight
             ? "bg-primary-600 text-white"
             : "bg-primary-50 text-primary-700 group-hover:bg-primary-100"
@@ -200,17 +185,15 @@ function Tile({
               decoding="async"
               className="absolute inset-0 h-full w-full object-cover"
             />
-            {/* Léger voile pour homogénéité visuelle + lisibilité hover. */}
             <span className="absolute inset-0 bg-black/15 transition-opacity group-hover:bg-black/0" />
           </>
         ) : (
-          <Icon className="size-5" />
+          <Icon className="size-4" />
         )}
       </span>
-      <span className="text-foreground line-clamp-2 text-[11px] leading-tight font-medium">
+      <span className="text-foreground line-clamp-1 text-[10px] leading-tight font-medium">
         {label}
       </span>
-      <span className="text-subtle text-[10px]">{hint}</span>
     </Link>
   );
 }

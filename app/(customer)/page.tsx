@@ -6,15 +6,16 @@ import {
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
 import { LocationBanner } from "@/components/customer/location-banner";
-import { MarketplaceView } from "@/components/customer/marketplace-view";
+import { MarketplaceSearchBar } from "@/components/customer/marketplace-search-bar";
+import { MarketplaceGrid } from "@/components/customer/marketplace-grid";
 import { ImageWithOverlay } from "@/components/ui/image-with-overlay";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomerHomePage() {
   // Côté serveur on n'a pas accès au localStorage → on charge un FALLBACK
-  // « tous les commerces actifs » (limité). Le composant client
-  // `MarketplaceView` filtre/rafraîchit selon la zone + les filtres recherche.
+  // « tous les commerces actifs » (limité). La grille filtre/rafraîchit
+  // selon la zone + les filtres recherche (URL params).
   const [fallback, categories] = await Promise.all([
     listPublicMerchants({ limit: 24 }),
     listMerchantCategories(),
@@ -23,6 +24,13 @@ export default async function CustomerHomePage() {
   return (
     <CustomerShell>
       <div className="mx-auto max-w-[1400px] px-4 py-4 lg:px-6 lg:py-8">
+        {/* Barre de recherche — placée tout en haut (sticky sous le header)
+            pour être immédiatement visible. Communique avec MarketplaceGrid
+            via les URL params (q, category, sort, open_now). */}
+        <Suspense fallback={null}>
+          <MarketplaceSearchBar categories={categories} />
+        </Suspense>
+
         <LocationBanner />
 
         {/* Hero desktop uniquement — photo de qualité + overlay dégradé. */}
@@ -58,10 +66,10 @@ export default async function CustomerHomePage() {
           <CategoryStrip categories={categories} />
         </section>
 
-        {/* Recherche + filtres + liste, en place (plus de page /search). */}
+        {/* Liste de commerces (filtrée serveur via URL params). */}
         <section>
           <Suspense fallback={null}>
-            <MarketplaceView fallback={fallback} categories={categories} />
+            <MarketplaceGrid fallback={fallback} />
           </Suspense>
         </section>
       </div>

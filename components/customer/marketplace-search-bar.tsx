@@ -1,29 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Filter, Loader2, MapPin, Search, X } from "lucide-react";
+import { Filter, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { useCustomerLocation } from "@/lib/customer/location-store";
-import { WILAYAS } from "@/lib/config/wilayas";
 import { getCategoryLabel } from "@/lib/config/categories";
-import { isOpenNow } from "@/lib/merchant/opening-hours";
-import { fetchMerchantsForZone } from "@/app/(customer)/actions";
-import { MerchantCard } from "@/components/customer/merchant-card";
-import type { PublicMerchant } from "@/lib/data/merchants-public";
 
 // =============================================================================
-// MarketplaceView — barre de recherche unique + filtres + liste, en place.
-// =============================================================================
-// Plus de page /search dédiée : la home assume search + filtres + résultats.
-// Les filtres serveur (q, category, sort) sont reflétés dans l'URL (?q=…)
-// pour préserver l'historique navigateur et les URLs partageables.
-// Le filtre `openNow` est appliqué côté client (calcul depuis opening_hours).
+// MarketplaceSearchBar — barre de recherche placée en HAUT de la home,
+// juste sous le LocationBanner. Reste sticky pendant le scroll.
 //
-// La zone (wilaya/commune) est gérée séparément par le LocationBanner — on
-// se contente de la lire et de la passer au refetch.
+// Cousin du composant `MarketplaceGrid` (placé plus bas dans la page) : les
+// deux ne se parlent QUE via les URL params (q, category, sort, open_now).
+// Ce découplage permet de rendre la barre proche du header et la grille à
+// l'endroit logique, sans context React.
 // =============================================================================
 
 type Filters = {
@@ -41,18 +33,13 @@ const EMPTY: Filters = {
 };
 
 type Props = {
-  /** Liste initiale (server-side, "tous les commerces actifs"). */
-  fallback: PublicMerchant[];
-  /** Liste des catégories DB (avec counts) — pour le sélecteur filtre. */
   categories: { name: string; count: number }[];
 };
 
-export function MarketplaceView({ fallback, categories }: Props) {
+export function MarketplaceSearchBar({ categories }: Props) {
   const router = useRouter();
   const params = useSearchParams();
-  const loc = useCustomerLocation();
 
-  // Filtres lus depuis l'URL — recalculés à chaque navigation/back.
   const filters = useMemo<Filters>(
     () => ({
       q: params.get("q") ?? "",
@@ -63,51 +50,12 @@ export function MarketplaceView({ fallback, categories }: Props) {
     [params]
   );
 
-  // Buffer local pour l'input texte — debounce → URL → refetch.
+  // Buffer local pour l'input texte — debounce → URL.
   const [qBuffer, setQBuffer] = useState(filters.q);
-  // Sync si l'URL est changée d'ailleurs (ex. clic sur CategoryStrip).
-  useEffect(() => {
-    setQBuffer(filters.q);
-  }, [filters.q]);
+  useEffect(() => setQBuffer(filters.q), [filters.q]);
 
-  const [items, setItems] = useState<PublicMerchant[]>(fallback);
-  const [emptyZone, setEmptyZone] = useState(false);
-  const [pending, startTransition] = useTransition();
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  // Re-fetch dès que filtres serveur OU zone changent.
-  // (location store renvoie `null` au 1er render → on attend qu'il soit hydraté.)
-  useEffect(() => {
-    if (loc === null) return;
-    startTransition(async () => {
-      const res = await fetchMerchantsForZone({
-        wilaya_code: loc.wilaya_code,
-        commune: loc.commune,
-        q: filters.q || null,
-        category: filters.category || null,
-        sort: filters.sort,
-      });
-      if (res.length === 0 && loc.wilaya_code) {
-        // Aucun commerce dans la zone : on bascule sur fallback (vue large).
-        setItems(fallback);
-        setEmptyZone(true);
-      } else {
-        setItems(res);
-        setEmptyZone(false);
-      }
-    });
-  }, [loc, filters.q, filters.category, filters.sort, fallback]);
-
-  // openNow appliqué CÔTÉ CLIENT (sinon décalages d'horaires serveur/client).
-  const visible = useMemo(() => {
-    if (!filters.openNow) return items;
-    return items.filter((m) => isOpenNow(m.opening_hours));
-  }, [filters.openNow, items]);
-
-  // -----------------------------------------------------------------------
-  // Navigation : on pousse les filtres dans l'URL. router.replace pour ne
-  // pas polluer l'historique avec chaque frappe (q debounce).
-  // -----------------------------------------------------------------------
   function pushFilters(next: Filters, opts: { replace?: boolean } = {}) {
     const usp = new URLSearchParams();
     if (next.q) usp.set("q", next.q);
@@ -120,7 +68,7 @@ export function MarketplaceView({ fallback, categories }: Props) {
     else router.push(url, { scroll: false });
   }
 
-  // Debounce 350ms sur le champ de recherche.
+  // Debounce 350ms sur le champ texte.
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (qBuffer === filters.q) return;
@@ -139,10 +87,6 @@ export function MarketplaceView({ fallback, categories }: Props) {
     pushFilters(EMPTY);
   }
 
-  const wilayaLabel = loc?.wilaya_code
-    ? WILAYAS.find((w) => w.code === loc.wilaya_code)?.name
-    : null;
-
   const hasActiveFilter =
     !!filters.q ||
     !!filters.category ||
@@ -150,14 +94,9 @@ export function MarketplaceView({ fallback, categories }: Props) {
     filters.sort !== "name";
 
   return (
-    <div className="space-y-4">
-      {/* ------------------------------------------------------------------- */}
-      {/* Barre de recherche — sticky sous le header pendant le scroll.       */}
-      {/* `top-` matche la hauteur header desktop (h-16 = 4rem) ; sur mobile, */}
-      {/* le header sticky a un layout plus haut (~5rem). On joue safe avec   */}
-      {/* `top-16 lg:top-16` (le header occupe ~64px sur les deux). Le mobile */}
-      {/* header a la search bar retirée → seul le bloc location reste.      */}
-      {/* ------------------------------------------------------------------- */}
+    <>
+      {/* Sticky sous le header (h-16 = 4rem). z-20 pour passer au-dessus
+          des contenus, mais en dessous du header (z-30) et des modales (z-50). */}
       <div className="bg-surface-2 sticky top-16 z-20 -mx-4 px-4 py-2 lg:-mx-6 lg:px-6">
         <form
           className="flex items-center gap-2"
@@ -209,88 +148,6 @@ export function MarketplaceView({ fallback, categories }: Props) {
         </form>
       </div>
 
-      {/* ------------------------------------------------------------------- */}
-      {/* Titre contextuel + état chargement.                                 */}
-      {/* ------------------------------------------------------------------- */}
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-foreground text-base font-bold lg:text-xl">
-          {emptyZone
-            ? "Tous les commerces en Algérie"
-            : filters.q
-              ? `Résultats pour « ${filters.q} »`
-              : filters.category
-                ? `Catégorie : ${getCategoryLabel(filters.category)}`
-                : wilayaLabel
-                  ? `Commerces à ${wilayaLabel}${loc?.commune ? ` · ${loc.commune}` : ""}`
-                  : "Commerces en Algérie"}
-        </h2>
-        {pending && <Loader2 className="text-muted size-4 animate-spin" />}
-      </div>
-
-      {/* Hint "pas de commerces dans ta zone" */}
-      {emptyZone && wilayaLabel && !filters.q && !filters.category && (
-        <div className="border-warning-100 bg-warning-50 text-warning-800 flex items-start gap-2 rounded-[14px] border px-3 py-2 text-xs">
-          <MapPin className="text-warning-600 mt-0.5 size-3.5 shrink-0" />
-          <span>
-            Pas encore de commerces à <strong>{wilayaLabel}</strong> — en
-            attendant, voici ceux disponibles ailleurs.
-          </span>
-        </div>
-      )}
-
-      {/* Récap filtres actifs + reset */}
-      {hasActiveFilter && (
-        <div className="text-muted flex items-center justify-between text-xs">
-          <span>
-            {visible.length} commerce{visible.length > 1 ? "s" : ""} trouvé
-            {visible.length > 1 ? "s" : ""}
-          </span>
-          <button
-            type="button"
-            onClick={reset}
-            className="text-primary-700 font-medium hover:underline"
-          >
-            Effacer les filtres
-          </button>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------------- */}
-      {/* Grille                                                               */}
-      {/* ------------------------------------------------------------------- */}
-      {visible.length === 0 ? (
-        <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-12 text-center text-sm">
-          {hasActiveFilter ? (
-            <>
-              Aucun commerce ne correspond à ta recherche.
-              <p className="mt-3">
-                <button
-                  type="button"
-                  onClick={reset}
-                  className="text-primary-700 font-medium hover:underline"
-                >
-                  Effacer les filtres →
-                </button>
-              </p>
-            </>
-          ) : (
-            <>
-              <MapPin className="text-subtle mx-auto mb-2 size-6" />
-              Aucun commerce actif disponible pour le moment.
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {visible.map((m) => (
-            <MerchantCard key={m.id} merchant={m} />
-          ))}
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------------- */}
-      {/* Sheet/popover Filtres — bottom-sheet mobile, centré sur desktop.    */}
-      {/* ------------------------------------------------------------------- */}
       {sheetOpen && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
@@ -311,32 +168,26 @@ export function MarketplaceView({ fallback, categories }: Props) {
                 setSheetOpen(false);
               }}
               onClose={() => setSheetOpen(false)}
-              pending={pending}
             />
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
-// =============================================================================
-// FilterSheet — sélecteurs catégorie / tri / ouvert maintenant.
-// =============================================================================
 function FilterSheet({
   filters,
   categories,
   onApply,
   onReset,
   onClose,
-  pending,
 }: {
   filters: Filters;
   categories: { name: string; count: number }[];
   onApply: (next: Filters) => void;
   onReset: () => void;
   onClose: () => void;
-  pending: boolean;
 }) {
   const [draft, setDraft] = useState<Filters>(filters);
   useEffect(() => setDraft(filters), [filters]);
@@ -410,21 +261,10 @@ function FilterSheet({
       </label>
 
       <div className="flex gap-2 pt-2">
-        <Button
-          type="button"
-          onClick={() => onApply(draft)}
-          className="flex-1"
-          disabled={pending}
-        >
-          {pending && <Loader2 className="size-4 animate-spin" />}
+        <Button type="button" onClick={() => onApply(draft)} className="flex-1">
           Appliquer
         </Button>
-        <Button
-          type="button"
-          onClick={onReset}
-          variant="outline"
-          disabled={pending}
-        >
+        <Button type="button" onClick={onReset} variant="outline">
           Effacer
         </Button>
       </div>
