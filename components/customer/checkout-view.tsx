@@ -52,6 +52,11 @@ export function CheckoutView({ customer }: Props) {
   const [useCashback, setUseCashback] = useState(true);
   // Coligo Pay (topup) : toggle séparé. S'applique APRÈS le cashback.
   const [useTopup, setUseTopup] = useState(true);
+  // Pendant la redirection vers Chargily, on N'A PAS vidé le panier (pour
+  // qu'un retour-arrière garde tout intact). Mais le cart store contient
+  // encore des items → on bloque l'écran "panier vide" via ce flag pour
+  // éviter un flash visuel avant la nav.
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Charge le contexte serveur (merchant + recalcul prix) dès qu'on a un cart.
   useEffect(() => {
@@ -89,6 +94,24 @@ export function CheckoutView({ customer }: Props) {
       limit: 16,
     });
   }, [ctx]);
+
+  // Écran intermédiaire "Redirection vers Chargily" : on ne le retire que
+  // quand la page change réellement (la nav `window.location.href` finit
+  // par démonter le composant). Tant qu'on est ici, on bloque le rendu
+  // "panier vide" qui flasherait juste avant.
+  if (isRedirecting) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-12 text-center lg:py-20">
+        <Loader2 className="text-primary-600 mx-auto size-6 animate-spin" />
+        <p className="text-foreground mt-3 text-base font-semibold">
+          Redirection vers Chargily Pay…
+        </p>
+        <p className="text-muted mt-1 text-xs">
+          Tu seras redirigé(e) dans un instant. Garde cette fenêtre ouverte.
+        </p>
+      </div>
+    );
+  }
 
   if (!cart.merchant_id || cart.items.length === 0) {
     return (
@@ -160,15 +183,19 @@ export function CheckoutView({ customer }: Props) {
         toast.error(res.error);
         return;
       }
-      clearCart();
-      // Paiement en ligne : on redirige immédiatement vers Chargily Pay. Le
-      // panier est vidé AVANT pour éviter qu'un retour-arrière du navigateur
-      // remette les articles. Si checkout_url est absent (cashback couvre
-      // 100 %, ou cas exotique), on tombe sur le détail de la commande.
+      // Paiement en ligne : on NE vide PAS le panier ici. Si le client
+      // abandonne sur Chargily ou échoue, il pourra retenter sans tout
+      // refaire (la commande est idempotente via client_operation_id).
+      // Le panier sera vidé automatiquement quand le webhook confirmera
+      // le paiement (cf. CheckoutPaymentWatcher sur /checkout/success).
       if (payment === "online" && res.checkout_url) {
+        setIsRedirecting(true);
         window.location.href = res.checkout_url;
         return;
       }
+      // Paiement cash (ou online totalement couvert par cashback/topup) :
+      // succès immédiat → on vide le panier et on file sur la fiche cmd.
+      clearCart();
       router.push(`/commandes/${res.order_id}`);
     });
   }

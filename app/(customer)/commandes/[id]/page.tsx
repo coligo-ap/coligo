@@ -239,10 +239,22 @@ export default async function CustomerOrderDetailPage({
             )}
           </Info>
           <Info icon={isCash ? Banknote : Sparkles} title="Paiement">
-            {isCash ? "Espèces au retrait" : "En ligne"}
+            {isCash ? (
+              "Espèces au retrait"
+            ) : order.payment_status === "paid" ? (
+              <span className="text-success-700 font-semibold">
+                Payé en ligne
+              </span>
+            ) : order.payment_status === "failed" ? (
+              <span className="text-danger-700 font-semibold">
+                Paiement échoué
+              </span>
+            ) : (
+              "En ligne"
+            )}
             {isOnlinePending && (
               <span className="text-warning-700 mt-0.5 block text-xs">
-                Paiement en attente (Chargily bientôt branché)
+                En attente de confirmation Chargily…
               </span>
             )}
           </Info>

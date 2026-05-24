@@ -4,6 +4,7 @@ import { CheckCircle2, Clock } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutPaymentWatcher } from "@/components/customer/checkout-payment-watcher";
+import { ClearCartOnMount } from "@/components/customer/clear-cart-on-mount";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,7 @@ function Paid({
 }) {
   return (
     <>
+      <ClearCartOnMount />
       <div className="bg-success-100 text-success-700 mx-auto flex size-16 items-center justify-center rounded-full">
         <CheckCircle2 className="size-8" />
       </div>

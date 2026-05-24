@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Receipt } from "lucide-react";
+import { Banknote, CreditCard, Hourglass, Receipt } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { ORDER_STATUS_META, type OrderStatus } from "@/lib/types";
-import { formatDA } from "@/lib/utils";
+import { cn, formatDA } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
 
 export const dynamic = "force-dynamic";
@@ -127,6 +127,10 @@ export default async function CustomerOrdersListPage() {
                         {formatDA(o.total_da)}
                       </span>
                       <Badge tone={meta.tone}>{meta.label}</Badge>
+                      <PaymentBadge
+                        method={o.payment_method}
+                        status={o.payment_status}
+                      />
                     </div>
                   </Link>
                 </li>
@@ -136,5 +140,69 @@ export default async function CustomerOrdersListPage() {
         )}
       </div>
     </CustomerShell>
+  );
+}
+
+// =============================================================================
+// PaymentBadge — montre le mode de paiement + son état.
+//   - cash + pending          → "Espèces au retrait"
+//   - cash + paid             → "Espèces payé"   (rare : trigger sur completed)
+//   - online + pending        → "Paiement en attente" (orange — Chargily pas
+//                                encore confirmé OU lien jamais finalisé)
+//   - online + paid           → "Payé en ligne" (vert)
+//   - online + failed         → "Paiement échoué" (rouge)
+//   - * + refunded            → "Remboursé"
+// =============================================================================
+function PaymentBadge({
+  method,
+  status,
+}: {
+  method: "cash" | "online";
+  status: "pending" | "paid" | "failed" | "refunded";
+}) {
+  if (method === "cash") {
+    return (
+      <span className="text-muted inline-flex items-center gap-1 text-[11px]">
+        <Banknote className="size-3" />
+        Espèces au retrait
+      </span>
+    );
+  }
+  // online
+  if (status === "paid") {
+    return (
+      <span className="text-success-700 inline-flex items-center gap-1 text-[11px] font-semibold">
+        <CreditCard className="size-3" />
+        Payé en ligne
+      </span>
+    );
+  }
+  if (status === "failed") {
+    return (
+      <span className="text-danger-700 inline-flex items-center gap-1 text-[11px] font-semibold">
+        <CreditCard className="size-3" />
+        Paiement échoué
+      </span>
+    );
+  }
+  if (status === "refunded") {
+    return (
+      <span className="text-muted inline-flex items-center gap-1 text-[11px] font-medium">
+        <CreditCard className="size-3" />
+        Remboursé
+      </span>
+    );
+  }
+  // pending
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-[11px] font-semibold",
+        "text-warning-700"
+      )}
+    >
+      <Hourglass className="size-3" />
+      Paiement en attente
+    </span>
   );
 }

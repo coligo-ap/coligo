@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { clearCart } from "@/lib/customer/cart-store";
 
 // =============================================================================
 // CheckoutPaymentWatcher
@@ -12,8 +13,9 @@ import { createClient } from "@/lib/supabase/client";
 //   - un poll léger (toutes les 3s, 20 tentatives = 1 min max)
 //   - une souscription Realtime sur la ligne `orders` (RLS l'autorise pour le
 //     client propriétaire), ce qui notifie quasi instantanément.
-// Dès qu'on détecte 'paid', on `router.refresh()` → la page server re-rend en
-// mode "Paid".
+// Dès qu'on détecte 'paid', on `clearCart()` + `router.refresh()` → la page
+// server re-rend en mode "Paid", et le panier est vidé proprement (il était
+// resté intact pendant la redirection Chargily pour permettre un retry).
 // =============================================================================
 export function CheckoutPaymentWatcher({ orderId }: { orderId: string }) {
   const router = useRouter();
@@ -35,6 +37,7 @@ export function CheckoutPaymentWatcher({ orderId }: { orderId: string }) {
       if (stopped) return;
       if (data?.payment_status === "paid") {
         stopped = true;
+        clearCart();
         router.refresh();
         return;
       }
