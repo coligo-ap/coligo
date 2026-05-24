@@ -83,23 +83,46 @@ export function ProductRow({
     <button
       type="button"
       onClick={onOpenDetail}
-      className="hover:bg-surface-2 group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
+      className="hover:bg-surface-2 group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors"
     >
+      {/* Petite image à GAUCHE (~64px). Bouton + ou stepper se déplace à droite. */}
+      <div className="bg-surface-2 relative size-16 shrink-0 overflow-hidden rounded-[12px]">
+        {product.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={
+              cldUrl(product.image_url, {
+                width: 160,
+                height: 160,
+                crop: "fill",
+                gravity: "auto",
+              }) ?? product.image_url
+            }
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.04]"
+          />
+        ) : (
+          <div className="from-primary-500/10 to-surface-3 flex h-full w-full items-center justify-center bg-gradient-to-br">
+            <ShoppingBag className="text-subtle size-6" />
+          </div>
+        )}
+      </div>
+
+      {/* Bloc centre : nom + (description courte) + prix violet */}
       <div className="min-w-0 flex-1">
         <h4 className="text-foreground line-clamp-1 text-sm font-semibold">
           {product.name_fr}
         </h4>
         {product.description_fr && (
-          <p className="text-muted mt-0.5 line-clamp-2 text-xs">
+          <p className="text-muted mt-0.5 line-clamp-1 text-xs">
             {product.description_fr}
           </p>
         )}
         <div className="mt-1 flex items-baseline gap-2">
           <span
-            className={cn(
-              "text-sm font-bold tabular-nums",
-              hasPromo ? "text-success-700" : "text-foreground"
-            )}
+            className={cn("text-primary-700 text-sm font-bold tabular-nums")}
           >
             {formatDA(price)}
           </span>
@@ -114,43 +137,18 @@ export function ProductRow({
         </div>
       </div>
 
-      {/* Thumbnail + action(s) */}
-      <div className="flex shrink-0 flex-col items-center gap-1.5">
-        <div className="bg-surface-2 relative size-20 overflow-hidden rounded-[12px] sm:size-24">
-          {product.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={
-                cldUrl(product.image_url, {
-                  width: 200,
-                  height: 200,
-                  crop: "fill",
-                  gravity: "auto",
-                }) ?? product.image_url
-              }
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
-            />
-          ) : (
-            <div className="from-primary-500/10 to-surface-3 flex h-full w-full items-center justify-center bg-gradient-to-br">
-              <ShoppingBag className="text-subtle size-7" />
-            </div>
-          )}
-          {!inCart && (
-            <button
-              type="button"
-              onClick={quickAdd}
-              aria-label="Ajouter au panier"
-              className="bg-primary-600 hover:bg-primary-700 absolute right-1.5 bottom-1.5 flex size-7 items-center justify-center rounded-full border-2 border-white text-white shadow-md"
-            >
-              <Plus className="size-4" />
-            </button>
-          )}
-        </div>
-
-        {inCart && (
+      {/* Action à DROITE : bouton + rond si pas au panier, sinon stepper. */}
+      <div className="shrink-0">
+        {!inCart ? (
+          <button
+            type="button"
+            onClick={quickAdd}
+            aria-label="Ajouter au panier"
+            className="bg-primary-600 hover:bg-primary-700 flex size-9 items-center justify-center rounded-full text-white shadow-md transition-transform active:scale-95"
+          >
+            <Plus className="size-4" />
+          </button>
+        ) : (
           <div
             className="bg-primary-50 inline-flex items-center gap-1 rounded-full p-0.5 shadow-sm"
             onClick={(e) => e.stopPropagation()}

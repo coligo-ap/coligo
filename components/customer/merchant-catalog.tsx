@@ -1,9 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { ProductDetailSheet } from "@/components/customer/product-detail-sheet";
 import { ProductRow } from "@/components/customer/product-row";
 import type {
@@ -102,21 +100,44 @@ export function MerchantCatalog({
     return Array.from(richByKey.values()).filter((g) => g.items.length > 0);
   }, [products, categories, merchant.id]);
 
-  // État "ouvert" par groupe. La première section est ouverte par défaut.
-  const [openMap, setOpenMap] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(groups.map((g, i) => [g.key, i === 0]))
+  // Catégorie active (chip violet + scroll). Calculée via IntersectionObserver
+  // sur les sections : la section la plus visible donne le `activeKey`.
+  const [activeKey, setActiveKey] = useState<string | null>(
+    groups[0]?.key ?? null
   );
-  function toggle(key: string) {
-    setOpenMap((m) => ({ ...m, [key]: !m[key] }));
-  }
+  const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+
+  useEffect(() => {
+    if (groups.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Section dont la plus grande partie est dans le viewport (avec une
+        // marge du haut pour compenser le header sticky + chips).
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible.length > 0) {
+          const id = (visible[0].target as HTMLElement).id;
+          const key = id.replace(/^cat-/, "");
+          setActiveKey(key);
+        }
+      },
+      {
+        // -40 % du haut : la section est considérée "active" quand son haut
+        // arrive vers le tiers haut de l'écran.
+        rootMargin: "-40% 0px -40% 0px",
+        threshold: [0, 0.25, 0.5, 0.75, 1],
+      }
+    );
+    sectionRefs.current.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [groups]);
 
   function scrollToGroup(key: string) {
-    setOpenMap((m) => ({ ...m, [key]: true }));
-    setTimeout(() => {
-      document
-        .getElementById(`cat-${key}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 40);
+    setActiveKey(key);
+    document
+      .getElementById(`cat-${key}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   if (products.length === 0) {
@@ -129,113 +150,64 @@ export function MerchantCatalog({
 
   return (
     <>
-      {/* CATEGORY CARDS — défilement horizontal */}
+      {/* CHIPS catégories — fines, scrollables horizontalement, STICKY en
+          haut quand le client scrolle dans le menu. La chip active prend
+          le fond violet. Pattern Uber Eats / Glovo. */}
       {groups.length > 1 && (
-        <div className="-mx-4 mb-6 [scrollbar-width:none] overflow-x-auto px-4 lg:mx-0 lg:px-0 [&::-webkit-scrollbar]:hidden">
-          <div className="flex min-w-max gap-3 pb-2 lg:min-w-0 lg:flex-wrap">
-            {groups.map((g) => (
-              <button
-                key={g.key}
-                type="button"
-                onClick={() => scrollToGroup(g.key)}
-                className="group border-border bg-surface hover:border-primary-400 flex w-28 shrink-0 flex-col items-center gap-2 rounded-[14px] border p-2 transition active:scale-[0.98] lg:w-32"
-              >
-                <div
+        <div className="bg-surface-2 sticky top-0 z-20 -mx-4 mb-4 [scrollbar-width:none] overflow-x-auto px-4 py-2 lg:-mx-6 lg:px-6 [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-w-max gap-1.5">
+            {groups.map((g) => {
+              const active = activeKey === g.key;
+              return (
+                <button
+                  key={g.key}
+                  type="button"
+                  onClick={() => scrollToGroup(g.key)}
                   className={cn(
-                    "bg-primary-50 size-14 overflow-hidden rounded-full lg:size-16"
+                    "shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors active:scale-[0.96]",
+                    active
+                      ? "border-primary-600 bg-primary-600 text-white"
+                      : "border-border bg-surface text-foreground hover:border-primary-300"
                   )}
                 >
-                  {g.category?.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={g.category.image_url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="text-primary-700 flex h-full w-full items-center justify-center text-lg font-bold">
-                      {(g.category?.title ?? "?").charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-                <span className="text-foreground line-clamp-2 text-center text-xs leading-tight font-semibold">
                   {g.category?.title ?? "Autres"}
-                </span>
-                <span className="text-subtle text-[10px]">
-                  {g.items.length} article{g.items.length > 1 ? "s" : ""}
-                </span>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* SECTIONS ACCORDÉON */}
-      <div className="space-y-3">
-        {groups.map((g) => {
-          const open = openMap[g.key];
-          return (
-            <section
-              key={g.key}
-              id={`cat-${g.key}`}
-              className="border-border bg-surface scroll-mt-20 overflow-hidden rounded-[16px] border"
-            >
-              <button
-                type="button"
-                onClick={() => toggle(g.key)}
-                aria-expanded={open}
-                className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
-              >
-                {g.category?.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={g.category.image_url}
-                    alt=""
-                    className="border-border size-10 shrink-0 rounded-full border bg-white object-cover"
+      {/* SECTIONS — toutes visibles (pas d'accordéon). Chacune a un petit
+          titre h2 et la liste compacte des produits dessous. */}
+      <div className="space-y-6">
+        {groups.map((g) => (
+          <section
+            key={g.key}
+            id={`cat-${g.key}`}
+            ref={(el) => {
+              if (el) sectionRefs.current.set(g.key, el);
+              else sectionRefs.current.delete(g.key);
+            }}
+            className="scroll-mt-20"
+          >
+            <h2 className="font-display text-foreground mb-2 px-1 text-lg font-bold">
+              {g.category?.title ?? "Autres"}
+            </h2>
+            <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[16px] border">
+              {g.items.map((p) => (
+                <li key={p.id}>
+                  <ProductRow
+                    merchant={merchant}
+                    product={p}
+                    promoUnitPriceDa={promoPriceById[p.id] ?? null}
+                    onOpenDetail={() => setSelected(p)}
                   />
-                ) : (
-                  <div className="bg-primary-50 text-primary-700 flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold">
-                    {(g.category?.title ?? "?").charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-foreground text-base font-semibold">
-                    {g.category?.title ?? "Autres"}
-                  </h3>
-                  <p className="text-subtle text-xs">
-                    {g.items.length} produit{g.items.length > 1 ? "s" : ""}
-                    {hasPromoIn(g.items, promoPriceById) && (
-                      <>
-                        {" · "}
-                        <Badge tone="success">Promos</Badge>
-                      </>
-                    )}
-                  </p>
-                </div>
-                <ChevronDown
-                  className={cn(
-                    "text-muted size-5 transition-transform",
-                    open && "rotate-180"
-                  )}
-                />
-              </button>
-              {open && (
-                <ul className="border-border divide-border divide-y border-t">
-                  {g.items.map((p) => (
-                    <li key={p.id}>
-                      <ProductRow
-                        merchant={merchant}
-                        product={p}
-                        promoUnitPriceDa={promoPriceById[p.id] ?? null}
-                        onOpenDetail={() => setSelected(p)}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          );
-        })}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </div>
 
       {/* Sheet détails produit */}
@@ -248,14 +220,5 @@ export function MerchantCatalog({
         onClose={() => setSelected(null)}
       />
     </>
-  );
-}
-
-function hasPromoIn(
-  items: PublicProduct[],
-  promoPriceById: Record<string, number>
-): boolean {
-  return items.some(
-    (p) => promoPriceById[p.id] != null && promoPriceById[p.id] < p.price_da
   );
 }
