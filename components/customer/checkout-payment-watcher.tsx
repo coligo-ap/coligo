@@ -31,7 +31,7 @@ export function CheckoutPaymentWatcher({ orderId }: { orderId: string }) {
       attempts += 1;
       const { data } = await supabase
         .from("orders")
-        .select("payment_status")
+        .select("status, payment_status")
         .eq("id", orderId)
         .maybeSingle();
       if (stopped) return;
@@ -39,6 +39,15 @@ export function CheckoutPaymentWatcher({ orderId }: { orderId: string }) {
         stopped = true;
         clearCart();
         router.refresh();
+        return;
+      }
+      // Échec détecté pendant l'attente : Chargily a notifié failed/canceled
+      // (webhook → orders.status='cancelled'). On redirige le client vers la
+      // page d'échec dédiée. PAS de clearCart — le panier reste intact pour
+      // qu'il puisse repasser commande sans tout refaire.
+      if (data?.status === "cancelled" || data?.payment_status === "failed") {
+        stopped = true;
+        window.location.replace(`/checkout/failure?order_id=${orderId}`);
         return;
       }
       if (attempts < MAX_ATTEMPTS) {

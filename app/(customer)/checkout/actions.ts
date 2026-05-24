@@ -97,11 +97,22 @@ export async function createOrder(
   const { data: existing } = await supabase
     .from("orders")
     .select(
-      "id, pickup_code, payment_method, payment_status, total_da, customer_id"
+      "id, status, pickup_code, payment_method, payment_status, total_da, customer_id"
     )
     .eq("client_operation_id", input.client_operation_id)
     .maybeSingle();
   if (existing) {
+    // Si cette commande a été annulée définitivement (webhook checkout.failed
+    // → status='cancelled'), on refuse — le client doit recommencer avec un
+    // nouveau client_operation_id (frais à chaque clic du bouton Confirmer
+    // côté UI). Évite de retourner une commande zombie.
+    if (existing.status === "cancelled") {
+      return {
+        ok: false,
+        error:
+          "La précédente tentative a été annulée. Recharge la page et reconfirme depuis ton panier.",
+      };
+    }
     let checkoutUrl: string | undefined;
     if (
       existing.payment_method === "online" &&
@@ -566,7 +577,7 @@ export async function retryOnlineOrderPayment(
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, pickup_code, payment_method, payment_status, total_da, customer_id, client_operation_id"
+      "id, status, pickup_code, payment_method, payment_status, total_da, customer_id, client_operation_id"
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -585,6 +596,16 @@ export async function retryOnlineOrderPayment(
   }
   if (order.payment_status === "refunded") {
     return { ok: false, error: "Cette commande a été remboursée." };
+  }
+  // Une commande définitivement annulée par le webhook (status='cancelled')
+  // ne peut plus être relancée — le client doit repasser via son panier.
+  // (Le cashback / topup éventuellement utilisé a déjà été re-crédité par
+  // les triggers refund_customer_*_on_cancel.)
+  if (order.status === "cancelled") {
+    return {
+      ok: false,
+      error: "Cette commande a été annulée. Repasse depuis ton panier.",
+    };
   }
   if (order.total_da <= 0) {
     return { ok: false, error: "Montant invalide." };

@@ -32,11 +32,18 @@ export default async function CheckoutSuccessPage({
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, pickup_code, payment_status, total_da, payment_method, customer_id"
+      "id, status, pickup_code, payment_status, total_da, payment_method, customer_id"
     )
     .eq("id", order_id)
     .maybeSingle();
   if (!order) notFound();
+
+  // Race : si Chargily a notifié `failed` pendant que le client revenait
+  // sur success_url, la commande est déjà cancelled. On redirige vers la
+  // page d'échec (qui expliquera la raison côté UX).
+  if (order.status === "cancelled" || order.payment_status === "failed") {
+    redirect(`/checkout/failure?order_id=${order.id}`);
+  }
 
   return (
     <CustomerShell>

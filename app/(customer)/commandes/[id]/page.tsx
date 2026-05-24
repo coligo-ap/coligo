@@ -47,6 +47,20 @@ export default async function CustomerOrderDetailPage({
 
   if (!order) notFound();
 
+  // UX : une commande online jamais payée n'a pas à apparaître côté client.
+  // Si le paiement a échoué (status='cancelled' + payment_status='failed'),
+  // on renvoie vers la page d'échec dédiée. Si elle est encore pending
+  // (Chargily pas encore notifié), on renvoie aussi vers la page d'attente
+  // (success) qui affichera "Paiement en cours de confirmation" et watchera.
+  if (order.payment_method === "online" && order.payment_status !== "paid") {
+    if (order.payment_status === "failed") {
+      redirect(`/checkout/failure?order_id=${order.id}`);
+    }
+    if (order.payment_status === "pending") {
+      redirect(`/checkout/success?order_id=${order.id}`);
+    }
+  }
+
   const merchant = (
     order as unknown as {
       merchants: {

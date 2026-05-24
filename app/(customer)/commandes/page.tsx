@@ -26,6 +26,12 @@ export default async function CustomerOrdersListPage() {
 
   // RLS filtre déjà sur customer_id (policy orders_select_own_customer).
   // On joint le merchant pour afficher le nom.
+  //
+  // ⚠️ FILTRE UX : on EXCLUT les commandes online jamais confirmées (pending
+  // ou failed). Tant que Chargily n'a pas confirmé le paiement, la commande
+  // n'existe pas du point de vue du client. S'il abandonne ou échoue, la
+  // commande est annulée côté serveur (webhook → status='cancelled') et son
+  // panier reste intact côté navigateur pour qu'il puisse repasser commande.
   const { data: orders } = await supabase
     .from("orders")
     .select(
@@ -34,6 +40,9 @@ export default async function CustomerOrdersListPage() {
        merchants ( name, slug, logo_url )`
     )
     .eq("customer_id", customer.id)
+    .or(
+      "payment_method.eq.cash,and(payment_method.eq.online,payment_status.eq.paid)"
+    )
     .order("created_at", { ascending: false })
     .limit(100);
 

@@ -33,7 +33,7 @@ export default async function CheckoutFailurePage({
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, pickup_code, payment_status, total_da, payment_method, payment_failure_reason"
+      "id, status, pickup_code, payment_status, total_da, payment_method, payment_failure_reason"
     )
     .eq("id", order_id)
     .maybeSingle();
@@ -45,12 +45,16 @@ export default async function CheckoutFailurePage({
     redirect(`/checkout/success?order_id=${order.id}`);
   }
 
-  const canRetry =
-    order.payment_method === "online" &&
-    order.total_da > 0 &&
-    order.payment_status !== "refunded";
-
   const reason = humanizeFailureReason(order.payment_failure_reason);
+
+  // Si la commande est encore `pending` côté DB (webhook pas encore arrivé),
+  // on autorise quand même le retry. Si elle est définitivement annulée
+  // (status='cancelled' via webhook), on n'autorise PAS le retry sur cette
+  // commande-là : le client doit repasser via son panier (qui est intact).
+  const orderCancelled =
+    order.status === "cancelled" || order.payment_status === "failed";
+  const canRetryThisOrder =
+    !orderCancelled && order.payment_method === "online" && order.total_da > 0;
 
   return (
     <CustomerShell>
@@ -64,19 +68,23 @@ export default async function CheckoutFailurePage({
         {reason.hint && (
           <p className="text-muted mt-2 text-sm">{reason.hint}</p>
         )}
-        <p className="text-muted mt-3 text-xs">
-          Commande <span className="font-semibold">#{order.pickup_code}</span>{" "}
-          conservée dans ton historique.
-        </p>
+
+        <div className="border-primary-100 bg-primary-50 text-primary-800 mt-5 rounded-[12px] border px-4 py-3 text-sm">
+          <p className="font-semibold">Ton panier est intact 🛒</p>
+          <p className="text-primary-700 mt-1 text-xs">
+            Tu peux retourner au checkout, modifier ta commande ou changer le
+            mode de paiement (espèces au retrait).
+          </p>
+        </div>
 
         <div className="mt-6 flex flex-col gap-2">
-          {canRetry && <CheckoutRetryButton orderId={order.id} />}
           <Link
-            href={`/commandes/${order.id}`}
-            className="text-muted hover:text-foreground text-sm hover:underline"
+            href="/checkout"
+            className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-[12px] px-5 text-sm font-semibold text-white"
           >
-            Voir ma commande
+            Retourner au checkout
           </Link>
+          {canRetryThisOrder && <CheckoutRetryButton orderId={order.id} />}
           <Link
             href="/"
             className="text-muted hover:text-foreground text-sm hover:underline"
@@ -84,6 +92,11 @@ export default async function CheckoutFailurePage({
             Retour à l&apos;accueil
           </Link>
         </div>
+
+        <p className="text-subtle mt-6 text-xs">
+          Aucun débit n&apos;a eu lieu. Cette commande n&apos;apparaît PAS dans
+          « Mes commandes » tant qu&apos;elle n&apos;est pas payée.
+        </p>
       </div>
     </CustomerShell>
   );

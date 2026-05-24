@@ -98,16 +98,27 @@ export async function POST(req: NextRequest) {
       event.type === "checkout.canceled"
     ) {
       const reason = extractFailureReason(event);
+      // ON TRANCHE : la commande passe à `cancelled` (en plus de payment_status
+      // = 'failed'). Cela :
+      //   - la fait disparaître de la liste "Mes commandes" côté client (cf.
+      //     filtre sur /commandes — on n'affiche QUE les online payées) ;
+      //   - déclenche les triggers SQL de contre-passation, qui re-créditent
+      //     automatiquement le cashback / Coligo Pay éventuellement dépensé
+      //     pour cette commande (cf. refund_customer_*_on_cancel) ;
+      //   - libère le créneau (max_orders_per_slot recompte au-dessus).
+      // Le client retrouvera son panier INTACT côté navigateur (le cart store
+      // n'est jamais vidé tant que la commande n'est pas confirmée paid).
       const { error } = await admin
         .from("orders")
         .update({
+          status: "cancelled",
           payment_status: "failed",
           payment_failure_reason: reason,
         })
         .eq("id", orderId)
         .eq("payment_status", "pending");
       if (error) {
-        console.error("[chargily/webhook] order failed update failed:", error);
+        console.error("[chargily/webhook] order cancel failed:", error);
       }
       return NextResponse.json({ ok: true });
     }
