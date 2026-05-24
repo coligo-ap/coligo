@@ -622,6 +622,7 @@ export type Database = {
           max_debt_da: number;
           max_topup_da_per_30d: number;
           service_fee_tiers: Json;
+          ranking_weights: Json;
           updated_at: string;
         };
         Insert: {
@@ -634,6 +635,7 @@ export type Database = {
           max_debt_da?: number;
           max_topup_da_per_30d?: number;
           service_fee_tiers?: Json;
+          ranking_weights?: Json;
           updated_at?: string;
         };
         Update: {
@@ -646,6 +648,7 @@ export type Database = {
           max_debt_da?: number;
           max_topup_da_per_30d?: number;
           service_fee_tiers?: Json;
+          ranking_weights?: Json;
           updated_at?: string;
         };
         Relationships: [];

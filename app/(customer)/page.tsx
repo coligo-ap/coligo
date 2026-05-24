@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 import {
   listMerchantCategories,
-  listMerchantIdsWithActivePromo,
   listPublicMerchants,
 } from "@/lib/data/merchants-public";
 import { getActiveBanners } from "@/lib/data/promo-banners";
 import { getMyReviewableOrders } from "@/lib/data/reviews";
+import { loadRankingContext, rankMerchants } from "@/lib/data/merchant-ranking";
 import { createClient } from "@/lib/supabase/server";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
@@ -33,26 +33,39 @@ export default async function CustomerHomePage() {
       supabase.auth.getUser(),
     ]);
 
-  // Prénom du client connecté pour le hero (optionnel).
+  // Prénom + coords GPS du client connecté (pour proximité dans le score).
   let firstName: string | null = null;
+  let customerCoords: {
+    latitude: number | null;
+    longitude: number | null;
+  } | null = null;
   if (user?.user) {
     const { data: customer } = await supabase
       .from("customers")
-      .select("full_name")
+      .select("full_name, latitude, longitude")
       .eq("user_id", user.user.id)
       .maybeSingle();
     firstName = customer?.full_name?.split(" ")[0] ?? null;
+    customerCoords = customer
+      ? { latitude: customer.latitude, longitude: customer.longitude }
+      : null;
   }
 
-  // IDs des commerces avec promo active — alimentent le badge PROMO sur les
-  // cards ET le carrousel « Populaires près de toi ».
-  const promoIds = await listMerchantIdsWithActivePromo(
-    fallback.map((m) => m.id)
-  );
+  // Contexte de classement (promoIds + orderCounts30d + poids + coords client).
+  const rankingCtx = await loadRankingContext({
+    merchantIds: fallback.map((m) => m.id),
+    customer: customerCoords,
+  });
+  const promoIds = rankingCtx.promoIds;
 
-  // Populaires : commerces ayant une promo active dans le fallback. Si aucun,
-  // section masquée. Tri par récence (déjà ordre `listPublicMerchants`).
-  const popular = fallback.filter((m) => promoIds.has(m.id)).slice(0, 12);
+  // Carrousel « Top notés » : note >= 4 ET au moins 5 avis. Tri par score.
+  const topRated = rankMerchants(
+    fallback.filter((m) => m.rating_avg >= 4 && m.rating_count >= 5),
+    rankingCtx
+  ).slice(0, 12);
+
+  // Pré-tri du fallback côté serveur (la grille re-trie après fetch zone).
+  const rankedFallback = rankMerchants(fallback, rankingCtx);
 
   return (
     <CustomerShell>
@@ -91,17 +104,19 @@ export default async function CustomerHomePage() {
           <CategoryStrip categories={categories} />
         </section>
 
-        {/* Populaires (commerces avec promo active). */}
-        {popular.length > 0 && (
+        {/* Top notés : note >= 4 et au moins 5 avis. Section masquée tant
+            qu'aucun commerce ne remplit ces critères (= début de vie de la
+            plateforme). */}
+        {topRated.length > 0 && (
           <section className="mt-8">
-            <MerchantCarousel merchants={popular} promoIds={promoIds} />
+            <MerchantCarousel merchants={topRated} promoIds={promoIds} />
           </section>
         )}
 
-        {/* Tous les commerces (filtre serveur via URL params + tri ouverts d'abord). */}
+        {/* Tous les commerces — pré-trié par score composite côté serveur. */}
         <section className="mt-8">
           <Suspense fallback={null}>
-            <MarketplaceGrid fallback={fallback} promoIds={promoIds} />
+            <MarketplaceGrid fallback={rankedFallback} promoIds={promoIds} />
           </Suspense>
         </section>
       </div>
