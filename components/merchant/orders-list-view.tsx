@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Loader2,
   ChevronRight,
+  Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -81,13 +82,22 @@ export function OrdersListView({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return orders;
-    return orders.filter(
-      (o) =>
-        o.customer_name.toLowerCase().includes(q) ||
-        o.id.slice(0, 6).toLowerCase().includes(q) ||
-        o.customer_phone.includes(q)
-    );
+    const base = !q
+      ? orders
+      : orders.filter(
+          (o) =>
+            o.customer_name.toLowerCase().includes(q) ||
+            o.id.slice(0, 6).toLowerCase().includes(q) ||
+            o.customer_phone.includes(q)
+        );
+    // Priorité visuelle : online+paid en tête (sur la page courante). Garde
+    // l'ordre chronologique relatif pour les autres + entre online+paid.
+    // (Le tri DB reste created_at desc — pas de saut entre pages.)
+    return [...base].sort((a, b) => {
+      const ap = isOnlinePaid(a) ? 0 : 1;
+      const bp = isOnlinePaid(b) ? 0 : 1;
+      return ap - bp;
+    });
   }, [orders, query]);
 
   // Construit l'URL pour une page donnée en gardant le filtre courant.
@@ -275,8 +285,14 @@ function OrderRow({
   const shortId = order.id.slice(0, 6).toUpperCase();
   const { next, pending, advance } = useQuickAdvance(order);
 
+  const onlinePaid = isOnlinePaid(order);
   return (
-    <tr className="hover:bg-surface-2 transition-colors">
+    <tr
+      className={cn(
+        "hover:bg-surface-2 transition-colors",
+        onlinePaid && "border-l-success-500 border-l-[3px]"
+      )}
+    >
       <td className="px-4 py-3">
         <Link
           href={`/orders/${order.id}`}
@@ -286,7 +302,10 @@ function OrderRow({
         </Link>
       </td>
       <td className="px-4 py-3">
-        <div className="font-medium">{order.customer_name}</div>
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{order.customer_name}</span>
+          {onlinePaid && <OnlinePaidBadge />}
+        </div>
         <div className="text-subtle text-xs">{order.customer_phone}</div>
       </td>
       <td className="text-muted px-4 py-3 tabular-nums">
@@ -345,6 +364,35 @@ function OrderRow({
   );
 }
 
+// =============================================================================
+// OnlinePaidBadge — badge ⚡ vert pour les commandes Chargily déjà encaissées.
+// =============================================================================
+// Pulse doux (ring qui s'élargit) — pas de clignotement agressif. L'objectif
+// est d'attirer l'œil sans saturer le CPU sur les téléphones d'entrée de gamme
+// que beaucoup de commerçants utilisent.
+function OnlinePaidBadge({ size = "sm" }: { size?: "sm" | "md" }) {
+  return (
+    <span
+      className={cn(
+        "border-success-200 bg-success-100 text-success-800 relative inline-flex items-center gap-1 rounded-full border font-semibold whitespace-nowrap",
+        size === "md" ? "px-2 py-0.5 text-xs" : "px-1.5 py-0.5 text-[10px]"
+      )}
+      title="Cette commande est déjà payée en ligne — priorité."
+    >
+      <Zap
+        className={cn(size === "md" ? "size-3.5" : "size-3", "fill-current")}
+      />
+      Payé en ligne
+      {/* Ring pulsant (animation Tailwind ping) — doux car opacité diminue. */}
+      <span className="border-success-400 absolute inset-0 -m-0.5 animate-ping rounded-full border opacity-40" />
+    </span>
+  );
+}
+
+function isOnlinePaid(order: OrderWithItems): boolean {
+  return order.payment_method === "online" && order.payment_status === "paid";
+}
+
 function OrderMobileCard({
   order,
   merchantName,
@@ -355,9 +403,15 @@ function OrderMobileCard({
   const meta = ORDER_STATUS_META[order.status];
   const shortId = order.id.slice(0, 6).toUpperCase();
   const { next, pending, advance } = useQuickAdvance(order);
+  const onlinePaid = isOnlinePaid(order);
 
   return (
-    <div className="border-border bg-surface rounded-[14px] border p-4">
+    <div
+      className={cn(
+        "border-border bg-surface rounded-[14px] border p-4",
+        onlinePaid && "border-l-success-500 border-l-[3px]"
+      )}
+    >
       <Link href={`/orders/${order.id}`} className="block">
         <div className="mb-2 flex items-start justify-between gap-3">
           <div>
@@ -368,7 +422,10 @@ function OrderMobileCard({
           </div>
           <Badge tone={meta.tone}>{meta.label}</Badge>
         </div>
-        <div className="mb-1 text-sm font-medium">{order.customer_name}</div>
+        <div className="mb-1 flex items-center gap-2">
+          <span className="text-sm font-medium">{order.customer_name}</span>
+          {onlinePaid && <OnlinePaidBadge />}
+        </div>
         <div className="text-muted mb-3 flex items-center justify-between text-xs">
           <span>Retrait à {formatTime(order.pickup_slot_at)}</span>
           <span className="text-foreground text-sm font-semibold tabular-nums">
