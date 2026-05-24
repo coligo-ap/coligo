@@ -6,15 +6,15 @@ import {
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
 import { LocationBanner } from "@/components/customer/location-banner";
-import { MerchantsByZone } from "@/components/customer/merchants-by-zone";
+import { MarketplaceView } from "@/components/customer/marketplace-view";
 import { ImageWithOverlay } from "@/components/ui/image-with-overlay";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomerHomePage() {
   // Côté serveur on n'a pas accès au localStorage → on charge un FALLBACK
-  // « tous les commerces actifs » (limité). Le composant client `MerchantsByZone`
-  // filtre/rafraîchit la liste selon la zone choisie côté navigateur.
+  // « tous les commerces actifs » (limité). Le composant client
+  // `MarketplaceView` filtre/rafraîchit selon la zone + les filtres recherche.
   const [fallback, categories] = await Promise.all([
     listPublicMerchants({ limit: 24 }),
     listMerchantCategories(),
@@ -58,10 +58,10 @@ export default async function CustomerHomePage() {
           <CategoryStrip categories={categories} />
         </section>
 
-        {/* Liste filtrée par zone (client-side) */}
+        {/* Recherche + filtres + liste, en place (plus de page /search). */}
         <section>
           <Suspense fallback={null}>
-            <MerchantsByZone fallback={fallback} />
+            <MarketplaceView fallback={fallback} categories={categories} />
           </Suspense>
         </section>
       </div>

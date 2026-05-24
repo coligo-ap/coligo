@@ -64,19 +64,19 @@ const PRIORITY: {
   {
     label: "Supérettes",
     matcher: /super[éeè]?rette|épicerie|alimentation/i,
-    href: "/search?category=superette",
+    href: "/?category=superette",
     image: CATEGORY_IMAGES.superette ?? null,
   },
   {
     label: "Boulangeries",
     matcher: /boulang/i,
-    href: "/search?category=boulangerie",
+    href: "/?category=boulangerie",
     image: CATEGORY_IMAGES.boulangerie ?? null,
   },
   {
     label: "Boucheries",
     matcher: /boucherie|viande/i,
-    href: "/search?category=boucherie",
+    href: "/?category=boucherie",
     image: CATEGORY_IMAGES.boucherie ?? null,
   },
 ];
@@ -108,7 +108,7 @@ export function CategoryStrip({
       <div className="flex min-w-max gap-3 pb-2 lg:min-w-0 lg:flex-wrap">
         {/* Tous les commerces — point d'entrée par défaut, en TÊTE */}
         <Tile
-          href="/search"
+          href="/"
           icon={LayoutGrid}
           label="Tous"
           hint="Voir tout"
@@ -136,7 +136,7 @@ export function CategoryStrip({
         {others.map((c) => (
           <Tile
             key={c.name}
-            href={`/search?category=${encodeURIComponent(c.name)}`}
+            href={`/?category=${encodeURIComponent(c.name)}`}
             icon={iconFor(c.name)}
             image={categoryImageFor(c.name)}
             label={c.name}

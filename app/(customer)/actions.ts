@@ -159,21 +159,23 @@ export async function customerSignup(
 }
 
 /**
- * Liste les commerces filtrés par zone (wilaya + commune optionnelle).
- * Appelée par le composant client `MerchantsByZone` après chaque changement
- * de zone côté navigateur.
+ * Liste les commerces filtrés par zone + recherche/catégorie/tri.
+ * Appelée par le composant client `MarketplaceView` (home) après chaque
+ * changement de zone OU de filtre de recherche.
  */
 export async function fetchMerchantsForZone(input: {
   wilaya_code: string | null;
   commune: string | null;
   q?: string | null;
   category?: string | null;
+  sort?: "name" | "min_order" | null;
 }): Promise<PublicMerchant[]> {
   return listPublicMerchants({
     wilaya_code: input.wilaya_code,
     commune: input.commune,
     q: input.q,
     category: input.category,
+    sort: input.sort === "min_order" ? "min_order" : "name",
     limit: 60,
   });
 }

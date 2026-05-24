@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Receipt, Search, ShoppingBag, User } from "lucide-react";
+import { Home, Receipt, ShoppingBag, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
   { href: "/", label: "Accueil", icon: Home },
-  { href: "/search", label: "Recherche", icon: Search },
   { href: "/cart", label: "Panier", icon: ShoppingBag },
   { href: "/commandes", label: "Commandes", icon: Receipt },
   { href: "/compte", label: "Compte", icon: User },
@@ -19,7 +18,7 @@ export function CustomerBottomNav() {
   return (
     <nav
       aria-label="Navigation principale"
-      className="border-border fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-white pb-[max(env(safe-area-inset-bottom),0px)] lg:hidden"
+      className="border-border fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t bg-white pb-[max(env(safe-area-inset-bottom),0px)] lg:hidden"
     >
       {ITEMS.map((item) => {
         const Icon = item.icon;

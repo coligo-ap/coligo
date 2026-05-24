@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ChevronDown, MapPin, Search, ShoppingBag, User } from "lucide-react";
+import { ChevronDown, MapPin, ShoppingBag, User } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { useCustomerLocation } from "@/lib/customer/location-store";
@@ -49,13 +49,9 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
             <ChevronDown className="text-muted size-3.5" />
           </button>
 
-          <Link
-            href="/search"
-            className="border-border bg-surface-2 hover:border-primary-400 flex flex-1 items-center gap-2 rounded-[12px] border px-4 py-2 text-sm transition-colors"
-          >
-            <Search className="text-muted size-4" />
-            <span className="text-muted">Rechercher un commerce…</span>
-          </Link>
+          {/* Espace flexible — la barre de recherche est désormais sur la
+              home (sticky sous le header). */}
+          <div className="flex-1" />
 
           <Link
             href="/login"
@@ -131,14 +127,8 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
               </Link>
             )}
           </div>
-          {/* Search bar sticky mobile */}
-          <Link
-            href="/search"
-            className="border-border bg-surface-2 hover:border-primary-400 mx-4 mb-3 flex items-center gap-2 rounded-[12px] border px-3 py-2.5 text-sm"
-          >
-            <Search className="text-muted size-4" />
-            <span className="text-muted">Rechercher un commerce…</span>
-          </Link>
+          {/* Search bar mobile : retirée du header — désormais sur la home
+              (sticky sous le header). */}
         </div>
       </header>
 
