@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ORDER_STATUS_META, type OrderStatus } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
+import { OrderReviewCta } from "@/components/customer/order-review-cta";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,21 @@ export default async function CustomerOrdersListPage() {
     .limit(100);
 
   const rows = orders ?? [];
+
+  // Pré-charge l'ensemble des order_ids du client qui ont déjà un avis,
+  // pour afficher (ou pas) le bouton "Laisser un avis" sur chaque ligne
+  // completed sans avis.
+  const completedIds = rows
+    .filter((o) => o.status === "completed")
+    .map((o) => o.id);
+  let reviewedIds = new Set<string>();
+  if (completedIds.length > 0) {
+    const { data: reviews } = await supabase
+      .from("reviews")
+      .select("order_id")
+      .in("order_id", completedIds);
+    reviewedIds = new Set((reviews ?? []).map((r) => r.order_id));
+  }
 
   return (
     <CustomerShell>
@@ -140,6 +156,12 @@ export default async function CustomerOrdersListPage() {
                         method={o.payment_method}
                         status={o.payment_status}
                       />
+                      {o.status === "completed" && !reviewedIds.has(o.id) && (
+                        <OrderReviewCta
+                          orderId={o.id}
+                          merchantName={merchant?.name ?? "Commerce"}
+                        />
+                      )}
                     </div>
                   </Link>
                 </li>

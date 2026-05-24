@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Star } from "lucide-react";
 import { cldUrl } from "@/lib/images/cloudinary";
@@ -7,12 +8,12 @@ import { ReviewModal } from "@/components/customer/review-modal";
 import type { ReviewableOrder } from "@/lib/data/reviews";
 
 // =============================================================================
-// ReviewPrompt — encart sur la home : commandes récupérées sans avis.
+// ReviewPrompt — encart compact sur la home (UNE seule commande à noter).
 // =============================================================================
-// Une carte par commande à noter (jusqu'à N défini par le parent).
-// Clic → ReviewModal. Le composant disparaît visuellement de lui-même quand
-// l'avis est soumis (revalidatePath dans la Server Action déclenche un
-// re-rendu de la home → l'order sort de getMyReviewableOrders).
+// On évite délibérément d'enchaîner plusieurs encarts pour ne pas pousser la
+// liste des commerces hors viewport (priorité absolue : que le client voie
+// les commerces immédiatement). Le reste des commandes à noter est accessible
+// via /commandes (bouton "Laisser un avis" sur chaque ligne completed).
 // =============================================================================
 
 type Props = {
@@ -22,62 +23,57 @@ type Props = {
 export function ReviewPrompt({ orders }: Props) {
   const [active, setActive] = useState<ReviewableOrder | null>(null);
   if (orders.length === 0) return null;
+  const o = orders[0]; // 1 seule commande à la fois sur la home
+  const logo = cldUrl(o.merchant_logo_url, {
+    width: 56,
+    height: 56,
+    crop: "fill",
+    gravity: "auto",
+  });
 
   return (
     <>
-      <section className="space-y-2">
-        <h2 className="font-display text-foreground px-1 text-base font-bold lg:text-lg">
-          <Star className="-mt-1 mr-1 inline size-5 fill-amber-400 text-amber-500" />
-          Donne ton avis
-        </h2>
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {orders.map((o) => {
-            const logo = cldUrl(o.merchant_logo_url, {
-              width: 56,
-              height: 56,
-              crop: "fill",
-              gravity: "auto",
-            });
-            return (
-              <li key={o.order_id}>
-                <button
-                  type="button"
-                  onClick={() => setActive(o)}
-                  className="border-border bg-surface hover:border-primary-300 hover:shadow-primary-100 group flex w-full items-center gap-3 rounded-[14px] border p-3 text-left transition-all hover:shadow-md active:scale-[0.99]"
-                >
-                  {logo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={logo}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="border-border size-12 shrink-0 rounded-full border bg-white object-cover"
-                    />
-                  ) : (
-                    <div className="bg-primary-100 text-primary-700 flex size-12 shrink-0 items-center justify-center rounded-full text-base font-bold">
-                      {o.merchant_name.charAt(0)}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-foreground text-sm font-semibold">
-                      Comment c&apos;était chez {o.merchant_name} ?
-                    </p>
-                    <div className="mt-0.5 flex items-center gap-0.5 text-amber-400">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <Star key={n} className="size-3.5" />
-                      ))}
-                      <span className="text-muted ml-1.5 text-[11px]">
-                        Note en 1 clic
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      <button
+        type="button"
+        onClick={() => setActive(o)}
+        className="group flex w-full items-center gap-3 rounded-[14px] border border-amber-200 bg-amber-50 p-3 text-left transition-all hover:border-amber-300 hover:shadow-md hover:shadow-amber-100 active:scale-[0.99]"
+      >
+        {logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logo}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="size-11 shrink-0 rounded-full border border-amber-200 bg-white object-cover"
+          />
+        ) : (
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-base font-bold text-amber-700">
+            {o.merchant_name.charAt(0)}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-foreground text-sm font-semibold">
+            Comment c&apos;était chez {o.merchant_name} ?
+          </p>
+          <div className="mt-0.5 flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <Star
+                key={n}
+                className="size-3.5 fill-amber-300 text-amber-400"
+              />
+            ))}
+            <span className="text-muted ml-1 text-[11px]">Note en 1 clic</span>
+          </div>
+        </div>
+        <Link
+          href="/commandes"
+          onClick={(e) => e.stopPropagation()}
+          className="shrink-0 text-[11px] font-semibold text-amber-700 hover:underline"
+        >
+          Autres ?
+        </Link>
+      </button>
 
       {active && (
         <ReviewModal

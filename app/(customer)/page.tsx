@@ -29,7 +29,9 @@ export default async function CustomerHomePage() {
       listPublicMerchants({ limit: 24 }),
       listMerchantCategories(),
       getActiveBanners(),
-      getMyReviewableOrders(3),
+      // 1 seul avis sur la home : on ne sature pas. Les autres commandes à
+      // noter sont accessibles via /commandes (bouton "Laisser un avis").
+      getMyReviewableOrders(1),
       supabase.auth.getUser(),
     ]);
 
