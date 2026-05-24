@@ -1,59 +1,51 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Sparkles, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { formatDA, cn } from "@/lib/utils";
 import { createTopup } from "@/app/(customer)/cashback/actions";
 
 // =============================================================================
-// ColigoPayCard — encart « Coligo Pay » sur /cashback.
+// ColigoPayCard — bouton « Recharger » + modale (montants prédéfinis + libre).
 // =============================================================================
-// Affiche le solde topup + bouton "Recharger" → modale avec montants
-// prédéfinis + montant libre. Confirmation : redirige vers Chargily.
-// Le crédit n'apparaît qu'après confirmation par le webhook (RLS-Realtime
-// peut faire apparaître la ligne en temps réel sur la page).
+// La page parent (/coligo-pay) se charge de l'affichage du solde et du
+// contexte. Ce composant n'a qu'une responsabilité : déclencher une recharge.
 //
-// Le plafond glissant est vérifié serveur — on n'affiche pas son détail ici
-// (on l'apprend via le message d'erreur si dépassé).
+// Le plafond glissant est vérifié serveur. Côté client, on désactive le
+// bouton si remaining30d est nul ou si > maxPerRecharge.
 // =============================================================================
 
 const PRESETS = [500, 1000, 2000, 5000];
 
 export function ColigoPayCard({
-  balanceDa,
   remaining30d,
   maxPerRecharge,
 }: {
-  balanceDa: number;
+  /** Solde actuel — non utilisé pour l'affichage (laissé pour API). */
+  balanceDa?: number;
   remaining30d: number;
   maxPerRecharge: number;
 }) {
   const [open, setOpen] = useState(false);
+  const disabled = remaining30d <= 0;
   return (
-    <>
-      <section className="border-border bg-surface relative mt-4 overflow-hidden rounded-[16px] border p-5">
-        <Sparkles className="text-primary-200 absolute -top-2 -right-2 size-24 opacity-50" />
-        <p className="text-primary-700 text-xs font-semibold tracking-wider uppercase">
-          Coligo Pay
+    <div className="mt-4">
+      <Button
+        type="button"
+        size="lg"
+        onClick={() => setOpen(true)}
+        disabled={disabled}
+        className="w-full sm:w-auto"
+      >
+        Recharger mon Coligo Pay
+      </Button>
+      {disabled && (
+        <p className="text-warning-700 mt-2 text-xs">
+          Plafond mensuel atteint — réessaie dans quelques jours.
         </p>
-        <p className="text-foreground mt-1 text-3xl font-bold tabular-nums lg:text-4xl">
-          {formatDA(balanceDa)}
-        </p>
-        <p className="text-muted mt-2 max-w-md text-xs">
-          Recharge ton compte par carte CIB/EDAHABIA pour payer tes commandes
-          plus vite. Solde réel — tu peux l&apos;utiliser quand tu veux.
-        </p>
-        <Button
-          type="button"
-          size="lg"
-          className="mt-4"
-          onClick={() => setOpen(true)}
-        >
-          Recharger
-        </Button>
-      </section>
+      )}
       {open && (
         <TopupModal
           onClose={() => setOpen(false)}
@@ -61,7 +53,7 @@ export function ColigoPayCard({
           maxPerRecharge={maxPerRecharge}
         />
       )}
-    </>
+    </div>
   );
 }
 

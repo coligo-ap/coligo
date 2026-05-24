@@ -167,6 +167,7 @@ export type Database = {
           commission_rate_applied: number | null;
           cashback_rate_applied: number | null;
           chargily_fee_rate_applied: number | null;
+          payment_failure_reason: string | null;
           created_at: string;
         };
         Insert: {
@@ -198,6 +199,7 @@ export type Database = {
           commission_rate_applied?: number | null;
           cashback_rate_applied?: number | null;
           chargily_fee_rate_applied?: number | null;
+          payment_failure_reason?: string | null;
           created_at?: string;
         };
         Update: {
@@ -229,6 +231,7 @@ export type Database = {
           commission_rate_applied?: number | null;
           cashback_rate_applied?: number | null;
           chargily_fee_rate_applied?: number | null;
+          payment_failure_reason?: string | null;
           created_at?: string;
         };
         Relationships: [

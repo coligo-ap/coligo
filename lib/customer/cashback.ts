@@ -111,10 +111,28 @@ export async function getTopupCreditedLast30dForCustomer(
 }
 
 /**
- * Historique complet des écritures du client connecté (récentes en premier).
+ * Historique CASHBACK uniquement du client connecté (récentes en premier).
+ * Filtre `source = 'cashback'` pour ne pas mélanger avec les écritures topup
+ * (Coligo Pay) — chacun a sa page dédiée côté client.
  */
 export async function getMyCashbackHistory(
   limit = 100
+): Promise<CustomerWalletEntry[]> {
+  return getMyWalletHistory("cashback", limit);
+}
+
+/**
+ * Historique COLIGO PAY (topup) uniquement du client connecté.
+ */
+export async function getMyTopupHistory(
+  limit = 100
+): Promise<CustomerWalletEntry[]> {
+  return getMyWalletHistory("topup", limit);
+}
+
+async function getMyWalletHistory(
+  source: "cashback" | "topup",
+  limit: number
 ): Promise<CustomerWalletEntry[]> {
   const supabase = await createClient();
   const {
@@ -133,6 +151,7 @@ export async function getMyCashbackHistory(
     .from("customer_wallet_entries")
     .select("id, order_id, type, source, amount_da, note, created_at")
     .eq("customer_id", customer.id)
+    .eq("source", source)
     .order("created_at", { ascending: false })
     .limit(limit);
 

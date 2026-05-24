@@ -8,11 +8,15 @@ import {
   Phone,
   Receipt,
   User as UserIcon,
+  Wallet,
 } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { customerLogout } from "@/app/(customer)/actions";
-import { getMyCashbackBalance } from "@/lib/customer/cashback";
+import {
+  getMyCashbackBalance,
+  getMyTopupBalance,
+} from "@/lib/customer/cashback";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { formatDA } from "@/lib/utils";
 
@@ -43,7 +47,10 @@ export default async function CustomerAccountPage() {
     ? WILAYAS.find((w) => w.code === customer.default_wilaya_code)?.name
     : null;
 
-  const cashbackBalance = await getMyCashbackBalance();
+  const [cashbackBalance, topupBalance] = await Promise.all([
+    getMyCashbackBalance(),
+    getMyTopupBalance(),
+  ]);
 
   return (
     <CustomerShell>
@@ -57,7 +64,7 @@ export default async function CustomerAccountPage() {
           </p>
         </header>
 
-        {/* Raccourcis : Mon Cashback + Mes Commandes (entrées principales). */}
+        {/* Raccourcis : Cashback / Coligo Pay / Commandes — chacun DISTINCT. */}
         <ul className="mb-4 space-y-2">
           <li>
             <Link
@@ -72,9 +79,31 @@ export default async function CustomerAccountPage() {
                   Mon Cashback
                 </p>
                 <p className="text-muted text-xs">
-                  Solde :{" "}
+                  Récompense non retirable ·{" "}
                   <span className="text-primary-700 font-bold tabular-nums">
                     {formatDA(cashbackBalance)}
+                  </span>
+                </p>
+              </div>
+              <ChevronRight className="text-muted size-4" />
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/coligo-pay"
+              className="border-border bg-surface hover:border-primary-300 group flex items-center gap-3 rounded-[14px] border p-4 transition-colors"
+            >
+              <div className="bg-primary-50 text-primary-700 flex size-11 shrink-0 items-center justify-center rounded-full">
+                <Wallet className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-foreground text-sm font-semibold">
+                  Coligo Pay
+                </p>
+                <p className="text-muted text-xs">
+                  Solde réel rechargeable ·{" "}
+                  <span className="text-primary-700 font-bold tabular-nums">
+                    {formatDA(topupBalance)}
                   </span>
                 </p>
               </div>

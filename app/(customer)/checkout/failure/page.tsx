@@ -4,6 +4,7 @@ import { XCircle } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutRetryButton } from "@/components/customer/checkout-retry-button";
+import { humanizeFailureReason } from "@/lib/payments/failure-reason";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,9 @@ export default async function CheckoutFailurePage({
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, pickup_code, payment_status, total_da, payment_method")
+    .select(
+      "id, pickup_code, payment_status, total_da, payment_method, payment_failure_reason"
+    )
     .eq("id", order_id)
     .maybeSingle();
   if (!order) notFound();
@@ -47,6 +50,8 @@ export default async function CheckoutFailurePage({
     order.total_da > 0 &&
     order.payment_status !== "refunded";
 
+  const reason = humanizeFailureReason(order.payment_failure_reason);
+
   return (
     <CustomerShell>
       <div className="mx-auto max-w-md px-4 py-12 text-center lg:py-20">
@@ -54,13 +59,14 @@ export default async function CheckoutFailurePage({
           <XCircle className="size-8" />
         </div>
         <h1 className="text-foreground mt-4 text-2xl font-bold">
-          Paiement non abouti
+          {reason.title}
         </h1>
-        <p className="text-muted mt-2 text-sm">
-          Ta commande{" "}
-          <span className="font-semibold">#{order.pickup_code}</span> est
-          conservée — aucun débit n&apos;a eu lieu. Tu peux réessayer ou la
-          retrouver dans ton historique.
+        {reason.hint && (
+          <p className="text-muted mt-2 text-sm">{reason.hint}</p>
+        )}
+        <p className="text-muted mt-3 text-xs">
+          Commande <span className="font-semibold">#{order.pickup_code}</span>{" "}
+          conservée dans ton historique.
         </p>
 
         <div className="mt-6 flex flex-col gap-2">

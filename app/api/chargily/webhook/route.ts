@@ -23,6 +23,7 @@ import {
   verifyWebhookSignature,
   type ChargilyWebhookEvent,
 } from "@/lib/payments/chargily";
+import { extractFailureReason } from "@/lib/payments/failure-reason";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Force le runtime Node (le helper utilise `node:crypto`) et évite tout cache.
@@ -96,13 +97,17 @@ export async function POST(req: NextRequest) {
       event.type === "checkout.failed" ||
       event.type === "checkout.canceled"
     ) {
+      const reason = extractFailureReason(event);
       const { error } = await admin
         .from("orders")
-        .update({ payment_status: "failed" })
+        .update({
+          payment_status: "failed",
+          payment_failure_reason: reason,
+        })
         .eq("id", orderId)
         .eq("payment_status", "pending");
       if (error) {
-        console.error("[chargily/webhook] order failed failed:", error);
+        console.error("[chargily/webhook] order failed update failed:", error);
       }
       return NextResponse.json({ ok: true });
     }
