@@ -129,23 +129,26 @@ export function MerchantCompactHeader({
 
   return (
     <div>
-      {/* ───── COVER plate 140px (mobile) / 200px (desktop). Aucune carte
-              dessus — la bande info est juste en dessous. ───── */}
-      <div className="bg-surface-3 relative h-[140px] w-full overflow-hidden rounded-[16px] lg:h-[200px]">
-        {heroOptimized ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={heroOptimized}
-            alt={`Photo du commerce ${name}`}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="from-primary-500/20 to-primary-700/30 flex h-full w-full items-center justify-center bg-gradient-to-br">
-            <span className="text-primary-700/70 text-5xl font-bold">
-              {name.charAt(0)}
-            </span>
-          </div>
-        )}
+      {/* ───── COVER plate 140px (mobile) / 200px (desktop). Le LOGO est
+              positionné absolument SUR la cover (chevauche par-dessus la
+              photo), façon Uber Eats. ───── */}
+      <div className="bg-surface-3 relative h-[140px] w-full rounded-[16px] lg:h-[200px]">
+        <div className="absolute inset-0 overflow-hidden rounded-[16px]">
+          {heroOptimized ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={heroOptimized}
+              alt={`Photo du commerce ${name}`}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="from-primary-500/20 to-primary-700/30 flex h-full w-full items-center justify-center bg-gradient-to-br">
+              <span className="text-primary-700/70 text-5xl font-bold">
+                {name.charAt(0)}
+              </span>
+            </div>
+          )}
+        </div>
 
         {/* Bouton retour (rond blanc translucide) */}
         <Link
@@ -171,12 +174,10 @@ export function MerchantCompactHeader({
             className={cn("size-4 transition-colors", isFav && "fill-current")}
           />
         </button>
-      </div>
 
-      {/* ───── BANDE D'INFOS COMPACTE — 3 lignes max sous la cover ───── */}
-      <div className="mt-3 flex items-start gap-3">
-        {/* Logo 54px qui chevauche LÉGÈREMENT le bas de la cover (margin négatif). */}
-        <div className="-mt-7 shrink-0 lg:-mt-9">
+        {/* Logo SUPERPOSÉ sur la cover (bottom-left, dépasse de moitié au
+            dessous pour rester aussi visible que possible). */}
+        <div className="absolute -bottom-7 left-4 z-10 lg:-bottom-8 lg:left-5">
           {logoOptimized ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -184,15 +185,19 @@ export function MerchantCompactHeader({
               alt=""
               loading="eager"
               decoding="async"
-              className="size-14 rounded-2xl border-2 border-white bg-white object-cover shadow-md lg:size-16"
+              className="size-16 rounded-2xl border-[3px] border-white bg-white object-cover shadow-lg lg:size-20"
             />
           ) : (
-            <div className="bg-primary-100 text-primary-700 flex size-14 items-center justify-center rounded-2xl border-2 border-white text-lg font-bold shadow-md lg:size-16">
+            <div className="bg-primary-100 text-primary-700 flex size-16 items-center justify-center rounded-2xl border-[3px] border-white text-xl font-bold shadow-lg lg:size-20">
               {name.charAt(0)}
             </div>
           )}
         </div>
+      </div>
 
+      {/* ───── BANDE D'INFOS COMPACTE — sous la cover, décalée à droite pour
+              laisser la moitié inférieure du logo respirer. ───── */}
+      <div className="mt-3 flex items-start gap-3 pl-24 lg:pl-28">
         {/* Bloc texte — toute la ligne 1 sur une rangée horizontale */}
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-foreground line-clamp-1 text-lg font-bold lg:text-xl">

@@ -106,11 +106,24 @@ export function MerchantCatalog({
     groups[0]?.key ?? null
   );
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const chipRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const stripRef = useRef<HTMLDivElement | null>(null);
+  // Drapeau anti-loop : quand un clic déclenche un scroll programmatique,
+  // l'observer va voir défiler plusieurs sections — on ignore ces transitions
+  // intermédiaires pour ne pas écraser la catégorie cliquée.
+  const programmaticScrollRef = useRef<{ key: string; until: number } | null>(
+    null
+  );
+  // Bordure/ombre sous la barre quand elle commence à coller en haut.
+  const [stuck, setStuck] = useState(false);
+  const stickySentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (groups.length === 0) return;
     const observer = new IntersectionObserver(
       (entries) => {
+        const lock = programmaticScrollRef.current;
+        if (lock && Date.now() < lock.until) return;
         // Section dont la plus grande partie est dans le viewport (avec une
         // marge du haut pour compenser le header sticky + chips).
         const visible = entries
@@ -133,8 +146,39 @@ export function MerchantCatalog({
     return () => observer.disconnect();
   }, [groups]);
 
+  // Détecte le moment où la barre devient sticky (utilise une sentinelle 1px
+  // juste au-dessus : quand elle sort du viewport, la barre est collée).
+  useEffect(() => {
+    const sentinel = stickySentinelRef.current;
+    if (!sentinel) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setStuck(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    io.observe(sentinel);
+    return () => io.disconnect();
+  }, []);
+
+  // À chaque changement de catégorie active, on recentre horizontalement la
+  // chip correspondante dans la bande (Uber Eats / Glovo).
+  useEffect(() => {
+    if (!activeKey) return;
+    const chip = chipRefs.current.get(activeKey);
+    const strip = stripRef.current;
+    if (!chip || !strip) return;
+    const cRect = chip.getBoundingClientRect();
+    const sRect = strip.getBoundingClientRect();
+    const offset =
+      chip.offsetLeft - strip.clientWidth / 2 + chip.clientWidth / 2;
+    if (cRect.left < sRect.left + 16 || cRect.right > sRect.right - 16) {
+      strip.scrollTo({ left: offset, behavior: "smooth" });
+    }
+  }, [activeKey]);
+
   function scrollToGroup(key: string) {
     setActiveKey(key);
+    // Bloque l'observer pendant ~700 ms le temps que le smooth-scroll finisse.
+    programmaticScrollRef.current = { key, until: Date.now() + 700 };
     document
       .getElementById(`cat-${key}`)
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -150,32 +194,52 @@ export function MerchantCatalog({
 
   return (
     <>
-      {/* CHIPS catégories — fines, scrollables horizontalement, STICKY en
-          haut quand le client scrolle dans le menu. La chip active prend
-          le fond violet. Pattern Uber Eats / Glovo. */}
+      {/* CHIPS catégories — sticky type Uber Eats. Reste collée sous le header
+          pendant le scroll, recentre automatiquement la chip active, et fait
+          apparaître une fine ombre/bordure dès qu'elle est "stuck". */}
       {groups.length > 1 && (
-        <div className="bg-surface-2 sticky top-0 z-20 -mx-4 mb-4 [scrollbar-width:none] overflow-x-auto px-4 py-2 lg:-mx-6 lg:px-6 [&::-webkit-scrollbar]:hidden">
-          <div className="flex min-w-max gap-1.5">
-            {groups.map((g) => {
-              const active = activeKey === g.key;
-              return (
-                <button
-                  key={g.key}
-                  type="button"
-                  onClick={() => scrollToGroup(g.key)}
-                  className={cn(
-                    "shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors active:scale-[0.96]",
-                    active
-                      ? "border-primary-600 bg-primary-600 text-white"
-                      : "border-border bg-surface text-foreground hover:border-primary-300"
-                  )}
-                >
-                  {g.category?.title ?? "Autres"}
-                </button>
-              );
-            })}
+        <>
+          {/* Sentinelle utilisée pour détecter l'état "stuck" (cf. effect). */}
+          <div ref={stickySentinelRef} aria-hidden className="h-px w-full" />
+          <div
+            className={cn(
+              "sticky top-[57px] z-20 -mx-4 mb-4 transition-shadow lg:top-16 lg:-mx-6",
+              stuck
+                ? "border-border border-b bg-white shadow-[0_2px_6px_rgba(0,0,0,0.04)]"
+                : "bg-surface-2"
+            )}
+          >
+            <div
+              ref={stripRef}
+              className="[scrollbar-width:none] overflow-x-auto px-4 py-2 lg:px-6 [&::-webkit-scrollbar]:hidden"
+            >
+              <div className="flex min-w-max gap-1.5">
+                {groups.map((g) => {
+                  const active = activeKey === g.key;
+                  return (
+                    <button
+                      key={g.key}
+                      type="button"
+                      ref={(el) => {
+                        if (el) chipRefs.current.set(g.key, el);
+                        else chipRefs.current.delete(g.key);
+                      }}
+                      onClick={() => scrollToGroup(g.key)}
+                      className={cn(
+                        "shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors active:scale-[0.96]",
+                        active
+                          ? "border-primary-600 bg-primary-600 text-white"
+                          : "border-border bg-surface text-foreground hover:border-primary-300"
+                      )}
+                    >
+                      {g.category?.title ?? "Autres"}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* SECTIONS — toutes visibles (pas d'accordéon). Chacune a un petit
@@ -189,7 +253,7 @@ export function MerchantCatalog({
               if (el) sectionRefs.current.set(g.key, el);
               else sectionRefs.current.delete(g.key);
             }}
-            className="scroll-mt-20"
+            className="scroll-mt-[112px] lg:scroll-mt-[120px]"
           >
             <h2 className="font-display text-foreground mb-2 px-1 text-lg font-bold">
               {g.category?.title ?? "Autres"}

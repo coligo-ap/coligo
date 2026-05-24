@@ -9,6 +9,7 @@ import { loadRankingContext, rankMerchants } from "@/lib/data/merchant-ranking";
 import { createClient } from "@/lib/supabase/server";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
+import { LocationAutoDetect } from "@/components/customer/location-auto-detect";
 import { LocationBanner } from "@/components/customer/location-banner";
 import { MarketplaceSearchBar } from "@/components/customer/marketplace-search-bar";
 import { MarketplaceGrid } from "@/components/customer/marketplace-grid";
@@ -81,7 +82,11 @@ export default async function CustomerHomePage() {
           <MarketplaceSearchBar categories={categories} />
         </Suspense>
 
-        {/* Localisation legacy — on garde le banner GPS-prompt pour MVP. */}
+        {/* Auto-détection GPS au load (silencieuse si permission accordée).
+            Si elle réussit, le bandeau ci-dessous ne s'affiche jamais. */}
+        <LocationAutoDetect />
+
+        {/* Localisation legacy — fallback manuel si la géoloc auto échoue. */}
         <LocationBanner />
 
         {/* Encart "Donne ton avis" — uniquement si commandes completed sans
