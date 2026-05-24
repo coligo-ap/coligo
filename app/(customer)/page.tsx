@@ -5,6 +5,7 @@ import {
   listPublicMerchants,
 } from "@/lib/data/merchants-public";
 import { getActiveBanners } from "@/lib/data/promo-banners";
+import { getMyReviewableOrders } from "@/lib/data/reviews";
 import { createClient } from "@/lib/supabase/server";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
@@ -13,6 +14,7 @@ import { MarketplaceSearchBar } from "@/components/customer/marketplace-search-b
 import { MarketplaceGrid } from "@/components/customer/marketplace-grid";
 import { MerchantCarousel } from "@/components/customer/merchant-carousel";
 import { PromoBannerCarousel } from "@/components/customer/promo-banner-carousel";
+import { ReviewPrompt } from "@/components/customer/review-prompt";
 import { StorefrontHero } from "@/components/customer/storefront-hero";
 
 export const dynamic = "force-dynamic";
@@ -22,12 +24,14 @@ export default async function CustomerHomePage() {
   // la home sans flash. Le fallback `merchants` est "tous les commerces
   // actifs" — la grille filtre par zone côté client (location-store).
   const supabase = await createClient();
-  const [fallback, categories, banners, { data: user }] = await Promise.all([
-    listPublicMerchants({ limit: 24 }),
-    listMerchantCategories(),
-    getActiveBanners(),
-    supabase.auth.getUser(),
-  ]);
+  const [fallback, categories, banners, reviewableOrders, { data: user }] =
+    await Promise.all([
+      listPublicMerchants({ limit: 24 }),
+      listMerchantCategories(),
+      getActiveBanners(),
+      getMyReviewableOrders(3),
+      supabase.auth.getUser(),
+    ]);
 
   // Prénom du client connecté pour le hero (optionnel).
   let firstName: string | null = null;
@@ -63,6 +67,14 @@ export default async function CustomerHomePage() {
 
         {/* Localisation legacy — on garde le banner GPS-prompt pour MVP. */}
         <LocationBanner />
+
+        {/* Encart "Donne ton avis" — uniquement si commandes completed sans
+            avis. Disparaît dès qu'elles sont toutes notées. */}
+        {reviewableOrders.length > 0 && (
+          <section className="mt-4">
+            <ReviewPrompt orders={reviewableOrders} />
+          </section>
+        )}
 
         {/* Bannières éditoriales (carrousel). */}
         {banners.length > 0 && (

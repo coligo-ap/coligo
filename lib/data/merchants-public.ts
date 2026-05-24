@@ -26,6 +26,8 @@ export type PublicMerchant = {
   pickup_slot_minutes: number;
   max_orders_per_slot: number | null;
   is_active: boolean;
+  rating_avg: number;
+  rating_count: number;
 };
 
 type Filters = {
@@ -156,5 +158,11 @@ function toPublicMerchant(row: Record<string, unknown>): PublicMerchant {
     pickup_slot_minutes: (row.pickup_slot_minutes as number | null) ?? 15,
     max_orders_per_slot: (row.max_orders_per_slot as number | null) ?? null,
     is_active: (row.is_active as boolean | null) ?? true,
+    // rating_avg vient en NUMERIC depuis Postgres → string côté JS. On parse.
+    rating_avg:
+      typeof row.rating_avg === "string"
+        ? parseFloat(row.rating_avg)
+        : ((row.rating_avg as number | null) ?? 0),
+    rating_count: (row.rating_count as number | null) ?? 0,
   };
 }

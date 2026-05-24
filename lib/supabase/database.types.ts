@@ -46,6 +46,8 @@ export type Database = {
           pickup_slot_minutes: number;
           max_orders_per_slot: number | null;
           max_days_ahead: number;
+          rating_avg: number;
+          rating_count: number;
           is_active: boolean;
           commission_rate: number;
           commission_cash: number | null;
@@ -84,6 +86,8 @@ export type Database = {
           pickup_slot_minutes?: number;
           max_orders_per_slot?: number | null;
           max_days_ahead?: number;
+          rating_avg?: number;
+          rating_count?: number;
           is_active?: boolean;
           commission_rate?: number;
           commission_cash?: number | null;
@@ -122,6 +126,8 @@ export type Database = {
           pickup_slot_minutes?: number;
           max_orders_per_slot?: number | null;
           max_days_ahead?: number;
+          rating_avg?: number;
+          rating_count?: number;
           is_active?: boolean;
           commission_rate?: number;
           commission_cash?: number | null;
@@ -715,6 +721,36 @@ export type Database = {
         Update: { email?: string; created_at?: string };
         Relationships: [];
       };
+      reviews: {
+        Row: {
+          id: string;
+          order_id: string;
+          customer_id: string;
+          merchant_id: string;
+          rating: number;
+          comment: string | null;
+          is_hidden: boolean;
+          created_at: string;
+          edited_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          customer_id: string;
+          merchant_id: string;
+          rating: number;
+          comment?: string | null;
+          is_hidden?: boolean;
+          created_at?: string;
+          edited_at?: string | null;
+        };
+        Update: {
+          rating?: number;
+          comment?: string | null;
+          is_hidden?: boolean;
+        };
+        Relationships: [];
+      };
       promo_banners: {
         Row: {
           id: string;
@@ -804,6 +840,8 @@ export type Database = {
           pickup_slot_minutes: number;
           max_orders_per_slot: number | null;
           max_days_ahead: number;
+          rating_avg: number;
+          rating_count: number;
           is_active: boolean;
           created_at: string;
         };

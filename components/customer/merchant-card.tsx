@@ -7,6 +7,7 @@ import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
+import { RatingStars } from "@/components/customer/rating-stars";
 import type { PublicMerchant } from "@/lib/data/merchants-public";
 
 type Props = {
@@ -119,6 +120,16 @@ export function MerchantCard({ merchant, cashbackPct, hasPromo }: Props) {
               <MapPin className="size-3" />
               {[merchant.commune, wilayaName].filter(Boolean).join(", ")}
             </span>
+          )}
+          {merchant.rating_count > 0 && (
+            <>
+              <span aria-hidden>·</span>
+              <RatingStars
+                avg={merchant.rating_avg}
+                count={merchant.rating_count}
+                showCount
+              />
+            </>
           )}
           {merchant.min_order_da > 0 && (
             <>

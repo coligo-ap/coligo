@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
+import { RatingStars } from "@/components/customer/rating-stars";
 import type { PublicMerchant } from "@/lib/data/merchants-public";
 
 // =============================================================================
@@ -98,11 +99,18 @@ export function StoreCardCompact({ merchant, hasPromo }: Props) {
         <h3 className="font-display text-foreground line-clamp-1 pr-12 text-sm font-bold">
           {merchant.name}
         </h3>
-        {merchant.category && (
-          <p className="text-muted mt-0.5 line-clamp-1 text-xs">
-            {merchant.category}
-          </p>
-        )}
+        <div className="mt-0.5 flex items-center gap-2 pr-12">
+          {merchant.category && (
+            <span className="text-muted line-clamp-1 text-xs">
+              {merchant.category}
+            </span>
+          )}
+          <RatingStars
+            avg={merchant.rating_avg}
+            count={merchant.rating_count}
+            showCount={false}
+          />
+        </div>
 
         <div className="text-muted mt-2 flex items-center gap-3 text-[11px]">
           {merchant.prep_time_min > 0 && (

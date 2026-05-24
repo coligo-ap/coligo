@@ -11,6 +11,8 @@ import { WILAYAS } from "@/lib/config/wilayas";
 import { MerchantHeroCard } from "@/components/customer/merchant-hero-card";
 import { MerchantCatalog } from "@/components/customer/merchant-catalog";
 import { MerchantCartCta } from "@/components/customer/merchant-cart-cta";
+import { MerchantReviews } from "@/components/customer/merchant-reviews";
+import { getMerchantReviews } from "@/lib/data/reviews";
 import {
   discountedUnitPrice,
   isPromotionActive,
@@ -27,6 +29,9 @@ export default async function MerchantPublicPage({
   const { slug } = await params;
   const m = await getPublicMerchantBySlug(slug);
   if (!m) notFound();
+
+  // Charge les avis publics du commerçant (RLS filtre déjà is_hidden=false).
+  const reviews = await getMerchantReviews(m.id, 20);
 
   const [catalog, promotions] = await Promise.all([
     listMerchantProducts(m.id),
@@ -113,6 +118,13 @@ export default async function MerchantPublicPage({
             products={catalog.products}
             categories={catalog.categories}
             promoPriceById={promoPriceById}
+          />
+
+          {/* Section avis clients (masquée si rating_count === 0). */}
+          <MerchantReviews
+            ratingAvg={m.rating_avg}
+            ratingCount={m.rating_count}
+            reviews={reviews}
           />
         </div>
       </div>
