@@ -20,8 +20,7 @@ import {
   buildCallbackUrls,
 } from "@/lib/payments/chargily";
 import { getTopupCreditedLast30dForCustomer } from "@/lib/customer/cashback";
-
-const MIN_TOPUP_DA = 100;
+import { MIN_TOPUP_DA } from "@/lib/config/payment-limits";
 
 export type CreateTopupResult =
   | { ok: true; checkout_url: string }

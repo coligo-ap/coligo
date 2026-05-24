@@ -342,6 +342,17 @@ export function CheckoutView({ customer }: Props) {
                 paiement validé.
               </div>
             )}
+            {payment === "online" &&
+              totalAfterWallets > 0 &&
+              totalAfterWallets < 50 && (
+                <div className="border-danger-200 bg-danger-50 text-danger-800 mt-3 rounded-[10px] border px-3 py-2 text-xs">
+                  Le paiement en ligne nécessite au moins <strong>50 DA</strong>{" "}
+                  à régler (limite Chargily Pay). Ton total après
+                  cashback/Coligo Pay est de{" "}
+                  <strong>{formatDA(totalAfterWallets)}</strong>. Désactive une
+                  partie du cashback ou choisis « Espèces ».
+                </div>
+              )}
           </Section>
 
           {/* Mon Cashback — visible uniquement si le client a un solde. */}
@@ -460,7 +471,11 @@ export function CheckoutView({ customer }: Props) {
               size="lg"
               onClick={submit}
               disabled={
-                submitting || (pickupType === "slot" && chosenSlotIdx == null)
+                submitting ||
+                (pickupType === "slot" && chosenSlotIdx == null) ||
+                (payment === "online" &&
+                  totalAfterWallets > 0 &&
+                  totalAfterWallets < 50)
               }
             >
               {submitting ? (
@@ -502,7 +517,12 @@ export function CheckoutView({ customer }: Props) {
             className="w-full"
             size="lg"
             onClick={submit}
-            disabled={submitting}
+            disabled={
+              submitting ||
+              (payment === "online" &&
+                totalAfterWallets > 0 &&
+                totalAfterWallets < 50)
+            }
           >
             {submitting ? (
               <Loader2 className="size-4 animate-spin" />

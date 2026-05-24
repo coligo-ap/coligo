@@ -13,6 +13,10 @@ import {
   createCheckout as createChargilyCheckout,
   buildCallbackUrls,
 } from "@/lib/payments/chargily";
+import {
+  CHARGILY_MIN_AMOUNT_DA,
+  resolveMinOrderDa,
+} from "@/lib/config/payment-limits";
 import type { OpeningHours, PaymentMethod } from "@/lib/types";
 
 export type CreateOrderInput = {
@@ -276,11 +280,17 @@ export async function createOrder(
     promoCode: input.promo_code ?? null,
   });
 
-  // Minimum de commande (sur le total APRÈS promos).
-  if (merchant.min_order_da > 0 && settled.totalDa < merchant.min_order_da) {
+  // Minimum de commande — résolution PLANCHER plateforme + surcharge commerçant.
+  // S'applique sur le total APRÈS promos (avant cashback/topup, pour empêcher
+  // un contournement via le wallet).
+  const minOrder = resolveMinOrderDa(
+    input.payment_method,
+    merchant.min_order_da
+  );
+  if (settled.totalDa < minOrder) {
     return {
       ok: false,
-      error: `Le minimum de commande est de ${merchant.min_order_da} DA.`,
+      error: `Le minimum de commande est de ${minOrder} DA.`,
     };
   }
 
@@ -354,6 +364,27 @@ export async function createOrder(
     topupUsed = Math.min(requested, topupBalance, totalAfterCashback);
   }
   const totalAfterWallets = Math.max(0, totalAfterCashback - topupUsed);
+
+  // -------------------------------------------------------------------------
+  // 5d. Garde-fou Chargily — refus AVANT toute écriture DB.
+  //   Chargily Pay v2 impose amount >= 50 DZD. Si le total après cashback/
+  //   topup est dans la fenêtre (0, 50[, on refuse net plutôt que créer une
+  //   commande pending qui ne pourra jamais être payée.
+  //   Le cas totalAfterWallets === 0 reste valide (cashback couvre tout :
+  //   bascule directe à paid sans appel Chargily — cf. plus bas).
+  // -------------------------------------------------------------------------
+  if (
+    input.payment_method === "online" &&
+    totalAfterWallets > 0 &&
+    totalAfterWallets < CHARGILY_MIN_AMOUNT_DA
+  ) {
+    return {
+      ok: false,
+      error:
+        `Le paiement en ligne nécessite un minimum de ${CHARGILY_MIN_AMOUNT_DA} DA à régler. ` +
+        `Réduis le cashback/Coligo Pay utilisé, ou choisis le paiement en espèces.`,
+    };
+  }
 
   const { data: order, error: orderErr } = await supabase
     .from("orders")
@@ -530,6 +561,12 @@ export async function retryOnlineOrderPayment(
   }
   if (order.total_da <= 0) {
     return { ok: false, error: "Montant invalide." };
+  }
+  if (order.total_da < CHARGILY_MIN_AMOUNT_DA) {
+    return {
+      ok: false,
+      error: `Le paiement en ligne nécessite un minimum de ${CHARGILY_MIN_AMOUNT_DA} DA.`,
+    };
   }
 
   try {
