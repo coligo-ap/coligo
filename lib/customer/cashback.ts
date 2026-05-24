@@ -10,7 +10,12 @@ import { createClient } from "@/lib/supabase/server";
 export type CustomerWalletEntry = {
   id: string;
   order_id: string | null;
-  type: "cashback_earned" | "cashback_spent" | "adjustment";
+  type:
+    | "cashback_earned"
+    | "cashback_spent"
+    | "adjustment"
+    | "topup_credit"
+    | "topup_spent";
   source: "cashback" | "topup";
   amount_da: number;
   note: string | null;
@@ -52,6 +57,54 @@ export async function getCashbackBalanceForCustomer(
 ): Promise<number> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("customer_cashback_balance", {
+    p_customer_id: customerId,
+  });
+  return typeof data === "number" ? data : 0;
+}
+
+/**
+ * Solde Coligo Pay (topup) du client connecté.
+ */
+export async function getMyTopupBalance(): Promise<number> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return 0;
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!customer) return 0;
+  const { data } = await supabase.rpc("customer_topup_balance", {
+    p_customer_id: customer.id,
+  });
+  return typeof data === "number" ? data : 0;
+}
+
+/**
+ * Solde topup d'un customer_id donné (pour les Server Actions).
+ */
+export async function getTopupBalanceForCustomer(
+  customerId: string
+): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("customer_topup_balance", {
+    p_customer_id: customerId,
+  });
+  return typeof data === "number" ? data : 0;
+}
+
+/**
+ * Cumul des recharges topup créditées sur les 30 derniers jours (pour vérifier
+ * le plafond glissant côté Server Action).
+ */
+export async function getTopupCreditedLast30dForCustomer(
+  customerId: string
+): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("customer_topup_credited_last_30d", {
     p_customer_id: customerId,
   });
   return typeof data === "number" ? data : 0;

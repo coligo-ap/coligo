@@ -3,7 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeCart, type EnginePromotion } from "@/lib/promotions/engine";
 import { APP_CONFIG } from "@/lib/config/app-config";
-import { getMyCashbackBalance } from "@/lib/customer/cashback";
+import {
+  getMyCashbackBalance,
+  getMyTopupBalance,
+} from "@/lib/customer/cashback";
 import type { Json } from "@/lib/supabase/database.types";
 
 export type CheckoutContextInput = {
@@ -37,6 +40,8 @@ export type CheckoutContext = {
   };
   /** Solde cashback disponible (DA) du client connecté — 0 si non connecté. */
   cashback_balance_da: number;
+  /** Solde Coligo Pay (topup, argent réel) du client connecté. */
+  topup_balance_da: number;
 };
 
 /**
@@ -56,8 +61,11 @@ export async function fetchCheckoutContext(
     .eq("id", input.merchant_id)
     .maybeSingle();
 
-  // Solde cashback du client connecté (en parallèle, lecture rapide).
-  const cashbackBalance = await getMyCashbackBalance();
+  // Soldes du client connecté (lectures rapides en parallèle).
+  const [cashbackBalance, topupBalance] = await Promise.all([
+    getMyCashbackBalance(),
+    getMyTopupBalance(),
+  ]);
 
   const fallback = {
     merchant: {
@@ -73,6 +81,7 @@ export async function fetchCheckoutContext(
     lines: [],
     cart: { subtotalDa: 0, totalDa: 0, savingsDa: 0 },
     cashback_balance_da: cashbackBalance,
+    topup_balance_da: topupBalance,
   };
 
   if (!merchant) {
@@ -178,5 +187,6 @@ export async function fetchCheckoutContext(
       savingsDa: settled.savingsDa,
     },
     cashback_balance_da: cashbackBalance,
+    topup_balance_da: topupBalance,
   };
 }

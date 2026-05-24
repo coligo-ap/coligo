@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   Sparkles,
   Store,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatDA } from "@/lib/utils";
@@ -49,6 +50,8 @@ export function CheckoutView({ customer }: Props) {
   const showConflict = otherCarts.length > 0 && !conflictDismissed;
   // Cashback : toggle "utiliser mes X DA" + montant effectif (jamais > total).
   const [useCashback, setUseCashback] = useState(true);
+  // Coligo Pay (topup) : toggle séparé. S'applique APRÈS le cashback.
+  const [useTopup, setUseTopup] = useState(true);
 
   // Charge le contexte serveur (merchant + recalcul prix) dès qu'on a un cart.
   useEffect(() => {
@@ -151,6 +154,7 @@ export function CheckoutView({ customer }: Props) {
         payment_method: payment,
         customer_note: note.trim() || null,
         cashback_to_use_da: useCashback ? cashbackApplied : 0,
+        topup_to_use_da: useTopup ? topupApplied : 0,
       });
       if (!res.ok) {
         toast.error(res.error);
@@ -174,7 +178,12 @@ export function CheckoutView({ customer }: Props) {
   const cashbackApplied = useCashback
     ? Math.min(ctx.cashback_balance_da, ctx.cart.totalDa)
     : 0;
+  // Coligo Pay s'applique APRÈS le cashback, sur ce qui reste.
   const totalAfterCashback = Math.max(0, ctx.cart.totalDa - cashbackApplied);
+  const topupApplied = useTopup
+    ? Math.min(ctx.topup_balance_da, totalAfterCashback)
+    : 0;
+  const totalAfterWallets = Math.max(0, totalAfterCashback - topupApplied);
 
   const totalLabel =
     payment === "cash"
@@ -336,6 +345,33 @@ export function CheckoutView({ customer }: Props) {
             </Section>
           )}
 
+          {/* Coligo Pay — solde réel rechargé. S'applique APRÈS le cashback. */}
+          {ctx.topup_balance_da > 0 && totalAfterCashback > 0 && (
+            <Section icon={Wallet} title="Coligo Pay">
+              <label className="hover:bg-surface-2 flex cursor-pointer items-start gap-3 rounded-[10px] p-2 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={useTopup}
+                  onChange={(e) => setUseTopup(e.target.checked)}
+                  className="accent-primary-600 mt-1 size-4"
+                />
+                <span className="flex-1 text-sm">
+                  <span className="text-foreground block font-medium">
+                    Utiliser mon solde{" "}
+                    <span className="text-primary-700 font-bold">
+                      {formatDA(ctx.topup_balance_da)}
+                    </span>
+                  </span>
+                  <span className="text-muted mt-0.5 block text-xs">
+                    {topupApplied < ctx.topup_balance_da
+                      ? `Plafonné à ${formatDA(topupApplied)} (le reste à payer).`
+                      : "Déduit du total. Solde réel, rechargé via Chargily Pay."}
+                  </span>
+                </span>
+              </label>
+            </Section>
+          )}
+
           {/* Note */}
           <Section icon={Sparkles} title="Note au commerçant (optionnel)">
             <textarea
@@ -369,6 +405,13 @@ export function CheckoutView({ customer }: Props) {
                   tone="success"
                 />
               )}
+              {topupApplied > 0 && (
+                <Row
+                  label="Coligo Pay"
+                  value={`− ${formatDA(topupApplied)}`}
+                  tone="success"
+                />
+              )}
               {payment === "online" && ctx.cart.totalDa > 0 && (
                 <Row
                   label="Cashback estimé"
@@ -379,7 +422,7 @@ export function CheckoutView({ customer }: Props) {
               <div className="border-border my-2 border-t" />
               <Row
                 label={totalLabel}
-                value={formatDA(totalAfterCashback)}
+                value={formatDA(totalAfterWallets)}
                 bold
               />
             </dl>
@@ -416,15 +459,15 @@ export function CheckoutView({ customer }: Props) {
       {/* Sticky bottom bar mobile */}
       <div className="fixed inset-x-0 bottom-16 z-30 px-4 pb-2 lg:hidden">
         <div className="border-border bg-surface mx-auto max-w-md rounded-[16px] border p-3 shadow-lg">
-          {cashbackApplied > 0 && (
+          {cashbackApplied + topupApplied > 0 && (
             <p className="text-success-700 mb-1 text-xs font-medium">
-              − {formatDA(cashbackApplied)} de cashback appliqués
+              − {formatDA(cashbackApplied + topupApplied)} appliqués (wallet)
             </p>
           )}
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="text-muted">{totalLabel}</span>
             <span className="text-foreground text-base font-bold tabular-nums">
-              {formatDA(totalAfterCashback)}
+              {formatDA(totalAfterWallets)}
             </span>
           </div>
           <Button

@@ -5,7 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { computeCart, type EnginePromotion } from "@/lib/promotions/engine";
 import { isOpenNow, normalizeOpeningHours } from "@/lib/merchant/opening-hours";
 import { APP_CONFIG } from "@/lib/config/app-config";
-import { getCashbackBalanceForCustomer } from "@/lib/customer/cashback";
+import {
+  getCashbackBalanceForCustomer,
+  getTopupBalanceForCustomer,
+} from "@/lib/customer/cashback";
 import {
   createCheckout as createChargilyCheckout,
   buildCallbackUrls,
@@ -27,6 +30,12 @@ export type CreateOrderInput = {
    * ET au total après promos. Si null/undefined/0 → aucun cashback dépensé.
    */
   cashback_to_use_da?: number | null;
+  /**
+   * Montant de Coligo Pay (topup) à utiliser (en DA). Plafonné côté serveur
+   * au solde topup ET au total restant après cashback. Si null/undefined/0
+   * → aucun topup dépensé.
+   */
+  topup_to_use_da?: number | null;
 };
 
 export type CreateOrderResult =
@@ -330,6 +339,22 @@ export async function createOrder(
   }
   const totalAfterCashback = Math.max(0, settled.totalDa - cashbackUsed);
 
+  // -------------------------------------------------------------------------
+  // 5c. Coligo Pay (topup) DÉPENSÉ — recalcul serveur :
+  //   - jamais > solde topup du client
+  //   - jamais > total restant après cashback
+  //   - figé dans la commande (snapshot)
+  // Le trigger SQL `spend_customer_topup_on_order_create` génère l'écriture
+  // négative dans le ledger client à l'INSERT de la commande.
+  // -------------------------------------------------------------------------
+  let topupUsed = 0;
+  if ((input.topup_to_use_da ?? 0) > 0) {
+    const topupBalance = await getTopupBalanceForCustomer(customer.id);
+    const requested = Math.max(0, Math.floor(input.topup_to_use_da ?? 0));
+    topupUsed = Math.min(requested, topupBalance, totalAfterCashback);
+  }
+  const totalAfterWallets = Math.max(0, totalAfterCashback - topupUsed);
+
   const { data: order, error: orderErr } = await supabase
     .from("orders")
     .insert({
@@ -350,8 +375,9 @@ export async function createOrder(
       discount_da:
         Math.max(0, settled.normalTotalDa - settled.subtotalDa) +
         (settled.promoCode?.discountDa ?? 0),
-      total_da: totalAfterCashback,
+      total_da: totalAfterWallets,
       cashback_used_da: cashbackUsed,
+      topup_used_da: topupUsed,
       service_fee_da: 0,
       cashback_da: 0,
       cashback_estimate_da: cashbackEstimate,
@@ -407,7 +433,7 @@ export async function createOrder(
   // ---------------------------------------------------------------------------
   let checkoutUrl: string | undefined;
   if (input.payment_method === "online") {
-    if (totalAfterCashback === 0) {
+    if (totalAfterWallets === 0) {
       await supabase
         .from("orders")
         .update({ payment_status: "paid" })
@@ -419,7 +445,7 @@ export async function createOrder(
           orderId: order.id,
         });
         const checkout = await createChargilyCheckout({
-          amount: totalAfterCashback,
+          amount: totalAfterWallets,
           successUrl,
           failureUrl,
           webhookEndpoint,

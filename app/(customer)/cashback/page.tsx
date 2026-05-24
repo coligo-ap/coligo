@@ -1,13 +1,15 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowDownLeft, ArrowUpRight, Gift, Sparkles } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Gift } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
-import { Badge } from "@/components/ui/badge";
+import { ColigoPayCard } from "@/components/customer/coligo-pay-card";
 import { createClient } from "@/lib/supabase/server";
 import { formatDA, cn } from "@/lib/utils";
 import {
   getMyCashbackBalance,
   getMyCashbackHistory,
+  getMyTopupBalance,
+  getTopupCreditedLast30dForCustomer,
 } from "@/lib/customer/cashback";
 
 export const dynamic = "force-dynamic";
@@ -27,10 +29,28 @@ export default async function CustomerCashbackPage() {
     .maybeSingle();
   if (merchant) redirect("/dashboard");
 
-  const [balance, history] = await Promise.all([
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const { data: settings } = await supabase
+    .from("platform_settings")
+    .select("max_topup_da_per_30d")
+    .eq("id", true)
+    .maybeSingle();
+  const maxPerRecharge = settings?.max_topup_da_per_30d ?? 50000;
+
+  const [balance, topupBalance, credited30d, history] = await Promise.all([
     getMyCashbackBalance(),
+    getMyTopupBalance(),
+    customer
+      ? getTopupCreditedLast30dForCustomer(customer.id)
+      : Promise.resolve(0),
     getMyCashbackHistory(100),
   ]);
+  const remaining30d = Math.max(0, maxPerRecharge - credited30d);
 
   return (
     <CustomerShell>
@@ -60,23 +80,12 @@ export default async function CustomerCashbackPage() {
           </p>
         </section>
 
-        {/* Encart Coligo Pay à venir */}
-        <section className="border-border bg-surface mt-4 flex items-start gap-3 rounded-[16px] border border-dashed p-4">
-          <div className="bg-primary-50 text-primary-700 flex size-10 shrink-0 items-center justify-center rounded-full">
-            <Sparkles className="size-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-foreground text-sm font-semibold">
-              Bientôt : <span className="text-primary-700">Coligo Pay</span>
-            </p>
-            <p className="text-muted mt-0.5 text-xs">
-              Recharge ton compte par carte ou virement pour payer plus vite et
-              gagner encore plus de cashback. Disponible avec l&apos;intégration
-              du paiement en ligne.
-            </p>
-          </div>
-          <Badge tone="primary">Bientôt</Badge>
-        </section>
+        {/* Coligo Pay — recharge réelle (Chargily) */}
+        <ColigoPayCard
+          balanceDa={topupBalance}
+          remaining30d={remaining30d}
+          maxPerRecharge={maxPerRecharge}
+        />
 
         {/* Historique */}
         <section className="mt-6">
@@ -173,12 +182,23 @@ export default async function CustomerCashbackPage() {
   );
 }
 
-function describe(type: "cashback_earned" | "cashback_spent" | "adjustment") {
+function describe(
+  type:
+    | "cashback_earned"
+    | "cashback_spent"
+    | "adjustment"
+    | "topup_credit"
+    | "topup_spent"
+) {
   switch (type) {
     case "cashback_earned":
       return { label: "Cashback gagné" };
     case "cashback_spent":
       return { label: "Cashback utilisé" };
+    case "topup_credit":
+      return { label: "Recharge Coligo Pay" };
+    case "topup_spent":
+      return { label: "Paiement par Coligo Pay" };
     case "adjustment":
       return { label: "Ajustement" };
   }

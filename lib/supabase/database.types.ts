@@ -148,6 +148,7 @@ export type Database = {
           discount_da: number;
           cashback_estimate_da: number;
           cashback_used_da: number;
+          topup_used_da: number;
           service_fee_da: number;
           cashback_da: number;
           commission_da: number;
@@ -178,6 +179,7 @@ export type Database = {
           discount_da?: number;
           cashback_estimate_da?: number;
           cashback_used_da?: number;
+          topup_used_da?: number;
           service_fee_da?: number;
           cashback_da?: number;
           commission_da?: number;
@@ -208,6 +210,7 @@ export type Database = {
           discount_da?: number;
           cashback_estimate_da?: number;
           cashback_used_da?: number;
+          topup_used_da?: number;
           service_fee_da?: number;
           cashback_da?: number;
           commission_da?: number;
@@ -605,6 +608,7 @@ export type Database = {
           cashback_cash: number;
           chargily_fee: number;
           max_debt_da: number;
+          max_topup_da_per_30d: number;
           updated_at: string;
         };
         Insert: {
@@ -615,6 +619,7 @@ export type Database = {
           cashback_cash?: number;
           chargily_fee?: number;
           max_debt_da?: number;
+          max_topup_da_per_30d?: number;
           updated_at?: string;
         };
         Update: {
@@ -625,6 +630,7 @@ export type Database = {
           cashback_cash?: number;
           chargily_fee?: number;
           max_debt_da?: number;
+          max_topup_da_per_30d?: number;
           updated_at?: string;
         };
         Relationships: [];
@@ -780,10 +786,16 @@ export type Database = {
           id: string;
           customer_id: string;
           order_id: string | null;
-          type: "cashback_earned" | "cashback_spent" | "adjustment";
+          type:
+            | "cashback_earned"
+            | "cashback_spent"
+            | "adjustment"
+            | "topup_credit"
+            | "topup_spent";
           source: "cashback" | "topup";
           amount_da: number;
           note: string | null;
+          chargily_checkout_id: string | null;
           created_at: string;
         };
         Insert: never;
@@ -797,6 +809,14 @@ export type Database = {
         Returns: number;
       };
       customer_cashback_balance: {
+        Args: { p_customer_id: string };
+        Returns: number;
+      };
+      customer_topup_balance: {
+        Args: { p_customer_id: string };
+        Returns: number;
+      };
+      customer_topup_credited_last_30d: {
         Args: { p_customer_id: string };
         Returns: number;
       };
