@@ -90,6 +90,25 @@ export async function validatePickupCode(
 
   const supabase = await createClient();
 
+  // Idempotency PRIORITAIRE : si on a déjà appliqué ce client_operation_id,
+  // on renvoie un succès SANS re-vérifier le statut. Sans ça, un retry après
+  // une coupure réseau (action appliquée côté serveur mais réponse perdue)
+  // tomberait sur le check `status === "completed"` et renverrait l'erreur
+  // « déjà été récupérée » à un commerçant qui croit (à raison) avoir réussi.
+  if (clientOperationId) {
+    const { data: existing } = await supabase
+      .from("order_events")
+      .select("order_id")
+      .eq("client_operation_id", clientOperationId)
+      .maybeSingle();
+    if (existing) {
+      return {
+        success: "Déjà appliqué.",
+        orderId: existing.order_id,
+      };
+    }
+  }
+
   const { data: order, error } = await supabase
     .from("orders")
     .select("id, status, customer_name")

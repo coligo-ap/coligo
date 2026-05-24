@@ -16,6 +16,10 @@
     "db:seed": "node scripts/db-seed.mjs",
     "db:seed:demo": "node scripts/db-seed-demo.mjs",
     "db:new": "supabase migration new",
+    "test:offline:idempotency": "node scripts/test-offline-idempotency.mjs",
+    "test:offline:scenarios": "node scripts/test-offline-scenarios.mjs",
+    "test:offline:queue": "node scripts/test-queue-logic.mjs",
+    "test:offline:e2e": "node scripts/test-offline-e2e.mjs",
     "prepare": "husky"
   },
   "dependencies": {
