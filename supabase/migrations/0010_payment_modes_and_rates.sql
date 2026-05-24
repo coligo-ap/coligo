@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS public.platform_admins (
 
 -- ⚠️ À AJUSTER : remplace par l'email exact de ton compte Supabase admin.
 INSERT INTO public.platform_admins (email)
-VALUES ('primefood69@gmail.com'), ('gacinoufel@gmail.com')
+VALUES ('coligo.noreply@gmail.com'), ('gacinoufel@gmail.com')
 ON CONFLICT DO NOTHING;
 
 -- SECURITY DEFINER : peut lire platform_admins même sous RLS (évite la circularité).
