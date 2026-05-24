@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeCart, type EnginePromotion } from "@/lib/promotions/engine";
 import { APP_CONFIG } from "@/lib/config/app-config";
+import { getMyCashbackBalance } from "@/lib/customer/cashback";
 import type { Json } from "@/lib/supabase/database.types";
 
 export type CheckoutContextInput = {
@@ -34,6 +35,8 @@ export type CheckoutContext = {
     totalDa: number;
     savingsDa: number;
   };
+  /** Solde cashback disponible (DA) du client connecté — 0 si non connecté. */
+  cashback_balance_da: number;
 };
 
 /**
@@ -53,6 +56,9 @@ export async function fetchCheckoutContext(
     .eq("id", input.merchant_id)
     .maybeSingle();
 
+  // Solde cashback du client connecté (en parallèle, lecture rapide).
+  const cashbackBalance = await getMyCashbackBalance();
+
   const fallback = {
     merchant: {
       id: input.merchant_id,
@@ -66,6 +72,7 @@ export async function fetchCheckoutContext(
     },
     lines: [],
     cart: { subtotalDa: 0, totalDa: 0, savingsDa: 0 },
+    cashback_balance_da: cashbackBalance,
   };
 
   if (!merchant) {
@@ -170,5 +177,6 @@ export async function fetchCheckoutContext(
       totalDa: settled.totalDa,
       savingsDa: settled.savingsDa,
     },
+    cashback_balance_da: cashbackBalance,
   };
 }

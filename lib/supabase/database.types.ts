@@ -147,6 +147,7 @@ export type Database = {
           subtotal_da: number;
           discount_da: number;
           cashback_estimate_da: number;
+          cashback_used_da: number;
           service_fee_da: number;
           cashback_da: number;
           commission_da: number;
@@ -176,6 +177,7 @@ export type Database = {
           subtotal_da?: number;
           discount_da?: number;
           cashback_estimate_da?: number;
+          cashback_used_da?: number;
           service_fee_da?: number;
           cashback_da?: number;
           commission_da?: number;
@@ -205,6 +207,7 @@ export type Database = {
           subtotal_da?: number;
           discount_da?: number;
           cashback_estimate_da?: number;
+          cashback_used_da?: number;
           service_fee_da?: number;
           cashback_da?: number;
           commission_da?: number;
@@ -772,10 +775,29 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      customer_wallet_entries: {
+        Row: {
+          id: string;
+          customer_id: string;
+          order_id: string | null;
+          type: "cashback_earned" | "cashback_spent" | "adjustment";
+          source: "cashback" | "topup";
+          amount_da: number;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Functions: {
       merchant_balance: {
         Args: { p_merchant_id: string };
+        Returns: number;
+      };
+      customer_cashback_balance: {
+        Args: { p_customer_id: string };
         Returns: number;
       };
       is_super_admin: {

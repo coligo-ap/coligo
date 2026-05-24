@@ -7,6 +7,7 @@ import {
   Banknote,
   Clock,
   CreditCard,
+  Gift,
   Loader2,
   ShoppingBag,
   Sparkles,
@@ -46,6 +47,8 @@ export function CheckoutView({ customer }: Props) {
   // mais elle se réaffiche automatiquement tant qu'un autre panier existe.
   const [conflictDismissed, setConflictDismissed] = useState(false);
   const showConflict = otherCarts.length > 0 && !conflictDismissed;
+  // Cashback : toggle "utiliser mes X DA" + montant effectif (jamais > total).
+  const [useCashback, setUseCashback] = useState(true);
 
   // Charge le contexte serveur (merchant + recalcul prix) dès qu'on a un cart.
   useEffect(() => {
@@ -147,6 +150,7 @@ export function CheckoutView({ customer }: Props) {
         pickup_slot_end: slot?.end.toISOString() ?? null,
         payment_method: payment,
         customer_note: note.trim() || null,
+        cashback_to_use_da: useCashback ? cashbackApplied : 0,
       });
       if (!res.ok) {
         toast.error(res.error);
@@ -156,6 +160,13 @@ export function CheckoutView({ customer }: Props) {
       router.push(`/commandes/${res.order_id}`);
     });
   }
+
+  // Cashback effectivement appliqué = min(solde, total) si toggle ON, sinon 0.
+  // (Recalculé aussi côté serveur — c'est la source de vérité.)
+  const cashbackApplied = useCashback
+    ? Math.min(ctx.cashback_balance_da, ctx.cart.totalDa)
+    : 0;
+  const totalAfterCashback = Math.max(0, ctx.cart.totalDa - cashbackApplied);
 
   const totalLabel =
     payment === "cash"
@@ -291,6 +302,34 @@ export function CheckoutView({ customer }: Props) {
             )}
           </Section>
 
+          {/* Mon Cashback — visible uniquement si le client a un solde. */}
+          {ctx.cashback_balance_da > 0 && (
+            <Section icon={Gift} title="Mon Cashback">
+              <label className="hover:bg-surface-2 flex cursor-pointer items-start gap-3 rounded-[10px] p-2 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={useCashback}
+                  onChange={(e) => setUseCashback(e.target.checked)}
+                  className="accent-primary-600 mt-1 size-4"
+                />
+                <span className="flex-1 text-sm">
+                  <span className="text-foreground block font-medium">
+                    Utiliser mes{" "}
+                    <span className="text-primary-700 font-bold">
+                      {formatDA(ctx.cashback_balance_da)}
+                    </span>{" "}
+                    de cashback
+                  </span>
+                  <span className="text-muted mt-0.5 block text-xs">
+                    {cashbackApplied < ctx.cashback_balance_da
+                      ? `Plafonné à ${formatDA(cashbackApplied)} (le total de la commande).`
+                      : "Déduit du total à payer. Non retirable."}
+                  </span>
+                </span>
+              </label>
+            </Section>
+          )}
+
           {/* Note */}
           <Section icon={Sparkles} title="Note au commerçant (optionnel)">
             <textarea
@@ -317,6 +356,13 @@ export function CheckoutView({ customer }: Props) {
                   tone="success"
                 />
               )}
+              {cashbackApplied > 0 && (
+                <Row
+                  label="Cashback utilisé"
+                  value={`− ${formatDA(cashbackApplied)}`}
+                  tone="success"
+                />
+              )}
               {payment === "online" && ctx.cart.totalDa > 0 && (
                 <Row
                   label="Cashback estimé"
@@ -325,7 +371,11 @@ export function CheckoutView({ customer }: Props) {
                 />
               )}
               <div className="border-border my-2 border-t" />
-              <Row label={totalLabel} value={formatDA(ctx.cart.totalDa)} bold />
+              <Row
+                label={totalLabel}
+                value={formatDA(totalAfterCashback)}
+                bold
+              />
             </dl>
 
             <Button
@@ -344,6 +394,8 @@ export function CheckoutView({ customer }: Props) {
               )}
             </Button>
 
+            {/* Le minimum s'applique sur le total AVANT cashback (la valeur
+                du panier). Sinon on contournerait la règle du commerçant. */}
             {ctx.merchant.min_order_da > 0 &&
               ctx.cart.totalDa < ctx.merchant.min_order_da && (
                 <p className="text-danger-600 mt-2 text-xs">
@@ -358,10 +410,15 @@ export function CheckoutView({ customer }: Props) {
       {/* Sticky bottom bar mobile */}
       <div className="fixed inset-x-0 bottom-16 z-30 px-4 pb-2 lg:hidden">
         <div className="border-border bg-surface mx-auto max-w-md rounded-[16px] border p-3 shadow-lg">
+          {cashbackApplied > 0 && (
+            <p className="text-success-700 mb-1 text-xs font-medium">
+              − {formatDA(cashbackApplied)} de cashback appliqués
+            </p>
+          )}
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="text-muted">{totalLabel}</span>
             <span className="text-foreground text-base font-bold tabular-nums">
-              {formatDA(ctx.cart.totalDa)}
+              {formatDA(totalAfterCashback)}
             </span>
           </div>
           <Button

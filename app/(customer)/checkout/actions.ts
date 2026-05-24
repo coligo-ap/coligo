@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { computeCart, type EnginePromotion } from "@/lib/promotions/engine";
 import { isOpenNow, normalizeOpeningHours } from "@/lib/merchant/opening-hours";
 import { APP_CONFIG } from "@/lib/config/app-config";
+import { getCashbackBalanceForCustomer } from "@/lib/customer/cashback";
 import type { OpeningHours, PaymentMethod } from "@/lib/types";
 
 export type CreateOrderInput = {
@@ -17,6 +18,11 @@ export type CreateOrderInput = {
   payment_method: PaymentMethod;
   customer_note?: string | null;
   promo_code?: string | null;
+  /**
+   * Montant de cashback à utiliser (en DA). Plafonné côté serveur au solde
+   * ET au total après promos. Si null/undefined/0 → aucun cashback dépensé.
+   */
+  cashback_to_use_da?: number | null;
 };
 
 export type CreateOrderResult =
@@ -247,6 +253,22 @@ export async function createOrder(
     settled.totalDa * (input.payment_method === "online" ? 0.03 : 0) // estimation MVP
   );
 
+  // ---------------------------------------------------------------------------
+  // 5b. Cashback DÉPENSÉ par le client — recalcul serveur (PARTIE A) :
+  //   - jamais > solde du client
+  //   - jamais > total après promos
+  //   - figé dans la commande (snapshot)
+  // Le trigger SQL `spend_customer_cashback_on_order_create` génère l'écriture
+  // négative dans le ledger client à l'INSERT de la commande.
+  // ---------------------------------------------------------------------------
+  let cashbackUsed = 0;
+  if ((input.cashback_to_use_da ?? 0) > 0) {
+    const balance = await getCashbackBalanceForCustomer(customer.id);
+    const requested = Math.max(0, Math.floor(input.cashback_to_use_da ?? 0));
+    cashbackUsed = Math.min(requested, balance, settled.totalDa);
+  }
+  const totalAfterCashback = Math.max(0, settled.totalDa - cashbackUsed);
+
   const { data: order, error: orderErr } = await supabase
     .from("orders")
     .insert({
@@ -267,7 +289,8 @@ export async function createOrder(
       discount_da:
         Math.max(0, settled.normalTotalDa - settled.subtotalDa) +
         (settled.promoCode?.discountDa ?? 0),
-      total_da: settled.totalDa,
+      total_da: totalAfterCashback,
+      cashback_used_da: cashbackUsed,
       service_fee_da: 0,
       cashback_da: 0,
       cashback_estimate_da: cashbackEstimate,

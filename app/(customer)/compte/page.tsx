@@ -1,9 +1,20 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogOut, Mail, Phone, User as UserIcon } from "lucide-react";
+import {
+  ChevronRight,
+  Gift,
+  LogOut,
+  Mail,
+  Phone,
+  Receipt,
+  User as UserIcon,
+} from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { customerLogout } from "@/app/(customer)/actions";
+import { getMyCashbackBalance } from "@/lib/customer/cashback";
 import { WILAYAS } from "@/lib/config/wilayas";
+import { formatDA } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +43,8 @@ export default async function CustomerAccountPage() {
     ? WILAYAS.find((w) => w.code === customer.default_wilaya_code)?.name
     : null;
 
+  const cashbackBalance = await getMyCashbackBalance();
+
   return (
     <CustomerShell>
       <div className="mx-auto max-w-2xl px-4 py-6 lg:px-6 lg:py-10">
@@ -43,6 +56,51 @@ export default async function CustomerAccountPage() {
             Tes informations personnelles et tes préférences.
           </p>
         </header>
+
+        {/* Raccourcis : Mon Cashback + Mes Commandes (entrées principales). */}
+        <ul className="mb-4 space-y-2">
+          <li>
+            <Link
+              href="/cashback"
+              className="border-border bg-surface hover:border-primary-300 group flex items-center gap-3 rounded-[14px] border p-4 transition-colors"
+            >
+              <div className="bg-primary-100 text-primary-700 flex size-11 shrink-0 items-center justify-center rounded-full">
+                <Gift className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-foreground text-sm font-semibold">
+                  Mon Cashback
+                </p>
+                <p className="text-muted text-xs">
+                  Solde :{" "}
+                  <span className="text-primary-700 font-bold tabular-nums">
+                    {formatDA(cashbackBalance)}
+                  </span>
+                </p>
+              </div>
+              <ChevronRight className="text-muted size-4" />
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/commandes"
+              className="border-border bg-surface hover:border-primary-300 group flex items-center gap-3 rounded-[14px] border p-4 transition-colors"
+            >
+              <div className="bg-primary-50 text-primary-700 flex size-11 shrink-0 items-center justify-center rounded-full">
+                <Receipt className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-foreground text-sm font-semibold">
+                  Mes commandes
+                </p>
+                <p className="text-muted text-xs">
+                  Historique et suivi en cours
+                </p>
+              </div>
+              <ChevronRight className="text-muted size-4" />
+            </Link>
+          </li>
+        </ul>
 
         <div className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
           <Row icon={UserIcon} label="Nom complet">
