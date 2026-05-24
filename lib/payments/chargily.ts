@@ -20,9 +20,15 @@
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-const API_BASE =
-  process.env.CHARGILY_API_BASE?.replace(/\/+$/, "") ??
-  "https://pay.chargily.net/api/v2";
+// Chargily Pay v2 a DEUX endpoints distincts :
+//   - test  : https://pay.chargily.net/test/api/v2   (utilisé par les clés test_sk_…)
+//   - live  : https://pay.chargily.net/api/v2        (utilisé par les clés live_sk_…)
+//
+// On détecte automatiquement le mode à partir du préfixe de la clé pour
+// éviter le piège classique "clé test sur endpoint live → 401 Unauthenticated".
+// L'override manuel via CHARGILY_API_BASE reste possible (debug / nouvelle URL).
+const LIVE_BASE = "https://pay.chargily.net/api/v2";
+const TEST_BASE = "https://pay.chargily.net/test/api/v2";
 
 function requireSecretKey(): string {
   const key = process.env.CHARGILY_SECRET_KEY;
@@ -33,6 +39,12 @@ function requireSecretKey(): string {
     );
   }
   return key;
+}
+
+function resolveApiBase(secretKey: string): string {
+  const override = process.env.CHARGILY_API_BASE?.replace(/\/+$/, "");
+  if (override) return override;
+  return secretKey.startsWith("test_") ? TEST_BASE : LIVE_BASE;
 }
 
 // -----------------------------------------------------------------------------
@@ -86,6 +98,7 @@ export async function createCheckout(
   input: CreateCheckoutInput
 ): Promise<ChargilyCheckout> {
   const secret = requireSecretKey();
+  const apiBase = resolveApiBase(secret);
 
   const body: Record<string, unknown> = {
     amount: Math.round(input.amount),
@@ -99,7 +112,7 @@ export async function createCheckout(
   if (input.description) body.description = input.description;
   if (input.locale) body.locale = input.locale;
 
-  const res = await fetch(`${API_BASE}/checkouts`, {
+  const res = await fetch(`${apiBase}/checkouts`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
