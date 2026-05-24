@@ -121,3 +121,60 @@ export function generateTodaySlots(
   slots.sort((a, b) => a.start.getTime() - b.start.getTime());
   return slots.slice(0, limit);
 }
+
+/**
+ * Génère les créneaux sur N jours à partir d'aujourd'hui. Utilisé pour la
+ * programmation J+N (commande pour demain, après-demain, etc.).
+ *
+ * Renvoie une Map jour-clé (`YYYY-MM-DD`) → slots de ce jour. Permet à l'UI
+ * d'afficher un sélecteur de date séparé du sélecteur d'horaire.
+ *
+ * - daysAhead=0 → uniquement aujourd'hui (équivalent à generateTodaySlots).
+ * - daysAhead=7 → 8 jours au total (aujourd'hui + 7 jours suivants).
+ */
+export function generateSlotsForRange(
+  hours: OpeningHours,
+  opts: {
+    slotMinutes: number;
+    prepMinutes: number;
+    daysAhead: number;
+    now?: Date;
+    perDayLimit?: number;
+  }
+): Map<string, Slot[]> {
+  const now = opts.now ?? new Date();
+  const perDayLimit = opts.perDayLimit ?? 32;
+  const out = new Map<string, Slot[]>();
+
+  for (let offset = 0; offset <= opts.daysAhead; offset++) {
+    const day = new Date(now);
+    day.setDate(now.getDate() + offset);
+    // Pour J=0 on prend "maintenant" (avec le délai prep) ; pour J>0 on
+    // démarre à minuit, ce qui permet d'avoir tous les créneaux du jour.
+    const dayNow = offset === 0 ? now : new Date(day.setHours(0, 0, 0, 0));
+    const slots = generateTodaySlots(hours, {
+      slotMinutes: opts.slotMinutes,
+      prepMinutes: opts.prepMinutes,
+      now: dayNow,
+      limit: perDayLimit,
+    });
+    // Filtre : ne garder que les slots qui démarrent ce JOUR-LÀ (les overnights
+    // qui débordent finiront naturellement dans le jour suivant grâce à la
+    // boucle).
+    const targetDate = new Date(now);
+    targetDate.setDate(now.getDate() + offset);
+    const targetKey = ymdKey(targetDate);
+    const filtered = slots.filter((s) => ymdKey(s.start) === targetKey);
+    if (filtered.length > 0) out.set(targetKey, filtered);
+  }
+
+  return out;
+}
+
+/** "YYYY-MM-DD" en local time — clé stable pour grouper les slots. */
+export function ymdKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}

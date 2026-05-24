@@ -19,9 +19,12 @@ import { cn, formatDA } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
 import { clearCart, useCart, useOtherCarts } from "@/lib/customer/cart-store";
 import { CartConflictModal } from "@/components/customer/cart-conflict-modal";
-import { generateTodaySlots, type Slot } from "@/lib/customer/pickup-slots";
-import { formatAsapReady, formatSlotRange } from "@/lib/customer/pickup-format";
-import { normalizeOpeningHours } from "@/lib/merchant/opening-hours";
+import { generateSlotsForRange, type Slot } from "@/lib/customer/pickup-slots";
+import {
+  formatAsapReady,
+  formatDayRelative,
+} from "@/lib/customer/pickup-format";
+import { isOpenNow, normalizeOpeningHours } from "@/lib/merchant/opening-hours";
 import type { OpeningHours } from "@/lib/types";
 import {
   fetchCheckoutContext,
@@ -43,6 +46,8 @@ export function CheckoutView({ customer }: Props) {
   const [submitting, startSubmit] = useTransition();
   const [pickupType, setPickupType] = useState<"asap" | "slot">("asap");
   const [chosenSlotIdx, setChosenSlotIdx] = useState<number | null>(null);
+  // Date sélectionnée dans le sélecteur jour (YYYY-MM-DD). Null = aujourd'hui.
+  const [chosenDayKey, setChosenDayKey] = useState<string | null>(null);
   const [payment, setPayment] = useState<PaymentMethod>("cash");
   const [note, setNote] = useState("");
   // Le client peut fermer la modale s'il veut consulter le récap d'abord ;
@@ -84,17 +89,52 @@ export function CheckoutView({ customer }: Props) {
     }
   }, [ctx, payment]);
 
-  const slots: Slot[] = useMemo(() => {
-    if (!ctx) return [];
+  // Slots par jour sur la fenêtre J+max_days_ahead. Map<"YYYY-MM-DD", Slot[]>.
+  const slotsByDay = useMemo(() => {
+    if (!ctx) return new Map<string, Slot[]>();
     const hours = normalizeOpeningHours(
       ctx.merchant.opening_hours as Partial<OpeningHours> | null
     );
-    return generateTodaySlots(hours, {
+    return generateSlotsForRange(hours, {
       slotMinutes: ctx.merchant.pickup_slot_minutes,
       prepMinutes: ctx.merchant.prep_time_min,
-      limit: 16,
+      daysAhead: ctx.merchant.max_days_ahead,
+      perDayLimit: 24,
     });
   }, [ctx]);
+
+  // Liste ordonnée des jours qui ont au moins un créneau disponible.
+  const availableDays = useMemo(
+    () => Array.from(slotsByDay.keys()).sort(),
+    [slotsByDay]
+  );
+
+  // Jour effectivement sélectionné — défaut sur le premier jour dispo.
+  const effectiveDayKey =
+    chosenDayKey && slotsByDay.has(chosenDayKey)
+      ? chosenDayKey
+      : (availableDays[0] ?? null);
+
+  const slots: Slot[] = effectiveDayKey
+    ? (slotsByDay.get(effectiveDayKey) ?? [])
+    : [];
+
+  // Le commerce est-il OUVERT MAINTENANT ? Si non, on cache "Préparation
+  // immédiate" et on bascule par défaut sur "Choisir un créneau".
+  const openNow = useMemo(() => {
+    if (!ctx) return false;
+    const hours = normalizeOpeningHours(
+      ctx.merchant.opening_hours as Partial<OpeningHours> | null
+    );
+    return isOpenNow(hours);
+  }, [ctx]);
+
+  // Force pickup_type='slot' si commerce fermé maintenant.
+  useEffect(() => {
+    if (ctx && !openNow && pickupType === "asap") {
+      setPickupType("slot");
+    }
+  }, [ctx, openNow, pickupType]);
 
   // Écran intermédiaire "Redirection vers Chargily" : on ne le retire que
   // quand la page change réellement (la nav `window.location.href` finit
@@ -274,6 +314,12 @@ export function CheckoutView({ customer }: Props) {
 
           {/* Retrait */}
           <Section icon={Clock} title="Retrait">
+            {!openNow && (
+              <div className="border-warning-100 bg-warning-50 text-warning-800 mb-3 rounded-[10px] border px-3 py-2 text-xs">
+                Le commerce est <strong>fermé pour le moment</strong>. Choisis
+                un créneau ci-dessous pour passer ta commande à l&apos;avance.
+              </div>
+            )}
             <div className="grid gap-2 sm:grid-cols-2">
               <Choice
                 checked={pickupType === "asap"}
@@ -282,36 +328,67 @@ export function CheckoutView({ customer }: Props) {
                 hint={formatAsapReady(
                   new Date(Date.now() + ctx.merchant.prep_time_min * 60_000)
                 )}
+                disabled={!openNow}
               />
               <Choice
                 checked={pickupType === "slot"}
                 onClick={() => setPickupType("slot")}
                 title="Choisir un créneau"
                 hint={
-                  slots.length === 0
-                    ? "Pas de créneau disponible aujourd'hui"
-                    : `${slots.length} créneaux dispos`
+                  availableDays.length === 0
+                    ? "Pas de créneau disponible"
+                    : `Jusqu'à ${ctx.merchant.max_days_ahead} j à l'avance`
                 }
-                disabled={slots.length === 0}
+                disabled={availableDays.length === 0}
               />
             </div>
-            {pickupType === "slot" && (
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {slots.map((s, i) => (
-                  <button
-                    key={s.start.toISOString()}
-                    type="button"
-                    onClick={() => setChosenSlotIdx(i)}
-                    className={cn(
-                      "rounded-[10px] border px-3 py-1.5 text-sm font-medium tabular-nums transition",
-                      chosenSlotIdx === i
-                        ? "border-primary-600 bg-primary-600 text-white"
-                        : "border-border bg-surface hover:border-primary-300"
-                    )}
-                  >
-                    {s.label}
-                  </button>
-                ))}
+            {pickupType === "slot" && availableDays.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {/* Sélecteur de jour (scrollable horizontal sur mobile) */}
+                <div className="-mx-1 flex [scrollbar-width:none] gap-1.5 overflow-x-auto px-1 pb-1 [&::-webkit-scrollbar]:hidden">
+                  {availableDays.map((dayKey) => {
+                    const sample = slotsByDay.get(dayKey)?.[0]?.start;
+                    if (!sample) return null;
+                    const label = formatDayRelative(sample);
+                    const isActive = effectiveDayKey === dayKey;
+                    return (
+                      <button
+                        key={dayKey}
+                        type="button"
+                        onClick={() => {
+                          setChosenDayKey(dayKey);
+                          setChosenSlotIdx(null);
+                        }}
+                        className={cn(
+                          "shrink-0 rounded-[10px] border px-3 py-1.5 text-xs font-medium capitalize transition",
+                          isActive
+                            ? "border-primary-600 bg-primary-50 text-primary-700"
+                            : "border-border bg-surface hover:border-primary-300"
+                        )}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Créneaux du jour sélectionné */}
+                <div className="flex flex-wrap gap-1.5">
+                  {slots.map((s, i) => (
+                    <button
+                      key={s.start.toISOString()}
+                      type="button"
+                      onClick={() => setChosenSlotIdx(i)}
+                      className={cn(
+                        "rounded-[10px] border px-3 py-1.5 text-sm font-medium tabular-nums transition",
+                        chosenSlotIdx === i
+                          ? "border-primary-600 bg-primary-600 text-white"
+                          : "border-border bg-surface hover:border-primary-300"
+                      )}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </Section>

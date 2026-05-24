@@ -31,6 +31,7 @@ export type CheckoutContext = {
     min_order_da: number;
     prep_time_min: number;
     pickup_slot_minutes: number;
+    max_days_ahead: number;
   };
   lines: {
     product_id: string;
@@ -69,7 +70,7 @@ export async function fetchCheckoutContext(
   const { data: merchant } = await supabase
     .from("merchants_public")
     .select(
-      "id, name, accepts_cash, accepts_online, opening_hours, min_order_da, prep_time_min, pickup_slot_minutes"
+      "id, name, accepts_cash, accepts_online, opening_hours, min_order_da, prep_time_min, pickup_slot_minutes, max_days_ahead"
     )
     .eq("id", input.merchant_id)
     .maybeSingle();
@@ -96,6 +97,7 @@ export async function fetchCheckoutContext(
       min_order_da: 0,
       prep_time_min: 15,
       pickup_slot_minutes: 15,
+      max_days_ahead: 7,
     },
     lines: [],
     cart: { subtotalDa: 0, totalDa: 0, savingsDa: 0 },
@@ -192,6 +194,7 @@ export async function fetchCheckoutContext(
       min_order_da: merchant.min_order_da,
       prep_time_min: merchant.prep_time_min,
       pickup_slot_minutes: merchant.pickup_slot_minutes,
+      max_days_ahead: merchant.max_days_ahead ?? 7,
     },
     lines: settled.lines.map((l) => {
       const product = products.find((p) => p.id === l.productId)!;

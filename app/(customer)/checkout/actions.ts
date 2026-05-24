@@ -152,7 +152,7 @@ export async function createOrder(
   const { data: merchant } = await supabase
     .from("merchants_public")
     .select(
-      "id, name, accepts_cash, accepts_online, opening_hours, min_order_da, prep_time_min, max_orders_per_slot, is_active"
+      "id, name, accepts_cash, accepts_online, opening_hours, min_order_da, prep_time_min, max_orders_per_slot, max_days_ahead, is_active"
     )
     .eq("id", input.merchant_id)
     .maybeSingle();
@@ -160,17 +160,20 @@ export async function createOrder(
     return { ok: false, error: "Ce commerce n'est plus disponible." };
   }
 
-  // Validation horaire : le commerce doit être ouvert MAINTENANT (cash) ou
-  // accepter au moins le mode demandé. (Pour "slot" on vérifie aussi que
-  // l'heure choisie tombe dans les horaires).
+  // Validation horaire :
+  //   - pickup_type='asap' → le commerce doit être ouvert MAINTENANT (récup
+  //     immédiate après préparation).
+  //   - pickup_type='slot' → on autorise la commande même si le commerçant
+  //     est fermé maintenant (ex. 22h pour demain 10h). La validité du
+  //     créneau en lui-même est vérifiée plus bas (chevauchement horaires).
   const opening: OpeningHours = normalizeOpeningHours(
     merchant.opening_hours as Partial<OpeningHours> | null
   );
-  if (!isOpenNow(opening)) {
+  if (input.pickup_type === "asap" && !isOpenNow(opening)) {
     return {
       ok: false,
       error:
-        "Le commerce est fermé pour le moment. Reviens à ses prochaines heures d'ouverture.",
+        "Le commerce est fermé pour le moment. Choisis un créneau plus tard pour passer ta commande.",
     };
   }
 
@@ -303,6 +306,15 @@ export async function createOrder(
     const start = new Date(input.pickup_slot_start);
     if (start.getTime() < Date.now() - 60_000) {
       return { ok: false, error: "Ce créneau est passé." };
+    }
+    // Fenêtre max J+N selon le commerçant (défaut 7 jours).
+    const maxAhead = merchant.max_days_ahead ?? 7;
+    const limit = Date.now() + maxAhead * 24 * 60 * 60_000;
+    if (start.getTime() > limit) {
+      return {
+        ok: false,
+        error: `Ce commerce accepte les commandes jusqu'à ${maxAhead} jour${maxAhead > 1 ? "s" : ""} à l'avance.`,
+      };
     }
     // Capacité par créneau si définie.
     if (merchant.max_orders_per_slot != null) {

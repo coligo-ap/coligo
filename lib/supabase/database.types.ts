@@ -45,6 +45,7 @@ export type Database = {
           accepts_online: boolean;
           pickup_slot_minutes: number;
           max_orders_per_slot: number | null;
+          max_days_ahead: number;
           is_active: boolean;
           commission_rate: number;
           commission_cash: number | null;
@@ -82,6 +83,7 @@ export type Database = {
           accepts_online?: boolean;
           pickup_slot_minutes?: number;
           max_orders_per_slot?: number | null;
+          max_days_ahead?: number;
           is_active?: boolean;
           commission_rate?: number;
           commission_cash?: number | null;
@@ -119,6 +121,7 @@ export type Database = {
           accepts_online?: boolean;
           pickup_slot_minutes?: number;
           max_orders_per_slot?: number | null;
+          max_days_ahead?: number;
           is_active?: boolean;
           commission_rate?: number;
           commission_cash?: number | null;
@@ -777,6 +780,7 @@ export type Database = {
           accepts_online: boolean;
           pickup_slot_minutes: number;
           max_orders_per_slot: number | null;
+          max_days_ahead: number;
           is_active: boolean;
           created_at: string;
         };
