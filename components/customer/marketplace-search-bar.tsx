@@ -95,9 +95,10 @@ export function MarketplaceSearchBar({ categories }: Props) {
 
   return (
     <>
-      {/* Sticky sous le header (h-16 = 4rem). z-20 pour passer au-dessus
-          des contenus, mais en dessous du header (z-30) et des modales (z-50). */}
-      <div className="bg-surface-2 sticky top-16 z-20 -mx-4 px-4 py-2 lg:-mx-6 lg:px-6">
+      {/* Sticky sous le CustomerHeader. Mobile : ~57 px (py-3 + contenu).
+          Desktop : 64 px (h-16). z-20 pour passer au-dessus des contenus,
+          mais en dessous du header (z-30) et des modales (z-50). */}
+      <div className="bg-surface-2 sticky top-[57px] z-20 -mx-4 px-4 py-2 lg:top-16 lg:-mx-6 lg:px-6">
         <form
           className="flex items-center gap-2"
           onSubmit={(e) => {

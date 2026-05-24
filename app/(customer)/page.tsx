@@ -71,11 +71,11 @@ export default async function CustomerHomePage() {
   const rankedFallback = rankMerchants(fallback, rankingCtx);
 
   return (
-    <CustomerShell hideHeader>
+    <CustomerShell>
       <div className="mx-auto max-w-[1400px] px-4 py-4 lg:px-6 lg:py-8">
-        {/* Hero violet UNIFIÉ — absorbe le header standard sur la home.
-            Contient logo + localisation + cart + compte + salutation. */}
-        <StorefrontHero isAuth={!!user?.user} firstName={firstName} />
+        {/* Hero violet — salutation seule. La nav (logo+location+cart+profile)
+            est désormais portée par le CustomerHeader sticky du shell. */}
+        <StorefrontHero firstName={firstName} />
 
         {/* Barre de recherche sticky sous le hero. */}
         <Suspense fallback={null}>
