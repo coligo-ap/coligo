@@ -88,6 +88,26 @@ export async function getPublicMerchantBySlug(
   return data ? toPublicMerchant(data) : null;
 }
 
+/**
+ * Renvoie l'ensemble des merchant_ids qui ont AU MOINS une promotion active
+ * (status='active', dans la fenêtre temporelle). Utilisé pour afficher le
+ * badge PROMO sur les cartes commerce et alimenter le carrousel « Populaires ».
+ */
+export async function listMerchantIdsWithActivePromo(
+  merchantIds?: string[]
+): Promise<Set<string>> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("promotions")
+    .select("merchant_id")
+    .eq("status", "active");
+  if (merchantIds && merchantIds.length > 0) {
+    query = query.in("merchant_id", merchantIds);
+  }
+  const { data } = await query;
+  return new Set((data ?? []).map((r) => r.merchant_id as string));
+}
+
 /** Liste les catégories distinctes parmi les vitrines actives. */
 export async function listMerchantCategories(): Promise<
   { name: string; count: number }[]

@@ -715,6 +715,26 @@ export type Database = {
         Update: { email?: string; created_at?: string };
         Relationships: [];
       };
+      promo_banners: {
+        Row: {
+          id: string;
+          title: string;
+          subtitle: string | null;
+          cta_label: string | null;
+          image_url: string | null;
+          link: string | null;
+          accent: "violet" | "coral" | "mint" | "amber" | "dark";
+          position: number;
+          active: boolean;
+          starts_at: string | null;
+          ends_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       customers: {
         Row: {
           id: string;

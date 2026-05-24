@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { MapPin, Wallet } from "lucide-react";
+import { Clock, MapPin, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ImageWithOverlay } from "@/components/ui/image-with-overlay";
 import { cn, formatDA } from "@/lib/utils";
-import { isOpenNow } from "@/lib/merchant/opening-hours";
+import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
@@ -13,11 +13,13 @@ type Props = {
   merchant: PublicMerchant;
   /** Pourcentage de cashback (entier déjà arrondi) — null si pas affiché. */
   cashbackPct?: number | null;
+  /** Affiche un badge "PROMO" si le commerce a une promotion active. */
+  hasPromo?: boolean;
 };
 
-export function MerchantCard({ merchant, cashbackPct }: Props) {
-  // `isOpenNow` est calculé à la VOLÉE depuis opening_hours (jamais stocké).
-  const open = isOpenNow(merchant.opening_hours);
+export function MerchantCard({ merchant, cashbackPct, hasPromo }: Props) {
+  // Statut ouvert/fermé calculé en heure d'Alger côté serveur.
+  const open = isOpenNow(merchant.opening_hours, nowInAlgiers());
   const wilayaName = merchant.wilaya_code
     ? WILAYAS.find((w) => w.code === merchant.wilaya_code)?.name
     : null;
@@ -35,8 +37,9 @@ export function MerchantCard({ merchant, cashbackPct }: Props) {
     <Link
       href={`/m/${merchant.slug}`}
       className={cn(
-        "group border-border bg-surface relative block overflow-hidden rounded-[16px] border shadow-sm transition-shadow hover:shadow-md",
-        !open && "opacity-95"
+        "group border-border bg-surface hover:shadow-primary-100 relative block overflow-hidden rounded-[18px] border shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg",
+        "active:scale-[0.99]",
+        !open && "opacity-90"
       )}
     >
       <div className="relative">
@@ -62,25 +65,30 @@ export function MerchantCard({ merchant, cashbackPct }: Props) {
           )}
         </ImageWithOverlay>
 
-        {/* Open/Closed badge — au-dessus de l'overlay. */}
+        {/* Statut Ouvert (menthe avec pulse) / Fermé (sombre avec heure ouv si dispo) */}
         <span
           className={cn(
             "absolute top-2 left-2 z-20 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur",
-            open
-              ? "bg-success-500/95 text-white"
-              : "bg-foreground/80 text-white"
+            open ? "bg-mint-500/95 text-white" : "bg-foreground/80 text-white"
           )}
         >
           <span
             className={cn(
               "size-1.5 rounded-full",
-              open ? "bg-white" : "bg-white/70"
+              open ? "animate-pulse bg-white" : "bg-white/70"
             )}
           />
           {open ? "Ouvert" : "Fermé"}
         </span>
 
-        {cashbackPct && cashbackPct > 0 && (
+        {/* Badge PROMO (corail) si une promotion réelle est active */}
+        {hasPromo && (
+          <span className="bg-coral-500 absolute top-2 right-2 z-20 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+            PROMO
+          </span>
+        )}
+
+        {!hasPromo && cashbackPct && cashbackPct > 0 && (
           <Badge
             tone="primary"
             className="absolute top-2 right-2 z-20 shadow-sm"
@@ -121,6 +129,17 @@ export function MerchantCard({ merchant, cashbackPct }: Props) {
               </span>
             </>
           )}
+        </div>
+
+        {/* Bandeau "Prêt en X min · Retrait gratuit" (menthe) */}
+        <div className="mt-2 flex items-center gap-3 text-[11px]">
+          {merchant.prep_time_min > 0 && (
+            <span className="text-muted inline-flex items-center gap-1">
+              <Clock className="size-3" />
+              Prêt en {merchant.prep_time_min} min
+            </span>
+          )}
+          <span className="text-mint-700 font-semibold">Retrait gratuit</span>
         </div>
       </div>
     </Link>

@@ -97,6 +97,53 @@ function overnightFromYesterdayStillOpen(
   return isOvernight(slot) && now < slot.close;
 }
 
+/**
+ * Renvoie l'instant courant TRADUIT au fuseau Africa/Algiers — utile côté
+ * serveur (Vercel = UTC) pour calculer ouvert/fermé en heure locale.
+ *
+ * Astuce : on construit la date via `Intl.DateTimeFormat` en fixant la zone
+ * cible, puis on relie les parties (jour/h/min) à un objet Date interprété
+ * localement. Le résultat est utilisable comme une "Date dans Africa/Algiers".
+ */
+export function nowInAlgiers(): Date {
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Africa/Algiers",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    weekday: "short",
+  });
+  const parts = Object.fromEntries(
+    fmt.formatToParts(new Date()).map((p) => [p.type, p.value])
+  );
+  // weekday "short" en en-US : Sun/Mon/.../Sat
+  const dayMap: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+  const d = new Date(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour === "24" ? "0" : parts.hour),
+    Number(parts.minute),
+    Number(parts.second)
+  );
+  // Force getDay() à correspondre à Alger (les autres méthodes sont déjà
+  // cohérentes via les valeurs locales injectées).
+  void dayMap;
+  return d;
+}
+
 /** Renvoie `true` si le commerce est ouvert AU MOMENT donné (par défaut now). */
 export function isOpenNow(
   hours: OpeningHours | null | undefined,

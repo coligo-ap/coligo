@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
 @theme {
+  /* Typo storefront (prompt 20) :
+     - Corps + UI : Plus Jakarta Sans  (--font-sans-body)
+     - Titres    : Sora                 (--font-display, classe font-display)
+     Les variables sont injectées par next/font (cf. app/layout.tsx). */
   --font-sans:
-    var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+    var(--font-sans-body), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:
+    var(--font-display), var(--font-sans-body), system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Code", monospace;
 
   /* === Palette violette/indigo (kit e-commerce) === */
@@ -47,6 +53,32 @@
   --color-danger-500: #ef4444;
   --color-danger-600: #dc2626;
   --color-danger-700: #b91c1c;
+
+  /* === Accents storefront (prompt 20 redesign) ===
+     Usage intentionnel et sobre :
+     - coral  : badge promo, cœur favori actif, pastille panier
+     - mint   : badge "Ouvert", mention "Retrait gratuit"
+     - amber  : étoiles de note UNIQUEMENT (si rating disponible)
+     - violet-accent : fonds de tags / hover (déjà couvert par primary-50/100) */
+  --color-coral-50: #fff1ee;
+  --color-coral-100: #ffd9d1;
+  --color-coral-300: #ff9a86;
+  --color-coral-500: #ff6b5c;
+  --color-coral-600: #ec4f3e;
+  --color-coral-700: #c63a2b;
+
+  --color-mint-50: #ecfdf5;
+  --color-mint-100: #d1fae5;
+  --color-mint-300: #6ee7b7;
+  --color-mint-500: #10c98d;
+  --color-mint-600: #0fa978;
+  --color-mint-700: #0c855e;
+
+  --color-amber-50: #fff8eb;
+  --color-amber-100: #fdecc8;
+  --color-amber-400: #f7bf4f;
+  --color-amber-500: #f0a92c;
+  --color-amber-600: #d18d18;
 
   /* Neutres (gris du kit) */
   --color-background: #ffffff;

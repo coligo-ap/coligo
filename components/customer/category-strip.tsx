@@ -160,19 +160,16 @@ function Tile({
     <Link
       href={href}
       className={cn(
-        "group flex w-[4.5rem] shrink-0 flex-col items-center gap-1 rounded-[12px] border p-2 text-center transition-colors lg:w-[5.5rem]",
-        highlight
-          ? "border-primary-200 bg-primary-50 hover:border-primary-400 hover:bg-primary-100"
-          : "border-border bg-surface hover:border-primary-300 hover:bg-primary-50",
+        "group flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 text-center transition-transform active:scale-95 lg:w-[5.5rem]",
         dimmed && "opacity-60"
       )}
     >
       <span
         className={cn(
-          "relative flex size-11 items-center justify-center overflow-hidden rounded-full",
+          "relative flex size-14 items-center justify-center overflow-hidden rounded-full border-2 transition-all",
           highlight
-            ? "bg-primary-600 text-white"
-            : "bg-primary-50 text-primary-700 group-hover:bg-primary-100"
+            ? "border-primary-600 bg-primary-600 shadow-primary-200 text-white shadow-md"
+            : "border-border bg-surface text-primary-700 group-hover:border-primary-400 group-hover:shadow-primary-100 group-hover:shadow-md"
         )}
       >
         {optimizedImage ? (
@@ -185,13 +182,18 @@ function Tile({
               decoding="async"
               className="absolute inset-0 h-full w-full object-cover"
             />
-            <span className="absolute inset-0 bg-black/15 transition-opacity group-hover:bg-black/0" />
+            <span className="absolute inset-0 bg-black/10 transition-opacity group-hover:bg-black/0" />
           </>
         ) : (
-          <Icon className="size-[18px]" />
+          <Icon className="size-[22px]" />
         )}
       </span>
-      <span className="text-foreground line-clamp-1 text-[11px] leading-tight font-medium">
+      <span
+        className={cn(
+          "line-clamp-1 text-[11px] leading-tight font-semibold",
+          highlight ? "text-primary-700" : "text-foreground"
+        )}
+      >
         {label}
       </span>
     </Link>

@@ -1,14 +1,25 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Sora, Plus_Jakarta_Sans } from "next/font/google";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Toaster } from "@/components/ui/toast";
 import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
 import "./globals.css";
 
-const inter = Inter({
+// Typo storefront (prompt 20 redesign) :
+//   - Sora pour les titres (600-800)
+//   - Plus Jakarta Sans pour le corps et l'UI (400-700)
+// Variables CSS exposées via next/font, lues par @theme dans globals.css.
+const fontDisplay = Sora({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-display",
+  weight: ["600", "700", "800"],
+});
+const fontBody = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans-body",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -109,7 +120,11 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" className={inter.variable} suppressHydrationWarning>
+    <html
+      lang="fr"
+      className={`${fontDisplay.variable} ${fontBody.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: KILL_EXTENSION_ATTRS }} />
       </head>

@@ -11,6 +11,12 @@ import { fetchMerchantsForZone } from "@/app/(customer)/actions";
 import { MerchantCard } from "@/components/customer/merchant-card";
 import type { PublicMerchant } from "@/lib/data/merchants-public";
 
+type Props = {
+  fallback: PublicMerchant[];
+  /** IDs des commerces avec promo active — utilisé pour afficher le badge PROMO. */
+  promoIds?: Set<string>;
+};
+
 // =============================================================================
 // MarketplaceGrid — la grille de commerces de la home.
 // =============================================================================
@@ -29,11 +35,7 @@ type Filters = {
   openNow: boolean;
 };
 
-type Props = {
-  fallback: PublicMerchant[];
-};
-
-export function MarketplaceGrid({ fallback }: Props) {
+export function MarketplaceGrid({ fallback, promoIds }: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const loc = useCustomerLocation();
@@ -73,8 +75,16 @@ export function MarketplaceGrid({ fallback }: Props) {
   }, [loc, filters.q, filters.category, filters.sort, fallback]);
 
   const visible = useMemo(() => {
-    if (!filters.openNow) return items;
-    return items.filter((m) => isOpenNow(m.opening_hours));
+    const base = filters.openNow
+      ? items.filter((m) => isOpenNow(m.opening_hours))
+      : items;
+    // TRI : OUVERTS D'ABORD, fermés ensuite (mais cliquables, opacité réduite
+    // côté carte). Cohérent avec le prompt redesign.
+    return [...base].sort((a, b) => {
+      const ao = isOpenNow(a.opening_hours) ? 0 : 1;
+      const bo = isOpenNow(b.opening_hours) ? 0 : 1;
+      return ao - bo;
+    });
   }, [filters.openNow, items]);
 
   const wilayaLabel = loc?.wilaya_code
@@ -159,7 +169,11 @@ export function MarketplaceGrid({ fallback }: Props) {
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visible.map((m) => (
-            <MerchantCard key={m.id} merchant={m} />
+            <MerchantCard
+              key={m.id}
+              merchant={m}
+              hasPromo={promoIds?.has(m.id)}
+            />
           ))}
         </div>
       )}
