@@ -160,7 +160,7 @@ function Tile({
     <Link
       href={href}
       className={cn(
-        "group flex w-16 shrink-0 flex-col items-center gap-1 rounded-[12px] border p-1.5 text-center transition-colors lg:w-20",
+        "group flex w-[4.5rem] shrink-0 flex-col items-center gap-1 rounded-[12px] border p-2 text-center transition-colors lg:w-[5.5rem]",
         highlight
           ? "border-primary-200 bg-primary-50 hover:border-primary-400 hover:bg-primary-100"
           : "border-border bg-surface hover:border-primary-300 hover:bg-primary-50",
@@ -169,7 +169,7 @@ function Tile({
     >
       <span
         className={cn(
-          "relative flex size-10 items-center justify-center overflow-hidden rounded-full",
+          "relative flex size-11 items-center justify-center overflow-hidden rounded-full",
           highlight
             ? "bg-primary-600 text-white"
             : "bg-primary-50 text-primary-700 group-hover:bg-primary-100"
@@ -188,10 +188,10 @@ function Tile({
             <span className="absolute inset-0 bg-black/15 transition-opacity group-hover:bg-black/0" />
           </>
         ) : (
-          <Icon className="size-4" />
+          <Icon className="size-[18px]" />
         )}
       </span>
-      <span className="text-foreground line-clamp-1 text-[10px] leading-tight font-medium">
+      <span className="text-foreground line-clamp-1 text-[11px] leading-tight font-medium">
         {label}
       </span>
     </Link>
