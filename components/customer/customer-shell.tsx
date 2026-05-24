@@ -7,11 +7,17 @@ import { CustomerFooter } from "@/components/customer/customer-footer";
  * Chrome client : header (desktop + mobile), bottom-nav (mobile), footer (desktop).
  * Charge l'auth pour adapter le header (compte vs se-connecter) — pas de
  * blocage : la navigation est libre sans compte.
+ *
+ * `hideHeader` = true sur la home où le hero violet absorbe la fonction du
+ * header (cf. StorefrontHero qui contient logo + location + cart + compte +
+ * salutation dans un seul bloc).
  */
 export async function CustomerShell({
   children,
+  hideHeader = false,
 }: {
   children: React.ReactNode;
+  hideHeader?: boolean;
 }) {
   const supabase = await createClient();
   const {
@@ -30,7 +36,9 @@ export async function CustomerShell({
 
   return (
     <div className="bg-surface-2 min-h-screen">
-      <CustomerHeader isAuth={!!user} customerName={customerName} />
+      {!hideHeader && (
+        <CustomerHeader isAuth={!!user} customerName={customerName} />
+      )}
       <main className="pb-20 lg:pb-0">{children}</main>
       <CustomerFooter />
       <CustomerBottomNav />

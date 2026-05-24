@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { ShoppingBag } from "lucide-react";
 import {
   rawSubtotal,
@@ -8,20 +9,35 @@ import {
   totalUnits,
   useCartFor,
 } from "@/lib/customer/cart-store";
-import { formatDA } from "@/lib/utils";
+import { cn, formatDA } from "@/lib/utils";
 
-/**
- * Barre sticky en bas de la fiche commerçant : si le panier DE CE COMMERCE
- * contient des produits, propose d'aller au panier / checkout. On utilise
- * `useCartFor(merchantId)` pour reconnaître le panier du commerçant courant,
- * indépendamment du panier "actif" (qui peut être un autre commerçant —
- * prompt 16).
- */
+// =============================================================================
+// MerchantCartCta — barre sticky en bas de la fiche commerçant.
+// =============================================================================
+// Petit effet rebond + flash sur le compteur à chaque ajout (au lieu d'un
+// toast intrusif). Le client perçoit l'ajout sans qu'un overlay ne lui
+// bouffe l'écran quand il enchaîne plusieurs produits.
+// =============================================================================
+
 export function MerchantCartCta({ merchantId }: { merchantId: string }) {
   const cart = useCartFor(merchantId);
   const count = totalUnits(cart);
-  if (count === 0) return null;
   const subtotal = rawSubtotal(cart);
+
+  // Déclenche une animation à chaque changement de quantité (sauf au mount).
+  const [pulse, setPulse] = useState(false);
+  const prevCount = useRef(count);
+  useEffect(() => {
+    if (count > prevCount.current) {
+      setPulse(true);
+      const t = setTimeout(() => setPulse(false), 450);
+      prevCount.current = count;
+      return () => clearTimeout(t);
+    }
+    prevCount.current = count;
+  }, [count]);
+
+  if (count === 0) return null;
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-16 z-30 px-4 pb-2 lg:bottom-4">
@@ -29,9 +45,17 @@ export function MerchantCartCta({ merchantId }: { merchantId: string }) {
         <Link
           href="/cart"
           onClick={() => setActiveMerchant(merchantId)}
-          className="bg-primary-600 hover:bg-primary-700 flex items-center justify-between gap-3 rounded-[14px] px-4 py-3 text-white shadow-lg"
+          className={cn(
+            "bg-primary-600 hover:bg-primary-700 flex items-center justify-between gap-3 rounded-[14px] px-4 py-3 text-white shadow-lg transition-transform",
+            pulse && "scale-[1.03]"
+          )}
         >
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-2.5 py-1 text-sm font-semibold">
+          <span
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full bg-white/15 px-2.5 py-1 text-sm font-semibold transition-transform",
+              pulse && "bg-coral-500 scale-110"
+            )}
+          >
             <ShoppingBag className="size-4" />
             {count}
           </span>

@@ -76,7 +76,7 @@ export function ProductDetailSheet({
         category_title: product!.category,
         quantity: qty,
       });
-      toast.success(`Ajouté au panier (${qty})`);
+      // Pas de toast — le CTA panier rebondit + son compteur s'incrémente.
     }
     onClose();
   }

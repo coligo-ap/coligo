@@ -11,7 +11,6 @@ import { WILAYAS } from "@/lib/config/wilayas";
 import { MerchantHeroCard } from "@/components/customer/merchant-hero-card";
 import { MerchantCatalog } from "@/components/customer/merchant-catalog";
 import { MerchantCartCta } from "@/components/customer/merchant-cart-cta";
-import { MerchantReviews } from "@/components/customer/merchant-reviews";
 import { getMerchantReviews } from "@/lib/data/reviews";
 import {
   discountedUnitPrice,
@@ -101,6 +100,9 @@ export default async function MerchantPublicPage({
           min_order_da={m.min_order_da}
           prep_time_min={m.prep_time_min}
           opening_hours={m.opening_hours}
+          rating_avg={m.rating_avg}
+          rating_count={m.rating_count}
+          reviews={reviews}
         />
 
         {/* Catalogue : catégories en cartes (Deliveroo) + sections collapsibles
@@ -119,13 +121,8 @@ export default async function MerchantPublicPage({
             categories={catalog.categories}
             promoPriceById={promoPriceById}
           />
-
-          {/* Section avis clients (masquée si rating_count === 0). */}
-          <MerchantReviews
-            ratingAvg={m.rating_avg}
-            ratingCount={m.rating_count}
-            reviews={reviews}
-          />
+          {/* Plus de section avis en bas — le badge rating dans la card hero
+              ci-dessus ouvre une modale "Retours clients" directement. */}
         </div>
       </div>
 

@@ -54,7 +54,9 @@ export function ProductRow({
       image_url: product.image_url,
       category_title: product.category,
     });
-    toast.success("Ajouté au panier");
+    // Pas de toast : le client voit le compteur du CTA panier s'incrémenter
+    // avec un petit effet rebond — moins intrusif quand on ajoute plusieurs
+    // produits d'affilée.
   }
 
   function increment(e: React.MouseEvent) {

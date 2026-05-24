@@ -13,6 +13,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ImageWithOverlay } from "@/components/ui/image-with-overlay";
 import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badge";
+import { MerchantReviewsDialog } from "@/components/customer/merchant-reviews-dialog";
+import type { ReviewWithCustomer } from "@/lib/data/reviews";
 import { DAY_KEYS, DAY_LABELS, type OpeningHours } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
@@ -51,6 +53,9 @@ export function MerchantHeroCard({
   min_order_da,
   prep_time_min,
   opening_hours,
+  rating_avg,
+  rating_count,
+  reviews,
 }: {
   name: string;
   category: string | null;
@@ -65,6 +70,9 @@ export function MerchantHeroCard({
   min_order_da: number;
   prep_time_min: number;
   opening_hours: OpeningHours;
+  rating_avg: number;
+  rating_count: number;
+  reviews: ReviewWithCustomer[];
 }) {
   const [showHours, setShowHours] = useState(false);
   const [expandDesc, setExpandDesc] = useState(false);
@@ -133,6 +141,13 @@ export function MerchantHeroCard({
               <span className="text-muted text-sm">{categoryLabel}</span>
             )}
             <OpenStatusBadge hours={opening_hours} />
+            {/* Badge rating cliquable → modale "Retours clients". Masqué si
+                rating_count === 0 (le composant gère lui-même). */}
+            <MerchantReviewsDialog
+              ratingAvg={rating_avg}
+              ratingCount={rating_count}
+              reviews={reviews}
+            />
           </div>
         </header>
 
