@@ -7,6 +7,12 @@ import {
   getMyCashbackBalance,
   getMyTopupBalance,
 } from "@/lib/customer/cashback";
+import {
+  computeServiceFeeDa,
+  daUntilFreeServiceFee,
+  parseTiers,
+  type ServiceFeeTier,
+} from "@/lib/finance/service-fee";
 import type { Json } from "@/lib/supabase/database.types";
 
 export type CheckoutContextInput = {
@@ -35,6 +41,7 @@ export type CheckoutContext = {
   }[];
   cart: {
     subtotalDa: number;
+    /** Total APRÈS promos, AVANT service_fee/cashback/topup. */
     totalDa: number;
     savingsDa: number;
   };
@@ -42,6 +49,12 @@ export type CheckoutContext = {
   cashback_balance_da: number;
   /** Solde Coligo Pay (topup, argent réel) du client connecté. */
   topup_balance_da: number;
+  /** Frais de service (DA) calculés serveur sur (subtotal - discount). */
+  service_fee_da: number;
+  /** Tiers actifs sur la plateforme — pour l'affichage du « Gratuit dès X DA ». */
+  service_fee_tiers: ServiceFeeTier[];
+  /** DA manquants pour atteindre la gratuité, ou null si déjà gratuit. */
+  service_fee_free_in_da: number | null;
 };
 
 /**
@@ -61,11 +74,17 @@ export async function fetchCheckoutContext(
     .eq("id", input.merchant_id)
     .maybeSingle();
 
-  // Soldes du client connecté (lectures rapides en parallèle).
-  const [cashbackBalance, topupBalance] = await Promise.all([
+  // Soldes du client + config plateforme (lectures rapides en parallèle).
+  const [cashbackBalance, topupBalance, settings] = await Promise.all([
     getMyCashbackBalance(),
     getMyTopupBalance(),
+    supabase
+      .from("platform_settings")
+      .select("service_fee_tiers")
+      .eq("id", true)
+      .maybeSingle(),
   ]);
+  const tiers = parseTiers(settings.data?.service_fee_tiers);
 
   const fallback = {
     merchant: {
@@ -82,6 +101,9 @@ export async function fetchCheckoutContext(
     cart: { subtotalDa: 0, totalDa: 0, savingsDa: 0 },
     cashback_balance_da: cashbackBalance,
     topup_balance_da: topupBalance,
+    service_fee_da: 0,
+    service_fee_tiers: tiers,
+    service_fee_free_in_da: null,
   };
 
   if (!merchant) {
@@ -188,5 +210,8 @@ export async function fetchCheckoutContext(
     },
     cashback_balance_da: cashbackBalance,
     topup_balance_da: topupBalance,
+    service_fee_da: computeServiceFeeDa(settled.totalDa, tiers),
+    service_fee_tiers: tiers,
+    service_fee_free_in_da: daUntilFreeServiceFee(settled.totalDa, tiers),
   };
 }

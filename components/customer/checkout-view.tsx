@@ -200,13 +200,16 @@ export function CheckoutView({ customer }: Props) {
     });
   }
 
-  // Cashback effectivement appliqué = min(solde, total) si toggle ON, sinon 0.
+  // Cashback effectivement appliqué = min(solde, total avec frais) si toggle
+  // ON, sinon 0. Le cashback s'applique sur (produits + service_fee) — JAMAIS
+  // sur le ticket commerçant seul (le calcul des frais lui est antérieur).
   // (Recalculé aussi côté serveur — c'est la source de vérité.)
+  const totalBeforeWallets = ctx.cart.totalDa + ctx.service_fee_da;
   const cashbackApplied = useCashback
-    ? Math.min(ctx.cashback_balance_da, ctx.cart.totalDa)
+    ? Math.min(ctx.cashback_balance_da, totalBeforeWallets)
     : 0;
   // Coligo Pay s'applique APRÈS le cashback, sur ce qui reste.
-  const totalAfterCashback = Math.max(0, ctx.cart.totalDa - cashbackApplied);
+  const totalAfterCashback = Math.max(0, totalBeforeWallets - cashbackApplied);
   const topupApplied = useTopup
     ? Math.min(ctx.topup_balance_da, totalAfterCashback)
     : 0;
@@ -427,6 +430,12 @@ export function CheckoutView({ customer }: Props) {
         <aside className="lg:sticky lg:top-20 lg:self-start">
           <div className="border-border bg-surface rounded-[16px] border p-5 shadow-sm">
             <h2 className="text-foreground mb-3 text-base font-bold">Récap</h2>
+            {ctx.service_fee_da > 0 && ctx.service_fee_free_in_da != null && (
+              <div className="border-primary-100 bg-primary-50 text-primary-700 mb-3 rounded-[10px] border px-3 py-2 text-xs">
+                Encore <strong>{formatDA(ctx.service_fee_free_in_da)}</strong>{" "}
+                pour les frais de service offerts !
+              </div>
+            )}
             <dl className="space-y-1.5 text-sm">
               <Row label="Sous-total" value={formatDA(ctx.cart.subtotalDa)} />
               {ctx.cart.savingsDa > 0 && (
@@ -435,6 +444,20 @@ export function CheckoutView({ customer }: Props) {
                   value={`− ${formatDA(ctx.cart.savingsDa)}`}
                   tone="success"
                 />
+              )}
+              {ctx.service_fee_da > 0 ? (
+                <Row
+                  label="Frais de service"
+                  value={`+ ${formatDA(ctx.service_fee_da)}`}
+                />
+              ) : (
+                ctx.cart.totalDa > 0 && (
+                  <Row
+                    label="Frais de service"
+                    value="Gratuit"
+                    tone="success"
+                  />
+                )
               )}
               {cashbackApplied > 0 && (
                 <Row

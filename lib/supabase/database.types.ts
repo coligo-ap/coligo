@@ -609,6 +609,7 @@ export type Database = {
           chargily_fee: number;
           max_debt_da: number;
           max_topup_da_per_30d: number;
+          service_fee_tiers: Json;
           updated_at: string;
         };
         Insert: {
@@ -620,6 +621,7 @@ export type Database = {
           chargily_fee?: number;
           max_debt_da?: number;
           max_topup_da_per_30d?: number;
+          service_fee_tiers?: Json;
           updated_at?: string;
         };
         Update: {
@@ -631,6 +633,7 @@ export type Database = {
           chargily_fee?: number;
           max_debt_da?: number;
           max_topup_da_per_30d?: number;
+          service_fee_tiers?: Json;
           updated_at?: string;
         };
         Relationships: [];
@@ -820,6 +823,10 @@ export type Database = {
         Args: { p_customer_id: string };
         Returns: number;
       };
+      compute_service_fee_da: {
+        Args: { p_products_da: number };
+        Returns: number;
+      };
       is_super_admin: {
         Args: Record<string, never>;
         Returns: boolean;
@@ -853,6 +860,7 @@ export type Database = {
         | "sale"
         | "commission"
         | "service_fee"
+        | "service_fee_owed"
         | "payout"
         | "adjustment";
       payout_status: "pending" | "approved" | "paid" | "rejected";

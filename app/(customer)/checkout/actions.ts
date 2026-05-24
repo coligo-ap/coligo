@@ -17,6 +17,7 @@ import {
   CHARGILY_MIN_AMOUNT_DA,
   resolveMinOrderDa,
 } from "@/lib/config/payment-limits";
+import { computeServiceFeeDa, parseTiers } from "@/lib/finance/service-fee";
 import type { OpeningHours, PaymentMethod } from "@/lib/types";
 
 export type CreateOrderInput = {
@@ -334,28 +335,42 @@ export async function createOrder(
   );
 
   // ---------------------------------------------------------------------------
-  // 5b. Cashback DÉPENSÉ par le client — recalcul serveur (PARTIE A) :
+  // 5a-bis. FRAIS DE SERVICE — calculés sur (subtotal - discount).
+  //   - cashback EXCLU des frais (on ne donne pas de cashback sur ses propres
+  //     frais ; on ne soustrait pas non plus le cashback du panier produits
+  //     pour le calcul des frais — c'est le ticket BRUT du commerçant qui
+  //     détermine le tier).
+  //   - tiers lus depuis platform_settings.service_fee_tiers (JSONB).
+  //   - figé dans orders.service_fee_da. Source de vérité pour le trigger.
+  // ---------------------------------------------------------------------------
+  const { data: settingsRow } = await supabase
+    .from("platform_settings")
+    .select("service_fee_tiers")
+    .eq("id", true)
+    .maybeSingle();
+  const serviceFeeTiers = parseTiers(settingsRow?.service_fee_tiers);
+  const productsDa = settled.totalDa; // = subtotal - discount, AVANT wallet
+  const serviceFeeDa = computeServiceFeeDa(productsDa, serviceFeeTiers);
+
+  // ---------------------------------------------------------------------------
+  // 5b. Cashback DÉPENSÉ par le client — recalcul serveur :
   //   - jamais > solde du client
-  //   - jamais > total après promos
+  //   - jamais > total avant cashback (produits + service_fee)
   //   - figé dans la commande (snapshot)
   // Le trigger SQL `spend_customer_cashback_on_order_create` génère l'écriture
   // négative dans le ledger client à l'INSERT de la commande.
   // ---------------------------------------------------------------------------
+  const totalBeforeWallets = productsDa + serviceFeeDa;
   let cashbackUsed = 0;
   if ((input.cashback_to_use_da ?? 0) > 0) {
     const balance = await getCashbackBalanceForCustomer(customer.id);
     const requested = Math.max(0, Math.floor(input.cashback_to_use_da ?? 0));
-    cashbackUsed = Math.min(requested, balance, settled.totalDa);
+    cashbackUsed = Math.min(requested, balance, totalBeforeWallets);
   }
-  const totalAfterCashback = Math.max(0, settled.totalDa - cashbackUsed);
+  const totalAfterCashback = Math.max(0, totalBeforeWallets - cashbackUsed);
 
   // -------------------------------------------------------------------------
-  // 5c. Coligo Pay (topup) DÉPENSÉ — recalcul serveur :
-  //   - jamais > solde topup du client
-  //   - jamais > total restant après cashback
-  //   - figé dans la commande (snapshot)
-  // Le trigger SQL `spend_customer_topup_on_order_create` génère l'écriture
-  // négative dans le ledger client à l'INSERT de la commande.
+  // 5c. Coligo Pay (topup) DÉPENSÉ — recalcul serveur.
   // -------------------------------------------------------------------------
   let topupUsed = 0;
   if ((input.topup_to_use_da ?? 0) > 0) {
@@ -409,7 +424,7 @@ export async function createOrder(
       total_da: totalAfterWallets,
       cashback_used_da: cashbackUsed,
       topup_used_da: topupUsed,
-      service_fee_da: 0,
+      service_fee_da: serviceFeeDa,
       cashback_da: 0,
       cashback_estimate_da: cashbackEstimate,
       commission_da: 0, // figé à la complétion par le trigger wallet
