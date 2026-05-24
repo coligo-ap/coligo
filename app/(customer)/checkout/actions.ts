@@ -6,6 +6,10 @@ import { computeCart, type EnginePromotion } from "@/lib/promotions/engine";
 import { isOpenNow, normalizeOpeningHours } from "@/lib/merchant/opening-hours";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { getCashbackBalanceForCustomer } from "@/lib/customer/cashback";
+import {
+  createCheckout as createChargilyCheckout,
+  buildCallbackUrls,
+} from "@/lib/payments/chargily";
 import type { OpeningHours, PaymentMethod } from "@/lib/types";
 
 export type CreateOrderInput = {
@@ -26,7 +30,17 @@ export type CreateOrderInput = {
 };
 
 export type CreateOrderResult =
-  | { ok: true; order_id: string; pickup_code: string }
+  | {
+      ok: true;
+      order_id: string;
+      pickup_code: string;
+      /**
+       * URL Chargily si payment_method=online ET total > 0. Le client doit y
+       * être redirigé. Pour payment_method=cash ou total=0 (cashback couvre
+       * tout), absent.
+       */
+      checkout_url?: string;
+    }
   | { ok: false; error: string };
 
 export async function createOrder(
@@ -57,17 +71,64 @@ export async function createOrder(
 
   // ---------------------------------------------------------------------------
   // 2. Idempotency — si on a déjà créé cette commande, on renvoie l'existante.
+  //
+  // Cas particulier paiement en ligne :
+  //   - si la commande existe ET est `online` ET `payment_status = pending`
+  //     (paiement abandonné ou échoué) → on REGÉNÈRE un checkout Chargily
+  //     plutôt que de laisser le client sans URL. Le `payment_status` côté
+  //     trigger ne fire qu'à la transition vers 'paid', donc aucun risque
+  //     de double-encaissement.
+  //   - une commande déjà payée (`payment_status = paid`) → retour simple.
   // ---------------------------------------------------------------------------
   const { data: existing } = await supabase
     .from("orders")
-    .select("id, pickup_code")
+    .select(
+      "id, pickup_code, payment_method, payment_status, total_da, customer_id"
+    )
     .eq("client_operation_id", input.client_operation_id)
     .maybeSingle();
   if (existing) {
+    let checkoutUrl: string | undefined;
+    if (
+      existing.payment_method === "online" &&
+      existing.payment_status === "pending" &&
+      existing.total_da > 0
+    ) {
+      try {
+        const { successUrl, failureUrl, webhookEndpoint } = buildCallbackUrls({
+          context: "order",
+          orderId: existing.id,
+        });
+        const checkout = await createChargilyCheckout({
+          amount: existing.total_da,
+          successUrl,
+          failureUrl,
+          webhookEndpoint,
+          locale: "fr",
+          description: `Commande Coligo #${existing.pickup_code}`,
+          metadata: {
+            type: "order",
+            order_id: existing.id,
+            client_operation_id: input.client_operation_id,
+            customer_id: existing.customer_id ?? null,
+          },
+        });
+        checkoutUrl = checkout.checkout_url;
+      } catch (e) {
+        return {
+          ok: false,
+          error:
+            e instanceof Error
+              ? `Impossible d'initier le paiement : ${e.message}`
+              : "Impossible d'initier le paiement.",
+        };
+      }
+    }
     return {
       ok: true,
       order_id: existing.id,
       pickup_code: existing.pickup_code,
+      checkout_url: checkoutUrl,
     };
   }
 
@@ -336,6 +397,150 @@ export async function createOrder(
     return { ok: false, error: `Erreur ajout articles : ${itemsErr.message}` };
   }
 
+  // ---------------------------------------------------------------------------
+  // 7. Paiement en ligne — création du checkout Chargily.
+  //
+  // Cas exotique mais possible : online + totalAfterCashback === 0 (le cashback
+  // couvre tout). Dans ce cas, AUCUN paiement n'est nécessaire ; on bascule la
+  // commande directement à `payment_status = paid` côté serveur (le trigger
+  // wallet fera ses écritures normalement). Pas de Chargily à appeler.
+  // ---------------------------------------------------------------------------
+  let checkoutUrl: string | undefined;
+  if (input.payment_method === "online") {
+    if (totalAfterCashback === 0) {
+      await supabase
+        .from("orders")
+        .update({ payment_status: "paid" })
+        .eq("id", order.id);
+    } else {
+      try {
+        const { successUrl, failureUrl, webhookEndpoint } = buildCallbackUrls({
+          context: "order",
+          orderId: order.id,
+        });
+        const checkout = await createChargilyCheckout({
+          amount: totalAfterCashback,
+          successUrl,
+          failureUrl,
+          webhookEndpoint,
+          locale: "fr",
+          description: `Commande Coligo #${order.pickup_code}`,
+          metadata: {
+            type: "order",
+            order_id: order.id,
+            client_operation_id: input.client_operation_id,
+            customer_id: customer.id,
+          },
+        });
+        checkoutUrl = checkout.checkout_url;
+      } catch (e) {
+        // On NE supprime PAS la commande : le client peut réessayer (idempotent
+        // via client_operation_id) et reprendra son checkout à la prochaine
+        // soumission.
+        return {
+          ok: false,
+          error:
+            e instanceof Error
+              ? `Commande créée mais paiement indisponible : ${e.message}`
+              : "Commande créée mais paiement indisponible.",
+        };
+      }
+    }
+  }
+
   revalidatePath("/commandes");
-  return { ok: true, order_id: order.id, pickup_code: order.pickup_code };
+  return {
+    ok: true,
+    order_id: order.id,
+    pickup_code: order.pickup_code,
+    checkout_url: checkoutUrl,
+  };
+}
+
+// ===========================================================================
+// retryOnlineOrderPayment — réessayer un paiement abandonné/échoué.
+// L'utilisateur clique « Réessayer » sur /checkout/failure ou /commandes/[id].
+// Pré-requis : la commande lui appartient, elle est `online`, `payment_status`
+// est encore 'pending' ou 'failed', et `total_da > 0`.
+// ===========================================================================
+export async function retryOnlineOrderPayment(
+  orderId: string
+): Promise<{ ok: true; checkout_url: string } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Tu dois te reconnecter." };
+
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!customer) return { ok: false, error: "Profil client introuvable." };
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select(
+      "id, pickup_code, payment_method, payment_status, total_da, customer_id, client_operation_id"
+    )
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "Commande introuvable." };
+  if (order.customer_id !== customer.id) {
+    return { ok: false, error: "Cette commande ne t'appartient pas." };
+  }
+  if (order.payment_method !== "online") {
+    return {
+      ok: false,
+      error: "Cette commande n'est pas un paiement en ligne.",
+    };
+  }
+  if (order.payment_status === "paid") {
+    return { ok: false, error: "Cette commande est déjà payée." };
+  }
+  if (order.payment_status === "refunded") {
+    return { ok: false, error: "Cette commande a été remboursée." };
+  }
+  if (order.total_da <= 0) {
+    return { ok: false, error: "Montant invalide." };
+  }
+
+  try {
+    const { successUrl, failureUrl, webhookEndpoint } = buildCallbackUrls({
+      context: "order",
+      orderId: order.id,
+    });
+    const checkout = await createChargilyCheckout({
+      amount: order.total_da,
+      successUrl,
+      failureUrl,
+      webhookEndpoint,
+      locale: "fr",
+      description: `Commande Coligo #${order.pickup_code}`,
+      metadata: {
+        type: "order",
+        order_id: order.id,
+        client_operation_id: order.client_operation_id ?? null,
+        customer_id: customer.id,
+      },
+    });
+    // Si la commande était passée à 'failed' on la repasse 'pending' pour
+    // refléter la nouvelle tentative.
+    if (order.payment_status === "failed") {
+      await supabase
+        .from("orders")
+        .update({ payment_status: "pending" })
+        .eq("id", order.id);
+    }
+    return { ok: true, checkout_url: checkout.checkout_url };
+  } catch (e) {
+    return {
+      ok: false,
+      error:
+        e instanceof Error
+          ? `Paiement indisponible : ${e.message}`
+          : "Paiement indisponible.",
+    };
+  }
 }

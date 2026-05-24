@@ -157,6 +157,14 @@ export function CheckoutView({ customer }: Props) {
         return;
       }
       clearCart();
+      // Paiement en ligne : on redirige immédiatement vers Chargily Pay. Le
+      // panier est vidé AVANT pour éviter qu'un retour-arrière du navigateur
+      // remette les articles. Si checkout_url est absent (cashback couvre
+      // 100 %, ou cas exotique), on tombe sur le détail de la commande.
+      if (payment === "online" && res.checkout_url) {
+        window.location.href = res.checkout_url;
+        return;
+      }
       router.push(`/commandes/${res.order_id}`);
     });
   }
@@ -286,18 +294,16 @@ export function CheckoutView({ customer }: Props) {
                 checked={payment === "online"}
                 onClick={() => setPayment("online")}
                 title="En ligne ⚡"
-                hint="Plus de cashback · Commande prioritaire"
+                hint="Carte CIB / EDAHABIA · Cashback bonus"
                 icon={Sparkles}
                 disabled={!ctx.merchant.accepts_online}
-                comingSoon
               />
             </div>
             {payment === "online" && (
-              <div className="border-warning-100 bg-warning-50 text-warning-700 mt-3 rounded-[10px] border px-3 py-2 text-xs">
-                Le paiement Chargily sera branché prochainement. Pour
-                l&apos;instant, ta commande sera créée en « paiement en attente
-                » — le commerçant ne la verra qu&apos;une fois le paiement
-                confirmé.
+              <div className="border-primary-100 bg-primary-50 text-primary-700 mt-3 rounded-[10px] border px-3 py-2 text-xs">
+                Tu seras redirigé(e) vers Chargily Pay pour régler par carte. La
+                commande n&apos;est confirmée au commerçant qu&apos;une fois le
+                paiement validé.
               </div>
             )}
           </Section>
