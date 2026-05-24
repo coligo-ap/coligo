@@ -8,6 +8,7 @@ import {
   signupSchema,
   firstZodError,
 } from "@/lib/validation/auth";
+import { suggestedMinOrderForCategory } from "@/lib/config/payment-limits";
 
 export type AuthState = {
   error?: string;
@@ -114,6 +115,10 @@ export async function signup(
     category,
     wilaya_code: wilayaCode,
     city,
+    // Pré-remplit le minimum de commande selon le panier moyen de la catégorie
+    // (étude pouvoir d'achat algérien). Le commerçant peut le monter dans ses
+    // réglages ; le plancher Coligo s'applique côté checkout.
+    min_order_da: suggestedMinOrderForCategory(category),
   });
 
   if (merchantError) {

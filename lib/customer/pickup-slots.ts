@@ -111,7 +111,7 @@ export function generateTodaySlots(
       slots.push({
         start: new Date(cursor),
         end,
-        label: startsTomorrow ? `${hh}:${mm} (lendemain)` : `${hh}:${mm}`,
+        label: startsTomorrow ? `${hh}h${mm} (demain)` : `${hh}h${mm}`,
       });
       cursor = end;
     }

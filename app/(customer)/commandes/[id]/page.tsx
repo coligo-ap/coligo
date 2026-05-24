@@ -16,6 +16,7 @@ import { cn, formatDA } from "@/lib/utils";
 import { OrderQr } from "@/components/customer/order-qr";
 import { CustomerOrderLive } from "@/components/customer/customer-order-live";
 import { cldUrl } from "@/lib/images/cloudinary";
+import { formatAsapReady, formatSlotRange } from "@/lib/customer/pickup-format";
 
 export const dynamic = "force-dynamic";
 
@@ -215,28 +216,14 @@ export default async function CustomerOrderDetailPage({
         {/* Mode + créneau */}
         <div className="grid gap-3 sm:grid-cols-2">
           <Info icon={Clock} title="Retrait">
-            {order.pickup_type === "slot" && order.pickup_slot_start ? (
-              <>
-                Créneau{" "}
-                {new Date(order.pickup_slot_start).toLocaleTimeString("fr-DZ", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-                {order.pickup_slot_end &&
-                  ` – ${new Date(order.pickup_slot_end).toLocaleTimeString(
-                    "fr-DZ",
-                    { hour: "2-digit", minute: "2-digit" }
-                  )}`}
-              </>
-            ) : (
-              <>
-                Dès que prêt — vers{" "}
-                {new Date(order.pickup_slot_at).toLocaleTimeString("fr-DZ", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </>
-            )}
+            {order.pickup_type === "slot" &&
+            order.pickup_slot_start &&
+            order.pickup_slot_end
+              ? formatSlotRange(
+                  new Date(order.pickup_slot_start),
+                  new Date(order.pickup_slot_end)
+                )
+              : formatAsapReady(new Date(order.pickup_slot_at))}
           </Info>
           <Info icon={isCash ? Banknote : Sparkles} title="Paiement">
             {isCash ? (

@@ -9,6 +9,7 @@ import {
   passwordSchema,
   profileSchema,
 } from "@/lib/validation/merchant-settings";
+import { MIN_ORDER_CASH_DA } from "@/lib/config/payment-limits";
 
 const SettingsSchema = z.object({
   auto_accept_orders: z.boolean(),
@@ -181,6 +182,14 @@ export async function updateOrderRules(
   }
   if (!parsed.data.accepts_cash && !parsed.data.accepts_online) {
     return { error: "Au moins un mode de paiement doit être accepté." };
+  }
+
+  // Plancher absolu Coligo : un commerçant peut monter son min_order mais
+  // jamais descendre sous le seuil plateforme (rentabilité Chargily + ops).
+  if (parsed.data.min_order_da < MIN_ORDER_CASH_DA) {
+    return {
+      error: `Le minimum de commande ne peut pas être inférieur à ${MIN_ORDER_CASH_DA} DA.`,
+    };
   }
 
   const merchant = await requireMerchant();

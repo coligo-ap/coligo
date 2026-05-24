@@ -20,6 +20,7 @@ import { toast } from "@/components/ui/toast";
 import { clearCart, useCart, useOtherCarts } from "@/lib/customer/cart-store";
 import { CartConflictModal } from "@/components/customer/cart-conflict-modal";
 import { generateTodaySlots, type Slot } from "@/lib/customer/pickup-slots";
+import { formatAsapReady, formatSlotRange } from "@/lib/customer/pickup-format";
 import { normalizeOpeningHours } from "@/lib/merchant/opening-hours";
 import type { OpeningHours } from "@/lib/types";
 import {
@@ -277,13 +278,10 @@ export function CheckoutView({ customer }: Props) {
               <Choice
                 checked={pickupType === "asap"}
                 onClick={() => setPickupType("asap")}
-                title="Dès que prêt"
-                hint={`Prêt vers ${new Date(
-                  Date.now() + ctx.merchant.prep_time_min * 60_000
-                ).toLocaleTimeString("fr-DZ", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}`}
+                title="Préparation immédiate"
+                hint={formatAsapReady(
+                  new Date(Date.now() + ctx.merchant.prep_time_min * 60_000)
+                )}
               />
               <Choice
                 checked={pickupType === "slot"}
