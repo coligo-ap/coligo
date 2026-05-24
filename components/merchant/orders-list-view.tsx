@@ -28,9 +28,10 @@ import {
   type OrderWithItems,
   type PrintWidth,
 } from "@/lib/types";
-import { updateOrderStatus } from "@/app/(merchant)/orders/actions";
+import { enqueueOrExecute } from "@/lib/offline/queue";
 import { PrintOrderButton } from "@/components/ticket/print-order-button";
 import { orderToTicket } from "@/lib/ticket/order-to-ticket";
+import { OrdersCacheSync } from "@/components/merchant/orders-cache-sync";
 
 const FILTERS: { key: string; label: string }[] = [
   { key: "all", label: "Toutes" },
@@ -117,6 +118,8 @@ export function OrdersListView({
 
   return (
     <div className="mx-auto max-w-[1600px] p-4 lg:p-6 lg:px-8">
+      {/* Cache local pour lecture offline (mis à jour à chaque rendu). */}
+      <OrdersCacheSync orders={orders} />
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
@@ -251,15 +254,29 @@ function useQuickAdvance(order: OrderWithItems) {
 
   function advance() {
     if (!next) return;
-    const operationId = crypto.randomUUID();
     startTransition(async () => {
-      const res = await updateOrderStatus(order.id, next.to, operationId);
-      if (res.error) {
-        toast.error(res.error);
-        return;
+      try {
+        const outcome = await enqueueOrExecute({
+          type: "update_status",
+          orderId: order.id,
+          to: next.to,
+        });
+        if (outcome.mode === "queued") {
+          toast.info(
+            `Hors ligne — « ${ORDER_STATUS_META[next.to].label} » sera synchronisé.`
+          );
+          return;
+        }
+        const res = outcome.result;
+        if (res.error) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success(`Commande : ${ORDER_STATUS_META[next.to].label}`);
+        router.refresh();
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erreur inattendue.");
       }
-      toast.success(`Commande : ${ORDER_STATUS_META[next.to].label}`);
-      router.refresh();
     });
   }
 

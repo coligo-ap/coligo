@@ -5,7 +5,7 @@ import { useCallback, useRef, useState, useTransition } from "react";
 import { CheckCircle2, Hash, Loader2, QrCode, XCircle } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { validatePickupCode } from "@/app/(merchant)/orders/actions";
+import { enqueueOrExecute } from "@/lib/offline/queue";
 import { QrScanner } from "@/components/scanner/qr-scanner";
 
 type Tab = "code" | "qr";
@@ -18,14 +18,33 @@ export function PickupValidator() {
 
   function submit(code: string) {
     setResult(null);
-    const operationId = crypto.randomUUID();
     startTransition(async () => {
-      const res = await validatePickupCode(code, operationId);
-      setResult({
-        ok: !res.error,
-        message: res.error ?? res.success ?? "",
-        orderId: res.orderId,
-      });
+      try {
+        const outcome = await enqueueOrExecute({
+          type: "validate_pickup",
+          code,
+        });
+        if (outcome.mode === "queued") {
+          // Hors ligne : on enregistre la validation et on confirmera au
+          // commerçant que la synchro se fera dès le retour du réseau.
+          // Pas d'orderId à afficher (on n'a pas interrogé la DB).
+          setResult({
+            ok: true,
+            message:
+              "Hors ligne — le retrait sera enregistré dès le retour du réseau.",
+          });
+          return;
+        }
+        const res = outcome.result;
+        setResult({
+          ok: !res.error,
+          message: res.error ?? res.success ?? "",
+          orderId: res.orderId,
+        });
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "Erreur inattendue.";
+        setResult({ ok: false, message });
+      }
     });
   }
 

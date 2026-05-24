@@ -6,6 +6,7 @@ import {
   mobileDrawer,
   useMobileDrawerOpen,
 } from "@/components/merchant/use-mobile-drawer";
+import { SyncIndicator } from "@/components/merchant/sync-indicator";
 
 interface MerchantMobileHeaderProps {
   merchantName: string;
@@ -23,6 +24,12 @@ export function MerchantMobileHeader({
       <Logo variant="amber" size="sm" subtitle={merchantName} />
 
       <div className="flex items-center gap-1">
+        {/* Indicateur résilience offline (mobile = simple pastille, panneau
+            ancré sous l'icône). */}
+        <div className="relative">
+          <SyncIndicator />
+        </div>
+
         <button
           className="hover:bg-surface-3 text-muted relative flex size-9 items-center justify-center rounded-full"
           aria-label="Notifications"

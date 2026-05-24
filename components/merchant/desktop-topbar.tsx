@@ -3,6 +3,7 @@
 import { Bell, Search, ChevronDown, LogOut, User } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { logout } from "@/app/(merchant)/actions";
+import { SyncIndicator } from "@/components/merchant/sync-indicator";
 
 interface MerchantTopbarProps {
   userEmail: string;
@@ -50,6 +51,12 @@ export function MerchantTopbar({
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        {/* Indicateur résilience offline — pastille + panneau de la file
+            d'actions différées. Discret par défaut. */}
+        <div className="relative">
+          <SyncIndicator />
+        </div>
+
         <button
           className="hover:bg-surface-3 text-muted relative flex size-10 items-center justify-center rounded-full transition-colors"
           aria-label="Notifications"

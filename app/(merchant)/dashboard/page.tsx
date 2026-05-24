@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Inbox, ShoppingBag, TrendingUp, Clock, QrCode } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { OrderRealtimeBridge } from "@/components/merchant/order-realtime-bridge";
+import { OrdersCacheSync } from "@/components/merchant/orders-cache-sync";
 import { formatDA, cn } from "@/lib/utils";
 import {
   DEFAULT_PRINT_SETTINGS,
@@ -119,6 +120,10 @@ export default async function DashboardPage() {
           printSettings={printSettings}
         />
       )}
+
+      {/* Synchronise le snapshot serveur vers le cache Dexie pour la lecture
+          offline (page /offline → "Voir les dernières commandes connues"). */}
+      <OrdersCacheSync orders={ordersList} />
 
       {/* KPIs */}
       <section className="mb-6 grid grid-cols-2 gap-3 lg:mb-8 lg:grid-cols-4 lg:gap-4">

@@ -12,7 +12,7 @@ import {
   ORDER_STATUS_META,
   type OrderStatus,
 } from "@/lib/types";
-import { updateOrderStatus } from "@/app/(merchant)/orders/actions";
+import { enqueueOrExecute } from "@/lib/offline/queue";
 
 /**
  * Actions contextuelles du détail commande :
@@ -35,16 +35,34 @@ export function OrderActions({
 
   function run(to: OrderStatus) {
     setError(null);
-    const operationId = crypto.randomUUID();
     startTransition(async () => {
-      const res = await updateOrderStatus(orderId, to, operationId);
-      if (res.error) {
-        setError(res.error);
-        toast.error(res.error);
-        return;
+      try {
+        const outcome = await enqueueOrExecute({
+          type: "update_status",
+          orderId,
+          to,
+        });
+        if (outcome.mode === "queued") {
+          // Offline : l'action est enfilée, le serveur l'appliquera à la
+          // reconnexion. UI optimiste : on remonte un toast informatif.
+          toast.info(
+            `Hors ligne — « ${ORDER_STATUS_META[to].label} » sera synchronisé.`
+          );
+          return;
+        }
+        const res = outcome.result;
+        if (res.error) {
+          setError(res.error);
+          toast.error(res.error);
+          return;
+        }
+        toast.success(`Commande : ${ORDER_STATUS_META[to].label}`);
+        router.refresh();
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "Erreur inattendue.";
+        setError(message);
+        toast.error(message);
       }
-      toast.success(`Commande : ${ORDER_STATUS_META[to].label}`);
-      router.refresh();
     });
   }
 

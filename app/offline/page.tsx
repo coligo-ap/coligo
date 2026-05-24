@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { WifiOff, RefreshCw } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
+import { OfflineOrdersFallback } from "@/components/merchant/offline-orders-fallback";
 
 export const metadata = {
   title: "Hors ligne — Coligo",
@@ -9,7 +10,7 @@ export const metadata = {
 
 export default function OfflinePage() {
   return (
-    <main className="bg-surface-2 flex min-h-screen flex-col items-center justify-center px-6 py-10">
+    <main className="bg-surface-2 flex min-h-screen flex-col items-center px-6 py-10">
       <div className="border-border w-full max-w-sm rounded-[14px] border bg-white p-6 text-center shadow-sm">
         <div className="mb-6 flex justify-center">
           <Logo variant="amber" size="lg" />
@@ -32,6 +33,10 @@ export default function OfflinePage() {
           Réessayer
         </Link>
       </div>
+
+      {/* Affichage dégradé : dernières commandes connues du commerçant
+          (lecture seule depuis IndexedDB). Vide si aucun cache local. */}
+      <OfflineOrdersFallback />
     </main>
   );
 }
