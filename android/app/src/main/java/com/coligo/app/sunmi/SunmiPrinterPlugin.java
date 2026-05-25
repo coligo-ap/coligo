@@ -109,6 +109,12 @@ public class SunmiPrinterPlugin extends Plugin {
 
   private void executeCommand(JSONObject cmd) throws RemoteException, JSONException {
     String type = cmd.optString("type", "");
+    // Trace TOUTE commande exécutée — corrélation immédiate avec un éventuel
+    // « Sunmi raise -X » émis juste après par le callback du service AIDL :
+    //   I/SunmiPrinterPlugin: exec size {"type":"size","value":56.0}
+    //   W/SunmiService: Sunmi raise -5: Illegal parameter
+    // → on sait que c'est `size 56` qui plante.
+    Log.i(TAG, "exec " + type + " " + cmd.toString());
     switch (type) {
       case "align": {
         // Sunmi : 0 = left, 1 = center, 2 = right.
@@ -118,7 +124,14 @@ public class SunmiPrinterPlugin extends Plugin {
         return;
       }
       case "size": {
-        sunmi.setFontSize((float) cmd.optDouble("value", 24.0));
+        // Sunmi clampe l'API mais émet « Illegal parameter » au-delà d'un
+        // certain seuil selon le modèle (V3 firmware récent → 56 max
+        // observé). On clamp défensivement côté plugin pour éviter de
+        // casser une séquence d'impression (firmware reste perturbé
+        // jusqu'au prochain printerInit).
+        double raw = cmd.optDouble("value", 24.0);
+        float size = (float) Math.max(12.0, Math.min(56.0, raw));
+        sunmi.setFontSize(size);
         return;
       }
       case "bold": {
