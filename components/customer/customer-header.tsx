@@ -27,7 +27,7 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
 
   return (
     <>
-      <header className="border-border sticky top-0 z-30 border-b bg-white">
+      <header className="border-border sticky top-0 z-30 border-b bg-white pt-[env(safe-area-inset-top)]">
         {/* Desktop */}
         <div className="mx-auto hidden h-16 max-w-[1400px] items-center gap-6 px-6 lg:flex">
           <Link href="/" className="shrink-0">

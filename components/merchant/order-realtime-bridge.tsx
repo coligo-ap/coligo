@@ -1,20 +1,39 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, BellOff, PartyPopper, Volume2, VolumeX, X } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  Monitor,
+  MonitorOff,
+  PartyPopper,
+  Volume2,
+  VolumeX,
+  X,
+} from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { useMerchantPrefs } from "@/lib/hooks/use-merchant-prefs";
-import { useAlertSound } from "@/lib/hooks/use-alert-sound";
+import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
 import { useNotifyPermission } from "@/lib/hooks/use-notify-permission";
 import { useOrderRealtime } from "@/lib/hooks/use-order-realtime";
+import { useWakeLock } from "@/lib/hooks/use-wake-lock";
 import { notify } from "@/lib/native";
+import {
+  isIos,
+  isStandalone,
+  supportsPushIfInstalled,
+} from "@/lib/pwa/platform";
 import { createClient } from "@/lib/supabase/client";
 import { updateOrderStatus } from "@/app/(merchant)/orders/actions";
 import { printOrderTicket } from "@/lib/ticket/print-order";
 import { fetchCategoryMap } from "@/lib/ticket/category-map";
 import type { TicketOrder } from "@/lib/ticket/build-ticket-html";
 import type { OrderStatus, PrintSettings } from "@/lib/types";
+import {
+  CounterAlertOverlay,
+  type CounterAlertOrder,
+} from "@/components/merchant/counter-alert-overlay";
 
 type IncomingOrder = {
   id: string;
@@ -53,10 +72,75 @@ export function OrderRealtimeBridge({
 }: Props) {
   const router = useRouter();
   const { prefs, update, hydrated } = useMerchantPrefs();
-  const { play, unlock, unlocked } = useAlertSound();
+  const { play, stop, unlock, unlocked } = useAlertSound();
   const { permission, request } = useNotifyPermission();
+  const wake = useWakeLock(prefs.counterMode);
   const [toastOrder, setToastOrder] = useState<IncomingOrder | null>(null);
+  const [counterOrder, setCounterOrder] = useState<CounterAlertOrder | null>(
+    null
+  );
   const printedOnceRef = useRef<Set<string>>(new Set());
+  // Détection iPhone non-installé : pour expliquer honnêtement les limites
+  // notifs côté iOS Safari, et inciter à installer.
+  const [iosHint, setIosHint] = useState<
+    "install" | "notif-needs-install" | null
+  >(null);
+  useEffect(() => {
+    if (!isIos()) return;
+    if (!isStandalone()) {
+      setIosHint("install");
+    } else if (supportsPushIfInstalled() && permission !== "granted") {
+      setIosHint("notif-needs-install");
+    } else {
+      setIosHint(null);
+    }
+  }, [permission]);
+
+  // Auto-unlock au PREMIER clic n'importe où : on déverrouille l'audio et on
+  // déclenche la demande de permission notifications. C'est ce qui permet à
+  // « son ON » et « notifs ON » d'être réellement actifs sans que le
+  // commerçant ait à cliquer sur des boutons dédiés.
+  //
+  // En phase « bubble » (pas capture) et sur `pointerup` plutôt que
+  // `pointerdown` : le handler tourne APRÈS les handlers de l'UI courante,
+  // ce qui évite que le prompt système Android (POST_NOTIFICATIONS) ne
+  // sabote un click en cours — symptôme observé sur WebView Sunmi où le
+  // drawer pouvait rester collé. Le `request()` est en plus différé d'un
+  // tick pour ne pas attraper le focus pendant qu'un drawer / modal anime
+  // sa fermeture.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let done = false;
+    const handler = () => {
+      if (done) return;
+      done = true;
+      if (prefs.alertSound && !unlocked) void unlock();
+      if (
+        prefs.notifications &&
+        permission !== "granted" &&
+        permission !== "denied" &&
+        permission !== "unsupported"
+      ) {
+        window.setTimeout(() => void request(), 0);
+      }
+      window.removeEventListener("pointerup", handler);
+      window.removeEventListener("keydown", handler);
+    };
+    window.addEventListener("pointerup", handler);
+    window.addEventListener("keydown", handler);
+    return () => {
+      window.removeEventListener("pointerup", handler);
+      window.removeEventListener("keydown", handler);
+    };
+  }, [
+    prefs.alertSound,
+    prefs.notifications,
+    unlocked,
+    permission,
+    unlock,
+    request,
+  ]);
+
   // Snapshot des réglages : on n'écoute pas leur mutation pendant la session ;
   // le commerçant doit recharger pour appliquer (les changements de réglages
   // déclenchent eux-mêmes une revalidation côté serveur via `setPrintSettings`).
@@ -134,7 +218,13 @@ export function OrderRealtimeBridge({
       total_da: number | null;
       status: string;
     }) => {
-      if (prefs.alertSound) await play();
+      if (prefs.alertSound) {
+        await play({ repeat: prefs.counterMode, intervalMs: 1500 });
+      }
+      if (prefs.counterMode) {
+        // Vibration insistante (no-op iOS).
+        vibrate([300, 150, 300, 150, 300]);
+      }
       if (prefs.notifications && permission === "granted") {
         const title = "Nouvelle commande Coligo";
         const body =
@@ -142,12 +232,20 @@ export function OrderRealtimeBridge({
           (row.total_da != null ? ` · ${formatDA(row.total_da)}` : "");
         notify(title, { body, tag: "coligo-order" });
       }
-      setToastOrder({
-        id: row.id,
-        customer_name: row.customer_name,
-        total_da: row.total_da,
-      });
-      window.setTimeout(() => setToastOrder(null), 8000);
+      if (prefs.counterMode) {
+        setCounterOrder({
+          id: row.id,
+          customer_name: row.customer_name,
+          total_da: row.total_da,
+        });
+      } else {
+        setToastOrder({
+          id: row.id,
+          customer_name: row.customer_name,
+          total_da: row.total_da,
+        });
+        window.setTimeout(() => setToastOrder(null), 8000);
+      }
 
       const s = settingsRef.current;
       // Auto-accept : on valide la commande dès sa réception (transition
@@ -164,7 +262,28 @@ export function OrderRealtimeBridge({
       }
       router.refresh();
     },
-    [prefs.alertSound, prefs.notifications, permission, play, router, doPrint]
+    [
+      prefs.alertSound,
+      prefs.notifications,
+      prefs.counterMode,
+      permission,
+      play,
+      router,
+      doPrint,
+    ]
+  );
+
+  const dismissCounter = useCallback(() => {
+    stop();
+    setCounterOrder(null);
+  }, [stop]);
+
+  const printFromCounter = useCallback(
+    (orderId: string) => {
+      void doPrint(orderId);
+      dismissCounter();
+    },
+    [doPrint, dismissCounter]
   );
 
   const handleUpdate = useCallback(
@@ -220,6 +339,18 @@ export function OrderRealtimeBridge({
           activeLabel="Notifs ON"
           inactiveLabel="Notifs OFF"
         />
+        <Chip
+          active={prefs.counterMode}
+          onClick={() => {
+            const next = !prefs.counterMode;
+            update({ counterMode: next });
+            if (!next) stop();
+          }}
+          activeIcon={Monitor}
+          inactiveIcon={MonitorOff}
+          activeLabel="Comptoir ON"
+          inactiveLabel="Comptoir OFF"
+        />
 
         {needsAudioUnlock && (
           <button
@@ -245,6 +376,49 @@ export function OrderRealtimeBridge({
           </button>
         )}
       </div>
+
+      {/* Aide honnête iPhone : sans installation, les notifs système ne
+          marchent pas — on guide le commerçant vers le Mode comptoir. */}
+      {iosHint && (
+        <div className="border-primary-200 bg-primary-50 text-primary-900 mb-4 rounded-[12px] border p-3 text-xs">
+          {iosHint === "install" ? (
+            <p>
+              <strong>iPhone :</strong> pour recevoir les alertes système et
+              ouvrir l&apos;app en plein écran, ajoutez Coligo à l&apos;écran
+              d&apos;accueil (Safari → Partager →{" "}
+              <em>Sur l&apos;écran d&apos;accueil</em>). En attendant, activez
+              le <strong>Mode comptoir</strong> pour ne rater aucune commande
+              tant que l&apos;app est ouverte.
+            </p>
+          ) : (
+            <p>
+              <strong>Activez les notifications</strong> via le bouton ci-dessus
+              pour être alerté(e) des nouvelles commandes même quand l&apos;app
+              n&apos;est pas au premier plan.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Petite indication si le Mode comptoir est actif. */}
+      {prefs.counterMode && (
+        <div className="border-primary-200 bg-primary-50 text-primary-900 mb-4 flex items-center gap-2 rounded-[12px] border p-2.5 text-xs">
+          <Monitor className="text-primary-600 size-4" />
+          <span className="flex-1">
+            <strong>Mode comptoir actif</strong> — écran maintenu allumé
+            {wake.supported ? "" : " (non supporté sur ce navigateur)"} et
+            alerte renforcée à chaque nouvelle commande.
+          </span>
+        </div>
+      )}
+
+      {/* Overlay plein écran « Mode comptoir » — exige un clic pour se fermer. */}
+      <CounterAlertOverlay
+        order={counterOrder}
+        onDismiss={dismissCounter}
+        onPrint={printFromCounter}
+        canPrint={settingsRef.current.auto_print !== "off"}
+      />
 
       {/* Toast in-app (custom, distinct du Toaster global pour porter l'accent commande) */}
       {toastOrder && (

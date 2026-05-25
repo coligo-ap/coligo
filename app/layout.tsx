@@ -22,6 +22,35 @@ const fontBody = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
+// Splash screens iOS — générés par `scripts/ios-splash.mjs` (à relancer si la
+// couleur de marque change). Apple exige une image par couple device-width ×
+// device-height × pixel-ratio × orientation.
+const IOS_STARTUP_DEVICES = [
+  { name: "se", w: 375, h: 667, r: 2 },
+  { name: "8plus", w: 414, h: 736, r: 3 },
+  { name: "x", w: 375, h: 812, r: 3 },
+  { name: "xr-11", w: 414, h: 896, r: 2 },
+  { name: "xsmax-11pm", w: 414, h: 896, r: 3 },
+  { name: "12-13-14", w: 390, h: 844, r: 3 },
+  { name: "14plus-13pm", w: 428, h: 926, r: 3 },
+  { name: "14pro-15", w: 393, h: 852, r: 3 },
+  { name: "15pm-14pm", w: 430, h: 932, r: 3 },
+];
+
+const IOS_STARTUP_IMAGES = IOS_STARTUP_DEVICES.flatMap((d) => {
+  const base = `(device-width: ${d.w}px) and (device-height: ${d.h}px) and (-webkit-device-pixel-ratio: ${d.r})`;
+  return [
+    {
+      url: `/ios-splash/${d.name}-portrait.png`,
+      media: `${base} and (orientation: portrait)`,
+    },
+    {
+      url: `/ios-splash/${d.name}-landscape.png`,
+      media: `${base} and (orientation: landscape)`,
+    },
+  ];
+});
+
 export const metadata: Metadata = {
   title: `${APP_CONFIG.name} — Espace commerçant`,
   description: APP_CONFIG.description,
@@ -29,7 +58,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: APP_CONFIG.shortName,
+    // `default` : barre de statut iOS claire avec texte sombre, parfait avec
+    // notre header mobile blanc qui remonte sous l'encoche via
+    // `pt-[env(safe-area-inset-top)]`. Le rendu violet « plein-écran » est
+    // assuré par le splash au lancement (`startupImage`).
     statusBarStyle: "default",
+    startupImage: IOS_STARTUP_IMAGES,
   },
   formatDetection: {
     telephone: false,

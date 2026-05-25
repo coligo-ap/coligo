@@ -15,7 +15,7 @@ export function AuthNavBar({
   variant: "merchant" | "customer";
 }) {
   return (
-    <header className="border-border sticky top-0 z-30 border-b bg-white">
+    <header className="border-border sticky top-0 z-30 border-b bg-white pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-3 px-4 lg:px-6">
         <Link href="/" className="shrink-0">
           <Logo variant="amber" size="sm" />

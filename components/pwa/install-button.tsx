@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Share2, Plus, X } from "lucide-react";
+import { Download } from "lucide-react";
 import { useInstallPrompt } from "@/lib/pwa/use-install-prompt";
 import { cn } from "@/lib/utils";
+import { IosInstallSheet } from "./ios-install-sheet";
 
 type Variant = "inline" | "nav";
 
@@ -12,8 +13,8 @@ type Variant = "inline" | "nav";
  *
  * - variant `"inline"` : pour les pages publiques (login, signup), discret.
  * - variant `"nav"` : pour le drawer / menus, alignement type item de nav.
- * - sur iOS, ouvre une mini fiche d'instructions (Partager → Sur l'écran d'accueil)
- *   puisqu'aucune API web ne déclenche l'install directe.
+ * - sur iOS, ouvre la fiche guidée `IosInstallSheet` (Partager → Sur l'écran
+ *   d'accueil) puisqu'aucune API web ne déclenche l'install directe.
  */
 export function InstallButton({
   variant = "inline",
@@ -58,71 +59,8 @@ export function InstallButton({
       )}
 
       {showIosCard && isIos && (
-        <IosInstallCard onClose={() => setShowIosCard(false)} />
+        <IosInstallSheet onClose={() => setShowIosCard(false)} />
       )}
     </>
-  );
-}
-
-function IosInstallCard({ onClose }: { onClose: () => void }) {
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Installer Coligo sur l'écran d'accueil"
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 sm:items-center"
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="border-border w-full max-w-sm rounded-t-[16px] border bg-white p-5 shadow-xl sm:rounded-[16px]"
-      >
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <h2 className="text-base font-semibold">
-            Installer sur l&apos;écran d&apos;accueil
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="text-muted hover:bg-surface-2 hover:text-foreground flex size-8 items-center justify-center rounded-full"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-
-        <ol className="text-foreground space-y-3 text-sm">
-          <li className="flex items-start gap-3">
-            <span className="bg-primary-50 text-primary-700 inline-flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
-              1
-            </span>
-            <span className="flex items-center gap-1.5">
-              Appuyez sur
-              <Share2 className="text-primary-600 size-4" />
-              <span className="font-medium">Partager</span> en bas de Safari.
-            </span>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="bg-primary-50 text-primary-700 inline-flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
-              2
-            </span>
-            <span className="flex items-center gap-1.5">
-              Choisissez
-              <Plus className="text-primary-600 size-4" />
-              <span className="font-medium">
-                Sur l&apos;écran d&apos;accueil
-              </span>
-              .
-            </span>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="bg-primary-50 text-primary-700 inline-flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
-              3
-            </span>
-            <span>Confirmez avec « Ajouter ».</span>
-          </li>
-        </ol>
-      </div>
-    </div>
   );
 }

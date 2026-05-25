@@ -9,11 +9,24 @@ export type MerchantPrefs = {
   alertSound: boolean;
   /** Affiche une notification système (app ouverte). */
   notifications: boolean;
+  /**
+   * Mode comptoir : l'app reste vigilante pour qu'aucune commande ne soit
+   * ratée pendant le service.
+   *  - garde l'écran allumé (Wake Lock si supporté) ;
+   *  - rejoue le son d'alerte en boucle ;
+   *  - affiche un overlay plein écran sur nouvelle commande.
+   * Pensé pour un commerçant qui pose son téléphone/tablette sur le comptoir.
+   */
+  counterMode: boolean;
 };
 
 const DEFAULTS: MerchantPrefs = {
   alertSound: true,
   notifications: true,
+  // ON par défaut : on préfère que le commerçant soit alerté de façon
+  // insistante par défaut, quitte à ce qu'il désactive le mode comptoir
+  // lui-même s'il n'en a pas besoin.
+  counterMode: true,
 };
 
 function read(): MerchantPrefs {

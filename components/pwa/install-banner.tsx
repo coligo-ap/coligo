@@ -3,6 +3,7 @@
 import { Download, X } from "lucide-react";
 import { useInstallPrompt } from "@/lib/pwa/use-install-prompt";
 import { useState } from "react";
+import { IosInstallSheet } from "./ios-install-sheet";
 
 /**
  * Bandeau bas non intrusif qui propose d'installer l'app.
@@ -52,38 +53,7 @@ export function InstallBanner() {
         </div>
       </div>
 
-      {iosOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 sm:items-center"
-          onClick={() => setIosOpen(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="border-border w-full max-w-sm rounded-t-[16px] border bg-white p-5 shadow-xl sm:rounded-[16px]"
-          >
-            <h2 className="mb-2 text-base font-semibold">
-              Installer sur l&apos;écran d&apos;accueil
-            </h2>
-            <p className="text-muted text-sm">
-              Ouvrez le menu <span className="font-medium">Partager</span> de
-              Safari, puis choisissez{" "}
-              <span className="font-medium">
-                « Sur l&apos;écran d&apos;accueil »
-              </span>
-              .
-            </p>
-            <button
-              type="button"
-              onClick={() => setIosOpen(false)}
-              className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex h-10 w-full items-center justify-center rounded-[10px] px-5 text-sm font-medium text-white"
-            >
-              Compris
-            </button>
-          </div>
-        </div>
-      )}
+      {iosOpen && <IosInstallSheet onClose={() => setIosOpen(false)} />}
     </>
   );
 }

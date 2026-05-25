@@ -20,7 +20,7 @@ export function MerchantMobileHeader({
   const open = useMobileDrawerOpen();
 
   return (
-    <header className="border-border sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-white px-4 lg:hidden">
+    <header className="border-border sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-white px-4 pt-[env(safe-area-inset-top)] lg:hidden [@supports(padding:env(safe-area-inset-top))]:h-[calc(3.5rem+env(safe-area-inset-top))]">
       <Logo variant="amber" size="sm" subtitle={merchantName} />
 
       <div className="flex items-center gap-1">

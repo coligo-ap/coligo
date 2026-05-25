@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  isIos as detectIos,
+  isStandalone as detectStandalone,
+} from "./platform";
 
 /**
  * Event Chrome/Android `beforeinstallprompt` (pas dans le DOM standard).
@@ -14,21 +18,6 @@ const DISMISS_KEY = "coligo-pwa-install-dismissed-at";
 // 14 jours : on ne re-propose pas l'install si l'utilisateur a fermé la
 // bannière, sauf après cette période.
 const DISMISS_TTL_MS = 14 * 24 * 60 * 60 * 1000;
-
-function detectIos(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  // iPad récent se présente comme Mac → on regarde aussi le touch.
-  const iPadOS = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
-  return /iPhone|iPad|iPod/.test(ua) || iPadOS;
-}
-
-function detectStandalone(): boolean {
-  if (typeof window === "undefined") return false;
-  if (window.matchMedia?.("(display-mode: standalone)").matches) return true;
-  const nav = window.navigator as Navigator & { standalone?: boolean };
-  return nav.standalone === true;
-}
 
 function isRecentlyDismissed(): boolean {
   if (typeof window === "undefined") return false;

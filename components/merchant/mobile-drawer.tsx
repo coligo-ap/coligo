@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   HelpCircle,
   LayoutDashboard,
@@ -49,6 +49,28 @@ export function MobileDrawer({
   const closeRef = useRef<HTMLButtonElement>(null);
   const close = () => mobileDrawer.close();
 
+  // Animation slide-in fiable même sur WebView Android (Sunmi) :
+  //   1. Quand `open` passe à true → on monte le DOM avec `translate-x-full`,
+  //      puis on bascule à `translate-x-0` au rAF suivant → slide-in.
+  //   2. Quand `open` passe à false → on remet `translate-x-full` (slide-out),
+  //      puis après 200 ms on démonte complètement.
+  //
+  // Démonter du DOM en position fermée est CRUCIAL : sur certains WebView
+  // (Sunmi inclus), un élément `fixed` même translaté hors-écran reste
+  // hit-testable, ce qui rendait le drawer « collant » sur ces appareils.
+  const [mounted, setMounted] = useState(false);
+  const [slidIn, setSlidIn] = useState(false);
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      const id = requestAnimationFrame(() => setSlidIn(true));
+      return () => cancelAnimationFrame(id);
+    }
+    setSlidIn(false);
+    const id = window.setTimeout(() => setMounted(false), 220);
+    return () => window.clearTimeout(id);
+  }, [open]);
+
   // Échap pour fermer, blocage du scroll de la page, focus sur le bouton X.
   useEffect(() => {
     if (!open) return;
@@ -65,15 +87,17 @@ export function MobileDrawer({
     };
   }, [open]);
 
+  if (!mounted) return null;
+
   return (
-    <div className={cn("lg:hidden", !open && "pointer-events-none")}>
+    <div className="lg:hidden">
       {/* Overlay sombre */}
       <div
         onClick={close}
         aria-hidden="true"
         className={cn(
           "fixed inset-0 z-40 bg-black/40 transition-opacity duration-200",
-          open ? "opacity-100" : "opacity-0"
+          slidIn ? "opacity-100" : "opacity-0"
         )}
       />
 
@@ -84,7 +108,7 @@ export function MobileDrawer({
         aria-label="Menu de navigation"
         className={cn(
           "fixed inset-y-0 right-0 z-50 flex w-[82%] max-w-xs flex-col bg-white shadow-xl transition-transform duration-200 ease-out",
-          open ? "translate-x-0" : "translate-x-full"
+          slidIn ? "translate-x-0" : "translate-x-full"
         )}
       >
         {/* Identité du commerce */}
