@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PartyPopper, X } from "lucide-react";
+import { PartyPopper, Volume2, X } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { useMerchantPrefs } from "@/lib/hooks/use-merchant-prefs";
 import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
@@ -281,15 +281,65 @@ export function OrderRealtimeBridge({
     [router, doPrint]
   );
 
-  useOrderRealtime(merchantId, {
+  const realtimeStatus = useOrderRealtime(merchantId, {
     onInsert: handleInsert,
     onUpdate: handleUpdate,
   });
 
+  // Ceinture-bretelle : si Realtime n'est PAS connecté (timeout, websocket
+  // bloqué par un proxy, etc.) ou si on est en Mode comptoir, on revalide
+  // périodiquement la route. Coût quasi-nul (Server Components, RLS), garantit
+  // qu'on ne reste pas bloqué sur un canal mort sans s'en rendre compte.
+  useEffect(() => {
+    const intervalMs =
+      realtimeStatus === "connected"
+        ? prefs.counterMode
+          ? 30_000 // counterMode + RT OK : check toutes les 30 s par sécurité
+          : 0 // RT OK hors counterMode : pas de polling
+        : 8_000; // RT KO : polling agressif 8 s
+    if (intervalMs === 0) return;
+    const id = window.setInterval(() => router.refresh(), intervalMs);
+    return () => window.clearInterval(id);
+  }, [realtimeStatus, prefs.counterMode, router]);
+
   if (!hydrated) return null;
+
+  const needsAudioUnlock = prefs.alertSound && !unlocked;
+  const realtimeOk = realtimeStatus === "connected";
 
   return (
     <>
+      {/* Mini toolbar de diagnostic fixée en bas-droite — laisse au commerçant
+          un signal clair que les alertes sont prêtes (point vert) ou pas
+          (point rouge), et le moyen de débloquer le son d'un seul tap si
+          jamais l'auto-unlock n'a pas pu s'amorcer.
+          Caché si tout est OK ET pas en counterMode → 99 % du temps invisible. */}
+      {(needsAudioUnlock || !realtimeOk) && (
+        <div className="fixed right-3 bottom-24 z-40 flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full border border-black/10 bg-white/95 px-3 py-2 shadow-lg backdrop-blur sm:bottom-4">
+          <span
+            className={
+              "inline-block size-2 rounded-full " +
+              (realtimeOk ? "bg-green-500" : "animate-pulse bg-red-500")
+            }
+            title={"Realtime " + realtimeStatus}
+            aria-label={"Realtime " + realtimeStatus}
+          />
+          <span className="text-foreground text-xs font-medium">
+            {realtimeOk ? "Alertes prêtes" : "Reconnexion…"}
+          </span>
+          {needsAudioUnlock && (
+            <button
+              type="button"
+              onClick={unlock}
+              className="bg-primary-600 text-primary-50 hover:bg-primary-700 ml-1 inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold"
+            >
+              <Volume2 className="size-3.5" />
+              Activer le son
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Overlay plein écran « Mode comptoir » — exige un clic pour se fermer. */}
       <CounterAlertOverlay
         order={counterOrder}
