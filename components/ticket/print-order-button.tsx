@@ -5,6 +5,8 @@ import { Loader2, Printer } from "lucide-react";
 import type { TicketOrder } from "@/lib/ticket/build-ticket-html";
 import type { PrintWidth } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { hasNativePrinterBridge } from "@/lib/native/context";
+import { printOrderTicket } from "@/lib/ticket/print-order";
 
 type Props = {
   order: TicketOrder;
@@ -18,34 +20,55 @@ type Props = {
 };
 
 /**
- * Bouton « Imprimer le ticket ». Navigue vers l'endpoint isolé
- * `/print/orders/[id]` qui rend UNIQUEMENT le ticket et déclenche
- * `window.print()` automatiquement. C'est la seule approche fiable sur
- * mobile (iOS Safari / Chrome Android) — pas de risque de capturer
- * l'app derrière le ticket.
+ * Bouton « Imprimer le ticket ».
  *
- * Le bouton fonctionne identique sur desktop : meme navigation, retour
- * automatique après l'impression (afterprint → history.back).
+ * Deux voies selon l'environnement :
+ *
+ *  - APK Capacitor (Sunmi) : appel direct à `printOrderTicket()` qui passe
+ *    par le plugin natif `SunmiPrinter` → impression thermique sans
+ *    dialogue. On NE PEUT PAS naviguer vers `/print/orders/[id]` ici :
+ *    la route serveur fait `window.print()`, no-op dans le WebView
+ *    Capacitor, et le pont JS↔natif resterait inerte.
+ *
+ *  - Web / desktop / mobile navigateur : navigation vers l'endpoint isolé
+ *    `/print/orders/[id]` qui rend UNIQUEMENT le ticket et déclenche
+ *    `window.print()` automatiquement. C'est l'approche fiable sur
+ *    Safari iOS / Chrome Android — pas de risque de capturer l'app
+ *    derrière le ticket.
  *
  * Pour les impressions sans navigation utilisateur (auto-print depuis le
- * bridge Realtime), on continue d'utiliser `printOrderTicket()` (mount
- * in-place) — un event Realtime n'est pas un user gesture qui peut
- * naviguer.
+ * bridge Realtime), on utilise déjà `printOrderTicket()` directement —
+ * un event Realtime n'est pas un user gesture qui peut naviguer.
  */
 export function PrintOrderButton({
   order,
   width,
   copies = 1,
+  appName,
   variant = "outline",
   size = "md",
   label = "Imprimer le ticket",
   className,
 }: Props) {
-  const [navigating, setNavigating] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  function handle() {
-    if (navigating) return;
-    setNavigating(true);
+  async function handle() {
+    if (busy) return;
+    setBusy(true);
+
+    // APK Capacitor : on imprime directement via le pont natif. La
+    // navigation vers une page serveur isolée court-circuiterait le pont
+    // JS↔natif (window.print() est no-op dans le WebView Capacitor).
+    if (hasNativePrinterBridge()) {
+      try {
+        await printOrderTicket(order, { width, copies, appName });
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    // Web : page d'impression isolée + window.print() natif du navigateur.
     const params = new URLSearchParams({
       width: String(width),
       copies: String(copies),
@@ -53,8 +76,6 @@ export function PrintOrderButton({
     if (typeof window !== "undefined") {
       params.set("back", window.location.pathname + window.location.search);
     }
-    // Same-window navigation : pas de popup à débloquer, marche sur mobile,
-    // et l'endpoint nous ramène ici via history.back() à la fin du print.
     window.location.href = `/print/orders/${order.id}?${params.toString()}`;
   }
 
@@ -73,11 +94,11 @@ export function PrintOrderButton({
       <button
         type="button"
         onClick={handle}
-        disabled={navigating}
+        disabled={busy}
         aria-label="Imprimer le ticket"
         className={cn(base, "size-9 p-0", style, className)}
       >
-        {navigating ? (
+        {busy ? (
           <Loader2 className="size-4 animate-spin" />
         ) : (
           <Printer className="size-4" />
@@ -90,10 +111,10 @@ export function PrintOrderButton({
     <button
       type="button"
       onClick={handle}
-      disabled={navigating}
+      disabled={busy}
       className={cn(base, sized, style, className)}
     >
-      {navigating ? (
+      {busy ? (
         <Loader2 className="size-4 animate-spin" />
       ) : (
         <Printer className="size-4" />
