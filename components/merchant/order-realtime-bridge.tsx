@@ -2,28 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Bell,
-  BellOff,
-  Monitor,
-  MonitorOff,
-  PartyPopper,
-  Volume2,
-  VolumeX,
-  X,
-} from "lucide-react";
-import { cn, formatDA } from "@/lib/utils";
+import { PartyPopper, X } from "lucide-react";
+import { formatDA } from "@/lib/utils";
 import { useMerchantPrefs } from "@/lib/hooks/use-merchant-prefs";
 import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
 import { useNotifyPermission } from "@/lib/hooks/use-notify-permission";
 import { useOrderRealtime } from "@/lib/hooks/use-order-realtime";
 import { useWakeLock } from "@/lib/hooks/use-wake-lock";
 import { notify } from "@/lib/native";
-import {
-  isIos,
-  isStandalone,
-  supportsPushIfInstalled,
-} from "@/lib/pwa/platform";
 import { createClient } from "@/lib/supabase/client";
 import { updateOrderStatus } from "@/app/(merchant)/orders/actions";
 import { printOrderTicket } from "@/lib/ticket/print-order";
@@ -48,17 +34,23 @@ type Props = {
 };
 
 /**
- * Pont Realtime + son + notif + auto-accept + auto-print pour le dashboard.
+ * Pont Realtime « ambient » — monté UNE FOIS par `MerchantShell` (donc actif
+ * sur toutes les pages commerçant : dashboard, orders, catalog, finances…).
+ * Le commerçant ne rate jamais une commande, où qu'il soit dans l'app.
  *
  * Sur INSERT d'une commande :
- *  - joue `alert.wav` si `prefs.alertSound`
+ *  - joue `alert.wav` (en boucle si `prefs.counterMode`)
+ *  - vibration insistante en counterMode (no-op iOS)
  *  - notifie le système si `prefs.notifications` ET permission accordée
- *  - affiche un toast violet `#5C5CE0`
- *  - si `print.auto_accept_orders`, déclenche la transition pending → preparing
+ *  - overlay plein écran (counterMode) ou toast (sinon)
+ *  - si `print.auto_accept_orders`, transition pending → preparing
  *  - si `print.auto_print === 'on_receive'`, imprime le ticket
- *  - rafraîchit la route (le Kanban est ré-hydraté depuis le serveur)
+ *  - `router.refresh()` → revalide les Server Components de la page courante
+ *    (dashboard / orders / orders/[id]) → la liste de commandes se met à jour
+ *    automatiquement sans que l'utilisateur ait à rafraîchir
  *
  * Sur UPDATE :
+ *  - `router.refresh()` idem
  *  - si `print.auto_print === 'on_accept'` ET la commande passe en
  *    accepted/preparing pour la première fois, imprime
  *
@@ -71,30 +63,17 @@ export function OrderRealtimeBridge({
   printSettings,
 }: Props) {
   const router = useRouter();
-  const { prefs, update, hydrated } = useMerchantPrefs();
+  const { prefs, hydrated } = useMerchantPrefs();
   const { play, stop, unlock, unlocked } = useAlertSound();
   const { permission, request } = useNotifyPermission();
-  const wake = useWakeLock(prefs.counterMode);
+  // Wake lock activé tant que counterMode est ON — pas de variable retournée,
+  // le hook se réacquiert tout seul après visibilitychange.
+  useWakeLock(prefs.counterMode);
   const [toastOrder, setToastOrder] = useState<IncomingOrder | null>(null);
   const [counterOrder, setCounterOrder] = useState<CounterAlertOrder | null>(
     null
   );
   const printedOnceRef = useRef<Set<string>>(new Set());
-  // Détection iPhone non-installé : pour expliquer honnêtement les limites
-  // notifs côté iOS Safari, et inciter à installer.
-  const [iosHint, setIosHint] = useState<
-    "install" | "notif-needs-install" | null
-  >(null);
-  useEffect(() => {
-    if (!isIos()) return;
-    if (!isStandalone()) {
-      setIosHint("install");
-    } else if (supportsPushIfInstalled() && permission !== "granted") {
-      setIosHint("notif-needs-install");
-    } else {
-      setIosHint(null);
-    }
-  }, [permission]);
 
   // Auto-unlock au PREMIER clic n'importe où : on déverrouille l'audio et on
   // déclenche la demande de permission notifications. C'est ce qui permet à
@@ -309,109 +288,8 @@ export function OrderRealtimeBridge({
 
   if (!hydrated) return null;
 
-  const needsAudioUnlock = prefs.alertSound && !unlocked;
-  const needsNotifPrompt =
-    prefs.notifications &&
-    permission !== "granted" &&
-    permission !== "unsupported";
-
   return (
     <>
-      {/* Panneau de réglages compact */}
-      <div className="border-border bg-surface mb-4 flex flex-wrap items-center gap-2 rounded-[12px] border p-3">
-        <span className="text-muted mr-1 text-xs font-medium tracking-wide uppercase">
-          Alertes
-        </span>
-
-        <Chip
-          active={prefs.alertSound}
-          onClick={() => update({ alertSound: !prefs.alertSound })}
-          activeIcon={Volume2}
-          inactiveIcon={VolumeX}
-          activeLabel="Son ON"
-          inactiveLabel="Son OFF"
-        />
-        <Chip
-          active={prefs.notifications}
-          onClick={() => update({ notifications: !prefs.notifications })}
-          activeIcon={Bell}
-          inactiveIcon={BellOff}
-          activeLabel="Notifs ON"
-          inactiveLabel="Notifs OFF"
-        />
-        <Chip
-          active={prefs.counterMode}
-          onClick={() => {
-            const next = !prefs.counterMode;
-            update({ counterMode: next });
-            if (!next) stop();
-          }}
-          activeIcon={Monitor}
-          inactiveIcon={MonitorOff}
-          activeLabel="Comptoir ON"
-          inactiveLabel="Comptoir OFF"
-        />
-
-        {needsAudioUnlock && (
-          <button
-            type="button"
-            onClick={unlock}
-            className="text-primary-700 border-primary-200 hover:bg-primary-50 ml-auto inline-flex h-8 items-center gap-1.5 rounded-full border bg-white px-3 text-xs font-medium"
-          >
-            <Volume2 className="size-3.5" />
-            Activer le son
-          </button>
-        )}
-        {needsNotifPrompt && (
-          <button
-            type="button"
-            onClick={() => void request()}
-            className={cn(
-              "text-primary-700 border-primary-200 hover:bg-primary-50 inline-flex h-8 items-center gap-1.5 rounded-full border bg-white px-3 text-xs font-medium",
-              !needsAudioUnlock && "ml-auto"
-            )}
-          >
-            <Bell className="size-3.5" />
-            Autoriser les notifications
-          </button>
-        )}
-      </div>
-
-      {/* Aide honnête iPhone : sans installation, les notifs système ne
-          marchent pas — on guide le commerçant vers le Mode comptoir. */}
-      {iosHint && (
-        <div className="border-primary-200 bg-primary-50 text-primary-900 mb-4 rounded-[12px] border p-3 text-xs">
-          {iosHint === "install" ? (
-            <p>
-              <strong>iPhone :</strong> pour recevoir les alertes système et
-              ouvrir l&apos;app en plein écran, ajoutez Coligo à l&apos;écran
-              d&apos;accueil (Safari → Partager →{" "}
-              <em>Sur l&apos;écran d&apos;accueil</em>). En attendant, activez
-              le <strong>Mode comptoir</strong> pour ne rater aucune commande
-              tant que l&apos;app est ouverte.
-            </p>
-          ) : (
-            <p>
-              <strong>Activez les notifications</strong> via le bouton ci-dessus
-              pour être alerté(e) des nouvelles commandes même quand l&apos;app
-              n&apos;est pas au premier plan.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Petite indication si le Mode comptoir est actif. */}
-      {prefs.counterMode && (
-        <div className="border-primary-200 bg-primary-50 text-primary-900 mb-4 flex items-center gap-2 rounded-[12px] border p-2.5 text-xs">
-          <Monitor className="text-primary-600 size-4" />
-          <span className="flex-1">
-            <strong>Mode comptoir actif</strong> — écran maintenu allumé
-            {wake.supported ? "" : " (non supporté sur ce navigateur)"} et
-            alerte renforcée à chaque nouvelle commande.
-          </span>
-        </div>
-      )}
-
       {/* Overlay plein écran « Mode comptoir » — exige un clic pour se fermer. */}
       <CounterAlertOverlay
         order={counterOrder}
@@ -447,38 +325,5 @@ export function OrderRealtimeBridge({
         </div>
       )}
     </>
-  );
-}
-
-function Chip({
-  active,
-  onClick,
-  activeIcon: ActiveIcon,
-  inactiveIcon: InactiveIcon,
-  activeLabel,
-  inactiveLabel,
-}: {
-  active: boolean;
-  onClick: () => void;
-  activeIcon: React.ComponentType<{ className?: string }>;
-  inactiveIcon: React.ComponentType<{ className?: string }>;
-  activeLabel: string;
-  inactiveLabel: string;
-}) {
-  const Icon = active ? ActiveIcon : InactiveIcon;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors",
-        active
-          ? "bg-primary-50 text-primary-700 border-primary-200 border"
-          : "bg-surface-3 text-muted hover:text-foreground border-border border"
-      )}
-    >
-      <Icon className="size-3.5" />
-      {active ? activeLabel : inactiveLabel}
-    </button>
   );
 }

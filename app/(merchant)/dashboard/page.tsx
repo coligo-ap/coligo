@@ -5,40 +5,14 @@ import { MobileOrderList } from "@/components/merchant/order-list-mobile";
 import Link from "next/link";
 import { Inbox, ShoppingBag, TrendingUp, Clock, QrCode } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { OrderRealtimeBridge } from "@/components/merchant/order-realtime-bridge";
 import { OrdersCacheSync } from "@/components/merchant/orders-cache-sync";
 import { formatDA, cn } from "@/lib/utils";
-import {
-  DEFAULT_PRINT_SETTINGS,
-  type OrderWithItems,
-  type PrintSettings,
-  type PrintWidth,
-} from "@/lib/types";
+import { type OrderWithItems } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select(
-      "id, name, auto_accept_orders, auto_print, print_copies, print_width"
-    )
-    .eq("user_id", user?.id ?? "")
-    .maybeSingle();
-
-  const printSettings: PrintSettings = merchant
-    ? {
-        auto_accept_orders: merchant.auto_accept_orders,
-        auto_print: merchant.auto_print,
-        print_copies: merchant.print_copies,
-        print_width: merchant.print_width as PrintWidth,
-      }
-    : DEFAULT_PRINT_SETTINGS;
 
   const { data: orders, error } = await supabase
     .from("orders")
@@ -111,15 +85,8 @@ export default async function DashboardPage() {
         </Link>
       </header>
 
-      {/* Pont Realtime + son + notif + auto-accept + auto-print
-          (s'affiche aussi : panneau de réglages compact d'alertes) */}
-      {merchant && (
-        <OrderRealtimeBridge
-          merchantId={merchant.id}
-          merchantName={merchant.name}
-          printSettings={printSettings}
-        />
-      )}
+      {/* Le pont Realtime + alertes est désormais monté par `MerchantShell`
+          (actif sur TOUTES les pages commerçant). */}
 
       {/* Synchronise le snapshot serveur vers le cache Dexie pour la lecture
           offline (page /offline → "Voir les dernières commandes connues"). */}
