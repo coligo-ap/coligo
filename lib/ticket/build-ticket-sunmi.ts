@@ -29,13 +29,15 @@ export type BuildSunmiOptions = {
 // Tailles texte (en pixels sur l'imprimante). Le plugin Java les snap au
 // set autorisé par le firmware V3 ({16, 24, 28, 32, 48}) — on choisit ici
 // directement des valeurs déjà compatibles pour éviter les surprises.
+//
+// Design compact : ne pas multiplier les tailles, jouer sur le bold/strong
+// plutôt que sur la taille pour la hiérarchie. Le `textBoldStrong` rend
+// l'effet d'un texte « énorme » sans changer la taille (double-width via
+// ESC ! côté plugin).
 const SZ = {
-  micro: 16,
-  small: 24,
+  small: 16,
   base: 24,
-  medium: 28,
   large: 32,
-  huge: 48,
 };
 
 /**
@@ -152,33 +154,29 @@ export function buildTicketSunmiCommands(
     out.push({ type: "align", value: "center" });
     out.push({ type: "size", value: SZ.small });
     out.push({ type: "textBold", text: opts.copyLabel });
-    out.push({ type: "wrap", n: 1 });
   }
 
-  // --- 1. Header : logo "●" + nom du commerce ---
+  // --- 1. Header : nom commerce, taille base + bold ---
   out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.base });
   out.push({ type: "textBold", text: order.merchant_name });
 
-  // --- 2. Bandeau noir inversé ---
-  out.push({ type: "size", value: SZ.medium });
+  // --- 2. Bandeau noir inversé (mode dominant) ---
   out.push({ type: "textInverse", text: centerPad(bannerLabel, opts.width) });
-  out.push({ type: "wrap", n: 1 });
 
-  // --- 3. #ID énorme ---
-  out.push({ type: "size", value: SZ.huge });
-  out.push({ type: "textBold", text: `#${shortId(order.id)}` });
+  // --- 3. #ID — double width + bold + size large (très visible) ---
+  out.push({ type: "size", value: SZ.large });
+  out.push({ type: "textBoldStrong", text: `#${shortId(order.id)}` });
 
-  // --- 4. Heure de retrait ---
+  // --- 4. Heure de retrait — RETRAIT label small + heure boldStrong ---
   out.push({ type: "size", value: SZ.small });
   out.push({ type: "text", text: "RETRAIT" });
-  out.push({ type: "size", value: SZ.large });
-  out.push({ type: "textBold", text: formatTime(order.pickup_slot_at) });
-  out.push({ type: "wrap", n: 1 });
+  out.push({ type: "size", value: SZ.base });
+  out.push({ type: "textBoldStrong", text: formatTime(order.pickup_slot_at) });
 
   // --- Séparateur ---
   out.push({ type: "align", value: "left" });
-  out.push({ type: "size", value: SZ.base });
+  out.push({ type: "size", value: SZ.small });
   out.push({ type: "text", text: dotted });
 
   // --- 6. Note client (encadrée) ---
@@ -188,7 +186,8 @@ export function buildTicketSunmiCommands(
     out.push({ type: "text", text: dotted });
   }
 
-  // --- 8. Articles par catégorie ---
+  // --- 8. Articles par catégorie (compact, base size) ---
+  out.push({ type: "size", value: SZ.base });
   const groups = groupByCategory(order.items);
   if (groups.length === 0) {
     out.push({ type: "textBold", text: "ARTICLES (0)" });
@@ -206,6 +205,7 @@ export function buildTicketSunmiCommands(
     }
   }
 
+  out.push({ type: "size", value: SZ.small });
   out.push({ type: "text", text: dotted });
 
   // --- 10. Récap aligné droite ---
@@ -219,6 +219,7 @@ export function buildTicketSunmiCommands(
   const labelWidth = Math.floor(cols * 0.6);
   const valueWidth = cols - labelWidth;
 
+  out.push({ type: "size", value: SZ.base });
   const pushRecap = (label: string, value: string) => {
     out.push({
       type: "columns",
@@ -241,38 +242,45 @@ export function buildTicketSunmiCommands(
   if (order.cashback_da > 0) {
     pushRecap("Cashback", `-${formatDA(order.cashback_da)}`);
   }
-  // Total en grand
-  out.push({ type: "size", value: SZ.medium });
+
+  // Total en GRAS FORT (double-width) — la ligne la plus visible du récap.
   out.push({
     type: "columns",
-    cols: ["TOTAL", formatDA(order.total_da)],
-    widths: [labelWidth, valueWidth],
-    aligns: ["left", "right"],
+    cols: ["", ""],
+    widths: [1, 1],
+    aligns: ["left", "left"],
+  });
+  out.push({ type: "size", value: SZ.base });
+  // textBoldStrong sur 1 colonne pleine largeur, alignée à droite
+  out.push({ type: "align", value: "right" });
+  out.push({
+    type: "textBoldStrong",
+    text: `TOTAL ${formatDA(order.total_da)}`,
   });
 
   // --- 11. Repère paiement final ---
   if (isPaidOnline) {
     out.push({ type: "align", value: "center" });
-    out.push({ type: "size", value: SZ.medium });
+    out.push({ type: "size", value: SZ.base });
     out.push({ type: "textBold", text: "PAYE EN LIGNE" });
   } else if (isCash) {
     out.push({ type: "align", value: "center" });
-    out.push({ type: "size", value: SZ.medium });
+    out.push({ type: "size", value: SZ.base });
     out.push({
       type: "textBold",
-      text: `A ENCAISSER : ${formatDA(order.total_da)}`,
+      text: `A ENCAISSER ${formatDA(order.total_da)}`,
     });
   }
 
   out.push({ type: "align", value: "left" });
-  out.push({ type: "size", value: SZ.base });
+  out.push({ type: "size", value: SZ.small });
   out.push({ type: "text", text: dotted });
 
-  // --- 12-13. Soumis le / Client / Tél ---
+  // --- 12-13. Soumis le / Client / Tél (compact small) ---
   out.push({
     type: "columns",
-    cols: ["Soumis le", formatSubmitted(order.created_at)],
-    widths: [Math.floor(cols * 0.4), Math.ceil(cols * 0.6)],
+    cols: ["Soumis", formatSubmitted(order.created_at)],
+    widths: [Math.floor(cols * 0.3), Math.ceil(cols * 0.7)],
     aligns: ["left", "right"],
   });
   out.push({
@@ -290,29 +298,24 @@ export function buildTicketSunmiCommands(
 
   out.push({ type: "text", text: dotted });
 
-  // --- 15. Code retrait + QR ---
+  // --- 15. Code retrait + QR (compact) ---
   out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.small });
   out.push({ type: "text", text: "CODE DE RETRAIT" });
-  out.push({ type: "size", value: SZ.huge });
-  out.push({ type: "textBold", text: order.pickup_code });
-  out.push({ type: "wrap", n: 1 });
+  out.push({ type: "size", value: SZ.large });
+  out.push({ type: "textBoldStrong", text: order.pickup_code });
   out.push({
     type: "qr",
     data: order.pickup_code,
-    moduleSize: opts.width === 80 ? 8 : 6,
+    moduleSize: opts.width === 80 ? 6 : 5,
     errorLevel: 3,
   });
 
-  // --- 16. Footer ---
-  out.push({ type: "size", value: SZ.micro });
+  // --- 16. Footer (size small, peu intrusif) ---
+  out.push({ type: "size", value: SZ.small });
   out.push({
     type: "text",
-    text: `Commande via ${opts.appName ?? "Coligo"}`,
-  });
-  out.push({
-    type: "text",
-    text: `Imprime le ${formatSubmitted(new Date().toISOString())}`,
+    text: `${opts.appName ?? "Coligo"} - ${formatSubmitted(new Date().toISOString())}`,
   });
 
   // Reset alignement final pour le prochain ticket.
@@ -327,6 +330,7 @@ export function buildTicketSunmiCommands(
     switch (cmd.type) {
       case "text":
       case "textBold":
+      case "textBoldStrong":
       case "textInverse":
         return { ...cmd, text: asciize(cmd.text) };
       case "columns":

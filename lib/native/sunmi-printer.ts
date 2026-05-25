@@ -16,6 +16,7 @@ export type SunmiCommand =
   | { type: "invert"; value: boolean }
   | { type: "text"; text: string; newline?: boolean }
   | { type: "textBold"; text: string; newline?: boolean }
+  | { type: "textBoldStrong"; text: string; newline?: boolean }
   | { type: "textInverse"; text: string; newline?: boolean }
   | {
       type: "columns";
