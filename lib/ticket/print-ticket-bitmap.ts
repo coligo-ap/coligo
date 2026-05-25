@@ -107,11 +107,14 @@ export async function printTicketBitmap(
       requestAnimationFrame(() => requestAnimationFrame(() => r()))
     );
 
-    // 3. Capture html2canvas
+    // 3. Capture html2canvas — scale:1 pour limiter la taille mémoire et
+    //    rester sous 1 Mo après export. Le supersampling n'apporte rien ici
+    //    puisqu'on binarise ensuite : tout pixel devient 0 ou 255, donc
+    //    l'antialiasing du scale:2 serait écrasé de toute façon.
     const html2canvas = (await import("html2canvas")).default;
     const captured = await html2canvas(host, {
       backgroundColor: "#ffffff",
-      scale: 2, // supersampling pour la qualité du resize → 576px
+      scale: 1,
       logging: false,
       useCORS: true,
       // Largeur fixe = renderWidth (300px). html2canvas calcule la hauteur.
@@ -136,17 +139,22 @@ export async function printTicketBitmap(
     ctx.fillRect(0, 0, targetWidth, targetHeight);
     ctx.drawImage(captured, 0, 0, targetWidth, targetHeight);
 
-    // 5. Binarisation in-place : chaque pixel < threshold → noir, sinon blanc.
-    //    Calcul luminance perceptuelle Rec.709 (mieux que la moyenne RGB sur
-    //    du texte coloré, même si on est en N&B ici).
+    // 5. Binarisation in-place : chaque pixel >= threshold → blanc, sinon
+    //    noir. Niveau de gris ITU-R BT.601 (0.299/0.587/0.114) — standard
+    //    pour la binarisation thermique, donne le meilleur rendu sur texte
+    //    qui contient parfois des accents anti-aliasés. Sur un ticket
+    //    N&B strict comme la maquette, peu importe le coefficient choisi :
+    //    le bandeau noir reste noir, le texte reste noir, le fond reste
+    //    blanc. Le seuil 128 (milieu) est fixe — un tramage Bayer ajouterait
+    //    du bruit sur le texte sans bénéfice (pas de dégradé à préserver).
     const img = ctx.getImageData(0, 0, targetWidth, targetHeight);
     const d = img.data;
     for (let i = 0; i < d.length; i += 4) {
-      const lum = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
-      const v = lum < threshold ? 0 : 255;
-      d[i] = v;
-      d[i + 1] = v;
-      d[i + 2] = v;
+      const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      const bw = gray >= threshold ? 255 : 0;
+      d[i] = bw;
+      d[i + 1] = bw;
+      d[i + 2] = bw;
       d[i + 3] = 255;
     }
     ctx.putImageData(img, 0, 0);
