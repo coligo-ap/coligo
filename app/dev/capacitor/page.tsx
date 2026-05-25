@@ -101,7 +101,7 @@ export default function CapacitorDiagPage() {
         commands: [
           { type: "align", value: "center" },
           { type: "size", value: 24 },
-          { type: "textBold", text: "COLIGO — TEST IMPRESSION" },
+          { type: "textBold", text: "COLIGO - TEST IMPRESSION" },
           { type: "size", value: 28 },
           {
             type: "textInverse",

@@ -30,6 +30,15 @@ public class SunmiPrinterPlugin extends Plugin {
   private static final String TAG = "SunmiPrinterPlugin";
 
   private SunmiService sunmi;
+  /**
+   * Suivi de la taille de police courante côté plugin. On l'utilise pour les
+   * appels `printTextWithFont(text, "", size, callback)` qui — contrairement
+   * à `printText(text, callback)` legacy — sont fiables sur le firmware
+   * Sunmi V3 (printText avale silencieusement la commande dans certains
+   * cas). Mise à jour à chaque `size` ; la valeur est snappée par
+   * SunmiService.setFontSize() avant d'arriver ici, donc toujours valide.
+   */
+  private float currentFontSize = 24f;
 
   @Override
   public void load() {
@@ -137,10 +146,13 @@ public class SunmiPrinterPlugin extends Plugin {
         // certain seuil selon le modèle (V3 firmware récent → 56 max
         // observé). On clamp défensivement côté plugin pour éviter de
         // casser une séquence d'impression (firmware reste perturbé
-        // jusqu'au prochain printerInit).
+        // jusqu'au prochain printerInit). Le service snap ensuite à
+        // une valeur autorisée — on s'aligne sur ce snap pour
+        // `printTextWithFont`.
         double raw = cmd.optDouble("value", 24.0);
         float size = (float) Math.max(12.0, Math.min(56.0, raw));
         sunmi.setFontSize(size);
+        currentFontSize = sunmi.snapFontSize(size);
         return;
       }
       case "bold": {
@@ -156,16 +168,22 @@ public class SunmiPrinterPlugin extends Plugin {
         return;
       }
       case "text": {
+        // printTextWithFont au lieu de printText : sur Sunmi V3, printText
+        // legacy avale silencieusement certains appels (texte simple sans
+        // style préfixé, après un setAlignment, etc.). printTextWithFont
+        // est l'API V2+ fiable — elle prend explicitement la taille.
         String text = cmd.optString("text", "");
         boolean newline = cmd.optBoolean("newline", true);
-        sunmi.printText(newline ? text + "\n" : text);
+        sunmi.printTextWithFont(
+            newline ? text + "\n" : text, "", currentFontSize);
         return;
       }
       case "textBold": {
         String text = cmd.optString("text", "");
         boolean newline = cmd.optBoolean("newline", true);
         sunmi.sendRawBytes(new byte[] {0x1B, 0x45, 1});
-        sunmi.printText(newline ? text + "\n" : text);
+        sunmi.printTextWithFont(
+            newline ? text + "\n" : text, "", currentFontSize);
         sunmi.sendRawBytes(new byte[] {0x1B, 0x45, 0});
         return;
       }
@@ -173,7 +191,8 @@ public class SunmiPrinterPlugin extends Plugin {
         String text = cmd.optString("text", "");
         boolean newline = cmd.optBoolean("newline", true);
         sunmi.sendRawBytes(new byte[] {0x1D, 0x42, 1});
-        sunmi.printText(newline ? text + "\n" : text);
+        sunmi.printTextWithFont(
+            newline ? text + "\n" : text, "", currentFontSize);
         sunmi.sendRawBytes(new byte[] {0x1D, 0x42, 0});
         return;
       }

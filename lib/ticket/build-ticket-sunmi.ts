@@ -26,15 +26,37 @@ export type BuildSunmiOptions = {
   copyLabel?: string;
 };
 
-// Tailles texte (en pixels sur l'imprimante).
+// Tailles texte (en pixels sur l'imprimante). Le plugin Java les snap au
+// set autorisé par le firmware V3 ({16, 24, 28, 32, 48}) — on choisit ici
+// directement des valeurs déjà compatibles pour éviter les surprises.
 const SZ = {
-  micro: 18,
-  small: 21,
+  micro: 16,
+  small: 24,
   base: 24,
-  medium: 30,
-  large: 36,
-  huge: 56,
+  medium: 28,
+  large: 32,
+  huge: 48,
 };
+
+/**
+ * Réduit un texte à de l'ASCII imprimable. Le firmware Sunmi V3 ignore
+ * silencieusement des `printText` qui contiennent certains caractères non
+ * ASCII (em-dash «—», quotes typographiques, accents combinés…). On
+ * normalise NFD + on retire les diacritiques + on remplace les ponctuations
+ * exotiques par leur équivalent ASCII.
+ */
+function asciize(input: string): string {
+  return input
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // accents combinés
+    .replace(/[‐-―]/g, "-") // dashes (em, en, figure, horizontal bar)
+    .replace(/[‘’‚‛′]/g, "'") // single quotes
+    .replace(/[“”„‟″]/g, '"') // double quotes
+    .replace(/…/g, "...") // ellipsis
+    .replace(/·|•|●/g, "-") // middle dot, bullet, black circle
+    .replace(/ /g, " ") // non-breaking space
+    .replace(/[^\x20-\x7E\n]/g, ""); // garde printable ASCII + newline
+}
 
 // Colonnes utilisables par largeur de papier (font base = 24).
 function columnsFor(width: PrintWidth): number {
@@ -296,5 +318,21 @@ export function buildTicketSunmiCommands(
   // Reset alignement final pour le prochain ticket.
   out.push({ type: "align", value: "left" });
 
-  return out;
+  // Pass de sanitization finale : applique `asciize` à toutes les chaînes
+  // envoyées à l'imprimante (text, columns.cols). Le firmware Sunmi V3
+  // ignore les printText contenant certains caractères non ASCII — on
+  // garantit une sortie purement imprimable, peu importe d'où vient la
+  // donnée (nom de produit, note client, …).
+  return out.map((cmd): SunmiCommand => {
+    switch (cmd.type) {
+      case "text":
+      case "textBold":
+      case "textInverse":
+        return { ...cmd, text: asciize(cmd.text) };
+      case "columns":
+        return { ...cmd, cols: cmd.cols.map(asciize) };
+      default:
+        return cmd;
+    }
+  });
 }

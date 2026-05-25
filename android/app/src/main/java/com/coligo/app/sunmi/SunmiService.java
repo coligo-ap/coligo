@@ -140,7 +140,8 @@ public final class SunmiService {
       16f, 24f, 28f, 32f, 48f
   };
 
-  public void setFontSize(float size) throws RemoteException {
+  /** Renvoie la taille autorisée la plus proche dans ALLOWED_FONT_SIZES. */
+  public float snapFontSize(float size) {
     float snapped = ALLOWED_FONT_SIZES[0];
     float bestDist = Math.abs(size - snapped);
     for (float a : ALLOWED_FONT_SIZES) {
@@ -150,6 +151,11 @@ public final class SunmiService {
         snapped = a;
       }
     }
+    return snapped;
+  }
+
+  public void setFontSize(float size) throws RemoteException {
+    float snapped = snapFontSize(size);
     if (snapped != size) {
       Log.i(TAG, "setFontSize " + size + " → " + snapped + " (snapped to allowed)");
     }
@@ -161,7 +167,9 @@ public final class SunmiService {
   }
 
   public void printTextWithFont(String text, String typeface, float size) throws RemoteException {
-    requireService().printTextWithFont(text, typeface, size, SILENT_CALLBACK);
+    // Snap aussi côté printTextWithFont : si le caller passe une taille
+    // hors set (ex. 22), on évite un raise -5 silencieux.
+    requireService().printTextWithFont(text, typeface, snapFontSize(size), SILENT_CALLBACK);
   }
 
   public void printColumnsText(String[] cols, int[] widths, int[] aligns) throws RemoteException {
