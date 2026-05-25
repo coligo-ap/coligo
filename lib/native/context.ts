@@ -55,7 +55,26 @@ export function isSunmiDevice(): boolean {
 export function hasNativePrinterBridge(): boolean {
   if (typeof window === "undefined") return false;
   const cap = (
-    window as unknown as { Capacitor?: { Plugins?: Record<string, unknown> } }
+    window as unknown as {
+      Capacitor?: {
+        Plugins?: Record<string, unknown>;
+        isNativePlatform?: () => boolean;
+        getPlatform?: () => string;
+      };
+    }
   ).Capacitor;
-  return !!cap?.Plugins?.SunmiPrinter;
+  const result = !!cap?.Plugins?.SunmiPrinter;
+  // Log en console quel que soit l'env — on a besoin de voir le résultat
+  // dans le logcat Sunmi pour diagnostiquer pourquoi un APK avec le plugin
+  // ne déclencherait pas l'impression native.
+  if (typeof console !== "undefined") {
+    console.info("[printer] hasNativePrinterBridge", {
+      hasCapacitor: !!cap,
+      isNative: cap?.isNativePlatform?.() ?? null,
+      platform: cap?.getPlatform?.() ?? null,
+      plugins: cap?.Plugins ? Object.keys(cap.Plugins) : [],
+      result,
+    });
+  }
+  return result;
 }
