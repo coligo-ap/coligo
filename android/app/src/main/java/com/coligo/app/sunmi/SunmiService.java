@@ -121,13 +121,23 @@ public final class SunmiService {
   }
 
   /**
-   * Le firmware Sunmi V3 rejette certaines tailles intermédiaires avec
-   * « -5: Illegal parameter » (observé : 22, 30 → KO ; 20, 24, 28, 32 → OK).
-   * On snap à la valeur autorisée la plus proche pour que le builder JS
-   * puisse rester flexible sans connaître la liste par cœur.
+   * Le firmware Sunmi V3 rejette setFontSize() avec « -5: Illegal parameter »
+   * pour la plupart des valeurs non standard. Set restreint aux tailles
+   * VÉRIFIÉES OK via logcat sur V3 (mai 2026) :
+   *
+   *   16 ✅   24 ✅   28 ✅   32 ✅   48 ✅
+   *
+   * Plantent : 18 → snap, 20 ❌, 22 → snap, 30 → snap, 36/40/44/52 non testés
+   * mais exclus par prudence (un seul raise -5 amputait des sections du
+   * ticket en cascade).
+   *
+   * Conséquence pour le builder JS : on peut demander n'importe quel size,
+   * il sera ramené à la valeur autorisée la plus proche (ex. huge:56 → 48,
+   * small:21 → 24). Le builder reste libre sans devoir connaître la liste.
+   * À étendre prudemment si on confirme d'autres tailles sur un V3 réel.
    */
   private static final float[] ALLOWED_FONT_SIZES = {
-      16f, 20f, 24f, 28f, 32f, 36f, 40f, 48f, 56f
+      16f, 24f, 28f, 32f, 48f
   };
 
   public void setFontSize(float size) throws RemoteException {
