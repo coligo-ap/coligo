@@ -78,9 +78,20 @@ public class SunmiPrinterPlugin extends Plugin {
 
     try {
       for (int copy = 0; copy < copies; copy++) {
-        // Mode buffer = la liste est exécutée atomiquement par le firmware,
-        // évite les déchirures de papier inter-commandes.
-        sunmi.enterBuffer(true);
+        // IMPORTANT — Mode DIRECT (pas de enterPrinterBuffer / exitPrinterBuffer).
+        //
+        // Observation Sunmi V3 (firmware mai 2026) : en mode buffer, le firmware
+        // n'imprime que printColumnsText et printQRCode. Tous les printText
+        // (et setAlignment qui les précède) sont silencieusement avalés ;
+        // résultat : bandeau, #ID, code de retrait, footer disparaissent du
+        // papier alors que le QR et les colonnes du récap sortent.
+        //
+        // En direct, chaque commande est flush immédiatement vers l'imprimante
+        // thermique. Coût : ~30 ms par commande (négligeable, < 1 s pour un
+        // ticket complet). On perd l'atomicité (un crash en milieu de séquence
+        // laisserait un demi-ticket) mais c'est un trade-off acceptable pour
+        // que le ticket soit complet — fait sortir le bandeau RETRAIT, le
+        // #ID énorme, le code, tout.
         if (autoInit) sunmi.printerInit();
 
         int n = commands.length();
@@ -92,8 +103,6 @@ public class SunmiPrinterPlugin extends Plugin {
         // Marge avant la coupe pour ne pas tronquer le QR.
         sunmi.lineWrap(3);
         if (autoCut) sunmi.cutPaper();
-
-        sunmi.exitBuffer(true);
       }
       JSObject res = new JSObject();
       res.put("printed", copies);
