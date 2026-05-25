@@ -11,6 +11,45 @@ import { QrScanner } from "@/components/scanner/qr-scanner";
 type Tab = "code" | "qr";
 type Result = { ok: boolean; message: string; orderId?: string };
 
+/**
+ * Extrait un code 6 chiffres d'une string scannée. Le QR Coligo encode
+ * directement les 6 chiffres ; par tolérance on accepte aussi une URL
+ * legacy avec `?code=XXXXXX`. Tout autre format → `null`.
+ *
+ * Important : on ne fait PAS de `replace(/\D/g, "")` global sur l'input —
+ * une URL avec shortRef alphanumérique (`1C747D`) contient des chiffres
+ * parasites qui contamineraient le code (bug v3 résolu).
+ */
+function extractPickupCode(raw: string): string | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim();
+  if (!s) return null;
+  // Format dominant : 6 chiffres bruts (avec espaces internes tolérés)
+  if (/^[\s\d]+$/.test(s)) {
+    const digits = s.replace(/\D/g, "");
+    return digits.length === 6 ? digits : null;
+  }
+  // Tolérance URL legacy : on extrait le param `code`
+  try {
+    const url = new URL(s);
+    const code = url.searchParams.get("code");
+    if (code && /^\d{6}$/.test(code)) return code;
+  } catch {
+    /* pas une URL valide */
+  }
+  return null;
+}
+
+/** Vibration courte côté commerçant (silencieux sur iOS Safari). */
+function buzz(pattern: number | number[]) {
+  if (typeof navigator === "undefined") return;
+  try {
+    navigator.vibrate?.(pattern);
+  } catch {
+    /* ignored */
+  }
+}
+
 export function PickupValidator() {
   const [tab, setTab] = useState<Tab>("qr");
   const [result, setResult] = useState<Result | null>(null);
@@ -28,6 +67,7 @@ export function PickupValidator() {
           // Hors ligne : on enregistre la validation et on confirmera au
           // commerçant que la synchro se fera dès le retour du réseau.
           // Pas d'orderId à afficher (on n'a pas interrogé la DB).
+          buzz(60);
           setResult({
             ok: true,
             message:
@@ -36,13 +76,16 @@ export function PickupValidator() {
           return;
         }
         const res = outcome.result;
+        const ok = !res.error;
+        buzz(ok ? 60 : [80, 60, 80]);
         setResult({
-          ok: !res.error,
+          ok,
           message: res.error ?? res.success ?? "",
           orderId: res.orderId,
         });
       } catch (e) {
         const message = e instanceof Error ? e.message : "Erreur inattendue.";
+        buzz([80, 60, 80]);
         setResult({ ok: false, message });
       }
     });
@@ -213,8 +256,12 @@ function QrTab({
   const handleScan = useCallback(
     (text: string) => {
       if (handledRef.current) return;
-      const code = text.replace(/\D/g, "").slice(0, 6);
-      if (code.length !== 6) return;
+      // Le QR Coligo encode UNIQUEMENT le code 6 chiffres. Mais par robustesse
+      // on extrait aussi le code des éventuelles URLs legacy `?code=XXXXXX`
+      // (NE PAS faire un `replace(/\D/g, "")` global : un shortRef alphanum
+      // avec chiffres parasites contamine le code).
+      const code = extractPickupCode(text);
+      if (!code) return; // format inconnu : on laisse le commerçant retenter
       handledRef.current = true;
       onScan(code);
     },

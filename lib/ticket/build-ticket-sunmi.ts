@@ -1,19 +1,26 @@
 /**
- * Builder « commandes Sunmi » du ticket de commande — reproduit la même
- * hiérarchie visuelle que `buildTicketHTML()` mais via le SDK Sunmi (AIDL
- * woyou.aidlservice.jiuiv5), pour impression DIRECTE sans dialogue.
+ * Builder « commandes Sunmi » du ticket — parité visuelle avec le ticket
+ * HTML (cf. `maquette-ticket-80mm.html`), via le SDK Sunmi AIDL pour
+ * impression directe sans dialogue navigateur.
  *
- * On vise une parité visuelle avec le ticket HTML :
- *   - bandeau noir inversé (mode dominant : RETRAIT / PAYÉ / À ENCAISSER)
- *   - #ID énorme + heure de retrait grosse
- *   - articles regroupés par catégorie
- *   - récap aligné à droite via `printColumnsText`
- *   - QR code natif imprimante (matrice ESC/POS, pas une image bitmap)
- *   - coupe papier finale
+ * Structure suivie (identique à la maquette) :
+ *   1. nom commerce centré gras + localité
+ *   2. bandeau noir inversé "RETRAIT"
+ *   3. #ID énorme (textBoldStrong → double-width)
+ *   4. "RETRAIT À HH:MM" en gros
+ *   5. méta : Commandé le / Client / Tél (colonnes label/valeur)
+ *   6. badge "NOUVEAU CLIENT" optionnel
+ *   7. articles groupés par catégorie : "— CATEGORIE (N) —" + lignes
+ *      `qty× nom ........ prix DA`
+ *   8. récap aligné à droite (sous-total, frais, réduction)
+ *   9. TOTAL en gras fort
+ *  10. bloc paiement (À ENCAISSER : X DA / PAYÉ EN LIGNE)
+ *  11. CODE DE RETRAIT + 6 chiffres espacés en gros + QR
+ *  12. footer (Commande via Coligo + horodatage)
  *
  * Largeur :
- *   - 58 mm  → 32 colonnes (font 24px)
- *   - 80 mm  → 48 colonnes (font 24px)
+ *   - 80 mm → 48 colonnes (cible Sunmi V3)
+ *   - 58 mm → 32 colonnes (legacy / imprimantes tierces)
  */
 
 import type { TicketItem, TicketOrder } from "@/lib/ticket/build-ticket-html";
@@ -26,14 +33,10 @@ export type BuildSunmiOptions = {
   copyLabel?: string;
 };
 
-// Tailles texte (en pixels sur l'imprimante). Le plugin Java les snap au
-// set autorisé par le firmware V3 ({16, 24, 28, 32, 48}) — on choisit ici
-// directement des valeurs déjà compatibles pour éviter les surprises.
-//
-// Design compact : ne pas multiplier les tailles, jouer sur le bold/strong
-// plutôt que sur la taille pour la hiérarchie. Le `textBoldStrong` rend
-// l'effet d'un texte « énorme » sans changer la taille (double-width via
-// ESC ! côté plugin).
+// Tailles texte (firmware V3 = {16, 24, 28, 32, 48}). On en utilise 3 :
+//   small = méta, recap, footer
+//   base  = corps du ticket (items, rows, banner, pay)
+//   large = #ID, code de retrait, heure de retrait
 const SZ = {
   small: 16,
   base: 24,
@@ -41,26 +44,27 @@ const SZ = {
 };
 
 /**
- * Réduit un texte à de l'ASCII imprimable. Le firmware Sunmi V3 ignore
- * silencieusement des `printText` qui contiennent certains caractères non
- * ASCII (em-dash «—», quotes typographiques, accents combinés…). On
- * normalise NFD + on retire les diacritiques + on remplace les ponctuations
- * exotiques par leur équivalent ASCII.
+ * Sanitise un texte vers de l'ASCII imprimable. Le firmware Sunmi V3 ignore
+ * silencieusement certains caractères non ASCII (em-dash, quotes typo,
+ * accents combinés). On normalise NFD + on retire diacritiques + on
+ * remplace les ponctuations exotiques.
  */
 function asciize(input: string): string {
   return input
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "") // accents combinés
-    .replace(/[‐-―]/g, "-") // dashes (em, en, figure, horizontal bar)
-    .replace(/[‘’‚‛′]/g, "'") // single quotes
-    .replace(/[“”„‟″]/g, '"') // double quotes
-    .replace(/…/g, "...") // ellipsis
-    .replace(/·|•|●/g, "-") // middle dot, bullet, black circle
-    .replace(/ /g, " ") // non-breaking space
-    .replace(/[^\x20-\x7E\n]/g, ""); // garde printable ASCII + newline
+    .replace(/[‐-―]/g, "-") // tous dashes → -
+    .replace(/[‘’‚‛′]/g, "'")
+    .replace(/[“”„‟″]/g, '"')
+    .replace(/…/g, "...")
+    .replace(/[·•●]/g, "-")
+    .replace(/×/g, "x")
+    .replace(/✓/g, "[OK]")
+    .replace(/★/g, "*")
+    .replace(/ /g, " ") // NBSP
+    .replace(/[^\x20-\x7E\n]/g, "");
 }
 
-// Colonnes utilisables par largeur de papier (font base = 24).
 function columnsFor(width: PrintWidth): number {
   return width === 80 ? 48 : 32;
 }
@@ -80,32 +84,24 @@ function formatTime(iso: string): string {
   });
 }
 
-function formatSubmitted(iso: string): string {
+function formatShortDateTime(iso: string): string {
   const d = new Date(iso);
+  const date = d.toLocaleDateString("fr-DZ", {
+    day: "2-digit",
+    month: "2-digit",
+  });
   const time = d.toLocaleTimeString("fr-DZ", {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const date = d.toLocaleDateString("fr-DZ", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-  });
-  return `${time}, ${date}`;
+  return `${date} ${time}`;
 }
 
-/**
- * Réduit un pickup_code à 4 chiffres (les 4 derniers). C'est le seul
- * identifiant visible sur le ticket physique : court → lisible à distance,
- * unique sur la fenêtre de service d'un commerçant. Le pickup_code complet
- * reste encodé dans le QR pour la validation côté app commerçant.
- */
-function shortPickup(code: string): string {
-  const digitsOnly = code.replace(/\D/g, "");
-  return (digitsOnly || code).slice(-4).padStart(4, "0");
+function shortId(id: string): string {
+  return id.slice(0, 6).toUpperCase();
 }
 
-function totalUnits(items: TicketItem[]): number {
+function groupCount(items: TicketItem[]): number {
   return items.reduce((s, it) => s + Number(it.quantity || 0), 0);
 }
 
@@ -125,23 +121,26 @@ function groupByCategory(
   return order.map((title) => ({ title, items: map.get(title)! }));
 }
 
-/** Ligne pointillée mineure plein-papier (32 ou 48 chars de '-'). */
-function dottedLine(width: PrintWidth): string {
-  return "-".repeat(columnsFor(width));
+function spaceOut(s: string): string {
+  return s.split("").join(" ");
 }
 
-/** Ligne pleine plein-papier ('=' x N) — séparation MAJEURE entre sections. */
-function heavyLine(width: PrintWidth): string {
-  return "=".repeat(columnsFor(width));
-}
-
-/** Pad un texte sur N colonnes pour le bandeau inversé full-width. */
-function centerPad(text: string, width: PrintWidth): string {
-  const cols = columnsFor(width);
+/** Centre un texte sur N colonnes (pour bandeau inversé full-width). */
+function centerPad(text: string, cols: number): string {
   const t = text.length > cols ? text.slice(0, cols) : text;
   const left = Math.max(0, Math.floor((cols - t.length) / 2));
   const right = Math.max(0, cols - t.length - left);
   return " ".repeat(left) + t + " ".repeat(right);
+}
+
+/** Séparateur pointillé plein-papier (maquette : hr dashed). */
+function dottedLine(cols: number): string {
+  return "-".repeat(cols);
+}
+
+/** Séparateur plein (cf. divider-solid de la maquette). */
+function solidLine(cols: number): string {
+  return "=".repeat(cols);
 }
 
 export function buildTicketSunmiCommands(
@@ -149,103 +148,100 @@ export function buildTicketSunmiCommands(
   opts: BuildSunmiOptions
 ): SunmiCommand[] {
   const out: SunmiCommand[] = [];
-  const dotted = dottedLine(opts.width); // -------- mineur
-  const heavy = heavyLine(opts.width); // ======== majeur
   const cols = columnsFor(opts.width);
-
-  // Config imprimante en TÊTE de séquence : largeur papier + interligne mini
-  // pour cet appareil. Doit être avant toute autre commande.
-  out.push({ type: "paper", columns: cols });
-  out.push({ type: "lineSpacing", dots: 0 });
-
   const isPaidOnline =
     order.payment_method === "online" && order.payment_status === "paid";
   const isCash = order.payment_method === "cash";
-  const bannerLabel = isPaidOnline
-    ? "PAYE EN LIGNE"
-    : isCash
-      ? "A ENCAISSER"
-      : "RETRAIT";
 
-  // Helpers locaux pour rendre la séquence très lisible.
-  const heavySep = () => {
+  // Config imprimante en TÊTE de séquence (largeur + interligne mini).
+  out.push({ type: "paper", columns: cols });
+  out.push({ type: "lineSpacing", dots: 0 });
+
+  const divider = () => {
     out.push({ type: "align", value: "left" });
-    out.push({ type: "size", value: SZ.small });
-    out.push({ type: "text", text: heavy });
-  };
-  const lightSep = () => {
-    out.push({ type: "align", value: "left" });
-    out.push({ type: "size", value: SZ.small });
-    out.push({ type: "text", text: dotted });
+    out.push({ type: "size", value: SZ.base });
+    out.push({ type: "text", text: dottedLine(cols) });
   };
 
-  // === COPIE (multi-exemplaires) ===
+  // === COPIE k/N ===
   if (opts.copyLabel) {
     out.push({ type: "align", value: "center" });
     out.push({ type: "size", value: SZ.small });
     out.push({ type: "textBold", text: opts.copyLabel });
   }
 
-  // ===== HEADER : nom commerce =====
-  heavySep();
+  // ===== 1. EN-TÊTE : nom commerce + localité =====
   out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.base });
   out.push({ type: "textBold", text: order.merchant_name });
-  heavySep();
-
-  // ===== BANDEAU MODE (RETRAIT / PAYE / A ENCAISSER) =====
-  out.push({ type: "align", value: "center" });
-  out.push({ type: "size", value: SZ.base });
-  out.push({ type: "textInverse", text: centerPad(bannerLabel, opts.width) });
-  heavySep();
-
-  // ===== CODE DE RETRAIT (le seul identifiant gros sur le ticket) =====
-  // Sert au commerçant à matcher quand le client se présente. 4 chiffres
-  // max → lisible à distance, distingue instantanément 2 tickets côte-à-côte.
-  out.push({ type: "align", value: "center" });
-  out.push({ type: "size", value: SZ.small });
-  out.push({ type: "text", text: "CODE DE RETRAIT" });
-  out.push({ type: "size", value: SZ.large });
-  out.push({
-    type: "textBoldStrong",
-    text: shortPickup(order.pickup_code),
-  });
-  heavySep();
-
-  // ===== HEURE DE RETRAIT (2e info critique : QUAND préparer) =====
-  out.push({ type: "align", value: "center" });
-  out.push({ type: "size", value: SZ.small });
-  out.push({ type: "text", text: "RETRAIT A" });
-  out.push({ type: "size", value: SZ.base });
-  out.push({ type: "textBoldStrong", text: formatTime(order.pickup_slot_at) });
-  heavySep();
-
-  // ===== NOTE CLIENT (si présente, en encadré visible) =====
-  if (order.notes && order.notes !== "seed") {
-    out.push({ type: "align", value: "left" });
-    out.push({ type: "size", value: SZ.base });
-    out.push({ type: "textBold", text: "NOTE CLIENT :" });
-    out.push({ type: "text", text: order.notes });
-    heavySep();
+  if (order.merchant_locality) {
+    out.push({ type: "size", value: SZ.small });
+    out.push({ type: "text", text: order.merchant_locality });
   }
 
-  // ===== ARTICLES groupés par catégorie =====
-  out.push({ type: "align", value: "center" });
+  // ===== 2. BANDEAU NOIR INVERSÉ "RETRAIT" =====
   out.push({ type: "size", value: SZ.base });
-  out.push({ type: "textBold", text: "ARTICLES" });
-  lightSep();
+  out.push({ type: "textInverse", text: centerPad("RETRAIT", cols) });
+
+  // ===== 3. #ID ÉNORME (textBoldStrong = double-width) =====
+  out.push({ type: "align", value: "center" });
+  out.push({ type: "size", value: SZ.large });
+  out.push({ type: "textBoldStrong", text: `#${shortId(order.id)}` });
+
+  // ===== 4. HEURE DE RETRAIT =====
+  out.push({ type: "size", value: SZ.small });
+  out.push({ type: "text", text: "RETRAIT A" });
+  out.push({ type: "size", value: SZ.large });
+  out.push({ type: "textBoldStrong", text: formatTime(order.pickup_slot_at) });
+
+  divider();
+
+  // ===== 5. MÉTA (Commandé le / Client / Tél) =====
+  out.push({ type: "align", value: "left" });
+  out.push({ type: "size", value: SZ.base });
+  const labW = Math.floor(cols * 0.4);
+  const valW = cols - labW;
+  const metaRow = (l: string, r: string) => {
+    out.push({
+      type: "columns",
+      cols: [l, r],
+      widths: [labW, valW],
+      aligns: ["left", "right"],
+    });
+  };
+  metaRow("Commande le", formatShortDateTime(order.created_at));
+  metaRow("Client", order.customer_name);
+  metaRow("Tel", order.customer_phone);
+
+  // ===== 6. BADGE NOUVEAU CLIENT =====
+  if (order.is_new_customer) {
+    out.push({ type: "align", value: "center" });
+    out.push({ type: "size", value: SZ.base });
+    out.push({ type: "textBold", text: "* NOUVEAU CLIENT *" });
+  }
+
+  divider();
+
+  // ===== 7. ARTICLES groupés par catégorie =====
   out.push({ type: "align", value: "left" });
   out.push({ type: "size", value: SZ.base });
   const groups = groupByCategory(order.items);
   if (groups.length === 0) {
     out.push({ type: "text", text: "(aucun article)" });
   } else {
-    const qtyW = 3;
-    const priceW = 8;
-    const nameW = cols - qtyW - priceW - 2; // -2 pour les espaces de garde
-    for (let gi = 0; gi < groups.length; gi++) {
-      const g = groups[gi];
-      out.push({ type: "textBold", text: g.title.toUpperCase() });
+    const qtyW = 4;
+    const priceW = 9;
+    const nameW = cols - qtyW - priceW - 2;
+    for (const g of groups) {
+      out.push({
+        type: "align",
+        value: "center",
+      });
+      out.push({
+        type: "textBold",
+        text: `- ${g.title.toUpperCase()} (${groupCount(g.items)}) -`,
+      });
+      out.push({ type: "align", value: "left" });
       for (const it of g.items) {
         const qty = String(it.quantity).replace(/\.0+$/, "") + "x";
         out.push({
@@ -255,123 +251,115 @@ export function buildTicketSunmiCommands(
           aligns: ["left", "left", "right"],
         });
       }
-      if (gi < groups.length - 1) lightSep();
     }
   }
-  heavySep();
 
-  // ===== RECAP financier =====
+  // Note client : si présente, l'ajouter en italique-ish (textBold faute de
+  // mieux) sous les articles, avec préfixe ↳ (asciize → ->).
+  if (order.notes && order.notes !== "seed") {
+    out.push({ type: "size", value: SZ.small });
+    out.push({ type: "text", text: `-> ${order.notes}` });
+  }
+
+  divider();
+
+  // ===== 8. RÉCAP aligné à droite =====
   const subtotal = order.items.reduce((s, it) => s + it.line_total_da, 0);
   const discount = Math.max(
     0,
     subtotal + order.service_fee_da - order.total_da
   );
-  const labelWidth = Math.floor(cols * 0.6);
-  const valueWidth = cols - labelWidth;
-
-  out.push({ type: "size", value: SZ.base });
+  const recapLabW = Math.floor(cols * 0.55);
+  const recapValW = cols - recapLabW;
   const pushRecap = (label: string, value: string) => {
     out.push({
       type: "columns",
       cols: [label, value],
-      widths: [labelWidth, valueWidth],
+      widths: [recapLabW, recapValW],
       aligns: ["left", "right"],
     });
   };
-
-  if (discount > 0 || order.service_fee_da > 0) {
+  out.push({ type: "align", value: "left" });
+  out.push({ type: "size", value: SZ.base });
+  if (discount > 0 || order.service_fee_da > 0 || order.cashback_da > 0) {
     pushRecap("Sous-total", formatDA(subtotal));
   }
   if (order.service_fee_da > 0) {
     pushRecap("Frais service", formatDA(order.service_fee_da));
   }
   if (discount > 0) {
-    pushRecap("Reduction", `-${formatDA(discount)}`);
+    const pct = subtotal > 0 ? Math.round((discount / subtotal) * 100) : 0;
+    pushRecap(
+      pct > 0 ? `Reduction -${pct}%` : "Reduction",
+      `-${formatDA(discount)}`
+    );
   }
   if (order.cashback_da > 0) {
     pushRecap("Cashback", `-${formatDA(order.cashback_da)}`);
   }
-  lightSep();
 
-  // TOTAL en gros gras fort, centré
-  out.push({ type: "align", value: "center" });
-  out.push({ type: "size", value: SZ.base });
+  // ===== 9. TOTAL en gras fort =====
+  out.push({ type: "size", value: SZ.large });
   out.push({
-    type: "textBoldStrong",
-    text: `TOTAL ${formatDA(order.total_da)}`,
+    type: "columns",
+    cols: ["TOTAL", formatDA(order.total_da)],
+    widths: [Math.floor(cols * 0.4), Math.ceil(cols * 0.6)],
+    aligns: ["left", "right"],
   });
 
-  // Bandeau paiement final (mirror du bandeau du haut, plus utilitaire)
+  // ===== 10. BLOC PAIEMENT encadré (text + lignes solides) =====
+  out.push({ type: "align", value: "left" });
+  out.push({ type: "size", value: SZ.base });
+  out.push({ type: "text", text: solidLine(cols) });
+  out.push({ type: "align", value: "center" });
   if (isPaidOnline) {
-    out.push({ type: "align", value: "center" });
+    out.push({ type: "textBold", text: "[OK] PAYE EN LIGNE" });
     out.push({ type: "size", value: SZ.small });
-    out.push({ type: "textBold", text: "** PAYE EN LIGNE **" });
+    out.push({ type: "text", text: "Ne rien encaisser" });
   } else if (isCash) {
-    out.push({ type: "align", value: "center" });
-    out.push({ type: "size", value: SZ.small });
     out.push({
       type: "textBold",
-      text: `** A ENCAISSER : ${formatDA(order.total_da)} **`,
+      text: `A ENCAISSER : ${formatDA(order.total_da)}`,
     });
+    out.push({ type: "size", value: SZ.small });
+    out.push({ type: "text", text: "(paiement en especes au retrait)" });
+  } else {
+    out.push({ type: "textBold", text: formatDA(order.total_da) });
   }
-  heavySep();
-
-  // ===== INFOS CLIENT =====
   out.push({ type: "align", value: "left" });
-  out.push({ type: "size", value: SZ.small });
-  const labW = Math.floor(cols * 0.28);
-  const valW = cols - labW;
-  out.push({
-    type: "columns",
-    cols: ["Soumis", formatSubmitted(order.created_at)],
-    widths: [labW, valW],
-    aligns: ["left", "right"],
-  });
-  out.push({
-    type: "columns",
-    cols: ["Client", order.customer_name],
-    widths: [labW, valW],
-    aligns: ["left", "right"],
-  });
-  out.push({
-    type: "columns",
-    cols: ["Tel", order.customer_phone],
-    widths: [labW, valW],
-    aligns: ["left", "right"],
-  });
-  heavySep();
+  out.push({ type: "size", value: SZ.base });
+  out.push({ type: "text", text: solidLine(cols) });
 
-  // ===== QR (validation client → commerçant scanne) =====
-  // Le QR encode le pickup_code COMPLET (pas la version tronquée à 4),
-  // pour que le scan côté app revalide l'identité de la commande sans
-  // ambiguïté. Le commerçant n'a pas à taper le code à la main.
+  divider();
+
+  // ===== 11. CODE DE RETRAIT + QR =====
   out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.small });
-  out.push({ type: "text", text: "Scanner pour valider :" });
+  out.push({ type: "text", text: "CODE DE RETRAIT" });
+  out.push({ type: "size", value: SZ.large });
+  out.push({ type: "textBoldStrong", text: spaceOut(order.pickup_code) });
+  // QR encode UNIQUEMENT le code 6 chiffres : payload court → modules plus
+  // gros → scan fiable sur thermique imprimé.
   out.push({
     type: "qr",
     data: order.pickup_code,
     moduleSize: opts.width === 80 ? 6 : 5,
     errorLevel: 3,
   });
-  heavySep();
 
-  // ===== FOOTER (compact) =====
-  out.push({ type: "align", value: "center" });
+  // ===== 12. FOOTER =====
   out.push({ type: "size", value: SZ.small });
+  out.push({ type: "text", text: "- - - - - - - - - - -" });
+  out.push({ type: "text", text: `Commande via ${opts.appName ?? "Coligo"}` });
   out.push({
     type: "text",
-    text: `${opts.appName ?? "Coligo"}  ${formatSubmitted(new Date().toISOString())}`,
+    text: `Imprime le ${formatShortDateTime(new Date().toISOString())}`,
   });
 
   // Reset final
   out.push({ type: "align", value: "left" });
 
-  // Pass de sanitization finale : applique `asciize` à toutes les chaînes
-  // envoyées à l'imprimante (text, columns.cols). Le firmware Sunmi V3
-  // ignore les printText contenant certains caractères non ASCII — on
-  // garantit une sortie purement imprimable, peu importe d'où vient la
-  // donnée (nom de produit, note client, …).
+  // Sanitization ASCII finale (firmware V3 strict)
   const sanitized = out.map((cmd): SunmiCommand => {
     switch (cmd.type) {
       case "text":
@@ -386,9 +374,7 @@ export function buildTicketSunmiCommands(
     }
   });
 
-  // Preview ASCII en console — visible dans logcat (chromium:I) avant que
-  // le ticket parte à l'imprimante. Permet de vérifier le layout sans
-  // gaspiller du papier.
+  // Preview ASCII en console — visible dans logcat avant impression.
   try {
     console.info("[ticket-preview]\n" + previewAscii(sanitized, cols));
   } catch {
@@ -398,11 +384,7 @@ export function buildTicketSunmiCommands(
   return sanitized;
 }
 
-/**
- * Génère un rendu ASCII approximatif des commandes pour debug. Ne reproduit
- * pas exactement la taille des polices (cf. firmware), mais montre la
- * structure : alignements, contenu, séparateurs.
- */
+/** Rendu ASCII approximatif des commandes pour debug logcat. */
 function previewAscii(commands: SunmiCommand[], cols: number): string {
   const lines: string[] = [];
   let align: SunmiAlign = "left";

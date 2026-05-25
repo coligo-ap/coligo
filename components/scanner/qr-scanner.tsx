@@ -1,142 +1,375 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Camera, Loader2, RefreshCw, X } from "lucide-react";
-import { cameraSupported } from "@/lib/native";
+/**
+ * Scanner QR — caméra qui s'ouvre AUTOMATIQUEMENT au mount du composant
+ * (pas de bouton « Activer »). Auto-détecte le QR, le décode, le passe à
+ * `onScan`. C'est l'UX visée : le commerçant pose son téléphone face au
+ * ticket, ça scanne, c'est validé.
+ *
+ * Robustesse — addresse les 5 causes habituelles de « la caméra ne détecte
+ * rien » :
+ *
+ *  1. **HTTPS obligatoire** : `getUserMedia` échoue silencieusement sur
+ *     HTTP. On check `window.isSecureContext` d'entrée et on affiche un
+ *     message explicite si KO.
+ *
+ *  2. **Double moteur de décodage** :
+ *     - `BarcodeDetector` natif si supporté (Android Chrome ≥ 88,
+ *       matériellement accéléré). C'est ce qui détecte réellement les QR
+ *       sur Sunmi V3.
+ *     - Fallback `@zxing/browser` (iOS Safari, Firefox).
+ *
+ *  3. **Boucle de scan throttlée** : 10 fps via `requestAnimationFrame`.
+ *     Beaucoup de scanners affichent la vidéo sans lancer la détection.
+ *     Ici on vérifie chaque ~100ms.
+ *
+ *  4. **Anti-doublon** : 1.5s de cooldown sur le même contenu détecté
+ *     pour éviter de re-firer `onScan` 30 fois par seconde.
+ *
+ *  5. **Cleanup strict** : au démontage, `track.stop()` sur chaque
+ *     MediaStreamTrack + `cancelAnimationFrame`. La diode caméra ne
+ *     reste pas allumée.
+ *
+ * On pause aussi la boucle en arrière-plan (`visibilitychange`).
+ */
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Camera, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
   /** Appelé à chaque détection (ou une seule fois si `oneShot`). */
   onScan: (text: string) => void;
-  /** Si true, on s'arrête au premier scan. */
+  /** Si true, on stoppe la caméra au premier scan utile. Défaut : true. */
   oneShot?: boolean;
   /** Bouton fermer optionnel (affiché en haut à droite). */
   onClose?: () => void;
-  /** Préfère la caméra arrière sur mobile (par défaut true). */
-  preferBack?: boolean;
   className?: string;
 };
 
-type ZxingControls = { stop: () => void };
-type DeviceInfo = { deviceId: string; label: string };
+type Status = "starting" | "scanning" | "error" | "unsupported";
+type ScannerErrorKind =
+  | "not-secure-context"
+  | "no-camera-api"
+  | "permission-denied"
+  | "no-camera-found"
+  | "camera-busy"
+  | "decoder-failed"
+  | "unknown";
 
-/**
- * Composant scanner QR réutilisable basé sur `@zxing/browser`.
- *
- * - caméra arrière par défaut (détection via le label du device)
- * - cadre central animé violet `#5C5CE0`
- * - bouton « changer de caméra » si plusieurs détectées
- * - gestion explicite des erreurs `NotAllowedError` / `NotFoundError`
- */
+// ─── BarcodeDetector typings (pas dans lib.dom.d.ts en 2026) ─────────────
+type DetectedBarcode = { rawValue: string; format: string };
+type BarcodeDetectorInstance = {
+  detect: (source: CanvasImageSource) => Promise<DetectedBarcode[]>;
+};
+type BarcodeDetectorCtor = new (opts?: {
+  formats?: string[];
+}) => BarcodeDetectorInstance;
+type BarcodeDetectorStatic = {
+  getSupportedFormats?: () => Promise<string[]>;
+};
+
+function getBarcodeDetector(): {
+  Ctor: BarcodeDetectorCtor;
+  Static: BarcodeDetectorStatic;
+} | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    BarcodeDetector?: BarcodeDetectorCtor & BarcodeDetectorStatic;
+  };
+  if (!w.BarcodeDetector) return null;
+  return { Ctor: w.BarcodeDetector, Static: w.BarcodeDetector };
+}
+
+function classifyGumError(err: unknown): {
+  kind: ScannerErrorKind;
+  message: string;
+} {
+  const name = (err as { name?: string })?.name ?? "";
+  switch (name) {
+    case "NotAllowedError":
+    case "SecurityError":
+      return {
+        kind: "permission-denied",
+        message:
+          "Accès caméra refusé. Autorisez Coligo dans les réglages du navigateur.",
+      };
+    case "NotFoundError":
+    case "OverconstrainedError":
+      return {
+        kind: "no-camera-found",
+        message: "Aucune caméra trouvée sur cet appareil.",
+      };
+    case "NotReadableError":
+    case "AbortError":
+      return {
+        kind: "camera-busy",
+        message:
+          "La caméra est déjà utilisée par une autre application. Fermez-la et réessayez.",
+      };
+    default:
+      return {
+        kind: "unknown",
+        message:
+          "Impossible de démarrer la caméra. Utilisez la saisie manuelle.",
+      };
+  }
+}
+
+type ZxingControls = { stop: () => void };
+
 export function QrScanner({
   onScan,
   oneShot = true,
   onClose,
-  preferBack = true,
   className,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const controlsRef = useRef<ZxingControls | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const zxingRef = useRef<ZxingControls | null>(null);
+  const stoppedRef = useRef(false);
   const scannedRef = useRef(false);
+  const lastDetectionRef = useRef<{ text: string; at: number } | null>(null);
+  const onScanRef = useRef(onScan);
 
-  const [devices, setDevices] = useState<DeviceInfo[]>([]);
-  const [activeDeviceId, setActiveDeviceId] = useState<string | undefined>(
-    undefined
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [starting, setStarting] = useState(true);
-
-  // Énumère les caméras pour proposer le toggle si plusieurs.
+  // Garde une ref vers le callback courant : on évite de remonter la boucle
+  // chaque fois que le parent recrée la fonction `onScan` inline.
   useEffect(() => {
-    if (!cameraSupported()) {
-      setError("La caméra n'est pas disponible sur cet appareil.");
-      setStarting(false);
-      return;
+    onScanRef.current = onScan;
+  }, [onScan]);
+
+  const [status, setStatus] = useState<Status>("starting");
+  const [errMessage, setErrMessage] = useState<string | null>(null);
+
+  /** Émet vers onScan en respectant cooldown anti-doublon + oneShot. */
+  const emit = useCallback(
+    (text: string) => {
+      if (oneShot && scannedRef.current) return;
+      const now = Date.now();
+      const last = lastDetectionRef.current;
+      if (last && last.text === text && now - last.at < 1500) return;
+      lastDetectionRef.current = { text, at: now };
+      if (oneShot) scannedRef.current = true;
+      onScanRef.current(text);
+    },
+    [oneShot]
+  );
+
+  /** Coupe tout. Idempotent. */
+  const cleanup = useCallback(() => {
+    stoppedRef.current = true;
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     }
-    let cancelled = false;
-    (async () => {
+    if (zxingRef.current) {
       try {
-        // Sans permission préalable, les labels sont vides ; ce n'est pas grave,
-        // le décodeur ZXing utilisera la première caméra par défaut.
-        const list = await navigator.mediaDevices.enumerateDevices();
-        const cams = list
-          .filter((d) => d.kind === "videoinput")
-          .map((d) => ({ deviceId: d.deviceId, label: d.label || "Caméra" }));
-        if (cancelled) return;
-        setDevices(cams);
-        if (preferBack) {
-          const back = cams.find((c) =>
-            /back|rear|arrière|environment/i.test(c.label)
-          );
-          if (back) setActiveDeviceId(back.deviceId);
-        }
+        zxingRef.current.stop();
       } catch {
-        /* enumerateDevices peut échouer dans certains contextes — pas bloquant */
+        /* ignored */
+      }
+      zxingRef.current = null;
+    }
+    if (streamRef.current) {
+      for (const t of streamRef.current.getTracks()) {
+        try {
+          t.stop();
+        } catch {
+          /* ignored */
+        }
+      }
+      streamRef.current = null;
+    }
+    const v = videoRef.current;
+    if (v) {
+      try {
+        v.pause();
+      } catch {
+        /* ignored */
+      }
+      v.srcObject = null;
+    }
+  }, []);
+
+  // ─── Démarrage AUTO au mount ────────────────────────────────────────────
+  useEffect(() => {
+    stoppedRef.current = false;
+    scannedRef.current = false;
+    let abort = false;
+
+    (async () => {
+      // 1. HTTPS check (échec silencieux de getUserMedia sinon)
+      if (typeof window !== "undefined" && !window.isSecureContext) {
+        setStatus("unsupported");
+        setErrMessage(
+          "La caméra nécessite une connexion sécurisée HTTPS. Utilisez la saisie manuelle."
+        );
+        return;
+      }
+      if (
+        typeof navigator === "undefined" ||
+        !navigator.mediaDevices?.getUserMedia
+      ) {
+        setStatus("unsupported");
+        setErrMessage(
+          "Ce navigateur ne supporte pas l'accès caméra. Utilisez la saisie manuelle."
+        );
+        return;
+      }
+
+      // 2. getUserMedia (caméra arrière)
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+      } catch (err) {
+        // OverconstrainedError → retente sans contraintes
+        const name = (err as { name?: string })?.name ?? "";
+        if (
+          name === "OverconstrainedError" ||
+          name === "ConstraintNotSatisfiedError"
+        ) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false,
+            });
+          } catch (err2) {
+            if (abort) return;
+            const e = classifyGumError(err2);
+            setStatus("error");
+            setErrMessage(e.message);
+            return;
+          }
+        } else {
+          if (abort) return;
+          const e = classifyGumError(err);
+          setStatus("error");
+          setErrMessage(e.message);
+          return;
+        }
+      }
+
+      if (abort || stoppedRef.current) {
+        for (const t of stream.getTracks()) t.stop();
+        return;
+      }
+      streamRef.current = stream;
+
+      // 3. Attache le stream au <video>
+      const video = videoRef.current;
+      if (!video) {
+        for (const t of stream.getTracks()) t.stop();
+        return;
+      }
+      video.srcObject = stream;
+      video.setAttribute("playsinline", "true");
+      video.muted = true;
+      try {
+        await video.play();
+      } catch {
+        /* certains UA refusent play() — on continue avec rAF/zxing */
+      }
+
+      // 4. Choix du moteur : BarcodeDetector natif si dispo, sinon zxing
+      const det = getBarcodeDetector();
+      let useNative = false;
+      if (det) {
+        try {
+          const formats = (await det.Static.getSupportedFormats?.()) ?? [];
+          useNative = formats.includes("qr_code");
+        } catch {
+          useNative = false;
+        }
+      }
+
+      if (abort || stoppedRef.current) return;
+
+      if (useNative && det) {
+        // Boucle native rAF throttlée à ~10 fps
+        let detector: BarcodeDetectorInstance;
+        try {
+          detector = new det.Ctor({ formats: ["qr_code"] });
+        } catch {
+          // Fallback zxing si l'instanciation plante
+          return startZxing(video);
+        }
+        setStatus("scanning");
+
+        let lastFrameAt = 0;
+        const tick = async (ts: number) => {
+          if (stoppedRef.current) return;
+          if (ts - lastFrameAt >= 100) {
+            lastFrameAt = ts;
+            try {
+              const results = await detector.detect(video);
+              if (results.length > 0 && results[0].rawValue) {
+                emit(results[0].rawValue);
+              }
+            } catch {
+              /* frame pas prête : on continue */
+            }
+          }
+          rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        await startZxing(video);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [preferBack]);
 
-  useEffect(() => {
-    let cancelled = false;
-    scannedRef.current = false;
-    setStarting(true);
-    setError(null);
-
-    (async () => {
+    // Boucle zxing (fallback iOS Safari / Firefox)
+    async function startZxing(video: HTMLVideoElement) {
       try {
         const { BrowserQRCodeReader } = await import("@zxing/browser");
         const reader = new BrowserQRCodeReader();
-        const controls = await reader.decodeFromVideoDevice(
-          activeDeviceId,
-          videoRef.current ?? undefined,
+        const controls = await reader.decodeFromVideoElement(
+          video,
           (result) => {
-            if (!result || scannedRef.current) return;
+            if (stoppedRef.current || !result) return;
             const text = result.getText();
-            if (oneShot) {
-              scannedRef.current = true;
-              controls.stop();
-            }
-            onScan(text);
+            if (text) emit(text);
           }
         );
-        if (cancelled) controls.stop();
-        else {
-          controlsRef.current = controls;
-          setStarting(false);
+        if (stoppedRef.current) {
+          controls.stop();
+          return;
         }
-      } catch (err) {
-        if (cancelled) return;
-        const e = err as { name?: string };
-        if (e.name === "NotAllowedError")
-          setError(
-            "Accès à la caméra refusé. Vérifiez les permissions du navigateur."
-          );
-        else if (e.name === "NotFoundError")
-          setError("Aucune caméra trouvée sur cet appareil.");
-        else
-          setError(
-            "Impossible de démarrer la caméra. Réessayez ou changez de caméra."
-          );
-        setStarting(false);
+        zxingRef.current = controls;
+        setStatus("scanning");
+      } catch {
+        setStatus("error");
+        setErrMessage("Décodeur QR indisponible. Utilisez la saisie manuelle.");
       }
-    })();
+    }
 
     return () => {
-      cancelled = true;
-      controlsRef.current?.stop();
-      controlsRef.current = null;
+      abort = true;
+      cleanup();
     };
-  }, [activeDeviceId, oneShot, onScan]);
+    // emit et cleanup sont stables (useCallback sans deps changeantes).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  function switchCamera() {
-    if (devices.length < 2) return;
-    const idx = devices.findIndex((d) => d.deviceId === activeDeviceId);
-    const next = devices[(idx + 1) % devices.length];
-    setActiveDeviceId(next.deviceId);
-  }
+  // Pause en arrière-plan : on coupe tout. Au retour au premier plan,
+  // le composant n'auto-redémarre PAS (le scanner serait alors fantôme) —
+  // l'utilisateur referme/rouvre la page validate s'il en a besoin.
+  useEffect(() => {
+    const onVis = () => {
+      if (document.hidden) cleanup();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [cleanup]);
+
+  const isFailed = status === "error" || status === "unsupported";
 
   return (
     <div
@@ -153,7 +386,7 @@ export function QrScanner({
         autoPlay
       />
 
-      {/* Cadre de scan + ligne animée */}
+      {/* Cadre de visée */}
       <div className="pointer-events-none absolute inset-6 rounded-[12px] border-2 border-white/80">
         <span className="bg-primary-500 absolute -top-px -left-px size-5 rounded-tl-[12px]" />
         <span className="bg-primary-500 absolute -top-px -right-px size-5 rounded-tr-[12px]" />
@@ -162,36 +395,29 @@ export function QrScanner({
       </div>
       <div className="bg-primary-400/80 pointer-events-none absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 animate-pulse" />
 
-      {/* Boutons overlay (fermer / changer caméra) */}
-      <div className="absolute top-2 right-2 flex gap-2">
-        {devices.length > 1 && (
-          <button
-            type="button"
-            onClick={switchCamera}
-            aria-label="Changer de caméra"
-            className="flex size-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80"
-          >
-            <RefreshCw className="size-4" />
-          </button>
-        )}
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="flex size-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80"
-          >
-            <X className="size-4" />
-          </button>
-        )}
-      </div>
+      {onClose && (
+        <button
+          type="button"
+          onClick={() => {
+            cleanup();
+            onClose();
+          }}
+          aria-label="Fermer le scanner"
+          className="absolute top-2 right-2 flex size-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80"
+        >
+          <X className="size-4" />
+        </button>
+      )}
 
-      {(starting || error) && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70 px-6 text-center text-white">
-          {error ? (
+      {/* Overlay : démarrage / erreur */}
+      {(status === "starting" || isFailed) && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/75 px-6 text-center text-white">
+          {isFailed ? (
             <>
-              <Camera className="size-6 opacity-80" />
-              <p className="text-sm">{error}</p>
+              <Camera className="size-7 opacity-90" />
+              <p className="text-sm leading-snug">
+                {errMessage ?? "Caméra indisponible."}
+              </p>
             </>
           ) : (
             <>

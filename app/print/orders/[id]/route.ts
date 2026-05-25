@@ -85,7 +85,7 @@ export async function GET(
 
   const { data: merchant } = await supabase
     .from("merchants")
-    .select("name")
+    .select("name, city, wilaya_code")
     .eq("id", order.merchant_id)
     .maybeSingle();
 
@@ -97,7 +97,11 @@ export async function GET(
   const ticketOrder = orderToTicket(
     order,
     merchant?.name ?? APP_CONFIG.name,
-    categoryMap
+    categoryMap,
+    {
+      merchantCity: merchant?.city,
+      merchantWilayaCode: merchant?.wilaya_code,
+    }
   );
 
   // Multi-copies : on rend chaque ticket dans un .ticket-page avec
@@ -138,8 +142,8 @@ export async function GET(
   body {
     width: ${widthMm}mm;
     padding: 4mm;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
-    font-size: 12px;
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 13px;
     color: #000;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;

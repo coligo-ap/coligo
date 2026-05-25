@@ -480,5 +480,6 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   auto_accept_orders: false,
   auto_print: "off",
   print_copies: 1,
-  print_width: 58,
+  // Sunmi V3 (terminal cible) = 80mm. Migration 0032 a aligné la DB.
+  print_width: 80,
 };

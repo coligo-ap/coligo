@@ -39,7 +39,8 @@ export function OrderTicket({
     const opts: BuildTicketOptions = { width, appName, copyLabel };
     buildTicketHTML(order, opts).then(({ html }) => {
       if (cancelled) return;
-      // L'iframe rend les mêmes styles que printTicket() côté serveur navigateur.
+      // L'iframe reproduit le contexte d'impression : même font (Courier New)
+      // que la route /print et la maquette de référence.
       const doc = `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8" />
 <style>
@@ -47,8 +48,8 @@ export function OrderTicket({
   body {
     width: ${width}mm;
     padding: 4mm;
-    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-    font-size: 12px;
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 13px;
     color: #000;
   }
   * { box-sizing: border-box; }
