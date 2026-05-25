@@ -94,8 +94,15 @@ function formatSubmitted(iso: string): string {
   return `${time}, ${date}`;
 }
 
-function shortId(id: string): string {
-  return id.slice(0, 6).toUpperCase();
+/**
+ * Réduit un pickup_code à 4 chiffres (les 4 derniers). C'est le seul
+ * identifiant visible sur le ticket physique : court → lisible à distance,
+ * unique sur la fenêtre de service d'un commerçant. Le pickup_code complet
+ * reste encodé dans le QR pour la validation côté app commerçant.
+ */
+function shortPickup(code: string): string {
+  const digitsOnly = code.replace(/\D/g, "");
+  return (digitsOnly || code).slice(-4).padStart(4, "0");
 }
 
 function totalUnits(items: TicketItem[]): number {
@@ -187,10 +194,21 @@ export function buildTicketSunmiCommands(
   out.push({ type: "textInverse", text: centerPad(bannerLabel, opts.width) });
   heavySep();
 
-  // ===== #ID + heure retrait (les 2 infos LES PLUS visibles) =====
+  // ===== CODE DE RETRAIT (le seul identifiant gros sur le ticket) =====
+  // Sert au commerçant à matcher quand le client se présente. 4 chiffres
+  // max → lisible à distance, distingue instantanément 2 tickets côte-à-côte.
   out.push({ type: "align", value: "center" });
+  out.push({ type: "size", value: SZ.small });
+  out.push({ type: "text", text: "CODE DE RETRAIT" });
   out.push({ type: "size", value: SZ.large });
-  out.push({ type: "textBoldStrong", text: `#${shortId(order.id)}` });
+  out.push({
+    type: "textBoldStrong",
+    text: shortPickup(order.pickup_code),
+  });
+  heavySep();
+
+  // ===== HEURE DE RETRAIT (2e info critique : QUAND préparer) =====
+  out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.small });
   out.push({ type: "text", text: "RETRAIT A" });
   out.push({ type: "size", value: SZ.base });
@@ -318,15 +336,13 @@ export function buildTicketSunmiCommands(
   });
   heavySep();
 
-  // ===== CODE RETRAIT (énorme) + QR (centré) =====
+  // ===== QR (validation client → commerçant scanne) =====
+  // Le QR encode le pickup_code COMPLET (pas la version tronquée à 4),
+  // pour que le scan côté app revalide l'identité de la commande sans
+  // ambiguïté. Le commerçant n'a pas à taper le code à la main.
   out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.small });
-  out.push({ type: "text", text: "CODE DE RETRAIT" });
-  out.push({ type: "size", value: SZ.large });
-  out.push({ type: "textBoldStrong", text: order.pickup_code });
-  // Force l'alignement avant le QR — sur Sunmi V3 setAlignment marche
-  // pour printQRCode même si elle est ignorée pour printText (testé).
-  out.push({ type: "align", value: "center" });
+  out.push({ type: "text", text: "Scanner pour valider :" });
   out.push({
     type: "qr",
     data: order.pickup_code,
