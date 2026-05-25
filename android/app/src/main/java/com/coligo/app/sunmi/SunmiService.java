@@ -204,6 +204,20 @@ public final class SunmiService {
     requireService().commitPrinterBufferWithCallback(SILENT_CALLBACK);
   }
 
+  /**
+   * Imprime un bitmap (PNG décodé) tel quel. La largeur max imprimable du
+   * V3 80mm = 576 dots (8 dots/mm × 72mm imprimable). Au-delà, le firmware
+   * découpe à droite — le caller est responsable du redimensionnement à
+   * 576px max.
+   *
+   * Pour un rendu thermique propre, le caller doit binariser le PNG en
+   * amont (seuil noir/blanc) — l'antialiasing du PNG sort moche sur
+   * thermique. La binarisation se fait facilement côté JS sur le canvas.
+   */
+  public void printBitmap(android.graphics.Bitmap bitmap) throws RemoteException {
+    requireService().printBitmap(bitmap, SILENT_CALLBACK);
+  }
+
   private IWoyouService requireService() throws RemoteException {
     IWoyouService s = service;
     if (s == null) throw new RemoteException("Sunmi printer service not bound");

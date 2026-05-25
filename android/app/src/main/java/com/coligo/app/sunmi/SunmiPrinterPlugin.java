@@ -1,6 +1,9 @@
 package com.coligo.app.sunmi;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.RemoteException;
+import android.util.Base64;
 import android.util.Log;
 
 import com.getcapacitor.JSArray;
@@ -79,6 +82,78 @@ public class SunmiPrinterPlugin extends Plugin {
       res.put("error", sunmi.getLastError());
     }
     call.resolve(res);
+  }
+
+  /**
+   * Imprime un bitmap PNG (base64) — chemin « capture HTML → image ».
+   *
+   * Pipeline : html2canvas côté JS → PNG redimensionné à 576px → base64.
+   * On décode ici, on envoie via le service AIDL. Le firmware Sunmi V3
+   * supporte natif printBitmap autour de enterPrinterBuffer / exitPrinterBuffer
+   * pour atomicité.
+   *
+   * Params attendus depuis JS :
+   *   - bitmap (string, requis) : base64 PNG SANS le préfixe data:image/png;base64,
+   *   - copies (number, défaut 1) : nombre d'exemplaires
+   *   - buffer (boolean, défaut true) : utilise enter/exit Buffer (atomique)
+   *   - cut    (boolean, défaut true) : coupe le papier après chaque copie
+   *   - feedLines (number, défaut 3) : line wraps avant la coupe
+   */
+  @PluginMethod
+  public void printBitmap(PluginCall call) {
+    if (sunmi == null || !sunmi.isReady()) {
+      call.reject("Sunmi printer service not available");
+      return;
+    }
+    String b64 = call.getString("bitmap");
+    if (b64 == null || b64.isEmpty()) {
+      call.reject("'bitmap' (base64 PNG) is required");
+      return;
+    }
+    // Tolère un caller qui aurait oublié de strip le préfixe data:.
+    int comma = b64.indexOf(',');
+    if (b64.startsWith("data:") && comma > 0) {
+      b64 = b64.substring(comma + 1);
+    }
+
+    int copies = Math.max(1, Math.min(5, call.getInt("copies", 1)));
+    boolean useBuffer = call.getBoolean("buffer", Boolean.TRUE);
+    boolean autoCut = call.getBoolean("cut", Boolean.TRUE);
+    int feedLines = Math.max(0, Math.min(10, call.getInt("feedLines", 3)));
+
+    byte[] bytes;
+    try {
+      bytes = Base64.decode(b64, Base64.DEFAULT);
+    } catch (IllegalArgumentException e) {
+      call.reject("Invalid base64 payload: " + e.getMessage());
+      return;
+    }
+    Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+    if (bitmap == null) {
+      call.reject("Failed to decode PNG bitmap");
+      return;
+    }
+    Log.i(TAG, "printBitmap " + bitmap.getWidth() + "x" + bitmap.getHeight()
+        + " copies=" + copies + " buffer=" + useBuffer);
+
+    try {
+      for (int c = 0; c < copies; c++) {
+        sunmi.printerInit();
+        if (useBuffer) sunmi.enterBuffer(true);
+        sunmi.printBitmap(bitmap);
+        if (feedLines > 0) sunmi.lineWrap(feedLines);
+        if (autoCut) sunmi.cutPaper();
+        if (useBuffer) sunmi.exitBuffer(true);
+      }
+      JSObject res = new JSObject();
+      res.put("printed", copies);
+      call.resolve(res);
+    } catch (RemoteException e) {
+      Log.e(TAG, "Sunmi printBitmap failed", e);
+      call.reject("Sunmi printer error: " + e.getMessage());
+    } finally {
+      bitmap.recycle();
+    }
   }
 
   @PluginMethod

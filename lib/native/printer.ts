@@ -48,25 +48,51 @@ const STYLE_ID = "__coligo-print-style";
 const BODY_CLASS = "coligo-printing";
 
 /**
- * Pont natif d'impression. Branché aujourd'hui sur le plugin Capacitor
- * `SunmiPrinter` (cf. `lib/native/sunmi-printer.ts` côté JS et
- * `android/.../sunmi/SunmiPrinterPlugin.java` côté natif).
+ * Pont natif d'impression. Branché sur le plugin Capacitor `SunmiPrinter`
+ * (`android/.../sunmi/SunmiPrinterPlugin.java`).
  *
- * - Exige `opts.sunmiCommands` (sinon on n'a pas la représentation
- *   structurée — pas de conversion HTML→ESC/POS fragile ici).
- * - Vérifie l'état réel du service AIDL Sunmi avant d'imprimer
- *   (`isSunmiPrinterAvailable()`).
- * - Retourne `true` UNIQUEMENT si l'impression native a réussi ; sinon le
- *   caller doit retomber sur `window.print()` du HTML équivalent.
+ * Stratégie en 2 étapes, dans cet ordre :
+ *
+ *  1. **Bitmap (préféré)** : `html2canvas` capture l'HTML rendu → PNG
+ *     monochrome 576px → `printBitmap` Sunmi. Rendu 100% fidèle à la
+ *     maquette `maquette-ticket-80mm.html` (Sora, bandeau inversé, leader
+ *     dots, encadré paiement, etc).
+ *
+ *  2. **Commandes texte (fallback)** : si la capture échoue (DOM pas prêt,
+ *     html2canvas exception, etc), on retombe sur `printSunmi(commands)`
+ *     avec la représentation structurée — moins fidèle au rendu mais
+ *     toujours lisible et compatible firmware V3.
+ *
+ * Retourne `true` UNIQUEMENT si l'une des 2 voies a réussi ; sinon le
+ * caller retombe sur `window.print()`.
  */
 async function printViaNativeBridge(opts: PrintOptions): Promise<boolean> {
-  if (!opts.sunmiCommands || opts.sunmiCommands.length === 0) return false;
   const ok = await isSunmiPrinterAvailable();
   if (!ok) return false;
-  return await printSunmi({
-    commands: opts.sunmiCommands,
-    copies: 1, // le caller boucle ses propres copies HTML/Sunmi
-  });
+
+  // 1. Tentative bitmap (HTML fidèle)
+  if (opts.html) {
+    try {
+      const { printTicketBitmap } =
+        await import("@/lib/ticket/print-ticket-bitmap");
+      const bitmapOk = await printTicketBitmap({
+        html: opts.html,
+        copies: opts.copies ?? 1,
+      });
+      if (bitmapOk) return true;
+    } catch (err) {
+      console.warn("[printer] bitmap path failed, falling back", err);
+    }
+  }
+
+  // 2. Fallback commandes texte
+  if (opts.sunmiCommands && opts.sunmiCommands.length > 0) {
+    return await printSunmi({
+      commands: opts.sunmiCommands,
+      copies: 1,
+    });
+  }
+  return false;
 }
 
 export async function printTicket({

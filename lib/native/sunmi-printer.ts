@@ -44,6 +44,25 @@ export type PrintOptions = {
   cut?: boolean;
 };
 
+export type PrintBitmapOptions = {
+  /**
+   * PNG encodé en base64, SANS le préfixe `data:image/png;base64,`.
+   * Largeur cible : 576px max (zone imprimable 80mm V3 = 8 dots/mm × 72mm).
+   * Au-delà, le firmware découpe à droite.
+   */
+  bitmap: string;
+  copies?: number;
+  /**
+   * Encadre l'impression par `enterPrinterBuffer(true)` / `exitPrinterBuffer(true)` :
+   * tout sort en bloc atomique. Défaut : `true`.
+   */
+  buffer?: boolean;
+  /** Coupe le papier après chaque copie. Défaut : `true`. */
+  cut?: boolean;
+  /** Nombre de line wraps avant la coupe (marge basse). Défaut : 3. */
+  feedLines?: number;
+};
+
 type SunmiPlugin = {
   isAvailable: () => Promise<{
     available: boolean;
@@ -51,6 +70,7 @@ type SunmiPlugin = {
     model?: string;
   }>;
   print: (opts: PrintOptions) => Promise<{ printed: number }>;
+  printBitmap: (opts: PrintBitmapOptions) => Promise<{ printed: number }>;
 };
 
 type CapacitorGlobal = {
@@ -105,6 +125,28 @@ export async function printSunmi(opts: PrintOptions): Promise<boolean> {
   } catch (err) {
     if (process.env.NODE_ENV !== "production") {
       console.warn("[sunmi-printer] print failed", err);
+    }
+    return false;
+  }
+}
+
+/**
+ * Envoie un PNG base64 à l'imprimante Sunmi (chemin « capture HTML → image »).
+ * Le caller fournit un base64 SANS le préfixe data:image/png;base64,.
+ * Retourne `true` si l'impression a démarré, `false` si le plugin n'est pas
+ * dispo (PWA) ou si le service AIDL n'est pas bindé.
+ */
+export async function printSunmiBitmap(
+  opts: PrintBitmapOptions
+): Promise<boolean> {
+  const plugin = getPlugin();
+  if (!plugin) return false;
+  try {
+    await plugin.printBitmap(opts);
+    return true;
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[sunmi-printer] printBitmap failed", err);
     }
     return false;
   }

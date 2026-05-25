@@ -39,6 +39,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dexie": "^4.4.2",
+    "html2canvas": "^1.4.1",
     "lucide-react": "^0.469.0",
     "next": "^15.5.18",
     "react": "19.0.0",
