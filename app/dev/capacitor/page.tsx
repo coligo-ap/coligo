@@ -92,15 +92,62 @@ export default function CapacitorDiagPage() {
       return;
     }
     try {
+      // Ticket de test COMPLET — reproduit la structure d'un vrai ticket
+      // commande (bandeau inversé, #ID gros, articles en colonnes, total,
+      // QR) pour valider que CHAQUE commande Sunmi sort correctement, pas
+      // seulement le QR.
+      const dotted = "-".repeat(32);
       const res = await p.print({
         commands: [
           { type: "align", value: "center" },
+          { type: "size", value: 24 },
+          { type: "textBold", text: "COLIGO — TEST IMPRESSION" },
+          { type: "size", value: 28 },
+          {
+            type: "textInverse",
+            text: "                RETRAIT                ",
+          },
+          { type: "wrap", n: 1 },
+          { type: "size", value: 48 },
+          { type: "textBold", text: "#TEST42" },
+          { type: "size", value: 18 },
+          { type: "text", text: "RETRAIT" },
           { type: "size", value: 32 },
-          { type: "textBold", text: "TEST COLIGO" },
-          { type: "size", value: 20 },
-          { type: "text", text: "Si tu lis ceci, le bridge marche." },
-          { type: "wrap", n: 2 },
-          { type: "qr", data: "https://coligo.app", moduleSize: 6 },
+          { type: "textBold", text: "12:45" },
+          { type: "wrap", n: 1 },
+          { type: "align", value: "left" },
+          { type: "size", value: 22 },
+          { type: "text", text: dotted },
+          { type: "textBold", text: "ARTICLES (3)" },
+          {
+            type: "columns",
+            cols: ["1x", "Baguette tradition", "60 DA"],
+            widths: [3, 21, 8],
+            aligns: ["left", "left", "right"],
+          },
+          {
+            type: "columns",
+            cols: ["2x", "Pain au chocolat", "180 DA"],
+            widths: [3, 21, 8],
+            aligns: ["left", "left", "right"],
+          },
+          { type: "text", text: dotted },
+          {
+            type: "columns",
+            cols: ["TOTAL", "240 DA"],
+            widths: [20, 12],
+            aligns: ["left", "right"],
+          },
+          { type: "text", text: dotted },
+          { type: "align", value: "center" },
+          { type: "size", value: 18 },
+          { type: "text", text: "CODE DE RETRAIT" },
+          { type: "size", value: 48 },
+          { type: "textBold", text: "ABC123" },
+          { type: "wrap", n: 1 },
+          { type: "qr", data: "ABC123", moduleSize: 6, errorLevel: 3 },
+          { type: "size", value: 16 },
+          { type: "text", text: "Si tout est lisible, le bridge fonctionne." },
         ],
         copies: 1,
       });

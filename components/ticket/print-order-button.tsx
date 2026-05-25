@@ -56,10 +56,22 @@ export function PrintOrderButton({
     if (busy) return;
     setBusy(true);
 
+    const nativeBridge = hasNativePrinterBridge();
+    // Log explicite : utile sur Sunmi où l'on doit pouvoir confirmer via
+    // logcat que le bouton a bien pris la voie native (et pas l'ancienne
+    // route serveur servie depuis un cache JS périmé).
+    try {
+      console.info(
+        `[print-button] click order=${order.id} nativeBridge=${nativeBridge}`
+      );
+    } catch {
+      /* ignored */
+    }
+
     // APK Capacitor : on imprime directement via le pont natif. La
     // navigation vers une page serveur isolée court-circuiterait le pont
     // JS↔natif (window.print() est no-op dans le WebView Capacitor).
-    if (hasNativePrinterBridge()) {
+    if (nativeBridge) {
       try {
         await printOrderTicket(order, { width, copies, appName });
       } finally {
