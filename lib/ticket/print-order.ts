@@ -33,6 +33,13 @@ export async function printOrderTicket(
   // commandes Sunmi pour qu'il les utilise. La détection async réelle
   // (service AIDL bindé) se fait dans `printViaNativeBridge`.
   const wantNative = hasNativePrinterBridge();
+  try {
+    console.info(
+      `[print-order] order=${order.id} copies=${copies} wantNative=${wantNative}`
+    );
+  } catch {
+    /* ignored */
+  }
 
   for (let i = 1; i <= copies; i++) {
     const copyLabel = copies > 1 ? `COPIE ${i} / ${copies}` : undefined;
@@ -48,6 +55,15 @@ export async function printOrderTicket(
           copyLabel,
         })
       : undefined;
+    try {
+      console.info(
+        `[print-order] copy=${i}/${copies} sunmiCmds=${
+          sunmiCommands?.length ?? 0
+        }`
+      );
+    } catch {
+      /* ignored */
+    }
     await printTicket({
       html,
       widthMm,
