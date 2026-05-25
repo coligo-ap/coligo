@@ -3,34 +3,39 @@
 /**
  * Scanner QR — caméra qui s'ouvre AUTOMATIQUEMENT au mount du composant
  * (pas de bouton « Activer »). Auto-détecte le QR, le décode, le passe à
- * `onScan`. C'est l'UX visée : le commerçant pose son téléphone face au
- * ticket, ça scanne, c'est validé.
+ * `onScan`.
  *
- * Robustesse — addresse les 5 causes habituelles de « la caméra ne détecte
- * rien » :
+ * Robustesse — addresse les causes habituelles de « la caméra ne détecte
+ * rien » + « l'APK quitte quand la caméra s'ouvre » sur Sunmi V3 :
  *
  *  1. **HTTPS obligatoire** : `getUserMedia` échoue silencieusement sur
- *     HTTP. On check `window.isSecureContext` d'entrée et on affiche un
- *     message explicite si KO.
+ *     HTTP. On check `window.isSecureContext` d'entrée.
  *
- *  2. **Double moteur de décodage** :
- *     - `BarcodeDetector` natif si supporté (Android Chrome ≥ 88,
- *       matériellement accéléré). C'est ce qui détecte réellement les QR
- *       sur Sunmi V3.
- *     - Fallback `@zxing/browser` (iOS Safari, Firefox).
+ *  2. **Crash WebView Sunmi sur BarcodeDetector** : sur le WebView Chromium
+ *     embarqué dans l'APK Capacitor Sunmi V3, l'API `BarcodeDetector` est
+ *     exposée mais son implémentation native peut crasher le process
+ *     WebView entier → l'APK quitte. On DÉSACTIVE le BarcodeDetector dès
+ *     qu'on détecte un environnement Capacitor natif (`Capacitor.isNativePlatform()`)
+ *     et on force `@zxing/browser` (JavaScript pur, pas de risque de
+ *     crash natif). En PWA navigateur, on garde BarcodeDetector pour la
+ *     perf.
  *
- *  3. **Boucle de scan throttlée** : 10 fps via `requestAnimationFrame`.
- *     Beaucoup de scanners affichent la vidéo sans lancer la détection.
- *     Ici on vérifie chaque ~100ms.
+ *  3. **Attente vidéo prête** : on attend `loadedmetadata` + `readyState >= 2`
+ *     avant de lancer la boucle de détection. Appeler `detector.detect(video)`
+ *     sur une vidéo qui n'a pas encore de frame chargée peut crasher le
+ *     décodeur natif.
  *
- *  4. **Anti-doublon** : 1.5s de cooldown sur le même contenu détecté
- *     pour éviter de re-firer `onScan` 30 fois par seconde.
+ *  4. **Boucle de scan throttlée** : 10 fps via `requestAnimationFrame`.
  *
- *  5. **Cleanup strict** : au démontage, `track.stop()` sur chaque
- *     MediaStreamTrack + `cancelAnimationFrame`. La diode caméra ne
- *     reste pas allumée.
+ *  5. **Anti-doublon** : 1.5s de cooldown sur le même contenu détecté.
  *
- * On pause aussi la boucle en arrière-plan (`visibilitychange`).
+ *  6. **Cleanup strict** : au démontage, `track.stop()` + `cancelAnimationFrame`.
+ *
+ *  7. **Logs structurés via console.info** : visibles via
+ *     `adb logcat -s chromium:* Capacitor:*` pour diagnostiquer le
+ *     pipeline en cas de bug Sunmi.
+ *
+ * On pause la boucle en arrière-plan (`visibilitychange`).
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -79,6 +84,34 @@ function getBarcodeDetector(): {
   };
   if (!w.BarcodeDetector) return null;
   return { Ctor: w.BarcodeDetector, Static: w.BarcodeDetector };
+}
+
+/**
+ * Détecte si on tourne dans un WebView Capacitor natif (APK Android, iOS).
+ * Sur Sunmi V3, c'est le cas — et `BarcodeDetector` y crashe le process
+ * WebView. On force zxing dans ce cas.
+ */
+function isCapacitorNative(): boolean {
+  if (typeof window === "undefined") return false;
+  const w = window as unknown as {
+    Capacitor?: { isNativePlatform?: () => boolean };
+  };
+  try {
+    return w.Capacitor?.isNativePlatform?.() === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Log structuré pour logcat (visible via `adb logcat -s chromium:*`). */
+function log(event: string, payload?: Record<string, unknown>) {
+  try {
+    if (typeof console === "undefined") return;
+    const data = payload ? JSON.stringify(payload) : "";
+    console.info(`[qr-scanner] ${event} ${data}`);
+  } catch {
+    /* ignored */
+  }
 }
 
 function classifyGumError(err: unknown): {
@@ -198,136 +231,220 @@ export function QrScanner({
     scannedRef.current = false;
     let abort = false;
 
-    (async () => {
-      // 1. HTTPS check (échec silencieux de getUserMedia sinon)
-      if (typeof window !== "undefined" && !window.isSecureContext) {
-        setStatus("unsupported");
-        setErrMessage(
-          "La caméra nécessite une connexion sécurisée HTTPS. Utilisez la saisie manuelle."
-        );
-        return;
-      }
-      if (
-        typeof navigator === "undefined" ||
-        !navigator.mediaDevices?.getUserMedia
-      ) {
-        setStatus("unsupported");
-        setErrMessage(
-          "Ce navigateur ne supporte pas l'accès caméra. Utilisez la saisie manuelle."
-        );
-        return;
-      }
+    const nativeCap = isCapacitorNative();
+    log("mount", {
+      capacitorNative: nativeCap,
+      isSecureContext:
+        typeof window !== "undefined" ? window.isSecureContext : null,
+      hasGUM:
+        typeof navigator !== "undefined" &&
+        !!navigator.mediaDevices?.getUserMedia,
+      hasBarcodeDetector:
+        typeof window !== "undefined" &&
+        !!(window as { BarcodeDetector?: unknown }).BarcodeDetector,
+      ua: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    });
 
-      // 2. getUserMedia (caméra arrière)
-      let stream: MediaStream;
+    (async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          audio: false,
-        });
-      } catch (err) {
-        // OverconstrainedError → retente sans contraintes
-        const name = (err as { name?: string })?.name ?? "";
+        // 1. HTTPS check
+        if (typeof window !== "undefined" && !window.isSecureContext) {
+          log("abort.not-secure-context");
+          setStatus("unsupported");
+          setErrMessage(
+            "La caméra nécessite une connexion sécurisée HTTPS. Utilisez la saisie manuelle."
+          );
+          return;
+        }
         if (
-          name === "OverconstrainedError" ||
-          name === "ConstraintNotSatisfiedError"
+          typeof navigator === "undefined" ||
+          !navigator.mediaDevices?.getUserMedia
         ) {
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: true,
-              audio: false,
-            });
-          } catch (err2) {
+          log("abort.no-camera-api");
+          setStatus("unsupported");
+          setErrMessage(
+            "Ce navigateur ne supporte pas l'accès caméra. Utilisez la saisie manuelle."
+          );
+          return;
+        }
+
+        // 2. getUserMedia (caméra arrière, fallback toute caméra dispo)
+        let stream: MediaStream;
+        try {
+          log("gum.request", { facingMode: "environment" });
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+            audio: false,
+          });
+          log("gum.ok");
+        } catch (err) {
+          const name = (err as { name?: string })?.name ?? "";
+          log("gum.failed-1", { name });
+          if (
+            name === "OverconstrainedError" ||
+            name === "ConstraintNotSatisfiedError" ||
+            name === "NotFoundError"
+          ) {
+            try {
+              log("gum.retry-without-constraints");
+              stream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false,
+              });
+              log("gum.retry-ok");
+            } catch (err2) {
+              if (abort) return;
+              const e = classifyGumError(err2);
+              log("gum.failed-2", { name: (err2 as { name?: string })?.name });
+              setStatus("error");
+              setErrMessage(e.message);
+              return;
+            }
+          } else {
             if (abort) return;
-            const e = classifyGumError(err2);
+            const e = classifyGumError(err);
             setStatus("error");
             setErrMessage(e.message);
             return;
           }
-        } else {
-          if (abort) return;
-          const e = classifyGumError(err);
-          setStatus("error");
-          setErrMessage(e.message);
+        }
+
+        if (abort || stoppedRef.current) {
+          for (const t of stream.getTracks()) t.stop();
           return;
         }
-      }
+        streamRef.current = stream;
 
-      if (abort || stoppedRef.current) {
-        for (const t of stream.getTracks()) t.stop();
-        return;
-      }
-      streamRef.current = stream;
-
-      // 3. Attache le stream au <video>
-      const video = videoRef.current;
-      if (!video) {
-        for (const t of stream.getTracks()) t.stop();
-        return;
-      }
-      video.srcObject = stream;
-      video.setAttribute("playsinline", "true");
-      video.muted = true;
-      try {
-        await video.play();
-      } catch {
-        /* certains UA refusent play() — on continue avec rAF/zxing */
-      }
-
-      // 4. Choix du moteur : BarcodeDetector natif si dispo, sinon zxing
-      const det = getBarcodeDetector();
-      let useNative = false;
-      if (det) {
-        try {
-          const formats = (await det.Static.getSupportedFormats?.()) ?? [];
-          useNative = formats.includes("qr_code");
-        } catch {
-          useNative = false;
+        // 3. Attache le stream au <video> et attend une frame
+        const video = videoRef.current;
+        if (!video) {
+          for (const t of stream.getTracks()) t.stop();
+          return;
         }
-      }
+        video.srcObject = stream;
+        video.setAttribute("playsinline", "true");
+        video.muted = true;
 
-      if (abort || stoppedRef.current) return;
-
-      if (useNative && det) {
-        // Boucle native rAF throttlée à ~10 fps
-        let detector: BarcodeDetectorInstance;
-        try {
-          detector = new det.Ctor({ formats: ["qr_code"] });
-        } catch {
-          // Fallback zxing si l'instanciation plante
-          return startZxing(video);
-        }
-        setStatus("scanning");
-
-        let lastFrameAt = 0;
-        const tick = async (ts: number) => {
-          if (stoppedRef.current) return;
-          if (ts - lastFrameAt >= 100) {
-            lastFrameAt = ts;
-            try {
-              const results = await detector.detect(video);
-              if (results.length > 0 && results[0].rawValue) {
-                emit(results[0].rawValue);
-              }
-            } catch {
-              /* frame pas prête : on continue */
-            }
+        // Attente que la 1ère frame soit chargée AVANT de lancer la
+        // détection — sinon `detect(video)` peut crasher le décodeur natif.
+        // `loadedmetadata` est plus fiable que `loadeddata` sur certains
+        // WebViews ; on combine avec un timeout de sécurité.
+        await new Promise<void>((resolve) => {
+          if (video.readyState >= 2) {
+            resolve();
+            return;
           }
+          const onReady = () => {
+            video.removeEventListener("loadedmetadata", onReady);
+            video.removeEventListener("loadeddata", onReady);
+            resolve();
+          };
+          video.addEventListener("loadedmetadata", onReady);
+          video.addEventListener("loadeddata", onReady);
+          // Garde-fou 3s : si rien ne fire (driver caméra bizarre),
+          // on continue quand même.
+          setTimeout(resolve, 3000);
+        });
+
+        try {
+          await video.play();
+          log("video.playing", {
+            w: video.videoWidth,
+            h: video.videoHeight,
+            readyState: video.readyState,
+          });
+        } catch (err) {
+          log("video.play-failed", {
+            name: (err as { name?: string })?.name,
+          });
+          /* certains UA refusent play() — on continue avec zxing */
+        }
+
+        // 4. Choix du moteur de décodage
+        //    - Capacitor natif → ZXING uniquement (BarcodeDetector crashe
+        //      le WebView Sunmi V3 et fait quitter l'APK).
+        //    - PWA navigateur → BarcodeDetector si supporté, sinon zxing.
+        const det = nativeCap ? null : getBarcodeDetector();
+        let useNative = false;
+        if (det) {
+          try {
+            const formats = (await det.Static.getSupportedFormats?.()) ?? [];
+            useNative = formats.includes("qr_code");
+          } catch {
+            useNative = false;
+          }
+        }
+        log("engine.choice", {
+          engine: useNative ? "BarcodeDetector" : "zxing",
+          reason: nativeCap
+            ? "capacitor-native (skip BarcodeDetector)"
+            : useNative
+              ? "qr_code supported"
+              : "fallback",
+        });
+
+        if (abort || stoppedRef.current) return;
+
+        if (useNative && det) {
+          let detector: BarcodeDetectorInstance;
+          try {
+            detector = new det.Ctor({ formats: ["qr_code"] });
+          } catch (err) {
+            log("barcode-detector.ctor-failed", {
+              name: (err as { name?: string })?.name,
+            });
+            await startZxing(video);
+            return;
+          }
+          setStatus("scanning");
+
+          let lastFrameAt = 0;
+          const tick = async (ts: number) => {
+            if (stoppedRef.current) return;
+            if (ts - lastFrameAt >= 100) {
+              lastFrameAt = ts;
+              try {
+                if (video.readyState >= 2) {
+                  const results = await detector.detect(video);
+                  if (results.length > 0 && results[0].rawValue) {
+                    log("decoded", { engine: "native" });
+                    emit(results[0].rawValue);
+                  }
+                }
+              } catch {
+                /* frame pas prête : on continue */
+              }
+            }
+            rafRef.current = requestAnimationFrame(tick);
+          };
           rafRef.current = requestAnimationFrame(tick);
-        };
-        rafRef.current = requestAnimationFrame(tick);
-      } else {
-        await startZxing(video);
+        } else {
+          await startZxing(video);
+        }
+      } catch (err) {
+        // Filet de sécurité GLOBAL : aucun throw non géré ne doit faire
+        // crasher le composant. Sur Sunmi un throw async non-catché peut
+        // déclencher un crash WebView en cascade.
+        log("fatal", {
+          name: (err as { name?: string })?.name,
+          msg: err instanceof Error ? err.message : String(err),
+        });
+        if (abort) return;
+        setStatus("error");
+        setErrMessage(
+          "Erreur scanner. Utilisez la saisie manuelle du code à 6 chiffres."
+        );
       }
     })();
 
-    // Boucle zxing (fallback iOS Safari / Firefox)
+    // Boucle zxing (toujours dispo, utilisée systématiquement sur Capacitor)
     async function startZxing(video: HTMLVideoElement) {
       try {
+        log("zxing.start");
         const { BrowserQRCodeReader } = await import("@zxing/browser");
         const reader = new BrowserQRCodeReader();
         const controls = await reader.decodeFromVideoElement(
@@ -335,7 +452,10 @@ export function QrScanner({
           (result) => {
             if (stoppedRef.current || !result) return;
             const text = result.getText();
-            if (text) emit(text);
+            if (text) {
+              log("decoded", { engine: "zxing" });
+              emit(text);
+            }
           }
         );
         if (stoppedRef.current) {
@@ -344,7 +464,11 @@ export function QrScanner({
         }
         zxingRef.current = controls;
         setStatus("scanning");
-      } catch {
+        log("zxing.ready");
+      } catch (err) {
+        log("zxing.failed", {
+          msg: err instanceof Error ? err.message : String(err),
+        });
         setStatus("error");
         setErrMessage("Décodeur QR indisponible. Utilisez la saisie manuelle.");
       }
@@ -352,6 +476,7 @@ export function QrScanner({
 
     return () => {
       abort = true;
+      log("unmount");
       cleanup();
     };
     // emit et cleanup sont stables (useCallback sans deps changeantes).
