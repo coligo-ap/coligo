@@ -3,6 +3,7 @@ import { Sora, Plus_Jakarta_Sans } from "next/font/google";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Toaster } from "@/components/ui/toast";
 import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
+import { CapacitorBootLog } from "@/components/pwa/capacitor-boot-log";
 import "./globals.css";
 
 // Typo storefront (prompt 20 redesign) :
@@ -166,6 +167,7 @@ export default function RootLayout({
         {children}
         <Toaster />
         <RegisterServiceWorker />
+        <CapacitorBootLog />
       </body>
     </html>
   );

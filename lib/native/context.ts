@@ -67,14 +67,23 @@ export function hasNativePrinterBridge(): boolean {
   // Log en console quel que soit l'env — on a besoin de voir le résultat
   // dans le logcat Sunmi pour diagnostiquer pourquoi un APK avec le plugin
   // ne déclencherait pas l'impression native.
+  // JSON.stringify pour que chromium n'affiche pas « [object Object] » et
+  // qu'on voie le détail dans `adb logcat -s chromium:*`.
   if (typeof console !== "undefined") {
-    console.info("[printer] hasNativePrinterBridge", {
-      hasCapacitor: !!cap,
-      isNative: cap?.isNativePlatform?.() ?? null,
-      platform: cap?.getPlatform?.() ?? null,
-      plugins: cap?.Plugins ? Object.keys(cap.Plugins) : [],
-      result,
-    });
+    try {
+      console.info(
+        "[printer] hasNativePrinterBridge " +
+          JSON.stringify({
+            hasCapacitor: !!cap,
+            isNative: cap?.isNativePlatform?.() ?? null,
+            platform: cap?.getPlatform?.() ?? null,
+            plugins: cap?.Plugins ? Object.keys(cap.Plugins) : [],
+            result,
+          })
+      );
+    } catch {
+      /* ignored */
+    }
   }
   return result;
 }

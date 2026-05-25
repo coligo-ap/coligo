@@ -46,14 +46,22 @@ export default function CapacitorDiagPage() {
 
   useEffect(() => {
     const c = cap();
-    setInfo({
+    const data = {
       hasCapacitor: !!c,
       isNative: c?.isNativePlatform?.() ?? null,
       platform: c?.getPlatform?.() ?? null,
       plugins: c?.Plugins ? Object.keys(c.Plugins) : [],
       hasSunmiPlugin: !!sunmi(),
       userAgent: navigator.userAgent,
-    });
+    };
+    setInfo(data);
+    // Aussi en console → récupérable via `adb logcat -s chromium:I` sans
+    // avoir à lire l'écran de l'appareil.
+    try {
+      console.info("[diag] runtime " + JSON.stringify(data));
+    } catch {
+      /* ignored */
+    }
   }, []);
 
   function log(msg: string) {

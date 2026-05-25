@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
+  Bug,
   HelpCircle,
   LayoutDashboard,
   LogOut,
@@ -35,6 +36,9 @@ const DRAWER_ITEMS: DrawerItem[] = [
   { href: "/promotions", label: "Promotions", icon: Tag },
   { href: "/finances", label: "Finances", icon: Wallet },
   { href: "/settings", label: "Paramètres", icon: Settings },
+  // Diag : accessible depuis le drawer car le WebView Capacitor n'a pas de
+  // barre URL — sans ce lien, impossible d'atteindre la page de diagnostic.
+  { href: "/dev/capacitor", label: "Diagnostic", icon: Bug },
 ];
 
 export function MobileDrawer({
