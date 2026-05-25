@@ -50,7 +50,9 @@ public class SunmiPrinterPlugin extends Plugin {
    */
   private float currentFontSize = 24f;
   private int currentAlign = 0; // 0=left, 1=center, 2=right
-  private int paperColumns = 32; // 32 cols par défaut (58 mm), 48 pour 80 mm
+  // 48 cols par défaut (Sunmi V3 80 mm = 576 dots / 12 dots/char). Switchable
+  // via la commande `{ type:"paper", columns: 32 }` pour une 58 mm.
+  private int paperColumns = 48;
 
   @Override
   public void load() {
@@ -114,10 +116,12 @@ public class SunmiPrinterPlugin extends Plugin {
         // que le ticket soit complet — fait sortir le bandeau RETRAIT, le
         // #ID énorme, le code, tout.
         if (autoInit) sunmi.printerInit();
-        // Compacte l'interligne au maximum : ESC 3 n = n dots entre 2 LF.
-        // Par défaut Sunmi est ~30 dots → ticket trop espacé. 8 dots donne
-        // un rendu très serré, lisible. Reset implicite au prochain init.
-        sunmi.sendRawBytes(new byte[] {0x1B, 0x33, 8});
+        // Compacte l'interligne au MINIMUM absolu (0 dots additionnels).
+        // ESC 3 0 = pas d'espace en plus entre 2 line feeds. Combiné avec
+        // ESC 2 (sélection du line spacing default réduit) sur certains
+        // modèles. Si malgré ça ESC 3 est ignoré, on envoie aussi GS P
+        // (set print position) ou similaire.
+        sunmi.sendRawBytes(new byte[] {0x1B, 0x33, 0});
 
         int n = commands.length();
         for (int i = 0; i < n; i++) {
@@ -165,18 +169,29 @@ public class SunmiPrinterPlugin extends Plugin {
     switch (type) {
       case "align": {
         // Sunmi : 0 = left, 1 = center, 2 = right.
-        // `setAlignment` est ignoré par le firmware V3 pour printText, mais
-        // peut encore servir pour printQRCode ou printBitmap. On le passe
-        // ET on mémorise localement pour les emulations text→columns.
+        // `setAlignment` est ignoré par le firmware V3 pour printText ET
+        // printQRCode (testé en prod). On mémorise localement pour les
+        // emulations text→columns ET on envoie aussi ESC a n (commande
+        // ESC/POS standard) au cas où le firmware respecte celle-ci pour
+        // printQRCode / printBitmap.
         String v = cmd.optString("value", "left");
         int align = "center".equals(v) ? 1 : "right".equals(v) ? 2 : 0;
         currentAlign = align;
         sunmi.setAlignment(align);
+        sunmi.sendRawBytes(new byte[] {0x1B, 0x61, (byte) align}); // ESC a n
         return;
       }
       case "paper": {
         // Permet au JS de switcher 58 mm (32 cols) ↔ 80 mm (48 cols).
-        paperColumns = cmd.optInt("columns", 32);
+        paperColumns = cmd.optInt("columns", 48);
+        return;
+      }
+      case "lineSpacing": {
+        // Définit l'interligne en dots (1 dot ≈ 0.125 mm). Plage utile :
+        // 0..30. ESC 3 n côté ESC/POS standard, plus setLineSpacing AIDL
+        // si disponible — on envoie les deux pour maximiser la chance.
+        int dots = Math.max(0, Math.min(60, cmd.optInt("dots", 0)));
+        sunmi.sendRawBytes(new byte[] {0x1B, 0x33, (byte) dots});
         return;
       }
       case "size": {
@@ -227,11 +242,20 @@ public class SunmiPrinterPlugin extends Plugin {
       }
       case "textBoldStrong": {
         // Bold + double-width via ESC ! n. n=0x38 = emphasized + double
-        // height + double width. Visuellement très imposant — réservé au
-        // numéro de commande (#ID) et au code de retrait.
+        // height + double width. Visuellement très imposant.
+        //
+        // ATTENTION débordement : ESC ! 0x38 fait que chaque char rendu
+        // occupe 2 dots-chars. Si on passe paperColumns à printColumnsText,
+        // il pad le texte sur paperColumns chars, qui sortent en
+        // 2×paperColumns dots → déborde de la largeur physique. On utilise
+        // paperColumns/2 pour que le rendu visuel tienne sur le papier.
         String text = cmd.optString("text", "");
+        int doubleW = Math.max(1, paperColumns / 2);
         sunmi.sendRawBytes(new byte[] {0x1B, 0x21, 0x38});
-        printLine(text);
+        sunmi.printColumnsText(
+            new String[] {text},
+            new int[] {doubleW},
+            new int[] {currentAlign});
         sunmi.sendRawBytes(new byte[] {0x1B, 0x21, 0x00});
         return;
       }
@@ -267,6 +291,13 @@ public class SunmiPrinterPlugin extends Plugin {
         String data = cmd.optString("data", "");
         int moduleSize = cmd.optInt("moduleSize", 6);
         int errorLevel = cmd.optInt("errorLevel", 3); // 0=L, 1=M, 2=Q, 3=H
+        // Force le centrage via ESC a 1 juste avant printQRCode (le firmware
+        // V3 semble respecter ESC a pour le QR, contrairement à setAlignment
+        // AIDL). On laisse `align` à sa valeur d'origine après pour les
+        // commandes suivantes.
+        if (currentAlign == 1) {
+          sunmi.sendRawBytes(new byte[] {0x1B, 0x61, 0x01});
+        }
         sunmi.printQRCode(data, moduleSize, errorLevel);
         return;
       }

@@ -16,7 +16,7 @@
 // Next.js. Si le builder évolue, ce script peut diverger ; il sert avant
 // tout de check de design.
 
-const COLS = 32;
+const COLS = 48; // Sunmi V3 80 mm = 48 chars / ligne en taille normale
 const heavy = "=".repeat(COLS);
 const dotted = "-".repeat(COLS);
 

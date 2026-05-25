@@ -103,8 +103,9 @@ export default function CapacitorDiagPage() {
         merchantName: "Boulangerie Demo",
         paid: false,
       });
+      // Sunmi V3 80 mm → 48 cols. Si on a un 58 mm, changer en 58.
       const commands = buildTicketSunmiCommands(fake, {
-        width: 58,
+        width: 80,
         appName: "Coligo",
       }) as Array<Record<string, unknown>>;
       log(`commandes générées : ${commands.length}`);

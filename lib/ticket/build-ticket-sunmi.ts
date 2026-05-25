@@ -153,6 +153,11 @@ export function buildTicketSunmiCommands(
   const heavy = heavyLine(opts.width); // ======== majeur
   const cols = columnsFor(opts.width);
 
+  // Config imprimante en TÊTE de séquence : largeur papier + interligne mini
+  // pour cet appareil. Doit être avant toute autre commande.
+  out.push({ type: "paper", columns: cols });
+  out.push({ type: "lineSpacing", dots: 0 });
+
   const isPaidOnline =
     order.payment_method === "online" && order.payment_status === "paid";
   const isCash = order.payment_method === "cash";

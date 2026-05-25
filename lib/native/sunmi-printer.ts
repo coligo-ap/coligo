@@ -31,7 +31,9 @@ export type SunmiCommand =
       errorLevel?: 0 | 1 | 2 | 3;
     }
   | { type: "wrap"; n: number }
-  | { type: "cut" };
+  | { type: "cut" }
+  | { type: "paper"; columns: number }
+  | { type: "lineSpacing"; dots: number };
 
 export type PrintOptions = {
   commands: SunmiCommand[];
