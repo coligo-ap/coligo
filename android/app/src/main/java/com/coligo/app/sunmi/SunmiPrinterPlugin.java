@@ -30,15 +30,27 @@ public class SunmiPrinterPlugin extends Plugin {
   private static final String TAG = "SunmiPrinterPlugin";
 
   private SunmiService sunmi;
+
   /**
-   * Suivi de la taille de police courante côté plugin. On l'utilise pour les
-   * appels `printTextWithFont(text, "", size, callback)` qui — contrairement
-   * à `printText(text, callback)` legacy — sont fiables sur le firmware
-   * Sunmi V3 (printText avale silencieusement la commande dans certains
-   * cas). Mise à jour à chaque `size` ; la valeur est snappée par
-   * SunmiService.setFontSize() avant d'arriver ici, donc toujours valide.
+   * Suivi de l'état d'impression courant côté plugin. Le firmware Sunmi V3
+   * ignore silencieusement `printText(...)` et `setAlignment(...)` —
+   * on doit donc émuler ces commandes via `printColumnsText(...)`, qui est
+   * la seule API texte fiable sur ce firmware.
+   *
+   * Stratégie :
+   *  - `text/textBold/textInverse` → `printColumnsText([text],
+   *    [paperColumns], [currentAlign])` — 1 colonne pleine largeur avec
+   *    l'alignement intégré.
+   *  - `align <value>` → MAJ `currentAlign` (et tente quand même
+   *    setAlignment côté firmware au cas où la commande qui suit en
+   *    bénéficierait, ex. printQRCode).
+   *  - `size <value>` → MAJ `currentFontSize` snappée (utilisé pour
+   *    printTextWithFont si besoin futur).
+   *  - `paper <columns>` → permet de switcher 58 ↔ 80 mm depuis le JS.
    */
   private float currentFontSize = 24f;
+  private int currentAlign = 0; // 0=left, 1=center, 2=right
+  private int paperColumns = 32; // 32 cols par défaut (58 mm), 48 pour 80 mm
 
   @Override
   public void load() {
@@ -125,6 +137,19 @@ public class SunmiPrinterPlugin extends Plugin {
     }
   }
 
+  /**
+   * Imprime une ligne via printColumnsText (la seule API texte fiable sur
+   * Sunmi V3). Largeur pleine = paperColumns, alignement = currentAlign.
+   * Caractère vide → ligne blanche (équivalent d'un wrap simple).
+   */
+  private void printLine(String text) throws RemoteException {
+    if (text == null) text = "";
+    sunmi.printColumnsText(
+        new String[] {text},
+        new int[] {paperColumns},
+        new int[] {currentAlign});
+  }
+
   private void executeCommand(JSONObject cmd) throws RemoteException, JSONException {
     String type = cmd.optString("type", "");
     // Trace TOUTE commande exécutée — corrélation immédiate avec un éventuel
@@ -136,9 +161,18 @@ public class SunmiPrinterPlugin extends Plugin {
     switch (type) {
       case "align": {
         // Sunmi : 0 = left, 1 = center, 2 = right.
+        // `setAlignment` est ignoré par le firmware V3 pour printText, mais
+        // peut encore servir pour printQRCode ou printBitmap. On le passe
+        // ET on mémorise localement pour les emulations text→columns.
         String v = cmd.optString("value", "left");
         int align = "center".equals(v) ? 1 : "right".equals(v) ? 2 : 0;
+        currentAlign = align;
         sunmi.setAlignment(align);
+        return;
+      }
+      case "paper": {
+        // Permet au JS de switcher 58 mm (32 cols) ↔ 80 mm (48 cols).
+        paperColumns = cmd.optInt("columns", 32);
         return;
       }
       case "size": {
@@ -168,31 +202,30 @@ public class SunmiPrinterPlugin extends Plugin {
         return;
       }
       case "text": {
-        // printTextWithFont au lieu de printText : sur Sunmi V3, printText
-        // legacy avale silencieusement certains appels (texte simple sans
-        // style préfixé, après un setAlignment, etc.). printTextWithFont
-        // est l'API V2+ fiable — elle prend explicitement la taille.
+        // EMULATION via printColumnsText : sur Sunmi V3, printText et
+        // printTextWithFont sont ignorés silencieusement par le firmware.
+        // Seul printColumnsText sort réellement sur papier — on émule
+        // l'impression d'une ligne de texte par une colonne pleine largeur
+        // avec l'alignement courant intégré.
         String text = cmd.optString("text", "");
-        boolean newline = cmd.optBoolean("newline", true);
-        sunmi.printTextWithFont(
-            newline ? text + "\n" : text, "", currentFontSize);
+        printLine(text);
         return;
       }
       case "textBold": {
+        // Bold via ESC E 1/0 autour. Si les sendRawBytes sont ignorés
+        // comme printText, le texte sort en normal — toujours mieux que
+        // pas de texte du tout.
         String text = cmd.optString("text", "");
-        boolean newline = cmd.optBoolean("newline", true);
         sunmi.sendRawBytes(new byte[] {0x1B, 0x45, 1});
-        sunmi.printTextWithFont(
-            newline ? text + "\n" : text, "", currentFontSize);
+        printLine(text);
         sunmi.sendRawBytes(new byte[] {0x1B, 0x45, 0});
         return;
       }
       case "textInverse": {
+        // Vidéo inverse via GS B 1/0.
         String text = cmd.optString("text", "");
-        boolean newline = cmd.optBoolean("newline", true);
         sunmi.sendRawBytes(new byte[] {0x1D, 0x42, 1});
-        sunmi.printTextWithFont(
-            newline ? text + "\n" : text, "", currentFontSize);
+        printLine(text);
         sunmi.sendRawBytes(new byte[] {0x1D, 0x42, 0});
         return;
       }

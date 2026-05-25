@@ -73,12 +73,23 @@ export async function printTicket({
   html,
   widthMm = 58,
   title = "Ticket Coligo",
+  sunmiCommands,
+  copies,
 }: PrintOptions): Promise<void> {
   if (typeof document === "undefined") return;
 
   // Pont natif (APK / Sunmi WebView) : impression directe, pas de dialogue.
   if (hasNativePrinterBridge()) {
-    const ok = await printViaNativeBridge({ html, widthMm, title });
+    // BUG FIX : transmettre sunmiCommands au pont — sans ça,
+    // printViaNativeBridge recevait undefined et retournait false → silently
+    // fallback sur window.print() (no-op dans le WebView Capacitor).
+    const ok = await printViaNativeBridge({
+      html,
+      widthMm,
+      title,
+      sunmiCommands,
+      copies,
+    });
     if (ok) return;
     // Échec du pont natif → on retombe sur window.print() ci-dessous.
   }
