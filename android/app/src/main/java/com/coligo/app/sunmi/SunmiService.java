@@ -120,8 +120,30 @@ public final class SunmiService {
     requireService().setAlignment(alignment, SILENT_CALLBACK);
   }
 
+  /**
+   * Le firmware Sunmi V3 rejette certaines tailles intermédiaires avec
+   * « -5: Illegal parameter » (observé : 22, 30 → KO ; 20, 24, 28, 32 → OK).
+   * On snap à la valeur autorisée la plus proche pour que le builder JS
+   * puisse rester flexible sans connaître la liste par cœur.
+   */
+  private static final float[] ALLOWED_FONT_SIZES = {
+      16f, 20f, 24f, 28f, 32f, 36f, 40f, 48f, 56f
+  };
+
   public void setFontSize(float size) throws RemoteException {
-    requireService().setFontSize(size, SILENT_CALLBACK);
+    float snapped = ALLOWED_FONT_SIZES[0];
+    float bestDist = Math.abs(size - snapped);
+    for (float a : ALLOWED_FONT_SIZES) {
+      float d = Math.abs(size - a);
+      if (d < bestDist) {
+        bestDist = d;
+        snapped = a;
+      }
+    }
+    if (snapped != size) {
+      Log.i(TAG, "setFontSize " + size + " → " + snapped + " (snapped to allowed)");
+    }
+    requireService().setFontSize(snapped, SILENT_CALLBACK);
   }
 
   public void printText(String text) throws RemoteException {
