@@ -18,7 +18,7 @@
 
 import type { TicketItem, TicketOrder } from "@/lib/ticket/build-ticket-html";
 import type { PrintWidth } from "@/lib/types";
-import type { SunmiCommand } from "@/lib/native/sunmi-printer";
+import type { SunmiAlign, SunmiCommand } from "@/lib/native/sunmi-printer";
 
 export type BuildSunmiOptions = {
   width: PrintWidth;
@@ -118,9 +118,14 @@ function groupByCategory(
   return order.map((title) => ({ title, items: map.get(title)! }));
 }
 
-/** Ligne pointillée plein-papier (32 ou 48 chars de '-'). */
+/** Ligne pointillée mineure plein-papier (32 ou 48 chars de '-'). */
 function dottedLine(width: PrintWidth): string {
   return "-".repeat(columnsFor(width));
+}
+
+/** Ligne pleine plein-papier ('=' x N) — séparation MAJEURE entre sections. */
+function heavyLine(width: PrintWidth): string {
+  return "=".repeat(columnsFor(width));
 }
 
 /** Pad un texte sur N colonnes pour le bandeau inversé full-width. */
@@ -137,7 +142,8 @@ export function buildTicketSunmiCommands(
   opts: BuildSunmiOptions
 ): SunmiCommand[] {
   const out: SunmiCommand[] = [];
-  const dotted = dottedLine(opts.width);
+  const dotted = dottedLine(opts.width); // -------- mineur
+  const heavy = heavyLine(opts.width); // ======== majeur
   const cols = columnsFor(opts.width);
 
   const isPaidOnline =
@@ -149,73 +155,94 @@ export function buildTicketSunmiCommands(
       ? "A ENCAISSER"
       : "RETRAIT";
 
-  // --- Copy banner (si multi-exemplaire) ---
+  // Helpers locaux pour rendre la séquence très lisible.
+  const heavySep = () => {
+    out.push({ type: "align", value: "left" });
+    out.push({ type: "size", value: SZ.small });
+    out.push({ type: "text", text: heavy });
+  };
+  const lightSep = () => {
+    out.push({ type: "align", value: "left" });
+    out.push({ type: "size", value: SZ.small });
+    out.push({ type: "text", text: dotted });
+  };
+
+  // === COPIE (multi-exemplaires) ===
   if (opts.copyLabel) {
     out.push({ type: "align", value: "center" });
     out.push({ type: "size", value: SZ.small });
     out.push({ type: "textBold", text: opts.copyLabel });
   }
 
-  // --- 1. Header : nom commerce, taille base + bold ---
+  // ===== HEADER : nom commerce =====
+  heavySep();
   out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.base });
   out.push({ type: "textBold", text: order.merchant_name });
+  heavySep();
 
-  // --- 2. Bandeau noir inversé (mode dominant) ---
+  // ===== BANDEAU MODE (RETRAIT / PAYE / A ENCAISSER) =====
+  out.push({ type: "align", value: "center" });
+  out.push({ type: "size", value: SZ.base });
   out.push({ type: "textInverse", text: centerPad(bannerLabel, opts.width) });
+  heavySep();
 
-  // --- 3. #ID — double width + bold + size large (très visible) ---
+  // ===== #ID + heure retrait (les 2 infos LES PLUS visibles) =====
+  out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.large });
   out.push({ type: "textBoldStrong", text: `#${shortId(order.id)}` });
-
-  // --- 4. Heure de retrait — RETRAIT label small + heure boldStrong ---
   out.push({ type: "size", value: SZ.small });
-  out.push({ type: "text", text: "RETRAIT" });
+  out.push({ type: "text", text: "RETRAIT A" });
   out.push({ type: "size", value: SZ.base });
   out.push({ type: "textBoldStrong", text: formatTime(order.pickup_slot_at) });
+  heavySep();
 
-  // --- Séparateur ---
-  out.push({ type: "align", value: "left" });
-  out.push({ type: "size", value: SZ.small });
-  out.push({ type: "text", text: dotted });
-
-  // --- 6. Note client (encadrée) ---
+  // ===== NOTE CLIENT (si présente, en encadré visible) =====
   if (order.notes && order.notes !== "seed") {
-    out.push({ type: "textBold", text: "NOTE CLIENT" });
+    out.push({ type: "align", value: "left" });
+    out.push({ type: "size", value: SZ.base });
+    out.push({ type: "textBold", text: "NOTE CLIENT :" });
     out.push({ type: "text", text: order.notes });
-    out.push({ type: "text", text: dotted });
+    heavySep();
   }
 
-  // --- 8. Articles par catégorie (compact, base size) ---
+  // ===== ARTICLES groupés par catégorie =====
+  out.push({ type: "align", value: "center" });
+  out.push({ type: "size", value: SZ.base });
+  out.push({ type: "textBold", text: "ARTICLES" });
+  lightSep();
+  out.push({ type: "align", value: "left" });
   out.push({ type: "size", value: SZ.base });
   const groups = groupByCategory(order.items);
   if (groups.length === 0) {
-    out.push({ type: "textBold", text: "ARTICLES (0)" });
+    out.push({ type: "text", text: "(aucun article)" });
   } else {
-    for (const g of groups) {
-      const count = g.items.reduce((s, it) => s + Number(it.quantity || 0), 0);
-      out.push({
-        type: "textBold",
-        text: `${g.title.toUpperCase()} (${String(count).replace(/\.0+$/, "")})`,
-      });
+    const qtyW = 3;
+    const priceW = 8;
+    const nameW = cols - qtyW - priceW - 2; // -2 pour les espaces de garde
+    for (let gi = 0; gi < groups.length; gi++) {
+      const g = groups[gi];
+      out.push({ type: "textBold", text: g.title.toUpperCase() });
       for (const it of g.items) {
-        const qty = String(it.quantity).replace(/\.0+$/, "");
-        out.push({ type: "text", text: `${qty}x ${it.product_name}` });
+        const qty = String(it.quantity).replace(/\.0+$/, "") + "x";
+        out.push({
+          type: "columns",
+          cols: [qty, it.product_name, formatDA(it.line_total_da)],
+          widths: [qtyW, nameW, priceW],
+          aligns: ["left", "left", "right"],
+        });
       }
+      if (gi < groups.length - 1) lightSep();
     }
   }
+  heavySep();
 
-  out.push({ type: "size", value: SZ.small });
-  out.push({ type: "text", text: dotted });
-
-  // --- 10. Récap aligné droite ---
+  // ===== RECAP financier =====
   const subtotal = order.items.reduce((s, it) => s + it.line_total_da, 0);
   const discount = Math.max(
     0,
     subtotal + order.service_fee_da - order.total_da
   );
-  const units = totalUnits(order.items);
-
   const labelWidth = Math.floor(cols * 0.6);
   const valueWidth = cols - labelWidth;
 
@@ -229,12 +256,11 @@ export function buildTicketSunmiCommands(
     });
   };
 
-  pushRecap("Nb d'articles", String(units).replace(/\.0+$/, ""));
   if (discount > 0 || order.service_fee_da > 0) {
     pushRecap("Sous-total", formatDA(subtotal));
   }
   if (order.service_fee_da > 0) {
-    pushRecap("Frais de service", formatDA(order.service_fee_da));
+    pushRecap("Frais service", formatDA(order.service_fee_da));
   }
   if (discount > 0) {
     pushRecap("Reduction", `-${formatDA(discount)}`);
@@ -242,83 +268,82 @@ export function buildTicketSunmiCommands(
   if (order.cashback_da > 0) {
     pushRecap("Cashback", `-${formatDA(order.cashback_da)}`);
   }
+  lightSep();
 
-  // Total en GRAS FORT (double-width) — la ligne la plus visible du récap.
-  out.push({
-    type: "columns",
-    cols: ["", ""],
-    widths: [1, 1],
-    aligns: ["left", "left"],
-  });
+  // TOTAL en gros gras fort, centré
+  out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.base });
-  // textBoldStrong sur 1 colonne pleine largeur, alignée à droite
-  out.push({ type: "align", value: "right" });
   out.push({
     type: "textBoldStrong",
     text: `TOTAL ${formatDA(order.total_da)}`,
   });
 
-  // --- 11. Repère paiement final ---
+  // Bandeau paiement final (mirror du bandeau du haut, plus utilitaire)
   if (isPaidOnline) {
     out.push({ type: "align", value: "center" });
-    out.push({ type: "size", value: SZ.base });
-    out.push({ type: "textBold", text: "PAYE EN LIGNE" });
+    out.push({ type: "size", value: SZ.small });
+    out.push({ type: "textBold", text: "** PAYE EN LIGNE **" });
   } else if (isCash) {
     out.push({ type: "align", value: "center" });
-    out.push({ type: "size", value: SZ.base });
+    out.push({ type: "size", value: SZ.small });
     out.push({
       type: "textBold",
-      text: `A ENCAISSER ${formatDA(order.total_da)}`,
+      text: `** A ENCAISSER : ${formatDA(order.total_da)} **`,
     });
   }
+  heavySep();
 
+  // ===== INFOS CLIENT =====
   out.push({ type: "align", value: "left" });
   out.push({ type: "size", value: SZ.small });
-  out.push({ type: "text", text: dotted });
-
-  // --- 12-13. Soumis le / Client / Tél (compact small) ---
+  const labW = Math.floor(cols * 0.28);
+  const valW = cols - labW;
   out.push({
     type: "columns",
     cols: ["Soumis", formatSubmitted(order.created_at)],
-    widths: [Math.floor(cols * 0.3), Math.ceil(cols * 0.7)],
+    widths: [labW, valW],
     aligns: ["left", "right"],
   });
   out.push({
     type: "columns",
     cols: ["Client", order.customer_name],
-    widths: [Math.floor(cols * 0.3), Math.ceil(cols * 0.7)],
+    widths: [labW, valW],
     aligns: ["left", "right"],
   });
   out.push({
     type: "columns",
     cols: ["Tel", order.customer_phone],
-    widths: [Math.floor(cols * 0.3), Math.ceil(cols * 0.7)],
+    widths: [labW, valW],
     aligns: ["left", "right"],
   });
+  heavySep();
 
-  out.push({ type: "text", text: dotted });
-
-  // --- 15. Code retrait + QR (compact) ---
+  // ===== CODE RETRAIT (énorme) + QR (centré) =====
   out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.small });
   out.push({ type: "text", text: "CODE DE RETRAIT" });
   out.push({ type: "size", value: SZ.large });
   out.push({ type: "textBoldStrong", text: order.pickup_code });
+  // Force l'alignement avant le QR — sur Sunmi V3 setAlignment marche
+  // pour printQRCode même si elle est ignorée pour printText (testé).
+  out.push({ type: "align", value: "center" });
   out.push({
     type: "qr",
     data: order.pickup_code,
     moduleSize: opts.width === 80 ? 6 : 5,
     errorLevel: 3,
   });
+  heavySep();
 
-  // --- 16. Footer (size small, peu intrusif) ---
+  // ===== FOOTER (compact) =====
+  out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.small });
   out.push({
     type: "text",
-    text: `${opts.appName ?? "Coligo"} - ${formatSubmitted(new Date().toISOString())}`,
+    text: `${opts.appName ?? "Coligo"}  ${formatSubmitted(new Date().toISOString())}`,
   });
 
-  // Reset alignement final pour le prochain ticket.
+  // Reset final
   out.push({ type: "align", value: "left" });
 
   // Pass de sanitization finale : applique `asciize` à toutes les chaînes
@@ -326,7 +351,7 @@ export function buildTicketSunmiCommands(
   // ignore les printText contenant certains caractères non ASCII — on
   // garantit une sortie purement imprimable, peu importe d'où vient la
   // donnée (nom de produit, note client, …).
-  return out.map((cmd): SunmiCommand => {
+  const sanitized = out.map((cmd): SunmiCommand => {
     switch (cmd.type) {
       case "text":
       case "textBold":
@@ -339,4 +364,79 @@ export function buildTicketSunmiCommands(
         return cmd;
     }
   });
+
+  // Preview ASCII en console — visible dans logcat (chromium:I) avant que
+  // le ticket parte à l'imprimante. Permet de vérifier le layout sans
+  // gaspiller du papier.
+  try {
+    console.info("[ticket-preview]\n" + previewAscii(sanitized, cols));
+  } catch {
+    /* ignored */
+  }
+
+  return sanitized;
+}
+
+/**
+ * Génère un rendu ASCII approximatif des commandes pour debug. Ne reproduit
+ * pas exactement la taille des polices (cf. firmware), mais montre la
+ * structure : alignements, contenu, séparateurs.
+ */
+function previewAscii(commands: SunmiCommand[], cols: number): string {
+  const lines: string[] = [];
+  let align: SunmiAlign = "left";
+  const pad = (txt: string, a: SunmiAlign) => {
+    if (txt.length >= cols) return txt;
+    const space = cols - txt.length;
+    if (a === "center") {
+      const l = Math.floor(space / 2);
+      return " ".repeat(l) + txt + " ".repeat(space - l);
+    }
+    if (a === "right") return " ".repeat(space) + txt;
+    return txt;
+  };
+  for (const cmd of commands) {
+    switch (cmd.type) {
+      case "align":
+        align = cmd.value;
+        break;
+      case "text":
+        lines.push(pad(cmd.text, align));
+        break;
+      case "textBold":
+        lines.push(pad("*" + cmd.text + "*", align));
+        break;
+      case "textBoldStrong":
+        lines.push(pad("**" + cmd.text + "**", align));
+        break;
+      case "textInverse":
+        lines.push(pad("[" + cmd.text.trim() + "]", align));
+        break;
+      case "columns": {
+        const total = cmd.widths.reduce((a, b) => a + b, 0);
+        let line = "";
+        for (let i = 0; i < cmd.cols.length; i++) {
+          const w = Math.round((cmd.widths[i] / total) * cols);
+          const a = cmd.aligns?.[i] ?? "left";
+          const t = cmd.cols[i] ?? "";
+          const truncated = t.length > w ? t.slice(0, w) : t;
+          line += pad(truncated, a).slice(0, w);
+        }
+        lines.push(line);
+        break;
+      }
+      case "qr":
+        lines.push(pad("[QR " + cmd.data + "]", align));
+        break;
+      case "wrap":
+        for (let i = 0; i < cmd.n; i++) lines.push("");
+        break;
+      case "cut":
+        lines.push("--- cut ---");
+        break;
+      default:
+        break;
+    }
+  }
+  return lines.join("\n");
 }

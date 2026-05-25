@@ -114,10 +114,10 @@ public class SunmiPrinterPlugin extends Plugin {
         // que le ticket soit complet — fait sortir le bandeau RETRAIT, le
         // #ID énorme, le code, tout.
         if (autoInit) sunmi.printerInit();
-        // Compacte l'interligne : ESC 3 n = n dots entre 2 LF.
-        // Par défaut Sunmi est ~30 dots → ticket trop espacé. 16 dots donne
-        // un rendu serré mais lisible. Reset implicite au prochain init().
-        sunmi.sendRawBytes(new byte[] {0x1B, 0x33, 16});
+        // Compacte l'interligne au maximum : ESC 3 n = n dots entre 2 LF.
+        // Par défaut Sunmi est ~30 dots → ticket trop espacé. 8 dots donne
+        // un rendu très serré, lisible. Reset implicite au prochain init.
+        sunmi.sendRawBytes(new byte[] {0x1B, 0x33, 8});
 
         int n = commands.length();
         for (int i = 0; i < n; i++) {
