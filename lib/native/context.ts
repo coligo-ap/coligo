@@ -44,17 +44,18 @@ export function isSunmiDevice(): boolean {
 }
 
 /**
- * Vrai si un pont JS natif d'impression est disponible (Sunmi SDK injecté
- * dans le WebView, ou Capacitor APK avec plugin imprimante branché).
- * Côté PWA pure, retourne `false` → on retombe sur `window.print()`.
+ * Vrai si un pont JS natif d'impression est disponible (plugin Capacitor
+ * SunmiPrinter ou autre pont injecté). Côté PWA pure, retourne `false` → on
+ * retombe sur `window.print()`.
  *
- * Quand l'APK Capacitor sera prêt, brancher la détection ici :
- *   // return Capacitor.isPluginAvailable("ThermalPrinter");
- *
- * Quand on intégrera le SDK Sunmi via leur WebView (sans Capacitor),
- * brancher la détection du pont injecté ici :
- *   // return typeof (window as any).sunmiPrinter?.printString === "function";
+ * Détection sync : on regarde juste si `Capacitor.Plugins.SunmiPrinter` a
+ * été injecté par le runtime natif. L'état réel du service AIDL (bindé ou
+ * non) est résolu async par `isSunmiPrinterAvailable()` côté printer.
  */
 export function hasNativePrinterBridge(): boolean {
-  return false;
+  if (typeof window === "undefined") return false;
+  const cap = (
+    window as unknown as { Capacitor?: { Plugins?: Record<string, unknown> } }
+  ).Capacitor;
+  return !!cap?.Plugins?.SunmiPrinter;
 }

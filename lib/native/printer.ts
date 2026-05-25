@@ -22,11 +22,25 @@
  */
 
 import { hasNativePrinterBridge } from "./context";
+import {
+  isSunmiPrinterAvailable,
+  printSunmi,
+  type SunmiCommand,
+} from "./sunmi-printer";
 
 export type PrintOptions = {
   html: string;
   widthMm?: number;
   title?: string;
+  /**
+   * Commandes Sunmi équivalentes — si fournies et qu'un pont natif Sunmi est
+   * dispo (`hasNativePrinterBridge()` + service bindé), on imprime
+   * directement via le SDK sans dialogue. Côté PWA / autres APK : ignoré et
+   * fallback `window.print()` sur le HTML.
+   */
+  sunmiCommands?: SunmiCommand[];
+  /** Nb de copies pour le mode Sunmi (le HTML gère ses copies côté caller). */
+  copies?: number;
 };
 
 const MOUNT_ID = "__coligo-print-mount";
@@ -34,40 +48,25 @@ const STYLE_ID = "__coligo-print-style";
 const BODY_CLASS = "coligo-printing";
 
 /**
- * Point d'extension natif. Aujourd'hui : no-op (renvoie `false` → on
- * retombe sur `window.print()` après).
+ * Pont natif d'impression. Branché aujourd'hui sur le plugin Capacitor
+ * `SunmiPrinter` (cf. `lib/native/sunmi-printer.ts` côté JS et
+ * `android/.../sunmi/SunmiPrinterPlugin.java` côté natif).
  *
- * BRANCHEMENTS À FAIRE LE JOUR DE L'APK :
- *
- * 1. Capacitor + plugin imprimante générique (recommandé pour Sunmi V3) :
- *    ```
- *    import { ThermalPrinter } from "@capacitor-community/thermal-printer";
- *    await ThermalPrinter.printHtml({ html, widthMm });
- *    return true;
- *    ```
- *
- * 2. SDK Sunmi WebView (sans Capacitor — Sunmi peut injecter `sunmiPrinter`
- *    dans leur navigateur intégré) :
- *    ```
- *    const bridge = (window as any).sunmiPrinter;
- *    bridge.init();
- *    bridge.setAlignment(1);
- *    bridge.printString(textVersion); // ESC/POS
- *    bridge.lineWrap(3);
- *    bridge.cutPaper();
- *    return true;
- *    ```
- *    NB : le SDK Sunmi prend du TEXTE/ESC-POS, pas du HTML — il faudra
- *    écrire un convertisseur `htmlToEscPos(html)` dans `printer.native.ts`.
- *
- * Le retour `true` signale au caller qu'on a imprimé en natif ; il NE doit
- * PAS rejouer `window.print()` derrière.
+ * - Exige `opts.sunmiCommands` (sinon on n'a pas la représentation
+ *   structurée — pas de conversion HTML→ESC/POS fragile ici).
+ * - Vérifie l'état réel du service AIDL Sunmi avant d'imprimer
+ *   (`isSunmiPrinterAvailable()`).
+ * - Retourne `true` UNIQUEMENT si l'impression native a réussi ; sinon le
+ *   caller doit retomber sur `window.print()` du HTML équivalent.
  */
 async function printViaNativeBridge(opts: PrintOptions): Promise<boolean> {
-  // Signature préservée pour les implémentations natives (cf. doc ci-dessus).
-  // Stub no-op aujourd'hui — `void opts` signale l'intention au linter.
-  void opts;
-  return false;
+  if (!opts.sunmiCommands || opts.sunmiCommands.length === 0) return false;
+  const ok = await isSunmiPrinterAvailable();
+  if (!ok) return false;
+  return await printSunmi({
+    commands: opts.sunmiCommands,
+    copies: 1, // le caller boucle ses propres copies HTML/Sunmi
+  });
 }
 
 export async function printTicket({

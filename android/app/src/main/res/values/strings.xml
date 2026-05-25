@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Coligo</string>
+    <string name="title_activity_main">Coligo</string>
+    <string name="package_name">com.coligo.app</string>
+    <string name="custom_url_scheme">com.coligo.app</string>
+</resources>
