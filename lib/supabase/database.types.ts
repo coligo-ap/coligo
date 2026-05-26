@@ -59,6 +59,11 @@ export type Database = {
           auto_print: Database["public"]["Enums"]["auto_print_mode"];
           print_copies: number;
           print_width: number;
+          delivery_enabled: boolean;
+          express_enabled: boolean;
+          tours_enabled: boolean;
+          delivery_radius_km: number | null;
+          shop_public_id: string;
           created_at: string;
         };
         Insert: {
@@ -99,6 +104,11 @@ export type Database = {
           auto_print?: Database["public"]["Enums"]["auto_print_mode"];
           print_copies?: number;
           print_width?: number;
+          delivery_enabled?: boolean;
+          express_enabled?: boolean;
+          tours_enabled?: boolean;
+          delivery_radius_km?: number | null;
+          shop_public_id?: string;
           created_at?: string;
         };
         Update: {
@@ -139,6 +149,11 @@ export type Database = {
           auto_print?: Database["public"]["Enums"]["auto_print_mode"];
           print_copies?: number;
           print_width?: number;
+          delivery_enabled?: boolean;
+          express_enabled?: boolean;
+          tours_enabled?: boolean;
+          delivery_radius_km?: number | null;
+          shop_public_id?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -174,6 +189,20 @@ export type Database = {
           cashback_rate_applied: number | null;
           chargily_fee_rate_applied: number | null;
           payment_failure_reason: string | null;
+          fulfillment_type: "pickup" | "delivery";
+          delivery_mode: "express" | "tour" | null;
+          delivery_fee_da: number;
+          delivery_address_id: string | null;
+          delivery_address_text: string | null;
+          delivery_lat: number | null;
+          delivery_lng: number | null;
+          delivery_phone: string | null;
+          delivery_distance_km: number | null;
+          delivery_driver_id: string | null;
+          delivery_picked_up_at: string | null;
+          delivery_delivered_at: string | null;
+          validated_without_code: boolean;
+          delivery_slot_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -206,6 +235,20 @@ export type Database = {
           cashback_rate_applied?: number | null;
           chargily_fee_rate_applied?: number | null;
           payment_failure_reason?: string | null;
+          fulfillment_type?: "pickup" | "delivery";
+          delivery_mode?: "express" | "tour" | null;
+          delivery_fee_da?: number;
+          delivery_address_id?: string | null;
+          delivery_address_text?: string | null;
+          delivery_lat?: number | null;
+          delivery_lng?: number | null;
+          delivery_phone?: string | null;
+          delivery_distance_km?: number | null;
+          delivery_driver_id?: string | null;
+          delivery_picked_up_at?: string | null;
+          delivery_delivered_at?: string | null;
+          validated_without_code?: boolean;
+          delivery_slot_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -238,6 +281,20 @@ export type Database = {
           cashback_rate_applied?: number | null;
           chargily_fee_rate_applied?: number | null;
           payment_failure_reason?: string | null;
+          fulfillment_type?: "pickup" | "delivery";
+          delivery_mode?: "express" | "tour" | null;
+          delivery_fee_da?: number;
+          delivery_address_id?: string | null;
+          delivery_address_text?: string | null;
+          delivery_lat?: number | null;
+          delivery_lng?: number | null;
+          delivery_phone?: string | null;
+          delivery_distance_km?: number | null;
+          delivery_driver_id?: string | null;
+          delivery_picked_up_at?: string | null;
+          delivery_delivered_at?: string | null;
+          validated_without_code?: boolean;
+          delivery_slot_id?: string | null;
           created_at?: string;
         };
         Relationships: [
@@ -623,6 +680,12 @@ export type Database = {
           max_topup_da_per_30d: number;
           service_fee_tiers: Json;
           ranking_weights: Json;
+          delivery_base_da: number;
+          delivery_per_km_da: number;
+          delivery_free_km_threshold: number;
+          delivery_min_da: number;
+          delivery_max_da: number;
+          delivery_max_radius_km: number;
           updated_at: string;
         };
         Insert: {
@@ -636,6 +699,12 @@ export type Database = {
           max_topup_da_per_30d?: number;
           service_fee_tiers?: Json;
           ranking_weights?: Json;
+          delivery_base_da?: number;
+          delivery_per_km_da?: number;
+          delivery_free_km_threshold?: number;
+          delivery_min_da?: number;
+          delivery_max_da?: number;
+          delivery_max_radius_km?: number;
           updated_at?: string;
         };
         Update: {
@@ -649,7 +718,140 @@ export type Database = {
           max_topup_da_per_30d?: number;
           service_fee_tiers?: Json;
           ranking_weights?: Json;
+          delivery_base_da?: number;
+          delivery_per_km_da?: number;
+          delivery_free_km_threshold?: number;
+          delivery_min_da?: number;
+          delivery_max_da?: number;
+          delivery_max_radius_km?: number;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      drivers: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          full_name: string;
+          phone: string;
+          is_frozen: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          full_name: string;
+          phone: string;
+          is_frozen?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          full_name?: string;
+          phone?: string;
+          is_frozen?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      merchant_referral_codes: {
+        Row: {
+          id: string;
+          merchant_id: string;
+          code_hash: string;
+          is_active: boolean;
+          expires_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          merchant_id: string;
+          code_hash: string;
+          is_active?: boolean;
+          expires_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          merchant_id?: string;
+          code_hash?: string;
+          is_active?: boolean;
+          expires_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      merchant_drivers: {
+        Row: {
+          id: string;
+          merchant_id: string;
+          driver_id: string;
+          status: "pending" | "active" | "blocked";
+          joined_at: string;
+          status_changed_at: string;
+          sessions_revoked_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          merchant_id: string;
+          driver_id: string;
+          status?: "pending" | "active" | "blocked";
+          joined_at?: string;
+          status_changed_at?: string;
+          sessions_revoked_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          merchant_id?: string;
+          driver_id?: string;
+          status?: "pending" | "active" | "blocked";
+          joined_at?: string;
+          status_changed_at?: string;
+          sessions_revoked_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "merchant_drivers_driver_id_fkey";
+            columns: ["driver_id"];
+            referencedRelation: "drivers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "merchant_drivers_merchant_id_fkey";
+            columns: ["merchant_id"];
+            referencedRelation: "merchants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      merchant_driver_events: {
+        Row: {
+          id: string;
+          merchant_id: string;
+          driver_id: string | null;
+          actor_email: string | null;
+          action: string;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          merchant_id: string;
+          driver_id?: string | null;
+          actor_email?: string | null;
+          action: string;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          merchant_id?: string;
+          driver_id?: string | null;
+          actor_email?: string | null;
+          action?: string;
+          note?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -816,6 +1018,270 @@ export type Database = {
         };
         Relationships: [];
       };
+      device_tokens: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: "merchant" | "customer" | "courier";
+          token: string;
+          platform: "android" | "ios" | "web";
+          created_at: string;
+          last_seen_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role: "merchant" | "customer" | "courier";
+          token: string;
+          platform: "android" | "ios" | "web";
+          created_at?: string;
+          last_seen_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          role?: "merchant" | "customer" | "courier";
+          token?: string;
+          platform?: "android" | "ios" | "web";
+          created_at?: string;
+          last_seen_at?: string;
+        };
+        Relationships: [];
+      };
+      customer_addresses: {
+        Row: {
+          id: string;
+          customer_id: string;
+          label: string;
+          lat: number;
+          lng: number;
+          address_text: string | null;
+          phone_override: string | null;
+          is_default: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          label: string;
+          lat: number;
+          lng: number;
+          address_text?: string | null;
+          phone_override?: string | null;
+          is_default?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          label?: string;
+          lat?: number;
+          lng?: number;
+          address_text?: string | null;
+          phone_override?: string | null;
+          is_default?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      driver_availability: {
+        Row: {
+          merchant_driver_id: string;
+          status: "offline" | "available" | "busy";
+          current_order_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          merchant_driver_id: string;
+          status?: "offline" | "available" | "busy";
+          current_order_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          merchant_driver_id?: string;
+          status?: "offline" | "available" | "busy";
+          current_order_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      delivery_slots: {
+        Row: {
+          id: string;
+          merchant_id: string;
+          slot_date: string;
+          start_time: string;
+          end_time: string;
+          max_orders: number;
+          status: "open" | "closed" | "cancelled";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          merchant_id: string;
+          slot_date: string;
+          start_time: string;
+          end_time: string;
+          max_orders: number;
+          status?: "open" | "closed" | "cancelled";
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          merchant_id?: string;
+          slot_date?: string;
+          start_time?: string;
+          end_time?: string;
+          max_orders?: number;
+          status?: "open" | "closed" | "cancelled";
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      delivery_tours: {
+        Row: {
+          id: string;
+          merchant_id: string;
+          driver_id: string;
+          slot_id: string;
+          status: "planned" | "in_progress" | "completed" | "cancelled";
+          started_at: string | null;
+          ended_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          merchant_id: string;
+          driver_id: string;
+          slot_id: string;
+          status?: "planned" | "in_progress" | "completed" | "cancelled";
+          started_at?: string | null;
+          ended_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          merchant_id?: string;
+          driver_id?: string;
+          slot_id?: string;
+          status?: "planned" | "in_progress" | "completed" | "cancelled";
+          started_at?: string | null;
+          ended_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      tour_stops: {
+        Row: {
+          id: string;
+          tour_id: string;
+          order_id: string;
+          stop_order: number;
+          status: "pending" | "delivered" | "failed";
+          delivered_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tour_id: string;
+          order_id: string;
+          stop_order: number;
+          status?: "pending" | "delivered" | "failed";
+          delivered_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          tour_id?: string;
+          order_id?: string;
+          stop_order?: number;
+          status?: "pending" | "delivered" | "failed";
+          delivered_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      delivery_ledger: {
+        Row: {
+          id: string;
+          driver_id: string;
+          merchant_id: string | null;
+          order_id: string | null;
+          type:
+            | "driver_payout"
+            | "driver_cash_collected"
+            | "driver_owes_platform"
+            | "driver_owes_merchant"
+            | "adjustment";
+          amount_da: number;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          driver_id: string;
+          merchant_id?: string | null;
+          order_id?: string | null;
+          type:
+            | "driver_payout"
+            | "driver_cash_collected"
+            | "driver_owes_platform"
+            | "driver_owes_merchant"
+            | "adjustment";
+          amount_da: number;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          driver_id?: string;
+          merchant_id?: string | null;
+          order_id?: string | null;
+          type?:
+            | "driver_payout"
+            | "driver_cash_collected"
+            | "driver_owes_platform"
+            | "driver_owes_merchant"
+            | "adjustment";
+          amount_da?: number;
+          note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      admin_audit_log: {
+        Row: {
+          id: string;
+          admin_email: string | null;
+          action: string;
+          target_kind: string;
+          target_id: string | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          admin_email?: string | null;
+          action: string;
+          target_kind: string;
+          target_id?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          admin_email?: string | null;
+          action?: string;
+          target_kind?: string;
+          target_id?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       merchants_public: {
@@ -910,6 +1376,26 @@ export type Database = {
       merchant_unique_slug: {
         Args: { p_base: string; p_self_id?: string | null };
         Returns: string;
+      };
+      set_driver_availability: {
+        Args: {
+          p_merchant_driver_id: string;
+          p_status: "offline" | "available" | "busy";
+        };
+        Returns: void;
+      };
+      pull_next_express: {
+        Args: { p_merchant_driver_id: string };
+        Returns: { order_id: string }[];
+      };
+      validate_delivery: {
+        Args: {
+          p_order_id: string;
+          p_provided_code: string | null;
+          p_skip_code?: boolean;
+          p_client_operation_id?: string | null;
+        };
+        Returns: { ok: boolean; reason: string | null }[];
       };
     };
     Enums: {

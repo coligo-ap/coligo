@@ -9,6 +9,7 @@ import {
   passwordSchema,
   profileSchema,
 } from "@/lib/validation/merchant-settings";
+import { merchantDeliverySchema } from "@/lib/validation/delivery";
 import { MIN_ORDER_CASH_DA } from "@/lib/config/payment-limits";
 
 const SettingsSchema = z.object({
@@ -234,6 +235,57 @@ export async function setMediaUrl(
 
   revalidatePath("/settings");
   return { ok: true };
+}
+
+// =============================================================================
+// LIVRAISON — activation des modes + rayon (le barème reste plateforme)
+// =============================================================================
+export async function setDeliverySettings(
+  _prev: SettingsFormState,
+  formData: FormData
+): Promise<SettingsFormState> {
+  const parsed = merchantDeliverySchema.safeParse({
+    delivery_enabled: formData.get("delivery_enabled") === "on",
+    express_enabled: formData.get("express_enabled") === "on",
+    tours_enabled: formData.get("tours_enabled") === "on",
+    delivery_radius_km: formData.get("delivery_radius_km") || null,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Données invalides" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée." };
+
+  // Borne le rayon par le max plateforme — on ne fait pas confiance au form.
+  const { data: ps } = await supabase
+    .from("platform_settings")
+    .select("delivery_max_radius_km")
+    .eq("id", true)
+    .maybeSingle();
+  const maxRadius = (ps?.delivery_max_radius_km as number | undefined) ?? 10;
+  const radius =
+    parsed.data.delivery_radius_km == null
+      ? null
+      : Math.min(parsed.data.delivery_radius_km, maxRadius);
+
+  const { error } = await supabase
+    .from("merchants")
+    .update({
+      delivery_enabled: parsed.data.delivery_enabled,
+      express_enabled: parsed.data.express_enabled,
+      tours_enabled: parsed.data.tours_enabled,
+      delivery_radius_km: radius,
+    })
+    .eq("user_id", user.id);
+
+  if (error) return { error: `Erreur : ${error.message}` };
+
+  revalidatePath("/settings");
+  return { ok: true, success: "Livraison mise à jour." };
 }
 
 // =============================================================================

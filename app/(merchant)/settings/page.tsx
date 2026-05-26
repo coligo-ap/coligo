@@ -4,6 +4,7 @@ import {
   Clock,
   Printer,
   Store,
+  Truck,
   User as UserIcon,
   Wallet,
 } from "lucide-react";
@@ -15,10 +16,14 @@ import { OpeningHoursForm } from "@/components/merchant/settings/opening-hours-f
 import { OrderRulesForm } from "@/components/merchant/settings/order-rules-form";
 import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badge";
 import { AccountSection } from "@/components/merchant/settings/account-section";
+import { DeliverySettingsForm } from "@/components/merchant/settings/delivery-settings-form";
 import { normalizeOpeningHours } from "@/lib/merchant/opening-hours";
+import { getPlatformSettings } from "@/lib/data/platform";
 import {
   AUTO_PRINT_LABEL,
   DEFAULT_PRINT_SETTINGS,
+  type DeliveryPricing,
+  type MerchantDeliverySettings,
   type MerchantSettings,
   type OpeningHours,
   type PrintSettings,
@@ -42,7 +47,8 @@ export default async function SettingsPage() {
        logo_url, cover_url, phone_public, opening_hours,
        min_order_da, prep_time_min, accepts_cash, accepts_online,
        pickup_slot_minutes, max_orders_per_slot, is_active,
-       commission_rate, auto_accept_orders, auto_print, print_copies, print_width`
+       commission_rate, auto_accept_orders, auto_print, print_copies, print_width,
+       delivery_enabled, express_enabled, tours_enabled, delivery_radius_km`
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -56,6 +62,25 @@ export default async function SettingsPage() {
     print_width: (m.print_width ??
       DEFAULT_PRINT_SETTINGS.print_width) as PrintWidth,
   };
+
+  const deliverySettings: MerchantDeliverySettings = {
+    delivery_enabled: m.delivery_enabled ?? false,
+    express_enabled: m.express_enabled ?? false,
+    tours_enabled: m.tours_enabled ?? false,
+    delivery_radius_km: m.delivery_radius_km ?? null,
+  };
+
+  const platform = await getPlatformSettings();
+  const deliveryPricing: DeliveryPricing | null = platform
+    ? {
+        delivery_base_da: platform.delivery_base_da,
+        delivery_per_km_da: platform.delivery_per_km_da,
+        delivery_free_km_threshold: platform.delivery_free_km_threshold,
+        delivery_min_da: platform.delivery_min_da,
+        delivery_max_da: platform.delivery_max_da,
+        delivery_max_radius_km: platform.delivery_max_radius_km,
+      }
+    : null;
 
   const merchant: MerchantSettings = {
     id: m.id,
@@ -135,6 +160,29 @@ export default async function SettingsPage() {
         </SettingsSection>
 
         <SettingsSection
+          icon={<Truck />}
+          title="Livraison"
+          description="Active la livraison, choisis les modes (Express/Tournée) et le rayon. Le barème est imposé par la plateforme."
+          summary={
+            <DeliverySummary
+              settings={deliverySettings}
+              maxRadiusKm={deliveryPricing?.delivery_max_radius_km}
+            />
+          }
+        >
+          {deliveryPricing ? (
+            <DeliverySettingsForm
+              pricing={deliveryPricing}
+              current={deliverySettings}
+            />
+          ) : (
+            <p className="text-muted text-sm">
+              Barème plateforme indisponible — réessaie plus tard.
+            </p>
+          )}
+        </SettingsSection>
+
+        <SettingsSection
           icon={<Printer />}
           title="Impression du ticket"
           description="Auto-acceptation, imprimante thermique et copies."
@@ -170,6 +218,31 @@ export default async function SettingsPage() {
         </SettingsSection>
       </div>
     </div>
+  );
+}
+
+function DeliverySummary({
+  settings,
+  maxRadiusKm,
+}: {
+  settings: MerchantDeliverySettings;
+  maxRadiusKm?: number;
+}) {
+  if (!settings.delivery_enabled) {
+    return (
+      <span className="text-muted mr-2 text-xs">Livraison désactivée</span>
+    );
+  }
+  const modes: string[] = [];
+  if (settings.express_enabled) modes.push("Express");
+  if (settings.tours_enabled) modes.push("Tournée");
+  const r = settings.delivery_radius_km;
+  return (
+    <span className="text-muted mr-2 text-xs tabular-nums">
+      {modes.join(" · ") || "Aucun mode"} ·{" "}
+      {r != null ? `${r.toFixed(1)} km` : "rayon ?"}
+      {maxRadiusKm != null && r != null && r >= maxRadiusKm && " (max)"}
+    </span>
   );
 }
 

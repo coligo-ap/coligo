@@ -25,11 +25,28 @@
 
 export type NativePlatform = "web" | "ios" | "android";
 
+/**
+ * Vrai si on tourne dans un WebView Capacitor (APK Android / iOS).
+ * Détection runtime via le pont `window.Capacitor` injecté par le natif —
+ * pas d'import direct du SDK Capacitor pour rester compatible PWA pure
+ * (le bundle web n'a pas besoin de @capacitor/core).
+ */
 export function isNative(): boolean {
-  return false;
+  if (typeof window === "undefined") return false;
+  const cap = (
+    window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }
+  ).Capacitor;
+  return cap?.isNativePlatform?.() === true;
 }
 
 export function getNativePlatform(): NativePlatform {
+  if (typeof window === "undefined") return "web";
+  const cap = (
+    window as unknown as { Capacitor?: { getPlatform?: () => string } }
+  ).Capacitor;
+  const p = cap?.getPlatform?.();
+  if (p === "android") return "android";
+  if (p === "ios") return "ios";
   return "web";
 }
 

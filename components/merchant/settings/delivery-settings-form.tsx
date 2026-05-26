@@ -1,0 +1,244 @@
+"use client";
+
+import { useActionState, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, Truck, Calendar, Bolt } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
+import { computeDeliveryFee } from "@/lib/delivery/pricing";
+import { formatDA } from "@/lib/utils";
+import type { DeliveryPricing, MerchantDeliverySettings } from "@/lib/types";
+import {
+  setDeliverySettings,
+  type SettingsFormState,
+} from "@/app/(merchant)/settings/actions";
+
+const initial: SettingsFormState = {};
+
+export function DeliverySettingsForm({
+  pricing,
+  current,
+}: {
+  pricing: DeliveryPricing;
+  current: MerchantDeliverySettings;
+}) {
+  const router = useRouter();
+  const [state, formAction, pending] = useActionState(
+    setDeliverySettings,
+    initial
+  );
+
+  const [enabled, setEnabled] = useState(current.delivery_enabled);
+  const [express, setExpress] = useState(current.express_enabled);
+  const [tours, setTours] = useState(current.tours_enabled);
+  const [radius, setRadius] = useState<number>(
+    current.delivery_radius_km ?? Math.min(5, pricing.delivery_max_radius_km)
+  );
+  const [simKm, setSimKm] = useState<number>(3);
+
+  useEffect(() => {
+    if (state.ok) {
+      toast.success(state.success ?? "Livraison mise à jour");
+      router.refresh();
+    } else if (state.error) {
+      toast.error(state.error);
+    }
+  }, [state, router]);
+
+  const quote = useMemo(
+    () => computeDeliveryFee(simKm, pricing, radius),
+    [simKm, pricing, radius]
+  );
+
+  return (
+    <form action={formAction} className="space-y-5">
+      {/* Switch principal — checkbox cachée + UI custom pour cohérence visuelle
+          mais le submit FormData utilise toujours `on`/absent. */}
+      <Switch
+        name="delivery_enabled"
+        label="Activer la livraison"
+        description="Permet aux clients de choisir la livraison au checkout (arrive à l'étape 5 / prompt 6)."
+        icon={<Truck className="size-4" />}
+        checked={enabled}
+        onChange={setEnabled}
+      />
+
+      {enabled && (
+        <>
+          {/* Modes */}
+          <div className="border-border space-y-3 rounded-[12px] border p-4">
+            <p className="text-sm font-semibold">Modes de livraison</p>
+            <Switch
+              name="express_enabled"
+              label="Express"
+              description="Livraison immédiate dès qu'un livreur est disponible."
+              icon={<Bolt className="size-4" />}
+              checked={express}
+              onChange={setExpress}
+            />
+            <Switch
+              name="tours_enabled"
+              label="Tournée"
+              description="Créneaux planifiés avec capacité max par créneau."
+              icon={<Calendar className="size-4" />}
+              checked={tours}
+              onChange={setTours}
+            />
+            {!express && !tours && (
+              <p className="text-danger-600 text-xs">
+                Active au moins un mode pour valider.
+              </p>
+            )}
+          </div>
+
+          {/* Rayon */}
+          <div className="border-border space-y-3 rounded-[12px] border p-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <Label htmlFor="delivery_radius_km">Rayon de livraison</Label>
+              <span className="text-sm font-semibold tabular-nums">
+                {radius.toFixed(1)} km
+              </span>
+            </div>
+            <input
+              id="delivery_radius_km"
+              name="delivery_radius_km"
+              type="range"
+              min={0.5}
+              max={pricing.delivery_max_radius_km}
+              step={0.5}
+              value={radius}
+              onChange={(e) => setRadius(Number(e.target.value))}
+              className="w-full"
+              disabled={pending}
+            />
+            <p className="text-subtle text-xs">
+              Maximum imposé par la plateforme :{" "}
+              <strong>{pricing.delivery_max_radius_km} km</strong>. Tu peux
+              réduire ; tu ne peux pas étendre au-delà.
+            </p>
+          </div>
+
+          {/* Barème (lecture seule) + simulateur */}
+          <div className="bg-surface-2 border-border space-y-3 rounded-[12px] border p-4">
+            <div className="flex items-center gap-2">
+              <Truck className="size-4" />
+              <p className="text-sm font-semibold">Barème plateforme</p>
+            </div>
+            <dl className="text-muted grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+              <dt>Base</dt>
+              <dd className="text-right tabular-nums">
+                {formatDA(pricing.delivery_base_da)}
+              </dd>
+              <dt>Au km au-delà de {pricing.delivery_free_km_threshold} km</dt>
+              <dd className="text-right tabular-nums">
+                {formatDA(pricing.delivery_per_km_da)}
+              </dd>
+              <dt>Plancher / Plafond</dt>
+              <dd className="text-right tabular-nums">
+                {formatDA(pricing.delivery_min_da)} —{" "}
+                {formatDA(pricing.delivery_max_da)}
+              </dd>
+            </dl>
+
+            <div className="border-border space-y-2 border-t pt-3">
+              <Label htmlFor="sim_km">Simulateur</Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  id="sim_km"
+                  type="number"
+                  min={0}
+                  step="0.5"
+                  value={simKm}
+                  onChange={(e) => setSimKm(Number(e.target.value) || 0)}
+                  className="max-w-[120px]"
+                />
+                <span className="text-muted text-sm">km →</span>
+                <span className="text-base font-semibold tabular-nums">
+                  {quote.outOfRange ? (
+                    <span className="text-danger-600">Hors rayon</span>
+                  ) : (
+                    formatDA(quote.feeDa)
+                  )}
+                </span>
+              </div>
+              {!quote.outOfRange && quote.breakdown.clamped && (
+                <p className="text-subtle text-xs">
+                  {quote.breakdown.clamped === "min"
+                    ? "Plancher appliqué."
+                    : "Plafond appliqué."}
+                </p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
+
+      <Button type="submit" disabled={pending}>
+        {pending && <Loader2 className="size-4 animate-spin" />}
+        Enregistrer
+      </Button>
+    </form>
+  );
+}
+
+/**
+ * Switch contrôlé : on synchronise l'état React avec une checkbox CACHÉE
+ * (vraiment cochée/décochée) pour que FormData récupère `name=on` côté action.
+ * Le visuel est rendu par un `button role="switch"` séparé.
+ */
+function Switch({
+  name,
+  label,
+  description,
+  icon,
+  checked,
+  onChange,
+}: {
+  name: string;
+  label: string;
+  description?: string;
+  icon?: React.ReactNode;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start justify-between gap-3">
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2 text-sm font-medium">
+          {icon}
+          {label}
+        </span>
+        {description && (
+          <span className="text-muted mt-0.5 block text-xs">{description}</span>
+        )}
+      </span>
+      {/* checkbox visuellement cachée mais bien dans le DOM pour FormData */}
+      <input
+        type="checkbox"
+        name={name}
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="sr-only"
+      />
+      <span
+        aria-hidden
+        className={cn(
+          "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
+          checked ? "bg-primary-600" : "bg-surface-3"
+        )}
+      >
+        <span
+          className={cn(
+            "inline-block size-5 transform rounded-full bg-white shadow transition-transform",
+            checked ? "translate-x-5" : "translate-x-0.5"
+          )}
+        />
+      </span>
+    </label>
+  );
+}

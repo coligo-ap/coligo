@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isValidTransition, type OrderStatus } from "@/lib/types";
+import { notifyCustomerStatusChange } from "@/lib/fcm/triggers";
 
 export type OrderActionResult = {
   error?: string;
@@ -67,6 +68,10 @@ export async function updateOrderStatus(
     to_status: to,
     client_operation_id: clientOperationId ?? null,
   });
+
+  // Push FCM au client si le nouveau statut est significatif (preparing /
+  // ready / completed / cancelled). Fire-and-forget — pas de blocage.
+  void notifyCustomerStatusChange({ orderId, newStatus: to });
 
   revalidatePath("/dashboard");
   revalidatePath("/orders");

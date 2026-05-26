@@ -1,0 +1,247 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { Crosshair, Loader2, MapPin } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { getPosition } from "@/lib/native/geolocation";
+import { toast } from "@/components/ui/toast";
+
+/**
+ * Sélecteur de position sur carte (MapLibre).
+ *
+ * Source de tuiles :
+ *  - Si `NEXT_PUBLIC_MAPTILER_KEY` est défini → MapTiler "streets" (recommandé).
+ *  - Sinon → tuiles OpenStreetMap raster (libres, attribution requise,
+ *    pas de clé). Adapté au MVP.
+ *
+ * UX : le marqueur reste au CENTRE du viewport ; le client déplace la carte
+ * pour positionner. Bouton « Ma position GPS » qui recentre.
+ */
+
+type LatLng = { lat: number; lng: number };
+
+export type AddressPickerProps = {
+  initial?: LatLng;
+  /** Centre par défaut si pas d'initial — par défaut Alger. */
+  defaultCenter?: LatLng;
+  onChange: (pos: LatLng) => void;
+  className?: string;
+};
+
+const DEFAULT_CENTER: LatLng = { lat: 36.7538, lng: 3.0588 }; // Alger
+
+function buildStyle() {
+  const key = process.env.NEXT_PUBLIC_MAPTILER_KEY;
+  if (key) {
+    return `https://api.maptiler.com/maps/streets/style.json?key=${key}`;
+  }
+  // OSM raster fallback (libre, attribution obligatoire).
+  return {
+    version: 8 as const,
+    sources: {
+      osm: {
+        type: "raster" as const,
+        tiles: [
+          "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        ],
+        tileSize: 256,
+        attribution: "© OpenStreetMap contributors",
+      },
+    },
+    layers: [{ id: "osm", type: "raster" as const, source: "osm" }],
+  };
+}
+
+export function AddressPicker({
+  initial,
+  defaultCenter,
+  onChange,
+  className,
+}: AddressPickerProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<import("maplibre-gl").Map | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const start = initial ?? defaultCenter ?? DEFAULT_CENTER;
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    let disposed = false;
+
+    void import("maplibre-gl").then(({ Map }) => {
+      if (disposed || !containerRef.current) return;
+
+      const map = new Map({
+        container: containerRef.current,
+        style: buildStyle() as never,
+        center: [start.lng, start.lat],
+        zoom: 14,
+        attributionControl: { compact: true },
+      });
+      mapRef.current = map;
+
+      // Émet la position du centre à chaque "moveend".
+      const emit = () => {
+        const c = map.getCenter();
+        onChange({ lat: c.lat, lng: c.lng });
+      };
+      map.on("moveend", emit);
+    });
+
+    return () => {
+      disposed = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+    // initial/onChange volontairement non listés — le composant gère son
+    // cycle de vie une seule fois ; les mutations passent par recenter().
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const useGps = async () => {
+    setLoading(true);
+    try {
+      const pos = await getPosition();
+      mapRef.current?.flyTo({
+        center: [pos.longitude, pos.latitude],
+        zoom: 16,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Géoloc indisponible");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className={"space-y-2 " + (className ?? "")}>
+      <div className="relative h-[300px] w-full overflow-hidden rounded-[12px]">
+        <div ref={containerRef} className="absolute inset-0" />
+        {/* Marqueur central fixe (overlay HTML, plus simple qu'un Marker
+            MapLibre que l'on devrait re-syncer à chaque move). */}
+        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full">
+          <MapPin
+            className="text-primary-700 size-8 drop-shadow-md"
+            fill="currentColor"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={useGps}
+          disabled={loading}
+          className="bg-surface border-border absolute right-2 bottom-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow"
+        >
+          {loading ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Crosshair className="size-3.5" />
+          )}
+          Ma position
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Section complète : carte + champ adresse texte + tél alternatif. */
+export function AddressForm({
+  initial,
+  defaultCenter,
+  onChange,
+}: {
+  initial?: {
+    lat: number;
+    lng: number;
+    label?: string;
+    address_text?: string | null;
+    phone_override?: string | null;
+  };
+  defaultCenter?: LatLng;
+  onChange: (v: {
+    lat: number;
+    lng: number;
+    label: string;
+    address_text: string;
+    phone_override: string;
+  }) => void;
+}) {
+  const [lat, setLat] = useState(initial?.lat ?? DEFAULT_CENTER.lat);
+  const [lng, setLng] = useState(initial?.lng ?? DEFAULT_CENTER.lng);
+  const [label, setLabel] = useState(initial?.label ?? "");
+  const [text, setText] = useState(initial?.address_text ?? "");
+  const [phone, setPhone] = useState(initial?.phone_override ?? "");
+
+  useEffect(() => {
+    onChange({
+      lat,
+      lng,
+      label,
+      address_text: text,
+      phone_override: phone,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lat, lng, label, text, phone]);
+
+  return (
+    <div className="space-y-3">
+      <AddressPicker
+        initial={initial ? { lat: initial.lat, lng: initial.lng } : undefined}
+        defaultCenter={defaultCenter}
+        onChange={(p) => {
+          setLat(p.lat);
+          setLng(p.lng);
+        }}
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="addr_label">Nom de l&apos;adresse</Label>
+          <Input
+            id="addr_label"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Domicile, bureau…"
+            required
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="addr_phone">Téléphone alternatif (optionnel)</Label>
+          <Input
+            id="addr_phone"
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+213 6XX XX XX XX"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="addr_text">
+          Complément (bâtiment, étage, point de repère)
+        </Label>
+        <Input
+          id="addr_text"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Bât B, 3e étage, en face de la pharmacie"
+        />
+      </div>
+
+      <p className="text-subtle text-xs">
+        Coordonnées : {lat.toFixed(5)}, {lng.toFixed(5)}
+      </p>
+
+      {/* Hidden inputs pour FormData côté <form action={…}>. */}
+      <input type="hidden" name="lat" value={lat} />
+      <input type="hidden" name="lng" value={lng} />
+      <input type="hidden" name="label" value={label} />
+      <input type="hidden" name="address_text" value={text} />
+      <input type="hidden" name="phone_override" value={phone} />
+    </div>
+  );
+}

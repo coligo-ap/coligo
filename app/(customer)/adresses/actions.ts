@@ -1,0 +1,111 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
+
+export type AddressActionState = { error?: string; ok?: boolean };
+
+const addressSchema = z.object({
+  label: z.string().min(1).max(60),
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+  address_text: z.string().max(200).optional().or(z.literal("")),
+  phone_override: z.string().max(40).optional().or(z.literal("")),
+  is_default: z.string().optional(),
+});
+
+async function requireCustomer(): Promise<{ id: string } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée." };
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!customer) return { error: "Profil client introuvable." };
+  return customer;
+}
+
+export async function addAddress(
+  _prev: AddressActionState,
+  formData: FormData
+): Promise<AddressActionState> {
+  const parsed = addressSchema.safeParse({
+    label: formData.get("label"),
+    lat: formData.get("lat"),
+    lng: formData.get("lng"),
+    address_text: formData.get("address_text"),
+    phone_override: formData.get("phone_override"),
+    is_default: formData.get("is_default"),
+  });
+  if (!parsed.success)
+    return { error: parsed.error.issues[0]?.message ?? "Données invalides" };
+
+  const c = await requireCustomer();
+  if ("error" in c) return c;
+
+  const supabase = await createClient();
+  const isDefault = parsed.data.is_default === "on";
+
+  if (isDefault) {
+    // Démarque l'éventuel default existant.
+    await supabase
+      .from("customer_addresses")
+      .update({ is_default: false })
+      .eq("customer_id", c.id);
+  }
+
+  const { error } = await supabase.from("customer_addresses").insert({
+    customer_id: c.id,
+    label: parsed.data.label,
+    lat: parsed.data.lat,
+    lng: parsed.data.lng,
+    address_text: parsed.data.address_text || null,
+    phone_override: parsed.data.phone_override || null,
+    is_default: isDefault,
+  });
+
+  if (error) return { error: error.message };
+  revalidatePath("/adresses");
+  revalidatePath("/checkout");
+  return { ok: true };
+}
+
+export async function setDefaultAddress(
+  id: string
+): Promise<AddressActionState> {
+  const c = await requireCustomer();
+  if ("error" in c) return c;
+  const supabase = await createClient();
+  await supabase
+    .from("customer_addresses")
+    .update({ is_default: false })
+    .eq("customer_id", c.id);
+  const { error } = await supabase
+    .from("customer_addresses")
+    .update({ is_default: true })
+    .eq("customer_id", c.id)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/adresses");
+  revalidatePath("/checkout");
+  return { ok: true };
+}
+
+export async function deleteAddress(id: string): Promise<AddressActionState> {
+  const c = await requireCustomer();
+  if ("error" in c) return c;
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("customer_addresses")
+    .delete()
+    .eq("customer_id", c.id)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/adresses");
+  return { ok: true };
+}

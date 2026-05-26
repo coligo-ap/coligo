@@ -45,3 +45,6 @@ android/app/debug/
 *.aab
 *.keystore
 
+# Firebase / FCM — config Android push (déposée à la main par chaque dev)
+android/app/google-services.json
+

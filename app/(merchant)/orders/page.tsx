@@ -57,6 +57,7 @@ export default async function OrdersPage({
        total_da, service_fee_da, cashback_da, commission_da,
        pickup_code, pickup_slot_at, notes, created_at,
        payment_method, payment_status,
+       fulfillment_type, delivery_mode,
        order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`,
       { count: "exact" }
     )
@@ -83,7 +84,16 @@ export default async function OrdersPage({
     );
   }
 
-  const ordersList = (orders ?? []) as OrderWithItems[];
+  // Anti-fraude prompt 9 : masquer pickup_code pour les livraisons.
+  const ordersList = (
+    (orders ?? []) as unknown as (OrderWithItems & {
+      fulfillment_type?: string;
+    })[]
+  ).map((o) =>
+    o.fulfillment_type === "delivery"
+      ? ({ ...o, pickup_code: "" } as OrderWithItems)
+      : (o as OrderWithItems)
+  );
   const total = count ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 

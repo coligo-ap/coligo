@@ -7,7 +7,11 @@ export async function getPlatformSettings(): Promise<PlatformSettings | null> {
   const { data } = await supabase
     .from("platform_settings")
     .select(
-      "commission_cash, commission_online, cashback_online, cashback_cash, chargily_fee, max_debt_da, updated_at"
+      `commission_cash, commission_online, cashback_online, cashback_cash,
+       chargily_fee, max_debt_da,
+       delivery_base_da, delivery_per_km_da, delivery_free_km_threshold,
+       delivery_min_da, delivery_max_da, delivery_max_radius_km,
+       updated_at`
     )
     .eq("id", true)
     .maybeSingle();

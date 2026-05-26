@@ -438,8 +438,38 @@ export type PlatformSettings = {
   cashback_cash: number;
   chargily_fee: number;
   max_debt_da: number;
+  // Barème de livraison imposé par la plateforme (cf. lib/delivery/pricing.ts).
+  delivery_base_da: number;
+  delivery_per_km_da: number;
+  delivery_free_km_threshold: number;
+  delivery_min_da: number;
+  delivery_max_da: number;
+  delivery_max_radius_km: number;
   updated_at: string;
 };
+
+/** Sous-ensemble du barème nécessaire pour calculer un prix. */
+export type DeliveryPricing = Pick<
+  PlatformSettings,
+  | "delivery_base_da"
+  | "delivery_per_km_da"
+  | "delivery_free_km_threshold"
+  | "delivery_min_da"
+  | "delivery_max_da"
+  | "delivery_max_radius_km"
+>;
+
+/** Réglages livraison côté commerçant (au plus 1 par merchant). */
+export type MerchantDeliverySettings = {
+  delivery_enabled: boolean;
+  express_enabled: boolean;
+  tours_enabled: boolean;
+  /** NULL = pas encore configuré ; sinon borné par delivery_max_radius_km. */
+  delivery_radius_km: number | null;
+};
+
+export type FulfillmentType = "pickup" | "delivery";
+export type DeliveryMode = "express" | "tour";
 
 /** Surcharges de taux par commerçant (NULL = hérite du global). */
 export type MerchantRateOverrides = {

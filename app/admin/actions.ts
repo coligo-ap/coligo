@@ -24,6 +24,12 @@ export async function updatePlatformSettings(
     cashback_cash: formData.get("cashback_cash"),
     chargily_fee: formData.get("chargily_fee"),
     max_debt_da: formData.get("max_debt_da"),
+    delivery_base_da: formData.get("delivery_base_da"),
+    delivery_per_km_da: formData.get("delivery_per_km_da"),
+    delivery_free_km_threshold: formData.get("delivery_free_km_threshold"),
+    delivery_min_da: formData.get("delivery_min_da"),
+    delivery_max_da: formData.get("delivery_max_da"),
+    delivery_max_radius_km: formData.get("delivery_max_radius_km"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Données invalides" };
@@ -40,6 +46,12 @@ export async function updatePlatformSettings(
       cashback_cash: pctToRate(d.cashback_cash),
       chargily_fee: pctToRate(d.chargily_fee),
       max_debt_da: d.max_debt_da,
+      delivery_base_da: d.delivery_base_da,
+      delivery_per_km_da: d.delivery_per_km_da,
+      delivery_free_km_threshold: d.delivery_free_km_threshold,
+      delivery_min_da: d.delivery_min_da,
+      delivery_max_da: d.delivery_max_da,
+      delivery_max_radius_km: d.delivery_max_radius_km,
       updated_at: new Date().toISOString(),
     })
     .eq("id", true);
@@ -100,6 +112,51 @@ export async function toggleMerchantFrozen(
 
   if (error) return { error: error.message };
 
+  // Audit
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  await supabase.from("admin_audit_log").insert({
+    admin_email: user?.email ?? null,
+    action: frozen ? "freeze_merchant" : "unfreeze_merchant",
+    target_kind: "merchant",
+    target_id: merchantId,
+  });
+
   revalidatePath("/admin/merchants");
+  return {};
+}
+
+/**
+ * Gel d'un livreur (anti-fraude / sanction administrative).
+ * Un livreur gelé reste connecté mais voit un écran "compte gelé" sur
+ * `/driver` ; il ne peut plus rien faire jusqu'au dégel.
+ */
+export async function toggleDriverFrozen(
+  driverId: string,
+  frozen: boolean,
+  note?: string
+): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("drivers")
+    .update({ is_frozen: frozen })
+    .eq("id", driverId);
+  if (error) return { error: error.message };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  await supabase.from("admin_audit_log").insert({
+    admin_email: user?.email ?? null,
+    action: frozen ? "freeze_driver" : "unfreeze_driver",
+    target_kind: "driver",
+    target_id: driverId,
+    note: note ?? null,
+  });
+
+  revalidatePath("/admin/drivers");
   return {};
 }

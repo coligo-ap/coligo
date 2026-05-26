@@ -8,17 +8,40 @@ const pct = z.coerce
   .min(0, "Doit être ≥ 0")
   .max(100, "Doit être ≤ 100");
 
-export const platformSettingsSchema = z.object({
-  commission_cash: pct,
-  commission_online: pct,
-  cashback_online: pct,
-  cashback_cash: pct,
-  chargily_fee: pct,
-  max_debt_da: z.coerce
-    .number({ message: "Seuil invalide" })
-    .int("Entier en DA")
-    .min(0, "Doit être ≥ 0"),
-});
+const posIntDa = z.coerce
+  .number({ message: "Valeur invalide" })
+  .int("Entier en DA")
+  .min(0, "Doit être ≥ 0");
+
+const posKm = z.coerce
+  .number({ message: "Valeur invalide" })
+  .min(0, "Doit être ≥ 0");
+
+export const platformSettingsSchema = z
+  .object({
+    commission_cash: pct,
+    commission_online: pct,
+    cashback_online: pct,
+    cashback_cash: pct,
+    chargily_fee: pct,
+    max_debt_da: z.coerce
+      .number({ message: "Seuil invalide" })
+      .int("Entier en DA")
+      .min(0, "Doit être ≥ 0"),
+    // Barème livraison (cf. lib/delivery/pricing.ts)
+    delivery_base_da: posIntDa,
+    delivery_per_km_da: posIntDa,
+    delivery_free_km_threshold: posKm,
+    delivery_min_da: posIntDa,
+    delivery_max_da: posIntDa,
+    delivery_max_radius_km: z.coerce
+      .number({ message: "Rayon invalide" })
+      .positive("Doit être > 0"),
+  })
+  .refine((v) => v.delivery_min_da <= v.delivery_max_da, {
+    message: "Plancher livraison doit être ≤ plafond",
+    path: ["delivery_min_da"],
+  });
 
 export type PlatformSettingsInput = z.infer<typeof platformSettingsSchema>;
 

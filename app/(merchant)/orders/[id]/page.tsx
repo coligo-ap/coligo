@@ -40,6 +40,8 @@ export default async function OrderDetailPage({
          total_da, service_fee_da, cashback_da, commission_da,
          pickup_code, pickup_slot_at, notes, created_at,
          payment_method, payment_status,
+         fulfillment_type, delivery_mode, delivery_fee_da,
+         delivery_address_text, delivery_phone, delivery_distance_km,
          order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`
       )
       .eq("id", id)
@@ -59,6 +61,12 @@ export default async function OrderDetailPage({
     service_fee_da: number;
     cashback_da: number;
     commission_da: number;
+    fulfillment_type: "pickup" | "delivery";
+    delivery_mode: "express" | "tour" | null;
+    delivery_fee_da: number;
+    delivery_address_text: string | null;
+    delivery_phone: string | null;
+    delivery_distance_km: number | null;
   };
 
   // Réglages d'impression + nom du commerce pour le ticket. RLS filtre déjà
@@ -222,19 +230,47 @@ export default async function OrderDetailPage({
             </div>
           </section>
 
-          {/* Retrait */}
-          <section className="border-primary-200 bg-primary-50/60 rounded-[16px] border p-5 text-center">
-            <p className="text-primary-900/70 text-xs font-medium tracking-wide uppercase">
-              Code de retrait
-            </p>
-            <p className="text-primary-800 my-1 font-mono text-4xl font-bold tracking-[0.2em]">
-              {o.pickup_code}
-            </p>
-            <p className="text-primary-900/70 flex items-center justify-center gap-1.5 text-sm">
-              <Clock className="size-3.5" />
-              Créneau à {formatTime(o.pickup_slot_at)}
-            </p>
-          </section>
+          {/* Retrait OU Livraison : pour la livraison, le code est MASQUÉ
+              côté commerçant (cf. PROMPT 9 anti-fraude — le client communique
+              son code au livreur, le commerçant ne doit JAMAIS le voir). */}
+          {o.fulfillment_type === "delivery" ? (
+            <section className="border-warning-200 bg-warning-50 rounded-[16px] border p-5">
+              <p className="text-warning-700 mb-2 text-xs font-semibold tracking-wide uppercase">
+                Commande en LIVRAISON
+              </p>
+              <p className="text-sm font-medium">
+                Mode : {o.delivery_mode === "express" ? "Express" : "Tournée"} ·
+                Frais : {o.delivery_fee_da ?? 0} DA
+              </p>
+              {o.delivery_address_text && (
+                <p className="text-muted mt-1 text-xs">
+                  {o.delivery_address_text}
+                </p>
+              )}
+              {o.delivery_distance_km != null && (
+                <p className="text-subtle mt-0.5 text-xs">
+                  Distance : {o.delivery_distance_km} km
+                </p>
+              )}
+              <p className="text-muted mt-2 text-xs italic">
+                🔒 Le code de retrait est <strong>masqué</strong> en livraison :
+                le client le communique au livreur à la remise (anti-fraude).
+              </p>
+            </section>
+          ) : (
+            <section className="border-primary-200 bg-primary-50/60 rounded-[16px] border p-5 text-center">
+              <p className="text-primary-900/70 text-xs font-medium tracking-wide uppercase">
+                Code de retrait
+              </p>
+              <p className="text-primary-800 my-1 font-mono text-4xl font-bold tracking-[0.2em]">
+                {o.pickup_code}
+              </p>
+              <p className="text-primary-900/70 flex items-center justify-center gap-1.5 text-sm">
+                <Clock className="size-3.5" />
+                Créneau à {formatTime(o.pickup_slot_at)}
+              </p>
+            </section>
+          )}
 
           {/* Actions — sticky en bas sur mobile, carte sur desktop */}
           <section className="border-border bg-surface fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 border-t p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] lg:static lg:bottom-auto lg:rounded-[16px] lg:border lg:p-5 lg:shadow-none">

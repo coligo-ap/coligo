@@ -99,6 +99,97 @@ export function PlatformSettingsForm({
         </div>
       </div>
 
+      <div className="border-border space-y-3 border-t pt-4">
+        <div>
+          <h2 className="text-base font-semibold tracking-tight">
+            Barème de livraison
+          </h2>
+          <p className="text-subtle text-xs">
+            Tarif imposé par la plateforme. Le commerçant n&apos;y a pas accès
+            en écriture ; il choisit seulement son rayon (≤ rayon max) et ses
+            modes.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label>Base (DA)</Label>
+            <Input
+              type="number"
+              name="delivery_base_da"
+              defaultValue={settings.delivery_base_da}
+              min={0}
+              step={1}
+              required
+              disabled={pending}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Prix au km (DA)</Label>
+            <Input
+              type="number"
+              name="delivery_per_km_da"
+              defaultValue={settings.delivery_per_km_da}
+              min={0}
+              step={1}
+              required
+              disabled={pending}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Seuil km gratuits (km)</Label>
+            <Input
+              type="number"
+              name="delivery_free_km_threshold"
+              defaultValue={settings.delivery_free_km_threshold}
+              min={0}
+              step="0.1"
+              required
+              disabled={pending}
+            />
+            <p className="text-subtle text-xs">
+              Distance facturable = max(0, distance − ce seuil).
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Rayon max (km)</Label>
+            <Input
+              type="number"
+              name="delivery_max_radius_km"
+              defaultValue={settings.delivery_max_radius_km}
+              min={0.1}
+              step="0.1"
+              required
+              disabled={pending}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Plancher (DA)</Label>
+            <Input
+              type="number"
+              name="delivery_min_da"
+              defaultValue={settings.delivery_min_da}
+              min={0}
+              step={1}
+              required
+              disabled={pending}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Plafond (DA)</Label>
+            <Input
+              type="number"
+              name="delivery_max_da"
+              defaultValue={settings.delivery_max_da}
+              min={0}
+              step={1}
+              required
+              disabled={pending}
+            />
+          </div>
+        </div>
+      </div>
+
       {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
 
       <Button type="submit" disabled={pending}>

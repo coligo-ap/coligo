@@ -18,6 +18,9 @@ import {
   resolveMinOrderDa,
 } from "@/lib/config/payment-limits";
 import { computeServiceFeeDa, parseTiers } from "@/lib/finance/service-fee";
+import { notifyMerchantNewOrder } from "@/lib/fcm/triggers";
+import { computeDeliveryFee } from "@/lib/delivery/pricing";
+import { haversineKm } from "@/lib/delivery/distance";
 import type { OpeningHours, PaymentMethod } from "@/lib/types";
 
 export type CreateOrderInput = {
@@ -41,6 +44,16 @@ export type CreateOrderInput = {
    * → aucun topup dépensé.
    */
   topup_to_use_da?: number | null;
+  /**
+   * Livraison (optionnelle — défaut : retrait sur place).
+   * Le serveur recalcule le prix avec `computeDeliveryFee` ; on ne fait pas
+   * confiance au client. L'adresse est snapshotée dans la commande.
+   */
+  fulfillment_type?: "pickup" | "delivery";
+  delivery_mode?: "express" | "tour" | null;
+  delivery_address_id?: string | null;
+  delivery_slot_id?: string | null;
+  delivery_phone_override?: string | null;
 };
 
 export type CreateOrderResult =
@@ -424,6 +437,150 @@ export async function createOrder(
     };
   }
 
+  // -------------------------------------------------------------------------
+  // 5e. Livraison — calculs serveur (snapshot prix + adresse + capacité).
+  //     On NE FAIT JAMAIS confiance au client pour le prix (PARTIE A — barème
+  //     imposé). On recalcule avec computeDeliveryFee + Haversine ici.
+  // -------------------------------------------------------------------------
+  const isDelivery = input.fulfillment_type === "delivery";
+  let deliveryFeeDa = 0;
+  let deliverySnapshot: {
+    address_id: string | null;
+    lat: number;
+    lng: number;
+    text: string | null;
+    phone: string | null;
+    distance_km: number;
+    mode: "express" | "tour";
+    slot_id: string | null;
+  } | null = null;
+
+  if (isDelivery) {
+    // merchants_public n'expose pas les flags livraison ni lat/lng → requête
+    // dédiée (RLS autorise la lecture publique des champs publics ; au pire
+    // on filtre côté code).
+    const { data: merchDelivery } = await supabase
+      .from("merchants")
+      .select(
+        "delivery_enabled, express_enabled, tours_enabled, delivery_radius_km, latitude, longitude"
+      )
+      .eq("id", merchant.id)
+      .maybeSingle();
+    if (!merchDelivery?.delivery_enabled) {
+      return {
+        ok: false,
+        error: "La livraison n'est pas activée pour ce commerçant.",
+      };
+    }
+    if (input.delivery_mode !== "express" && input.delivery_mode !== "tour") {
+      return { ok: false, error: "Mode de livraison invalide." };
+    }
+    if (input.delivery_mode === "express" && !merchDelivery.express_enabled) {
+      return {
+        ok: false,
+        error: "L'Express n'est pas activé chez ce commerçant.",
+      };
+    }
+    if (input.delivery_mode === "tour" && !merchDelivery.tours_enabled) {
+      return {
+        ok: false,
+        error: "Les tournées ne sont pas activées chez ce commerçant.",
+      };
+    }
+    if (merchDelivery.latitude == null || merchDelivery.longitude == null) {
+      return {
+        ok: false,
+        error: "Le commerçant n'a pas configuré sa position.",
+      };
+    }
+    if (!input.delivery_address_id) {
+      return { ok: false, error: "Choisis une adresse de livraison." };
+    }
+
+    const { data: addr } = await supabase
+      .from("customer_addresses")
+      .select("id, lat, lng, address_text, phone_override")
+      .eq("id", input.delivery_address_id)
+      .eq("customer_id", customer.id)
+      .maybeSingle();
+    if (!addr) {
+      return { ok: false, error: "Adresse introuvable." };
+    }
+
+    // Barème global + rayon commerçant.
+    const { data: ps } = await supabase
+      .from("platform_settings")
+      .select(
+        "delivery_base_da, delivery_per_km_da, delivery_free_km_threshold, delivery_min_da, delivery_max_da, delivery_max_radius_km"
+      )
+      .eq("id", true)
+      .maybeSingle();
+    if (!ps) return { ok: false, error: "Barème livraison indisponible." };
+
+    const distanceKm = haversineKm(
+      { lat: merchDelivery.latitude, lng: merchDelivery.longitude },
+      { lat: addr.lat, lng: addr.lng }
+    );
+    const quote = computeDeliveryFee(
+      distanceKm,
+      ps,
+      merchDelivery.delivery_radius_km
+    );
+    if (quote.outOfRange) {
+      return {
+        ok: false,
+        error: `Hors zone de livraison (${distanceKm.toFixed(1)} km). Choisis le retrait sur place.`,
+      };
+    }
+    deliveryFeeDa = quote.feeDa;
+
+    // Tournée : vérifier la capacité du créneau choisi.
+    if (input.delivery_mode === "tour") {
+      if (!input.delivery_slot_id) {
+        return { ok: false, error: "Choisis un créneau pour la tournée." };
+      }
+      const { data: slot } = await supabase
+        .from("delivery_slots")
+        .select("id, max_orders, status, merchant_id")
+        .eq("id", input.delivery_slot_id)
+        .eq("merchant_id", merchant.id)
+        .maybeSingle();
+      if (!slot || slot.status !== "open") {
+        return { ok: false, error: "Ce créneau n'est plus disponible." };
+      }
+      const { count } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("delivery_slot_id", slot.id)
+        .neq("status", "cancelled");
+      if ((count ?? 0) >= slot.max_orders) {
+        return {
+          ok: false,
+          error: "Ce créneau est complet. Choisis-en un autre.",
+        };
+      }
+    }
+
+    deliverySnapshot = {
+      address_id: addr.id,
+      lat: addr.lat,
+      lng: addr.lng,
+      text: addr.address_text,
+      phone:
+        input.delivery_phone_override?.trim() ||
+        addr.phone_override ||
+        customer.phone,
+      distance_km: Number(distanceKm.toFixed(2)),
+      mode: input.delivery_mode,
+      slot_id:
+        input.delivery_mode === "tour"
+          ? (input.delivery_slot_id ?? null)
+          : null,
+    };
+  }
+
+  const totalWithDelivery = totalAfterWallets + deliveryFeeDa;
+
   const { data: order, error: orderErr } = await supabase
     .from("orders")
     .insert({
@@ -444,13 +601,23 @@ export async function createOrder(
       discount_da:
         Math.max(0, settled.normalTotalDa - settled.subtotalDa) +
         (settled.promoCode?.discountDa ?? 0),
-      total_da: totalAfterWallets,
+      total_da: totalWithDelivery,
       cashback_used_da: cashbackUsed,
       topup_used_da: topupUsed,
       service_fee_da: serviceFeeDa,
       cashback_da: 0,
       cashback_estimate_da: cashbackEstimate,
       commission_da: 0, // figé à la complétion par le trigger wallet
+      fulfillment_type: isDelivery ? "delivery" : "pickup",
+      delivery_mode: deliverySnapshot?.mode ?? null,
+      delivery_fee_da: deliveryFeeDa,
+      delivery_address_id: deliverySnapshot?.address_id ?? null,
+      delivery_address_text: deliverySnapshot?.text ?? null,
+      delivery_lat: deliverySnapshot?.lat ?? null,
+      delivery_lng: deliverySnapshot?.lng ?? null,
+      delivery_phone: deliverySnapshot?.phone ?? null,
+      delivery_distance_km: deliverySnapshot?.distance_km ?? null,
+      delivery_slot_id: deliverySnapshot?.slot_id ?? null,
     })
     .select("id, pickup_code")
     .single();
@@ -542,6 +709,15 @@ export async function createOrder(
       }
     }
   }
+
+  // Push FCM au commerçant — fire-and-forget. Le pont Realtime gère déjà
+  // l'alerte app OUVERTE ; la push couvre l'app FERMÉE (Capacitor APK).
+  void notifyMerchantNewOrder({
+    merchantId: merchant.id,
+    orderId: order.id,
+    customerName: customer.full_name,
+    totalDa: totalAfterWallets,
+  });
 
   revalidatePath("/commandes");
   return {

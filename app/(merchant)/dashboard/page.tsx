@@ -20,6 +20,7 @@ export default async function DashboardPage() {
       `
       id, merchant_id, customer_name, customer_phone, status,
       total_da, pickup_code, pickup_slot_at, notes, created_at,
+      fulfillment_type,
       order_items (
         id, order_id, product_name, unit_price_da, quantity, line_total_da
       )
@@ -38,7 +39,18 @@ export default async function DashboardPage() {
     );
   }
 
-  const ordersList = (orders ?? []) as OrderWithItems[];
+  // Anti-fraude prompt 9 : pour les commandes LIVRAISON, on masque le
+  // pickup_code côté commerçant. Le client communique son code au livreur ;
+  // si le commerçant le voyait, il pourrait le transmettre à l'avance.
+  const ordersList = (
+    (orders ?? []) as unknown as (OrderWithItems & {
+      fulfillment_type?: string;
+    })[]
+  ).map((o) =>
+    o.fulfillment_type === "delivery"
+      ? ({ ...o, pickup_code: "" } as OrderWithItems)
+      : (o as OrderWithItems)
+  );
 
   // KPIs
   const pendingCount = ordersList.filter((o) => o.status === "pending").length;

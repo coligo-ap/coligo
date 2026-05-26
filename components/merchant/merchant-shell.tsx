@@ -7,6 +7,7 @@ import { MerchantMobileBottomNav } from "@/components/merchant/mobile-bottom-nav
 import { MobileDrawer } from "@/components/merchant/mobile-drawer";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import { OrderRealtimeBridge } from "@/components/merchant/order-realtime-bridge";
+import { PushRegistrar } from "@/components/native/push-registrar";
 import {
   DEFAULT_PRINT_SETTINGS,
   type PrintSettings,
@@ -118,6 +119,9 @@ export async function MerchantShell({
         merchantName={merchant.name}
         printSettings={printSettings}
       />
+
+      {/* Enregistrement du token FCM (no-op hors APK Capacitor). */}
+      <PushRegistrar role="merchant" />
     </div>
   );
 }
