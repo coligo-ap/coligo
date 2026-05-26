@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { DriverLoginForm } from "@/components/driver/login-form";
 
@@ -27,7 +28,9 @@ export default async function DriverLoginPage() {
           Connecte-toi avec ton téléphone pour accéder à tes livraisons.
         </p>
       </header>
-      <DriverLoginForm />
+      <Suspense fallback={null}>
+        <DriverLoginForm />
+      </Suspense>
       <p className="text-muted text-sm">
         Nouveau livreur ?{" "}
         <Link href="/driver/signup" className="text-primary-600 underline">

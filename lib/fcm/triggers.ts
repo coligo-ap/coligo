@@ -37,6 +37,40 @@ async function tokensFor(
 }
 
 /**
+ * Notifie le commerçant qu'un livreur vient de soumettre son code de
+ * référence — une nouvelle demande arrive sur /livreurs.
+ * Fire-and-forget depuis driverSubmitCode.
+ */
+export async function notifyMerchantNewDriverRequest(input: {
+  merchantId: string;
+  driverFullName: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: merchant } = await admin
+      .from("merchants")
+      .select("user_id")
+      .eq("id", input.merchantId)
+      .maybeSingle();
+    if (!merchant?.user_id) return;
+
+    const tokens = await tokensFor(merchant.user_id, "merchant");
+    if (tokens.length === 0) return;
+
+    await sendFcm(
+      tokens,
+      {
+        title: "Nouvelle demande de livreur",
+        body: `${input.driverFullName} veut rejoindre ta boutique. À valider sur /livreurs.`,
+      },
+      { route: "/livreurs", kind: "merchant_new_driver_request" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyMerchantNewDriverRequest failed:", err);
+  }
+}
+
+/**
  * Notifie le commerçant qu'une NOUVELLE commande est arrivée.
  * Appelé depuis l'action checkout côté client, après l'insert réussi.
  */

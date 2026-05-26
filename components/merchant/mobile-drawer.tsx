@@ -10,6 +10,7 @@ import {
   LogOut,
   Settings,
   Tag,
+  Truck,
   Wallet,
   X,
 } from "lucide-react";
@@ -34,6 +35,8 @@ type DrawerItem = {
 const DRAWER_ITEMS: DrawerItem[] = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/promotions", label: "Promotions", icon: Tag },
+  { href: "/livreurs", label: "Livreurs", icon: Truck },
+  { href: "/livraison/creneaux", label: "Créneaux livraison", icon: Truck },
   { href: "/finances", label: "Finances", icon: Wallet },
   { href: "/settings", label: "Paramètres", icon: Settings },
   // Diag : accessible depuis le drawer car le WebView Capacitor n'a pas de

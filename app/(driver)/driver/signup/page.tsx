@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { DriverSignupForm } from "@/components/driver/signup-form";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,9 @@ export default function DriverSignupPage() {
           boutique.
         </p>
       </header>
-      <DriverSignupForm />
+      <Suspense fallback={null}>
+        <DriverSignupForm />
+      </Suspense>
       <p className="text-muted text-sm">
         Déjà inscrit ?{" "}
         <Link href="/driver/login" className="text-primary-600 underline">

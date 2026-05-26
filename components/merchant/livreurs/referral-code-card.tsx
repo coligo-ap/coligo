@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, KeyRound, Loader2, RotateCw } from "lucide-react";
+import { Copy, KeyRound, Link2, Loader2, RotateCw, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,27 +102,7 @@ export function ReferralCodeCard({
         </div>
       )}
 
-      {revealedCode && (
-        <div className="border-success-200 bg-success-50 rounded-[12px] border px-4 py-3">
-          <p className="text-success-700 text-xs font-medium tracking-wide uppercase">
-            Nouveau code — note-le, il ne sera plus affiché
-          </p>
-          <div className="mt-2 flex items-center gap-3">
-            <code className="text-success-900 flex-1 rounded-md bg-white px-3 py-2 font-mono text-base tracking-wider">
-              {revealedCode}
-            </code>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={copy}
-              className="shrink-0"
-            >
-              <Copy className="size-4" />
-              Copier
-            </Button>
-          </div>
-        </div>
-      )}
+      {revealedCode && <ShareCodePanel code={revealedCode} onCopy={copy} />}
 
       <div className="grid items-end gap-3 sm:grid-cols-[1fr_auto_auto]">
         <div className="space-y-1.5">
@@ -156,5 +136,137 @@ export function ReferralCodeCard({
         </Button>
       </div>
     </section>
+  );
+}
+
+/**
+ * Affiche le code en clair + un lien partageable + 3 boutons (copier code,
+ * copier lien, partager via Web Share API / WhatsApp / SMS). Le lien mène
+ * à `/driver/codes?code=XXX` qui pré-remplit le champ du livreur — si le
+ * livreur n'a pas encore de compte, le flux d'auth se déclenche d'abord.
+ */
+function ShareCodePanel({
+  code,
+  onCopy,
+}: {
+  code: string;
+  onCopy: () => void;
+}) {
+  const link =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/driver/codes?code=${encodeURIComponent(code)}`
+      : `/driver/codes?code=${encodeURIComponent(code)}`;
+
+  const inviteText = `Salam ! Tu peux rejoindre ma boutique sur Coligo comme livreur. Clique ce lien pour activer ton accès : ${link}\n\nOu saisis ce code manuellement : ${code}`;
+
+  const copyLink = () => {
+    void navigator.clipboard.writeText(link).then(() => {
+      toast.success("Lien copié");
+    });
+  };
+
+  const shareWhatsApp = () => {
+    const url = `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const shareSms = () => {
+    const url = `sms:?body=${encodeURIComponent(inviteText)}`;
+    window.location.href = url;
+  };
+
+  const shareNative = async () => {
+    if (typeof navigator !== "undefined" && "share" in navigator) {
+      try {
+        await navigator.share({
+          title: "Rejoins ma boutique Coligo comme livreur",
+          text: inviteText,
+          url: link,
+        });
+      } catch {
+        /* user cancelled */
+      }
+    } else {
+      copyLink();
+    }
+  };
+
+  return (
+    <div className="border-success-200 bg-success-50 space-y-3 rounded-[12px] border px-4 py-3">
+      <p className="text-success-700 text-xs font-medium tracking-wide uppercase">
+        Nouveau code — note-le, il ne sera plus affiché
+      </p>
+
+      {/* Code en clair + bouton copier code */}
+      <div className="flex items-center gap-2">
+        <code className="text-success-900 flex-1 rounded-md bg-white px-3 py-2 font-mono text-base tracking-wider">
+          {code}
+        </code>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={onCopy}
+          title="Copier le code"
+        >
+          <Copy className="size-4" />
+        </Button>
+      </div>
+
+      {/* Lien partageable */}
+      <div className="space-y-1.5">
+        <Label className="text-success-900 text-xs">
+          Lien à partager (pré-remplit le code chez le livreur)
+        </Label>
+        <div className="flex items-center gap-2">
+          <input
+            readOnly
+            value={link}
+            className="border-success-200 flex-1 rounded-md border bg-white px-2.5 py-1.5 text-xs"
+            onFocus={(e) => e.currentTarget.select()}
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={copyLink}
+            title="Copier le lien"
+          >
+            <Link2 className="size-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Partage rapide */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={shareWhatsApp}
+        >
+          <span className="text-base leading-none">💬</span>
+          WhatsApp
+        </Button>
+        <Button type="button" size="sm" variant="secondary" onClick={shareSms}>
+          <span className="text-base leading-none">📱</span>
+          SMS
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={shareNative}
+        >
+          <Share2 className="size-4" />
+          Partager…
+        </Button>
+      </div>
+
+      <p className="text-success-800 text-xs">
+        Le livreur peut soit cliquer le lien (s&apos;il est inscrit, le code est
+        validé directement), soit saisir le code à la main.
+      </p>
+    </div>
   );
 }

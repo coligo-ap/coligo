@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,10 @@ const initial: DriverAuthState = {};
 
 export function DriverSubmitCodeForm() {
   const router = useRouter();
+  const sp = useSearchParams();
   const [state, action, pending] = useActionState(driverSubmitCode, initial);
+  // Le code peut venir du lien partagé par le commerçant : `?code=BOUL-XYZ`.
+  const [code, setCode] = useState(sp.get("code") ?? "");
 
   useEffect(() => {
     if (state.ok) {
@@ -35,7 +38,14 @@ export function DriverSubmitCodeForm() {
           className="font-mono tracking-wider uppercase"
           required
           disabled={pending}
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
         />
+        {sp.get("code") && (
+          <p className="text-success-700 text-xs">
+            ✓ Code pré-rempli depuis le lien partagé par le commerçant.
+          </p>
+        )}
       </div>
       {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
       <Button type="submit" className="w-full" disabled={pending}>

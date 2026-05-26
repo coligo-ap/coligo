@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizePhone, phoneToEmail } from "@/lib/auth/driver";
 import { hashReferralCode } from "@/lib/drivers/referral-code";
+import { notifyMerchantNewDriverRequest } from "@/lib/fcm/triggers";
 
 export type DriverAuthState = { error?: string; ok?: boolean };
 
@@ -68,7 +69,9 @@ export async function driverSignup(
     return { error: `Profil livreur : ${driverErr.message}` };
   }
 
-  redirect("/driver/codes");
+  // Redirige vers `next` si présent et sûr, sinon /driver/codes par défaut.
+  const next = readSafeNext(formData.get("next"));
+  redirect(next ?? "/driver/codes");
 }
 
 export async function driverLogin(
@@ -92,7 +95,20 @@ export async function driverLogin(
   if (error) {
     return { error: "Téléphone ou mot de passe incorrect." };
   }
-  redirect("/driver");
+  const next = readSafeNext(formData.get("next"));
+  redirect(next ?? "/driver");
+}
+
+/**
+ * Filtre `next` pour ne permettre QUE des chemins relatifs internes (qui
+ * commencent par "/driver"). Évite un open redirect.
+ */
+function readSafeNext(raw: FormDataEntryValue | null): string | null {
+  if (typeof raw !== "string") return null;
+  const v = raw.trim();
+  if (!v.startsWith("/driver")) return null;
+  if (v.includes("//") || v.includes("\n")) return null;
+  return v;
 }
 
 export async function driverLogout(): Promise<void> {
@@ -124,7 +140,7 @@ export async function driverSubmitCode(
   // Récupère le driver row (peut être absent si signup incomplet — rare).
   const { data: driver } = await supabase
     .from("drivers")
-    .select("id")
+    .select("id, full_name")
     .eq("user_id", user.id)
     .maybeSingle();
   if (!driver) return { error: "Profil livreur introuvable." };
@@ -168,6 +184,12 @@ export async function driverSubmitCode(
     driver_id: driver.id,
     actor_email: user.email,
     action: "request_submitted",
+  });
+
+  // Push FCM au commerçant (fire-and-forget).
+  void notifyMerchantNewDriverRequest({
+    merchantId: refRow.merchant_id,
+    driverFullName: driver.full_name,
   });
 
   revalidatePath("/driver");

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashReferralCode } from "@/lib/drivers/referral-code";
+import { notifyMerchantNewDriverRequest } from "@/lib/fcm/triggers";
 
 /**
  * POST /api/drivers/submit-code — un livreur soumet un code de référence.
@@ -65,11 +66,12 @@ export async function POST(req: Request) {
   // 2) Profil livreur (création paresseuse si premier code soumis).
   const { data: existingDriver } = await admin
     .from("drivers")
-    .select("id")
+    .select("id, full_name")
     .eq("user_id", user.id)
     .maybeSingle();
 
   let driverId = existingDriver?.id ?? null;
+  let driverFullName = existingDriver?.full_name ?? "Livreur";
   if (!driverId) {
     const fullName =
       typeof body.full_name === "string" && body.full_name.trim().length > 0
@@ -95,6 +97,10 @@ export async function POST(req: Request) {
       );
     }
     driverId = created.id;
+    driverFullName =
+      typeof body.full_name === "string" && body.full_name.trim().length > 0
+        ? body.full_name.trim()
+        : driverFullName;
   }
 
   // 3) Crée (ou réactive) la relation merchant_drivers en `pending`.
@@ -142,6 +148,12 @@ export async function POST(req: Request) {
     actor_email: user.email ?? null,
     action: "request_submitted",
     note: null,
+  });
+
+  // Push FCM au commerçant.
+  void notifyMerchantNewDriverRequest({
+    merchantId: refRow.merchant_id,
+    driverFullName,
   });
 
   return NextResponse.json({

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +11,12 @@ import { driverSignup, type DriverAuthState } from "@/app/(driver)/actions";
 const initial: DriverAuthState = {};
 
 export function DriverSignupForm() {
+  const sp = useSearchParams();
+  const next = sp.get("next") ?? "";
   const [state, action, pending] = useActionState(driverSignup, initial);
   return (
     <form action={action} className="space-y-3">
+      <input type="hidden" name="next" value={next} />
       <div className="space-y-1.5">
         <Label htmlFor="full_name">Nom complet</Label>
         <Input
