@@ -107,12 +107,12 @@ function LoginContent() {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Mot de passe</Label>
-                    <button
-                      type="button"
+                    <Link
+                      href="/login/mot-de-passe-oublie"
                       className="text-muted hover:text-primary-700 text-xs"
                     >
                       Oublié ?
-                    </button>
+                    </Link>
                   </div>
                   <div className="relative">
                     <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
