@@ -7,7 +7,17 @@ import {
   formatRelativeTime,
   formatTime,
 } from "@/lib/utils";
-import { Clock, User, Hash } from "lucide-react";
+import {
+  Banknote,
+  Bolt,
+  Calendar,
+  Clock,
+  CreditCard,
+  Hash,
+  MapPin,
+  Truck,
+  User,
+} from "lucide-react";
 
 interface OrderCardProps {
   order: OrderWithItems;
@@ -20,6 +30,7 @@ export function OrderCard({ order, variant = "compact" }: OrderCardProps) {
   const itemsCount = countItems(order.order_items);
   const shortId = order.id.slice(0, 6).toUpperCase();
   const pickup = formatTime(order.pickup_slot_at);
+  const isDelivery = order.fulfillment_type === "delivery";
 
   if (variant === "compact") {
     return (
@@ -37,15 +48,20 @@ export function OrderCard({ order, variant = "compact" }: OrderCardProps) {
           </span>
         </div>
 
+        {/* Badges fulfillment / mode / payment */}
+        <div className="mb-2 flex flex-wrap items-center gap-1">
+          <OrderBadges order={order} compact />
+        </div>
+
         {/* Client */}
         <div className="mb-0.5 truncate text-sm font-medium">
           {order.customer_name}
         </div>
 
-        {/* Pickup time */}
+        {/* Pickup / Delivery time */}
         <div className="text-muted mb-2 flex items-center gap-1 text-xs">
           <Clock className="size-3" />
-          <span>{pickup}</span>
+          <span>{isDelivery ? `Livraison · ${pickup}` : pickup}</span>
         </div>
 
         {/* Total */}
@@ -80,6 +96,10 @@ export function OrderCard({ order, variant = "compact" }: OrderCardProps) {
         <Badge tone={meta.tone}>{meta.label}</Badge>
       </div>
 
+      <div className="mb-2 flex flex-wrap items-center gap-1.5">
+        <OrderBadges order={order} />
+      </div>
+
       <div className="mb-3 space-y-1.5">
         <div className="flex items-center gap-2 text-sm">
           <User className="text-subtle size-3.5 shrink-0" />
@@ -87,7 +107,7 @@ export function OrderCard({ order, variant = "compact" }: OrderCardProps) {
         </div>
         <div className="text-muted flex items-center gap-2 text-sm">
           <Clock className="text-subtle size-3.5 shrink-0" />
-          Retrait à {pickup}
+          {isDelivery ? `Livraison · ${pickup}` : `Retrait à ${pickup}`}
         </div>
       </div>
 
@@ -108,5 +128,103 @@ export function OrderCard({ order, variant = "compact" }: OrderCardProps) {
         </span>
       </div>
     </Link>
+  );
+}
+
+/**
+ * Badges visuels : Retrait vs Livraison (Express/Tournée), Cash vs En ligne.
+ * Aide le commerçant à voir au premier coup d'œil le type de commande.
+ */
+function OrderBadges({
+  order,
+  compact = false,
+}: {
+  order: OrderWithItems;
+  compact?: boolean;
+}) {
+  const isDelivery = order.fulfillment_type === "delivery";
+  const isOnline = order.payment_method === "online";
+  const paid = order.payment_status === "paid";
+
+  return (
+    <>
+      {isDelivery ? (
+        <BadgeChip
+          icon={
+            order.delivery_mode === "express" ? (
+              <Bolt className="size-3" />
+            ) : (
+              <Calendar className="size-3" />
+            )
+          }
+          label={order.delivery_mode === "express" ? "Express" : "Tournée"}
+          tone="orange"
+          compact={compact}
+        />
+      ) : (
+        <BadgeChip
+          icon={<MapPin className="size-3" />}
+          label="Retrait"
+          tone="teal"
+          compact={compact}
+        />
+      )}
+      {isOnline ? (
+        <BadgeChip
+          icon={<CreditCard className="size-3" />}
+          label={paid ? "Payé" : "En ligne"}
+          tone={paid ? "green" : "amber"}
+          compact={compact}
+        />
+      ) : (
+        <BadgeChip
+          icon={<Banknote className="size-3" />}
+          label="Cash"
+          tone="stone"
+          compact={compact}
+        />
+      )}
+      {isDelivery && (
+        <BadgeChip
+          icon={<Truck className="size-3" />}
+          label="À livrer"
+          tone="violet"
+          compact={compact}
+        />
+      )}
+    </>
+  );
+}
+
+function BadgeChip({
+  icon,
+  label,
+  tone,
+  compact,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  tone: "teal" | "orange" | "green" | "amber" | "stone" | "violet";
+  compact?: boolean;
+}) {
+  const colors: Record<typeof tone, string> = {
+    teal: "bg-primary-100 text-primary-700",
+    orange: "bg-warning-100 text-warning-700",
+    green: "bg-success-100 text-success-700",
+    amber: "bg-warning-50 text-warning-800",
+    stone: "bg-surface-3 text-muted",
+    violet: "bg-violet-100 text-violet-700",
+  };
+  return (
+    <span
+      className={
+        "inline-flex items-center gap-1 rounded-full font-semibold " +
+        colors[tone] +
+        (compact ? " px-1.5 py-0.5 text-[10px]" : " px-2 py-0.5 text-xs")
+      }
+    >
+      {icon}
+      {label}
+    </span>
   );
 }

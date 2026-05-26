@@ -13,11 +13,42 @@ import {
   parseTiers,
   type ServiceFeeTier,
 } from "@/lib/finance/service-fee";
+import { computeDeliveryFee } from "@/lib/delivery/pricing";
+import { haversineKm } from "@/lib/delivery/distance";
 import type { Json } from "@/lib/supabase/database.types";
 
 export type CheckoutContextInput = {
   merchant_id: string;
   items: { product_id: string; quantity: number }[];
+};
+
+export type CheckoutDeliveryContext = {
+  enabled: boolean;
+  express_enabled: boolean;
+  tours_enabled: boolean;
+  /** Adresses enregistrées du client. */
+  addresses: {
+    id: string;
+    label: string;
+    lat: number;
+    lng: number;
+    address_text: string | null;
+    phone_override: string | null;
+    is_default: boolean;
+    /** Distance estimée au commerçant (km), -1 si on n'a pas pu calculer. */
+    distance_km: number;
+    /** Frais estimés (DA), null si hors rayon. */
+    fee_da: number | null;
+    out_of_range: boolean;
+  }[];
+  /** Créneaux de tournée ouverts à venir, avec capacité restante. */
+  slots: {
+    id: string;
+    slot_date: string;
+    start_time: string;
+    end_time: string;
+    available: number;
+  }[];
 };
 
 export type CheckoutContext = {
@@ -56,6 +87,8 @@ export type CheckoutContext = {
   service_fee_tiers: ServiceFeeTier[];
   /** DA manquants pour atteindre la gratuité, ou null si déjà gratuit. */
   service_fee_free_in_da: number | null;
+  /** Contexte livraison — `enabled=false` = section livraison cachée au checkout. */
+  delivery: CheckoutDeliveryContext;
 };
 
 /**
@@ -106,6 +139,13 @@ export async function fetchCheckoutContext(
     service_fee_da: 0,
     service_fee_tiers: tiers,
     service_fee_free_in_da: null,
+    delivery: {
+      enabled: false,
+      express_enabled: false,
+      tours_enabled: false,
+      addresses: [] as CheckoutDeliveryContext["addresses"],
+      slots: [] as CheckoutDeliveryContext["slots"],
+    },
   };
 
   if (!merchant) {
@@ -184,6 +224,138 @@ export async function fetchCheckoutContext(
     commissionRate: APP_CONFIG.commission.rate,
   });
 
+  // Livraison : champs commerçant + barème + adresses client + créneaux.
+  const [merchDeliveryRes, deliverySettingsRes, addressesRes, slotsRes] =
+    await Promise.all([
+      supabase
+        .from("merchants")
+        .select(
+          "delivery_enabled, express_enabled, tours_enabled, delivery_radius_km, latitude, longitude"
+        )
+        .eq("id", merchant.id)
+        .maybeSingle(),
+      supabase
+        .from("platform_settings")
+        .select(
+          "delivery_base_da, delivery_per_km_da, delivery_free_km_threshold, delivery_min_da, delivery_max_da, delivery_max_radius_km"
+        )
+        .eq("id", true)
+        .maybeSingle(),
+      (async () => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return { data: [] };
+        const { data: customer } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (!customer) return { data: [] };
+        return supabase
+          .from("customer_addresses")
+          .select(
+            "id, label, lat, lng, address_text, phone_override, is_default"
+          )
+          .eq("customer_id", customer.id)
+          .order("is_default", { ascending: false });
+      })(),
+      supabase
+        .from("delivery_slots")
+        .select("id, slot_date, start_time, end_time, max_orders")
+        .eq("merchant_id", merchant.id)
+        .eq("status", "open")
+        .gte("slot_date", new Date().toISOString().slice(0, 10))
+        .order("slot_date", { ascending: true })
+        .order("start_time", { ascending: true })
+        .limit(30),
+    ]);
+
+  const merchDelivery = merchDeliveryRes.data;
+  const deliverySettings = deliverySettingsRes.data;
+  const rawAddresses = addressesRes.data ?? [];
+  const rawSlots = slotsRes.data ?? [];
+
+  // Capacité restante par slot (compte commandes non-cancelled).
+  const slotIds = rawSlots.map((s) => s.id);
+  const usedBySlot = new Map<string, number>();
+  if (slotIds.length > 0) {
+    const { data: usedRows } = await supabase
+      .from("orders")
+      .select("delivery_slot_id")
+      .in("delivery_slot_id", slotIds)
+      .neq("status", "cancelled");
+    for (const r of usedRows ?? []) {
+      if (r.delivery_slot_id) {
+        usedBySlot.set(
+          r.delivery_slot_id,
+          (usedBySlot.get(r.delivery_slot_id) ?? 0) + 1
+        );
+      }
+    }
+  }
+
+  const deliveryEnabled =
+    !!merchDelivery?.delivery_enabled &&
+    !!deliverySettings &&
+    merchDelivery.latitude != null &&
+    merchDelivery.longitude != null;
+
+  // Pour chaque adresse, on précalcule distance + frais (utile à l'UI :
+  // afficher "Hors zone" sur les adresses non livrables, sans appeler le
+  // serveur à chaque sélection).
+  const addresses = rawAddresses.map((a) => {
+    if (!deliveryEnabled || !deliverySettings || !merchDelivery) {
+      return {
+        id: a.id,
+        label: a.label,
+        lat: a.lat,
+        lng: a.lng,
+        address_text: a.address_text,
+        phone_override: a.phone_override,
+        is_default: a.is_default,
+        distance_km: -1,
+        fee_da: null,
+        out_of_range: true,
+      };
+    }
+    const dist = haversineKm(
+      { lat: merchDelivery.latitude!, lng: merchDelivery.longitude! },
+      { lat: a.lat, lng: a.lng }
+    );
+    const quote = computeDeliveryFee(
+      dist,
+      deliverySettings,
+      merchDelivery.delivery_radius_km
+    );
+    return {
+      id: a.id,
+      label: a.label,
+      lat: a.lat,
+      lng: a.lng,
+      address_text: a.address_text,
+      phone_override: a.phone_override,
+      is_default: a.is_default,
+      distance_km: Number(dist.toFixed(2)),
+      fee_da: quote.outOfRange ? null : quote.feeDa,
+      out_of_range: quote.outOfRange,
+    };
+  });
+
+  const deliveryCtx: CheckoutDeliveryContext = {
+    enabled: deliveryEnabled,
+    express_enabled: !!merchDelivery?.express_enabled,
+    tours_enabled: !!merchDelivery?.tours_enabled,
+    addresses,
+    slots: rawSlots.map((s) => ({
+      id: s.id,
+      slot_date: s.slot_date,
+      start_time: s.start_time,
+      end_time: s.end_time,
+      available: Math.max(0, s.max_orders - (usedBySlot.get(s.id) ?? 0)),
+    })),
+  };
+
   return {
     merchant: {
       id: merchant.id,
@@ -216,5 +388,6 @@ export async function fetchCheckoutContext(
     service_fee_da: computeServiceFeeDa(settled.totalDa, tiers),
     service_fee_tiers: tiers,
     service_fee_free_in_da: daUntilFreeServiceFee(settled.totalDa, tiers),
+    delivery: deliveryCtx,
   };
 }

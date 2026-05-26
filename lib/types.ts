@@ -169,6 +169,9 @@ export type Order = {
   commission_rate_applied: number | null;
   cashback_rate_applied: number | null;
   chargily_fee_rate_applied: number | null;
+  fulfillment_type?: FulfillmentType;
+  delivery_mode?: DeliveryMode | null;
+  delivery_fee_da?: number;
   created_at: string;
 };
 

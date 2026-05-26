@@ -32,6 +32,10 @@ import {
 } from "@/app/(customer)/checkout/context";
 import { createOrder } from "@/app/(customer)/checkout/actions";
 import type { PaymentMethod } from "@/lib/types";
+import {
+  CheckoutDeliverySection,
+  type DeliveryChoice,
+} from "./checkout-delivery-section";
 
 type Props = {
   customer: { full_name: string; phone: string };
@@ -50,6 +54,13 @@ export function CheckoutView({ customer }: Props) {
   const [chosenDayKey, setChosenDayKey] = useState<string | null>(null);
   const [payment, setPayment] = useState<PaymentMethod>("cash");
   const [note, setNote] = useState("");
+  const [delivery, setDelivery] = useState<DeliveryChoice>({
+    fulfillment: "pickup",
+    addressId: null,
+    mode: null,
+    slotId: null,
+    phoneOverride: "",
+  });
   // Le client peut fermer la modale s'il veut consulter le récap d'abord ;
   // mais elle se réaffiche automatiquement tant qu'un autre panier existe.
   const [conflictDismissed, setConflictDismissed] = useState(false);
@@ -201,6 +212,21 @@ export function CheckoutView({ customer }: Props) {
       toast.error("Choisis un créneau de retrait.");
       return;
     }
+    // Validation livraison côté client (le serveur re-vérifie de toute façon).
+    if (delivery.fulfillment === "delivery") {
+      if (!delivery.addressId) {
+        toast.error("Choisis une adresse de livraison.");
+        return;
+      }
+      if (!delivery.mode) {
+        toast.error("Choisis Express ou Tournée.");
+        return;
+      }
+      if (delivery.mode === "tour" && !delivery.slotId) {
+        toast.error("Choisis un créneau de tournée.");
+        return;
+      }
+    }
     const slot = pickupType === "slot" ? slots[chosenSlotIdx!] : null;
     const clientOpId = crypto.randomUUID();
 
@@ -217,6 +243,19 @@ export function CheckoutView({ customer }: Props) {
         pickup_slot_end: slot?.end.toISOString() ?? null,
         payment_method: payment,
         customer_note: note.trim() || null,
+        fulfillment_type: delivery.fulfillment,
+        delivery_mode:
+          delivery.fulfillment === "delivery" ? delivery.mode : null,
+        delivery_address_id:
+          delivery.fulfillment === "delivery" ? delivery.addressId : null,
+        delivery_slot_id:
+          delivery.fulfillment === "delivery" && delivery.mode === "tour"
+            ? delivery.slotId
+            : null,
+        delivery_phone_override:
+          delivery.fulfillment === "delivery"
+            ? delivery.phoneOverride.trim() || null
+            : null,
         cashback_to_use_da: useCashback ? cashbackApplied : 0,
         topup_to_use_da: useTopup ? topupApplied : 0,
       });
@@ -245,7 +284,19 @@ export function CheckoutView({ customer }: Props) {
   // ON, sinon 0. Le cashback s'applique sur (produits + service_fee) — JAMAIS
   // sur le ticket commerçant seul (le calcul des frais lui est antérieur).
   // (Recalculé aussi côté serveur — c'est la source de vérité.)
-  const totalBeforeWallets = ctx.cart.totalDa + ctx.service_fee_da;
+  // Frais de livraison (snapshot affichage — le serveur recalcule à l'insert).
+  const selectedDeliveryAddr =
+    delivery.fulfillment === "delivery"
+      ? (ctx.delivery.addresses.find((a) => a.id === delivery.addressId) ??
+        null)
+      : null;
+  const deliveryFeeDa =
+    selectedDeliveryAddr && !selectedDeliveryAddr.out_of_range
+      ? (selectedDeliveryAddr.fee_da ?? 0)
+      : 0;
+
+  const totalBeforeWallets =
+    ctx.cart.totalDa + ctx.service_fee_da + deliveryFeeDa;
   const cashbackApplied = useCashback
     ? Math.min(ctx.cashback_balance_da, totalBeforeWallets)
     : 0;
@@ -257,9 +308,13 @@ export function CheckoutView({ customer }: Props) {
   const totalAfterWallets = Math.max(0, totalAfterCashback - topupApplied);
 
   const totalLabel =
-    payment === "cash"
-      ? "À payer en espèces au retrait"
-      : "Total payé en ligne";
+    delivery.fulfillment === "delivery"
+      ? payment === "cash"
+        ? "À payer en espèces à la livraison"
+        : "Total payé en ligne"
+      : payment === "cash"
+        ? "À payer en espèces au retrait"
+        : "Total payé en ligne";
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-4 pb-32 lg:px-6 lg:py-8 lg:pb-12">
@@ -312,86 +367,95 @@ export function CheckoutView({ customer }: Props) {
             </Link>
           </Section>
 
-          {/* Retrait */}
-          <Section icon={Clock} title="Retrait">
-            {!openNow && (
-              <div className="border-warning-100 bg-warning-50 text-warning-800 mb-3 rounded-[10px] border px-3 py-2 text-xs">
-                Le commerce est <strong>fermé pour le moment</strong>. Choisis
-                un créneau ci-dessous pour passer ta commande à l&apos;avance.
+          {/* Livraison (caché si le commerçant n'a pas activé) */}
+          <CheckoutDeliverySection
+            delivery={ctx.delivery}
+            value={delivery}
+            onChange={setDelivery}
+          />
+
+          {/* Retrait (uniquement si fulfillment = pickup) */}
+          {delivery.fulfillment === "pickup" && (
+            <Section icon={Clock} title="Retrait">
+              {!openNow && (
+                <div className="border-warning-100 bg-warning-50 text-warning-800 mb-3 rounded-[10px] border px-3 py-2 text-xs">
+                  Le commerce est <strong>fermé pour le moment</strong>. Choisis
+                  un créneau ci-dessous pour passer ta commande à l&apos;avance.
+                </div>
+              )}
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Choice
+                  checked={pickupType === "asap"}
+                  onClick={() => setPickupType("asap")}
+                  title="Préparation immédiate"
+                  hint={formatAsapReady(
+                    new Date(Date.now() + ctx.merchant.prep_time_min * 60_000)
+                  )}
+                  disabled={!openNow}
+                />
+                <Choice
+                  checked={pickupType === "slot"}
+                  onClick={() => setPickupType("slot")}
+                  title="Choisir un créneau"
+                  hint={
+                    availableDays.length === 0
+                      ? "Pas de créneau disponible"
+                      : `Jusqu'à ${ctx.merchant.max_days_ahead} j à l'avance`
+                  }
+                  disabled={availableDays.length === 0}
+                />
               </div>
-            )}
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Choice
-                checked={pickupType === "asap"}
-                onClick={() => setPickupType("asap")}
-                title="Préparation immédiate"
-                hint={formatAsapReady(
-                  new Date(Date.now() + ctx.merchant.prep_time_min * 60_000)
-                )}
-                disabled={!openNow}
-              />
-              <Choice
-                checked={pickupType === "slot"}
-                onClick={() => setPickupType("slot")}
-                title="Choisir un créneau"
-                hint={
-                  availableDays.length === 0
-                    ? "Pas de créneau disponible"
-                    : `Jusqu'à ${ctx.merchant.max_days_ahead} j à l'avance`
-                }
-                disabled={availableDays.length === 0}
-              />
-            </div>
-            {pickupType === "slot" && availableDays.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {/* Sélecteur de jour (scrollable horizontal sur mobile) */}
-                <div className="-mx-1 flex [scrollbar-width:none] gap-1.5 overflow-x-auto px-1 pb-1 [&::-webkit-scrollbar]:hidden">
-                  {availableDays.map((dayKey) => {
-                    const sample = slotsByDay.get(dayKey)?.[0]?.start;
-                    if (!sample) return null;
-                    const label = formatDayRelative(sample);
-                    const isActive = effectiveDayKey === dayKey;
-                    return (
+              {pickupType === "slot" && availableDays.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {/* Sélecteur de jour (scrollable horizontal sur mobile) */}
+                  <div className="-mx-1 flex [scrollbar-width:none] gap-1.5 overflow-x-auto px-1 pb-1 [&::-webkit-scrollbar]:hidden">
+                    {availableDays.map((dayKey) => {
+                      const sample = slotsByDay.get(dayKey)?.[0]?.start;
+                      if (!sample) return null;
+                      const label = formatDayRelative(sample);
+                      const isActive = effectiveDayKey === dayKey;
+                      return (
+                        <button
+                          key={dayKey}
+                          type="button"
+                          onClick={() => {
+                            setChosenDayKey(dayKey);
+                            setChosenSlotIdx(null);
+                          }}
+                          className={cn(
+                            "shrink-0 rounded-[10px] border px-3 py-1.5 text-xs font-medium capitalize transition",
+                            isActive
+                              ? "border-primary-600 bg-primary-50 text-primary-700"
+                              : "border-border bg-surface hover:border-primary-300"
+                          )}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Créneaux du jour sélectionné */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {slots.map((s, i) => (
                       <button
-                        key={dayKey}
+                        key={s.start.toISOString()}
                         type="button"
-                        onClick={() => {
-                          setChosenDayKey(dayKey);
-                          setChosenSlotIdx(null);
-                        }}
+                        onClick={() => setChosenSlotIdx(i)}
                         className={cn(
-                          "shrink-0 rounded-[10px] border px-3 py-1.5 text-xs font-medium capitalize transition",
-                          isActive
-                            ? "border-primary-600 bg-primary-50 text-primary-700"
+                          "rounded-[10px] border px-3 py-1.5 text-sm font-medium tabular-nums transition",
+                          chosenSlotIdx === i
+                            ? "border-primary-600 bg-primary-600 text-white"
                             : "border-border bg-surface hover:border-primary-300"
                         )}
                       >
-                        {label}
+                        {s.label}
                       </button>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
-                {/* Créneaux du jour sélectionné */}
-                <div className="flex flex-wrap gap-1.5">
-                  {slots.map((s, i) => (
-                    <button
-                      key={s.start.toISOString()}
-                      type="button"
-                      onClick={() => setChosenSlotIdx(i)}
-                      className={cn(
-                        "rounded-[10px] border px-3 py-1.5 text-sm font-medium tabular-nums transition",
-                        chosenSlotIdx === i
-                          ? "border-primary-600 bg-primary-600 text-white"
-                          : "border-border bg-surface hover:border-primary-300"
-                      )}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </Section>
+              )}
+            </Section>
+          )}
 
           {/* Paiement */}
           <Section icon={CreditCard} title="Paiement">
@@ -399,8 +463,16 @@ export function CheckoutView({ customer }: Props) {
               <Choice
                 checked={payment === "cash"}
                 onClick={() => setPayment("cash")}
-                title="Espèces au retrait"
-                hint="Tu règles le commerçant en main propre"
+                title={
+                  delivery.fulfillment === "delivery"
+                    ? "Espèces à la livraison"
+                    : "Espèces au retrait"
+                }
+                hint={
+                  delivery.fulfillment === "delivery"
+                    ? "Tu règles le livreur à la remise"
+                    : "Tu règles le commerçant en main propre"
+                }
                 icon={Banknote}
                 disabled={!ctx.merchant.accepts_cash}
               />
@@ -533,6 +605,12 @@ export function CheckoutView({ customer }: Props) {
                     tone="success"
                   />
                 )
+              )}
+              {deliveryFeeDa > 0 && (
+                <Row
+                  label="Frais de livraison"
+                  value={`+ ${formatDA(deliveryFeeDa)}`}
+                />
               )}
               {cashbackApplied > 0 && (
                 <Row

@@ -15,6 +15,7 @@ import { ORDER_FLOW, ORDER_STATUS_META, type OrderStatus } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
 import { OrderQr } from "@/components/customer/order-qr";
 import { CustomerOrderLive } from "@/components/customer/customer-order-live";
+import { DeliveryTimeline } from "@/components/customer/delivery-timeline";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { formatAsapReady, formatSlotRange } from "@/lib/customer/pickup-format";
 
@@ -39,6 +40,8 @@ export default async function CustomerOrderDetailPage({
        pickup_slot_at, pickup_slot_start, pickup_slot_end, customer_note,
        subtotal_da, discount_da, cashback_estimate_da, total_da, created_at,
        merchant_id,
+       fulfillment_type, delivery_mode, delivery_fee_da,
+       delivery_address_text, delivery_picked_up_at, delivery_delivered_at,
        merchants ( name, slug, logo_url, phone_public, address, commune ),
        order_items ( id, product_name, unit_price_da, quantity, line_total_da )`
     )
@@ -118,10 +121,32 @@ export default async function CustomerOrderDetailPage({
         {/* Suivi live (Realtime + auto-refresh) */}
         <CustomerOrderLive orderId={order.id} initialStatus={status} />
 
-        {/* Code retrait + QR */}
+        {/* Timeline livraison (uniquement si fulfillment=delivery) */}
+        {order.fulfillment_type === "delivery" && (
+          <div className="border-border bg-surface mb-5 rounded-[20px] border p-6 shadow-sm">
+            <p className="text-muted mb-4 text-xs font-semibold tracking-wider uppercase">
+              Suivi de ta livraison
+            </p>
+            <DeliveryTimeline
+              status={status}
+              pickedUpAt={order.delivery_picked_up_at as string | null}
+              deliveredAt={order.delivery_delivered_at as string | null}
+            />
+            <p className="text-subtle mt-4 border-t pt-3 text-xs">
+              💡 Communique le code de retrait au livreur à la remise pour
+              valider la livraison. Si quelqu&apos;un d&apos;autre réceptionne,
+              transmets-lui ce code.
+            </p>
+          </div>
+        )}
+
+        {/* Code retrait + QR — montré dans tous les cas (le client en a
+            besoin pour : retrait sur place, OU communiquer au livreur). */}
         <div className="border-border bg-surface mb-5 rounded-[20px] border p-6 text-center shadow-sm">
           <p className="text-muted text-xs font-semibold tracking-wider uppercase">
-            Code de retrait
+            {order.fulfillment_type === "delivery"
+              ? "Code à donner au livreur"
+              : "Code de retrait"}
           </p>
           <p className="text-foreground mt-1 text-5xl font-bold tracking-[0.2em] tabular-nums lg:text-6xl">
             {order.pickup_code}
