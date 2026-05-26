@@ -54,6 +54,16 @@ export type CreateOrderInput = {
   delivery_address_id?: string | null;
   delivery_slot_id?: string | null;
   delivery_phone_override?: string | null;
+  /**
+   * Position custom posée à la volée sur la carte (alternative à
+   * `delivery_address_id`). Si fournie, ON L'UTILISE comme source de
+   * vérité ; sinon on regarde l'adresse enregistrée. Au moins UNE des deux
+   * est requise si fulfillment_type=delivery.
+   */
+  delivery_custom_lat?: number | null;
+  delivery_custom_lng?: number | null;
+  /** Note du client → livreur/commerçant (max 300 chars). */
+  delivery_note?: string | null;
 };
 
 export type CreateOrderResult =
@@ -493,18 +503,50 @@ export async function createOrder(
         error: "Le commerçant n'a pas configuré sa position.",
       };
     }
-    if (!input.delivery_address_id) {
-      return { ok: false, error: "Choisis une adresse de livraison." };
-    }
 
-    const { data: addr } = await supabase
-      .from("customer_addresses")
-      .select("id, lat, lng, address_text, phone_override")
-      .eq("id", input.delivery_address_id)
-      .eq("customer_id", customer.id)
-      .maybeSingle();
-    if (!addr) {
-      return { ok: false, error: "Adresse introuvable." };
+    // Source de la position client : EITHER adresse enregistrée, EITHER
+    // position custom posée sur la carte (au moins l'une des deux).
+    let addrId: string | null = null;
+    let addrLat: number;
+    let addrLng: number;
+    let addrText: string | null = null;
+    let addrPhone: string | null = null;
+
+    if (
+      input.delivery_custom_lat != null &&
+      input.delivery_custom_lng != null
+    ) {
+      if (
+        input.delivery_custom_lat < -90 ||
+        input.delivery_custom_lat > 90 ||
+        input.delivery_custom_lng < -180 ||
+        input.delivery_custom_lng > 180
+      ) {
+        return { ok: false, error: "Position de livraison invalide." };
+      }
+      addrLat = input.delivery_custom_lat;
+      addrLng = input.delivery_custom_lng;
+    } else if (input.delivery_address_id) {
+      const { data: addr } = await supabase
+        .from("customer_addresses")
+        .select("id, lat, lng, address_text, phone_override")
+        .eq("id", input.delivery_address_id)
+        .eq("customer_id", customer.id)
+        .maybeSingle();
+      if (!addr) {
+        return { ok: false, error: "Adresse introuvable." };
+      }
+      addrId = addr.id;
+      addrLat = addr.lat;
+      addrLng = addr.lng;
+      addrText = addr.address_text;
+      addrPhone = addr.phone_override;
+    } else {
+      return {
+        ok: false,
+        error:
+          "Position de livraison requise. Choisis une adresse ou pointe ta position sur la carte.",
+      };
     }
 
     // Barème global + rayon commerçant.
@@ -519,7 +561,7 @@ export async function createOrder(
 
     const distanceKm = haversineKm(
       { lat: merchDelivery.latitude, lng: merchDelivery.longitude },
-      { lat: addr.lat, lng: addr.lng }
+      { lat: addrLat, lng: addrLng }
     );
     const quote = computeDeliveryFee(
       distanceKm,
@@ -562,14 +604,12 @@ export async function createOrder(
     }
 
     deliverySnapshot = {
-      address_id: addr.id,
-      lat: addr.lat,
-      lng: addr.lng,
-      text: addr.address_text,
+      address_id: addrId,
+      lat: addrLat,
+      lng: addrLng,
+      text: addrText,
       phone:
-        input.delivery_phone_override?.trim() ||
-        addr.phone_override ||
-        customer.phone,
+        input.delivery_phone_override?.trim() || addrPhone || customer.phone,
       distance_km: Number(distanceKm.toFixed(2)),
       mode: input.delivery_mode,
       slot_id:
@@ -618,6 +658,10 @@ export async function createOrder(
       delivery_phone: deliverySnapshot?.phone ?? null,
       delivery_distance_km: deliverySnapshot?.distance_km ?? null,
       delivery_slot_id: deliverySnapshot?.slot_id ?? null,
+      delivery_note:
+        isDelivery && input.delivery_note
+          ? input.delivery_note.slice(0, 300)
+          : null,
     })
     .select("id, pickup_code")
     .single();

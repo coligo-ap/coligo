@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock, MapPin, Wallet } from "lucide-react";
+import { Bolt, Calendar, Clock, MapPin, Truck, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ImageWithOverlay } from "@/components/ui/image-with-overlay";
 import { cn, formatDA } from "@/lib/utils";
@@ -87,6 +87,26 @@ export function MerchantCard({ merchant, cashbackPct, hasPromo }: Props) {
           <span className="bg-coral-500 absolute top-2 right-2 z-20 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
             PROMO
           </span>
+        )}
+
+        {/* Badge Livraison (et mode si UN seul mode actif) — coin bas-gauche. */}
+        {merchant.delivery_enabled && (
+          <div className="absolute right-2 bottom-2 z-20 flex flex-wrap items-center gap-1">
+            <span className="bg-primary-600/95 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+              <Truck className="size-3" />
+              Livraison
+            </span>
+            {merchant.express_enabled && (
+              <span className="bg-warning-500/95 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                <Bolt className="size-3" />
+              </span>
+            )}
+            {merchant.tours_enabled && (
+              <span className="bg-success-600/95 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                <Calendar className="size-3" />
+              </span>
+            )}
+          </div>
         )}
 
         {!hasPromo && cashbackPct && cashbackPct > 0 && (

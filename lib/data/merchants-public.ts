@@ -28,6 +28,10 @@ export type PublicMerchant = {
   is_active: boolean;
   rating_avg: number;
   rating_count: number;
+  delivery_enabled: boolean;
+  express_enabled: boolean;
+  tours_enabled: boolean;
+  delivery_radius_km: number | null;
 };
 
 type Filters = {
@@ -35,6 +39,9 @@ type Filters = {
   commune?: string | null;
   q?: string | null;
   category?: string | null;
+  /** Filtres livraison. */
+  delivery_enabled?: boolean | null;
+  delivery_mode?: "express" | "tour" | null;
   /** Tri MVP : "name" (par défaut), "min_order" asc. */
   sort?: "name" | "min_order";
   limit?: number;
@@ -71,6 +78,15 @@ export async function listPublicMerchants(
         `category.ilike.${q}`,
       ].join(",")
     );
+  }
+  if (filters.delivery_enabled === true) {
+    query = query.eq("delivery_enabled", true);
+  }
+  if (filters.delivery_mode === "express") {
+    query = query.eq("delivery_enabled", true).eq("express_enabled", true);
+  }
+  if (filters.delivery_mode === "tour") {
+    query = query.eq("delivery_enabled", true).eq("tours_enabled", true);
   }
   query = query.order(filters.sort === "min_order" ? "min_order_da" : "name");
 
@@ -164,5 +180,12 @@ function toPublicMerchant(row: Record<string, unknown>): PublicMerchant {
         ? parseFloat(row.rating_avg)
         : ((row.rating_avg as number | null) ?? 0),
     rating_count: (row.rating_count as number | null) ?? 0,
+    delivery_enabled: (row.delivery_enabled as boolean | null) ?? false,
+    express_enabled: (row.express_enabled as boolean | null) ?? false,
+    tours_enabled: (row.tours_enabled as boolean | null) ?? false,
+    delivery_radius_km:
+      typeof row.delivery_radius_km === "string"
+        ? parseFloat(row.delivery_radius_km)
+        : ((row.delivery_radius_km as number | null) ?? null),
   };
 }

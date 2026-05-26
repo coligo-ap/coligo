@@ -57,9 +57,12 @@ export function CheckoutView({ customer }: Props) {
   const [delivery, setDelivery] = useState<DeliveryChoice>({
     fulfillment: "pickup",
     addressId: null,
+    customPosition: null,
+    positionConfirmed: false,
     mode: null,
     slotId: null,
     phoneOverride: "",
+    deliveryNote: "",
   });
   // Le client peut fermer la modale s'il veut consulter le récap d'abord ;
   // mais elle se réaffiche automatiquement tant qu'un autre panier existe.
@@ -214,8 +217,13 @@ export function CheckoutView({ customer }: Props) {
     }
     // Validation livraison côté client (le serveur re-vérifie de toute façon).
     if (delivery.fulfillment === "delivery") {
-      if (!delivery.addressId) {
-        toast.error("Choisis une adresse de livraison.");
+      const hasSavedAddress = !!delivery.addressId;
+      const hasConfirmedCustom =
+        !!delivery.customPosition && delivery.positionConfirmed;
+      if (!hasSavedAddress && !hasConfirmedCustom) {
+        toast.error(
+          "Confirme ta position sur la carte ou choisis une adresse enregistrée."
+        );
         return;
       }
       if (!delivery.mode) {
@@ -255,6 +263,18 @@ export function CheckoutView({ customer }: Props) {
         delivery_phone_override:
           delivery.fulfillment === "delivery"
             ? delivery.phoneOverride.trim() || null
+            : null,
+        delivery_custom_lat:
+          delivery.fulfillment === "delivery" && delivery.customPosition
+            ? delivery.customPosition.lat
+            : null,
+        delivery_custom_lng:
+          delivery.fulfillment === "delivery" && delivery.customPosition
+            ? delivery.customPosition.lng
+            : null,
+        delivery_note:
+          delivery.fulfillment === "delivery"
+            ? delivery.deliveryNote.trim() || null
             : null,
         cashback_to_use_da: useCashback ? cashbackApplied : 0,
         topup_to_use_da: useTopup ? topupApplied : 0,
@@ -370,6 +390,8 @@ export function CheckoutView({ customer }: Props) {
           {/* Livraison (caché si le commerçant n'a pas activé) */}
           <CheckoutDeliverySection
             delivery={ctx.delivery}
+            merchantPosition={ctx.delivery.merchantPosition}
+            pricing={ctx.delivery.pricing}
             value={delivery}
             onChange={setDelivery}
           />

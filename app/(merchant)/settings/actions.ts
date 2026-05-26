@@ -254,6 +254,32 @@ export async function setDeliverySettings(
     return { error: parsed.error.issues[0]?.message ?? "Données invalides" };
   }
 
+  // Position commerçant — obligatoire si livraison activée.
+  const latRaw = formData.get("latitude");
+  const lngRaw = formData.get("longitude");
+  const latitude =
+    typeof latRaw === "string" && latRaw.length > 0 ? Number(latRaw) : null;
+  const longitude =
+    typeof lngRaw === "string" && lngRaw.length > 0 ? Number(lngRaw) : null;
+  if (parsed.data.delivery_enabled && (latitude == null || longitude == null)) {
+    return {
+      error:
+        "Position de la boutique requise : pointe ta vitrine sur la carte pour activer la livraison.",
+    };
+  }
+  if (
+    latitude != null &&
+    (latitude < -90 || latitude > 90 || isNaN(latitude))
+  ) {
+    return { error: "Latitude invalide." };
+  }
+  if (
+    longitude != null &&
+    (longitude < -180 || longitude > 180 || isNaN(longitude))
+  ) {
+    return { error: "Longitude invalide." };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -272,14 +298,27 @@ export async function setDeliverySettings(
       ? null
       : Math.min(parsed.data.delivery_radius_km, maxRadius);
 
+  // On met à jour lat/lng UNIQUEMENT si fournies (pour ne pas effacer en
+  // mode "désactiver la livraison").
+  const update: {
+    delivery_enabled: boolean;
+    express_enabled: boolean;
+    tours_enabled: boolean;
+    delivery_radius_km: number | null;
+    latitude?: number;
+    longitude?: number;
+  } = {
+    delivery_enabled: parsed.data.delivery_enabled,
+    express_enabled: parsed.data.express_enabled,
+    tours_enabled: parsed.data.tours_enabled,
+    delivery_radius_km: radius,
+  };
+  if (latitude != null) update.latitude = latitude;
+  if (longitude != null) update.longitude = longitude;
+
   const { error } = await supabase
     .from("merchants")
-    .update({
-      delivery_enabled: parsed.data.delivery_enabled,
-      express_enabled: parsed.data.express_enabled,
-      tours_enabled: parsed.data.tours_enabled,
-      delivery_radius_km: radius,
-    })
+    .update(update)
     .eq("user_id", user.id);
 
   if (error) return { error: `Erreur : ${error.message}` };

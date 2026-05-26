@@ -1,42 +1,90 @@
 "use client";
 
 import Link from "next/link";
-import { Bolt, Calendar, MapPin, Truck } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  Bolt,
+  Calendar,
+  Check,
+  MapPin,
+  Truck,
+} from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
-import type { CheckoutDeliveryContext } from "@/app/(customer)/checkout/context";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { MapPositionPicker } from "@/components/shared/map-position-picker";
+import { computeDeliveryFee } from "@/lib/delivery/pricing";
+import { haversineKm } from "@/lib/delivery/distance";
+import type {
+  CheckoutDeliveryContext,
+  CheckoutMerchantPosition,
+} from "@/app/(customer)/checkout/context";
 
 export type DeliveryChoice = {
   /** "pickup" = retrait sur place ; "delivery" = livraison. */
   fulfillment: "pickup" | "delivery";
-  /** Adresse choisie (requise si fulfillment=delivery). */
+  /** Adresse enregistrée choisie (si custom = null + customPosition rempli). */
   addressId: string | null;
+  /** Position custom posée à la volée sur la carte (alternative à addressId). */
+  customPosition: { lat: number; lng: number } | null;
+  /** True quand le client a explicitement confirmé sa position custom. */
+  positionConfirmed: boolean;
   /** Mode (requis si fulfillment=delivery). */
   mode: "express" | "tour" | null;
   /** Slot (requis si mode=tour). */
   slotId: string | null;
   /** Téléphone alternatif (optionnel). */
   phoneOverride: string;
+  /** Note livraison (commentaire client → livreur). */
+  deliveryNote: string;
 };
 
 export function CheckoutDeliverySection({
   delivery,
+  merchantPosition,
+  pricing,
   value,
   onChange,
 }: {
   delivery: CheckoutDeliveryContext;
+  merchantPosition: CheckoutMerchantPosition | null;
+  pricing: {
+    delivery_base_da: number;
+    delivery_per_km_da: number;
+    delivery_free_km_threshold: number;
+    delivery_min_da: number;
+    delivery_max_da: number;
+    delivery_max_radius_km: number;
+  } | null;
   value: DeliveryChoice;
   onChange: (next: DeliveryChoice) => void;
 }) {
   const update = (patch: Partial<DeliveryChoice>) =>
     onChange({ ...value, ...patch });
 
-  // Si la livraison n'est pas dispo (commerçant n'a pas activé), on cache
-  // tout — pas même un toggle qui amènerait à rien.
-  if (!delivery.enabled) return null;
-
-  const selectedAddress = delivery.addresses.find(
+  const selectedSavedAddress = delivery.addresses.find(
     (a) => a.id === value.addressId
   );
+
+  // Calcul de la quote pour une position custom (live, côté client).
+  // useMemo DOIT être appelé avant tout early-return pour respecter la
+  // règle des hooks.
+  const customQuote = useMemo(() => {
+    if (!value.customPosition || !merchantPosition || !pricing) return null;
+    const distKm = haversineKm(
+      { lat: merchantPosition.lat, lng: merchantPosition.lng },
+      value.customPosition
+    );
+    return computeDeliveryFee(distKm, pricing, merchantPosition.radiusKm);
+  }, [value.customPosition, merchantPosition, pricing]);
+
+  if (!delivery.enabled) return null;
+
+  // Le client doit avoir une position EXACTE et CONFIRMÉE avant de pouvoir
+  // submit. Si position custom, le bouton "Confirmer" la valide. Si adresse
+  // enregistrée, on considère la confirmation implicite (on a déjà sa lat/lng).
 
   return (
     <section className="space-y-3">
@@ -50,6 +98,8 @@ export function CheckoutDeliverySection({
             update({
               fulfillment: "pickup",
               addressId: null,
+              customPosition: null,
+              positionConfirmed: false,
               mode: null,
               slotId: null,
             })
@@ -74,72 +124,19 @@ export function CheckoutDeliverySection({
 
       {value.fulfillment === "delivery" && (
         <div className="border-border bg-surface space-y-4 rounded-[14px] border p-4">
-          {/* Adresses */}
-          <div className="space-y-2">
-            <p className="text-sm font-semibold">Adresse de livraison</p>
-            {delivery.addresses.length === 0 ? (
-              <Link
-                href="/adresses"
-                className="border-primary-300 bg-primary-50 text-primary-700 block rounded-[10px] border-2 border-dashed px-3 py-2 text-center text-sm"
-              >
-                + Ajouter une adresse sur la carte
-              </Link>
-            ) : (
-              <ul className="space-y-2">
-                {delivery.addresses.map((a) => {
-                  const disabled = a.out_of_range;
-                  const isSel = value.addressId === a.id;
-                  return (
-                    <li key={a.id}>
-                      <button
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => update({ addressId: a.id })}
-                        className={cn(
-                          "flex w-full items-start gap-3 rounded-[10px] border p-3 text-left",
-                          disabled
-                            ? "border-border bg-surface-2 text-muted cursor-not-allowed opacity-60"
-                            : isSel
-                              ? "border-primary-500 bg-primary-50"
-                              : "border-border bg-surface hover:border-primary-300"
-                        )}
-                      >
-                        <MapPin className="mt-0.5 size-4 shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">
-                            {a.label}
-                          </p>
-                          {a.address_text && (
-                            <p className="text-muted mt-0.5 truncate text-xs">
-                              {a.address_text}
-                            </p>
-                          )}
-                          <p className="text-subtle mt-0.5 text-xs tabular-nums">
-                            {a.out_of_range
-                              ? `Hors zone (${a.distance_km > 0 ? a.distance_km.toFixed(1) + " km" : "—"})`
-                              : `${a.distance_km.toFixed(1)} km · ${formatDA(a.fee_da ?? 0)}`}
-                          </p>
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-                <li>
-                  <Link
-                    href="/adresses"
-                    className="text-primary-700 inline-block text-xs underline"
-                  >
-                    + Ajouter une adresse
-                  </Link>
-                </li>
-              </ul>
-            )}
-          </div>
+          <DeliveryAddressBlock
+            delivery={delivery}
+            value={value}
+            update={update}
+            customQuote={customQuote}
+            selectedSavedAddress={selectedSavedAddress}
+            merchantPosition={merchantPosition}
+          />
 
-          {/* Modes (Express vs Tournée) */}
-          {selectedAddress && !selectedAddress.out_of_range && (
+          {/* Modes Express / Tournée (uniquement si position valide) */}
+          {hasValidPosition(value, selectedSavedAddress) && (
             <div className="space-y-2">
-              <p className="text-sm font-semibold">Mode</p>
+              <p className="text-sm font-semibold">Mode de livraison</p>
               <div className="grid grid-cols-2 gap-2">
                 {delivery.express_enabled && (
                   <ModeButton
@@ -160,24 +157,17 @@ export function CheckoutDeliverySection({
                   />
                 )}
               </div>
-              {!delivery.express_enabled && !delivery.tours_enabled && (
-                <p className="text-warning-700 text-xs">
-                  Aucun mode de livraison disponible pour ce commerçant.
-                </p>
-              )}
             </div>
           )}
 
           {/* Sélecteur de créneau (tour) */}
-          {value.mode === "tour" &&
-            selectedAddress &&
-            !selectedAddress.out_of_range && (
+          {hasValidPosition(value, selectedSavedAddress) &&
+            value.mode === "tour" && (
               <div className="space-y-2">
                 <p className="text-sm font-semibold">Créneau</p>
                 {delivery.slots.length === 0 ? (
                   <p className="text-muted text-xs">
-                    Aucun créneau ouvert pour l&apos;instant — repasse plus tard
-                    ou choisis Express.
+                    Aucun créneau ouvert. Choisis Express ou repasse plus tard.
                   </p>
                 ) : (
                   <ul className="space-y-1.5">
@@ -226,27 +216,295 @@ export function CheckoutDeliverySection({
               </div>
             )}
 
-          {/* Téléphone alternatif */}
-          {selectedAddress && !selectedAddress.out_of_range && (
-            <div className="space-y-1.5">
-              <label htmlFor="phone_override" className="text-sm font-semibold">
-                Téléphone livraison (optionnel)
-              </label>
-              <input
-                id="phone_override"
-                type="tel"
-                value={value.phoneOverride}
-                onChange={(e) => update({ phoneOverride: e.target.value })}
-                placeholder={
-                  selectedAddress.phone_override ?? "Si différent du compte"
-                }
-                className="border-border bg-surface block w-full rounded-[10px] border px-3 py-2 text-sm"
-              />
-            </div>
+          {/* Tél alternatif + note livraison */}
+          {hasValidPosition(value, selectedSavedAddress) && (
+            <>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="phone_override"
+                  className="text-sm font-semibold"
+                >
+                  Téléphone livraison (optionnel)
+                </Label>
+                <Input
+                  id="phone_override"
+                  type="tel"
+                  value={value.phoneOverride}
+                  onChange={(e) => update({ phoneOverride: e.target.value })}
+                  placeholder={
+                    selectedSavedAddress?.phone_override ??
+                    "Si différent du compte"
+                  }
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="delivery_note"
+                  className="text-sm font-semibold"
+                >
+                  Note pour le livreur (optionnel)
+                </Label>
+                <textarea
+                  id="delivery_note"
+                  value={value.deliveryNote}
+                  onChange={(e) => update({ deliveryNote: e.target.value })}
+                  placeholder="Ex: Sonner 2 fois, bâtiment B, 3e étage, code porte 1234…"
+                  className="border-border bg-surface min-h-[64px] w-full rounded-[10px] border px-3 py-2 text-sm"
+                  maxLength={300}
+                />
+                <p className="text-subtle text-xs">
+                  Vu par le livreur ET le commerçant.
+                </p>
+              </div>
+            </>
           )}
         </div>
       )}
     </section>
+  );
+}
+
+/** True si on a un point de livraison utilisable (adresse OK ou custom confirmée). */
+function hasValidPosition(
+  v: DeliveryChoice,
+  saved: CheckoutDeliveryContext["addresses"][number] | undefined
+): boolean {
+  if (saved && !saved.out_of_range) return true;
+  if (v.customPosition && v.positionConfirmed) return true;
+  return false;
+}
+
+function DeliveryAddressBlock({
+  delivery,
+  value,
+  update,
+  customQuote,
+  selectedSavedAddress,
+  merchantPosition,
+}: {
+  delivery: CheckoutDeliveryContext;
+  value: DeliveryChoice;
+  update: (patch: Partial<DeliveryChoice>) => void;
+  customQuote: ReturnType<typeof computeDeliveryFee> | null;
+  selectedSavedAddress?: CheckoutDeliveryContext["addresses"][number];
+  merchantPosition: CheckoutMerchantPosition | null;
+}) {
+  // Mode "nouvelle position sur la carte" : on ouvre la carte si :
+  //  - aucune adresse enregistrée, OU
+  //  - le client a explicitement cliqué "Nouvelle position"
+  const [pickerOpen, setPickerOpen] = useState(
+    delivery.addresses.length === 0 || value.customPosition != null
+  );
+
+  // Quand le client choisit une adresse enregistrée, on remet à zéro le
+  // picker custom.
+  useEffect(() => {
+    if (value.addressId) setPickerOpen(false);
+  }, [value.addressId]);
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-semibold">Où livrer ?</p>
+
+      {/* Adresses enregistrées (cards cliquables) */}
+      {delivery.addresses.length > 0 && (
+        <ul className="space-y-2">
+          {delivery.addresses.map((a) => {
+            const disabled = a.out_of_range;
+            const isSel = value.addressId === a.id;
+            return (
+              <li key={a.id}>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    update({
+                      addressId: a.id,
+                      customPosition: null,
+                      positionConfirmed: false,
+                    });
+                  }}
+                  className={cn(
+                    "flex w-full items-start gap-3 rounded-[10px] border p-3 text-left",
+                    disabled
+                      ? "border-border bg-surface-2 text-muted cursor-not-allowed opacity-60"
+                      : isSel
+                        ? "border-primary-500 bg-primary-50"
+                        : "border-border bg-surface hover:border-primary-300"
+                  )}
+                >
+                  <MapPin className="mt-0.5 size-4 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{a.label}</p>
+                    {a.address_text && (
+                      <p className="text-muted mt-0.5 truncate text-xs">
+                        {a.address_text}
+                      </p>
+                    )}
+                    <p className="text-subtle mt-0.5 text-xs tabular-nums">
+                      {a.out_of_range
+                        ? `Hors zone (${a.distance_km > 0 ? a.distance_km.toFixed(1) + " km" : "—"})`
+                        : `${a.distance_km.toFixed(1)} km · ${formatDA(a.fee_da ?? 0)}`}
+                    </p>
+                  </div>
+                  {isSel && (
+                    <Check className="text-primary-700 mt-0.5 size-4" />
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {/* Bascule "Nouvelle position" */}
+      {!pickerOpen ? (
+        <button
+          type="button"
+          onClick={() => {
+            update({ addressId: null, positionConfirmed: false });
+            setPickerOpen(true);
+          }}
+          className="border-primary-300 bg-primary-50 text-primary-700 hover:bg-primary-100 w-full rounded-[10px] border-2 border-dashed px-3 py-2 text-center text-sm font-semibold"
+        >
+          + Indiquer une autre position sur la carte
+        </button>
+      ) : (
+        <CustomPositionPicker
+          value={value}
+          update={update}
+          customQuote={customQuote}
+          merchantPosition={merchantPosition}
+          canSwitchToSaved={delivery.addresses.length > 0}
+          onSwitchToSaved={() => {
+            update({
+              customPosition: null,
+              positionConfirmed: false,
+              addressId: delivery.addresses[0]?.id ?? null,
+            });
+            setPickerOpen(false);
+          }}
+        />
+      )}
+
+      {/* Avertissement adresse enregistrée hors zone */}
+      {selectedSavedAddress?.out_of_range && (
+        <p className="border-danger-200 bg-danger-50 text-danger-700 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+          Cette adresse dépasse le rayon de livraison du commerçant
+          {merchantPosition
+            ? ` (${merchantPosition.radiusKm.toFixed(1)} km max)`
+            : ""}
+          . Choisis une autre adresse, indique une position plus proche, ou
+          prends en retrait sur place.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CustomPositionPicker({
+  value,
+  update,
+  customQuote,
+  merchantPosition,
+  canSwitchToSaved,
+  onSwitchToSaved,
+}: {
+  value: DeliveryChoice;
+  update: (patch: Partial<DeliveryChoice>) => void;
+  customQuote: ReturnType<typeof computeDeliveryFee> | null;
+  merchantPosition: CheckoutMerchantPosition | null;
+  canSwitchToSaved: boolean;
+  onSwitchToSaved: () => void;
+}) {
+  const outOfRange = customQuote?.outOfRange ?? false;
+
+  return (
+    <div className="border-primary-300 bg-primary-50/40 space-y-2 rounded-[12px] border p-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-sm font-semibold">Pointe ta position exacte</p>
+        {canSwitchToSaved && (
+          <button
+            type="button"
+            onClick={onSwitchToSaved}
+            className="text-primary-700 text-xs underline"
+          >
+            ← Choisir une adresse enregistrée
+          </button>
+        )}
+      </div>
+      <p className="text-muted text-xs">
+        Déplace la carte ou clique « Ma position » pour pointer exactement
+        l&apos;endroit où tu veux être livré. Tu peux ensuite ajuster.
+      </p>
+      <MapPositionPicker
+        initial={value.customPosition ?? undefined}
+        onChange={(p) =>
+          update({
+            customPosition: p,
+            addressId: null,
+            positionConfirmed: false,
+          })
+        }
+        gpsLabel="Ma position"
+      />
+
+      {value.customPosition && (
+        <>
+          <p className="text-subtle text-xs tabular-nums">
+            {value.customPosition.lat.toFixed(5)},{" "}
+            {value.customPosition.lng.toFixed(5)}
+            {customQuote && !customQuote.outOfRange && (
+              <>
+                {" "}
+                ·{" "}
+                {customQuote.breakdown.billableKm.toFixed(1) === "0.0"
+                  ? "<2"
+                  : ""}{" "}
+                {
+                  (haversineKm(
+                    { lat: 0, lng: 0 },
+                    value.customPosition
+                  ) /* placeholder */,
+                  "")
+                }
+                <span className="text-foreground ml-1 font-semibold">
+                  {formatDA(customQuote.feeDa)}
+                </span>
+              </>
+            )}
+          </p>
+
+          {outOfRange ? (
+            <p className="border-danger-200 bg-danger-50 text-danger-700 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+              Vous dépassez le rayon de livraison du commerçant
+              {customQuote?.outOfRange === true && customQuote.maxRadiusKm
+                ? ` (${customQuote.maxRadiusKm.toFixed(1)} km max)`
+                : ""}
+              . Rapproche le pointeur ou choisis « Retrait sur place ».
+            </p>
+          ) : (
+            <label className="flex cursor-pointer items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={value.positionConfirmed}
+                onChange={(e) =>
+                  update({ positionConfirmed: e.target.checked })
+                }
+              />
+              <span>
+                <strong>Je confirme cette position.</strong> Le livreur s&apos;y
+                rendra.
+              </span>
+            </label>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 

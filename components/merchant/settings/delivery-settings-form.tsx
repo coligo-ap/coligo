@@ -2,11 +2,12 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Truck, Calendar, Bolt } from "lucide-react";
+import { AlertTriangle, Truck, Calendar, Bolt, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
+import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import { cn } from "@/lib/utils";
 import { computeDeliveryFee } from "@/lib/delivery/pricing";
 import { formatDA } from "@/lib/utils";
@@ -23,7 +24,10 @@ export function DeliverySettingsForm({
   current,
 }: {
   pricing: DeliveryPricing;
-  current: MerchantDeliverySettings;
+  current: MerchantDeliverySettings & {
+    latitude: number | null;
+    longitude: number | null;
+  };
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(
@@ -38,6 +42,12 @@ export function DeliverySettingsForm({
     current.delivery_radius_km ?? Math.min(5, pricing.delivery_max_radius_km)
   );
   const [simKm, setSimKm] = useState<number>(3);
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
+    current.latitude != null && current.longitude != null
+      ? { lat: current.latitude, lng: current.longitude }
+      : null
+  );
+  const positionMissing = enabled && !position;
 
   const btnState = useFormActionFeedback({
     pending,
@@ -92,6 +102,41 @@ export function DeliverySettingsForm({
                 Active au moins un mode pour valider.
               </p>
             )}
+          </div>
+
+          {/* Position du commerçant (obligatoire pour la livraison) */}
+          <div className="border-border space-y-3 rounded-[12px] border p-4">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-semibold">
+                <MapPin className="size-4" />
+                Position de la boutique
+              </p>
+              <p className="text-muted text-xs">
+                Indispensable pour calculer la distance à chaque livraison.
+                Déplace la carte pour placer le pointeur exactement sur ta
+                vitrine, ou clique « Ma position » pour utiliser ton GPS.
+              </p>
+            </div>
+            {positionMissing && (
+              <p className="border-warning-200 bg-warning-50 text-warning-700 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
+                <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+                Position non définie — confirme l&apos;emplacement de ta
+                boutique pour enregistrer la livraison.
+              </p>
+            )}
+            <MapPositionPicker
+              initial={position}
+              onChange={(p) => setPosition(p)}
+              gpsLabel="Ma boutique"
+            />
+            {position && (
+              <p className="text-subtle text-xs tabular-nums">
+                Coordonnées : {position.lat.toFixed(5)},{" "}
+                {position.lng.toFixed(5)}
+              </p>
+            )}
+            <input type="hidden" name="latitude" value={position?.lat ?? ""} />
+            <input type="hidden" name="longitude" value={position?.lng ?? ""} />
           </div>
 
           {/* Rayon */}
@@ -183,8 +228,9 @@ export function DeliverySettingsForm({
       <ActionButton
         type="submit"
         state={btnState}
+        disabled={positionMissing}
         labels={{
-          idle: "Enregistrer",
+          idle: positionMissing ? "Position requise" : "Enregistrer",
           pending: "Enregistrement…",
           success: "Livraison enregistrée ✓",
           error: "Erreur, réessaie",

@@ -63,11 +63,16 @@ export default async function SettingsPage() {
       DEFAULT_PRINT_SETTINGS.print_width) as PrintWidth,
   };
 
-  const deliverySettings: MerchantDeliverySettings = {
+  const deliverySettings: MerchantDeliverySettings & {
+    latitude: number | null;
+    longitude: number | null;
+  } = {
     delivery_enabled: m.delivery_enabled ?? false,
     express_enabled: m.express_enabled ?? false,
     tours_enabled: m.tours_enabled ?? false,
     delivery_radius_km: m.delivery_radius_km ?? null,
+    latitude: m.latitude ?? null,
+    longitude: m.longitude ?? null,
   };
 
   const platform = await getPlatformSettings();

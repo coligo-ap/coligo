@@ -203,6 +203,7 @@ export type Database = {
           delivery_delivered_at: string | null;
           validated_without_code: boolean;
           delivery_slot_id: string | null;
+          delivery_note: string | null;
           created_at: string;
         };
         Insert: {
@@ -249,6 +250,7 @@ export type Database = {
           delivery_delivered_at?: string | null;
           validated_without_code?: boolean;
           delivery_slot_id?: string | null;
+          delivery_note?: string | null;
           created_at?: string;
         };
         Update: {
@@ -295,6 +297,7 @@ export type Database = {
           delivery_delivered_at?: string | null;
           validated_without_code?: boolean;
           delivery_slot_id?: string | null;
+          delivery_note?: string | null;
           created_at?: string;
         };
         Relationships: [
@@ -1312,6 +1315,11 @@ export type Database = {
           rating_avg: number;
           rating_count: number;
           is_active: boolean;
+          delivery_enabled: boolean;
+          express_enabled: boolean;
+          tours_enabled: boolean;
+          delivery_radius_km: number | null;
+          shop_public_id: string;
           created_at: string;
         };
         Insert: never;

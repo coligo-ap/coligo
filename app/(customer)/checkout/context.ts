@@ -22,10 +22,27 @@ export type CheckoutContextInput = {
   items: { product_id: string; quantity: number }[];
 };
 
+export type CheckoutMerchantPosition = {
+  lat: number;
+  lng: number;
+  /** Rayon effectif (le min entre rayon commerçant et max plateforme). */
+  radiusKm: number;
+};
+
 export type CheckoutDeliveryContext = {
   enabled: boolean;
   express_enabled: boolean;
   tours_enabled: boolean;
+  /** Position commerçant + barème — utile au calcul live d'une position custom. */
+  merchantPosition: CheckoutMerchantPosition | null;
+  pricing: {
+    delivery_base_da: number;
+    delivery_per_km_da: number;
+    delivery_free_km_threshold: number;
+    delivery_min_da: number;
+    delivery_max_da: number;
+    delivery_max_radius_km: number;
+  } | null;
   /** Adresses enregistrées du client. */
   addresses: {
     id: string;
@@ -143,6 +160,8 @@ export async function fetchCheckoutContext(
       enabled: false,
       express_enabled: false,
       tours_enabled: false,
+      merchantPosition: null,
+      pricing: null,
       addresses: [] as CheckoutDeliveryContext["addresses"],
       slots: [] as CheckoutDeliveryContext["slots"],
     },
@@ -346,6 +365,19 @@ export async function fetchCheckoutContext(
     enabled: deliveryEnabled,
     express_enabled: !!merchDelivery?.express_enabled,
     tours_enabled: !!merchDelivery?.tours_enabled,
+    merchantPosition:
+      deliveryEnabled && merchDelivery
+        ? {
+            lat: merchDelivery.latitude!,
+            lng: merchDelivery.longitude!,
+            radiusKm: Math.min(
+              merchDelivery.delivery_radius_km ??
+                deliverySettings!.delivery_max_radius_km,
+              deliverySettings!.delivery_max_radius_km
+            ),
+          }
+        : null,
+    pricing: deliverySettings ?? null,
     addresses,
     slots: rawSlots.map((s) => ({
       id: s.id,
