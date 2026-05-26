@@ -1,18 +1,25 @@
 import Link from "next/link";
-import { ArrowLeft, ShoppingBag, Store, User as UserIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  ShoppingBag,
+  Store,
+  Truck,
+  User as UserIcon,
+} from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
 /**
- * Bandeau de navigation MINIMAL pour les pages d'auth (commerçant et client).
- * Pas d'état client (auth/panier) — juste de la navigation statique pour que
- * l'utilisateur puisse revenir sur la marketplace ou switcher d'espace.
+ * Bandeau de navigation MINIMAL pour les pages d'auth (commerçant, client,
+ * livreur). Pas d'état client (auth/panier) — juste de la navigation
+ * statique pour que l'utilisateur puisse revenir sur la marketplace ou
+ * switcher d'espace.
  */
 export function AuthNavBar({
   variant,
 }: {
-  /** Espace courant : "merchant" = /login,/signup ; "customer" = /se-connecter,/inscription. */
-  variant: "merchant" | "customer";
+  /** Espace courant : "merchant" = /login,/signup ; "customer" = /se-connecter,/inscription ; "driver" = /driver/login,/driver/signup. */
+  variant: "merchant" | "customer" | "driver";
 }) {
   return (
     <header className="border-border sticky top-0 z-30 border-b bg-white pt-[env(safe-area-inset-top)]">
@@ -29,15 +36,25 @@ export function AuthNavBar({
             <ArrowLeft className="size-4" />
             Marketplace
           </Link>
-          {variant === "merchant" ? (
-            <Link
-              href="/se-connecter"
-              className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium lg:text-sm"
-            >
-              <UserIcon className="size-3.5" />
-              Je suis client
-            </Link>
-          ) : (
+          {variant === "merchant" && (
+            <>
+              <Link
+                href="/se-connecter"
+                className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium lg:text-sm"
+              >
+                <UserIcon className="size-3.5" />
+                Je suis client
+              </Link>
+              <Link
+                href="/driver/login"
+                className="border-border hover:bg-surface-2 hidden items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium sm:inline-flex lg:text-sm"
+              >
+                <Truck className="size-3.5" />
+                Livreur
+              </Link>
+            </>
+          )}
+          {variant === "customer" && (
             <Link
               href="/login"
               className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium lg:text-sm"
@@ -45,6 +62,24 @@ export function AuthNavBar({
               <Store className="size-3.5" />
               Je suis commerçant
             </Link>
+          )}
+          {variant === "driver" && (
+            <>
+              <Link
+                href="/login"
+                className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium lg:text-sm"
+              >
+                <Store className="size-3.5" />
+                Je suis commerçant
+              </Link>
+              <Link
+                href="/se-connecter"
+                className="border-border hover:bg-surface-2 hidden items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium sm:inline-flex lg:text-sm"
+              >
+                <UserIcon className="size-3.5" />
+                Je suis client
+              </Link>
+            </>
           )}
           <Link
             href="/cart"

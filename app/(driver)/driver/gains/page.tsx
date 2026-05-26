@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Wallet } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { createClient } from "@/lib/supabase/server";
 import { formatDA } from "@/lib/utils";
+import { DriverShell } from "@/components/driver/driver-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -51,63 +52,65 @@ export default async function DriverGainsPage() {
   );
 
   return (
-    <div className="space-y-5">
-      <Link
-        href="/driver"
-        className="text-muted inline-flex items-center gap-1 text-sm"
-      >
-        <ArrowLeft className="size-4" />
-        Accueil
-      </Link>
-      <header className="flex items-center gap-2">
-        <Wallet className="size-6" />
-        <h1 className="text-2xl font-bold tracking-tight">Mes gains</h1>
-      </header>
+    <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
+      <div className="space-y-5">
+        <Link
+          href="/driver"
+          className="text-muted inline-flex items-center gap-1 text-sm"
+        >
+          <ArrowLeft className="size-4" />
+          Accueil
+        </Link>
+        <header className="flex items-center gap-2">
+          <Wallet className="size-6" />
+          <h1 className="text-2xl font-bold tracking-tight">Mes gains</h1>
+        </header>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Kpi label="Total gagné" value={totalEarnings} tone="green" />
-        <Kpi label="Cash encaissé" value={totalCashCollected} tone="blue" />
-        <Kpi label="Dû au commerçant" value={owesMerchant} tone="amber" />
-        <Kpi label="À reverser net" value={netCashToHandBack} tone="rose" />
+        <div className="grid grid-cols-2 gap-3">
+          <Kpi label="Total gagné" value={totalEarnings} tone="green" />
+          <Kpi label="Cash encaissé" value={totalCashCollected} tone="blue" />
+          <Kpi label="Dû au commerçant" value={owesMerchant} tone="amber" />
+          <Kpi label="À reverser net" value={netCashToHandBack} tone="rose" />
+        </div>
+
+        <section className="border-border bg-surface rounded-[14px] border p-4">
+          <h2 className="mb-3 text-sm font-semibold">Historique récent</h2>
+          {entries.length === 0 ? (
+            <p className="text-muted text-sm">
+              Aucun mouvement pour l&apos;instant.
+            </p>
+          ) : (
+            <ul className="divide-border divide-y">
+              {entries.slice(0, 50).map((e) => (
+                <li key={e.id} className="flex items-center gap-3 py-2 text-sm">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">
+                      {typeLabel(e.type)}
+                    </span>
+                    <span className="text-subtle text-xs tabular-nums">
+                      {new Date(e.created_at).toLocaleString("fr-FR")}
+                    </span>
+                  </span>
+                  <span
+                    className={
+                      "font-semibold tabular-nums " +
+                      (e.type === "driver_payout"
+                        ? "text-success-700"
+                        : e.type === "driver_owes_merchant" ||
+                            e.type === "driver_owes_platform"
+                          ? "text-warning-700"
+                          : "text-muted")
+                    }
+                  >
+                    {formatDA(e.amount_da)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
-
-      <section className="border-border bg-surface rounded-[14px] border p-4">
-        <h2 className="mb-3 text-sm font-semibold">Historique récent</h2>
-        {entries.length === 0 ? (
-          <p className="text-muted text-sm">
-            Aucun mouvement pour l&apos;instant.
-          </p>
-        ) : (
-          <ul className="divide-border divide-y">
-            {entries.slice(0, 50).map((e) => (
-              <li key={e.id} className="flex items-center gap-3 py-2 text-sm">
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">
-                    {typeLabel(e.type)}
-                  </span>
-                  <span className="text-subtle text-xs tabular-nums">
-                    {new Date(e.created_at).toLocaleString("fr-FR")}
-                  </span>
-                </span>
-                <span
-                  className={
-                    "font-semibold tabular-nums " +
-                    (e.type === "driver_payout"
-                      ? "text-success-700"
-                      : e.type === "driver_owes_merchant" ||
-                          e.type === "driver_owes_platform"
-                        ? "text-warning-700"
-                        : "text-muted")
-                  }
-                >
-                  {formatDA(e.amount_da)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </div>
+    </DriverShell>
   );
 }
 

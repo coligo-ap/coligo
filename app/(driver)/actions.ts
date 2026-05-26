@@ -118,6 +118,73 @@ export async function driverLogout(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Édition profil livreur (nom, téléphone)
+// ---------------------------------------------------------------------------
+const profileSchema = z.object({
+  full_name: z.string().min(2, "Nom trop court").max(80),
+  phone: z.string().min(6, "Téléphone invalide"),
+});
+
+export async function updateDriverProfile(
+  _prev: DriverAuthState,
+  formData: FormData
+): Promise<DriverAuthState> {
+  const parsed = profileSchema.safeParse({
+    full_name: formData.get("full_name"),
+    phone: formData.get("phone"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Données invalides" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée." };
+
+  // Le téléphone est sous contrainte UNIQUE — si déjà pris, on remonte
+  // l'erreur clairement.
+  const phone = normalizePhone(parsed.data.phone);
+  const { error } = await supabase
+    .from("drivers")
+    .update({
+      full_name: parsed.data.full_name,
+      phone,
+    })
+    .eq("user_id", user.id);
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "Ce téléphone est déjà associé à un autre livreur." };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath("/driver");
+  revalidatePath("/driver/parametres");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Suppression de compte livreur (danger zone)
+// ---------------------------------------------------------------------------
+export async function deleteDriverAccount(): Promise<DriverAuthState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée." };
+
+  // ON DELETE CASCADE sur auth.users → drivers + merchant_drivers +
+  // driver_availability + delivery_tours sont nettoyés en cascade.
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(user.id);
+  if (error) return { error: error.message };
+
+  redirect("/driver/login");
+}
+
+// ---------------------------------------------------------------------------
 // Soumission code commerçant (depuis la PWA livreur)
 // ---------------------------------------------------------------------------
 export async function driverSubmitCode(

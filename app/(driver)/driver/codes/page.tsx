@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { DriverSubmitCodeForm } from "@/components/driver/submit-code-form";
+import { DriverShell } from "@/components/driver/driver-shell";
+import { getCurrentDriver } from "@/lib/auth/driver";
 
 export const dynamic = "force-dynamic";
 
@@ -27,28 +29,33 @@ export default async function DriverSubmitCodePage({
     redirect(`/driver/signup?next=${encodeURIComponent(next)}`);
   }
 
+  const driver = await getCurrentDriver();
+  const firstName = driver?.full_name.split(" ")[0];
+
   return (
-    <div className="space-y-6">
-      <Link
-        href="/driver"
-        className="text-muted inline-flex items-center gap-1 text-sm"
-      >
-        <ArrowLeft className="size-4" />
-        Retour
-      </Link>
-      <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">
-          Rejoindre un commerçant
-        </h1>
-        <p className="text-muted text-sm">
-          {code
-            ? "Vérifie le code pré-rempli et valide pour envoyer ta demande."
-            : "Saisis le code de référence que le commerçant t'a partagé."}
-        </p>
-      </header>
-      <Suspense fallback={null}>
-        <DriverSubmitCodeForm />
-      </Suspense>
-    </div>
+    <DriverShell driverFirstName={firstName}>
+      <div className="space-y-6">
+        <Link
+          href="/driver"
+          className="text-muted inline-flex items-center gap-1 text-sm"
+        >
+          <ArrowLeft className="size-4" />
+          Retour
+        </Link>
+        <header className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">
+            Rejoindre un commerçant
+          </h1>
+          <p className="text-muted text-sm">
+            {code
+              ? "Vérifie le code pré-rempli et valide pour envoyer ta demande."
+              : "Saisis le code de référence que le commerçant t'a partagé."}
+          </p>
+        </header>
+        <Suspense fallback={null}>
+          <DriverSubmitCodeForm />
+        </Suspense>
+      </div>
+    </DriverShell>
   );
 }
