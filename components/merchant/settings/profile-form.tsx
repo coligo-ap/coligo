@@ -2,11 +2,10 @@
 
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { MediaUpload } from "@/components/merchant/settings/media-upload";
 import {
   setMediaUrl,
@@ -20,15 +19,16 @@ const initial: SettingsFormState = {};
 export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(updateProfile, initial);
+  const btnState = useFormActionFeedback({
+    pending,
+    ok: state.ok,
+    error: state.error,
+  });
 
   useEffect(() => {
-    if (state.ok) {
-      toast.success(state.success ?? "Profil enregistré");
-      router.refresh();
-    } else if (state.error) {
-      toast.error(state.error);
-    }
-  }, [state, router]);
+    // Refresh sur succès — pas de toast (feedback sur le bouton)
+    if (state.ok && !pending) router.refresh();
+  }, [state.ok, pending, router]);
 
   return (
     <div className="space-y-6">
@@ -140,15 +140,21 @@ export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
           </Field>
         </div>
 
-        {state.error && (
+        {state.error && btnState === "error" && (
           <p className="text-danger-600 text-sm">{state.error}</p>
         )}
 
         <div className="flex items-center gap-3">
-          <Button type="submit" disabled={pending}>
-            {pending && <Loader2 className="size-4 animate-spin" />}
-            Enregistrer le profil
-          </Button>
+          <ActionButton
+            type="submit"
+            state={btnState}
+            labels={{
+              idle: "Enregistrer le profil",
+              pending: "Enregistrement…",
+              success: "Profil enregistré ✓",
+              error: "Erreur, réessaie",
+            }}
+          />
           <span className="text-subtle text-xs">
             Slug actuel : <code className="font-mono">{merchant.slug}</code>
           </span>

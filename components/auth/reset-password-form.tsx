@@ -3,10 +3,10 @@
 import { useActionState, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { createClient } from "@/lib/supabase/client";
 import {
   updatePasswordAfterReset,
@@ -31,6 +31,11 @@ export function ResetPasswordForm() {
     updatePasswordAfterReset,
     initial
   );
+  const btnState = useFormActionFeedback({
+    pending,
+    ok: state.ok,
+    error: state.error,
+  });
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
@@ -68,12 +73,14 @@ export function ResetPasswordForm() {
   }, []);
 
   useEffect(() => {
-    if (state.ok) {
-      toast.success(state.message ?? "Mot de passe mis à jour");
+    if (state.ok && !pending) {
       const next = audience === "merchant" ? "/login" : "/se-connecter";
-      setTimeout(() => router.push(next), 700);
+      // Laisse 1.2 s pour que l'utilisateur voie "Mot de passe à jour ✓"
+      // sur le bouton avant de rediriger.
+      const t = setTimeout(() => router.push(next), 1200);
+      return () => clearTimeout(t);
     }
-  }, [state, router, audience]);
+  }, [state.ok, pending, router, audience]);
 
   if (sessionError) {
     return (
@@ -117,11 +124,20 @@ export function ResetPasswordForm() {
           disabled={pending}
         />
       </div>
-      {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        Mettre à jour
-      </Button>
+      {state.error && btnState === "error" && (
+        <p className="text-danger-600 text-sm">{state.error}</p>
+      )}
+      <ActionButton
+        type="submit"
+        className="w-full"
+        state={btnState}
+        labels={{
+          idle: "Mettre à jour",
+          pending: "Mise à jour…",
+          success: "Mot de passe à jour ✓",
+          error: "Erreur, réessaie",
+        }}
+      />
     </form>
   );
 }

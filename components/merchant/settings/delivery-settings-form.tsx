@@ -2,11 +2,11 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Truck, Calendar, Bolt } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Truck, Calendar, Bolt } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { cn } from "@/lib/utils";
 import { computeDeliveryFee } from "@/lib/delivery/pricing";
 import { formatDA } from "@/lib/utils";
@@ -39,14 +39,14 @@ export function DeliverySettingsForm({
   );
   const [simKm, setSimKm] = useState<number>(3);
 
+  const btnState = useFormActionFeedback({
+    pending,
+    ok: state.ok,
+    error: state.error,
+  });
   useEffect(() => {
-    if (state.ok) {
-      toast.success(state.success ?? "Livraison mise à jour");
-      router.refresh();
-    } else if (state.error) {
-      toast.error(state.error);
-    }
-  }, [state, router]);
+    if (state.ok && !pending) router.refresh();
+  }, [state.ok, pending, router]);
 
   const quote = useMemo(
     () => computeDeliveryFee(simKm, pricing, radius),
@@ -176,12 +176,20 @@ export function DeliverySettingsForm({
         </>
       )}
 
-      {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
+      {state.error && btnState === "error" && (
+        <p className="text-danger-600 text-sm">{state.error}</p>
+      )}
 
-      <Button type="submit" disabled={pending}>
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        Enregistrer
-      </Button>
+      <ActionButton
+        type="submit"
+        state={btnState}
+        labels={{
+          idle: "Enregistrer",
+          pending: "Enregistrement…",
+          success: "Livraison enregistrée ✓",
+          error: "Erreur, réessaie",
+        }}
+      />
     </form>
   );
 }

@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 import {
   Bug,
   HelpCircle,
   LayoutDashboard,
+  Loader2,
   LogOut,
   Settings,
   Tag,
@@ -194,15 +196,27 @@ export function MobileDrawer({
 
         {/* Déconnexion (Server Action existante) */}
         <form action={logout} className="p-3">
-          <button
-            type="submit"
-            className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[10px] border px-3 py-2 text-sm font-semibold transition-colors"
-          >
-            <LogOut className="size-5 shrink-0" />
-            Déconnexion
-          </button>
+          <DrawerLogoutButton />
         </form>
       </aside>
     </div>
+  );
+}
+
+function DrawerLogoutButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[10px] border px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
+    >
+      {pending ? (
+        <Loader2 className="size-5 shrink-0 animate-spin" />
+      ) : (
+        <LogOut className="size-5 shrink-0" />
+      )}
+      {pending ? "Déconnexion…" : "Déconnexion"}
+    </button>
   );
 }

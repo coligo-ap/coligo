@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useActionState, useEffect } from "react";
+import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ArrowRight, KeyRound, Loader2, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import {
   changePassword,
   type SettingsFormState,
@@ -26,15 +27,15 @@ export function AccountSection({
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(changePassword, initial);
+  const btnState = useFormActionFeedback({
+    pending,
+    ok: state.ok,
+    error: state.error,
+  });
 
   useEffect(() => {
-    if (state.ok) {
-      toast.success(state.success ?? "Mot de passe mis à jour");
-      router.refresh();
-    } else if (state.error) {
-      toast.error(state.error);
-    }
-  }, [state, router]);
+    if (state.ok && !pending) router.refresh();
+  }, [state.ok, pending, router]);
 
   return (
     <div className="space-y-5">
@@ -93,24 +94,42 @@ export function AccountSection({
             />
           </div>
         </div>
-        {state.error && (
+        {state.error && btnState === "error" && (
           <p className="text-danger-600 text-sm">{state.error}</p>
         )}
-        <Button type="submit" disabled={pending}>
-          {pending && <Loader2 className="size-4 animate-spin" />}
-          Mettre à jour
-        </Button>
+        <ActionButton
+          type="submit"
+          state={btnState}
+          labels={{
+            idle: "Mettre à jour",
+            pending: "Mise à jour…",
+            success: "Mot de passe à jour ✓",
+            error: "Erreur, réessaie",
+          }}
+        />
       </form>
 
       <form action={logout}>
-        <button
-          type="submit"
-          className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 inline-flex items-center gap-2 rounded-[10px] border px-3 py-2 text-sm font-semibold transition-colors"
-        >
-          <LogOut className="size-4" />
-          Déconnexion
-        </button>
+        <LogoutButton />
       </form>
     </div>
+  );
+}
+
+function LogoutButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 inline-flex items-center gap-2 rounded-[10px] border px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
+    >
+      {pending ? (
+        <Loader2 className="size-4 animate-spin" />
+      ) : (
+        <LogOut className="size-4" />
+      )}
+      {pending ? "Déconnexion…" : "Déconnexion"}
+    </button>
   );
 }

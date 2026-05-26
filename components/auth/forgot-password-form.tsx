@@ -1,10 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import {
   sendPasswordResetEmail,
   type ResetState,
@@ -21,6 +21,11 @@ export function ForgotPasswordForm({
     sendPasswordResetEmail,
     initial
   );
+  const btnState = useFormActionFeedback({
+    pending,
+    ok: state.ok,
+    error: state.error,
+  });
 
   return (
     <form action={formAction} className="space-y-3">
@@ -38,16 +43,25 @@ export function ForgotPasswordForm({
           disabled={pending}
         />
       </div>
-      {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
+      {state.error && btnState === "error" && (
+        <p className="text-danger-600 text-sm">{state.error}</p>
+      )}
       {state.ok && state.message && (
         <p className="border-success-200 bg-success-50 text-success-700 rounded-[10px] border px-3 py-2 text-sm">
           {state.message}
         </p>
       )}
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        Recevoir le lien
-      </Button>
+      <ActionButton
+        type="submit"
+        className="w-full"
+        state={btnState}
+        labels={{
+          idle: "Recevoir le lien",
+          pending: "Envoi en cours…",
+          success: "Email envoyé ✓",
+          error: "Erreur, réessaie",
+        }}
+      />
     </form>
   );
 }

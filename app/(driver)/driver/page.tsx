@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bolt, Calendar, LogOut, Truck, Wallet } from "lucide-react";
+import { Bolt, Calendar, Truck, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
-import { Button } from "@/components/ui/button";
-import { driverLogout } from "@/app/(driver)/actions";
+import { DriverLogoutButton } from "@/components/driver/logout-button";
 
 export const dynamic = "force-dynamic";
 
@@ -72,11 +71,7 @@ export default async function DriverHomePage() {
           </h1>
           <p className="text-muted text-xs">{driver.phone}</p>
         </div>
-        <form action={driverLogout}>
-          <Button type="submit" size="sm" variant="secondary">
-            <LogOut className="size-4" />
-          </Button>
-        </form>
+        <DriverLogoutButton />
       </header>
 
       {/* Ajouter un nouveau commerçant */}

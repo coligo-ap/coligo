@@ -2,8 +2,10 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Info, Loader2, Moon, Plus, Trash2 } from "lucide-react";
+import { Copy, Info, Moon, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import {
@@ -39,14 +41,14 @@ export function OpeningHoursForm({
     initial
   );
 
+  const btnState = useFormActionFeedback({
+    pending,
+    ok: state.ok,
+    error: state.error,
+  });
   useEffect(() => {
-    if (state.ok) {
-      toast.success(state.success ?? "Horaires enregistrés");
-      router.refresh();
-    } else if (state.error) {
-      toast.error(state.error);
-    }
-  }, [state, router]);
+    if (state.ok && !pending) router.refresh();
+  }, [state.ok, pending, router]);
 
   function addSlot(day: DayKey) {
     setHours((h) => ({ ...h, [day]: [...h[day], { ...DEFAULT_SLOT }] }));
@@ -207,12 +209,20 @@ export function OpeningHoursForm({
         })}
       </div>
 
-      {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
+      {state.error && btnState === "error" && (
+        <p className="text-danger-600 text-sm">{state.error}</p>
+      )}
 
-      <Button type="submit" disabled={pending}>
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        Enregistrer les horaires
-      </Button>
+      <ActionButton
+        type="submit"
+        state={btnState}
+        labels={{
+          idle: "Enregistrer les horaires",
+          pending: "Enregistrement…",
+          success: "Horaires enregistrés ✓",
+          error: "Erreur, réessaie",
+        }}
+      />
     </form>
   );
 }

@@ -2,11 +2,10 @@
 
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import {
   updateOrderRules,
   type SettingsFormState,
@@ -23,15 +22,15 @@ export function OrderRulesForm({ merchant }: { merchant: MerchantSettings }) {
     updateOrderRules,
     initial
   );
+  const btnState = useFormActionFeedback({
+    pending,
+    ok: state.ok,
+    error: state.error,
+  });
 
   useEffect(() => {
-    if (state.ok) {
-      toast.success(state.success ?? "Règles enregistrées");
-      router.refresh();
-    } else if (state.error) {
-      toast.error(state.error);
-    }
-  }, [state, router]);
+    if (state.ok && !pending) router.refresh();
+  }, [state.ok, pending, router]);
 
   return (
     <form action={formAction} className="space-y-5">
@@ -118,12 +117,20 @@ export function OrderRulesForm({ merchant }: { merchant: MerchantSettings }) {
         </Field>
       </div>
 
-      {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
+      {state.error && btnState === "error" && (
+        <p className="text-danger-600 text-sm">{state.error}</p>
+      )}
 
-      <Button type="submit" disabled={pending}>
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        Enregistrer les règles
-      </Button>
+      <ActionButton
+        type="submit"
+        state={btnState}
+        labels={{
+          idle: "Enregistrer les règles",
+          pending: "Enregistrement…",
+          success: "Règles enregistrées ✓",
+          error: "Erreur, réessaie",
+        }}
+      />
     </form>
   );
 }

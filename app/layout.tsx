@@ -4,6 +4,8 @@ import { APP_CONFIG } from "@/lib/config/app-config";
 import { Toaster } from "@/components/ui/toast";
 import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
 import { CapacitorBootLog } from "@/components/pwa/capacitor-boot-log";
+import { RouteProgressBar } from "@/components/shared/route-progress-bar";
+import { Suspense } from "react";
 import "./globals.css";
 
 // Typo storefront (prompt 20 redesign) :
@@ -164,6 +166,9 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: KILL_EXTENSION_ATTRS }} />
       </head>
       <body className="antialiased" suppressHydrationWarning>
+        <Suspense fallback={null}>
+          <RouteProgressBar />
+        </Suspense>
         {children}
         <Toaster />
         <RegisterServiceWorker />

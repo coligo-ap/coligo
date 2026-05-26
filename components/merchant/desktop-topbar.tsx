@@ -1,7 +1,8 @@
 "use client";
 
-import { Bell, Search, ChevronDown, LogOut, User } from "lucide-react";
+import { Bell, Search, ChevronDown, Loader2, LogOut, User } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useFormStatus } from "react-dom";
 import { logout } from "@/app/(merchant)/actions";
 import { SyncIndicator } from "@/components/merchant/sync-indicator";
 
@@ -94,13 +95,7 @@ export function MerchantTopbar({
               </div>
               <div className="border-surface-3 border-t">
                 <form action={logout}>
-                  <button
-                    type="submit"
-                    className="text-danger-700 hover:bg-danger-50 flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-semibold"
-                  >
-                    <LogOut className="size-3.5" />
-                    Déconnexion
-                  </button>
+                  <TopbarLogoutButton />
                 </form>
               </div>
             </div>
@@ -108,5 +103,23 @@ export function MerchantTopbar({
         </div>
       </div>
     </header>
+  );
+}
+
+function TopbarLogoutButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="text-danger-700 hover:bg-danger-50 flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-semibold disabled:opacity-60"
+    >
+      {pending ? (
+        <Loader2 className="size-3.5 animate-spin" />
+      ) : (
+        <LogOut className="size-3.5" />
+      )}
+      {pending ? "Déconnexion…" : "Déconnexion"}
+    </button>
   );
 }

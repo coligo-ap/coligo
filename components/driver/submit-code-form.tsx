@@ -2,11 +2,10 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { driverSubmitCode, type DriverAuthState } from "@/app/(driver)/actions";
 
 const initial: DriverAuthState = {};
@@ -15,15 +14,21 @@ export function DriverSubmitCodeForm() {
   const router = useRouter();
   const sp = useSearchParams();
   const [state, action, pending] = useActionState(driverSubmitCode, initial);
+  const btnState = useFormActionFeedback({
+    pending,
+    ok: state.ok,
+    error: state.error,
+  });
   // Le code peut venir du lien partagé par le commerçant : `?code=BOUL-XYZ`.
   const [code, setCode] = useState(sp.get("code") ?? "");
 
   useEffect(() => {
-    if (state.ok) {
-      toast.success("Demande envoyée — en attente de validation");
-      router.push("/driver");
+    if (state.ok && !pending) {
+      // Laisse le bouton afficher "Demande envoyée ✓" 1.2 s avant redirect.
+      const t = setTimeout(() => router.push("/driver"), 1200);
+      return () => clearTimeout(t);
     }
-  }, [state, router]);
+  }, [state.ok, pending, router]);
 
   return (
     <form action={action} className="space-y-3">
@@ -47,11 +52,20 @@ export function DriverSubmitCodeForm() {
           </p>
         )}
       </div>
-      {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        Envoyer
-      </Button>
+      {state.error && btnState === "error" && (
+        <p className="text-danger-600 text-sm">{state.error}</p>
+      )}
+      <ActionButton
+        type="submit"
+        className="w-full"
+        state={btnState}
+        labels={{
+          idle: "Envoyer",
+          pending: "Envoi en cours…",
+          success: "Demande envoyée ✓",
+          error: "Erreur, réessaie",
+        }}
+      />
     </form>
   );
 }

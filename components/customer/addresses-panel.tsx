@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, MapPin, Plus, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { toast } from "@/components/ui/toast";
 import { AddressForm } from "@/components/customer/address-picker";
 import {
@@ -29,14 +31,23 @@ export function AddressesPanel({ addresses }: { addresses: Addr[] }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [state, action, pending] = useActionState(addAddress, initial);
+  const btnState = useFormActionFeedback({
+    pending,
+    ok: state.ok,
+    error: state.error,
+  });
 
-  if (state.ok && adding) {
-    // reset
-    setTimeout(() => {
-      setAdding(false);
-      router.refresh();
-    }, 0);
-  }
+  // Quand l'enregistrement réussit, on attend ~1s (pour que l'utilisateur
+  // voie "Enregistré ✓") puis on ferme le form et on refresh.
+  useEffect(() => {
+    if (state.ok && adding && !pending) {
+      const t = setTimeout(() => {
+        setAdding(false);
+        router.refresh();
+      }, 1200);
+      return () => clearTimeout(t);
+    }
+  }, [state.ok, adding, pending, router]);
 
   return (
     <div className="space-y-4">
@@ -67,14 +78,20 @@ export function AddressesPanel({ addresses }: { addresses: Addr[] }) {
             <input type="checkbox" name="is_default" />
             Définir comme adresse par défaut
           </label>
-          {state.error && (
+          {state.error && btnState === "error" && (
             <p className="text-danger-600 text-sm">{state.error}</p>
           )}
           <div className="flex gap-2">
-            <Button type="submit" disabled={pending}>
-              {pending && <Loader2 className="size-4 animate-spin" />}
-              Enregistrer
-            </Button>
+            <ActionButton
+              type="submit"
+              state={btnState}
+              labels={{
+                idle: "Enregistrer",
+                pending: "Enregistrement…",
+                success: "Adresse enregistrée ✓",
+                error: "Erreur, réessaie",
+              }}
+            />
             <Button
               type="button"
               variant="secondary"
