@@ -44,15 +44,18 @@ function buildStyle() {
 
 export function DeliveryRouteMap({
   target,
-  heightClass = "h-[220px]",
+  height = 220,
 }: {
   target: LatLng;
-  heightClass?: string;
+  /** Hauteur en px ou string CSS. Inline pour échapper à la purge Tailwind. */
+  height?: number | string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const driverMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
   const [coords, setCoords] = useState<Coords | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   // Géoloc live
   useEffect(() => {
@@ -69,48 +72,62 @@ export function DeliveryRouteMap({
     if (!containerRef.current) return;
     let disposed = false;
 
-    void import("maplibre-gl").then(({ Map, Marker }) => {
-      if (disposed || !containerRef.current) return;
+    void import("maplibre-gl")
+      .then(({ Map, Marker }) => {
+        if (disposed || !containerRef.current) return;
 
-      const map = new Map({
-        container: containerRef.current,
-        style: buildStyle() as never,
-        center: [target.lng, target.lat],
-        zoom: 14,
-        attributionControl: { compact: true },
-      });
-      mapRef.current = map;
-
-      // Marqueur cible (client) — rouge vif.
-      const targetEl = document.createElement("div");
-      targetEl.innerHTML =
-        '<div style="background:#dc2626;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);font-weight:bold;font-size:14px;">●</div>';
-      new Marker({ element: targetEl })
-        .setLngLat([target.lng, target.lat])
-        .addTo(map);
-
-      // Ligne d'arrivée (sera dessinée quand on aura la position livreur).
-      map.on("load", () => {
-        map.addSource("route", {
-          type: "geojson",
-          data: {
-            type: "Feature",
-            properties: {},
-            geometry: { type: "LineString", coordinates: [] },
-          },
+        const map = new Map({
+          container: containerRef.current,
+          style: buildStyle() as never,
+          center: [target.lng, target.lat],
+          zoom: 14,
+          attributionControl: { compact: true },
         });
-        map.addLayer({
-          id: "route-line",
-          type: "line",
-          source: "route",
-          paint: {
-            "line-color": "#5c5ce0",
-            "line-width": 3,
-            "line-dasharray": [2, 2],
-          },
+        mapRef.current = map;
+
+        // Marqueur cible (client) — rouge vif.
+        const targetEl = document.createElement("div");
+        targetEl.innerHTML =
+          '<div style="background:#dc2626;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);font-weight:bold;font-size:14px;">●</div>';
+        new Marker({ element: targetEl })
+          .setLngLat([target.lng, target.lat])
+          .addTo(map);
+
+        map.on("load", () => {
+          setMapReady(true);
+          map.addSource("route", {
+            type: "geojson",
+            data: {
+              type: "Feature",
+              properties: {},
+              geometry: { type: "LineString", coordinates: [] },
+            },
+          });
+          map.addLayer({
+            id: "route-line",
+            type: "line",
+            source: "route",
+            paint: {
+              "line-color": "#5c5ce0",
+              "line-width": 3,
+              "line-dasharray": [2, 2],
+            },
+          });
         });
+        // Filet de sécurité : si le container avait 0 px au montage
+        // (ex: stop déplié pendant une transition), on resize au cas où.
+        setTimeout(() => map.resize(), 100);
+        setTimeout(() => map.resize(), 500);
+        setTimeout(() => map.resize(), 1500);
+      })
+      .catch((err) => {
+        if (!disposed) {
+          setMapError(
+            "Carte indisponible : " +
+              (err instanceof Error ? err.message : String(err))
+          );
+        }
       });
-    });
 
     return () => {
       disposed = true;
@@ -179,10 +196,24 @@ export function DeliveryRouteMap({
   return (
     <div className="space-y-2">
       <div
-        className={`relative w-full overflow-hidden rounded-[12px] ${heightClass}`}
+        className="bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
+        style={{ height: typeof height === "number" ? `${height}px` : height }}
       >
         <div ref={containerRef} className="absolute inset-0" />
-        {!coords && (
+
+        {!mapReady && !mapError && (
+          <div className="text-muted absolute inset-0 flex items-center justify-center gap-2 bg-white/60 text-sm">
+            <ExternalLink className="size-4 animate-pulse" />
+            Chargement de la carte…
+          </div>
+        )}
+        {mapError && (
+          <div className="text-danger-700 absolute inset-0 flex items-center justify-center bg-white/90 px-4 text-center text-sm">
+            {mapError}
+          </div>
+        )}
+
+        {mapReady && !coords && (
           <div className="bg-surface/90 absolute top-2 left-1/2 -translate-x-1/2 rounded-full border px-3 py-1 text-xs">
             Activation GPS…
           </div>

@@ -201,7 +201,7 @@ export function TourExecution({
                   {s.delivery_lat != null && s.delivery_lng != null && (
                     <DeliveryRouteMap
                       target={{ lat: s.delivery_lat, lng: s.delivery_lng }}
-                      heightClass="h-[180px]"
+                      height={180}
                     />
                   )}
 

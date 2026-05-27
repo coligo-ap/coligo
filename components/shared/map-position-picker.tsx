@@ -47,8 +47,13 @@ export type MapPositionPickerProps = {
   initial?: LatLng | null;
   defaultCenter?: LatLng;
   onChange: (pos: LatLng) => void;
-  /** Hauteur en classes Tailwind. Défaut : h-[280px] */
-  heightClass?: string;
+  /**
+   * Hauteur de la carte (px ou string CSS). Défaut : 280.
+   * Note : on évite les classes Tailwind dynamiques (h-[XYZpx]) qui peuvent
+   * être purgées si elles ne sont pas écrites en littéral dans le source —
+   * un `style={{ height }}` inline est toujours appliqué.
+   */
+  height?: number | string;
   /** Texte du bouton GPS. */
   gpsLabel?: string;
 };
@@ -57,12 +62,14 @@ export function MapPositionPicker({
   initial,
   defaultCenter,
   onChange,
-  heightClass = "h-[280px]",
+  height = 280,
   gpsLabel = "Ma position",
 }: MapPositionPickerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const [loading, setLoading] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   const start = initial ?? defaultCenter ?? DEFAULT_CENTER;
 
@@ -70,26 +77,43 @@ export function MapPositionPicker({
     if (!containerRef.current) return;
     let disposed = false;
 
-    void import("maplibre-gl").then(({ Map }) => {
-      if (disposed || !containerRef.current) return;
+    void import("maplibre-gl")
+      .then(({ Map }) => {
+        if (disposed || !containerRef.current) return;
 
-      const map = new Map({
-        container: containerRef.current,
-        style: buildStyle() as never,
-        center: [start.lng, start.lat],
-        zoom: initial ? 16 : 14,
-        attributionControl: { compact: true },
+        const map = new Map({
+          container: containerRef.current,
+          style: buildStyle() as never,
+          center: [start.lng, start.lat],
+          zoom: initial ? 16 : 14,
+          attributionControl: { compact: true },
+        });
+        mapRef.current = map;
+
+        const emit = () => {
+          const c = map.getCenter();
+          onChange({ lat: c.lat, lng: c.lng });
+        };
+        map.on("moveend", emit);
+        map.once("load", () => {
+          setMapReady(true);
+          emit();
+        });
+        // Filet de sécurité : si le container avait 0 px au moment de l'init
+        // (ex: parent qui anime sa hauteur), MapLibre dessine vide.
+        // map.resize() à 100/500/1500 ms recouvre tous les cas usuels.
+        setTimeout(() => map.resize(), 100);
+        setTimeout(() => map.resize(), 500);
+        setTimeout(() => map.resize(), 1500);
+      })
+      .catch((err) => {
+        if (!disposed) {
+          setMapError(
+            "Carte indisponible : " +
+              (err instanceof Error ? err.message : String(err))
+          );
+        }
       });
-      mapRef.current = map;
-
-      const emit = () => {
-        const c = map.getCenter();
-        onChange({ lat: c.lat, lng: c.lng });
-      };
-      map.on("moveend", emit);
-      // Émet aussi une valeur initiale (utile si parent attendait un value).
-      map.once("load", emit);
-    });
 
     return () => {
       disposed = true;
@@ -116,21 +140,38 @@ export function MapPositionPicker({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-[12px] ${heightClass}`}
+      className="bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
+      style={{ height: typeof height === "number" ? `${height}px` : height }}
     >
       <div ref={containerRef} className="absolute inset-0" />
+
+      {/* État de chargement / erreur */}
+      {!mapReady && !mapError && (
+        <div className="text-muted absolute inset-0 flex items-center justify-center gap-2 bg-white/60 text-sm">
+          <Loader2 className="size-4 animate-spin" />
+          Chargement de la carte…
+        </div>
+      )}
+      {mapError && (
+        <div className="text-danger-700 absolute inset-0 flex items-center justify-center bg-white/90 px-4 text-center text-sm">
+          {mapError}
+        </div>
+      )}
+
       {/* Marqueur central fixe (overlay HTML). */}
-      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full">
-        <MapPin
-          className="text-primary-700 size-9 drop-shadow-md"
-          fill="currentColor"
-        />
-      </div>
+      {mapReady && (
+        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full">
+          <MapPin
+            className="text-primary-700 size-9 drop-shadow-md"
+            fill="currentColor"
+          />
+        </div>
+      )}
       <button
         type="button"
         onClick={useGps}
-        disabled={loading}
-        className="bg-surface border-border absolute right-2 bottom-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow"
+        disabled={loading || !mapReady}
+        className="bg-surface border-border absolute right-2 bottom-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow disabled:opacity-60"
       >
         {loading ? (
           <Loader2 className="size-3.5 animate-spin" />

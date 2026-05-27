@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { MediaUpload } from "@/components/merchant/settings/media-upload";
+import { WILAYAS } from "@/lib/config/wilayas";
+import { getCommunes } from "@/lib/config/communes";
 import {
   setMediaUrl,
   updateProfile,
@@ -14,11 +16,18 @@ import {
 } from "@/app/(merchant)/settings/actions";
 import type { MerchantSettings } from "@/lib/types";
 
+const SELECT_CLASS =
+  "appearance-none flex h-10 w-full rounded-[10px] border border-border-strong bg-white pr-8 py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 disabled:cursor-not-allowed disabled:opacity-50";
+
 const initial: SettingsFormState = {};
 
 export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(updateProfile, initial);
+  // Sélecteur wilaya contrôlé pour que la liste de communes se recharge
+  // quand la wilaya change. Default = valeur courante du commerçant.
+  const [wilayaCode, setWilayaCode] = useState(merchant.wilaya_code ?? "");
+  const communes = useMemo(() => getCommunes(wilayaCode), [wilayaCode]);
   const btnState = useFormActionFeedback({
     pending,
     ok: state.ok,
@@ -79,22 +88,62 @@ export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Code wilaya">
-            <Input
-              name="wilaya_code"
-              defaultValue={merchant.wilaya_code ?? ""}
-              maxLength={2}
-              placeholder="Ex. 16"
-              disabled={pending}
-            />
+          <Field label="Wilaya">
+            <div className="relative">
+              <select
+                name="wilaya_code"
+                value={wilayaCode}
+                onChange={(e) => setWilayaCode(e.target.value)}
+                disabled={pending}
+                className={SELECT_CLASS}
+              >
+                <option value="">— Sélectionner —</option>
+                {WILAYAS.map((w) => (
+                  <option key={w.code} value={w.code}>
+                    {w.code} · {w.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronIcon />
+            </div>
           </Field>
           <Field label="Commune">
-            <Input
-              name="commune"
-              defaultValue={merchant.commune ?? ""}
-              maxLength={80}
-              disabled={pending}
-            />
+            <div className="relative">
+              {communes.length > 0 ? (
+                <>
+                  <select
+                    name="commune"
+                    defaultValue={merchant.commune ?? ""}
+                    disabled={pending || !wilayaCode}
+                    className={SELECT_CLASS}
+                    // Key force le re-mount quand la wilaya change → reset
+                    // automatique de la sélection si l'ancienne commune
+                    // n'est plus valide dans la nouvelle wilaya.
+                    key={wilayaCode}
+                  >
+                    <option value="">— Sélectionner —</option>
+                    {communes.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronIcon />
+                </>
+              ) : (
+                <Input
+                  name="commune"
+                  defaultValue={merchant.commune ?? ""}
+                  maxLength={80}
+                  disabled={pending}
+                  placeholder={
+                    wilayaCode
+                      ? "Saisis ta commune"
+                      : "Choisis d'abord une wilaya"
+                  }
+                />
+              )}
+            </div>
           </Field>
           <Field label="Téléphone public">
             <Input
@@ -181,5 +230,23 @@ function Field({
       </Label>
       {children}
     </div>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg
+      className="text-subtle pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden
+    >
+      <path
+        fillRule="evenodd"
+        d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
+        clipRule="evenodd"
+      />
+    </svg>
   );
 }
