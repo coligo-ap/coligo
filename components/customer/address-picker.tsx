@@ -37,23 +37,8 @@ function buildStyle() {
   if (key) {
     return `https://api.maptiler.com/maps/streets/style.json?key=${key}`;
   }
-  // OSM raster fallback (libre, attribution obligatoire).
-  return {
-    version: 8 as const,
-    sources: {
-      osm: {
-        type: "raster" as const,
-        tiles: [
-          "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        ],
-        tileSize: 256,
-        attribution: "© OpenStreetMap contributors",
-      },
-    },
-    layers: [{ id: "osm", type: "raster" as const, source: "osm" }],
-  };
+  // OpenFreeMap (gratuit, vectoriel, sans clé). Plus rapide qu'OSM raster.
+  return "https://tiles.openfreemap.org/styles/liberty";
 }
 
 export function AddressPicker({
@@ -84,12 +69,16 @@ export function AddressPicker({
       });
       mapRef.current = map;
 
-      // Émet la position du centre à chaque "moveend".
       const emit = () => {
         const c = map.getCenter();
         onChange({ lat: c.lat, lng: c.lng });
       };
       map.on("moveend", emit);
+      // Filet de sécurité : ré-évalue la taille du canvas si le parent a
+      // 0 px au montage (transitions, accordéon, etc.).
+      setTimeout(() => map.resize(), 100);
+      setTimeout(() => map.resize(), 500);
+      setTimeout(() => map.resize(), 1500);
     });
 
     return () => {
@@ -119,7 +108,10 @@ export function AddressPicker({
 
   return (
     <div className={"space-y-2 " + (className ?? "")}>
-      <div className="relative h-[300px] w-full overflow-hidden rounded-[12px]">
+      <div
+        className="bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
+        style={{ height: 300 }}
+      >
         <div ref={containerRef} className="absolute inset-0" />
         {/* Marqueur central fixe (overlay HTML, plus simple qu'un Marker
             MapLibre que l'on devrait re-syncer à chaque move). */}

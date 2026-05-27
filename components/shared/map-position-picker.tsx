@@ -20,27 +20,19 @@ type LatLng = { lat: number; lng: number };
 
 const DEFAULT_CENTER: LatLng = { lat: 36.7538, lng: 3.0588 }; // Alger
 
+/**
+ * Style de carte par priorité :
+ *  1. MapTiler streets (si NEXT_PUBLIC_MAPTILER_KEY défini) — couverture
+ *     Algérie excellente, vectoriel, label arabe + latin.
+ *  2. OpenFreeMap "liberty" — vectoriel, GRATUIT, sans clé, hébergé en EU,
+ *     basé sur OSM, très rapide comparé aux tuiles OSM raster.
+ */
 function buildStyle() {
   const key = process.env.NEXT_PUBLIC_MAPTILER_KEY;
   if (key) {
     return `https://api.maptiler.com/maps/streets/style.json?key=${key}`;
   }
-  return {
-    version: 8 as const,
-    sources: {
-      osm: {
-        type: "raster" as const,
-        tiles: [
-          "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        ],
-        tileSize: 256,
-        attribution: "© OpenStreetMap contributors",
-      },
-    },
-    layers: [{ id: "osm", type: "raster" as const, source: "osm" }],
-  };
+  return "https://tiles.openfreemap.org/styles/liberty";
 }
 
 export type MapPositionPickerProps = {

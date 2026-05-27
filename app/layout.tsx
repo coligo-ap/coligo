@@ -164,6 +164,17 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: KILL_EXTENSION_ATTRS }} />
+        {/* CSS MapLibre — chargée via CDN parce que l'import
+            `import "maplibre-gl/dist/maplibre-gl.css"` à l'intérieur d'un
+            client component avec dynamic-import du JS n'était pas inclus
+            dans le bundle prod (vérifié : 0 occurrence de `maplibre` dans
+            le CSS Next.js). Ce lien garantit l'inclusion sur toutes les
+            pages, même celles qui ne montent pas encore la carte. */}
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css"
+          crossOrigin="anonymous"
+        />
       </head>
       <body className="antialiased" suppressHydrationWarning>
         <Suspense fallback={null}>
