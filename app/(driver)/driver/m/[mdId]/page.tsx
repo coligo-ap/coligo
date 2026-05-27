@@ -61,7 +61,7 @@ export default async function DriverMerchantSpacePage({
     ? await supabase
         .from("orders")
         .select(
-          "id, customer_name, customer_phone, total_da, payment_method, delivery_address_text, delivery_phone, delivery_lat, delivery_lng, status, delivery_mode"
+          "id, customer_name, customer_phone, total_da, payment_method, delivery_address_text, delivery_phone, delivery_lat, delivery_lng, delivery_note, delivery_picked_up_at, status, delivery_mode"
         )
         .eq("id", avail.current_order_id)
         .maybeSingle()
@@ -88,6 +88,7 @@ export default async function DriverMerchantSpacePage({
           merchantDriverId={link.id}
           availStatus={avail?.status ?? "offline"}
           currentOrder={currentOrder ?? null}
+          merchantName={merchant.name}
         />
       )}
 

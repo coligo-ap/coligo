@@ -29,7 +29,8 @@ export default async function DriverTourExecutionPage({
     .select(
       `id, stop_order, status, delivered_at,
        orders ( id, customer_name, customer_phone, total_da, payment_method,
-                delivery_address_text, delivery_phone, delivery_lat, delivery_lng )`
+                delivery_address_text, delivery_phone, delivery_lat, delivery_lng,
+                delivery_note, delivery_picked_up_at )`
     )
     .eq("tour_id", tourId)
     .order("stop_order", { ascending: true });
@@ -51,6 +52,8 @@ export default async function DriverTourExecutionPage({
         delivery_phone: o.delivery_phone,
         delivery_lat: o.delivery_lat,
         delivery_lng: o.delivery_lng,
+        delivery_note: o.delivery_note,
+        delivery_picked_up_at: o.delivery_picked_up_at,
       },
     ];
   });
@@ -71,7 +74,7 @@ export default async function DriverTourExecutionPage({
         </p>
       </header>
 
-      <TourExecution stops={rows} />
+      <TourExecution stops={rows} tourId={tourId} />
     </div>
   );
 }

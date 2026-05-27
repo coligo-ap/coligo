@@ -296,6 +296,55 @@ export async function pullNextExpress(
 }
 
 // ---------------------------------------------------------------------------
+// Récupération chez le commerçant (pickup) — 1 commande ou tournée entière
+// ---------------------------------------------------------------------------
+export async function markOrderPickedUp(
+  orderId: string
+): Promise<{ ok: boolean; reason?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("mark_delivery_picked_up", {
+    p_order_id: orderId,
+  });
+  if (error) return { ok: false, reason: error.message };
+  const row = (
+    data as Array<{ ok: boolean; reason: string | null }> | null
+  )?.[0];
+  if (!row) return { ok: false, reason: "no_response" };
+  if (row.ok) revalidatePath("/driver");
+  return { ok: row.ok, reason: row.reason ?? undefined };
+}
+
+export async function markTourPickedUp(
+  tourId: string
+): Promise<{ ok: boolean; count?: number; error?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("mark_tour_picked_up", {
+    p_tour_id: tourId,
+  });
+  if (error) return { ok: false, error: error.message };
+  const row = (data as Array<{ updated: number }> | null)?.[0];
+  revalidatePath(`/driver`);
+  return { ok: true, count: row?.updated ?? 0 };
+}
+
+export async function reorderTourFromPosition(
+  tourId: string,
+  lat: number,
+  lng: number
+): Promise<{ ok: boolean; reordered?: number; error?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("reorder_tour_from", {
+    p_tour_id: tourId,
+    p_from_lat: lat,
+    p_from_lng: lng,
+  });
+  if (error) return { ok: false, error: error.message };
+  const row = (data as Array<{ reordered: number }> | null)?.[0];
+  revalidatePath(`/driver`);
+  return { ok: true, reordered: row?.reordered ?? 0 };
+}
+
+// ---------------------------------------------------------------------------
 // Valider une livraison (saisie code ou skip si cash)
 // ---------------------------------------------------------------------------
 export async function validateDelivery(input: {

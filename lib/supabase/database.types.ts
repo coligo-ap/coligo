@@ -1405,6 +1405,22 @@ export type Database = {
         };
         Returns: { ok: boolean; reason: string | null }[];
       };
+      mark_delivery_picked_up: {
+        Args: { p_order_id: string };
+        Returns: { ok: boolean; reason: string | null }[];
+      };
+      mark_tour_picked_up: {
+        Args: { p_tour_id: string };
+        Returns: { updated: number }[];
+      };
+      reorder_tour_from: {
+        Args: {
+          p_tour_id: string;
+          p_from_lat: number;
+          p_from_lng: number;
+        };
+        Returns: { reordered: number }[];
+      };
     };
     Enums: {
       order_status:
