@@ -19,15 +19,20 @@ import { enqueueOrExecute } from "@/lib/offline/queue";
  * - pending   → Accepter / Refuser
  * - accepted  → Mettre en préparation
  * - preparing → Marquer comme prête
- * - ready     → lien vers la validation de retrait (code 6 chiffres / QR)
+ * - ready     → RETRAIT : lien vers la validation de retrait (code 6 chiffres
+ *               / QR). LIVRAISON : aucune validation commerçant — le livreur
+ *               récupère et c'est lui qui confirme la remise au client.
  * - completed / cancelled → terminal (rien)
  */
 export function OrderActions({
   orderId,
   status,
+  fulfillmentType = "pickup",
 }: {
   orderId: string;
   status: OrderStatus;
+  /** "delivery" = pas de validation code côté commerçant (le livreur gère). */
+  fulfillmentType?: "pickup" | "delivery";
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -82,6 +87,19 @@ export function OrderActions({
   }
 
   const next = nextOrderAction(status);
+  const isDelivery = fulfillmentType === "delivery";
+
+  // LIVRAISON, commande prête : rien à valider côté commerçant. Le livreur
+  // récupère la commande (simple bouton de son côté) puis confirme la remise
+  // au client. Le commerçant attend juste le passage du livreur.
+  if (status === "ready" && isDelivery) {
+    return (
+      <p className="text-primary-800 bg-primary-50 border-primary-200 rounded-[12px] border px-4 py-3 text-sm font-medium">
+        Commande prête — en attente du livreur. La remise sera confirmée par le
+        livreur (pas de code à valider ici).
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-3">

@@ -100,8 +100,8 @@ export function DeliveryValidationDialog({
             <h2 className="text-base font-semibold">Valider la livraison</h2>
             <p className="text-muted mt-0.5 text-xs">
               {isOnline
-                ? "Demande le code de retrait au client. Le code est OBLIGATOIRE pour les commandes payées en ligne."
-                : "Demande le code de retrait au client. Pour les commandes cash, tu peux valider sans code si nécessaire."}
+                ? "Commande payée en ligne : demande au client son code de retrait à 6 chiffres. Le code est OBLIGATOIRE."
+                : "Commande en espèces : encaisse le montant puis confirme la remise. Aucun code n'est demandé au client."}
             </p>
           </div>
           <button
@@ -113,67 +113,74 @@ export function DeliveryValidationDialog({
           </button>
         </header>
 
-        <div className="space-y-2">
-          <Label htmlFor="code">Code de retrait (6 chiffres)</Label>
-          <div className="flex gap-2">
-            <Input
-              id="code"
-              inputMode="numeric"
-              maxLength={6}
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              placeholder="123456"
-              className="font-mono text-base tracking-widest"
-              disabled={pending}
-            />
+        {isOnline ? (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="code">Code de retrait (6 chiffres)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="code"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  placeholder="123456"
+                  className="font-mono text-base tracking-widest"
+                  disabled={pending}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setScanning((v) => !v)}
+                  disabled={pending}
+                >
+                  <Camera className="size-4" />
+                  {scanning ? "Fermer" : "Scanner"}
+                </Button>
+              </div>
+            </div>
+
+            {scanning && (
+              <div className="overflow-hidden rounded-[12px]">
+                <QrScanner onScan={handleScannedText} />
+              </div>
+            )}
+
             <Button
               type="button"
-              variant="secondary"
-              onClick={() => setScanning((v) => !v)}
-              disabled={pending}
+              onClick={() => submit(false)}
+              disabled={pending || code.length !== 6}
             >
-              <Camera className="size-4" />
-              {scanning ? "Fermer" : "Scanner"}
+              {pending && <Loader2 className="size-4 animate-spin" />}
+              Valider la livraison
             </Button>
-          </div>
-        </div>
-
-        {scanning && (
-          <div className="overflow-hidden rounded-[12px]">
-            <QrScanner onScan={handleScannedText} />
-          </div>
-        )}
-
-        <div className="flex flex-col gap-2">
-          <Button
-            type="button"
-            onClick={() => submit(false)}
-            disabled={pending || code.length !== 6}
-          >
-            {pending && <Loader2 className="size-4 animate-spin" />}
-            Valider
-          </Button>
-          {!isOnline && (
+            <p className="text-subtle text-xs">
+              💡 Si le client n&apos;est pas là, un proche qui réceptionne peut
+              lui demander le code à communiquer.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="border-warning-200 bg-warning-50 text-warning-800 rounded-[10px] border px-3 py-2 text-xs">
+              Encaisse le montant en espèces auprès du client, puis confirme la
+              remise. Pas de code à saisir pour une commande cash.
+            </p>
             <Button
               type="button"
-              variant="secondary"
               onClick={() => {
                 if (
-                  confirm("Valider sans code ? Le client doit être présent.")
+                  confirm("Confirmer la remise au client (paiement cash) ?")
                 ) {
                   submit(true);
                 }
               }}
               disabled={pending}
             >
-              Valider sans code (cash uniquement)
+              {pending && <Loader2 className="size-4 animate-spin" />}
+              Confirmer la livraison
             </Button>
-          )}
-        </div>
-        <p className="text-subtle text-xs">
-          💡 Si le client n&apos;est pas là, un proche qui réceptionne peut lui
-          demander le code à communiquer.
-        </p>
+          </>
+        )}
       </div>
     </div>
   );

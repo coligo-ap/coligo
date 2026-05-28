@@ -116,12 +116,21 @@ export async function validatePickupCode(
 
   const { data: order, error } = await supabase
     .from("orders")
-    .select("id, status, customer_name")
+    .select("id, status, customer_name, fulfillment_type")
     .eq("pickup_code", normalized)
     .maybeSingle();
 
   if (error) return { error: `Erreur : ${error.message}` };
   if (!order) return { error: "Aucune commande ne correspond à ce code." };
+  // Les commandes en LIVRAISON ne se valident JAMAIS côté commerçant : le
+  // livreur récupère la commande puis confirme la remise au client. Le code
+  // n'est destiné qu'au livreur (anti-fraude). On refuse donc ici.
+  if (order.fulfillment_type === "delivery") {
+    return {
+      error:
+        "Commande en livraison : la remise est confirmée par le livreur, pas au comptoir.",
+    };
+  }
   if (order.status === "completed") {
     return { error: "Cette commande a déjà été récupérée." };
   }

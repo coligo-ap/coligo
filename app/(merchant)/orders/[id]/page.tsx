@@ -278,7 +278,11 @@ export default async function OrderDetailPage({
               Action
             </h2>
             <div className="mx-auto max-w-[1100px] lg:max-w-none">
-              <OrderActions orderId={o.id} status={o.status} />
+              <OrderActions
+                orderId={o.id}
+                status={o.status}
+                fulfillmentType={o.fulfillment_type}
+              />
             </div>
           </section>
         </div>
