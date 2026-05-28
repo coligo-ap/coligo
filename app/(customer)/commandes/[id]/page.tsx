@@ -17,6 +17,7 @@ import { OrderQr } from "@/components/customer/order-qr";
 import { CustomerOrderLive } from "@/components/customer/customer-order-live";
 import { DeliveryTimeline } from "@/components/customer/delivery-timeline";
 import { CustomerDeliveryMap } from "@/components/customer/customer-delivery-map";
+import { estimateDeliveryEtaMin, formatEta } from "@/lib/delivery/eta";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { formatAsapReady, formatSlotRange } from "@/lib/customer/pickup-format";
 
@@ -41,11 +42,11 @@ export default async function CustomerOrderDetailPage({
        pickup_slot_at, pickup_slot_start, pickup_slot_end, customer_note,
        subtotal_da, discount_da, cashback_estimate_da, total_da, created_at,
        merchant_id,
-       fulfillment_type, delivery_mode, delivery_fee_da,
+       fulfillment_type, delivery_mode, delivery_fee_da, delivery_distance_km,
        delivery_address_text, delivery_picked_up_at, delivery_delivered_at,
        delivery_lat, delivery_lng,
        driver_live_lat, driver_live_lng, driver_live_at,
-       merchants ( name, slug, logo_url, phone_public, address, commune ),
+       merchants ( name, slug, logo_url, phone_public, address, commune, prep_time_min ),
        order_items ( id, product_name, unit_price_da, quantity, line_total_da )`
     )
     .eq("id", id)
@@ -76,6 +77,7 @@ export default async function CustomerOrderDetailPage({
         phone_public: string | null;
         address: string | null;
         commune: string | null;
+        prep_time_min: number | null;
       };
     }
   ).merchants;
@@ -126,6 +128,19 @@ export default async function CustomerOrderDetailPage({
         }
       : null;
 
+  // ETA livraison (préparation + le livreur va chercher + trajet client).
+  const etaMin = isDelivery
+    ? estimateDeliveryEtaMin({
+        status,
+        pickedUpAt: order.delivery_picked_up_at as string | null,
+        createdAt: order.created_at,
+        prepMinutes: merchant.prep_time_min ?? 10,
+        distanceKm:
+          (order as { delivery_distance_km: number | null })
+            .delivery_distance_km ?? null,
+      })
+    : null;
+
   return (
     <CustomerShell>
       <div className="mx-auto max-w-2xl px-4 py-4 pb-24 lg:px-6 lg:py-8">
@@ -158,9 +173,16 @@ export default async function CustomerOrderDetailPage({
         {/* Timeline livraison (uniquement si fulfillment=delivery) */}
         {order.fulfillment_type === "delivery" && (
           <div className="border-border bg-surface mb-5 rounded-[20px] border p-6 shadow-sm">
-            <p className="text-muted mb-4 text-xs font-semibold tracking-wider uppercase">
-              Suivi de ta livraison
-            </p>
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <p className="text-muted text-xs font-semibold tracking-wider uppercase">
+                Suivi de ta livraison
+              </p>
+              {etaMin != null && (
+                <span className="bg-primary-50 text-primary-700 border-primary-200 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold">
+                  Livraison estimée · {formatEta(etaMin)}
+                </span>
+              )}
+            </div>
             <DeliveryTimeline
               status={status}
               pickedUpAt={order.delivery_picked_up_at as string | null}
