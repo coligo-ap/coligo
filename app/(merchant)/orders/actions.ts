@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isValidTransition, type OrderStatus } from "@/lib/types";
-import { notifyCustomerStatusChange } from "@/lib/fcm/triggers";
+import {
+  notifyCustomerStatusChange,
+  notifyDriversNewExpress,
+} from "@/lib/fcm/triggers";
 
 export type OrderActionResult = {
   error?: string;
@@ -72,6 +75,12 @@ export async function updateOrderStatus(
   // Push FCM au client si le nouveau statut est significatif (preparing /
   // ready / completed / cancelled). Fire-and-forget — pas de blocage.
   void notifyCustomerStatusChange({ orderId, newStatus: to });
+
+  // Commande prête → on alerte les livreurs du commerçant si c'est une course
+  // EXPRESS non encore attribuée (le helper revérifie le mode/attribution).
+  if (to === "ready") {
+    void notifyDriversNewExpress({ orderId });
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/orders");

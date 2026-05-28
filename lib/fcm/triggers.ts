@@ -203,6 +203,70 @@ export async function notifyCustomerStatusChange(input: {
 }
 
 /**
+ * Notifie TOUS les livreurs actifs d'un commerçant qu'une nouvelle course
+ * EXPRESS est disponible (commande prête, en livraison, sans livreur attribué).
+ * Déclenché quand le commerçant passe une commande express à « prête ».
+ * Fire-and-forget. Multi-tokens (plusieurs livreurs liés au commerçant).
+ */
+export async function notifyDriversNewExpress(input: {
+  orderId: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("orders")
+      .select(
+        "merchant_id, fulfillment_type, delivery_mode, delivery_driver_id, status, total_da"
+      )
+      .eq("id", input.orderId)
+      .maybeSingle();
+    if (
+      !order ||
+      order.fulfillment_type !== "delivery" ||
+      order.delivery_mode !== "express" ||
+      order.delivery_driver_id != null
+    ) {
+      return;
+    }
+
+    // Livreurs ACTIFS liés à ce commerçant.
+    const { data: links } = await admin
+      .from("merchant_drivers")
+      .select("driver_id")
+      .eq("merchant_id", order.merchant_id)
+      .eq("status", "active");
+    const driverIds = (links ?? []).map((l) => l.driver_id).filter(Boolean);
+    if (driverIds.length === 0) return;
+
+    const { data: drivers } = await admin
+      .from("drivers")
+      .select("user_id")
+      .in("id", driverIds);
+    const userIds = (drivers ?? [])
+      .map((d) => d.user_id)
+      .filter((x): x is string => !!x);
+    if (userIds.length === 0) return;
+
+    const tokenLists = await Promise.all(
+      userIds.map((uid) => tokensFor(uid, "courier"))
+    );
+    const tokens = [...new Set(tokenLists.flat())];
+    if (tokens.length === 0) return;
+
+    await sendFcm(
+      tokens,
+      {
+        title: "Nouvelle course Express ⚡",
+        body: `Une livraison de ${formatDA(order.total_da ?? 0)} est prête à récupérer.`,
+      },
+      { route: "/driver", kind: "driver_new_express" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyDriversNewExpress failed:", err);
+  }
+}
+
+/**
  * Notifie le client que le LIVREUR a récupéré sa commande et est en route.
  * Déclenché quand le livreur valide le pickup (statut SQL inchangé, donc pas
  * couvert par notifyCustomerStatusChange). Fire-and-forget.

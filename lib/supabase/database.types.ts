@@ -1438,6 +1438,18 @@ export type Database = {
         };
         Returns: { ok: boolean; reason: string | null }[];
       };
+      driver_delivery_counts: {
+        Args: Record<string, never>;
+        Returns: {
+          merchant_driver_id: string;
+          merchant_id: string;
+          merchant_name: string;
+          express_enabled: boolean;
+          tours_enabled: boolean;
+          express_available: number;
+          tour_pending: number;
+        }[];
+      };
     };
     Enums: {
       order_status:
