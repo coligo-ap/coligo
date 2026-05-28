@@ -78,8 +78,14 @@ export function DeliveryRouteMap({
           .setLngLat([target.lng, target.lat])
           .addTo(map);
 
-        map.on("load", () => {
+        map.dragPan.enable();
+        map.scrollZoom.enable();
+        map.touchZoomRotate.enable();
+        map.doubleClickZoom.enable();
+
+        const onLoad = () => {
           setMapReady(true);
+          if (map.getSource("route")) return;
           map.addSource("route", {
             type: "geojson",
             data: {
@@ -98,7 +104,12 @@ export function DeliveryRouteMap({
               "line-dasharray": [2, 2],
             },
           });
-        });
+        };
+        if (map.loaded()) onLoad();
+        else map.once("load", onLoad);
+        setTimeout(() => {
+          if (!disposed) setMapReady(true);
+        }, 3000);
         // Filet de sécurité : si le container avait 0 px au montage
         // (ex: stop déplié pendant une transition), on resize au cas où.
         setTimeout(() => map.resize(), 100);
@@ -184,16 +195,20 @@ export function DeliveryRouteMap({
         className="bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
         style={{ height: typeof height === "number" ? `${height}px` : height }}
       >
-        <div ref={containerRef} className="absolute inset-0" />
+        <div
+          ref={containerRef}
+          className="absolute inset-0"
+          style={{ touchAction: "none" }}
+        />
 
         {!mapReady && !mapError && (
-          <div className="text-muted absolute inset-0 flex items-center justify-center gap-2 bg-white/60 text-sm">
+          <div className="text-muted pointer-events-none absolute inset-0 flex items-center justify-center gap-2 bg-white/60 text-sm">
             <ExternalLink className="size-4 animate-pulse" />
             Chargement de la carte…
           </div>
         )}
         {mapError && (
-          <div className="text-danger-700 absolute inset-0 flex items-center justify-center bg-white/90 px-4 text-center text-sm">
+          <div className="text-danger-700 pointer-events-none absolute inset-0 flex items-center justify-center bg-white/90 px-4 text-center text-sm">
             {mapError}
           </div>
         )}

@@ -82,15 +82,36 @@ export function MapPositionPicker({
         });
         mapRef.current = map;
 
+        // Sécurité : forcer toutes les interactions (par défaut activées,
+        // mais on les ré-active explicitement pour neutraliser tout cas
+        // où un parent ou un thème les aurait désactivées).
+        map.dragPan.enable();
+        map.scrollZoom.enable();
+        map.touchZoomRotate.enable();
+        map.doubleClickZoom.enable();
+        map.keyboard.enable();
+
         const emit = () => {
           const c = map.getCenter();
           onChange({ lat: c.lat, lng: c.lng });
         };
         map.on("moveend", emit);
-        map.once("load", () => {
+
+        // Race condition possible : si le style est en cache du navigateur,
+        // l'event "load" peut être déjà tiré avant qu'on attache le listener.
+        // On check map.loaded() en garde-fou.
+        const markReady = () => {
           setMapReady(true);
           emit();
-        });
+        };
+        if (map.loaded()) markReady();
+        else map.once("load", markReady);
+        // 2e filet : si load ne tire jamais (cas réseau lent ou tile error),
+        // on libère quand même l'UI au bout de 3s pour ne pas bloquer le user.
+        setTimeout(() => {
+          if (!disposed) setMapReady(true);
+        }, 3000);
+
         // Filet de sécurité : si le container avait 0 px au moment de l'init
         // (ex: parent qui anime sa hauteur), MapLibre dessine vide.
         // map.resize() à 100/500/1500 ms recouvre tous les cas usuels.
@@ -135,17 +156,23 @@ export function MapPositionPicker({
       className="bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
       style={{ height: typeof height === "number" ? `${height}px` : height }}
     >
-      <div ref={containerRef} className="absolute inset-0" />
+      <div
+        ref={containerRef}
+        className="absolute inset-0"
+        style={{ touchAction: "none" }}
+      />
 
-      {/* État de chargement / erreur */}
+      {/* État de chargement / erreur — pointer-events-none CRITIQUE :
+          sans ça l'overlay bloque tous les drags / clics sur la carte si
+          mapReady ne devient pas true assez vite. */}
       {!mapReady && !mapError && (
-        <div className="text-muted absolute inset-0 flex items-center justify-center gap-2 bg-white/60 text-sm">
+        <div className="text-muted pointer-events-none absolute inset-0 flex items-center justify-center gap-2 bg-white/60 text-sm">
           <Loader2 className="size-4 animate-spin" />
           Chargement de la carte…
         </div>
       )}
       {mapError && (
-        <div className="text-danger-700 absolute inset-0 flex items-center justify-center bg-white/90 px-4 text-center text-sm">
+        <div className="text-danger-700 pointer-events-none absolute inset-0 flex items-center justify-center bg-white/90 px-4 text-center text-sm">
           {mapError}
         </div>
       )}

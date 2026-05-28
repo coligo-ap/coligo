@@ -69,6 +69,13 @@ export function AddressPicker({
       });
       mapRef.current = map;
 
+      // Re-active explicitement toutes les interactions (déjà actives par
+      // défaut, mais on neutralise tout cas où elles seraient coupées).
+      map.dragPan.enable();
+      map.scrollZoom.enable();
+      map.touchZoomRotate.enable();
+      map.doubleClickZoom.enable();
+
       const emit = () => {
         const c = map.getCenter();
         onChange({ lat: c.lat, lng: c.lng });
@@ -112,7 +119,11 @@ export function AddressPicker({
         className="bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
         style={{ height: 300 }}
       >
-        <div ref={containerRef} className="absolute inset-0" />
+        <div
+          ref={containerRef}
+          className="absolute inset-0"
+          style={{ touchAction: "none" }}
+        />
         {/* Marqueur central fixe (overlay HTML, plus simple qu'un Marker
             MapLibre que l'on devrait re-syncer à chaque move). */}
         <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full">
