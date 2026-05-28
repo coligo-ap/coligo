@@ -95,6 +95,13 @@ export default async function CustomerOrderDetailPage({
   const isCash = order.payment_method === "cash";
   const isOnlinePending =
     order.payment_method === "online" && order.payment_status === "pending";
+  const isDelivery = order.fulfillment_type === "delivery";
+
+  // Quand le code de retrait est-il utile au client ?
+  //  - RETRAIT sur place : TOUJOURS (il le montre au commerçant).
+  //  - LIVRAISON payée EN LIGNE : OUI (il le communique au livreur à la remise).
+  //  - LIVRAISON en CASH : NON (il paie en espèces au livreur, aucun code).
+  const needsCode = isDelivery ? order.payment_method === "online" : true;
 
   return (
     <CustomerShell>
@@ -114,7 +121,11 @@ export default async function CustomerOrderDetailPage({
             Commande confirmée !
           </h1>
           <p className="mt-1 text-sm text-white/85">
-            Montre ce code au commerçant lors du retrait.
+            {isDelivery
+              ? isCash
+                ? `Règle ${formatDA(order.total_da)} en espèces au livreur à la remise.`
+                : "Communique ton code au livreur à la remise."
+              : "Montre ce code au commerçant lors du retrait."}
           </p>
         </div>
 
@@ -133,28 +144,44 @@ export default async function CustomerOrderDetailPage({
               deliveredAt={order.delivery_delivered_at as string | null}
             />
             <p className="text-subtle mt-4 border-t pt-3 text-xs">
-              💡 Communique le code de retrait au livreur à la remise pour
-              valider la livraison. Si quelqu&apos;un d&apos;autre réceptionne,
-              transmets-lui ce code.
+              {isCash
+                ? "💡 Règle le montant en espèces au livreur à la remise. Aucun code à communiquer."
+                : "💡 Communique ton code à 6 chiffres au livreur à la remise pour valider la livraison. Si quelqu'un d'autre réceptionne, transmets-lui ce code."}
             </p>
           </div>
         )}
 
-        {/* Code retrait + QR — montré dans tous les cas (le client en a
-            besoin pour : retrait sur place, OU communiquer au livreur). */}
-        <div className="border-border bg-surface mb-5 rounded-[20px] border p-6 text-center shadow-sm">
-          <p className="text-muted text-xs font-semibold tracking-wider uppercase">
-            {order.fulfillment_type === "delivery"
-              ? "Code à donner au livreur"
-              : "Code de retrait"}
-          </p>
-          <p className="text-foreground mt-1 text-5xl font-bold tracking-[0.2em] tabular-nums lg:text-6xl">
-            {order.pickup_code}
-          </p>
-          <div className="mt-4 flex justify-center">
-            <OrderQr value={order.pickup_code} />
+        {/* Code de retrait + QR.
+            - RETRAIT : code montré au commerçant.
+            - LIVRAISON EN LIGNE : code communiqué au livreur.
+            - LIVRAISON CASH : pas de code → on affiche plutôt la consigne de
+              paiement en espèces. */}
+        {needsCode ? (
+          <div className="border-border bg-surface mb-5 rounded-[20px] border p-6 text-center shadow-sm">
+            <p className="text-muted text-xs font-semibold tracking-wider uppercase">
+              {isDelivery ? "Code à donner au livreur" : "Code de retrait"}
+            </p>
+            <p className="text-foreground mt-1 text-5xl font-bold tracking-[0.2em] tabular-nums lg:text-6xl">
+              {order.pickup_code}
+            </p>
+            <div className="mt-4 flex justify-center">
+              <OrderQr value={order.pickup_code} />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="border-warning-200 bg-warning-50 mb-5 rounded-[20px] border p-6 text-center shadow-sm">
+            <Banknote className="text-warning-600 mx-auto size-7" />
+            <p className="text-warning-800 mt-2 text-xs font-semibold tracking-wider uppercase">
+              Paiement à la livraison
+            </p>
+            <p className="text-foreground mt-1 text-3xl font-bold tabular-nums">
+              {formatDA(order.total_da)}
+            </p>
+            <p className="text-warning-800/80 mt-1 text-sm">
+              à régler en espèces au livreur. Aucun code à communiquer.
+            </p>
+          </div>
+        )}
 
         {/* Bloc commerce */}
         <div className="border-border bg-surface mb-5 rounded-[16px] border p-5">
