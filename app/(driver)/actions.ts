@@ -7,7 +7,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizePhone, phoneToEmail } from "@/lib/auth/driver";
 import { hashReferralCode } from "@/lib/drivers/referral-code";
-import { notifyMerchantNewDriverRequest } from "@/lib/fcm/triggers";
+import {
+  notifyMerchantNewDriverRequest,
+  notifyCustomerEnRoute,
+  notifyCustomerStatusChange,
+} from "@/lib/fcm/triggers";
 
 export type DriverAuthState = { error?: string; ok?: boolean };
 
@@ -310,7 +314,11 @@ export async function markOrderPickedUp(
     data as Array<{ ok: boolean; reason: string | null }> | null
   )?.[0];
   if (!row) return { ok: false, reason: "no_response" };
-  if (row.ok) revalidatePath("/driver");
+  if (row.ok) {
+    revalidatePath("/driver");
+    // Le client est prévenu que son livreur est en route.
+    void notifyCustomerEnRoute({ orderId });
+  }
   return { ok: row.ok, reason: row.reason ?? undefined };
 }
 
@@ -364,6 +372,15 @@ export async function validateDelivery(input: {
     data as Array<{ ok: boolean; reason: string | null }> | null
   )?.[0];
   if (!row) return { ok: false, reason: "no_response" };
-  if (row.ok) revalidatePath("/driver");
+  if (row.ok) {
+    revalidatePath("/driver");
+    // Livraison confirmée → on notifie le client (« Commande livrée »). La
+    // completion passe par le RPC, donc notifyCustomerStatusChange n'est pas
+    // appelé ailleurs pour ce cas.
+    void notifyCustomerStatusChange({
+      orderId: input.orderId,
+      newStatus: "completed",
+    });
+  }
   return { ok: row.ok, reason: row.reason ?? undefined };
 }

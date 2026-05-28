@@ -119,9 +119,11 @@ export function AddressPicker({
         className="bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
         style={{ height: 300 }}
       >
+        {/* h-full/w-full et NON `absolute inset-0` : la classe `maplibregl-map`
+            force position:relative et annulait `inset-0` (carte blanche). */}
         <div
           ref={containerRef}
-          className="absolute inset-0"
+          className="h-full w-full"
           style={{ touchAction: "none" }}
         />
         {/* Marqueur central fixe (overlay HTML, plus simple qu'un Marker

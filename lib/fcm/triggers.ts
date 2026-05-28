@@ -132,6 +132,32 @@ const STATUS_PUSH: Partial<
   },
 };
 
+/** Variantes LIVRAISON (copy adaptée : pas de « récupérer », parle du livreur). */
+const STATUS_PUSH_DELIVERY: Partial<
+  Record<OrderStatus, { title: string; body: string }>
+> = {
+  accepted: {
+    title: "Commande acceptée",
+    body: "Le commerçant prépare votre commande pour la livraison.",
+  },
+  preparing: {
+    title: "Commande acceptée",
+    body: "Le commerçant prépare votre commande pour la livraison.",
+  },
+  ready: {
+    title: "Commande prête",
+    body: "Votre commande est prête, un livreur va la récupérer.",
+  },
+  completed: {
+    title: "Commande livrée ✓",
+    body: "Votre commande a été livrée. Bon appétit !",
+  },
+  cancelled: {
+    title: "Commande annulée",
+    body: "Votre commande a été annulée.",
+  },
+};
+
 /**
  * Notifie le client d'un changement de statut SIGNIFICATIF de sa commande.
  * Statuts silencieux (pending, etc.) : pas de push (on ne spamme pas).
@@ -141,16 +167,20 @@ export async function notifyCustomerStatusChange(input: {
   newStatus: OrderStatus;
 }): Promise<void> {
   try {
-    const tmpl = STATUS_PUSH[input.newStatus];
-    if (!tmpl) return;
-
     const admin = createAdminClient();
     const { data: order } = await admin
       .from("orders")
-      .select("customer_id")
+      .select("customer_id, fulfillment_type")
       .eq("id", input.orderId)
       .maybeSingle();
     if (!order?.customer_id) return;
+
+    // Copy adaptée au mode (livraison vs retrait).
+    const tmpl =
+      order.fulfillment_type === "delivery"
+        ? STATUS_PUSH_DELIVERY[input.newStatus]
+        : STATUS_PUSH[input.newStatus];
+    if (!tmpl) return;
 
     const { data: customer } = await admin
       .from("customers")
@@ -169,5 +199,48 @@ export async function notifyCustomerStatusChange(input: {
     });
   } catch (err) {
     console.warn("[fcm] notifyCustomerStatusChange failed:", err);
+  }
+}
+
+/**
+ * Notifie le client que le LIVREUR a récupéré sa commande et est en route.
+ * Déclenché quand le livreur valide le pickup (statut SQL inchangé, donc pas
+ * couvert par notifyCustomerStatusChange). Fire-and-forget.
+ */
+export async function notifyCustomerEnRoute(input: {
+  orderId: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("orders")
+      .select("customer_id, fulfillment_type")
+      .eq("id", input.orderId)
+      .maybeSingle();
+    if (!order?.customer_id || order.fulfillment_type !== "delivery") return;
+
+    const { data: customer } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", order.customer_id)
+      .maybeSingle();
+    if (!customer?.user_id) return;
+
+    const tokens = await tokensFor(customer.user_id, "customer");
+    if (tokens.length === 0) return;
+
+    await sendFcm(
+      tokens,
+      {
+        title: "Votre livreur est en route 🛵",
+        body: "Le livreur a récupéré votre commande et arrive bientôt.",
+      },
+      {
+        route: `/commandes/${input.orderId}`,
+        kind: "customer_en_route",
+      }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyCustomerEnRoute failed:", err);
   }
 }

@@ -42,6 +42,7 @@ export default async function OrderDetailPage({
          payment_method, payment_status,
          fulfillment_type, delivery_mode, delivery_fee_da,
          delivery_address_text, delivery_phone, delivery_distance_km,
+         delivery_picked_up_at,
          order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`
       )
       .eq("id", id)
@@ -67,6 +68,7 @@ export default async function OrderDetailPage({
     delivery_address_text: string | null;
     delivery_phone: string | null;
     delivery_distance_km: number | null;
+    delivery_picked_up_at: string | null;
   };
 
   // Réglages d'impression + nom du commerce pour le ticket. RLS filtre déjà
@@ -282,6 +284,7 @@ export default async function OrderDetailPage({
                 orderId={o.id}
                 status={o.status}
                 fulfillmentType={o.fulfillment_type}
+                deliveryPickedUpAt={o.delivery_picked_up_at}
               />
             </div>
           </section>

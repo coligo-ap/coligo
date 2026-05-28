@@ -28,11 +28,14 @@ export function OrderActions({
   orderId,
   status,
   fulfillmentType = "pickup",
+  deliveryPickedUpAt = null,
 }: {
   orderId: string;
   status: OrderStatus;
   /** "delivery" = pas de validation code côté commerçant (le livreur gère). */
   fulfillmentType?: "pickup" | "delivery";
+  /** ISO si le livreur a déjà récupéré la commande (livraison). */
+  deliveryPickedUpAt?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -74,7 +77,9 @@ export function OrderActions({
   if (status === "completed") {
     return (
       <p className="text-success-700 bg-success-50 rounded-[12px] px-4 py-3 text-sm font-medium">
-        Commande récupérée — terminée.
+        {fulfillmentType === "delivery"
+          ? "Commande livrée — terminée."
+          : "Commande récupérée — terminée."}
       </p>
     );
   }
@@ -91,9 +96,13 @@ export function OrderActions({
 
   // LIVRAISON, commande prête : rien à valider côté commerçant. Le livreur
   // récupère la commande (simple bouton de son côté) puis confirme la remise
-  // au client. Le commerçant attend juste le passage du livreur.
+  // au client. On reflète l'état du livreur pour informer le commerçant.
   if (status === "ready" && isDelivery) {
-    return (
+    return deliveryPickedUpAt ? (
+      <p className="text-success-800 bg-success-50 border-success-200 rounded-[12px] border px-4 py-3 text-sm font-medium">
+        Récupérée par le livreur — livraison en cours. Rien à faire de ton côté.
+      </p>
+    ) : (
       <p className="text-primary-800 bg-primary-50 border-primary-200 rounded-[12px] border px-4 py-3 text-sm font-medium">
         Commande prête — en attente du livreur. La remise sera confirmée par le
         livreur (pas de code à valider ici).

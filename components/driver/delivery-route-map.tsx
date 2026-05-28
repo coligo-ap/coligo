@@ -195,9 +195,12 @@ export function DeliveryRouteMap({
         className="bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
         style={{ height: typeof height === "number" ? `${height}px` : height }}
       >
+        {/* h-full/w-full et NON `absolute inset-0` : MapLibre ajoute la classe
+            `maplibregl-map` (position:relative) qui annule `inset-0` → le
+            canvas-container collapsait à 0 px (carte blanche). */}
         <div
           ref={containerRef}
-          className="absolute inset-0"
+          className="h-full w-full"
           style={{ touchAction: "none" }}
         />
 
