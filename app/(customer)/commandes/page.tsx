@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Banknote, CreditCard, Hourglass, Receipt } from "lucide-react";
+import { Receipt } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/badge";
-import { ORDER_STATUS_META, type OrderStatus } from "@/lib/types";
-import { cn, formatDA } from "@/lib/utils";
-import { cldUrl } from "@/lib/images/cloudinary";
-import { OrderReviewCta } from "@/components/customer/order-review-cta";
+import type { OrderStatus } from "@/lib/types";
+import {
+  CustomerOrdersTabs,
+  type CustomerOrderRow,
+} from "@/components/customer/customer-orders-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +37,7 @@ export default async function CustomerOrdersListPage() {
     .from("orders")
     .select(
       `id, status, payment_method, payment_status, total_da, pickup_code,
-       pickup_slot_at, created_at, merchant_id,
+       pickup_slot_at, created_at, merchant_id, fulfillment_type,
        merchants ( name, slug, logo_url )`
     )
     .eq("customer_id", customer.id)
@@ -49,9 +49,7 @@ export default async function CustomerOrdersListPage() {
 
   const rows = orders ?? [];
 
-  // Pré-charge l'ensemble des order_ids du client qui ont déjà un avis,
-  // pour afficher (ou pas) le bouton "Laisser un avis" sur chaque ligne
-  // completed sans avis.
+  // Pré-charge les order_ids déjà notés, pour le bouton "Laisser un avis".
   const completedIds = rows
     .filter((o) => o.status === "completed")
     .map((o) => o.id);
@@ -63,6 +61,28 @@ export default async function CustomerOrdersListPage() {
       .in("order_id", completedIds);
     reviewedIds = new Set((reviews ?? []).map((r) => r.order_id));
   }
+
+  const mapped: CustomerOrderRow[] = rows.map((o) => {
+    const merchant = (
+      o as unknown as {
+        merchants: { name: string; logo_url: string | null } | null;
+      }
+    ).merchants;
+    return {
+      id: o.id,
+      status: o.status as OrderStatus,
+      payment_method: o.payment_method,
+      payment_status: o.payment_status,
+      total_da: o.total_da,
+      pickup_code: o.pickup_code,
+      created_at: o.created_at,
+      fulfillment_type:
+        (o.fulfillment_type as "pickup" | "delivery") ?? "pickup",
+      merchant_name: merchant?.name ?? "Commerce",
+      merchant_logo: merchant?.logo_url ?? null,
+      reviewed: reviewedIds.has(o.id),
+    };
+  });
 
   return (
     <CustomerShell>
@@ -76,7 +96,7 @@ export default async function CustomerOrdersListPage() {
           </p>
         </header>
 
-        {rows.length === 0 ? (
+        {mapped.length === 0 ? (
           <div className="border-border bg-surface mx-auto max-w-md rounded-[16px] border p-10 text-center">
             <Receipt className="text-primary-500 mx-auto size-10" />
             <p className="text-foreground mt-3 text-sm font-semibold">
@@ -94,146 +114,9 @@ export default async function CustomerOrdersListPage() {
             </Link>
           </div>
         ) : (
-          <ul className="space-y-2.5">
-            {rows.map((o) => {
-              const meta = ORDER_STATUS_META[o.status as OrderStatus];
-              const merchant = (
-                o as unknown as {
-                  merchants: {
-                    name: string;
-                    slug: string;
-                    logo_url: string | null;
-                  };
-                }
-              ).merchants;
-              const date = new Date(o.created_at).toLocaleDateString("fr-DZ", {
-                day: "numeric",
-                month: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-              });
-              return (
-                <li key={o.id}>
-                  <Link
-                    href={`/commandes/${o.id}`}
-                    className="border-border bg-surface hover:border-primary-300 flex items-center gap-3 rounded-[14px] border p-4 transition"
-                  >
-                    {merchant?.logo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={
-                          cldUrl(merchant.logo_url, {
-                            width: 96,
-                            height: 96,
-                            crop: "fill",
-                            gravity: "auto",
-                          }) ?? merchant.logo_url
-                        }
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="border-border size-12 shrink-0 rounded-full border bg-white object-cover"
-                      />
-                    ) : (
-                      <div className="bg-primary-100 text-primary-700 flex size-12 shrink-0 items-center justify-center rounded-full text-base font-bold">
-                        {(merchant?.name ?? "?").charAt(0)}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-foreground line-clamp-1 text-sm font-semibold">
-                        {merchant?.name ?? "Commerce"}
-                      </p>
-                      <p className="text-muted text-xs">
-                        {date} · Code {o.pickup_code}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-foreground text-sm font-bold tabular-nums">
-                        {formatDA(o.total_da)}
-                      </span>
-                      <Badge tone={meta.tone}>{meta.label}</Badge>
-                      <PaymentBadge
-                        method={o.payment_method}
-                        status={o.payment_status}
-                      />
-                      {o.status === "completed" && !reviewedIds.has(o.id) && (
-                        <OrderReviewCta
-                          orderId={o.id}
-                          merchantName={merchant?.name ?? "Commerce"}
-                        />
-                      )}
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <CustomerOrdersTabs orders={mapped} />
         )}
       </div>
     </CustomerShell>
-  );
-}
-
-// =============================================================================
-// PaymentBadge — montre le mode de paiement + son état.
-//   - cash + pending          → "Espèces au retrait"
-//   - cash + paid             → "Espèces payé"   (rare : trigger sur completed)
-//   - online + pending        → "Paiement en attente" (orange — Chargily pas
-//                                encore confirmé OU lien jamais finalisé)
-//   - online + paid           → "Payé en ligne" (vert)
-//   - online + failed         → "Paiement échoué" (rouge)
-//   - * + refunded            → "Remboursé"
-// =============================================================================
-function PaymentBadge({
-  method,
-  status,
-}: {
-  method: "cash" | "online";
-  status: "pending" | "paid" | "failed" | "refunded";
-}) {
-  if (method === "cash") {
-    return (
-      <span className="text-muted inline-flex items-center gap-1 text-[11px]">
-        <Banknote className="size-3" />
-        Espèces au retrait
-      </span>
-    );
-  }
-  // online
-  if (status === "paid") {
-    return (
-      <span className="text-success-700 inline-flex items-center gap-1 text-[11px] font-semibold">
-        <CreditCard className="size-3" />
-        Payé en ligne
-      </span>
-    );
-  }
-  if (status === "failed") {
-    return (
-      <span className="text-danger-700 inline-flex items-center gap-1 text-[11px] font-semibold">
-        <CreditCard className="size-3" />
-        Paiement échoué
-      </span>
-    );
-  }
-  if (status === "refunded") {
-    return (
-      <span className="text-muted inline-flex items-center gap-1 text-[11px] font-medium">
-        <CreditCard className="size-3" />
-        Remboursé
-      </span>
-    );
-  }
-  // pending
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 text-[11px] font-semibold",
-        "text-warning-700"
-      )}
-    >
-      <Hourglass className="size-3" />
-      Paiement en attente
-    </span>
   );
 }

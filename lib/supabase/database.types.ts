@@ -56,6 +56,7 @@ export type Database = {
           cashback_cash: number | null;
           is_frozen: boolean;
           auto_accept_orders: boolean;
+          orders_paused: boolean;
           auto_print: Database["public"]["Enums"]["auto_print_mode"];
           print_copies: number;
           print_width: number;
@@ -101,6 +102,7 @@ export type Database = {
           cashback_cash?: number | null;
           is_frozen?: boolean;
           auto_accept_orders?: boolean;
+          orders_paused?: boolean;
           auto_print?: Database["public"]["Enums"]["auto_print_mode"];
           print_copies?: number;
           print_width?: number;
@@ -146,6 +148,7 @@ export type Database = {
           cashback_cash?: number | null;
           is_frozen?: boolean;
           auto_accept_orders?: boolean;
+          orders_paused?: boolean;
           auto_print?: Database["public"]["Enums"]["auto_print_mode"];
           print_copies?: number;
           print_width?: number;
@@ -1330,6 +1333,7 @@ export type Database = {
           delivery_radius_km: number | null;
           shop_public_id: string;
           created_at: string;
+          orders_paused: boolean;
         };
         Insert: never;
         Update: never;

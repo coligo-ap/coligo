@@ -32,6 +32,7 @@ import { enqueueOrExecute } from "@/lib/offline/queue";
 import { PrintOrderButton } from "@/components/ticket/print-order-button";
 import { orderToTicket } from "@/lib/ticket/order-to-ticket";
 import { OrdersCacheSync } from "@/components/merchant/orders-cache-sync";
+import { OrderAcceptRefuse } from "@/components/merchant/order-accept-refuse";
 
 const FILTERS: { key: string; label: string }[] = [
   { key: "all", label: "Toutes" },
@@ -337,7 +338,7 @@ function OrderRow({
       <td className="text-muted px-4 py-3">
         {formatTime(order.pickup_slot_at)}
       </td>
-      <td className="px-4 py-3 text-right">
+      <td className="relative px-4 py-3 text-right">
         <div className="flex items-center justify-end gap-1">
           <PrintOrderButton
             order={orderToTicket(order, merchantName, categoryMap)}
@@ -345,7 +346,9 @@ function OrderRow({
             copies={printCopies}
             variant="icon"
           />
-          {order.status === "ready" ? (
+          {order.status === "pending" ? (
+            <OrderAcceptRefuse orderId={order.id} />
+          ) : order.status === "ready" ? (
             <Link
               href="/orders/validate"
               className="text-primary-700 hover:bg-primary-50 inline-flex items-center gap-1 rounded-[8px] px-2 py-1.5 text-xs font-medium"
@@ -450,8 +453,12 @@ function OrderMobileCard({
           </span>
         </div>
       </Link>
-      <div className="flex items-center gap-2">
-        {order.status === "ready" ? (
+      <div className="relative flex items-center gap-2">
+        {order.status === "pending" ? (
+          <div className="flex-1">
+            <OrderAcceptRefuse orderId={order.id} size="md" />
+          </div>
+        ) : order.status === "ready" ? (
           <Link
             href="/orders/validate"
             className={cn(buttonVariants({ size: "sm" }), "flex-1")}

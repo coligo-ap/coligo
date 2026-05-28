@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import {
   ChevronRight,
   Gift,
-  LogOut,
   Mail,
   Phone,
   Receipt,
@@ -12,7 +11,7 @@ import {
 } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
-import { customerLogout } from "@/app/(customer)/actions";
+import { CustomerLogoutButton } from "@/components/customer/logout-button";
 import {
   getMyCashbackBalance,
   getMyTopupBalance,
@@ -148,15 +147,7 @@ export default async function CustomerAccountPage() {
           </Row>
         </div>
 
-        <form action={customerLogout} className="mt-6">
-          <button
-            type="submit"
-            className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] border text-sm font-semibold transition-colors"
-          >
-            <LogOut className="size-4" />
-            Déconnexion
-          </button>
-        </form>
+        <CustomerLogoutButton />
 
         <p className="text-subtle mt-6 text-center text-xs">
           La gestion fine du profil arrive bientôt (modifier nom, téléphone, mot

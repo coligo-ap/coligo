@@ -188,12 +188,20 @@ export async function createOrder(
   const { data: merchant } = await supabase
     .from("merchants_public")
     .select(
-      "id, name, accepts_cash, accepts_online, opening_hours, min_order_da, prep_time_min, max_orders_per_slot, max_days_ahead, is_active"
+      "id, name, accepts_cash, accepts_online, opening_hours, min_order_da, prep_time_min, max_orders_per_slot, max_days_ahead, is_active, orders_paused"
     )
     .eq("id", input.merchant_id)
     .maybeSingle();
   if (!merchant || !merchant.is_active) {
     return { ok: false, error: "Ce commerce n'est plus disponible." };
+  }
+  // Fermeture immédiate par le commerçant : on refuse toute nouvelle commande.
+  if (merchant.orders_paused) {
+    return {
+      ok: false,
+      error:
+        "Ce commerce est momentanément fermé et n'accepte pas de commandes pour l'instant.",
+    };
   }
 
   // Validation horaire :

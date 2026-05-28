@@ -16,6 +16,29 @@ export type AuthState = {
 };
 
 /**
+ * Bascule « Fermer / Ouvrir » la réception de commandes du commerçant connecté.
+ * Quand `paused` = true, le checkout refuse toute nouvelle commande.
+ */
+export async function setOrdersPaused(
+  paused: boolean
+): Promise<{ ok: boolean; paused: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, paused, error: "Session expirée." };
+
+  const { error } = await supabase
+    .from("merchants")
+    .update({ orders_paused: paused })
+    .eq("user_id", user.id);
+  if (error) return { ok: false, paused: !paused, error: error.message };
+
+  revalidatePath("/", "layout");
+  return { ok: true, paused };
+}
+
+/**
  * Connexion email + password.
  */
 export async function login(

@@ -25,7 +25,8 @@ export type OrderActionResult = {
 export async function updateOrderStatus(
   orderId: string,
   to: OrderStatus,
-  clientOperationId?: string
+  clientOperationId?: string,
+  note?: string | null
 ): Promise<OrderActionResult> {
   const supabase = await createClient();
 
@@ -65,11 +66,13 @@ export async function updateOrderStatus(
   }
 
   // Audit (append-only). Une erreur ici ne doit pas casser l'action.
+  // `note` sert notamment à tracer le MOTIF d'un refus (rupture, surcharge…).
   await supabase.from("order_events").insert({
     order_id: orderId,
     from_status: from,
     to_status: to,
     client_operation_id: clientOperationId ?? null,
+    note: note?.slice(0, 200) ?? null,
   });
 
   // Push FCM au client si le nouveau statut est significatif (preparing /

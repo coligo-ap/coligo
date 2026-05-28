@@ -5,17 +5,20 @@ import { useState, useRef, useEffect } from "react";
 import { useFormStatus } from "react-dom";
 import { logout } from "@/app/(merchant)/actions";
 import { SyncIndicator } from "@/components/merchant/sync-indicator";
+import { ShopStatusToggle } from "@/components/merchant/shop-status-toggle";
 
 interface MerchantTopbarProps {
   userEmail: string;
   merchantName: string;
   pendingCount?: number;
+  ordersPaused?: boolean;
 }
 
 export function MerchantTopbar({
   userEmail,
   merchantName,
   pendingCount = 0,
+  ordersPaused = false,
 }: MerchantTopbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -52,6 +55,9 @@ export function MerchantTopbar({
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        {/* Ouvrir / Fermer la réception de commandes (immédiat). */}
+        <ShopStatusToggle initialPaused={ordersPaused} />
+
         {/* Indicateur résilience offline — pastille + panneau de la file
             d'actions différées. Discret par défaut. */}
         <div className="relative">

@@ -37,7 +37,7 @@ export async function MerchantShell({
   const { data: merchant, error } = await supabase
     .from("merchants")
     .select(
-      "id, name, auto_accept_orders, auto_print, print_copies, print_width"
+      "id, name, auto_accept_orders, auto_print, print_copies, print_width, orders_paused"
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -87,6 +87,7 @@ export async function MerchantShell({
       <MerchantMobileHeader
         merchantName={merchant.name}
         pendingCount={pendingCount ?? 0}
+        ordersPaused={merchant.orders_paused ?? false}
       />
 
       {/* Main */}
@@ -96,6 +97,7 @@ export async function MerchantShell({
           userEmail={user.email ?? ""}
           merchantName={merchant.name}
           pendingCount={pendingCount ?? 0}
+          ordersPaused={merchant.orders_paused ?? false}
         />
 
         {/* Content */}
