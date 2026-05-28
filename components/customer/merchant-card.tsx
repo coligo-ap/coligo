@@ -8,7 +8,8 @@ import { WILAYAS } from "@/lib/config/wilayas";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
 import { RatingStars } from "@/components/customer/rating-stars";
-import type { PublicMerchant } from "@/lib/data/merchants-public";
+import { Tag } from "lucide-react";
+import type { PublicMerchant, PromoLabel } from "@/lib/data/merchants-public";
 
 type Props = {
   merchant: PublicMerchant;
@@ -16,9 +17,19 @@ type Props = {
   cashbackPct?: number | null;
   /** Affiche un badge "PROMO" si le commerce a une promotion active. */
   hasPromo?: boolean;
+  /** Détail de la meilleure promo active (− %, code, offre) — mis en avant. */
+  promo?: PromoLabel | null;
 };
 
-export function MerchantCard({ merchant, cashbackPct, hasPromo }: Props) {
+export function MerchantCard({
+  merchant,
+  cashbackPct,
+  hasPromo,
+  promo,
+}: Props) {
+  // La promo détaillée prime sur le simple booléen.
+  const showPromo =
+    promo ?? (hasPromo ? { text: "Promo", kind: "discount" as const } : null);
   // Statut ouvert/fermé calculé en heure d'Alger côté serveur.
   const open = isOpenNow(merchant.opening_hours, nowInAlgiers());
   const wilayaName = merchant.wilaya_code
@@ -82,10 +93,11 @@ export function MerchantCard({ merchant, cashbackPct, hasPromo }: Props) {
           {open ? "Ouvert" : "Fermé"}
         </span>
 
-        {/* Badge PROMO (corail) si une promotion réelle est active */}
-        {hasPromo && (
-          <span className="bg-coral-500 absolute top-2 right-2 z-20 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
-            PROMO
+        {/* Badge PROMO mis en avant : montre l'offre réelle (− %, code, offre). */}
+        {showPromo && (
+          <span className="bg-coral-500 absolute top-2 right-2 z-20 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-extrabold text-white shadow-md ring-2 ring-white/40">
+            <Tag className="size-3" />
+            {showPromo.text}
           </span>
         )}
 
@@ -109,7 +121,7 @@ export function MerchantCard({ merchant, cashbackPct, hasPromo }: Props) {
           </div>
         )}
 
-        {!hasPromo && cashbackPct && cashbackPct > 0 && (
+        {!showPromo && cashbackPct && cashbackPct > 0 && (
           <Badge
             tone="primary"
             className="absolute top-2 right-2 z-20 shadow-sm"
@@ -118,6 +130,20 @@ export function MerchantCard({ merchant, cashbackPct, hasPromo }: Props) {
           </Badge>
         )}
       </div>
+
+      {/* Bandeau promo prominent sous l'image — communique clairement l'offre. */}
+      {showPromo && (
+        <div className="from-coral-500 to-coral-600 flex items-center gap-1.5 bg-gradient-to-r px-3 py-1.5 text-[11px] font-bold text-white">
+          <Tag className="size-3.5 shrink-0" />
+          <span className="line-clamp-1">
+            {showPromo.kind === "code"
+              ? `${showPromo.text} — à saisir au panier`
+              : showPromo.kind === "offer"
+                ? showPromo.text
+                : `Promo : ${showPromo.text} sur la sélection`}
+          </span>
+        </div>
+      )}
 
       {/* Body — méta secondaire (adresse, minimum) sous l'image. */}
       <div className="relative space-y-1 p-3">

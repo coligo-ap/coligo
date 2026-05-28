@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import {
   listMerchantCategories,
   listPublicMerchants,
+  getPromoLabelsByMerchant,
 } from "@/lib/data/merchants-public";
 import { getActiveBanners } from "@/lib/data/promo-banners";
 import { getMyReviewableOrders } from "@/lib/data/reviews";
@@ -61,6 +62,10 @@ export default async function CustomerHomePage() {
   });
   const promoIds = rankingCtx.promoIds;
 
+  // Détails des promos (− %, code, offre) pour les mettre en avant sur les
+  // cartes — pas seulement un badge "PROMO" générique.
+  const promoLabels = await getPromoLabelsByMerchant(fallback.map((m) => m.id));
+
   // Carrousel « Top notés » : note >= 4 ET au moins 5 avis. Tri par score.
   const topRated = rankMerchants(
     fallback.filter((m) => m.rating_avg >= 4 && m.rating_count >= 5),
@@ -117,14 +122,22 @@ export default async function CustomerHomePage() {
             plateforme). */}
         {topRated.length > 0 && (
           <section className="mt-8">
-            <MerchantCarousel merchants={topRated} promoIds={promoIds} />
+            <MerchantCarousel
+              merchants={topRated}
+              promoIds={promoIds}
+              promoLabels={promoLabels}
+            />
           </section>
         )}
 
         {/* Tous les commerces — pré-trié par score composite côté serveur. */}
         <section className="mt-8">
           <Suspense fallback={null}>
-            <MarketplaceGrid fallback={rankedFallback} promoIds={promoIds} />
+            <MarketplaceGrid
+              fallback={rankedFallback}
+              promoIds={promoIds}
+              promoLabels={promoLabels}
+            />
           </Suspense>
         </section>
       </div>

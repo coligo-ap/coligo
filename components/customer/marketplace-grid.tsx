@@ -8,14 +8,19 @@ import { useCustomerLocation } from "@/lib/customer/location-store";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { getCategoryLabel } from "@/lib/config/categories";
 import { isOpenNow } from "@/lib/merchant/opening-hours";
-import { fetchMerchantsForZone } from "@/app/(customer)/actions";
+import {
+  fetchMerchantsForZone,
+  fetchPromoLabels,
+} from "@/app/(customer)/actions";
 import { MerchantCard } from "@/components/customer/merchant-card";
-import type { PublicMerchant } from "@/lib/data/merchants-public";
+import type { PublicMerchant, PromoLabel } from "@/lib/data/merchants-public";
 
 type Props = {
   fallback: PublicMerchant[];
   /** IDs des commerces avec promo active — utilisé pour afficher le badge PROMO. */
   promoIds?: Set<string>;
+  /** Détails des promos (− %, code, offre) par merchant_id. */
+  promoLabels?: Record<string, PromoLabel>;
 };
 
 // =============================================================================
@@ -39,10 +44,13 @@ type Filters = {
   deliveryMode: "any" | "express" | "tour";
 };
 
-export function MarketplaceGrid({ fallback, promoIds }: Props) {
+export function MarketplaceGrid({ fallback, promoIds, promoLabels }: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const loc = useCustomerLocation();
+  const [promos, setPromos] = useState<Record<string, PromoLabel>>(
+    promoLabels ?? {}
+  );
 
   const filters = useMemo<Filters>(
     () => ({
@@ -81,6 +89,9 @@ export function MarketplaceGrid({ fallback, promoIds }: Props) {
       } else {
         setItems(res);
         setEmptyZone(false);
+        // Rafraîchit les étiquettes promo pour les commerces affichés.
+        const labels = await fetchPromoLabels(res.map((m) => m.id));
+        setPromos((prev) => ({ ...prev, ...labels }));
       }
     });
   }, [loc, filters.q, filters.category, filters.sort, fallback]);
@@ -244,6 +255,7 @@ export function MarketplaceGrid({ fallback, promoIds }: Props) {
               key={m.id}
               merchant={m}
               hasPromo={promoIds?.has(m.id)}
+              promo={promos[m.id] ?? null}
             />
           ))}
         </div>

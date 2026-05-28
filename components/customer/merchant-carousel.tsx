@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Flame } from "lucide-react";
 import { StoreCardCompact } from "@/components/customer/store-card-compact";
-import type { PublicMerchant } from "@/lib/data/merchants-public";
+import type { PublicMerchant, PromoLabel } from "@/lib/data/merchants-public";
 
 // =============================================================================
 // MerchantCarousel — carrousel scroll-snap horizontal de commerces.
@@ -15,11 +15,18 @@ type Props = {
   merchants: PublicMerchant[];
   /** IDs des commerces qui ont une promotion active — pour le badge PROMO. */
   promoIds: Set<string>;
+  /** Détail des promos (− %, code…) par merchant_id. */
+  promoLabels?: Record<string, PromoLabel>;
   /** Lien "Tout voir" — vers la home filtrée ou similaire. */
   seeAllHref?: string;
 };
 
-export function MerchantCarousel({ merchants, promoIds, seeAllHref }: Props) {
+export function MerchantCarousel({
+  merchants,
+  promoIds,
+  promoLabels,
+  seeAllHref,
+}: Props) {
   if (merchants.length === 0) return null;
 
   return (
@@ -48,6 +55,7 @@ export function MerchantCarousel({ merchants, promoIds, seeAllHref }: Props) {
             key={m.id}
             merchant={m}
             hasPromo={promoIds.has(m.id)}
+            promoLabel={promoLabels?.[m.id]?.text ?? null}
           />
         ))}
       </div>

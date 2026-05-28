@@ -126,6 +126,94 @@ export async function listMerchantIdsWithActivePromo(
   return new Set((data ?? []).map((r) => r.merchant_id as string));
 }
 
+/**
+ * Étiquette promo « marketing » prête à afficher sur une carte commerce.
+ *  - kind sert à choisir la couleur ; text est le libellé court.
+ */
+export type PromoLabel = { text: string; kind: "discount" | "code" | "offer" };
+
+type PromoRow = {
+  merchant_id: string;
+  type: "product_discount" | "promo_code" | "quantity_offer";
+  discount_kind: "percent" | "amount" | null;
+  discount_value: number | null;
+  code: string | null;
+  buy_qty: number | null;
+  get_qty: number | null;
+};
+
+/** Construit un libellé court + un score d'attractivité pour CHOISIR la
+ *  meilleure promo à mettre en avant par commerçant. */
+function promoToLabel(p: PromoRow): { label: PromoLabel; appeal: number } {
+  // discount_value arrive en NUMERIC → string côté JS. On coerce + arrondit.
+  const val =
+    p.discount_value != null ? Math.round(Number(p.discount_value)) : 0;
+  if (p.type === "quantity_offer" && p.buy_qty && p.get_qty) {
+    return {
+      label: {
+        text: `${p.buy_qty} achetés = ${p.get_qty} offert${p.get_qty > 1 ? "s" : ""}`,
+        kind: "offer",
+      },
+      appeal: 60 + p.get_qty,
+    };
+  }
+  if (p.type === "promo_code") {
+    const v = val
+      ? p.discount_kind === "percent"
+        ? ` −${val}%`
+        : ` −${val} DA`
+      : "";
+    return {
+      label: { text: `Code promo${v}`, kind: "code" },
+      appeal: 40 + (p.discount_kind === "percent" ? val : 0),
+    };
+  }
+  // product_discount
+  if (p.discount_kind === "percent" && val) {
+    return {
+      label: { text: `−${val}%`, kind: "discount" },
+      appeal: 100 + val,
+    };
+  }
+  if (p.discount_kind === "amount" && val) {
+    return {
+      label: { text: `−${val} DA`, kind: "discount" },
+      appeal: 80 + Math.min(val, 50),
+    };
+  }
+  return { label: { text: "Promo", kind: "discount" }, appeal: 10 };
+}
+
+/**
+ * Renvoie, par commerçant, l'étiquette de la promo la PLUS attractive active.
+ * Utilisé pour mettre en avant les promotions sur les cartes marketplace.
+ */
+export async function getPromoLabelsByMerchant(
+  merchantIds?: string[]
+): Promise<Record<string, PromoLabel>> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("promotions")
+    .select(
+      "merchant_id, type, discount_kind, discount_value, code, buy_qty, get_qty"
+    )
+    .eq("status", "active");
+  if (merchantIds && merchantIds.length > 0) {
+    query = query.in("merchant_id", merchantIds);
+  }
+  const { data } = await query;
+
+  const best = new Map<string, { label: PromoLabel; appeal: number }>();
+  for (const row of (data ?? []) as PromoRow[]) {
+    const cur = promoToLabel(row);
+    const prev = best.get(row.merchant_id);
+    if (!prev || cur.appeal > prev.appeal) best.set(row.merchant_id, cur);
+  }
+  const out: Record<string, PromoLabel> = {};
+  for (const [mid, v] of best) out[mid] = v.label;
+  return out;
+}
+
 /** Liste les catégories distinctes parmi les vitrines actives. */
 export async function listMerchantCategories(): Promise<
   { name: string; count: number }[]

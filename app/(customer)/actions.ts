@@ -11,7 +11,9 @@ import {
 import { firstZodError } from "@/lib/validation/auth";
 import {
   listPublicMerchants,
+  getPromoLabelsByMerchant,
   type PublicMerchant,
+  type PromoLabel,
 } from "@/lib/data/merchants-public";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { getCommunes } from "@/lib/config/communes";
@@ -178,6 +180,17 @@ export async function fetchMerchantsForZone(input: {
     sort: input.sort === "min_order" ? "min_order" : "name",
     limit: 60,
   });
+}
+
+/**
+ * Étiquettes de promo (− %, code, offre) par commerçant — pour mettre en avant
+ * les promotions sur les cartes après un refetch de zone côté client.
+ */
+export async function fetchPromoLabels(
+  merchantIds: string[]
+): Promise<Record<string, PromoLabel>> {
+  if (merchantIds.length === 0) return {};
+  return getPromoLabelsByMerchant(merchantIds);
 }
 
 // =============================================================================
