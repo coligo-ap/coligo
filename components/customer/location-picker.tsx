@@ -209,6 +209,7 @@ export function LocationPicker({ onClose, initial }: Props) {
           </p>
           <MapPositionPicker
             initial={coords ?? undefined}
+            autoLocate={coords == null}
             onChange={(p) => setCoords(p)}
             gpsLabel="GPS"
             height={260}
