@@ -182,10 +182,14 @@ export function CheckoutView({ customer }: Props) {
       <div className="mx-auto max-w-xl px-4 py-12 text-center lg:py-20">
         <Loader2 className="text-primary-600 mx-auto size-6 animate-spin" />
         <p className="text-foreground mt-3 text-base font-semibold">
-          Redirection vers Chargily Pay…
+          {payment === "online"
+            ? "Redirection vers Chargily Pay…"
+            : "Commande confirmée — un instant…"}
         </p>
         <p className="text-muted mt-1 text-xs">
-          Tu seras redirigé(e) dans un instant. Garde cette fenêtre ouverte.
+          {payment === "online"
+            ? "Tu seras redirigé(e) dans un instant. Garde cette fenêtre ouverte."
+            : "On t'emmène vers le récapitulatif de ta commande."}
         </p>
       </div>
     );
@@ -334,7 +338,11 @@ export function CheckoutView({ customer }: Props) {
         return;
       }
       // Paiement cash (ou online totalement couvert par cashback/topup) :
-      // succès immédiat → on vide le panier et on file sur la fiche cmd.
+      // succès immédiat → on file sur la fiche commande. IMPORTANT : on active
+      // le flag d'écran de transition AVANT de vider le panier, sinon le
+      // `clearCart()` re-rend le checkout avec un panier vide → flash "Ton
+      // panier est vide" avant la navigation. Ce flag court-circuite ce rendu.
+      setIsRedirecting(true);
       clearCart();
       router.push(`/commandes/${res.order_id}`);
     });
