@@ -603,13 +603,29 @@ export async function createOrder(
       }
     }
 
+    // Téléphone communiqué au livreur : priorité au numéro saisi par le client,
+    // sinon celui de l'adresse enregistrée, sinon le numéro du profil client.
+    // Une livraison SANS aucun numéro joignable est refusée (le livreur ne
+    // pourrait pas contacter le client).
+    const deliveryPhone =
+      input.delivery_phone_override?.trim() ||
+      addrPhone?.trim() ||
+      customer.phone?.trim() ||
+      "";
+    if (deliveryPhone === "") {
+      return {
+        ok: false,
+        error:
+          "Un numéro de téléphone est requis pour la livraison. Ajoute-le à ton profil ou saisis-en un.",
+      };
+    }
+
     deliverySnapshot = {
       address_id: addrId,
       lat: addrLat,
       lng: addrLng,
       text: addrText,
-      phone:
-        input.delivery_phone_override?.trim() || addrPhone || customer.phone,
+      phone: deliveryPhone,
       distance_km: Number(distanceKm.toFixed(2)),
       mode: input.delivery_mode,
       slot_id:

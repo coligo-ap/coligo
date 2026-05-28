@@ -40,8 +40,15 @@ export function LocationBanner() {
             if (e.target === e.currentTarget) setOpen(false);
           }}
         >
-          <div className="bg-surface w-full max-w-md rounded-t-[20px] p-5 shadow-xl sm:rounded-[20px]">
-            <LocationPicker initial={loc} onClose={() => setOpen(false)} />
+          <div
+            className="bg-surface flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-[20px] shadow-xl sm:max-h-[90vh] sm:rounded-[20px]"
+            style={{
+              paddingBottom: "max(0px, env(safe-area-inset-bottom))",
+            }}
+          >
+            <div className="overflow-y-auto overscroll-contain px-5 pt-5 pb-5">
+              <LocationPicker initial={loc} onClose={() => setOpen(false)} />
+            </div>
           </div>
         </div>
       )}

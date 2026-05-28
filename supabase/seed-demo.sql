@@ -38,9 +38,16 @@ DECLARE
 BEGIN
   FOREACH v_email IN ARRAY v_users LOOP
     v_id := ('00000000-0000-4000-8000-' || lpad(abs(hashtext(v_email))::text, 12, '0'))::uuid;
+    -- IMPORTANT : on initialise les colonnes "token" à '' (chaîne vide) et
+    -- NON à NULL. GoTrue (auth) scanne ces colonnes en string Go ; un NULL
+    -- provoque « Database error querying schema » (HTTP 500) au login. Les
+    -- comptes créés via l'API GoTrue reçoivent '' automatiquement ; pour un
+    -- INSERT direct comme ici, c'est à nous de le faire.
     INSERT INTO auth.users (
       id, instance_id, aud, role, email, encrypted_password,
-      email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+      email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+      confirmation_token, recovery_token, email_change, email_change_token_new,
+      email_change_token_current, phone_change, phone_change_token, reauthentication_token
     ) VALUES (
       v_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
       v_email || '@demo.coligo.app',
@@ -48,7 +55,8 @@ BEGIN
       now(),
       jsonb_build_object('provider','email','providers',ARRAY['email']),
       jsonb_build_object('demo', true, 'role', CASE WHEN v_email LIKE 'client-%' THEN 'customer' ELSE 'merchant' END),
-      now(), now()
+      now(), now(),
+      '', '', '', '', '', '', '', ''
     );
   END LOOP;
 END $$;

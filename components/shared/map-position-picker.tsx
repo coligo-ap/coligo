@@ -9,24 +9,19 @@ import { toast } from "@/components/ui/toast";
 /**
  * Sélecteur de position sur carte — réutilisable client + commerçant.
  *
- * UX : le marqueur reste au CENTRE du viewport (overlay fixe), le user
- * déplace la carte pour le pointer où il veut. Bouton « Ma position GPS »
- * pour recentrer rapidement. Idem si l'utilisateur est déjà géoloc.
+ * UX : le marqueur reste au CENTRE du viewport (overlay fixe). L'utilisateur
+ * peut soit déplacer la carte, soit TAPER directement sur le point qu'il
+ * veut (la carte recentre dessus avec animation). Bouton « Ma position GPS »
+ * pour recentrer rapidement sur sa position réelle.
  *
- * Source tuiles : MapTiler si NEXT_PUBLIC_MAPTILER_KEY défini, sinon OSM.
+ * Source tuiles : MapTiler si NEXT_PUBLIC_MAPTILER_KEY défini, sinon
+ * OpenFreeMap (fallback gratuit sans clé).
  */
 
 type LatLng = { lat: number; lng: number };
 
 const DEFAULT_CENTER: LatLng = { lat: 36.7538, lng: 3.0588 }; // Alger
 
-/**
- * Style de carte par priorité :
- *  1. MapTiler streets (si NEXT_PUBLIC_MAPTILER_KEY défini) — couverture
- *     Algérie excellente, vectoriel, label arabe + latin.
- *  2. OpenFreeMap "liberty" — vectoriel, GRATUIT, sans clé, hébergé en EU,
- *     basé sur OSM, très rapide comparé aux tuiles OSM raster.
- */
 function buildStyle() {
   const key = process.env.NEXT_PUBLIC_MAPTILER_KEY;
   if (key) {
@@ -48,6 +43,13 @@ export type MapPositionPickerProps = {
   height?: number | string;
   /** Texte du bouton GPS. */
   gpsLabel?: string;
+  /**
+   * Si true, tente d'obtenir automatiquement la position GPS ACTUELLE dès que
+   * la carte est prête (sans clic) pour centrer dessus. Utile au checkout :
+   * « par défaut = ma position actuelle exacte ». Si la permission est
+   * refusée/indispo, on reste sur `initial`/`defaultCenter` sans bloquer.
+   */
+  autoLocate?: boolean;
 };
 
 export function MapPositionPicker({
@@ -56,53 +58,51 @@ export function MapPositionPicker({
   onChange,
   height = 280,
   gpsLabel = "Ma position",
+  autoLocate = false,
 }: MapPositionPickerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const [loading, setLoading] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [debug, setDebug] = useState<string>("init");
+
+  // onChange peut changer entre renders (closure différente). On le passe via
+  // ref pour que les handlers MapLibre (attachés une seule fois) appellent
+  // toujours la dernière version.
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   const start = initial ?? defaultCenter ?? DEFAULT_CENTER;
 
   useEffect(() => {
     if (!containerRef.current) return;
     let disposed = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
-    // Test WebGL d'abord : sur certains Android/PWA, WebGL est désactivé ou
-    // crashé. MapLibre throw un message peu clair, on préfère un message
-    // explicite.
-    setDebug("webgl-probe");
+    // Test WebGL d'abord : sur certains Android/PWA, WebGL est désactivé.
+    // MapLibre throw un message peu clair, on préfère un message explicite.
     const probe = document.createElement("canvas");
     const gl =
       probe.getContext("webgl2") ||
       probe.getContext("webgl") ||
       probe.getContext("experimental-webgl");
     if (!gl) {
-      setDebug("no-webgl");
       setMapError(
         "Ton navigateur ne supporte pas WebGL — impossible d'afficher la carte. Active l'accélération matérielle ou utilise un autre navigateur."
       );
       return;
     }
-    setDebug("webgl-ok");
 
-    // Tentative 1 : style configuré (MapTiler si clé, sinon OpenFreeMap).
-    // Tentative 2 (fallback) : OpenFreeMap si le style 1 échoue (réseau,
-    // domaine bloqué, clé invalide…).
     let triedFallback = false;
 
     const init = (styleUrl: string) => {
       if (disposed || !containerRef.current) return;
-      setDebug(
-        "loading-" + (styleUrl.includes("maptiler") ? "maptiler" : "openfm")
-      );
 
       void import("maplibre-gl")
         .then(({ Map }) => {
           if (disposed || !containerRef.current) return;
-          setDebug("maplibre-imported");
 
           let map: import("maplibre-gl").Map;
           try {
@@ -113,9 +113,7 @@ export function MapPositionPicker({
               zoom: initial ? 16 : 14,
               attributionControl: { compact: true },
             });
-            setDebug("map-instantiated");
           } catch (err) {
-            setDebug("init-fail");
             setMapError(
               "Échec init carte : " +
                 (err instanceof Error ? err.message : String(err))
@@ -130,15 +128,28 @@ export function MapPositionPicker({
           map.doubleClickZoom.enable();
           map.keyboard.enable();
 
-          // Capture toutes les erreurs runtime (tile failed, style failed,
-          // network…). Sans ça, MapLibre log dans la console et l'écran
-          // reste gris sans explication pour l'utilisateur.
+          // Suit la première arrivée de données de style. Sert à décider si une
+          // erreur ultérieure est fatale (style jamais chargé) ou bénigne
+          // (tuile/glyphe isolé qui échoue alors que la carte fonctionne déjà).
+          let styleArrived = false;
+          map.on("styledata", () => {
+            styleArrived = true;
+          });
+
+          // Gestion d'erreur. IMPORTANT : on NE détruit PAS la carte sur une
+          // simple erreur de tuile/sprite/glyphe — sinon une carte
+          // parfaitement fonctionnelle est rasée pour un POI manquant. On ne
+          // bascule sur le fallback OpenFreeMap QUE si le style lui-même n'a
+          // jamais réussi à charger (échec réseau/clé sur MapTiler).
           map.on("error", (e) => {
             const msg = e?.error?.message ?? "Erreur carte inconnue";
-            setDebug("map-error: " + msg.slice(0, 40));
-            if (!triedFallback && styleUrl.includes("maptiler.com")) {
+            const styleFailed = !styleArrived;
+            if (
+              styleFailed &&
+              !triedFallback &&
+              styleUrl.includes("maptiler.com")
+            ) {
               triedFallback = true;
-              setDebug("falling-back-to-openfm");
               try {
                 map.remove();
               } catch {}
@@ -146,31 +157,97 @@ export function MapPositionPicker({
               init("https://tiles.openfreemap.org/styles/liberty");
               return;
             }
-            setMapError("Erreur carte : " + msg);
+            // Erreur non fatale (tuile/glyphe) une fois le style chargé : on
+            // log seulement, la carte reste utilisable.
+            if (!styleArrived) setMapError("Erreur carte : " + msg);
           });
 
           const emit = () => {
             const c = map.getCenter();
-            onChange({ lat: c.lat, lng: c.lng });
+            onChangeRef.current({ lat: c.lat, lng: c.lng });
           };
+          // moveend = fin de drag/zoom/flyTo. Source unique de vérité pour
+          // l'émission de coordonnées (évite les doubles emits).
           map.on("moveend", emit);
 
-          const markReady = () => {
-            setDebug("ready");
+          // Clic / tap : recentre la carte sur le point cliqué. moveend
+          // s'occupera de l'émission une fois l'animation terminée.
+          map.on("click", (e) => {
+            map.flyTo({
+              center: [e.lngLat.lng, e.lngLat.lat],
+              zoom: Math.max(map.getZoom(), 16),
+              duration: 350,
+            });
+          });
+
+          // On NE bloque PAS l'affichage sur l'évènement `load` : en prod, avec
+          // la contention réseau de la home, une seule tuile/police qui traîne
+          // peut empêcher `load`/`isStyleLoaded` de passer à true pendant très
+          // longtemps → la carte restait masquée par l'overlay « Chargement… »
+          // indéfiniment. MapLibre peint les tuiles disponibles au fur et à
+          // mesure : dès que le style est arrivé OU au plus tard après un court
+          // délai, on révèle la carte. Premier signal gagnant.
+          let revealed = false;
+          let autoLocated = false;
+          const reveal = () => {
+            if (revealed || disposed) return;
+            revealed = true;
             setMapReady(true);
             setMapError(null);
             emit();
+            // Position ACTUELLE par défaut : si demandé et qu'aucune position
+            // explicite n'a été fournie, on récupère le GPS et on recentre
+            // dessus une seule fois. Échec silencieux (permission refusée…) :
+            // on garde le centre par défaut.
+            if (autoLocate && !initial && !autoLocated) {
+              autoLocated = true;
+              setLoading(true);
+              getPosition()
+                .then((pos) => {
+                  if (disposed) return;
+                  map.flyTo({
+                    center: [pos.longitude, pos.latitude],
+                    zoom: 17,
+                    duration: 700,
+                  });
+                  timers.push(
+                    setTimeout(() => {
+                      if (!disposed)
+                        onChangeRef.current({
+                          lat: pos.latitude,
+                          lng: pos.longitude,
+                        });
+                    }, 800)
+                  );
+                })
+                .catch(() => {
+                  /* GPS indispo/refusé : on reste sur le centre par défaut */
+                })
+                .finally(() => {
+                  if (!disposed) setLoading(false);
+                });
+            }
           };
-          if (map.loaded()) markReady();
-          else map.once("load", markReady);
+          map.once("load", reveal);
+          map.once("idle", reveal);
+          map.once("styledata", () => {
+            // Style parsé → la carte peut commencer à peindre. On laisse une
+            // poignée de ms pour le premier rendu puis on révèle.
+            timers.push(setTimeout(reveal, 400));
+          });
+          // Garde-fou ultime : quoi qu'il arrive, on révèle après 2,5 s pour ne
+          // jamais laisser l'utilisateur bloqué sur le spinner.
+          timers.push(setTimeout(reveal, 2500));
 
-          setTimeout(() => map.resize(), 100);
-          setTimeout(() => map.resize(), 500);
-          setTimeout(() => map.resize(), 1500);
+          // Plusieurs resize : MapLibre a besoin que le conteneur ait sa
+          // taille finale, qui peut être délayée par layout shift / modal
+          // fade-in / safe-area.
+          timers.push(setTimeout(() => map.resize(), 100));
+          timers.push(setTimeout(() => map.resize(), 500));
+          timers.push(setTimeout(() => map.resize(), 1500));
         })
         .catch((err) => {
           if (!disposed) {
-            setDebug("import-fail");
             setMapError(
               "Carte indisponible : " +
                 (err instanceof Error ? err.message : String(err))
@@ -183,6 +260,7 @@ export function MapPositionPicker({
 
     return () => {
       disposed = true;
+      timers.forEach(clearTimeout);
       mapRef.current?.remove();
       mapRef.current = null;
     };
@@ -193,10 +271,21 @@ export function MapPositionPicker({
     setLoading(true);
     try {
       const pos = await getPosition();
-      mapRef.current?.flyTo({
-        center: [pos.longitude, pos.latitude],
-        zoom: 17,
-      });
+      const map = mapRef.current;
+      if (map) {
+        map.flyTo({
+          center: [pos.longitude, pos.latitude],
+          zoom: 17,
+          duration: 700,
+        });
+        // Fallback : si moveend n'arrive pas (animation interrompue, carte
+        // déjà au point), on émet directement après un délai.
+        setTimeout(() => {
+          onChangeRef.current({ lat: pos.latitude, lng: pos.longitude });
+        }, 800);
+      } else {
+        onChangeRef.current({ lat: pos.latitude, lng: pos.longitude });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Géoloc indisponible");
     } finally {
@@ -209,9 +298,14 @@ export function MapPositionPicker({
       className="bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
       style={{ height: typeof height === "number" ? `${height}px` : height }}
     >
+      {/* La classe `maplibregl-map` injectée par MapLibre force
+          position:relative, ce qui annule un `absolute inset-0`. On utilise
+          donc `h-full w-full` pour que le conteneur garde toujours la taille
+          de son parent — sans ça, le canvas-container collapsait à 0
+          (visible mais clics ignorés). */}
       <div
         ref={containerRef}
-        className="absolute inset-0"
+        className="h-full w-full"
         style={{ touchAction: "none" }}
       />
 
@@ -230,14 +324,8 @@ export function MapPositionPicker({
         </div>
       )}
 
-      {/* Badge debug TEMPORAIRE — affiche l'état réel de l'init carte pour
-          diagnostiquer pourquoi le canvas reste gris sur certains devices.
-          À retirer une fois le bug identifié. */}
-      <div className="bg-foreground/85 pointer-events-none absolute top-2 left-2 rounded-full px-2 py-0.5 font-mono text-[10px] text-white">
-        {debug}
-      </div>
-
-      {/* Marqueur central fixe (overlay HTML). */}
+      {/* Marqueur central fixe (overlay HTML). pointer-events-none pour
+          laisser passer les clics → carte. */}
       {mapReady && (
         <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full">
           <MapPin
@@ -246,6 +334,14 @@ export function MapPositionPicker({
           />
         </div>
       )}
+
+      {/* Indice d'usage — discret en haut, disparait après interaction. */}
+      {mapReady && (
+        <div className="bg-foreground/75 pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-full px-2.5 py-1 text-[10px] font-medium text-white">
+          Tape ou glisse pour ajuster
+        </div>
+      )}
+
       <button
         type="button"
         onClick={useGps}

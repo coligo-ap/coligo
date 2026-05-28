@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { cn, formatDA } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
 import { clearCart, useCart, useOtherCarts } from "@/lib/customer/cart-store";
+import { useCustomerLocation } from "@/lib/customer/location-store";
 import { CartConflictModal } from "@/components/customer/cart-conflict-modal";
 import { generateSlotsForRange, type Slot } from "@/lib/customer/pickup-slots";
 import {
@@ -38,13 +39,23 @@ import {
 } from "./checkout-delivery-section";
 
 type Props = {
-  customer: { full_name: string; phone: string };
+  customer: {
+    full_name: string;
+    phone: string;
+    /** Position exacte enregistrée en DB (fallback cross-device si le
+     *  localStorage est vide). */
+    latitude?: number | null;
+    longitude?: number | null;
+  };
 };
 
 export function CheckoutView({ customer }: Props) {
   const router = useRouter();
   const cart = useCart();
   const otherCarts = useOtherCarts();
+  // Position exacte sauvegardée du client (via le sélecteur du header).
+  // Sert à pré-remplir la position de livraison au checkout.
+  const savedLoc = useCustomerLocation();
   const [ctx, setCtx] = useState<CheckoutContext | null>(null);
   const [loading, startLoad] = useTransition();
   const [submitting, startSubmit] = useTransition();
@@ -102,6 +113,17 @@ export function CheckoutView({ customer }: Props) {
       setPayment("cash");
     }
   }, [ctx, payment]);
+
+  // Position EXACTE par défaut du client = celle réglée via le sélecteur du
+  // header (localStorage), sinon celle enregistrée en DB sur le profil
+  // (robuste cross-device). Sert à CENTRER la carte de livraison directement
+  // sur l'endroit du client : il n'a pas à re-chercher sa position, juste à
+  // confirmer (ou ajuster). Voir le défaut passé à la carte plus bas.
+  const savedPosition = useMemo(() => {
+    const lat = savedLoc?.latitude ?? customer.latitude ?? null;
+    const lng = savedLoc?.longitude ?? customer.longitude ?? null;
+    return lat != null && lng != null ? { lat, lng } : null;
+  }, [savedLoc, customer.latitude, customer.longitude]);
 
   // Slots par jour sur la fenêtre J+max_days_ahead. Map<"YYYY-MM-DD", Slot[]>.
   const slotsByDay = useMemo(() => {
@@ -222,7 +244,7 @@ export function CheckoutView({ customer }: Props) {
         !!delivery.customPosition && delivery.positionConfirmed;
       if (!hasSavedAddress && !hasConfirmedCustom) {
         toast.error(
-          "Confirme ta position sur la carte ou choisis une adresse enregistrée."
+          "Confirme ta position exacte sur la carte ou choisis une adresse enregistrée."
         );
         return;
       }
@@ -232,6 +254,19 @@ export function CheckoutView({ customer }: Props) {
       }
       if (delivery.mode === "tour" && !delivery.slotId) {
         toast.error("Choisis un créneau de tournée.");
+        return;
+      }
+      // Téléphone joignable obligatoire pour la livraison (profil client par
+      // défaut, sinon le numéro saisi). Le livreur en a besoin.
+      const phoneForDelivery = (
+        delivery.phoneOverride.trim() ||
+        customer.phone ||
+        ""
+      ).trim();
+      if (phoneForDelivery === "") {
+        toast.error(
+          "Ajoute un numéro de téléphone pour la livraison (aucun numéro sur ton profil)."
+        );
         return;
       }
     }
@@ -315,6 +350,31 @@ export function CheckoutView({ customer }: Props) {
       ? (selectedDeliveryAddr.fee_da ?? 0)
       : 0;
 
+  // --- Conditions de légitimité pour une commande EN LIVRAISON ---------------
+  // On ne laisse JAMAIS confirmer une livraison sans : (1) une position exacte
+  // valide (adresse enregistrée dans le rayon OU position custom confirmée sur
+  // la carte), (2) un mode choisi (+ créneau si tournée), (3) un numéro de
+  // téléphone joignable (profil client par défaut, sinon override saisi).
+  // Le bouton reste grisé tant que ces conditions ne sont pas réunies ; le
+  // serveur les revérifie de toute façon.
+  const hasValidDeliveryPosition =
+    (selectedDeliveryAddr != null && !selectedDeliveryAddr.out_of_range) ||
+    (delivery.customPosition != null && delivery.positionConfirmed);
+  const deliveryPhone = (
+    delivery.phoneOverride.trim() ||
+    customer.phone ||
+    ""
+  ).trim();
+  const deliveryReady =
+    delivery.fulfillment !== "delivery" ||
+    (hasValidDeliveryPosition &&
+      delivery.mode != null &&
+      (delivery.mode !== "tour" || !!delivery.slotId) &&
+      deliveryPhone !== "");
+
+  // Nombre total d'unités dans le panier (pour le rappel compact du commerce).
+  const totalUnits = ctx.lines.reduce((s, l) => s + l.quantity, 0);
+
   const totalBeforeWallets =
     ctx.cart.totalDa + ctx.service_fee_da + deliveryFeeDa;
   const cashbackApplied = useCashback
@@ -362,29 +422,21 @@ export function CheckoutView({ customer }: Props) {
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         {/* Colonne principale */}
         <div className="space-y-5">
-          {/* Rappel commerce */}
+          {/* Rappel commerce — on N'AFFICHE PLUS le détail des articles ici :
+              le client connaît déjà son panier et peut y retourner d'un clic.
+              On garde juste le commerce + un compteur + le lien panier. */}
           <Section icon={Store} title={`Chez ${ctx.merchant.name}`}>
-            <ul className="divide-border bg-surface divide-y rounded-[12px]">
-              {ctx.lines.map((l) => (
-                <li
-                  key={l.product_id}
-                  className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm"
-                >
-                  <span className="text-foreground line-clamp-1">
-                    {l.quantity}× {l.name}
-                  </span>
-                  <span className="text-foreground tabular-nums">
-                    {formatDA(l.line_total_da)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/cart"
-              className="text-primary-700 mt-2 inline-flex text-xs font-medium hover:underline"
-            >
-              Modifier mon panier
-            </Link>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-muted text-sm">
+                {totalUnits} article{totalUnits > 1 ? "s" : ""} dans ton panier
+              </p>
+              <Link
+                href="/cart"
+                className="text-primary-700 inline-flex shrink-0 text-sm font-medium hover:underline"
+              >
+                Voir / modifier
+              </Link>
+            </div>
           </Section>
 
           {/* Livraison (caché si le commerçant n'a pas activé) */}
@@ -394,6 +446,7 @@ export function CheckoutView({ customer }: Props) {
             pricing={ctx.delivery.pricing}
             value={delivery}
             onChange={setDelivery}
+            defaultPosition={savedPosition}
           />
 
           {/* Retrait (uniquement si fulfillment = pickup) */}
@@ -670,6 +723,7 @@ export function CheckoutView({ customer }: Props) {
               onClick={submit}
               disabled={
                 submitting ||
+                !deliveryReady ||
                 (pickupType === "slot" && chosenSlotIdx == null) ||
                 (payment === "online" &&
                   totalAfterWallets > 0 &&
@@ -682,6 +736,22 @@ export function CheckoutView({ customer }: Props) {
                 "Confirmer la commande"
               )}
             </Button>
+
+            {/* Raison du blocage livraison — guide le client vers l'action
+                manquante (position / mode / créneau / téléphone). */}
+            {delivery.fulfillment === "delivery" && !deliveryReady && (
+              <p className="text-warning-700 mt-2 text-xs">
+                {!hasValidDeliveryPosition
+                  ? "Confirme ta position de livraison sur la carte."
+                  : !delivery.mode
+                    ? "Choisis un mode de livraison (Express ou Tournée)."
+                    : delivery.mode === "tour" && !delivery.slotId
+                      ? "Choisis un créneau de tournée."
+                      : deliveryPhone === ""
+                        ? "Ajoute un numéro de téléphone pour la livraison."
+                        : ""}
+              </p>
+            )}
 
             {/* Le minimum s'applique sur le total AVANT cashback (la valeur
                 du panier). Sinon on contournerait la règle du commerçant. */}
@@ -717,6 +787,8 @@ export function CheckoutView({ customer }: Props) {
             onClick={submit}
             disabled={
               submitting ||
+              !deliveryReady ||
+              (pickupType === "slot" && chosenSlotIdx == null) ||
               (payment === "online" &&
                 totalAfterWallets > 0 &&
                 totalAfterWallets < 50)

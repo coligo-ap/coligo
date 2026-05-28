@@ -47,6 +47,7 @@ export function CheckoutDeliverySection({
   pricing,
   value,
   onChange,
+  defaultPosition,
 }: {
   delivery: CheckoutDeliveryContext;
   merchantPosition: CheckoutMerchantPosition | null;
@@ -60,6 +61,8 @@ export function CheckoutDeliverySection({
   } | null;
   value: DeliveryChoice;
   onChange: (next: DeliveryChoice) => void;
+  /** Position exacte par défaut du client (centre initial de la carte). */
+  defaultPosition?: { lat: number; lng: number } | null;
 }) {
   const update = (patch: Partial<DeliveryChoice>) =>
     onChange({ ...value, ...patch });
@@ -131,6 +134,7 @@ export function CheckoutDeliverySection({
             customQuote={customQuote}
             selectedSavedAddress={selectedSavedAddress}
             merchantPosition={merchantPosition}
+            defaultPosition={defaultPosition}
           />
 
           {/* Modes Express / Tournée (uniquement si position valide) */}
@@ -282,6 +286,7 @@ function DeliveryAddressBlock({
   customQuote,
   selectedSavedAddress,
   merchantPosition,
+  defaultPosition,
 }: {
   delivery: CheckoutDeliveryContext;
   value: DeliveryChoice;
@@ -289,13 +294,13 @@ function DeliveryAddressBlock({
   customQuote: ReturnType<typeof computeDeliveryFee> | null;
   selectedSavedAddress?: CheckoutDeliveryContext["addresses"][number];
   merchantPosition: CheckoutMerchantPosition | null;
+  defaultPosition?: { lat: number; lng: number } | null;
 }) {
-  // Mode "nouvelle position sur la carte" : on ouvre la carte si :
-  //  - aucune adresse enregistrée, OU
-  //  - le client a explicitement cliqué "Nouvelle position"
-  const [pickerOpen, setPickerOpen] = useState(
-    delivery.addresses.length === 0 || value.customPosition != null
-  );
+  // La carte est ouverte PAR DÉFAUT : le client doit voir tout de suite sa
+  // position actuelle pour la livraison (exigence métier). Ses adresses
+  // enregistrées restent listées au-dessus et il peut basculer dessus d'un
+  // clic. On ne referme la carte que s'il choisit une adresse enregistrée.
+  const [pickerOpen, setPickerOpen] = useState(true);
 
   // Quand le client choisit une adresse enregistrée, on remet à zéro le
   // picker custom.
@@ -376,6 +381,7 @@ function DeliveryAddressBlock({
           update={update}
           customQuote={customQuote}
           merchantPosition={merchantPosition}
+          defaultPosition={defaultPosition}
           canSwitchToSaved={delivery.addresses.length > 0}
           onSwitchToSaved={() => {
             update({
@@ -409,6 +415,7 @@ function CustomPositionPicker({
   update,
   customQuote,
   merchantPosition,
+  defaultPosition,
   canSwitchToSaved,
   onSwitchToSaved,
 }: {
@@ -416,6 +423,7 @@ function CustomPositionPicker({
   update: (patch: Partial<DeliveryChoice>) => void;
   customQuote: ReturnType<typeof computeDeliveryFee> | null;
   merchantPosition: CheckoutMerchantPosition | null;
+  defaultPosition?: { lat: number; lng: number } | null;
   canSwitchToSaved: boolean;
   onSwitchToSaved: () => void;
 }) {
@@ -439,8 +447,16 @@ function CustomPositionPicker({
         Déplace la carte ou clique « Ma position » pour pointer exactement
         l&apos;endroit où tu veux être livré. Tu peux ensuite ajuster.
       </p>
+      {/* Position de livraison :
+          - si le client a déjà déplacé/choisi un point → on le garde (`initial`)
+          - sinon la carte se centre sur sa position exacte enregistrée
+            (`defaultCenter`) puis tente d'obtenir sa position GPS ACTUELLE
+            (`autoLocate`) pour proposer par défaut là où il est vraiment.
+          Il confirme ensuite via la case ci-dessous (obligatoire). */}
       <MapPositionPicker
         initial={value.customPosition ?? undefined}
+        defaultCenter={defaultPosition ?? undefined}
+        autoLocate={value.customPosition == null}
         onChange={(p) =>
           update({
             customPosition: p,

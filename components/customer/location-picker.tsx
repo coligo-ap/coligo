@@ -211,6 +211,7 @@ export function LocationPicker({ onClose, initial }: Props) {
             initial={coords ?? undefined}
             onChange={(p) => setCoords(p)}
             gpsLabel="GPS"
+            height={260}
           />
           {coords && (
             <p className="text-subtle text-xs tabular-nums">

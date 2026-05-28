@@ -27,7 +27,7 @@ export default async function CheckoutPage() {
 
   const { data: customer } = await supabase
     .from("customers")
-    .select("full_name, phone")
+    .select("full_name, phone, latitude, longitude")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -37,6 +37,8 @@ export default async function CheckoutPage() {
         customer={{
           full_name: customer?.full_name ?? "",
           phone: customer?.phone ?? "",
+          latitude: customer?.latitude ?? null,
+          longitude: customer?.longitude ?? null,
         }}
       />
     </CustomerShell>
