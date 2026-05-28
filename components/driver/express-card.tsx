@@ -19,6 +19,7 @@ import { markOrderPickedUp, pullNextExpress } from "@/app/(driver)/actions";
 import { AvailabilityToggle } from "./availability-toggle";
 import { DeliveryValidationDialog } from "./delivery-validation-dialog";
 import { DeliveryRouteMap } from "./delivery-route-map";
+import { DriverLocationBroadcaster } from "./driver-location-broadcaster";
 
 type CurrentOrder = {
   id: string;
@@ -234,6 +235,10 @@ export function ExpressCard({
                 }}
               />
             )}
+
+          {/* Tant que la commande est récupérée (en route), on diffuse la
+              position GPS au client pour le suivi live. */}
+          {pickedUp && <DriverLocationBroadcaster orderId={currentOrder.id} />}
 
           {pickedUp && (
             <Button

@@ -69,6 +69,7 @@ export function CheckoutView({ customer }: Props) {
     fulfillment: "pickup",
     addressId: null,
     customPosition: null,
+    customAddressText: null,
     positionConfirmed: false,
     mode: null,
     slotId: null,
@@ -306,6 +307,10 @@ export function CheckoutView({ customer }: Props) {
         delivery_custom_lng:
           delivery.fulfillment === "delivery" && delivery.customPosition
             ? delivery.customPosition.lng
+            : null,
+        delivery_custom_address_text:
+          delivery.fulfillment === "delivery" && delivery.customPosition
+            ? delivery.customAddressText?.trim() || null
             : null,
         delivery_note:
           delivery.fulfillment === "delivery"

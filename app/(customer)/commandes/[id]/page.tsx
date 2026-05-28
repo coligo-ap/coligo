@@ -16,6 +16,7 @@ import { cn, formatDA } from "@/lib/utils";
 import { OrderQr } from "@/components/customer/order-qr";
 import { CustomerOrderLive } from "@/components/customer/customer-order-live";
 import { DeliveryTimeline } from "@/components/customer/delivery-timeline";
+import { CustomerDeliveryMap } from "@/components/customer/customer-delivery-map";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { formatAsapReady, formatSlotRange } from "@/lib/customer/pickup-format";
 
@@ -42,6 +43,8 @@ export default async function CustomerOrderDetailPage({
        merchant_id,
        fulfillment_type, delivery_mode, delivery_fee_da,
        delivery_address_text, delivery_picked_up_at, delivery_delivered_at,
+       delivery_lat, delivery_lng,
+       driver_live_lat, driver_live_lng, driver_live_at,
        merchants ( name, slug, logo_url, phone_public, address, commune ),
        order_items ( id, product_name, unit_price_da, quantity, line_total_da )`
     )
@@ -103,6 +106,26 @@ export default async function CustomerOrderDetailPage({
   //  - LIVRAISON en CASH : NON (il paie en espèces au livreur, aucun code).
   const needsCode = isDelivery ? order.payment_method === "online" : true;
 
+  // Livraison EN COURS = récupérée par le livreur et pas encore livrée. On
+  // affiche alors la carte de suivi live (position du livreur + ETA).
+  const inTransit =
+    isDelivery &&
+    order.delivery_picked_up_at != null &&
+    order.delivery_delivered_at == null &&
+    status !== "completed" &&
+    status !== "cancelled";
+  const destLat = (order as { delivery_lat: number | null }).delivery_lat;
+  const destLng = (order as { delivery_lng: number | null }).delivery_lng;
+  const liveDriver =
+    (order as { driver_live_lat: number | null }).driver_live_lat != null &&
+    (order as { driver_live_lng: number | null }).driver_live_lng != null
+      ? {
+          lat: (order as { driver_live_lat: number }).driver_live_lat,
+          lng: (order as { driver_live_lng: number }).driver_live_lng,
+          at: (order as { driver_live_at: string | null }).driver_live_at,
+        }
+      : null;
+
   return (
     <CustomerShell>
       <div className="mx-auto max-w-2xl px-4 py-4 pb-24 lg:px-6 lg:py-8">
@@ -143,6 +166,18 @@ export default async function CustomerOrderDetailPage({
               pickedUpAt={order.delivery_picked_up_at as string | null}
               deliveredAt={order.delivery_delivered_at as string | null}
             />
+
+            {/* Carte de suivi LIVE : visible quand le livreur est en route. */}
+            {inTransit && destLat != null && destLng != null && (
+              <div className="mt-4 border-t pt-4">
+                <CustomerDeliveryMap
+                  orderId={order.id}
+                  destination={{ lat: destLat, lng: destLng }}
+                  initialDriver={liveDriver}
+                />
+              </div>
+            )}
+
             <p className="text-subtle mt-4 border-t pt-3 text-xs">
               {isCash
                 ? "💡 Règle le montant en espèces au livreur à la remise. Aucun code à communiquer."

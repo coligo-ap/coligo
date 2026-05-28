@@ -21,6 +21,7 @@ import {
 import { getPosition } from "@/lib/native/geolocation";
 import { DeliveryValidationDialog } from "./delivery-validation-dialog";
 import { DeliveryRouteMap } from "./delivery-route-map";
+import { DriverLocationBroadcaster } from "./driver-location-broadcaster";
 
 type Stop = {
   stop_id: string;
@@ -55,6 +56,12 @@ export function TourExecution({
 
   const allPickedUp = stops.every(
     (s) => s.stop_status !== "pending" || s.delivery_picked_up_at != null
+  );
+
+  // Stop en cours = premier arrêt non livré déjà récupéré → on diffuse la
+  // position du livreur au client de cette commande.
+  const currentStop = stops.find(
+    (s) => s.stop_status === "pending" && s.delivery_picked_up_at != null
   );
 
   const onBulkPickup = () =>
@@ -98,6 +105,9 @@ export function TourExecution({
 
   return (
     <div className="space-y-4">
+      {currentStop && (
+        <DriverLocationBroadcaster orderId={currentStop.order_id} />
+      )}
       <div className="bg-primary-50 border-primary-200 flex flex-wrap items-center gap-2 rounded-[12px] border p-3">
         {!allPickedUp ? (
           <Button

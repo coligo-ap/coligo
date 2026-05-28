@@ -62,6 +62,8 @@ export type CreateOrderInput = {
    */
   delivery_custom_lat?: number | null;
   delivery_custom_lng?: number | null;
+  /** Adresse lisible (reverse-geocode) du point custom — pour le livreur. */
+  delivery_custom_address_text?: string | null;
   /** Note du client → livreur/commerçant (max 300 chars). */
   delivery_note?: string | null;
 };
@@ -526,6 +528,9 @@ export async function createOrder(
       }
       addrLat = input.delivery_custom_lat;
       addrLng = input.delivery_custom_lng;
+      // Adresse lisible résolue côté client (reverse-geocode du point pointé).
+      addrText =
+        input.delivery_custom_address_text?.trim()?.slice(0, 200) || null;
     } else if (input.delivery_address_id) {
       const { data: addr } = await supabase
         .from("customer_addresses")

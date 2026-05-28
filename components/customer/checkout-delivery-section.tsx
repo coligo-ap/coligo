@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import { computeDeliveryFee } from "@/lib/delivery/pricing";
 import { haversineKm } from "@/lib/delivery/distance";
+import { reverseGeocode } from "@/app/(customer)/actions";
 import type {
   CheckoutDeliveryContext,
   CheckoutMerchantPosition,
@@ -29,6 +30,8 @@ export type DeliveryChoice = {
   addressId: string | null;
   /** Position custom posée à la volée sur la carte (alternative à addressId). */
   customPosition: { lat: number; lng: number } | null;
+  /** Adresse lisible résolue (reverse-geocode) du point custom — pour le livreur. */
+  customAddressText: string | null;
   /** True quand le client a explicitement confirmé sa position custom. */
   positionConfirmed: boolean;
   /** Mode (requis si fulfillment=delivery). */
@@ -429,6 +432,37 @@ function CustomPositionPicker({
 }) {
   const outOfRange = customQuote?.outOfRange ?? false;
 
+  // Adresse lisible du point pointé (reverse-geocode), réactualisée à chaque
+  // déplacement du curseur (debounce 800 ms pour ménager l'API). On la stocke
+  // aussi dans le choix pour que le livreur ait une adresse, pas que des
+  // coordonnées.
+  const [addr, setAddr] = useState<string | null>(null);
+  const [addrLoading, setAddrLoading] = useState(false);
+  const lat = value.customPosition?.lat ?? null;
+  const lng = value.customPosition?.lng ?? null;
+  useEffect(() => {
+    if (lat == null || lng == null) {
+      setAddr(null);
+      return;
+    }
+    setAddrLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await reverseGeocode({ latitude: lat, longitude: lng });
+        const label = res.ok
+          ? (res.display ??
+            [res.commune, res.wilaya_name].filter(Boolean).join(" · "))
+          : null;
+        setAddr(label || null);
+        update({ customAddressText: label || null });
+      } finally {
+        setAddrLoading(false);
+      }
+    }, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lat, lng]);
+
   return (
     <div className="border-primary-300 bg-primary-50/40 space-y-2 rounded-[12px] border p-3">
       <div className="flex items-baseline justify-between gap-2">
@@ -469,54 +503,59 @@ function CustomPositionPicker({
 
       {value.customPosition && (
         <>
-          <p className="text-subtle text-xs tabular-nums">
-            {value.customPosition.lat.toFixed(5)},{" "}
-            {value.customPosition.lng.toFixed(5)}
-            {customQuote && !customQuote.outOfRange && (
-              <>
-                {" "}
-                ·{" "}
-                {customQuote.breakdown.billableKm.toFixed(1) === "0.0"
-                  ? "<2"
-                  : ""}{" "}
-                {
-                  (haversineKm(
-                    { lat: 0, lng: 0 },
-                    value.customPosition
-                  ) /* placeholder */,
-                  "")
-                }
-                <span className="text-foreground ml-1 font-semibold">
-                  {formatDA(customQuote.feeDa)}
+          {/* Adresse résolue du point pointé (se met à jour à chaque
+              déplacement). Fallback sur les coordonnées. */}
+          <div className="flex items-start gap-1.5 text-xs">
+            <MapPin className="text-primary-600 mt-0.5 size-3.5 shrink-0" />
+            <span className="text-foreground min-w-0 flex-1">
+              {addrLoading ? (
+                <span className="text-muted">Recherche de l&apos;adresse…</span>
+              ) : addr ? (
+                <span className="font-medium">{addr}</span>
+              ) : (
+                <span className="text-subtle tabular-nums">
+                  {value.customPosition.lat.toFixed(5)},{" "}
+                  {value.customPosition.lng.toFixed(5)}
                 </span>
-              </>
-            )}
-          </p>
+              )}
+              {customQuote && !customQuote.outOfRange && (
+                <span className="text-foreground ml-1 font-semibold">
+                  · {formatDA(customQuote.feeDa)}
+                </span>
+              )}
+            </span>
+          </div>
 
           {outOfRange ? (
             <p className="border-danger-200 bg-danger-50 text-danger-700 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
               <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-              Vous dépassez le rayon de livraison du commerçant
+              Cette position est hors de la zone de livraison du commerçant
               {customQuote?.outOfRange === true && customQuote.maxRadiusKm
                 ? ` (${customQuote.maxRadiusKm.toFixed(1)} km max)`
                 : ""}
               . Rapproche le pointeur ou choisis « Retrait sur place ».
             </p>
           ) : (
-            <label className="flex cursor-pointer items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="mt-0.5"
-                checked={value.positionConfirmed}
-                onChange={(e) =>
-                  update({ positionConfirmed: e.target.checked })
-                }
-              />
-              <span>
-                <strong>Je confirme cette position.</strong> Le livreur s&apos;y
-                rendra.
-              </span>
-            </label>
+            <>
+              <p className="text-success-700 flex items-center gap-1.5 text-xs font-medium">
+                <Check className="size-3.5" />
+                Dans la zone de livraison
+              </p>
+              <label className="flex cursor-pointer items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={value.positionConfirmed}
+                  onChange={(e) =>
+                    update({ positionConfirmed: e.target.checked })
+                  }
+                />
+                <span>
+                  <strong>Je confirme cette position.</strong> Le livreur
+                  s&apos;y rendra.
+                </span>
+              </label>
+            </>
           )}
         </>
       )}

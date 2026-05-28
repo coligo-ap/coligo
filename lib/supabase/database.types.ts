@@ -201,6 +201,9 @@ export type Database = {
           delivery_driver_id: string | null;
           delivery_picked_up_at: string | null;
           delivery_delivered_at: string | null;
+          driver_live_lat: number | null;
+          driver_live_lng: number | null;
+          driver_live_at: string | null;
           validated_without_code: boolean;
           delivery_slot_id: string | null;
           delivery_note: string | null;
@@ -248,6 +251,9 @@ export type Database = {
           delivery_driver_id?: string | null;
           delivery_picked_up_at?: string | null;
           delivery_delivered_at?: string | null;
+          driver_live_lat?: number | null;
+          driver_live_lng?: number | null;
+          driver_live_at?: string | null;
           validated_without_code?: boolean;
           delivery_slot_id?: string | null;
           delivery_note?: string | null;
@@ -295,6 +301,9 @@ export type Database = {
           delivery_driver_id?: string | null;
           delivery_picked_up_at?: string | null;
           delivery_delivered_at?: string | null;
+          driver_live_lat?: number | null;
+          driver_live_lng?: number | null;
+          driver_live_at?: string | null;
           validated_without_code?: boolean;
           delivery_slot_id?: string | null;
           delivery_note?: string | null;
@@ -1420,6 +1429,14 @@ export type Database = {
           p_from_lng: number;
         };
         Returns: { reordered: number }[];
+      };
+      update_driver_live_location: {
+        Args: {
+          p_order_id: string;
+          p_lat: number;
+          p_lng: number;
+        };
+        Returns: { ok: boolean; reason: string | null }[];
       };
     };
     Enums: {
