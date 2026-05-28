@@ -62,6 +62,7 @@ export function MapPositionPicker({
   const [loading, setLoading] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [debug, setDebug] = useState<string>("init");
 
   const start = initial ?? defaultCenter ?? DEFAULT_CENTER;
 
@@ -69,64 +70,116 @@ export function MapPositionPicker({
     if (!containerRef.current) return;
     let disposed = false;
 
-    void import("maplibre-gl")
-      .then(({ Map }) => {
-        if (disposed || !containerRef.current) return;
+    // Test WebGL d'abord : sur certains Android/PWA, WebGL est désactivé ou
+    // crashé. MapLibre throw un message peu clair, on préfère un message
+    // explicite.
+    setDebug("webgl-probe");
+    const probe = document.createElement("canvas");
+    const gl =
+      probe.getContext("webgl2") ||
+      probe.getContext("webgl") ||
+      probe.getContext("experimental-webgl");
+    if (!gl) {
+      setDebug("no-webgl");
+      setMapError(
+        "Ton navigateur ne supporte pas WebGL — impossible d'afficher la carte. Active l'accélération matérielle ou utilise un autre navigateur."
+      );
+      return;
+    }
+    setDebug("webgl-ok");
 
-        const map = new Map({
-          container: containerRef.current,
-          style: buildStyle() as never,
-          center: [start.lng, start.lat],
-          zoom: initial ? 16 : 14,
-          attributionControl: { compact: true },
+    // Tentative 1 : style configuré (MapTiler si clé, sinon OpenFreeMap).
+    // Tentative 2 (fallback) : OpenFreeMap si le style 1 échoue (réseau,
+    // domaine bloqué, clé invalide…).
+    let triedFallback = false;
+
+    const init = (styleUrl: string) => {
+      if (disposed || !containerRef.current) return;
+      setDebug(
+        "loading-" + (styleUrl.includes("maptiler") ? "maptiler" : "openfm")
+      );
+
+      void import("maplibre-gl")
+        .then(({ Map }) => {
+          if (disposed || !containerRef.current) return;
+          setDebug("maplibre-imported");
+
+          let map: import("maplibre-gl").Map;
+          try {
+            map = new Map({
+              container: containerRef.current,
+              style: styleUrl as never,
+              center: [start.lng, start.lat],
+              zoom: initial ? 16 : 14,
+              attributionControl: { compact: true },
+            });
+            setDebug("map-instantiated");
+          } catch (err) {
+            setDebug("init-fail");
+            setMapError(
+              "Échec init carte : " +
+                (err instanceof Error ? err.message : String(err))
+            );
+            return;
+          }
+          mapRef.current = map;
+
+          map.dragPan.enable();
+          map.scrollZoom.enable();
+          map.touchZoomRotate.enable();
+          map.doubleClickZoom.enable();
+          map.keyboard.enable();
+
+          // Capture toutes les erreurs runtime (tile failed, style failed,
+          // network…). Sans ça, MapLibre log dans la console et l'écran
+          // reste gris sans explication pour l'utilisateur.
+          map.on("error", (e) => {
+            const msg = e?.error?.message ?? "Erreur carte inconnue";
+            setDebug("map-error: " + msg.slice(0, 40));
+            if (!triedFallback && styleUrl.includes("maptiler.com")) {
+              triedFallback = true;
+              setDebug("falling-back-to-openfm");
+              try {
+                map.remove();
+              } catch {}
+              mapRef.current = null;
+              init("https://tiles.openfreemap.org/styles/liberty");
+              return;
+            }
+            setMapError("Erreur carte : " + msg);
+          });
+
+          const emit = () => {
+            const c = map.getCenter();
+            onChange({ lat: c.lat, lng: c.lng });
+          };
+          map.on("moveend", emit);
+
+          const markReady = () => {
+            setDebug("ready");
+            setMapReady(true);
+            setMapError(null);
+            emit();
+          };
+          if (map.loaded()) markReady();
+          else map.once("load", markReady);
+
+          setTimeout(() => map.resize(), 100);
+          setTimeout(() => map.resize(), 500);
+          setTimeout(() => map.resize(), 1500);
+        })
+        .catch((err) => {
+          if (!disposed) {
+            setDebug("import-fail");
+            setMapError(
+              "Carte indisponible : " +
+                (err instanceof Error ? err.message : String(err))
+            );
+          }
         });
-        mapRef.current = map;
+    };
 
-        // Sécurité : forcer toutes les interactions (par défaut activées,
-        // mais on les ré-active explicitement pour neutraliser tout cas
-        // où un parent ou un thème les aurait désactivées).
-        map.dragPan.enable();
-        map.scrollZoom.enable();
-        map.touchZoomRotate.enable();
-        map.doubleClickZoom.enable();
-        map.keyboard.enable();
-
-        const emit = () => {
-          const c = map.getCenter();
-          onChange({ lat: c.lat, lng: c.lng });
-        };
-        map.on("moveend", emit);
-
-        // Race condition possible : si le style est en cache du navigateur,
-        // l'event "load" peut être déjà tiré avant qu'on attache le listener.
-        // On check map.loaded() en garde-fou.
-        const markReady = () => {
-          setMapReady(true);
-          emit();
-        };
-        if (map.loaded()) markReady();
-        else map.once("load", markReady);
-        // 2e filet : si load ne tire jamais (cas réseau lent ou tile error),
-        // on libère quand même l'UI au bout de 3s pour ne pas bloquer le user.
-        setTimeout(() => {
-          if (!disposed) setMapReady(true);
-        }, 3000);
-
-        // Filet de sécurité : si le container avait 0 px au moment de l'init
-        // (ex: parent qui anime sa hauteur), MapLibre dessine vide.
-        // map.resize() à 100/500/1500 ms recouvre tous les cas usuels.
-        setTimeout(() => map.resize(), 100);
-        setTimeout(() => map.resize(), 500);
-        setTimeout(() => map.resize(), 1500);
-      })
-      .catch((err) => {
-        if (!disposed) {
-          setMapError(
-            "Carte indisponible : " +
-              (err instanceof Error ? err.message : String(err))
-          );
-        }
-      });
+    init(buildStyle());
 
     return () => {
       disposed = true;
@@ -172,10 +225,17 @@ export function MapPositionPicker({
         </div>
       )}
       {mapError && (
-        <div className="text-danger-700 pointer-events-none absolute inset-0 flex items-center justify-center bg-white/90 px-4 text-center text-sm">
+        <div className="text-danger-700 pointer-events-none absolute inset-0 flex items-center justify-center bg-white/90 px-4 text-center text-xs">
           {mapError}
         </div>
       )}
+
+      {/* Badge debug TEMPORAIRE — affiche l'état réel de l'init carte pour
+          diagnostiquer pourquoi le canvas reste gris sur certains devices.
+          À retirer une fois le bug identifié. */}
+      <div className="bg-foreground/85 pointer-events-none absolute top-2 left-2 rounded-full px-2 py-0.5 font-mono text-[10px] text-white">
+        {debug}
+      </div>
 
       {/* Marqueur central fixe (overlay HTML). */}
       {mapReady && (
