@@ -1,19 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Banknote,
-  Bolt,
-  Calendar,
-  Check,
-  CreditCard,
-  MapPin,
-  Search,
-  XCircle,
-} from "lucide-react";
-import { cn, formatDA } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Check, MapPin, Search, XCircle } from "lucide-react";
+import { formatDA } from "@/lib/utils";
 
 type Row = {
   id: string;
@@ -37,8 +26,9 @@ type FilterMode = "all" | "express" | "tour";
 type FilterStatus = "all" | "delivered" | "in_progress" | "cancelled";
 
 /**
- * Historique livreur — liste filtrable par date, commerçant, mode et statut,
- * avec recherche libre sur le client / l'adresse.
+ * Historique livreur (style Uber) — liste filtrable par date, commerçant, mode
+ * et statut, avec recherche libre. Refonte PUREMENT VISUELLE : la logique de
+ * filtrage et les KPIs sont strictement identiques.
  */
 export function DeliveryHistory({
   rows,
@@ -47,8 +37,6 @@ export function DeliveryHistory({
   rows: Row[];
   merchants: Merchant[];
 }) {
-  // Lookup nom commerçant construit côté client : on ne peut pas recevoir une
-  // fonction depuis un Server Component (interdit par React).
   const merchantNameOf = useMemo(() => {
     const map = new Map(merchants.map((m) => [m.id, m.name]));
     return (id: string) => map.get(id) ?? "—";
@@ -106,9 +94,9 @@ export function DeliveryHistory({
     .reduce((s, r) => s + (r.delivery_fee_da ?? 0), 0);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-[9px]">
         <Stat label="Livrées" value={String(totalDelivered)} />
         <Stat label="Gagné" value={formatDA(totalEarned)} />
         <Stat label="Cash" value={formatDA(totalCashCollected)} />
@@ -116,26 +104,23 @@ export function DeliveryHistory({
 
       {/* Recherche */}
       <div className="relative">
-        <Search className="text-subtle absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-        <Input
+        <Search className="absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-[#9e9e9e]" />
+        <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Recherche client, adresse, commerçant…"
-          className="pl-9"
+          className="w-full rounded-[12px] border-[1.5px] border-[#e5e5e5] bg-white py-3 pr-3 pl-10 text-sm font-medium text-[#0a0a0a] outline-none placeholder:text-[#9e9e9e] focus:border-[#0a0a0a]"
         />
       </div>
 
       {/* Filtres */}
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div className="space-y-1">
-          <Label htmlFor="merchant_filter" className="text-xs">
-            Commerçant
-          </Label>
+      <div className="space-y-3 rounded-[14px] bg-white p-3.5 shadow-[0_2px_8px_rgba(0,0,0,.04)]">
+        <div className="space-y-1.5">
+          <FieldLabel>Commerçant</FieldLabel>
           <select
-            id="merchant_filter"
             value={merchantId}
             onChange={(e) => setMerchantId(e.target.value)}
-            className="border-border bg-surface w-full rounded-[10px] border px-3 py-2 text-sm"
+            className="w-full rounded-[10px] border-[1.5px] border-[#e5e5e5] bg-white px-3 py-2 text-sm font-medium text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
           >
             <option value="all">Tous ({merchants.length})</option>
             {merchants.map((m) => (
@@ -146,71 +131,78 @@ export function DeliveryHistory({
           </select>
         </div>
 
-        <div className="space-y-1">
-          <Label className="text-xs">Mode</Label>
-          <div className="flex gap-1">
-            <ModeBtn cur={mode} set={setMode} value="all" label="Tous" />
-            <ModeBtn cur={mode} set={setMode} value="express" label="Express" />
-            <ModeBtn cur={mode} set={setMode} value="tour" label="Tournée" />
+        <div className="space-y-1.5">
+          <FieldLabel>Mode</FieldLabel>
+          <div className="flex gap-1.5">
+            <Pill active={mode === "all"} onClick={() => setMode("all")}>
+              Tous
+            </Pill>
+            <Pill
+              active={mode === "express"}
+              onClick={() => setMode("express")}
+            >
+              Express
+            </Pill>
+            <Pill active={mode === "tour"} onClick={() => setMode("tour")}>
+              Tournée
+            </Pill>
           </div>
         </div>
 
-        <div className="space-y-1">
-          <Label className="text-xs">Statut</Label>
-          <div className="flex gap-1">
-            <StatusBtn cur={status} set={setStatus} value="all" label="Tous" />
-            <StatusBtn
-              cur={status}
-              set={setStatus}
-              value="delivered"
-              label="Livrées"
-            />
-            <StatusBtn
-              cur={status}
-              set={setStatus}
-              value="in_progress"
-              label="En cours"
-            />
+        <div className="space-y-1.5">
+          <FieldLabel>Statut</FieldLabel>
+          <div className="flex gap-1.5">
+            <Pill active={status === "all"} onClick={() => setStatus("all")}>
+              Tous
+            </Pill>
+            <Pill
+              active={status === "delivered"}
+              onClick={() => setStatus("delivered")}
+            >
+              Livrées
+            </Pill>
+            <Pill
+              active={status === "in_progress"}
+              onClick={() => setStatus("in_progress")}
+            >
+              En cours
+            </Pill>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <Label htmlFor="from_date" className="text-xs">
-              Du
-            </Label>
-            <Input
-              id="from_date"
+          <div className="space-y-1.5">
+            <FieldLabel>Du</FieldLabel>
+            <input
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
+              className="w-full rounded-[10px] border-[1.5px] border-[#e5e5e5] bg-white px-3 py-2 text-sm font-medium text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
             />
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="to_date" className="text-xs">
-              Au
-            </Label>
-            <Input
-              id="to_date"
+          <div className="space-y-1.5">
+            <FieldLabel>Au</FieldLabel>
+            <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
+              className="w-full rounded-[10px] border-[1.5px] border-[#e5e5e5] bg-white px-3 py-2 text-sm font-medium text-[#0a0a0a] outline-none focus:border-[#0a0a0a]"
             />
           </div>
         </div>
       </div>
 
       {/* Liste */}
-      <p className="text-muted text-xs">
+      <p className="px-1 text-xs font-medium text-[#757575]">
         {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
       </p>
 
       {filtered.length === 0 ? (
-        <p className="text-muted text-sm">
+        <p className="px-1 text-sm text-[#757575]">
           Aucune livraison ne correspond à ces filtres.
         </p>
       ) : (
-        <ul className="space-y-2">
+        <div className="space-y-2">
           {filtered.map((r) => (
             <RowItem
               key={r.id}
@@ -218,71 +210,52 @@ export function DeliveryHistory({
               merchantName={merchantNameOf(r.merchant_id)}
             />
           ))}
-        </ul>
+        </div>
       )}
     </div>
+  );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[11px] font-bold tracking-[0.3px] text-[#757575] uppercase">
+      {children}
+    </p>
   );
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-surface border-border rounded-[10px] border p-2 text-center">
-      <p className="text-base font-bold tabular-nums">{value}</p>
-      <p className="text-muted text-[10px] tracking-wide uppercase">{label}</p>
+    <div className="rounded-[13px] bg-white p-3 text-center shadow-[0_2px_8px_rgba(0,0,0,.04)]">
+      <p className="text-[16px] font-extrabold text-[#0a0a0a] tabular-nums">
+        {value}
+      </p>
+      <p className="mt-0.5 text-[10px] font-semibold tracking-wide text-[#757575] uppercase">
+        {label}
+      </p>
     </div>
   );
 }
 
-function ModeBtn({
-  cur,
-  set,
-  value,
-  label,
+function Pill({
+  active,
+  onClick,
+  children,
 }: {
-  cur: FilterMode;
-  set: (m: FilterMode) => void;
-  value: FilterMode;
-  label: string;
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
-      onClick={() => set(value)}
-      className={cn(
-        "flex-1 rounded-[8px] px-2 py-1.5 text-xs font-semibold",
-        cur === value
-          ? "bg-primary-600 text-white"
-          : "bg-surface-2 text-muted hover:bg-surface-3"
-      )}
+      onClick={onClick}
+      className={
+        "flex-1 rounded-full px-2 py-1.5 text-xs font-bold transition-colors " +
+        (active ? "bg-black text-white" : "bg-[#f2f2f2] text-[#757575]")
+      }
     >
-      {label}
-    </button>
-  );
-}
-
-function StatusBtn({
-  cur,
-  set,
-  value,
-  label,
-}: {
-  cur: FilterStatus;
-  set: (s: FilterStatus) => void;
-  value: FilterStatus;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => set(value)}
-      className={cn(
-        "flex-1 rounded-[8px] px-2 py-1.5 text-xs font-semibold",
-        cur === value
-          ? "bg-primary-600 text-white"
-          : "bg-surface-2 text-muted hover:bg-surface-3"
-      )}
-    >
-      {label}
+      {children}
     </button>
   );
 }
@@ -292,23 +265,23 @@ function RowItem({ row, merchantName }: { row: Row; merchantName: string }) {
   const isCancelled = row.status === "cancelled";
   const date = row.delivery_delivered_at ?? row.created_at;
   return (
-    <li className="border-border bg-surface space-y-2 rounded-[12px] border p-3">
+    <div className="space-y-2 rounded-[14px] bg-white p-3.5 shadow-[0_2px_8px_rgba(0,0,0,.04)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">
+          <p className="truncate text-sm font-bold text-[#0a0a0a]">
             {row.customer_name ?? "Client"}
           </p>
-          <p className="text-muted text-xs">{merchantName}</p>
+          <p className="text-xs font-medium text-[#757575]">{merchantName}</p>
         </div>
         <span
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-            isDelivered
-              ? "bg-success-100 text-success-700"
+          className={
+            "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold " +
+            (isDelivered
+              ? "bg-[#e6f6ef] text-[#00a86b]"
               : isCancelled
-                ? "bg-danger-100 text-danger-700"
-                : "bg-warning-100 text-warning-700"
-          )}
+                ? "bg-[#fdeceb] text-[#e53935]"
+                : "bg-[#fef3e0] text-[#b8740c]")
+          }
         >
           {isDelivered ? (
             <Check className="size-3" />
@@ -319,45 +292,27 @@ function RowItem({ row, merchantName }: { row: Row; merchantName: string }) {
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1.5">
         {row.delivery_mode === "express" ? (
-          <Chip
-            icon={<Bolt className="size-3" />}
-            label="Express"
-            tone="orange"
-          />
+          <Chip>⚡ Express</Chip>
         ) : row.delivery_mode === "tour" ? (
-          <Chip
-            icon={<Calendar className="size-3" />}
-            label="Tournée"
-            tone="teal"
-          />
+          <Chip>📅 Tournée</Chip>
         ) : null}
-        {row.payment_method === "online" ? (
-          <Chip
-            icon={<CreditCard className="size-3" />}
-            label="En ligne"
-            tone="blue"
-          />
-        ) : (
-          <Chip
-            icon={<Banknote className="size-3" />}
-            label="Cash"
-            tone="stone"
-          />
-        )}
-        {row.validated_without_code && <Chip label="Sans code" tone="amber" />}
+        <Chip>
+          {row.payment_method === "online" ? "💳 En ligne" : "💵 Cash"}
+        </Chip>
+        {row.validated_without_code && <Chip>Sans code</Chip>}
       </div>
 
       {row.delivery_address_text && (
-        <p className="text-muted flex items-start gap-1 text-xs">
-          <MapPin className="mt-0.5 size-3 shrink-0" />
+        <p className="flex items-start gap-1.5 text-xs text-[#757575]">
+          <MapPin className="mt-0.5 size-3.5 shrink-0" />
           {row.delivery_address_text}
         </p>
       )}
 
-      <div className="flex items-center justify-between gap-2 text-xs">
-        <span className="text-subtle tabular-nums">
+      <div className="flex items-center justify-between gap-2 border-t border-[#eee] pt-2 text-xs">
+        <span className="font-medium text-[#9e9e9e] tabular-nums">
           {new Date(date).toLocaleString("fr-FR", {
             day: "2-digit",
             month: "short",
@@ -365,44 +320,23 @@ function RowItem({ row, merchantName }: { row: Row; merchantName: string }) {
             minute: "2-digit",
           })}
         </span>
-        <span className="tabular-nums">
+        <span className="font-semibold text-[#0a0a0a] tabular-nums">
           {row.total_da != null ? formatDA(row.total_da) : "—"}
           {row.delivery_fee_da != null && (
-            <span className="text-muted ml-1">
+            <span className="ml-1 font-medium text-[#757575]">
               · livr. {formatDA(row.delivery_fee_da)}
             </span>
           )}
         </span>
       </div>
-    </li>
+    </div>
   );
 }
 
-function Chip({
-  icon,
-  label,
-  tone,
-}: {
-  icon?: React.ReactNode;
-  label: string;
-  tone: "orange" | "teal" | "blue" | "stone" | "amber";
-}) {
-  const colors: Record<typeof tone, string> = {
-    orange: "bg-warning-100 text-warning-700",
-    teal: "bg-success-100 text-success-700",
-    blue: "bg-primary-100 text-primary-700",
-    stone: "bg-surface-3 text-muted",
-    amber: "bg-warning-50 text-warning-800",
-  };
+function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span
-      className={
-        "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold " +
-        colors[tone]
-      }
-    >
-      {icon}
-      {label}
+    <span className="inline-flex items-center gap-1 rounded-full bg-[#f2f2f2] px-2.5 py-1 text-[10px] font-bold text-[#0a0a0a]">
+      {children}
     </span>
   );
 }

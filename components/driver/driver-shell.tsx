@@ -1,11 +1,9 @@
-import { Logo } from "@/components/shared/logo";
 import { DriverHeader } from "./driver-header";
 import { DriverDrawer } from "./driver-drawer";
 
 /**
- * Chrome unifié de l'espace livreur — header (logo + hamburger), drawer
- * (menu burger avec tous les écrans), footer minimal. Comportement
- * mobile-first car le livreur est sur mobile dans 99 % des cas.
+ * Chrome unifié de l'espace livreur (style Uber) — header (titre + hamburger),
+ * drawer (menu burger avec tous les écrans), fond gris #F2F2F2. Mobile-first.
  *
  * Pas d'auth ici : chaque page protégée appelle déjà `getCurrentDriver()`.
  */
@@ -17,13 +15,12 @@ export function DriverShell({
   driverFirstName?: string;
 }) {
   return (
-    <div className="bg-surface-2 min-h-screen pb-20">
+    <div className="min-h-[100dvh] bg-[#f2f2f2] pb-16 text-[#0a0a0a]">
       <DriverHeader driverFirstName={driverFirstName} />
       <DriverDrawer driverFirstName={driverFirstName} />
-      <main className="mx-auto max-w-md p-4">{children}</main>
-      <footer className="text-subtle mx-auto mt-10 max-w-md px-4 pb-6 text-center text-xs">
-        <Logo iconOnly variant="amber" size="sm" />
-        <p className="mt-2">Coligo — Espace livreur</p>
+      <main className="mx-auto max-w-md px-4 py-4">{children}</main>
+      <footer className="mx-auto max-w-md px-4 pb-6 text-center text-[11px] font-medium text-[#9e9e9e]">
+        Coligo — Espace livreur
       </footer>
     </div>
   );

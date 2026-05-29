@@ -69,13 +69,15 @@ export default async function DriverToursPage({
       <div className="space-y-5">
         <Link
           href={`/driver/m/${mdId}`}
-          className="text-muted inline-flex items-center gap-1 text-sm"
+          className="inline-flex items-center gap-1 text-sm font-medium text-[#757575]"
         >
           <ArrowLeft className="size-4" /> Retour
         </Link>
         <header>
-          <h1 className="text-2xl font-bold tracking-tight">Tournées</h1>
-          <p className="text-muted text-xs">{merchant?.name}</p>
+          <h1 className="text-[22px] font-extrabold tracking-tight text-[#0a0a0a]">
+            Tournées
+          </h1>
+          <p className="text-xs font-medium text-[#757575]">{merchant?.name}</p>
         </header>
 
         <TourSlotsList

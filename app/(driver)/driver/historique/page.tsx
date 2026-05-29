@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { History } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverShell } from "@/components/driver/driver-shell";
@@ -57,13 +58,17 @@ export default async function DriverHistoryPage() {
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
-      <div className="space-y-5">
-        <header className="flex items-center gap-2">
-          <History className="size-6" />
-          <h1 className="text-2xl font-bold tracking-tight">
-            Historique livraisons
-          </h1>
-        </header>
+      <div className="space-y-4">
+        <Link
+          href="/driver"
+          className="inline-flex items-center gap-1 text-sm font-medium text-[#757575]"
+        >
+          <ArrowLeft className="size-4" />
+          Accueil
+        </Link>
+        <h1 className="text-[22px] font-extrabold tracking-tight text-[#0a0a0a]">
+          Historique
+        </h1>
         <DeliveryHistory
           rows={rows}
           merchants={Array.from(merchantMap.entries()).map(([id, name]) => ({

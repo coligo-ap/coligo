@@ -164,7 +164,7 @@ export function TourExecution({
             <li
               key={s.stop_id}
               className={
-                "border-border bg-surface space-y-2 rounded-[14px] border p-4 " +
+                "space-y-2 rounded-[14px] bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,.05)] " +
                 (done ? "opacity-70" : "")
               }
             >
@@ -172,26 +172,26 @@ export function TourExecution({
                 className="flex cursor-pointer items-center justify-between gap-2"
                 onClick={() => setExpandedId(expanded ? null : s.stop_id)}
               >
-                <div className="flex items-center gap-2">
-                  <span className="bg-primary-100 text-primary-700 inline-flex size-7 items-center justify-center rounded-full text-xs font-bold tabular-nums">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#f5f5f5] text-xs font-extrabold text-[#0a0a0a] tabular-nums">
                     {s.stop_order}
                   </span>
                   <div>
-                    <p className="text-sm font-semibold">
+                    <p className="text-sm font-bold text-[#0a0a0a]">
                       {s.customer_name ?? "Client"}
                     </p>
-                    <p className="text-muted text-xs">
+                    <p className="text-xs font-medium text-[#757575]">
                       {s.payment_method === "online" ? "Payé en ligne" : "Cash"}{" "}
                       · {s.total_da != null ? formatDA(s.total_da) : "—"}
                     </p>
                   </div>
                 </div>
                 {done ? (
-                  <span className="text-success-700 inline-flex items-center gap-1 text-xs font-semibold">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-[#00a86b]">
                     <Check className="size-3.5" /> Livré
                   </span>
                 ) : (
-                  <span className="text-muted text-xs">
+                  <span className="text-xs text-[#9e9e9e]">
                     {expanded ? "▼" : "▶"}
                   </span>
                 )}

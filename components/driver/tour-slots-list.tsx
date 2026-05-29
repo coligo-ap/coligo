@@ -29,7 +29,11 @@ export function TourSlotsList({
   const [pending, start] = useTransition();
 
   if (slots.length === 0) {
-    return <p className="text-muted text-sm">Aucun créneau ouvert.</p>;
+    return (
+      <p className="text-sm font-medium text-[#757575]">
+        Aucun créneau ouvert.
+      </p>
+    );
   }
 
   return (
@@ -37,10 +41,10 @@ export function TourSlotsList({
       {slots.map((s) => (
         <li
           key={s.id}
-          className="border-border bg-surface space-y-2 rounded-[14px] border p-4"
+          className="space-y-3 rounded-[14px] bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,.06)]"
         >
           <div>
-            <p className="font-semibold tabular-nums">
+            <p className="font-bold text-[#0a0a0a] tabular-nums">
               {new Date(s.slot_date).toLocaleDateString("fr-FR", {
                 weekday: "short",
                 day: "2-digit",
@@ -48,7 +52,7 @@ export function TourSlotsList({
               })}{" "}
               · {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
             </p>
-            <p className="text-muted text-xs tabular-nums">
+            <p className="text-xs font-medium text-[#757575] tabular-nums">
               {s.pendingCount} commande{s.pendingCount > 1 ? "s" : ""} à livrer
               {" · "}
               capacité {s.max_orders}
@@ -57,7 +61,7 @@ export function TourSlotsList({
           {s.myTourId ? (
             <Link
               href={`/driver/m/${merchantDriverId}/tours/${s.myTourId}`}
-              className="bg-primary-600 text-primary-50 inline-flex items-center gap-2 rounded-[10px] px-4 py-2 text-sm font-semibold"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-[12px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white active:scale-[0.99]"
             >
               Continuer la tournée →
             </Link>
@@ -65,6 +69,7 @@ export function TourSlotsList({
             <Button
               type="button"
               size="sm"
+              className="w-full"
               disabled={pending || s.pendingCount === 0}
               onClick={() =>
                 start(async () => {

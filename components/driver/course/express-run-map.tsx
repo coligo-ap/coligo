@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { LocateFixed } from "lucide-react";
-import { watchPosition, type Coords } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
+import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { useRoute } from "@/lib/delivery/use-route";
 
 /**
@@ -45,20 +45,10 @@ export function ExpressRunMap({
   const meMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
   const targetMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
   const followedOnce = useRef(false);
-  const [coords, setCoords] = useState<Coords | null>(null);
+  const coords = useDriverPosition();
 
   const from = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
   const { path } = useRoute(from, target, true);
-
-  // Géoloc live.
-  useEffect(() => {
-    const handle = watchPosition(
-      (c) => setCoords(c),
-      () => {},
-      { enableHighAccuracy: true, maximumAge: 10_000 }
-    );
-    return () => handle?.stop();
-  }, []);
 
   // Init de la carte (une fois) + les deux couches du tracé néon.
   useEffect(() => {

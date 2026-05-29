@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
-import { ArrowLeft, Bolt, Calendar } from "lucide-react";
+import { ArrowLeft, Bolt, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverShell } from "@/components/driver/driver-shell";
@@ -36,14 +36,14 @@ export default async function DriverMerchantSpacePage({
   if (link.status !== "active") {
     return (
       <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
-        <div className="space-y-4 pt-6">
+        <div className="space-y-4">
           <Link
             href="/driver"
-            className="text-muted inline-flex items-center gap-1 text-sm"
+            className="inline-flex items-center gap-1 text-sm font-medium text-[#757575]"
           >
-            <ArrowLeft className="size-4" /> Retour
+            <ArrowLeft className="size-4" /> Accueil
           </Link>
-          <div className="border-warning-200 bg-warning-50 text-warning-700 rounded-[14px] border p-4 text-sm">
+          <div className="rounded-[14px] border border-[#f5e0a1] bg-[#fff8e5] p-4 text-sm font-medium text-[#8b6500]">
             {link.status === "pending"
               ? `Demande en attente chez ${merchant.name}.`
               : `Accès retiré chez ${merchant.name}.`}
@@ -84,16 +84,18 @@ export default async function DriverMerchantSpacePage({
       <div className="space-y-5">
         <Link
           href="/driver"
-          className="text-muted inline-flex items-center gap-1 text-sm"
+          className="inline-flex items-center gap-1 text-sm font-medium text-[#757575]"
         >
           <ArrowLeft className="size-4" />
-          Mes commerçants
+          Accueil
         </Link>
         <header className="space-y-0.5">
-          <p className="text-muted text-xs font-medium tracking-wide uppercase">
+          <p className="text-xs font-bold tracking-wide text-[#757575] uppercase">
             Commerçant actif
           </p>
-          <h1 className="text-2xl font-bold tracking-tight">{merchant.name}</h1>
+          <h1 className="text-[22px] font-extrabold tracking-tight text-[#0a0a0a]">
+            {merchant.name}
+          </h1>
         </header>
 
         {merchant.express_enabled && (
@@ -111,26 +113,29 @@ export default async function DriverMerchantSpacePage({
         {merchant.tours_enabled && (
           <Link
             href={`/driver/m/${link.id}/tours`}
-            className="border-border bg-surface flex items-center gap-3 rounded-[14px] border p-4"
+            className="flex items-center gap-3 rounded-[14px] bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,.06)] active:scale-[0.99]"
           >
-            <Calendar className="text-success-600 size-5" />
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#f5f5f5] text-lg">
+              📅
+            </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold">Tournée</p>
-              <p className="text-muted text-xs">
+              <p className="text-sm font-bold text-[#0a0a0a]">Tournée</p>
+              <p className="text-xs font-medium text-[#757575]">
                 Choisis un créneau et fais ta tournée.
               </p>
             </div>
+            <ChevronRight className="size-[18px] text-[#9e9e9e]" />
           </Link>
         )}
 
         {!merchant.express_enabled && !merchant.tours_enabled && (
-          <p className="text-muted text-sm">
+          <p className="text-sm font-medium text-[#757575]">
             Le commerçant n&apos;a activé aucun mode de livraison.
           </p>
         )}
 
         {!merchant.express_enabled && (
-          <p className="text-subtle text-xs">
+          <p className="text-xs font-medium text-[#9e9e9e]">
             <Bolt className="mr-1 inline size-3" /> Le commerçant n&apos;a pas
             activé Express.
           </p>

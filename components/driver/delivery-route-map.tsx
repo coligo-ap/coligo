@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Clock, ExternalLink, MapPin } from "lucide-react";
-import { watchPosition, type Coords } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
+import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { useRoute } from "@/lib/delivery/use-route";
 
 /**
@@ -41,22 +41,12 @@ export function DeliveryRouteMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const driverMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
-  const [coords, setCoords] = useState<Coords | null>(null);
+  const coords = useDriverPosition();
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
   const from = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
   const { path } = useRoute(from, target, true);
-
-  // Géoloc live
-  useEffect(() => {
-    const handle = watchPosition(
-      (c) => setCoords(c),
-      () => {},
-      { enableHighAccuracy: true, maximumAge: 10_000 }
-    );
-    return () => handle?.stop();
-  }, []);
 
   // Init de la carte une fois
   useEffect(() => {

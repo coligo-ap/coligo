@@ -65,15 +65,15 @@ export default async function DriverTourExecutionPage({
       <div className="space-y-4">
         <Link
           href={`/driver/m/${mdId}/tours`}
-          className="text-muted inline-flex items-center gap-1 text-sm"
+          className="inline-flex items-center gap-1 text-sm font-medium text-[#757575]"
         >
           <ArrowLeft className="size-4" /> Créneaux
         </Link>
         <header>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-[22px] font-extrabold tracking-tight text-[#0a0a0a]">
             Tournée en cours
           </h1>
-          <p className="text-muted text-xs">
+          <p className="text-xs font-medium text-[#757575]">
             {rows.filter((r) => r.stop_status === "delivered").length}/
             {rows.length} livrés
           </p>

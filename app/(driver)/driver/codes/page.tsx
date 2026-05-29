@@ -34,27 +34,29 @@ export default async function DriverSubmitCodePage({
 
   return (
     <DriverShell driverFirstName={firstName}>
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Link
           href="/driver"
-          className="text-muted inline-flex items-center gap-1 text-sm"
+          className="inline-flex items-center gap-1 text-sm font-medium text-[#757575]"
         >
           <ArrowLeft className="size-4" />
-          Retour
+          Accueil
         </Link>
         <header className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-[22px] font-extrabold tracking-tight text-[#0a0a0a]">
             Rejoindre un commerçant
           </h1>
-          <p className="text-muted text-sm">
+          <p className="text-sm font-medium text-[#757575]">
             {code
               ? "Vérifie le code pré-rempli et valide pour envoyer ta demande."
               : "Saisis le code de référence que le commerçant t'a partagé."}
           </p>
         </header>
-        <Suspense fallback={null}>
-          <DriverSubmitCodeForm />
-        </Suspense>
+        <div className="rounded-[16px] bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,.06)]">
+          <Suspense fallback={null}>
+            <DriverSubmitCodeForm />
+          </Suspense>
+        </div>
       </div>
     </DriverShell>
   );

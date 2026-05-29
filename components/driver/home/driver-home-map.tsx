@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { LocateFixed } from "lucide-react";
-import { watchPosition, type Coords } from "@/lib/native/geolocation";
+import { useDriverPosition } from "@/lib/native/use-driver-position";
 
 /**
  * Carte plein écran de l'accueil livreur (style Uber Eats Driver). Centrée sur
@@ -27,18 +27,8 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const meMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
-  const [coords, setCoords] = useState<Coords | null>(null);
+  const coords = useDriverPosition();
   const followedOnce = useRef(false);
-
-  // Géoloc live.
-  useEffect(() => {
-    const handle = watchPosition(
-      (c) => setCoords(c),
-      () => {},
-      { enableHighAccuracy: true, maximumAge: 10_000 }
-    );
-    return () => handle?.stop();
-  }, []);
 
   // Init carte (une fois). Centre par défaut : 1er commerçant ou Béjaïa.
   useEffect(() => {

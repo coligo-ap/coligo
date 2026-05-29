@@ -200,3 +200,46 @@ body {
     transform: rotate(360deg);
   }
 }
+
+/* -----------------------------------------------------------------------------
+ * Re-thématisation des PRIMITIVES PARTAGÉES dans l'espace livreur uniquement.
+ * Les composants partagés (Button, Input, ActionButton…) utilisent la couleur
+ * de marque `primary` = violet #5C5CE0. Or le design livreur « style Uber » veut
+ * des CTA NOIRS et un violet rare. On remappe donc ces utilitaires Tailwind à
+ * l'intérieur de [data-space="driver"] (spécificité 0,2,0 > 0,1,0 → l'emporte
+ * sur l'utilitaire de base) SANS toucher au reste de l'app (commerçant/client/
+ * admin), qui n'a pas l'attribut data-space="driver".
+ * Les écrans 1-6 refaits utilisent du hex explicite (bg-[#0a0a0a], #5c5ce0…) et
+ * ne sont donc pas affectés par ces règles.
+ * --------------------------------------------------------------------------- */
+[data-space="driver"] .bg-primary-600 {
+  background-color: #0a0a0a;
+}
+[data-space="driver"] .hover\:bg-primary-700:hover {
+  background-color: #1a1a1a;
+}
+[data-space="driver"] .shadow-primary-600\/20 {
+  --tw-shadow-color: rgba(10, 10, 10, 0.18);
+}
+/* Bouton secondaire (bg-primary-50 + text-primary-700) → gris clair + encre. */
+[data-space="driver"] .bg-primary-50 {
+  background-color: #f5f5f5;
+}
+[data-space="driver"] .hover\:bg-primary-100:hover {
+  background-color: #ececec;
+}
+[data-space="driver"] .text-primary-600,
+[data-space="driver"] .text-primary-700 {
+  color: #0a0a0a;
+}
+[data-space="driver"] .border-primary-200 {
+  border-color: #eeeeee;
+}
+/* Inputs : bordure neutre + focus noir (pas violet). */
+[data-space="driver"] .focus-visible\:border-primary-400:focus-visible {
+  border-color: #0a0a0a;
+}
+[data-space="driver"] .focus-visible\:ring-primary-400:focus-visible,
+[data-space="driver"] .focus-visible\:ring-primary-400\/40:focus-visible {
+  --tw-ring-color: rgba(10, 10, 10, 0.12);
+}

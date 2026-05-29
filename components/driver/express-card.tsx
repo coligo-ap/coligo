@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Bolt, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -238,11 +237,15 @@ export function ExpressCard({
         </>
       )}
 
-      <section className="border-border bg-surface space-y-3 rounded-[14px] border p-4">
+      <section className="space-y-3 rounded-[14px] bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,.06)]">
         <header className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Bolt className="text-warning-500 size-5" />
-            <p className="text-sm font-semibold">Livraison Express</p>
+            <span className="grid size-8 place-items-center rounded-full bg-[#f5f5f5] text-sm">
+              ⚡
+            </span>
+            <p className="text-sm font-bold text-[#0a0a0a]">
+              Livraison Express
+            </p>
           </div>
           <AvailabilityToggle
             merchantDriverId={merchantDriverId}
@@ -251,28 +254,26 @@ export function ExpressCard({
         </header>
 
         {currentOrder ? (
-          <p className="text-muted text-xs">
+          <p className="text-xs font-medium text-[#757575]">
             Course en cours — suis les étapes sur l&apos;écran plein.
           </p>
         ) : availStatus === "available" ? (
-          <div className="space-y-2">
-            <p className="text-muted flex items-center gap-2 text-xs">
+          <div className="space-y-2.5">
+            <p className="flex items-center gap-2 text-xs font-medium text-[#757575]">
               {pending && <Loader2 className="size-3.5 animate-spin" />}
               En attente d&apos;une commande Express…
             </p>
-            <Button
+            <button
               type="button"
-              size="sm"
-              variant="secondary"
               onClick={onNext}
               disabled={pending}
-              className="w-full"
+              className="w-full rounded-[12px] bg-[#f5f5f5] py-3 text-sm font-bold text-[#0a0a0a] active:scale-[0.99] disabled:opacity-60"
             >
               Vérifier maintenant
-            </Button>
+            </button>
           </div>
         ) : (
-          <p className="text-muted text-xs">
+          <p className="text-xs font-medium text-[#757575]">
             Bascule sur « Disponible » pour recevoir des commandes Express.
           </p>
         )}

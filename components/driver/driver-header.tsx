@@ -1,40 +1,38 @@
 "use client";
 
-import Link from "next/link";
 import { Menu } from "lucide-react";
-import { Logo } from "@/components/shared/logo";
 import { driverDrawer } from "./driver-drawer-store";
 
-/** Header fixe en haut de l'espace livreur — logo + bouton hamburger. */
+/**
+ * Header de l'espace livreur (style Uber) — fond blanc, titre, bouton menu
+ * rond gris à droite. Sobre, mobile-first.
+ */
 export function DriverHeader({
   driverFirstName,
 }: {
   driverFirstName?: string;
 }) {
   return (
-    <header className="border-border bg-surface sticky top-0 z-30 border-b">
+    <header className="sticky top-0 z-30 border-b border-[#eee] bg-white">
       <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-4 py-3">
-        <Link href="/driver" className="flex items-center gap-2">
-          <Logo iconOnly variant="amber" size="md" />
-          <span className="text-sm font-bold tracking-tight">
+        <div className="min-w-0">
+          <p className="text-[15px] font-extrabold tracking-tight text-[#0a0a0a]">
             Coligo Livreur
-          </span>
-        </Link>
-        <div className="flex items-center gap-2">
+          </p>
           {driverFirstName && (
-            <span className="text-muted hidden text-xs sm:inline">
+            <p className="-mt-0.5 truncate text-[11px] font-medium text-[#757575]">
               {driverFirstName}
-            </span>
+            </p>
           )}
-          <button
-            type="button"
-            onClick={() => driverDrawer.toggle()}
-            aria-label="Ouvrir le menu"
-            className="hover:bg-surface-2 inline-flex size-10 items-center justify-center rounded-full"
-          >
-            <Menu className="size-5" />
-          </button>
         </div>
+        <button
+          type="button"
+          onClick={() => driverDrawer.toggle()}
+          aria-label="Ouvrir le menu"
+          className="grid size-10 shrink-0 place-items-center rounded-full bg-[#f5f5f5] text-[#0a0a0a] active:scale-95"
+        >
+          <Menu className="size-5" />
+        </button>
       </div>
     </header>
   );
