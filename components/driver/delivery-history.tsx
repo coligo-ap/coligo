@@ -43,12 +43,17 @@ type FilterStatus = "all" | "delivered" | "in_progress" | "cancelled";
 export function DeliveryHistory({
   rows,
   merchants,
-  merchantNameOf,
 }: {
   rows: Row[];
   merchants: Merchant[];
-  merchantNameOf: (id: string) => string;
 }) {
+  // Lookup nom commerçant construit côté client : on ne peut pas recevoir une
+  // fonction depuis un Server Component (interdit par React).
+  const merchantNameOf = useMemo(() => {
+    const map = new Map(merchants.map((m) => [m.id, m.name]));
+    return (id: string) => map.get(id) ?? "—";
+  }, [merchants]);
+
   const [q, setQ] = useState("");
   const [merchantId, setMerchantId] = useState<string>("all");
   const [mode, setMode] = useState<FilterMode>("all");

@@ -70,7 +70,6 @@ export default async function DriverHistoryPage() {
             id,
             name,
           }))}
-          merchantNameOf={(id) => merchantMap.get(id) ?? "—"}
         />
       </div>
     </DriverShell>
