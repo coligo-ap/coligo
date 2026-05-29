@@ -203,6 +203,7 @@ export type Database = {
           delivery_distance_km: number | null;
           delivery_driver_id: string | null;
           delivery_picked_up_at: string | null;
+          delivery_arrived_at: string | null;
           delivery_delivered_at: string | null;
           driver_live_lat: number | null;
           driver_live_lng: number | null;
@@ -253,6 +254,7 @@ export type Database = {
           delivery_distance_km?: number | null;
           delivery_driver_id?: string | null;
           delivery_picked_up_at?: string | null;
+          delivery_arrived_at?: string | null;
           delivery_delivered_at?: string | null;
           driver_live_lat?: number | null;
           driver_live_lng?: number | null;
@@ -303,6 +305,7 @@ export type Database = {
           delivery_distance_km?: number | null;
           delivery_driver_id?: string | null;
           delivery_picked_up_at?: string | null;
+          delivery_arrived_at?: string | null;
           delivery_delivered_at?: string | null;
           driver_live_lat?: number | null;
           driver_live_lng?: number | null;
@@ -1419,6 +1422,10 @@ export type Database = {
         Returns: { ok: boolean; reason: string | null }[];
       };
       mark_delivery_picked_up: {
+        Args: { p_order_id: string };
+        Returns: { ok: boolean; reason: string | null }[];
+      };
+      mark_delivery_arrived: {
         Args: { p_order_id: string };
         Returns: { ok: boolean; reason: string | null }[];
       };

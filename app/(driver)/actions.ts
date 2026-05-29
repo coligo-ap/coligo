@@ -322,6 +322,24 @@ export async function markOrderPickedUp(
   return { ok: row.ok, reason: row.reason ?? undefined };
 }
 
+// Le livreur signale son arrivée chez le client (entre « récupérée » et
+// « livrée »). Le client le voit en temps réel via la colonne sur `orders`.
+export async function markDeliveryArrived(
+  orderId: string
+): Promise<{ ok: boolean; reason?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("mark_delivery_arrived", {
+    p_order_id: orderId,
+  });
+  if (error) return { ok: false, reason: error.message };
+  const row = (
+    data as Array<{ ok: boolean; reason: string | null }> | null
+  )?.[0];
+  if (!row) return { ok: false, reason: "no_response" };
+  if (row.ok) revalidatePath("/driver");
+  return { ok: row.ok, reason: row.reason ?? undefined };
+}
+
 export async function markTourPickedUp(
   tourId: string
 ): Promise<{ ok: boolean; count?: number; error?: string }> {
