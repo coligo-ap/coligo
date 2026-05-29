@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { DriverShell } from "@/components/driver/driver-shell";
 import { TourSlotsList } from "@/components/driver/tour-slots-list";
 
 export const dynamic = "force-dynamic";
@@ -64,26 +65,28 @@ export default async function DriverToursPage({
     .in("status", ["planned", "in_progress"]);
 
   return (
-    <div className="space-y-5">
-      <Link
-        href={`/driver/m/${mdId}`}
-        className="text-muted inline-flex items-center gap-1 text-sm"
-      >
-        <ArrowLeft className="size-4" /> Retour
-      </Link>
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">Tournées</h1>
-        <p className="text-muted text-xs">{merchant?.name}</p>
-      </header>
+    <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
+      <div className="space-y-5">
+        <Link
+          href={`/driver/m/${mdId}`}
+          className="text-muted inline-flex items-center gap-1 text-sm"
+        >
+          <ArrowLeft className="size-4" /> Retour
+        </Link>
+        <header>
+          <h1 className="text-2xl font-bold tracking-tight">Tournées</h1>
+          <p className="text-muted text-xs">{merchant?.name}</p>
+        </header>
 
-      <TourSlotsList
-        merchantDriverId={mdId}
-        slots={(slots ?? []).map((s) => ({
-          ...s,
-          pendingCount: counts.get(s.id) ?? 0,
-          myTourId: myTours?.find((t) => t.slot_id === s.id)?.id ?? null,
-        }))}
-      />
-    </div>
+        <TourSlotsList
+          merchantDriverId={mdId}
+          slots={(slots ?? []).map((s) => ({
+            ...s,
+            pendingCount: counts.get(s.id) ?? 0,
+            myTourId: myTours?.find((t) => t.slot_id === s.id)?.id ?? null,
+          }))}
+        />
+      </div>
+    </DriverShell>
   );
 }
