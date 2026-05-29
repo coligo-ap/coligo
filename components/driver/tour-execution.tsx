@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { formatDA } from "@/lib/utils";
 import {
+  markDeliveryArrived,
   markTourPickedUp,
   reorderTourFromPosition,
 } from "@/app/(driver)/actions";
@@ -38,6 +39,7 @@ type Stop = {
   delivery_lng: number | null;
   delivery_note: string | null;
   delivery_picked_up_at: string | null;
+  delivery_arrived_at: string | null;
 };
 
 export function TourExecution({
@@ -76,6 +78,17 @@ export function TourExecution({
           (r.count ?? 0) > 1 ? "s" : ""
         } — bonne tournée !`
       );
+      router.refresh();
+    });
+
+  const onArrived = (orderId: string) =>
+    start(async () => {
+      const r = await markDeliveryArrived(orderId);
+      if (!r.ok) {
+        toast.error(r.reason ?? "Erreur");
+        return;
+      }
+      toast.success("Arrivée signalée au client");
       router.refresh();
     });
 
@@ -211,17 +224,40 @@ export function TourExecution({
                   {s.delivery_lat != null && s.delivery_lng != null && (
                     <DeliveryRouteMap
                       target={{ lat: s.delivery_lat, lng: s.delivery_lng }}
+                      label="Vers le client (livraison)"
                       height={180}
                     />
                   )}
 
-                  <Button
-                    type="button"
-                    className="w-full"
-                    onClick={() => setValidateFor(s)}
-                  >
-                    Marquer livré ✓
-                  </Button>
+                  {/* Étape : signaler l'arrivée (visible côté client) puis valider. */}
+                  {s.delivery_picked_up_at != null &&
+                    s.delivery_arrived_at == null && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => onArrived(s.order_id)}
+                        disabled={pending}
+                      >
+                        {pending ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <MapPin className="size-4" />
+                        )}
+                        Je suis arrivé chez le client
+                      </Button>
+                    )}
+
+                  {(s.delivery_arrived_at != null ||
+                    s.delivery_picked_up_at == null) && (
+                    <Button
+                      type="button"
+                      className="w-full"
+                      onClick={() => setValidateFor(s)}
+                    >
+                      Marquer livré ✓
+                    </Button>
+                  )}
                 </div>
               )}
             </li>

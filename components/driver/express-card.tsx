@@ -15,7 +15,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { formatDA } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { markOrderPickedUp, pullNextExpress } from "@/app/(driver)/actions";
+import {
+  markDeliveryArrived,
+  markOrderPickedUp,
+  pullNextExpress,
+} from "@/app/(driver)/actions";
 import { AvailabilityToggle } from "./availability-toggle";
 import { DeliveryValidationDialog } from "./delivery-validation-dialog";
 import { DeliveryRouteMap } from "./delivery-route-map";
@@ -33,6 +37,7 @@ type CurrentOrder = {
   delivery_lng: number | null;
   delivery_note: string | null;
   delivery_picked_up_at: string | null;
+  delivery_arrived_at: string | null;
   status: string;
   delivery_mode: "express" | "tour" | null;
 };
@@ -42,11 +47,15 @@ export function ExpressCard({
   availStatus,
   currentOrder,
   merchantName,
+  merchantLat,
+  merchantLng,
 }: {
   merchantDriverId: string;
   availStatus: "offline" | "available" | "busy";
   currentOrder: CurrentOrder | null;
   merchantName: string;
+  merchantLat?: number | null;
+  merchantLng?: number | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -100,6 +109,7 @@ export function ExpressCard({
   }, [availStatus, merchantDriverId, onChange]);
 
   const pickedUp = !!currentOrder?.delivery_picked_up_at;
+  const arrived = !!currentOrder?.delivery_arrived_at;
 
   const onPickup = () => {
     if (!currentOrder) return;
@@ -110,6 +120,19 @@ export function ExpressCard({
         return;
       }
       toast.success("Commande récupérée — en route vers le client");
+      router.refresh();
+    });
+  };
+
+  const onArrived = () => {
+    if (!currentOrder) return;
+    start(async () => {
+      const r = await markDeliveryArrived(currentOrder.id);
+      if (!r.ok) {
+        toast.error(r.reason ?? "Erreur");
+        return;
+      }
+      toast.success("Arrivée signalée au client");
       router.refresh();
     });
   };
@@ -179,7 +202,9 @@ export function ExpressCard({
                   <Check className="size-3" />
                 </span>
                 <p className="text-success-700 text-xs font-semibold tracking-wide uppercase">
-                  Récupéré · en route vers le client
+                  {arrived
+                    ? "Arrivé chez le client"
+                    : "Récupéré · en route vers le client"}
                 </p>
               </div>
             </div>
@@ -225,14 +250,23 @@ export function ExpressCard({
             )}
           </div>
 
-          {/* Carte route (uniquement si on a la cible géolocalisée) */}
-          {currentOrder.delivery_lat != null &&
+          {/* Carte + ETA. Avant pickup : trajet vers le COMMERÇANT (aller
+              chercher). Après pickup : trajet vers le CLIENT (livrer). */}
+          {!pickedUp && merchantLat != null && merchantLng != null && (
+            <DeliveryRouteMap
+              target={{ lat: merchantLat, lng: merchantLng }}
+              label={`Vers ${merchantName} (récupération)`}
+            />
+          )}
+          {pickedUp &&
+            currentOrder.delivery_lat != null &&
             currentOrder.delivery_lng != null && (
               <DeliveryRouteMap
                 target={{
                   lat: currentOrder.delivery_lat,
                   lng: currentOrder.delivery_lng,
                 }}
+                label="Vers le client (livraison)"
               />
             )}
 
@@ -240,7 +274,26 @@ export function ExpressCard({
               position GPS au client pour le suivi live. */}
           {pickedUp && <DriverLocationBroadcaster orderId={currentOrder.id} />}
 
-          {pickedUp && (
+          {/* Étape 3 : signaler l'arrivée chez le client (visible au client). */}
+          {pickedUp && !arrived && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={onArrived}
+              disabled={pending}
+            >
+              {pending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <MapPin className="size-4" />
+              )}
+              Je suis arrivé chez le client
+            </Button>
+          )}
+
+          {/* Étape 4 : valider la livraison (après avoir signalé l'arrivée). */}
+          {pickedUp && arrived && (
             <Button
               type="button"
               className="w-full"

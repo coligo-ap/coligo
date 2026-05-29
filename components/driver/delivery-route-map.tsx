@@ -2,19 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { ExternalLink, MapPin } from "lucide-react";
+import { Clock, ExternalLink, MapPin } from "lucide-react";
 import { watchPosition, type Coords } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
+import { useRoute } from "@/lib/delivery/use-route";
 
 /**
- * Carte montrant la position du livreur (mise à jour live via watchPosition)
- * et le point de livraison (client). Affiche la distance restante en haut.
+ * Carte montrant la position du livreur (live via watchPosition) et la cible
+ * (commerçant ou client). Trace le VRAI itinéraire routier (OSRM) + affiche
+ * l'ETA « À ~X min · Y km ». Façon UberEats/Yassir.
  *
- * - Pas de routing complexe (pas d'API tierce) : juste 2 marqueurs +
- *   un trait géodésique entre eux.
- * - Bouton "Ouvrir dans Google Maps" pour navigation guidée.
- * - Si géoloc indisponible, on cache le marqueur livreur ; la carte reste
- *   centrée sur le client.
+ * - Itinéraire le long des rues via lib/delivery/routing.ts ; repli sur une
+ *   ligne droite (en pointillés) si le routage est indisponible.
+ * - Bouton « Ouvrir dans Google Maps » pour le guidage virage-par-virage.
  */
 
 type LatLng = { lat: number; lng: number };
@@ -29,9 +29,12 @@ function buildStyle() {
 
 export function DeliveryRouteMap({
   target,
+  label,
   height = 220,
 }: {
   target: LatLng;
+  /** Libellé optionnel au-dessus de la carte (ex. « Vers le client »). */
+  label?: string;
   /** Hauteur en px ou string CSS. Inline pour échapper à la purge Tailwind. */
   height?: number | string;
 }) {
@@ -41,6 +44,9 @@ export function DeliveryRouteMap({
   const [coords, setCoords] = useState<Coords | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+
+  const from = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
+  const { path } = useRoute(from, target, true);
 
   // Géoloc live
   useEffect(() => {
@@ -70,7 +76,7 @@ export function DeliveryRouteMap({
         });
         mapRef.current = map;
 
-        // Marqueur cible (client) — rouge vif.
+        // Marqueur cible — rouge vif.
         const targetEl = document.createElement("div");
         targetEl.innerHTML =
           '<div style="background:#dc2626;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);font-weight:bold;font-size:14px;">●</div>';
@@ -98,11 +104,8 @@ export function DeliveryRouteMap({
             id: "route-line",
             type: "line",
             source: "route",
-            paint: {
-              "line-color": "#5c5ce0",
-              "line-width": 3,
-              "line-dasharray": [2, 2],
-            },
+            layout: { "line-cap": "round", "line-join": "round" },
+            paint: { "line-color": "#5c5ce0", "line-width": 5 },
           });
         };
         if (map.loaded()) onLoad();
@@ -110,8 +113,7 @@ export function DeliveryRouteMap({
         setTimeout(() => {
           if (!disposed) setMapReady(true);
         }, 3000);
-        // Filet de sécurité : si le container avait 0 px au montage
-        // (ex: stop déplié pendant une transition), on resize au cas où.
+        // Filet de sécurité : si le container avait 0 px au montage, on resize.
         setTimeout(() => map.resize(), 100);
         setTimeout(() => map.resize(), 500);
         setTimeout(() => map.resize(), 1500);
@@ -132,7 +134,7 @@ export function DeliveryRouteMap({
     };
   }, [target.lat, target.lng]);
 
-  // Met à jour le marqueur livreur + la ligne quand la position change.
+  // Met à jour le marqueur livreur + recadre quand la position change.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !coords) return;
@@ -150,25 +152,6 @@ export function DeliveryRouteMap({
         driverMarkerRef.current.setLngLat([coords.longitude, coords.latitude]);
       }
 
-      // Trace la ligne livreur → cible.
-      const src = map.getSource("route") as
-        | import("maplibre-gl").GeoJSONSource
-        | undefined;
-      if (src) {
-        src.setData({
-          type: "Feature",
-          properties: {},
-          geometry: {
-            type: "LineString",
-            coordinates: [
-              [coords.longitude, coords.latitude],
-              [target.lng, target.lat],
-            ],
-          },
-        });
-      }
-
-      // Recadre pour montrer les deux points.
       try {
         const bounds = new LngLatBounds()
           .extend([coords.longitude, coords.latitude])
@@ -180,24 +163,54 @@ export function DeliveryRouteMap({
     });
   }, [coords, target.lat, target.lng]);
 
-  const distanceKm = coords
-    ? haversineKm(
-        { lat: coords.latitude, lng: coords.longitude },
-        { lat: target.lat, lng: target.lng }
-      )
-    : null;
+  // Trace l'itinéraire routier (ou la ligne droite de repli) dès qu'on l'a.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !path) return;
+    const apply = () => {
+      const src = map.getSource("route") as
+        | import("maplibre-gl").GeoJSONSource
+        | undefined;
+      if (!src) return;
+      src.setData({
+        type: "Feature",
+        properties: {},
+        geometry: { type: "LineString", coordinates: path.coordinates },
+      });
+      // Pointillés si on est sur le repli (trajet approximatif), plein sinon
+      // (undefined = on retire l'override → ligne pleine par défaut).
+      map.setPaintProperty(
+        "route-line",
+        "line-dasharray",
+        path.source === "fallback" ? [2, 2] : undefined
+      );
+    };
+    if (map.isStyleLoaded()) apply();
+    else map.once("idle", apply);
+  }, [path]);
+
+  const distanceKm =
+    path?.distanceKm ??
+    (coords
+      ? haversineKm(
+          { lat: coords.latitude, lng: coords.longitude },
+          { lat: target.lat, lng: target.lng }
+        )
+      : null);
 
   const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}&travelmode=driving`;
 
   return (
     <div className="space-y-2">
+      {label && (
+        <p className="text-muted text-xs font-semibold tracking-wide uppercase">
+          {label}
+        </p>
+      )}
       <div
         className="bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
         style={{ height: typeof height === "number" ? `${height}px` : height }}
       >
-        {/* h-full/w-full et NON `absolute inset-0` : MapLibre ajoute la classe
-            `maplibregl-map` (position:relative) qui annule `inset-0` → le
-            canvas-container collapsait à 0 px (carte blanche). */}
         <div
           ref={containerRef}
           className="h-full w-full"
@@ -221,10 +234,21 @@ export function DeliveryRouteMap({
             Activation GPS…
           </div>
         )}
-        {distanceKm != null && (
+        {(distanceKm != null || path != null) && (
           <div className="bg-primary-600/95 absolute top-2 left-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-white">
-            <MapPin className="size-3" />
-            {distanceKm.toFixed(1)} km
+            {path != null ? (
+              <>
+                <Clock className="size-3" />~{path.durationMin} min
+                <span className="opacity-80">
+                  · {path.distanceKm.toFixed(1)} km
+                </span>
+              </>
+            ) : (
+              <>
+                <MapPin className="size-3" />
+                {distanceKm!.toFixed(1)} km
+              </>
+            )}
           </div>
         )}
       </div>
