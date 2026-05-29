@@ -1425,6 +1425,10 @@ export type Database = {
         Args: { p_order_id: string };
         Returns: { ok: boolean; reason: string | null }[];
       };
+      release_express_order: {
+        Args: { p_order_id: string };
+        Returns: { ok: boolean; reason: string | null }[];
+      };
       mark_delivery_arrived: {
         Args: { p_order_id: string };
         Returns: { ok: boolean; reason: string | null }[];

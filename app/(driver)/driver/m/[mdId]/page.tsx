@@ -64,11 +64,20 @@ export default async function DriverMerchantSpacePage({
     ? await supabase
         .from("orders")
         .select(
-          "id, customer_name, customer_phone, total_da, payment_method, delivery_address_text, delivery_phone, delivery_lat, delivery_lng, delivery_note, delivery_picked_up_at, delivery_arrived_at, status, delivery_mode"
+          "id, customer_name, customer_phone, total_da, delivery_fee_da, payment_method, delivery_address_text, delivery_phone, delivery_lat, delivery_lng, delivery_note, delivery_picked_up_at, delivery_arrived_at, status, delivery_mode"
         )
         .eq("id", avail.current_order_id)
         .maybeSingle()
     : { data: null };
+
+  // Nombre d'articles (pour le chip de l'offre) — lecture autorisée par la
+  // policy RLS 0057 sur les commandes attribuées au livreur.
+  const { count: itemCount } = currentOrder
+    ? await supabase
+        .from("order_items")
+        .select("id", { count: "exact", head: true })
+        .eq("order_id", currentOrder.id)
+    : { count: 0 };
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
@@ -92,6 +101,7 @@ export default async function DriverMerchantSpacePage({
             merchantDriverId={link.id}
             availStatus={avail?.status ?? "offline"}
             currentOrder={currentOrder ?? null}
+            itemCount={itemCount ?? 0}
             merchantName={merchant.name}
             merchantLat={merchant.latitude}
             merchantLng={merchant.longitude}

@@ -5,7 +5,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { normalizePhone, phoneToEmail } from "@/lib/auth/driver";
+import {
+  getCurrentDriver,
+  normalizePhone,
+  phoneToEmail,
+} from "@/lib/auth/driver";
 import { hashReferralCode } from "@/lib/drivers/referral-code";
 import {
   notifyMerchantNewDriverRequest,
@@ -284,6 +288,46 @@ export async function setAvailability(
   return { ok: true };
 }
 
+/**
+ * Bascule la disponibilité sur TOUS les commerçants actifs du livreur d'un
+ * coup (« je passe en ligne / hors ligne »). Le statut reste stocké PAR PAIRE
+ * en base (FIFO inchangé) : on boucle juste sur les paires actives.
+ *
+ * Les paires en pleine livraison (`busy` / `current_order_id` non nul) sont
+ * ignorées : on ne coupe pas une course en cours (le RPC lèverait d'ailleurs
+ * `has_pending_order`).
+ */
+export async function setGlobalAvailability(
+  status: "offline" | "available"
+): Promise<{ ok: boolean; changed: number; error?: string }> {
+  const supabase = await createClient();
+  const driver = await getCurrentDriver();
+  if (!driver) return { ok: false, changed: 0, error: "Session expirée." };
+
+  const { data: links } = await supabase
+    .from("merchant_drivers")
+    .select("id, driver_availability ( status, current_order_id )")
+    .eq("driver_id", driver.id)
+    .eq("status", "active");
+
+  let changed = 0;
+  for (const l of links ?? []) {
+    const av = Array.isArray(l.driver_availability)
+      ? l.driver_availability[0]
+      : l.driver_availability;
+    // On ne touche pas à une paire qui livre actuellement.
+    if (av?.status === "busy" || av?.current_order_id) continue;
+    const { error } = await supabase.rpc("set_driver_availability", {
+      p_merchant_driver_id: l.id,
+      p_status: status,
+    });
+    if (!error) changed += 1;
+  }
+
+  revalidatePath("/driver");
+  return { ok: true, changed };
+}
+
 // ---------------------------------------------------------------------------
 // Pull next express (si dispo)
 // ---------------------------------------------------------------------------
@@ -297,6 +341,25 @@ export async function pullNextExpress(
   if (error) return { error: error.message };
   const row = (data as Array<{ order_id: string }> | null)?.[0];
   return row ? { orderId: row.order_id } : {};
+}
+
+// ---------------------------------------------------------------------------
+// Refuser une offre Express (release + cooldown 10 min) — cf. migration 0056
+// ---------------------------------------------------------------------------
+export async function declineExpress(
+  orderId: string
+): Promise<{ ok: boolean; reason?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("release_express_order", {
+    p_order_id: orderId,
+  });
+  if (error) return { ok: false, reason: error.message };
+  const row = (
+    data as Array<{ ok: boolean; reason: string | null }> | null
+  )?.[0];
+  if (!row) return { ok: false, reason: "no_response" };
+  if (row.ok) revalidatePath("/driver");
+  return { ok: row.ok, reason: row.reason ?? undefined };
 }
 
 // ---------------------------------------------------------------------------

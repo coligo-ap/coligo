@@ -2,34 +2,30 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Bolt,
-  Check,
-  Loader2,
-  MapPin,
-  Package,
-  Phone,
-  StickyNote,
-} from "lucide-react";
+import { Bolt, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { formatDA } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import {
+  declineExpress,
   markDeliveryArrived,
   markOrderPickedUp,
   pullNextExpress,
 } from "@/app/(driver)/actions";
 import { AvailabilityToggle } from "./availability-toggle";
 import { DeliveryValidationDialog } from "./delivery-validation-dialog";
-import { DeliveryRouteMap } from "./delivery-route-map";
 import { DriverLocationBroadcaster } from "./driver-location-broadcaster";
+import { ExpressOffer } from "./express-offer";
+import { ExpressRun } from "./course/express-run";
+
+const ACCEPTED_KEY = "coligo_driver_accepted_orders";
 
 type CurrentOrder = {
   id: string;
   customer_name: string | null;
   customer_phone: string | null;
   total_da: number | null;
+  delivery_fee_da: number | null;
   payment_method: "cash" | "online";
   delivery_address_text: string | null;
   delivery_phone: string | null;
@@ -46,6 +42,7 @@ export function ExpressCard({
   merchantDriverId,
   availStatus,
   currentOrder,
+  itemCount,
   merchantName,
   merchantLat,
   merchantLng,
@@ -53,6 +50,7 @@ export function ExpressCard({
   merchantDriverId: string;
   availStatus: "offline" | "available" | "busy";
   currentOrder: CurrentOrder | null;
+  itemCount: number;
   merchantName: string;
   merchantLat?: number | null;
   merchantLng?: number | null;
@@ -60,6 +58,55 @@ export function ExpressCard({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [showValidate, setShowValidate] = useState(false);
+  // Offre acceptée (écran 2 → écran 3). L'attribution FIFO ayant déjà eu lieu
+  // côté serveur, on garde le « consentement » du livreur côté client pour ne
+  // pas ré-afficher l'offre plein écran après acceptation / reload.
+  const [accepted, setAccepted] = useState(false);
+
+  useEffect(() => {
+    if (!currentOrder) {
+      setAccepted(false);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(ACCEPTED_KEY);
+      const set = raw ? (JSON.parse(raw) as string[]) : [];
+      setAccepted(set.includes(currentOrder.id));
+    } catch {
+      setAccepted(false);
+    }
+  }, [currentOrder]);
+
+  const acceptOffer = () => {
+    if (!currentOrder) return;
+    try {
+      const raw = localStorage.getItem(ACCEPTED_KEY);
+      const set = raw ? (JSON.parse(raw) as string[]) : [];
+      if (!set.includes(currentOrder.id)) set.push(currentOrder.id);
+      localStorage.setItem(ACCEPTED_KEY, JSON.stringify(set.slice(-20)));
+    } catch {
+      /* localStorage indispo → on accepte quand même en mémoire */
+    }
+    setAccepted(true);
+    toast.success("Course acceptée — en route");
+  };
+
+  const refuseOffer = () => {
+    if (!currentOrder) return;
+    start(async () => {
+      const r = await declineExpress(currentOrder.id);
+      if (!r.ok) {
+        toast.error(
+          r.reason === "already_picked_up"
+            ? "Trop tard : commande déjà récupérée."
+            : "Impossible de refuser cette course."
+        );
+        return;
+      }
+      toast.success("Course refusée");
+      router.refresh();
+    });
+  };
 
   // Realtime : si on est dispo et qu'une nouvelle commande express arrive,
   // on tente de la puller (le serveur fait FIFO + skip locked).
@@ -110,6 +157,12 @@ export function ExpressCard({
 
   const pickedUp = !!currentOrder?.delivery_picked_up_at;
   const arrived = !!currentOrder?.delivery_arrived_at;
+  // Écran 2 : offre plein écran tant que la commande fraîchement attribuée
+  // n'est ni acceptée ni récupérée.
+  const showOffer = !!currentOrder && !pickedUp && !accepted;
+  // Écran 3 : course en cours plein écran une fois l'offre acceptée (ou si la
+  // commande est déjà récupérée — ex. reload en pleine course).
+  const showRun = !!currentOrder && !showOffer;
 
   const onPickup = () => {
     if (!currentOrder) return;
@@ -150,203 +203,104 @@ export function ExpressCard({
   };
 
   return (
-    <section className="border-border bg-surface space-y-3 rounded-[14px] border p-4">
-      <header className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Bolt className="text-warning-500 size-5" />
-          <p className="text-sm font-semibold">Livraison Express</p>
-        </div>
-        <AvailabilityToggle
-          merchantDriverId={merchantDriverId}
-          status={availStatus}
+    <>
+      {showOffer && currentOrder && (
+        <ExpressOffer
+          order={currentOrder}
+          itemCount={itemCount}
+          merchantName={merchantName}
+          merchantLat={merchantLat}
+          merchantLng={merchantLng}
+          onAccept={acceptOffer}
+          onRefuse={refuseOffer}
+          refusing={pending}
         />
-      </header>
+      )}
 
-      {currentOrder ? (
-        <div className="border-primary-200 bg-primary-50 space-y-3 rounded-[12px] border p-3">
-          {/* Étape 1 : Récupérer chez le commerçant */}
-          {!pickedUp && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="bg-warning-500 inline-flex size-6 items-center justify-center rounded-full text-xs font-bold text-white">
-                  1
-                </span>
-                <p className="text-sm font-semibold">
-                  Va chercher la commande chez {merchantName}
-                </p>
-              </div>
-              <p className="text-muted text-xs">
-                Une fois en main, clique pour démarrer la livraison.
-              </p>
-              <Button
-                type="button"
-                className="w-full"
-                onClick={onPickup}
-                disabled={pending}
-              >
-                {pending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Package className="size-4" />
-                )}
-                J&apos;ai récupéré la commande
-              </Button>
-            </div>
-          )}
-
-          {/* Étape 2 : Aller chez le client + livrer */}
-          {pickedUp && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="bg-success-600 inline-flex size-6 items-center justify-center rounded-full text-xs font-bold text-white">
-                  <Check className="size-3" />
-                </span>
-                <p className="text-success-700 text-xs font-semibold tracking-wide uppercase">
-                  {arrived
-                    ? "Arrivé chez le client"
-                    : "Récupéré · en route vers le client"}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Bloc client + carte (visible en permanence, le livreur a besoin
-              de voir où il va même avant le pickup pour préparer). */}
-          <div className="border-primary-200 space-y-2 border-t pt-3">
-            <p className="text-sm font-semibold">
-              {currentOrder.customer_name ?? "Client"} ·{" "}
-              {currentOrder.total_da != null
-                ? formatDA(currentOrder.total_da)
-                : "—"}
-            </p>
-            <p className="text-xs tracking-wide uppercase">
-              Paiement :{" "}
-              <strong>
-                {currentOrder.payment_method === "online"
-                  ? "En ligne (payé)"
-                  : "Cash à encaisser"}
-              </strong>
-            </p>
-            {currentOrder.delivery_address_text && (
-              <p className="text-muted flex items-start gap-1.5 text-xs">
-                <MapPin className="mt-0.5 size-3.5 shrink-0" />
-                {currentOrder.delivery_address_text}
-              </p>
-            )}
-            {(currentOrder.delivery_phone ?? currentOrder.customer_phone) && (
-              <a
-                href={`tel:${currentOrder.delivery_phone ?? currentOrder.customer_phone}`}
-                className="text-primary-700 inline-flex items-center gap-1.5 text-xs underline"
-              >
-                <Phone className="size-3.5" />
-                {currentOrder.delivery_phone ?? currentOrder.customer_phone}
-              </a>
-            )}
-            {currentOrder.delivery_note && (
-              <p className="border-warning-200 bg-warning-50 text-warning-800 flex items-start gap-1.5 rounded-[8px] border px-2 py-1.5 text-xs">
-                <StickyNote className="mt-0.5 size-3.5 shrink-0" />
-                {currentOrder.delivery_note}
-              </p>
-            )}
-          </div>
-
-          {/* Carte + ETA. Avant pickup : trajet vers le COMMERÇANT (aller
-              chercher). Après pickup : trajet vers le CLIENT (livrer). */}
-          {!pickedUp && merchantLat != null && merchantLng != null && (
-            <DeliveryRouteMap
-              target={{ lat: merchantLat, lng: merchantLng }}
-              label={`Vers ${merchantName} (récupération)`}
-            />
-          )}
-          {pickedUp &&
-            currentOrder.delivery_lat != null &&
-            currentOrder.delivery_lng != null && (
-              <DeliveryRouteMap
-                target={{
-                  lat: currentOrder.delivery_lat,
-                  lng: currentOrder.delivery_lng,
-                }}
-                label="Vers le client (livraison)"
-              />
-            )}
-
-          {/* Tant que la commande est récupérée (en route), on diffuse la
-              position GPS au client pour le suivi live. */}
+      {/* Écran 3 — course en cours, plein écran. Pendant la course (récupérée),
+          on diffuse aussi la position GPS au client pour le suivi live. */}
+      {showRun && currentOrder && (
+        <>
+          <ExpressRun
+            order={currentOrder}
+            itemCount={itemCount}
+            merchantName={merchantName}
+            merchantLat={merchantLat}
+            merchantLng={merchantLng}
+            pickedUp={pickedUp}
+            arrived={arrived}
+            pending={pending}
+            onPickup={onPickup}
+            onArrived={onArrived}
+            onValidate={() => setShowValidate(true)}
+          />
           {pickedUp && <DriverLocationBroadcaster orderId={currentOrder.id} />}
+        </>
+      )}
 
-          {/* Étape 3 : signaler l'arrivée chez le client (visible au client). */}
-          {pickedUp && !arrived && (
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full"
-              onClick={onArrived}
-              disabled={pending}
-            >
-              {pending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <MapPin className="size-4" />
-              )}
-              Je suis arrivé chez le client
-            </Button>
-          )}
+      <section className="border-border bg-surface space-y-3 rounded-[14px] border p-4">
+        <header className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Bolt className="text-warning-500 size-5" />
+            <p className="text-sm font-semibold">Livraison Express</p>
+          </div>
+          <AvailabilityToggle
+            merchantDriverId={merchantDriverId}
+            status={availStatus}
+          />
+        </header>
 
-          {/* Étape 4 : valider la livraison (après avoir signalé l'arrivée). */}
-          {pickedUp && arrived && (
-            <Button
-              type="button"
-              className="w-full"
-              onClick={() => setShowValidate(true)}
-            >
-              Marquer livré ✓
-            </Button>
-          )}
-        </div>
-      ) : availStatus === "available" ? (
-        <div className="space-y-2">
-          <p className="text-muted flex items-center gap-2 text-xs">
-            {pending && <Loader2 className="size-3.5 animate-spin" />}
-            En attente d&apos;une commande Express…
+        {currentOrder ? (
+          <p className="text-muted text-xs">
+            Course en cours — suis les étapes sur l&apos;écran plein.
           </p>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            onClick={onNext}
-            disabled={pending}
-            className="w-full"
-          >
-            Vérifier maintenant
-          </Button>
-        </div>
-      ) : (
-        <p className="text-muted text-xs">
-          Bascule sur « Disponible » pour recevoir des commandes Express.
-        </p>
-      )}
+        ) : availStatus === "available" ? (
+          <div className="space-y-2">
+            <p className="text-muted flex items-center gap-2 text-xs">
+              {pending && <Loader2 className="size-3.5 animate-spin" />}
+              En attente d&apos;une commande Express…
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={onNext}
+              disabled={pending}
+              className="w-full"
+            >
+              Vérifier maintenant
+            </Button>
+          </div>
+        ) : (
+          <p className="text-muted text-xs">
+            Bascule sur « Disponible » pour recevoir des commandes Express.
+          </p>
+        )}
 
-      {showValidate && currentOrder && (
-        <DeliveryValidationDialog
-          orderId={currentOrder.id}
-          paymentMethod={currentOrder.payment_method}
-          onClose={() => setShowValidate(false)}
-          onSuccess={() => {
-            setShowValidate(false);
-            router.refresh();
-            // Auto-propose la suivante après 1.5 s.
-            setTimeout(() => {
-              start(async () => {
-                const r = await pullNextExpress(merchantDriverId);
-                if (r.orderId) {
-                  toast.success("Une nouvelle commande t'attend !");
-                  router.refresh();
-                }
-              });
-            }, 1500);
-          }}
-        />
-      )}
-    </section>
+        {showValidate && currentOrder && (
+          <DeliveryValidationDialog
+            orderId={currentOrder.id}
+            paymentMethod={currentOrder.payment_method}
+            customerName={currentOrder.customer_name}
+            totalDa={currentOrder.total_da}
+            onClose={() => setShowValidate(false)}
+            onSuccess={() => {
+              setShowValidate(false);
+              router.refresh();
+              // Auto-propose la suivante après 1.5 s.
+              setTimeout(() => {
+                start(async () => {
+                  const r = await pullNextExpress(merchantDriverId);
+                  if (r.orderId) {
+                    toast.success("Une nouvelle commande t'attend !");
+                    router.refresh();
+                  }
+                });
+              }, 1500);
+            }}
+          />
+        )}
+      </section>
+    </>
   );
 }
