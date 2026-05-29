@@ -18,10 +18,12 @@ import type { OrderStatus } from "@/lib/types";
 export function DeliveryTimeline({
   status,
   pickedUpAt,
+  arrivedAt = null,
   deliveredAt,
 }: {
   status: OrderStatus;
   pickedUpAt: string | null;
+  arrivedAt?: string | null;
   deliveredAt: string | null;
 }) {
   const cancelled = status === "cancelled";
@@ -71,8 +73,11 @@ export function DeliveryTimeline({
       current: step2Current,
     },
     {
-      label: "En route",
-      sub: "Le livreur arrive bientôt",
+      label: arrivedAt && !deliveredAt ? "Arrivé" : "En route",
+      sub:
+        arrivedAt && !deliveredAt
+          ? "Le livreur est à ta porte"
+          : "Le livreur arrive bientôt",
       icon: MapPin,
       done: step3Done,
       current: step3Current,

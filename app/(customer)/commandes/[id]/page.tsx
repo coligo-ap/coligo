@@ -43,7 +43,7 @@ export default async function CustomerOrderDetailPage({
        subtotal_da, discount_da, cashback_estimate_da, total_da, created_at,
        merchant_id,
        fulfillment_type, delivery_mode, delivery_fee_da, delivery_distance_km,
-       delivery_address_text, delivery_picked_up_at, delivery_delivered_at,
+       delivery_address_text, delivery_picked_up_at, delivery_arrived_at, delivery_delivered_at,
        delivery_lat, delivery_lng,
        driver_live_lat, driver_live_lng, driver_live_at,
        merchants ( name, slug, logo_url, phone_public, address, commune, prep_time_min ),
@@ -186,6 +186,7 @@ export default async function CustomerOrderDetailPage({
             <DeliveryTimeline
               status={status}
               pickedUpAt={order.delivery_picked_up_at as string | null}
+              arrivedAt={order.delivery_arrived_at as string | null}
               deliveredAt={order.delivery_delivered_at as string | null}
             />
 
@@ -196,6 +197,7 @@ export default async function CustomerOrderDetailPage({
                   orderId={order.id}
                   destination={{ lat: destLat, lng: destLng }}
                   initialDriver={liveDriver}
+                  initialArrivedAt={order.delivery_arrived_at as string | null}
                 />
               </div>
             )}

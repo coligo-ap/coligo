@@ -2,23 +2,27 @@
 
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Loader2, MapPin, Truck } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, MapPin, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { haversineKm } from "@/lib/delivery/distance";
+import { useRoute } from "@/lib/delivery/use-route";
 
 /**
  * Carte de suivi LIVE côté CLIENT : montre la position du livreur (mise à
  * jour en temps réel via Realtime sur la ligne `orders`) qui se rapproche du
- * point de livraison, + un ETA estimé. Façon UberEats/Yassir.
+ * point de livraison, le long des rues (itinéraire OSRM), + un ETA. Façon
+ * UberEats/Yassir.
  *
  * - On s'abonne à l'UPDATE de SA commande : le payload contient
- *   driver_live_lat/lng/at → on déplace le marqueur sans recharger la page.
- * - ETA = distance restante / vitesse urbaine moyenne (~18 km/h).
+ *   driver_live_lat/lng/at + delivery_arrived_at → on déplace le marqueur et
+ *   on bascule l'état « arrivé » sans recharger la page.
+ * - ETA = durée de conduite réelle (OSRM) ; repli distance / 18 km/h.
  */
 
 type LatLng = { lat: number; lng: number };
 
-const AVG_SPEED_KMH = 18;
+// Seuil « arrive bientôt / à ta porte » (km).
+const NEAR_KM = 0.3;
 
 function buildStyle() {
   const key = process.env.NEXT_PUBLIC_MAPTILER_KEY;
@@ -30,11 +34,13 @@ export function CustomerDeliveryMap({
   orderId,
   destination,
   initialDriver,
+  initialArrivedAt = null,
   height = 240,
 }: {
   orderId: string;
   destination: LatLng;
   initialDriver: (LatLng & { at: string | null }) | null;
+  initialArrivedAt?: string | null;
   height?: number;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -45,8 +51,11 @@ export function CustomerDeliveryMap({
   const [driver, setDriver] = useState<(LatLng & { at: string | null }) | null>(
     initialDriver
   );
+  const [arrivedAt, setArrivedAt] = useState<string | null>(initialArrivedAt);
 
-  // Realtime : reçoit les updates de la commande → position du livreur.
+  const { path } = useRoute(driver, destination, true);
+
+  // Realtime : reçoit les updates de la commande → position du livreur + arrivée.
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -64,6 +73,7 @@ export function CustomerDeliveryMap({
             driver_live_lat: number | null;
             driver_live_lng: number | null;
             driver_live_at: string | null;
+            delivery_arrived_at: string | null;
           };
           if (row.driver_live_lat != null && row.driver_live_lng != null) {
             setDriver({
@@ -72,16 +82,18 @@ export function CustomerDeliveryMap({
               at: row.driver_live_at,
             });
           }
+          if (row.delivery_arrived_at != null)
+            setArrivedAt(row.delivery_arrived_at);
         }
       )
       .subscribe();
-    // Filet de sécurité : le Realtime postgres_changes peut ne pas être
-    // autorisé/instantané selon la conf. On re-lit donc la position toutes
-    // les 12 s directement (RLS autorise le client à lire SA commande).
+    // Filet de sécurité : re-lit la position + l'arrivée toutes les 12 s.
     const poll = setInterval(async () => {
       const { data } = await supabase
         .from("orders")
-        .select("driver_live_lat, driver_live_lng, driver_live_at")
+        .select(
+          "driver_live_lat, driver_live_lng, driver_live_at, delivery_arrived_at"
+        )
         .eq("id", orderId)
         .maybeSingle();
       if (data?.driver_live_lat != null && data?.driver_live_lng != null) {
@@ -91,6 +103,8 @@ export function CustomerDeliveryMap({
           at: data.driver_live_at,
         });
       }
+      if (data?.delivery_arrived_at != null)
+        setArrivedAt(data.delivery_arrived_at);
     }, 12_000);
 
     return () => {
@@ -158,11 +172,8 @@ export function CustomerDeliveryMap({
             id: "route-line",
             type: "line",
             source: "route",
-            paint: {
-              "line-color": "#5c5ce0",
-              "line-width": 3,
-              "line-dasharray": [2, 2],
-            },
+            layout: { "line-cap": "round", "line-join": "round" },
+            paint: { "line-color": "#5c5ce0", "line-width": 5 },
           });
         };
         if (map.loaded()) onLoad();
@@ -189,7 +200,7 @@ export function CustomerDeliveryMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Met à jour le marqueur livreur + la ligne + le cadrage à chaque position.
+  // Déplace le marqueur livreur + recadre à chaque nouvelle position.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !driver) return;
@@ -204,22 +215,6 @@ export function CustomerDeliveryMap({
       } else {
         driverMarkerRef.current.setLngLat([driver.lng, driver.lat]);
       }
-      const src = map.getSource("route") as
-        | import("maplibre-gl").GeoJSONSource
-        | undefined;
-      if (src) {
-        src.setData({
-          type: "Feature",
-          properties: {},
-          geometry: {
-            type: "LineString",
-            coordinates: [
-              [driver.lng, driver.lat],
-              [destination.lng, destination.lat],
-            ],
-          },
-        });
-      }
       try {
         const bounds = new LngLatBounds()
           .extend([driver.lng, driver.lat])
@@ -231,16 +226,41 @@ export function CustomerDeliveryMap({
     });
   }, [driver, destination.lat, destination.lng]);
 
-  const distanceKm = driver
-    ? haversineKm(
-        { lat: driver.lat, lng: driver.lng },
-        { lat: destination.lat, lng: destination.lng }
-      )
-    : null;
-  const etaMin =
-    distanceKm != null
-      ? Math.max(1, Math.ceil((distanceKm / AVG_SPEED_KMH) * 60))
-      : null;
+  // Trace l'itinéraire routier (ou ligne droite de repli) dès qu'on l'a.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !path) return;
+    const apply = () => {
+      const src = map.getSource("route") as
+        | import("maplibre-gl").GeoJSONSource
+        | undefined;
+      if (!src) return;
+      src.setData({
+        type: "Feature",
+        properties: {},
+        geometry: { type: "LineString", coordinates: path.coordinates },
+      });
+      map.setPaintProperty(
+        "route-line",
+        "line-dasharray",
+        path.source === "fallback" ? [2, 2] : undefined
+      );
+    };
+    if (map.isStyleLoaded()) apply();
+    else map.once("idle", apply);
+  }, [path]);
+
+  const distanceKm =
+    path?.distanceKm ??
+    (driver
+      ? haversineKm(
+          { lat: driver.lat, lng: driver.lng },
+          { lat: destination.lat, lng: destination.lng }
+        )
+      : null);
+  const etaMin = path?.durationMin ?? null;
+  const near = distanceKm != null && distanceKm < NEAR_KM;
+  const arrived = arrivedAt != null;
 
   return (
     <div className="space-y-2">
@@ -249,11 +269,21 @@ export function CustomerDeliveryMap({
           <Truck className="text-primary-600 size-4" />
           Suivi du livreur en direct
         </p>
-        {etaMin != null && (
+        {arrived ? (
+          <span className="bg-success-600 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-white">
+            <CheckCircle2 className="size-3.5" />
+            Livreur arrivé
+          </span>
+        ) : near ? (
+          <span className="bg-success-600 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-white">
+            Arrive — à ta porte
+          </span>
+        ) : etaMin != null ? (
           <span className="bg-primary-600 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-white">
+            <Clock className="size-3.5" />
             Arrive dans ~{etaMin} min
           </span>
-        )}
+        ) : null}
       </div>
 
       <div
