@@ -55,6 +55,9 @@ export function useRoute(
     return () => {
       cancelled = true;
     };
+    // On dépend des VALEURS lat/lng (pas de l'identité des objets from/to, qui
+    // change à chaque render) pour ne pas refetch en boucle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, from?.lat, from?.lng, to?.lat, to?.lng, path]);
 
   return { path, loading };
