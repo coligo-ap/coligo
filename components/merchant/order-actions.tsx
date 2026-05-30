@@ -28,12 +28,15 @@ export function OrderActions({
   orderId,
   status,
   fulfillmentType = "pickup",
+  paymentMethod = "cash",
   deliveryPickedUpAt = null,
 }: {
   orderId: string;
   status: OrderStatus;
   /** "delivery" = pas de validation code côté commerçant (le livreur gère). */
   fulfillmentType?: "pickup" | "delivery";
+  /** "online" = code PIN requis au retrait ; "cash" = confirmation sans code. */
+  paymentMethod?: "cash" | "online";
   /** ISO si le livreur a déjà récupéré la commande (livraison). */
   deliveryPickedUpAt?: string | null;
 }) {
@@ -112,13 +115,29 @@ export function OrderActions({
 
   return (
     <div className="space-y-3">
-      {status === "ready" ? (
+      {status === "ready" && paymentMethod === "cash" ? (
+        // Retrait CASH : pas de code (utile si le téléphone du client est
+        // éteint). Le commerçant encaisse et confirme avec le numéro de commande.
+        <Button
+          size="lg"
+          className="w-full"
+          disabled={pending}
+          onClick={() => run("completed")}
+        >
+          {pending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Check className="size-4" />
+          )}
+          Confirmer le retrait (espèces)
+        </Button>
+      ) : status === "ready" ? (
         <Link
           href="/orders/validate"
           className={cn(buttonVariants({ size: "lg" }), "w-full")}
         >
           <QrCode className="size-4" />
-          Valider le retrait
+          Valider le retrait (code client)
         </Link>
       ) : (
         next && (

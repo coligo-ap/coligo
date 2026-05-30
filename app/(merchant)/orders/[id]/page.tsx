@@ -38,7 +38,7 @@ export default async function OrderDetailPage({
       .select(
         `id, merchant_id, customer_name, customer_phone, status,
          total_da, service_fee_da, cashback_da, commission_da,
-         pickup_code, pickup_slot_at, notes, created_at,
+         pickup_code, order_number, pickup_slot_at, notes, created_at,
          payment_method, payment_status,
          fulfillment_type, delivery_mode, delivery_fee_da,
          delivery_address_text, delivery_phone, delivery_distance_km,
@@ -262,14 +262,19 @@ export default async function OrderDetailPage({
           ) : (
             <section className="border-primary-200 bg-primary-50/60 rounded-[16px] border p-5 text-center">
               <p className="text-primary-900/70 text-xs font-medium tracking-wide uppercase">
-                Code de retrait
+                Numéro de commande
               </p>
-              <p className="text-primary-800 my-1 font-mono text-4xl font-bold tracking-[0.2em]">
-                {o.pickup_code}
+              <p className="text-primary-800 my-1 font-mono text-4xl font-bold tracking-[0.15em]">
+                #{o.order_number ?? o.id.slice(0, 6).toUpperCase()}
               </p>
               <p className="text-primary-900/70 flex items-center justify-center gap-1.5 text-sm">
                 <Clock className="size-3.5" />
                 Créneau à {formatTime(o.pickup_slot_at)}
+              </p>
+              <p className="text-muted mt-2 text-xs italic">
+                {o.payment_method === "online"
+                  ? "🔒 Payé en ligne : demande au client son code à 4 chiffres pour valider (le code est masqué de ton côté — anti-fraude)."
+                  : "💵 Cash : encaisse le montant et confirme le retrait. Aucun code requis (le client donne juste son numéro)."}
               </p>
             </section>
           )}
@@ -284,6 +289,7 @@ export default async function OrderDetailPage({
                 orderId={o.id}
                 status={o.status}
                 fulfillmentType={o.fulfillment_type}
+                paymentMethod={o.payment_method}
                 deliveryPickedUpAt={o.delivery_picked_up_at}
               />
             </div>

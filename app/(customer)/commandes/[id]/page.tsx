@@ -131,7 +131,10 @@ export default async function CustomerOrderDetailPage({
   //  - RETRAIT sur place : TOUJOURS (il le montre au commerçant).
   //  - LIVRAISON payée EN LIGNE : OUI (il le communique au livreur à la remise).
   //  - LIVRAISON en CASH : NON (il paie en espèces au livreur, aucun code).
-  const needsCode = isDelivery ? order.payment_method === "online" : true;
+  // Code PIN requis UNIQUEMENT pour le payé EN LIGNE (retrait ou livraison) :
+  // c'est une sécurité car déjà payé. En CASH, aucun code — le client donne
+  // juste son NUMÉRO DE COMMANDE (utile si son téléphone est éteint).
+  const needsCode = order.payment_method === "online";
 
   // Livraison EN COURS = récupérée par le livreur et pas encore livrée. On
   // affiche alors la carte de suivi live (position du livreur + ETA).
@@ -250,7 +253,7 @@ export default async function CustomerOrderDetailPage({
         {needsCode ? (
           <div className="border-border bg-surface mb-5 rounded-[20px] border p-6 text-center shadow-sm">
             <p className="text-muted text-xs font-semibold tracking-wider uppercase">
-              {isDelivery ? "Code à donner au livreur" : "Code de retrait"}
+              Code de validation (payé en ligne)
             </p>
             <p className="text-foreground mt-1 text-5xl font-bold tracking-[0.2em] tabular-nums lg:text-6xl">
               {order.pickup_code}
@@ -258,18 +261,24 @@ export default async function CustomerOrderDetailPage({
             <div className="mt-4 flex justify-center">
               <OrderQr value={order.pickup_code} />
             </div>
+            <p className="text-subtle mt-3 text-xs">
+              À communiquer {isDelivery ? "au livreur" : "au commerçant"} au
+              moment de la remise — c&apos;est ta sécurité.
+            </p>
           </div>
         ) : (
           <div className="border-warning-200 bg-warning-50 mb-5 rounded-[20px] border p-6 text-center shadow-sm">
             <Banknote className="text-warning-600 mx-auto size-7" />
             <p className="text-warning-800 mt-2 text-xs font-semibold tracking-wider uppercase">
-              Paiement à la livraison
+              {isDelivery ? "Paiement à la livraison" : "Paiement au retrait"}
             </p>
             <p className="text-foreground mt-1 text-3xl font-bold tabular-nums">
               {formatDA(order.total_da)}
             </p>
             <p className="text-warning-800/80 mt-1 text-sm">
-              à régler en espèces au livreur. Aucun code à communiquer.
+              {isDelivery
+                ? "à régler en espèces au livreur. Aucun code à communiquer."
+                : "à régler en espèces au commerçant. Donne simplement ton numéro de commande ci-dessus."}
             </p>
           </div>
         )}
