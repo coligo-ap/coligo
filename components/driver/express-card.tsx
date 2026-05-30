@@ -152,7 +152,15 @@ export function ExpressCard({
 
     onChange();
 
+    // Poll de secours toutes les 45 s : le timing intelligent (migration 0060)
+    // ne rend une commande attribuable qu'à partir de son prep_notif_at. Comme
+    // aucun évènement Realtime ne se déclenche à cet instant précis, le livreur
+    // en ligne re-vérifie régulièrement → il récupère la course pile au bon
+    // moment (≈ ±45 s) sans cron serveur.
+    const poll = setInterval(onChange, 45_000);
+
     return () => {
+      clearInterval(poll);
       void supabase.removeChannel(channel);
     };
   }, [availStatus, merchantDriverId, onChange]);
