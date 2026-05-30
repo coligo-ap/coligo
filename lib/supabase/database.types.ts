@@ -752,6 +752,8 @@ export type Database = {
           user_id: string | null;
           full_name: string;
           phone: string;
+          email: string | null;
+          wilaya: string | null;
           is_frozen: boolean;
           created_at: string;
         };
@@ -760,6 +762,8 @@ export type Database = {
           user_id?: string | null;
           full_name: string;
           phone: string;
+          email?: string | null;
+          wilaya?: string | null;
           is_frozen?: boolean;
           created_at?: string;
         };
@@ -768,6 +772,8 @@ export type Database = {
           user_id?: string | null;
           full_name?: string;
           phone?: string;
+          email?: string | null;
+          wilaya?: string | null;
           is_frozen?: boolean;
           created_at?: string;
         };

@@ -23,7 +23,7 @@ export default function DriverSignupPage() {
                 Devenir livreur
               </h1>
               <p className="text-muted text-sm">
-                Crée ton compte avec un téléphone et un mot de passe. Tu pourras
+                Renseigne tes informations pour créer ton compte. Tu pourras
                 ensuite saisir le code d&apos;un commerçant pour rejoindre sa
                 boutique.
               </p>

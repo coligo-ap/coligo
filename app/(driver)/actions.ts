@@ -11,6 +11,7 @@ import {
   phoneToEmail,
 } from "@/lib/auth/driver";
 import { hashReferralCode } from "@/lib/drivers/referral-code";
+import { isWilaya } from "@/lib/dz/wilayas";
 import {
   notifyMerchantNewDriverRequest,
   notifyCustomerEnRoute,
@@ -20,8 +21,11 @@ import {
 export type DriverAuthState = { error?: string; ok?: boolean };
 
 const signupSchema = z.object({
-  full_name: z.string().min(2, "Nom trop court").max(80),
+  first_name: z.string().trim().min(2, "Prénom trop court").max(40),
+  last_name: z.string().trim().min(2, "Nom trop court").max(40),
   phone: z.string().min(6, "Téléphone invalide"),
+  email: z.string().trim().email("Email invalide").max(120),
+  wilaya: z.string().refine(isWilaya, "Wilaya invalide"),
   password: z.string().min(6, "Mot de passe trop court"),
 });
 
@@ -42,8 +46,11 @@ export async function driverSignup(
   formData: FormData
 ): Promise<DriverAuthState> {
   const parsed = signupSchema.safeParse({
-    full_name: formData.get("full_name"),
+    first_name: formData.get("first_name"),
+    last_name: formData.get("last_name"),
     phone: formData.get("phone"),
+    email: formData.get("email"),
+    wilaya: formData.get("wilaya"),
     password: formData.get("password"),
   });
   if (!parsed.success) {
@@ -52,10 +59,13 @@ export async function driverSignup(
 
   const supabase = await createClient();
   const phone = normalizePhone(parsed.data.phone);
-  const email = phoneToEmail(parsed.data.phone);
+  // L'auth livreur reste basée sur le TÉLÉPHONE (email synthétisé) ; l'email
+  // réel saisi est stocké sur la table métier `drivers`.
+  const authEmail = phoneToEmail(parsed.data.phone);
+  const fullName = `${parsed.data.first_name} ${parsed.data.last_name}`;
 
   const { data: signup, error } = await supabase.auth.signUp({
-    email,
+    email: authEmail,
     password: parsed.data.password,
   });
   if (error || !signup.user) {
@@ -70,8 +80,10 @@ export async function driverSignup(
   const admin = createAdminClient();
   const { error: driverErr } = await admin.from("drivers").insert({
     user_id: signup.user.id,
-    full_name: parsed.data.full_name,
+    full_name: fullName,
     phone,
+    email: parsed.data.email,
+    wilaya: parsed.data.wilaya,
   });
   if (driverErr) {
     return { error: `Profil livreur : ${driverErr.message}` };
