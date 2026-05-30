@@ -1,17 +1,28 @@
 "use client";
 
-import { Menu } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Menu, RotateCw } from "lucide-react";
 import { driverDrawer } from "./driver-drawer-store";
 
 /**
- * Header de l'espace livreur (style Uber) — fond blanc, titre, bouton menu
- * rond gris à droite. Sobre, mobile-first.
+ * Header de l'espace livreur (style Uber) — fond blanc, titre, bouton
+ * d'actualisation + bouton menu rond à droite.
  */
 export function DriverHeader({
   driverFirstName,
 }: {
   driverFirstName?: string;
 }) {
+  const router = useRouter();
+  const [spinning, setSpinning] = useState(false);
+
+  const refresh = () => {
+    setSpinning(true);
+    router.refresh();
+    setTimeout(() => setSpinning(false), 800);
+  };
+
   return (
     <header className="sticky top-0 z-30 border-b border-[#eee] bg-white">
       <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-4 py-3">
@@ -25,14 +36,26 @@ export function DriverHeader({
             </p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => driverDrawer.toggle()}
-          aria-label="Ouvrir le menu"
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-[#f5f5f5] text-[#0a0a0a] active:scale-95"
-        >
-          <Menu className="size-5" />
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={refresh}
+            aria-label="Actualiser la page"
+            className="grid size-10 place-items-center rounded-full bg-[#f5f5f5] text-[#0a0a0a] active:scale-95"
+          >
+            <RotateCw
+              className={"size-5 " + (spinning ? "animate-spin" : "")}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => driverDrawer.toggle()}
+            aria-label="Ouvrir le menu"
+            className="grid size-10 place-items-center rounded-full bg-[#f5f5f5] text-[#0a0a0a] active:scale-95"
+          >
+            <Menu className="size-5" />
+          </button>
+        </div>
       </div>
     </header>
   );

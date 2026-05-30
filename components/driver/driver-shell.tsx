@@ -1,5 +1,6 @@
 import { DriverHeader } from "./driver-header";
 import { DriverDrawer } from "./driver-drawer";
+import { PullToRefresh } from "./pull-to-refresh";
 
 /**
  * Chrome unifié de l'espace livreur (style Uber) — header (titre + hamburger),
@@ -18,7 +19,9 @@ export function DriverShell({
     <div className="min-h-[100dvh] bg-[#f2f2f2] pb-16 text-[#0a0a0a]">
       <DriverHeader driverFirstName={driverFirstName} />
       <DriverDrawer driverFirstName={driverFirstName} />
-      <main className="mx-auto max-w-md px-4 py-4">{children}</main>
+      <PullToRefresh>
+        <main className="mx-auto max-w-md px-4 py-4">{children}</main>
+      </PullToRefresh>
       <footer className="mx-auto max-w-md px-4 pb-6 text-center text-[11px] font-medium text-[#9e9e9e]">
         Coligo — Espace livreur
       </footer>
