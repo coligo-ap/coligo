@@ -13,6 +13,7 @@ import {
 import { useFormStatus } from "react-dom";
 import { driverLogout } from "@/app/(driver)/actions";
 import { DriverProfileForm } from "@/components/driver/profile-form";
+import { DriverNotificationsPanel } from "@/components/driver/notifications/notifications-panel";
 
 /**
  * Écran 6 — MON PROFIL (style Uber). Hero (avatar + nom + badges) + 3 stats +
@@ -93,10 +94,8 @@ export function ProfileHub({
           onClick={() => toggle("notif")}
         />
         {open === "notif" && (
-          <div className="border-b border-[#eee] bg-[#fafafa] px-4 py-4 text-[13px] leading-relaxed text-[#757575]">
-            Les notifications push (nouvelle attribution Express, annonces du
-            commerçant) sont activées à l&apos;installation de l&apos;app. Pour
-            les couper : réglages du téléphone → Coligo Livreur → Notifications.
+          <div className="border-b border-[#eee] bg-[#fafafa] px-4 py-4">
+            <DriverNotificationsPanel />
           </div>
         )}
 

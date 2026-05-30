@@ -71,18 +71,42 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Marqueur « moi » (point violet + halo qui pulse) + suivi initial.
+  // Recentre la carte sur ma position en la plaçant dans la zone visible
+  // AU-DESSUS du bottom sheet (padding bas ~ moitié de l'écran) pour que le
+  // point ne soit pas caché derrière le sheet.
+  const flyToMe = (zoom: number) => {
+    const map = mapRef.current;
+    const ll = meMarkerRef.current?.getLngLat();
+    if (!map || !ll) return;
+    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+    map.easeTo({
+      center: ll,
+      zoom,
+      duration: 600,
+      padding: { top: 60, left: 24, right: 24, bottom: Math.round(vh * 0.5) },
+    });
+  };
+
+  // Marqueur « moi » (point violet + halo concentrique qui pulse). Cliquable :
+  // recentre la carte sur ma position. Suivi auto au premier fix GPS.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !coords) return;
     void import("maplibre-gl").then(({ Marker }) => {
       if (!meMarkerRef.current) {
         const el = document.createElement("div");
-        el.style.position = "relative";
+        el.style.cssText =
+          "position:relative;width:20px;height:20px;cursor:pointer";
+        // Pulse et point partagent le MÊME centre (left/top 50% + marges
+        // négatives) → l'onde reste bien concentrique au point.
         el.innerHTML = `
-          <div style="position:absolute;inset:-13px;border-radius:50%;background:rgba(92,92,224,.18);animation:driver-me-pulse 2s infinite"></div>
-          <div style="position:relative;width:18px;height:18px;border-radius:50%;background:#5c5ce0;border:3px solid #fff;box-shadow:0 0 0 2px #5c5ce0,0 4px 12px rgba(0,0,0,.25)"></div>`;
-        meMarkerRef.current = new Marker({ element: el })
+          <div style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:rgba(92,92,224,.25);animation:driver-me-pulse 2s infinite"></div>
+          <div style="position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#5c5ce0;border:3px solid #fff;box-shadow:0 0 0 2px rgba(92,92,224,.6),0 4px 12px rgba(0,0,0,.3)"></div>`;
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          flyToMe(16);
+        });
+        meMarkerRef.current = new Marker({ element: el, anchor: "center" })
           .setLngLat([coords.longitude, coords.latitude])
           .addTo(map);
       } else {
@@ -90,24 +114,10 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
       }
       if (!followedOnce.current) {
         followedOnce.current = true;
-        map.easeTo({
-          center: [coords.longitude, coords.latitude],
-          zoom: 14,
-          duration: 700,
-        });
+        flyToMe(15);
       }
     });
   }, [coords]);
-
-  const recenter = () => {
-    const map = mapRef.current;
-    if (!map || !coords) return;
-    map.easeTo({
-      center: [coords.longitude, coords.latitude],
-      zoom: 15,
-      duration: 600,
-    });
-  };
 
   return (
     <div className="absolute inset-0">
@@ -116,12 +126,12 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
         className="h-full w-full bg-[#e8e8e8]"
         style={{ touchAction: "none" }}
       />
-      {/* FAB recentrer — au-dessus du bottom sheet. */}
+      {/* FAB recentrer — flotte au-dessus du bottom sheet. */}
       <button
         type="button"
-        onClick={recenter}
+        onClick={() => flyToMe(16)}
         aria-label="Recentrer sur ma position"
-        className="absolute right-3.5 bottom-[400px] z-[55] grid size-12 place-items-center rounded-full bg-white text-[#0a0a0a] shadow-[0_6px_16px_rgba(0,0,0,.15)] active:scale-95"
+        className="absolute right-3.5 bottom-[calc(64vh+14px)] z-[55] grid size-12 place-items-center rounded-full bg-white text-[#0a0a0a] shadow-[0_6px_16px_rgba(0,0,0,.15)] active:scale-95"
       >
         <LocateFixed className="size-5" />
       </button>

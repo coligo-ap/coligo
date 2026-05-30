@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bike, ChevronRight, KeyRound, Loader2 } from "lucide-react";
@@ -51,6 +57,39 @@ export function DriverHomeSheet({
   const [online, setOnline] = useState(initialOnline);
   const [onlineLabel, setOnlineLabel] = useState("0h00");
 
+  // --- Bottom sheet glissable (déplier / replier) ---------------------------
+  // On glisse le sheet vers le bas pour libérer la carte, vers le haut pour
+  // tout revoir. `ty` = translation verticale en px ; 0 = déplié, maxOffset =
+  // replié (on ne laisse dépasser que la poignée + le « Bonjour »).
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ startY: number; startTy: number } | null>(null);
+  const [ty, setTy] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const PEEK = 104; // hauteur visible quand replié (poignée + greeting).
+
+  const maxOffset = () =>
+    Math.max(0, (sheetRef.current?.offsetHeight ?? 420) - PEEK);
+
+  const onHandleDown = (e: ReactPointerEvent) => {
+    drag.current = { startY: e.clientY, startTy: ty };
+    setDragging(true);
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+  const onHandleMove = (e: ReactPointerEvent) => {
+    if (!drag.current) return;
+    const d = e.clientY - drag.current.startY;
+    const next = Math.min(maxOffset(), Math.max(0, drag.current.startTy + d));
+    setTy(next);
+  };
+  const onHandleUp = () => {
+    if (!drag.current) return;
+    drag.current = null;
+    setDragging(false);
+    // Snap : replié si on a dépassé 40 % de la course, sinon déplié.
+    setTy((cur) => (cur > maxOffset() * 0.4 ? maxOffset() : 0));
+  };
+  const toggleSheet = () => setTy((cur) => (cur > 4 ? 0 : maxOffset()));
+
   // Démarre / arrête la mesure de session locale selon l'état en ligne.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -98,11 +137,28 @@ export function DriverHomeSheet({
   };
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-[60] rounded-t-[20px] bg-white pt-2 pb-[max(18px,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,.1)]">
-      <div className="mx-auto mb-3.5 h-1 w-11 rounded-full bg-[#e0e0e0]" />
-
-      <div className="max-h-[64vh] overflow-y-auto">
-        {/* Greeting */}
+    <div
+      ref={sheetRef}
+      className="absolute inset-x-0 bottom-0 z-[60] rounded-t-[20px] bg-white pb-[max(18px,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,.1)]"
+      style={{
+        transform: `translateY(${ty}px)`,
+        transition: dragging ? "none" : "transform .25s ease",
+      }}
+    >
+      {/* Poignée draggable : grip + greeting (zone de saisie du glissement). */}
+      <div
+        onPointerDown={onHandleDown}
+        onPointerMove={onHandleMove}
+        onPointerUp={onHandleUp}
+        onPointerCancel={onHandleUp}
+        className="cursor-grab touch-none pt-2 active:cursor-grabbing"
+      >
+        <button
+          type="button"
+          onClick={toggleSheet}
+          aria-label="Déplier ou replier"
+          className="mx-auto mb-3 block h-1.5 w-11 rounded-full bg-[#d8d8d8]"
+        />
         <div className="px-5 pb-3">
           <h1 className="text-[24px] font-extrabold tracking-[-0.5px] text-[#0a0a0a]">
             Bonjour {firstName}
@@ -111,7 +167,9 @@ export function DriverHomeSheet({
             Prêt pour la prochaine course
           </p>
         </div>
+      </div>
 
+      <div className="max-h-[58vh] overflow-y-auto overscroll-contain">
         {/* 3 stats séparées par des fils verticaux */}
         <div className="flex border-b border-[#eee] px-5 pt-1.5 pb-3.5">
           <Stat value={String(coursesToday)} label="Courses" />
