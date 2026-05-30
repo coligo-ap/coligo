@@ -16,6 +16,7 @@ export type CustomerOrderRow = {
   payment_status: "pending" | "paid" | "failed" | "refunded";
   total_da: number;
   pickup_code: string;
+  order_number: string | null;
   created_at: string;
   fulfillment_type: "pickup" | "delivery";
   merchant_name: string;
@@ -138,7 +139,7 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
                       {o.fulfillment_type === "delivery"
                         ? "Livraison"
                         : "Retrait"}{" "}
-                      · Code {o.pickup_code}
+                      {o.order_number ? `· N° ${o.order_number}` : ""}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">

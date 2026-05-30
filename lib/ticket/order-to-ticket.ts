@@ -29,6 +29,7 @@ export function orderToTicket(
     merchant_locality: buildLocality(extras),
     customer_name: order.customer_name,
     customer_phone: order.customer_phone,
+    order_number: order.order_number ?? null,
     pickup_code: order.pickup_code,
     pickup_slot_at: order.pickup_slot_at,
     created_at: order.created_at,

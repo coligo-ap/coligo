@@ -39,7 +39,7 @@ export default async function CustomerOrderDetailPage({
   const { data: order } = await supabase
     .from("orders")
     .select(
-      `id, status, payment_method, payment_status, pickup_code, pickup_type,
+      `id, status, payment_method, payment_status, pickup_code, order_number, pickup_type,
        pickup_slot_at, pickup_slot_start, pickup_slot_end, customer_note,
        subtotal_da, discount_da, cashback_estimate_da, total_da, created_at,
        merchant_id,
@@ -179,7 +179,14 @@ export default async function CustomerOrderDetailPage({
 
         {/* Confirmation */}
         <div className="from-success-500 to-success-600 mb-5 rounded-[20px] bg-gradient-to-br p-6 text-white shadow-md">
-          <Check className="size-8" />
+          <div className="flex items-center justify-between gap-3">
+            <Check className="size-8" />
+            {(order as { order_number: string | null }).order_number && (
+              <span className="rounded-full bg-white/20 px-3 py-1 text-sm font-bold tracking-wide">
+                N° {(order as { order_number: string | null }).order_number}
+              </span>
+            )}
+          </div>
           <h1 className="mt-2 text-2xl leading-tight font-bold">
             Commande confirmée !
           </h1>

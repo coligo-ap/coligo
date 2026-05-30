@@ -20,6 +20,7 @@ import { validateDelivery } from "@/app/(driver)/actions";
  */
 export function DeliveryValidationDialog({
   orderId,
+  orderNumber,
   paymentMethod,
   customerName,
   totalDa,
@@ -27,6 +28,8 @@ export function DeliveryValidationDialog({
   onSuccess,
 }: {
   orderId: string;
+  /** Numéro de commande (référence, ex. « A042 »). Affiché ; non secret. */
+  orderNumber?: string | null;
   paymentMethod: "cash" | "online";
   customerName?: string | null;
   totalDa?: number | null;
@@ -38,7 +41,8 @@ export function DeliveryValidationDialog({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isOnline = paymentMethod === "online";
-  const orderRef = orderId.replace(/-/g, "").slice(0, 6).toUpperCase();
+  const orderRef =
+    orderNumber ?? orderId.replace(/-/g, "").slice(0, 6).toUpperCase();
   const paymentLabel = isOnline
     ? "En ligne · payé"
     : `Cash${totalDa != null ? ` · ${totalDa} DA` : ""}`;
@@ -91,9 +95,9 @@ export function DeliveryValidationDialog({
     });
 
   const handleScannedText = (text: string) => {
-    // Le QR encode soit directement les 6 chiffres, soit une URL contenant
-    // le code (`/orders/validate?code=123456` selon le générateur existant).
-    const digits = text.match(/\d{6}/)?.[0];
+    // Le QR du client encode son code PIN (4 chiffres). On reste tolérant aux
+    // anciens codes 6 chiffres (commandes legacy) : on prend la 1re séquence.
+    const digits = text.match(/\d{4,6}/)?.[0];
     if (digits) {
       setCode(digits);
       toast.success("Code détecté");
@@ -107,7 +111,7 @@ export function DeliveryValidationDialog({
       submit(false);
       return;
     }
-    if (code.length === 6) {
+    if (code.length >= 4) {
       submit(false);
       return;
     }
@@ -116,9 +120,9 @@ export function DeliveryValidationDialog({
     }
   };
 
-  const ctaDisabled = pending || (isOnline && code.length !== 6);
-  const boxes = Array.from({ length: 6 }, (_, i) => code[i] ?? "");
-  const curIdx = Math.min(code.length, 5);
+  const ctaDisabled = pending || (isOnline && code.length < 4);
+  const boxes = Array.from({ length: 4 }, (_, i) => code[i] ?? "");
+  const curIdx = Math.min(code.length, 3);
 
   return (
     <div className="fixed inset-0 z-[95] overflow-auto bg-[#f2f2f2] pt-[max(48px,calc(env(safe-area-inset-top)+18px))] pb-[max(24px,env(safe-area-inset-bottom))] text-[#0a0a0a]">
@@ -191,10 +195,10 @@ export function DeliveryValidationDialog({
           ref={inputRef}
           inputMode="numeric"
           autoComplete="one-time-code"
-          maxLength={6}
+          maxLength={4}
           value={code}
           onChange={(e) =>
-            setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+            setCode(e.target.value.replace(/\D/g, "").slice(0, 4))
           }
           disabled={pending}
           className="absolute inset-0 size-full cursor-pointer opacity-0"

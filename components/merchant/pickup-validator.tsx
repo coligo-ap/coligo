@@ -27,13 +27,13 @@ function extractPickupCode(raw: string): string | null {
   // Format dominant : 6 chiffres bruts (avec espaces internes tolérés)
   if (/^[\s\d]+$/.test(s)) {
     const digits = s.replace(/\D/g, "");
-    return digits.length === 6 ? digits : null;
+    return digits.length >= 4 && digits.length <= 6 ? digits : null;
   }
   // Tolérance URL legacy : on extrait le param `code`
   try {
     const url = new URL(s);
     const code = url.searchParams.get("code");
-    if (code && /^\d{6}$/.test(code)) return code;
+    if (code && /^\d{4,6}$/.test(code)) return code;
   } catch {
     /* pas une URL valide */
   }
@@ -161,7 +161,7 @@ function CodeTab({
   pending: boolean;
   onSubmit: (code: string) => void;
 }) {
-  const [digits, setDigits] = useState<string[]>(Array(6).fill(""));
+  const [digits, setDigits] = useState<string[]>(Array(4).fill(""));
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
   function setDigit(i: number, value: string) {
@@ -171,7 +171,7 @@ function CodeTab({
       next[i] = d;
       return next;
     });
-    if (d && i < 5) inputs.current[i + 1]?.focus();
+    if (d && i < 3) inputs.current[i + 1]?.focus();
   }
 
   function onKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
@@ -184,22 +184,22 @@ function CodeTab({
     const pasted = e.clipboardData
       .getData("text")
       .replace(/\D/g, "")
-      .slice(0, 6);
+      .slice(0, 4);
     if (!pasted) return;
     e.preventDefault();
-    const next = Array(6).fill("");
+    const next = Array(4).fill("");
     for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
     setDigits(next);
-    inputs.current[Math.min(pasted.length, 5)]?.focus();
+    inputs.current[Math.min(pasted.length, 3)]?.focus();
   }
 
   const code = digits.join("");
-  const complete = code.length === 6;
+  const complete = code.length === 4;
 
   return (
     <div className="border-border bg-surface rounded-[16px] border p-5">
       <p className="text-muted mb-4 text-center text-sm">
-        Saisissez le code à 6 chiffres présenté par le client.
+        Saisissez le code à 4 chiffres présenté par le client.
       </p>
 
       <div className="mb-5 flex justify-center gap-2" onPaste={onPaste}>

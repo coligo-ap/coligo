@@ -101,8 +101,10 @@ export async function validatePickupCode(
   clientOperationId?: string
 ): Promise<OrderActionResult & { orderId?: string }> {
   const normalized = code.replace(/\D/g, "");
-  if (normalized.length !== 6) {
-    return { error: "Le code doit comporter 6 chiffres." };
+  // PIN à 4 chiffres (commandes récentes) ; on tolère 6 pour d'éventuelles
+  // commandes legacy non encore régénérées.
+  if (normalized.length < 4 || normalized.length > 6) {
+    return { error: "Le code doit comporter 4 chiffres." };
   }
 
   const supabase = await createClient();

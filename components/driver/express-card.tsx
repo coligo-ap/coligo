@@ -22,6 +22,7 @@ const ACCEPTED_KEY = "coligo_driver_accepted_orders";
 
 type CurrentOrder = {
   id: string;
+  order_number: string | null;
   customer_name: string | null;
   customer_phone: string | null;
   total_da: number | null;
@@ -292,6 +293,7 @@ export function ExpressCard({
         {showValidate && currentOrder && (
           <DeliveryValidationDialog
             orderId={currentOrder.id}
+            orderNumber={currentOrder.order_number}
             paymentMethod={currentOrder.payment_method}
             customerName={currentOrder.customer_name}
             totalDa={currentOrder.total_da}

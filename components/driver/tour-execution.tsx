@@ -29,6 +29,7 @@ type Stop = {
   stop_order: number;
   stop_status: "pending" | "delivered" | "failed";
   order_id: string;
+  order_number: string | null;
   customer_name: string | null;
   customer_phone: string | null;
   total_da: number | null;
@@ -311,6 +312,7 @@ export function TourExecution({
       {validateFor && (
         <DeliveryValidationDialog
           orderId={validateFor.order_id}
+          orderNumber={validateFor.order_number}
           paymentMethod={validateFor.payment_method}
           customerName={validateFor.customer_name}
           totalDa={validateFor.total_da}

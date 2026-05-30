@@ -67,7 +67,7 @@ export async function GET(
     .select(
       `id, merchant_id, customer_name, customer_phone, status,
        total_da, service_fee_da, cashback_da, commission_da,
-       pickup_code, pickup_slot_at, notes, created_at,
+       pickup_code, order_number, pickup_slot_at, notes, created_at,
        payment_method, payment_status,
        order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`
     )

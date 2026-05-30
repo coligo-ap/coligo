@@ -180,6 +180,7 @@ export type Database = {
           cashback_da: number;
           commission_da: number;
           pickup_code: string;
+          order_number: string | null;
           pickup_type: Database["public"]["Enums"]["pickup_type"];
           pickup_slot_at: string;
           pickup_slot_start: string | null;

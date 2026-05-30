@@ -162,6 +162,7 @@ export type Order = {
   cashback_da: number;
   commission_da: number;
   pickup_code: string;
+  order_number: string | null;
   pickup_slot_at: string;
   notes: string | null;
   payment_method: PaymentMethod;

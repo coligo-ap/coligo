@@ -21,6 +21,7 @@ import { ExpressRunMap } from "./express-run-map";
 
 type RunOrder = {
   id: string;
+  order_number: string | null;
   customer_name: string | null;
   customer_phone: string | null;
   total_da: number | null;
@@ -149,7 +150,7 @@ export function ExpressRun({
                 {who.name}
               </b>
               <small className="text-xs font-medium text-[#757575]">
-                Commande #{shortRef(order.id)}
+                Commande #{order.order_number ?? shortRef(order.id)}
                 {itemCount > 0
                   ? ` · ${itemCount} article${itemCount > 1 ? "s" : ""}`
                   : ""}

@@ -121,10 +121,6 @@ function groupByCategory(
   return order.map((title) => ({ title, items: map.get(title)! }));
 }
 
-function spaceOut(s: string): string {
-  return s.split("").join(" ");
-}
-
 /** Centre un texte sur N colonnes (pour bandeau inversé full-width). */
 function centerPad(text: string, cols: number): string {
   const t = text.length > cols ? text.slice(0, cols) : text;
@@ -183,10 +179,13 @@ export function buildTicketSunmiCommands(
   out.push({ type: "size", value: SZ.base });
   out.push({ type: "textInverse", text: centerPad("RETRAIT", cols) });
 
-  // ===== 3. #ID ÉNORME (textBoldStrong = double-width) =====
+  // ===== 3. NUMÉRO DE COMMANDE ÉNORME (référence, textBoldStrong) =====
   out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.large });
-  out.push({ type: "textBoldStrong", text: `#${shortId(order.id)}` });
+  out.push({
+    type: "textBoldStrong",
+    text: `#${order.order_number ?? shortId(order.id)}`,
+  });
 
   // ===== 4. HEURE DE RETRAIT =====
   out.push({ type: "size", value: SZ.small });
@@ -332,20 +331,8 @@ export function buildTicketSunmiCommands(
 
   divider();
 
-  // ===== 11. CODE DE RETRAIT + QR =====
-  out.push({ type: "align", value: "center" });
-  out.push({ type: "size", value: SZ.small });
-  out.push({ type: "text", text: "CODE DE RETRAIT" });
-  out.push({ type: "size", value: SZ.large });
-  out.push({ type: "textBoldStrong", text: spaceOut(order.pickup_code) });
-  // QR encode UNIQUEMENT le code 6 chiffres : payload court → modules plus
-  // gros → scan fiable sur thermique imprimé.
-  out.push({
-    type: "qr",
-    data: order.pickup_code,
-    moduleSize: opts.width === 80 ? 6 : 5,
-    errorLevel: 3,
-  });
+  // ===== 11. (Le CODE PIN de validation n'est PAS imprimé : c'est un secret
+  //            communiqué de vive voix par le client au retrait/à la livraison.)
 
   // ===== 12. FOOTER =====
   out.push({ type: "size", value: SZ.small });

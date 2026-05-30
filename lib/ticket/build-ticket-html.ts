@@ -38,6 +38,9 @@ export type TicketOrder = {
   merchant_locality?: string | null;
   customer_name: string;
   customer_phone: string;
+  /** Référence de communication (ex. « A042 »). Affichée en gros sur le ticket. */
+  order_number?: string | null;
+  /** PIN de validation — NON imprimé. Conservé pour compat de type uniquement. */
   pickup_code: string;
   pickup_slot_at: string;
   created_at: string;
@@ -137,39 +140,6 @@ function groupByCategory(items: TicketItem[]): Array<{
   return order.map((title) => ({ title, items: map.get(title)! }));
 }
 
-/** Insère des espaces entre chaque caractère ("482917" → "4 8 2 9 1 7"). */
-function spaceOut(s: string): string {
-  return s.split("").join(" ");
-}
-
-/**
- * Encode `text` en QR (BitMatrix via @zxing/library) puis renvoie un SVG N&B
- * pur. Import dynamique : pas de bundle sur les pages qui n'impriment pas.
- */
-async function qrSvg(text: string, sizePx: number): Promise<string> {
-  const { QRCodeWriter, BarcodeFormat, EncodeHintType } =
-    await import("@zxing/library");
-  const writer = new QRCodeWriter();
-  const hints = new Map<unknown, unknown>();
-  hints.set(EncodeHintType.MARGIN, 0);
-  const matrix = writer.encode(
-    text,
-    BarcodeFormat.QR_CODE,
-    0,
-    0,
-    hints as Map<typeof EncodeHintType.MARGIN, number>
-  );
-  const w = matrix.getWidth();
-  const h = matrix.getHeight();
-  let path = "";
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      if (matrix.get(x, y)) path += `M${x},${y}h1v1h-1z`;
-    }
-  }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${sizePx}" height="${sizePx}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${path}" fill="#000"/></svg>`;
-}
-
 // ===========================================================================
 // Builder principal
 // ===========================================================================
@@ -251,10 +221,6 @@ export async function buildTicketHTML(
   const copyBanner = opts.copyLabel
     ? `<div class="copy">${escapeHtml(opts.copyLabel)}</div>`
     : "";
-
-  // Maquette : 120px en 80mm. On scale pour le 58mm (proportion zone imprimable).
-  const qrSize = w === 80 ? 120 : 96;
-  const qr = await qrSvg(order.pickup_code, qrSize);
 
   const badgeNewClient = order.is_new_customer
     ? `<div class="badge-new">★ NOUVEAU CLIENT ★</div>`
@@ -390,8 +356,8 @@ export async function buildTicketHTML(
   <!-- 2. Bandeau noir inversé : RETRAIT -->
   <div class="banner">RETRAIT</div>
 
-  <!-- 3. #ID énorme -->
-  <div class="ordernum">#${escapeHtml(shortId(order.id))}</div>
+  <!-- 3. Numéro de commande énorme (référence de communication) -->
+  <div class="ordernum">#${escapeHtml(order.order_number ?? shortId(order.id))}</div>
 
   <!-- 4. Heure de retrait -->
   <div class="pickup"><small>RETRAIT À</small>${escapeHtml(formatTime(order.pickup_slot_at))}</div>
@@ -421,10 +387,8 @@ export async function buildTicketHTML(
 
   <hr class="divider">
 
-  <!-- 9. Code retrait + QR -->
-  <div class="code-label">CODE DE RETRAIT</div>
-  <div class="code">${escapeHtml(spaceOut(order.pickup_code))}</div>
-  <div class="qr-wrap">${qr}</div>
+  <!-- 9. (Le CODE PIN de validation n'est JAMAIS imprimé : c'est un secret que
+          le client communique de vive voix au retrait / à la livraison.) -->
 
   <!-- 10. Footer -->
   <div class="foot">

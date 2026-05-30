@@ -36,7 +36,7 @@ export default async function CustomerOrdersListPage() {
   const { data: orders } = await supabase
     .from("orders")
     .select(
-      `id, status, payment_method, payment_status, total_da, pickup_code,
+      `id, status, payment_method, payment_status, total_da, pickup_code, order_number,
        pickup_slot_at, created_at, merchant_id, fulfillment_type,
        merchants ( name, slug, logo_url )`
     )
@@ -75,6 +75,7 @@ export default async function CustomerOrdersListPage() {
       payment_status: o.payment_status,
       total_da: o.total_da,
       pickup_code: o.pickup_code,
+      order_number: o.order_number ?? null,
       created_at: o.created_at,
       fulfillment_type:
         (o.fulfillment_type as "pickup" | "delivery") ?? "pickup",
