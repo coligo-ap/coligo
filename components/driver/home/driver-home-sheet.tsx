@@ -12,6 +12,11 @@ import { useRouter } from "next/navigation";
 import { Bike, ChevronRight, KeyRound, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { setGlobalAvailability } from "@/app/(driver)/actions";
+import {
+  getDriverMode,
+  setDriverMode,
+  type DriverMode,
+} from "@/lib/driver/mode";
 
 type MerchantRow = {
   mdId: string;
@@ -26,14 +31,17 @@ const ONLINE_SINCE_KEY = "coligo_driver_online_since";
 const nf = new Intl.NumberFormat("fr-FR");
 
 /**
- * Bottom sheet de l'accueil livreur. Greeting + 3 stats + interrupteur « en
- * ligne » (bascule TOUS les commerçants actifs via `setGlobalAvailability`) +
- * liste des commerçants.
+ * Bottom sheet de l'accueil livreur (style Uber, glissable).
  *
- * Les « heures en ligne » n'ont pas de source backend fiable (la table
- * `driver_availability` ne trace pas le début de session). On mesure donc la
- * session courante côté client via localStorage : démarrée quand on passe en
- * ligne, effacée quand on se met hors ligne. Affichage purement indicatif.
+ * Quand le sheet est REPLIÉ, la zone visible (peek) montre l'essentiel pour
+ * agir et motiver : le GAIN du jour + le bouton EN LIGNE / HORS LIGNE + le
+ * sélecteur de mode (Tout / Express / Tournée). Le « Bonjour {prénom} » en
+ * grand a été retiré (peu utile, distrayant). Le reste (stats détaillées,
+ * commerçants…) se déplie en glissant vers le haut.
+ *
+ * Le mode est une préférence locale (localStorage) qui aide à basculer
+ * facilement ; il ne change pas l'attribution serveur, seulement l'auto-pull
+ * Express côté client (cf. lib/driver/mode + express-card).
  */
 export function DriverHomeSheet({
   firstName,
@@ -56,19 +64,28 @@ export function DriverHomeSheet({
   const [busy, start] = useTransition();
   const [online, setOnline] = useState(initialOnline);
   const [onlineLabel, setOnlineLabel] = useState("0h00");
+  const [mode, setMode] = useState<DriverMode>("all");
 
-  // --- Bottom sheet glissable (déplier / replier) ---------------------------
-  // On glisse le sheet vers le bas pour libérer la carte, vers le haut pour
-  // tout revoir. `ty` = translation verticale en px ; 0 = déplié, maxOffset =
-  // replié (on ne laisse dépasser que la poignée + le « Bonjour »).
+  useEffect(() => setMode(getDriverMode()), []);
+  const pickMode = (m: DriverMode) => {
+    setMode(m);
+    setDriverMode(m);
+  };
+
+  // --- Bottom sheet glissable -----------------------------------------------
   const sheetRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null); // zone fixe (peek)
   const drag = useRef<{ startY: number; startTy: number } | null>(null);
   const [ty, setTy] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const PEEK = 104; // hauteur visible quand replié (poignée + greeting).
 
+  // Course de glissement = hauteur du sheet - hauteur du peek (zone fixe).
   const maxOffset = () =>
-    Math.max(0, (sheetRef.current?.offsetHeight ?? 420) - PEEK);
+    Math.max(
+      0,
+      (sheetRef.current?.offsetHeight ?? 460) -
+        (topRef.current?.offsetHeight ?? 250)
+    );
 
   const onHandleDown = (e: ReactPointerEvent) => {
     drag.current = { startY: e.clientY, startTy: ty };
@@ -78,19 +95,17 @@ export function DriverHomeSheet({
   const onHandleMove = (e: ReactPointerEvent) => {
     if (!drag.current) return;
     const d = e.clientY - drag.current.startY;
-    const next = Math.min(maxOffset(), Math.max(0, drag.current.startTy + d));
-    setTy(next);
+    setTy(Math.min(maxOffset(), Math.max(0, drag.current.startTy + d)));
   };
   const onHandleUp = () => {
     if (!drag.current) return;
     drag.current = null;
     setDragging(false);
-    // Snap : replié si on a dépassé 40 % de la course, sinon déplié.
     setTy((cur) => (cur > maxOffset() * 0.4 ? maxOffset() : 0));
   };
   const toggleSheet = () => setTy((cur) => (cur > 4 ? 0 : maxOffset()));
 
-  // Démarre / arrête la mesure de session locale selon l'état en ligne.
+  // Mesure de session « en ligne » (localStorage).
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (online) {
@@ -102,7 +117,6 @@ export function DriverHomeSheet({
     }
   }, [online]);
 
-  // Recalcule le libellé « En ligne » chaque minute.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const tick = () => {
@@ -112,9 +126,9 @@ export function DriverHomeSheet({
         return;
       }
       const mins = Math.max(0, Math.floor((Date.now() - Number(raw)) / 60000));
-      const h = Math.floor(mins / 60);
-      const m = mins % 60;
-      setOnlineLabel(`${h}h${String(m).padStart(2, "0")}`);
+      setOnlineLabel(
+        `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, "0")}`
+      );
     };
     tick();
     const i = setInterval(tick, 30_000);
@@ -145,7 +159,7 @@ export function DriverHomeSheet({
         transition: dragging ? "none" : "transform .25s ease",
       }}
     >
-      {/* Poignée draggable : grip + greeting (zone de saisie du glissement). */}
+      {/* Poignée draggable */}
       <div
         onPointerDown={onHandleDown}
         onPointerMove={onHandleMove}
@@ -157,32 +171,41 @@ export function DriverHomeSheet({
           type="button"
           onClick={toggleSheet}
           aria-label="Déplier ou replier"
-          className="mx-auto mb-3 block h-1.5 w-11 rounded-full bg-[#d8d8d8]"
+          className="mx-auto block h-1.5 w-11 rounded-full bg-[#d8d8d8]"
         />
-        <div className="px-5 pb-3">
-          <h1 className="text-[24px] font-extrabold tracking-[-0.5px] text-[#0a0a0a]">
-            Bonjour {firstName}
-          </h1>
-          <p className="mt-0.5 text-[13px] font-medium text-[#757575]">
-            Prêt pour la prochaine course
-          </p>
-        </div>
       </div>
 
-      <div className="max-h-[58vh] overflow-y-auto overscroll-contain">
-        {/* 3 stats séparées par des fils verticaux */}
-        <div className="flex border-b border-[#eee] px-5 pt-1.5 pb-3.5">
-          <Stat value={String(coursesToday)} label="Courses" />
-          <Stat value={nf.format(earnedToday)} unit="DA" label="Gagnés" sep />
-          <Stat value={onlineLabel} label="En ligne" sep />
+      {/* ===== Peek (zone fixe toujours visible) : gain + toggle + mode ===== */}
+      <div ref={topRef} className="px-5 pt-3">
+        {/* Gain du jour — motivation. */}
+        <div className="mb-3 flex items-end justify-between">
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.5px] text-[#757575] uppercase">
+              Gagné aujourd&apos;hui
+            </p>
+            <p className="mt-0.5 text-[32px] leading-none font-black tracking-[-1px] text-[#5c5ce0]">
+              {nf.format(earnedToday)}
+              <span className="ml-1 text-[15px] font-bold text-[#757575]">
+                DA
+              </span>
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[20px] leading-none font-extrabold text-[#0a0a0a]">
+              {coursesToday}
+            </p>
+            <p className="mt-1 text-[11px] font-semibold text-[#757575]">
+              course{coursesToday > 1 ? "s" : ""} · {onlineLabel}
+            </p>
+          </div>
         </div>
 
-        {/* Interrupteur en ligne (fond noir) */}
+        {/* Bouton EN LIGNE / HORS LIGNE (connexion / déconnexion au service). */}
         <button
           type="button"
           onClick={toggle}
           disabled={busy}
-          className="mx-4 mt-3.5 flex w-[calc(100%-32px)] items-center justify-between rounded-[14px] bg-[#0a0a0a] px-[18px] py-4 text-left text-white disabled:opacity-80"
+          className="flex w-full items-center justify-between rounded-[14px] bg-[#0a0a0a] px-[18px] py-4 text-left text-white disabled:opacity-80"
         >
           <span className="flex items-center gap-3">
             <span className="grid size-[38px] place-items-center rounded-[11px] bg-white/[0.12]">
@@ -218,11 +241,34 @@ export function DriverHomeSheet({
           )}
         </button>
 
+        {/* Sélecteur de mode : Tout / Express / Tournée. */}
+        <div className="mt-2.5 flex gap-1.5 rounded-[12px] bg-[#f2f2f2] p-1">
+          <ModeBtn active={mode === "all"} onClick={() => pickMode("all")}>
+            Tout
+          </ModeBtn>
+          <ModeBtn
+            active={mode === "express"}
+            onClick={() => pickMode("express")}
+          >
+            ⚡ Express
+          </ModeBtn>
+          <ModeBtn active={mode === "tour"} onClick={() => pickMode("tour")}>
+            📅 Tournée
+          </ModeBtn>
+        </div>
+      </div>
+
+      {/* ===== Zone dépliable (scroll) ===== */}
+      <div className="mt-3 max-h-[42vh] overflow-y-auto overscroll-contain px-4">
+        <p className="px-1 pb-2 text-[13px] font-medium text-[#757575]">
+          Bonjour {firstName} — prêt pour la prochaine course.
+        </p>
+
         {/* Liste des commerçants */}
         {merchants.length > 0 ? (
-          <ul className="px-4 pt-2">
+          <ul>
             {merchants.map((m) => (
-              <li key={m.mdId} className="mt-2.5">
+              <li key={m.mdId} className="mb-2.5">
                 <Link
                   href={`/driver/m/${m.mdId}`}
                   className="flex items-center gap-3 rounded-[12px] border border-[#eee] bg-white px-3.5 py-3"
@@ -252,20 +298,18 @@ export function DriverHomeSheet({
             ))}
           </ul>
         ) : (
-          <div className="px-4 pt-3">
-            <Link
-              href="/driver/codes"
-              className="flex items-center justify-center gap-2 rounded-[14px] border-2 border-dashed border-[#d8d8f0] bg-[#f4f4fb] px-4 py-3 text-sm font-bold text-[#4a48c0]"
-            >
-              <KeyRound className="size-4" />
-              Rejoindre un commerçant (saisir un code)
-            </Link>
-          </div>
+          <Link
+            href="/driver/codes"
+            className="flex items-center justify-center gap-2 rounded-[14px] border-2 border-dashed border-[#d8d8f0] bg-[#f4f4fb] px-4 py-3 text-sm font-bold text-[#4a48c0]"
+          >
+            <KeyRound className="size-4" />
+            Rejoindre un commerçant (saisir un code)
+          </Link>
         )}
 
-        {/* Demandes en attente / accès retirés (info fonctionnelle conservée) */}
+        {/* Demandes en attente / accès retirés */}
         {(pending.length > 0 || blocked.length > 0) && (
-          <div className="space-y-2 px-4 pt-3">
+          <div className="space-y-2 pt-3">
             {pending.map((l) => (
               <div
                 key={l.id}
@@ -288,7 +332,7 @@ export function DriverHomeSheet({
         )}
 
         {merchants.length > 0 && (
-          <div className="px-4 pt-2.5">
+          <div className="pt-2.5">
             <Link
               href="/driver/codes"
               className="flex items-center justify-center gap-2 rounded-[12px] border border-[#eee] bg-[#f5f5f5] px-4 py-2.5 text-sm font-bold text-[#0a0a0a]"
@@ -303,30 +347,25 @@ export function DriverHomeSheet({
   );
 }
 
-function Stat({
-  value,
-  unit,
-  label,
-  sep,
+function ModeBtn({
+  active,
+  onClick,
+  children,
 }: {
-  value: string;
-  unit?: string;
-  label: string;
-  sep?: boolean;
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
   return (
-    <div className={"flex-1 " + (sep ? "border-l border-[#eee] pl-3.5" : "")}>
-      <div className="text-[20px] leading-[1.1] font-extrabold tracking-[-0.3px] text-[#0a0a0a]">
-        {value}
-        {unit && (
-          <span className="ml-0.5 text-[11px] font-semibold text-[#757575]">
-            {unit}
-          </span>
-        )}
-      </div>
-      <div className="mt-1 text-[11px] font-semibold text-[#757575]">
-        {label}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "flex-1 rounded-[9px] py-2 text-xs font-bold transition-colors " +
+        (active ? "bg-white text-[#0a0a0a] shadow-sm" : "text-[#757575]")
+      }
+    >
+      {children}
+    </button>
   );
 }

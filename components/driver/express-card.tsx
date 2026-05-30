@@ -16,6 +16,7 @@ import { DeliveryValidationDialog } from "./delivery-validation-dialog";
 import { DriverLocationBroadcaster } from "./driver-location-broadcaster";
 import { ExpressOffer } from "./express-offer";
 import { ExpressRun } from "./course/express-run";
+import { getDriverMode, modeAllowsExpress } from "@/lib/driver/mode";
 
 const ACCEPTED_KEY = "coligo_driver_accepted_orders";
 
@@ -111,6 +112,8 @@ export function ExpressCard({
   // on tente de la puller (le serveur fait FIFO + skip locked).
   const onChange = useCallback(() => {
     if (availStatus !== "available") return;
+    // Mode « Tournée » → le livreur ne veut pas d'auto-attribution Express.
+    if (!modeAllowsExpress(getDriverMode())) return;
     start(async () => {
       const r = await pullNextExpress(merchantDriverId);
       if (r.orderId) {
