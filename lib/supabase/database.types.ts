@@ -755,6 +755,8 @@ export type Database = {
           email: string | null;
           wilaya: string | null;
           is_frozen: boolean;
+          rating_avg: number;
+          rating_count: number;
           created_at: string;
         };
         Insert: {
@@ -765,6 +767,8 @@ export type Database = {
           email?: string | null;
           wilaya?: string | null;
           is_frozen?: boolean;
+          rating_avg?: number;
+          rating_count?: number;
           created_at?: string;
         };
         Update: {
@@ -775,7 +779,45 @@ export type Database = {
           email?: string | null;
           wilaya?: string | null;
           is_frozen?: boolean;
+          rating_avg?: number;
+          rating_count?: number;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      driver_reviews: {
+        Row: {
+          id: string;
+          order_id: string;
+          customer_id: string;
+          driver_id: string;
+          rating: number;
+          comment: string | null;
+          is_hidden: boolean;
+          created_at: string;
+          edited_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          customer_id: string;
+          driver_id: string;
+          rating: number;
+          comment?: string | null;
+          is_hidden?: boolean;
+          created_at?: string;
+          edited_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          customer_id?: string;
+          driver_id?: string;
+          rating?: number;
+          comment?: string | null;
+          is_hidden?: boolean;
+          created_at?: string;
+          edited_at?: string | null;
         };
         Relationships: [];
       };

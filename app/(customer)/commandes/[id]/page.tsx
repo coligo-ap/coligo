@@ -17,6 +17,7 @@ import { OrderQr } from "@/components/customer/order-qr";
 import { CustomerOrderLive } from "@/components/customer/customer-order-live";
 import { DeliveryTimeline } from "@/components/customer/delivery-timeline";
 import { CustomerDeliveryMap } from "@/components/customer/customer-delivery-map";
+import { DriverReviewCard } from "@/components/customer/driver-review-card";
 import { estimateDeliveryEtaMin, formatEta } from "@/lib/delivery/eta";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { formatAsapReady, formatSlotRange } from "@/lib/customer/pickup-format";
@@ -43,6 +44,7 @@ export default async function CustomerOrderDetailPage({
        subtotal_da, discount_da, cashback_estimate_da, total_da, created_at,
        merchant_id,
        fulfillment_type, delivery_mode, delivery_fee_da, delivery_distance_km,
+       delivery_driver_id,
        delivery_address_text, delivery_picked_up_at, delivery_arrived_at, delivery_delivered_at,
        delivery_lat, delivery_lng,
        driver_live_lat, driver_live_lng, driver_live_at,
@@ -98,6 +100,29 @@ export default async function CustomerOrderDetailPage({
   const status = order.status as OrderStatus;
   const meta = ORDER_STATUS_META[status];
   const isCash = order.payment_method === "cash";
+
+  // Notation du livreur : commande livrée + livreur assigné.
+  const driverId = (order as { delivery_driver_id: string | null })
+    .delivery_driver_id;
+  let driverReview: { name: string; rating: number | null } | null = null;
+  if (status === "completed" && driverId) {
+    const [{ data: drv }, { data: rev }] = await Promise.all([
+      supabase
+        .from("drivers")
+        .select("full_name")
+        .eq("id", driverId)
+        .maybeSingle(),
+      supabase
+        .from("driver_reviews")
+        .select("rating")
+        .eq("order_id", order.id)
+        .maybeSingle(),
+    ]);
+    driverReview = {
+      name: drv?.full_name?.split(" ")[0] ?? "ton livreur",
+      rating: rev?.rating ?? null,
+    };
+  }
   const isOnlinePending =
     order.payment_method === "online" && order.payment_status === "pending";
   const isDelivery = order.fulfillment_type === "delivery";
@@ -417,6 +442,15 @@ export default async function CustomerOrderDetailPage({
             })}
           </ol>
         </section>
+
+        {/* Notation du livreur (commande livrée + livreur assigné). */}
+        {driverReview && (
+          <DriverReviewCard
+            orderId={order.id}
+            driverName={driverReview.name}
+            initialRating={driverReview.rating}
+          />
+        )}
       </div>
     </CustomerShell>
   );

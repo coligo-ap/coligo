@@ -75,6 +75,66 @@ export async function submitReview(input: {
   return { ok: true };
 }
 
+export async function submitDriverReview(input: {
+  order_id: string;
+  rating: number;
+  comment?: string | null;
+}): Promise<ReviewResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Tu dois te reconnecter." };
+
+  if (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5) {
+    return { ok: false, error: "Note invalide (1 à 5)." };
+  }
+  const comment = (input.comment ?? "").trim().slice(0, MAX_COMMENT) || null;
+
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!customer) return { ok: false, error: "Profil client introuvable." };
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("id, customer_id, delivery_driver_id, status")
+    .eq("id", input.order_id)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "Commande introuvable." };
+  if (order.customer_id !== customer.id) {
+    return { ok: false, error: "Cette commande ne t'appartient pas." };
+  }
+  if (order.status !== "completed") {
+    return {
+      ok: false,
+      error: "Tu peux noter le livreur uniquement après la livraison.",
+    };
+  }
+  if (!order.delivery_driver_id) {
+    return { ok: false, error: "Aucun livreur sur cette commande." };
+  }
+
+  const { error } = await supabase.from("driver_reviews").insert({
+    order_id: order.id,
+    customer_id: customer.id,
+    driver_id: order.delivery_driver_id,
+    rating: input.rating,
+    comment,
+  });
+  if (error) {
+    if (error.code === "23505") {
+      return { ok: false, error: "Tu as déjà noté ce livreur." };
+    }
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath(`/commandes/${order.id}`);
+  return { ok: true };
+}
+
 export async function updateReview(input: {
   review_id: string;
   rating: number;

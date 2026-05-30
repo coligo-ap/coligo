@@ -29,12 +29,16 @@ export function ProfileHub({
   phone,
   initials,
   isActive,
+  ratingAvg,
+  ratingCount,
   stats,
 }: {
   fullName: string;
   phone: string;
   initials: string;
   isActive: boolean;
+  ratingAvg: number;
+  ratingCount: number;
   stats: Stats;
 }) {
   const [open, setOpen] = useState<"infos" | "notif" | null>(null);
@@ -56,6 +60,29 @@ export function ProfileHub({
           {fullName}
         </h2>
         <p className="mt-0.5 text-[13px] font-medium text-[#757575]">{phone}</p>
+
+        {/* Note moyenne (réelle) — étoiles violettes. */}
+        {ratingCount > 0 ? (
+          <div className="mt-2.5 flex items-center justify-center gap-1.5">
+            <span className="text-[14px] tracking-[1px] text-[#5c5ce0]">
+              {"★".repeat(Math.round(ratingAvg))}
+              <span className="text-[#d8d8e8]">
+                {"★".repeat(5 - Math.round(ratingAvg))}
+              </span>
+            </span>
+            <b className="text-[14px] font-extrabold text-[#0a0a0a]">
+              {ratingAvg.toFixed(1).replace(".", ",")}
+            </b>
+            <span className="text-[12px] font-medium text-[#757575]">
+              · {ratingCount} avis
+            </span>
+          </div>
+        ) : (
+          <p className="mt-2.5 text-[12px] font-medium text-[#9e9e9e]">
+            Pas encore de note client
+          </p>
+        )}
+
         <div className="mt-3.5 flex flex-wrap justify-center gap-[7px]">
           {isActive && <Badge>✓ Validé</Badge>}
           <Badge>📦 {stats.courses} courses</Badge>

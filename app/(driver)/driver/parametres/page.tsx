@@ -21,6 +21,13 @@ export default async function DriverProfilePage() {
   const driver = await getCurrentDriver();
   if (!driver) redirect("/driver/login");
 
+  // Note moyenne réelle (alimentée par les avis clients — migration 0059).
+  const { data: ratingRow } = await supabase
+    .from("drivers")
+    .select("rating_avg, rating_count")
+    .eq("id", driver.id)
+    .maybeSingle();
+
   // === Stats réelles (aucune donnée inventée) ===
   // Nb de commerçants actifs.
   const { count: merchants } = await supabase
@@ -69,6 +76,8 @@ export default async function DriverProfilePage() {
         phone={driver.phone}
         initials={initialsOf(driver.full_name)}
         isActive={(merchants ?? 0) > 0}
+        ratingAvg={Number(ratingRow?.rating_avg ?? 0)}
+        ratingCount={ratingRow?.rating_count ?? 0}
         stats={{ courses, avgMin, merchants: merchants ?? 0 }}
       />
 
