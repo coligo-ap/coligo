@@ -29,7 +29,7 @@ export default async function DriverTourExecutionPage({
     .from("tour_stops")
     .select(
       `id, stop_order, status, delivered_at,
-       orders ( id, customer_name, customer_phone, total_da, payment_method,
+       orders ( id, customer_name, customer_phone, total_da, delivery_fee_da, payment_method,
                 delivery_address_text, delivery_phone, delivery_lat, delivery_lng,
                 delivery_note, delivery_picked_up_at, delivery_arrived_at )`
     )
@@ -48,6 +48,7 @@ export default async function DriverTourExecutionPage({
         customer_name: o.customer_name,
         customer_phone: o.customer_phone,
         total_da: o.total_da,
+        delivery_fee_da: o.delivery_fee_da,
         payment_method: o.payment_method as "cash" | "online",
         delivery_address_text: o.delivery_address_text,
         delivery_phone: o.delivery_phone,

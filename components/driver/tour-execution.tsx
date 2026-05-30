@@ -32,6 +32,7 @@ type Stop = {
   customer_name: string | null;
   customer_phone: string | null;
   total_da: number | null;
+  delivery_fee_da: number | null;
   payment_method: "cash" | "online";
   delivery_address_text: string | null;
   delivery_phone: string | null;
@@ -65,6 +66,19 @@ export function TourExecution({
   const currentStop = stops.find(
     (s) => s.stop_status === "pending" && s.delivery_picked_up_at != null
   );
+
+  // Récap financier de la tournée (mêmes formules que le ledger, cf. mig 0042) :
+  //  - gains livreur = somme des delivery_fee_da (toutes commandes)
+  //  - dû au commerçant = somme, UNIQUEMENT sur les commandes CASH, de
+  //    max(total_da - delivery_fee_da, 0). Les commandes payées EN LIGNE sont
+  //    déjà réglées → exclues du dû.
+  const earnings = stops.reduce((s, x) => s + (x.delivery_fee_da ?? 0), 0);
+  const cashStops = stops.filter((x) => x.payment_method === "cash");
+  const owedMerchant = cashStops.reduce(
+    (s, x) => s + Math.max(0, (x.total_da ?? 0) - (x.delivery_fee_da ?? 0)),
+    0
+  );
+  const cashToCollect = cashStops.reduce((s, x) => s + (x.total_da ?? 0), 0);
 
   const onBulkPickup = () =>
     start(async () => {
@@ -121,6 +135,35 @@ export function TourExecution({
       {currentStop && (
         <DriverLocationBroadcaster orderId={currentStop.order_id} />
       )}
+
+      {/* Récap financier de la tournée. */}
+      <div className="rounded-[16px] bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,.06)]">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.5px] text-[#757575] uppercase">
+              Tes gains · tournée
+            </p>
+            <p className="mt-1 text-[28px] leading-none font-black tracking-[-0.5px] text-[#5c5ce0]">
+              {formatDA(earnings)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[11px] font-bold tracking-[0.5px] text-[#757575] uppercase">
+              À reverser au commerçant
+            </p>
+            <p className="mt-1 text-[18px] font-extrabold text-[#0a0a0a]">
+              {formatDA(owedMerchant)}
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 flex items-center gap-1.5 border-t border-[#eee] pt-2.5 text-[11px] font-medium text-[#757575]">
+          💵 Cash à encaisser :{" "}
+          <b className="text-[#0a0a0a]">{formatDA(cashToCollect)}</b>
+          <span className="ml-auto text-[#9e9e9e]">
+            commandes en ligne déjà payées
+          </span>
+        </p>
+      </div>
       <div className="bg-primary-50 border-primary-200 flex flex-wrap items-center gap-2 rounded-[12px] border p-3">
         {!allPickedUp ? (
           <Button
