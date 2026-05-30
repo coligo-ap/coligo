@@ -1,4 +1,4 @@
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Clock } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
@@ -20,14 +20,16 @@ export default async function CheckoutSuccessPage({
   searchParams: Promise<{ order_id?: string }>;
 }) {
   const { order_id } = await searchParams;
-  if (!order_id) notFound();
+  if (!order_id) return <SuccessFallback />;
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user)
-    redirect(`/se-connecter?next=/checkout/success?order_id=${order_id}`);
+  if (!user) {
+    const next = encodeURIComponent(`/checkout/success?order_id=${order_id}`);
+    redirect(`/se-connecter?next=${next}`);
+  }
 
   const { data: order } = await supabase
     .from("orders")
@@ -36,7 +38,8 @@ export default async function CheckoutSuccessPage({
     )
     .eq("id", order_id)
     .maybeSingle();
-  if (!order) notFound();
+  // Commande illisible → on ne bloque pas en 404 : message rassurant + lien.
+  if (!order) return <SuccessFallback />;
 
   // Race : si Chargily a notifié `failed` pendant que le client revenait
   // sur success_url, la commande est déjà cancelled. On redirige vers la
@@ -124,5 +127,37 @@ function PendingConfirmation({
         Voir ma commande sans attendre →
       </Link>
     </>
+  );
+}
+
+/** Repli sans contexte commande — jamais de 404 sur un retour de paiement. */
+function SuccessFallback() {
+  return (
+    <CustomerShell>
+      <div className="mx-auto max-w-md px-4 py-12 text-center lg:py-20">
+        <div className="bg-success-100 text-success-700 mx-auto flex size-16 items-center justify-center rounded-full">
+          <CheckCircle2 className="size-8" />
+        </div>
+        <h1 className="text-foreground mt-4 text-2xl font-bold">Merci !</h1>
+        <p className="text-muted mt-2 text-sm">
+          Si ton paiement a été confirmé, ta commande apparaît dans « Mes
+          commandes » avec son code de retrait.
+        </p>
+        <div className="mt-6 flex flex-col gap-2">
+          <Link
+            href="/commandes"
+            className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-[12px] px-5 text-sm font-semibold text-white"
+          >
+            Voir mes commandes
+          </Link>
+          <Link
+            href="/"
+            className="text-muted hover:text-foreground text-sm hover:underline"
+          >
+            Retour à l&apos;accueil
+          </Link>
+        </div>
+      </div>
+    </CustomerShell>
   );
 }
