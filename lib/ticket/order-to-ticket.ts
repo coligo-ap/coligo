@@ -39,6 +39,7 @@ export function orderToTicket(
     cashback_da: order.cashback_da,
     payment_method: order.payment_method,
     payment_status: order.payment_status,
+    fulfillment_type: order.fulfillment_type ?? "pickup",
     is_new_customer: extras.isNewCustomer ?? false,
     items: order.order_items.map((it) => ({
       product_name: it.product_name,

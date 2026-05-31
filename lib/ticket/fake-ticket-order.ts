@@ -30,6 +30,7 @@ export function buildFakeTicketOrder({
     cashback_da: 0,
     payment_method: paid ? "online" : "cash",
     payment_status: paid ? "paid" : "pending",
+    fulfillment_type: "pickup",
     items: [
       {
         product_name: "Baguette tradition",

@@ -47,7 +47,8 @@ export function OrderTicket({
   html, body { margin: 0; padding: 0; background: #fff; }
   body {
     width: ${width}mm;
-    padding: 4mm;
+    /* 2mm/côté → zone imprimable 76mm (rouleau 80mm). */
+    padding: 2mm;
     font-family: 'Courier New', 'Consolas', monospace;
     font-size: 13px;
     color: #000;

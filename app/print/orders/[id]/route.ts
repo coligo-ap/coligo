@@ -68,7 +68,7 @@ export async function GET(
       `id, merchant_id, customer_name, customer_phone, status,
        total_da, service_fee_da, cashback_da, commission_da,
        pickup_code, order_number, pickup_slot_at, notes, created_at,
-       payment_method, payment_status,
+       payment_method, payment_status, fulfillment_type,
        order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`
     )
     .eq("id", id)
@@ -141,7 +141,8 @@ export async function GET(
   html, body { margin: 0; padding: 0; background: #fff; }
   body {
     width: ${widthMm}mm;
-    padding: 4mm;
+    /* 2mm de marge de chaque côté → zone imprimable 76mm sur un rouleau 80mm. */
+    padding: 2mm;
     font-family: 'Courier New', 'Consolas', monospace;
     font-size: 13px;
     color: #000;

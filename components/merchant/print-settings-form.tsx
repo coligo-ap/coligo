@@ -96,8 +96,10 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
           onToggle={() => toggleOpen("auto_accept_orders")}
         >
           <p className="text-muted mb-3 text-xs">
-            Les nouvelles commandes passent directement en préparation, sans
-            clic.
+            Les nouvelles commandes sont acceptées automatiquement après un
+            compte-à-rebours de 10 s (vous pouvez refuser avant). Sinon, la
+            commande s&apos;affiche en plein écran et doit être acceptée sous 15
+            min, sans quoi elle est refusée.
           </p>
           <Toggle
             on={state.auto_accept_orders}

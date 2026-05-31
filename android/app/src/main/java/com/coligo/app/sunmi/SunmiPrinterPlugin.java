@@ -225,12 +225,39 @@ public class SunmiPrinterPlugin extends Plugin {
    * Sunmi V3). Largeur pleine = paperColumns, alignement = currentAlign.
    * Caractère vide → ligne blanche (équivalent d'un wrap simple).
    */
+  /**
+   * Active le « mode noir » maximal pour le texte qui suit :
+   *   - ESC E 1 → emphase (double-frappe horizontale)
+   *   - ESC G 1 → double-strike (double-frappe verticale)
+   *
+   * Combinés, c'est le rendu le plus dense que la tête thermique sait
+   * produire SANS toucher à la largeur des caractères — la grille de
+   * colonnes (48 en 80 mm) reste donc intacte, zéro coupure à droite.
+   *
+   * Indispensable : sur ce firmware, printColumnsText SANS emphase sort en
+   * gris « fantôme » illisible, alors que le print test natif imprime du
+   * texte normal bien noir. On force donc le gras sur TOUT le texte (le
+   * papier thermique ne rend pas les polices fines) → lisible comme les
+   * titres.
+   */
+  private void emphasisOn() throws RemoteException {
+    sunmi.sendRawBytes(new byte[] {0x1B, 0x45, 1}); // ESC E 1  (emphasized)
+    sunmi.sendRawBytes(new byte[] {0x1B, 0x47, 1}); // ESC G 1  (double-strike)
+  }
+
+  private void emphasisOff() throws RemoteException {
+    sunmi.sendRawBytes(new byte[] {0x1B, 0x47, 0}); // ESC G 0
+    sunmi.sendRawBytes(new byte[] {0x1B, 0x45, 0}); // ESC E 0
+  }
+
   private void printLine(String text) throws RemoteException {
     if (text == null) text = "";
+    emphasisOn();
     sunmi.printColumnsText(
         new String[] {text},
         new int[] {paperColumns},
         new int[] {currentAlign});
+    emphasisOff();
   }
 
   private void executeCommand(JSONObject cmd) throws RemoteException, JSONException {
@@ -270,17 +297,29 @@ public class SunmiPrinterPlugin extends Plugin {
         return;
       }
       case "size": {
-        // Sunmi clampe l'API mais émet « Illegal parameter » au-delà d'un
-        // certain seuil selon le modèle (V3 firmware récent → 56 max
-        // observé). On clamp défensivement côté plugin pour éviter de
-        // casser une séquence d'impression (firmware reste perturbé
-        // jusqu'au prochain printerInit). Le service snap ensuite à
-        // une valeur autorisée — on s'aligne sur ce snap pour
-        // `printTextWithFont`.
+        // NE PAS appeler setFontSize ici.
+        //
+        // Le ticket est mis en page sur une grille de `paperColumns` colonnes
+        // (48 en 80 mm) qui correspond EXACTEMENT à la police PAR DÉFAUT du
+        // firmware — la même que le « print test » Sunmi natif (plein papier,
+        // net, zéro coupure). Or `printColumnsText` interprète `colsWidthArr`
+        // en colonnes-caractères RELATIVES à la police courante (setFontSize).
+        // Donc dès qu'on changeait la police via setFontSize, une ligne de
+        // 48 colonnes ne tenait plus sur 80 mm :
+        //   - le bord droit était tronqué (nom boutique, prix coupés) ;
+        //   - des lignes d'articles disparaissaient ou sortaient mal cadrées ;
+        //   - les petites tailles imprimaient en glyphes fins → « pâle ».
+        //
+        // On reste donc sur la police par défaut (réinitialisée par
+        // printerInit en tête de séquence). L'emphase « gros » passe
+        // uniquement par le double-frappe (ESC ! / textBoldStrong), qui
+        // s'applique PAR-DESSUS la police par défaut et halve déjà son budget
+        // de colonnes — sans jamais casser la grille 48 colonnes.
+        //
+        // On garde juste la trace de la taille demandée (debug / futur
+        // printTextWithFont) sans la pousser au firmware.
         double raw = cmd.optDouble("value", 24.0);
-        float size = (float) Math.max(12.0, Math.min(56.0, raw));
-        sunmi.setFontSize(size);
-        currentFontSize = sunmi.snapFontSize(size);
+        currentFontSize = sunmi.snapFontSize((float) Math.max(12.0, Math.min(56.0, raw)));
         return;
       }
       case "bold": {
@@ -306,18 +345,17 @@ public class SunmiPrinterPlugin extends Plugin {
         return;
       }
       case "textBold": {
-        // Bold via ESC E 1/0 autour. Si les sendRawBytes sont ignorés
-        // comme printText, le texte sort en normal — toujours mieux que
-        // pas de texte du tout.
+        // Tout le texte est déjà en mode noir max (emphase + double-strike)
+        // via printLine — textBold est donc identique à text sur ce firmware.
+        // On garde le type distinct pour la sémantique côté builder.
         String text = cmd.optString("text", "");
-        sunmi.sendRawBytes(new byte[] {0x1B, 0x45, 1});
         printLine(text);
-        sunmi.sendRawBytes(new byte[] {0x1B, 0x45, 0});
         return;
       }
       case "textBoldStrong": {
         // Bold + double-width via ESC ! n. n=0x38 = emphasized + double
-        // height + double width. Visuellement très imposant.
+        // height + double width. Visuellement très imposant. On ajoute aussi
+        // ESC G (double-strike) pour le rendu le plus dense possible.
         //
         // ATTENTION débordement : ESC ! 0x38 fait que chaque char rendu
         // occupe 2 dots-chars. Si on passe paperColumns à printColumnsText,
@@ -326,12 +364,14 @@ public class SunmiPrinterPlugin extends Plugin {
         // paperColumns/2 pour que le rendu visuel tienne sur le papier.
         String text = cmd.optString("text", "");
         int doubleW = Math.max(1, paperColumns / 2);
-        sunmi.sendRawBytes(new byte[] {0x1B, 0x21, 0x38});
+        sunmi.sendRawBytes(new byte[] {0x1B, 0x21, 0x38}); // ESC ! double+emph
+        sunmi.sendRawBytes(new byte[] {0x1B, 0x47, 1}); // ESC G double-strike
         sunmi.printColumnsText(
             new String[] {text},
             new int[] {doubleW},
             new int[] {currentAlign});
-        sunmi.sendRawBytes(new byte[] {0x1B, 0x21, 0x00});
+        sunmi.sendRawBytes(new byte[] {0x1B, 0x47, 0}); // ESC G off
+        sunmi.sendRawBytes(new byte[] {0x1B, 0x21, 0x00}); // ESC ! reset
         return;
       }
       case "textInverse": {
@@ -359,7 +399,14 @@ public class SunmiPrinterPlugin extends Plugin {
             aligns[i] = "center".equals(a) ? 1 : "right".equals(a) ? 2 : 0;
           }
         }
+        // Mode noir max (emphase + double-strike) AVANT le rendu colonnes :
+        // sinon les lignes d'articles (qty × nom .... prix) et la méta
+        // sortaient en gris fantôme. Avec l'emphase elles sont noires et
+        // nettes comme les titres, sans élargir les caractères → alignement
+        // des colonnes préservé.
+        emphasisOn();
         sunmi.printColumnsText(cols, widths, aligns);
+        emphasisOff();
         return;
       }
       case "qr": {

@@ -5,7 +5,8 @@
  *
  * Structure suivie (identique à la maquette) :
  *   1. nom commerce centré gras + localité
- *   2. bandeau noir inversé "RETRAIT"
+ *   2. "RETRAIT" en gras centré entre deux lignes pleines (zéro aplat noir —
+ *      l'ancien bandeau inversé bavait sur thermique)
  *   3. #ID énorme (textBoldStrong → double-width)
  *   4. "RETRAIT À HH:MM" en gros
  *   5. méta : Commandé le / Client / Tél (colonnes label/valeur)
@@ -15,7 +16,8 @@
  *   8. récap aligné à droite (sous-total, frais, réduction)
  *   9. TOTAL en gras fort
  *  10. bloc paiement (À ENCAISSER : X DA / PAYÉ EN LIGNE)
- *  11. CODE DE RETRAIT + 6 chiffres espacés en gros + QR
+ *  11. QR de référence (order_number) centré, encadré de deux lignes pleines —
+ *      jamais le PIN de retrait (secret communiqué de vive voix)
  *  12. footer (Commande via Coligo + horodatage)
  *
  * Largeur :
@@ -121,14 +123,6 @@ function groupByCategory(
   return order.map((title) => ({ title, items: map.get(title)! }));
 }
 
-/** Centre un texte sur N colonnes (pour bandeau inversé full-width). */
-function centerPad(text: string, cols: number): string {
-  const t = text.length > cols ? text.slice(0, cols) : text;
-  const left = Math.max(0, Math.floor((cols - t.length) / 2));
-  const right = Math.max(0, cols - t.length - left);
-  return " ".repeat(left) + t + " ".repeat(right);
-}
-
 /** Séparateur pointillé plein-papier (maquette : hr dashed). */
 function dottedLine(cols: number): string {
   return "-".repeat(cols);
@@ -137,6 +131,34 @@ function dottedLine(cols: number): string {
 /** Séparateur plein (cf. divider-solid de la maquette). */
 function solidLine(cols: number): string {
   return "=".repeat(cols);
+}
+
+/**
+ * Mise en page « label à gauche / valeur à droite » sur UNE seule ligne
+ * pré-paddée à `cols` caractères. On rend ces lignes via le chemin `text`
+ * (= printLine → printColumnsText 1 colonne pleine largeur + emphase), le
+ * MÊME chemin que les titres qui marquent bien le papier. La police par
+ * défaut Sunmi (Font A) est monospace → le padding manuel aligne au dot
+ * près, sans recourir au multi-colonnes printColumnsText (qui sortait
+ * fantôme).
+ */
+function lineLR(left: string, right: string, cols: number): string {
+  const r = right.length > cols ? right.slice(0, cols) : right;
+  const maxL = cols - r.length - 1; // au moins 1 espace entre les deux
+  const l =
+    left.length > Math.max(0, maxL) ? left.slice(0, Math.max(0, maxL)) : left;
+  const gap = Math.max(1, cols - l.length - r.length);
+  return l + " ".repeat(gap) + r;
+}
+
+/** Ligne article : `Nx Nom du produit ............ 1250 DA` (prix flush droite). */
+function lineItem(
+  qty: string,
+  name: string,
+  price: string,
+  cols: number
+): string {
+  return lineLR(`${qty} ${name}`, price, cols);
 }
 
 export function buildTicketSunmiCommands(
@@ -149,9 +171,16 @@ export function buildTicketSunmiCommands(
     order.payment_method === "online" && order.payment_status === "paid";
   const isCash = order.payment_method === "cash";
 
-  // Config imprimante en TÊTE de séquence (largeur + interligne mini).
+  // Mode de service → libellés (bandeau + heure + bloc paiement).
+  const isDelivery = order.fulfillment_type === "delivery";
+  const modeLabel = isDelivery ? "LIVRAISON" : "RETRAIT";
+  const timeLabel = isDelivery ? "LIVRAISON A" : "RETRAIT A";
+  const handoffWord = isDelivery ? "a la livraison" : "au retrait";
+
+  // Config imprimante en TÊTE de séquence. Interligne LÉGER (≈ 0.75 mm) pour
+  // un rendu aéré et professionnel — 0 dot collait les lignes.
   out.push({ type: "paper", columns: cols });
-  out.push({ type: "lineSpacing", dots: 0 });
+  out.push({ type: "lineSpacing", dots: 6 });
 
   const divider = () => {
     out.push({ type: "align", value: "left" });
@@ -175,9 +204,17 @@ export function buildTicketSunmiCommands(
     out.push({ type: "text", text: order.merchant_locality });
   }
 
-  // ===== 2. BANDEAU NOIR INVERSÉ "RETRAIT" =====
+  // ===== 2. "RETRAIT" entre DEUX lignes pleines (zéro aplat noir) =====
+  // L'ancien bandeau inversé (fond noir plein largeur) bavait sur thermique.
+  // Deux lignes pleines + libellé gras centré = même hiérarchie visuelle,
+  // rendu propre et net comme le « print test » Sunmi.
+  out.push({ type: "align", value: "left" });
   out.push({ type: "size", value: SZ.base });
-  out.push({ type: "textInverse", text: centerPad("RETRAIT", cols) });
+  out.push({ type: "text", text: solidLine(cols) });
+  out.push({ type: "align", value: "center" });
+  out.push({ type: "textBold", text: modeLabel });
+  out.push({ type: "align", value: "left" });
+  out.push({ type: "text", text: solidLine(cols) });
 
   // ===== 3. NUMÉRO DE COMMANDE ÉNORME (référence, textBoldStrong) =====
   out.push({ type: "align", value: "center" });
@@ -187,30 +224,25 @@ export function buildTicketSunmiCommands(
     text: `#${order.order_number ?? shortId(order.id)}`,
   });
 
-  // ===== 4. HEURE DE RETRAIT =====
+  // ===== 4. HEURE DE RETRAIT / LIVRAISON =====
   out.push({ type: "size", value: SZ.small });
-  out.push({ type: "text", text: "RETRAIT A" });
+  out.push({ type: "text", text: timeLabel });
   out.push({ type: "size", value: SZ.large });
   out.push({ type: "textBoldStrong", text: formatTime(order.pickup_slot_at) });
 
   divider();
 
-  // ===== 5. MÉTA (Commandé le / Client / Tél) =====
+  // ===== 5. MÉTA (Client / Tél / Commandé le) =====
+  // Rendu en lignes pré-paddées (chemin `text` = même rendu noir que les
+  // titres), PAS en multi-colonnes printColumnsText (qui sortait fantôme).
   out.push({ type: "align", value: "left" });
   out.push({ type: "size", value: SZ.base });
-  const labW = Math.floor(cols * 0.4);
-  const valW = cols - labW;
   const metaRow = (l: string, r: string) => {
-    out.push({
-      type: "columns",
-      cols: [l, r],
-      widths: [labW, valW],
-      aligns: ["left", "right"],
-    });
+    out.push({ type: "text", text: lineLR(l, r, cols) });
   };
-  metaRow("Commande le", formatShortDateTime(order.created_at));
   metaRow("Client", order.customer_name);
   metaRow("Tel", order.customer_phone);
+  metaRow("Commande le", formatShortDateTime(order.created_at));
 
   // ===== 6. BADGE NOUVEAU CLIENT =====
   if (order.is_new_customer) {
@@ -228,26 +260,25 @@ export function buildTicketSunmiCommands(
   if (groups.length === 0) {
     out.push({ type: "text", text: "(aucun article)" });
   } else {
-    const qtyW = 4;
-    const priceW = 9;
-    const nameW = cols - qtyW - priceW - 2;
     for (const g of groups) {
-      out.push({
-        type: "align",
-        value: "center",
-      });
+      // En-tête catégorie : titre gras à gauche (chemin textBold = noir net).
+      out.push({ type: "align", value: "left" });
       out.push({
         type: "textBold",
-        text: `- ${g.title.toUpperCase()} (${groupCount(g.items)}) -`,
+        text: `${g.title.toUpperCase()} (${groupCount(g.items)})`,
       });
-      out.push({ type: "align", value: "left" });
+      // Lignes articles : `Nx Nom .......... prix`, paddées sur une seule
+      // ligne pleine largeur (chemin `text` = même noir que les titres).
       for (const it of g.items) {
         const qty = String(it.quantity).replace(/\.0+$/, "") + "x";
         out.push({
-          type: "columns",
-          cols: [qty, it.product_name, formatDA(it.line_total_da)],
-          widths: [qtyW, nameW, priceW],
-          aligns: ["left", "left", "right"],
+          type: "text",
+          text: lineItem(
+            qty,
+            it.product_name,
+            formatDA(it.line_total_da),
+            cols
+          ),
         });
       }
     }
@@ -268,15 +299,8 @@ export function buildTicketSunmiCommands(
     0,
     subtotal + order.service_fee_da - order.total_da
   );
-  const recapLabW = Math.floor(cols * 0.55);
-  const recapValW = cols - recapLabW;
   const pushRecap = (label: string, value: string) => {
-    out.push({
-      type: "columns",
-      cols: [label, value],
-      widths: [recapLabW, recapValW],
-      aligns: ["left", "right"],
-    });
+    out.push({ type: "text", text: lineLR(label, value, cols) });
   };
   out.push({ type: "align", value: "left" });
   out.push({ type: "size", value: SZ.base });
@@ -297,13 +321,15 @@ export function buildTicketSunmiCommands(
     pushRecap("Cashback", `-${formatDA(order.cashback_da)}`);
   }
 
-  // ===== 9. TOTAL en gras fort =====
+  // ===== 9. TOTAL en gras fort (label gauche / montant droite, double taille) =====
+  // textBoldStrong = double largeur (ESC ! ) → budget colonnes halvé à cols/2.
+  // On pré-padde la ligne sur cols/2 pour que « TOTAL ........ 1750 DA »
+  // remplisse toute la largeur en double taille, noir et net.
+  out.push({ type: "align", value: "left" });
   out.push({ type: "size", value: SZ.large });
   out.push({
-    type: "columns",
-    cols: ["TOTAL", formatDA(order.total_da)],
-    widths: [Math.floor(cols * 0.4), Math.ceil(cols * 0.6)],
-    aligns: ["left", "right"],
+    type: "textBoldStrong",
+    text: lineLR("TOTAL", formatDA(order.total_da), Math.floor(cols / 2)),
   });
 
   // ===== 10. BLOC PAIEMENT encadré (text + lignes solides) =====
@@ -321,7 +347,7 @@ export function buildTicketSunmiCommands(
       text: `A ENCAISSER : ${formatDA(order.total_da)}`,
     });
     out.push({ type: "size", value: SZ.small });
-    out.push({ type: "text", text: "(paiement en especes au retrait)" });
+    out.push({ type: "text", text: `(paiement en especes ${handoffWord})` });
   } else {
     out.push({ type: "textBold", text: formatDA(order.total_da) });
   }
@@ -331,8 +357,25 @@ export function buildTicketSunmiCommands(
 
   divider();
 
-  // ===== 11. (Le CODE PIN de validation n'est PAS imprimé : c'est un secret
-  //            communiqué de vive voix par le client au retrait/à la livraison.)
+  // ===== 11. QR DE RÉFÉRENCE — centré, encadré de DEUX lignes pleines =====
+  // Comme le « print test » Sunmi : du texte, deux lignes de séparation, puis
+  // le QR. Encode UNIQUEMENT la référence publique (jamais le PIN de retrait —
+  // secret communiqué de vive voix). QR natif `printQRCode` = rendu crisp.
+  const ref = order.order_number ?? shortId(order.id);
+  out.push({ type: "align", value: "left" });
+  out.push({ type: "size", value: SZ.base });
+  out.push({ type: "text", text: solidLine(cols) }); // ligne 1
+  out.push({ type: "align", value: "center" });
+  out.push({ type: "size", value: SZ.small });
+  out.push({ type: "text", text: "REFERENCE COMMANDE" });
+  out.push({ type: "qr", data: ref, moduleSize: 8, errorLevel: 2 });
+  out.push({ type: "size", value: SZ.base });
+  out.push({ type: "textBold", text: `#${ref}` });
+  out.push({ type: "align", value: "left" });
+  out.push({ type: "size", value: SZ.base });
+  out.push({ type: "text", text: solidLine(cols) }); // ligne 2
+
+  out.push({ type: "wrap", n: 1 });
 
   // ===== 12. FOOTER =====
   out.push({ type: "size", value: SZ.small });

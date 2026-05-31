@@ -13,14 +13,17 @@
  * et on garde la même structure (les tailles px en `ch` ne sont pas
  * affectées par la laize papier — seul le conteneur change).
  *
- * Le QR encode UNIQUEMENT le code de retrait à 6 chiffres : payload court →
- * modules plus gros → scan fiable sur thermique. Le commerçant étant
- * authentifié, le serveur résout à quelle commande ce code correspond.
+ * Le QR encode UNIQUEMENT la référence PUBLIQUE de la commande (order_number,
+ * ex. « A042 ») — JAMAIS le PIN de retrait (secret). Payload court → modules
+ * plus gros → scan fiable sur thermique. Il est encadré de deux lignes pleines
+ * (séparation nette texte ↔ code), à la manière du « print test » Sunmi.
  *
- * Imprimable via `printTicket()` (window.print() en PWA, SDK Sunmi en APK).
+ * Largeur cible : rouleau 80mm, zone imprimable 76mm (padding 2mm/côté côté
+ * conteneur). Imprimable via `printTicket()` (window.print() PWA, SDK Sunmi APK).
  */
 
-import type { PrintWidth } from "@/lib/types";
+import type { FulfillmentType, PrintWidth } from "@/lib/types";
+import { qrSvg } from "@/lib/ticket/qr-svg";
 
 export type TicketItem = {
   product_name: string;
@@ -53,6 +56,11 @@ export type TicketOrder = {
   items: TicketItem[];
   /** Si vrai, affiche un badge encadré "★ NOUVEAU CLIENT ★". */
   is_new_customer?: boolean;
+  /**
+   * Mode de service. "delivery" → libellés LIVRAISON ; sinon (défaut)
+   * "pickup" → RETRAIT.
+   */
+  fulfillment_type?: FulfillmentType;
 };
 
 export type BuildTicketOptions = {
@@ -155,6 +163,12 @@ export async function buildTicketHTML(
     order.payment_method === "online" && order.payment_status === "paid";
   const isCash = order.payment_method === "cash";
 
+  // Mode de service → libellés (bandeau + heure + bloc paiement).
+  const isDelivery = order.fulfillment_type === "delivery";
+  const modeLabel = isDelivery ? "LIVRAISON" : "RETRAIT";
+  const timeLabel = isDelivery ? "LIVRAISON À" : "RETRAIT À";
+  const handoffWord = isDelivery ? "à la livraison" : "au retrait";
+
   const subtotal = order.items.reduce((s, it) => s + it.line_total_da, 0);
   const discount = Math.max(
     0,
@@ -215,7 +229,7 @@ export async function buildTicketHTML(
   const payBlock = isPaidOnline
     ? `<div class="pay double">✓ PAYÉ EN LIGNE<br><span class="pay-sub">Ne rien encaisser</span></div>`
     : isCash
-      ? `<div class="pay">À ENCAISSER : ${escapeHtml(formatDA(order.total_da))}<br><span class="pay-sub">(paiement en espèces au retrait)</span></div>`
+      ? `<div class="pay">À ENCAISSER : ${escapeHtml(formatDA(order.total_da))}<br><span class="pay-sub">(paiement en espèces ${handoffWord})</span></div>`
       : `<div class="pay">${escapeHtml(formatDA(order.total_da))}</div>`;
 
   const copyBanner = opts.copyLabel
@@ -229,6 +243,20 @@ export async function buildTicketHTML(
   const locality = order.merchant_locality
     ? `<div class="sub">${escapeHtml(order.merchant_locality)}</div>`
     : "";
+
+  // ─── QR de référence ────────────────────────────────────────────────────
+  // Encadré par DEUX lignes pleines (séparation nette texte ↔ code, à la
+  // manière du « print test » Sunmi). Encode UNIQUEMENT la référence publique
+  // de la commande (jamais le PIN de retrait). Référence courte → QR version
+  // basse → modules gros → scan fiable sur thermique.
+  const ref = order.order_number ?? shortId(order.id);
+  const qrMarkup = await qrSvg(ref);
+  const qrBlock = `
+  <hr class="divider-solid">
+  <div class="code-label">REFERENCE COMMANDE</div>
+  <div class="qr-wrap">${qrMarkup}</div>
+  <div class="qr-ref">#${escapeHtml(ref)}</div>
+  <hr class="divider-solid">`;
 
   // ─── Styles : repris à l'identique de la maquette ───────────────────────
   // La police Sora est chargée via Google Fonts. Sur Sunmi V3 sans réseau, le
@@ -267,13 +295,13 @@ export async function buildTicketHTML(
     /* Séparateurs */
     .tk .divider       { border: none; border-top: 1px dashed #000; margin: 10px 0; }
     .tk .divider-solid { border: none; border-top: 2px solid #000; margin: 10px 0; }
+    .tk .divider-solid.tight { margin: 6px 0 4px; }
+    .tk .divider-solid.tight + .banner-label + .divider-solid.tight { margin: 4px 0 6px; }
 
-    /* Bandeau noir inversé — mode dominant (RETRAIT) */
-    .tk .banner {
-      background: #000; color: #fff;
-      text-align: center; font-weight: bold; font-size: 15px;
-      padding: 7px 0; letter-spacing: 1px; margin: 10px 0;
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    /* "RETRAIT" — libellé dominant, gras centré (pas d'aplat noir) */
+    .tk .banner-label {
+      text-align: center; font-weight: bold; font-size: 16px;
+      letter-spacing: 3px; margin: 2px 0;
     }
 
     /* #ID énorme — l'élément dominant */
@@ -330,15 +358,18 @@ export async function buildTicketHTML(
     .tk .pay.double  { border-style: double; border-width: 4px; }
     .tk .pay .pay-sub { font-size: 11px; font-weight: normal; }
 
-    /* Code de retrait + QR */
+    /* Référence + QR */
     .tk .code-label { text-align: center; font-size: 11px; letter-spacing: 2px; margin-top: 6px; }
-    .tk .code {
-      font-family: 'Sora', 'Courier New', sans-serif;
-      text-align: center; font-size: 30px; font-weight: 800;
-      letter-spacing: 6px; margin: 2px 0 8px;
+    .tk .qr-wrap { display: flex; justify-content: center; margin: 6px 0 2px; }
+    .tk .qr-wrap svg {
+      display: block; width: 40mm; height: 40mm;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
     }
-    .tk .qr-wrap { display: flex; justify-content: center; }
-    .tk .qr-wrap svg { display: block; }
+    .tk .qr-ref {
+      font-family: 'Sora', 'Courier New', sans-serif;
+      text-align: center; font-size: 22px; font-weight: 800;
+      letter-spacing: 1px; margin: 2px 0 4px;
+    }
 
     /* Pied de ticket */
     .tk .foot { text-align: center; font-size: 11px; margin-top: 10px; }
@@ -353,14 +384,16 @@ export async function buildTicketHTML(
   <div class="shopname">${escapeHtml(order.merchant_name)}</div>
   ${locality}
 
-  <!-- 2. Bandeau noir inversé : RETRAIT -->
-  <div class="banner">RETRAIT</div>
+  <!-- 2. Mode (RETRAIT/LIVRAISON) en gras entre deux lignes pleines -->
+  <hr class="divider-solid tight">
+  <div class="banner-label">${modeLabel}</div>
+  <hr class="divider-solid tight">
 
   <!-- 3. Numéro de commande énorme (référence de communication) -->
   <div class="ordernum">#${escapeHtml(order.order_number ?? shortId(order.id))}</div>
 
-  <!-- 4. Heure de retrait -->
-  <div class="pickup"><small>RETRAIT À</small>${escapeHtml(formatTime(order.pickup_slot_at))}</div>
+  <!-- 4. Heure de retrait / livraison -->
+  <div class="pickup"><small>${timeLabel}</small>${escapeHtml(formatTime(order.pickup_slot_at))}</div>
 
   <hr class="divider">
 
@@ -385,10 +418,10 @@ export async function buildTicketHTML(
   <!-- 8. Bloc paiement -->
   ${payBlock}
 
-  <hr class="divider">
-
-  <!-- 9. (Le CODE PIN de validation n'est JAMAIS imprimé : c'est un secret que
+  <!-- 9. QR de référence, encadré de deux lignes pleines.
+          (Le CODE PIN de validation n'est JAMAIS imprimé : c'est un secret que
           le client communique de vive voix au retrait / à la livraison.) -->
+  ${qrBlock}
 
   <!-- 10. Footer -->
   <div class="foot">

@@ -53,15 +53,17 @@ const BODY_CLASS = "coligo-printing";
  *
  * Stratégie en 2 étapes, dans cet ordre :
  *
- *  1. **Bitmap (préféré)** : `html2canvas` capture l'HTML rendu → PNG
- *     monochrome 576px → `printBitmap` Sunmi. Rendu 100% fidèle à la
- *     maquette `maquette-ticket-80mm.html` (Sora, bandeau inversé, leader
- *     dots, encadré paiement, etc).
+ *  1. **Commandes texte + QR natif (préféré)** : `printSunmi(commands)` —
+ *     texte via `printColumnsText` et QR via `printQRCode` (rendu CRISP,
+ *     identique au « print test » Sunmi). Pas de gros aplats noirs, pas
+ *     d'antialiasing : c'est la voie la plus propre et la plus fiable sur
+ *     thermique 80mm. Le ticket sort TOUJOURS en entier (mode direct côté
+ *     plugin Java).
  *
- *  2. **Commandes texte (fallback)** : si la capture échoue (DOM pas prêt,
- *     html2canvas exception, etc), on retombe sur `printSunmi(commands)`
- *     avec la représentation structurée — moins fidèle au rendu mais
- *     toujours lisible et compatible firmware V3.
+ *  2. **Bitmap (fallback)** : `html2canvas` capture l'HTML → PNG monochrome
+ *     576px → `printBitmap`. Plus fidèle visuellement à la maquette mais plus
+ *     lourd (gros aplats noirs qui « bavent » sur thermique, risque de
+ *     troncature). On ne l'utilise que si les commandes texte sont absentes.
  *
  * Retourne `true` UNIQUEMENT si l'une des 2 voies a réussi ; sinon le
  * caller retombe sur `window.print()`.
@@ -70,7 +72,17 @@ async function printViaNativeBridge(opts: PrintOptions): Promise<boolean> {
   const ok = await isSunmiPrinterAvailable();
   if (!ok) return false;
 
-  // 1. Tentative bitmap (HTML fidèle)
+  // 1. Commandes texte + QR natif (crisp, comme le print test Sunmi).
+  if (opts.sunmiCommands && opts.sunmiCommands.length > 0) {
+    const cmdOk = await printSunmi({
+      commands: opts.sunmiCommands,
+      copies: 1,
+    });
+    if (cmdOk) return true;
+  }
+
+  // 2. Fallback bitmap (capture HTML) si les commandes ne sont pas dispo /
+  //    ont échoué.
   if (opts.html) {
     try {
       const { printTicketBitmap } =
@@ -85,13 +97,6 @@ async function printViaNativeBridge(opts: PrintOptions): Promise<boolean> {
     }
   }
 
-  // 2. Fallback commandes texte
-  if (opts.sunmiCommands && opts.sunmiCommands.length > 0) {
-    return await printSunmi({
-      commands: opts.sunmiCommands,
-      copies: 1,
-    });
-  }
   return false;
 }
 
@@ -165,7 +170,8 @@ body.${BODY_CLASS} > div#${MOUNT_ID} {
   width: ${widthMm}mm !important;
   max-width: 100% !important;
   margin: 0 auto !important;
-  padding: 4mm !important;
+  /* 2mm/côté → zone imprimable 76mm sur rouleau 80mm. */
+  padding: 2mm !important;
   background: #fff !important;
   color: #000 !important;
   font-size: 12px;
