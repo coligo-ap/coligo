@@ -103,9 +103,11 @@ export default function CapacitorDiagPage() {
         merchantName: "Boulangerie Demo",
         paid: false,
       });
-      // Sunmi V3 80 mm → 48 cols. Si on a un 58 mm, changer en 58.
+      // Rouleau intégré Sunmi V3 = 50 mm → 32 colonnes. (AVANT : 80 = 48 cols,
+      // ce qui faisait WRAPPER chaque ligne sur 2 lignes physiques sur le
+      // rouleau 50 mm → ticket 2× trop long et plein de « lignes vides ».)
       const commands = buildTicketSunmiCommands(fake, {
-        width: 80,
+        width: 50,
         appName: "Coligo",
       }) as Array<Record<string, unknown>>;
       log(`commandes générées : ${commands.length}`);
@@ -113,6 +115,60 @@ export default function CapacitorDiagPage() {
       log(`print → ${JSON.stringify(res)}`);
     } catch (e) {
       log(`print threw : ${(e as Error)?.message ?? e}`);
+    }
+  }
+
+  /**
+   * Impression de TEST minimale : 5 lignes, AUCUN builder, AUCUN espace
+   * superflu. Sert à mesurer sur le papier réel :
+   *   - la hauteur exacte d'une ligne (donc la longueur d'un ticket),
+   *   - que le firmware respecte bien gauche / centre / droite,
+   *   - que le « gros » (double largeur/hauteur) sort net.
+   *
+   * Si ces 5 lignes tiennent sur ~2-3 cm → l'imprimante va bien et un ticket
+   * trop long vient juste d'un excès de lignes (ou d'un wrap 48→32 cols).
+   * Si ces 5 lignes sortent sur 20 cm → c'est l'interligne firmware le coupable.
+   */
+  async function testSimplePrint() {
+    const p = sunmi();
+    if (!p) {
+      log("ERROR : Plugin Sunmi absent — impossible de tester l'impression");
+      return;
+    }
+    try {
+      // 32 colonnes = laize réelle du rouleau intégré 50 mm. On NE met PAS de
+      // wrap/feed entre les lignes : le plugin Java ajoute déjà sa marge basse
+      // (3 lignes) + la coupe. Donc 5 lignes = 5 lignes, rien de plus.
+      const commands: Array<Record<string, unknown>> = [
+        { type: "paper", columns: 32 },
+        // Interligne minimal (≈0.5 mm) — lignes serrées, pas de blanc inutile.
+        { type: "lineSpacing", dots: 4 },
+
+        // Ligne 1 — GRANDE police (double largeur + double hauteur).
+        { type: "align", value: "left" },
+        { type: "textBoldStrong", text: "LIGNE 1 GRANDE" },
+
+        // Ligne 2 — taille réduite (police par défaut), à gauche.
+        { type: "size", value: 24 },
+        { type: "text", text: "Ligne 2 - taille normale" },
+
+        // Ligne 3 — centrée.
+        { type: "align", value: "center" },
+        { type: "text", text: "Ligne 3 - centree" },
+
+        // Ligne 4 — alignée à droite.
+        { type: "align", value: "right" },
+        { type: "text", text: "Ligne 4 - a droite" },
+
+        // Ligne 5 — alignée à gauche.
+        { type: "align", value: "left" },
+        { type: "text", text: "Ligne 5 - a gauche" },
+      ];
+      log(`test simple : ${commands.length} commandes (5 lignes)`);
+      const res = await p.print({ commands, copies: 1 });
+      log(`print simple → ${JSON.stringify(res)}`);
+    } catch (e) {
+      log(`print simple threw : ${(e as Error)?.message ?? e}`);
     }
   }
 
@@ -136,6 +192,13 @@ export default function CapacitorDiagPage() {
             className="inline-flex h-10 items-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white hover:bg-indigo-700"
           >
             SunmiPrinter.isAvailable()
+          </button>
+          <button
+            type="button"
+            onClick={testSimplePrint}
+            className="inline-flex h-10 items-center rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700"
+          >
+            Test simple (5 lignes)
           </button>
           <button
             type="button"
