@@ -34,11 +34,16 @@ import { orderToTicket } from "@/lib/ticket/order-to-ticket";
 import { OrdersCacheSync } from "@/components/merchant/orders-cache-sync";
 import { OrderAcceptRefuse } from "@/components/merchant/order-accept-refuse";
 
-const FILTERS: { key: string; label: string }[] = [
-  { key: "all", label: "Toutes" },
+// Onglets prioritaires : le flux de travail quotidien du commerçant.
+const PRIMARY_FILTERS: { key: keyof StatusCounts; label: string }[] = [
   { key: "pending", label: "À confirmer" },
-  { key: "preparing", label: "En préparation" },
+  { key: "preparing", label: "En prépa" },
   { key: "ready", label: "Prêtes" },
+];
+
+// Filtres secondaires (historique) — accès discret sous les onglets.
+const SECONDARY_FILTERS: { key: keyof StatusCounts; label: string }[] = [
+  { key: "all", label: "Toutes" },
   { key: "completed", label: "Récupérées" },
   { key: "cancelled", label: "Annulées" },
 ];
@@ -151,20 +156,48 @@ export function OrdersListView({
         />
       </div>
 
-      {/* Filtres par statut — URL-based, comptage total de chaque statut */}
-      <div className="-mx-1 mb-5 flex gap-1.5 overflow-x-auto px-1 pb-1 lg:flex-wrap lg:overflow-visible lg:pb-0">
-        {FILTERS.map((f) => {
+      {/* Onglets prioritaires — 3 statuts du flux, gros, avec compteur. */}
+      <div className="bg-surface-2 mb-3 grid grid-cols-3 gap-1 rounded-[14px] p-1">
+        {PRIMARY_FILTERS.map((f) => {
           const active = filter === f.key;
-          const count = statusCounts[f.key as keyof StatusCounts];
+          const count = statusCounts[f.key];
           return (
             <Link
               key={f.key}
               href={filterHref(f.key)}
               prefetch={false}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+                "flex flex-col items-center justify-center gap-0.5 rounded-[10px] px-2 py-2.5 text-center transition-colors",
                 active
-                  ? "border-primary-600 bg-primary-600 text-white"
+                  ? "bg-primary-600 text-white shadow-sm"
+                  : "text-muted hover:bg-white"
+              )}
+            >
+              <span className="text-lg leading-none font-bold tabular-nums">
+                {count}
+              </span>
+              <span className="text-[11px] leading-tight font-medium sm:text-xs">
+                {f.label}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Filtres secondaires (historique) — discrets. */}
+      <div className="-mx-1 mb-5 flex gap-1.5 overflow-x-auto px-1 pb-1">
+        {SECONDARY_FILTERS.map((f) => {
+          const active = filter === f.key;
+          const count = statusCounts[f.key];
+          return (
+            <Link
+              key={f.key}
+              href={filterHref(f.key)}
+              prefetch={false}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors",
+                active
+                  ? "border-primary-600 bg-primary-50 text-primary-700"
                   : "border-border-strong text-muted hover:bg-surface-2"
               )}
             >
@@ -172,7 +205,7 @@ export function OrdersListView({
               <span
                 className={cn(
                   "tabular-nums",
-                  active ? "text-white/80" : "text-subtle"
+                  active ? "text-primary-500" : "text-subtle"
                 )}
               >
                 {count}
@@ -322,6 +355,7 @@ function OrderRow({
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="font-medium">{order.customer_name}</span>
+          <ModeTag order={order} />
           {onlinePaid && <OnlinePaidBadge />}
         </div>
         <div className="text-subtle text-xs">{order.customer_phone}</div>
@@ -413,6 +447,31 @@ function isOnlinePaid(order: OrderWithItems): boolean {
   return order.payment_method === "online" && order.payment_status === "paid";
 }
 
+/**
+ * Tag « mode » de la commande : à emporter / livraison / express. Permet au
+ * commerçant de prioriser d'un coup d'œil (l'express est urgent).
+ */
+function ModeTag({ order }: { order: OrderWithItems }) {
+  const delivery = order.fulfillment_type === "delivery";
+  const express = delivery && order.delivery_mode === "express";
+
+  const label = express ? "Express" : delivery ? "Livraison" : "À emporter";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap",
+        express
+          ? "bg-warning-100 text-warning-700"
+          : delivery
+            ? "bg-primary-50 text-primary-700"
+            : "bg-surface-3 text-muted"
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
 function OrderMobileCard({
   order,
   merchantName,
@@ -442,8 +501,9 @@ function OrderMobileCard({
           </div>
           <Badge tone={meta.tone}>{meta.label}</Badge>
         </div>
-        <div className="mb-1 flex items-center gap-2">
+        <div className="mb-1 flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium">{order.customer_name}</span>
+          <ModeTag order={order} />
           {onlinePaid && <OnlinePaidBadge />}
         </div>
         <div className="text-muted mb-3 flex items-center justify-between text-xs">

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PartyPopper, Volume2, X } from "lucide-react";
+import { Volume2 } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { useMerchantPrefs } from "@/lib/hooks/use-merchant-prefs";
 import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
@@ -11,21 +11,14 @@ import { useOrderRealtime } from "@/lib/hooks/use-order-realtime";
 import { useWakeLock } from "@/lib/hooks/use-wake-lock";
 import { notify } from "@/lib/native";
 import { createClient } from "@/lib/supabase/client";
-import { updateOrderStatus } from "@/app/(merchant)/orders/actions";
 import { printOrderTicket } from "@/lib/ticket/print-order";
 import { fetchCategoryMap } from "@/lib/ticket/category-map";
 import type { TicketOrder } from "@/lib/ticket/build-ticket-html";
-import type { OrderStatus, PrintSettings } from "@/lib/types";
+import type { PrintSettings } from "@/lib/types";
 import {
-  CounterAlertOverlay,
-  type CounterAlertOrder,
-} from "@/components/merchant/counter-alert-overlay";
-
-type IncomingOrder = {
-  id: string;
-  customer_name: string | null;
-  total_da: number | null;
-};
+  NewOrderOverlay,
+  type NewOrder,
+} from "@/components/merchant/new-order-overlay";
 
 type Props = {
   merchantId: string;
@@ -39,11 +32,13 @@ type Props = {
  * Le commerçant ne rate jamais une commande, où qu'il soit dans l'app.
  *
  * Sur INSERT d'une commande :
- *  - joue `alert.wav` (en boucle si `prefs.counterMode`)
- *  - vibration insistante en counterMode (no-op iOS)
+ *  - joue `alert.wav` (en boucle tant qu'une commande est en attente)
+ *  - vibration insistante (no-op iOS)
  *  - notifie le système si `prefs.notifications` ET permission accordée
- *  - overlay plein écran (counterMode) ou toast (sinon)
- *  - si `print.auto_accept_orders`, transition pending → preparing
+ *  - empile la commande dans une file affichée en OVERLAY PLEIN ÉCRAN, partout
+ *    dans l'app, avec Accepter/Refuser. Si `auto_accept_orders` est ON, un
+ *    compte-à-rebours de 10 s accepte tout seul ; sinon refus auto à 15 min.
+ *    (la logique de minuterie/transition vit dans `NewOrderOverlay`)
  *  - si `print.auto_print === 'on_receive'`, imprime le ticket
  *  - `router.refresh()` → revalide les Server Components de la page courante
  *    (dashboard / orders / orders/[id]) → la liste de commandes se met à jour
@@ -69,10 +64,9 @@ export function OrderRealtimeBridge({
   // Wake lock activé tant que counterMode est ON — pas de variable retournée,
   // le hook se réacquiert tout seul après visibilitychange.
   useWakeLock(prefs.counterMode);
-  const [toastOrder, setToastOrder] = useState<IncomingOrder | null>(null);
-  const [counterOrder, setCounterOrder] = useState<CounterAlertOrder | null>(
-    null
-  );
+  // File des commandes à confirmer, affichées une par une en overlay plein
+  // écran. On empile sur chaque INSERT et on dépile à l'acceptation/refus.
+  const [queue, setQueue] = useState<NewOrder[]>([]);
   const printedOnceRef = useRef<Set<string>>(new Set());
 
   // Auto-unlock au PREMIER clic n'importe où : on déverrouille l'audio et on
@@ -196,14 +190,24 @@ export function OrderRealtimeBridge({
       customer_name: string | null;
       total_da: number | null;
       status: string;
+      order_number?: string | null;
     }) => {
+      // Seules les commandes à confirmer ouvrent l'overlay (les autres INSERT
+      // éventuels — imports, etc. — ne doivent pas bloquer l'écran).
+      if (row.status !== "pending") {
+        if (settingsRef.current.auto_print === "on_receive")
+          void doPrint(row.id);
+        router.refresh();
+        return;
+      }
+
       if (prefs.alertSound) {
-        await play({ repeat: prefs.counterMode, intervalMs: 1500 });
+        // Son en boucle : l'overlay est bloquant tant que la commande n'est pas
+        // traitée, le son insiste jusque-là (coupé quand la file se vide).
+        await play({ repeat: true, intervalMs: 1500 });
       }
-      if (prefs.counterMode) {
-        // Vibration insistante (no-op iOS).
-        vibrate([300, 150, 300, 150, 300]);
-      }
+      // Vibration insistante (no-op iOS).
+      vibrate([300, 150, 300, 150, 300]);
       if (prefs.notifications && permission === "granted") {
         const title = "Nouvelle commande Coligo";
         const body =
@@ -211,59 +215,47 @@ export function OrderRealtimeBridge({
           (row.total_da != null ? ` · ${formatDA(row.total_da)}` : "");
         notify(title, { body, tag: "coligo-order" });
       }
-      if (prefs.counterMode) {
-        setCounterOrder({
-          id: row.id,
-          customer_name: row.customer_name,
-          total_da: row.total_da,
-        });
-      } else {
-        setToastOrder({
-          id: row.id,
-          customer_name: row.customer_name,
-          total_da: row.total_da,
-        });
-        window.setTimeout(() => setToastOrder(null), 8000);
-      }
 
-      const s = settingsRef.current;
-      // Auto-accept : on valide la commande dès sa réception (transition
-      // autorisée pending → preparing par `nextOrderAction`).
-      if (s.auto_accept_orders && row.status === "pending") {
-        const opId =
-          typeof crypto !== "undefined" && "randomUUID" in crypto
-            ? crypto.randomUUID()
-            : `auto-${row.id}-${Date.now()}`;
-        void updateOrderStatus(row.id, "preparing" as OrderStatus, opId);
-      }
-      if (s.auto_print === "on_receive") {
+      // Empile en évitant les doublons (ré-événement après reconnexion RT).
+      setQueue((q) =>
+        q.some((o) => o.id === row.id)
+          ? q
+          : [
+              ...q,
+              {
+                id: row.id,
+                customer_name: row.customer_name,
+                total_da: row.total_da,
+                order_number: row.order_number ?? null,
+              },
+            ]
+      );
+
+      if (settingsRef.current.auto_print === "on_receive") {
         void doPrint(row.id);
       }
       router.refresh();
     },
-    [
-      prefs.alertSound,
-      prefs.notifications,
-      prefs.counterMode,
-      permission,
-      play,
-      router,
-      doPrint,
-    ]
+    [prefs.alertSound, prefs.notifications, permission, play, router, doPrint]
   );
 
-  const dismissCounter = useCallback(() => {
-    stop();
-    setCounterOrder(null);
-  }, [stop]);
+  // Retire la commande de tête une fois acceptée/refusée → affiche la suivante.
+  const resolveHead = useCallback(() => {
+    setQueue((q) => q.slice(1));
+    router.refresh();
+  }, [router]);
 
-  const printFromCounter = useCallback(
+  const printFromOverlay = useCallback(
     (orderId: string) => {
       void doPrint(orderId);
-      dismissCounter();
     },
-    [doPrint, dismissCounter]
+    [doPrint]
   );
+
+  // Coupe le son d'alerte dès que la file est vide (plus rien à confirmer).
+  useEffect(() => {
+    if (queue.length === 0) stop();
+  }, [queue.length, stop]);
 
   const handleUpdate = useCallback(
     (row: { id: string; status: string }) => {
@@ -340,40 +332,17 @@ export function OrderRealtimeBridge({
         </div>
       )}
 
-      {/* Overlay plein écran « Mode comptoir » — exige un clic pour se fermer. */}
-      <CounterAlertOverlay
-        order={counterOrder}
-        onDismiss={dismissCounter}
-        onPrint={printFromCounter}
+      {/* Overlay plein écran « Nouvelle commande ! » — affiché partout dans
+          l'app dès qu'une commande à confirmer arrive. Accepter/Refuser, ou
+          compte-à-rebours auto selon le réglage. */}
+      <NewOrderOverlay
+        order={queue[0] ?? null}
+        queued={Math.max(0, queue.length - 1)}
+        autoAccept={settingsRef.current.auto_accept_orders}
+        onResolved={resolveHead}
+        onPrint={printFromOverlay}
         canPrint={settingsRef.current.auto_print !== "off"}
       />
-
-      {/* Toast in-app (custom, distinct du Toaster global pour porter l'accent commande) */}
-      {toastOrder && (
-        <div
-          role="status"
-          className="bg-primary-600 fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-md items-start gap-3 rounded-[14px] px-4 py-3 text-white shadow-xl sm:right-4 sm:bottom-4 sm:left-auto sm:mx-0"
-        >
-          <PartyPopper className="text-warning-300 mt-0.5 size-5 shrink-0" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">Nouvelle commande !</p>
-            <p className="text-primary-100 mt-0.5 truncate text-xs">
-              {toastOrder.customer_name ?? "Client"}
-              {toastOrder.total_da != null
-                ? ` · ${formatDA(toastOrder.total_da)}`
-                : ""}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setToastOrder(null)}
-            aria-label="Fermer"
-            className="text-primary-100 hover:text-white"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-      )}
     </>
   );
 }

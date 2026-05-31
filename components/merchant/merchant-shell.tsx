@@ -8,6 +8,7 @@ import { MobileDrawer } from "@/components/merchant/mobile-drawer";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import { OrderRealtimeBridge } from "@/components/merchant/order-realtime-bridge";
 import { PushRegistrar } from "@/components/native/push-registrar";
+import { expireStalePendingOrders } from "@/lib/merchant/expire-pending";
 import {
   DEFAULT_PRINT_SETTINGS,
   type PrintSettings,
@@ -62,7 +63,13 @@ export async function MerchantShell({
     redirect("/login?error=no_merchant");
   }
 
-  // Count pending pour notifs
+  // Expiration paresseuse : refuse les commandes restées « à confirmer » plus
+  // de 15 min. Rejouée à chaque accès commerçant (et via le refresh périodique
+  // du pont Realtime) → robuste même sans la minuterie client. Sans cron, en
+  // cohérence avec l'approche Express timing du projet.
+  await expireStalePendingOrders(supabase);
+
+  // Count pending pour notifs (après expiration → badge exact)
   const { count: pendingCount } = await supabase
     .from("orders")
     .select("id", { count: "exact", head: true })
