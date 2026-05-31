@@ -61,3 +61,34 @@ export async function qrSvg(
     ""
   )}</svg>`;
 }
+
+/**
+ * Matrice QR BRUTE (1 = module noir) — pour un rendu canvas/bitmap thermique
+ * où l'on dessine chaque module en carré (cf. `render-ticket-canvas.ts`).
+ * Même encodage que `qrSvg` (zxing, quiet-zone incluse via MARGIN).
+ */
+export async function qrMatrix(
+  value: string,
+  opts?: { margin?: number }
+): Promise<boolean[][]> {
+  const { MultiFormatWriter, BarcodeFormat, EncodeHintType } =
+    await import("@zxing/library");
+  const hints = new Map<EncodeHintTypeEnum, number>();
+  hints.set(EncodeHintType.MARGIN, opts?.margin ?? 2);
+  const matrix = new MultiFormatWriter().encode(
+    value,
+    BarcodeFormat.QR_CODE,
+    0,
+    0,
+    hints
+  );
+  const w = matrix.getWidth();
+  const h = matrix.getHeight();
+  const out: boolean[][] = [];
+  for (let y = 0; y < h; y++) {
+    const row: boolean[] = [];
+    for (let x = 0; x < w; x++) row.push(matrix.get(x, y));
+    out.push(row);
+  }
+  return out;
+}

@@ -7,6 +7,7 @@ import {
   type TicketOrder,
 } from "@/lib/ticket/build-ticket-html";
 import { buildTicketSunmiCommands } from "@/lib/ticket/build-ticket-sunmi";
+import { renderTicketCanvasBase64 } from "@/lib/ticket/render-ticket-canvas";
 import type { PrintWidth } from "@/lib/types";
 
 /**
@@ -55,11 +56,28 @@ export async function printOrderTicket(
           copyLabel,
         })
       : undefined;
+    // Chemin natif PRIORITAIRE : ticket rendu en bitmap canvas (seul rendu
+    // fidèle/compact sur l'imprimante intégrée Sunmi — l'API texte ne sait pas
+    // varier taille/police et fait des tickets à rallonge). Échec → on garde
+    // les commandes texte / window.print() en fallback.
+    let bitmapBase64: string | undefined;
+    if (wantNative) {
+      try {
+        const rendered = await renderTicketCanvasBase64(order, {
+          width: opts.width,
+          appName: opts.appName,
+          copyLabel,
+        });
+        bitmapBase64 = rendered?.base64;
+      } catch (err) {
+        console.warn("[print-order] rendu bitmap échoué, fallback", err);
+      }
+    }
     try {
       console.info(
-        `[print-order] copy=${i}/${copies} sunmiCmds=${
-          sunmiCommands?.length ?? 0
-        }`
+        `[print-order] copy=${i}/${copies} bitmap=${
+          bitmapBase64 ? "oui" : "non"
+        } sunmiCmds=${sunmiCommands?.length ?? 0}`
       );
     } catch {
       /* ignored */
@@ -69,6 +87,7 @@ export async function printOrderTicket(
       widthMm,
       title: `Ticket #${order.id.slice(0, 6).toUpperCase()}`,
       sunmiCommands,
+      bitmapBase64,
     });
   }
 }

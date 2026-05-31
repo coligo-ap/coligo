@@ -25,6 +25,7 @@ import { hasNativePrinterBridge } from "./context";
 import {
   isSunmiPrinterAvailable,
   printSunmi,
+  printSunmiBitmap,
   type SunmiCommand,
 } from "./sunmi-printer";
 
@@ -39,6 +40,13 @@ export type PrintOptions = {
    * fallback `window.print()` sur le HTML.
    */
   sunmiCommands?: SunmiCommand[];
+  /**
+   * PNG base64 (SANS préfixe data:) du ticket rendu en bitmap canvas — chemin
+   * natif PRIORITAIRE sur l'imprimante intégrée Sunmi. Le firmware ne sait pas
+   * varier la taille/police via l'API texte ; le bitmap donne le rendu fidèle,
+   * compact et net. Cf. `lib/ticket/render-ticket-canvas.ts`.
+   */
+  bitmapBase64?: string;
   /** Nb de copies pour le mode Sunmi (le HTML gère ses copies côté caller). */
   copies?: number;
 };
@@ -72,7 +80,22 @@ async function printViaNativeBridge(opts: PrintOptions): Promise<boolean> {
   const ok = await isSunmiPrinterAvailable();
   if (!ok) return false;
 
-  // 1. Commandes texte + QR natif (crisp, comme le print test Sunmi).
+  // 1. BITMAP canvas (PRIORITAIRE) — rendu fidèle, tailles/polices libres,
+  //    interligne maîtrisé, compact. C'est la seule voie correcte sur le
+  //    firmware intégré (l'API texte ne sait pas varier taille/police et les
+  //    sendRAWData superflus font des tickets à rallonge).
+  if (opts.bitmapBase64) {
+    const bmpOk = await printSunmiBitmap({
+      bitmap: opts.bitmapBase64,
+      copies: 1,
+      buffer: true,
+      cut: true,
+      feedLines: 2,
+    });
+    if (bmpOk) return true;
+  }
+
+  // 2. Commandes texte + QR natif (fallback si pas de bitmap fourni).
   if (opts.sunmiCommands && opts.sunmiCommands.length > 0) {
     const cmdOk = await printSunmi({
       commands: opts.sunmiCommands,
@@ -81,8 +104,7 @@ async function printViaNativeBridge(opts: PrintOptions): Promise<boolean> {
     if (cmdOk) return true;
   }
 
-  // 2. Fallback bitmap (capture HTML) si les commandes ne sont pas dispo /
-  //    ont échoué.
+  // 3. Fallback bitmap (capture HTML html2canvas) en dernier recours.
   if (opts.html) {
     try {
       const { printTicketBitmap } =
@@ -105,6 +127,7 @@ export async function printTicket({
   widthMm = 58,
   title = "Ticket Coligo",
   sunmiCommands,
+  bitmapBase64,
   copies,
 }: PrintOptions): Promise<void> {
   if (typeof document === "undefined") return;
@@ -119,6 +142,7 @@ export async function printTicket({
       widthMm,
       title,
       sunmiCommands,
+      bitmapBase64,
       copies,
     });
     if (ok) return;
