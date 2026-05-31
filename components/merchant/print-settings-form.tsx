@@ -160,11 +160,13 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
           onToggle={() => toggleOpen("print_width")}
         >
           <p className="text-muted mb-3 text-xs">
-            58 mm pour les Sunmi V2/V3, 80 mm pour les imprimantes comptoir.
+            50 mm pour les Sunmi V3 (rouleaux intégrés), 58 mm pour les Sunmi
+            V2, 80 mm pour les imprimantes comptoir.
           </p>
           <SegmentedSelect<PrintWidth>
             value={state.print_width}
             options={[
+              { value: 50, label: "50 mm" },
               { value: 58, label: "58 mm" },
               { value: 80, label: "80 mm" },
             ]}

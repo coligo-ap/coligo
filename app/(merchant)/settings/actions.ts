@@ -16,7 +16,7 @@ const SettingsSchema = z.object({
   auto_accept_orders: z.boolean(),
   auto_print: z.enum(["off", "on_receive", "on_accept"]),
   print_copies: z.number().int().min(1).max(3),
-  print_width: z.union([z.literal(58), z.literal(80)]),
+  print_width: z.union([z.literal(50), z.literal(58), z.literal(80)]),
 });
 
 export type SettingsResult = { error?: string; success?: string; ok?: boolean };

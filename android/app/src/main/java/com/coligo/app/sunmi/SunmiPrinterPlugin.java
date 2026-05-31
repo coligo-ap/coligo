@@ -53,9 +53,11 @@ public class SunmiPrinterPlugin extends Plugin {
    */
   private float currentFontSize = 24f;
   private int currentAlign = 0; // 0=left, 1=center, 2=right
-  // 48 cols par défaut (Sunmi V3 80 mm = 576 dots / 12 dots/char). Switchable
-  // via la commande `{ type:"paper", columns: 32 }` pour une 58 mm.
-  private int paperColumns = 48;
+  // 32 cols par défaut (Sunmi V3 = rouleau 50 mm → 384 dots / 12 dots-char).
+  // Le builder JS envoie toujours `{ type:"paper", columns: N }` en tête de
+  // séquence (32 pour 50/58 mm, 48 pour une 80 mm comptoir) — ce défaut n'est
+  // qu'un filet de sécurité si la commande paper manquait.
+  private int paperColumns = 32;
 
   @Override
   public void load() {

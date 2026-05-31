@@ -39,17 +39,17 @@ export function OrderTicket({
     const opts: BuildTicketOptions = { width, appName, copyLabel };
     buildTicketHTML(order, opts).then(({ html }) => {
       if (cancelled) return;
-      // L'iframe reproduit le contexte d'impression : même font (Courier New)
-      // que la route /print et la maquette de référence.
+      // L'iframe reproduit le contexte d'impression : même font sans-serif
+      // (style Deliveroo) que la route /print et la maquette de référence.
       const doc = `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8" />
 <style>
   html, body { margin: 0; padding: 0; background: #fff; }
   body {
     width: ${width}mm;
-    /* 2mm/côté → zone imprimable 76mm (rouleau 80mm). */
+    /* 2mm/côté → zone imprimable réelle. */
     padding: 2mm;
-    font-family: 'Courier New', 'Consolas', monospace;
+    font-family: Arial, Helvetica, "Segoe UI", sans-serif;
     font-size: 13px;
     color: #000;
   }

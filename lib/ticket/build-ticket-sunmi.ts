@@ -1,48 +1,48 @@
 /**
- * Builder « commandes Sunmi » du ticket — parité visuelle avec le ticket
- * HTML (cf. `maquette-ticket-80mm.html`), via le SDK Sunmi AIDL pour
- * impression directe sans dialogue navigateur.
+ * Builder « commandes Sunmi » du ticket — impression thermique NATIVE (ESC/POS
+ * Font A) via le SDK Sunmi AIDL, sans dialogue navigateur, sans image.
  *
- * Structure suivie (identique à la maquette) :
- *   1. nom commerce centré gras + localité
- *   2. "RETRAIT" en gras centré entre deux lignes pleines (zéro aplat noir —
- *      l'ancien bandeau inversé bavait sur thermique)
- *   3. #ID énorme (textBoldStrong → double-width)
- *   4. "RETRAIT À HH:MM" en gros
- *   5. méta : Commandé le / Client / Tél (colonnes label/valeur)
- *   6. badge "NOUVEAU CLIENT" optionnel
- *   7. articles groupés par catégorie : "— CATEGORIE (N) —" + lignes
- *      `qty× nom ........ prix DA`
- *   8. récap aligné à droite (sous-total, frais, réduction)
- *   9. TOTAL en gras fort
- *  10. bloc paiement (À ENCAISSER : X DA / PAYÉ EN LIGNE)
- *  11. QR de référence (order_number) centré, encadré de deux lignes pleines —
- *      jamais le PIN de retrait (secret communiqué de vive voix)
- *  12. footer (Commande via Coligo + horodatage)
+ * Reproduit la maquette cible style Deliveroo (`apercu-ticket-deliveroo.html`) :
+ *   1. logo Coligo + nom boutique (centrés)
+ *   2. bandeau INVERSÉ combinant mode + paiement : « LIVRAISON · PAYÉ »,
+ *      « RETRAIT · CASH »… (une seule ligne, pas d'état séparé)
+ *   3. #numéro de commande ÉNORME, aligné à gauche (référence publique)
+ *   4. « Livrer pour : HH:MM » / « Retrait pour : HH:MM »
+ *   5. Précisions particulières (si note client)
+ *   6. ARTICLES groupés par catégorie — « Nx Nom » SANS prix (ticket cuisine)
+ *   7. récap : Nombre de produits / Sous-total / Frais / Total (ou À ENCAISSER)
+ *   8. bloc infos : Heure commande / Client / Téléphone / Adresse (livraison)
+ *   9. pied : « Code remis par le client au livreur (non imprimé) » (livraison)
+ *      ou « Merci de votre confiance » (retrait)
  *
- * Largeur :
- *   - 80 mm → 48 colonnes (cible Sunmi V3)
- *   - 58 mm → 32 colonnes (legacy / imprimantes tierces)
+ * Le PIN de retrait (4 chiffres) n'est JAMAIS imprimé — seul le numéro de
+ * commande public l'est.
+ *
+ * Toute la config (laize → colonnes, tailles, libellés mode/paiement) vient de
+ * `ticket-format.ts`, source partagée avec le builder HTML/aperçu.
  */
 
 import type { TicketItem, TicketOrder } from "@/lib/ticket/build-ticket-html";
 import type { PrintWidth } from "@/lib/types";
 import type { SunmiAlign, SunmiCommand } from "@/lib/native/sunmi-printer";
+import {
+  columnsForWidth,
+  deriveTicketMeta,
+  formatDA,
+  formatOrderClock,
+  formatTime,
+  groupByCategory,
+  groupCount,
+  orderRef,
+  SUNMI_LINE_SPACING,
+  SUNMI_SIZE as SZ,
+  totalUnits,
+} from "@/lib/ticket/ticket-format";
 
 export type BuildSunmiOptions = {
   width: PrintWidth;
   appName?: string;
   copyLabel?: string;
-};
-
-// Tailles texte (firmware V3 = {16, 24, 28, 32, 48}). On en utilise 3 :
-//   small = méta, recap, footer
-//   base  = corps du ticket (items, rows, banner, pay)
-//   large = #ID, code de retrait, heure de retrait
-const SZ = {
-  small: 16,
-  base: 24,
-  large: 32,
 };
 
 /**
@@ -63,96 +63,18 @@ function asciize(input: string): string {
     .replace(/×/g, "x")
     .replace(/✓/g, "[OK]")
     .replace(/★/g, "*")
-    .replace(/ /g, " ") // NBSP
+    .replace(/ /g, " ") // NBSP
     .replace(/[^\x20-\x7E\n]/g, "");
 }
 
 /**
- * Caractères par ligne en police par défaut (Font A, 12 dots/car) selon la
- * laize papier, à 8 dots/mm :
- *   - 50 mm (Sunmi V3, rouleau intégré) → ~384 dots imprimables → 32 car.
- *   - 58 mm (Sunmi V2)                  → ~384 dots             → 32 car.
- *   - 80 mm (imprimante comptoir)       → ~576 dots             → 48 car.
- * Le double-width (textBoldStrong) = 24 dots/car → moitié (16 ou 24 car.).
- */
-function columnsFor(width: PrintWidth): number {
-  return width === 80 ? 48 : 32;
-}
-
-function formatDA(amountDa: number): string {
-  return (
-    new Intl.NumberFormat("fr-DZ", { maximumFractionDigits: 0 }).format(
-      Math.round(amountDa)
-    ) + " DA"
-  );
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("fr-DZ", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function formatShortDateTime(iso: string): string {
-  const d = new Date(iso);
-  const date = d.toLocaleDateString("fr-DZ", {
-    day: "2-digit",
-    month: "2-digit",
-  });
-  const time = d.toLocaleTimeString("fr-DZ", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  return `${date} ${time}`;
-}
-
-function shortId(id: string): string {
-  return id.slice(0, 6).toUpperCase();
-}
-
-function groupCount(items: TicketItem[]): number {
-  return items.reduce((s, it) => s + Number(it.quantity || 0), 0);
-}
-
-function groupByCategory(
-  items: TicketItem[]
-): Array<{ title: string; items: TicketItem[] }> {
-  const order: string[] = [];
-  const map = new Map<string, TicketItem[]>();
-  for (const it of items) {
-    const key = it.category_name?.trim() || "Articles";
-    if (!map.has(key)) {
-      map.set(key, []);
-      order.push(key);
-    }
-    map.get(key)!.push(it);
-  }
-  return order.map((title) => ({ title, items: map.get(title)! }));
-}
-
-/** Séparateur pointillé plein-papier (maquette : hr dashed). */
-function dottedLine(cols: number): string {
-  return "-".repeat(cols);
-}
-
-/** Séparateur plein (cf. divider-solid de la maquette). */
-function solidLine(cols: number): string {
-  return "=".repeat(cols);
-}
-
-/**
- * Mise en page « label à gauche / valeur à droite » sur UNE seule ligne
- * pré-paddée à `cols` caractères. On rend ces lignes via le chemin `text`
- * (= printLine → printColumnsText 1 colonne pleine largeur + emphase), le
- * MÊME chemin que les titres qui marquent bien le papier. La police par
- * défaut Sunmi (Font A) est monospace → le padding manuel aligne au dot
- * près, sans recourir au multi-colonnes printColumnsText (qui sortait
- * fantôme).
+ * Mise en page « label à gauche / valeur à droite » sur UNE ligne pré-paddée à
+ * `cols` caractères. Police par défaut Sunmi (Font A) = monospace → le padding
+ * manuel aligne au dot près, sans multi-colonnes (qui sortait fantôme).
  */
 function lineLR(left: string, right: string, cols: number): string {
   const r = right.length > cols ? right.slice(0, cols) : right;
-  const maxL = cols - r.length - 1; // au moins 1 espace entre les deux
+  const maxL = cols - r.length - 1;
   const l =
     left.length > Math.max(0, maxL) ? left.slice(0, Math.max(0, maxL)) : left;
   const gap = Math.max(1, cols - l.length - r.length);
@@ -160,10 +82,8 @@ function lineLR(left: string, right: string, cols: number): string {
 }
 
 /**
- * Découpe un texte en lignes ≤ width, en cassant sur les espaces (greedy).
- * Un mot plus long que `width` est coupé durement (rare : nom collé). La
- * première ligne peut avoir une largeur différente (`firstWidth`) pour
- * laisser la place au prix sur la ligne d'en-tête.
+ * Découpe un texte en lignes ≤ width (greedy sur les espaces). Un mot plus long
+ * que `width` est coupé durement. `firstWidth` peut différer de `restWidth`.
  */
 function wrapWords(
   text: string,
@@ -175,7 +95,6 @@ function wrapWords(
   let cur = "";
   const widthFor = () => (lines.length === 0 ? firstWidth : restWidth);
   for (let w of words) {
-    // Mot plus long que la largeur courante → coupe dure.
     while (w.length > widthFor()) {
       if (cur) {
         lines.push(cur);
@@ -197,31 +116,19 @@ function wrapWords(
 }
 
 /**
- * Lignes d'un article façon Deliveroo, calées sur `cols` :
- *   `2x Baguette tradition           100 DA`
- * Nom trop long → retour à la ligne propre, indenté sous le nom, le prix
- * restant aligné à droite sur la 1re ligne :
- *   `1x Sandwich poulet maison      1250 DA`
+ * Lignes d'un article façon Deliveroo (ticket cuisine, SANS prix) :
+ *   `2x Baguette tradition`
+ * Nom trop long → retour à la ligne propre, indenté sous le nom :
+ *   `1x Sandwich poulet maison`
  *   `   artisanal extra`
  */
-function itemLines(
-  qty: string,
-  name: string,
-  price: string,
-  cols: number
-): string[] {
+function itemLines(qty: string, name: string, cols: number): string[] {
   const prefix = `${qty} `; // ex. "2x "
   const indent = " ".repeat(prefix.length);
-  const firstNameW = Math.max(1, cols - prefix.length - price.length - 1);
-  const restNameW = Math.max(1, cols - prefix.length);
-  const nameLines = wrapWords(name, firstNameW, restNameW);
-  const out: string[] = [];
-  // 1re ligne : prefix + 1er segment du nom, prix collé à droite.
-  out.push(lineLR(prefix + nameLines[0], price, cols));
-  // Lignes suivantes : reste du nom, indenté sous le nom (pas de prix).
-  for (let i = 1; i < nameLines.length; i++) {
-    out.push(indent + nameLines[i]);
-  }
+  const firstW = Math.max(1, cols - prefix.length);
+  const nameLines = wrapWords(name, firstW, firstW);
+  const out: string[] = [prefix + nameLines[0]];
+  for (let i = 1; i < nameLines.length; i++) out.push(indent + nameLines[i]);
   return out;
 }
 
@@ -230,26 +137,17 @@ export function buildTicketSunmiCommands(
   opts: BuildSunmiOptions
 ): SunmiCommand[] {
   const out: SunmiCommand[] = [];
-  const cols = columnsFor(opts.width);
-  const isPaidOnline =
-    order.payment_method === "online" && order.payment_status === "paid";
-  const isCash = order.payment_method === "cash";
+  const cols = columnsForWidth(opts.width);
+  const meta = deriveTicketMeta(order);
 
-  // Mode de service → libellés (bandeau + heure + bloc paiement).
-  const isDelivery = order.fulfillment_type === "delivery";
-  const modeLabel = isDelivery ? "LIVRAISON" : "RETRAIT";
-  const timeLabel = isDelivery ? "LIVRAISON A" : "RETRAIT A";
-  const handoffWord = isDelivery ? "a la livraison" : "au retrait";
-
-  // Config imprimante en TÊTE de séquence. Interligne LÉGER (≈ 0.75 mm) pour
-  // un rendu aéré et professionnel — 0 dot collait les lignes.
+  // Config imprimante en TÊTE de séquence : laize (colonnes) + interligne léger.
   out.push({ type: "paper", columns: cols });
-  out.push({ type: "lineSpacing", dots: 6 });
+  out.push({ type: "lineSpacing", dots: SUNMI_LINE_SPACING });
 
   const divider = () => {
     out.push({ type: "align", value: "left" });
     out.push({ type: "size", value: SZ.base });
-    out.push({ type: "text", text: dottedLine(cols) });
+    out.push({ type: "text", text: "-".repeat(cols) });
   };
 
   // === COPIE k/N ===
@@ -259,94 +157,46 @@ export function buildTicketSunmiCommands(
     out.push({ type: "textBold", text: opts.copyLabel });
   }
 
-  // ===== 1. EN-TÊTE : nom commerce + localité =====
+  // ===== 1. EN-TÊTE : logo Coligo + nom boutique (centrés) =====
   out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.base });
-  out.push({ type: "textBold", text: order.merchant_name });
-  if (order.merchant_locality) {
-    out.push({ type: "size", value: SZ.small });
-    out.push({ type: "text", text: order.merchant_locality });
-  }
+  out.push({ type: "textBold", text: opts.appName ?? "Coligo" });
+  out.push({ type: "size", value: SZ.small });
+  out.push({ type: "text", text: order.merchant_name });
 
-  // ===== 2. "RETRAIT" entre DEUX lignes pleines (zéro aplat noir) =====
-  // L'ancien bandeau inversé (fond noir plein largeur) bavait sur thermique.
-  // Deux lignes pleines + libellé gras centré = même hiérarchie visuelle,
-  // rendu propre et net comme le « print test » Sunmi.
-  out.push({ type: "align", value: "left" });
+  // ===== 2. BANDEAU INVERSÉ mode + paiement (une seule ligne) =====
+  // « LIVRAISON · PAYÉ », « RETRAIT · CASH »… Fond noir / texte blanc via GS B.
+  out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.base });
-  out.push({ type: "text", text: solidLine(cols) });
-  out.push({ type: "align", value: "center" });
-  out.push({ type: "textBold", text: modeLabel });
-  out.push({ type: "align", value: "left" });
-  out.push({ type: "text", text: solidLine(cols) });
+  out.push({ type: "textInverse", text: ` ${meta.bannerText} ` });
 
-  // ===== 3. NUMÉRO DE COMMANDE ÉNORME (référence, textBoldStrong) =====
-  out.push({ type: "align", value: "center" });
+  // ===== 3. NUMÉRO DE COMMANDE ÉNORME, aligné à GAUCHE (Deliveroo) =====
+  out.push({ type: "align", value: "left" });
   out.push({ type: "size", value: SZ.large });
+  out.push({ type: "textBoldStrong", text: `#${orderRef(order)}` });
+
+  // ===== 4. « Livrer pour : HH:MM » / « Retrait pour : HH:MM » =====
+  out.push({ type: "size", value: SZ.base });
   out.push({
-    type: "textBoldStrong",
-    text: `#${order.order_number ?? shortId(order.id)}`,
+    type: "textBold",
+    text: `${meta.timeLineLabel} : ${formatTime(order.pickup_slot_at)}`,
   });
 
-  // ===== 4. HEURE DE RETRAIT / LIVRAISON =====
-  out.push({ type: "size", value: SZ.small });
-  out.push({ type: "text", text: timeLabel });
-  out.push({ type: "size", value: SZ.large });
-  out.push({ type: "textBoldStrong", text: formatTime(order.pickup_slot_at) });
-
-  // Adresse de livraison, centrée sous l'heure — UNIQUEMENT en livraison.
-  // Wrap propre sur la laize (les noms de rue longs passent à la ligne).
-  if (isDelivery && order.delivery_address) {
-    out.push({ type: "align", value: "center" });
-    out.push({ type: "size", value: SZ.base });
-    for (const l of wrapWords(asciize(order.delivery_address), cols, cols)) {
-      out.push({ type: "textBold", text: l });
-    }
-  }
-
   divider();
 
-  // ===== 5. MÉTA (Client / Tél / Commandé le) =====
-  // Rendu en lignes pré-paddées (chemin `text` = même rendu noir que les
-  // titres), PAS en multi-colonnes printColumnsText (qui sortait fantôme).
-  out.push({ type: "align", value: "left" });
-  out.push({ type: "size", value: SZ.base });
-  const metaRow = (l: string, r: string) => {
-    out.push({ type: "text", text: lineLR(l, r, cols) });
-  };
-  metaRow("Client", order.customer_name);
-  metaRow(
-    "Tel",
-    isDelivery
-      ? (order.delivery_phone ?? order.customer_phone)
-      : order.customer_phone
-  );
-  metaRow("Commande le", formatShortDateTime(order.created_at));
-
-  // Instructions d'accès livraison (code porte, étage…) — sous la méta, en
-  // petit, wrappées. Distinctes de la note de préparation (cf. plus bas).
-  if (isDelivery && order.delivery_note) {
-    out.push({ type: "size", value: SZ.small });
-    for (const l of wrapWords(
-      asciize(`Livraison: ${order.delivery_note}`),
-      cols,
-      cols
-    )) {
+  // ===== 5. PRÉCISIONS PARTICULIÈRES (si note client) =====
+  const note = order.notes && order.notes !== "seed" ? order.notes : null;
+  if (note) {
+    out.push({ type: "align", value: "left" });
+    out.push({ type: "size", value: SZ.base });
+    out.push({ type: "textBold", text: "Precisions particulieres" });
+    for (const l of wrapWords(asciize(note), cols, cols)) {
       out.push({ type: "text", text: l });
     }
-    out.push({ type: "size", value: SZ.base });
+    divider();
   }
 
-  // ===== 6. BADGE NOUVEAU CLIENT =====
-  if (order.is_new_customer) {
-    out.push({ type: "align", value: "center" });
-    out.push({ type: "size", value: SZ.base });
-    out.push({ type: "textBold", text: "* NOUVEAU CLIENT *" });
-  }
-
-  divider();
-
-  // ===== 7. ARTICLES groupés par catégorie =====
+  // ===== 6. ARTICLES groupés par catégorie — SANS prix =====
   out.push({ type: "align", value: "left" });
   out.push({ type: "size", value: SZ.base });
   const groups = groupByCategory(order.items);
@@ -354,142 +204,101 @@ export function buildTicketSunmiCommands(
     out.push({ type: "text", text: "(aucun article)" });
   } else {
     for (const g of groups) {
-      // En-tête catégorie : titre gras à gauche (chemin textBold = noir net).
-      out.push({ type: "align", value: "left" });
       out.push({
         type: "textBold",
         text: `${g.title.toUpperCase()} (${groupCount(g.items)})`,
       });
-      // Lignes articles : `Nx Nom .......... prix`, calées sur la laize.
-      // Nom trop long → retour à la ligne propre (chemin `text` = même noir
-      // que les titres). asciize est appliqué en fin de builder.
       for (const it of g.items) {
         const qty = String(it.quantity).replace(/\.0+$/, "") + "x";
-        const lines = itemLines(
-          qty,
-          asciize(it.product_name),
-          formatDA(it.line_total_da),
-          cols
-        );
-        for (const line of lines) {
-          out.push({ type: "text", text: line });
+        for (const line of itemLines(qty, asciize(it.product_name), cols)) {
+          out.push({ type: "textBold", text: line });
         }
       }
     }
   }
 
-  // Note client : si présente, l'ajouter en italique-ish (textBold faute de
-  // mieux) sous les articles, avec préfixe ↳ (asciize → ->).
-  if (order.notes && order.notes !== "seed") {
-    out.push({ type: "size", value: SZ.small });
-    out.push({ type: "text", text: `-> ${order.notes}` });
-  }
-
   divider();
 
-  // ===== 8. RÉCAP aligné à droite =====
-  const subtotal = order.items.reduce((s, it) => s + it.line_total_da, 0);
-  const discount = Math.max(
-    0,
-    subtotal + order.service_fee_da - order.total_da
-  );
-  const pushRecap = (label: string, value: string) => {
-    out.push({ type: "text", text: lineLR(label, value, cols) });
-  };
+  // ===== 7. RÉCAP (Nombre de produits / Sous-total / Frais / réductions) =====
   out.push({ type: "align", value: "left" });
   out.push({ type: "size", value: SZ.base });
-  if (discount > 0 || order.service_fee_da > 0 || order.cashback_da > 0) {
-    pushRecap("Sous-total", formatDA(subtotal));
-  }
+  const recap = (label: string, value: string) => {
+    out.push({ type: "text", text: lineLR(label, value, cols) });
+  };
+  recap("Nombre de produits", String(totalUnits(order.items)));
+  recap("Sous-total", formatDA(meta.subtotalDa));
   if (order.service_fee_da > 0) {
-    pushRecap(
-      isDelivery ? "Frais livraison" : "Frais service",
-      formatDA(order.service_fee_da)
-    );
+    recap(meta.feeLabel, formatDA(order.service_fee_da));
   }
-  if (discount > 0) {
-    const pct = subtotal > 0 ? Math.round((discount / subtotal) * 100) : 0;
-    pushRecap(
+  if (meta.discountDa > 0) {
+    const pct =
+      meta.subtotalDa > 0
+        ? Math.round((meta.discountDa / meta.subtotalDa) * 100)
+        : 0;
+    recap(
       pct > 0 ? `Reduction -${pct}%` : "Reduction",
-      `-${formatDA(discount)}`
+      `-${formatDA(meta.discountDa)}`
     );
   }
   if (order.cashback_da > 0) {
-    pushRecap("Cashback", `-${formatDA(order.cashback_da)}`);
+    recap("Cashback", `-${formatDA(order.cashback_da)}`);
   }
 
-  // ===== 9. TOTAL en gras fort (label gauche / montant droite, double taille) =====
-  // textBoldStrong = double largeur (ESC ! ) → budget colonnes halvé à cols/2.
-  // On pré-padde la ligne sur cols/2 pour que « TOTAL ........ 1750 DA »
-  // remplisse toute la largeur en double taille, noir et net.
+  // ===== 8. TOTAL / À ENCAISSER en gras, pleine largeur =====
+  // PAS de double-width ici : « A ENCAISSER » + montant déborderait le budget
+  // colonnes/2. Comme la maquette (total = gras modeste, seul le #commande est
+  // en taille double), on rend une ligne gras pleine largeur, jamais tronquée.
   out.push({ type: "align", value: "left" });
-  out.push({ type: "size", value: SZ.large });
+  out.push({ type: "size", value: SZ.base });
   out.push({
-    type: "textBoldStrong",
-    text: lineLR("TOTAL", formatDA(order.total_da), Math.floor(cols / 2)),
+    type: "textBold",
+    text: lineLR(meta.totalLabel, formatDA(order.total_da), cols),
   });
-
-  // ===== 10. BLOC PAIEMENT encadré (text + lignes solides) =====
-  out.push({ type: "align", value: "left" });
-  out.push({ type: "size", value: SZ.base });
-  out.push({ type: "text", text: solidLine(cols) });
-  out.push({ type: "align", value: "center" });
-  if (isPaidOnline) {
-    out.push({ type: "textBold", text: "[OK] PAYE EN LIGNE" });
+  if (meta.isCash) {
+    out.push({ type: "align", value: "center" });
     out.push({ type: "size", value: SZ.small });
-    out.push({ type: "text", text: "Ne rien encaisser" });
-  } else if (isCash) {
-    out.push({
-      type: "textBold",
-      text: `A ENCAISSER : ${formatDA(order.total_da)}`,
-    });
-    out.push({ type: "size", value: SZ.small });
-    out.push({ type: "text", text: `(paiement en especes ${handoffWord})` });
-  } else {
-    out.push({ type: "textBold", text: formatDA(order.total_da) });
+    out.push({ type: "text", text: `paiement en especes ${meta.handoffWord}` });
   }
-  out.push({ type: "align", value: "left" });
-  out.push({ type: "size", value: SZ.base });
-  out.push({ type: "text", text: solidLine(cols) });
 
   divider();
 
-  // ===== 11. QR DE RÉFÉRENCE — centré, encadré de DEUX lignes pleines =====
-  // Comme le « print test » Sunmi : du texte, deux lignes de séparation, puis
-  // le QR. Encode UNIQUEMENT la référence publique (jamais le PIN de retrait —
-  // secret communiqué de vive voix). QR natif `printQRCode` = rendu crisp.
-  const ref = order.order_number ?? shortId(order.id);
+  // ===== 9. BLOC INFOS : Heure commande / Client / Téléphone / Adresse =====
   out.push({ type: "align", value: "left" });
   out.push({ type: "size", value: SZ.base });
-  out.push({ type: "text", text: solidLine(cols) }); // ligne 1
+  const infoLine = (label: string, value: string) => {
+    for (const l of wrapWords(asciize(`${label} : ${value}`), cols, cols)) {
+      out.push({ type: "text", text: l });
+    }
+  };
+  infoLine("Heure commande", formatOrderClock(order.created_at));
+  infoLine("Client", order.customer_name);
+  infoLine(
+    "Telephone",
+    meta.isDelivery
+      ? (order.delivery_phone ?? order.customer_phone)
+      : order.customer_phone
+  );
+  if (meta.isDelivery && order.delivery_address) {
+    infoLine("Adresse", order.delivery_address);
+  }
+  // Instructions d'accès livraison (code porte, étage…), si présentes.
+  if (meta.isDelivery && order.delivery_note) {
+    infoLine("Acces", order.delivery_note);
+  }
+
+  divider();
+
+  // ===== 10. PIED dépendant du mode =====
   out.push({ type: "align", value: "center" });
-  out.push({ type: "size", value: SZ.small });
-  out.push({ type: "text", text: "REFERENCE COMMANDE" });
-  out.push({ type: "qr", data: ref, moduleSize: 8, errorLevel: 2 });
   out.push({ type: "size", value: SZ.base });
-  out.push({ type: "textBold", text: `#${ref}` });
-  out.push({ type: "align", value: "left" });
-  out.push({ type: "size", value: SZ.base });
-  out.push({ type: "text", text: solidLine(cols) }); // ligne 2
+  for (const l of wrapWords(asciize(meta.footerText), cols, cols)) {
+    out.push({ type: "textBold", text: l });
+  }
 
   out.push({ type: "wrap", n: 1 });
-
-  // ===== 12. MERCI + FOOTER (centré) =====
-  out.push({ type: "align", value: "center" });
-  out.push({ type: "size", value: SZ.base });
-  out.push({ type: "textBold", text: "Merci et a bientot !" });
-  out.push({ type: "size", value: SZ.small });
-  out.push({ type: "text", text: "- - - - - - - - - - -" });
-  out.push({ type: "text", text: `Commande via ${opts.appName ?? "Coligo"}` });
-  out.push({
-    type: "text",
-    text: `Imprime le ${formatShortDateTime(new Date().toISOString())}`,
-  });
-
-  // Reset final
   out.push({ type: "align", value: "left" });
 
-  // Sanitization ASCII finale (firmware V3 strict)
+  // Sanitization ASCII finale (firmware V3 strict).
   const sanitized = out.map((cmd): SunmiCommand => {
     switch (cmd.type) {
       case "text":
@@ -545,19 +354,6 @@ function previewAscii(commands: SunmiCommand[], cols: number): string {
       case "textInverse":
         lines.push(pad("[" + cmd.text.trim() + "]", align));
         break;
-      case "columns": {
-        const total = cmd.widths.reduce((a, b) => a + b, 0);
-        let line = "";
-        for (let i = 0; i < cmd.cols.length; i++) {
-          const w = Math.round((cmd.widths[i] / total) * cols);
-          const a = cmd.aligns?.[i] ?? "left";
-          const t = cmd.cols[i] ?? "";
-          const truncated = t.length > w ? t.slice(0, w) : t;
-          line += pad(truncated, a).slice(0, w);
-        }
-        lines.push(line);
-        break;
-      }
       case "qr":
         lines.push(pad("[QR " + cmd.data + "]", align));
         break;

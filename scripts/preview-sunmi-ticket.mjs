@@ -9,18 +9,18 @@
  * RÉELLE du terminal commerçant : rouleau 50 mm → 384 dots → **32 colonnes**
  * en police par défaut (cf. migration 0062 + `build-ticket-sunmi.ts`).
  *
- * Conventions de rendu :
+ * Mise en page calée sur la maquette cible style Deliveroo
+ * (`apercu-ticket-deliveroo.html`) :
  *   - *gras*               → texte emphase (ESC E/G), tout le corps l'est ;
  *   - **gras double-width** → textBoldStrong (ESC ! ), budget colonnes / 2 ;
- *   - [QR ...]             → printQRCode (référence publique uniquement).
+ *   - [INVERSE]            → bandeau vidéo inverse (GS B), mode + paiement.
  *
  * IMPORTANT : le PIN de retrait n'est JAMAIS imprimé (anti-fraude). Le ticket
- * met en avant le numéro de commande public (#A042) + son QR. On rend DEUX
- * exemples (RETRAIT et LIVRAISON) pour valider les deux mises en page.
+ * met en avant le numéro de commande public (#A042). On rend DEUX exemples
+ * (RETRAIT cash et LIVRAISON payée) pour valider les deux mises en page.
  */
 
 const COLS = 32; // Sunmi V3, rouleau 50 mm = 32 car. / ligne en taille normale
-const solid = "=".repeat(COLS);
 const dotted = "-".repeat(COLS);
 
 function pad(text, align = "left") {
@@ -65,114 +65,92 @@ function formatDA(n) {
   return n.toString() + " DA";
 }
 
-// Lignes d'un article : "2x nom .......... prix", nom long → wrap indenté.
-function itemLines(qty, name, price) {
+// Lignes d'un article (SANS prix) : "2x nom", nom long → wrap indenté.
+function itemLines(qty, name) {
   const prefix = `${qty}x `;
   const indent = " ".repeat(prefix.length);
-  const firstW = Math.max(1, COLS - prefix.length - price.length - 1);
-  const restW = Math.max(1, COLS - prefix.length);
-  const words = name.split(/\s+/);
-  const wrapped = [];
-  let cur = "";
-  for (const w of words) {
-    const width = wrapped.length === 0 ? firstW : restW;
-    if (!cur) cur = w;
-    else if (cur.length + 1 + w.length <= width) cur += " " + w;
-    else {
-      wrapped.push(cur);
-      cur = w;
-    }
-  }
-  if (cur) wrapped.push(cur);
-  const out = [lineLR(prefix + wrapped[0], price)];
-  for (let i = 1; i < wrapped.length; i++) out.push(indent + wrapped[i]);
+  const w = Math.max(1, COLS - prefix.length);
+  const wrapped = wrap(name, w);
+  const out = ["*" + prefix + wrapped[0] + "*"];
+  for (let i = 1; i < wrapped.length; i++)
+    out.push("*" + indent + wrapped[i] + "*");
   return out;
 }
 
 function render(order) {
   const lines = [];
-  const half = Math.floor(COLS / 2);
   const isDelivery = order.mode === "LIVRAISON";
-
-  // 1. En-tête
-  lines.push(pad("*" + order.merchant + "*", "center"));
-  lines.push(pad(order.locality, "center"));
-  // 2. Mode (gras entre deux lignes pleines — pas d'aplat noir, cf. firmware)
-  lines.push(solid);
-  lines.push(pad("*" + order.mode + "*", "center"));
-  lines.push(solid);
-  // 3. Numéro de commande énorme (référence publique)
-  lines.push(pad("**#" + order.orderNumber + "**", "center"));
-  // 4. Heure + (livraison) adresse centrée
-  lines.push(pad(order.mode + " A", "center"));
-  lines.push(pad("**" + order.time + "**", "center"));
-  if (isDelivery && order.address) {
-    for (const l of wrap(order.address))
-      lines.push(pad("*" + l + "*", "center"));
-  }
-  lines.push(dotted);
-  // 5. Méta client (+ note livraison)
-  lines.push(lineLR("Client", order.customer));
-  lines.push(
-    lineLR(
-      "Tel",
-      isDelivery && order.deliveryPhone ? order.deliveryPhone : order.phone
-    )
+  const totalUnits = order.items.reduce(
+    (s, g) => s + g.list.reduce((a, it) => a + it.qty, 0),
+    0
   );
-  lines.push(lineLR("Commande le", order.orderedAt));
-  if (isDelivery && order.deliveryNote) {
-    for (const l of wrap("Livraison: " + order.deliveryNote)) lines.push(l);
-  }
+  const banner = `${order.mode} - ${order.cash ? "CASH" : "PAYE"}`;
+  const timeLabel = isDelivery ? "Livrer pour" : "Retrait pour";
+  const totalLabel = order.cash ? "A ENCAISSER" : "Total";
+  const footer = isDelivery
+    ? "Code remis par le client au livreur (non imprime)"
+    : "Merci de votre confiance";
+
+  // 1. Logo + boutique
+  lines.push(pad("*Coligo*", "center"));
+  lines.push(pad(order.merchant, "center"));
+  // 2. Bandeau inversé mode + paiement
+  lines.push(pad("[ " + banner + " ]", "center"));
+  // 3. Numéro de commande énorme, aligné à gauche
+  lines.push("**#" + order.orderNumber + "**");
+  // 4. Heure
+  lines.push("*" + timeLabel + " : " + order.time + "*");
   lines.push(dotted);
-  // 6. Articles par catégorie
+  // 5. Précisions particulières (si note)
+  if (order.notes) {
+    lines.push("*Precisions particulieres*");
+    for (const l of wrap(order.notes)) lines.push(l);
+    lines.push(dotted);
+  }
+  // 6. Articles par catégorie (sans prix)
   for (const g of order.items) {
     const count = g.list.reduce((s, it) => s + it.qty, 0);
     lines.push("*" + g.cat.toUpperCase() + " (" + count + ")*");
-    for (const it of g.list) {
-      for (const l of itemLines(it.qty, it.name, formatDA(it.total)))
-        lines.push(l);
-    }
+    for (const it of g.list)
+      for (const l of itemLines(it.qty, it.name)) lines.push(l);
   }
-  if (order.notes) lines.push("-> " + order.notes);
   lines.push(dotted);
   // 7. Récap + TOTAL
-  if (order.fee > 0 || order.subtotal !== order.total) {
-    lines.push(lineLR("Sous-total", formatDA(order.subtotal)));
-  }
+  lines.push(lineLR("Nombre de produits", String(totalUnits)));
+  lines.push(lineLR("Sous-total", formatDA(order.subtotal)));
   if (order.fee > 0) {
     lines.push(
       lineLR(
-        isDelivery ? "Frais livraison" : "Frais service",
+        isDelivery ? "Frais de livraison" : "Frais de service",
         formatDA(order.fee)
       )
     );
   }
-  lines.push(
-    pad("**" + lineLR("TOTAL", formatDA(order.total), half) + "**", "center")
-  );
-  // 8. Bloc paiement encadré
-  lines.push(solid);
-  lines.push(
-    pad(
-      order.cash
-        ? "*A ENCAISSER : " + formatDA(order.total) + "*"
-        : "*[OK] PAYE EN LIGNE*",
-      "center"
-    )
-  );
-  lines.push(solid);
+  // (gras sur le ticket réel ; pas de marqueur ici pour montrer les 32 col. exactes)
+  lines.push(lineLR(totalLabel, formatDA(order.total)));
+  if (order.cash) {
+    lines.push(
+      pad(
+        "paiement en especes " + (isDelivery ? "a la livraison" : "au retrait"),
+        "center"
+      )
+    );
+  }
   lines.push(dotted);
-  // 9. QR de référence (jamais le PIN)
-  lines.push(solid);
-  lines.push(pad("REFERENCE COMMANDE", "center"));
-  lines.push(pad("[QR " + order.orderNumber + "]", "center"));
-  lines.push(pad("*#" + order.orderNumber + "*", "center"));
-  lines.push(solid);
-  // 10. Merci + footer
-  lines.push(pad("*Merci et a bientot !*", "center"));
-  lines.push(pad("- - - - - - - - - - -", "center"));
-  lines.push(pad("Commande via Coligo", "center"));
-  lines.push(pad("Imprime le " + order.orderedAt, "center"));
+  // 8. Bloc infos client
+  for (const l of wrap("Heure commande : " + order.orderedAt)) lines.push(l);
+  for (const l of wrap("Client : " + order.customer)) lines.push(l);
+  for (const l of wrap(
+    "Telephone : " +
+      (isDelivery && order.deliveryPhone ? order.deliveryPhone : order.phone)
+  ))
+    lines.push(l);
+  if (isDelivery && order.address) {
+    for (const l of wrap("Adresse : " + order.address)) lines.push(l);
+  }
+  lines.push(dotted);
+  // 9. Pied
+  for (const l of wrap(footer)) lines.push(pad("*" + l + "*", "center"));
 
   console.log(`\n+${"-".repeat(COLS)}+ (50 mm / 32 col. — ${order.mode})`);
   for (const l of lines) console.log("|" + l.padEnd(COLS).slice(0, COLS) + "|");
@@ -180,25 +158,18 @@ function render(order) {
 }
 
 const base = {
-  merchant: "Boulangerie Demo",
-  locality: "Bejaia - Akbou",
+  merchant: "Superette El Sar",
   orderNumber: "A042",
   customer: "Yacine Boudjellal",
   phone: "+213 555 12 34 56",
-  orderedAt: "25/05 18:00",
-  notes: "Sans oignons",
+  orderedAt: "11:38, 31 mai",
+  notes: "Sans oignons svp",
   items: [
-    {
-      cat: "Boulangerie",
-      list: [{ qty: 2, name: "Baguette tradition", total: 100 }],
-    },
-    {
-      cat: "Viennoiseries",
-      list: [{ qty: 4, name: "Croissant beurre", total: 400 }],
-    },
+    { cat: "Boulangerie", list: [{ qty: 2, name: "Baguette tradition" }] },
+    { cat: "Viennoiseries", list: [{ qty: 4, name: "Croissant beurre" }] },
     {
       cat: "Sandwichs",
-      list: [{ qty: 1, name: "Sandwich poulet maison artisanal", total: 1250 }],
+      list: [{ qty: 1, name: "Sandwich poulet maison artisanal" }],
     },
   ],
 };
@@ -207,27 +178,28 @@ const base = {
 render({
   ...base,
   mode: "RETRAIT",
-  time: "12:45",
+  time: "12:38",
   subtotal: 1750,
   fee: 0,
   total: 1750,
   cash: true,
 });
 
-// Exemple LIVRAISON (payé en ligne, adresse + note + frais).
+// Exemple LIVRAISON (payé en ligne, adresse + frais).
 render({
   ...base,
+  orderNumber: "A043",
   mode: "LIVRAISON",
-  time: "13:15",
-  address: "Cite des 300 logements, Bat B, 3e etage, porte 12",
-  deliveryPhone: "+213 770 00 11 22",
-  deliveryNote: "Sonner deux fois, code portail 1990",
-  subtotal: 1750,
-  fee: 250,
-  total: 2000,
+  time: "13:35",
+  address: "Cite Iheddaden, Bat B, Apt 4, Bejaia",
+  deliveryPhone: "+213 555 98 76 54",
+  notes: "PAS DE SACHET",
+  subtotal: 280,
+  fee: 180,
+  total: 460,
   cash: false,
 });
 
 console.log(
-  "\nLegende : *gras*, **gras double-width**, [QR ...] — PIN jamais imprime."
+  "\nLegende : *gras*, **gras double-width**, [ ... ] = bandeau inverse — PIN jamais imprime."
 );

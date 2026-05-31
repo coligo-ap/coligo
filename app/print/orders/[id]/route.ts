@@ -143,9 +143,9 @@ export async function GET(
   html, body { margin: 0; padding: 0; background: #fff; }
   body {
     width: ${widthMm}mm;
-    /* 2mm de marge de chaque côté → zone imprimable 76mm sur un rouleau 80mm. */
+    /* 2mm de marge de chaque côté → zone imprimable réelle. */
     padding: 2mm;
-    font-family: 'Courier New', 'Consolas', monospace;
+    font-family: Arial, Helvetica, "Segoe UI", sans-serif;
     font-size: 13px;
     color: #000;
     -webkit-print-color-adjust: exact;
