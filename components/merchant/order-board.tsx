@@ -179,20 +179,28 @@ function EmptyColumn({
   );
 }
 
-/** Minutes écoulées depuis `iso`, recalculées chaque minute. */
-function useElapsedMin(iso: string): number {
-  const [now, setNow] = useState(() => Date.now());
+/**
+ * Minutes écoulées depuis `iso`. `null` AVANT le montage client : évite le
+ * mismatch d'hydratation (le serveur n'a pas la même horloge que la tablette).
+ */
+function useElapsedMin(iso: string): number | null {
+  const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
+    setNow(Date.now());
     const t = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(t);
   }, []);
-  return Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60_000));
+  return now === null
+    ? null
+    : Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60_000));
 }
 
+/** Heure du créneau, fuseau Algérie figé → même rendu serveur ET client. */
 function slotTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("fr-DZ", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Africa/Algiers",
   });
 }
 
@@ -215,7 +223,7 @@ export function OrderCard({
   const hasNote = !!order.notes && order.notes !== "seed";
   const elapsed = useElapsedMin(order.created_at);
   // Urgence : commande à confirmer qui traîne (auto-refus à 15 min).
-  const urgent = column === "pending" && elapsed >= 8;
+  const urgent = column === "pending" && elapsed !== null && elapsed >= 8;
 
   return (
     <div
@@ -271,7 +279,7 @@ export function OrderCard({
               Note
             </Badge>
           )}
-          {column === "pending" && (
+          {column === "pending" && elapsed !== null && (
             <span
               className={cn(
                 "ml-auto text-[11px] font-semibold tabular-nums",

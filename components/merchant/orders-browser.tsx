@@ -45,13 +45,17 @@ const TONE_CLASSES: Record<string, string> = {
 };
 
 function fmtDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString("fr-DZ", { day: "numeric", month: "short" });
+  return new Date(iso).toLocaleDateString("fr-DZ", {
+    day: "numeric",
+    month: "short",
+    timeZone: "Africa/Algiers",
+  });
 }
 function fmtTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("fr-DZ", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Africa/Algiers",
   });
 }
 
