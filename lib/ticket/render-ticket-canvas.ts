@@ -62,7 +62,9 @@ export async function renderTicketCanvasBase64(
   if (typeof document === "undefined") return null;
 
   const W = dotsForWidth(opts.width);
-  const S = W / 384; // facteur d'échelle (1 en 50/58 mm, 1.5 en 80 mm)
+  // Échelle = laize (1 en 50/58 mm, 1.5 en 80 mm) × 1.05 : écriture +5% (demande
+  // proprio 2026-06-01). Polices ET interlignes scalent ensemble → pas de chevauchement.
+  const S = (W / 384) * 1.05;
   const PAD = Math.round(14 * S);
   const SANS = "sans-serif";
   const f = (px: number, bold = false) =>
@@ -281,9 +283,43 @@ export async function renderTicketCanvasBase64(
     y += qpx + Math.round(8 * S);
   }
 
-  // === 11. PIED ===
-  y = wrapDraw(meta.footerText, f(19, true), y, Math.round(24 * S));
-  y += Math.round(6 * S);
+  // === 11. PIED : remerciement CENTRÉ sous le QR ===
+  // Helper retour-ligne CENTRÉ (wrapDraw normal = aligné à gauche).
+  const wrapCenter = (txt: string, font: string, yTop: number, lh: number) => {
+    ctx.font = font;
+    ctx.textBaseline = "top";
+    const words = txt.split(/\s+/).filter(Boolean);
+    let line = "";
+    let yy = yTop;
+    const flush = () => {
+      ctx.fillText(line, (W - ctx.measureText(line).width) / 2, yy);
+      yy += lh;
+    };
+    for (const w of words) {
+      const t = line ? line + " " + w : w;
+      if (ctx.measureText(t).width > W - 2 * PAD && line) {
+        flush();
+        line = w;
+      } else {
+        line = t;
+      }
+    }
+    if (line) flush();
+    return yy;
+  };
+  y = wrapCenter(
+    "Merci pour votre confiance",
+    f(20, true),
+    y,
+    Math.round(25 * S)
+  );
+  // En livraison, garder la note opérationnelle (code non imprimé…).
+  if (meta.isDelivery && meta.footerText) {
+    y += Math.round(2 * S);
+    y = wrapCenter(meta.footerText, f(16), y, Math.round(20 * S));
+  }
+  // Ligne vide en bas pour déchirer le ticket proprement (+ feed/cut natif).
+  y += Math.round(36 * S);
 
   // === Recadrage à la hauteur réelle + binarisation N&B ===
   const H = Math.min(4000, Math.ceil(y));
