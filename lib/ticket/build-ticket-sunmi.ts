@@ -22,7 +22,7 @@
  * `ticket-format.ts`, source partagée avec le builder HTML/aperçu.
  */
 
-import type { TicketItem, TicketOrder } from "@/lib/ticket/build-ticket-html";
+import type { TicketOrder } from "@/lib/ticket/build-ticket-html";
 import type { PrintWidth } from "@/lib/types";
 import type { SunmiAlign, SunmiCommand } from "@/lib/native/sunmi-printer";
 import {
