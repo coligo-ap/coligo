@@ -15,7 +15,8 @@
  *   - [QR ...]             → printQRCode (référence publique uniquement).
  *
  * IMPORTANT : le PIN de retrait n'est JAMAIS imprimé (anti-fraude). Le ticket
- * met en avant le numéro de commande public (#A042) + son QR.
+ * met en avant le numéro de commande public (#A042) + son QR. On rend DEUX
+ * exemples (RETRAIT et LIVRAISON) pour valider les deux mises en page.
  */
 
 const COLS = 32; // Sunmi V3, rouleau 50 mm = 32 car. / ligne en taille normale
@@ -43,40 +44,26 @@ function lineLR(left, right, cols = COLS) {
   return l + " ".repeat(gap) + r;
 }
 
+/** Wrap greedy sur `width` colonnes (cf. wrapWords du builder). */
+function wrap(text, width = COLS) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let cur = "";
+  for (const w of words) {
+    if (!cur) cur = w;
+    else if (cur.length + 1 + w.length <= width) cur += " " + w;
+    else {
+      lines.push(cur);
+      cur = w;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [""];
+}
+
 function formatDA(n) {
   return n.toString() + " DA";
 }
-
-// Jeu d'essai (1 commande RETRAIT cash, 3 catégories, 1 note).
-const order = {
-  merchant: "Boulangerie Demo",
-  locality: "Bejaia - Akbou",
-  orderNumber: "A042",
-  mode: "RETRAIT",
-  pickupTime: "12:45",
-  customer: "Yacine Boudjellal",
-  phone: "+213 555 12 34 56",
-  orderedAt: "25/05 18:00",
-  notes: "Sans oignons",
-  subtotal: 1750,
-  serviceFee: 0,
-  total: 1750,
-  cash: true,
-  items: [
-    {
-      cat: "Boulangerie",
-      list: [{ qty: 2, name: "Baguette tradition", total: 100 }],
-    },
-    {
-      cat: "Viennoiseries",
-      list: [{ qty: 4, name: "Croissant beurre", total: 400 }],
-    },
-    {
-      cat: "Sandwichs",
-      list: [{ qty: 1, name: "Sandwich poulet maison artisanal", total: 1250 }],
-    },
-  ],
-};
 
 // Lignes d'un article : "2x nom .......... prix", nom long → wrap indenté.
 function itemLines(qty, name, price) {
@@ -102,74 +89,145 @@ function itemLines(qty, name, price) {
   return out;
 }
 
-const lines = [];
-const half = Math.floor(COLS / 2);
+function render(order) {
+  const lines = [];
+  const half = Math.floor(COLS / 2);
+  const isDelivery = order.mode === "LIVRAISON";
 
-// 1. En-tête
-lines.push(pad("*" + order.merchant + "*", "center"));
-lines.push(pad(order.locality, "center"));
-// 2. Mode (gras entre deux lignes pleines — pas d'aplat noir, cf. firmware)
-lines.push(solid);
-lines.push(pad("*" + order.mode + "*", "center"));
-lines.push(solid);
-// 3. Numéro de commande énorme (référence publique)
-lines.push(pad("**#" + order.orderNumber + "**", "center"));
-// 4. Heure de retrait
-lines.push(pad(order.mode + " A", "center"));
-lines.push(pad("**" + order.pickupTime + "**", "center"));
-lines.push(dotted);
-// 5. Méta client
-lines.push(lineLR("Client", order.customer));
-lines.push(lineLR("Tel", order.phone));
-lines.push(lineLR("Commande le", order.orderedAt));
-lines.push(dotted);
-// 6. Articles par catégorie
-for (const g of order.items) {
-  const count = g.list.reduce((s, it) => s + it.qty, 0);
-  lines.push("*" + g.cat.toUpperCase() + " (" + count + ")*");
-  for (const it of g.list) {
-    for (const l of itemLines(it.qty, it.name, formatDA(it.total)))
-      lines.push(l);
+  // 1. En-tête
+  lines.push(pad("*" + order.merchant + "*", "center"));
+  lines.push(pad(order.locality, "center"));
+  // 2. Mode (gras entre deux lignes pleines — pas d'aplat noir, cf. firmware)
+  lines.push(solid);
+  lines.push(pad("*" + order.mode + "*", "center"));
+  lines.push(solid);
+  // 3. Numéro de commande énorme (référence publique)
+  lines.push(pad("**#" + order.orderNumber + "**", "center"));
+  // 4. Heure + (livraison) adresse centrée
+  lines.push(pad(order.mode + " A", "center"));
+  lines.push(pad("**" + order.time + "**", "center"));
+  if (isDelivery && order.address) {
+    for (const l of wrap(order.address))
+      lines.push(pad("*" + l + "*", "center"));
   }
-}
-if (order.notes) lines.push("-> " + order.notes);
-lines.push(dotted);
-// 7. Récap + TOTAL
-if (order.serviceFee > 0 || order.subtotal !== order.total) {
-  lines.push(lineLR("Sous-total", formatDA(order.subtotal)));
-}
-if (order.serviceFee > 0)
-  lines.push(lineLR("Frais livraison", formatDA(order.serviceFee)));
-lines.push(
-  pad("**" + lineLR("TOTAL", formatDA(order.total), half) + "**", "center")
-);
-// 8. Bloc paiement encadré
-lines.push(solid);
-lines.push(
-  pad(
-    order.cash
-      ? "*A ENCAISSER : " + formatDA(order.total) + "*"
-      : "*[OK] PAYE EN LIGNE*",
-    "center"
-  )
-);
-lines.push(solid);
-lines.push(dotted);
-// 9. QR de référence (jamais le PIN)
-lines.push(solid);
-lines.push(pad("REFERENCE COMMANDE", "center"));
-lines.push(pad("[QR " + order.orderNumber + "]", "center"));
-lines.push(pad("*#" + order.orderNumber + "*", "center"));
-lines.push(solid);
-// 10. Merci + footer
-lines.push(pad("*Merci et a bientot !*", "center"));
-lines.push(pad("- - - - - - - - - - -", "center"));
-lines.push(pad("Commande via Coligo", "center"));
-lines.push(pad("Imprime le " + order.orderedAt, "center"));
+  lines.push(dotted);
+  // 5. Méta client (+ note livraison)
+  lines.push(lineLR("Client", order.customer));
+  lines.push(
+    lineLR(
+      "Tel",
+      isDelivery && order.deliveryPhone ? order.deliveryPhone : order.phone
+    )
+  );
+  lines.push(lineLR("Commande le", order.orderedAt));
+  if (isDelivery && order.deliveryNote) {
+    for (const l of wrap("Livraison: " + order.deliveryNote)) lines.push(l);
+  }
+  lines.push(dotted);
+  // 6. Articles par catégorie
+  for (const g of order.items) {
+    const count = g.list.reduce((s, it) => s + it.qty, 0);
+    lines.push("*" + g.cat.toUpperCase() + " (" + count + ")*");
+    for (const it of g.list) {
+      for (const l of itemLines(it.qty, it.name, formatDA(it.total)))
+        lines.push(l);
+    }
+  }
+  if (order.notes) lines.push("-> " + order.notes);
+  lines.push(dotted);
+  // 7. Récap + TOTAL
+  if (order.fee > 0 || order.subtotal !== order.total) {
+    lines.push(lineLR("Sous-total", formatDA(order.subtotal)));
+  }
+  if (order.fee > 0) {
+    lines.push(
+      lineLR(
+        isDelivery ? "Frais livraison" : "Frais service",
+        formatDA(order.fee)
+      )
+    );
+  }
+  lines.push(
+    pad("**" + lineLR("TOTAL", formatDA(order.total), half) + "**", "center")
+  );
+  // 8. Bloc paiement encadré
+  lines.push(solid);
+  lines.push(
+    pad(
+      order.cash
+        ? "*A ENCAISSER : " + formatDA(order.total) + "*"
+        : "*[OK] PAYE EN LIGNE*",
+      "center"
+    )
+  );
+  lines.push(solid);
+  lines.push(dotted);
+  // 9. QR de référence (jamais le PIN)
+  lines.push(solid);
+  lines.push(pad("REFERENCE COMMANDE", "center"));
+  lines.push(pad("[QR " + order.orderNumber + "]", "center"));
+  lines.push(pad("*#" + order.orderNumber + "*", "center"));
+  lines.push(solid);
+  // 10. Merci + footer
+  lines.push(pad("*Merci et a bientot !*", "center"));
+  lines.push(pad("- - - - - - - - - - -", "center"));
+  lines.push(pad("Commande via Coligo", "center"));
+  lines.push(pad("Imprime le " + order.orderedAt, "center"));
 
-console.log("\n+" + "-".repeat(COLS) + "+ (50 mm / 32 col.)");
-for (const l of lines) console.log("|" + l.padEnd(COLS).slice(0, COLS) + "|");
-console.log("+" + "-".repeat(COLS) + "+\n");
+  console.log(`\n+${"-".repeat(COLS)}+ (50 mm / 32 col. — ${order.mode})`);
+  for (const l of lines) console.log("|" + l.padEnd(COLS).slice(0, COLS) + "|");
+  console.log("+" + "-".repeat(COLS) + "+");
+}
+
+const base = {
+  merchant: "Boulangerie Demo",
+  locality: "Bejaia - Akbou",
+  orderNumber: "A042",
+  customer: "Yacine Boudjellal",
+  phone: "+213 555 12 34 56",
+  orderedAt: "25/05 18:00",
+  notes: "Sans oignons",
+  items: [
+    {
+      cat: "Boulangerie",
+      list: [{ qty: 2, name: "Baguette tradition", total: 100 }],
+    },
+    {
+      cat: "Viennoiseries",
+      list: [{ qty: 4, name: "Croissant beurre", total: 400 }],
+    },
+    {
+      cat: "Sandwichs",
+      list: [{ qty: 1, name: "Sandwich poulet maison artisanal", total: 1250 }],
+    },
+  ],
+};
+
+// Exemple RETRAIT (cash, pas d'adresse).
+render({
+  ...base,
+  mode: "RETRAIT",
+  time: "12:45",
+  subtotal: 1750,
+  fee: 0,
+  total: 1750,
+  cash: true,
+});
+
+// Exemple LIVRAISON (payé en ligne, adresse + note + frais).
+render({
+  ...base,
+  mode: "LIVRAISON",
+  time: "13:15",
+  address: "Cite des 300 logements, Bat B, 3e etage, porte 12",
+  deliveryPhone: "+213 770 00 11 22",
+  deliveryNote: "Sonner deux fois, code portail 1990",
+  subtotal: 1750,
+  fee: 250,
+  total: 2000,
+  cash: false,
+});
+
 console.log(
-  "Legende : *gras*, **gras double-width**, [QR ...] — PIN jamais imprime."
+  "\nLegende : *gras*, **gras double-width**, [QR ...] — PIN jamais imprime."
 );

@@ -61,6 +61,12 @@ export type TicketOrder = {
    * "pickup" → RETRAIT.
    */
   fulfillment_type?: FulfillmentType;
+  /** Adresse de livraison (snapshot) — affichée pour les commandes LIVRAISON. */
+  delivery_address?: string | null;
+  /** Téléphone de contact livraison (peut différer du client). */
+  delivery_phone?: string | null;
+  /** Instructions d'accès livraison (« code porte », « 3e étage »…). */
+  delivery_note?: string | null;
 };
 
 export type BuildTicketOptions = {
@@ -249,6 +255,25 @@ export async function buildTicketHTML(
     ? `<div class="sub">${escapeHtml(order.merchant_locality)}</div>`
     : "";
 
+  // Adresse de livraison, centrée sous l'heure — uniquement en livraison.
+  const deliveryAddressBlock =
+    isDelivery && order.delivery_address
+      ? `<div class="deliv-addr">${escapeHtml(order.delivery_address)}</div>`
+      : "";
+
+  // Téléphone affiché : contact livraison si présent, sinon celui du client.
+  const contactPhone =
+    isDelivery && order.delivery_phone
+      ? order.delivery_phone
+      : order.customer_phone;
+
+  // Instructions d'accès livraison (code porte, étage…), distinctes de la note
+  // de préparation — affichées dans le bloc méta.
+  const deliveryNoteRow =
+    isDelivery && order.delivery_note
+      ? `<div class="row"><span class="l">Livraison</span><span class="r">${escapeHtml(order.delivery_note)}</span></div>`
+      : "";
+
   // ─── QR de référence ────────────────────────────────────────────────────
   // Encadré par DEUX lignes pleines (séparation nette texte ↔ code, à la
   // manière du « print test » Sunmi). Encode UNIQUEMENT la référence publique
@@ -320,6 +345,12 @@ export async function buildTicketHTML(
     .tk .pickup { text-align: center; font-size: 20px; font-weight: bold; margin: 4px 0; }
     .tk .pickup small {
       display: block; font-size: 11px; font-weight: normal; letter-spacing: 1px;
+    }
+
+    /* Adresse de livraison (centrée sous l'heure) */
+    .tk .deliv-addr {
+      text-align: center; font-size: 13px; font-weight: bold;
+      margin: 2px 0 4px; word-break: break-word;
     }
 
     /* Rows label/valeur (Commandé le, Client, Tél, recap) */
@@ -398,15 +429,17 @@ export async function buildTicketHTML(
   <!-- 3. Numéro de commande énorme (référence de communication) -->
   <div class="ordernum">#${escapeHtml(order.order_number ?? shortId(order.id))}</div>
 
-  <!-- 4. Heure de retrait / livraison -->
+  <!-- 4. Heure de retrait / livraison + adresse (livraison) -->
   <div class="pickup"><small>${timeLabel}</small>${escapeHtml(formatTime(order.pickup_slot_at))}</div>
+  ${deliveryAddressBlock}
 
   <hr class="divider">
 
   <!-- 5. Méta commande/client -->
   <div class="row"><span class="l">Commandé le</span><span class="r">${escapeHtml(formatShortDateTime(order.created_at))}</span></div>
   <div class="row"><span class="l">Client</span><span class="r">${escapeHtml(order.customer_name)}</span></div>
-  <div class="row"><span class="l">Tél</span><span class="r">${escapeHtml(order.customer_phone)}</span></div>
+  <div class="row"><span class="l">Tél</span><span class="r">${escapeHtml(contactPhone)}</span></div>
+  ${deliveryNoteRow}
 
   ${badgeNewClient}
 

@@ -294,6 +294,16 @@ export function buildTicketSunmiCommands(
   out.push({ type: "size", value: SZ.large });
   out.push({ type: "textBoldStrong", text: formatTime(order.pickup_slot_at) });
 
+  // Adresse de livraison, centrée sous l'heure — UNIQUEMENT en livraison.
+  // Wrap propre sur la laize (les noms de rue longs passent à la ligne).
+  if (isDelivery && order.delivery_address) {
+    out.push({ type: "align", value: "center" });
+    out.push({ type: "size", value: SZ.base });
+    for (const l of wrapWords(asciize(order.delivery_address), cols, cols)) {
+      out.push({ type: "textBold", text: l });
+    }
+  }
+
   divider();
 
   // ===== 5. MÉTA (Client / Tél / Commandé le) =====
@@ -305,8 +315,27 @@ export function buildTicketSunmiCommands(
     out.push({ type: "text", text: lineLR(l, r, cols) });
   };
   metaRow("Client", order.customer_name);
-  metaRow("Tel", order.customer_phone);
+  metaRow(
+    "Tel",
+    isDelivery
+      ? (order.delivery_phone ?? order.customer_phone)
+      : order.customer_phone
+  );
   metaRow("Commande le", formatShortDateTime(order.created_at));
+
+  // Instructions d'accès livraison (code porte, étage…) — sous la méta, en
+  // petit, wrappées. Distinctes de la note de préparation (cf. plus bas).
+  if (isDelivery && order.delivery_note) {
+    out.push({ type: "size", value: SZ.small });
+    for (const l of wrapWords(
+      asciize(`Livraison: ${order.delivery_note}`),
+      cols,
+      cols
+    )) {
+      out.push({ type: "text", text: l });
+    }
+    out.push({ type: "size", value: SZ.base });
+  }
 
   // ===== 6. BADGE NOUVEAU CLIENT =====
   if (order.is_new_customer) {
