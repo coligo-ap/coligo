@@ -67,6 +67,14 @@ function asciize(input: string): string {
     .replace(/[^\x20-\x7E\n]/g, "");
 }
 
+/**
+ * Caractères par ligne en police par défaut (Font A, 12 dots/car) selon la
+ * laize papier, à 8 dots/mm :
+ *   - 50 mm (Sunmi V3, rouleau intégré) → ~384 dots imprimables → 32 car.
+ *   - 58 mm (Sunmi V2)                  → ~384 dots             → 32 car.
+ *   - 80 mm (imprimante comptoir)       → ~576 dots             → 48 car.
+ * Le double-width (textBoldStrong) = 24 dots/car → moitié (16 ou 24 car.).
+ */
 function columnsFor(width: PrintWidth): number {
   return width === 80 ? 48 : 32;
 }
@@ -151,14 +159,70 @@ function lineLR(left: string, right: string, cols: number): string {
   return l + " ".repeat(gap) + r;
 }
 
-/** Ligne article : `Nx Nom du produit ............ 1250 DA` (prix flush droite). */
-function lineItem(
+/**
+ * Découpe un texte en lignes ≤ width, en cassant sur les espaces (greedy).
+ * Un mot plus long que `width` est coupé durement (rare : nom collé). La
+ * première ligne peut avoir une largeur différente (`firstWidth`) pour
+ * laisser la place au prix sur la ligne d'en-tête.
+ */
+function wrapWords(
+  text: string,
+  firstWidth: number,
+  restWidth: number
+): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let cur = "";
+  const widthFor = () => (lines.length === 0 ? firstWidth : restWidth);
+  for (let w of words) {
+    // Mot plus long que la largeur courante → coupe dure.
+    while (w.length > widthFor()) {
+      if (cur) {
+        lines.push(cur);
+        cur = "";
+      }
+      const wmax = widthFor();
+      lines.push(w.slice(0, wmax));
+      w = w.slice(wmax);
+    }
+    if (!cur) cur = w;
+    else if (cur.length + 1 + w.length <= widthFor()) cur += " " + w;
+    else {
+      lines.push(cur);
+      cur = w;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [""];
+}
+
+/**
+ * Lignes d'un article façon Deliveroo, calées sur `cols` :
+ *   `2x Baguette tradition           100 DA`
+ * Nom trop long → retour à la ligne propre, indenté sous le nom, le prix
+ * restant aligné à droite sur la 1re ligne :
+ *   `1x Sandwich poulet maison      1250 DA`
+ *   `   artisanal extra`
+ */
+function itemLines(
   qty: string,
   name: string,
   price: string,
   cols: number
-): string {
-  return lineLR(`${qty} ${name}`, price, cols);
+): string[] {
+  const prefix = `${qty} `; // ex. "2x "
+  const indent = " ".repeat(prefix.length);
+  const firstNameW = Math.max(1, cols - prefix.length - price.length - 1);
+  const restNameW = Math.max(1, cols - prefix.length);
+  const nameLines = wrapWords(name, firstNameW, restNameW);
+  const out: string[] = [];
+  // 1re ligne : prefix + 1er segment du nom, prix collé à droite.
+  out.push(lineLR(prefix + nameLines[0], price, cols));
+  // Lignes suivantes : reste du nom, indenté sous le nom (pas de prix).
+  for (let i = 1; i < nameLines.length; i++) {
+    out.push(indent + nameLines[i]);
+  }
+  return out;
 }
 
 export function buildTicketSunmiCommands(
@@ -267,19 +331,20 @@ export function buildTicketSunmiCommands(
         type: "textBold",
         text: `${g.title.toUpperCase()} (${groupCount(g.items)})`,
       });
-      // Lignes articles : `Nx Nom .......... prix`, paddées sur une seule
-      // ligne pleine largeur (chemin `text` = même noir que les titres).
+      // Lignes articles : `Nx Nom .......... prix`, calées sur la laize.
+      // Nom trop long → retour à la ligne propre (chemin `text` = même noir
+      // que les titres). asciize est appliqué en fin de builder.
       for (const it of g.items) {
         const qty = String(it.quantity).replace(/\.0+$/, "") + "x";
-        out.push({
-          type: "text",
-          text: lineItem(
-            qty,
-            it.product_name,
-            formatDA(it.line_total_da),
-            cols
-          ),
-        });
+        const lines = itemLines(
+          qty,
+          asciize(it.product_name),
+          formatDA(it.line_total_da),
+          cols
+        );
+        for (const line of lines) {
+          out.push({ type: "text", text: line });
+        }
       }
     }
   }
@@ -308,7 +373,10 @@ export function buildTicketSunmiCommands(
     pushRecap("Sous-total", formatDA(subtotal));
   }
   if (order.service_fee_da > 0) {
-    pushRecap("Frais service", formatDA(order.service_fee_da));
+    pushRecap(
+      isDelivery ? "Frais livraison" : "Frais service",
+      formatDA(order.service_fee_da)
+    );
   }
   if (discount > 0) {
     const pct = subtotal > 0 ? Math.round((discount / subtotal) * 100) : 0;
@@ -377,7 +445,10 @@ export function buildTicketSunmiCommands(
 
   out.push({ type: "wrap", n: 1 });
 
-  // ===== 12. FOOTER =====
+  // ===== 12. MERCI + FOOTER (centré) =====
+  out.push({ type: "align", value: "center" });
+  out.push({ type: "size", value: SZ.base });
+  out.push({ type: "textBold", text: "Merci et a bientot !" });
   out.push({ type: "size", value: SZ.small });
   out.push({ type: "text", text: "- - - - - - - - - - -" });
   out.push({ type: "text", text: `Commande via ${opts.appName ?? "Coligo"}` });

@@ -214,7 +214,12 @@ export async function buildTicketHTML(
     recapRows.push(rowLR("Sous-total", formatDA(subtotal)));
   }
   if (order.service_fee_da > 0) {
-    recapRows.push(rowLR("Frais service", formatDA(order.service_fee_da)));
+    recapRows.push(
+      rowLR(
+        isDelivery ? "Frais livraison" : "Frais service",
+        formatDA(order.service_fee_da)
+      )
+    );
   }
   if (discount > 0) {
     const pct = subtotal > 0 ? Math.round((discount / subtotal) * 100) : 0;
@@ -371,8 +376,9 @@ export async function buildTicketHTML(
       letter-spacing: 1px; margin: 2px 0 4px;
     }
 
-    /* Pied de ticket */
-    .tk .foot { text-align: center; font-size: 11px; margin-top: 10px; }
+    /* Remerciement + pied de ticket */
+    .tk .thanks { text-align: center; font-weight: bold; font-size: 13px; margin-top: 12px; }
+    .tk .foot { text-align: center; font-size: 11px; margin-top: 6px; }
     .tk .foot-sep { letter-spacing: 2px; }
   `;
 
@@ -423,7 +429,8 @@ export async function buildTicketHTML(
           le client communique de vive voix au retrait / à la livraison.) -->
   ${qrBlock}
 
-  <!-- 10. Footer -->
+  <!-- 10. Remerciement + footer -->
+  <div class="thanks">Merci et à bientôt !</div>
   <div class="foot">
     <span class="foot-sep">— — — — — — — — — — —</span><br/>
     Commande via ${escapeHtml(opts.appName ?? "Coligo")}<br/>
