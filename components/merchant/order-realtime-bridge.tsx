@@ -128,7 +128,8 @@ export function OrderRealtimeBridge({
         .select(
           `id, customer_name, customer_phone, pickup_code, pickup_slot_at,
            created_at, notes, total_da, service_fee_da, cashback_da,
-           payment_method, payment_status,
+           payment_method, payment_status, fulfillment_type,
+           delivery_address_text, delivery_phone, delivery_note,
            order_items ( product_name, unit_price_da, quantity, line_total_da )`
         )
         .eq("id", orderId)
@@ -150,6 +151,10 @@ export function OrderRealtimeBridge({
         cashback_da: data.cashback_da,
         payment_method: data.payment_method,
         payment_status: data.payment_status,
+        fulfillment_type: data.fulfillment_type ?? "pickup",
+        delivery_address: data.delivery_address_text ?? null,
+        delivery_phone: data.delivery_phone ?? null,
+        delivery_note: data.delivery_note ?? null,
         items: (data.order_items ?? []).map((it) => ({
           product_name: it.product_name,
           quantity: Number(it.quantity),

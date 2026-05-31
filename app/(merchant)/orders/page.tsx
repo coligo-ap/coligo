@@ -113,7 +113,7 @@ export default async function OrdersPage({
     <OrdersListView
       orders={ordersList}
       merchantName={merchant?.name ?? "Coligo"}
-      printWidth={(merchant?.print_width ?? 58) as PrintWidth}
+      printWidth={(merchant?.print_width ?? 50) as PrintWidth}
       printCopies={merchant?.print_copies ?? 1}
       categoryMap={categoryMap}
       page={page}

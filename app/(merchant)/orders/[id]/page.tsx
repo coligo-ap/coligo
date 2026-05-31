@@ -41,7 +41,7 @@ export default async function OrderDetailPage({
          pickup_code, order_number, pickup_slot_at, notes, created_at,
          payment_method, payment_status,
          fulfillment_type, delivery_mode, delivery_fee_da,
-         delivery_address_text, delivery_phone, delivery_distance_km,
+         delivery_address_text, delivery_phone, delivery_note, delivery_distance_km,
          delivery_picked_up_at,
          order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`
       )
@@ -85,7 +85,7 @@ export default async function OrderDetailPage({
     o.order_items.map((it) => it.product_name)
   );
   const ticketOrder = orderToTicket(o, merchant?.name ?? "Coligo", categoryMap);
-  const printWidth = (merchant?.print_width ?? 58) as PrintWidth;
+  const printWidth = (merchant?.print_width ?? 50) as PrintWidth;
   const printCopies = merchant?.print_copies ?? 1;
   const orderEvents = (events ?? []) as OrderEvent[];
   const meta = ORDER_STATUS_META[o.status];
