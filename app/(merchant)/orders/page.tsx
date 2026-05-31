@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { OrdersListView } from "@/components/merchant/orders-list-view";
-import { fetchCategoryMap } from "@/lib/ticket/category-map";
-import type { OrderStatus, OrderWithItems, PrintWidth } from "@/lib/types";
+import { OrdersBrowser } from "@/components/merchant/orders-browser";
+import type { OrderStatus, OrderWithItems } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -39,15 +38,6 @@ export default async function OrdersPage({
 
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select("id, name, print_width, print_copies")
-    .eq("user_id", user?.id ?? "")
-    .maybeSingle();
-
   // Query orders : pagination ranges + count exact pour calculer le nombre
   // de pages. RLS filtre déjà sur le commerçant connecté.
   let query = supabase
@@ -55,7 +45,7 @@ export default async function OrdersPage({
     .select(
       `id, merchant_id, customer_name, customer_phone, status,
        total_da, service_fee_da, cashback_da, commission_da,
-       pickup_code, pickup_slot_at, notes, created_at,
+       pickup_code, order_number, pickup_slot_at, notes, created_at,
        payment_method, payment_status,
        fulfillment_type, delivery_mode,
        delivery_address_text, delivery_phone, delivery_note,
@@ -103,20 +93,9 @@ export default async function OrdersPage({
   // dans les onglets de filtre. `head: true` + count exact = pas de payload.
   const statusCounts = await fetchStatusCounts(supabase);
 
-  const allNames = ordersList.flatMap((o) =>
-    o.order_items.map((it) => it.product_name)
-  );
-  const categoryMap = merchant
-    ? await fetchCategoryMap(supabase, merchant.id, allNames)
-    : {};
-
   return (
-    <OrdersListView
+    <OrdersBrowser
       orders={ordersList}
-      merchantName={merchant?.name ?? "Coligo"}
-      printWidth={(merchant?.print_width ?? 50) as PrintWidth}
-      printCopies={merchant?.print_copies ?? 1}
-      categoryMap={categoryMap}
       page={page}
       pageCount={pageCount}
       total={total}

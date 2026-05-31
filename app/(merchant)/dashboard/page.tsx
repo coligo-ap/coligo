@@ -1,20 +1,20 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import {
-  Bell,
-  ChefHat,
-  ChevronRight,
-  Inbox,
-  PackageCheck,
-  QrCode,
-} from "lucide-react";
+import { Bell, QrCode, TrendingUp } from "lucide-react";
 import { ShopStatusToggle } from "@/components/merchant/shop-status-toggle";
 import { OrdersCacheSync } from "@/components/merchant/orders-cache-sync";
-import { formatDA, cn } from "@/lib/utils";
+import { OrderBoard } from "@/components/merchant/order-board";
+import { formatDA } from "@/lib/utils";
 import { type OrderWithItems } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * DASHBOARD = centre de pilotage live. Bandeau résumé du jour en haut +
+ * BOARD opérationnel (À confirmer → En préparation → Prêtes) où l'on fait
+ * avancer chaque commande d'un tap. Pensé pour gérer beaucoup de commandes/jour.
+ * Le board se rafraîchit via `OrderRealtimeBridge` (router.refresh()).
+ */
 export default async function DashboardPage() {
   const supabase = await createClient();
 
@@ -33,8 +33,8 @@ export default async function DashboardPage() {
     .select(
       `
       id, merchant_id, customer_name, customer_phone, status,
-      total_da, pickup_code, pickup_slot_at, notes, created_at,
-      fulfillment_type,
+      total_da, pickup_code, order_number, pickup_slot_at, notes, created_at,
+      payment_method, payment_status, fulfillment_type,
       order_items (
         id, order_id, product_name, unit_price_da, quantity, line_total_da
       )
@@ -53,9 +53,7 @@ export default async function DashboardPage() {
     );
   }
 
-  // Anti-fraude prompt 9 : pour les commandes LIVRAISON, on masque le
-  // pickup_code côté commerçant. Le client communique son code au livreur ;
-  // si le commerçant le voyait, il pourrait le transmettre à l'avance.
+  // Anti-fraude : masquer pickup_code des livraisons côté commerçant.
   const ordersList = (
     (orders ?? []) as unknown as (OrderWithItems & {
       fulfillment_type?: string;
@@ -66,15 +64,14 @@ export default async function DashboardPage() {
       : (o as OrderWithItems)
   );
 
-  // Compteurs par statut actif (les commandes actives sont récentes → dans
-  // les 100 dernières).
+  // Commandes ACTIVES pour le board (le reste = historique sur /orders).
+  const activeOrders = ordersList.filter((o) =>
+    ["pending", "accepted", "preparing", "ready"].includes(o.status)
+  );
   const pendingCount = ordersList.filter((o) => o.status === "pending").length;
-  const inPrepCount = ordersList.filter(
-    (o) => o.status === "accepted" || o.status === "preparing"
-  ).length;
-  const readyCount = ordersList.filter((o) => o.status === "ready").length;
 
-  // Gains du jour
+  // Stats du jour (Algérie : on s'appuie sur l'heure locale du serveur Vercel
+  // — suffisant pour le résumé ; le détail comptable est dans Finances).
   const today = new Date();
   const todayOrders = ordersList.filter((o) => {
     const d = new Date(o.created_at);
@@ -89,14 +86,13 @@ export default async function DashboardPage() {
     .reduce((sum, o) => sum + o.total_da, 0);
 
   return (
-    <div className="mx-auto max-w-[1100px] p-4 lg:p-6 lg:px-8">
-      {/* Synchronise le snapshot serveur vers le cache Dexie (lecture offline). */}
+    <div className="mx-auto max-w-[1200px] p-4 lg:p-6 lg:px-8">
       <OrdersCacheSync orders={ordersList} />
 
-      {/* ─── Header : boutique + statut + cloche ─────────────────────────── */}
-      <header className="mb-5 flex items-center justify-between gap-3">
+      {/* ─── Header : boutique + statut + cloche ─── */}
+      <header className="mb-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-muted text-xs font-medium">Accueil</p>
+          <p className="text-muted text-xs font-medium">Pilotage</p>
           <h1 className="truncate text-2xl font-bold tracking-tight lg:text-3xl">
             {merchant?.name ?? "Ma boutique"}
           </h1>
@@ -104,8 +100,8 @@ export default async function DashboardPage() {
         <div className="flex shrink-0 items-center gap-2">
           <ShopStatusToggle initialPaused={merchant?.orders_paused ?? false} />
           <Link
-            href="/orders?status=pending"
-            aria-label="Commandes à confirmer"
+            href="/orders"
+            aria-label="Toutes les commandes"
             className="hover:bg-surface-3 text-muted border-border relative flex size-10 items-center justify-center rounded-full border bg-white"
           >
             <Bell className="size-4" />
@@ -118,112 +114,37 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      {/* ─── Bloc « Gagné aujourd'hui » ──────────────────────────────────── */}
-      <section className="from-primary-600 to-primary-700 mb-5 rounded-[20px] bg-gradient-to-br p-5 text-white shadow-sm lg:p-6">
-        <div className="flex items-end justify-between gap-4">
+      {/* ─── Bandeau résumé du jour (compact) ─── */}
+      <section className="from-primary-600 to-primary-700 mb-5 flex items-center justify-between gap-4 rounded-[18px] bg-gradient-to-br p-4 text-white shadow-sm lg:p-5">
+        <div className="flex items-center gap-4 lg:gap-6">
           <div>
-            <p className="text-primary-100 text-sm font-medium">
+            <p className="text-primary-100 inline-flex items-center gap-1.5 text-xs font-medium">
+              <TrendingUp className="size-3.5" />
               Gagné aujourd&apos;hui
             </p>
-            <p className="mt-1 text-4xl font-bold tracking-tight tabular-nums lg:text-5xl">
+            <p className="mt-0.5 text-2xl font-bold tracking-tight tabular-nums lg:text-4xl">
               {formatDA(todayRevenue)}
             </p>
-            <p className="text-primary-100 mt-1.5 text-sm">
-              {todayOrders.length} commande{todayOrders.length > 1 ? "s" : ""}{" "}
-              aujourd&apos;hui
+          </div>
+          <div className="border-l border-white/20 pl-4 lg:pl-6">
+            <p className="text-primary-100 text-xs font-medium">Commandes</p>
+            <p className="mt-0.5 text-2xl font-bold tabular-nums lg:text-4xl">
+              {todayOrders.length}
             </p>
           </div>
-          <Link
-            href="/orders/validate"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur hover:bg-white/25"
-          >
-            <QrCode className="size-4" />
-            <span className="hidden sm:inline">Valider</span>
-          </Link>
         </div>
+        <Link
+          href="/orders/validate"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur hover:bg-white/25"
+        >
+          <QrCode className="size-4" />
+          <span className="hidden sm:inline">Valider un retrait</span>
+          <span className="sm:hidden">Valider</span>
+        </Link>
       </section>
 
-      {/* ─── 3 grandes cartes cliquables par statut ──────────────────────── */}
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatusCard
-          href="/orders?status=pending"
-          label="À confirmer"
-          count={pendingCount}
-          icon={Inbox}
-          accent
-        />
-        <StatusCard
-          href="/orders?status=preparing"
-          label="En préparation"
-          count={inPrepCount}
-          icon={ChefHat}
-        />
-        <StatusCard
-          href="/orders?status=ready"
-          label="Prêtes"
-          count={readyCount}
-          icon={PackageCheck}
-        />
-      </section>
+      {/* ─── Board opérationnel live ─── */}
+      <OrderBoard orders={activeOrders} />
     </div>
-  );
-}
-
-/**
- * Grande carte cliquable d'un statut → liste filtrée des commandes.
- * `accent` = mise en avant violette (réservée à « À confirmer », l'action
- * la plus urgente pour le commerçant).
- */
-function StatusCard({
-  href,
-  label,
-  count,
-  icon: Icon,
-  accent = false,
-}: {
-  href: string;
-  label: string;
-  count: number;
-  icon: React.ComponentType<{ className?: string }>;
-  accent?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "group relative flex flex-col justify-between overflow-hidden rounded-[18px] border p-5 transition-colors sm:min-h-[150px]",
-        accent
-          ? "border-primary-600 bg-primary-600 hover:bg-primary-700 text-white"
-          : "border-border hover:bg-surface-2 bg-white"
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <div
-          className={cn(
-            "flex size-10 items-center justify-center rounded-[12px]",
-            accent ? "bg-white/15 text-white" : "bg-primary-50 text-primary-700"
-          )}
-        >
-          <Icon className="size-5" />
-        </div>
-        <ChevronRight
-          className={cn(
-            "size-5 transition-transform group-hover:translate-x-0.5",
-            accent ? "text-white/70" : "text-subtle"
-          )}
-        />
-      </div>
-      <div className="mt-4">
-        <div className="text-4xl font-bold tabular-nums">{count}</div>
-        <div
-          className={cn(
-            "mt-0.5 text-sm font-medium",
-            accent ? "text-primary-100" : "text-muted"
-          )}
-        >
-          {label}
-        </div>
-      </div>
-    </Link>
   );
 }
