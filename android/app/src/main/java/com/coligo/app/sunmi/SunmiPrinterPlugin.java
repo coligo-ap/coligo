@@ -425,6 +425,29 @@ public class SunmiPrinterPlugin extends Plugin {
         sunmi.printQRCode(data, moduleSize, errorLevel);
         return;
       }
+      case "line": {
+        // Ligne « API haut-niveau PURE » : setAlignment + setFontSize +
+        // printText, ZÉRO octet ESC/POS brut. Sert au diagnostic des
+        // tailles/positions ET de chemin alternatif : on soupçonne que le
+        // mélange printColumnsText + sendRAWData (emphase/alignement brut)
+        // est ce qui fait avancer le papier ~4 cm/ligne. Ici on n'envoie
+        // QUE des appels AIDL haut-niveau → interligne natif normal attendu.
+        String text = cmd.optString("text", "");
+        String av = cmd.optString("align", "left");
+        int align = "center".equals(av) ? 1 : "right".equals(av) ? 2 : 0;
+        currentAlign = align;
+        sunmi.setAlignment(align);
+        double size = cmd.optDouble("size", 24.0);
+        boolean snap = cmd.optBoolean("snap", true);
+        if (snap) {
+          sunmi.setFontSize((float) size);
+        } else {
+          sunmi.setFontSizeRaw((float) Math.max(8.0, Math.min(96.0, size)));
+        }
+        // printText attend son propre saut de ligne ; on garantit le \n.
+        sunmi.printText(text.endsWith("\n") ? text : text + "\n");
+        return;
+      }
       case "wrap": {
         sunmi.lineWrap(cmd.optInt("n", 1));
         return;

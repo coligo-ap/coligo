@@ -162,6 +162,15 @@ public final class SunmiService {
     requireService().setFontSize(snapped, SILENT_CALLBACK);
   }
 
+  /**
+   * Pousse la taille DEMANDÉE sans snap — réservé au diagnostic pour sonder
+   * les tailles hors set connu ({16,24,28,32,48}). Peut déclencher un
+   * « raise -5 Illegal parameter » silencieux si la valeur est rejetée.
+   */
+  public void setFontSizeRaw(float size) throws RemoteException {
+    requireService().setFontSize(size, SILENT_CALLBACK);
+  }
+
   public void printText(String text) throws RemoteException {
     requireService().printText(text, SILENT_CALLBACK);
   }

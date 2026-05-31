@@ -33,7 +33,23 @@ export type SunmiCommand =
   | { type: "wrap"; n: number }
   | { type: "cut" }
   | { type: "paper"; columns: number }
-  | { type: "lineSpacing"; dots: number };
+  | { type: "lineSpacing"; dots: number }
+  /**
+   * Ligne « API haut-niveau pure » : `setAlignment` + `setFontSize` +
+   * `printText`, SANS aucun octet ESC/POS brut. Sert au diagnostic des
+   * tailles/positions et de chemin d'impression alternatif (le mélange
+   * printColumnsText + sendRAWData fait avancer le papier ~4 cm/ligne).
+   *   - `size`  : taille firmware (snappée à {16,24,28,32,48} sauf snap:false)
+   *   - `align` : left | center | right (setAlignment haut-niveau)
+   *   - `snap`  : false → tente la taille brute sans snap (probe diagnostic)
+   */
+  | {
+      type: "line";
+      text: string;
+      size?: number;
+      align?: SunmiAlign;
+      snap?: boolean;
+    };
 
 export type PrintOptions = {
   commands: SunmiCommand[];

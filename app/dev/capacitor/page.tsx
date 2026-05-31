@@ -172,6 +172,77 @@ export default function CapacitorDiagPage() {
     }
   }
 
+  /**
+   * Test TAILLES + POSITIONS : 6 lignes, CHACUNE une taille de police
+   * différente ET un emplacement différent. Utilise la commande `line`
+   * (API haut-niveau PURE Sunmi : setAlignment + setFontSize + printText,
+   * AUCUN octet ESC/POS brut). Double objectif :
+   *   1. voir quelles tailles sortent réellement et comment l'alignement se
+   *      comporte (gauche / centre / droite) pour chaque taille ;
+   *   2. vérifier si ce chemin « propre » supprime le sur-interligne (4 cm/
+   *      ligne) observé avec printColumnsText + emphase brute.
+   *
+   * ⚠️ Nécessite l'APK reconstruit (commande native `line` ajoutée côté Java).
+   */
+  async function testSizesPrint() {
+    const p = sunmi();
+    if (!p) {
+      log("ERROR : Plugin Sunmi absent — impossible de tester l'impression");
+      return;
+    }
+    try {
+      const commands: Array<Record<string, unknown>> = [
+        { type: "paper", columns: 32 },
+        { type: "lineSpacing", dots: 0 },
+        // size = taille firmware ; align = position. 6 combinaisons distinctes.
+        {
+          type: "line",
+          text: "L1 taille 16 - gauche",
+          size: 16,
+          align: "left",
+        },
+        {
+          type: "line",
+          text: "L2 taille 24 - centre",
+          size: 24,
+          align: "center",
+        },
+        {
+          type: "line",
+          text: "L3 taille 28 - droite",
+          size: 28,
+          align: "right",
+        },
+        {
+          type: "line",
+          text: "L4 taille 32 - gauche",
+          size: 32,
+          align: "left",
+        },
+        {
+          type: "line",
+          text: "L5 taille 48 - centre",
+          size: 48,
+          align: "center",
+        },
+        // Ligne 6 : tente une taille HORS set connu (56) sans snap → sonde si
+        // le firmware accepte plus gros. Si rejetée, la ligne sortira vide.
+        {
+          type: "line",
+          text: "L6 taille 56 - droite",
+          size: 56,
+          align: "right",
+          snap: false,
+        },
+      ];
+      log(`test tailles : ${commands.length} commandes (6 lignes)`);
+      const res = await p.print({ commands, copies: 1 });
+      log(`print tailles → ${JSON.stringify(res)}`);
+    } catch (e) {
+      log(`print tailles threw : ${(e as Error)?.message ?? e}`);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl p-6">
       <h1 className="mb-4 text-xl font-bold">Diagnostic Capacitor / Sunmi</h1>
@@ -199,6 +270,13 @@ export default function CapacitorDiagPage() {
             className="inline-flex h-10 items-center rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700"
           >
             Test simple (5 lignes)
+          </button>
+          <button
+            type="button"
+            onClick={testSizesPrint}
+            className="inline-flex h-10 items-center rounded-lg bg-amber-600 px-4 text-sm font-medium text-white hover:bg-amber-700"
+          >
+            Test tailles + positions (6 lignes)
           </button>
           <button
             type="button"
