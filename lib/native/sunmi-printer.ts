@@ -49,7 +49,21 @@ export type SunmiCommand =
       size?: number;
       align?: SunmiAlign;
       snap?: boolean;
-    };
+    }
+  /**
+   * Ligne `printColumnsText` (SEULE API qui imprime sur ce firmware) avec UN
+   * SEUL `sendRAWData` ESC ! combinant emphase + taille. Sur ce modèle chaque
+   * `sendRAWData` fait avancer le papier → on en met UN seul par ligne (au
+   * lieu de 4 dans l'ancien chemin) pour tuer le sur-espacement.
+   *   - `mode` : masque ESC ! (bit0=Font B/petit, bit3=0x08 emphase,
+   *              bit4=0x10 double hauteur, bit5=0x20 double largeur).
+   *              Ex. 0x08 normal gras, 0x18 double-haut, 0x38 double tout.
+   *   - `align`: left | center | right.
+   */
+  | { type: "escline"; text: string; mode?: number; align?: SunmiAlign }
+  /** `printColumnsText` PUR (zéro octet brut, zéro setFontSize) — 1 colonne
+   * pleine largeur. Méthode officielle qui imprime sur ce firmware. */
+  | { type: "col"; text: string; align?: SunmiAlign };
 
 export type PrintOptions = {
   commands: SunmiCommand[];

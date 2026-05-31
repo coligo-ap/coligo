@@ -193,12 +193,11 @@ public class SunmiPrinterPlugin extends Plugin {
         // que le ticket soit complet — fait sortir le bandeau RETRAIT, le
         // #ID énorme, le code, tout.
         if (autoInit) sunmi.printerInit();
-        // Compacte l'interligne au MINIMUM absolu (0 dots additionnels).
-        // ESC 3 0 = pas d'espace en plus entre 2 line feeds. Combiné avec
-        // ESC 2 (sélection du line spacing default réduit) sur certains
-        // modèles. Si malgré ça ESC 3 est ignoré, on envoie aussi GS P
-        // (set print position) ou similaire.
-        sunmi.sendRawBytes(new byte[] {0x1B, 0x33, 0});
+        // PAS de ESC 3 brut ici. La doc officielle Sunmi (jiuiv5) n'expose
+        // AUCUNE API d'interligne et ses exemples (setAlignment + printText)
+        // sortent compact sans y toucher. printerInit() remet l'interligne au
+        // défaut firmware (~3-4 mm). Tout sendRAWData superflu fait avancer le
+        // papier sur ce modèle -> on s'en abstient (cause du « grand vide »).
 
         int n = commands.length();
         for (int i = 0; i < n; i++) {
@@ -437,15 +436,65 @@ public class SunmiPrinterPlugin extends Plugin {
         int align = "center".equals(av) ? 1 : "right".equals(av) ? 2 : 0;
         currentAlign = align;
         sunmi.setAlignment(align);
-        double size = cmd.optDouble("size", 24.0);
-        boolean snap = cmd.optBoolean("snap", true);
-        if (snap) {
-          sunmi.setFontSize((float) size);
-        } else {
-          sunmi.setFontSizeRaw((float) Math.max(8.0, Math.min(96.0, size)));
+        // setFontSize UNIQUEMENT si une taille est demandée explicitement. Sur
+        // ce firmware il lève souvent « -5 Illegal parameter » et CORROMPT la
+        // ligne (le printText qui suit ne sort pas). On l'isole en try/catch
+        // pour ne jamais bloquer l'impression du texte.
+        if (cmd.has("size")) {
+          double size = cmd.optDouble("size", 24.0);
+          boolean snap = cmd.optBoolean("snap", true);
+          try {
+            if (snap) {
+              sunmi.setFontSize((float) size);
+            } else {
+              sunmi.setFontSizeRaw((float) Math.max(8.0, Math.min(96.0, size)));
+            }
+          } catch (RemoteException e) {
+            Log.w(TAG, "setFontSize ignoré: " + e.getMessage());
+          }
         }
         // printText attend son propre saut de ligne ; on garantit le \n.
         sunmi.printText(text.endsWith("\n") ? text : text + "\n");
+        return;
+      }
+      case "col": {
+        // printColumnsText PUR : zéro octet brut, zéro setFontSize. Une seule
+        // colonne pleine largeur (paperColumns) avec l'alignement intégré.
+        // C'est l'autre méthode officielle qui imprime sur ce firmware ; sert
+        // à comparer rendu/compacité avec printText (case "line").
+        String text = cmd.optString("text", "");
+        String av = cmd.optString("align", "left");
+        int align = "center".equals(av) ? 1 : "right".equals(av) ? 2 : 0;
+        currentAlign = align;
+        sunmi.printColumnsText(
+            new String[] {text},
+            new int[] {paperColumns},
+            new int[] {align});
+        return;
+      }
+      case "escline": {
+        // Ligne via printColumnsText (SEULE API qui imprime sur ce firmware)
+        // avec UN SEUL sendRAWData (ESC ! mode) combinant emphase + taille.
+        // Diagnostic : chaque sendRAWData fait avancer le papier sur ce modele
+        // -> en limitant a 1 appel brut/ligne (au lieu de 4), on teste si le
+        // sur-espacement (4 cm/ligne) disparait. La taille passe par les bits
+        // ESC ! (Font B / double hauteur / double largeur), pas setFontSize
+        // (rejete -5 sur ce firmware).
+        String text = cmd.optString("text", "");
+        String av = cmd.optString("align", "left");
+        int align = "center".equals(av) ? 1 : "right".equals(av) ? 2 : 0;
+        currentAlign = align;
+        int mode = cmd.optInt("mode", 0x08); // defaut : emphase seule
+        // bit5 (0x20) = double largeur -> chaque char prend 2 dots-chars,
+        // donc on halve la grille colonnes pour ne pas deborder a droite.
+        boolean doubleWidth = (mode & 0x20) != 0;
+        int width = doubleWidth ? Math.max(1, paperColumns / 2) : paperColumns;
+        sunmi.sendRawBytes(new byte[] {0x1B, 0x21, (byte) mode}); // ESC ! mode
+        sunmi.printColumnsText(
+            new String[] {text},
+            new int[] {width},
+            new int[] {align});
+        sunmi.sendRawBytes(new byte[] {0x1B, 0x21, 0x00}); // ESC ! reset
         return;
       }
       case "wrap": {
