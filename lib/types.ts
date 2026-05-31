@@ -173,6 +173,10 @@ export type Order = {
   fulfillment_type?: FulfillmentType;
   delivery_mode?: DeliveryMode | null;
   delivery_fee_da?: number;
+  /** Snapshot livraison (mig 0038/0046) — présents si fulfillment = delivery. */
+  delivery_address_text?: string | null;
+  delivery_phone?: string | null;
+  delivery_note?: string | null;
   created_at: string;
 };
 
@@ -495,7 +499,7 @@ export type RateKey =
 // ===========================================================================
 export type AutoPrintMode = "off" | "on_receive" | "on_accept";
 
-export type PrintWidth = 58 | 80;
+export type PrintWidth = 50 | 58 | 80;
 
 export type PrintSettings = {
   auto_accept_orders: boolean;
@@ -514,6 +518,7 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   auto_accept_orders: false,
   auto_print: "off",
   print_copies: 1,
-  // Sunmi V3 (terminal cible) = 80mm. Migration 0032 a aligné la DB.
-  print_width: 80,
+  // Sunmi V3 (terminal cible) = rouleaux 50mm → 384 dots → 32 car./ligne.
+  // Migration 0062 a aligné la DB (l'ancien 80mm était erroné).
+  print_width: 50,
 };

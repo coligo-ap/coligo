@@ -35,8 +35,9 @@ export async function GET(
 ) {
   const { id } = await params;
   const url = new URL(req.url);
+  const widthParam = url.searchParams.get("width");
   const widthMm = (
-    url.searchParams.get("width") === "80" ? 80 : 58
+    widthParam === "80" ? 80 : widthParam === "58" ? 58 : 50
   ) as PrintWidth;
   const copies = Math.max(
     1,
@@ -69,6 +70,7 @@ export async function GET(
        total_da, service_fee_da, cashback_da, commission_da,
        pickup_code, order_number, pickup_slot_at, notes, created_at,
        payment_method, payment_status, fulfillment_type,
+       delivery_address_text, delivery_phone, delivery_note,
        order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`
     )
     .eq("id", id)

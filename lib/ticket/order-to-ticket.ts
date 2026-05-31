@@ -40,8 +40,7 @@ export function orderToTicket(
     payment_method: order.payment_method,
     payment_status: order.payment_status,
     fulfillment_type: order.fulfillment_type ?? "pickup",
-    delivery_address:
-      order.delivery_address_text ?? order.delivery_address ?? null,
+    delivery_address: order.delivery_address_text ?? null,
     delivery_phone: order.delivery_phone ?? null,
     delivery_note: order.delivery_note ?? null,
     is_new_customer: extras.isNewCustomer ?? false,
