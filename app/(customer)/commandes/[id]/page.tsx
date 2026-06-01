@@ -1,13 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Banknote,
-  Check,
-  Clock,
-  MapPin,
-  Sparkles,
-} from "lucide-react";
+import { ArrowLeft, Banknote, Check, Clock, MapPin, X } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
@@ -169,8 +162,47 @@ export default async function CustomerOrderDetailPage({
       })
     : null;
 
+  // ─── Hero piloté par le STATUT (le client voit où en est sa commande d'un
+  // coup d'œil — c'est le « suivi » résumé, sans doublon avec la timeline). ───
+  const orderNumber = (order as { order_number: string | null }).order_number;
+  const heroTitle =
+    status === "completed"
+      ? isDelivery
+        ? "Commande livrée !"
+        : "Commande récupérée !"
+      : status === "cancelled"
+        ? "Commande annulée"
+        : status === "ready"
+          ? isDelivery
+            ? "Prête — en attente du livreur"
+            : "Prête à récupérer !"
+          : status === "preparing" || status === "accepted"
+            ? "En préparation"
+            : "Commande envoyée";
+  const heroSub =
+    status === "cancelled"
+      ? "Cette commande a été annulée."
+      : isDelivery
+        ? isCash
+          ? `À régler : ${formatDA(order.total_da)} en espèces au livreur.`
+          : "Tiens ton code prêt pour le livreur à la remise."
+        : needsCode
+          ? "Montre ton code au commerçant au retrait."
+          : "Donne ton n° de commande au commerçant (paiement en espèces).";
+  const heroTone =
+    status === "cancelled"
+      ? "from-danger-500 to-danger-600"
+      : status === "completed" || status === "ready"
+        ? "from-success-500 to-success-600"
+        : "from-primary-600 to-primary-700";
+  const HeroIcon =
+    status === "cancelled" ? X : status === "completed" ? Check : Clock;
+
   return (
     <CustomerShell>
+      {/* Suivi live (Realtime + polling) : pop-up + son sur changement de statut. */}
+      <CustomerOrderLive orderId={order.id} initialStatus={status} />
+
       <div className="mx-auto max-w-2xl px-4 py-4 pb-24 lg:px-6 lg:py-8">
         <Link
           href="/commandes"
@@ -180,41 +212,71 @@ export default async function CustomerOrderDetailPage({
           Mes commandes
         </Link>
 
-        {/* Confirmation */}
-        <div className="from-success-500 to-success-600 mb-5 rounded-[20px] bg-gradient-to-br p-6 text-white shadow-md">
+        {/* ─── 1. HERO : statut courant + n° commande ─── */}
+        <div
+          className={cn(
+            "mb-4 rounded-[20px] bg-gradient-to-br p-6 text-white shadow-md",
+            heroTone
+          )}
+        >
           <div className="flex items-center justify-between gap-3">
-            <Check className="size-8" />
-            {(order as { order_number: string | null }).order_number && (
+            <HeroIcon className="size-8" />
+            {orderNumber && (
               <span className="rounded-full bg-white/20 px-3 py-1 text-sm font-bold tracking-wide">
-                N° {(order as { order_number: string | null }).order_number}
+                N° {orderNumber}
               </span>
             )}
           </div>
-          <h1 className="mt-2 text-2xl leading-tight font-bold">
-            Commande confirmée !
-          </h1>
-          <p className="mt-1 text-sm text-white/85">
-            {isDelivery
-              ? isCash
-                ? `Règle ${formatDA(order.total_da)} en espèces au livreur à la remise.`
-                : "Communique ton code au livreur à la remise."
-              : "Montre ce code au commerçant lors du retrait."}
-          </p>
+          <h1 className="mt-2 text-2xl leading-tight font-bold">{heroTitle}</h1>
+          <p className="mt-1 text-sm text-white/85">{heroSub}</p>
         </div>
 
-        {/* Suivi live (Realtime + auto-refresh) */}
-        <CustomerOrderLive orderId={order.id} initialStatus={status} />
-
-        {/* Timeline livraison (uniquement si fulfillment=delivery) */}
-        {order.fulfillment_type === "delivery" && (
-          <div className="border-border bg-surface mb-5 rounded-[20px] border p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between gap-2">
+        {/* ─── 2. ACTION : code + QR (payé en ligne) OU montant cash ───
+            Masqué si la commande est annulée (plus rien à faire). */}
+        {status !== "cancelled" &&
+          (needsCode ? (
+            <div className="border-border bg-surface mb-4 rounded-[20px] border p-6 text-center shadow-sm">
               <p className="text-muted text-xs font-semibold tracking-wider uppercase">
-                Suivi de ta livraison
+                Ton code de validation
               </p>
-              {etaMin != null && (
+              <p className="text-foreground mt-1 text-5xl font-bold tracking-[0.2em] tabular-nums lg:text-6xl">
+                {order.pickup_code}
+              </p>
+              <div className="mt-4 flex justify-center">
+                <OrderQr value={order.pickup_code} />
+              </div>
+              <p className="text-subtle mt-3 text-xs">
+                À communiquer {isDelivery ? "au livreur" : "au commerçant"} à la
+                remise — c&apos;est ta sécurité (déjà payé en ligne).
+              </p>
+            </div>
+          ) : (
+            <div className="border-warning-200 bg-warning-50 mb-4 rounded-[20px] border p-6 text-center shadow-sm">
+              <Banknote className="text-warning-600 mx-auto size-7" />
+              <p className="text-warning-800 mt-2 text-xs font-semibold tracking-wider uppercase">
+                À payer en espèces
+              </p>
+              <p className="text-foreground mt-1 text-4xl font-bold tabular-nums">
+                {formatDA(order.total_da)}
+              </p>
+              <p className="text-warning-800/80 mt-1 text-sm">
+                {isDelivery
+                  ? "au livreur à la remise. Aucun code à communiquer."
+                  : "au commerçant au retrait. Donne ton n° de commande."}
+              </p>
+            </div>
+          ))}
+
+        {/* ─── 3. SUIVI (un SEUL bloc selon le mode) ─── */}
+        {isDelivery ? (
+          <div className="border-border bg-surface mb-4 rounded-[20px] border p-6 shadow-sm">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h2 className="text-foreground text-sm font-semibold">
+                Suivi de ta livraison
+              </h2>
+              {etaMin != null && status !== "completed" && (
                 <span className="bg-primary-50 text-primary-700 border-primary-200 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold">
-                  Livraison estimée · {formatEta(etaMin)}
+                  Estimée · {formatEta(etaMin)}
                 </span>
               )}
             </div>
@@ -224,8 +286,6 @@ export default async function CustomerOrderDetailPage({
               arrivedAt={order.delivery_arrived_at as string | null}
               deliveredAt={order.delivery_delivered_at as string | null}
             />
-
-            {/* Carte de suivi LIVE : visible quand le livreur est en route. */}
             {inTransit && destLat != null && destLng != null && (
               <div className="mt-4 border-t pt-4">
                 <CustomerDeliveryMap
@@ -236,55 +296,133 @@ export default async function CustomerOrderDetailPage({
                 />
               </div>
             )}
-
-            <p className="text-subtle mt-4 border-t pt-3 text-xs">
-              {isCash
-                ? "💡 Règle le montant en espèces au livreur à la remise. Aucun code à communiquer."
-                : "💡 Communique ton code à 6 chiffres au livreur à la remise pour valider la livraison. Si quelqu'un d'autre réceptionne, transmets-lui ce code."}
-            </p>
-          </div>
-        )}
-
-        {/* Code de retrait + QR.
-            - RETRAIT : code montré au commerçant.
-            - LIVRAISON EN LIGNE : code communiqué au livreur.
-            - LIVRAISON CASH : pas de code → on affiche plutôt la consigne de
-              paiement en espèces. */}
-        {needsCode ? (
-          <div className="border-border bg-surface mb-5 rounded-[20px] border p-6 text-center shadow-sm">
-            <p className="text-muted text-xs font-semibold tracking-wider uppercase">
-              Code de validation (payé en ligne)
-            </p>
-            <p className="text-foreground mt-1 text-5xl font-bold tracking-[0.2em] tabular-nums lg:text-6xl">
-              {order.pickup_code}
-            </p>
-            <div className="mt-4 flex justify-center">
-              <OrderQr value={order.pickup_code} />
-            </div>
-            <p className="text-subtle mt-3 text-xs">
-              À communiquer {isDelivery ? "au livreur" : "au commerçant"} au
-              moment de la remise — c&apos;est ta sécurité.
-            </p>
           </div>
         ) : (
-          <div className="border-warning-200 bg-warning-50 mb-5 rounded-[20px] border p-6 text-center shadow-sm">
-            <Banknote className="text-warning-600 mx-auto size-7" />
-            <p className="text-warning-800 mt-2 text-xs font-semibold tracking-wider uppercase">
-              {isDelivery ? "Paiement à la livraison" : "Paiement au retrait"}
-            </p>
-            <p className="text-foreground mt-1 text-3xl font-bold tabular-nums">
-              {formatDA(order.total_da)}
-            </p>
-            <p className="text-warning-800/80 mt-1 text-sm">
-              {isDelivery
-                ? "à régler en espèces au livreur. Aucun code à communiquer."
-                : "à régler en espèces au commerçant. Donne simplement ton numéro de commande ci-dessus."}
-            </p>
-          </div>
+          status !== "cancelled" && (
+            <section className="border-border bg-surface mb-4 rounded-[20px] border p-5 shadow-sm">
+              <h2 className="text-foreground mb-3 text-sm font-semibold">
+                Suivi de ta commande
+              </h2>
+              <ol className="space-y-2 text-sm">
+                {ORDER_FLOW.map((step, idx) => {
+                  const currentIdx = ORDER_FLOW.findIndex(
+                    (s) => s.status === status
+                  );
+                  const reached = currentIdx >= 0 && idx <= currentIdx;
+                  const active = currentIdx === idx;
+                  return (
+                    <li
+                      key={step.status}
+                      className={cn(
+                        "flex items-center gap-3",
+                        reached ? "text-foreground" : "text-subtle"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                          reached
+                            ? "bg-success-500 text-white"
+                            : "bg-surface-3 text-muted"
+                        )}
+                      >
+                        {reached ? <Check className="size-3.5" /> : idx + 1}
+                      </span>
+                      <span className={cn("flex-1", active && "font-semibold")}>
+                        {step.label}
+                      </span>
+                      {active && <Badge tone={meta.tone}>{meta.label}</Badge>}
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
+          )
         )}
 
-        {/* Bloc commerce */}
-        <div className="border-border bg-surface mb-5 rounded-[16px] border p-5">
+        {/* ─── 4. CRÉNEAU / ADRESSE + note (infos pratiques, sans doublon) ─── */}
+        <div className="border-border bg-surface mb-4 rounded-[16px] border p-4">
+          <div className="text-muted mb-1 flex items-center gap-1.5 text-xs font-medium">
+            <Clock className="size-3.5" />
+            {isDelivery ? "Adresse de livraison" : "Créneau de retrait"}
+          </div>
+          <p className="text-foreground text-sm">
+            {isDelivery
+              ? ((order as { delivery_address_text: string | null })
+                  .delivery_address_text ?? "Adresse renseignée à la commande")
+              : order.pickup_type === "slot" &&
+                  order.pickup_slot_start &&
+                  order.pickup_slot_end
+                ? formatSlotRange(
+                    new Date(order.pickup_slot_start),
+                    new Date(order.pickup_slot_end)
+                  )
+                : formatAsapReady(new Date(order.pickup_slot_at))}
+          </p>
+          {order.customer_note && (
+            <p className="text-muted border-border mt-2 border-t pt-2 text-xs">
+              Note : {order.customer_note}
+            </p>
+          )}
+        </div>
+
+        {/* ─── 5. DÉTAIL (articles + total) ─── */}
+        <div className="border-border bg-surface mb-4 rounded-[16px] border p-5">
+          <h2 className="text-foreground mb-3 text-base font-semibold">
+            Détail de la commande
+          </h2>
+          <ul className="divide-border divide-y">
+            {items.map((it) => (
+              <li
+                key={it.id}
+                className="flex items-center justify-between gap-3 py-2.5 text-sm"
+              >
+                <span className="text-foreground line-clamp-1">
+                  {it.quantity}× {it.product_name}
+                </span>
+                <span className="text-foreground tabular-nums">
+                  {formatDA(it.line_total_da)}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <dl className="border-border mt-3 space-y-1.5 border-t pt-3 text-sm">
+            <Row label="Sous-total" value={formatDA(order.subtotal_da)} />
+            {order.discount_da > 0 && (
+              <Row
+                label="Promo"
+                value={`− ${formatDA(order.discount_da)}`}
+                tone="success"
+              />
+            )}
+            {isDelivery && order.delivery_fee_da > 0 && (
+              <Row label="Livraison" value={formatDA(order.delivery_fee_da)} />
+            )}
+            {order.cashback_estimate_da > 0 && (
+              <Row
+                label="Cashback estimé"
+                value={`+ ${formatDA(order.cashback_estimate_da)}`}
+                tone="primary"
+              />
+            )}
+            <div className="border-border mt-2 border-t pt-2" />
+            <Row
+              label={
+                isCash
+                  ? "Total (à payer en espèces)"
+                  : isOnlinePending
+                    ? "Total (paiement en attente)"
+                    : "Total (payé en ligne)"
+              }
+              value={formatDA(order.total_da)}
+              bold
+            />
+          </dl>
+        </div>
+
+        {/* ─── 6. COMMERCE ─── */}
+        <div className="border-border bg-surface mb-4 rounded-[16px] border p-5">
           <div className="flex items-center gap-3">
             {merchant.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -327,139 +465,7 @@ export default async function CustomerOrderDetailPage({
           </div>
         </div>
 
-        {/* Récap */}
-        <div className="border-border bg-surface mb-5 rounded-[16px] border p-5">
-          <h2 className="text-foreground mb-3 text-base font-semibold">
-            Détail de la commande
-          </h2>
-          <ul className="divide-border divide-y">
-            {items.map((it) => (
-              <li
-                key={it.id}
-                className="flex items-center justify-between gap-3 py-2.5 text-sm"
-              >
-                <span className="text-foreground line-clamp-1">
-                  {it.quantity}× {it.product_name}
-                </span>
-                <span className="text-foreground tabular-nums">
-                  {formatDA(it.line_total_da)}
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          <dl className="border-border mt-3 space-y-1.5 border-t pt-3 text-sm">
-            <Row label="Sous-total" value={formatDA(order.subtotal_da)} />
-            {order.discount_da > 0 && (
-              <Row
-                label="Promo"
-                value={`− ${formatDA(order.discount_da)}`}
-                tone="success"
-              />
-            )}
-            {order.cashback_estimate_da > 0 && (
-              <Row
-                label="Cashback estimé"
-                value={`+ ${formatDA(order.cashback_estimate_da)}`}
-                tone="primary"
-              />
-            )}
-            <div className="border-border mt-2 border-t pt-2" />
-            <Row
-              label={
-                isCash
-                  ? "À payer en espèces"
-                  : isOnlinePending
-                    ? "En attente de paiement"
-                    : "Payé en ligne"
-              }
-              value={formatDA(order.total_da)}
-              bold
-            />
-          </dl>
-        </div>
-
-        {/* Mode + créneau */}
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Info icon={Clock} title="Retrait">
-            {order.pickup_type === "slot" &&
-            order.pickup_slot_start &&
-            order.pickup_slot_end
-              ? formatSlotRange(
-                  new Date(order.pickup_slot_start),
-                  new Date(order.pickup_slot_end)
-                )
-              : formatAsapReady(new Date(order.pickup_slot_at))}
-          </Info>
-          <Info icon={isCash ? Banknote : Sparkles} title="Paiement">
-            {isCash ? (
-              "Espèces au retrait"
-            ) : order.payment_status === "paid" ? (
-              <span className="text-success-700 font-semibold">
-                Payé en ligne
-              </span>
-            ) : order.payment_status === "failed" ? (
-              <span className="text-danger-700 font-semibold">
-                Paiement échoué
-              </span>
-            ) : (
-              "En ligne"
-            )}
-            {isOnlinePending && (
-              <span className="text-warning-700 mt-0.5 block text-xs">
-                En attente de confirmation Chargily…
-              </span>
-            )}
-          </Info>
-        </div>
-
-        {order.customer_note && (
-          <p className="text-muted bg-surface-2 mt-3 rounded-[12px] px-3 py-2 text-xs">
-            Note : {order.customer_note}
-          </p>
-        )}
-
-        {/* Timeline statut */}
-        <section className="border-border bg-surface mt-5 rounded-[16px] border p-5">
-          <h2 className="text-foreground mb-3 text-sm font-semibold">
-            Suivi de ta commande
-          </h2>
-          <ol className="space-y-2 text-sm">
-            {ORDER_FLOW.map((step, idx) => {
-              const currentIdx = ORDER_FLOW.findIndex(
-                (s) => s.status === status
-              );
-              const reached = currentIdx >= 0 && idx <= currentIdx;
-              const active = currentIdx === idx;
-              return (
-                <li
-                  key={step.status}
-                  className={cn(
-                    "flex items-center gap-3",
-                    reached ? "text-foreground" : "text-subtle"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
-                      reached
-                        ? "bg-success-500 text-white"
-                        : "bg-surface-3 text-muted"
-                    )}
-                  >
-                    {reached ? <Check className="size-3.5" /> : idx + 1}
-                  </span>
-                  <span className={cn("flex-1", active && "font-semibold")}>
-                    {step.label}
-                  </span>
-                  {active && <Badge tone={meta.tone}>{meta.label}</Badge>}
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-
-        {/* Notation du livreur (commande livrée + livreur assigné). */}
+        {/* ─── 7. Notation du livreur (commande livrée + livreur assigné) ─── */}
         {driverReview && (
           <DriverReviewCard
             orderId={order.id}
@@ -469,26 +475,6 @@ export default async function CustomerOrderDetailPage({
         )}
       </div>
     </CustomerShell>
-  );
-}
-
-function Info({
-  icon: Icon,
-  title,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="border-border bg-surface rounded-[14px] border p-4">
-      <div className="text-muted mb-1 flex items-center gap-1.5 text-xs font-medium">
-        <Icon className="size-3.5" />
-        {title}
-      </div>
-      <div className="text-foreground text-sm">{children}</div>
-    </div>
   );
 }
 
