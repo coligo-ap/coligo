@@ -376,6 +376,7 @@ export function OrderRealtimeBridge({
           compte-à-rebours auto selon le réglage. */}
       <NewOrderOverlay
         order={queue[0] ?? null}
+        merchantId={merchantId}
         queued={Math.max(0, queue.length - 1)}
         autoAccept={settingsRef.current.auto_accept_orders}
         onResolved={resolveHead}
