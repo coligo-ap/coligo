@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import {
   Bot,
   Check,
-  ChevronDown,
   Eye,
   Layers,
   Loader2,
@@ -17,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import {
-  AUTO_PRINT_LABEL,
   type AutoPrintMode,
   type PrintSettings,
   type PrintWidth,
@@ -33,12 +31,9 @@ type Props = {
   merchantName: string;
 };
 
-type Row = "auto_accept_orders" | "auto_print" | "print_copies" | "print_width";
-
 export function PrintSettingsForm({ initial, merchantName }: Props) {
   const [state, setState] = useState<PrintSettings>(initial);
   const [pending, startTransition] = useTransition();
-  const [open, setOpen] = useState<Row | null>(null);
   const [previewCash, setPreviewCash] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [printing, setPrinting] = useState(false);
@@ -48,10 +43,6 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
     state.auto_print !== initial.auto_print ||
     state.print_copies !== initial.print_copies ||
     state.print_width !== initial.print_width;
-
-  function toggleOpen(row: Row) {
-    setOpen((cur) => (cur === row ? null : row));
-  }
 
   function save() {
     startTransition(async () => {
@@ -83,64 +74,43 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Résumé compact : tout l'état sur 4 chips lisibles d'un coup d'œil */}
-      <SummaryStrip state={state} />
-
-      {/* Accordéon : un réglage par ligne, déplié au clic */}
-      <div className="border-border bg-surface divide-border divide-y rounded-[14px] border">
-        <AccordionRow
+      {/* Réglages à plat — tout visible d'un coup, sans clic pour déplier. */}
+      <div className="space-y-3">
+        <SettingRow
           icon={Zap}
-          label="Acceptation auto"
-          value={state.auto_accept_orders ? "Activée" : "Désactivée"}
-          open={open === "auto_accept_orders"}
-          onToggle={() => toggleOpen("auto_accept_orders")}
+          label="Acceptation automatique"
+          help="Accepte les commandes après 10 s (vous pouvez refuser avant). Sinon, à valider sous 15 min."
         >
-          <p className="text-muted mb-3 text-xs">
-            Les nouvelles commandes sont acceptées automatiquement après un
-            compte-à-rebours de 10 s (vous pouvez refuser avant). Sinon, la
-            commande s&apos;affiche en plein écran et doit être acceptée sous 15
-            min, sans quoi elle est refusée.
-          </p>
           <Toggle
             on={state.auto_accept_orders}
             onChange={(on) =>
               setState((s) => ({ ...s, auto_accept_orders: on }))
             }
           />
-        </AccordionRow>
+        </SettingRow>
 
-        <AccordionRow
+        <SettingRow
           icon={Bot}
-          label="Impression auto"
-          value={AUTO_PRINT_LABEL[state.auto_print]}
-          open={open === "auto_print"}
-          onToggle={() => toggleOpen("auto_print")}
+          label="Impression automatique"
+          help="Quand imprimer le ticket sans intervention."
         >
-          <p className="text-muted mb-3 text-xs">
-            Quand imprimer le ticket sans intervention.
-          </p>
           <SegmentedSelect<AutoPrintMode>
             value={state.auto_print}
             options={[
-              { value: "off", label: "Désactivée" },
+              { value: "off", label: "Non" },
               { value: "on_receive", label: "À la réception" },
               { value: "on_accept", label: "À l'acceptation" },
             ]}
             onChange={(v) => setState((s) => ({ ...s, auto_print: v }))}
             block
           />
-        </AccordionRow>
+        </SettingRow>
 
-        <AccordionRow
+        <SettingRow
           icon={Layers}
-          label="Copies"
-          value={`${state.print_copies}×`}
-          open={open === "print_copies"}
-          onToggle={() => toggleOpen("print_copies")}
+          label="Nombre de copies"
+          help="Exemplaires imprimés à chaque commande."
         >
-          <p className="text-muted mb-3 text-xs">
-            Combien d&apos;exemplaires imprimer à chaque commande.
-          </p>
           <SegmentedSelect<number>
             value={state.print_copies}
             options={[
@@ -150,19 +120,13 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
             ]}
             onChange={(v) => setState((s) => ({ ...s, print_copies: v }))}
           />
-        </AccordionRow>
+        </SettingRow>
 
-        <AccordionRow
+        <SettingRow
           icon={Ruler}
-          label="Largeur"
-          value={`${state.print_width} mm`}
-          open={open === "print_width"}
-          onToggle={() => toggleOpen("print_width")}
+          label="Largeur du papier"
+          help="50 mm : Sunmi V3 · 58 mm : Sunmi V2 · 80 mm : imprimante comptoir."
         >
-          <p className="text-muted mb-3 text-xs">
-            50 mm pour les Sunmi V3 (rouleaux intégrés), 58 mm pour les Sunmi
-            V2, 80 mm pour les imprimantes comptoir.
-          </p>
           <SegmentedSelect<PrintWidth>
             value={state.print_width}
             options={[
@@ -172,7 +136,7 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
             ]}
             onChange={(v) => setState((s) => ({ ...s, print_width: v }))}
           />
-        </AccordionRow>
+        </SettingRow>
       </div>
 
       {/* Actions */}
@@ -233,89 +197,25 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
 
 /* ----------------------------- Sub-components ----------------------------- */
 
-function SummaryStrip({ state }: { state: PrintSettings }) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      <SummaryChip
-        active={state.auto_accept_orders}
-        label={state.auto_accept_orders ? "Auto-accept ON" : "Auto-accept OFF"}
-      />
-      <SummaryChip
-        active={state.auto_print !== "off"}
-        label={`Print : ${AUTO_PRINT_LABEL[state.auto_print]}`}
-      />
-      <SummaryChip
-        neutral
-        label={`${state.print_copies} copie${state.print_copies > 1 ? "s" : ""}`}
-      />
-      <SummaryChip neutral label={`${state.print_width} mm`} />
-    </div>
-  );
-}
-
-function SummaryChip({
-  active,
-  neutral,
-  label,
-}: {
-  active?: boolean;
-  neutral?: boolean;
-  label: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium",
-        neutral
-          ? "border-border bg-surface-3 text-muted"
-          : active
-            ? "border-primary-200 bg-primary-50 text-primary-700"
-            : "border-border text-subtle bg-white"
-      )}
-    >
-      {label}
-    </span>
-  );
-}
-
-function AccordionRow({
+function SettingRow({
   icon: Icon,
   label,
-  value,
-  open,
-  onToggle,
+  help,
   children,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  value: string;
-  open: boolean;
-  onToggle: () => void;
+  help: string;
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
-      >
-        <Icon className="text-muted size-4 shrink-0" />
-        <span className="text-foreground flex-1 text-sm font-medium">
-          {label}
-        </span>
-        <span className="text-muted shrink-0 text-xs tabular-nums">
-          {value}
-        </span>
-        <ChevronDown
-          className={cn(
-            "text-subtle size-4 shrink-0 transition-transform",
-            open && "rotate-180"
-          )}
-        />
-      </button>
-      {open && <div className="bg-surface-2 px-4 pt-2 pb-4">{children}</div>}
+    <div className="border-border bg-surface rounded-[12px] border p-3.5">
+      <div className="flex items-center gap-2.5">
+        <Icon className="text-primary-500 size-4 shrink-0" />
+        <span className="text-foreground text-sm font-semibold">{label}</span>
+      </div>
+      <p className="text-muted mt-1 mb-2.5 text-xs">{help}</p>
+      {children}
     </div>
   );
 }
