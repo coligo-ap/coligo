@@ -13,6 +13,7 @@ import { PrintSettingsForm } from "@/components/merchant/print-settings-form";
 import { SettingsSection } from "@/components/merchant/settings-section";
 import { ProfileForm } from "@/components/merchant/settings/profile-form";
 import { OpeningHoursForm } from "@/components/merchant/settings/opening-hours-form";
+import { ScheduledClosureForm } from "@/components/merchant/settings/scheduled-closure-form";
 import { OrderRulesForm } from "@/components/merchant/settings/order-rules-form";
 import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badge";
 import { AccountSection } from "@/components/merchant/settings/account-section";
@@ -49,7 +50,8 @@ export default async function SettingsPage() {
        min_order_da, prep_time_min, accepts_cash, accepts_online,
        pickup_slot_minutes, max_orders_per_slot, is_active,
        commission_rate, auto_accept_orders, auto_print, print_copies, print_width,
-       delivery_enabled, express_enabled, tours_enabled, delivery_radius_km`
+       delivery_enabled, express_enabled, tours_enabled, delivery_radius_km,
+       closure_start, closure_end`
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -149,6 +151,10 @@ export default async function SettingsPage() {
           summary={<OpenStatusBadge hours={merchant.opening_hours} />}
         >
           <OpeningHoursForm initial={merchant.opening_hours} />
+          <ScheduledClosureForm
+            initialStart={m.closure_start}
+            initialEnd={m.closure_end}
+          />
         </SettingsSection>
 
         <SettingsSection

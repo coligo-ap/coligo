@@ -9,17 +9,18 @@ import {
 } from "@/components/merchant/use-mobile-drawer";
 import { SyncIndicator } from "@/components/merchant/sync-indicator";
 import { ShopStatusToggle } from "@/components/merchant/shop-status-toggle";
+import type { MerchantPauseInput } from "@/lib/merchant/pause-state";
 
 interface MerchantMobileHeaderProps {
   merchantName: string;
   pendingCount?: number;
-  ordersPaused?: boolean;
+  pauseInput: MerchantPauseInput;
 }
 
 export function MerchantMobileHeader({
   merchantName,
   pendingCount = 0,
-  ordersPaused = false,
+  pauseInput,
 }: MerchantMobileHeaderProps) {
   const open = useMobileDrawerOpen();
 
@@ -28,7 +29,7 @@ export function MerchantMobileHeader({
       <Logo variant="amber" size="sm" subtitle={merchantName} />
 
       <div className="flex items-center gap-1.5">
-        <ShopStatusToggle initialPaused={ordersPaused} />
+        <ShopStatusToggle input={pauseInput} />
         {/* Indicateur résilience offline (mobile = simple pastille, panneau
             ancré sous l'icône). */}
         <div className="relative">

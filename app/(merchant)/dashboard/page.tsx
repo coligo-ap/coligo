@@ -91,8 +91,18 @@ export default async function DashboardPage() {
           dans le header de l'app (topbar desktop / header mobile) — pas de
           doublon ici. On démarre directement sur le résumé du jour. */}
 
-      {/* ─── Bandeau résumé du jour (compact) ─── */}
-      <section className="from-primary-600 to-primary-700 mb-5 flex items-center justify-between gap-4 rounded-[18px] bg-gradient-to-br p-4 text-white shadow-sm lg:p-5">
+      {/* ─── Bandeau résumé du jour (compact) ───
+          Dégradé en `style` inline (variables CSS déjà définies) + couleur
+          pleine de secours : les WebView Android anciennes (Sunmi) ne gèrent
+          pas le `@property` des dégradés Tailwind v4 → sans ça la carte
+          apparaissait transparente en mobile. */}
+      <section
+        className="bg-primary-600 mb-5 flex items-center justify-between gap-4 rounded-[18px] p-4 text-white shadow-sm lg:p-5"
+        style={{
+          backgroundImage:
+            "linear-gradient(to bottom right, var(--color-primary-600), var(--color-primary-700))",
+        }}
+      >
         <div className="flex items-center gap-4 lg:gap-6">
           <div>
             <p className="text-primary-100 inline-flex items-center gap-1.5 text-xs font-medium">

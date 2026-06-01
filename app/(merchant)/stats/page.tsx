@@ -11,7 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { RevenueChart } from "@/components/merchant/stats/revenue-chart";
 import { Pagination } from "@/components/ui/pagination";
-import { ORDER_STATUS_META, type OrderStatus } from "@/lib/types";
+import { type OrderStatus } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
 import {
   STATS_PERIODS,
@@ -75,14 +75,6 @@ export default async function StatsPage({
     nbPrev = 0,
     totalCur = 0,
     cancelledCur = 0;
-  const statusCounts: Record<OrderStatus, number> = {
-    pending: 0,
-    accepted: 0,
-    preparing: 0,
-    ready: 0,
-    completed: 0,
-    cancelled: 0,
-  };
   const buckets = buildBuckets(cfg);
   const completedIds: string[] = [];
 
@@ -91,7 +83,6 @@ export default async function StatsPage({
     const cur = inCurrent(d);
     if (cur) {
       totalCur++;
-      statusCounts[o.status]++;
       if (o.status === "cancelled") cancelledCur++;
       if (o.status === "completed") {
         caCur += o.total_da;
@@ -150,17 +141,21 @@ export default async function StatsPage({
     return qs ? `/stats?${qs}#top` : "/stats#top";
   };
 
+  // Libellé lisible de la période courante (utilisé dans les sous-titres).
+  const periodLabel =
+    STATS_PERIODS.find((p) => p.key === period)?.label ?? "période";
+
   return (
-    <div className="mx-auto max-w-[1400px] p-4 lg:p-6 lg:px-8">
-      {/* Header + sélecteur de période */}
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3 lg:mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
-            Statistiques
-          </h1>
-          <p className="text-muted mt-1 text-sm">Vos performances de vente.</p>
-        </div>
-        <nav className="bg-surface-3 inline-flex rounded-[12px] p-1">
+    <div className="mx-auto max-w-[1100px] p-4 lg:p-6 lg:px-8">
+      {/* Header + sélecteur de période (scrollable en mobile) */}
+      <header className="mb-5 lg:mb-6">
+        <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
+          Statistiques
+        </h1>
+        <p className="text-muted mt-1 text-sm">
+          Vos ventes — {periodLabel.toLowerCase()}.
+        </p>
+        <nav className="bg-surface-3 mt-3 inline-flex max-w-full [scrollbar-width:none] gap-0.5 overflow-x-auto rounded-[12px] p-1 [&::-webkit-scrollbar]:hidden">
           {STATS_PERIODS.map((p) => (
             <PeriodTab
               key={p.key}
@@ -172,8 +167,8 @@ export default async function StatsPage({
         </nav>
       </header>
 
-      {/* KPIs */}
-      <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+      {/* KPIs — les 4 chiffres essentiels du commerçant */}
+      <section className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <Kpi
           label="Chiffre d'affaires"
           value={formatDA(caCur)}
@@ -196,37 +191,36 @@ export default async function StatsPage({
           label="Taux d'annulation"
           value={`${cancelRate}%`}
           icon={XCircle}
-          tone={cancelRate > 0 ? "danger" : undefined}
+          tone={cancelRate > 5 ? "danger" : undefined}
         />
       </section>
 
       {!hasData ? (
         <EmptyState />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
-          {/* Graphique CA */}
-          <section className="border-border bg-surface rounded-[16px] border p-5 lg:col-span-2">
-            <h2 className="mb-4 text-base font-semibold">
-              Évolution du chiffre d&apos;affaires
-            </h2>
+        <div className="space-y-4">
+          {/* Graphique CA — `min-w-0` indispensable : sans lui, le contenu
+              large (30 j / 12 mois) force la colonne et casse la mise en page
+              mobile au lieu de scroller dans la carte. */}
+          <section className="border-border bg-surface min-w-0 overflow-hidden rounded-[16px] border p-4 lg:p-5">
+            <header className="mb-4 flex items-baseline justify-between gap-2">
+              <h2 className="text-base font-semibold">
+                Évolution du chiffre d&apos;affaires
+              </h2>
+              <span className="text-success-700 text-sm font-bold tabular-nums">
+                {formatDA(caCur)}
+              </span>
+            </header>
             <RevenueChart data={buckets} />
           </section>
 
-          {/* Répartition par statut */}
-          <section className="border-border bg-surface rounded-[16px] border p-5">
-            <h2 className="mb-4 text-base font-semibold">
-              Répartition des commandes
-            </h2>
-            <StatusBreakdown counts={statusCounts} total={totalCur} />
-          </section>
-
-          {/* Top produits */}
+          {/* Top produits — ce qui se vend le mieux, info la plus actionnable */}
           <section
             id="top"
-            className="border-border bg-surface rounded-[16px] border p-5 lg:col-span-3"
+            className="border-border bg-surface min-w-0 rounded-[16px] border p-4 lg:p-5"
           >
-            <header className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-base font-semibold">Top produits</h2>
+            <header className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-base font-semibold">Meilleures ventes</h2>
               {topTotal > 0 && (
                 <span className="text-muted text-xs tabular-nums">
                   {topTotal} produit{topTotal > 1 ? "s" : ""}
@@ -240,25 +234,21 @@ export default async function StatsPage({
             ) : (
               <>
                 <ol className="divide-border divide-y">
-                  <li className="text-muted grid grid-cols-[2rem_1fr_auto_auto] items-center gap-3 pb-2 text-xs">
-                    <span>#</span>
-                    <span>Produit</span>
-                    <span className="text-right">Qté</span>
-                    <span className="w-24 text-right">CA</span>
-                  </li>
                   {topProducts.map((p, i) => (
                     <li
                       key={p.name}
-                      className="grid grid-cols-[2rem_1fr_auto_auto] items-center gap-3 py-2.5 text-sm"
+                      className="flex items-center gap-3 py-2.5 text-sm"
                     >
-                      <span className="text-primary-700 bg-primary-50 flex size-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums">
+                      <span className="text-primary-700 bg-primary-50 flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums">
                         {topOffset + i + 1}
                       </span>
-                      <span className="truncate font-medium">{p.name}</span>
-                      <span className="text-muted text-right tabular-nums">
-                        {p.qty}
+                      <span className="min-w-0 flex-1 truncate font-medium">
+                        {p.name}
                       </span>
-                      <span className="w-24 text-right font-semibold tabular-nums">
+                      <span className="text-muted shrink-0 text-xs tabular-nums">
+                        {p.qty} vendu{p.qty > 1 ? "s" : ""}
+                      </span>
+                      <span className="w-20 shrink-0 text-right font-semibold tabular-nums">
                         {formatDA(p.ca)}
                       </span>
                     </li>
@@ -356,58 +346,6 @@ function Variation({ pct }: { pct: number | null }) {
       {positive ? "+" : ""}
       {pct}% <span className="text-subtle font-normal">vs préc.</span>
     </p>
-  );
-}
-
-function StatusBreakdown({
-  counts,
-  total,
-}: {
-  counts: Record<OrderStatus, number>;
-  total: number;
-}) {
-  const order: OrderStatus[] = [
-    "pending",
-    "accepted",
-    "preparing",
-    "ready",
-    "completed",
-    "cancelled",
-  ];
-  const TONE: Record<OrderStatus, string> = {
-    pending: "bg-warning-500",
-    accepted: "bg-primary-400",
-    preparing: "bg-primary-500",
-    ready: "bg-success-500",
-    completed: "bg-success-600",
-    cancelled: "bg-danger-500",
-  };
-  return (
-    <ul className="space-y-3">
-      {order
-        .filter((s) => counts[s] > 0)
-        .map((s) => {
-          const pct = total > 0 ? Math.round((counts[s] / total) * 100) : 0;
-          return (
-            <li key={s}>
-              <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="font-medium">
-                  {ORDER_STATUS_META[s].label}
-                </span>
-                <span className="text-muted tabular-nums">
-                  {counts[s]} · {pct}%
-                </span>
-              </div>
-              <div className="bg-surface-3 h-2 overflow-hidden rounded-full">
-                <div
-                  className={cn("h-full rounded-full", TONE[s])}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </li>
-          );
-        })}
-    </ul>
   );
 }
 

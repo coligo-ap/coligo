@@ -25,6 +25,7 @@ export type PublicMerchant = {
   accepts_online: boolean;
   pickup_slot_minutes: number;
   max_orders_per_slot: number | null;
+  max_days_ahead: number;
   is_active: boolean;
   rating_avg: number;
   rating_count: number;
@@ -32,6 +33,11 @@ export type PublicMerchant = {
   express_enabled: boolean;
   tours_enabled: boolean;
   delivery_radius_km: number | null;
+  /** Verrous de pause / fermeture (cf. lib/merchant/pause-state). */
+  orders_paused: boolean;
+  paused_until: string | null;
+  closure_start: string | null;
+  closure_end: string | null;
 };
 
 type Filters = {
@@ -261,6 +267,7 @@ function toPublicMerchant(row: Record<string, unknown>): PublicMerchant {
     accepts_online: (row.accepts_online as boolean | null) ?? false,
     pickup_slot_minutes: (row.pickup_slot_minutes as number | null) ?? 15,
     max_orders_per_slot: (row.max_orders_per_slot as number | null) ?? null,
+    max_days_ahead: (row.max_days_ahead as number | null) ?? 7,
     is_active: (row.is_active as boolean | null) ?? true,
     // rating_avg vient en NUMERIC depuis Postgres → string côté JS. On parse.
     rating_avg:
@@ -275,5 +282,9 @@ function toPublicMerchant(row: Record<string, unknown>): PublicMerchant {
       typeof row.delivery_radius_km === "string"
         ? parseFloat(row.delivery_radius_km)
         : ((row.delivery_radius_km as number | null) ?? null),
+    orders_paused: (row.orders_paused as boolean | null) ?? false,
+    paused_until: (row.paused_until as string | null) ?? null,
+    closure_start: (row.closure_start as string | null) ?? null,
+    closure_end: (row.closure_end as string | null) ?? null,
   };
 }

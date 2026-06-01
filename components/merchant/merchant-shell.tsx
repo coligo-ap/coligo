@@ -38,7 +38,7 @@ export async function MerchantShell({
   const { data: merchant, error } = await supabase
     .from("merchants")
     .select(
-      "id, name, auto_accept_orders, auto_print, print_copies, print_width, orders_paused"
+      "id, name, auto_accept_orders, auto_print, print_copies, print_width, orders_paused, paused_until, closure_start, closure_end"
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -76,6 +76,14 @@ export async function MerchantShell({
     .eq("merchant_id", merchant.id)
     .eq("status", "pending");
 
+  // Verrous de pause / fermeture — partagés avec le bouton statut (header).
+  const pauseInput = {
+    orders_paused: merchant.orders_paused ?? false,
+    paused_until: merchant.paused_until ?? null,
+    closure_start: merchant.closure_start ?? null,
+    closure_end: merchant.closure_end ?? null,
+  };
+
   const printSettings: PrintSettings = merchant
     ? {
         auto_accept_orders: merchant.auto_accept_orders,
@@ -94,7 +102,7 @@ export async function MerchantShell({
       <MerchantMobileHeader
         merchantName={merchant.name}
         pendingCount={pendingCount ?? 0}
-        ordersPaused={merchant.orders_paused ?? false}
+        pauseInput={pauseInput}
       />
 
       {/* Main */}
@@ -104,7 +112,7 @@ export async function MerchantShell({
           userEmail={user.email ?? ""}
           merchantName={merchant.name}
           pendingCount={pendingCount ?? 0}
-          ordersPaused={merchant.orders_paused ?? false}
+          pauseInput={pauseInput}
         />
 
         {/* Content */}

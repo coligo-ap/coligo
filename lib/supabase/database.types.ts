@@ -57,6 +57,9 @@ export type Database = {
           is_frozen: boolean;
           auto_accept_orders: boolean;
           orders_paused: boolean;
+          paused_until: string | null;
+          closure_start: string | null;
+          closure_end: string | null;
           auto_print: Database["public"]["Enums"]["auto_print_mode"];
           print_copies: number;
           print_width: number;
@@ -103,6 +106,9 @@ export type Database = {
           is_frozen?: boolean;
           auto_accept_orders?: boolean;
           orders_paused?: boolean;
+          paused_until?: string | null;
+          closure_start?: string | null;
+          closure_end?: string | null;
           auto_print?: Database["public"]["Enums"]["auto_print_mode"];
           print_copies?: number;
           print_width?: number;
@@ -149,6 +155,9 @@ export type Database = {
           is_frozen?: boolean;
           auto_accept_orders?: boolean;
           orders_paused?: boolean;
+          paused_until?: string | null;
+          closure_start?: string | null;
+          closure_end?: string | null;
           auto_print?: Database["public"]["Enums"]["auto_print_mode"];
           print_copies?: number;
           print_width?: number;
@@ -1386,6 +1395,9 @@ export type Database = {
           shop_public_id: string;
           created_at: string;
           orders_paused: boolean;
+          paused_until: string | null;
+          closure_start: string | null;
+          closure_end: string | null;
         };
         Insert: never;
         Update: never;

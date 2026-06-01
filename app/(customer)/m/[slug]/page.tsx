@@ -9,6 +9,7 @@ import { WILAYAS } from "@/lib/config/wilayas";
 import { MerchantCompactHeader } from "@/components/customer/merchant-compact-header";
 import { MerchantCatalog } from "@/components/customer/merchant-catalog";
 import { MerchantCartCta } from "@/components/customer/merchant-cart-cta";
+import { MerchantClosedNotice } from "@/components/customer/merchant-closed-notice";
 import { getMerchantReviews } from "@/lib/data/reviews";
 import {
   discountedUnitPrice,
@@ -93,6 +94,21 @@ export default async function MerchantPublicPage({
           rating_count={m.rating_count}
           reviews={reviews}
         />
+
+        {/* Bandeau + pop-up « fermé / en pause » → propose de programmer une
+            commande pour plus tard (façon Deliveroo / Uber Eats). */}
+        <div className="mt-5">
+          <MerchantClosedNotice
+            openingHours={m.opening_hours}
+            maxDaysAhead={m.max_days_ahead}
+            pause={{
+              orders_paused: m.orders_paused,
+              paused_until: m.paused_until,
+              closure_start: m.closure_start,
+              closure_end: m.closure_end,
+            }}
+          />
+        </div>
 
         {/* Catalogue : chips sticky + sections produits en lignes compactes
             (image 64px à gauche, prix violet, bouton + à droite). */}

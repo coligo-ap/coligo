@@ -16,26 +16,108 @@ export type AuthState = {
 };
 
 /**
- * Bascule « Fermer / Ouvrir » la réception de commandes du commerçant connecté.
- * Quand `paused` = true, le checkout refuse toute nouvelle commande.
+ * Pause / fermeture de la réception de commandes (commerçant connecté).
+ *
+ *  - open             → rouvre (annule toute pause).
+ *  - pause_30m/1h/2h  → pause temporaire à réouverture automatique.
+ *  - close_today      → fermé jusqu'à la fin de la journée (réouverture demain).
+ *  - close_indefinite → fermé jusqu'à réouverture manuelle.
+ *
+ * Cf. `lib/merchant/pause-state.ts` pour la logique partagée avec le checkout.
+ * Une fermeture immédiate ne peut couvrir AU PLUS que la journée ; pour fermer
+ * plusieurs jours, le commerçant programme une fermeture (`setScheduledClosure`).
  */
-export async function setOrdersPaused(
-  paused: boolean
-): Promise<{ ok: boolean; paused: boolean; error?: string }> {
+export type ShopPauseMode =
+  | "open"
+  | "pause_30m"
+  | "pause_1h"
+  | "pause_2h"
+  | "close_today"
+  | "close_indefinite";
+
+export async function setShopPause(
+  mode: ShopPauseMode
+): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, paused, error: "Session expirée." };
+  if (!user) return { ok: false, error: "Session expirée." };
+
+  const now = new Date();
+  let ordersPaused = true;
+  let pausedUntil: string | null = null;
+
+  switch (mode) {
+    case "open":
+      ordersPaused = false;
+      pausedUntil = null;
+      break;
+    case "close_indefinite":
+      pausedUntil = null;
+      break;
+    case "close_today": {
+      const end = new Date(now);
+      end.setHours(23, 59, 59, 0);
+      pausedUntil = end.toISOString();
+      break;
+    }
+    case "pause_30m":
+    case "pause_1h":
+    case "pause_2h": {
+      const mins = mode === "pause_30m" ? 30 : mode === "pause_1h" ? 60 : 120;
+      pausedUntil = new Date(now.getTime() + mins * 60_000).toISOString();
+      break;
+    }
+  }
 
   const { error } = await supabase
     .from("merchants")
-    .update({ orders_paused: paused })
+    .update({ orders_paused: ordersPaused, paused_until: pausedUntil })
     .eq("user_id", user.id);
-  if (error) return { ok: false, paused: !paused, error: error.message };
+  if (error) return { ok: false, error: error.message };
 
   revalidatePath("/", "layout");
-  return { ok: true, paused };
+  return { ok: true };
+}
+
+/**
+ * Programme (ou annule) une fermeture sur une plage de dates (congés, travaux).
+ * `start`/`end` en ISO ; les deux `null` = annulation. Le commerce est fermé
+ * tant que `now()` est dans [start, end] (cf. `computePauseState`).
+ */
+export async function setScheduledClosure(
+  start: string | null,
+  end: string | null
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Session expirée." };
+
+  if (start || end) {
+    if (!start || !end) {
+      return { ok: false, error: "Indiquez une date de début ET de fin." };
+    }
+    const s = new Date(start);
+    const e = new Date(end);
+    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) {
+      return { ok: false, error: "Dates invalides." };
+    }
+    if (e <= s) {
+      return { ok: false, error: "La fin doit être après le début." };
+    }
+  }
+
+  const { error } = await supabase
+    .from("merchants")
+    .update({ closure_start: start, closure_end: end })
+    .eq("user_id", user.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 /**

@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { computeCart, type EnginePromotion } from "@/lib/promotions/engine";
 import { isOpenNow, normalizeOpeningHours } from "@/lib/merchant/opening-hours";
+import {
+  computePauseState,
+  pauseReasonMessage,
+} from "@/lib/merchant/pause-state";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import {
   getCashbackBalanceForCustomer,
@@ -188,19 +192,29 @@ export async function createOrder(
   const { data: merchant } = await supabase
     .from("merchants_public")
     .select(
-      "id, name, accepts_cash, accepts_online, opening_hours, min_order_da, prep_time_min, max_orders_per_slot, max_days_ahead, is_active, orders_paused"
+      "id, name, accepts_cash, accepts_online, opening_hours, min_order_da, prep_time_min, max_orders_per_slot, max_days_ahead, is_active, orders_paused, paused_until, closure_start, closure_end"
     )
     .eq("id", input.merchant_id)
     .maybeSingle();
   if (!merchant || !merchant.is_active) {
     return { ok: false, error: "Ce commerce n'est plus disponible." };
   }
-  // Fermeture immédiate par le commerçant : on refuse toute nouvelle commande.
-  if (merchant.orders_paused) {
+  // Pause / fermeture commerçant. Une commande IMMÉDIATE (asap) est refusée si
+  // le commerce est fermé maintenant. Une commande PROGRAMMÉE (créneau futur)
+  // reste possible — le client commande pour plus tard — sauf si le créneau
+  // tombe dans une fermeture programmée (vérifié dans la validation créneau).
+  const pauseState = computePauseState({
+    orders_paused: merchant.orders_paused,
+    paused_until: merchant.paused_until,
+    closure_start: merchant.closure_start,
+    closure_end: merchant.closure_end,
+  });
+  if (input.pickup_type === "asap" && pauseState.closedNow) {
     return {
       ok: false,
       error:
-        "Ce commerce est momentanément fermé et n'accepte pas de commandes pour l'instant.",
+        pauseReasonMessage(pauseState) ||
+        "Ce commerce ne prend pas de commandes pour l'instant.",
     };
   }
 
@@ -359,6 +373,18 @@ export async function createOrder(
         ok: false,
         error: `Ce commerce accepte les commandes jusqu'à ${maxAhead} jour${maxAhead > 1 ? "s" : ""} à l'avance.`,
       };
+    }
+    // Refuse un créneau qui tombe dans une fermeture programmée du commerce.
+    if (merchant.closure_start && merchant.closure_end) {
+      const cs = new Date(merchant.closure_start);
+      const ce = new Date(merchant.closure_end);
+      if (start >= cs && start < ce) {
+        return {
+          ok: false,
+          error:
+            "Ce commerce est fermé à cette date. Choisis un autre créneau.",
+        };
+      }
     }
     // Capacité par créneau si définie.
     if (merchant.max_orders_per_slot != null) {
