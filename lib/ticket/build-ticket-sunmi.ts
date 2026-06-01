@@ -296,8 +296,14 @@ export function buildTicketSunmiCommands(
     out.push({ type: "textBold", text: l });
   }
 
+  // ===== 11. QR de la RÉFÉRENCE publique (jamais le PIN secret), centré =====
+  out.push({ type: "align", value: "center" });
+  out.push({ type: "qr", data: orderRef(order), moduleSize: 6, errorLevel: 2 });
+  out.push({ type: "size", value: SZ.small });
+  out.push({ type: "text", text: `N ${orderRef(order)}` });
+
   // Marge de découpe : 4 lignes vides en bas pour que la déchirure du ticket
-  // n'abîme pas le contenu (demande commerçant).
+  // n'abîme pas le QR / le contenu (demande commerçant).
   out.push({ type: "wrap", n: 4 });
   out.push({ type: "align", value: "left" });
 

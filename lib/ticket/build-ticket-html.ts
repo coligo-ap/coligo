@@ -28,6 +28,7 @@ import {
   orderRef,
   totalUnits,
 } from "@/lib/ticket/ticket-format";
+import { qrSvg } from "@/lib/ticket/qr-svg";
 
 export type TicketItem = {
   product_name: string;
@@ -117,6 +118,9 @@ export async function buildTicketHTML(
   const w = opts.width;
   const meta = deriveTicketMeta(order);
   const groups = groupByCategory(order.items);
+  // QR de la RÉFÉRENCE publique de commande (jamais le PIN secret). Court →
+  // QR basse version, modules gros, scan fiable en thermique.
+  const qr = await qrSvg(orderRef(order), { margin: 2 });
 
   // ─── Articles groupés (SANS prix — ticket cuisine façon Deliveroo) ───────
   const itemsHtml =
@@ -261,6 +265,12 @@ export async function buildTicketHTML(
 
     /* Pied */
     .tk .t-foot { text-align: center; font-size: 15px; font-weight: 800; margin-top: 12px; letter-spacing: .3px; }
+
+    /* QR référence commande (centré, en bas) */
+    .tk .t-qr-wrap { text-align: center; margin-top: 12px; }
+    .tk .t-qr { display: inline-block; width: 128px; }
+    .tk .t-qr svg { width: 100%; height: auto; display: block; }
+    .tk .t-qr-cap { font-size: 12px; font-weight: 700; margin-top: 3px; letter-spacing: .5px; }
     /* Marge de découpe : 4 lignes vides en bas pour que la déchirure du ticket
        n'abîme pas le contenu (demande commerçant). */
     .tk .t-foot-pad { height: 5.6em; }
@@ -313,7 +323,14 @@ export async function buildTicketHTML(
 
   <!-- 9. Pied dépendant du mode -->
   <div class="t-foot">${escapeHtml(meta.footerText)}</div>
-  <!-- Deux lignes vides en fin de ticket (demande commerçant) -->
+
+  <!-- 10. QR de la référence de commande (centré) -->
+  <div class="t-qr-wrap">
+    <div class="t-qr">${qr}</div>
+    <div class="t-qr-cap">N° ${escapeHtml(orderRef(order))}</div>
+  </div>
+
+  <!-- Marge de découpe : 4 lignes vides en bas -->
   <div class="t-foot-pad"></div>
 </div>
 <style>${styles}</style>
