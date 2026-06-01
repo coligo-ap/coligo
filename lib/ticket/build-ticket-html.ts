@@ -261,8 +261,9 @@ export async function buildTicketHTML(
 
     /* Pied */
     .tk .t-foot { text-align: center; font-size: 15px; font-weight: 800; margin-top: 12px; letter-spacing: .3px; }
-    /* Deux lignes vides après le pied (demande commerçant) */
-    .tk .t-foot-pad { height: 2.2em; }
+    /* Marge de découpe : 4 lignes vides en bas pour que la déchirure du ticket
+       n'abîme pas le contenu (demande commerçant). */
+    .tk .t-foot-pad { height: 5.6em; }
   `;
 
   const html = `

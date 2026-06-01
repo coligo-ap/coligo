@@ -296,8 +296,9 @@ export function buildTicketSunmiCommands(
     out.push({ type: "textBold", text: l });
   }
 
-  // Deux lignes vides après le message de pied (demande commerçant).
-  out.push({ type: "wrap", n: 3 });
+  // Marge de découpe : 4 lignes vides en bas pour que la déchirure du ticket
+  // n'abîme pas le contenu (demande commerçant).
+  out.push({ type: "wrap", n: 4 });
   out.push({ type: "align", value: "left" });
 
   // Sanitization ASCII finale (firmware V3 strict).
