@@ -157,11 +157,11 @@ export function buildTicketSunmiCommands(
     out.push({ type: "textBold", text: opts.copyLabel });
   }
 
-  // ===== 1. EN-TÊTE : logo Coligo + nom boutique (centrés) =====
+  // ===== 1. EN-TÊTE : logo Coligo (AGRANDI) + nom boutique (centrés) =====
   out.push({ type: "align", value: "center" });
+  out.push({ type: "size", value: SZ.large });
+  out.push({ type: "textBoldStrong", text: opts.appName ?? "Coligo" });
   out.push({ type: "size", value: SZ.base });
-  out.push({ type: "textBold", text: opts.appName ?? "Coligo" });
-  out.push({ type: "size", value: SZ.small });
   out.push({ type: "text", text: order.merchant_name });
 
   // ===== 2. BANDEAU INVERSÉ mode + paiement (une seule ligne) =====
@@ -170,12 +170,13 @@ export function buildTicketSunmiCommands(
   out.push({ type: "size", value: SZ.base });
   out.push({ type: "textInverse", text: ` ${meta.bannerText} ` });
 
-  // ===== 3. NUMÉRO DE COMMANDE ÉNORME, aligné à GAUCHE (Deliveroo) =====
-  out.push({ type: "align", value: "left" });
+  // ===== 3. NUMÉRO DE COMMANDE ÉNORME, CENTRÉ (comme le QR auparavant) =====
+  out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.large });
   out.push({ type: "textBoldStrong", text: `#${orderRef(order)}` });
 
   // ===== 4. « Livrer pour : HH:MM » / « Retrait pour : HH:MM » =====
+  out.push({ type: "align", value: "center" });
   out.push({ type: "size", value: SZ.base });
   out.push({
     type: "textBold",
@@ -295,7 +296,8 @@ export function buildTicketSunmiCommands(
     out.push({ type: "textBold", text: l });
   }
 
-  out.push({ type: "wrap", n: 1 });
+  // Deux lignes vides après le message de pied (demande commerçant).
+  out.push({ type: "wrap", n: 3 });
   out.push({ type: "align", value: "left" });
 
   // Sanitization ASCII finale (firmware V3 strict).

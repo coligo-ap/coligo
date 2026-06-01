@@ -68,6 +68,40 @@ export function OrderRealtimeBridge({
   // écran. On empile sur chaque INSERT et on dépile à l'acceptation/refus.
   const [queue, setQueue] = useState<NewOrder[]>([]);
   const printedOnceRef = useRef<Set<string>>(new Set());
+  // Garde : on ne ré-amorce la file qu'une fois par montage (sinon chaque
+  // router.refresh() rejouerait le seed et ferait clignoter l'overlay).
+  const seededRef = useRef(false);
+
+  // Amorçage AU LANCEMENT : si des commandes sont DÉJÀ « à confirmer » quand le
+  // commerçant ouvre l'app (arrivées pendant qu'il était hors-ligne / app
+  // fermée), on les empile aussi en overlay — pas seulement celles reçues en
+  // live via Realtime. Le commerçant doit pouvoir accepter/refuser dès l'ouverture.
+  useEffect(() => {
+    if (seededRef.current) return;
+    seededRef.current = true;
+    const supabase = createClient();
+    void supabase
+      .from("orders")
+      .select("id, customer_name, total_da, order_number")
+      .eq("merchant_id", merchantId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        if (!data || data.length === 0) return;
+        setQueue((q) => {
+          const seen = new Set(q.map((o) => o.id));
+          const fresh = data
+            .filter((r) => !seen.has(r.id))
+            .map((r) => ({
+              id: r.id,
+              customer_name: r.customer_name,
+              total_da: r.total_da,
+              order_number: r.order_number ?? null,
+            }));
+          return fresh.length ? [...q, ...fresh] : q;
+        });
+      });
+  }, [merchantId]);
 
   // Auto-unlock au PREMIER clic n'importe où : on déverrouille l'audio et on
   // déclenche la demande de permission notifications. C'est ce qui permet à

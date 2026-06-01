@@ -110,7 +110,6 @@ function rowLR(label: string, value: string, big = false): string {
 // Builder principal
 // ===========================================================================
 
- 
 export async function buildTicketHTML(
   order: TicketOrder,
   opts: BuildTicketOptions
@@ -205,7 +204,7 @@ export async function buildTicketHTML(
     .tk {
       color: #000; background: #fff;
       font-family: Arial, Helvetica, "Segoe UI", sans-serif;
-      font-size: 13px; line-height: 1.4; font-weight: 600;
+      font-size: 15px; line-height: 1.45; font-weight: 600;
       width: 100%;
       -webkit-print-color-adjust: exact; print-color-adjust: exact;
     }
@@ -214,54 +213,56 @@ export async function buildTicketHTML(
 
     /* Copie : petit bandeau si multi-exemplaires */
     .tk .t-copy {
-      text-align: center; font-weight: 800; font-size: 11px;
+      text-align: center; font-weight: 800; font-size: 12px;
       letter-spacing: 2px; border: 1px solid #000; padding: 3px 0; margin-bottom: 6px;
     }
 
-    /* En-tête : logo Coligo + boutique */
-    .tk .t-logo { text-align: center; font-size: 20px; font-weight: 800; letter-spacing: -.5px; }
-    .tk .t-shop { text-align: center; font-size: 13px; font-weight: 600; margin: 3px 0 10px; }
+    /* En-tête : logo Coligo (agrandi) + boutique */
+    .tk .t-logo { text-align: center; font-size: 32px; font-weight: 900; letter-spacing: -.5px; }
+    .tk .t-shop { text-align: center; font-size: 15px; font-weight: 600; margin: 3px 0 10px; }
 
     /* Bandeau inversé mode + paiement */
     .tk .t-mode {
       text-align: center; background: #000; color: #fff; font-weight: 800;
-      padding: 7px 4px; font-size: 16px; letter-spacing: .5px; margin-bottom: 6px;
+      padding: 8px 4px; font-size: 18px; letter-spacing: .5px; margin-bottom: 6px;
       -webkit-print-color-adjust: exact; print-color-adjust: exact;
     }
 
-    /* Numéro de commande énorme (aligné à gauche) */
-    .tk .t-num { font-size: 42px; font-weight: 800; letter-spacing: -1px; line-height: 1.05; margin: 8px 0 2px; }
+    /* Numéro de commande énorme, CENTRÉ (comme le QR code auparavant) */
+    .tk .t-num { text-align: center; font-size: 56px; font-weight: 900; letter-spacing: -1px; line-height: 1.05; margin: 10px 0 2px; }
     /* « Livrer pour / Retrait pour » */
-    .tk .t-for { font-size: 18px; font-weight: 800; margin: 4px 0 8px; }
+    .tk .t-for { text-align: center; font-size: 20px; font-weight: 800; margin: 4px 0 8px; }
 
     /* Séparateurs pointillés */
     .tk .t-sep { border: none; border-top: 2px dashed #000; margin: 11px 0; }
 
     /* Bloc précisions */
-    .tk .t-h { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
-    .tk .t-p { font-size: 13px; font-weight: 600; line-height: 1.45; }
+    .tk .t-h { font-size: 15px; font-weight: 800; margin-bottom: 3px; }
+    .tk .t-p { font-size: 15px; font-weight: 600; line-height: 1.45; }
 
     /* Badge nouveau client */
     .tk .t-badge {
       text-align: center; border: 1.5px dashed #000; padding: 5px;
-      font-weight: 800; font-size: 12px; margin: 8px 0; letter-spacing: .5px;
+      font-weight: 800; font-size: 13px; margin: 8px 0; letter-spacing: .5px;
     }
 
     /* Articles */
-    .tk .t-cat { font-size: 14px; font-weight: 800; margin: 10px 0 4px; }
-    .tk .t-item { font-size: 15px; font-weight: 800; line-height: 1.4; margin: 4px 0; }
-    .tk .t-opt { font-size: 14px; font-weight: 700; line-height: 1.5; padding-left: 4px; }
+    .tk .t-cat { font-size: 16px; font-weight: 800; margin: 10px 0 4px; }
+    .tk .t-item { font-size: 17px; font-weight: 800; line-height: 1.4; margin: 4px 0; }
+    .tk .t-opt { font-size: 15px; font-weight: 700; line-height: 1.5; padding-left: 4px; }
 
     /* Totaux : label gauche, valeur droite */
-    .tk .t-row { font-size: 14px; font-weight: 700; line-height: 1.7; display: flex; justify-content: space-between; gap: 8px; }
-    .tk .t-row.big { font-size: 17px; font-weight: 800; }
+    .tk .t-row { font-size: 16px; font-weight: 700; line-height: 1.7; display: flex; justify-content: space-between; gap: 8px; }
+    .tk .t-row.big { font-size: 19px; font-weight: 800; }
 
     /* Bloc infos client */
-    .tk .t-info { font-size: 13px; font-weight: 600; line-height: 1.6; }
+    .tk .t-info { font-size: 15px; font-weight: 600; line-height: 1.6; }
     .tk .t-info b { font-weight: 800; }
 
     /* Pied */
-    .tk .t-foot { text-align: center; font-size: 13px; font-weight: 800; margin-top: 12px; letter-spacing: .3px; }
+    .tk .t-foot { text-align: center; font-size: 15px; font-weight: 800; margin-top: 12px; letter-spacing: .3px; }
+    /* Deux lignes vides après le pied (demande commerçant) */
+    .tk .t-foot-pad { height: 2.2em; }
   `;
 
   const html = `
@@ -311,6 +312,8 @@ export async function buildTicketHTML(
 
   <!-- 9. Pied dépendant du mode -->
   <div class="t-foot">${escapeHtml(meta.footerText)}</div>
+  <!-- Deux lignes vides en fin de ticket (demande commerçant) -->
+  <div class="t-foot-pad"></div>
 </div>
 <style>${styles}</style>
 `;

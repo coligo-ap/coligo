@@ -143,8 +143,8 @@ export default async function StatsPage({
 
   const topHrefFor = (p: number): string => {
     const params = new URLSearchParams();
-    // « 7d » est le défaut de `parsePeriod` → on l'omet de l'URL.
-    if (period !== "7d") params.set("period", period);
+    // « today » est le défaut de `parsePeriod` → on l'omet de l'URL.
+    if (period !== "today") params.set("period", period);
     if (p > 1) params.set("topPage", String(p));
     const qs = params.toString();
     return qs ? `/stats?${qs}#top` : "/stats#top";

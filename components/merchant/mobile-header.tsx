@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Bell, Menu } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import {
@@ -34,15 +35,23 @@ export function MerchantMobileHeader({
           <SyncIndicator />
         </div>
 
-        <button
+        {/* Cloche → commandes à confirmer (badge = nombre en attente). */}
+        <Link
+          href="/orders?status=pending"
           className="hover:bg-surface-3 text-muted relative flex size-9 items-center justify-center rounded-full"
-          aria-label="Notifications"
+          aria-label={
+            pendingCount > 0
+              ? `${pendingCount} commande(s) à confirmer`
+              : "Commandes à confirmer"
+          }
         >
           <Bell className="size-4" />
           {pendingCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-rose-500 ring-2 ring-white" />
+            <span className="absolute -top-0.5 -right-0.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+              {pendingCount}
+            </span>
           )}
-        </button>
+        </Link>
 
         {/* Bouton menu — ouvre le drawer (sections secondaires) */}
         <button

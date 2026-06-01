@@ -18,7 +18,13 @@ function parseStatusFilter(raw?: string): {
   key: string;
   statuses: OrderStatus[];
 } {
-  const key = raw && raw in STATUS_FILTERS ? raw : "all";
+  // Sans paramètre → on ouvre directement sur « À confirmer » : ce sont les
+  // commandes qui demandent une action immédiate du commerçant.
+  if (raw === undefined)
+    return { key: "pending", statuses: STATUS_FILTERS.pending };
+  // « Toutes » (status=all) reste explicitement disponible via son onglet.
+  if (raw === "all") return { key: "all", statuses: [] };
+  const key = raw in STATUS_FILTERS ? raw : "all";
   return { key, statuses: STATUS_FILTERS[key] ?? [] };
 }
 

@@ -17,6 +17,7 @@ import { OrderRulesForm } from "@/components/merchant/settings/order-rules-form"
 import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badge";
 import { AccountSection } from "@/components/merchant/settings/account-section";
 import { DeliverySettingsForm } from "@/components/merchant/settings/delivery-settings-form";
+import { NotificationsForm } from "@/components/merchant/settings/notifications-form";
 import { normalizeOpeningHours } from "@/lib/merchant/opening-hours";
 import { getPlatformSettings } from "@/lib/data/platform";
 import {
@@ -201,14 +202,10 @@ export default async function SettingsPage() {
 
         <SettingsSection
           icon={<Bell />}
-          title="Notifications"
-          description="Bientôt — sons, push, e-mails."
+          title="Notifications & alertes"
+          description="Son, notifications système et mode comptoir pour ne rater aucune commande."
         >
-          <p className="text-muted text-sm">
-            La configuration fine des notifications arrive prochainement. Pour
-            l&apos;instant, gérez le son et les notifs depuis le panneau
-            d&apos;alertes du tableau de bord.
-          </p>
+          <NotificationsForm />
         </SettingsSection>
 
         <SettingsSection

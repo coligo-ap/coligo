@@ -89,8 +89,27 @@ export default async function OrderDetailPage({
   const printCopies = merchant?.print_copies ?? 1;
   const orderEvents = (events ?? []) as OrderEvent[];
   const meta = ORDER_STATUS_META[o.status];
-  const shortId = o.id.slice(0, 6).toUpperCase();
+  // Référence publique affichée : numéro de commande (#A073), jamais le hash interne.
+  const orderRef = o.order_number ?? o.id.slice(0, 6).toUpperCase();
   const subtotal = o.order_items.reduce((s, it) => s + it.line_total_da, 0);
+
+  // Regroupe les articles par catégorie (ordre = première apparition) pour
+  // que le commerçant lise la commande rayon par rayon. Fallback « Articles ».
+  const itemGroups: Array<{
+    title: string;
+    items: typeof o.order_items;
+  }> = [];
+  const groupIndex = new Map<string, number>();
+  for (const item of o.order_items) {
+    const title = categoryMap[item.product_name]?.trim() || "Articles";
+    let idx = groupIndex.get(title);
+    if (idx === undefined) {
+      idx = itemGroups.length;
+      groupIndex.set(title, idx);
+      itemGroups.push({ title, items: [] });
+    }
+    itemGroups[idx].items.push(item);
+  }
   // Montants figés (jamais recalculés).
   const payout = o.total_da - o.commission_da;
 
@@ -108,7 +127,7 @@ export default async function OrderDetailPage({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <h1 className="font-mono text-2xl font-bold tracking-tight lg:text-3xl">
-              #{shortId}
+              #{orderRef}
             </h1>
             <Badge tone={meta.tone}>{meta.label}</Badge>
           </div>
@@ -143,34 +162,47 @@ export default async function OrderDetailPage({
                 {countItems(o.order_items) > 1 ? "s" : ""}
               </span>
             </header>
-            <ul className="divide-border divide-y">
-              {o.order_items.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-center gap-3 px-5 py-3.5"
-                >
-                  <span className="bg-primary-50 text-primary-700 flex size-9 shrink-0 items-center justify-center rounded-[10px] text-sm font-semibold tabular-nums">
-                    {item.quantity}×
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {item.product_name}
-                    </p>
-                    <p className="text-muted text-xs">
-                      {formatDA(item.unit_price_da)} l&apos;unité
-                    </p>
+            <div className="divide-border divide-y">
+              {itemGroups.map((group) => (
+                <div key={group.title}>
+                  {/* En-tête de catégorie — aide le commerçant à préparer rayon par rayon */}
+                  <div className="bg-surface-2/60 text-subtle flex items-center justify-between px-5 py-2 text-xs font-semibold tracking-wide uppercase">
+                    <span>{group.title}</span>
+                    <span className="tabular-nums">
+                      {countItems(group.items)} art.
+                    </span>
                   </div>
-                  <span className="text-sm font-semibold tabular-nums">
-                    {formatDA(item.line_total_da)}
-                  </span>
-                </li>
+                  <ul className="divide-border divide-y">
+                    {group.items.map((item) => (
+                      <li
+                        key={item.id}
+                        className="flex items-center gap-3 px-5 py-3.5"
+                      >
+                        <span className="bg-primary-50 text-primary-700 flex size-9 shrink-0 items-center justify-center rounded-[10px] text-sm font-semibold tabular-nums">
+                          {item.quantity}×
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {item.product_name}
+                          </p>
+                          <p className="text-muted text-xs">
+                            {formatDA(item.unit_price_da)} l&apos;unité
+                          </p>
+                        </div>
+                        <span className="text-sm font-semibold tabular-nums">
+                          {formatDA(item.line_total_da)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
               {o.order_items.length === 0 && (
-                <li className="text-muted px-5 py-6 text-center text-sm">
+                <p className="text-muted px-5 py-6 text-center text-sm">
                   Aucun article détaillé.
-                </li>
+                </p>
               )}
-            </ul>
+            </div>
 
             {/* Récap (montants figés à la création) */}
             <div className="border-border space-y-2 border-t px-5 py-4 text-sm">
@@ -217,17 +249,18 @@ export default async function OrderDetailPage({
           {/* Client */}
           <section className="border-border bg-surface rounded-[16px] border p-5">
             <h2 className="mb-3 text-base font-semibold">Client</h2>
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               <div className="flex items-center gap-2.5 text-sm">
                 <User className="text-subtle size-4 shrink-0" />
                 <span className="font-medium">{o.customer_name}</span>
               </div>
+              {/* Bouton « Appeler le client » : tap-to-call bien visible */}
               <a
                 href={`tel:${o.customer_phone}`}
-                className="text-primary-700 hover:bg-primary-50 -mx-2 flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-sm transition-colors"
+                className="bg-primary-600 hover:bg-primary-700 flex items-center justify-center gap-2 rounded-[12px] px-3 py-2.5 text-sm font-semibold text-white transition-colors"
               >
                 <Phone className="size-4 shrink-0" />
-                <span className="font-medium">{o.customer_phone}</span>
+                <span className="tabular-nums">{o.customer_phone}</span>
               </a>
             </div>
           </section>

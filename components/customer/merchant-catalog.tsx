@@ -226,12 +226,23 @@ export function MerchantCatalog({
                       }}
                       onClick={() => scrollToGroup(g.key)}
                       className={cn(
-                        "shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors active:scale-[0.96]",
+                        "inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pr-3 text-xs font-semibold whitespace-nowrap transition-colors active:scale-[0.96]",
+                        g.category?.image_url ? "pl-1" : "pl-3",
                         active
                           ? "border-primary-600 bg-primary-600 text-white"
                           : "border-border bg-surface text-foreground hover:border-primary-300"
                       )}
                     >
+                      {g.category?.image_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={g.category.image_url}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="size-6 shrink-0 rounded-full object-cover"
+                        />
+                      )}
                       {g.category?.title ?? "Autres"}
                     </button>
                   );
@@ -255,7 +266,17 @@ export function MerchantCatalog({
             }}
             className="scroll-mt-[112px] lg:scroll-mt-[120px]"
           >
-            <h2 className="font-display text-foreground mb-2 px-1 text-lg font-bold">
+            <h2 className="font-display text-foreground mb-2 flex items-center gap-2 px-1 text-lg font-bold">
+              {g.category?.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={g.category.image_url}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="size-8 shrink-0 rounded-[8px] object-cover"
+                />
+              )}
               {g.category?.title ?? "Autres"}
             </h2>
             <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[16px] border">

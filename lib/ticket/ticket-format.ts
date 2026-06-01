@@ -187,6 +187,6 @@ export function deriveTicketMeta(order: TicketOrder): TicketMeta {
     feeLabel: isDelivery ? "Frais de livraison" : "Frais de service",
     footerText: isDelivery
       ? "Code remis par le client au livreur (non imprimé)"
-      : "Merci de votre confiance",
+      : "Merci pour votre confiance !",
   };
 }

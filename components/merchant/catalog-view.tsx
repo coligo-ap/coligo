@@ -342,17 +342,30 @@ export function CatalogView({
             {cats.length > 1 ? "s" : ""}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        {/* Sur mobile : les deux boutons sur la MÊME ligne (50/50) pour gagner
+            de la place ; libellés raccourcis. Sur ≥sm : libellés complets. */}
+        <div className="flex w-full gap-2 sm:w-auto">
           <Link
             href="/catalog/categories/new"
-            className={buttonVariants({ variant: "outline" })}
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "flex-1 justify-center sm:flex-initial"
+            )}
           >
             <Plus className="size-4" />
-            Nouvelle catégorie
+            <span className="sm:hidden">Catégorie</span>
+            <span className="hidden sm:inline">Nouvelle catégorie</span>
           </Link>
-          <Link href="/catalog/new" className={buttonVariants()}>
+          <Link
+            href="/catalog/new"
+            className={cn(
+              buttonVariants(),
+              "flex-1 justify-center sm:flex-initial"
+            )}
+          >
             <Plus className="size-4" />
-            Nouveau produit
+            <span className="sm:hidden">Produit</span>
+            <span className="hidden sm:inline">Nouveau produit</span>
           </Link>
         </div>
       </header>

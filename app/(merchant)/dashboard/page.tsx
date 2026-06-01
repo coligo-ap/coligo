@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Bell, QrCode, TrendingUp } from "lucide-react";
-import { ShopStatusToggle } from "@/components/merchant/shop-status-toggle";
+import { QrCode, TrendingUp } from "lucide-react";
 import { OrdersCacheSync } from "@/components/merchant/orders-cache-sync";
 import { OrderBoard } from "@/components/merchant/order-board";
 import { formatDA } from "@/lib/utils";
@@ -68,7 +67,6 @@ export default async function DashboardPage() {
   const activeOrders = ordersList.filter((o) =>
     ["pending", "accepted", "preparing", "ready"].includes(o.status)
   );
-  const pendingCount = ordersList.filter((o) => o.status === "pending").length;
 
   // Stats du jour (Algérie : on s'appuie sur l'heure locale du serveur Vercel
   // — suffisant pour le résumé ; le détail comptable est dans Finances).
@@ -89,30 +87,9 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-[1200px] p-4 lg:p-6 lg:px-8">
       <OrdersCacheSync orders={ordersList} />
 
-      {/* ─── Header : boutique + statut + cloche ─── */}
-      <header className="mb-4 flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-muted text-xs font-medium">Pilotage</p>
-          <h1 className="truncate text-2xl font-bold tracking-tight lg:text-3xl">
-            {merchant?.name ?? "Ma boutique"}
-          </h1>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <ShopStatusToggle initialPaused={merchant?.orders_paused ?? false} />
-          <Link
-            href="/orders"
-            aria-label="Toutes les commandes"
-            className="hover:bg-surface-3 text-muted border-border relative flex size-10 items-center justify-center rounded-full border bg-white"
-          >
-            <Bell className="size-4" />
-            {pendingCount > 0 && (
-              <span className="absolute -top-1 -right-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
-                {pendingCount}
-              </span>
-            )}
-          </Link>
-        </div>
-      </header>
+      {/* Le nom de la boutique + le statut ouvert/fermé + la cloche sont déjà
+          dans le header de l'app (topbar desktop / header mobile) — pas de
+          doublon ici. On démarre directement sur le résumé du jour. */}
 
       {/* ─── Bandeau résumé du jour (compact) ─── */}
       <section className="from-primary-600 to-primary-700 mb-5 flex items-center justify-between gap-4 rounded-[18px] bg-gradient-to-br p-4 text-white shadow-sm lg:p-5">

@@ -11,9 +11,10 @@ export const STATS_PERIODS: { key: StatsPeriod; label: string }[] = [
 ];
 
 export function parsePeriod(value: string | undefined): StatsPeriod {
+  // Défaut = « Aujourd'hui » : le commerçant veut d'abord voir sa journée.
   return STATS_PERIODS.some((p) => p.key === value)
     ? (value as StatsPeriod)
-    : "7d";
+    : "today";
 }
 
 const MONTHS_FR = [
