@@ -6,11 +6,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDA(amountDa: number): string {
-  return (
-    new Intl.NumberFormat("fr-DZ", {
-      maximumFractionDigits: 0,
-    }).format(amountDa) + " DA"
-  );
+  // Groupement des milliers MANUEL (espace) plutôt que Intl.NumberFormat :
+  // l'ICU de Node (serveur) et de Chromium (client) ne produisent pas le même
+  // séparateur pour "fr-DZ" (espace insécable U+202F vs U+00A0) → mismatch
+  // d'hydratation React (#418) dès qu'un montant ≥ 1000 est rendu dans un
+  // composant client. Le formatage manuel est identique partout.
+  const n = Math.round(amountDa);
+  const grouped = Math.abs(n)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return `${n < 0 ? "-" : ""}${grouped} DA`;
 }
 
 export function formatRelativeTime(isoDate: string): string {
