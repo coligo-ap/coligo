@@ -122,12 +122,18 @@ export async function getMyReviewableOrders(
  * Renvoie les N derniers avis publics d'un commerçant (pour /m/[slug]).
  * Joint customers.full_name pour afficher le prénom de l'auteur (anonymisé
  * partiellement côté UI : "Mehdi B.").
+ *
+ * DIVERSITÉ / ANTI-FRAUDE : on n'affiche qu'UN SEUL avis par client (le PLUS
+ * RÉCENT). Un client qui commande plusieurs fois pourrait sinon laisser 3 avis
+ * et monopoliser / gonfler / saboter la vitrine. En ne gardant que le dernier
+ * avis de chaque client, on diversifie les voix affichées.
  */
 export async function getMerchantReviews(
   merchantId: string,
   limit = 20
 ): Promise<ReviewWithCustomer[]> {
   const supabase = await createClient();
+  // Tirage élargi AVANT dédoublonnage par client, puis on tronque à `limit`.
   const { data } = await supabase
     .from("reviews")
     .select(
@@ -138,13 +144,18 @@ export async function getMerchantReviews(
     .eq("merchant_id", merchantId)
     .eq("is_hidden", false)
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .limit(200);
 
-  return (data ?? []).map((r) => {
+  const seen = new Set<string>();
+  const out: ReviewWithCustomer[] = [];
+  for (const r of data ?? []) {
+    // Trié par date décroissante → 1er vu pour un client = son avis le plus récent.
+    if (seen.has(r.customer_id)) continue;
+    seen.add(r.customer_id);
     const c = (
       r as unknown as { customers: { full_name: string | null } | null }
     ).customers;
-    return {
+    out.push({
       id: r.id,
       order_id: r.order_id,
       customer_id: r.customer_id,
@@ -155,6 +166,8 @@ export async function getMerchantReviews(
       created_at: r.created_at,
       edited_at: r.edited_at,
       customer_name: c?.full_name ?? null,
-    };
-  });
+    });
+    if (out.length >= limit) break;
+  }
+  return out;
 }
