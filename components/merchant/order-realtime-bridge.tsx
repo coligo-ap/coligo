@@ -68,40 +68,9 @@ export function OrderRealtimeBridge({
   // écran. On empile sur chaque INSERT et on dépile à l'acceptation/refus.
   const [queue, setQueue] = useState<NewOrder[]>([]);
   const printedOnceRef = useRef<Set<string>>(new Set());
-  // Garde : on ne ré-amorce la file qu'une fois par montage (sinon chaque
-  // router.refresh() rejouerait le seed et ferait clignoter l'overlay).
-  const seededRef = useRef(false);
-
-  // Amorçage AU LANCEMENT : si des commandes sont DÉJÀ « à confirmer » quand le
-  // commerçant ouvre l'app (arrivées pendant qu'il était hors-ligne / app
-  // fermée), on les empile aussi en overlay — pas seulement celles reçues en
-  // live via Realtime. Le commerçant doit pouvoir accepter/refuser dès l'ouverture.
-  useEffect(() => {
-    if (seededRef.current) return;
-    seededRef.current = true;
-    const supabase = createClient();
-    void supabase
-      .from("orders")
-      .select("id, customer_name, total_da, order_number")
-      .eq("merchant_id", merchantId)
-      .eq("status", "pending")
-      .order("created_at", { ascending: true })
-      .then(({ data }) => {
-        if (!data || data.length === 0) return;
-        setQueue((q) => {
-          const seen = new Set(q.map((o) => o.id));
-          const fresh = data
-            .filter((r) => !seen.has(r.id))
-            .map((r) => ({
-              id: r.id,
-              customer_name: r.customer_name,
-              total_da: r.total_da,
-              order_number: r.order_number ?? null,
-            }));
-          return fresh.length ? [...q, ...fresh] : q;
-        });
-      });
-  }, [merchantId]);
+  // Commandes déjà signalées (son/notif) — pour n'alerter qu'UNE fois par
+  // commande, quel que soit le canal qui la remonte (Realtime ou polling).
+  const alertedRef = useRef<Set<string>>(new Set());
 
   // Auto-unlock au PREMIER clic n'importe où : on déverrouille l'audio et on
   // déclenche la demande de permission notifications. C'est ce qui permet à
@@ -223,6 +192,36 @@ export function OrderRealtimeBridge({
     [fetchTicket]
   );
 
+  // Empile une/des commande(s) « à confirmer » dans la file de l'overlay (sans
+  // doublon) et déclenche l'alerte (son en boucle + vibration + notif) UNE seule
+  // fois par commande — quel que soit le canal (Realtime OU polling) qui la
+  // remonte. C'est le point d'entrée unique de l'overlay.
+  const addPending = useCallback(
+    (orders: NewOrder[]) => {
+      if (orders.length === 0) return;
+      setQueue((q) => {
+        const ids = new Set(q.map((o) => o.id));
+        const fresh = orders.filter((o) => !ids.has(o.id));
+        return fresh.length ? [...q, ...fresh] : q;
+      });
+      const newOnes = orders.filter((o) => !alertedRef.current.has(o.id));
+      if (newOnes.length === 0) return;
+      newOnes.forEach((o) => alertedRef.current.add(o.id));
+      if (prefs.alertSound) void play({ repeat: true, intervalMs: 1500 });
+      vibrate([300, 150, 300, 150, 300]);
+      if (prefs.notifications && permission === "granted") {
+        const o = newOnes[0];
+        notify("Nouvelle commande Coligo", {
+          body:
+            (o.customer_name ?? "Client") +
+            (o.total_da != null ? ` · ${formatDA(o.total_da)}` : ""),
+          tag: "coligo-order",
+        });
+      }
+    },
+    [prefs.alertSound, prefs.notifications, permission, play]
+  );
+
   const handleInsert = useCallback(
     async (row: {
       id: string;
@@ -239,44 +238,55 @@ export function OrderRealtimeBridge({
         router.refresh();
         return;
       }
-
-      if (prefs.alertSound) {
-        // Son en boucle : l'overlay est bloquant tant que la commande n'est pas
-        // traitée, le son insiste jusque-là (coupé quand la file se vide).
-        await play({ repeat: true, intervalMs: 1500 });
-      }
-      // Vibration insistante (no-op iOS).
-      vibrate([300, 150, 300, 150, 300]);
-      if (prefs.notifications && permission === "granted") {
-        const title = "Nouvelle commande Coligo";
-        const body =
-          (row.customer_name ?? "Client") +
-          (row.total_da != null ? ` · ${formatDA(row.total_da)}` : "");
-        notify(title, { body, tag: "coligo-order" });
-      }
-
-      // Empile en évitant les doublons (ré-événement après reconnexion RT).
-      setQueue((q) =>
-        q.some((o) => o.id === row.id)
-          ? q
-          : [
-              ...q,
-              {
-                id: row.id,
-                customer_name: row.customer_name,
-                total_da: row.total_da,
-                order_number: row.order_number ?? null,
-              },
-            ]
-      );
-
+      addPending([
+        {
+          id: row.id,
+          customer_name: row.customer_name,
+          total_da: row.total_da,
+          order_number: row.order_number ?? null,
+        },
+      ]);
       if (settingsRef.current.auto_print === "on_receive") {
         void doPrint(row.id);
       }
       router.refresh();
     },
-    [prefs.alertSound, prefs.notifications, permission, play, router, doPrint]
+    [addPending, router, doPrint]
   );
+
+  // Sondage ACTIF des commandes « à confirmer ». Filet indispensable : si le
+  // Realtime se déclare connecté mais ne livre pas les INSERT (RLS/proxy/WebView),
+  // la pop-up doit quand même surgir sur N'IMPORTE QUELLE page commerçant, sans
+  // que le commerçant ait à rafraîchir. Couvre aussi les commandes déjà en
+  // attente à l'ouverture de l'app. Realtime reste le chemin « instantané ».
+  useEffect(() => {
+    if (!merchantId) return;
+    let cancelled = false;
+    const supabase = createClient();
+    const poll = async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("id, customer_name, total_da, order_number")
+        .eq("merchant_id", merchantId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: true });
+      if (cancelled || !data || data.length === 0) return;
+      addPending(
+        data.map((r) => ({
+          id: r.id,
+          customer_name: r.customer_name,
+          total_da: r.total_da,
+          order_number: r.order_number ?? null,
+        }))
+      );
+    };
+    void poll();
+    const id = window.setInterval(() => void poll(), 6000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [merchantId, addPending]);
 
   // Retire la commande de tête une fois acceptée/refusée → affiche la suivante.
   const resolveHead = useCallback(() => {

@@ -59,6 +59,8 @@ export function CustomerOrderLive({
   const lastStatusRef = useRef<OrderStatus>(initialStatus);
   const [popup, setPopup] = useState<Popup | null>(null);
   const { unlock, play } = useAlertSound();
+  // Réf stable vers la logique de transition (évite de re-souscrire/re-poller).
+  const onStatusRef = useRef<(next: OrderStatus) => void>(() => {});
 
   // Déverrouille l'audio au 1er geste utilisateur (autoplay bloqué sinon).
   useEffect(() => {
@@ -78,6 +80,31 @@ export function CustomerOrderLive({
     };
   }, [unlock]);
 
+  // Réagit à un (nouveau) statut : pop-up + son + vibration + notif système,
+  // puis refresh. Idempotent (ignore si statut inchangé).
+  onStatusRef.current = (next: OrderStatus) => {
+    if (next === lastStatusRef.current) return;
+    lastStatusRef.current = next;
+    const tmpl = STATUS_POPUP[next];
+    if (tmpl) {
+      setPopup(tmpl);
+      try {
+        void play();
+      } catch {
+        /* audio verrouillé : pop-up + vibration suffisent */
+      }
+      vibrate([200, 100, 200]);
+      try {
+        notify(tmpl.title, { body: tmpl.body, tag: `order-${orderId}` });
+      } catch {
+        /* ignoré */
+      }
+    }
+    router.refresh();
+  };
+
+  // Realtime (instantané) + polling actif (filet si le Realtime ne livre pas) :
+  // le client est notifié de l'acceptation / refus quoi qu'il arrive.
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -91,39 +118,26 @@ export function CustomerOrderLive({
           filter: `id=eq.${orderId}`,
         },
         (payload) => {
-          const next = (payload.new as { status: OrderStatus }).status;
-          if (next === lastStatusRef.current) return;
-          lastStatusRef.current = next;
-
-          const tmpl = STATUS_POPUP[next];
-          if (tmpl) {
-            setPopup(tmpl);
-            try {
-              void play();
-            } catch {
-              /* audio verrouillé : la pop-up + vibration suffisent */
-            }
-            vibrate([200, 100, 200]);
-            // Notification système (no-op si non autorisée / non supportée).
-            try {
-              notify(tmpl.title, { body: tmpl.body, tag: `order-${orderId}` });
-            } catch {
-              /* ignoré */
-            }
-          }
-          router.refresh();
+          onStatusRef.current((payload.new as { status: OrderStatus }).status);
         }
       )
       .subscribe();
 
-    // Filet de sécurité : refresh toutes les 30 s si le Realtime ne marche pas.
-    const interval = setInterval(() => router.refresh(), 30_000);
+    const poll = async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("status")
+        .eq("id", orderId)
+        .maybeSingle();
+      if (data?.status) onStatusRef.current(data.status as OrderStatus);
+    };
+    const interval = setInterval(() => void poll(), 6000);
 
     return () => {
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, [orderId, router, play]);
+  }, [orderId]);
 
   if (!popup) return null;
 
