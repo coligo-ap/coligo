@@ -149,8 +149,6 @@ function classifyGumError(err: unknown): {
   }
 }
 
-type ZxingControls = { stop: () => void };
-
 export function QrScanner({
   onScan,
   oneShot = true,
@@ -160,7 +158,6 @@ export function QrScanner({
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
-  const zxingRef = useRef<ZxingControls | null>(null);
   const stoppedRef = useRef(false);
   const scannedRef = useRef(false);
   const lastDetectionRef = useRef<{ text: string; at: number } | null>(null);
@@ -195,14 +192,6 @@ export function QrScanner({
     if (rafRef.current != null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
-    }
-    if (zxingRef.current) {
-      try {
-        zxingRef.current.stop();
-      } catch {
-        /* ignored */
-      }
-      zxingRef.current = null;
     }
     if (streamRef.current) {
       for (const t of streamRef.current.getTracks()) {
@@ -364,67 +353,118 @@ export function QrScanner({
           /* certains UA refusent play() — on continue avec zxing */
         }
 
-        // 4. Choix du moteur de décodage
-        //    - Capacitor natif → ZXING uniquement (BarcodeDetector crashe
-        //      le WebView Sunmi V3 et fait quitter l'APK).
-        //    - PWA navigateur → BarcodeDetector si supporté, sinon zxing.
+        // 4. Boucle de décodage par CANVAS (plus fiable cross-device que de
+        //    passer le <video> directement aux décodeurs : on maîtrise le
+        //    dimensionnement et l'extraction de frame). Moteurs :
+        //    - Capacitor natif → ZXING uniquement (BarcodeDetector crashe le
+        //      WebView Sunmi V3 et fait quitter l'APK).
+        //    - PWA navigateur → BarcodeDetector(canvas) si supporté, sinon zxing.
         const det = nativeCap ? null : getBarcodeDetector();
-        let useNative = false;
+        let nativeDetector: BarcodeDetectorInstance | null = null;
         if (det) {
           try {
             const formats = (await det.Static.getSupportedFormats?.()) ?? [];
-            useNative = formats.includes("qr_code");
+            if (formats.includes("qr_code")) {
+              nativeDetector = new det.Ctor({ formats: ["qr_code"] });
+            }
           } catch {
-            useNative = false;
+            nativeDetector = null;
           }
         }
+
+        // zxing : fallback (PWA sans BarcodeDetector) ET moteur natif Capacitor.
+        let zxingReader: import("@zxing/browser").BrowserQRCodeReader | null =
+          null;
+        if (!nativeDetector) {
+          try {
+            const { BrowserQRCodeReader } = await import("@zxing/browser");
+            zxingReader = new BrowserQRCodeReader();
+          } catch (err) {
+            log("zxing.import-failed", {
+              msg: err instanceof Error ? err.message : String(err),
+            });
+            setStatus("error");
+            setErrMessage(
+              "Décodeur QR indisponible. Utilisez la saisie manuelle."
+            );
+            return;
+          }
+        }
+
         log("engine.choice", {
-          engine: useNative ? "BarcodeDetector" : "zxing",
+          engine: nativeDetector ? "BarcodeDetector(canvas)" : "zxing(canvas)",
           reason: nativeCap
             ? "capacitor-native (skip BarcodeDetector)"
-            : useNative
+            : nativeDetector
               ? "qr_code supported"
               : "fallback",
         });
 
         if (abort || stoppedRef.current) return;
 
-        if (useNative && det) {
-          let detector: BarcodeDetectorInstance;
-          try {
-            detector = new det.Ctor({ formats: ["qr_code"] });
-          } catch (err) {
-            log("barcode-detector.ctor-failed", {
-              name: (err as { name?: string })?.name,
-            });
-            await startZxing(video);
-            return;
-          }
-          setStatus("scanning");
-
-          let lastFrameAt = 0;
-          const tick = async (ts: number) => {
-            if (stoppedRef.current) return;
-            if (ts - lastFrameAt >= 100) {
-              lastFrameAt = ts;
-              try {
-                if (video.readyState >= 2) {
-                  const results = await detector.detect(video);
-                  if (results.length > 0 && results[0].rawValue) {
-                    log("decoded", { engine: "native" });
-                    emit(results[0].rawValue);
-                  }
-                }
-              } catch {
-                /* frame pas prête : on continue */
-              }
-            }
-            rafRef.current = requestAnimationFrame(tick);
-          };
-          rafRef.current = requestAnimationFrame(tick);
-        } else {
-          await startZxing(video);
+        // Canvas de travail (hors DOM) — on y dessine chaque frame avant décodage.
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) {
+          setStatus("error");
+          setErrMessage(
+            "Décodeur QR indisponible. Utilisez la saisie manuelle."
+          );
+          return;
         }
+
+        setStatus("scanning");
+
+        let lastFrameAt = 0;
+        let loggedFirstFrame = false;
+        const tick = async (ts: number) => {
+          if (stoppedRef.current) return;
+          // ~8 fps : suffisant pour décoder, doux pour le CPU/WebView.
+          if (
+            ts - lastFrameAt >= 120 &&
+            video.readyState >= 2 &&
+            video.videoWidth > 0
+          ) {
+            lastFrameAt = ts;
+            // Dessine la frame (capée à 640 px sur le grand côté pour la perf).
+            const vw = video.videoWidth;
+            const vh = video.videoHeight;
+            const scale = Math.min(1, 640 / Math.max(vw, vh));
+            canvas.width = Math.max(1, Math.round(vw * scale));
+            canvas.height = Math.max(1, Math.round(vh * scale));
+            try {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              if (!loggedFirstFrame) {
+                loggedFirstFrame = true;
+                log("frame.first", { w: canvas.width, h: canvas.height });
+              }
+              if (nativeDetector) {
+                const results = await nativeDetector.detect(canvas);
+                if (results.length > 0 && results[0].rawValue) {
+                  log("decoded", { engine: "native" });
+                  emit(results[0].rawValue);
+                }
+              } else if (zxingReader) {
+                // decodeFromCanvas lève NotFoundException si aucun QR : normal,
+                // on enchaîne sur la frame suivante.
+                try {
+                  const res = zxingReader.decodeFromCanvas(canvas);
+                  const text = res?.getText();
+                  if (text) {
+                    log("decoded", { engine: "zxing" });
+                    emit(text);
+                  }
+                } catch {
+                  /* pas de QR sur cette frame */
+                }
+              }
+            } catch {
+              /* frame indisponible : on continue */
+            }
+          }
+          rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
       } catch (err) {
         // Filet de sécurité GLOBAL : aucun throw non géré ne doit faire
         // crasher le composant. Sur Sunmi un throw async non-catché peut
@@ -440,39 +480,6 @@ export function QrScanner({
         );
       }
     })();
-
-    // Boucle zxing (toujours dispo, utilisée systématiquement sur Capacitor)
-    async function startZxing(video: HTMLVideoElement) {
-      try {
-        log("zxing.start");
-        const { BrowserQRCodeReader } = await import("@zxing/browser");
-        const reader = new BrowserQRCodeReader();
-        const controls = await reader.decodeFromVideoElement(
-          video,
-          (result) => {
-            if (stoppedRef.current || !result) return;
-            const text = result.getText();
-            if (text) {
-              log("decoded", { engine: "zxing" });
-              emit(text);
-            }
-          }
-        );
-        if (stoppedRef.current) {
-          controls.stop();
-          return;
-        }
-        zxingRef.current = controls;
-        setStatus("scanning");
-        log("zxing.ready");
-      } catch (err) {
-        log("zxing.failed", {
-          msg: err instanceof Error ? err.message : String(err),
-        });
-        setStatus("error");
-        setErrMessage("Décodeur QR indisponible. Utilisez la saisie manuelle.");
-      }
-    }
 
     return () => {
       abort = true;
