@@ -168,6 +168,10 @@ export async function signup(
     email: formData.get("email"),
     password: formData.get("password"),
     merchantName: formData.get("merchantName"),
+    managerName: formData.get("managerName"),
+    latitude: formData.get("latitude"),
+    longitude: formData.get("longitude"),
+    address: formData.get("address"),
     category: formData.get("category"),
     wilayaCode: formData.get("wilayaCode"),
     city: formData.get("city"),
@@ -177,8 +181,32 @@ export async function signup(
     return { error: firstZodError(parsed.error) };
   }
 
-  const { email, password, merchantName, category, wilayaCode, city } =
-    parsed.data;
+  const {
+    email,
+    password,
+    merchantName,
+    managerName,
+    latitude,
+    longitude,
+    address,
+    category,
+    wilayaCode,
+    city,
+  } = parsed.data;
+
+  // Position carte → nombres bornés (obligatoire, choisie sur la carte).
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    lat < -90 ||
+    lat > 90 ||
+    lng < -180 ||
+    lng > 180
+  ) {
+    return { error: "Position sur la carte invalide — replacez le repère." };
+  }
 
   const supabase = await createClient();
 
@@ -217,6 +245,10 @@ export async function signup(
   const { error: merchantError } = await supabase.from("merchants").insert({
     user_id: signUpData.user.id,
     name: merchantName,
+    manager_name: managerName,
+    latitude: lat,
+    longitude: lng,
+    address,
     category,
     wilaya_code: wilayaCode,
     city,

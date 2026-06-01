@@ -60,6 +60,7 @@ export type Database = {
           paused_until: string | null;
           closure_start: string | null;
           closure_end: string | null;
+          manager_name: string | null;
           auto_print: Database["public"]["Enums"]["auto_print_mode"];
           print_copies: number;
           print_width: number;
@@ -109,6 +110,7 @@ export type Database = {
           paused_until?: string | null;
           closure_start?: string | null;
           closure_end?: string | null;
+          manager_name?: string | null;
           auto_print?: Database["public"]["Enums"]["auto_print_mode"];
           print_copies?: number;
           print_width?: number;
@@ -158,6 +160,7 @@ export type Database = {
           paused_until?: string | null;
           closure_start?: string | null;
           closure_end?: string | null;
+          manager_name?: string | null;
           auto_print?: Database["public"]["Enums"]["auto_print_mode"];
           print_copies?: number;
           print_width?: number;

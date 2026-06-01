@@ -19,9 +19,12 @@ import {
   Tag,
   ArrowRight,
   Building2,
+  UserRound,
+  Check,
 } from "lucide-react";
 import { InstallButton } from "@/components/pwa/install-button";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
+import { MapPositionPicker } from "@/components/shared/map-position-picker";
 
 const initialState: AuthState = {};
 
@@ -31,6 +34,10 @@ const SELECT_CLASS =
 export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signup, initialState);
   const [wilayaCode, setWilayaCode] = useState("16");
+  // Position EXACTE sur la carte — obligatoire avant de pouvoir s'inscrire.
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
 
   const communes = useMemo(() => getCommunes(wilayaCode), [wilayaCode]);
 
@@ -95,6 +102,26 @@ export default function SignupPage() {
                       name="merchantName"
                       type="text"
                       placeholder="Boulangerie El Karim"
+                      required
+                      disabled={pending}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                {/* Nom & prénom du responsable */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="managerName">
+                    Nom & prénom du responsable{" "}
+                    <span className="text-rose-600">*</span>
+                  </Label>
+                  <div className="relative">
+                    <UserRound className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                    <Input
+                      id="managerName"
+                      name="managerName"
+                      type="text"
+                      placeholder="Karim Benali"
                       required
                       disabled={pending}
                       className="pl-9"
@@ -187,6 +214,65 @@ export default function SignupPage() {
                   </div>
                 </div>
 
+                {/* Position EXACTE sur la carte (obligatoire) */}
+                <div className="space-y-1.5">
+                  <Label>
+                    Position exacte du commerce{" "}
+                    <span className="text-rose-600">*</span>
+                  </Label>
+                  <p className="text-muted text-xs">
+                    Déplacez la carte ou tapez pour placer le repère sur
+                    l&apos;entrée de votre commerce.
+                  </p>
+                  <div className="border-border overflow-hidden rounded-[12px] border">
+                    <MapPositionPicker
+                      initial={coords}
+                      onChange={(p) => setCoords(p)}
+                      height={220}
+                      gpsLabel="Ma position"
+                      autoLocate
+                    />
+                  </div>
+                  {coords ? (
+                    <p className="text-success-700 inline-flex items-center gap-1 text-xs font-medium">
+                      <Check className="size-3.5" />
+                      Position enregistrée ({coords.lat.toFixed(5)},{" "}
+                      {coords.lng.toFixed(5)})
+                    </p>
+                  ) : (
+                    <p className="text-subtle text-xs">
+                      Aucune position sélectionnée pour l&apos;instant.
+                    </p>
+                  )}
+                  {/* Valeurs postées avec le formulaire (server action). */}
+                  <input
+                    type="hidden"
+                    name="latitude"
+                    value={coords ? String(coords.lat) : ""}
+                  />
+                  <input
+                    type="hidden"
+                    name="longitude"
+                    value={coords ? String(coords.lng) : ""}
+                  />
+                </div>
+
+                {/* Adresse / repère (optionnel) */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="address">Adresse / repère (optionnel)</Label>
+                  <div className="relative">
+                    <MapPin className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                    <Input
+                      id="address"
+                      name="address"
+                      type="text"
+                      placeholder="Rue, n°, point de repère…"
+                      disabled={pending}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
                 <div className="border-surface-3 border-t pt-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="email">
@@ -244,7 +330,7 @@ export default function SignupPage() {
                   type="submit"
                   size="lg"
                   className="w-full"
-                  disabled={pending}
+                  disabled={pending || !coords}
                 >
                   {pending ? (
                     "Création…"
@@ -255,6 +341,12 @@ export default function SignupPage() {
                     </>
                   )}
                 </Button>
+                {!coords && (
+                  <p className="text-subtle text-center text-xs">
+                    Placez d&apos;abord votre commerce sur la carte pour
+                    continuer.
+                  </p>
+                )}
 
                 <p className="text-muted pt-2 text-center text-xs">
                   En vous inscrivant, vous acceptez les CGU de {APP_CONFIG.name}
