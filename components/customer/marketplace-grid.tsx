@@ -21,6 +21,10 @@ type Props = {
   promoIds?: Set<string>;
   /** Détails des promos (− %, code, offre) par merchant_id. */
   promoLabels?: Record<string, PromoLabel>;
+  /** IDs des commerces favoris du client (pour l'état initial du cœur). */
+  favoriteIds?: Set<string>;
+  /** Client connecté — passe au cœur favori. */
+  isAuth?: boolean;
 };
 
 // =============================================================================
@@ -41,7 +45,13 @@ type Filters = {
   deliveryMode: "any" | "express" | "tour";
 };
 
-export function MarketplaceGrid({ fallback, promoIds, promoLabels }: Props) {
+export function MarketplaceGrid({
+  fallback,
+  promoIds,
+  promoLabels,
+  favoriteIds,
+  isAuth = false,
+}: Props) {
   const params = useSearchParams();
   const router = useRouter();
   const loc = useCustomerLocation();
@@ -76,18 +86,28 @@ export function MarketplaceGrid({ fallback, promoIds, promoLabels }: Props) {
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (loc === null) return;
+    // Un filtre SERVEUR (catégorie/recherche) impose un refetch même sans zone.
+    const hasServerFilter = !!filters.q || !!filters.category;
+    // Sans zone résolue ET sans filtre serveur : on garde le fallback rangé
+    // côté serveur (et on y revient quand on efface un filtre).
+    if (loc === null && !hasServerFilter) {
+      setItems(fallback);
+      setEmptyZone(false);
+      return;
+    }
     startTransition(async () => {
       const res = await fetchMerchantsForZone({
-        wilaya_code: loc.wilaya_code,
-        commune: loc.commune,
+        wilaya_code: loc?.wilaya_code ?? null,
+        commune: loc?.commune ?? null,
         q: filters.q || null,
         category: filters.category || null,
         // Le tri "rating" est appliqué côté client (la note n'est pas un champ
         // de tri serveur) → on demande l'ordre par défaut au serveur.
         sort: filters.sort === "min_order" ? "min_order" : "name",
       });
-      if (res.length === 0 && loc.wilaya_code) {
+      // Zone choisie mais vide ET pas de filtre serveur → on propose le reste
+      // de l'Algérie. Avec un filtre actif, on respecte le résultat (même vide).
+      if (res.length === 0 && loc?.wilaya_code && !hasServerFilter) {
         setItems(fallback);
         setEmptyZone(true);
       } else {
@@ -248,6 +268,8 @@ export function MarketplaceGrid({ fallback, promoIds, promoLabels }: Props) {
               hasPromo={promoIds?.has(m.id)}
               promo={promos[m.id] ?? null}
               distanceKm={distanceFor(m)}
+              initialFavorite={favoriteIds?.has(m.id)}
+              isAuth={isAuth}
             />
           ))}
         </div>

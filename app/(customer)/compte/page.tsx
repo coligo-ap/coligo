@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   ChevronRight,
   Gift,
+  Heart,
   Mail,
   Phone,
   Receipt,
@@ -123,6 +124,25 @@ export default async function CustomerAccountPage() {
                 </p>
                 <p className="text-muted text-xs">
                   Historique et suivi en cours
+                </p>
+              </div>
+              <ChevronRight className="text-muted size-4" />
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/favoris"
+              className="border-border bg-surface hover:border-primary-300 group flex items-center gap-3 rounded-[14px] border p-4 transition-colors"
+            >
+              <div className="bg-coral-50 text-coral-600 flex size-11 shrink-0 items-center justify-center rounded-full">
+                <Heart className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-foreground text-sm font-semibold">
+                  Mes favoris
+                </p>
+                <p className="text-muted text-xs">
+                  Tes commerces préférés, en accès rapide
                 </p>
               </div>
               <ChevronRight className="text-muted size-4" />

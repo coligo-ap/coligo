@@ -1,21 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import {
-  ArrowLeft,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  Heart,
-  MapPin,
-} from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, ChevronDown, ChevronUp, Clock, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
 import { getCategoryLabel } from "@/lib/config/categories";
 import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badge";
 import { MerchantReviewsDialog } from "@/components/customer/merchant-reviews-dialog";
+import { FavoriteHeart } from "@/components/customer/favorite-heart";
 import { DAY_KEYS, DAY_LABELS, type OpeningHours } from "@/lib/types";
 import { formatDA } from "@/lib/utils";
 import type { ReviewWithCustomer } from "@/lib/data/reviews";
@@ -35,12 +29,15 @@ import type { ReviewWithCustomer } from "@/lib/data/reviews";
 //          📍 Commune · 🕒 ~15 min · Horaires ⌄ · ★ 4.5 (28 avis)
 //   [    horaires détaillés repliés    ]
 //
-// Favori : MVP local-storage (pas de table customer_favorites pour
-// l'instant). Persistance DB à brancher dans un commit ultérieur.
+// Favori : persisté en DB (table customer_favorites) via <FavoriteHeart>.
 // =============================================================================
 
 type Props = {
   merchantId: string;
+  /** Le client a-t-il ce commerce en favori ? (état initial du cœur) */
+  initialFavorite?: boolean;
+  /** Client connecté — sinon le cœur redirige vers la connexion. */
+  isAuth?: boolean;
   name: string;
   category: string | null;
   description_fr: string | null;
@@ -57,26 +54,10 @@ type Props = {
   reviews: ReviewWithCustomer[];
 };
 
-const FAV_STORAGE_KEY = "coligo-favorites-v1";
-
-function readFavorites(): Set<string> {
-  if (typeof window === "undefined") return new Set();
-  try {
-    const raw = window.localStorage.getItem(FAV_STORAGE_KEY);
-    if (!raw) return new Set();
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? new Set(arr) : new Set();
-  } catch {
-    return new Set();
-  }
-}
-function writeFavorites(set: Set<string>) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(FAV_STORAGE_KEY, JSON.stringify([...set]));
-}
-
 export function MerchantCompactHeader({
   merchantId,
+  initialFavorite = false,
+  isAuth = false,
   name,
   category,
   description_fr,
@@ -94,19 +75,6 @@ export function MerchantCompactHeader({
 }: Props) {
   const [showHours, setShowHours] = useState(false);
   const [expandDesc, setExpandDesc] = useState(false);
-
-  // Favori local-storage MVP — pas persisté en DB pour l'instant.
-  const [isFav, setIsFav] = useState(false);
-  useEffect(() => {
-    setIsFav(readFavorites().has(merchantId));
-  }, [merchantId]);
-  function toggleFav() {
-    const next = readFavorites();
-    if (next.has(merchantId)) next.delete(merchantId);
-    else next.add(merchantId);
-    writeFavorites(next);
-    setIsFav(next.has(merchantId));
-  }
 
   const heroSrc = cover_url ?? categoryImageFor(category) ?? null;
   const heroOptimized = heroSrc
@@ -159,21 +127,13 @@ export function MerchantCompactHeader({
           <ArrowLeft className="size-4" />
         </Link>
 
-        {/* Bouton favori (rond blanc translucide) */}
-        <button
-          type="button"
-          onClick={toggleFav}
-          aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
-          aria-pressed={isFav}
-          className={cn(
-            "absolute top-3 right-3 z-10 inline-flex size-9 items-center justify-center rounded-full bg-white/85 shadow-sm backdrop-blur transition-all hover:bg-white active:scale-95",
-            isFav ? "text-coral-500" : "text-foreground"
-          )}
-        >
-          <Heart
-            className={cn("size-4 transition-colors", isFav && "fill-current")}
-          />
-        </button>
+        {/* Bouton favori (persisté en DB) */}
+        <FavoriteHeart
+          merchantId={merchantId}
+          initialFavorite={initialFavorite}
+          isAuth={isAuth}
+          className="absolute top-3 right-3 z-10 size-9 bg-white/85"
+        />
 
         {/* Logo SUPERPOSÉ sur la cover (bottom-left, dépasse de moitié au
             dessous pour rester aussi visible que possible). */}

@@ -5,6 +5,7 @@ import {
   getPromoLabelsByMerchant,
 } from "@/lib/data/merchants-public";
 import { getActiveBanners } from "@/lib/data/promo-banners";
+import { getMyFavoriteIds } from "@/lib/data/favorites";
 import { getMyReviewableOrders } from "@/lib/data/reviews";
 import { loadRankingContext, rankMerchants } from "@/lib/data/merchant-ranking";
 import { createClient } from "@/lib/supabase/server";
@@ -33,14 +34,22 @@ export const dynamic = "force-dynamic";
 
 export default async function CustomerHomePage() {
   const supabase = await createClient();
-  const [fallback, categories, banners, reviewableOrders, { data: user }] =
-    await Promise.all([
-      listPublicMerchants({ limit: 24 }),
-      listMerchantCategories(),
-      getActiveBanners(),
-      getMyReviewableOrders(1),
-      supabase.auth.getUser(),
-    ]);
+  const [
+    fallback,
+    categories,
+    banners,
+    reviewableOrders,
+    favoriteIds,
+    { data: user },
+  ] = await Promise.all([
+    listPublicMerchants({ limit: 24 }),
+    listMerchantCategories(),
+    getActiveBanners(),
+    getMyReviewableOrders(1),
+    getMyFavoriteIds(),
+    supabase.auth.getUser(),
+  ]);
+  const isAuth = !!user?.user;
 
   // Coords GPS du client connecté (pour la proximité dans le score de tri).
   let customerCoords: {
@@ -114,6 +123,8 @@ export default async function CustomerHomePage() {
                 fallback={rankedFallback}
                 promoIds={promoIds}
                 promoLabels={promoLabels}
+                favoriteIds={favoriteIds}
+                isAuth={isAuth}
               />
             </Suspense>
           </section>

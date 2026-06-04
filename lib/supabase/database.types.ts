@@ -20,6 +20,27 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      customer_favorites: {
+        Row: {
+          id: string;
+          customer_id: string;
+          merchant_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          merchant_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          merchant_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       merchants: {
         Row: {
           id: string;

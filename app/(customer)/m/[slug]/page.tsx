@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { CustomerShell } from "@/components/customer/customer-shell";
+import { createClient } from "@/lib/supabase/server";
+import { getMyFavoriteIds } from "@/lib/data/favorites";
 import { getPublicMerchantBySlug } from "@/lib/data/merchants-public";
 import {
   listMerchantProducts,
@@ -31,10 +33,16 @@ export default async function MerchantPublicPage({
   // Charge les avis publics du commerçant (RLS filtre déjà is_hidden=false).
   const reviews = await getMerchantReviews(m.id, 20);
 
-  const [catalog, promotions] = await Promise.all([
-    listMerchantProducts(m.id),
-    listMerchantPromotions(m.id),
-  ]);
+  const supabase = await createClient();
+  const [catalog, promotions, favoriteIds, { data: authData }] =
+    await Promise.all([
+      listMerchantProducts(m.id),
+      listMerchantPromotions(m.id),
+      getMyFavoriteIds(),
+      supabase.auth.getUser(),
+    ]);
+  const isAuth = !!authData?.user;
+  const isFavorite = favoriteIds.has(m.id);
 
   const wilayaName = m.wilaya_code
     ? (WILAYAS.find((w) => w.code === m.wilaya_code)?.name ?? null)
@@ -79,6 +87,8 @@ export default async function MerchantPublicPage({
             Le bouton "Retour" est intégré sur la cover — plus de ligne séparée. */}
         <MerchantCompactHeader
           merchantId={m.id}
+          initialFavorite={isFavorite}
+          isAuth={isAuth}
           name={m.name}
           category={m.category}
           description_fr={m.description_fr}

@@ -100,6 +100,20 @@ export async function listPublicMerchants(
   return (data ?? []).map(toPublicMerchant);
 }
 
+/** Vitrines publiques pour une liste d'IDs (ordre non garanti). Sert à la page
+ *  « Mes favoris » qui part d'une liste de merchant_ids. */
+export async function listPublicMerchantsByIds(
+  ids: string[]
+): Promise<PublicMerchant[]> {
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("merchants_public")
+    .select("*")
+    .in("id", ids);
+  return (data ?? []).map(toPublicMerchant);
+}
+
 export async function getPublicMerchantBySlug(
   slug: string
 ): Promise<PublicMerchant | null> {

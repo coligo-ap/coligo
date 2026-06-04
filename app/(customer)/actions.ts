@@ -391,3 +391,50 @@ export async function updateCustomerLocation(input: {
   if (error) return { error: error.message };
   return { ok: true };
 }
+
+/**
+ * Bascule le favori d'un commerce pour le client connecté (toggle).
+ * Renvoie l'état FINAL (`favorite`) pour que le cœur se synchronise.
+ *  - `error: "auth"` → l'appelant doit rediriger vers la connexion.
+ * La RLS garantit qu'on ne touche QUE les favoris du client courant.
+ */
+export async function toggleFavorite(
+  merchantId: string
+): Promise<{ favorite: boolean; error?: "auth" | "other" }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { favorite: false, error: "auth" };
+
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!customer) return { favorite: false, error: "auth" };
+
+  const { data: existing } = await supabase
+    .from("customer_favorites")
+    .select("id")
+    .eq("customer_id", customer.id)
+    .eq("merchant_id", merchantId)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("customer_favorites")
+      .delete()
+      .eq("id", existing.id);
+    if (error) return { favorite: true, error: "other" };
+    revalidatePath("/favoris");
+    return { favorite: false };
+  }
+
+  const { error } = await supabase
+    .from("customer_favorites")
+    .insert({ customer_id: customer.id, merchant_id: merchantId });
+  if (error) return { favorite: false, error: "other" };
+  revalidatePath("/favoris");
+  return { favorite: true };
+}

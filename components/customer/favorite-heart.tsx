@@ -1,38 +1,96 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/components/ui/toast";
+import { toggleFavorite } from "@/app/(customer)/actions";
 
 /**
- * Cœur favori sur la carte commerce (style Uber Eats).
+ * Cœur favori PERSISTÉ (table `customer_favorites`).
+ *  - Connecté : toggle optimiste + persistance serveur (revert si erreur).
+ *  - Non connecté : redirige vers la connexion (next = page courante).
+ * Comme il vit souvent dans un <Link> (carte commerce), on stoppe la
+ * propagation pour ne pas naviguer au tap sur le cœur.
  *
- * Visuel uniquement pour l'instant : le toggle est local (pas de persistance).
- * Le système de favoris côté compte est une tâche séparée — ce composant pose
- * l'emplacement et l'interaction sans prétendre à un backend. Comme il vit dans
- * un <Link>, on stoppe la propagation pour ne pas naviguer au tap sur le cœur.
+ * `variant` :
+ *  - "card" : rond blanc sur l'image d'une carte commerce.
+ *  - "hero" : rond translucide sur la grande cover de la page commerce.
+ * `refreshOnToggle` : rafraîchit la route après toggle (utile sur /favoris pour
+ * faire disparaître une carte qu'on vient de retirer).
  */
-export function FavoriteHeart({ className }: { className?: string }) {
-  const [fav, setFav] = useState(false);
+export function FavoriteHeart({
+  merchantId,
+  initialFavorite = false,
+  isAuth = false,
+  variant = "card",
+  refreshOnToggle = false,
+  className,
+}: {
+  merchantId: string;
+  initialFavorite?: boolean;
+  isAuth?: boolean;
+  variant?: "card" | "hero";
+  refreshOnToggle?: boolean;
+  className?: string;
+}) {
+  const [fav, setFav] = useState(initialFavorite);
+  const [pending, start] = useTransition();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  function onClick(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (pending) return;
+    if (!isAuth) {
+      router.push(`/se-connecter?next=${encodeURIComponent(pathname || "/")}`);
+      return;
+    }
+    const optimistic = !fav;
+    setFav(optimistic);
+    start(async () => {
+      const res = await toggleFavorite(merchantId);
+      if (res.error) {
+        setFav(!optimistic); // revert
+        if (res.error === "auth") {
+          router.push(
+            `/se-connecter?next=${encodeURIComponent(pathname || "/")}`
+          );
+        } else {
+          toast.error("Impossible de mettre à jour le favori.");
+        }
+        return;
+      }
+      setFav(res.favorite);
+      if (refreshOnToggle) router.refresh();
+    });
+  }
+
   return (
     <button
       type="button"
       aria-label={fav ? "Retirer des favoris" : "Ajouter aux favoris"}
       aria-pressed={fav}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setFav((v) => !v);
-      }}
+      onClick={onClick}
       className={cn(
-        "grid size-9 place-items-center rounded-full bg-white/95 shadow-md backdrop-blur transition-transform active:scale-90",
+        "grid place-items-center rounded-full shadow-md backdrop-blur transition-transform active:scale-90",
+        variant === "hero"
+          ? "size-10 bg-black/30 text-white hover:bg-black/40"
+          : "size-9 bg-white/95",
         className
       )}
     >
       <Heart
         className={cn(
-          "size-[18px] transition-colors",
-          fav ? "fill-coral-500 text-coral-500" : "text-foreground"
+          variant === "hero" ? "size-5" : "size-[18px]",
+          "transition-colors",
+          fav
+            ? "fill-coral-500 text-coral-500"
+            : variant === "hero"
+              ? "text-white"
+              : "text-foreground"
         )}
       />
     </button>

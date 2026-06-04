@@ -16,6 +16,12 @@ type Props = {
   promo?: PromoLabel | null;
   /** Distance client → commerce (km) si la position client est connue. */
   distanceKm?: number | null;
+  /** Le client a-t-il déjà ce commerce en favori ? (état initial du cœur) */
+  initialFavorite?: boolean;
+  /** Client connecté — sinon le cœur redirige vers la connexion. */
+  isAuth?: boolean;
+  /** Rafraîchir la route après toggle (ex. page /favoris). */
+  refreshOnToggle?: boolean;
 };
 
 /**
@@ -24,7 +30,15 @@ type Props = {
  * distance / ville) et tags de mode. Refonte visuelle — on garde les mêmes
  * données (`PublicMerchant`) et la même navigation (`/m/[slug]`).
  */
-export function MerchantCard({ merchant, hasPromo, promo, distanceKm }: Props) {
+export function MerchantCard({
+  merchant,
+  hasPromo,
+  promo,
+  distanceKm,
+  initialFavorite = false,
+  isAuth = false,
+  refreshOnToggle = false,
+}: Props) {
   const showPromo =
     promo ?? (hasPromo ? { text: "Promo", kind: "discount" as const } : null);
   const open = isOpenNow(merchant.opening_hours, nowInAlgiers());
@@ -50,7 +64,13 @@ export function MerchantCard({ merchant, hasPromo, promo, distanceKm }: Props) {
   return (
     <Link
       href={`/m/${merchant.slug}`}
-      className={cn("group block active:scale-[0.99]", !open && "opacity-90")}
+      // `isolate` = nouveau contexte d'empilement : les badges (z-20) restent
+      // CONFINÉS dans la carte et ne passent plus AU-DESSUS du header / de la
+      // barre de recherche sticky quand on scrolle.
+      className={cn(
+        "group isolate block active:scale-[0.99]",
+        !open && "opacity-90"
+      )}
     >
       {/* ─── Image de couverture + overlays ─── */}
       <div className="bg-surface-2 relative h-[158px] overflow-hidden rounded-[14px] shadow-sm">
@@ -86,7 +106,13 @@ export function MerchantCard({ merchant, hasPromo, promo, distanceKm }: Props) {
         </span>
 
         {/* cœur favori (haut-droite) */}
-        <FavoriteHeart className="absolute top-2.5 right-2.5 z-20" />
+        <FavoriteHeart
+          merchantId={merchant.id}
+          initialFavorite={initialFavorite}
+          isAuth={isAuth}
+          refreshOnToggle={refreshOnToggle}
+          className="absolute top-2.5 right-2.5 z-20"
+        />
 
         {/* promo (bas-gauche, vert) */}
         {showPromo && (
