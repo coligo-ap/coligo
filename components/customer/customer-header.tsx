@@ -110,22 +110,37 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
               </span>
               <ChevronDown className="text-muted size-3.5 shrink-0" />
             </button>
-            {isAuth ? (
+            <div className="flex shrink-0 items-center gap-2">
+              {isAuth ? (
+                <Link
+                  href="/compte"
+                  aria-label="Mon compte"
+                  className="bg-surface-2 text-primary-700 grid size-[38px] place-items-center rounded-full text-sm font-bold"
+                >
+                  {(customerName ?? "C").charAt(0).toUpperCase()}
+                </Link>
+              ) : (
+                <Link
+                  href="/se-connecter"
+                  aria-label="Se connecter"
+                  className="bg-surface-2 text-foreground grid size-[38px] place-items-center rounded-full"
+                >
+                  <User className="size-[18px]" />
+                </Link>
+              )}
               <Link
-                href="/compte"
-                className="bg-primary-100 text-primary-700 flex size-9 items-center justify-center rounded-full text-sm font-semibold"
+                href="/cart"
+                aria-label="Panier"
+                className="bg-surface-2 text-foreground relative grid size-[38px] place-items-center rounded-full"
               >
-                {(customerName ?? "C").charAt(0).toUpperCase()}
+                <ShoppingBag className="size-[18px]" />
+                {cartCount > 0 && (
+                  <span className="bg-success-600 absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full border-2 border-white px-1 text-[9px] font-bold text-white">
+                    {cartCount}
+                  </span>
+                )}
               </Link>
-            ) : (
-              <Link
-                href="/se-connecter"
-                className="text-primary-700 inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-sm font-medium"
-              >
-                <User className="size-4" />
-                Compte
-              </Link>
-            )}
+            </div>
           </div>
           {/* Search bar mobile : retirée du header — désormais sur la home
               (sticky sous le header). */}

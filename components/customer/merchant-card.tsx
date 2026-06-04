@@ -1,204 +1,183 @@
 import Link from "next/link";
-import { Bolt, Calendar, Clock, MapPin, Truck, Wallet } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { ImageWithOverlay } from "@/components/ui/image-with-overlay";
+import { Clock, Star, Tag } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
-import { RatingStars } from "@/components/customer/rating-stars";
-import { Tag } from "lucide-react";
+import { FavoriteHeart } from "@/components/customer/favorite-heart";
 import type { PublicMerchant, PromoLabel } from "@/lib/data/merchants-public";
 
 type Props = {
   merchant: PublicMerchant;
-  /** Pourcentage de cashback (entier déjà arrondi) — null si pas affiché. */
-  cashbackPct?: number | null;
-  /** Affiche un badge "PROMO" si le commerce a une promotion active. */
+  /** Affiche un badge promo si le commerce a une promotion active. */
   hasPromo?: boolean;
   /** Détail de la meilleure promo active (− %, code, offre) — mis en avant. */
   promo?: PromoLabel | null;
+  /** Distance client → commerce (km) si la position client est connue. */
+  distanceKm?: number | null;
 };
 
-export function MerchantCard({
-  merchant,
-  cashbackPct,
-  hasPromo,
-  promo,
-}: Props) {
-  // La promo détaillée prime sur le simple booléen.
+/**
+ * Carte commerce style Uber Eats : grande image de couverture, badge Ouvert +
+ * cœur favori + ETA sur l'image, puis nom + note, ligne d'infos (frais /
+ * distance / ville) et tags de mode. Refonte visuelle — on garde les mêmes
+ * données (`PublicMerchant`) et la même navigation (`/m/[slug]`).
+ */
+export function MerchantCard({ merchant, hasPromo, promo, distanceKm }: Props) {
   const showPromo =
     promo ?? (hasPromo ? { text: "Promo", kind: "discount" as const } : null);
-  // Statut ouvert/fermé calculé en heure d'Alger côté serveur.
   const open = isOpenNow(merchant.opening_hours, nowInAlgiers());
   const wilayaName = merchant.wilaya_code
     ? WILAYAS.find((w) => w.code === merchant.wilaya_code)?.name
     : null;
-  // Fallback : si pas de cover, on prend une image illustrative de la catégorie.
+  const cityLabel = merchant.commune || wilayaName || null;
+
   const coverSrc =
     merchant.cover_url ?? categoryImageFor(merchant.category) ?? null;
-  const logoOptimized = cldUrl(merchant.logo_url, {
-    width: 80,
-    height: 80,
+  const coverOptimized = cldUrl(coverSrc, {
+    width: 640,
+    height: 320,
     crop: "fill",
     gravity: "auto",
   });
 
+  const distLabel =
+    distanceKm != null && distanceKm >= 0
+      ? `${distanceKm.toFixed(1).replace(".", ",")} km`
+      : null;
+
   return (
     <Link
       href={`/m/${merchant.slug}`}
-      className={cn(
-        "group border-border bg-surface hover:shadow-primary-100 relative block overflow-hidden rounded-[18px] border shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg",
-        "active:scale-[0.99]",
-        !open && "opacity-90"
-      )}
+      className={cn("group block active:scale-[0.99]", !open && "opacity-90")}
     >
-      <div className="relative">
-        <ImageWithOverlay
-          src={coverSrc}
-          alt={merchant.name}
-          variant="card"
-          imgClassName="transition-transform duration-300 group-hover:scale-[1.02]"
-          placeholder={
-            <span className="text-primary-700/70 text-2xl font-bold">
-              {merchant.name.charAt(0)}
-            </span>
-          }
-        >
-          {/* Texte superposé sur la zone sombre du dégradé. */}
-          <h3 className="line-clamp-1 text-base leading-tight font-bold drop-shadow-sm">
-            {merchant.name}
-          </h3>
-          {merchant.category && (
-            <p className="line-clamp-1 text-xs text-white/85">
-              {merchant.category}
-            </p>
-          )}
-        </ImageWithOverlay>
-
-        {/* Statut Ouvert (menthe avec pulse) / Fermé (sombre avec heure ouv si dispo) */}
+      {/* ─── Image de couverture + overlays ─── */}
+      <div className="bg-surface-2 relative h-[158px] overflow-hidden rounded-[14px] shadow-sm">
+        {coverOptimized ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={coverOptimized}
+            alt={merchant.name}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div className="from-primary-100 to-primary-50 text-primary-700/70 flex h-full w-full items-center justify-center bg-gradient-to-br text-4xl font-bold">
+            {merchant.name.charAt(0)}
+          </div>
+        )}
+        {/* dégradé pour la lisibilité des badges */}
         <span
-          className={cn(
-            "absolute top-2 left-2 z-20 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur",
-            open ? "bg-mint-500/95 text-white" : "bg-foreground/80 text-white"
-          )}
-        >
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/25"
+        />
+
+        {/* badge Ouvert / Fermé (haut-gauche) */}
+        <span className="text-foreground absolute top-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1.5 text-[11px] font-extrabold shadow-sm backdrop-blur">
           <span
             className={cn(
-              "size-1.5 rounded-full",
-              open ? "animate-pulse bg-white" : "bg-white/70"
+              "size-[5px] rounded-full",
+              open ? "animate-pulse bg-[var(--color-success-600)]" : "bg-subtle"
             )}
           />
           {open ? "Ouvert" : "Fermé"}
         </span>
 
-        {/* Badge PROMO mis en avant : montre l'offre réelle (− %, code, offre). */}
+        {/* cœur favori (haut-droite) */}
+        <FavoriteHeart className="absolute top-2.5 right-2.5 z-20" />
+
+        {/* promo (bas-gauche, vert) */}
         {showPromo && (
-          <span className="bg-coral-500 absolute top-2 right-2 z-20 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-extrabold text-white shadow-md ring-2 ring-white/40">
+          <span className="bg-success-600 absolute bottom-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-[9px] px-2.5 py-1.5 text-[12px] font-extrabold text-white shadow-md">
             <Tag className="size-3" />
             {showPromo.text}
           </span>
         )}
 
-        {/* Badge Livraison (et mode si UN seul mode actif) — coin bas-gauche. */}
-        {merchant.delivery_enabled && (
-          <div className="absolute right-2 bottom-2 z-20 flex flex-wrap items-center gap-1">
-            <span className="bg-primary-600/95 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
-              <Truck className="size-3" />
-              Livraison
-            </span>
-            {merchant.express_enabled && (
-              <span className="bg-warning-500/95 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
-                <Bolt className="size-3" />
-              </span>
-            )}
-            {merchant.tours_enabled && (
-              <span className="bg-success-600/95 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
-                <Calendar className="size-3" />
-              </span>
-            )}
-          </div>
-        )}
-
-        {!showPromo && cashbackPct && cashbackPct > 0 && (
-          <Badge
-            tone="primary"
-            className="absolute top-2 right-2 z-20 shadow-sm"
-          >
-            {cashbackPct} % cashback
-          </Badge>
+        {/* ETA (bas-droite) */}
+        {merchant.prep_time_min > 0 && (
+          <span className="text-foreground absolute right-2.5 bottom-2.5 z-20 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1.5 text-[11.5px] font-extrabold shadow-sm backdrop-blur">
+            <Clock className="size-3" />
+            {merchant.prep_time_min} min
+          </span>
         )}
       </div>
 
-      {/* Bandeau promo prominent sous l'image — communique clairement l'offre. */}
-      {showPromo && (
-        <div className="from-coral-500 to-coral-600 flex items-center gap-1.5 bg-gradient-to-r px-3 py-1.5 text-[11px] font-bold text-white">
-          <Tag className="size-3.5 shrink-0" />
-          <span className="line-clamp-1">
-            {showPromo.kind === "code"
-              ? `${showPromo.text} — à saisir au panier`
-              : showPromo.kind === "offer"
-                ? showPromo.text
-                : `Promo : ${showPromo.text} sur la sélection`}
-          </span>
-        </div>
-      )}
-
-      {/* Body — méta secondaire (adresse, minimum) sous l'image. */}
-      <div className="relative space-y-1 p-3">
-        {logoOptimized && (
-          <div className="absolute -top-6 right-3 size-12 overflow-hidden rounded-full border-2 border-white bg-white shadow-md">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={logoOptimized}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover"
-            />
-          </div>
-        )}
-
-        <div className="text-subtle flex flex-wrap items-center gap-x-2 gap-y-1 pr-14 text-[11px]">
-          {(merchant.commune || wilayaName) && (
-            <span className="inline-flex items-center gap-1">
-              <MapPin className="size-3" />
-              {[merchant.commune, wilayaName].filter(Boolean).join(", ")}
+      {/* ─── Infos sous l'image ─── */}
+      <div className="px-0.5 pt-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-foreground line-clamp-1 text-[17px] font-extrabold tracking-[-0.3px]">
+            {merchant.name}
+          </h3>
+          {merchant.rating_count > 0 ? (
+            <span className="bg-surface-2 text-foreground inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold">
+              <Star className="size-3 fill-current" />
+              {merchant.rating_avg.toFixed(1)}
+            </span>
+          ) : (
+            <span className="bg-primary-50 text-primary-700 inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-bold">
+              Nouveau
             </span>
           )}
-          {merchant.rating_count > 0 && (
+        </div>
+
+        {/* ligne d'infos : frais · distance · ville/min */}
+        <div className="text-muted mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px] font-semibold">
+          <span className="text-success-700 font-bold">Retrait gratuit</span>
+          {distLabel && (
             <>
-              <span aria-hidden>·</span>
-              <RatingStars
-                avg={merchant.rating_avg}
-                count={merchant.rating_count}
-                showCount
-              />
+              <Dot />
+              <span>{distLabel}</span>
+            </>
+          )}
+          {cityLabel && (
+            <>
+              <Dot />
+              <span>{cityLabel}</span>
             </>
           )}
           {merchant.min_order_da > 0 && (
             <>
-              <span aria-hidden>·</span>
-              <span className="inline-flex items-center gap-1">
-                <Wallet className="size-3" />
-                Min {formatDA(merchant.min_order_da)}
-              </span>
+              <Dot />
+              <span>Min {formatDA(merchant.min_order_da)}</span>
             </>
           )}
         </div>
 
-        {/* Bandeau "Prêt en X min · Retrait gratuit" (menthe) */}
-        <div className="mt-2 flex items-center gap-3 text-[11px]">
-          {merchant.prep_time_min > 0 && (
-            <span className="text-muted inline-flex items-center gap-1">
-              <Clock className="size-3" />
-              Prêt en {merchant.prep_time_min} min
-            </span>
-          )}
-          <span className="text-mint-700 font-semibold">Retrait gratuit</span>
+        {/* tags de mode */}
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {merchant.delivery_enabled && <Mode tone="deliv">🛵 Livraison</Mode>}
+          {merchant.express_enabled && <Mode>⚡ Express</Mode>}
+          <Mode>📍 Retrait</Mode>
         </div>
       </div>
     </Link>
+  );
+}
+
+function Dot() {
+  return <span className="bg-subtle size-[3px] rounded-full" aria-hidden />;
+}
+
+function Mode({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone?: "deliv";
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-bold",
+        tone === "deliv"
+          ? "bg-primary-50 text-primary-700"
+          : "bg-surface-2 text-muted"
+      )}
+    >
+      {children}
+    </span>
   );
 }

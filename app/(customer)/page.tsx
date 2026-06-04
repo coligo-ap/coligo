@@ -10,35 +10,39 @@ import { loadRankingContext, rankMerchants } from "@/lib/data/merchant-ranking";
 import { createClient } from "@/lib/supabase/server";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
+import { HomeFilterPills } from "@/components/customer/home-filter-pills";
 import { LocationAutoDetect } from "@/components/customer/location-auto-detect";
 import { LocationBanner } from "@/components/customer/location-banner";
 import { MarketplaceSearchBar } from "@/components/customer/marketplace-search-bar";
 import { MarketplaceGrid } from "@/components/customer/marketplace-grid";
-import { MerchantCarousel } from "@/components/customer/merchant-carousel";
-import { PromoBannerCarousel } from "@/components/customer/promo-banner-carousel";
+import { PromoBanner } from "@/components/customer/promo-banner";
 import { ReviewPrompt } from "@/components/customer/review-prompt";
-import { StorefrontHero } from "@/components/customer/storefront-hero";
 
 export const dynamic = "force-dynamic";
 
+// =============================================================================
+// Accueil CLIENT — refonte style Uber Eats (version lancement).
+// Header (zone + compte + panier) → recherche → catégories rondes → pilules →
+// « Commerces près de toi ». Pas de grand hero violet, fond clair.
+//
+// Sections CONDITIONNELLES (jamais de bloc vide) :
+//  - <PromoBanner> : rien tant qu'aucune campagne promo active (super-admin).
+//  - "Commander à nouveau" : PAS au lancement (phase 2, si historique) — absent.
+//  - Avis à laisser / top notés : seulement s'il y a du contenu.
+// =============================================================================
+
 export default async function CustomerHomePage() {
-  // Server-side : on charge en parallèle tout ce dont on a besoin pour rendre
-  // la home sans flash. Le fallback `merchants` est "tous les commerces
-  // actifs" — la grille filtre par zone côté client (location-store).
   const supabase = await createClient();
   const [fallback, categories, banners, reviewableOrders, { data: user }] =
     await Promise.all([
       listPublicMerchants({ limit: 24 }),
       listMerchantCategories(),
       getActiveBanners(),
-      // 1 seul avis sur la home : on ne sature pas. Les autres commandes à
-      // noter sont accessibles via /commandes (bouton "Laisser un avis").
       getMyReviewableOrders(1),
       supabase.auth.getUser(),
     ]);
 
-  // Prénom + coords GPS du client connecté (pour proximité dans le score).
-  let firstName: string | null = null;
+  // Coords GPS du client connecté (pour la proximité dans le score de tri).
   let customerCoords: {
     latitude: number | null;
     longitude: number | null;
@@ -46,10 +50,9 @@ export default async function CustomerHomePage() {
   if (user?.user) {
     const { data: customer } = await supabase
       .from("customers")
-      .select("full_name, latitude, longitude")
+      .select("latitude, longitude")
       .eq("user_id", user.user.id)
       .maybeSingle();
-    firstName = customer?.full_name?.split(" ")[0] ?? null;
     customerCoords = customer
       ? { latitude: customer.latitude, longitude: customer.longitude }
       : null;
@@ -62,84 +65,59 @@ export default async function CustomerHomePage() {
   });
   const promoIds = rankingCtx.promoIds;
 
-  // Détails des promos (− %, code, offre) pour les mettre en avant sur les
-  // cartes — pas seulement un badge "PROMO" générique.
   const promoLabels = await getPromoLabelsByMerchant(fallback.map((m) => m.id));
-
-  // Carrousel « Top notés » : note >= 4 ET au moins 5 avis. Tri par score.
-  const topRated = rankMerchants(
-    fallback.filter((m) => m.rating_avg >= 4 && m.rating_count >= 5),
-    rankingCtx
-  ).slice(0, 12);
-
-  // Pré-tri du fallback côté serveur (la grille re-trie après fetch zone).
   const rankedFallback = rankMerchants(fallback, rankingCtx);
 
   return (
     <CustomerShell>
-      <div className="mx-auto max-w-[1400px] px-4 py-4 lg:px-6 lg:py-8">
-        {/* Hero violet — salutation seule. La nav (logo+location+cart+profile)
-            est désormais portée par le CustomerHeader sticky du shell. */}
-        <StorefrontHero firstName={firstName} />
+      {/* Auto-détection GPS au load (silencieuse si permission accordée). */}
+      <LocationAutoDetect />
 
-        {/* Barre de recherche sticky sous le hero. */}
-        <Suspense fallback={null}>
-          <MarketplaceSearchBar categories={categories} />
-        </Suspense>
-
-        {/* Auto-détection GPS au load (silencieuse si permission accordée).
-            Si elle réussit, le bandeau ci-dessous ne s'affiche jamais. */}
-        <LocationAutoDetect />
-
-        {/* Localisation legacy — fallback manuel si la géoloc auto échoue. */}
-        <LocationBanner />
-
-        {/* Encart "Donne ton avis" — uniquement si commandes completed sans
-            avis. Disparaît dès qu'elles sont toutes notées. */}
-        {reviewableOrders.length > 0 && (
-          <section className="mt-4">
-            <ReviewPrompt orders={reviewableOrders} />
-          </section>
-        )}
-
-        {/* Bannières éditoriales (carrousel). */}
-        {banners.length > 0 && (
-          <section className="mt-4">
-            <PromoBannerCarousel banners={banners} />
-          </section>
-        )}
-
-        {/* Catégories — bulles rondes scrollables horizontalement. */}
-        <section className="mt-6">
-          <h2 className="font-display text-foreground mb-3 px-1 text-base font-bold lg:text-lg">
-            Catégories
-          </h2>
-          <CategoryStrip categories={categories} />
-        </section>
-
-        {/* Top notés : note >= 4 et au moins 5 avis. Section masquée tant
-            qu'aucun commerce ne remplit ces critères (= début de vie de la
-            plateforme). */}
-        {topRated.length > 0 && (
-          <section className="mt-8">
-            <MerchantCarousel
-              merchants={topRated}
-              promoIds={promoIds}
-              promoLabels={promoLabels}
-            />
-          </section>
-        )}
-
-        {/* Tous les commerces — pré-trié par score composite côté serveur. */}
-        <section className="mt-8">
+      <div className="bg-surface min-h-screen">
+        <div className="mx-auto max-w-[1400px] px-4 lg:px-6">
+          {/* Recherche pleine largeur (sticky sous le header). */}
           <Suspense fallback={null}>
-            <MarketplaceGrid
-              fallback={rankedFallback}
-              promoIds={promoIds}
-              promoLabels={promoLabels}
-            />
+            <MarketplaceSearchBar />
           </Suspense>
-        </section>
+
+          {/* Catégories rondes (mécanique Uber Eats). */}
+          <div className="pt-1">
+            <Suspense fallback={null}>
+              <CategoryStrip categories={categories} />
+            </Suspense>
+          </div>
+
+          {/* Pilules de filtres : Tous / Livraison / Express / Mieux notés. */}
+          <div className="pt-3.5 pb-1">
+            <Suspense fallback={null}>
+              <HomeFilterPills />
+            </Suspense>
+          </div>
+
+          {/* Localisation manuelle — fallback si la géoloc auto échoue. */}
+          <LocationBanner />
+
+          {/* Encart "Donne ton avis" — uniquement si commandes à noter. */}
+          {reviewableOrders.length > 0 && (
+            <section className="mt-3">
+              <ReviewPrompt orders={reviewableOrders} />
+            </section>
+          )}
+
+          {/* Bannière promo — rendue UNIQUEMENT si une campagne est active. */}
+          <PromoBanner banners={banners} />
+
+          {/* Commerces près de toi. */}
+          <section className="mt-3 pb-8">
+            <Suspense fallback={null}>
+              <MarketplaceGrid
+                fallback={rankedFallback}
+                promoIds={promoIds}
+                promoLabels={promoLabels}
+              />
+            </Suspense>
+          </section>
+        </div>
       </div>
     </CustomerShell>
   );

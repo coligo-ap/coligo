@@ -9,9 +9,8 @@ import { PushRegistrar } from "@/components/native/push-registrar";
  * Charge l'auth pour adapter le header (compte vs se-connecter) — pas de
  * blocage : la navigation est libre sans compte.
  *
- * `hideHeader` = true sur la home où le hero violet absorbe la fonction du
- * header (cf. StorefrontHero qui contient logo + location + cart + compte +
- * salutation dans un seul bloc).
+ * `hideHeader` = true si une page porte elle-même sa navigation (zone +
+ * compte + panier) et n'a pas besoin du header sticky du shell.
  */
 export async function CustomerShell({
   children,

@@ -1,201 +1,92 @@
-import Link from "next/link";
-import {
-  Beef,
-  Cake,
-  Carrot,
-  CircleHelp,
-  Coffee,
-  Croissant,
-  Fish,
-  Flower2,
-  IceCream2,
-  LayoutGrid,
-  Pill,
-  Pizza,
-  ShoppingBasket,
-  Sprout,
-  Wheat,
-  type LucideIcon,
-} from "lucide-react";
+"use client";
+
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { cldUrl } from "@/lib/images/cloudinary";
-import {
-  CATEGORY_IMAGES,
-  categoryImageFor,
-} from "@/lib/images/category-images";
+import { getCategory, getCategoryLabel } from "@/lib/config/categories";
 
-const ICONS: { match: RegExp; icon: LucideIcon }[] = [
-  { match: /boulang/i, icon: Croissant },
-  { match: /p[âa]tisserie|gateau|gâteau/i, icon: Cake },
-  { match: /caf[ée]|coffee|salon/i, icon: Coffee },
-  { match: /super[éeè]?rette|épicerie|alimentation/i, icon: ShoppingBasket },
-  { match: /boucherie|viande/i, icon: Beef },
-  { match: /poisson|seafood/i, icon: Fish },
-  { match: /fruit|primeur|l[ée]gume/i, icon: Carrot },
-  { match: /pharma/i, icon: Pill },
-  { match: /pizza|fast.?food|restaurant/i, icon: Pizza },
-  { match: /glac|ice/i, icon: IceCream2 },
-  { match: /fleur|florist/i, icon: Flower2 },
-  { match: /bio|naturel/i, icon: Sprout },
-  { match: /c[ée]r[ée]ale|grains?/i, icon: Wheat },
-];
+// =============================================================================
+// CategoryStrip — catégories rondes en scroll horizontal (mécanique Uber Eats).
+// Emoji dans un rond ; la catégorie active a un rond noir + un trait noir
+// dessous. Pilotée par l'URL param `category` (comme la grille / la recherche),
+// donc tap = filtre instantané sans recharger la page.
+// =============================================================================
 
-function iconFor(name: string): LucideIcon {
-  return ICONS.find((c) => c.match.test(name))?.icon ?? CircleHelp;
+/** Libellé court pour un rond : on garde le 1er segment ("Supérette / Épicerie"
+ *  → "Supérette"). */
+function shortLabel(code: string): string {
+  const full = getCategoryLabel(code);
+  return full.split(/[/–-]/)[0].trim();
 }
-
-// =============================================================================
-// Catégories épinglées : toujours visibles, en tête, dans cet ordre.
-// =============================================================================
-// Les noms correspondent à la catégorie textuelle stockée sur les commerces
-// (champ `merchants.category`). On fait un MATCH SOUPLE (regex iconFor) pour
-// retrouver le compte réel : "Supérette", "supérette", "Superette" → 1 seul
-// bucket prioritaire. Si zéro commerce de ce type → on affiche quand même la
-// pastille (compte = 0) car la priorité produit l'exige.
-// Le href doit utiliser le CODE catégorie tel qu'il est stocké en DB
-// (voir `lib/config/categories.ts` — c'est ce que le merchant signup enregistre).
-// Sinon `ilike '%X%'` côté serveur ne matche pas (accent-sensitive).
-const PRIORITY: {
-  label: string;
-  matcher: RegExp;
-  href: string;
-  image: string | null;
-}[] = [
-  {
-    label: "Supérettes",
-    matcher: /super[éeè]?rette|épicerie|alimentation/i,
-    href: "/?category=superette",
-    image: CATEGORY_IMAGES.superette ?? null,
-  },
-  {
-    label: "Boulangeries",
-    matcher: /boulang/i,
-    href: "/?category=boulangerie",
-    image: CATEGORY_IMAGES.boulangerie ?? null,
-  },
-  {
-    label: "Boucheries",
-    matcher: /boucherie|viande/i,
-    href: "/?category=boucherie",
-    image: CATEGORY_IMAGES.boucherie ?? null,
-  },
-];
 
 export function CategoryStrip({
   categories,
 }: {
   categories: { name: string; count: number }[];
 }) {
-  // 1. Buckets prioritaires : on additionne les counts des catégories DB qui
-  //    matchent la regex (pluralise les variantes orthographiques).
-  const matchedIds = new Set<number>();
-  const priorityCards = PRIORITY.map((p) => {
-    let count = 0;
-    categories.forEach((c, idx) => {
-      if (p.matcher.test(c.name)) {
-        count += c.count;
-        matchedIds.add(idx);
-      }
-    });
-    return { ...p, count };
-  });
+  const router = useRouter();
+  const params = useSearchParams();
+  const active = params.get("category");
 
-  // 2. Catégories non prioritaires (toutes les autres).
-  const others = categories.filter((_, idx) => !matchedIds.has(idx));
+  function go(category: string | null) {
+    const sp = new URLSearchParams(params.toString());
+    if (category) sp.set("category", category);
+    else sp.delete("category");
+    const qs = sp.toString();
+    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+  }
 
   return (
-    <div className="-mx-4 [scrollbar-width:none] overflow-x-auto px-4 lg:mx-0 lg:px-0 [&::-webkit-scrollbar]:hidden">
-      <div className="flex min-w-max gap-3 pb-2 lg:min-w-0 lg:flex-wrap">
-        {/* Tous les commerces — point d'entrée par défaut, en TÊTE */}
-        <Tile href="/" icon={LayoutGrid} label="Tous" highlight />
-
-        {/* Prioritaires : Supérettes / Boulangeries / Boucheries */}
-        {priorityCards.map((p) => (
-          <Tile
-            key={p.label}
-            href={p.href}
-            icon={iconFor(p.label)}
-            image={p.image}
-            label={p.label}
-            dimmed={p.count === 0}
-          />
-        ))}
-
-        {/* Autres catégories existantes en DB */}
-        {others.map((c) => (
-          <Tile
-            key={c.name}
-            href={`/?category=${encodeURIComponent(c.name)}`}
-            icon={iconFor(c.name)}
-            image={categoryImageFor(c.name)}
-            label={c.name}
-          />
-        ))}
-      </div>
+    <div className="scrollbar-hide -mx-4 flex gap-4 overflow-x-auto border-b border-[var(--color-border)] px-4 pb-3.5 lg:mx-0 lg:px-0">
+      <Tile emoji="🛒" label="Tous" active={!active} onClick={() => go(null)} />
+      {categories.map((c) => (
+        <Tile
+          key={c.name}
+          emoji={getCategory(c.name)?.emoji ?? "🏷️"}
+          label={shortLabel(c.name)}
+          active={active === c.name}
+          onClick={() => go(c.name)}
+        />
+      ))}
     </div>
   );
 }
 
 function Tile({
-  href,
-  icon: Icon,
-  image,
+  emoji,
   label,
-  highlight,
-  dimmed,
+  active,
+  onClick,
 }: {
-  href: string;
-  icon: LucideIcon;
-  image?: string | null;
+  emoji: string;
   label: string;
-  highlight?: boolean;
-  dimmed?: boolean;
+  active: boolean;
+  onClick: () => void;
 }) {
-  // Image optimisée 80×80 (DPR géré par Cloudinary).
-  const optimizedImage = image
-    ? cldUrl(image, { width: 80, height: 80, crop: "fill", gravity: "auto" })
-    : null;
-
   return (
-    <Link
-      href={href}
-      className={cn(
-        "group flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 text-center transition-transform active:scale-95 lg:w-[5.5rem]",
-        dimmed && "opacity-60"
-      )}
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative flex shrink-0 flex-col items-center gap-1.5"
     >
       <span
         className={cn(
-          "relative flex size-14 items-center justify-center overflow-hidden rounded-full border-2 transition-all",
-          highlight
-            ? "border-primary-600 bg-primary-600 shadow-primary-200 text-white shadow-md"
-            : "border-border bg-surface text-primary-700 group-hover:border-primary-400 group-hover:shadow-primary-100 group-hover:shadow-md"
+          "grid size-[54px] place-items-center rounded-full text-[26px] transition-colors",
+          active ? "bg-foreground" : "bg-surface-2"
         )}
       >
-        {optimizedImage ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={optimizedImage}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <span className="absolute inset-0 bg-black/10 transition-opacity group-hover:bg-black/0" />
-          </>
-        ) : (
-          <Icon className="size-[22px]" />
-        )}
+        {emoji}
       </span>
       <span
         className={cn(
-          "line-clamp-1 text-[11px] leading-tight font-semibold",
-          highlight ? "text-primary-700" : "text-foreground"
+          "text-foreground max-w-[68px] truncate text-[11.5px] leading-tight",
+          active ? "font-extrabold" : "font-semibold"
         )}
       >
         {label}
       </span>
-    </Link>
+      {active && (
+        <span className="bg-foreground absolute right-2 -bottom-[14px] left-2 h-[2.5px] rounded-full" />
+      )}
+    </button>
   );
 }

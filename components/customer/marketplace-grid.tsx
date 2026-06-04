@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Bolt, Calendar, Loader2, MapPin, Truck } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ArrowRight, Loader2, MapPin } from "lucide-react";
 import { useCustomerLocation } from "@/lib/customer/location-store";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { getCategoryLabel } from "@/lib/config/categories";
 import { isOpenNow } from "@/lib/merchant/opening-hours";
+import { haversineKm } from "@/lib/delivery/distance";
 import {
   fetchMerchantsForZone,
   fetchPromoLabels,
@@ -24,29 +24,26 @@ type Props = {
 };
 
 // =============================================================================
-// MarketplaceGrid — la grille de commerces de la home.
+// MarketplaceGrid — la liste de commerces de la home (style Uber Eats).
 // =============================================================================
-// La barre de recherche est gérée par `MarketplaceSearchBar` (placée en haut
-// de page). Les deux composants se synchronisent via les URL params
-// (q, category, sort, open_now). Ce composant relit l'URL et refetch.
-//
-// Le filtre `openNow` est appliqué côté client (calcul depuis opening_hours).
-// La zone (wilaya/commune) vient du store local — lue séparément.
+// La recherche (q) vient de `MarketplaceSearchBar`, la catégorie des ronds
+// (`CategoryStrip`), et les modes/tri/ouvert des pilules (`HomeFilterPills`).
+// Les quatre se synchronisent UNIQUEMENT via les URL params. Ce composant relit
+// l'URL, refetch par zone, applique les filtres client (ouvert / mode / tri).
 // =============================================================================
 
 type Filters = {
   q: string;
   category: string;
-  sort: "name" | "min_order";
+  sort: "name" | "min_order" | "rating";
   openNow: boolean;
-  /** Filtres livraison — l'utilisateur ne voit que les commerçants qui livrent. */
   deliveryOnly: boolean;
   deliveryMode: "any" | "express" | "tour";
 };
 
 export function MarketplaceGrid({ fallback, promoIds, promoLabels }: Props) {
-  const router = useRouter();
   const params = useSearchParams();
+  const router = useRouter();
   const loc = useCustomerLocation();
   const [promos, setPromos] = useState<Record<string, PromoLabel>>(
     promoLabels ?? {}
@@ -56,7 +53,12 @@ export function MarketplaceGrid({ fallback, promoIds, promoLabels }: Props) {
     () => ({
       q: params.get("q") ?? "",
       category: params.get("category") ?? "",
-      sort: params.get("sort") === "min_order" ? "min_order" : "name",
+      sort:
+        params.get("sort") === "min_order"
+          ? "min_order"
+          : params.get("sort") === "rating"
+            ? "rating"
+            : "name",
       openNow: params.get("open_now") === "1",
       deliveryOnly: params.get("delivery") === "1",
       deliveryMode:
@@ -81,7 +83,9 @@ export function MarketplaceGrid({ fallback, promoIds, promoLabels }: Props) {
         commune: loc.commune,
         q: filters.q || null,
         category: filters.category || null,
-        sort: filters.sort,
+        // Le tri "rating" est appliqué côté client (la note n'est pas un champ
+        // de tri serveur) → on demande l'ordre par défaut au serveur.
+        sort: filters.sort === "min_order" ? "min_order" : "name",
       });
       if (res.length === 0 && loc.wilaya_code) {
         setItems(fallback);
@@ -89,12 +93,27 @@ export function MarketplaceGrid({ fallback, promoIds, promoLabels }: Props) {
       } else {
         setItems(res);
         setEmptyZone(false);
-        // Rafraîchit les étiquettes promo pour les commerces affichés.
         const labels = await fetchPromoLabels(res.map((m) => m.id));
         setPromos((prev) => ({ ...prev, ...labels }));
       }
     });
   }, [loc, filters.q, filters.category, filters.sort, fallback]);
+
+  // Distance client → commerce (km) si on connaît la position du client.
+  const distanceFor = useMemo(() => {
+    const lat = loc?.latitude;
+    const lng = loc?.longitude;
+    return (m: PublicMerchant): number | null => {
+      if (
+        lat == null ||
+        lng == null ||
+        m.latitude == null ||
+        m.longitude == null
+      )
+        return null;
+      return haversineKm({ lat, lng }, { lat: m.latitude, lng: m.longitude });
+    };
+  }, [loc?.latitude, loc?.longitude]);
 
   const visible = useMemo(() => {
     let base = items;
@@ -105,14 +124,34 @@ export function MarketplaceGrid({ fallback, promoIds, promoLabels }: Props) {
     } else if (filters.deliveryMode === "tour") {
       base = base.filter((m) => m.delivery_enabled && m.tours_enabled);
     }
-    // TRI : OUVERTS D'ABORD, fermés ensuite (mais cliquables, opacité réduite
-    // côté carte). Cohérent avec le prompt redesign.
-    return [...base].sort((a, b) => {
-      const ao = isOpenNow(a.opening_hours) ? 0 : 1;
-      const bo = isOpenNow(b.opening_hours) ? 0 : 1;
-      return ao - bo;
-    });
-  }, [filters.openNow, filters.deliveryOnly, filters.deliveryMode, items]);
+    const sorted = [...base];
+    if (filters.sort === "rating") {
+      // Mieux notés d'abord (note puis nombre d'avis), ouverts départagent.
+      sorted.sort((a, b) => {
+        if (b.rating_avg !== a.rating_avg) return b.rating_avg - a.rating_avg;
+        if (b.rating_count !== a.rating_count)
+          return b.rating_count - a.rating_count;
+        return (
+          (isOpenNow(a.opening_hours) ? 0 : 1) -
+          (isOpenNow(b.opening_hours) ? 0 : 1)
+        );
+      });
+    } else {
+      // Par défaut : OUVERTS d'abord, fermés ensuite (cliquables, atténués).
+      sorted.sort(
+        (a, b) =>
+          (isOpenNow(a.opening_hours) ? 0 : 1) -
+          (isOpenNow(b.opening_hours) ? 0 : 1)
+      );
+    }
+    return sorted;
+  }, [
+    filters.openNow,
+    filters.deliveryOnly,
+    filters.deliveryMode,
+    filters.sort,
+    items,
+  ]);
 
   const wilayaLabel = loc?.wilaya_code
     ? WILAYAS.find((w) => w.code === loc.wilaya_code)?.name
@@ -126,39 +165,30 @@ export function MarketplaceGrid({ fallback, promoIds, promoLabels }: Props) {
     filters.deliveryMode !== "any" ||
     filters.sort !== "name";
 
+  const heading = emptyZone
+    ? "Tous les commerces en Algérie"
+    : filters.q
+      ? `Résultats pour « ${filters.q} »`
+      : filters.category
+        ? getCategoryLabel(filters.category)
+        : "Commerces près de toi";
+
   function resetFilters() {
     router.replace("/", { scroll: false });
   }
 
-  function setDeliveryFilter(next: {
-    deliveryOnly?: boolean;
-    deliveryMode?: "any" | "express" | "tour";
-  }) {
-    const sp = new URLSearchParams(params.toString());
-    const newOnly = next.deliveryOnly ?? filters.deliveryOnly;
-    const newMode = next.deliveryMode ?? filters.deliveryMode;
-    if (newOnly) sp.set("delivery", "1");
-    else sp.delete("delivery");
-    if (newMode === "any") sp.delete("delivery_mode");
-    else sp.set("delivery_mode", newMode);
-    router.replace(`/?${sp.toString()}`, { scroll: false });
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-foreground text-base font-bold lg:text-xl">
-          {emptyZone
-            ? "Tous les commerces en Algérie"
-            : filters.q
-              ? `Résultats pour « ${filters.q} »`
-              : filters.category
-                ? `Catégorie : ${getCategoryLabel(filters.category)}`
-                : wilayaLabel
-                  ? `Commerces à ${wilayaLabel}${loc?.commune ? ` · ${loc.commune}` : ""}`
-                  : "Commerces en Algérie"}
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-foreground text-[21px] font-extrabold tracking-[-0.6px]">
+          {heading}
         </h2>
-        {pending && <Loader2 className="text-muted size-4 animate-spin" />}
+        <div className="flex items-center gap-2">
+          {pending && <Loader2 className="text-muted size-4 animate-spin" />}
+          <span className="bg-surface-2 grid size-8 place-items-center rounded-full">
+            <ArrowRight className="text-foreground size-4" />
+          </span>
+        </div>
       </div>
 
       {emptyZone && wilayaLabel && !filters.q && !filters.category && (
@@ -170,45 +200,6 @@ export function MarketplaceGrid({ fallback, promoIds, promoLabels }: Props) {
           </span>
         </div>
       )}
-
-      {/* Chips filtres livraison */}
-      <div className="scrollbar-hide -mx-1 flex gap-1.5 overflow-x-auto px-1">
-        <FilterChip
-          icon={<Truck className="size-3.5" />}
-          label="Livraison"
-          active={filters.deliveryOnly && filters.deliveryMode === "any"}
-          onClick={() =>
-            setDeliveryFilter({
-              deliveryOnly:
-                !filters.deliveryOnly || filters.deliveryMode !== "any",
-              deliveryMode: "any",
-            })
-          }
-        />
-        <FilterChip
-          icon={<Bolt className="size-3.5" />}
-          label="Express"
-          active={filters.deliveryMode === "express"}
-          onClick={() =>
-            setDeliveryFilter({
-              deliveryOnly: filters.deliveryMode !== "express",
-              deliveryMode:
-                filters.deliveryMode === "express" ? "any" : "express",
-            })
-          }
-        />
-        <FilterChip
-          icon={<Calendar className="size-3.5" />}
-          label="Tournée"
-          active={filters.deliveryMode === "tour"}
-          onClick={() =>
-            setDeliveryFilter({
-              deliveryOnly: filters.deliveryMode !== "tour",
-              deliveryMode: filters.deliveryMode === "tour" ? "any" : "tour",
-            })
-          }
-        />
-      </div>
 
       {hasActiveFilter && (
         <div className="text-muted flex items-center justify-between text-xs">
@@ -249,46 +240,18 @@ export function MarketplaceGrid({ fallback, promoIds, promoLabels }: Props) {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visible.map((m) => (
             <MerchantCard
               key={m.id}
               merchant={m}
               hasPromo={promoIds?.has(m.id)}
               promo={promos[m.id] ?? null}
+              distanceKm={distanceFor(m)}
             />
           ))}
         </div>
       )}
     </div>
-  );
-}
-
-/** Chip de filtre marketplace — active/inactive avec icône + label. */
-function FilterChip({
-  icon,
-  label,
-  active,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
-        active
-          ? "bg-primary-600 text-white shadow"
-          : "bg-surface border-border text-muted hover:bg-surface-2 border"
-      )}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }
