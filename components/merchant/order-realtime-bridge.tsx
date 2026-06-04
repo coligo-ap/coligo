@@ -229,7 +229,17 @@ export function OrderRealtimeBridge({
       total_da: number | null;
       status: string;
       order_number?: string | null;
+      payment_method?: string | null;
+      payment_status?: string | null;
     }) => {
+      // SÉCURITÉ PAIEMENT : une commande payée EN LIGNE pas encore confirmée ne
+      // doit RIEN déclencher (ni overlay, ni son, ni impression). Le webhook
+      // Chargily la rendra effective (UPDATE -> handleUpdate) une fois payée.
+      // La RLS la masque déjà aux requêtes ; ce garde couvre le cas où Realtime
+      // livrerait quand même l'INSERT.
+      if (row.payment_method === "online" && row.payment_status !== "paid") {
+        return;
+      }
       // Seules les commandes à confirmer ouvrent l'overlay (les autres INSERT
       // éventuels — imports, etc. — ne doivent pas bloquer l'écran).
       if (row.status !== "pending") {
@@ -307,9 +317,36 @@ export function OrderRealtimeBridge({
   }, [queue.length, stop]);
 
   const handleUpdate = useCallback(
-    (row: { id: string; status: string }) => {
+    (row: {
+      id: string;
+      status: string;
+      customer_name?: string | null;
+      total_da?: number | null;
+      order_number?: string | null;
+      payment_method?: string | null;
+      payment_status?: string | null;
+    }) => {
       router.refresh();
       const s = settingsRef.current;
+      // Une commande online qui vient d'être PAYÉE (webhook → payment_status
+      // 'paid') devient effective : son UPDATE arrive ici avec status 'pending'.
+      // On l'empile alors comme une nouvelle commande à confirmer (overlay +
+      // son + impression on_receive). Le polling 6 s est le filet de secours.
+      const effectiveNow = !(
+        row.payment_method === "online" && row.payment_status !== "paid"
+      );
+      if (row.status === "pending" && effectiveNow) {
+        addPending([
+          {
+            id: row.id,
+            customer_name: row.customer_name ?? null,
+            total_da: row.total_da ?? null,
+            order_number: row.order_number ?? null,
+          },
+        ]);
+        if (s.auto_print === "on_receive") void doPrint(row.id);
+        return;
+      }
       // « À l'acceptation » couvre aussi 'accepted' (au cas où l'app passe par
       // cet état) ET 'preparing' (transition principale pending → preparing).
       if (
@@ -319,7 +356,7 @@ export function OrderRealtimeBridge({
         void doPrint(row.id);
       }
     },
-    [router, doPrint]
+    [router, doPrint, addPending]
   );
 
   const realtimeStatus = useOrderRealtime(merchantId, {

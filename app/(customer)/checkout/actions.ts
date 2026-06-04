@@ -809,14 +809,22 @@ export async function createOrder(
     }
   }
 
-  // Push FCM au commerçant — fire-and-forget. Le pont Realtime gère déjà
-  // l'alerte app OUVERTE ; la push couvre l'app FERMÉE (Capacitor APK).
-  void notifyMerchantNewOrder({
-    merchantId: merchant.id,
-    orderId: order.id,
-    customerName: customer.full_name,
-    totalDa: totalAfterWallets,
-  });
+  // Notification commerçant — UNIQUEMENT si la commande est déjà effective pour
+  // lui. Un paiement EN LIGNE pas encore confirmé (checkoutUrl renvoyé) NE doit
+  // RIEN déclencher côté commerçant : ni push, ni board (RLS le masque tant que
+  // payment_status <> 'paid'). C'est le webhook Chargily qui notifiera à la
+  // confirmation du paiement. Le cash et l'online déjà soldé (cashback couvre
+  // tout) notifient immédiatement.
+  const onlineAwaitingPayment =
+    input.payment_method === "online" && checkoutUrl != null;
+  if (!onlineAwaitingPayment) {
+    void notifyMerchantNewOrder({
+      merchantId: merchant.id,
+      orderId: order.id,
+      customerName: customer.full_name,
+      totalDa: totalAfterWallets,
+    });
+  }
 
   revalidatePath("/commandes");
   return {

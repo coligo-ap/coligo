@@ -10,6 +10,11 @@ type OrderRow = {
   total_da: number | null;
   created_at: string;
   merchant_id: string;
+  // Présents dans le payload Realtime (ligne complète) — servent à ne PAS
+  // alerter le commerçant pour une commande online pas encore payée.
+  order_number?: string | null;
+  payment_method?: string | null;
+  payment_status?: string | null;
 };
 
 type Handlers = {

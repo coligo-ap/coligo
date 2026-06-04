@@ -25,6 +25,7 @@ import {
 } from "@/lib/payments/chargily";
 import { extractFailureReason } from "@/lib/payments/failure-reason";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyMerchantNewOrder } from "@/lib/fcm/triggers";
 
 // Force le runtime Node (le helper utilise `node:crypto`) et évite tout cache.
 export const runtime = "nodejs";
@@ -73,12 +74,15 @@ export async function POST(req: NextRequest) {
     }
 
     if (event.type === "checkout.paid") {
+      // Transition payment_status pending -> paid (idempotente via le .eq).
+      // C'est SEULEMENT ICI que la commande online devient visible/effective
+      // pour le commerçant (cf. RLS 0068) et reçoit son numéro (trigger 0068).
       const { data: updated, error } = await admin
         .from("orders")
         .update({ payment_status: "paid" })
         .eq("id", orderId)
         .eq("payment_status", "pending")
-        .select("id")
+        .select("id, merchant_id, customer_name, total_da")
         .maybeSingle();
       if (error) {
         console.error("[chargily/webhook] order paid failed:", error);
@@ -86,6 +90,17 @@ export async function POST(req: NextRequest) {
           { ok: false, error: error.message },
           { status: 200 }
         );
+      }
+      // Premier passage seulement (updated non null) : on alerte le commerçant
+      // MAINTENANT que le paiement est confirmé — push (app fermée) ; le board /
+      // l'overlay (app ouverte) la voient via RLS au prochain poll/realtime.
+      if (updated) {
+        void notifyMerchantNewOrder({
+          merchantId: updated.merchant_id,
+          orderId: updated.id,
+          customerName: updated.customer_name,
+          totalDa: updated.total_da,
+        });
       }
       return NextResponse.json({
         ok: true,
