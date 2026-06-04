@@ -1,17 +1,15 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Banknote, Check, Clock, MapPin, X } from "lucide-react";
+import { ArrowLeft, Check, Clock, MapPin, Truck, X } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/badge";
-import { ORDER_FLOW, ORDER_STATUS_META, type OrderStatus } from "@/lib/types";
+import { type OrderStatus } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
-import { OrderQr } from "@/components/customer/order-qr";
 import { CustomerOrderLive } from "@/components/customer/customer-order-live";
-import { DeliveryTimeline } from "@/components/customer/delivery-timeline";
+import { OrderTrack } from "@/components/customer/order-track";
 import { CustomerDeliveryMap } from "@/components/customer/customer-delivery-map";
 import { DriverReviewCard } from "@/components/customer/driver-review-card";
-import { estimateDeliveryEtaMin, formatEta } from "@/lib/delivery/eta";
+import { estimateDeliveryEtaMin } from "@/lib/delivery/eta";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { formatAsapReady, formatSlotRange } from "@/lib/customer/pickup-format";
 
@@ -91,14 +89,16 @@ export default async function CustomerOrderDetailPage({
     ).order_items ?? [];
 
   const status = order.status as OrderStatus;
-  const meta = ORDER_STATUS_META[status];
   const isCash = order.payment_method === "cash";
+  const isDelivery = order.fulfillment_type === "delivery";
+  const isCancelled = status === "cancelled";
+  const isCompleted = status === "completed";
 
   // Notation du livreur : commande livrée + livreur assigné.
   const driverId = (order as { delivery_driver_id: string | null })
     .delivery_driver_id;
   let driverReview: { name: string; rating: number | null } | null = null;
-  if (status === "completed" && driverId) {
+  if (isCompleted && driverId) {
     const [{ data: drv }, { data: rev }] = await Promise.all([
       supabase
         .from("drivers")
@@ -116,27 +116,24 @@ export default async function CustomerOrderDetailPage({
       rating: rev?.rating ?? null,
     };
   }
-  const isOnlinePending =
-    order.payment_method === "online" && order.payment_status === "pending";
-  const isDelivery = order.fulfillment_type === "delivery";
 
   // Quand le code de retrait est-il utile au client ?
-  //  - RETRAIT sur place : TOUJOURS (il le montre au commerçant).
-  //  - LIVRAISON payée EN LIGNE : OUI (il le communique au livreur à la remise).
-  //  - LIVRAISON en CASH : NON (il paie en espèces au livreur, aucun code).
-  // Code PIN requis UNIQUEMENT pour le payé EN LIGNE (retrait ou livraison) :
-  // c'est une sécurité car déjà payé. En CASH, aucun code — le client donne
-  // juste son NUMÉRO DE COMMANDE (utile si son téléphone est éteint).
+  //  - Code PIN requis UNIQUEMENT pour le payé EN LIGNE (retrait OU livraison) :
+  //    c'est une sécurité car déjà payé, le client le remet à la personne.
+  //  - En CASH, aucun code — le client paie en espèces et donne juste son
+  //    NUMÉRO DE COMMANDE.
+  // Le PIN ne s'affiche QUE côté client, jamais imprimé, jamais visible
+  // commerçant/livreur.
   const needsCode = order.payment_method === "online";
 
   // Livraison EN COURS = récupérée par le livreur et pas encore livrée. On
-  // affiche alors la carte de suivi live (position du livreur + ETA).
+  // affiche alors la mini-carte de suivi live (position du livreur + ETA).
   const inTransit =
     isDelivery &&
     order.delivery_picked_up_at != null &&
     order.delivery_delivered_at == null &&
-    status !== "completed" &&
-    status !== "cancelled";
+    !isCompleted &&
+    !isCancelled;
   const destLat = (order as { delivery_lat: number | null }).delivery_lat;
   const destLng = (order as { delivery_lng: number | null }).delivery_lng;
   const liveDriver =
@@ -148,6 +145,20 @@ export default async function CustomerOrderDetailPage({
           at: (order as { driver_live_at: string | null }).driver_live_at,
         }
       : null;
+
+  // Contact du livreur (prénom + tél) pour la barre de la mini-carte. Lecture
+  // sécurisée via la RPC SECURITY DEFINER (le client ne lit QUE le livreur de
+  // SA commande — cf. migration 0066), sans ouvrir la table `drivers`.
+  let driverContact: {
+    first_name: string | null;
+    phone: string | null;
+  } | null = null;
+  if (inTransit && driverId) {
+    const { data: dc } = await supabase.rpc("order_driver_contact", {
+      p_order_id: order.id,
+    });
+    driverContact = Array.isArray(dc) ? (dc[0] ?? null) : (dc ?? null);
+  }
 
   // ETA livraison (préparation + le livreur va chercher + trajet client).
   const etaMin = isDelivery
@@ -162,41 +173,104 @@ export default async function CustomerOrderDetailPage({
       })
     : null;
 
-  // ─── Hero piloté par le STATUT (le client voit où en est sa commande d'un
-  // coup d'œil — c'est le « suivi » résumé, sans doublon avec la timeline). ───
+  // ─── État résumé du bloc principal (statut d'un coup d'œil) ───
   const orderNumber = (order as { order_number: string | null }).order_number;
-  const heroTitle =
-    status === "completed"
+
+  type Tone = "violet" | "green" | "red";
+  const stateTone: Tone = isCancelled
+    ? "red"
+    : isCompleted || inTransit
+      ? "green"
+      : "violet";
+  const StateIcon = isCancelled
+    ? X
+    : isCompleted
+      ? Check
+      : inTransit
+        ? Truck
+        : Clock;
+
+  const stateTitle = isCancelled
+    ? "Commande annulée"
+    : isCompleted
       ? isDelivery
-        ? "Commande livrée !"
-        : "Commande récupérée !"
-      : status === "cancelled"
-        ? "Commande annulée"
+        ? "Commande livrée"
+        : "Commande récupérée"
+      : inTransit
+        ? "En livraison"
         : status === "ready"
           ? isDelivery
             ? "Prête — en attente du livreur"
-            : "Prête à récupérer !"
+            : "Prête à récupérer"
           : status === "preparing" || status === "accepted"
             ? "En préparation"
             : "Commande envoyée";
-  const heroSub =
-    status === "cancelled"
-      ? "Cette commande a été annulée."
-      : isDelivery
-        ? isCash
-          ? `À régler : ${formatDA(order.total_da)} en espèces au livreur.`
-          : "Tiens ton code prêt pour le livreur à la remise."
-        : needsCode
-          ? "Montre ton code au commerçant au retrait."
-          : "Donne ton n° de commande au commerçant (paiement en espèces).";
-  const heroTone =
-    status === "cancelled"
-      ? "from-danger-500 to-danger-600"
-      : status === "completed" || status === "ready"
-        ? "from-success-500 to-success-600"
-        : "from-primary-600 to-primary-700";
-  const HeroIcon =
-    status === "cancelled" ? X : status === "completed" ? Check : Clock;
+
+  const driverFirst = driverContact?.first_name?.trim() || "Le livreur";
+  const stateSub = isCancelled
+    ? "Cette commande a été annulée."
+    : isCompleted
+      ? "Merci pour ta commande !"
+      : inTransit
+        ? `${driverFirst} arrive bientôt`
+        : status === "ready"
+          ? isDelivery
+            ? "En attente du livreur"
+            : "Va la récupérer en boutique"
+          : status === "preparing" || status === "accepted"
+            ? "Le commerçant prépare ta commande"
+            : "En attente du commerçant";
+
+  // ─── Délai affiché à gauche de la ligne montant (label + valeur en gras) ───
+  const isSlot =
+    !isDelivery &&
+    order.pickup_type === "slot" &&
+    order.pickup_slot_start != null &&
+    order.pickup_slot_end != null;
+  // Préparation restante (retrait ASAP) en minutes.
+  const elapsedMin = Math.floor(
+    (Date.now() - new Date(order.created_at).getTime()) / 60_000
+  );
+  const prepRemaining = Math.max(
+    1,
+    (merchant.prep_time_min ?? 10) - elapsedMin
+  );
+
+  let delai: { Icon: typeof Clock; label: string; strong?: string } | null =
+    null;
+  if (!isCancelled) {
+    if (isCompleted) {
+      delai = {
+        Icon: Check,
+        label: isDelivery ? "Livrée" : "Récupérée",
+      };
+    } else if (isDelivery) {
+      delai = inTransit
+        ? {
+            Icon: Truck,
+            label: "Arrivée",
+            strong: etaMin != null ? `~${etaMin} min` : "en route",
+          }
+        : {
+            Icon: Truck,
+            label: "Livraison",
+            strong: etaMin != null ? `~${etaMin} min` : "en préparation",
+          };
+    } else if (status === "ready") {
+      delai = { Icon: Clock, label: "Prête", strong: "à récupérer" };
+    } else if (isSlot) {
+      delai = {
+        Icon: Clock,
+        label: "Retrait",
+        strong: formatSlotRange(
+          new Date(order.pickup_slot_start as string),
+          new Date(order.pickup_slot_end as string)
+        ),
+      };
+    } else {
+      delai = { Icon: Clock, label: "Prêt", strong: `~${prepRemaining} min` };
+    }
+  }
 
   return (
     <CustomerShell>
@@ -212,303 +286,262 @@ export default async function CustomerOrderDetailPage({
           Mes commandes
         </Link>
 
-        {/* ─── 1. HERO : statut courant + n° commande ─── */}
-        <div
-          className={cn(
-            "mb-4 rounded-[20px] bg-gradient-to-br p-6 text-white shadow-md",
-            heroTone
-          )}
-        >
+        {/* ═══ BLOC PRINCIPAL UNIQUE : statut + suivi horizontal + montant ═══ */}
+        <div className="border-border bg-surface rounded-[20px] border p-4 shadow-sm">
+          {/* ligne 1 : statut (pastille) + libellé + sous-texte + n° */}
           <div className="flex items-center justify-between gap-3">
-            <HeroIcon className="size-8" />
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span
+                className={cn(
+                  "grid size-9 shrink-0 place-items-center rounded-[11px] text-base",
+                  stateTone === "green" && "bg-success-50 text-success-700",
+                  stateTone === "red" && "bg-danger-50 text-danger-700",
+                  stateTone === "violet" && "bg-primary-50 text-primary-700"
+                )}
+              >
+                <StateIcon className="size-5" />
+              </span>
+              <div className="min-w-0">
+                <b className="text-foreground block truncate text-base leading-tight font-extrabold tracking-tight">
+                  {stateTitle}
+                </b>
+                <small className="text-muted text-[11.5px] font-semibold">
+                  {stateSub}
+                </small>
+              </div>
+            </div>
             {orderNumber && (
-              <span className="rounded-full bg-white/20 px-3 py-1 text-sm font-bold tracking-wide">
+              <span className="text-muted shrink-0 text-[13px] font-extrabold tracking-wide">
                 N° {orderNumber}
               </span>
             )}
           </div>
-          <h1 className="mt-2 text-2xl leading-tight font-bold">{heroTitle}</h1>
-          <p className="mt-1 text-sm text-white/85">{heroSub}</p>
-        </div>
 
-        {/* ─── 2. ACTION : code + QR (payé en ligne) OU montant cash ───
-            Masqué si la commande est annulée (plus rien à faire). */}
-        {status !== "cancelled" &&
-          (needsCode ? (
-            <div className="border-border bg-surface mb-4 rounded-[20px] border p-6 text-center shadow-sm">
-              <p className="text-muted text-xs font-semibold tracking-wider uppercase">
-                Ton code de validation
-              </p>
-              <p className="text-foreground mt-1 text-5xl font-bold tracking-[0.2em] tabular-nums lg:text-6xl">
-                {order.pickup_code}
-              </p>
-              <div className="mt-4 flex justify-center">
-                <OrderQr value={order.pickup_code} />
-              </div>
-              <p className="text-subtle mt-3 text-xs">
-                À communiquer {isDelivery ? "au livreur" : "au commerçant"} à la
-                remise — c&apos;est ta sécurité (déjà payé en ligne).
-              </p>
-            </div>
-          ) : (
-            <div className="border-warning-200 bg-warning-50 mb-4 rounded-[20px] border p-6 text-center shadow-sm">
-              <Banknote className="text-warning-600 mx-auto size-7" />
-              <p className="text-warning-800 mt-2 text-xs font-semibold tracking-wider uppercase">
-                À payer en espèces
-              </p>
-              <p className="text-foreground mt-1 text-4xl font-bold tabular-nums">
-                {formatDA(order.total_da)}
-              </p>
-              <p className="text-warning-800/80 mt-1 text-sm">
-                {isDelivery
-                  ? "au livreur à la remise. Aucun code à communiquer."
-                  : "au commerçant au retrait. Donne ton n° de commande."}
-              </p>
-            </div>
-          ))}
-
-        {/* ─── 3. SUIVI (un SEUL bloc selon le mode) ─── */}
-        {isDelivery ? (
-          <div className="border-border bg-surface mb-4 rounded-[20px] border p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between gap-2">
-              <h2 className="text-foreground text-sm font-semibold">
-                Suivi de ta livraison
-              </h2>
-              {etaMin != null && status !== "completed" && (
-                <span className="bg-primary-50 text-primary-700 border-primary-200 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold">
-                  Estimée · {formatEta(etaMin)}
-                </span>
-              )}
-            </div>
-            <DeliveryTimeline
+          {/* ligne 2 : suivi HORIZONTAL (masqué si annulée) */}
+          {!isCancelled && (
+            <OrderTrack
+              isDelivery={isDelivery}
               status={status}
-              pickedUpAt={order.delivery_picked_up_at as string | null}
-              arrivedAt={order.delivery_arrived_at as string | null}
-              deliveredAt={order.delivery_delivered_at as string | null}
+              pickedUp={order.delivery_picked_up_at != null}
             />
-            {inTransit && destLat != null && destLng != null && (
-              <div className="mt-4 border-t pt-4">
-                <CustomerDeliveryMap
-                  orderId={order.id}
-                  destination={{ lat: destLat, lng: destLng }}
-                  initialDriver={liveDriver}
-                  initialArrivedAt={order.delivery_arrived_at as string | null}
-                />
-              </div>
-            )}
-          </div>
-        ) : (
-          status !== "cancelled" && (
-            <section className="border-border bg-surface mb-4 rounded-[20px] border p-5 shadow-sm">
-              <h2 className="text-foreground mb-3 text-sm font-semibold">
-                Suivi de ta commande
-              </h2>
-              <ol className="space-y-2 text-sm">
-                {ORDER_FLOW.map((step, idx) => {
-                  const currentIdx = ORDER_FLOW.findIndex(
-                    (s) => s.status === status
-                  );
-                  const reached = currentIdx >= 0 && idx <= currentIdx;
-                  const active = currentIdx === idx;
-                  return (
-                    <li
-                      key={step.status}
-                      className={cn(
-                        "flex items-center gap-3",
-                        reached ? "text-foreground" : "text-subtle"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
-                          reached
-                            ? "bg-success-500 text-white"
-                            : "bg-surface-3 text-muted"
-                        )}
-                      >
-                        {reached ? <Check className="size-3.5" /> : idx + 1}
-                      </span>
-                      <span className={cn("flex-1", active && "font-semibold")}>
-                        {step.label}
-                      </span>
-                      {active && <Badge tone={meta.tone}>{meta.label}</Badge>}
-                    </li>
-                  );
-                })}
-              </ol>
-            </section>
-          )
-        )}
+          )}
 
-        {/* ─── 4. CRÉNEAU / ADRESSE + note (infos pratiques, sans doublon) ─── */}
-        <div className="border-border bg-surface mb-4 rounded-[16px] border p-4">
-          <div className="text-muted mb-1 flex items-center gap-1.5 text-xs font-medium">
-            <Clock className="size-3.5" />
-            {isDelivery ? "Adresse de livraison" : "Créneau de retrait"}
-          </div>
-          <p className="text-foreground text-sm">
-            {isDelivery
-              ? ((order as { delivery_address_text: string | null })
-                  .delivery_address_text ?? "Adresse renseignée à la commande")
-              : order.pickup_type === "slot" &&
-                  order.pickup_slot_start &&
-                  order.pickup_slot_end
-                ? formatSlotRange(
-                    new Date(order.pickup_slot_start),
-                    new Date(order.pickup_slot_end)
-                  )
-                : formatAsapReady(new Date(order.pickup_slot_at))}
-          </p>
-          {order.customer_note && (
-            <p className="text-muted border-border mt-2 border-t pt-2 text-xs">
-              Note : {order.customer_note}
-            </p>
+          {/* ligne 3 : délai (gauche) + montant (droite) */}
+          {!isCancelled && (
+            <div className="border-border mt-3.5 flex items-center justify-between gap-3 border-t pt-3">
+              {delai ? (
+                <div className="text-foreground flex items-center gap-1.5 text-[12.5px] font-semibold">
+                  <delai.Icon className="text-primary-600 size-3.5" />
+                  <span>
+                    {delai.label}
+                    {delai.strong && (
+                      <>
+                        {" "}
+                        <b className="text-foreground font-extrabold">
+                          {delai.strong}
+                        </b>
+                      </>
+                    )}
+                  </span>
+                </div>
+              ) : (
+                <span />
+              )}
+              <div className="text-right">
+                {isCash ? (
+                  <>
+                    <small className="text-muted block text-[9.5px] font-bold tracking-wide uppercase">
+                      À payer espèces
+                    </small>
+                    <b className="text-foreground text-[18px] font-black tracking-tight">
+                      {formatDA(order.total_da)}
+                    </b>
+                  </>
+                ) : (
+                  <>
+                    <small className="text-muted block text-[9.5px] font-bold tracking-wide uppercase">
+                      Total
+                    </small>
+                    <b className="text-success-700 text-sm font-black tracking-tight">
+                      ✓ Payé · {formatDA(order.total_da)}
+                    </b>
+                  </>
+                )}
+              </div>
+            </div>
           )}
         </div>
 
-        {/* ─── 5. DÉTAIL (articles + total) ─── */}
-        <div className="border-border bg-surface mb-4 rounded-[16px] border p-5">
-          <h2 className="text-foreground mb-3 text-base font-semibold">
-            Détail de la commande
-          </h2>
-          <ul className="divide-border divide-y">
-            {items.map((it) => (
-              <li
-                key={it.id}
-                className="flex items-center justify-between gap-3 py-2.5 text-sm"
-              >
-                <span className="text-foreground line-clamp-1">
-                  {it.quantity}× {it.product_name}
-                </span>
-                <span className="text-foreground tabular-nums">
-                  {formatDA(it.line_total_da)}
-                </span>
-              </li>
-            ))}
-          </ul>
+        {/* ═══ CODE PIN (uniquement payé en ligne : livraison ou retrait) ═══ */}
+        {needsCode && !isCancelled && (
+          <div className="bg-primary-50 text-primary-800 mt-2.5 flex items-center justify-between gap-3 rounded-[13px] px-3.5 py-2.5 text-[12.5px] font-bold">
+            <span>
+              🔑 Code à donner {isDelivery ? "au livreur" : "au commerçant"}
+            </span>
+            <span className="text-primary-600 text-[22px] font-black tracking-[5px] tabular-nums">
+              {order.pickup_code}
+            </span>
+          </div>
+        )}
 
-          <dl className="border-border mt-3 space-y-1.5 border-t pt-3 text-sm">
-            <Row label="Sous-total" value={formatDA(order.subtotal_da)} />
-            {order.discount_da > 0 && (
-              <Row
-                label="Promo"
-                value={`− ${formatDA(order.discount_da)}`}
-                tone="success"
-              />
-            )}
-            {isDelivery && order.delivery_fee_da > 0 && (
-              <Row label="Livraison" value={formatDA(order.delivery_fee_da)} />
-            )}
-            {order.cashback_estimate_da > 0 && (
-              <Row
-                label="Cashback estimé"
-                value={`+ ${formatDA(order.cashback_estimate_da)}`}
-                tone="primary"
-              />
-            )}
-            <div className="border-border mt-2 border-t pt-2" />
-            <Row
-              label={
-                isCash
-                  ? "Total (à payer en espèces)"
-                  : isOnlinePending
-                    ? "Total (paiement en attente)"
-                    : "Total (payé en ligne)"
-              }
-              value={formatDA(order.total_da)}
-              bold
+        {/* ═══ MINI-CARTE suivi livreur temps réel (livraison en cours) ═══ */}
+        {inTransit && destLat != null && destLng != null && (
+          <div className="mt-3">
+            <CustomerDeliveryMap
+              orderId={order.id}
+              destination={{ lat: destLat, lng: destLng }}
+              initialDriver={liveDriver}
+              initialArrivedAt={order.delivery_arrived_at as string | null}
+              driverName={driverContact?.first_name ?? null}
+              driverPhone={driverContact?.phone ?? null}
             />
-          </dl>
-        </div>
+          </div>
+        )}
 
-        {/* ─── 6. COMMERCE ─── */}
-        <div className="border-border bg-surface mb-4 rounded-[16px] border p-5">
-          <div className="flex items-center gap-3">
-            {merchant.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={
-                  cldUrl(merchant.logo_url, {
-                    width: 96,
-                    height: 96,
-                    crop: "fill",
-                    gravity: "auto",
-                  }) ?? merchant.logo_url
-                }
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="border-border size-12 rounded-full border bg-white object-cover"
-              />
-            ) : (
-              <div className="bg-primary-100 text-primary-700 flex size-12 items-center justify-center rounded-full text-base font-bold">
-                {merchant.name.charAt(0)}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="text-foreground line-clamp-1 text-base font-semibold">
-                {merchant.name}
-              </p>
-              <p className="text-muted text-xs">
-                <MapPin className="-mt-0.5 mr-1 inline size-3" />
-                {[merchant.address, merchant.commune]
-                  .filter(Boolean)
-                  .join(" · ") || "—"}
-              </p>
-            </div>
-            <Link
-              href={`/m/${merchant.slug}`}
-              className="text-primary-700 text-xs font-medium hover:underline"
+        {/* ═══ DÉTAIL DE LA COMMANDE ═══ */}
+        <div className="border-border bg-surface mt-3 rounded-[18px] border p-4 shadow-sm">
+          <h3 className="mb-2.5 flex items-center justify-between text-[13px] font-extrabold">
+            <span>Détail</span>
+            <span className="text-muted text-[11px] font-semibold">
+              {items.length} article{items.length > 1 ? "s" : ""}
+            </span>
+          </h3>
+          {items.map((it) => (
+            <div
+              key={it.id}
+              className="flex items-baseline justify-between py-1.5 text-sm"
             >
-              Voir
-            </Link>
+              <span className="min-w-0 font-semibold">
+                <span className="text-primary-600 mr-1 font-extrabold">
+                  {it.quantity}×
+                </span>
+                {it.product_name}
+              </span>
+              <span className="shrink-0 pl-2 font-bold tabular-nums">
+                {formatDA(it.line_total_da)}
+              </span>
+            </div>
+          ))}
+
+          <hr className="border-border my-2" />
+          <div className="text-muted flex items-baseline justify-between py-1 text-[13px] font-semibold">
+            <span>Sous-total</span>
+            <span className="tabular-nums">{formatDA(order.subtotal_da)}</span>
+          </div>
+          {order.discount_da > 0 && (
+            <div className="text-success-700 flex items-baseline justify-between py-1 text-[13px] font-semibold">
+              <span>Promo</span>
+              <span className="tabular-nums">
+                − {formatDA(order.discount_da)}
+              </span>
+            </div>
+          )}
+          {isDelivery && order.delivery_fee_da > 0 && (
+            <div className="text-muted flex items-baseline justify-between py-1 text-[13px] font-semibold">
+              <span>Livraison</span>
+              <span className="tabular-nums">
+                {formatDA(order.delivery_fee_da)}
+              </span>
+            </div>
+          )}
+          {order.cashback_estimate_da > 0 && (
+            <div className="text-primary-700 flex items-baseline justify-between py-1 text-[13px] font-semibold">
+              <span>Cashback estimé</span>
+              <span className="tabular-nums">
+                + {formatDA(order.cashback_estimate_da)}
+              </span>
+            </div>
+          )}
+          <div className="text-foreground mt-1 flex items-baseline justify-between border-t border-[var(--color-border)] pt-2 text-[15px] font-black">
+            <span>{isCash ? "Total" : "Total payé"}</span>
+            <span className="tabular-nums">{formatDA(order.total_da)}</span>
           </div>
         </div>
 
-        {/* ─── 7. Notation du livreur (commande livrée + livreur assigné) ─── */}
+        {/* ═══ BOUTIQUE ═══ */}
+        <div className="border-border bg-surface mt-3 flex items-center gap-3 rounded-[16px] border px-4 py-3 shadow-sm">
+          {merchant.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={
+                cldUrl(merchant.logo_url, {
+                  width: 96,
+                  height: 96,
+                  crop: "fill",
+                  gravity: "auto",
+                }) ?? merchant.logo_url
+              }
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="border-border size-10 shrink-0 rounded-xl border bg-white object-cover"
+            />
+          ) : (
+            <div className="bg-foreground flex size-10 shrink-0 items-center justify-center rounded-xl text-base font-extrabold text-white">
+              {merchant.name.charAt(0)}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <b className="text-foreground block truncate text-sm font-bold">
+              {merchant.name}
+            </b>
+            <small className="text-muted text-xs">
+              <MapPin className="-mt-0.5 mr-0.5 inline size-3" />
+              {[merchant.address, merchant.commune]
+                .filter(Boolean)
+                .join(" · ") || "—"}
+            </small>
+          </div>
+          <Link
+            href={`/m/${merchant.slug}`}
+            className="text-primary-600 shrink-0 text-[13px] font-bold hover:underline"
+          >
+            Voir ›
+          </Link>
+        </div>
+
+        {/* ═══ INFOS PRATIQUES (créneau / adresse + note) — secondaire ═══ */}
+        {!isCancelled && (
+          <div className="border-border bg-surface mt-3 rounded-[16px] border p-4">
+            <div className="text-muted mb-1 flex items-center gap-1.5 text-xs font-semibold">
+              {isDelivery ? (
+                <MapPin className="size-3.5" />
+              ) : (
+                <Clock className="size-3.5" />
+              )}
+              {isDelivery ? "Adresse de livraison" : "Créneau de retrait"}
+            </div>
+            <p className="text-foreground text-sm">
+              {isDelivery
+                ? ((order as { delivery_address_text: string | null })
+                    .delivery_address_text ??
+                  "Adresse renseignée à la commande")
+                : isSlot
+                  ? formatSlotRange(
+                      new Date(order.pickup_slot_start as string),
+                      new Date(order.pickup_slot_end as string)
+                    )
+                  : formatAsapReady(new Date(order.pickup_slot_at))}
+            </p>
+            {order.customer_note && (
+              <p className="text-muted border-border mt-2 border-t pt-2 text-xs">
+                Note : {order.customer_note}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* ═══ Notation du livreur (commande livrée + livreur assigné) ═══ */}
         {driverReview && (
-          <DriverReviewCard
-            orderId={order.id}
-            driverName={driverReview.name}
-            initialRating={driverReview.rating}
-          />
+          <div className="mt-3">
+            <DriverReviewCard
+              orderId={order.id}
+              driverName={driverReview.name}
+              initialRating={driverReview.rating}
+            />
+          </div>
         )}
       </div>
     </CustomerShell>
-  );
-}
-
-function Row({
-  label,
-  value,
-  bold,
-  tone,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-  tone?: "success" | "primary";
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <dt
-        className={cn(
-          "text-muted",
-          bold && "text-foreground text-sm font-semibold"
-        )}
-      >
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          "tabular-nums",
-          bold ? "text-foreground text-base font-bold" : "text-foreground",
-          tone === "success" && "text-success-700 font-semibold",
-          tone === "primary" && "text-primary-700 font-semibold"
-        )}
-      >
-        {value}
-      </dd>
-    </div>
   );
 }

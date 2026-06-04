@@ -1433,6 +1433,10 @@ export type Database = {
         Args: { p_merchant_id: string };
         Returns: number;
       };
+      order_driver_contact: {
+        Args: { p_order_id: string };
+        Returns: { first_name: string | null; phone: string | null }[];
+      };
       customer_cashback_balance: {
         Args: { p_customer_id: string };
         Returns: number;
