@@ -24,7 +24,11 @@ type Props = {
   orders: ReviewableOrder[];
 };
 
-const dismissKey = (orderId: string) => `coligo-review-dismiss-${orderId}`;
+// Refus mémorisé par COMMERÇANT (pas par commande) : si le client ferme la
+// pop-up sans noter, on ne le redérange plus pour CE commerce, même s'il
+// repasse commande plus tard.
+const dismissKey = (merchantId: string) =>
+  `coligo-review-dismiss-merchant-${merchantId}`;
 
 export function ReviewPrompt({ orders }: Props) {
   const [active, setActive] = useState<ReviewableOrder | null>(null);
@@ -39,7 +43,7 @@ export function ReviewPrompt({ orders }: Props) {
     if (!o) return;
     let isDismissed = false;
     try {
-      isDismissed = localStorage.getItem(dismissKey(o.order_id)) === "1";
+      isDismissed = localStorage.getItem(dismissKey(o.merchant_id)) === "1";
     } catch {
       /* localStorage indispo (Safari privé) : on ne bloque pas */
     }
@@ -65,7 +69,7 @@ export function ReviewPrompt({ orders }: Props) {
     if (autoOpenedRef.current) {
       autoOpenedRef.current = false;
       try {
-        localStorage.setItem(dismissKey(o.order_id), "1");
+        localStorage.setItem(dismissKey(o.merchant_id), "1");
       } catch {
         /* ignoré */
       }

@@ -49,18 +49,16 @@ export default async function CustomerOrdersListPage() {
 
   const rows = orders ?? [];
 
-  // Pré-charge les order_ids déjà notés, pour le bouton "Laisser un avis".
-  const completedIds = rows
-    .filter((o) => o.status === "completed")
-    .map((o) => o.id);
-  let reviewedIds = new Set<string>();
-  if (completedIds.length > 0) {
-    const { data: reviews } = await supabase
-      .from("reviews")
-      .select("order_id")
-      .in("order_id", completedIds);
-    reviewedIds = new Set((reviews ?? []).map((r) => r.order_id));
-  }
+  // Un seul avis par COMMERÇANT : on masque le bouton "Laisser un avis" pour
+  // TOUTES les commandes d'un commerçant que le client a déjà noté (pas par
+  // commande, sinon on harcèle un client multi-commandes du même commerce).
+  const { data: myReviews } = await supabase
+    .from("reviews")
+    .select("merchant_id")
+    .eq("customer_id", customer.id);
+  const reviewedMerchantIds = new Set(
+    (myReviews ?? []).map((r) => r.merchant_id as string)
+  );
 
   const mapped: CustomerOrderRow[] = rows.map((o) => {
     const merchant = (
@@ -81,7 +79,8 @@ export default async function CustomerOrdersListPage() {
         (o.fulfillment_type as "pickup" | "delivery") ?? "pickup",
       merchant_name: merchant?.name ?? "Commerce",
       merchant_logo: merchant?.logo_url ?? null,
-      reviewed: reviewedIds.has(o.id),
+      // « Déjà noté » dès que le client a un avis sur CE commerçant.
+      reviewed: reviewedMerchantIds.has(o.merchant_id),
     };
   });
 

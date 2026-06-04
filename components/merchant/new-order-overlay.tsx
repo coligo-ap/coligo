@@ -2,15 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import {
-  Check,
-  Clock,
-  Loader2,
-  PartyPopper,
-  Printer,
-  Timer,
-  X,
-} from "lucide-react";
+import { Check, Loader2, PartyPopper, Printer, Timer, X } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { formatDA } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -26,9 +18,12 @@ export type NewOrder = {
   order_number?: string | null;
 };
 
-/** Délai (s) avant acceptation auto quand l'acceptation automatique est ON. */
-const AUTO_ACCEPT_SECONDS = 10;
-/** Délai (s) avant refus auto quand l'acceptation automatique est OFF. */
+/** Délai avant acceptation auto quand l'acceptation automatique est ON.
+ *  2 minutes : laisse au commerçant le temps de jeter un œil / refuser avant
+ *  que la commande ne soit acceptée toute seule. */
+const AUTO_ACCEPT_SECONDS = 2 * 60;
+/** Délai (s) avant refus auto quand l'acceptation automatique est OFF.
+ *  15 minutes pour interagir, sinon refus automatique. */
 const AUTO_REFUSE_SECONDS = 15 * 60;
 
 const REFUSAL_REASONS = [
@@ -560,7 +555,9 @@ function AutoAcceptControls({
           )}
           {acting
             ? "Acceptation…"
-            : `Acceptée automatiquement dans ${secondsLeft}s`}
+            : `Acceptée automatiquement dans ${
+                secondsLeft >= 60 ? mmss(secondsLeft) : `${secondsLeft}s`
+              }`}
         </span>
       </button>
       <p className="text-muted text-center text-xs">

@@ -56,6 +56,22 @@ export async function submitReview(input: {
     };
   }
 
+  // UN SEUL avis par COMMERÇANT : si le client a déjà noté ce commerce (sur une
+  // autre commande), on refuse poliment au lieu d'empiler les avis (la note ne
+  // compte de toute façon qu'un avis par client — mig 0065).
+  const { data: existing } = await supabase
+    .from("reviews")
+    .select("id")
+    .eq("customer_id", customer.id)
+    .eq("merchant_id", order.merchant_id)
+    .limit(1);
+  if (existing && existing.length > 0) {
+    return {
+      ok: false,
+      error: "Tu as déjà donné ton avis sur ce commerce. Merci !",
+    };
+  }
+
   const { error } = await supabase.from("reviews").insert({
     order_id: order.id,
     customer_id: customer.id,

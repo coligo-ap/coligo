@@ -45,11 +45,15 @@ export async function getMyReviewForOrder(
 }
 
 /**
- * Renvoie les commandes du client connecté qui sont `completed` et n'ont
- * PAS encore d'avis associé. Utilisé pour afficher l'encart "Comment s'est
- * passé chez X ?" sur la home.
+ * Renvoie de quoi inviter le client à noter — UN SEUL avis par COMMERÇANT.
  *
- * Limit : N pour ne pas pourrir la home si le client a 50 commandes.
+ * Règle UX (anti-harcèlement) : on ne demande pas un avis par commande. Si le
+ * client a commandé 5 fois chez le même commerçant, on ne propose qu'UNE fois
+ * de le noter (sur sa commande la plus récente). Et dès qu'il a noté ce
+ * commerçant (n'importe quelle commande), on ne le sollicite plus du tout pour
+ * lui. Cohérent avec le calcul de la note (1 avis par client — mig 0065).
+ *
+ * Limit : N pour ne pas pourrir la home si le client a beaucoup de commerces.
  */
 export type ReviewableOrder = {
   order_id: string;
@@ -75,10 +79,6 @@ export async function getMyReviewableOrders(
     .maybeSingle();
   if (!customer) return [];
 
-  // Anti-join : on prend les orders completed du customer qui n'ont PAS
-  // d'avis (via .not in subquery). Supabase JS ne supporte pas les
-  // sous-requêtes complexes ; on fait deux requêtes (orders + reviews) et
-  // on filtre côté JS — limit raisonnable, perf OK.
   const { data: orders } = await supabase
     .from("orders")
     .select(
@@ -88,34 +88,43 @@ export async function getMyReviewableOrders(
     .eq("customer_id", customer.id)
     .eq("status", "completed")
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(40);
 
   if (!orders || orders.length === 0) return [];
 
-  const orderIds = orders.map((o) => o.id);
-  const { data: reviews } = await supabase
+  // Commerces que le client a DÉJÀ notés (un avis par commerçant suffit) — on
+  // les exclut entièrement de l'invitation.
+  const { data: myReviews } = await supabase
     .from("reviews")
-    .select("order_id")
-    .in("order_id", orderIds);
-  const reviewed = new Set((reviews ?? []).map((r) => r.order_id));
+    .select("merchant_id")
+    .eq("customer_id", customer.id);
+  const reviewedMerchants = new Set(
+    (myReviews ?? []).map((r) => r.merchant_id as string)
+  );
 
-  return orders
-    .filter((o) => !reviewed.has(o.id))
-    .slice(0, limit)
-    .map((o) => {
-      const m = (
-        o as unknown as {
-          merchants: { name: string; logo_url: string | null } | null;
-        }
-      ).merchants;
-      return {
-        order_id: o.id,
-        merchant_id: o.merchant_id,
-        merchant_name: m?.name ?? "Commerce",
-        merchant_logo_url: m?.logo_url ?? null,
-        completed_at: o.created_at,
-      };
+  // On garde la commande la plus RÉCENTE de chaque commerçant pas encore noté
+  // (orders est trié récent → ancien) → une seule invitation par commerçant.
+  const seenMerchant = new Set<string>();
+  const out: ReviewableOrder[] = [];
+  for (const o of orders) {
+    if (reviewedMerchants.has(o.merchant_id)) continue;
+    if (seenMerchant.has(o.merchant_id)) continue;
+    seenMerchant.add(o.merchant_id);
+    const m = (
+      o as unknown as {
+        merchants: { name: string; logo_url: string | null } | null;
+      }
+    ).merchants;
+    out.push({
+      order_id: o.id,
+      merchant_id: o.merchant_id,
+      merchant_name: m?.name ?? "Commerce",
+      merchant_logo_url: m?.logo_url ?? null,
+      completed_at: o.created_at,
     });
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 /**
