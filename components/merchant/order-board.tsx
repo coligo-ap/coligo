@@ -82,8 +82,20 @@ const COLUMNS: Column[] = [
   },
 ];
 
+/** Horloge client (ms) qui tique toutes les 30 s. `null` avant montage. */
+function useNowTick(): number | null {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  return now;
+}
+
 export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
   const [active, setActive] = useState<Column["key"]>("pending");
+  const now = useNowTick();
 
   const byColumn = useMemo(() => {
     const map: Record<Column["key"], OrderWithItems[]> = {
@@ -95,12 +107,42 @@ export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
       const col = COLUMNS.find((c) => c.statuses.includes(o.status));
       if (col) map[col.key].push(o);
     }
-    // À confirmer : plus ancienne EN HAUT (urgence). Sinon plus récente en haut.
+    // ── Ordre de traitement pensé pour le RUSH (le plus urgent EN HAUT) ──
+    // À confirmer : première venue d'abord (FIFO) — c'est elle qui attend le
+    // plus et qui risque l'auto-refus à 15 min.
     map.pending.sort(
       (a, b) => +new Date(a.created_at) - +new Date(b.created_at)
     );
+    // En préparation : par ÉCHÉANCE (heure « prête pour » = pickup_slot_at) —
+    // ce qui doit sortir le plus tôt / est le plus en retard remonte en haut.
+    map.preparing.sort(
+      (a, b) =>
+        +new Date(a.pickup_slot_at) - +new Date(b.pickup_slot_at) ||
+        +new Date(a.created_at) - +new Date(b.created_at)
+    );
+    // Prêtes : la plus ancienne d'abord (elle attend le client depuis le plus
+    // longtemps — on ne l'oublie pas).
+    map.ready.sort(
+      (a, b) =>
+        +new Date(a.pickup_slot_at) - +new Date(b.pickup_slot_at) ||
+        +new Date(a.created_at) - +new Date(b.created_at)
+    );
     return map;
   }, [orders]);
+
+  // Nombre de commandes « à traiter MAINTENANT » par colonne (mêmes seuils que
+  // le clignotement des cartes). Sert à pointer la colonne concernée — sur
+  // mobile surtout, où une seule colonne est visible à la fois.
+  const alertCount = useMemo(() => {
+    const min = (from: string) =>
+      now === null ? -Infinity : (now - new Date(from).getTime()) / 60_000;
+    return {
+      pending: byColumn.pending.filter((o) => min(o.created_at) >= 11).length,
+      preparing: byColumn.preparing.filter((o) => min(o.pickup_slot_at) >= 1)
+        .length,
+      ready: 0,
+    } as Record<Column["key"], number>;
+  }, [byColumn, now]);
 
   return (
     <div>
@@ -112,12 +154,18 @@ export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
             type="button"
             onClick={() => setActive(c.key)}
             className={cn(
-              "flex flex-col items-center gap-0.5 rounded-[12px] border px-2 py-2 text-xs font-semibold transition-colors",
+              "relative flex flex-col items-center gap-0.5 rounded-[12px] border px-2 py-2 text-xs font-semibold transition-colors",
               active === c.key
                 ? "border-primary-600 bg-primary-50 text-primary-700"
-                : "border-border text-muted bg-white"
+                : "border-border text-muted bg-white",
+              alertCount[c.key] > 0 && "border-danger-400 bg-danger-50"
             )}
           >
+            {alertCount[c.key] > 0 && (
+              <span className="bg-danger-500 absolute -top-1.5 -right-1.5 inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums">
+                {alertCount[c.key]}
+              </span>
+            )}
             <span className="flex items-center gap-1.5">
               <span className={cn("size-1.5 rounded-full", c.dot)} />
               {c.title}
@@ -145,6 +193,11 @@ export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
               <h2 className={cn("text-sm font-bold tracking-tight", c.accent)}>
                 {c.title}
               </h2>
+              {alertCount[c.key] > 0 && (
+                <span className="bg-danger-100 text-danger-700 inline-flex animate-pulse items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums">
+                  {alertCount[c.key]} à traiter
+                </span>
+              )}
               <span className="text-muted bg-surface-3 ml-auto rounded-full px-2 py-0.5 text-xs font-bold tabular-nums">
                 {byColumn[c.key].length}
               </span>
@@ -195,6 +248,23 @@ function useElapsedMin(iso: string): number | null {
     : Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60_000));
 }
 
+/**
+ * Minutes SIGNÉES par rapport à `iso` : > 0 = `iso` est dépassé (en retard),
+ * < 0 = encore à venir. `null` avant le montage client (anti-hydratation).
+ * Sert à détecter une préparation qui dépasse l'heure « prête pour ».
+ */
+function useLateByMin(iso: string): number | null {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  return now === null
+    ? null
+    : Math.round((now - new Date(iso).getTime()) / 60_000);
+}
+
 /** Heure du créneau, fuseau Algérie figé → même rendu serveur ET client. */
 function slotTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("fr-DZ", {
@@ -222,14 +292,30 @@ export function OrderCard({
   const isDelivery = order.fulfillment_type === "delivery";
   const hasNote = !!order.notes && order.notes !== "seed";
   const elapsed = useElapsedMin(order.created_at);
-  // Urgence : commande à confirmer qui traîne (auto-refus à 15 min).
-  const urgent = column === "pending" && elapsed !== null && elapsed >= 8;
+  // Retard de préparation : minutes au-delà de l'heure « prête pour ».
+  const lateBy = useLateByMin(order.pickup_slot_at);
+
+  // ── Niveaux d'attention (pour ne pas noyer le commerçant pendant le rush) ──
+  //  warn  = bordure rouge (à surveiller)
+  //  alert = carte qui CLIGNOTE (à traiter maintenant)
+  let warn = false;
+  let alert = false;
+  if (column === "pending") {
+    // À confirmer : auto-refus à 15 min → on alerte avant de la perdre.
+    warn = elapsed !== null && elapsed >= 8;
+    alert = elapsed !== null && elapsed >= 11;
+  } else if (column === "preparing") {
+    // En préparation : on a dépassé (ou on est à) l'heure de sortie prévue.
+    warn = lateBy !== null && lateBy >= 0;
+    alert = lateBy !== null && lateBy >= 1;
+  }
 
   return (
     <div
       className={cn(
         "border-border bg-surface overflow-hidden rounded-[14px] border shadow-sm",
-        urgent && "border-danger-300 ring-danger-100 ring-2"
+        warn && "border-danger-300 ring-danger-100 ring-2",
+        alert && "animate-order-alert border-danger-400"
       )}
     >
       <Link
@@ -279,14 +365,36 @@ export function OrderCard({
               Note
             </Badge>
           )}
+          {/* Indicateur temps/urgence — à droite des badges */}
           {column === "pending" && elapsed !== null && (
             <span
               className={cn(
-                "ml-auto text-[11px] font-semibold tabular-nums",
-                urgent ? "text-danger-600" : "text-subtle"
+                "ml-auto inline-flex items-center gap-1 text-[11px] font-bold tabular-nums",
+                warn ? "text-danger-600" : "text-subtle"
               )}
             >
+              {alert && (
+                <span className="bg-danger-500 size-1.5 rounded-full" />
+              )}
               il y a {elapsed} min
+            </span>
+          )}
+          {column === "preparing" && lateBy !== null && (
+            <span
+              className={cn(
+                "ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums",
+                lateBy >= 1
+                  ? "bg-danger-100 text-danger-700"
+                  : lateBy >= 0
+                    ? "bg-warning-100 text-warning-800"
+                    : "text-subtle"
+              )}
+            >
+              {lateBy >= 1
+                ? `En retard ${lateBy} min`
+                : lateBy >= 0
+                  ? "À sortir"
+                  : `Dans ${Math.abs(lateBy)} min`}
             </span>
           )}
         </div>

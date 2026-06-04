@@ -243,3 +243,29 @@ body {
 [data-space="driver"] .focus-visible\:ring-primary-400\/40:focus-visible {
   --tw-ring-color: rgba(10, 10, 10, 0.12);
 }
+
+/* =============================================================================
+   Alerte « commande à traiter » — board commerçant.
+   Une commande en retard (préparation dépassée) ou proche de l'auto-refus fait
+   clignoter sa carte (blanc ↔ rouge clair) pour attirer l'œil pendant le rush.
+   Animation CSS pure (pilotée par une classe ajoutée côté client → pas de
+   mismatch d'hydratation).
+   ========================================================================== */
+@keyframes coligoOrderAlert {
+  0%,
+  100% {
+    background-color: #ffffff;
+  }
+  50% {
+    background-color: #fdd8d8;
+  }
+}
+.animate-order-alert {
+  animation: coligoOrderAlert 1.3s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-order-alert {
+    animation: none;
+    background-color: #fdecec;
+  }
+}
