@@ -37,6 +37,9 @@ export function OrderAcceptRefuse({
       const res = await updateOrderStatus(orderId, "preparing");
       if (res.error) {
         toast.error(res.error);
+        // Board périmé (commande déjà annulée/avancée) → on re-synchronise pour
+        // faire disparaître la carte morte au lieu de la laisser cliquable.
+        if (res.stale) router.refresh();
         return;
       }
       toast.success("Commande acceptée — en préparation");
@@ -53,6 +56,10 @@ export function OrderAcceptRefuse({
       );
       if (res.error) {
         toast.error(res.error);
+        if (res.stale) {
+          setRefusing(false);
+          router.refresh();
+        }
         return;
       }
       toast.success("Commande refusée");

@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { isValidTransition, type OrderStatus } from "@/lib/types";
+import {
+  isValidTransition,
+  ORDER_STATUS_META,
+  type OrderStatus,
+} from "@/lib/types";
 import {
   notifyCustomerStatusChange,
   notifyDriversNewExpress,
@@ -11,6 +15,13 @@ import {
 export type OrderActionResult = {
   error?: string;
   success?: string;
+  /**
+   * `true` quand l'erreur vient d'un board PÉRIMÉ : la commande n'est plus dans
+   * l'état attendu (auto-refusée après 15 min, ou déjà avancée par un autre
+   * écran). Le client doit alors re-synchroniser l'affichage (router.refresh /
+   * passage à la commande suivante) plutôt que de laisser une carte morte.
+   */
+  stale?: boolean;
 };
 
 /**
@@ -53,7 +64,17 @@ export async function updateOrderStatus(
   const from = order.status as OrderStatus;
   if (from === to) return { success: "Aucun changement." };
   if (!isValidTransition(from, to)) {
-    return { error: `Transition non autorisée (${from} → ${to}).` };
+    // Message clair (pas de jargon « cancelled → preparing ») : le plus souvent
+    // le board est PÉRIMÉ — la commande a été auto-refusée (non acceptée sous
+    // 15 min) ou avancée ailleurs entre l'affichage et le clic.
+    const label = ORDER_STATUS_META[from]?.label ?? from;
+    const message =
+      from === "cancelled"
+        ? "Cette commande a déjà été annulée (refus, ou non acceptée sous 15 min). La liste va se rafraîchir."
+        : from === "completed"
+          ? "Cette commande est déjà terminée. La liste va se rafraîchir."
+          : `Action impossible : la commande est déjà « ${label} ». La liste va se rafraîchir.`;
+    return { error: message, stale: true };
   }
 
   const { error: updateError } = await supabase

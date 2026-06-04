@@ -279,7 +279,11 @@ async function processOne(action: PendingAction): Promise<void> {
     const result = await execActionOnServer(actionAsInput(action), action.id);
 
     if (result.error) {
-      if (isConflictError(result.error)) {
+      // `stale` = le serveur signale explicitement un conflit d'état (board
+      // périmé : commande déjà avancée/annulée). On le traite comme un conflit
+      // sans dépendre du texte du message (cf. isConflictError, conservé pour
+      // les messages de `validatePickupCode` qui ne portent pas ce flag).
+      if (result.stale || isConflictError(result.error)) {
         // Le serveur fait foi : on jette proprement.
         await db.pending_actions.delete(action.id);
         notifyQueueChange();

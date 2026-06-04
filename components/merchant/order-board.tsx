@@ -345,6 +345,12 @@ function CardActions({
       const res = await updateOrderStatus(order.id, to, undefined, note);
       if (res.error) {
         toast.error(res.error);
+        // Board périmé (commande déjà annulée/avancée) → re-synchroniser pour
+        // retirer la carte morte plutôt que de la laisser cliquable.
+        if (res.stale) {
+          setRefusing(false);
+          router.refresh();
+        }
         return;
       }
       toast.success(okMsg ?? "Mis à jour");

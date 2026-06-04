@@ -252,7 +252,11 @@ export function NewOrderOverlay({
       );
       if (res.error) {
         toast.error(res.error);
-        resolvedRef.current = false;
+        // Board périmé (déjà annulée/avancée) : on passe à la commande suivante
+        // au lieu de réafficher indéfiniment une commande qu'on ne peut plus
+        // accepter. Sinon on autorise un nouvel essai.
+        if (res.stale) onResolved();
+        else resolvedRef.current = false;
         return;
       }
       toast.success("Commande acceptée — en préparation");
@@ -273,7 +277,9 @@ export function NewOrderOverlay({
         );
         if (res.error) {
           toast.error(res.error);
-          resolvedRef.current = false;
+          // Déjà annulée/terminée (board périmé) → on enchaîne sur la suivante.
+          if (res.stale) onResolved();
+          else resolvedRef.current = false;
           return;
         }
         toast.success("Commande refusée");
