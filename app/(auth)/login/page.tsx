@@ -15,6 +15,13 @@ import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
 
 const initialState: AuthState = {};
 
+// Photo professionnelle de fond du panneau marketing (gauche, desktop).
+// Pour utiliser ta propre image : dépose-la dans public/ et remplace par
+// "/login-hero.jpg". Le dégradé primaire reste en fond de secours si l'image
+// ne charge pas.
+const HERO_IMG =
+  "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1400&q=80";
+
 const ERROR_MESSAGES: Record<string, string> = {
   confirm_failed: "Le lien de confirmation est invalide ou expiré.",
   no_merchant:
@@ -41,16 +48,37 @@ function LoginContent() {
     <div className="flex min-h-screen flex-col">
       <AuthNavBar variant="merchant" />
       <div className="flex flex-1 flex-col lg:grid lg:grid-cols-5">
-        {/* Colonne marketing à gauche (desktop only) */}
-        <aside className="from-primary-500 via-primary-600 to-primary-700 hidden flex-col justify-between bg-gradient-to-br p-12 text-white lg:col-span-2 lg:flex">
-          <Logo variant="amber" size="xl" iconOnly className="!gap-0" />
+        {/* Colonne marketing à gauche (desktop only) — photo pro + ombre noire
+            (même traitement que les cartes commerçants de la marketplace) +
+            texte en blanc par-dessus. */}
+        <aside className="relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:col-span-2 lg:flex">
+          {/* Fond de secours (si la photo ne charge pas) */}
+          <div
+            aria-hidden
+            className="from-primary-500 via-primary-600 to-primary-800 absolute inset-0 bg-gradient-to-br"
+          />
+          {/* Photo professionnelle */}
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url("${HERO_IMG}")` }}
+          />
+          {/* Ombre noire (dégradé) pour la lisibilité du texte blanc */}
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/35"
+          />
 
-          <div>
-            <h1 className="mb-4 text-4xl leading-tight font-bold">
+          <div className="relative z-10">
+            <Logo variant="amber" size="xl" iconOnly className="!gap-0" />
+          </div>
+
+          <div className="relative z-10">
+            <h1 className="mb-4 text-4xl leading-tight font-bold drop-shadow-md">
               Gérez vos commandes <br />
               en temps réel.
             </h1>
-            <p className="text-primary-50/90 mb-8 text-lg">
+            <p className="mb-8 text-lg text-white/90 drop-shadow">
               La plateforme pensée pour les commerces de proximité algériens.
             </p>
 
@@ -62,7 +90,7 @@ function LoginContent() {
             </div>
           </div>
 
-          <p className="text-primary-50/70 text-xs">
+          <p className="relative z-10 text-xs text-white/70">
             © {new Date().getFullYear()} {APP_CONFIG.name} · Tous droits
             réservés
           </p>
@@ -194,8 +222,8 @@ function LoginContent() {
 
 function Feature({ title }: { title: string }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="bg-primary-400/30 flex size-6 shrink-0 items-center justify-center rounded-full">
+    <div className="flex items-center gap-3 drop-shadow">
+      <div className="bg-primary-500 flex size-6 shrink-0 items-center justify-center rounded-full ring-2 ring-white/25">
         <svg
           className="size-3.5 text-white"
           viewBox="0 0 20 20"
