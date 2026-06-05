@@ -16,6 +16,12 @@ import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
 
 const initialState: AuthState = {};
 
+// Photo professionnelle de fond du panneau marketing (gauche, desktop).
+// Différente de la page de connexion. Remplaçable : dépose ton image dans
+// public/ et pointe sur "/signup-hero.jpg". Le dégradé reste en secours.
+const HERO_IMG =
+  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1400&q=80";
+
 const SELECT_CLASS =
   "appearance-none flex h-10 w-full rounded-[10px] border border-border-strong bg-white pl-9 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -28,16 +34,36 @@ export default function SignupPage() {
     <div className="flex min-h-screen flex-col">
       <AuthNavBar variant="merchant" />
       <div className="flex flex-1 flex-col lg:grid lg:grid-cols-5">
-        {/* Colonne marketing */}
-        <aside className="from-primary-600 via-primary-700 to-primary-800 hidden flex-col justify-between bg-gradient-to-br p-12 text-white lg:col-span-2 lg:flex">
-          <Logo variant="teal" size="xl" iconOnly className="!gap-0" />
+        {/* Colonne marketing — photo pro + ombre noire (même traitement que les
+            cartes commerçants) + texte en blanc par-dessus. */}
+        <aside className="relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:col-span-2 lg:flex">
+          {/* Fond de secours (si la photo ne charge pas) */}
+          <div
+            aria-hidden
+            className="from-primary-600 via-primary-700 to-primary-800 absolute inset-0 bg-gradient-to-br"
+          />
+          {/* Photo professionnelle */}
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url("${HERO_IMG}")` }}
+          />
+          {/* Ombre noire (dégradé) pour la lisibilité du texte blanc */}
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/35"
+          />
 
-          <div>
-            <h1 className="mb-4 text-4xl leading-tight font-bold">
+          <div className="relative z-10">
+            <Logo variant="teal" size="xl" iconOnly className="!gap-0" />
+          </div>
+
+          <div className="relative z-10">
+            <h1 className="mb-4 text-4xl leading-tight font-bold drop-shadow-md">
               Rejoignez {APP_CONFIG.name}.<br />
               Vendez sans complications.
             </h1>
-            <p className="text-primary-50/90 mb-8 text-lg">
+            <p className="mb-8 text-lg text-white/90 drop-shadow">
               Une plateforme gratuite à l&apos;inscription. Vous ne payez
               qu&apos;une commission sur les commandes.
             </p>
@@ -50,7 +76,7 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <p className="text-primary-50/70 text-xs">
+          <p className="relative z-10 text-xs text-white/70">
             © {new Date().getFullYear()} {APP_CONFIG.name}
           </p>
         </aside>
@@ -274,9 +300,9 @@ export default function SignupPage() {
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="bg-primary-700/40 rounded-[10px] p-3 backdrop-blur">
+    <div className="rounded-[10px] bg-black/35 p-3 ring-1 ring-white/15 backdrop-blur">
       <div className="text-xl font-bold">{value}</div>
-      <div className="text-primary-100/80 text-xs">{label}</div>
+      <div className="text-xs text-white/80">{label}</div>
     </div>
   );
 }
