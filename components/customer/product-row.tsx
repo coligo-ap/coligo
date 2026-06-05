@@ -1,7 +1,14 @@
 "use client";
 
-import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { useRef, useState } from "react";
+import {
+  AlertTriangle,
+  Check,
+  Minus,
+  Plus,
+  ShoppingBag,
+  Trash2,
+} from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import {
   addItem,
@@ -14,12 +21,11 @@ import { cldUrl } from "@/lib/images/cloudinary";
 import type { PublicProduct } from "@/lib/data/customer-catalog";
 
 /**
- * Ligne de produit dans une section de catégorie (Deliveroo style).
- * - Clic n'importe où sur la ligne → ouvre le sheet détails (callback).
- * - Pas encore au panier : un bouton "+" pour ajout direct.
- * - Déjà au panier : un mini-stepper "−  qty  +" sous la miniature.
- *   À qty=1, l'icône "−" devient une corbeille rouge pour bien indiquer
- *   que le clic suivant SUPPRIMERA l'article.
+ * Ligne de produit (style Uber grocery) :
+ *  - vignette photo (badge promo −X% À L'INTÉRIEUR, overflow caché),
+ *  - nom + prix (violet, prix barré si promo),
+ *  - indicateur de stock (En stock / Plus que N / Épuisé),
+ *  - bouton + violet → stepper (corbeille à qty=1), désactivé si épuisé.
  */
 export function ProductRow({
   merchant,
@@ -37,16 +43,36 @@ export function ProductRow({
   promoUnitPriceDa: number | null;
   onOpenDetail: () => void;
 }) {
-  // On regarde le panier DE CE commerce (pas l'actif), pour que le stepper
-  // reflète l'état même si l'actif est un autre commerçant.
   const cart = useCartFor(merchant.id);
   const inCart = cart.items.find((i) => i.product_id === product.id);
   const hasPromo =
     promoUnitPriceDa != null && promoUnitPriceDa < product.price_da;
   const price = hasPromo ? promoUnitPriceDa! : product.price_da;
+  const promoPct = hasPromo
+    ? Math.round(
+        ((product.price_da - promoUnitPriceDa!) / product.price_da) * 100
+      )
+    : 0;
+
+  // État de stock : épuisé / faible / en stock / non suivi.
+  const tracked = product.stock_qty != null;
+  const isOut =
+    product.is_available === false || (tracked && product.stock_qty! <= 0);
+  const isLow = !isOut && tracked && product.stock_qty! <= 5;
+  const isOk = !isOut && tracked && product.stock_qty! > 5;
+
+  // Flash vert bref à l'ajout.
+  const [added, setAdded] = useState(false);
+  const flashRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flash = () => {
+    setAdded(true);
+    if (flashRef.current) clearTimeout(flashRef.current);
+    flashRef.current = setTimeout(() => setAdded(false), 450);
+  };
 
   function quickAdd(e: React.MouseEvent) {
     e.stopPropagation();
+    if (isOut) return;
     addItem(merchant, {
       product_id: product.id,
       name: product.name_fr,
@@ -54,25 +80,21 @@ export function ProductRow({
       image_url: product.image_url,
       category_title: product.category,
     });
-    // Pas de toast : le client voit le compteur du CTA panier s'incrémenter
-    // avec un petit effet rebond — moins intrusif quand on ajoute plusieurs
-    // produits d'affilée.
+    flash();
   }
 
   function increment(e: React.MouseEvent) {
     e.stopPropagation();
     if (!inCart) return;
-    // S'assurer que ce commerce est actif avant de muter (sinon setItemQuantity
-    // applique sur le mauvais panier).
     setActiveMerchant(merchant.id);
     setItemQuantity(inCart.product_id, inCart.quantity + 1);
+    flash();
   }
 
   function decrement(e: React.MouseEvent) {
     e.stopPropagation();
     if (!inCart) return;
     setActiveMerchant(merchant.id);
-    // setItemQuantity(_, 0) supprime l'article (filtre dans le store).
     setItemQuantity(inCart.product_id, inCart.quantity - 1);
     if (inCart.quantity === 1) {
       toast.success(`« ${product.name_fr} » retiré du panier`);
@@ -83,9 +105,12 @@ export function ProductRow({
     <button
       type="button"
       onClick={onOpenDetail}
-      className="hover:bg-surface-2 group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors"
+      className={cn(
+        "hover:bg-surface-2 group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors",
+        isOut && "opacity-60"
+      )}
     >
-      {/* Petite image à GAUCHE (~64px). Bouton + ou stepper se déplace à droite. */}
+      {/* Vignette (overflow caché → le badge promo reste dedans). */}
       <div className="bg-surface-2 relative size-16 shrink-0 overflow-hidden rounded-[12px]">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -108,22 +133,20 @@ export function ProductRow({
             <ShoppingBag className="text-subtle size-6" />
           </div>
         )}
+        {hasPromo && promoPct > 0 && (
+          <span className="absolute top-1 left-1 z-10 rounded-[6px] bg-[#FF5A3C] px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow-sm">
+            −{promoPct}%
+          </span>
+        )}
       </div>
 
-      {/* Bloc centre : nom + (description courte) + prix violet */}
+      {/* Nom + prix + stock */}
       <div className="min-w-0 flex-1">
         <h4 className="text-foreground line-clamp-1 text-sm font-semibold">
           {product.name_fr}
         </h4>
-        {product.description_fr && (
-          <p className="text-muted mt-0.5 line-clamp-1 text-xs">
-            {product.description_fr}
-          </p>
-        )}
         <div className="mt-1 flex items-baseline gap-2">
-          <span
-            className={cn("text-primary-700 text-sm font-bold tabular-nums")}
-          >
+          <span className="text-primary-700 text-sm font-bold tabular-nums">
             {formatDA(price)}
           </span>
           {hasPromo && (
@@ -131,22 +154,46 @@ export function ProductRow({
               {formatDA(product.price_da)}
             </span>
           )}
-          {product.stock_qty != null && product.stock_qty <= 5 && (
-            <Badge tone="warning">{product.stock_qty} restants</Badge>
-          )}
         </div>
+        {isOut ? (
+          <div className="text-danger-600 mt-1 text-[11px] font-bold">
+            Épuisé
+          </div>
+        ) : isLow ? (
+          <div className="text-warning-700 mt-1 flex items-center gap-1 text-[11px] font-bold">
+            <AlertTriangle className="size-3" />
+            Plus que {product.stock_qty}
+          </div>
+        ) : isOk ? (
+          <div className="text-success-700 mt-1 flex items-center gap-1 text-[11px] font-bold">
+            <Check className="size-3" />
+            En stock
+          </div>
+        ) : null}
       </div>
 
-      {/* Action à DROITE : bouton + rond si pas au panier, sinon stepper. */}
+      {/* + ou stepper */}
       <div className="shrink-0">
-        {!inCart ? (
+        {isOut ? (
+          <span
+            aria-label="Épuisé"
+            className="bg-surface-3 text-subtle flex size-9 cursor-not-allowed items-center justify-center rounded-full"
+          >
+            <Plus className="size-4" />
+          </span>
+        ) : !inCart ? (
           <button
             type="button"
             onClick={quickAdd}
             aria-label="Ajouter au panier"
-            className="bg-primary-600 hover:bg-primary-700 flex size-9 items-center justify-center rounded-full text-white shadow-md transition-transform active:scale-95"
+            className={cn(
+              "flex size-9 items-center justify-center rounded-full text-white shadow-md transition-transform active:scale-90",
+              added
+                ? "bg-success-600 scale-110"
+                : "bg-primary-600 hover:bg-primary-700"
+            )}
           >
-            <Plus className="size-4" />
+            {added ? <Check className="size-4" /> : <Plus className="size-4" />}
           </button>
         ) : (
           <div

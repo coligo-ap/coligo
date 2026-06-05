@@ -4,9 +4,10 @@ import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
+  Gift,
   Minus,
   Plus,
-  ShoppingBag,
+  ShoppingCart,
   Trash2,
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
@@ -25,11 +26,14 @@ export function CartView() {
     (s, i) => s + i.unit_price_da * i.quantity,
     0
   );
+  const units = cart.items.reduce((s, i) => s + i.quantity, 0);
+  // Cashback gagné (gain futur, payé en ligne) — 3% (estimation MVP).
+  const cashbackGain = Math.round(subtotal * 0.03);
 
   if (empty) {
     return (
       <div className="mx-auto max-w-xl px-4 py-12 text-center lg:py-20">
-        <ShoppingBag className="text-primary-500 mx-auto size-12" />
+        <ShoppingCart className="text-primary-500 mx-auto size-12" />
         <h1 className="text-foreground mt-4 text-2xl font-bold">
           Ton panier est vide
         </h1>
@@ -47,61 +51,50 @@ export function CartView() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-4 pb-24 lg:px-6 lg:py-8 lg:pb-24">
-      {/* Bouton retour vers le commerçant — visible et explicite, pour que le
-          client puisse repartir voir / ajouter / modifier ses produits sans
-          quitter la flow. */}
+    <div className="mx-auto max-w-[560px] px-4 pt-3 pb-40">
+      {/* Retour à la boutique */}
       {cart.merchant_slug && (
         <Link
           href={`/m/${cart.merchant_slug}`}
-          className="border-border bg-surface hover:border-primary-300 mb-4 inline-flex items-center gap-2 rounded-[12px] border px-3 py-2 text-sm font-medium transition-colors"
+          className="bg-surface-2 text-foreground mb-3 inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-bold"
         >
-          <ArrowLeft className="text-primary-600 size-4" />
-          <span className="text-foreground">
-            Retour à{" "}
-            <span className="text-primary-700 font-semibold">
-              {cart.merchant_name ?? "la boutique"}
-            </span>
-          </span>
-          <span className="text-muted hidden text-xs sm:inline">
-            · ajouter d&apos;autres produits
+          <ArrowLeft className="size-4" />
+          Retour à{" "}
+          <span className="text-primary-700">
+            {cart.merchant_name ?? "la boutique"}
           </span>
         </Link>
       )}
 
-      <header className="mb-4 flex items-baseline justify-between">
-        <div>
-          <h1 className="text-foreground text-2xl font-bold lg:text-3xl">
-            Mon panier
-          </h1>
-          {cart.merchant_name && cart.merchant_slug && (
-            <p className="text-muted mt-1 text-sm">
-              chez{" "}
-              <Link
-                href={`/m/${cart.merchant_slug}`}
-                className="text-primary-700 font-medium hover:underline"
-              >
-                {cart.merchant_name}
-              </Link>
-            </p>
-          )}
-        </div>
+      <div className="flex items-center justify-between">
+        <h1 className="text-foreground text-[26px] font-black tracking-[-0.8px]">
+          Mon panier
+        </h1>
         <button
           type="button"
           onClick={() => {
             if (confirm("Vider tout le panier ?")) clearCart();
           }}
-          className="text-danger-600 hover:bg-danger-50 inline-flex items-center gap-1 rounded-[10px] px-2 py-1 text-xs font-medium"
+          className="text-danger-600 inline-flex items-center gap-1 text-[13px] font-bold"
         >
-          <Trash2 className="size-3.5" />
+          <Trash2 className="size-4" />
           Vider
         </button>
-      </header>
+      </div>
+      {cart.merchant_name && (
+        <p className="text-muted mt-0.5 text-[13px] font-semibold">
+          chez <span className="text-primary-700">{cart.merchant_name}</span>
+        </p>
+      )}
 
-      <ul className="border-border bg-surface divide-border divide-y rounded-[16px] border">
+      {/* Lignes produit — cards compactes */}
+      <div className="mt-3 space-y-2.5">
         {cart.items.map((item) => (
-          <li key={item.product_id} className="flex items-center gap-3 p-4">
-            <div className="bg-surface-2 size-16 shrink-0 overflow-hidden rounded-[10px]">
+          <div
+            key={item.product_id}
+            className="border-border bg-surface flex items-center gap-3 rounded-[16px] border p-3 shadow-sm"
+          >
+            <div className="bg-surface-2 size-[58px] shrink-0 overflow-hidden rounded-[12px]">
               {item.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -112,124 +105,78 @@ export function CartView() {
               ) : null}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-foreground line-clamp-2 text-sm font-semibold">
+              <p className="text-foreground line-clamp-1 text-sm font-bold">
                 {item.name}
               </p>
-              <p className="text-muted text-xs">
-                {formatDA(item.unit_price_da)} × {item.quantity}
+              <p className="text-muted text-xs font-semibold">
+                {formatDA(item.unit_price_da)} l&apos;unité
+              </p>
+              <p className="text-foreground mt-0.5 text-[15px] font-extrabold tabular-nums">
+                {formatDA(item.unit_price_da * item.quantity)}
               </p>
             </div>
-            <div className="flex flex-col items-end gap-1.5">
-              <span className="text-foreground text-sm font-bold tabular-nums">
-                {formatDA(item.unit_price_da * item.quantity)}
-              </span>
-              <div className="bg-primary-50 inline-flex items-center gap-2 rounded-full p-1">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setItemQuantity(item.product_id, item.quantity - 1)
-                  }
-                  className="text-primary-700 hover:bg-primary-100 flex size-6 items-center justify-center rounded-full"
-                  aria-label="Retirer 1"
-                >
-                  <Minus className="size-3" />
-                </button>
-                <span className="text-foreground min-w-[1.5ch] text-center text-xs font-semibold tabular-nums">
-                  {item.quantity}
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setItemQuantity(item.product_id, item.quantity + 1)
-                  }
-                  className="bg-primary-600 hover:bg-primary-700 flex size-6 items-center justify-center rounded-full text-white"
-                  aria-label="Ajouter 1"
-                >
-                  <Plus className="size-3" />
-                </button>
-              </div>
+            <div className="bg-surface-2 inline-flex shrink-0 items-center rounded-full">
               <button
                 type="button"
-                onClick={() => removeItem(item.product_id)}
-                className="text-danger-600 text-[11px] hover:underline"
+                onClick={() =>
+                  setItemQuantity(item.product_id, item.quantity - 1)
+                }
+                aria-label={item.quantity === 1 ? "Retirer" : "Retirer 1"}
+                className={cn(
+                  "flex size-9 items-center justify-center rounded-full",
+                  item.quantity === 1 ? "text-danger-600" : "text-primary-700"
+                )}
               >
-                Retirer
+                {item.quantity === 1 ? (
+                  <Trash2 className="size-4" />
+                ) : (
+                  <Minus className="size-4" />
+                )}
+              </button>
+              <span className="text-foreground min-w-[1.5ch] text-center text-sm font-extrabold tabular-nums">
+                {item.quantity}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setItemQuantity(item.product_id, item.quantity + 1)
+                }
+                aria-label="Ajouter 1"
+                className="text-primary-700 flex size-9 items-center justify-center rounded-full"
+              >
+                <Plus className="size-4" />
               </button>
             </div>
-          </li>
+          </div>
         ))}
-      </ul>
-
-      {/* Sous-total + CTA — desktop card / mobile sticky */}
-      <div className="mt-4 hidden lg:block">
-        <div className="border-border bg-surface rounded-[16px] border p-5">
-          <Recap subtotal={subtotal} />
-          <Link
-            href="/checkout"
-            className="bg-primary-600 hover:bg-primary-700 mt-4 flex items-center justify-center gap-2 rounded-[12px] px-4 py-3 text-sm font-semibold text-white"
-          >
-            Passer au checkout
-            <ArrowRight className="size-4" />
-          </Link>
-        </div>
       </div>
 
-      {/* Sticky bottom CTA mobile */}
-      <div className={cn("fixed inset-x-0 bottom-16 z-30 px-4 pb-2 lg:hidden")}>
-        <div className="border-border bg-surface mx-auto max-w-md rounded-[16px] border p-3 shadow-lg">
-          <div className="flex items-center justify-between gap-2 px-1 pb-2">
-            <span className="text-muted text-xs">Sous-total</span>
-            <span className="text-foreground text-base font-bold tabular-nums">
+      {/* Barre fixe en bas : cashback gain + sous-total + bouton */}
+      <div className="border-border fixed inset-x-0 bottom-16 z-40 border-t bg-white px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
+        <div className="mx-auto max-w-[560px]">
+          {cashbackGain > 0 && (
+            <div className="bg-success-50 text-success-700 mb-2.5 flex items-center gap-2 rounded-[10px] px-3 py-2 text-[12px] font-bold">
+              <Gift className="size-4 shrink-0" />
+              Tu gagnes {formatDA(cashbackGain)} de cashback en payant en ligne
+            </div>
+          )}
+          <div className="mb-2.5 flex items-center justify-between">
+            <span className="text-muted text-[13px] font-semibold">
+              Sous-total · {units} article{units > 1 ? "s" : ""}
+            </span>
+            <span className="text-foreground text-[21px] font-black tracking-[-0.6px] tabular-nums">
               {formatDA(subtotal)}
             </span>
           </div>
           <Link
             href="/checkout"
-            className="bg-primary-600 hover:bg-primary-700 flex w-full items-center justify-center gap-2 rounded-[12px] px-4 py-3 text-sm font-semibold text-white"
+            className="bg-primary-600 hover:bg-primary-700 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-base font-extrabold text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"
           >
-            Passer au checkout
-            <ArrowRight className="size-4" />
+            Passer au paiement
+            <ArrowRight className="size-5" />
           </Link>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Recap({ subtotal }: { subtotal: number }) {
-  return (
-    <dl className="space-y-1.5 text-sm">
-      <Row label="Sous-total" value={formatDA(subtotal)} />
-      <p className="text-muted pt-1 text-xs">
-        Les promos, frais de service et cashback sont calculés au checkout
-        (selon ton mode de paiement).
-      </p>
-    </dl>
-  );
-}
-
-function Row({
-  label,
-  value,
-  bold,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <dt className={cn("text-muted", bold && "text-foreground font-semibold")}>
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          "tabular-nums",
-          bold ? "text-foreground text-base font-bold" : "text-foreground"
-        )}
-      >
-        {value}
-      </dd>
     </div>
   );
 }

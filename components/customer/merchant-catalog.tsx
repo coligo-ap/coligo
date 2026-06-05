@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProductDetailSheet } from "@/components/customer/product-detail-sheet";
 import { ProductRow } from "@/components/customer/product-row";
@@ -37,6 +38,9 @@ const UNCAT_KEY = "__uncat__";
  *   - PublicCategory (table dédiée, avec image éventuelle) en priorité.
  *   - Fallback : groupement par le champ texte `products.category`.
  */
+const norm = (s: string) =>
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
 export function MerchantCatalog({
   merchant,
   products,
@@ -44,6 +48,8 @@ export function MerchantCatalog({
   promoPriceById,
 }: Props) {
   const [selected, setSelected] = useState<PublicProduct | null>(null);
+  // Recherche produit (filtre client, sur le catalogue déjà chargé).
+  const [query, setQuery] = useState("");
 
   // Construit les groupes.
   // 1) On utilise les PublicCategory si au moins un produit est rattaché.
@@ -99,6 +105,18 @@ export function MerchantCatalog({
 
     return Array.from(richByKey.values()).filter((g) => g.items.length > 0);
   }, [products, categories, merchant.id]);
+
+  // Groupes filtrés par la recherche (sections vides masquées).
+  const q = norm(query.trim());
+  const visibleGroups = useMemo(() => {
+    if (!q) return groups;
+    return groups
+      .map((g) => ({
+        ...g,
+        items: g.items.filter((p) => norm(p.name_fr).includes(q)),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [groups, q]);
 
   // Catégorie active (chip violet + scroll). Calculée via IntersectionObserver
   // sur les sections : la section la plus visible donne le `activeKey`.
@@ -194,10 +212,32 @@ export function MerchantCatalog({
 
   return (
     <>
-      {/* CHIPS catégories — sticky type Uber Eats. Reste collée sous le header
-          pendant le scroll, recentre automatiquement la chip active, et fait
-          apparaître une fine ombre/bordure dès qu'elle est "stuck". */}
-      {groups.length > 1 && (
+      {/* Recherche produit (style Uber) */}
+      <div className="mb-3">
+        <div className="border-border bg-surface flex items-center gap-2.5 rounded-[13px] border px-3.5 py-3 shadow-sm">
+          <Search className="text-muted size-4 shrink-0" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher un produit…"
+            className="placeholder:text-hint text-foreground w-full bg-transparent text-[13.5px] font-medium outline-none"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Effacer"
+              className="text-muted hover:text-foreground shrink-0"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* CHIPS catégories — sticky type Uber Eats (masquées pendant une recherche). */}
+      {!q && groups.length > 1 && (
         <>
           {/* Sentinelle utilisée pour détecter l'état "stuck" (cf. effect). */}
           <div ref={stickySentinelRef} aria-hidden className="h-px w-full" />
@@ -255,8 +295,14 @@ export function MerchantCatalog({
 
       {/* SECTIONS — toutes visibles (pas d'accordéon). Chacune a un petit
           titre h2 et la liste compacte des produits dessous. */}
+      {q && visibleGroups.length === 0 && (
+        <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-10 text-center text-sm">
+          Aucun produit ne correspond à «&nbsp;{query}&nbsp;».
+        </div>
+      )}
+
       <div className="space-y-6">
-        {groups.map((g) => (
+        {visibleGroups.map((g) => (
           <section
             key={g.key}
             id={`cat-${g.key}`}
