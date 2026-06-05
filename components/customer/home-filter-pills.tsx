@@ -91,29 +91,38 @@ export function HomeFilterPills() {
 
   return (
     <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 lg:mx-0 lg:flex-wrap lg:px-0">
-      <Pill active={state.tous} onClick={reset}>
+      <Pill active={state.tous} accent="violet" onClick={reset}>
         {t("filterAll")}
       </Pill>
-      <Pill active={state.delivery} onClick={toggleDelivery}>
-        <Bike className="size-4" strokeWidth={2} />
+      <Pill active={state.delivery} accent="mint" onClick={toggleDelivery}>
+        <Bike
+          className={cn("size-4", !state.delivery && "text-mint-600")}
+          strokeWidth={2}
+        />
         {t("filterDelivery")}
       </Pill>
-      <Pill active={state.express} onClick={toggleExpress}>
-        <Zap className="size-4" strokeWidth={2} />
+      <Pill active={state.express} accent="coral" onClick={toggleExpress}>
+        <Zap
+          className={cn("size-4", !state.express && "text-coral-500")}
+          strokeWidth={2}
+        />
         {t("filterExpress")}
       </Pill>
-      <Pill active={state.rating} onClick={toggleRating}>
+      <Pill active={state.rating} accent="amber" onClick={toggleRating}>
         <Star
-          className={cn("size-4", state.rating && "fill-current")}
+          className={cn(
+            "size-4",
+            state.rating ? "fill-current" : "fill-amber-400 text-amber-500"
+          )}
           strokeWidth={2}
         />
         {t("filterTopRated")}
       </Pill>
-      <Pill active={state.open} onClick={toggleOpen}>
+      <Pill active={state.open} accent="green" onClick={toggleOpen}>
         <span
           className={cn(
             "size-2 rounded-full",
-            state.open ? "bg-success-400" : "bg-success-500"
+            state.open ? "bg-white" : "bg-success-500"
           )}
         />
         {t("filterOpen")}
@@ -122,12 +131,24 @@ export function HomeFilterPills() {
   );
 }
 
+type Accent = "violet" | "mint" | "coral" | "amber" | "green";
+
+const ACCENT_ACTIVE: Record<Accent, string> = {
+  violet: "border-primary-600 bg-primary-600 text-white",
+  mint: "border-mint-600 bg-mint-600 text-white",
+  coral: "border-coral-500 bg-coral-500 text-white",
+  amber: "border-amber-500 bg-amber-500 text-white",
+  green: "border-success-600 bg-success-600 text-white",
+};
+
 function Pill({
   active,
+  accent,
   onClick,
   children,
 }: {
   active: boolean;
+  accent: Accent;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -139,7 +160,7 @@ function Pill({
       className={cn(
         "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13px] font-bold transition-colors",
         active
-          ? "border-foreground bg-foreground text-white"
+          ? ACCENT_ACTIVE[accent]
           : "border-border bg-surface text-foreground hover:bg-surface-2"
       )}
     >

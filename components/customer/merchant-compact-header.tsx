@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft, ChevronDown, ChevronUp, Clock, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
@@ -75,6 +75,7 @@ export function MerchantCompactHeader({
   reviews,
 }: Props) {
   const t = useTranslations("merchant");
+  const locale = useLocale();
   const [showHours, setShowHours] = useState(false);
   const [expandDesc, setExpandDesc] = useState(false);
 
@@ -93,7 +94,7 @@ export function MerchantCompactHeader({
     crop: "fill",
     gravity: "auto",
   });
-  const categoryLabel = category ? getCategoryLabel(category) : null;
+  const categoryLabel = category ? getCategoryLabel(category, locale) : null;
   const hasDescription = Boolean(description_fr || description_ar);
   const addressLine = [commune, wilaya_name].filter(Boolean).join(" · ");
 

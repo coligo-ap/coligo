@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   ChevronDown,
   ChevronUp,
@@ -76,6 +76,7 @@ export function MerchantHeroCard({
   reviews: ReviewWithCustomer[];
 }) {
   const t = useTranslations("merchant");
+  const locale = useLocale();
   const [showHours, setShowHours] = useState(false);
   const [expandDesc, setExpandDesc] = useState(false);
 
@@ -90,7 +91,7 @@ export function MerchantHeroCard({
     gravity: "auto",
   });
   // Si `category` est un CODE (boulangerie, superette, …), on l'humanise.
-  const categoryLabel = category ? getCategoryLabel(category) : null;
+  const categoryLabel = category ? getCategoryLabel(category, locale) : null;
 
   return (
     <div>

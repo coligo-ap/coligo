@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ArrowRight, Loader2, MapPin } from "lucide-react";
 import { useCustomerLocation } from "@/lib/customer/location-store";
 import { WILAYAS } from "@/lib/config/wilayas";
@@ -56,6 +56,7 @@ export function MarketplaceGrid({
   const params = useSearchParams();
   const router = useRouter();
   const t = useTranslations("browse");
+  const locale = useLocale();
   const loc = useCustomerLocation();
   const [promos, setPromos] = useState<Record<string, PromoLabel>>(
     promoLabels ?? {}
@@ -192,7 +193,7 @@ export function MarketplaceGrid({
     : filters.q
       ? t("resultsFor", { query: filters.q })
       : filters.category
-        ? getCategoryLabel(filters.category)
+        ? getCategoryLabel(filters.category, locale)
         : t("merchantsNearYou");
 
   function resetFilters() {
