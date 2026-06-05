@@ -314,7 +314,10 @@ function DeliveryAddressBlock({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-semibold">Où livrer ?</p>
+      <p className="text-muted flex items-center gap-2 text-[12px] font-bold tracking-wide uppercase">
+        <MapPin className="text-foreground size-[15px]" />
+        Où livrer ?
+      </p>
 
       {/* Adresses enregistrées (cards cliquables) */}
       {delivery.addresses.length > 0 && (
@@ -510,27 +513,29 @@ function CustomPositionPicker({
 
       {value.customPosition && (
         <>
-          {/* Adresse résolue du point pointé (se met à jour à chaque
-              déplacement). Fallback sur les coordonnées. */}
-          <div className="flex items-start gap-1.5 text-xs">
-            <MapPin className="text-primary-600 mt-0.5 size-3.5 shrink-0" />
-            <span className="text-foreground min-w-0 flex-1">
+          {/* Adresse résolue (mise à jour à chaque déplacement) + frais en
+              chip à droite — façon maquette. Fallback sur les coordonnées. */}
+          <div className="text-foreground flex items-center gap-2 text-[13.5px] font-bold">
+            <MapPin className="text-primary-600 size-4 shrink-0" />
+            <span className="min-w-0 flex-1 truncate">
               {addrLoading ? (
-                <span className="text-muted">Recherche de l&apos;adresse…</span>
+                <span className="text-muted font-medium">
+                  Recherche de l&apos;adresse…
+                </span>
               ) : addr ? (
-                <span className="font-medium">{addr}</span>
+                addr
               ) : (
                 <span className="text-subtle tabular-nums">
                   {value.customPosition.lat.toFixed(5)},{" "}
                   {value.customPosition.lng.toFixed(5)}
                 </span>
               )}
-              {customQuote && !customQuote.outOfRange && (
-                <span className="text-foreground ml-1 font-semibold">
-                  · {formatDA(customQuote.feeDa)}
-                </span>
-              )}
             </span>
+            {customQuote && !customQuote.outOfRange && (
+              <span className="bg-surface-2 ml-auto shrink-0 rounded-[8px] px-2.5 py-1 text-[13px] font-extrabold tabular-nums">
+                {formatDA(customQuote.feeDa)}
+              </span>
+            )}
           </div>
 
           {outOfRange ? (
@@ -544,22 +549,35 @@ function CustomPositionPicker({
             </p>
           ) : (
             <>
-              <p className="text-success-700 flex items-center gap-1.5 text-xs font-medium">
-                <Check className="size-3.5" />
+              <p className="text-success-700 flex items-center gap-1.5 text-[12.5px] font-bold">
+                <Check className="size-4" />
                 Dans la zone de livraison
               </p>
-              <label className="flex cursor-pointer items-start gap-2 text-sm">
+              {/* Case « Je confirme » — encart violet façon maquette */}
+              <label className="bg-primary-50 text-foreground flex cursor-pointer items-center gap-2.5 rounded-[11px] p-3 text-[12.5px]">
                 <input
                   type="checkbox"
-                  className="mt-0.5"
+                  className="sr-only"
                   checked={value.positionConfirmed}
                   onChange={(e) =>
                     update({ positionConfirmed: e.target.checked })
                   }
                 />
+                <span
+                  className={cn(
+                    "grid size-[22px] shrink-0 place-items-center rounded-[7px] border-2 transition-colors",
+                    value.positionConfirmed
+                      ? "border-primary-600 bg-primary-600 text-white"
+                      : "border-border-strong bg-white"
+                  )}
+                >
+                  {value.positionConfirmed && <Check className="size-3.5" />}
+                </span>
                 <span>
-                  <strong>Je confirme cette position.</strong> Le livreur
-                  s&apos;y rendra.
+                  <strong className="text-foreground font-extrabold">
+                    Je confirme cette position.
+                  </strong>{" "}
+                  Le livreur s&apos;y rendra.
                 </span>
               </label>
             </>
