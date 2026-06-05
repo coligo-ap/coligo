@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Wallet, X } from "lucide-react";
+import { Loader2, ShieldAlert, Wallet, X } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { formatDA } from "@/lib/utils";
 import { cancelMyOrder } from "@/app/(customer)/commandes/actions";
@@ -11,6 +11,9 @@ type Props = {
   orderId: string;
   paymentMethod: "cash" | "online";
   paymentStatus: string | null;
+  /** Anti-fraude : trop d'annulations-remboursées récentes → online non
+   *  annulable (le client doit récupérer la commande). */
+  refundBlocked?: boolean;
 };
 
 /**
@@ -24,12 +27,25 @@ export function CancelOrderButton({
   orderId,
   paymentMethod,
   paymentStatus,
+  refundBlocked = false,
 }: Props) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const onlinePaid = paymentMethod === "online" && paymentStatus === "paid";
+
+  // Anti-fraude : commande payée en ligne non annulable (plafond de
+  // remboursements atteint). On informe directement, pas de bouton.
+  if (onlinePaid && refundBlocked) {
+    return (
+      <p className="text-muted bg-surface-2 mt-2.5 flex items-start gap-1.5 rounded-[10px] p-2.5 text-[11.5px] font-medium">
+        <ShieldAlert className="text-warning-600 mt-0.5 size-4 shrink-0" />
+        Cette commande ne bénéficie pas d&apos;un remboursement après plusieurs
+        annulations. Merci de la récupérer.
+      </p>
+    );
+  }
 
   function doCancel() {
     startTransition(async () => {

@@ -95,6 +95,40 @@ export default async function CustomerOrderDetailPage({
   const isCancelled = status === "cancelled";
   const isCompleted = status === "completed";
 
+  // Anti-fraude : un client qui a déjà été remboursé plusieurs fois sur des
+  // annulations online (30 j) ne peut plus annuler cette commande payée en
+  // ligne — il doit la récupérer. (La RLS limite le décompte à SES commandes ;
+  // l'enforcement réel est dans la RPC cancel_order_by_customer.)
+  let onlineRefundBlocked = false;
+  if (
+    status === "pending" &&
+    order.payment_method === "online" &&
+    order.payment_status === "paid"
+  ) {
+    const { data: ps } = await supabase
+      .from("platform_settings")
+      .select("max_online_refund_cancels_30d")
+      .eq("id", true)
+      .maybeSingle();
+    const cap =
+      (ps as { max_online_refund_cancels_30d: number } | null)
+        ?.max_online_refund_cancels_30d ?? 3;
+    const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    const baseQuery = supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("payment_method", "online")
+      .eq("payment_status", "refunded")
+      .gte("created_at", since);
+    // `cancelled_by` n'est pas encore dans database.types.ts généré → cast local.
+    const { count } = await (
+      baseQuery as unknown as {
+        eq: (c: string, v: string) => PromiseLike<{ count: number | null }>;
+      }
+    ).eq("cancelled_by", "customer");
+    onlineRefundBlocked = (count ?? 0) >= cap;
+  }
+
   // Notation du livreur : commande livrée + livreur assigné.
   const driverId = (order as { delivery_driver_id: string | null })
     .delivery_driver_id;
@@ -378,6 +412,7 @@ export default async function CustomerOrderDetailPage({
               orderId={order.id}
               paymentMethod={order.payment_method as "cash" | "online"}
               paymentStatus={order.payment_status}
+              refundBlocked={onlineRefundBlocked}
             />
           )}
         </div>
