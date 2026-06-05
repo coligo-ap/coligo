@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/shared/logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
+import { SocialAuth } from "@/components/customer/social-auth";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
 import {
   customerLogin,
@@ -50,6 +51,7 @@ function CustomerLoginInner() {
     next === "/"
       ? "/inscription"
       : `/inscription?next=${encodeURIComponent(next)}`;
+  const oauthError = params.get("error") === "oauth";
 
   return (
     <>
@@ -163,9 +165,10 @@ function CustomerLoginInner() {
                     </div>
                   </div>
 
-                  {state.error && (
+                  {(state.error || oauthError) && (
                     <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
-                      {state.error}
+                      {state.error ??
+                        "La connexion avec Google a échoué. Réessaie."}
                     </div>
                   )}
 
@@ -184,6 +187,10 @@ function CustomerLoginInner() {
                     )}
                   </Button>
                 </form>
+
+                <div className="mt-5">
+                  <SocialAuth next={next} />
+                </div>
 
                 <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
                   Pas encore inscrit ?{" "}

@@ -1084,7 +1084,7 @@ export type Database = {
           id: string;
           user_id: string;
           full_name: string;
-          phone: string;
+          phone: string | null;
           email: string | null;
           default_wilaya_code: string | null;
           default_commune: string | null;
@@ -1097,7 +1097,7 @@ export type Database = {
           id?: string;
           user_id: string;
           full_name: string;
-          phone: string;
+          phone?: string | null;
           email?: string | null;
           default_wilaya_code?: string | null;
           default_commune?: string | null;
@@ -1110,7 +1110,7 @@ export type Database = {
           id?: string;
           user_id?: string;
           full_name?: string;
-          phone?: string;
+          phone?: string | null;
           email?: string | null;
           default_wilaya_code?: string | null;
           default_commune?: string | null;

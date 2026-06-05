@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/shared/logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
+import { SocialAuth } from "@/components/customer/social-auth";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
 import {
   customerSignup,
@@ -172,6 +173,10 @@ function CustomerSignupInner() {
                     )}
                   </Button>
                 </form>
+
+                <div className="mt-5">
+                  <SocialAuth next={next} />
+                </div>
 
                 <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
                   Déjà inscrit ?{" "}

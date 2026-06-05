@@ -21,7 +21,12 @@ import { formatDA } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function CustomerAccountPage() {
+export default async function CustomerAccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ complete?: string }>;
+}) {
+  const completePhone = (await searchParams).complete === "phone";
   const supabase = await createClient();
   const {
     data: { user },
@@ -62,6 +67,13 @@ export default async function CustomerAccountPage() {
             Tes informations personnelles et tes préférences.
           </p>
         </header>
+
+        {completePhone && !customer?.phone && (
+          <div className="border-warning-200 bg-warning-50 text-warning-800 mb-4 rounded-[14px] border px-4 py-3 text-sm font-medium">
+            Bienvenue&nbsp;! Ajoute ton <strong>numéro de téléphone</strong>{" "}
+            ci-dessous pour pouvoir commander.
+          </div>
+        )}
 
         {/* Raccourcis : Cashback / Coligo Pay / Commandes — chacun DISTINCT. */}
         <ul className="mb-4 space-y-2">

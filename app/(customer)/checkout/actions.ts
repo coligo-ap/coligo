@@ -113,6 +113,15 @@ export async function createOrder(
       error: "Profil client introuvable. Recrée ton compte client.",
     };
   }
+  // Téléphone obligatoire pour commander (commande NOT NULL + contact livraison).
+  // Cas des comptes créés via connexion sociale sans numéro.
+  if (!customer.phone || customer.phone.trim() === "") {
+    return {
+      ok: false,
+      error:
+        "Ajoute ton numéro de téléphone dans ton profil (Compte) avant de commander.",
+    };
+  }
 
   // ---------------------------------------------------------------------------
   // 2. Idempotency — si on a déjà créé cette commande, on renvoie l'existante.
