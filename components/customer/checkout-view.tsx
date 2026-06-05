@@ -396,7 +396,7 @@ export function CheckoutView({ customer }: Props) {
           />
         )}
 
-        <h1 className="text-foreground mb-3 text-[26px] font-extrabold tracking-tight">
+        <h1 className="text-foreground mb-3 text-[24px] font-black tracking-[-0.9px]">
           Finaliser ma commande
         </h1>
 
