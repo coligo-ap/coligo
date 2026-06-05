@@ -32,12 +32,17 @@ export type CartItem = {
   category_title?: string | null;
 };
 
+export type CartMode = "pickup" | "delivery";
+
 export type Cart = {
   merchant_id: string | null;
   merchant_slug: string | null;
   merchant_name: string | null;
   merchant_logo: string | null;
   items: CartItem[];
+  /** Mode choisi DÈS la fiche boutique, persistant → pré-rempli au checkout.
+   *  Absent sur les anciens paniers → traité comme "pickup" par défaut. */
+  mode?: CartMode;
   updated_at: string;
 };
 
@@ -54,6 +59,7 @@ const EMPTY_CART: Cart = {
   merchant_name: null,
   merchant_logo: null,
   items: [],
+  mode: "pickup",
   updated_at: new Date(0).toISOString(),
 };
 
@@ -166,6 +172,7 @@ export function addItem(
     merchant_name: merchant.name,
     merchant_logo: merchant.logo_url ?? null,
     items: [],
+    mode: "pickup",
     updated_at: new Date().toISOString(),
   };
 
@@ -193,6 +200,7 @@ export function addItem(
     merchant_name: merchant.name,
     merchant_logo: merchant.logo_url ?? current.merchant_logo ?? null,
     items,
+    mode: current.mode ?? "pickup",
     updated_at: new Date().toISOString(),
   };
 
@@ -202,6 +210,40 @@ export function addItem(
   };
   writeStore(nextStore);
   return { ok: true };
+}
+
+/**
+ * Persiste le MODE (retrait/livraison) choisi sur la fiche boutique, par
+ * commerce. Crée une entrée panier minimale si besoin (pour que le choix
+ * survive même avant d'ajouter un produit). NE CHANGE PAS l'actif (un simple
+ * toggle de mode ne doit pas voler la vedette à un panier en cours ailleurs).
+ */
+export function setCartMode(
+  merchant: {
+    id: string;
+    slug: string;
+    name: string;
+    logo_url?: string | null;
+  },
+  mode: CartMode
+): void {
+  const store = readStore();
+  const current = store.by_merchant[merchant.id];
+  const cart: Cart = current
+    ? { ...current, mode, updated_at: new Date().toISOString() }
+    : {
+        merchant_id: merchant.id,
+        merchant_slug: merchant.slug,
+        merchant_name: merchant.name,
+        merchant_logo: merchant.logo_url ?? null,
+        items: [],
+        mode,
+        updated_at: new Date().toISOString(),
+      };
+  writeStore({
+    ...store,
+    by_merchant: { ...store.by_merchant, [merchant.id]: cart },
+  });
 }
 
 /** Modifie la quantité d'un produit dans le panier ACTIF. qty <= 0 supprime. */

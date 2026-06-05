@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Tag } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { getMyFavoriteIds } from "@/lib/data/favorites";
@@ -12,6 +13,7 @@ import { MerchantCompactHeader } from "@/components/customer/merchant-compact-he
 import { MerchantCatalog } from "@/components/customer/merchant-catalog";
 import { MerchantCartCta } from "@/components/customer/merchant-cart-cta";
 import { MerchantClosedNotice } from "@/components/customer/merchant-closed-notice";
+import { ShopModeToggle } from "@/components/customer/shop-mode-toggle";
 import { getMerchantReviews } from "@/lib/data/reviews";
 import {
   discountedUnitPrice,
@@ -104,6 +106,31 @@ export default async function MerchantPublicPage({
           rating_count={m.rating_count}
           reviews={reviews}
         />
+
+        {/* Choix Retrait / Livraison dès la fiche (persisté → pré-rempli au
+            checkout). + Bannière promo si des produits sont en réduction. */}
+        <div className="mt-4 space-y-3">
+          <ShopModeToggle
+            merchant={{
+              id: m.id,
+              slug: m.slug,
+              name: m.name,
+              logo_url: m.logo_url,
+            }}
+            deliveryEnabled={!!m.delivery_enabled}
+          />
+          {Object.keys(promoPriceById).length > 0 && (
+            <div className="bg-warning-50 flex items-center gap-3 rounded-[14px] p-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-[11px] bg-gradient-to-br from-[#E0902A] to-[#C77A18] text-white">
+                <Tag className="size-5" />
+              </span>
+              <p className="text-[13px] font-bold text-[#7A4E10]">
+                Promotions en cours sur une sélection de produits
+                aujourd&apos;hui.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Bandeau + pop-up « fermé / en pause » → propose de programmer une
             commande pour plus tard (façon Deliveroo / Uber Eats). */}

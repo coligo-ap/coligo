@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -151,6 +151,26 @@ export function CheckoutView({ customer }: Props) {
       setPickupType("slot");
     }
   }, [ctx, openNow, pickupType]);
+
+  // Pré-remplissage du mode (retrait/livraison) choisi DÈS la fiche boutique
+  // (persisté dans le panier). Appliqué UNE fois, une fois le contexte chargé.
+  // La position de livraison reste à confirmer ici (cf. section livraison).
+  const modeAppliedRef = useRef(false);
+  useEffect(() => {
+    if (modeAppliedRef.current || !ctx) return;
+    modeAppliedRef.current = true;
+    if (cart.mode === "delivery" && ctx.delivery?.enabled) {
+      setDelivery((d) => ({
+        ...d,
+        fulfillment: "delivery",
+        mode: ctx.delivery.express_enabled
+          ? "express"
+          : ctx.delivery.tours_enabled
+            ? "tour"
+            : null,
+      }));
+    }
+  }, [ctx, cart.mode]);
 
   if (isRedirecting) {
     return (
