@@ -66,6 +66,97 @@ export async function getAllMerchantsForAdmin(): Promise<AdminMerchant[]> {
 }
 
 // =============================================================================
+// TABLEAU DE BORD SUPER-ADMIN — chiffres plateforme (RPC SECURITY DEFINER)
+// =============================================================================
+
+export type PlatformDashboard = {
+  merchants_total: number;
+  merchants_active: number;
+  merchants_sold: number;
+  orders_completed: number;
+  gmv_da: number;
+  net_profit_da: number;
+  commission_income_da: number;
+  service_fee_income_da: number;
+  chargily_fee_da: number;
+  cashback_expense_da: number;
+  online_orders: number;
+  online_net_da: number;
+  delivery_orders: number;
+  delivery_fees_da: number;
+  driver_payouts_da: number;
+  cashback_earned_da: number;
+  cashback_spent_da: number;
+  cashback_outstanding_da: number;
+  topup_outstanding_da: number;
+};
+
+// Les fonctions de la mig 0072 ne sont pas (encore) dans database.types.ts
+// générés ; on les appelle via un cast localisé non typé.
+type UntypedRpc = (fn: string) => Promise<{ data: unknown; error: unknown }>;
+
+/** KPIs globaux plateforme (bénéfice, CA, cashback…). RLS : is_super_admin. */
+export async function getPlatformDashboard(): Promise<PlatformDashboard | null> {
+  const supabase = await createClient();
+  const rpc = supabase.rpc as unknown as UntypedRpc;
+  const { data, error } = await rpc("platform_dashboard_stats");
+  if (error || !data) return null;
+  const d = data as Record<string, unknown>;
+  const n = (k: string) => Number(d[k] ?? 0);
+  return {
+    merchants_total: n("merchants_total"),
+    merchants_active: n("merchants_active"),
+    merchants_sold: n("merchants_sold"),
+    orders_completed: n("orders_completed"),
+    gmv_da: n("gmv_da"),
+    net_profit_da: n("net_profit_da"),
+    commission_income_da: n("commission_income_da"),
+    service_fee_income_da: n("service_fee_income_da"),
+    chargily_fee_da: n("chargily_fee_da"),
+    cashback_expense_da: n("cashback_expense_da"),
+    online_orders: n("online_orders"),
+    online_net_da: n("online_net_da"),
+    delivery_orders: n("delivery_orders"),
+    delivery_fees_da: n("delivery_fees_da"),
+    driver_payouts_da: n("driver_payouts_da"),
+    cashback_earned_da: n("cashback_earned_da"),
+    cashback_spent_da: n("cashback_spent_da"),
+    cashback_outstanding_da: n("cashback_outstanding_da"),
+    topup_outstanding_da: n("topup_outstanding_da"),
+  };
+}
+
+export type AdminMerchantRow = {
+  id: string;
+  name: string;
+  city: string | null;
+  is_active: boolean;
+  is_frozen: boolean;
+  completed_orders: number;
+  gmv_da: number;
+  commission_da: number;
+  balance_da: number;
+};
+
+/** Détail par commerçant (CA, commission, solde), trié par CA décroissant. */
+export async function getMerchantRowsForAdmin(): Promise<AdminMerchantRow[]> {
+  const supabase = await createClient();
+  const rpc = supabase.rpc as unknown as UntypedRpc;
+  const { data } = await rpc("platform_merchant_rows");
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: String(r.id),
+    name: String(r.name ?? "Commerce"),
+    city: (r.city as string | null) ?? null,
+    is_active: !!r.is_active,
+    is_frozen: !!r.is_frozen,
+    completed_orders: Number(r.completed_orders ?? 0),
+    gmv_da: Number(r.gmv_da ?? 0),
+    commission_da: Number(r.commission_da ?? 0),
+    balance_da: Number(r.balance_da ?? 0),
+  }));
+}
+
+// =============================================================================
 // ALERTES SUPER-ADMIN — commandes en retard
 // =============================================================================
 // Une commande est « en retard » pour l'admin quand elle est encore ACTIVE
