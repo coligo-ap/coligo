@@ -13,6 +13,23 @@ Supabase n'envoie pas automatiquement les fichiers de ce dossier : il faut les c
    ```
 5. **Save changes**
 
+## Installation du template "Change Email Address" (code de confirmation)
+
+La page **Compte** client permet de changer d'email avec un **code à 6 chiffres**.
+Pour que le client reçoive ce code (et pas seulement un lien), le template doit
+afficher `{{ .Token }}`.
+
+1. Dashboard → **Authentication → Email Templates → Change Email Address**
+2. Coller tout le contenu de `change-email.html` dans "Message body"
+3. Sujet : `Confirme ta nouvelle adresse email — Coligo`
+4. **Save changes**
+
+> Le flux applicatif appelle `supabase.auth.verifyOtp({ type: 'email_change' })`
+> avec le code saisi. Le bouton/lien `{{ .ConfirmationURL }}` reste un repli qui
+> passe par `app/auth/confirm/route.ts`. Pour une expérience à un seul code,
+> garder « Secure email change » désactivé (Authentication → Providers → Email),
+> sinon Supabase exige une confirmation depuis l'ancienne ET la nouvelle adresse.
+
 ## Configurer l'URL de redirection
 
 Pour que le bouton "Confirmer mon inscription" pointe vers la bonne page :

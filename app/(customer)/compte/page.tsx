@@ -4,15 +4,14 @@ import {
   ChevronRight,
   Gift,
   Heart,
-  Mail,
-  Phone,
+  MapPin,
   Receipt,
-  User as UserIcon,
   Wallet,
 } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { CustomerLogoutButton } from "@/components/customer/logout-button";
+import { AccountEditor } from "@/components/customer/account-editor";
 import {
   getMyCashbackBalance,
   getMyTopupBalance,
@@ -150,50 +149,36 @@ export default async function CustomerAccountPage() {
           </li>
         </ul>
 
-        <div className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
-          <Row icon={UserIcon} label="Nom complet">
-            {customer?.full_name ?? "—"}
-          </Row>
-          <Row icon={Mail} label="Email">
-            {user.email ?? "—"}
-          </Row>
-          <Row icon={Phone} label="Téléphone">
-            {customer?.phone ?? "—"}
-          </Row>
-          <Row icon={UserIcon} label="Zone préférée">
-            {wilayaName
-              ? `${wilayaName}${customer?.default_commune ? ` · ${customer.default_commune}` : ""}`
-              : "—"}
-          </Row>
-        </div>
+        {/* Informations éditables : nom + téléphone, et email avec code. */}
+        <AccountEditor
+          initialName={customer?.full_name ?? ""}
+          initialPhone={customer?.phone ?? ""}
+          initialEmail={user.email ?? customer?.email ?? ""}
+        />
+
+        {/* Adresses enregistrées (gérées sur leur page dédiée). */}
+        <Link
+          href="/adresses"
+          className="border-border bg-surface hover:border-primary-300 mt-3 flex items-center gap-3 rounded-[14px] border p-4 transition-colors"
+        >
+          <div className="bg-primary-50 text-primary-700 flex size-11 shrink-0 items-center justify-center rounded-full">
+            <MapPin className="size-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-foreground text-sm font-semibold">
+              Mes adresses
+            </p>
+            <p className="text-muted text-xs">
+              {wilayaName
+                ? `Zone : ${wilayaName}${customer?.default_commune ? ` · ${customer.default_commune}` : ""}`
+                : "Gère tes adresses de livraison"}
+            </p>
+          </div>
+          <ChevronRight className="text-muted size-4" />
+        </Link>
 
         <CustomerLogoutButton />
-
-        <p className="text-subtle mt-6 text-center text-xs">
-          La gestion fine du profil arrive bientôt (modifier nom, téléphone, mot
-          de passe).
-        </p>
       </div>
     </CustomerShell>
-  );
-}
-
-function Row({
-  icon: Icon,
-  label,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <Icon className="text-muted mt-0.5 size-4 shrink-0" />
-      <div className="min-w-0 flex-1">
-        <p className="text-muted text-xs">{label}</p>
-        <p className="text-foreground text-sm font-medium">{children}</p>
-      </div>
-    </div>
   );
 }
