@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Loader2, X } from "lucide-react";
+import { Loader2, Wallet, X } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import { formatDA } from "@/lib/utils";
 import { cancelMyOrder } from "@/app/(customer)/commandes/actions";
 
 type Props = {
@@ -15,9 +16,9 @@ type Props = {
 /**
  * Bouton « Annuler ma commande » — visible UNIQUEMENT tant que la commande est
  * en attente (status='pending', géré par le parent). Pour une commande payée en
- * ligne, on n'autorise pas l'auto-annulation (remboursement via support) : on
- * affiche une note à la place. La vérification réelle (propriété, statut,
- * paiement) est refaite côté serveur par la RPC — ce composant est juste l'UI.
+ * ligne, le montant payé est REMBOURSÉ EN CRÉDIT COLIGO PAY (avoir in-app) : on
+ * en informe clairement le client. La vérification réelle (propriété, statut,
+ * calcul du remboursement) est faite côté serveur (RPC) — ici c'est l'UI.
  */
 export function CancelOrderButton({
   orderId,
@@ -30,16 +31,6 @@ export function CancelOrderButton({
 
   const onlinePaid = paymentMethod === "online" && paymentStatus === "paid";
 
-  if (onlinePaid) {
-    return (
-      <p className="text-muted mt-2.5 flex items-start gap-1.5 text-[11.5px]">
-        <AlertTriangle className="text-warning-600 mt-0.5 size-3.5 shrink-0" />
-        Commande déjà payée en ligne — contacte le support pour l&apos;annuler
-        et être remboursé.
-      </p>
-    );
-  }
-
   function doCancel() {
     startTransition(async () => {
       const res = await cancelMyOrder(orderId);
@@ -48,7 +39,11 @@ export function CancelOrderButton({
         setConfirming(false);
         return;
       }
-      toast.success("Commande annulée.");
+      toast.success(
+        res.refundedToColigoPay > 0
+          ? `Commande annulée. ${formatDA(res.refundedToColigoPay)} crédités sur ton Coligo Pay.`
+          : "Commande annulée."
+      );
       setConfirming(false);
       router.refresh();
     });
@@ -73,6 +68,14 @@ export function CancelOrderButton({
         Annuler cette commande ? Le commerçant en sera informé. Action
         irréversible.
       </p>
+      {onlinePaid && (
+        <p className="text-primary-800 bg-primary-50 mt-2 flex items-start gap-1.5 rounded-[10px] p-2.5 text-[12px] font-semibold">
+          <Wallet className="text-primary-600 mt-0.5 size-4 shrink-0" />
+          Tu as payé en ligne : le montant sera{" "}
+          <strong>crédité sur ton solde Coligo Pay</strong> (dans ton compte),
+          utilisable sur ta prochaine commande.
+        </p>
+      )}
       <div className="mt-2.5 flex gap-2">
         <button
           type="button"

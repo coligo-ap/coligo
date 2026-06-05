@@ -17,7 +17,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { notifyMerchantOrderCancelled } from "@/lib/fcm/triggers";
 
-export type CancelResult = { ok: true } | { ok: false; error: string };
+export type CancelResult =
+  | { ok: true; refundedToColigoPay: number }
+  | { ok: false; error: string };
 
 export async function cancelMyOrder(orderId: string): Promise<CancelResult> {
   try {
@@ -47,6 +49,7 @@ export async function cancelMyOrder(orderId: string): Promise<CancelResult> {
       merchant_id?: string;
       order_number?: string | null;
       customer_name?: string | null;
+      refunded_to_coligo_pay?: number;
     };
 
     // Notifie le commerçant (push). AWAIT dans un try/catch dédié : pas de
@@ -67,7 +70,10 @@ export async function cancelMyOrder(orderId: string): Promise<CancelResult> {
 
     revalidatePath(`/commandes/${orderId}`);
     revalidatePath("/commandes");
-    return { ok: true };
+    return {
+      ok: true,
+      refundedToColigoPay: Math.max(0, Number(res.refunded_to_coligo_pay ?? 0)),
+    };
   } catch (e) {
     console.error("[cancelMyOrder] failed:", e);
     return {
