@@ -13,6 +13,15 @@ const optTrim = (max: number) =>
       return s === "" ? null : s;
     });
 
+const optCoord = (min: number, max: number) =>
+  z
+    .union([
+      z.literal(""),
+      z.coerce.number().min(min, "Hors limites").max(max, "Hors limites"),
+    ])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : (v as number)));
+
 export const profileSchema = z.object({
   name: z
     .string({ message: "Le nom est requis" })
@@ -22,6 +31,8 @@ export const profileSchema = z.object({
   wilaya_code: optTrim(2),
   commune: optTrim(80),
   address: optTrim(200),
+  latitude: optCoord(-90, 90),
+  longitude: optCoord(-180, 180),
   description_fr: optTrim(800),
   description_ar: optTrim(800),
   phone_public: z

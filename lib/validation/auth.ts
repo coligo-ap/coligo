@@ -39,16 +39,8 @@ export const signupSchema = z.object({
     .trim()
     .optional()
     .transform((v) => (v ? v : null)),
-  wilayaCode: z
-    .string()
-    .trim()
-    .optional()
-    .transform((v) => (v ? v : null)),
-  city: z
-    .string()
-    .trim()
-    .optional()
-    .transform((v) => (v ? v : null)),
+  wilayaCode: z.string().trim().min(1, "La wilaya est requise"),
+  city: z.string().trim().min(1, "La commune est requise"),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

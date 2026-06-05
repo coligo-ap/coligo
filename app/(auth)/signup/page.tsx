@@ -1,30 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/shared/logo";
 import { signup, type AuthState } from "@/app/(merchant)/actions";
-import { WILAYAS } from "@/lib/config/wilayas";
 import { MERCHANT_CATEGORIES } from "@/lib/config/categories";
-import { getCommunes } from "@/lib/config/communes";
 import { APP_CONFIG } from "@/lib/config/app-config";
-import {
-  Mail,
-  Lock,
-  Store,
-  MapPin,
-  Tag,
-  ArrowRight,
-  Building2,
-  UserRound,
-  Check,
-} from "lucide-react";
+import { Mail, Lock, Store, Tag, ArrowRight, UserRound } from "lucide-react";
 import { InstallButton } from "@/components/pwa/install-button";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
-import { MapPositionPicker } from "@/components/shared/map-position-picker";
+import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
 
 const initialState: AuthState = {};
 
@@ -33,13 +21,8 @@ const SELECT_CLASS =
 
 export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signup, initialState);
-  const [wilayaCode, setWilayaCode] = useState("16");
-  // Position EXACTE sur la carte — obligatoire avant de pouvoir s'inscrire.
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
-    null
-  );
-
-  const communes = useMemo(() => getCommunes(wilayaCode), [wilayaCode]);
+  // Emplacement (wilaya + commune + position confirmée) — obligatoire.
+  const [locationValid, setLocationValid] = useState(false);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -152,126 +135,21 @@ export default function SignupPage() {
                   </div>
                 </div>
 
-                {/* Wilaya + Commune */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="wilayaCode">Wilaya</Label>
-                    <div className="relative">
-                      <MapPin className="text-subtle pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2" />
-                      <ChevronIcon />
-                      <select
-                        id="wilayaCode"
-                        name="wilayaCode"
-                        disabled={pending}
-                        className={SELECT_CLASS}
-                        value={wilayaCode}
-                        onChange={(e) => setWilayaCode(e.target.value)}
-                      >
-                        <option value="">—</option>
-                        {WILAYAS.map((w) => (
-                          <option key={w.code} value={w.code}>
-                            {w.code} · {w.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="city">Commune</Label>
-                    <div className="relative">
-                      <Building2 className="text-subtle pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2" />
-                      {communes.length > 0 ? (
-                        <>
-                          <ChevronIcon />
-                          <select
-                            id="city"
-                            name="city"
-                            disabled={pending || !wilayaCode}
-                            className={SELECT_CLASS}
-                            defaultValue=""
-                            key={wilayaCode}
-                          >
-                            <option value="">— Sélectionner —</option>
-                            {communes.map((commune) => (
-                              <option key={commune} value={commune}>
-                                {commune}
-                              </option>
-                            ))}
-                          </select>
-                        </>
-                      ) : (
-                        <Input
-                          id="city"
-                          name="city"
-                          type="text"
-                          placeholder="Saisir la commune"
-                          disabled={pending || !wilayaCode}
-                          className="pl-9"
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Position EXACTE sur la carte (obligatoire) */}
-                <div className="space-y-1.5">
-                  <Label>
-                    Position exacte du commerce{" "}
-                    <span className="text-rose-600">*</span>
-                  </Label>
-                  <p className="text-muted text-xs">
-                    Déplacez la carte ou tapez pour placer le repère sur
-                    l&apos;entrée de votre commerce.
-                  </p>
-                  <div className="border-border overflow-hidden rounded-[12px] border">
-                    <MapPositionPicker
-                      initial={coords}
-                      onChange={(p) => setCoords(p)}
-                      height={220}
-                      gpsLabel="Ma position"
-                      autoLocate
-                    />
-                  </div>
-                  {coords ? (
-                    <p className="text-success-700 inline-flex items-center gap-1 text-xs font-medium">
-                      <Check className="size-3.5" />
-                      Position enregistrée ({coords.lat.toFixed(5)},{" "}
-                      {coords.lng.toFixed(5)})
-                    </p>
-                  ) : (
-                    <p className="text-subtle text-xs">
-                      Aucune position sélectionnée pour l&apos;instant.
-                    </p>
-                  )}
-                  {/* Valeurs postées avec le formulaire (server action). */}
-                  <input
-                    type="hidden"
-                    name="latitude"
-                    value={coords ? String(coords.lat) : ""}
-                  />
-                  <input
-                    type="hidden"
-                    name="longitude"
-                    value={coords ? String(coords.lng) : ""}
-                  />
-                </div>
-
-                {/* Adresse / repère (optionnel) */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="address">Adresse / repère (optionnel)</Label>
-                  <div className="relative">
-                    <MapPin className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                    <Input
-                      id="address"
-                      name="address"
-                      type="text"
-                      placeholder="Rue, n°, point de repère…"
-                      disabled={pending}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
+                {/* Emplacement de la boutique — wilaya + commune → carte
+                    focalisée → position exacte confirmée + adresse. */}
+                <ShopLocationPicker
+                  names={{
+                    wilaya: "wilayaCode",
+                    commune: "city",
+                    address: "address",
+                    lat: "latitude",
+                    lng: "longitude",
+                  }}
+                  initial={{ wilayaCode: "16" }}
+                  disabled={pending}
+                  requireConfirm
+                  onValidityChange={setLocationValid}
+                />
 
                 <div className="border-surface-3 border-t pt-4">
                   <div className="space-y-1.5">
@@ -330,7 +208,7 @@ export default function SignupPage() {
                   type="submit"
                   size="lg"
                   className="w-full"
-                  disabled={pending || !coords}
+                  disabled={pending || !locationValid}
                 >
                   {pending ? (
                     "Création…"
@@ -341,10 +219,10 @@ export default function SignupPage() {
                     </>
                   )}
                 </Button>
-                {!coords && (
+                {!locationValid && (
                   <p className="text-subtle text-center text-xs">
-                    Placez d&apos;abord votre commerce sur la carte pour
-                    continuer.
+                    Choisis ta wilaya et ta commune, puis place et confirme la
+                    position exacte de ta boutique sur la carte.
                   </p>
                 )}
 

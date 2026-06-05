@@ -50,6 +50,12 @@ export type MapPositionPickerProps = {
    * refusée/indispo, on reste sur `initial`/`defaultCenter` sans bloquer.
    */
   autoLocate?: boolean;
+  /**
+   * Cible de recentrage IMPÉRATIF : à chaque fois que cet objet change
+   * d'identité, la carte vole vers ce point (ex. centre de la commune choisie).
+   * `null`/undefined = aucun recentrage.
+   */
+  focusTarget?: (LatLng & { zoom?: number }) | null;
 };
 
 export function MapPositionPicker({
@@ -59,6 +65,7 @@ export function MapPositionPicker({
   height = 280,
   gpsLabel = "Ma position",
   autoLocate = false,
+  focusTarget = null,
 }: MapPositionPickerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
@@ -266,6 +273,19 @@ export function MapPositionPicker({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Recentrage impératif quand `focusTarget` change (commune choisie…). On vole
+  // vers le point ; `moveend` émettra les nouvelles coordonnées du centre.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !focusTarget || !mapReady) return;
+    map.flyTo({
+      center: [focusTarget.lng, focusTarget.lat],
+      zoom: focusTarget.zoom ?? 14,
+      duration: 800,
+    });
+     
+  }, [focusTarget, mapReady]);
 
   const useGps = async () => {
     setLoading(true);

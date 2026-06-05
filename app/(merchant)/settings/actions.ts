@@ -88,6 +88,8 @@ export async function updateProfile(
     wilaya_code: formData.get("wilaya_code"),
     commune: formData.get("commune"),
     address: formData.get("address"),
+    latitude: formData.get("latitude"),
+    longitude: formData.get("longitude"),
     description_fr: formData.get("description_fr"),
     description_ar: formData.get("description_ar"),
     phone_public: formData.get("phone_public"),
@@ -121,6 +123,14 @@ export async function updateProfile(
       wilaya_code: parsed.data.wilaya_code,
       commune: parsed.data.commune,
       address: parsed.data.address,
+      // Position exacte : on n'écrase QUE si une position valide est fournie
+      // (évite d'effacer la position existante sur une sauvegarde partielle).
+      ...(parsed.data.latitude != null && parsed.data.longitude != null
+        ? {
+            latitude: parsed.data.latitude,
+            longitude: parsed.data.longitude,
+          }
+        : {}),
       description_fr: parsed.data.description_fr,
       description_ar: parsed.data.description_ar,
       phone_public: parsed.data.phone_public,
