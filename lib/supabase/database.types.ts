@@ -858,6 +858,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      order_messages: {
+        Row: {
+          id: string;
+          order_id: string;
+          sender_role: "customer" | "courier";
+          sender_user_id: string;
+          code: string;
+          created_at: string;
+          read_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          sender_role: "customer" | "courier";
+          sender_user_id: string;
+          code: string;
+          created_at?: string;
+          read_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          sender_role?: "customer" | "courier";
+          sender_user_id?: string;
+          code?: string;
+          created_at?: string;
+          read_at?: string | null;
+        };
+        Relationships: [];
+      };
       merchant_referral_codes: {
         Row: {
           id: string;
@@ -1544,6 +1574,14 @@ export type Database = {
           p_lng: number;
         };
         Returns: { ok: boolean; reason: string | null }[];
+      };
+      send_order_message: {
+        Args: { p_order_id: string; p_code: string };
+        Returns: {
+          ok: boolean;
+          reason: string | null;
+          sender_role: "customer" | "courier" | null;
+        }[];
       };
       driver_delivery_counts: {
         Args: Record<string, never>;

@@ -23,6 +23,7 @@ import { getPosition } from "@/lib/native/geolocation";
 import { DeliveryValidationDialog } from "./delivery-validation-dialog";
 import { DeliveryRouteMap } from "./delivery-route-map";
 import { DriverLocationBroadcaster } from "./driver-location-broadcaster";
+import { OrderChat } from "@/components/chat/order-chat";
 
 type Stop = {
   stop_id: string;
@@ -270,6 +271,16 @@ export function TourExecution({
                       target={{ lat: s.delivery_lat, lng: s.delivery_lng }}
                       label="Vers le client (livraison)"
                       height={180}
+                    />
+                  )}
+
+                  {/* Chat avec le client une fois la commande récupérée. */}
+                  {s.delivery_picked_up_at != null && (
+                    <OrderChat
+                      orderId={s.order_id}
+                      role="courier"
+                      phone={s.delivery_phone ?? s.customer_phone}
+                      phoneLabel={`Appeler ${s.customer_name ?? "le client"}`}
                     />
                   )}
 

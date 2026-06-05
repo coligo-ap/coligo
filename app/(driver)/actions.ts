@@ -15,6 +15,7 @@ import { isWilaya } from "@/lib/dz/wilayas";
 import {
   notifyMerchantNewDriverRequest,
   notifyCustomerEnRoute,
+  notifyCustomerArrived,
   notifyCustomerStatusChange,
 } from "@/lib/fcm/triggers";
 
@@ -411,7 +412,11 @@ export async function markDeliveryArrived(
     data as Array<{ ok: boolean; reason: string | null }> | null
   )?.[0];
   if (!row) return { ok: false, reason: "no_response" };
-  if (row.ok) revalidatePath("/driver");
+  if (row.ok) {
+    revalidatePath("/driver");
+    // Le client est prévenu que son livreur est à sa porte.
+    void notifyCustomerArrived({ orderId });
+  }
   return { ok: row.ok, reason: row.reason ?? undefined };
 }
 

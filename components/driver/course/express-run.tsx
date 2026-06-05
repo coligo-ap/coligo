@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Loader2, Phone } from "lucide-react";
+import { ArrowRight, Loader2, MessageCircle, Phone, X } from "lucide-react";
 import { ExpressRunMap } from "./express-run-map";
+import { OrderChat } from "@/components/chat/order-chat";
 
 /**
  * Écran 3 — COURSE EN COURS (plein écran, style Uber Eats Driver).
@@ -63,6 +64,7 @@ export function ExpressRun({
   onValidate: () => void;
 }) {
   const [eta, setEta] = useState<{ min: number; km: number } | null>(null);
+  const [showChat, setShowChat] = useState(false);
 
   // Cible courante : commerçant avant pickup, client après.
   const target = pickedUp
@@ -159,6 +161,16 @@ export function ExpressRun({
                   : ""}
               </small>
             </div>
+            {pickedUp && (
+              <button
+                type="button"
+                onClick={() => setShowChat(true)}
+                aria-label="Discuter avec le client"
+                className="grid size-[42px] place-items-center rounded-full bg-[#f5f5f5] text-[#000] active:scale-95"
+              >
+                <MessageCircle className="size-[17px]" />
+              </button>
+            )}
             {who.phone && (
               <a
                 href={`tel:${who.phone}`}
@@ -219,6 +231,39 @@ export function ExpressRun({
           )}
         </div>
       </div>
+
+      {/* Modale chat avec le client (messages prédéfinis). */}
+      {showChat && (
+        <div
+          className="absolute inset-0 z-[90] flex items-end bg-black/40"
+          onClick={() => setShowChat(false)}
+        >
+          <div
+            className="w-full rounded-t-[18px] bg-white p-3 pb-[max(18px,env(safe-area-inset-bottom))]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-2 flex items-center justify-between px-1">
+              <b className="text-sm font-bold text-[#0a0a0a]">
+                Discuter avec {who.name}
+              </b>
+              <button
+                type="button"
+                onClick={() => setShowChat(false)}
+                aria-label="Fermer"
+                className="grid size-8 place-items-center rounded-full bg-[#f5f5f5] active:scale-95"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <OrderChat
+              orderId={order.id}
+              role="courier"
+              phone={who.phone}
+              phoneLabel={`Appeler ${who.name}`}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

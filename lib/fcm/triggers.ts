@@ -17,6 +17,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDA } from "@/lib/utils";
 import type { OrderStatus } from "@/lib/types";
+import { labelFor } from "@/lib/chat/messages";
 import { sendFcm } from "./send";
 
 async function tokensFor(
@@ -342,5 +343,107 @@ export async function notifyCustomerEnRoute(input: {
     );
   } catch (err) {
     console.warn("[fcm] notifyCustomerEnRoute failed:", err);
+  }
+}
+
+/**
+ * Notifie le client que le LIVREUR EST ARRIVÉ à sa porte. Déclenché quand le
+ * livreur appuie sur « arrivé » (RPC mark_delivery_arrived, statut SQL
+ * inchangé → pas couvert par notifyCustomerStatusChange). Fire-and-forget.
+ */
+export async function notifyCustomerArrived(input: {
+  orderId: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("orders")
+      .select("customer_id, fulfillment_type")
+      .eq("id", input.orderId)
+      .maybeSingle();
+    if (!order?.customer_id || order.fulfillment_type !== "delivery") return;
+
+    const { data: customer } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", order.customer_id)
+      .maybeSingle();
+    if (!customer?.user_id) return;
+
+    const tokens = await tokensFor(customer.user_id, "customer");
+    if (tokens.length === 0) return;
+
+    await sendFcm(
+      tokens,
+      {
+        title: "Votre livreur est arrivé 📍",
+        body: "Le livreur est à votre porte. Descendez récupérer votre commande.",
+      },
+      {
+        route: `/commandes/${input.orderId}`,
+        kind: "customer_arrived",
+      }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyCustomerArrived failed:", err);
+  }
+}
+
+/**
+ * Notifie le DESTINATAIRE d'un message de chat in-app (client ↔ livreur).
+ * L'expéditeur vient d'envoyer un message prédéfini (`code`) ; on pousse le
+ * libellé au destinataire opposé. Fire-and-forget.
+ */
+export async function notifyOrderMessage(input: {
+  orderId: string;
+  senderRole: "customer" | "courier";
+  code: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("orders")
+      .select("customer_id, delivery_driver_id")
+      .eq("id", input.orderId)
+      .maybeSingle();
+    if (!order) return;
+
+    const body = labelFor(input.code, "fr");
+
+    if (input.senderRole === "customer") {
+      // → notifie le LIVREUR attribué.
+      if (!order.delivery_driver_id) return;
+      const { data: driver } = await admin
+        .from("drivers")
+        .select("user_id")
+        .eq("id", order.delivery_driver_id)
+        .maybeSingle();
+      if (!driver?.user_id) return;
+      const tokens = await tokensFor(driver.user_id, "courier");
+      if (tokens.length === 0) return;
+      await sendFcm(
+        tokens,
+        { title: "Message du client 💬", body },
+        { route: "/driver", kind: "order_message" }
+      );
+    } else {
+      // → notifie le CLIENT.
+      if (!order.customer_id) return;
+      const { data: customer } = await admin
+        .from("customers")
+        .select("user_id")
+        .eq("id", order.customer_id)
+        .maybeSingle();
+      if (!customer?.user_id) return;
+      const tokens = await tokensFor(customer.user_id, "customer");
+      if (tokens.length === 0) return;
+      await sendFcm(
+        tokens,
+        { title: "Message de votre livreur 💬", body },
+        { route: `/commandes/${input.orderId}`, kind: "order_message" }
+      );
+    }
+  } catch (err) {
+    console.warn("[fcm] notifyOrderMessage failed:", err);
   }
 }

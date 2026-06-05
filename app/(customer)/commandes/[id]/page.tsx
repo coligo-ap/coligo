@@ -9,6 +9,7 @@ import { CustomerOrderLive } from "@/components/customer/customer-order-live";
 import { CancelOrderButton } from "@/components/customer/cancel-order-button";
 import { OrderTrack } from "@/components/customer/order-track";
 import { CustomerDeliveryMap } from "@/components/customer/customer-delivery-map";
+import { OrderChat } from "@/components/chat/order-chat";
 import { DriverReviewCard } from "@/components/customer/driver-review-card";
 import { estimateDeliveryEtaMin } from "@/lib/delivery/eta";
 import { cldUrl } from "@/lib/images/cloudinary";
@@ -439,6 +440,18 @@ export default async function CustomerOrderDetailPage({
               initialArrivedAt={order.delivery_arrived_at as string | null}
               driverName={driverContact?.first_name ?? null}
               driverPhone={driverContact?.phone ?? null}
+            />
+          </div>
+        )}
+
+        {/* ═══ CHAT in-app client ↔ livreur (livraison en cours) ═══ */}
+        {inTransit && driverId && (
+          <div className="mt-3">
+            <OrderChat
+              orderId={order.id}
+              role="customer"
+              phone={driverContact?.phone ?? null}
+              phoneLabel={`Appeler ${driverContact?.first_name ?? "le livreur"}`}
             />
           </div>
         )}
