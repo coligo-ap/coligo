@@ -1,14 +1,16 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getCategory, getCategoryLabel } from "@/lib/config/categories";
+import { getCategoryLabel } from "@/lib/config/categories";
+import { categoryIcon, ALL_CATEGORIES_ICON } from "@/lib/config/category-icon";
 
 // =============================================================================
 // CategoryStrip — catégories rondes en scroll horizontal (mécanique Uber Eats).
-// Emoji dans un rond ; la catégorie active a un rond noir + un trait noir
-// dessous. Pilotée par l'URL param `category` (comme la grille / la recherche),
-// donc tap = filtre instantané sans recharger la page.
+// Icône PROFESSIONNELLE (lucide) dans un rond gris clair ; la catégorie active a
+// un rond foncé + un trait sous le libellé. Pilotée par l'URL param `category`
+// (comme la grille / la recherche) → tap = filtre instantané sans recharger.
 // =============================================================================
 
 /** Libellé court pour un rond : on garde le 1er segment ("Supérette / Épicerie"
@@ -37,11 +39,16 @@ export function CategoryStrip({
 
   return (
     <div className="scrollbar-hide -mx-4 flex gap-4 overflow-x-auto border-b border-[var(--color-border)] px-4 pb-3.5 lg:mx-0 lg:px-0">
-      <Tile emoji="🛒" label="Tous" active={!active} onClick={() => go(null)} />
+      <Tile
+        icon={ALL_CATEGORIES_ICON}
+        label="Tous"
+        active={!active}
+        onClick={() => go(null)}
+      />
       {categories.map((c) => (
         <Tile
           key={c.name}
-          emoji={getCategory(c.name)?.emoji ?? "🏷️"}
+          icon={categoryIcon(c.name)}
           label={shortLabel(c.name)}
           active={active === c.name}
           onClick={() => go(c.name)}
@@ -52,12 +59,12 @@ export function CategoryStrip({
 }
 
 function Tile({
-  emoji,
+  icon: Icon,
   label,
   active,
   onClick,
 }: {
-  emoji: string;
+  icon: LucideIcon;
   label: string;
   active: boolean;
   onClick: () => void;
@@ -70,11 +77,13 @@ function Tile({
     >
       <span
         className={cn(
-          "grid size-[54px] place-items-center rounded-full text-[26px] transition-colors",
-          active ? "bg-foreground" : "bg-surface-2"
+          "grid size-[54px] place-items-center rounded-full border transition-colors",
+          active
+            ? "bg-foreground border-foreground text-white"
+            : "bg-surface-2 text-foreground border-transparent"
         )}
       >
-        {emoji}
+        <Icon className="size-6" strokeWidth={1.75} />
       </span>
       <span
         className={cn(
