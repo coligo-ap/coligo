@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock, Star, Tag } from "lucide-react";
+import { Bike, Clock, MapPin, Star, Tag, Zap } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
 import { WILAYAS } from "@/lib/config/wilayas";
@@ -174,9 +174,22 @@ export function MerchantCard({
 
         {/* tags de mode */}
         <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {merchant.delivery_enabled && <Mode tone="deliv">🛵 Livraison</Mode>}
-          {merchant.express_enabled && <Mode>⚡ Express</Mode>}
-          <Mode>📍 Retrait</Mode>
+          {merchant.delivery_enabled && (
+            <Mode tone="deliv">
+              <Bike className="size-3.5" />
+              Livraison
+            </Mode>
+          )}
+          {merchant.express_enabled && (
+            <Mode>
+              <Zap className="size-3.5" />
+              Express
+            </Mode>
+          )}
+          <Mode>
+            <MapPin className="size-3.5" />
+            Retrait
+          </Mode>
         </div>
       </div>
     </Link>

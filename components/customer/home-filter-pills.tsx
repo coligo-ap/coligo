@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Bike, Star, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
@@ -92,16 +93,28 @@ export function HomeFilterPills() {
         Tous
       </Pill>
       <Pill active={state.delivery} onClick={toggleDelivery}>
-        🛵 Livraison
+        <Bike className="size-4" strokeWidth={2} />
+        Livraison
       </Pill>
       <Pill active={state.express} onClick={toggleExpress}>
-        ⚡ Express
+        <Zap className="size-4" strokeWidth={2} />
+        Express
       </Pill>
       <Pill active={state.rating} onClick={toggleRating}>
-        ★ Mieux notés
+        <Star
+          className={cn("size-4", state.rating && "fill-current")}
+          strokeWidth={2}
+        />
+        Mieux notés
       </Pill>
       <Pill active={state.open} onClick={toggleOpen}>
-        🟢 Ouvert
+        <span
+          className={cn(
+            "size-2 rounded-full",
+            state.open ? "bg-success-400" : "bg-success-500"
+          )}
+        />
+        Ouvert
       </Pill>
     </div>
   );
