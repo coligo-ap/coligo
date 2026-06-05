@@ -92,16 +92,17 @@ export type PlatformDashboard = {
 };
 
 // Les fonctions de la mig 0072 ne sont pas (encore) dans database.types.ts
-// générés ; on les appelle via un cast localisé non typé.
-type UntypedRpc = (fn: string) => Promise<{ data: unknown; error: unknown }>;
+// générés : on cast le NOM (`as never`) mais on garde l'appel METHODE
+// supabase.rpc(…) pour conserver le binding `this` (sinon throw à l'exécution).
 
 /** KPIs globaux plateforme (bénéfice, CA, cashback…). RLS : is_super_admin. */
 export async function getPlatformDashboard(): Promise<PlatformDashboard | null> {
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as UntypedRpc;
-  const { data, error } = await rpc("platform_dashboard_stats");
+  const { data, error } = await supabase.rpc(
+    "platform_dashboard_stats" as never
+  );
   if (error || !data) return null;
-  const d = data as Record<string, unknown>;
+  const d = data as unknown as Record<string, unknown>;
   const n = (k: string) => Number(d[k] ?? 0);
   return {
     merchants_total: n("merchants_total"),
@@ -141,9 +142,8 @@ export type AdminMerchantRow = {
 /** Détail par commerçant (CA, commission, solde), trié par CA décroissant. */
 export async function getMerchantRowsForAdmin(): Promise<AdminMerchantRow[]> {
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as UntypedRpc;
-  const { data } = await rpc("platform_merchant_rows");
-  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+  const { data } = await supabase.rpc("platform_merchant_rows" as never);
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => ({
     id: String(r.id),
     name: String(r.name ?? "Commerce"),
     city: (r.city as string | null) ?? null,

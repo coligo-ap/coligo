@@ -29,22 +29,22 @@ export async function cancelMyOrder(orderId: string): Promise<CancelResult> {
     } = await supabase.auth.getUser();
     if (!user) return { ok: false, error: "Tu dois te reconnecter." };
 
-    // La RPC 0073 n'est pas (encore) dans database.types.ts généré → cast localisé.
-    const rpc = supabase.rpc as unknown as (
-      fn: string,
-      args: Record<string, unknown>
-    ) => Promise<{ data: unknown; error: { message: string } | null }>;
-    const { data, error } = await rpc("cancel_order_by_customer", {
-      p_order_id: orderId,
-    });
+    // La RPC 0073/0075 n'est pas (encore) dans database.types.ts généré : on
+    // cast le NOM/args (`as never`) MAIS on garde l'appel METHODE supabase.rpc(…)
+    // pour ne pas perdre le binding `this` (sinon throw à l'exécution).
+    const { data, error } = await supabase.rpc(
+      "cancel_order_by_customer" as never,
+      { p_order_id: orderId } as never
+    );
 
     if (error) {
       // Les RAISE de la RPC remontent un message lisible (propriété, trop tard,
       // payé en ligne…) → on l'affiche tel quel.
-      return { ok: false, error: error.message || "Annulation impossible." };
+      const msg = (error as { message?: string }).message;
+      return { ok: false, error: msg || "Annulation impossible." };
     }
 
-    const res = (data ?? {}) as {
+    const res = (data ?? {}) as unknown as {
       ok?: boolean;
       merchant_id?: string;
       order_number?: string | null;

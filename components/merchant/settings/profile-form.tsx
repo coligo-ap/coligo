@@ -9,6 +9,7 @@ import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { MediaUpload } from "@/components/merchant/settings/media-upload";
 import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
+import { MERCHANT_CATEGORIES } from "@/lib/config/categories";
 import {
   setMediaUrl,
   updateProfile,
@@ -70,13 +71,22 @@ export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
             />
           </Field>
           <Field label="Catégorie">
-            <Input
-              name="category"
-              defaultValue={merchant.category ?? ""}
-              maxLength={60}
-              placeholder="Ex. Boulangerie, Pâtisserie…"
-              disabled={pending}
-            />
+            <div className="relative">
+              <select
+                name="category"
+                defaultValue={merchant.category ?? ""}
+                disabled={pending}
+                className="border-border-strong focus:ring-primary-400 focus:border-primary-400 flex h-10 w-full appearance-none rounded-[10px] border bg-white py-2 pr-8 pl-3 text-sm focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">— Sélectionner une catégorie —</option>
+                {MERCHANT_CATEGORIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.emoji} {c.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronIcon />
+            </div>
           </Field>
         </div>
 
@@ -192,5 +202,23 @@ function Field({
       </Label>
       {children}
     </div>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg
+      className="text-subtle pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden
+    >
+      <path
+        fillRule="evenodd"
+        d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
+        clipRule="evenodd"
+      />
+    </svg>
   );
 }
