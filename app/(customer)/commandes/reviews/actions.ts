@@ -56,9 +56,13 @@ export async function submitReview(input: {
     };
   }
 
+  const ALREADY_REVIEWED = "Tu as déjà donné ton avis sur ce commerce. Merci !";
+
   // UN SEUL avis par COMMERÇANT : si le client a déjà noté ce commerce (sur une
   // autre commande), on refuse poliment au lieu d'empiler les avis (la note ne
-  // compte de toute façon qu'un avis par client — mig 0065).
+  // compte de toute façon qu'un avis par client — mig 0065). Pré-check pour un
+  // message clair ; le vrai garde-fou anti-course est la contrainte UNIQUE
+  // (customer_id, merchant_id) en DB (mig 0069), gérée plus bas via 23505.
   const { data: existing } = await supabase
     .from("reviews")
     .select("id")
@@ -66,10 +70,7 @@ export async function submitReview(input: {
     .eq("merchant_id", order.merchant_id)
     .limit(1);
   if (existing && existing.length > 0) {
-    return {
-      ok: false,
-      error: "Tu as déjà donné ton avis sur ce commerce. Merci !",
-    };
+    return { ok: false, error: ALREADY_REVIEWED };
   }
 
   const { error } = await supabase.from("reviews").insert({
@@ -80,8 +81,11 @@ export async function submitReview(input: {
     comment,
   });
   if (error) {
+    // 23505 = violation d'unicité : soit (order_id) [mig 0027], soit
+    // (customer_id, merchant_id) [mig 0069]. Dans les deux cas le client a déjà
+    // un avis sur ce commerce → même message qu'au pré-check (gère la course).
     if (error.code === "23505") {
-      return { ok: false, error: "Tu as déjà noté cette commande." };
+      return { ok: false, error: ALREADY_REVIEWED };
     }
     return { ok: false, error: error.message };
   }

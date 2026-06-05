@@ -107,7 +107,7 @@ type Props = {
  * Les boutons Accepter / Refuser restent toujours visibles en bas.
  *
  * Deux modes selon le réglage « acceptation automatique » :
- *  - ON  : un bouton compte-à-rebours de 10 s. Acceptée automatiquement à la
+ *  - ON  : un bouton compte-à-rebours de 2 min. Acceptée automatiquement à la
  *          fin, sauf refus avant (ou acceptation immédiate d'un tap).
  *  - OFF : Accepter / Refuser + compte-à-rebours de 15 min (refus auto sinon).
  */
