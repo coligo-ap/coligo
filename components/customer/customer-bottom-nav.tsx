@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ClipboardList, Home, ShoppingCart, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
-  { href: "/", label: "Accueil", icon: Home },
-  { href: "/cart", label: "Panier", icon: ShoppingCart },
-  { href: "/commandes", label: "Commandes", icon: ClipboardList },
-  { href: "/compte", label: "Compte", icon: User },
+  { href: "/", key: "home", icon: Home },
+  { href: "/cart", key: "cart", icon: ShoppingCart },
+  { href: "/commandes", key: "orders", icon: ClipboardList },
+  { href: "/compte", key: "account", icon: User },
 ] as const;
 
 export function CustomerBottomNav() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
 
   return (
     <nav
@@ -34,7 +36,7 @@ export function CustomerBottomNav() {
             )}
           >
             <Icon className={cn("size-5", active && "fill-primary-100")} />
-            <span className="font-medium">{item.label}</span>
+            <span className="font-medium">{t(item.key)}</span>
           </Link>
         );
       })}

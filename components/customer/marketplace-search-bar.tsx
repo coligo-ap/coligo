@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Search, X } from "lucide-react";
 
 // =============================================================================
@@ -16,6 +17,7 @@ import { Search, X } from "lucide-react";
 export function MarketplaceSearchBar() {
   const router = useRouter();
   const params = useSearchParams();
+  const t = useTranslations("home");
 
   const q = useMemo(() => params.get("q") ?? "", [params]);
 
@@ -58,8 +60,8 @@ export function MarketplaceSearchBar() {
             type="search"
             value={qBuffer}
             onChange={(e) => setQBuffer(e.target.value)}
-            placeholder="Rechercher sur Coligo"
-            aria-label="Rechercher sur Coligo"
+            placeholder={t("searchPlaceholder")}
+            aria-label={t("searchPlaceholder")}
             className="placeholder:text-muted text-foreground w-full bg-transparent text-[15px] font-medium outline-none"
           />
           {qBuffer && (
@@ -67,7 +69,7 @@ export function MarketplaceSearchBar() {
               type="button"
               onClick={() => setQBuffer("")}
               className="text-muted hover:text-foreground shrink-0 rounded-full p-0.5"
-              aria-label="Effacer la recherche"
+              aria-label={t("clearSearch")}
             >
               <X className="size-4" />
             </button>

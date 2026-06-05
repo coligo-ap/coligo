@@ -111,6 +111,12 @@ body {
   color: var(--color-foreground);
   background: var(--color-background);
 }
+/* Mode arabe (RTL) : Plus Jakarta / Sora ne couvrent pas l'arabe → on bascule
+   sur Noto Sans Arabic (variable exposée par next/font dans le layout). */
+[dir="rtl"] body,
+[dir="rtl"] .font-display {
+  font-family: var(--font-arabic), var(--font-sans-body), system-ui, sans-serif;
+}
 
 .scrollbar-hide {
   scrollbar-width: none;

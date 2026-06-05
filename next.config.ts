@@ -1,4 +1,10 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+// i18n sans routing par segment d'URL : la locale vient d'un cookie
+// (cf. i18n/request.ts). On ne préfixe pas les routes par /fr ou /ar, ce qui
+// évite de restructurer tout le routing par rôle existant.
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -14,4 +20,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

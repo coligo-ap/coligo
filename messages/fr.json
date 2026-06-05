@@ -1,0 +1,25 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "cart": "Panier",
+    "orders": "Commandes",
+    "account": "Compte"
+  },
+  "header": {
+    "chooseZone": "Choisir une zone",
+    "becomeMerchant": "Devenir commerçant",
+    "cart": "Panier",
+    "signIn": "Se connecter",
+    "myAccount": "Mon compte",
+    "language": "Langue"
+  },
+  "home": {
+    "searchPlaceholder": "Rechercher sur Coligo",
+    "clearSearch": "Effacer la recherche",
+    "filterAll": "Tous",
+    "filterDelivery": "Livraison",
+    "filterExpress": "Express",
+    "filterTopRated": "Mieux notés",
+    "filterOpen": "Ouvert"
+  }
+}

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Bike, Star, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ import { cn } from "@/lib/utils";
 export function HomeFilterPills() {
   const router = useRouter();
   const params = useSearchParams();
+  const t = useTranslations("home");
 
   const state = useMemo(() => {
     const delivery = params.get("delivery") === "1";
@@ -90,22 +92,22 @@ export function HomeFilterPills() {
   return (
     <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 lg:mx-0 lg:flex-wrap lg:px-0">
       <Pill active={state.tous} onClick={reset}>
-        Tous
+        {t("filterAll")}
       </Pill>
       <Pill active={state.delivery} onClick={toggleDelivery}>
         <Bike className="size-4" strokeWidth={2} />
-        Livraison
+        {t("filterDelivery")}
       </Pill>
       <Pill active={state.express} onClick={toggleExpress}>
         <Zap className="size-4" strokeWidth={2} />
-        Express
+        {t("filterExpress")}
       </Pill>
       <Pill active={state.rating} onClick={toggleRating}>
         <Star
           className={cn("size-4", state.rating && "fill-current")}
           strokeWidth={2}
         />
-        Mieux notés
+        {t("filterTopRated")}
       </Pill>
       <Pill active={state.open} onClick={toggleOpen}>
         <span
@@ -114,7 +116,7 @@ export function HomeFilterPills() {
             state.open ? "bg-success-400" : "bg-success-500"
           )}
         />
-        Ouvert
+        {t("filterOpen")}
       </Pill>
     </div>
   );

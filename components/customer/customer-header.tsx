@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { ChevronDown, MapPin, ShoppingCart, User } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { useCustomerLocation } from "@/lib/customer/location-store";
 import { useCart, totalUnits } from "@/lib/customer/cart-store";
 import { LocationPicker } from "@/components/customer/location-picker";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 
 type Props = {
   isAuth: boolean;
@@ -15,6 +17,7 @@ type Props = {
 };
 
 export function CustomerHeader({ isAuth, customerName }: Props) {
+  const t = useTranslations("header");
   const loc = useCustomerLocation();
   const cart = useCart();
   const cartCount = totalUnits(cart);
@@ -23,7 +26,7 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
   const wilayaLabel = loc?.wilaya_code
     ? (WILAYAS.find((w) => w.code === loc.wilaya_code)?.name ??
       `Wilaya ${loc.wilaya_code}`)
-    : "Choisir une zone";
+    : t("chooseZone");
 
   return (
     <>
@@ -57,13 +60,15 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
             href="/login"
             className="text-muted hover:text-foreground text-sm font-medium"
           >
-            Devenir commerçant
+            {t("becomeMerchant")}
           </Link>
+
+          <LanguageSwitcher />
 
           <Link
             href="/cart"
             className="hover:bg-surface-2 relative rounded-full p-2"
-            aria-label="Panier"
+            aria-label={t("cart")}
           >
             <ShoppingCart className="size-5" />
             {cartCount > 0 && (
@@ -88,7 +93,7 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
               className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-2 rounded-[10px] px-4 py-2 text-sm font-medium text-white"
             >
               <User className="size-4" />
-              Se connecter
+              {t("signIn")}
             </Link>
           )}
         </div>
@@ -111,10 +116,11 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
               <ChevronDown className="text-muted size-3.5 shrink-0" />
             </button>
             <div className="flex shrink-0 items-center gap-2">
+              <LanguageSwitcher compact />
               {isAuth ? (
                 <Link
                   href="/compte"
-                  aria-label="Mon compte"
+                  aria-label={t("myAccount")}
                   className="bg-surface-2 text-primary-700 grid size-[38px] place-items-center rounded-full text-sm font-bold"
                 >
                   {(customerName ?? "C").charAt(0).toUpperCase()}
@@ -122,7 +128,7 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
               ) : (
                 <Link
                   href="/se-connecter"
-                  aria-label="Se connecter"
+                  aria-label={t("signIn")}
                   className="bg-surface-2 text-foreground grid size-[38px] place-items-center rounded-full"
                 >
                   <User className="size-[18px]" />
@@ -130,7 +136,7 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
               )}
               <Link
                 href="/cart"
-                aria-label="Panier"
+                aria-label={t("cart")}
                 className="bg-surface-2 text-foreground relative grid size-[38px] place-items-center rounded-full"
               >
                 <ShoppingCart className="size-[18px]" />

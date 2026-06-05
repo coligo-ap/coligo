@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Sora, Plus_Jakarta_Sans } from "next/font/google";
+import { Sora, Plus_Jakarta_Sans, Noto_Sans_Arabic } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
+import { dirFor, type Locale } from "@/i18n/locale";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Toaster } from "@/components/ui/toast";
 import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
@@ -22,6 +25,14 @@ const fontBody = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans-body",
+  weight: ["400", "500", "600", "700"],
+});
+// Police arabe : Plus Jakarta / Sora ne couvrent pas les glyphes arabes. On
+// expose une variable appliquée au body en mode RTL (cf. globals.css).
+const fontArabic = Noto_Sans_Arabic({
+  subsets: ["arabic"],
+  display: "swap",
+  variable: "--font-arabic",
   weight: ["400", "500", "600", "700"],
 });
 
@@ -153,13 +164,16 @@ const KILL_EXTENSION_ATTRS = `
 })();
 `;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const locale = (await getLocale()) as Locale;
+  const dir = dirFor(locale);
   return (
     <html
-      lang="fr"
-      className={`${fontDisplay.variable} ${fontBody.variable}`}
+      lang={locale}
+      dir={dir}
+      className={`${fontDisplay.variable} ${fontBody.variable} ${fontArabic.variable}`}
       suppressHydrationWarning
     >
       <head>
@@ -177,13 +191,15 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased" suppressHydrationWarning>
-        <Suspense fallback={null}>
-          <RouteProgressBar />
-        </Suspense>
-        {children}
-        <Toaster />
-        <RegisterServiceWorker />
-        <CapacitorBootLog />
+        <NextIntlClientProvider>
+          <Suspense fallback={null}>
+            <RouteProgressBar />
+          </Suspense>
+          {children}
+          <Toaster />
+          <RegisterServiceWorker />
+          <CapacitorBootLog />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

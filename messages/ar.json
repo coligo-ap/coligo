@@ -1,0 +1,25 @@
+{
+  "nav": {
+    "home": "الرئيسية",
+    "cart": "السلة",
+    "orders": "الطلبات",
+    "account": "حسابي"
+  },
+  "header": {
+    "chooseZone": "اختر منطقة",
+    "becomeMerchant": "كن تاجراً",
+    "cart": "السلة",
+    "signIn": "تسجيل الدخول",
+    "myAccount": "حسابي",
+    "language": "اللغة"
+  },
+  "home": {
+    "searchPlaceholder": "ابحث في كوليغو",
+    "clearSearch": "مسح البحث",
+    "filterAll": "الكل",
+    "filterDelivery": "توصيل",
+    "filterExpress": "سريع",
+    "filterTopRated": "الأعلى تقييماً",
+    "filterOpen": "مفتوح"
+  }
+}
