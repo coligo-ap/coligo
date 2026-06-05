@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Receipt, ShoppingBag, User } from "lucide-react";
+import { ClipboardList, Home, ShoppingCart, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
   { href: "/", label: "Accueil", icon: Home },
-  { href: "/cart", label: "Panier", icon: ShoppingBag },
-  { href: "/commandes", label: "Commandes", icon: Receipt },
+  { href: "/cart", label: "Panier", icon: ShoppingCart },
+  { href: "/commandes", label: "Commandes", icon: ClipboardList },
   { href: "/compte", label: "Compte", icon: User },
 ] as const;
 

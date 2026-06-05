@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Receipt } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import type { OrderStatus } from "@/lib/types";
@@ -98,7 +98,7 @@ export default async function CustomerOrdersListPage() {
 
         {mapped.length === 0 ? (
           <div className="border-border bg-surface mx-auto max-w-md rounded-[16px] border p-10 text-center">
-            <Receipt className="text-primary-500 mx-auto size-10" />
+            <ClipboardList className="text-primary-500 mx-auto size-10" />
             <p className="text-foreground mt-3 text-sm font-semibold">
               Tu n&apos;as pas encore commandé
             </p>

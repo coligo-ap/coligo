@@ -187,7 +187,7 @@ function LoginContent() {
           </div>
         </main>
       </div>
-      <AuthFooter />
+      <AuthFooter showPortal />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import {
   ArrowLeft,
-  ShoppingBag,
+  Lock,
+  ShoppingCart,
   Store,
   Truck,
   User as UserIcon,
@@ -86,7 +87,7 @@ export function AuthNavBar({
             className="hover:bg-surface-2 hidden rounded-full p-2 lg:inline-flex"
             aria-label="Panier"
           >
-            <ShoppingBag className="size-5" />
+            <ShoppingCart className="size-5" />
           </Link>
         </nav>
       </div>
@@ -98,14 +99,20 @@ export function AuthNavBar({
  * Pied de page minimal : copyright + quelques liens utiles. Pas de scroll
  * lourd : on reste compact pour ne pas gêner la page d'auth.
  */
-export function AuthFooter() {
+export function AuthFooter({
+  showPortal = false,
+}: {
+  /** Affiche le lien discret vers le portail super-admin (page login
+   *  commerçant uniquement — jamais sur les pages grand public). */
+  showPortal?: boolean;
+}) {
   return (
     <footer className="border-border mt-auto border-t bg-white">
       <div className="text-muted mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-2 px-4 py-3 text-xs lg:px-6">
         <p>
           © {new Date().getFullYear()} {APP_CONFIG.name}. Tous droits réservés.
         </p>
-        <nav className="flex flex-wrap gap-3">
+        <nav className="flex flex-wrap items-center gap-3">
           <Link href="/aide" className="hover:text-foreground">
             Aide
           </Link>
@@ -121,6 +128,15 @@ export function AuthFooter() {
           >
             Support
           </a>
+          {showPortal && (
+            <Link
+              href="/portail"
+              className="text-subtle hover:text-foreground inline-flex items-center gap-1"
+            >
+              <Lock className="size-3" />
+              Portail
+            </Link>
+          )}
         </nav>
       </div>
     </footer>

@@ -42,7 +42,7 @@ export async function getAal(): Promise<{
 
 /**
  * À appeler en tête des pages/actions /admin :
- *  - non connecté ou non super-admin → /login
+ *  - non connecté ou non super-admin → /portail (connexion super-admin dédiée)
  *  - super-admin avec MFA enrôlé mais session aal1 → /auth/mfa-challenge
  *
  * Le 2e check assure qu'un mot de passe seul ne suffit PAS dès que le
@@ -52,7 +52,7 @@ export async function getAal(): Promise<{
  */
 export async function requireSuperAdmin(): Promise<void> {
   if (!(await isSuperAdmin())) {
-    redirect("/login?error=forbidden");
+    redirect("/portail?error=forbidden");
   }
   const { currentLevel, nextLevel } = await getAal();
   if (nextLevel === "aal2" && currentLevel !== "aal2") {

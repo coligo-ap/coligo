@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ChevronDown, MapPin, ShoppingBag, User } from "lucide-react";
+import { ChevronDown, MapPin, ShoppingCart, User } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { useCustomerLocation } from "@/lib/customer/location-store";
@@ -65,7 +65,7 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
             className="hover:bg-surface-2 relative rounded-full p-2"
             aria-label="Panier"
           >
-            <ShoppingBag className="size-5" />
+            <ShoppingCart className="size-5" />
             {cartCount > 0 && (
               <span className="bg-primary-600 absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white">
                 {cartCount}
@@ -133,7 +133,7 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
                 aria-label="Panier"
                 className="bg-surface-2 text-foreground relative grid size-[38px] place-items-center rounded-full"
               >
-                <ShoppingBag className="size-[18px]" />
+                <ShoppingCart className="size-[18px]" />
                 {cartCount > 0 && (
                   <span className="bg-success-600 absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full border-2 border-white px-1 text-[9px] font-bold text-white">
                     {cartCount}

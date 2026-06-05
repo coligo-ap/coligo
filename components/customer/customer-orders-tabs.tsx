@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Banknote, CreditCard, Hourglass, Receipt } from "lucide-react";
+import { Banknote, ClipboardList, CreditCard, Hourglass } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ORDER_STATUS_META, type OrderStatus } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
@@ -90,7 +90,7 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
 
       {filtered.length === 0 ? (
         <div className="border-border bg-surface text-muted rounded-[14px] border p-8 text-center text-sm">
-          <Receipt className="text-subtle mx-auto mb-2 size-7" />
+          <ClipboardList className="text-subtle mx-auto mb-2 size-7" />
           Aucune commande dans cette catégorie.
         </div>
       ) : (
