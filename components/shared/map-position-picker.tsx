@@ -76,6 +76,8 @@ export function MapPositionPicker({
   // Mode plein écran : la même carte passe en overlay fixe pour ajuster
   // précisément la position, puis retour au checkout.
   const [fullscreen, setFullscreen] = useState(false);
+  // Court loader « Enregistrement… » à la confirmation depuis le plein écran.
+  const [confirming, setConfirming] = useState(false);
 
   // onChange peut changer entre renders (closure différente). On le passe via
   // ref pour que les handlers MapLibre (attachés une seule fois) appellent
@@ -308,6 +310,23 @@ export function MapPositionPicker({
     return () => ts.forEach(clearTimeout);
   }, [fullscreen]);
 
+  // Confirme la position depuis le plein écran : émet le centre courant, montre
+  // un court loader (« enregistré »), puis revient au checkout (sort du plein
+  // écran). La position est déjà capturée en continu via `moveend`.
+  const confirmFullscreen = () => {
+    if (confirming) return;
+    const map = mapRef.current;
+    if (map) {
+      const c = map.getCenter();
+      onChangeRef.current({ lat: c.lat, lng: c.lng });
+    }
+    setConfirming(true);
+    window.setTimeout(() => {
+      setConfirming(false);
+      setFullscreen(false);
+    }, 650);
+  };
+
   const useGps = async () => {
     setLoading(true);
     try {
@@ -398,7 +417,12 @@ export function MapPositionPicker({
         type="button"
         onClick={useGps}
         disabled={loading || !mapReady}
-        className="bg-surface border-border absolute right-2 bottom-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow disabled:opacity-60"
+        className={cn(
+          "bg-surface border-border absolute right-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow disabled:opacity-60",
+          // En plein écran, on remonte le bouton GPS au-dessus de la barre
+          // « Confirmer ma position ».
+          fullscreen ? "bottom-24" : "bottom-2"
+        )}
       >
         {loading ? (
           <Loader2 className="size-3.5 animate-spin" />
@@ -420,16 +444,29 @@ export function MapPositionPicker({
         </button>
       )}
 
-      {/* Plein écran : bouton « Terminer » pour valider et revenir. */}
+      {/* Plein écran : barre d'action EN BAS avec « Confirmer ma position »
+          (noir) → court loader « Enregistrement… » puis retour au checkout. */}
       {fullscreen && (
-        <button
-          type="button"
-          onClick={() => setFullscreen(false)}
-          className="bg-primary-600 absolute top-[max(12px,env(safe-area-inset-top))] left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold text-white shadow-lg"
-        >
-          <Check className="size-4" />
-          Terminer
-        </button>
+        <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/15 to-transparent p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+          <button
+            type="button"
+            onClick={confirmFullscreen}
+            disabled={confirming}
+            className="bg-foreground inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-base font-bold text-white shadow-xl disabled:opacity-90"
+          >
+            {confirming ? (
+              <>
+                <Loader2 className="size-5 animate-spin" />
+                Enregistrement…
+              </>
+            ) : (
+              <>
+                <Check className="size-5" />
+                Confirmer ma position
+              </>
+            )}
+          </button>
+        </div>
       )}
     </div>
   );
