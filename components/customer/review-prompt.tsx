@@ -27,8 +27,32 @@ type Props = {
 // Refus mémorisé par COMMERÇANT (pas par commande) : si le client ferme la
 // pop-up sans noter, on ne le redérange plus pour CE commerce, même s'il
 // repasse commande plus tard.
-const dismissKey = (merchantId: string) =>
-  `coligo-review-dismiss-merchant-${merchantId}`;
+const DISMISS_PREFIX = "coligo-review-dismiss-merchant-";
+const dismissKey = (merchantId: string) => `${DISMISS_PREFIX}${merchantId}`;
+
+// Avant, le refus était indexé par COMMANDE (`coligo-review-dismiss-<orderId>`).
+// Depuis qu'on mémorise par commerçant, ces clés sont orphelines : on les purge
+// UNE SEULE FOIS par appareil (sentinelle non préfixée pour ne pas s'auto-effacer).
+const LEGACY_CLEANUP_FLAG = "coligo-review-keys-migrated-v1";
+const LEGACY_PREFIX = "coligo-review-dismiss-";
+
+function purgeLegacyDismissKeys() {
+  try {
+    if (localStorage.getItem(LEGACY_CLEANUP_FLAG)) return;
+    const stale: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      // Anciennes clés par-commande uniquement (pas les nouvelles par-commerçant).
+      if (k && k.startsWith(LEGACY_PREFIX) && !k.startsWith(DISMISS_PREFIX)) {
+        stale.push(k);
+      }
+    }
+    stale.forEach((k) => localStorage.removeItem(k));
+    localStorage.setItem(LEGACY_CLEANUP_FLAG, "1");
+  } catch {
+    /* localStorage indispo (Safari privé) : rien à purger */
+  }
+}
 
 export function ReviewPrompt({ orders }: Props) {
   const [active, setActive] = useState<ReviewableOrder | null>(null);
@@ -38,6 +62,11 @@ export function ReviewPrompt({ orders }: Props) {
   const autoOpenedRef = useRef(false);
 
   const o = orders[0] ?? null;
+
+  // Purge unique des anciennes clés de refus par-commande (montage seulement).
+  useEffect(() => {
+    purgeLegacyDismissKeys();
+  }, []);
 
   useEffect(() => {
     if (!o) return;
