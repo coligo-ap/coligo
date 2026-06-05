@@ -81,7 +81,10 @@ export function CheckoutView({ customer }: Props) {
   const [conflictDismissed, setConflictDismissed] = useState(false);
   const showConflict = otherCarts.length > 0 && !conflictDismissed;
   // Cashback : toggle "utiliser mes X DA" + montant effectif (jamais > total).
-  const [useCashback, setUseCashback] = useState(true);
+  // NON sélectionné par défaut : le client choisit explicitement de l'utiliser
+  // (sinon son cashback est dépensé à son insu). Le serveur reste la source de
+  // vérité (recalcule et plafonne le montant).
+  const [useCashback, setUseCashback] = useState(false);
   // Coligo Pay (topup) : toggle séparé. S'applique APRÈS le cashback.
   const [useTopup, setUseTopup] = useState(true);
   // Pendant la redirection vers Chargily, on N'A PAS vidé le panier (pour
@@ -593,16 +596,17 @@ export function CheckoutView({ customer }: Props) {
               )}
           </Section>
 
-          {/* Mon Cashback — visible uniquement si le client a un solde. */}
+          {/* Mon Cashback — visible uniquement si le client a un solde.
+              NON activé par défaut : le client bascule le toggle pour l'utiliser. */}
           {ctx.cashback_balance_da > 0 && (
             <Section icon={Gift} title="Mon Cashback">
-              <label className="hover:bg-surface-2 flex cursor-pointer items-start gap-3 rounded-[10px] p-2 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={useCashback}
-                  onChange={(e) => setUseCashback(e.target.checked)}
-                  className="accent-primary-600 mt-1 size-4"
-                />
+              <button
+                type="button"
+                role="switch"
+                aria-checked={useCashback}
+                onClick={() => setUseCashback((v) => !v)}
+                className="hover:bg-surface-2 flex w-full cursor-pointer items-center gap-3 rounded-[10px] p-2 text-left transition-colors"
+              >
                 <span className="flex-1 text-sm">
                   <span className="text-foreground block font-medium">
                     Utiliser mes{" "}
@@ -612,25 +616,28 @@ export function CheckoutView({ customer }: Props) {
                     de cashback
                   </span>
                   <span className="text-muted mt-0.5 block text-xs">
-                    {cashbackApplied < ctx.cashback_balance_da
-                      ? `Plafonné à ${formatDA(cashbackApplied)} (le total de la commande).`
-                      : "Déduit du total à payer. Non retirable."}
+                    {!useCashback
+                      ? "Désactivé — ton cashback est conservé pour plus tard."
+                      : cashbackApplied < ctx.cashback_balance_da
+                        ? `Plafonné à ${formatDA(cashbackApplied)} (le total de la commande).`
+                        : "Déduit du total à payer. Non retirable."}
                   </span>
                 </span>
-              </label>
+                <ToggleSwitch checked={useCashback} />
+              </button>
             </Section>
           )}
 
           {/* Coligo Pay — solde réel rechargé. S'applique APRÈS le cashback. */}
           {ctx.topup_balance_da > 0 && totalAfterCashback > 0 && (
             <Section icon={Wallet} title="Coligo Pay">
-              <label className="hover:bg-surface-2 flex cursor-pointer items-start gap-3 rounded-[10px] p-2 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={useTopup}
-                  onChange={(e) => setUseTopup(e.target.checked)}
-                  className="accent-primary-600 mt-1 size-4"
-                />
+              <button
+                type="button"
+                role="switch"
+                aria-checked={useTopup}
+                onClick={() => setUseTopup((v) => !v)}
+                className="hover:bg-surface-2 flex w-full cursor-pointer items-center gap-3 rounded-[10px] p-2 text-left transition-colors"
+              >
                 <span className="flex-1 text-sm">
                   <span className="text-foreground block font-medium">
                     Utiliser mon solde{" "}
@@ -639,12 +646,15 @@ export function CheckoutView({ customer }: Props) {
                     </span>
                   </span>
                   <span className="text-muted mt-0.5 block text-xs">
-                    {topupApplied < ctx.topup_balance_da
-                      ? `Plafonné à ${formatDA(topupApplied)} (le reste à payer).`
-                      : "Déduit du total. Solde réel, rechargé via Chargily Pay."}
+                    {!useTopup
+                      ? "Désactivé — ton solde Coligo Pay est conservé."
+                      : topupApplied < ctx.topup_balance_da
+                        ? `Plafonné à ${formatDA(topupApplied)} (le reste à payer).`
+                        : "Déduit du total. Solde réel, rechargé via Chargily Pay."}
                   </span>
                 </span>
-              </label>
+                <ToggleSwitch checked={useTopup} />
+              </button>
             </Section>
           )}
 
@@ -816,6 +826,26 @@ export function CheckoutView({ customer }: Props) {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Interrupteur visuel (le clic est géré par le bouton parent role="switch"). */
+function ToggleSwitch({ checked }: { checked: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
+        checked ? "bg-primary-600" : "bg-border-strong"
+      )}
+    >
+      <span
+        className={cn(
+          "inline-block size-5 transform rounded-full bg-white shadow transition-transform",
+          checked ? "translate-x-[22px]" : "translate-x-0.5"
+        )}
+      />
+    </span>
   );
 }
 
