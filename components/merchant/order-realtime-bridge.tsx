@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Volume2 } from "lucide-react";
+import { Ban, Volume2 } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { useMerchantPrefs } from "@/lib/hooks/use-merchant-prefs";
 import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
@@ -67,6 +67,12 @@ export function OrderRealtimeBridge({
   // File des commandes à confirmer, affichées une par une en overlay plein
   // écran. On empile sur chaque INSERT et on dépile à l'acceptation/refus.
   const [queue, setQueue] = useState<NewOrder[]>([]);
+  // Alerte « commande annulée par le client » (pop-up rouge plein écran).
+  const [cancelledAlert, setCancelledAlert] = useState<{
+    id: string;
+    ref: string;
+    name: string | null;
+  } | null>(null);
   const printedOnceRef = useRef<Set<string>>(new Set());
   // Commandes déjà signalées (son/notif) — pour n'alerter qu'UNE fois par
   // commande, quel que soit le canal qui la remonte (Realtime ou polling).
@@ -325,9 +331,28 @@ export function OrderRealtimeBridge({
       order_number?: string | null;
       payment_method?: string | null;
       payment_status?: string | null;
+      cancelled_by?: string | null;
     }) => {
       router.refresh();
       const s = settingsRef.current;
+
+      // ANNULATION PAR LE CLIENT (avant acceptation) : on retire la commande de
+      // la file de confirmation si elle y est, et on affiche une pop-up rouge
+      // « ne pas préparer » + son + vibration + notif système.
+      if (row.status === "cancelled" && row.cancelled_by === "customer") {
+        setQueue((q) => q.filter((o) => o.id !== row.id));
+        const ref = row.order_number ?? row.id.slice(0, 6).toUpperCase();
+        setCancelledAlert({ id: row.id, ref, name: row.customer_name ?? null });
+        if (prefs.alertSound) void play({ repeat: false });
+        vibrate([200, 100, 200, 100, 400]);
+        if (prefs.notifications && permission === "granted") {
+          notify("Commande annulée", {
+            body: `#${ref} annulée par le client — ne pas la préparer.`,
+            tag: "coligo-cancel",
+          });
+        }
+        return;
+      }
       // Une commande online qui vient d'être PAYÉE (webhook → payment_status
       // 'paid') devient effective : son UPDATE arrive ici avec status 'pending'.
       // On l'empile alors comme une nouvelle commande à confirmer (overlay +
@@ -356,7 +381,15 @@ export function OrderRealtimeBridge({
         void doPrint(row.id);
       }
     },
-    [router, doPrint, addPending]
+    [
+      router,
+      doPrint,
+      addPending,
+      prefs.alertSound,
+      prefs.notifications,
+      permission,
+      play,
+    ]
   );
 
   const realtimeStatus = useOrderRealtime(merchantId, {
@@ -430,6 +463,41 @@ export function OrderRealtimeBridge({
         onPrint={printFromOverlay}
         canPrint={settingsRef.current.auto_print !== "off"}
       />
+
+      {/* Pop-up « commande annulée par le client » — plein écran rouge. */}
+      {cancelledAlert && (
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-label="Commande annulée par le client"
+          className="bg-danger-700/95 fixed inset-0 z-[97] flex items-center justify-center p-4 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-sm rounded-[20px] bg-white p-6 text-center shadow-2xl">
+            <div className="bg-danger-100 text-danger-700 mx-auto grid size-14 place-items-center rounded-full">
+              <Ban className="size-7" />
+            </div>
+            <h2 className="text-foreground mt-3 text-xl font-bold">
+              Commande annulée
+            </h2>
+            <p className="text-muted mt-1.5 text-sm">
+              La commande{" "}
+              <span className="text-foreground font-bold">
+                #{cancelledAlert.ref}
+              </span>
+              {cancelledAlert.name ? ` de ${cancelledAlert.name}` : ""} a été
+              annulée par le client.{" "}
+              <strong className="text-danger-700">Ne pas la préparer.</strong>
+            </p>
+            <button
+              type="button"
+              onClick={() => setCancelledAlert(null)}
+              className="bg-foreground mt-5 inline-flex h-12 w-full items-center justify-center rounded-[14px] text-base font-bold text-white"
+            >
+              Compris
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

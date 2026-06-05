@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { type OrderStatus } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
 import { CustomerOrderLive } from "@/components/customer/customer-order-live";
+import { CancelOrderButton } from "@/components/customer/cancel-order-button";
 import { OrderTrack } from "@/components/customer/order-track";
 import { CustomerDeliveryMap } from "@/components/customer/customer-delivery-map";
 import { DriverReviewCard } from "@/components/customer/driver-review-card";
@@ -369,6 +370,15 @@ export default async function CustomerOrderDetailPage({
                 )}
               </div>
             </div>
+          )}
+
+          {/* Annulation client — uniquement AVANT acceptation (status pending). */}
+          {status === "pending" && (
+            <CancelOrderButton
+              orderId={order.id}
+              paymentMethod={order.payment_method as "cash" | "online"}
+              paymentStatus={order.payment_status}
+            />
           )}
         </div>
 

@@ -106,6 +106,42 @@ export async function notifyMerchantNewOrder(input: {
   }
 }
 
+/**
+ * Notifie le commerçant qu'une commande a été ANNULÉE PAR LE CLIENT (avant
+ * acceptation). But : qu'il ne la prépare pas. Fire-and-forget.
+ */
+export async function notifyMerchantOrderCancelled(input: {
+  merchantId: string;
+  orderId: string;
+  orderRef: string | null;
+  customerName: string | null;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: merchant } = await admin
+      .from("merchants")
+      .select("user_id")
+      .eq("id", input.merchantId)
+      .maybeSingle();
+    if (!merchant?.user_id) return;
+
+    const tokens = await tokensFor(merchant.user_id, "merchant");
+    if (tokens.length === 0) return;
+
+    const ref = input.orderRef ? `#${input.orderRef}` : "Une commande";
+    await sendFcm(
+      tokens,
+      {
+        title: "Commande annulée par le client",
+        body: `${ref}${input.customerName ? ` · ${input.customerName}` : ""} a été annulée — ne pas la préparer.`,
+      },
+      { route: `/orders/${input.orderId}`, kind: "merchant_order_cancelled" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyMerchantOrderCancelled failed:", err);
+  }
+}
+
 /** Libellés clients par statut — alignés sur la copy commerçant. */
 const STATUS_PUSH: Partial<
   Record<OrderStatus, { title: string; body: string }>
