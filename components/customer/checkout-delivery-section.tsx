@@ -94,8 +94,8 @@ export function CheckoutDeliverySection({
 
   return (
     <section className="space-y-3">
-      {/* Toggle Retrait / Livraison */}
-      <div className="border-border bg-surface flex gap-2 overflow-hidden rounded-[12px] border p-1">
+      {/* Toggle Retrait / Livraison (style Uber : fond gris, actif blanc) */}
+      <div className="bg-surface-2 flex gap-1.5 rounded-[14px] p-1.5">
         <Tab
           icon={<MapPin className="size-4" />}
           label="Retrait"
@@ -129,7 +129,7 @@ export function CheckoutDeliverySection({
       </div>
 
       {value.fulfillment === "delivery" && (
-        <div className="border-border bg-surface space-y-4 rounded-[14px] border p-4">
+        <div className="border-border bg-surface space-y-4 rounded-[16px] border p-4 shadow-sm">
           <DeliveryAddressBlock
             delivery={delivery}
             value={value}
@@ -491,6 +491,7 @@ function CustomPositionPicker({
         initial={value.customPosition ?? undefined}
         defaultCenter={defaultPosition ?? undefined}
         autoLocate={value.customPosition == null}
+        height={160}
         onChange={(p) =>
           update({
             customPosition: p,
@@ -579,11 +580,11 @@ function Tab({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-1 items-center justify-center gap-2 rounded-[10px] py-2 text-sm font-semibold transition",
-        active ? "bg-primary-600 text-white shadow" : "text-muted"
+        "flex flex-1 items-center justify-center gap-2 rounded-[10px] py-3 text-sm font-extrabold transition",
+        active ? "bg-surface text-foreground shadow-sm" : "text-muted"
       )}
     >
-      {icon}
+      <span className={active ? "text-primary-600" : ""}>{icon}</span>
       {label}
     </button>
   );
