@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Tag } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
@@ -29,6 +30,7 @@ export default async function MerchantPublicPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const t = await getTranslations("merchant");
   const m = await getPublicMerchantBySlug(slug);
   if (!m) notFound();
 
@@ -125,8 +127,7 @@ export default async function MerchantPublicPage({
                 <Tag className="size-5" />
               </span>
               <p className="text-[13px] font-bold text-[#7A4E10]">
-                Promotions en cours sur une sélection de produits
-                aujourd&apos;hui.
+                {t("promoBanner")}
               </p>
             </div>
           )}

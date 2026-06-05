@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Banknote, ClipboardList, CreditCard, Hourglass } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ORDER_STATUS_META, type OrderStatus } from "@/lib/types";
@@ -35,6 +36,7 @@ function tabOf(status: OrderStatus): TabKey {
 }
 
 export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
+  const t = useTranslations("orders");
   const counts = useMemo(() => {
     const c = { ongoing: 0, done: 0, cancelled: 0 };
     for (const o of orders) c[tabOf(o.status)]++;
@@ -49,9 +51,9 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
   const filtered = orders.filter((o) => tabOf(o.status) === tab);
 
   const tabs: { key: TabKey; label: string; n: number }[] = [
-    { key: "ongoing", label: "En cours", n: counts.ongoing },
-    { key: "done", label: "Terminées", n: counts.done },
-    { key: "cancelled", label: "Annulées", n: counts.cancelled },
+    { key: "ongoing", label: t("tabOngoing"), n: counts.ongoing },
+    { key: "done", label: t("tabDone"), n: counts.done },
+    { key: "cancelled", label: t("tabCancelled"), n: counts.cancelled },
   ];
 
   return (
@@ -91,7 +93,7 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
       {filtered.length === 0 ? (
         <div className="border-border bg-surface text-muted rounded-[14px] border p-8 text-center text-sm">
           <ClipboardList className="text-subtle mx-auto mb-2 size-7" />
-          Aucune commande dans cette catégorie.
+          {t("emptyCategory")}
         </div>
       ) : (
         <ul className="space-y-2.5">
@@ -137,9 +139,11 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
                     <p className="text-muted text-xs">
                       {date} ·{" "}
                       {o.fulfillment_type === "delivery"
-                        ? "Livraison"
-                        : "Retrait"}{" "}
-                      {o.order_number ? `· N° ${o.order_number}` : ""}
+                        ? t("delivery")
+                        : t("pickup")}{" "}
+                      {o.order_number
+                        ? `· ${t("orderNumberShort")} ${o.order_number}`
+                        : ""}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
@@ -175,11 +179,12 @@ function PaymentBadge({
   method: "cash" | "online";
   status: "pending" | "paid" | "failed" | "refunded";
 }) {
+  const t = useTranslations("orders");
   if (method === "cash") {
     return (
       <span className="text-muted inline-flex items-center gap-1 text-[11px]">
         <Banknote className="size-3" />
-        Espèces
+        {t("payCash")}
       </span>
     );
   }
@@ -187,7 +192,7 @@ function PaymentBadge({
     return (
       <span className="text-success-700 inline-flex items-center gap-1 text-[11px] font-semibold">
         <CreditCard className="size-3" />
-        Payé en ligne
+        {t("payPaidOnline")}
       </span>
     );
   }
@@ -195,7 +200,7 @@ function PaymentBadge({
     return (
       <span className="text-danger-700 inline-flex items-center gap-1 text-[11px] font-semibold">
         <CreditCard className="size-3" />
-        Paiement échoué
+        {t("payFailed")}
       </span>
     );
   }
@@ -203,14 +208,14 @@ function PaymentBadge({
     return (
       <span className="text-muted inline-flex items-center gap-1 text-[11px] font-medium">
         <CreditCard className="size-3" />
-        Remboursé
+        {t("payRefunded")}
       </span>
     );
   }
   return (
     <span className="text-warning-700 inline-flex items-center gap-1 text-[11px] font-semibold">
       <Hourglass className="size-3" />
-      Paiement en attente
+      {t("payPending")}
     </span>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/components/ui/toast";
@@ -11,6 +12,7 @@ import { toast } from "@/components/ui/toast";
  * être activé dans le Dashboard Supabase + les URLs de redirection allowlistées.
  */
 export function SocialAuth({ next }: { next?: string }) {
+  const t = useTranslations("auth");
   const [loading, setLoading] = useState(false);
 
   async function signInGoogle() {
@@ -32,7 +34,7 @@ export function SocialAuth({ next }: { next?: string }) {
       // Succès → le navigateur est redirigé vers Google automatiquement.
     } catch {
       setLoading(false);
-      toast.error("Connexion Google indisponible.");
+      toast.error(t("googleUnavailable"));
     }
   }
 
@@ -40,7 +42,7 @@ export function SocialAuth({ next }: { next?: string }) {
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <span className="border-border h-px flex-1 border-t" />
-        <span className="text-subtle text-xs font-medium">ou</span>
+        <span className="text-subtle text-xs font-medium">{t("or")}</span>
         <span className="border-border h-px flex-1 border-t" />
       </div>
 
@@ -55,7 +57,7 @@ export function SocialAuth({ next }: { next?: string }) {
         ) : (
           <GoogleIcon className="size-5" />
         )}
-        Continuer avec Google
+        {t("continueWithGoogle")}
       </button>
     </div>
   );

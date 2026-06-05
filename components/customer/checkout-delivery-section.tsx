@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
   Bolt,
@@ -70,6 +71,7 @@ export function CheckoutDeliverySection({
   onChange: (next: DeliveryChoice) => void;
   defaultPosition?: { lat: number; lng: number } | null;
 }) {
+  const t = useTranslations("checkout");
   const update = (patch: Partial<DeliveryChoice>) =>
     onChange({ ...value, ...patch });
 
@@ -96,7 +98,7 @@ export function CheckoutDeliverySection({
       <div className="bg-surface-2 flex gap-1.5 rounded-[14px] p-1.5">
         <Tab
           icon={<MapPin className="size-4" />}
-          label="Retrait"
+          label={t("pickup")}
           active={value.fulfillment === "pickup"}
           onClick={() =>
             update({
@@ -111,7 +113,7 @@ export function CheckoutDeliverySection({
         />
         <Tab
           icon={<Truck className="size-4" />}
-          label="Livraison"
+          label={t("delivery")}
           active={value.fulfillment === "delivery"}
           onClick={() =>
             update({
@@ -142,13 +144,13 @@ export function CheckoutDeliverySection({
             <>
               {/* Modes Express / Tournée */}
               <div className="space-y-2">
-                <p className="text-sm font-semibold">Mode</p>
+                <p className="text-sm font-semibold">{t("mode")}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {delivery.express_enabled && (
                     <ModeButton
                       icon={<Bolt className="size-4" />}
-                      label="Express"
-                      sub="Au plus vite"
+                      label={t("express")}
+                      sub={t("expressSub")}
                       active={value.mode === "express"}
                       onClick={() => update({ mode: "express", slotId: null })}
                     />
@@ -156,8 +158,8 @@ export function CheckoutDeliverySection({
                   {delivery.tours_enabled && (
                     <ModeButton
                       icon={<Calendar className="size-4" />}
-                      label="Tournée"
-                      sub="Sur créneau"
+                      label={t("tour")}
+                      sub={t("tourSub")}
                       active={value.mode === "tour"}
                       onClick={() => update({ mode: "tour" })}
                     />
@@ -168,10 +170,10 @@ export function CheckoutDeliverySection({
               {/* Créneau (tour) */}
               {value.mode === "tour" && (
                 <div className="space-y-2">
-                  <p className="text-sm font-semibold">Créneau</p>
+                  <p className="text-sm font-semibold">{t("slot")}</p>
                   {delivery.slots.length === 0 ? (
                     <p className="text-muted text-xs">
-                      Aucun créneau. Choisis Express.
+                      {t("noSlotPickExpress")}
                     </p>
                   ) : (
                     <ul className="space-y-1.5">
@@ -207,7 +209,11 @@ export function CheckoutDeliverySection({
                                 {s.end_time.slice(0, 5)}
                               </span>
                               <span className="text-muted text-xs tabular-nums">
-                                {full ? "Complet" : `${s.available} pl.`}
+                                {full
+                                  ? t("slotFull")
+                                  : t("slotAvailable", {
+                                      count: s.available,
+                                    })}
                               </span>
                             </button>
                           </li>
@@ -255,6 +261,7 @@ function DeliveryAddressBlock({
   merchantPosition: CheckoutMerchantPosition | null;
   defaultPosition?: { lat: number; lng: number } | null;
 }) {
+  const t = useTranslations("checkout");
   // Carte ouverte par défaut (= ma position actuelle). Se referme si le client
   // choisit une adresse enregistrée.
   const [pickerOpen, setPickerOpen] = useState(true);
@@ -266,7 +273,7 @@ function DeliveryAddressBlock({
     <div className="space-y-3">
       <p className="text-muted flex items-center gap-2 text-[12px] font-bold tracking-wide uppercase">
         <MapPin className="text-foreground size-[15px]" />
-        Où livrer ?
+        {t("whereToDeliver")}
       </p>
 
       {/* Adresses enregistrées (raccourcis) */}
@@ -301,7 +308,7 @@ function DeliveryAddressBlock({
                     <p className="truncate text-sm font-medium">{a.label}</p>
                     <p className="text-subtle mt-0.5 text-xs tabular-nums">
                       {a.out_of_range
-                        ? "Hors zone"
+                        ? t("outOfZone")
                         : `${a.distance_km.toFixed(1)} km · ${formatDA(a.fee_da ?? 0)}`}
                     </p>
                   </div>
@@ -325,7 +332,7 @@ function DeliveryAddressBlock({
           }}
           className="border-primary-300 bg-primary-50 text-primary-700 hover:bg-primary-100 w-full rounded-[10px] border-2 border-dashed px-3 py-2 text-center text-sm font-semibold"
         >
-          + Autre position sur la carte
+          {t("otherPositionOnMap")}
         </button>
       ) : (
         <CustomPositionPicker
@@ -349,11 +356,11 @@ function DeliveryAddressBlock({
       {selectedSavedAddress?.out_of_range && (
         <p className="border-danger-200 bg-danger-50 text-danger-700 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-          Hors zone de livraison
+          {t("outOfDeliveryZone")}
           {merchantPosition
-            ? ` (${merchantPosition.radiusKm.toFixed(1)} km max)`
+            ? ` (${t("maxRadius", { km: merchantPosition.radiusKm.toFixed(1) })})`
             : ""}
-          . Choisis une autre adresse ou le retrait.
+          {t("chooseOtherAddressOrPickup")}
         </p>
       )}
     </div>
@@ -375,6 +382,7 @@ function CustomPositionPicker({
   canSwitchToSaved: boolean;
   onSwitchToSaved: () => void;
 }) {
+  const t = useTranslations("checkout");
   const outOfRange = customQuote?.outOfRange ?? false;
   const [locateFailed, setLocateFailed] = useState(false);
 
@@ -409,14 +417,14 @@ function CustomPositionPicker({
   return (
     <div className="border-primary-300 bg-primary-50/40 space-y-2 rounded-[12px] border p-3">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-sm font-semibold">Ta position</p>
+        <p className="text-sm font-semibold">{t("yourPosition")}</p>
         {canSwitchToSaved && (
           <button
             type="button"
             onClick={onSwitchToSaved}
             className="text-primary-700 text-xs underline"
           >
-            Mes adresses
+            {t("myAddresses")}
           </button>
         )}
       </div>
@@ -427,7 +435,7 @@ function CustomPositionPicker({
         autoLocate={value.customPosition == null}
         height={180}
         searchEnabled
-        gpsLabel="Ma position"
+        gpsLabel={t("myPosition")}
         onLocate={(ok) => setLocateFailed(!ok)}
         onChange={(p) =>
           update({
@@ -448,7 +456,7 @@ function CustomPositionPicker({
       {locateFailed && !value.positionConfirmed && (
         <p className="border-warning-200 bg-warning-50 text-warning-800 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-          Position non détectée. Cherche ton adresse ou pointe-la sur la carte.
+          {t("positionNotDetected")}
         </p>
       )}
 
@@ -459,7 +467,7 @@ function CustomPositionPicker({
             <MapPin className="text-primary-600 size-4 shrink-0" />
             <span className="min-w-0 flex-1 truncate">
               {addrLoading ? (
-                <span className="text-muted font-medium">Recherche…</span>
+                <span className="text-muted font-medium">{t("searching")}</span>
               ) : addr ? (
                 addr
               ) : (
@@ -479,17 +487,17 @@ function CustomPositionPicker({
           {outOfRange ? (
             <p className="border-danger-200 bg-danger-50 text-danger-700 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
               <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-              Hors zone
+              {t("outOfZone")}
               {customQuote?.outOfRange === true && customQuote.maxRadiusKm
-                ? ` (${customQuote.maxRadiusKm.toFixed(1)} km max)`
+                ? ` (${t("maxRadius", { km: customQuote.maxRadiusKm.toFixed(1) })})`
                 : ""}
-              . Rapproche le point ou prends en retrait.
+              {t("movePointOrPickup")}
             </p>
           ) : value.positionConfirmed ? (
             <div className="space-y-2">
               <p className="text-success-700 flex items-center gap-1.5 text-[12.5px] font-bold">
                 <Check className="size-4" />
-                Position confirmée
+                {t("positionConfirmed")}
               </p>
               <SaveAddressInline
                 lat={value.customPosition.lat}
@@ -504,14 +512,14 @@ function CustomPositionPicker({
               className="bg-primary-600 hover:bg-primary-700 inline-flex w-full items-center justify-center gap-2 rounded-[12px] py-3 text-sm font-extrabold text-white"
             >
               <Check className="size-4" />
-              Confirmer cette position
+              {t("confirmThisPosition")}
             </button>
           )}
 
           {!value.positionConfirmed && !outOfRange && (
             <p className="text-primary-600 flex items-center justify-center gap-1 text-center text-[11px] font-bold">
               <Maximize2 className="size-3" />
-              Agrandis pour ajuster précisément
+              {t("enlargeToAdjust")}
             </p>
           )}
         </>
@@ -530,6 +538,7 @@ function SaveAddressInline({
   lng: number;
   addressText: string | null;
 }) {
+  const t = useTranslations("checkout");
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState("");
   const [saved, setSaved] = useState(false);
@@ -539,7 +548,7 @@ function SaveAddressInline({
     return (
       <p className="text-success-700 flex items-center gap-1.5 text-[12px] font-semibold">
         <Check className="size-3.5" />
-        Adresse enregistrée dans ton profil
+        {t("addressSavedToProfile")}
       </p>
     );
   }
@@ -551,7 +560,7 @@ function SaveAddressInline({
         onClick={() => setOpen(true)}
         className="text-primary-700 text-xs font-semibold underline"
       >
-        Enregistrer cette adresse
+        {t("saveThisAddress")}
       </button>
     );
   }
@@ -561,7 +570,7 @@ function SaveAddressInline({
       <Input
         value={label}
         onChange={(e) => setLabel(e.target.value)}
-        placeholder="Domicile, bureau…"
+        placeholder={t("addressLabelPlaceholder")}
         className="h-10 flex-1"
         maxLength={60}
       />
@@ -577,12 +586,12 @@ function SaveAddressInline({
               address_text: addressText,
             });
             if (res.ok) setSaved(true);
-            else toast.error(res.error ?? "Échec de l'enregistrement.");
+            else toast.error(res.error ?? t("saveFailed"));
           })
         }
         className="bg-foreground text-background shrink-0 rounded-[10px] px-4 text-sm font-extrabold disabled:opacity-40"
       >
-        {pending ? <Loader2 className="size-4 animate-spin" /> : "Enregistrer"}
+        {pending ? <Loader2 className="size-4 animate-spin" /> : t("save")}
       </button>
     </div>
   );
@@ -596,6 +605,7 @@ function RecipientBlock({
   value: DeliveryChoice;
   update: (patch: Partial<DeliveryChoice>) => void;
 }) {
+  const t = useTranslations("checkout");
   const [forSomeoneElse, setForSomeoneElse] = useState(
     value.recipientName.trim() !== ""
   );
@@ -623,7 +633,7 @@ function RecipientBlock({
           )}
         />
         <span className="flex-1 text-sm font-semibold">
-          Livrer à quelqu&apos;un d&apos;autre
+          {t("deliverToSomeoneElse")}
         </span>
         <span
           className={cn(
@@ -642,14 +652,14 @@ function RecipientBlock({
           <Input
             value={value.recipientName}
             onChange={(e) => update({ recipientName: e.target.value })}
-            placeholder="Nom du destinataire"
+            placeholder={t("recipientNamePlaceholder")}
             maxLength={80}
           />
           <Input
             type="tel"
             value={value.phoneOverride}
             onChange={(e) => update({ phoneOverride: e.target.value })}
-            placeholder="Téléphone du destinataire"
+            placeholder={t("recipientPhonePlaceholder")}
           />
         </div>
       )}
@@ -657,7 +667,7 @@ function RecipientBlock({
       <textarea
         value={value.deliveryNote}
         onChange={(e) => update({ deliveryNote: e.target.value })}
-        placeholder="Note livreur (étage, code, repère…)"
+        placeholder={t("deliveryNotePlaceholder")}
         className="border-border bg-surface min-h-[52px] w-full rounded-[10px] border px-3 py-2 text-sm"
         maxLength={300}
       />

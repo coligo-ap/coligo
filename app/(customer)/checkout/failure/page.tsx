@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { XCircle } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
@@ -23,7 +24,7 @@ export default async function CheckoutFailurePage({
   const { order_id } = await searchParams;
   // Pas d'order_id (lien tronqué, retour Chargily inattendu) → on n'envoie PAS
   // vers une 404 : page de retour de paiement = jamais de cul-de-sac.
-  if (!order_id) return <FailureFallback />;
+  if (!order_id) return await FailureFallback();
 
   const supabase = await createClient();
   const {
@@ -44,7 +45,9 @@ export default async function CheckoutFailurePage({
     .maybeSingle();
   // Commande illisible (RLS, autre compte connecté, déjà purgée) → fallback
   // amical plutôt qu'une 404.
-  if (!order) return <FailureFallback />;
+  if (!order) return await FailureFallback();
+
+  const t = await getTranslations("checkout");
 
   // Si le webhook a déjà confirmé le paiement entre-temps (race rare), on
   // bascule sur la page de succès.
@@ -77,11 +80,8 @@ export default async function CheckoutFailurePage({
         )}
 
         <div className="border-primary-100 bg-primary-50 text-primary-800 mt-5 rounded-[12px] border px-4 py-3 text-sm">
-          <p className="font-semibold">Ton panier est intact 🛒</p>
-          <p className="text-primary-700 mt-1 text-xs">
-            Tu peux retourner au checkout, modifier ta commande ou changer le
-            mode de paiement (espèces au retrait).
-          </p>
+          <p className="font-semibold">{t("cartIntactTitle")}</p>
+          <p className="text-primary-700 mt-1 text-xs">{t("cartIntactBody")}</p>
         </div>
 
         <div className="mt-6 flex flex-col gap-2">
@@ -89,21 +89,18 @@ export default async function CheckoutFailurePage({
             href="/checkout"
             className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-[12px] px-5 text-sm font-semibold text-white"
           >
-            Retourner au checkout
+            {t("backToCheckout")}
           </Link>
           {canRetryThisOrder && <CheckoutRetryButton orderId={order.id} />}
           <Link
             href="/"
             className="text-muted hover:text-foreground text-sm hover:underline"
           >
-            Retour à l&apos;accueil
+            {t("backHome")}
           </Link>
         </div>
 
-        <p className="text-subtle mt-6 text-xs">
-          Aucun débit n&apos;a eu lieu. Cette commande n&apos;apparaît PAS dans
-          « Mes commandes » tant qu&apos;elle n&apos;est pas payée.
-        </p>
+        <p className="text-subtle mt-6 text-xs">{t("noChargeNotice")}</p>
       </div>
     </CustomerShell>
   );
@@ -111,7 +108,8 @@ export default async function CheckoutFailurePage({
 
 /** Repli quand on n'a pas le contexte commande (jamais de 404 sur un retour
  *  de paiement). */
-function FailureFallback() {
+async function FailureFallback() {
+  const t = await getTranslations("checkout");
   return (
     <CustomerShell>
       <div className="mx-auto max-w-md px-4 py-12 text-center lg:py-20">
@@ -119,30 +117,27 @@ function FailureFallback() {
           <XCircle className="size-8" />
         </div>
         <h1 className="text-foreground mt-4 text-2xl font-bold">
-          Paiement non abouti
+          {t("failureFallbackTitle")}
         </h1>
-        <p className="text-muted mt-2 text-sm">
-          Ton paiement n&apos;a pas été confirmé. Aucun débit n&apos;a eu lieu
-          et ton panier est intact.
-        </p>
+        <p className="text-muted mt-2 text-sm">{t("failureFallbackBody")}</p>
         <div className="mt-6 flex flex-col gap-2">
           <Link
             href="/checkout"
             className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-[12px] px-5 text-sm font-semibold text-white"
           >
-            Retourner au checkout
+            {t("backToCheckout")}
           </Link>
           <Link
             href="/commandes"
             className="text-muted hover:text-foreground text-sm hover:underline"
           >
-            Voir mes commandes
+            {t("viewMyOrders")}
           </Link>
           <Link
             href="/"
             className="text-muted hover:text-foreground text-sm hover:underline"
           >
-            Retour à l&apos;accueil
+            {t("backHome")}
           </Link>
         </div>
       </div>

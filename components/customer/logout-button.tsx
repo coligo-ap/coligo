@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { useTranslations } from "next-intl";
 import { Loader2, LogOut } from "lucide-react";
 import { customerLogout } from "@/app/(customer)/actions";
 
@@ -14,6 +15,7 @@ export function CustomerLogoutButton() {
 }
 
 function Inner() {
+  const t = useTranslations("account");
   const { pending } = useFormStatus();
   return (
     <button
@@ -26,7 +28,7 @@ function Inner() {
       ) : (
         <LogOut className="size-4" />
       )}
-      {pending ? "Déconnexion en cours…" : "Déconnexion"}
+      {pending ? t("loggingOut") : t("logout")}
     </button>
   );
 }

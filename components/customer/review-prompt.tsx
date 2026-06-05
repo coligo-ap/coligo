@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Star } from "lucide-react";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { ReviewModal } from "@/components/customer/review-modal";
@@ -60,6 +61,7 @@ export function ReviewPrompt({ orders }: Props) {
   // True quand la modale a été ouverte AUTOMATIQUEMENT (mobile) : sa fermeture
   // sans envoi vaut « je ne veux pas noter » → on mémorise le refus.
   const autoOpenedRef = useRef(false);
+  const t = useTranslations("reviews");
 
   const o = orders[0] ?? null;
 
@@ -138,7 +140,7 @@ export function ReviewPrompt({ orders }: Props) {
         )}
         <div className="min-w-0 flex-1">
           <p className="text-foreground text-sm font-semibold">
-            Comment c&apos;était chez {o.merchant_name} ?
+            {t("howWasItAt", { merchant: o.merchant_name })}
           </p>
           <div className="mt-0.5 flex items-center gap-1">
             {[1, 2, 3, 4, 5].map((n) => (
@@ -147,7 +149,9 @@ export function ReviewPrompt({ orders }: Props) {
                 className="size-3.5 fill-amber-300 text-amber-400"
               />
             ))}
-            <span className="text-muted ml-1 text-[11px]">Note en 1 clic</span>
+            <span className="text-muted ml-1 text-[11px]">
+              {t("rateInOneClick")}
+            </span>
           </div>
         </div>
         <Link
@@ -155,7 +159,7 @@ export function ReviewPrompt({ orders }: Props) {
           onClick={(e) => e.stopPropagation()}
           className="shrink-0 text-[11px] font-semibold text-amber-700 hover:underline"
         >
-          Autres ?
+          {t("others")}
         </Link>
       </button>
 

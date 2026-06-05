@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Gift, Wallet } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
@@ -27,9 +28,10 @@ export default async function CustomerCashbackPage() {
     .maybeSingle();
   if (merchant) redirect("/dashboard");
 
-  const [balance, history] = await Promise.all([
+  const [balance, history, t] = await Promise.all([
     getMyCashbackBalance(),
     getMyCashbackHistory(100),
+    getTranslations("wallet"),
   ]);
 
   return (
@@ -37,26 +39,24 @@ export default async function CustomerCashbackPage() {
       <div className="mx-auto max-w-2xl px-4 py-6 pb-24 lg:px-6 lg:py-10">
         <header className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
-            Mon Cashback
+            {t("cashbackTitle")}
           </h1>
-          <p className="text-muted mt-1 text-sm">
-            Gagnez du cashback à chaque commande, utilisez-le pour payer vos
-            prochaines.
-          </p>
+          <p className="text-muted mt-1 text-sm">{t("cashbackSubtitle")}</p>
         </header>
 
         {/* Solde principal */}
         <section className="from-primary-600 via-primary-700 to-primary-800 relative overflow-hidden rounded-[20px] bg-gradient-to-br p-6 text-white shadow-md">
           <Gift className="absolute -top-2 -right-2 size-28 text-white/10" />
           <p className="text-xs font-semibold tracking-wider text-white/85 uppercase">
-            Solde disponible
+            {t("availableBalance")}
           </p>
           <p className="mt-1 text-4xl leading-none font-bold tabular-nums lg:text-5xl">
             {formatDA(balance)}
           </p>
           <p className="text-primary-50/85 mt-3 max-w-md text-xs">
-            Ce cashback est <strong>non retirable</strong>. Il se déduit
-            automatiquement de tes prochaines commandes.
+            {t.rich("cashbackNonWithdrawable", {
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </p>
         </section>
 
@@ -70,11 +70,10 @@ export default async function CustomerCashbackPage() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-foreground text-sm font-semibold">
-              Coligo Pay (différent du cashback)
+              {t("coligoPayLinkTitle")}
             </p>
             <p className="text-muted mt-0.5 text-xs">
-              Solde réel rechargeable par carte CIB/EDAHABIA. Voir et recharger
-              →
+              {t("coligoPayLinkDesc")}
             </p>
           </div>
         </Link>
@@ -82,11 +81,11 @@ export default async function CustomerCashbackPage() {
         {/* Historique CASHBACK uniquement */}
         <section className="mt-6">
           <h2 className="text-foreground mb-3 text-base font-bold">
-            Historique du cashback
+            {t("cashbackHistory")}
           </h2>
           <WalletEntryList
             entries={history}
-            emptyHint="Découvrir les commerces"
+            emptyHint={t("discoverMerchants")}
           />
         </section>
       </div>

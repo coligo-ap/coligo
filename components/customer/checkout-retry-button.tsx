@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Loader2, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
@@ -13,6 +14,7 @@ import { retryOnlineOrderPayment } from "@/app/(customer)/checkout/actions";
 // Chargily est créé). On `window.location` vers l'URL retournée.
 // =============================================================================
 export function CheckoutRetryButton({ orderId }: { orderId: string }) {
+  const t = useTranslations("checkout");
   const [pending, start] = useTransition();
   return (
     <Button
@@ -36,7 +38,7 @@ export function CheckoutRetryButton({ orderId }: { orderId: string }) {
       ) : (
         <>
           <RefreshCcw className="size-4" />
-          Réessayer le paiement
+          {t("retryPayment")}
         </>
       )}
     </Button>

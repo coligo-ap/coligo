@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   ChevronDown,
   ChevronUp,
@@ -74,6 +75,7 @@ export function MerchantHeroCard({
   rating_count: number;
   reviews: ReviewWithCustomer[];
 }) {
+  const t = useTranslations("merchant");
   const [showHours, setShowHours] = useState(false);
   const [expandDesc, setExpandDesc] = useState(false);
 
@@ -96,7 +98,7 @@ export function MerchantHeroCard({
           PAS de texte ici : la carte info qui chevauche masquerait le bas. */}
       <ImageWithOverlay
         src={heroSrc}
-        alt={`Photo du commerce ${name}`}
+        alt={t("merchantPhotoAlt", { name })}
         variant="hero"
         aspectClassName="aspect-[3/1]"
         priority
@@ -175,7 +177,7 @@ export function MerchantHeroCard({
                 onClick={() => setExpandDesc((v) => !v)}
                 className="text-primary-700 mt-1 text-xs font-medium hover:underline"
               >
-                {expandDesc ? "Voir moins" : "Voir plus"}
+                {expandDesc ? t("seeLess") : t("seeMore")}
               </button>
             ) : null}
           </div>
@@ -204,19 +206,21 @@ export function MerchantHeroCard({
             <li className="inline-flex items-center gap-1">
               <Wallet className="text-primary-600 size-3.5" />
               <span className="text-foreground">
-                Min <strong>{formatDA(min_order_da)}</strong>
+                {t("min")} <strong>{formatDA(min_order_da)}</strong>
               </span>
             </li>
           ) : (
             <li className="inline-flex items-center gap-1">
               <Wallet className="text-primary-600 size-3.5" />
-              <Badge tone="success">Sans minimum</Badge>
+              <Badge tone="success">{t("noMinimum")}</Badge>
             </li>
           )}
           {prep_time_min > 0 && (
             <li className="inline-flex items-center gap-1">
               <ShoppingBag className="text-primary-600 size-3.5" />
-              <span className="text-foreground">~ {prep_time_min} min</span>
+              <span className="text-foreground">
+                ~ {t("prepMinutes", { count: prep_time_min })}
+              </span>
             </li>
           )}
         </ul>
@@ -230,7 +234,7 @@ export function MerchantHeroCard({
             className="text-foreground hover:bg-surface-2 -mx-2 flex w-[calc(100%+1rem)] items-center gap-2 rounded-[10px] px-2 py-1.5 text-left text-sm font-medium transition-colors"
           >
             <Clock className="text-primary-600 size-4" />
-            <span className="flex-1">Voir les horaires d&apos;ouverture</span>
+            <span className="flex-1">{t("seeOpeningHours")}</span>
             {showHours ? (
               <ChevronUp className="text-muted size-4" />
             ) : (
@@ -249,7 +253,7 @@ export function MerchantHeroCard({
                     <span className="font-medium">{DAY_LABELS[d].long}</span>
                     <span className="text-muted tabular-nums">
                       {slots.length === 0
-                        ? "Fermé"
+                        ? t("closed")
                         : slots.map((s) => `${s.open}–${s.close}`).join(" · ")}
                     </span>
                   </li>

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RatingStars } from "@/components/customer/rating-stars";
@@ -16,28 +17,32 @@ type Props = {
   reviews: ReviewWithCustomer[];
 };
 
-export function MerchantReviews({ ratingAvg, ratingCount, reviews }: Props) {
+export async function MerchantReviews({
+  ratingAvg,
+  ratingCount,
+  reviews,
+}: Props) {
   // Pas d'avis → on n'affiche rien (pas de placeholder "0 étoile"
   // décourageant pour les nouveaux commerces).
   if (ratingCount === 0) return null;
+
+  const t = await getTranslations("reviews");
 
   return (
     <section className="mt-8">
       <header className="mb-3 flex items-baseline justify-between gap-3">
         <h2 className="font-display text-foreground text-xl font-bold">
-          Avis clients
+          {t("customerReviews")}
         </h2>
         <RatingStars avg={ratingAvg} count={ratingCount} size="md" />
       </header>
 
       {reviews.length === 0 ? (
-        <p className="text-muted text-sm">
-          Aucun commentaire à afficher (les notes restent comptées).
-        </p>
+        <p className="text-muted text-sm">{t("noCommentToDisplay")}</p>
       ) : (
         <ul className="space-y-3">
           {reviews.map((r) => (
-            <ReviewItem key={r.id} review={r} />
+            <ReviewItem key={r.id} review={r} t={t} />
           ))}
         </ul>
       )}
@@ -45,8 +50,14 @@ export function MerchantReviews({ ratingAvg, ratingCount, reviews }: Props) {
   );
 }
 
-function ReviewItem({ review }: { review: ReviewWithCustomer }) {
-  const displayName = anonymize(review.customer_name);
+function ReviewItem({
+  review,
+  t,
+}: {
+  review: ReviewWithCustomer;
+  t: Awaited<ReturnType<typeof getTranslations>>;
+}) {
+  const displayName = anonymize(review.customer_name, t("anonymousCustomer"));
   const date = new Date(review.created_at).toLocaleDateString("fr-DZ", {
     day: "numeric",
     month: "short",
@@ -60,7 +71,7 @@ function ReviewItem({ review }: { review: ReviewWithCustomer }) {
           <p className="text-muted text-xs">
             {date}
             {review.edited_at && (
-              <span className="text-subtle"> · modifié</span>
+              <span className="text-subtle"> · {t("edited")}</span>
             )}
           </p>
         </div>
@@ -88,8 +99,8 @@ function ReviewItem({ review }: { review: ReviewWithCustomer }) {
 }
 
 /** "Mehdi B." — anonymisation partielle pour respecter la vie privée. */
-function anonymize(fullName: string | null): string {
-  if (!fullName) return "Client Coligo";
+function anonymize(fullName: string | null, fallback: string): string {
+  if (!fullName) return fallback;
   const parts = fullName.trim().split(/\s+/);
   if (parts.length === 1) return parts[0];
   return `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;

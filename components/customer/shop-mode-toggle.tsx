@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Bike, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { setCartMode, useCartFor } from "@/lib/customer/cart-store";
@@ -27,6 +28,7 @@ export function ShopModeToggle({
   deliveryEnabled: boolean;
   deliveryFeeLabel?: string | null;
 }) {
+  const t = useTranslations("merchant");
   const cart = useCartFor(merchant.id);
   const mode =
     cart.mode === "delivery" && deliveryEnabled ? "delivery" : "pickup";
@@ -47,7 +49,7 @@ export function ShopModeToggle({
         <MapPin
           className={cn("size-4", mode === "pickup" && "text-primary-600")}
         />
-        Retrait gratuit
+        {t("freePickup")}
       </button>
       <button
         type="button"
@@ -65,8 +67,8 @@ export function ShopModeToggle({
           className={cn("size-4", mode === "delivery" && "text-primary-600")}
         />
         {deliveryEnabled
-          ? `Livraison${deliveryFeeLabel ? ` ${deliveryFeeLabel}` : ""}`
-          : "Livraison indispo."}
+          ? `${t("delivery")}${deliveryFeeLabel ? ` ${deliveryFeeLabel}` : ""}`
+          : t("deliveryUnavailable")}
       </button>
     </div>
   );

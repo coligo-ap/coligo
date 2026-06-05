@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatDA } from "@/lib/utils";
@@ -31,6 +32,7 @@ export function ProductDetailSheet({
   promoUnitPriceDa,
   onClose,
 }: Props) {
+  const t = useTranslations("merchant");
   const cart = useCart();
   const [qty, setQty] = useState(1);
 
@@ -63,7 +65,7 @@ export function ProductDetailSheet({
   function addOrUpdate() {
     if (inCart) {
       setItemQuantity(product!.id, qty);
-      toast.success(`Quantité mise à ${qty}`);
+      toast.success(t("quantityUpdated", { qty }));
     } else {
       // addItem ajoute par incrément ; on injecte la quantité voulue d'un coup.
       // Plus de blocage en cas de "panier d'un autre commerce" — c'est géré
@@ -109,7 +111,7 @@ export function ProductDetailSheet({
             type="button"
             onClick={onClose}
             className="bg-foreground/60 hover:bg-foreground/80 absolute top-3 right-3 flex size-9 items-center justify-center rounded-full text-white backdrop-blur"
-            aria-label="Fermer"
+            aria-label={t("close")}
           >
             <X className="size-5" />
           </button>
@@ -164,7 +166,7 @@ export function ProductDetailSheet({
 
           {product.stock_qty != null && product.stock_qty <= 5 && (
             <p className="text-warning-700 mt-3 text-xs font-medium">
-              Plus que {product.stock_qty} en stock
+              {t("onlyLeftInStock", { count: product.stock_qty })}
             </p>
           )}
         </div>
@@ -176,7 +178,7 @@ export function ProductDetailSheet({
               type="button"
               onClick={() => setQty((q) => Math.max(1, q - 1))}
               className="text-foreground hover:bg-surface-3 flex size-8 items-center justify-center rounded-full"
-              aria-label="Retirer 1"
+              aria-label={t("removeOne")}
             >
               <Minus className="size-4" />
             </button>
@@ -193,7 +195,7 @@ export function ProductDetailSheet({
                 )
               }
               className="bg-primary-600 hover:bg-primary-700 flex size-8 items-center justify-center rounded-full text-white"
-              aria-label="Ajouter 1"
+              aria-label={t("addOne")}
             >
               <Plus className="size-4" />
             </button>
@@ -204,7 +206,7 @@ export function ProductDetailSheet({
             size="lg"
             onClick={addOrUpdate}
           >
-            {inCart ? "Mettre à jour" : "Ajouter"} · {formatDA(lineTotal)}
+            {inCart ? t("update") : t("add")} · {formatDA(lineTotal)}
           </Button>
         </div>
       </div>

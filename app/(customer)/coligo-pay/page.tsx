@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Gift, Wallet } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { ColigoPayCard } from "@/components/customer/coligo-pay-card";
@@ -61,17 +62,16 @@ export default async function CustomerColigoPayPage() {
   ]);
   const remaining30d = Math.max(0, maxPerRecharge - credited30d);
 
+  const t = await getTranslations("wallet");
+
   return (
     <CustomerShell>
       <div className="mx-auto max-w-2xl px-4 py-6 pb-24 lg:px-6 lg:py-10">
         <header className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
-            Coligo Pay
+            {t("coligoPayTitle")}
           </h1>
-          <p className="text-muted mt-1 text-sm">
-            Ton solde réel rechargeable par carte CIB / EDAHABIA via Chargily
-            Pay.
-          </p>
+          <p className="text-muted mt-1 text-sm">{t("coligoPaySubtitle")}</p>
         </header>
 
         {/* Solde principal — visuellement DIFFÉRENT du cashback (gradient
@@ -79,15 +79,13 @@ export default async function CustomerColigoPayPage() {
         <section className="from-primary-700 to-primary-900 relative overflow-hidden rounded-[20px] bg-gradient-to-br p-6 text-white shadow-md">
           <Wallet className="absolute -top-2 -right-2 size-28 text-white/10" />
           <p className="text-xs font-semibold tracking-wider text-white/85 uppercase">
-            Solde Coligo Pay
+            {t("coligoPayBalance")}
           </p>
           <p className="mt-1 text-4xl leading-none font-bold tabular-nums lg:text-5xl">
             {formatDA(balance)}
           </p>
           <p className="text-primary-50/85 mt-3 max-w-md text-xs">
-            Argent réel — utilisable comme moyen de paiement à n&apos;importe
-            quel commerce Coligo (en plus de ton cashback). Tu peux le recharger
-            ci-dessous.
+            {t("coligoPayBalanceDesc")}
           </p>
         </section>
 
@@ -108,20 +106,18 @@ export default async function CustomerColigoPayPage() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-foreground text-sm font-semibold">
-              Mon Cashback (différent de Coligo Pay)
+              {t("cashbackLinkTitle")}
             </p>
-            <p className="text-muted mt-0.5 text-xs">
-              Récompense gagnée sur tes achats, non retirable. Voir →
-            </p>
+            <p className="text-muted mt-0.5 text-xs">{t("cashbackLinkDesc")}</p>
           </div>
         </Link>
 
         {/* Historique TOPUP uniquement */}
         <section className="mt-6">
           <h2 className="text-foreground mb-3 text-base font-bold">
-            Historique Coligo Pay
+            {t("coligoPayHistory")}
           </h2>
-          <WalletEntryList entries={history} emptyHint="Recharger maintenant" />
+          <WalletEntryList entries={history} emptyHint={t("rechargeNow")} />
         </section>
       </div>
     </CustomerShell>

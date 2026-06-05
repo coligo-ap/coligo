@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ArrowRight, Loader2, MapPin } from "lucide-react";
 import { useCustomerLocation } from "@/lib/customer/location-store";
 import { WILAYAS } from "@/lib/config/wilayas";
@@ -54,6 +55,7 @@ export function MarketplaceGrid({
 }: Props) {
   const params = useSearchParams();
   const router = useRouter();
+  const t = useTranslations("browse");
   const loc = useCustomerLocation();
   const [promos, setPromos] = useState<Record<string, PromoLabel>>(
     promoLabels ?? {}
@@ -186,12 +188,12 @@ export function MarketplaceGrid({
     filters.sort !== "name";
 
   const heading = emptyZone
-    ? "Tous les commerces en Algérie"
+    ? t("allMerchantsAlgeria")
     : filters.q
-      ? `Résultats pour « ${filters.q} »`
+      ? t("resultsFor", { query: filters.q })
       : filters.category
         ? getCategoryLabel(filters.category)
-        : "Commerces près de toi";
+        : t("merchantsNearYou");
 
   function resetFilters() {
     router.replace("/", { scroll: false });
@@ -215,24 +217,23 @@ export function MarketplaceGrid({
         <div className="border-warning-100 bg-warning-50 text-warning-800 flex items-start gap-2 rounded-[14px] border px-3 py-2 text-xs">
           <MapPin className="text-warning-600 mt-0.5 size-3.5 shrink-0" />
           <span>
-            Pas encore de commerces à <strong>{wilayaLabel}</strong> — en
-            attendant, voici ceux disponibles ailleurs.
+            {t.rich("noMerchantsInZone", {
+              wilaya: wilayaLabel,
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </span>
         </div>
       )}
 
       {hasActiveFilter && (
         <div className="text-muted flex items-center justify-between text-xs">
-          <span>
-            {visible.length} commerce{visible.length > 1 ? "s" : ""} trouvé
-            {visible.length > 1 ? "s" : ""}
-          </span>
+          <span>{t("merchantsFound", { count: visible.length })}</span>
           <button
             type="button"
             onClick={resetFilters}
             className="text-primary-700 font-medium hover:underline"
           >
-            Effacer les filtres
+            {t("clearFilters")}
           </button>
         </div>
       )}
@@ -241,21 +242,21 @@ export function MarketplaceGrid({
         <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-12 text-center text-sm">
           {hasActiveFilter ? (
             <>
-              Aucun commerce ne correspond à ta recherche.
+              {t("noResults")}
               <p className="mt-3">
                 <button
                   type="button"
                   onClick={resetFilters}
                   className="text-primary-700 font-medium hover:underline"
                 >
-                  Effacer les filtres →
+                  {t("clearFiltersArrow")}
                 </button>
               </p>
             </>
           ) : (
             <>
               <MapPin className="text-subtle mx-auto mb-2 size-6" />
-              Aucun commerce actif disponible pour le moment.
+              {t("noActiveMerchants")}
             </>
           )}
         </div>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { ShoppingBag } from "lucide-react";
 import {
   rawSubtotal,
@@ -20,6 +21,7 @@ import { cn, formatDA } from "@/lib/utils";
 // =============================================================================
 
 export function MerchantCartCta({ merchantId }: { merchantId: string }) {
+  const t = useTranslations("merchant");
   const cart = useCartFor(merchantId);
   const count = totalUnits(cart);
   const subtotal = rawSubtotal(cart);
@@ -59,7 +61,7 @@ export function MerchantCartCta({ merchantId }: { merchantId: string }) {
             <ShoppingBag className="size-4" />
             {count}
           </span>
-          <span className="text-sm font-semibold">Voir mon panier</span>
+          <span className="text-sm font-semibold">{t("viewMyCart")}</span>
           <span className="text-sm font-bold tabular-nums">
             {formatDA(subtotal)}
           </span>

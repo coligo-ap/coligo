@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Loader2, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
@@ -28,10 +29,11 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
   const [hovered, setHovered] = useState<number>(0);
   const [comment, setComment] = useState<string>("");
   const [pending, start] = useTransition();
+  const t = useTranslations("reviews");
 
   function submit() {
     if (rating < 1) {
-      toast.error("Choisis une note de 1 à 5 étoiles.");
+      toast.error(t("pickRatingError"));
       return;
     }
     start(async () => {
@@ -44,7 +46,7 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
         toast.error(res.error);
         return;
       }
-      toast.success("Merci pour ton avis !");
+      toast.success(t("thanksForReview"));
       onClose();
     });
   }
@@ -60,18 +62,20 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2 className="font-display text-foreground text-lg font-bold">
-              Comment s&apos;est passé ?
+              {t("howWasIt")}
             </h2>
             <p className="text-muted mt-0.5 text-xs">
-              Ton avis sur <span className="font-semibold">{merchantName}</span>{" "}
-              aide les autres clients.
+              {t.rich("reviewHelpsOthers", {
+                merchant: merchantName,
+                b: (chunks) => <span className="font-semibold">{chunks}</span>,
+              })}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="text-muted hover:bg-surface-2 rounded-full p-1.5"
-            aria-label="Fermer"
+            aria-label={t("close")}
           >
             <X className="size-4" />
           </button>
@@ -81,7 +85,7 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
         <div
           className="flex items-center justify-center gap-2 py-3"
           role="radiogroup"
-          aria-label="Note (1 à 5 étoiles)"
+          aria-label={t("ratingGroupLabel")}
         >
           {[1, 2, 3, 4, 5].map((n) => {
             const filled = (hovered || rating) >= n;
@@ -91,7 +95,9 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
                 type="button"
                 role="radio"
                 aria-checked={rating === n}
-                aria-label={`${n} étoile${n > 1 ? "s" : ""}`}
+                aria-label={
+                  n > 1 ? t("starsCount", { count: n }) : t("starSingular")
+                }
                 onMouseEnter={() => setHovered(n)}
                 onMouseLeave={() => setHovered(0)}
                 onClick={() => setRating(n)}
@@ -111,18 +117,18 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
         </div>
         {rating > 0 && (
           <p className="text-muted text-center text-xs">
-            {RATING_LABELS[rating - 1]}
+            {t(`ratingLabel_${rating}`)}
           </p>
         )}
 
         <label className="text-foreground mt-4 block text-xs font-semibold tracking-wider uppercase">
-          Commentaire (optionnel)
+          {t("commentOptional")}
         </label>
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value.slice(0, MAX_COMMENT))}
           rows={3}
-          placeholder="Ex. : très bon pain, accueil chaleureux…"
+          placeholder={t("commentPlaceholder")}
           className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 mt-1.5 w-full rounded-[12px] border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
         />
         <p className="text-subtle mt-1 text-right text-[10px]">
@@ -137,7 +143,7 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
             disabled={pending}
             className="flex-1"
           >
-            Annuler
+            {t("cancel")}
           </Button>
           <Button
             type="button"
@@ -148,23 +154,15 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
             {pending ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
-              "Envoyer mon avis"
+              t("submitReview")
             )}
           </Button>
         </div>
 
         <p className="text-subtle mt-3 text-center text-[10px]">
-          Tu pourras modifier ton avis pendant 24h après envoi.
+          {t("editWindowNotice")}
         </p>
       </div>
     </div>
   );
 }
-
-const RATING_LABELS = [
-  "Décevant",
-  "Bof",
-  "Correct",
-  "Très bien",
-  "Excellent !",
-];

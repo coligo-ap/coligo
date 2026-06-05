@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Check, Loader2, MapPin, Navigation, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,7 @@ type Detected = {
 };
 
 export function LocationPicker({ onClose, initial }: Props) {
+  const t = useTranslations("account");
   const [wilaya, setWilaya] = useState(initial?.wilaya_code ?? "");
   const [commune, setCommune] = useState(initial?.commune ?? "");
   const [saving, setSaving] = useState(false);
@@ -66,7 +68,7 @@ export function LocationPicker({ onClose, initial }: Props) {
         latitude: loc.latitude ?? null,
         longitude: loc.longitude ?? null,
       });
-      toast.success("Localisation enregistrée");
+      toast.success(t("locationSaved"));
       onClose?.();
     } finally {
       setSaving(false);
@@ -78,7 +80,7 @@ export function LocationPicker({ onClose, initial }: Props) {
     const gpsCoords = await geo.requestOnce();
     if (!gpsCoords) {
       if (geo.error?.kind === "denied") {
-        toast.error("Permission refusée. Choisis ta wilaya manuellement.");
+        toast.error(t("permissionDenied"));
       } else if (geo.error) {
         toast.error(geo.error.message);
       }
@@ -116,7 +118,7 @@ export function LocationPicker({ onClose, initial }: Props) {
 
   async function confirmFromMap() {
     if (!coords) {
-      toast.error("Position non définie.");
+      toast.error(t("positionNotSet"));
       return;
     }
     await save({
@@ -130,7 +132,7 @@ export function LocationPicker({ onClose, initial }: Props) {
   function saveManual(e: React.FormEvent) {
     e.preventDefault();
     if (!wilaya) {
-      toast.error("Choisis une wilaya.");
+      toast.error(t("chooseWilaya"));
       return;
     }
     void save({ wilaya_code: wilaya, commune: commune || null });
@@ -144,10 +146,10 @@ export function LocationPicker({ onClose, initial }: Props) {
       <header className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-foreground text-lg font-bold">
-            Où veux-tu commander ?
+            {t("whereToOrder")}
           </h2>
           <p className="text-muted mt-0.5 text-xs">
-            On t&apos;affiche les commerces à proximité.
+            {t("nearbyMerchantsHint")}
           </p>
         </div>
         {onClose && (
@@ -155,7 +157,7 @@ export function LocationPicker({ onClose, initial }: Props) {
             type="button"
             onClick={onClose}
             className="text-muted hover:text-foreground hover:bg-surface-2 rounded-full p-1.5"
-            aria-label="Fermer"
+            aria-label={t("close")}
           >
             <X className="size-4" />
           </button>
@@ -183,17 +185,16 @@ export function LocationPicker({ onClose, initial }: Props) {
         )}
         {gpsLoading
           ? resolving
-            ? "Détection de ta zone…"
-            : "Localisation en cours…"
+            ? t("detectingZone")
+            : t("locating")
           : gpsActive
-            ? `Ma position : ${detected!.display}`
-            : "Utiliser ma position"}
+            ? t("myPosition", { display: detected!.display })
+            : t("useMyPosition")}
       </Button>
 
       {gpsActive && !detected!.wilaya_code && (
         <p className="text-warning-700 -mt-2 text-xs">
-          On a tes coordonnées mais pas réussi à reconnaître la wilaya —
-          précise-la ci-dessous.
+          {t("wilayaNotRecognized")}
         </p>
       )}
 
@@ -202,11 +203,8 @@ export function LocationPicker({ onClose, initial }: Props) {
           déplaçant le marqueur central avant de confirmer. */}
       {(showMap || coords) && (
         <div className="border-primary-200 bg-primary-50/40 space-y-2 rounded-[12px] border p-3">
-          <p className="text-sm font-semibold">Ajuste ta position exacte</p>
-          <p className="text-muted text-xs">
-            Déplace la carte pour pointer ta vraie position. Le curseur indique
-            où tu es.
-          </p>
+          <p className="text-sm font-semibold">{t("adjustExactPosition")}</p>
+          <p className="text-muted text-xs">{t("adjustPositionHint")}</p>
           <MapPositionPicker
             initial={coords ?? undefined}
             autoLocate={coords == null}
@@ -230,21 +228,21 @@ export function LocationPicker({ onClose, initial }: Props) {
             ) : (
               <Check className="size-4" />
             )}
-            Confirmer ma position
+            {t("confirmMyPosition")}
           </Button>
         </div>
       )}
 
       <div className="text-muted relative text-center text-[11px] tracking-wider uppercase">
         <span className="bg-surface relative z-10 px-2">
-          ou choisis manuellement
+          {t("orChooseManually")}
         </span>
         <span className="border-border absolute inset-x-0 top-1/2 -translate-y-1/2 border-t" />
       </div>
 
       <form onSubmit={saveManual} className="space-y-3">
         <div className="space-y-1.5">
-          <Label>Wilaya</Label>
+          <Label>{t("wilaya")}</Label>
           <select
             value={wilaya}
             onChange={(e) => setWilaya(e.target.value)}
@@ -253,7 +251,7 @@ export function LocationPicker({ onClose, initial }: Props) {
               "border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-12 w-full rounded-[12px] border px-4 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
             )}
           >
-            <option value="">— Sélectionne une wilaya —</option>
+            <option value="">{t("selectWilaya")}</option>
             {WILAYAS.map((w) => (
               <option key={w.code} value={w.code}>
                 {w.code} · {w.name}
@@ -263,7 +261,7 @@ export function LocationPicker({ onClose, initial }: Props) {
         </div>
 
         <div className="space-y-1.5">
-          <Label>Commune (optionnel)</Label>
+          <Label>{t("communeOptional")}</Label>
           {communes.length > 0 ? (
             <select
               value={commune}
@@ -271,7 +269,7 @@ export function LocationPicker({ onClose, initial }: Props) {
               disabled={saving || !wilaya}
               className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-12 w-full rounded-[12px] border px-4 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
             >
-              <option value="">— Toute la wilaya —</option>
+              <option value="">{t("allWilaya")}</option>
               {communes.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -283,7 +281,7 @@ export function LocationPicker({ onClose, initial }: Props) {
               type="text"
               value={commune}
               onChange={(e) => setCommune(e.target.value)}
-              placeholder="Nom de la commune"
+              placeholder={t("communePlaceholder")}
               disabled={saving || !wilaya}
             />
           )}
@@ -295,7 +293,7 @@ export function LocationPicker({ onClose, initial }: Props) {
           ) : (
             <MapPin className="size-4" />
           )}
-          Enregistrer
+          {t("save")}
         </Button>
       </form>
     </div>

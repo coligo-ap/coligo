@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
   Check,
@@ -43,6 +44,7 @@ export function ProductRow({
   promoUnitPriceDa: number | null;
   onOpenDetail: () => void;
 }) {
+  const t = useTranslations("merchant");
   const cart = useCartFor(merchant.id);
   const inCart = cart.items.find((i) => i.product_id === product.id);
   const hasPromo =
@@ -97,7 +99,7 @@ export function ProductRow({
     setActiveMerchant(merchant.id);
     setItemQuantity(inCart.product_id, inCart.quantity - 1);
     if (inCart.quantity === 1) {
-      toast.success(`« ${product.name_fr} » retiré du panier`);
+      toast.success(t("removedFromCart", { name: product.name_fr }));
     }
   }
 
@@ -157,17 +159,17 @@ export function ProductRow({
         </div>
         {isOut ? (
           <div className="text-danger-600 mt-1 text-[11px] font-bold">
-            Épuisé
+            {t("outOfStock")}
           </div>
         ) : isLow ? (
           <div className="text-warning-700 mt-1 flex items-center gap-1 text-[11px] font-bold">
             <AlertTriangle className="size-3" />
-            Plus que {product.stock_qty}
+            {t("onlyLeft", { count: product.stock_qty ?? 0 })}
           </div>
         ) : isOk ? (
           <div className="text-success-700 mt-1 flex items-center gap-1 text-[11px] font-bold">
             <Check className="size-3" />
-            En stock
+            {t("inStock")}
           </div>
         ) : null}
       </div>
@@ -176,7 +178,7 @@ export function ProductRow({
       <div className="shrink-0">
         {isOut ? (
           <span
-            aria-label="Épuisé"
+            aria-label={t("outOfStock")}
             className="bg-surface-3 text-subtle flex size-9 cursor-not-allowed items-center justify-center rounded-full"
           >
             <Plus className="size-4" />
@@ -185,7 +187,7 @@ export function ProductRow({
           <button
             type="button"
             onClick={quickAdd}
-            aria-label="Ajouter au panier"
+            aria-label={t("addToCart")}
             className={cn(
               "flex size-9 items-center justify-center rounded-full text-white shadow-md transition-transform active:scale-90",
               added
@@ -205,8 +207,8 @@ export function ProductRow({
               onClick={decrement}
               aria-label={
                 inCart.quantity === 1
-                  ? `Retirer ${product.name_fr} du panier`
-                  : "Retirer 1"
+                  ? t("removeFromCartAria", { name: product.name_fr })
+                  : t("removeOne")
               }
               className={cn(
                 "flex size-7 items-center justify-center rounded-full transition-colors",
@@ -227,7 +229,7 @@ export function ProductRow({
             <button
               type="button"
               onClick={increment}
-              aria-label="Ajouter 1"
+              aria-label={t("addOne")}
               className="bg-primary-600 hover:bg-primary-700 flex size-7 items-center justify-center rounded-full text-white"
             >
               <Plus className="size-3.5" />

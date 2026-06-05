@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Loader2, Star } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,13 @@ import { submitDriverReview } from "@/app/(customer)/commandes/reviews/actions";
 // =============================================================================
 
 const MAX_COMMENT = 500;
-const LABELS = ["Décevant", "Bof", "Correct", "Très bien", "Excellent !"];
+const LABEL_KEYS = [
+  "ratingLabel1",
+  "ratingLabel2",
+  "ratingLabel3",
+  "ratingLabel4",
+  "ratingLabel5",
+] as const;
 
 export function DriverReviewCard({
   orderId,
@@ -25,6 +32,7 @@ export function DriverReviewCard({
   /** Note déjà laissée (lecture seule) ou null si pas encore noté. */
   initialRating: number | null;
 }) {
+  const t = useTranslations("orders");
   const [submitted, setSubmitted] = useState<number | null>(initialRating);
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
@@ -35,7 +43,7 @@ export function DriverReviewCard({
     return (
       <div className="border-border bg-surface mt-5 rounded-[16px] border p-5">
         <p className="text-muted text-xs font-semibold tracking-wider uppercase">
-          Ton avis sur le livreur
+          {t("yourDriverReview")}
         </p>
         <div className="mt-2 flex items-center gap-2">
           <div className="flex">
@@ -51,7 +59,7 @@ export function DriverReviewCard({
               />
             ))}
           </div>
-          <span className="text-muted text-sm">Merci pour ton retour 🙏</span>
+          <span className="text-muted text-sm">{t("thanksFeedback")}</span>
         </div>
       </div>
     );
@@ -59,7 +67,7 @@ export function DriverReviewCard({
 
   const submit = () => {
     if (rating < 1) {
-      toast.error("Choisis une note de 1 à 5 étoiles.");
+      toast.error(t("chooseRating"));
       return;
     }
     start(async () => {
@@ -72,7 +80,7 @@ export function DriverReviewCard({
         toast.error(res.error);
         return;
       }
-      toast.success("Merci pour ton avis sur le livreur !");
+      toast.success(t("driverReviewThanks"));
       setSubmitted(rating);
     });
   };
@@ -80,17 +88,18 @@ export function DriverReviewCard({
   return (
     <div className="border-border bg-surface mt-5 rounded-[16px] border p-5">
       <h2 className="text-foreground text-base font-semibold">
-        Comment s&apos;est passée la livraison ?
+        {t("howWasDelivery")}
       </h2>
       <p className="text-muted mt-0.5 text-xs">
-        Ton avis sur <span className="font-semibold">{driverName}</span> aide à
-        garder un service de qualité.
+        {t("reviewSubtitleIntro")}{" "}
+        <span className="font-semibold">{driverName}</span>{" "}
+        {t("reviewSubtitleOutro")}
       </p>
 
       <div
         className="flex items-center justify-center gap-2 py-3"
         role="radiogroup"
-        aria-label="Note livreur (1 à 5 étoiles)"
+        aria-label={t("driverRatingGroupLabel")}
       >
         {[1, 2, 3, 4, 5].map((n) => {
           const filled = (hovered || rating) >= n;
@@ -100,7 +109,7 @@ export function DriverReviewCard({
               type="button"
               role="radio"
               aria-checked={rating === n}
-              aria-label={`${n} étoile${n > 1 ? "s" : ""}`}
+              aria-label={t("starsCount", { count: n })}
               onMouseEnter={() => setHovered(n)}
               onMouseLeave={() => setHovered(0)}
               onClick={() => setRating(n)}
@@ -119,14 +128,16 @@ export function DriverReviewCard({
         })}
       </div>
       {rating > 0 && (
-        <p className="text-muted text-center text-xs">{LABELS[rating - 1]}</p>
+        <p className="text-muted text-center text-xs">
+          {t(LABEL_KEYS[rating - 1])}
+        </p>
       )}
 
       <textarea
         value={comment}
         onChange={(e) => setComment(e.target.value.slice(0, MAX_COMMENT))}
         rows={2}
-        placeholder="Un mot sur le livreur (optionnel)…"
+        placeholder={t("commentPlaceholder")}
         className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 mt-3 w-full rounded-[12px] border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
       />
 
@@ -139,7 +150,7 @@ export function DriverReviewCard({
         {pending ? (
           <Loader2 className="size-4 animate-spin" />
         ) : (
-          "Noter le livreur"
+          t("rateDriver")
         )}
       </button>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getCategoryLabel } from "@/lib/config/categories";
@@ -28,6 +29,7 @@ export function CategoryStrip({
   const router = useRouter();
   const params = useSearchParams();
   const active = params.get("category");
+  const t = useTranslations("browse");
 
   function go(category: string | null) {
     const sp = new URLSearchParams(params.toString());
@@ -41,7 +43,7 @@ export function CategoryStrip({
     <div className="scrollbar-hide -mx-4 flex gap-4 overflow-x-auto border-b border-[var(--color-border)] px-4 pb-3.5 lg:mx-0 lg:px-0">
       <Tile
         icon={ALL_CATEGORIES_ICON}
-        label="Tous"
+        label={t("all")}
         active={!active}
         onClick={() => go(null)}
       />

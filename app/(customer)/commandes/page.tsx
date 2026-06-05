@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { ClipboardList } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
@@ -12,6 +13,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function CustomerOrdersListPage() {
+  const t = await getTranslations("orders");
   const supabase = await createClient();
   const {
     data: { user },
@@ -77,7 +79,7 @@ export default async function CustomerOrdersListPage() {
       created_at: o.created_at,
       fulfillment_type:
         (o.fulfillment_type as "pickup" | "delivery") ?? "pickup",
-      merchant_name: merchant?.name ?? "Commerce",
+      merchant_name: merchant?.name ?? t("merchantFallback"),
       merchant_logo: merchant?.logo_url ?? null,
       // « Déjà noté » dès que le client a un avis sur CE commerçant.
       reviewed: reviewedMerchantIds.has(o.merchant_id),
@@ -89,28 +91,23 @@ export default async function CustomerOrdersListPage() {
       <div className="mx-auto max-w-3xl px-4 py-4 lg:px-6 lg:py-8">
         <header className="mb-5">
           <h1 className="text-foreground text-2xl font-bold lg:text-3xl">
-            Mes commandes
+            {t("myOrders")}
           </h1>
-          <p className="text-muted text-sm">
-            Historique et commandes en cours.
-          </p>
+          <p className="text-muted text-sm">{t("listSubtitle")}</p>
         </header>
 
         {mapped.length === 0 ? (
           <div className="border-border bg-surface mx-auto max-w-md rounded-[16px] border p-10 text-center">
             <ClipboardList className="text-primary-500 mx-auto size-10" />
             <p className="text-foreground mt-3 text-sm font-semibold">
-              Tu n&apos;as pas encore commandé
+              {t("emptyTitle")}
             </p>
-            <p className="text-muted mt-1 text-xs">
-              Découvre les commerces autour de toi et passe ta première
-              commande.
-            </p>
+            <p className="text-muted mt-1 text-xs">{t("emptyDescription")}</p>
             <Link
               href="/"
               className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex rounded-[10px] px-4 py-2 text-sm font-medium text-white"
             >
-              Voir les commerces
+              {t("seeMerchants")}
             </Link>
           </div>
         ) : (

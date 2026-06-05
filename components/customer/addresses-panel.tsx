@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Loader2, MapPin, Plus, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/ui/action-button";
@@ -28,6 +29,7 @@ type Addr = {
 const initial: AddressActionState = {};
 
 export function AddressesPanel({ addresses }: { addresses: Addr[] }) {
+  const t = useTranslations("account");
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [state, action, pending] = useActionState(addAddress, initial);
@@ -52,9 +54,7 @@ export function AddressesPanel({ addresses }: { addresses: Addr[] }) {
   return (
     <div className="space-y-4">
       {addresses.length === 0 && !adding && (
-        <p className="text-muted text-sm">
-          Aucune adresse enregistrée pour l&apos;instant.
-        </p>
+        <p className="text-muted text-sm">{t("noAddressesYet")}</p>
       )}
 
       <ul className="space-y-3">
@@ -66,7 +66,7 @@ export function AddressesPanel({ addresses }: { addresses: Addr[] }) {
       {!adding ? (
         <Button type="button" onClick={() => setAdding(true)}>
           <Plus className="size-4" />
-          Ajouter une adresse
+          {t("addAddress")}
         </Button>
       ) : (
         <form
@@ -76,7 +76,7 @@ export function AddressesPanel({ addresses }: { addresses: Addr[] }) {
           <AddressForm onChange={() => {}} />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="is_default" />
-            Définir comme adresse par défaut
+            {t("setAsDefault")}
           </label>
           {state.error && btnState === "error" && (
             <p className="text-danger-600 text-sm">{state.error}</p>
@@ -86,10 +86,10 @@ export function AddressesPanel({ addresses }: { addresses: Addr[] }) {
               type="submit"
               state={btnState}
               labels={{
-                idle: "Enregistrer",
-                pending: "Enregistrement…",
-                success: "Adresse enregistrée ✓",
-                error: "Erreur, réessaie",
+                idle: t("save"),
+                pending: t("saving"),
+                success: t("addressSaved"),
+                error: t("errorRetry"),
               }}
             />
             <Button
@@ -98,7 +98,7 @@ export function AddressesPanel({ addresses }: { addresses: Addr[] }) {
               onClick={() => setAdding(false)}
               disabled={pending}
             >
-              Annuler
+              {t("cancel")}
             </Button>
           </div>
         </form>
@@ -108,6 +108,7 @@ export function AddressesPanel({ addresses }: { addresses: Addr[] }) {
 }
 
 function AddressRow({ addr }: { addr: Addr }) {
+  const t = useTranslations("account");
   const router = useRouter();
   const [pending, start] = useTransition();
   return (
@@ -118,7 +119,7 @@ function AddressRow({ addr }: { addr: Addr }) {
           {addr.label}
           {addr.is_default && (
             <span className="bg-success-100 text-success-700 rounded-full px-2 py-0.5 text-xs">
-              Par défaut
+              {t("default")}
             </span>
           )}
         </p>
@@ -153,7 +154,7 @@ function AddressRow({ addr }: { addr: Addr }) {
           type="button"
           variant="secondary"
           onClick={() => {
-            if (!confirm("Supprimer cette adresse ?")) return;
+            if (!confirm(t("deleteAddressConfirm"))) return;
             start(async () => {
               const r = await deleteAddress(addr.id);
               if (r.error) toast.error(r.error);

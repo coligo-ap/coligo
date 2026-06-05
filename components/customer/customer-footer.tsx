@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Logo } from "@/components/shared/logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
-export function CustomerFooter() {
+export async function CustomerFooter() {
+  const t = await getTranslations("footer");
   return (
     <footer className="border-border mt-12 hidden border-t bg-white lg:block">
       <div className="mx-auto grid max-w-[1400px] gap-10 px-6 py-10 lg:grid-cols-5">
@@ -10,27 +12,27 @@ export function CustomerFooter() {
           <Logo variant="amber" size="md" />
           <p className="text-muted max-w-sm text-sm">{APP_CONFIG.tagline}</p>
           <p className="text-subtle text-xs">
-            © {new Date().getFullYear()} {APP_CONFIG.name}. Tous droits
-            réservés.
+            © {new Date().getFullYear()} {APP_CONFIG.name}.{" "}
+            {t("allRightsReserved")}
           </p>
         </div>
 
-        <Column title="À propos">
+        <Column title={t("about")}>
           <Item href="/about">Coligo</Item>
-          <Item href="/blog">Blog</Item>
-          <Item href="/login">Devenir commerçant</Item>
+          <Item href="/blog">{t("blog")}</Item>
+          <Item href="/login">{t("becomeMerchant")}</Item>
         </Column>
 
-        <Column title="Aide">
-          <Item href="/aide">Centre d&apos;aide</Item>
+        <Column title={t("help")}>
+          <Item href="/aide">{t("helpCenter")}</Item>
           <Item href={`mailto:${APP_CONFIG.contact.supportEmail}`}>
-            Nous contacter
+            {t("contactUs")}
           </Item>
         </Column>
 
-        <Column title="Légal">
-          <Item href="/cgu">Conditions générales</Item>
-          <Item href="/confidentialite">Confidentialité</Item>
+        <Column title={t("legal")}>
+          <Item href="/cgu">{t("terms")}</Item>
+          <Item href="/confidentialite">{t("privacy")}</Item>
         </Column>
       </div>
     </footer>

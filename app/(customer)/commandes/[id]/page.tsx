@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { ArrowLeft, Check, Clock, MapPin, Truck, X } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
@@ -23,6 +24,7 @@ export default async function CustomerOrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const t = await getTranslations("orders");
   const supabase = await createClient();
   const {
     data: { user },
@@ -148,7 +150,7 @@ export default async function CustomerOrderDetailPage({
         .maybeSingle(),
     ]);
     driverReview = {
-      name: drv?.full_name?.split(" ")[0] ?? "ton livreur",
+      name: drv?.full_name?.split(" ")[0] ?? t("yourDriver"),
       rating: rev?.rating ?? null,
     };
   }
@@ -227,35 +229,35 @@ export default async function CustomerOrderDetailPage({
         : Clock;
 
   const stateTitle = isCancelled
-    ? "Commande annulée"
+    ? t("stateTitleCancelled")
     : isCompleted
       ? isDelivery
-        ? "Commande livrée"
-        : "Commande récupérée"
+        ? t("stateTitleDelivered")
+        : t("stateTitlePickedUp")
       : inTransit
-        ? "En livraison"
+        ? t("stateTitleInDelivery")
         : status === "ready"
           ? isDelivery
-            ? "Prête — en attente du livreur"
-            : "Prête à récupérer"
+            ? t("stateTitleReadyWaitingDriver")
+            : t("stateTitleReadyPickup")
           : status === "preparing" || status === "accepted"
-            ? "En préparation"
-            : "Commande envoyée";
+            ? t("stateTitlePreparing")
+            : t("stateTitleSent");
 
-  const driverFirst = driverContact?.first_name?.trim() || "Le livreur";
+  const driverFirst = driverContact?.first_name?.trim() || t("theDriver");
   const stateSub = isCancelled
-    ? "Cette commande a été annulée."
+    ? t("stateSubCancelled")
     : isCompleted
-      ? "Merci pour ta commande !"
+      ? t("stateSubCompleted")
       : inTransit
-        ? `${driverFirst} arrive bientôt`
+        ? t("stateSubArrivingSoon", { name: driverFirst })
         : status === "ready"
           ? isDelivery
-            ? "En attente du livreur"
-            : "Va la récupérer en boutique"
+            ? t("stateSubWaitingDriver")
+            : t("stateSubPickupInStore")
           : status === "preparing" || status === "accepted"
-            ? "Le commerçant prépare ta commande"
-            : "En attente du commerçant";
+            ? t("stateSubPreparing")
+            : t("stateSubWaitingMerchant");
 
   // ─── Délai affiché à gauche de la ligne montant (label + valeur en gras) ───
   const isSlot =
@@ -278,33 +280,41 @@ export default async function CustomerOrderDetailPage({
     if (isCompleted) {
       delai = {
         Icon: Check,
-        label: isDelivery ? "Livrée" : "Récupérée",
+        label: isDelivery ? t("delaiDelivered") : t("delaiPickedUp"),
       };
     } else if (isDelivery) {
       delai = inTransit
         ? {
             Icon: Truck,
-            label: "Arrivée",
-            strong: etaMin != null ? `~${etaMin} min` : "en route",
+            label: t("delaiArrival"),
+            strong: etaMin != null ? `~${etaMin} min` : t("delaiOnTheWay"),
           }
         : {
             Icon: Truck,
-            label: "Livraison",
-            strong: etaMin != null ? `~${etaMin} min` : "en préparation",
+            label: t("delaiDelivery"),
+            strong: etaMin != null ? `~${etaMin} min` : t("delaiPreparing"),
           };
     } else if (status === "ready") {
-      delai = { Icon: Clock, label: "Prête", strong: "à récupérer" };
+      delai = {
+        Icon: Clock,
+        label: t("delaiReady"),
+        strong: t("delaiToPickUp"),
+      };
     } else if (isSlot) {
       delai = {
         Icon: Clock,
-        label: "Retrait",
+        label: t("delaiPickup"),
         strong: formatSlotRange(
           new Date(order.pickup_slot_start as string),
           new Date(order.pickup_slot_end as string)
         ),
       };
     } else {
-      delai = { Icon: Clock, label: "Prêt", strong: `~${prepRemaining} min` };
+      delai = {
+        Icon: Clock,
+        label: t("delaiReadyMasc"),
+        strong: `~${prepRemaining} min`,
+      };
     }
   }
 
@@ -319,7 +329,7 @@ export default async function CustomerOrderDetailPage({
           className="text-muted hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm"
         >
           <ArrowLeft className="size-4" />
-          Mes commandes
+          {t("myOrders")}
         </Link>
 
         {/* ═══ BLOC PRINCIPAL UNIQUE : statut + suivi horizontal + montant ═══ */}
@@ -348,7 +358,7 @@ export default async function CustomerOrderDetailPage({
             </div>
             {orderNumber && (
               <span className="text-muted shrink-0 text-[13px] font-extrabold tracking-wide">
-                N° {orderNumber}
+                {t("orderNumberShort")} {orderNumber}
               </span>
             )}
           </div>
@@ -387,7 +397,7 @@ export default async function CustomerOrderDetailPage({
                 {isCash ? (
                   <>
                     <small className="text-muted block text-[9.5px] font-bold tracking-wide uppercase">
-                      À payer espèces
+                      {t("toPayCash")}
                     </small>
                     <b className="text-foreground text-[18px] font-black tracking-tight">
                       {formatDA(order.total_da)}
@@ -396,10 +406,10 @@ export default async function CustomerOrderDetailPage({
                 ) : (
                   <>
                     <small className="text-muted block text-[9.5px] font-bold tracking-wide uppercase">
-                      Total
+                      {t("total")}
                     </small>
                     <b className="text-success-700 text-sm font-black tracking-tight">
-                      ✓ Payé · {formatDA(order.total_da)}
+                      ✓ {t("paid")} · {formatDA(order.total_da)}
                     </b>
                   </>
                 )}
@@ -422,7 +432,7 @@ export default async function CustomerOrderDetailPage({
         {needsCode && !isCancelled && (
           <div className="bg-primary-50 text-primary-800 mt-2.5 flex items-center justify-between gap-3 rounded-[13px] px-3.5 py-2.5 text-[12.5px] font-bold">
             <span>
-              🔑 Code à donner {isDelivery ? "au livreur" : "au commerçant"}
+              🔑 {isDelivery ? t("codeToGiveDriver") : t("codeToGiveMerchant")}
             </span>
             <span className="text-primary-600 text-[22px] font-black tracking-[5px] tabular-nums">
               {order.pickup_code}
@@ -451,7 +461,9 @@ export default async function CustomerOrderDetailPage({
               orderId={order.id}
               role="customer"
               phone={driverContact?.phone ?? null}
-              phoneLabel={`Appeler ${driverContact?.first_name ?? "le livreur"}`}
+              phoneLabel={t("callName", {
+                name: driverContact?.first_name ?? t("theDriverLower"),
+              })}
             />
           </div>
         )}
@@ -459,9 +471,9 @@ export default async function CustomerOrderDetailPage({
         {/* ═══ DÉTAIL DE LA COMMANDE ═══ */}
         <div className="border-border bg-surface mt-3 rounded-[18px] border p-4 shadow-sm">
           <h3 className="mb-2.5 flex items-center justify-between text-[13px] font-extrabold">
-            <span>Détail</span>
+            <span>{t("detailTitle")}</span>
             <span className="text-muted text-[11px] font-semibold">
-              {items.length} article{items.length > 1 ? "s" : ""}
+              {t("itemsCount", { count: items.length })}
             </span>
           </h3>
           {items.map((it) => (
@@ -483,12 +495,12 @@ export default async function CustomerOrderDetailPage({
 
           <hr className="border-border my-2" />
           <div className="text-muted flex items-baseline justify-between py-1 text-[13px] font-semibold">
-            <span>Sous-total</span>
+            <span>{t("subtotal")}</span>
             <span className="tabular-nums">{formatDA(order.subtotal_da)}</span>
           </div>
           {order.discount_da > 0 && (
             <div className="text-success-700 flex items-baseline justify-between py-1 text-[13px] font-semibold">
-              <span>Promo</span>
+              <span>{t("promo")}</span>
               <span className="tabular-nums">
                 − {formatDA(order.discount_da)}
               </span>
@@ -496,7 +508,7 @@ export default async function CustomerOrderDetailPage({
           )}
           {isDelivery && order.delivery_fee_da > 0 && (
             <div className="text-muted flex items-baseline justify-between py-1 text-[13px] font-semibold">
-              <span>Livraison</span>
+              <span>{t("delivery")}</span>
               <span className="tabular-nums">
                 {formatDA(order.delivery_fee_da)}
               </span>
@@ -504,14 +516,14 @@ export default async function CustomerOrderDetailPage({
           )}
           {order.cashback_estimate_da > 0 && (
             <div className="text-primary-700 flex items-baseline justify-between py-1 text-[13px] font-semibold">
-              <span>Cashback estimé</span>
+              <span>{t("cashbackEstimated")}</span>
               <span className="tabular-nums">
                 + {formatDA(order.cashback_estimate_da)}
               </span>
             </div>
           )}
           <div className="text-foreground mt-1 flex items-baseline justify-between border-t border-[var(--color-border)] pt-2 text-[15px] font-black">
-            <span>{isCash ? "Total" : "Total payé"}</span>
+            <span>{isCash ? t("total") : t("totalPaid")}</span>
             <span className="tabular-nums">{formatDA(order.total_da)}</span>
           </div>
         </div>
@@ -554,7 +566,7 @@ export default async function CustomerOrderDetailPage({
             href={`/m/${merchant.slug}`}
             className="text-primary-600 shrink-0 text-[13px] font-bold hover:underline"
           >
-            Voir ›
+            {t("see")} ›
           </Link>
         </div>
 
@@ -567,13 +579,12 @@ export default async function CustomerOrderDetailPage({
               ) : (
                 <Clock className="size-3.5" />
               )}
-              {isDelivery ? "Adresse de livraison" : "Créneau de retrait"}
+              {isDelivery ? t("deliveryAddress") : t("pickupSlot")}
             </div>
             <p className="text-foreground text-sm">
               {isDelivery
                 ? ((order as { delivery_address_text: string | null })
-                    .delivery_address_text ??
-                  "Adresse renseignée à la commande")
+                    .delivery_address_text ?? t("addressProvidedAtOrder"))
                 : isSlot
                   ? formatSlotRange(
                       new Date(order.pickup_slot_start as string),
@@ -583,7 +594,7 @@ export default async function CustomerOrderDetailPage({
             </p>
             {order.customer_note && (
               <p className="text-muted border-border mt-2 border-t pt-2 text-xs">
-                Note : {order.customer_note}
+                {t("note")} : {order.customer_note}
               </p>
             )}
           </div>

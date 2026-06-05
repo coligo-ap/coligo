@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
@@ -39,6 +40,7 @@ export function FavoriteHeart({
   const [pending, start] = useTransition();
   const router = useRouter();
   const pathname = usePathname();
+  const t = useTranslations("listing");
 
   function onClick(e: React.MouseEvent) {
     e.preventDefault();
@@ -59,7 +61,7 @@ export function FavoriteHeart({
             `/se-connecter?next=${encodeURIComponent(pathname || "/")}`
           );
         } else {
-          toast.error("Impossible de mettre à jour le favori.");
+          toast.error(t("favoriteUpdateError"));
         }
         return;
       }
@@ -71,7 +73,7 @@ export function FavoriteHeart({
   return (
     <button
       type="button"
-      aria-label={fav ? "Retirer des favoris" : "Ajouter aux favoris"}
+      aria-label={fav ? t("removeFromFavorites") : t("addToFavorites")}
       aria-pressed={fav}
       onClick={onClick}
       className={cn(

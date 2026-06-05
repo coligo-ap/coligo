@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { ArrowLeft, ChevronDown, ChevronUp, Clock, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
@@ -73,6 +74,7 @@ export function MerchantCompactHeader({
   rating_count,
   reviews,
 }: Props) {
+  const t = useTranslations("merchant");
   const [showHours, setShowHours] = useState(false);
   const [expandDesc, setExpandDesc] = useState(false);
 
@@ -106,7 +108,7 @@ export function MerchantCompactHeader({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={heroOptimized}
-              alt={`Photo du commerce ${name}`}
+              alt={t("merchantPhotoAlt", { name })}
               className="h-full w-full object-cover"
             />
           ) : (
@@ -121,7 +123,7 @@ export function MerchantCompactHeader({
         {/* Bouton retour (rond blanc translucide) */}
         <Link
           href="/"
-          aria-label="Retour"
+          aria-label={t("back")}
           className="text-foreground absolute top-3 left-3 z-10 inline-flex size-9 items-center justify-center rounded-full bg-white/85 shadow-sm backdrop-blur transition-colors hover:bg-white"
         >
           <ArrowLeft className="size-4" />
@@ -193,14 +195,16 @@ export function MerchantCompactHeader({
         {prep_time_min > 0 && (
           <span className="inline-flex items-center gap-1">
             <Clock className="text-primary-600 size-3" />
-            <span className="text-foreground">~{prep_time_min} min</span>
+            <span className="text-foreground">
+              ~{t("prepMinutes", { count: prep_time_min })}
+            </span>
           </span>
         )}
         {min_order_da > 0 && (
           <>
             <span aria-hidden>·</span>
             <span className="text-foreground">
-              Min <strong>{formatDA(min_order_da)}</strong>
+              {t("min")} <strong>{formatDA(min_order_da)}</strong>
             </span>
           </>
         )}
@@ -211,7 +215,7 @@ export function MerchantCompactHeader({
           aria-expanded={showHours}
           className="text-primary-700 inline-flex items-center gap-0.5 font-semibold hover:underline"
         >
-          Horaires
+          {t("hours")}
           {showHours ? (
             <ChevronUp className="size-3" />
           ) : (
@@ -244,7 +248,7 @@ export function MerchantCompactHeader({
               onClick={() => setExpandDesc((v) => !v)}
               className="text-primary-700 mt-0.5 text-[11px] font-medium hover:underline"
             >
-              {expandDesc ? "Voir moins" : "Voir plus"}
+              {expandDesc ? t("seeLess") : t("seeMore")}
             </button>
           ) : null}
         </div>
@@ -263,7 +267,7 @@ export function MerchantCompactHeader({
                 <span className="font-medium">{DAY_LABELS[d].long}</span>
                 <span className="text-muted tabular-nums">
                   {slots.length === 0
-                    ? "Fermé"
+                    ? t("closed")
                     : slots.map((s) => `${s.open}–${s.close}`).join(" · ")}
                 </span>
               </li>

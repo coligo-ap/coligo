@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
   Banknote,
@@ -57,6 +58,8 @@ type Props = {
 };
 
 export function CheckoutView({ customer }: Props) {
+  const t = useTranslations("checkout");
+  const tc = useTranslations("cart");
   const router = useRouter();
   const cart = useCart();
   const otherCarts = useOtherCarts();
@@ -205,13 +208,13 @@ export function CheckoutView({ customer }: Props) {
         <Loader2 className="text-primary-600 mx-auto size-6 animate-spin" />
         <p className="text-foreground mt-3 text-base font-semibold">
           {payment === "online"
-            ? "Redirection vers Chargily Pay…"
-            : "Commande confirmée — un instant…"}
+            ? t("redirectingOnlineTitle")
+            : t("redirectingCashTitle")}
         </p>
         <p className="text-muted mt-1 text-xs">
           {payment === "online"
-            ? "Tu seras redirigé(e) dans un instant. Garde cette fenêtre ouverte."
-            : "On t'emmène vers le récapitulatif de ta commande."}
+            ? t("redirectingOnlineSub")
+            : t("redirectingCashSub")}
         </p>
       </div>
     );
@@ -222,13 +225,13 @@ export function CheckoutView({ customer }: Props) {
       <div className="mx-auto max-w-xl px-4 py-12 text-center lg:py-20">
         <ShoppingCart className="text-primary-500 mx-auto size-12" />
         <h1 className="text-foreground mt-4 text-2xl font-bold">
-          Ton panier est vide
+          {tc("emptyTitle")}
         </h1>
         <Link
           href="/"
           className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex rounded-[10px] px-4 py-2 text-sm font-medium text-white"
         >
-          Voir les commerces
+          {tc("seeMerchants")}
         </Link>
       </div>
     );
@@ -238,7 +241,7 @@ export function CheckoutView({ customer }: Props) {
     return (
       <div className="mx-auto max-w-xl px-4 py-12 text-center lg:py-20">
         <Loader2 className="text-primary-600 mx-auto size-6 animate-spin" />
-        <p className="text-muted mt-3 text-sm">Préparation du checkout…</p>
+        <p className="text-muted mt-3 text-sm">{t("preparing")}</p>
       </div>
     );
   }
@@ -253,7 +256,7 @@ export function CheckoutView({ customer }: Props) {
           href="/cart"
           className="text-primary-700 mt-4 inline-flex text-sm font-medium hover:underline"
         >
-          ← Retour au panier
+          {t("backToCart")}
         </Link>
       </div>
     );
@@ -261,7 +264,7 @@ export function CheckoutView({ customer }: Props) {
 
   function submit() {
     if (pickupType === "slot" && chosenSlotIdx == null) {
-      toast.error("Choisis un créneau de retrait.");
+      toast.error(t("errPickupSlot"));
       return;
     }
     if (delivery.fulfillment === "delivery") {
@@ -269,17 +272,15 @@ export function CheckoutView({ customer }: Props) {
       const hasConfirmedCustom =
         !!delivery.customPosition && delivery.positionConfirmed;
       if (!hasSavedAddress && !hasConfirmedCustom) {
-        toast.error(
-          "Confirme ta position exacte sur la carte ou choisis une adresse enregistrée."
-        );
+        toast.error(t("errConfirmPosition"));
         return;
       }
       if (!delivery.mode) {
-        toast.error("Choisis Express ou Tournée.");
+        toast.error(t("errChooseMode"));
         return;
       }
       if (delivery.mode === "tour" && !delivery.slotId) {
-        toast.error("Choisis un créneau de tournée.");
+        toast.error(t("errTourSlot"));
         return;
       }
       const phoneForDelivery = (
@@ -288,9 +289,7 @@ export function CheckoutView({ customer }: Props) {
         ""
       ).trim();
       if (phoneForDelivery === "") {
-        toast.error(
-          "Ajoute un numéro de téléphone pour la livraison (aucun numéro sur ton profil)."
-        );
+        toast.error(t("errPhoneRequired"));
         return;
       }
     }
@@ -460,29 +459,29 @@ export function CheckoutView({ customer }: Props) {
   const totalLabel =
     payment === "cash"
       ? isDelivery
-        ? "À payer espèces à la livraison"
-        : "À payer espèces au retrait"
-      : "Payé en ligne";
+        ? t("toPayCashDelivery")
+        : t("toPayCashPickup")
+      : t("paidOnline");
 
   const resteLabel =
-    payment === "cash" ? "Reste à payer espèces" : "Reste à payer en ligne";
+    payment === "cash" ? t("remainingCash") : t("remainingOnline");
   const barLabel =
-    totalAfterWallets === 0 && walletUsed ? "Payé avec mes soldes" : totalLabel;
+    totalAfterWallets === 0 && walletUsed ? t("paidWithBalances") : totalLabel;
 
   // Message d'aide sous le bouton (livraison incomplète).
   const blockReason =
     isDelivery && !deliveryReady
       ? !hasValidDeliveryPosition
-        ? "Confirme ta position de livraison sur la carte."
+        ? t("blockConfirmPosition")
         : !delivery.mode
-          ? "Choisis un mode de livraison (Express ou Tournée)."
+          ? t("blockChooseMode")
           : delivery.mode === "tour" && !delivery.slotId
-            ? "Choisis un créneau de tournée."
+            ? t("errTourSlot")
             : deliveryPhone === ""
-              ? "Ajoute un numéro de téléphone pour la livraison."
+              ? t("blockPhone")
               : ""
       : slotMissing
-        ? "Choisis un créneau de retrait."
+        ? t("errPickupSlot")
         : "";
 
   return (
@@ -497,7 +496,7 @@ export function CheckoutView({ customer }: Props) {
         )}
 
         <h1 className="text-foreground mb-3 text-[24px] font-black tracking-[-0.9px]">
-          Finaliser ma commande
+          {t("title")}
         </h1>
 
         {/* Boutique */}
@@ -511,14 +510,14 @@ export function CheckoutView({ customer }: Props) {
                 {ctx.merchant.name}
               </p>
               <p className="text-muted text-[12.5px] font-semibold">
-                {totalUnits} article{totalUnits > 1 ? "s" : ""} dans ton panier
+                {t("itemsInCart", { count: totalUnits })}
               </p>
             </div>
             <Link
               href="/cart"
               className="text-primary-700 shrink-0 text-[13px] font-bold"
             >
-              Modifier
+              {t("edit")}
             </Link>
           </div>
         </Card>
@@ -536,16 +535,15 @@ export function CheckoutView({ customer }: Props) {
         {/* Créneau de retrait (uniquement si retrait) */}
         {!isDelivery && (
           <Card className="mt-3">
-            <CardH icon={Clock}>Créneau de retrait</CardH>
+            <CardH icon={Clock}>{t("pickupSlot")}</CardH>
             <div className="flex items-center gap-2 text-[13.5px] font-semibold">
-              <Store className="text-primary-600 size-4 shrink-0" />À récupérer
-              chez {ctx.merchant.name}
+              <Store className="text-primary-600 size-4 shrink-0" />
+              {t("pickupAt", { name: ctx.merchant.name })}
             </div>
 
             {!openNow && (
               <div className="border-warning-100 bg-warning-50 text-warning-800 mt-3 rounded-[10px] border px-3 py-2 text-xs">
-                Le commerce est <strong>fermé pour le moment</strong>. Choisis
-                un créneau ci-dessous.
+                {t("closedPickSlot")}
               </div>
             )}
 
@@ -553,7 +551,7 @@ export function CheckoutView({ customer }: Props) {
               <PickChoice
                 checked={pickupType === "asap"}
                 onClick={() => setPickupType("asap")}
-                title="Préparation immédiate"
+                title={t("immediatePrep")}
                 hint={formatAsapReady(
                   new Date(Date.now() + ctx.merchant.prep_time_min * 60_000)
                 )}
@@ -562,11 +560,11 @@ export function CheckoutView({ customer }: Props) {
               <PickChoice
                 checked={pickupType === "slot"}
                 onClick={() => setPickupType("slot")}
-                title="Choisir un créneau"
+                title={t("chooseSlot")}
                 hint={
                   availableDays.length === 0
-                    ? "Pas de créneau disponible"
-                    : `Jusqu'à ${ctx.merchant.max_days_ahead} j à l'avance`
+                    ? t("noSlotAvailable")
+                    : t("upToDaysAhead", { days: ctx.merchant.max_days_ahead })
                 }
                 disabled={availableDays.length === 0}
               />
@@ -624,48 +622,42 @@ export function CheckoutView({ customer }: Props) {
 
         {/* Paiement */}
         <Card className="mt-3">
-          <CardH icon={CreditCard}>Paiement</CardH>
+          <CardH icon={CreditCard}>{t("payment")}</CardH>
           <div className="space-y-2">
             <PayOption
               icon={Banknote}
               selected={payment === "cash"}
               onClick={() => setPayment("cash")}
-              title={
-                isDelivery ? "Espèces à la livraison" : "Espèces au retrait"
-              }
-              sub={
-                isDelivery
-                  ? "Tu règles le livreur à la remise"
-                  : "Tu règles le commerçant au comptoir"
-              }
+              title={isDelivery ? t("cashOnDelivery") : t("cashOnPickup")}
+              sub={isDelivery ? t("cashDeliverySub") : t("cashPickupSub")}
               disabled={!ctx.merchant.accepts_cash}
             />
             <PayOption
               icon={CreditCard}
               selected={payment === "online"}
               onClick={() => setPayment("online")}
-              title="En ligne"
+              title={t("online")}
               bolt
-              sub="Carte CIB / EDAHABIA · Cashback bonus"
+              sub={t("onlineSub")}
               disabled={!ctx.merchant.accepts_online}
             />
           </div>
           {onlineTooLow && (
             <div className="border-danger-200 bg-danger-50 text-danger-800 mt-3 rounded-[10px] border px-3 py-2 text-xs">
-              Le montant minimum de paiement en ligne est de{" "}
-              <strong>{formatDA(CHARGILY_MIN_AMOUNT_DA)}</strong>. Après tes
-              soldes (cashback / Coligo Pay), il ne reste que{" "}
-              <strong>{formatDA(totalAfterWallets)}</strong> à régler en ligne.
-              Ajoute des articles à ton panier, ou réduis le cashback / Coligo
-              Pay utilisé — ou paie en espèces.
+              {t.rich("onlineTooLow", {
+                min: formatDA(CHARGILY_MIN_AMOUNT_DA),
+                remaining: formatDA(totalAfterWallets),
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
             </div>
           )}
           {onlineFullyCovered && (
             <div className="border-success-200 bg-success-50 text-success-800 mt-3 flex items-center gap-2 rounded-[10px] border px-3 py-2 text-xs">
               <Check className="size-4 shrink-0" />
               <span>
-                Tes soldes couvrent <strong>toute la commande</strong> — aucun
-                paiement en ligne n&apos;est nécessaire.
+                {t.rich("onlineFullyCovered", {
+                  strong: (chunks) => <strong>{chunks}</strong>,
+                })}
               </span>
             </div>
           )}
@@ -675,8 +667,10 @@ export function CheckoutView({ customer }: Props) {
           {ctx.cashback_balance_da > 0 && (
             <WalletToggleRow
               icon={Gift}
-              title="Mon cashback"
-              sub={`Disponible : ${formatDA(ctx.cashback_balance_da)}`}
+              title={t("myCashback")}
+              sub={t("availableAmount", {
+                amount: formatDA(ctx.cashback_balance_da),
+              })}
               checked={useCashback}
               onToggle={() => setUseCashback((v) => !v)}
             />
@@ -685,7 +679,9 @@ export function CheckoutView({ customer }: Props) {
             <WalletToggleRow
               icon={Wallet}
               title="Coligo Pay"
-              sub={`Solde : ${formatDA(ctx.topup_balance_da)}`}
+              sub={t("balanceAmount", {
+                amount: formatDA(ctx.topup_balance_da),
+              })}
               checked={useTopup}
               onToggle={() => setUseTopup((v) => !v)}
             />
@@ -694,32 +690,34 @@ export function CheckoutView({ customer }: Props) {
 
         {/* Note */}
         <Card className="mt-3">
-          <CardH icon={Sparkles}>Note au commerçant</CardH>
+          <CardH icon={Sparkles}>{t("noteToMerchant")}</CardH>
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={2}
             maxLength={300}
-            placeholder="Ex. « sans sachet », « pas de sucre »…"
+            placeholder={t("notePlaceholder")}
             className="border-border bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full resize-none rounded-[12px] border px-3 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none"
           />
         </Card>
 
         {/* Code promo */}
         <Card className="mt-3">
-          <CardH icon={Tag}>Code promo</CardH>
+          <CardH icon={Tag}>{t("promoCode")}</CardH>
           {appliedPromo ? (
             <div className="border-success-200 bg-success-50 flex items-center justify-between gap-3 rounded-[12px] border px-3 py-2.5">
               <span className="text-success-800 flex items-center gap-2 text-sm font-extrabold">
                 <Check className="size-4 shrink-0" />
-                Code «&nbsp;{appliedPromo.code}&nbsp;» appliqué · −
-                {formatDA(appliedPromo.discount_da)}
+                {t("promoApplied", {
+                  code: appliedPromo.code,
+                  discount: formatDA(appliedPromo.discount_da),
+                })}
               </span>
               <button
                 type="button"
                 onClick={clearPromo}
                 className="text-muted hover:text-foreground grid size-7 shrink-0 place-items-center rounded-full transition"
-                aria-label="Retirer le code promo"
+                aria-label={t("removePromo")}
               >
                 <X className="size-4" />
               </button>
@@ -739,7 +737,7 @@ export function CheckoutView({ customer }: Props) {
                       applyPromo();
                     }
                   }}
-                  placeholder="Ex. BIENVENUE10"
+                  placeholder={t("promoPlaceholder")}
                   className="border-border bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-[12px] border px-3 py-2.5 text-sm uppercase focus-visible:ring-2 focus-visible:outline-none"
                 />
                 <button
@@ -751,7 +749,7 @@ export function CheckoutView({ customer }: Props) {
                   {promoChecking ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    "Appliquer"
+                    t("apply")
                   )}
                 </button>
               </div>
@@ -766,41 +764,50 @@ export function CheckoutView({ customer }: Props) {
 
         {/* Récap */}
         <Card className="mt-3">
-          <CardH icon={Receipt}>Récap</CardH>
+          <CardH icon={Receipt}>{t("recap")}</CardH>
           {ctx.service_fee_da > 0 && ctx.service_fee_free_in_da != null && (
             <div className="from-primary-50 text-primary-700 mb-3 flex items-center gap-2 rounded-[11px] bg-gradient-to-br to-[#F4F0FF] px-3 py-2.5 text-[12.5px] font-bold">
               <Zap className="text-primary-600 size-4 shrink-0" />
               <span>
-                Encore <strong>{formatDA(ctx.service_fee_free_in_da)}</strong>{" "}
-                pour les frais de service offerts !
+                {t.rich("serviceFeeFreeIn", {
+                  amount: formatDA(ctx.service_fee_free_in_da),
+                  strong: (chunks) => <strong>{chunks}</strong>,
+                })}
               </span>
             </div>
           )}
           <dl className="space-y-1">
-            <RRow label="Sous-total" value={formatDA(ctx.cart.normalTotalDa)} />
+            <RRow
+              label={t("subtotal")}
+              value={formatDA(ctx.cart.normalTotalDa)}
+            />
             {ctx.cart.savingsDa > 0 && (
               <RRow
-                label="Promo produits"
+                label={t("productPromo")}
                 value={`− ${formatDA(ctx.cart.savingsDa)}`}
                 tone="success"
               />
             )}
             {ctx.service_fee_da > 0 ? (
               <RRow
-                label="Frais de service"
+                label={t("serviceFee")}
                 value={`+ ${formatDA(ctx.service_fee_da)}`}
               />
             ) : (
               ctx.cart.totalDa > 0 && (
-                <RRow label="Frais de service" value="Gratuit" tone="success" />
+                <RRow
+                  label={t("serviceFee")}
+                  value={t("free")}
+                  tone="success"
+                />
               )
             )}
             {deliveryFeeDa > 0 && (
-              <RRow label="Livraison" value={formatDA(deliveryFeeDa)} />
+              <RRow label={t("deliveryFee")} value={formatDA(deliveryFeeDa)} />
             )}
             {promoDiscount > 0 && (
               <RRow
-                label={`Code promo (${appliedPromo?.code})`}
+                label={t("promoCodeLabel", { code: appliedPromo?.code ?? "" })}
                 value={`− ${formatDA(promoDiscount)}`}
                 tone="success"
               />
@@ -809,20 +816,20 @@ export function CheckoutView({ customer }: Props) {
             {walletUsed ? (
               <>
                 <RRow
-                  label="Total commande"
+                  label={t("orderTotal")}
                   value={formatDA(totalAfterPromo)}
                 />
                 <hr className="border-border my-2" />
                 {cashbackApplied > 0 && (
                   <RRow
-                    label="Cashback utilisé"
+                    label={t("cashbackUsed")}
                     value={`− ${formatDA(cashbackApplied)}`}
                     tone="success"
                   />
                 )}
                 {topupApplied > 0 && (
                   <RRow
-                    label="Coligo Pay utilisé"
+                    label={t("topupUsed")}
                     value={`− ${formatDA(topupApplied)}`}
                     tone="success"
                   />
@@ -851,11 +858,12 @@ export function CheckoutView({ customer }: Props) {
                 <Gift className="size-4" />
               </span>
               <p className="text-success-700 text-[12.5px] font-bold">
-                Tu gagnes{" "}
-                <strong className="font-extrabold">
-                  {formatDA(Math.round(ctx.cart.totalDa * 0.03))}
-                </strong>{" "}
-                de cashback pour ta prochaine commande
+                {t.rich("cashbackEarn", {
+                  amount: formatDA(Math.round(ctx.cart.totalDa * 0.03)),
+                  strong: (chunks) => (
+                    <strong className="font-extrabold">{chunks}</strong>
+                  ),
+                })}
               </p>
             </div>
           )}
@@ -863,8 +871,7 @@ export function CheckoutView({ customer }: Props) {
           {ctx.merchant.min_order_da > 0 &&
             ctx.cart.totalDa < ctx.merchant.min_order_da && (
               <p className="text-danger-600 mt-2 text-xs">
-                Minimum {formatDA(ctx.merchant.min_order_da)} — rajoute des
-                articles pour valider.
+                {t("minOrder", { amount: formatDA(ctx.merchant.min_order_da) })}
               </p>
             )}
         </Card>
@@ -895,7 +902,7 @@ export function CheckoutView({ customer }: Props) {
             {submitting ? (
               <Loader2 className="size-5 animate-spin" />
             ) : (
-              "Confirmer la commande"
+              t("confirmOrder")
             )}
           </button>
           {blockReason && (

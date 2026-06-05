@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { useTranslations } from "next-intl";
 import { Loader2, Phone } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { haversineKm } from "@/lib/delivery/distance";
@@ -48,6 +49,7 @@ export function CustomerDeliveryMap({
   driverPhone?: string | null;
   height?: number;
 }) {
+  const t = useTranslations("orders");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const driverMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
@@ -138,7 +140,8 @@ export function CustomerDeliveryMap({
           });
         } catch (err) {
           setMapError(
-            "Carte indisponible : " +
+            t("mapUnavailable") +
+              " : " +
               (err instanceof Error ? err.message : String(err))
           );
           return;
@@ -191,7 +194,8 @@ export function CustomerDeliveryMap({
       .catch((err) => {
         if (!disposed)
           setMapError(
-            "Carte indisponible : " +
+            t("mapUnavailable") +
+              " : " +
               (err instanceof Error ? err.message : String(err))
           );
       });
@@ -267,22 +271,22 @@ export function CustomerDeliveryMap({
   const near = distanceKm != null && distanceKm < NEAR_KM;
   const arrived = arrivedAt != null;
 
-  const name = driverName?.trim() || "Ton livreur";
+  const name = driverName?.trim() || t("yourDriverCap");
   const initial = name.charAt(0).toUpperCase();
 
   // Sous-texte distance/ETA, façon « à 1,2 km — ~8 min ».
   const subline = arrived
-    ? "Livreur arrivé à ta porte"
+    ? t("driverArrivedAtDoor")
     : near
-      ? "Tout proche — à ta porte"
+      ? t("veryClose")
       : [
           distanceKm != null
-            ? `à ${distanceKm.toFixed(1).replace(".", ",")} km`
+            ? t("atKm", { km: distanceKm.toFixed(1).replace(".", ",") })
             : null,
           etaMin != null ? `~${etaMin} min` : null,
         ]
           .filter(Boolean)
-          .join(" — ") || "Position en cours…";
+          .join(" — ") || t("locating");
 
   return (
     <div className="border-border bg-surface overflow-hidden rounded-[18px] border shadow-sm">
@@ -299,7 +303,7 @@ export function CustomerDeliveryMap({
         {!mapReady && !mapError && (
           <div className="text-muted pointer-events-none absolute inset-0 flex items-center justify-center gap-2 bg-white/60 text-sm">
             <Loader2 className="size-4 animate-spin" />
-            Chargement de la carte…
+            {t("mapLoading")}
           </div>
         )}
         {mapError && (
@@ -309,7 +313,7 @@ export function CustomerDeliveryMap({
         )}
         {!driver && mapReady && !mapError && (
           <div className="bg-surface/90 absolute top-2 left-1/2 -translate-x-1/2 rounded-full border px-3 py-1 text-xs">
-            En attente de la position du livreur…
+            {t("waitingDriverPosition")}
           </div>
         )}
       </div>
@@ -326,7 +330,7 @@ export function CustomerDeliveryMap({
               {!arrived && (
                 <span className="text-success-700 inline-flex shrink-0 items-center gap-1 text-[11px] font-bold">
                   <span className="bg-success-500 size-1.5 animate-pulse rounded-full" />
-                  en direct
+                  {t("live")}
                 </span>
               )}
             </p>
@@ -338,7 +342,7 @@ export function CustomerDeliveryMap({
         {driverPhone && (
           <a
             href={`tel:${driverPhone}`}
-            aria-label={`Appeler ${name}`}
+            aria-label={t("callName", { name })}
             className="bg-success-50 text-success-700 hover:bg-success-100 grid size-9 shrink-0 place-items-center rounded-[11px] transition-colors"
           >
             <Phone className="size-4" />

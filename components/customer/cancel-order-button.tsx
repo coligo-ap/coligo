@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Loader2, ShieldAlert, Wallet, X } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { formatDA } from "@/lib/utils";
@@ -29,6 +30,7 @@ export function CancelOrderButton({
   paymentStatus,
   refundBlocked = false,
 }: Props) {
+  const t = useTranslations("orders");
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -41,8 +43,7 @@ export function CancelOrderButton({
     return (
       <p className="text-muted bg-surface-2 mt-2.5 flex items-start gap-1.5 rounded-[10px] p-2.5 text-[11.5px] font-medium">
         <ShieldAlert className="text-warning-600 mt-0.5 size-4 shrink-0" />
-        Cette commande ne bénéficie pas d&apos;un remboursement après plusieurs
-        annulations. Merci de la récupérer.
+        {t("refundBlockedNotice")}
       </p>
     );
   }
@@ -57,8 +58,10 @@ export function CancelOrderButton({
       }
       toast.success(
         res.refundedToColigoPay > 0
-          ? `Commande annulée. ${formatDA(res.refundedToColigoPay)} crédités sur ton Coligo Pay.`
-          : "Commande annulée."
+          ? t("cancelledWithRefund", {
+              amount: formatDA(res.refundedToColigoPay),
+            })
+          : t("cancelled")
       );
       setConfirming(false);
       router.refresh();
@@ -73,7 +76,7 @@ export function CancelOrderButton({
         className="border-danger-200 text-danger-700 hover:bg-danger-50 mt-2.5 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[12px] border text-[13px] font-bold"
       >
         <X className="size-4" />
-        Annuler ma commande
+        {t("cancelMyOrder")}
       </button>
     );
   }
@@ -81,15 +84,13 @@ export function CancelOrderButton({
   return (
     <div className="border-danger-200 bg-danger-50 mt-2.5 rounded-[12px] border p-3">
       <p className="text-danger-800 text-[12.5px] font-semibold">
-        Annuler cette commande ? Le commerçant en sera informé. Action
-        irréversible.
+        {t("cancelConfirm")}
       </p>
       {onlinePaid && (
         <p className="text-primary-800 bg-primary-50 mt-2 flex items-start gap-1.5 rounded-[10px] p-2.5 text-[12px] font-semibold">
           <Wallet className="text-primary-600 mt-0.5 size-4 shrink-0" />
-          Tu as payé en ligne : le montant sera{" "}
-          <strong>crédité sur ton solde Coligo Pay</strong> (dans ton compte),
-          utilisable sur ta prochaine commande.
+          {t("cancelRefundIntro")} <strong>{t("cancelRefundStrong")}</strong>{" "}
+          {t("cancelRefundOutro")}
         </p>
       )}
       <div className="mt-2.5 flex gap-2">
@@ -99,7 +100,7 @@ export function CancelOrderButton({
           disabled={pending}
           className="border-border text-foreground hover:bg-surface-2 inline-flex h-10 flex-1 items-center justify-center rounded-[10px] border bg-white text-[13px] font-bold disabled:opacity-50"
         >
-          Retour
+          {t("back")}
         </button>
         <button
           type="button"
@@ -110,7 +111,7 @@ export function CancelOrderButton({
           {pending ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
-            "Oui, annuler"
+            t("yesCancel")
           )}
         </button>
       </div>

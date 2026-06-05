@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Check, Loader2, Mail, Phone, User as UserIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +36,7 @@ function IdentityCard({
   initialName: string;
   initialPhone: string;
 }) {
+  const t = useTranslations("account");
   const [name, setName] = useState(initialName);
   const [phone, setPhone] = useState(initialPhone);
   const [pending, start] = useTransition();
@@ -46,22 +48,22 @@ function IdentityCard({
     <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
       <h2 className="text-muted flex items-center gap-2 text-[12px] font-bold tracking-wide uppercase">
         <UserIcon className="text-foreground size-[15px]" />
-        Mes informations
+        {t("myInfo")}
       </h2>
 
       <div className="space-y-1.5">
-        <Label htmlFor="acc_name">Nom et prénom</Label>
+        <Label htmlFor="acc_name">{t("fullName")}</Label>
         <Input
           id="acc_name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Ton nom et prénom"
+          placeholder={t("fullNamePlaceholder")}
           maxLength={80}
         />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="acc_phone">Téléphone</Label>
+        <Label htmlFor="acc_phone">{t("phone")}</Label>
         <div className="relative">
           <Phone className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
@@ -82,18 +84,19 @@ function IdentityCard({
           start(async () => {
             const res = await updateProfile({ full_name: name, phone });
             if (res.error) toast.error(res.error);
-            else toast.success(res.success ?? "Enregistré.");
+            else toast.success(res.success ?? t("saved"));
           })
         }
         className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] text-sm font-extrabold text-white transition-colors disabled:opacity-40"
       >
-        {pending ? <Loader2 className="size-4 animate-spin" /> : "Enregistrer"}
+        {pending ? <Loader2 className="size-4 animate-spin" /> : t("save")}
       </button>
     </section>
   );
 }
 
 function EmailCard({ initialEmail }: { initialEmail: string }) {
+  const t = useTranslations("account");
   // step: idle (affiche l'email) → editing (saisie nouvelle adresse) → code
   const [step, setStep] = useState<"idle" | "editing" | "code">("idle");
   const [email, setEmail] = useState(initialEmail);
@@ -105,7 +108,7 @@ function EmailCard({ initialEmail }: { initialEmail: string }) {
     <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
       <h2 className="text-muted flex items-center gap-2 text-[12px] font-bold tracking-wide uppercase">
         <Mail className="text-foreground size-[15px]" />
-        Adresse email
+        {t("emailAddress")}
       </h2>
 
       {step === "idle" && (
@@ -121,7 +124,7 @@ function EmailCard({ initialEmail }: { initialEmail: string }) {
             }}
             className="text-primary-700 shrink-0 text-sm font-bold"
           >
-            Modifier
+            {t("edit")}
           </button>
         </div>
       )}
@@ -129,7 +132,7 @@ function EmailCard({ initialEmail }: { initialEmail: string }) {
       {step === "editing" && (
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="acc_new_email">Nouvelle adresse email</Label>
+            <Label htmlFor="acc_new_email">{t("newEmailAddress")}</Label>
             <Input
               id="acc_new_email"
               type="email"
@@ -138,9 +141,7 @@ function EmailCard({ initialEmail }: { initialEmail: string }) {
               placeholder="nouvelle@adresse.dz"
               autoComplete="email"
             />
-            <p className="text-subtle text-xs">
-              Un code de confirmation y sera envoyé.
-            </p>
+            <p className="text-subtle text-xs">{t("confirmCodeWillBeSent")}</p>
           </div>
           <div className="flex gap-2">
             <button
@@ -148,7 +149,7 @@ function EmailCard({ initialEmail }: { initialEmail: string }) {
               onClick={() => setStep("idle")}
               className="border-border text-muted h-11 flex-1 rounded-[12px] border text-sm font-semibold"
             >
-              Annuler
+              {t("cancel")}
             </button>
             <button
               type="button"
@@ -158,7 +159,7 @@ function EmailCard({ initialEmail }: { initialEmail: string }) {
                   const res = await requestEmailChange({ email: newEmail });
                   if (res.error) toast.error(res.error);
                   else {
-                    toast.success(res.success ?? "Code envoyé.");
+                    toast.success(res.success ?? t("codeSent"));
                     setStep("code");
                   }
                 })
@@ -168,7 +169,7 @@ function EmailCard({ initialEmail }: { initialEmail: string }) {
               {pending ? (
                 <Loader2 className="mx-auto size-4 animate-spin" />
               ) : (
-                "Envoyer le code"
+                t("sendCode")
               )}
             </button>
           </div>
@@ -178,12 +179,15 @@ function EmailCard({ initialEmail }: { initialEmail: string }) {
       {step === "code" && (
         <div className="space-y-3">
           <p className="text-muted text-sm">
-            Code envoyé à{" "}
-            <strong className="text-foreground">{newEmail}</strong>. Saisis-le
-            pour confirmer.
+            {t.rich("codeSentTo", {
+              email: newEmail,
+              strong: (chunks) => (
+                <strong className="text-foreground">{chunks}</strong>
+              ),
+            })}
           </p>
           <div className="space-y-1.5">
-            <Label htmlFor="acc_code">Code de confirmation</Label>
+            <Label htmlFor="acc_code">{t("confirmationCode")}</Label>
             <Input
               id="acc_code"
               inputMode="numeric"
@@ -201,7 +205,7 @@ function EmailCard({ initialEmail }: { initialEmail: string }) {
               onClick={() => setStep("editing")}
               className="border-border text-muted h-11 flex-1 rounded-[12px] border text-sm font-semibold"
             >
-              Retour
+              {t("back")}
             </button>
             <button
               type="button"
@@ -214,7 +218,7 @@ function EmailCard({ initialEmail }: { initialEmail: string }) {
                   });
                   if (res.error) toast.error(res.error);
                   else {
-                    toast.success(res.success ?? "Email mis à jour.");
+                    toast.success(res.success ?? t("emailUpdated"));
                     setEmail(newEmail.trim().toLowerCase());
                     setCode("");
                     setStep("idle");
@@ -228,7 +232,7 @@ function EmailCard({ initialEmail }: { initialEmail: string }) {
               ) : (
                 <>
                   <Check className="size-4" />
-                  Confirmer
+                  {t("confirm")}
                 </>
               )}
             </button>
@@ -240,12 +244,12 @@ function EmailCard({ initialEmail }: { initialEmail: string }) {
               start(async () => {
                 const res = await requestEmailChange({ email: newEmail });
                 if (res.error) toast.error(res.error);
-                else toast.success("Nouveau code envoyé.");
+                else toast.success(t("newCodeSent"));
               })
             }
             className="text-primary-700 w-full text-center text-xs font-semibold"
           >
-            Renvoyer le code
+            {t("resendCode")}
           </button>
         </div>
       )}

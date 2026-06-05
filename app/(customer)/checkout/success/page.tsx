@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { CheckCircle2, Clock } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
@@ -20,7 +21,7 @@ export default async function CheckoutSuccessPage({
   searchParams: Promise<{ order_id?: string }>;
 }) {
   const { order_id } = await searchParams;
-  if (!order_id) return <SuccessFallback />;
+  if (!order_id) return await SuccessFallback();
 
   const supabase = await createClient();
   const {
@@ -39,7 +40,9 @@ export default async function CheckoutSuccessPage({
     .eq("id", order_id)
     .maybeSingle();
   // Commande illisible → on ne bloque pas en 404 : message rassurant + lien.
-  if (!order) return <SuccessFallback />;
+  if (!order) return await SuccessFallback();
+
+  const t = await getTranslations("checkout");
 
   // Race : si Chargily a notifié `failed` pendant que le client revenait
   // sur success_url, la commande est déjà cancelled. On redirige vers la
@@ -52,11 +55,12 @@ export default async function CheckoutSuccessPage({
     <CustomerShell>
       <div className="mx-auto max-w-md px-4 py-12 text-center lg:py-20">
         {order.payment_status === "paid" ? (
-          <Paid pickupCode={order.pickup_code} orderId={order.id} />
+          <Paid pickupCode={order.pickup_code} orderId={order.id} t={t} />
         ) : (
           <PendingConfirmation
             orderId={order.id}
             pickupCode={order.pickup_code}
+            t={t}
           />
         )}
       </div>
@@ -64,12 +68,16 @@ export default async function CheckoutSuccessPage({
   );
 }
 
+type Translator = Awaited<ReturnType<typeof getTranslations>>;
+
 function Paid({
   pickupCode,
   orderId,
+  t,
 }: {
   pickupCode: string;
   orderId: string;
+  t: Translator;
 }) {
   return (
     <>
@@ -78,11 +86,9 @@ function Paid({
         <CheckCircle2 className="size-8" />
       </div>
       <h1 className="text-foreground mt-4 text-2xl font-bold">
-        Paiement confirmé
+        {t("paidTitle")}
       </h1>
-      <p className="text-muted mt-2 text-sm">
-        Ta commande est enregistrée. Présente ce code au retrait :
-      </p>
+      <p className="text-muted mt-2 text-sm">{t("paidSubtitle")}</p>
       <p className="text-primary-700 mt-4 text-4xl font-bold tracking-widest tabular-nums">
         {pickupCode}
       </p>
@@ -90,7 +96,7 @@ function Paid({
         href={`/commandes/${orderId}`}
         className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex rounded-[12px] px-5 py-2.5 text-sm font-medium text-white"
       >
-        Voir le détail de la commande
+        {t("viewOrderDetail")}
       </Link>
     </>
   );
@@ -99,9 +105,11 @@ function Paid({
 function PendingConfirmation({
   orderId,
   pickupCode,
+  t,
 }: {
   orderId: string;
   pickupCode: string;
+  t: Translator;
 }) {
   return (
     <>
@@ -109,13 +117,9 @@ function PendingConfirmation({
         <Clock className="size-8 animate-pulse" />
       </div>
       <h1 className="text-foreground mt-4 text-2xl font-bold">
-        Paiement en cours de confirmation…
+        {t("pendingTitle")}
       </h1>
-      <p className="text-muted mt-2 text-sm">
-        On attend la confirmation de Chargily Pay (quelques secondes). Garde
-        cette page ouverte — tu seras redirigé(e) automatiquement dès que
-        c&apos;est bon.
-      </p>
+      <p className="text-muted mt-2 text-sm">{t("pendingSubtitle")}</p>
       <p className="text-primary-700 mt-4 text-4xl font-bold tracking-widest tabular-nums">
         {pickupCode}
       </p>
@@ -124,37 +128,37 @@ function PendingConfirmation({
         href={`/commandes/${orderId}`}
         className="text-primary-700 mt-6 inline-flex text-sm font-medium hover:underline"
       >
-        Voir ma commande sans attendre →
+        {t("viewOrderNow")}
       </Link>
     </>
   );
 }
 
 /** Repli sans contexte commande — jamais de 404 sur un retour de paiement. */
-function SuccessFallback() {
+async function SuccessFallback() {
+  const t = await getTranslations("checkout");
   return (
     <CustomerShell>
       <div className="mx-auto max-w-md px-4 py-12 text-center lg:py-20">
         <div className="bg-success-100 text-success-700 mx-auto flex size-16 items-center justify-center rounded-full">
           <CheckCircle2 className="size-8" />
         </div>
-        <h1 className="text-foreground mt-4 text-2xl font-bold">Merci !</h1>
-        <p className="text-muted mt-2 text-sm">
-          Si ton paiement a été confirmé, ta commande apparaît dans « Mes
-          commandes » avec son code de retrait.
-        </p>
+        <h1 className="text-foreground mt-4 text-2xl font-bold">
+          {t("thanks")}
+        </h1>
+        <p className="text-muted mt-2 text-sm">{t("successFallbackBody")}</p>
         <div className="mt-6 flex flex-col gap-2">
           <Link
             href="/commandes"
             className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-[12px] px-5 text-sm font-semibold text-white"
           >
-            Voir mes commandes
+            {t("viewMyOrders")}
           </Link>
           <Link
             href="/"
             className="text-muted hover:text-foreground text-sm hover:underline"
           >
-            Retour à l&apos;accueil
+            {t("backHome")}
           </Link>
         </div>
       </div>

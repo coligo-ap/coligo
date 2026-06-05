@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ArrowRight, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ export default function CustomerLoginPage() {
 }
 
 function CustomerLoginInner() {
+  const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(
     customerLogin,
     initialState
@@ -85,19 +87,17 @@ function CustomerLoginInner() {
 
             <div className="relative z-10">
               <h1 className="mb-4 text-4xl leading-tight font-bold drop-shadow-md">
-                Vos commerces de quartier,
-                <br />
-                en un clic.
+                {t.rich("heroTitle", { br: () => <br /> })}
               </h1>
               <p className="mb-8 text-lg text-white/90 drop-shadow">
-                Commandez à l&apos;avance, récupérez sur place. Sans attente.
+                {t("heroSubtitle")}
               </p>
 
               <div className="space-y-4 text-sm">
-                <Feature title="Commandez à l'avance, récupérez sans attente" />
-                <Feature title="Tous vos commerces de quartier réunis" />
-                <Feature title="Suivez vos commandes en temps réel" />
-                <Feature title="Cashback et Coligo Pay à chaque achat" />
+                <Feature title={t("feature1")} />
+                <Feature title={t("feature2")} />
+                <Feature title={t("feature3")} />
+                <Feature title={t("feature4")} />
               </div>
             </div>
 
@@ -115,16 +115,14 @@ function CustomerLoginInner() {
 
               <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
                 <h2 className="text-foreground mb-1 text-2xl font-bold lg:text-3xl">
-                  Content de te revoir
+                  {t("welcomeBack")}
                 </h2>
-                <p className="text-muted mb-6 text-sm">
-                  Connecte-toi pour suivre tes commandes.
-                </p>
+                <p className="text-muted mb-6 text-sm">{t("loginSubtitle")}</p>
 
                 <form action={formAction} className="space-y-4">
                   <input type="hidden" name="next" value={next} />
                   <div className="space-y-1.5">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">{t("email")}</Label>
                     <div className="relative">
                       <Mail className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                       <Input
@@ -142,12 +140,12 @@ function CustomerLoginInner() {
 
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Mot de passe</Label>
+                      <Label htmlFor="password">{t("password")}</Label>
                       <Link
                         href="/mot-de-passe-oublie"
                         className="text-muted hover:text-primary-700 text-xs"
                       >
-                        Oublié ?
+                        {t("forgotShort")}
                       </Link>
                     </div>
                     <div className="relative">
@@ -167,8 +165,7 @@ function CustomerLoginInner() {
 
                   {(state.error || oauthError) && (
                     <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
-                      {state.error ??
-                        "La connexion avec Google a échoué. Réessaie."}
+                      {state.error ?? t("googleAuthFailed")}
                     </div>
                   )}
 
@@ -179,10 +176,10 @@ function CustomerLoginInner() {
                     disabled={pending}
                   >
                     {pending ? (
-                      "Connexion…"
+                      t("signingIn")
                     ) : (
                       <>
-                        Se connecter <ArrowRight className="size-4" />
+                        {t("signIn")} <ArrowRight className="size-4" />
                       </>
                     )}
                   </Button>
@@ -193,25 +190,25 @@ function CustomerLoginInner() {
                 </div>
 
                 <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
-                  Pas encore inscrit ?{" "}
+                  {t("notRegisteredYet")}{" "}
                   <Link
                     href={signupHref}
                     className="text-primary-700 font-medium hover:underline"
                   >
-                    Créer un compte
+                    {t("createAccount")}
                   </Link>
                 </div>
 
                 <div className="mt-6 text-center text-xs">
                   <Link href="/" className="text-muted hover:text-foreground">
-                    ← Retour à l&apos;accueil
+                    {t("backToHome")}
                   </Link>
                   <span className="text-muted mx-2">·</span>
                   <Link
                     href="/login"
                     className="text-muted hover:text-foreground"
                   >
-                    Je suis commerçant
+                    {t("iAmMerchant")}
                   </Link>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
@@ -29,6 +30,7 @@ export function ColigoPayCard({
   maxPerRecharge: number;
 }) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("wallet");
   const disabled = remaining30d <= 0;
   return (
     <div className="mt-4">
@@ -39,11 +41,11 @@ export function ColigoPayCard({
         disabled={disabled}
         className="w-full sm:w-auto"
       >
-        Recharger mon Coligo Pay
+        {t("rechargeColigoPay")}
       </Button>
       {disabled && (
         <p className="text-warning-700 mt-2 text-xs">
-          Plafond mensuel atteint — réessaie dans quelques jours.
+          {t("monthlyCapReached")}
         </p>
       )}
       {open && (
@@ -69,12 +71,13 @@ function TopupModal({
   const [amount, setAmount] = useState<number>(1000);
   const [custom, setCustom] = useState<string>("");
   const [pending, start] = useTransition();
+  const t = useTranslations("wallet");
   const cap = Math.min(maxPerRecharge, remaining30d);
 
   function submit() {
     const value = custom ? Number(custom) : amount;
     if (!Number.isFinite(value) || value <= 0) {
-      toast.error("Saisis un montant valide.");
+      toast.error(t("invalidAmount"));
       return;
     }
     start(async () => {
@@ -98,20 +101,20 @@ function TopupModal({
       >
         <header className="mb-4 flex items-center justify-between">
           <h2 className="text-foreground text-lg font-bold">
-            Recharger Coligo Pay
+            {t("rechargeModalTitle")}
           </h2>
           <button
             type="button"
             onClick={onClose}
             className="text-muted hover:text-foreground"
-            aria-label="Fermer"
+            aria-label={t("close")}
           >
             <X className="size-5" />
           </button>
         </header>
 
         <p className="text-muted mb-3 text-xs">
-          Plafond restant sur 30 jours :{" "}
+          {t("remainingCap30d")}{" "}
           <span className="text-foreground font-medium tabular-nums">
             {formatDA(remaining30d)}
           </span>
@@ -140,7 +143,7 @@ function TopupModal({
         </div>
 
         <label className="text-foreground text-xs font-semibold tracking-wider uppercase">
-          Ou montant libre
+          {t("customAmount")}
         </label>
         <input
           type="number"
@@ -150,7 +153,7 @@ function TopupModal({
           step={100}
           value={custom}
           onChange={(e) => setCustom(e.target.value)}
-          placeholder="Ex. 1500"
+          placeholder={t("customAmountPlaceholder")}
           className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 mt-1.5 w-full rounded-[12px] border px-3 py-2 text-sm tabular-nums focus-visible:ring-2 focus-visible:outline-none"
         />
 
@@ -164,11 +167,13 @@ function TopupModal({
           {pending ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
-            `Payer ${formatDA(custom ? Number(custom) || 0 : amount)} via Chargily`
+            t("payViaChargily", {
+              amount: formatDA(custom ? Number(custom) || 0 : amount),
+            })
           )}
         </Button>
         <p className="text-muted mt-3 text-center text-[11px]">
-          Tu seras redirigé(e) vers Chargily Pay. Aucun débit avant validation.
+          {t("chargilyRedirectNote")}
         </p>
       </div>
     </div>

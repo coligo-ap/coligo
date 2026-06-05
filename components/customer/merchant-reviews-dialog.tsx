@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Star, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RatingStars } from "@/components/customer/rating-stars";
@@ -26,6 +27,7 @@ export function MerchantReviewsDialog({
   reviews,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("reviews");
   if (ratingCount === 0) return null;
 
   return (
@@ -34,13 +36,18 @@ export function MerchantReviewsDialog({
         type="button"
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold transition-colors hover:border-amber-300 hover:bg-amber-100"
-        aria-label={`${ratingCount} avis, note ${ratingAvg.toFixed(1)} sur 5`}
+        aria-label={t("ratingAriaLabel", {
+          count: ratingCount,
+          rating: ratingAvg.toFixed(1),
+        })}
       >
         <Star className="size-3.5 fill-amber-400 text-amber-400" />
         <span className="text-amber-800 tabular-nums">
           {ratingAvg.toFixed(1)}
         </span>
-        <span className="font-medium text-amber-700">({ratingCount} avis)</span>
+        <span className="font-medium text-amber-700">
+          {t("reviewsCount", { count: ratingCount })}
+        </span>
       </button>
 
       {open && (
@@ -54,7 +61,7 @@ export function MerchantReviewsDialog({
             <header className="border-border bg-surface flex items-start justify-between gap-3 rounded-t-[20px] border-b px-5 py-4 sm:rounded-t-[20px]">
               <div>
                 <h2 className="font-display text-foreground text-lg font-bold">
-                  Retours clients
+                  {t("customerFeedback")}
                 </h2>
                 <div className="mt-1">
                   <RatingStars avg={ratingAvg} count={ratingCount} size="md" />
@@ -64,7 +71,7 @@ export function MerchantReviewsDialog({
                 type="button"
                 onClick={() => setOpen(false)}
                 className="text-muted hover:bg-surface-2 rounded-full p-1.5"
-                aria-label="Fermer"
+                aria-label={t("close")}
               >
                 <X className="size-5" />
               </button>
@@ -72,14 +79,11 @@ export function MerchantReviewsDialog({
 
             <div className="flex-1 overflow-y-auto px-5 py-4">
               {reviews.length === 0 ? (
-                <p className="text-muted text-sm">
-                  Pas encore de commentaire écrit pour ce commerce. Les notes
-                  restent comptées.
-                </p>
+                <p className="text-muted text-sm">{t("noWrittenComment")}</p>
               ) : (
                 <ul className="space-y-3">
                   {reviews.map((r) => (
-                    <ReviewItem key={r.id} review={r} />
+                    <ReviewItem key={r.id} review={r} t={t} />
                   ))}
                 </ul>
               )}
@@ -91,8 +95,14 @@ export function MerchantReviewsDialog({
   );
 }
 
-function ReviewItem({ review }: { review: ReviewWithCustomer }) {
-  const displayName = anonymize(review.customer_name);
+function ReviewItem({
+  review,
+  t,
+}: {
+  review: ReviewWithCustomer;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  const displayName = anonymize(review.customer_name, t("anonymousCustomer"));
   const date = new Date(review.created_at).toLocaleDateString("fr-DZ", {
     day: "numeric",
     month: "short",
@@ -106,7 +116,7 @@ function ReviewItem({ review }: { review: ReviewWithCustomer }) {
           <p className="text-muted text-xs">
             {date}
             {review.edited_at && (
-              <span className="text-subtle"> · modifié</span>
+              <span className="text-subtle"> · {t("edited")}</span>
             )}
           </p>
         </div>
@@ -133,8 +143,8 @@ function ReviewItem({ review }: { review: ReviewWithCustomer }) {
   );
 }
 
-function anonymize(fullName: string | null): string {
-  if (!fullName) return "Client Coligo";
+function anonymize(fullName: string | null, fallback: string): string {
+  if (!fullName) return fallback;
   const parts = fullName.trim().split(/\s+/);
   if (parts.length === 1) return parts[0];
   return `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;

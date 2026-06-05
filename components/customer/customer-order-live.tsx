@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { CheckCircle2, PartyPopper, XCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
@@ -25,25 +26,31 @@ type Popup = {
   tone: "success" | "danger";
 };
 
-const STATUS_POPUP: Partial<Record<OrderStatus, Popup>> = {
+type PopupTpl = {
+  titleKey: string;
+  bodyKey: string;
+  tone: "success" | "danger";
+};
+
+const STATUS_POPUP: Partial<Record<OrderStatus, PopupTpl>> = {
   accepted: {
-    title: "Commande acceptée 🎉",
-    body: "Le commerçant prépare votre commande.",
+    titleKey: "popupAcceptedTitle",
+    bodyKey: "popupAcceptedBody",
     tone: "success",
   },
   preparing: {
-    title: "Commande acceptée 🎉",
-    body: "Le commerçant prépare votre commande.",
+    titleKey: "popupAcceptedTitle",
+    bodyKey: "popupAcceptedBody",
     tone: "success",
   },
   ready: {
-    title: "Commande prête ✅",
-    body: "Vous pouvez aller la récupérer.",
+    titleKey: "popupReadyTitle",
+    bodyKey: "popupReadyBody",
     tone: "success",
   },
   cancelled: {
-    title: "Commande refusée",
-    body: "Le commerçant n'a pas pu accepter votre commande.",
+    titleKey: "popupRefusedTitle",
+    bodyKey: "popupRefusedBody",
     tone: "danger",
   },
 };
@@ -55,6 +62,7 @@ export function CustomerOrderLive({
   orderId: string;
   initialStatus: OrderStatus;
 }) {
+  const t = useTranslations("orders");
   const router = useRouter();
   const lastStatusRef = useRef<OrderStatus>(initialStatus);
   const [popup, setPopup] = useState<Popup | null>(null);
@@ -87,7 +95,9 @@ export function CustomerOrderLive({
     lastStatusRef.current = next;
     const tmpl = STATUS_POPUP[next];
     if (tmpl) {
-      setPopup(tmpl);
+      const title = t(tmpl.titleKey);
+      const body = t(tmpl.bodyKey);
+      setPopup({ title, body, tone: tmpl.tone });
       try {
         void play();
       } catch {
@@ -95,7 +105,7 @@ export function CustomerOrderLive({
       }
       vibrate([200, 100, 200]);
       try {
-        notify(tmpl.title, { body: tmpl.body, tag: `order-${orderId}` });
+        notify(title, { body, tag: `order-${orderId}` });
       } catch {
         /* ignoré */
       }
@@ -180,7 +190,7 @@ export function CustomerOrderLive({
           }
         >
           <CheckCircle2 className="size-4" />
-          J&apos;ai compris
+          {t("understood")}
         </button>
       </div>
     </div>

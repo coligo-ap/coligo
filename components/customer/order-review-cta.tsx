@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Star } from "lucide-react";
 import { ReviewModal } from "@/components/customer/review-modal";
 
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export function OrderReviewCta({ orderId, merchantName }: Props) {
+  const t = useTranslations("orders");
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -31,7 +33,7 @@ export function OrderReviewCta({ orderId, merchantName }: Props) {
         className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 hover:bg-amber-100"
       >
         <Star className="size-3 fill-amber-400 text-amber-400" />
-        Laisser un avis
+        {t("leaveReview")}
       </button>
       {open && (
         <ReviewModal

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 
 /**
  * Génère un QR SVG inline pour le code de retrait, avec @zxing/browser (déjà
@@ -13,6 +14,7 @@ export function OrderQr({
   value: string;
   size?: number;
 }) {
+  const t = useTranslations("orders");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export function OrderQr({
       ref={ref}
       className="border-border inline-flex items-center justify-center rounded-[14px] border bg-white p-3"
       style={{ width: size + 24, height: size + 24 }}
-      aria-label={`QR ${value}`}
+      aria-label={t("qrLabel", { value })}
     />
   );
 }

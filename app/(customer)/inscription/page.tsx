@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ArrowRight, Lock, Mail, Phone, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ export default function CustomerSignupPage() {
 }
 
 function CustomerSignupInner() {
+  const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(
     customerSignup,
     initialState
@@ -51,18 +53,16 @@ function CustomerSignupInner() {
             <Logo variant="amber" size="xl" iconOnly className="!gap-0" />
             <div>
               <h1 className="mb-4 text-4xl leading-tight font-bold">
-                Crée ton compte
-                <br />
-                en 30 secondes.
+                {t.rich("signupHeroTitle", { br: () => <br /> })}
               </h1>
               <p className="text-primary-50/90 mb-8 text-lg">
-                Pour commander, suivre tes retraits, et profiter du cashback.
+                {t("signupHeroSubtitle")}
               </p>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <Stat value="0 DA" label="Inscription" />
-                <Stat value="3 %" label="Cashback en moyenne" />
-                <Stat value="0 file" label="d'attente" />
-                <Stat value="24/7" label="Disponible" />
+                <Stat value="0 DA" label={t("statSignup")} />
+                <Stat value="3 %" label={t("statCashback")} />
+                <Stat value="0 file" label={t("statWaiting")} />
+                <Stat value="24/7" label={t("statAvailable")} />
               </div>
             </div>
             <p className="text-primary-50/70 text-xs">
@@ -78,17 +78,15 @@ function CustomerSignupInner() {
 
               <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
                 <h2 className="text-foreground mb-1 text-2xl font-bold lg:text-3xl">
-                  Bienvenue !
+                  {t("welcome")}
                 </h2>
-                <p className="text-muted mb-6 text-sm">
-                  Quelques infos pour commander rapidement.
-                </p>
+                <p className="text-muted mb-6 text-sm">{t("signupSubtitle")}</p>
 
                 <form action={formAction} className="space-y-4">
                   <input type="hidden" name="next" value={next} />
                   <Field
                     id="full_name"
-                    label="Nom complet"
+                    label={t("fullName")}
                     icon={User}
                     inputProps={{
                       name: "full_name",
@@ -96,15 +94,15 @@ function CustomerSignupInner() {
                       minLength: 2,
                       maxLength: 80,
                       autoComplete: "name",
-                      placeholder: "Ex. Lina Hamdi",
+                      placeholder: t("fullNamePlaceholder"),
                     }}
                     disabled={pending}
                   />
 
                   <Field
                     id="phone"
-                    label="Téléphone"
-                    hint="On le transmet au commerçant pour qu'il puisse te contacter."
+                    label={t("phone")}
+                    hint={t("phoneHint")}
                     icon={Phone}
                     inputProps={{
                       name: "phone",
@@ -119,7 +117,7 @@ function CustomerSignupInner() {
 
                   <Field
                     id="email"
-                    label="Email"
+                    label={t("email")}
                     icon={Mail}
                     inputProps={{
                       name: "email",
@@ -133,8 +131,8 @@ function CustomerSignupInner() {
 
                   <Field
                     id="password"
-                    label="Mot de passe"
-                    hint="8 caractères minimum."
+                    label={t("password")}
+                    hint={t("passwordHint")}
                     icon={Lock}
                     inputProps={{
                       name: "password",
@@ -165,10 +163,10 @@ function CustomerSignupInner() {
                     disabled={pending}
                   >
                     {pending ? (
-                      "Création…"
+                      t("creating")
                     ) : (
                       <>
-                        Créer mon compte <ArrowRight className="size-4" />
+                        {t("createMyAccount")} <ArrowRight className="size-4" />
                       </>
                     )}
                   </Button>
@@ -179,18 +177,18 @@ function CustomerSignupInner() {
                 </div>
 
                 <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
-                  Déjà inscrit ?{" "}
+                  {t("alreadyRegistered")}{" "}
                   <Link
                     href={loginHref}
                     className="text-primary-700 font-medium hover:underline"
                   >
-                    Se connecter
+                    {t("signIn")}
                   </Link>
                 </div>
 
                 <div className="mt-6 text-center text-xs">
                   <Link href="/" className="text-muted hover:text-foreground">
-                    ← Retour à l&apos;accueil
+                    {t("backToHome")}
                   </Link>
                 </div>
               </div>

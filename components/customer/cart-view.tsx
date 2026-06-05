@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   Trash2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn, formatDA } from "@/lib/utils";
 import {
   clearCart,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/customer/cart-store";
 
 export function CartView() {
+  const t = useTranslations("cart");
   const cart = useCart();
   const empty = cart.items.length === 0;
 
@@ -35,16 +37,14 @@ export function CartView() {
       <div className="mx-auto max-w-xl px-4 py-12 text-center lg:py-20">
         <ShoppingCart className="text-primary-500 mx-auto size-12" />
         <h1 className="text-foreground mt-4 text-2xl font-bold">
-          Ton panier est vide
+          {t("emptyTitle")}
         </h1>
-        <p className="text-muted mt-2 text-sm">
-          Découvre les commerces près de chez toi et remplis ton panier.
-        </p>
+        <p className="text-muted mt-2 text-sm">{t("emptySubtitle")}</p>
         <Link
           href="/"
           className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex items-center justify-center rounded-[10px] px-4 py-2 text-sm font-medium text-white"
         >
-          Voir les commerces
+          {t("seeMerchants")}
         </Link>
       </div>
     );
@@ -59,31 +59,32 @@ export function CartView() {
           className="bg-surface-2 text-foreground mb-3 inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-bold"
         >
           <ArrowLeft className="size-4" />
-          Retour à{" "}
+          {t("backTo")}{" "}
           <span className="text-primary-700">
-            {cart.merchant_name ?? "la boutique"}
+            {cart.merchant_name ?? t("theShop")}
           </span>
         </Link>
       )}
 
       <div className="flex items-center justify-between">
         <h1 className="text-foreground text-[26px] font-black tracking-[-0.8px]">
-          Mon panier
+          {t("title")}
         </h1>
         <button
           type="button"
           onClick={() => {
-            if (confirm("Vider tout le panier ?")) clearCart();
+            if (confirm(t("clearConfirm"))) clearCart();
           }}
           className="text-danger-600 inline-flex items-center gap-1 text-[13px] font-bold"
         >
           <Trash2 className="size-4" />
-          Vider
+          {t("clear")}
         </button>
       </div>
       {cart.merchant_name && (
         <p className="text-muted mt-0.5 text-[13px] font-semibold">
-          chez <span className="text-primary-700">{cart.merchant_name}</span>
+          {t("at")}{" "}
+          <span className="text-primary-700">{cart.merchant_name}</span>
         </p>
       )}
 
@@ -109,7 +110,7 @@ export function CartView() {
                 {item.name}
               </p>
               <p className="text-muted text-xs font-semibold">
-                {formatDA(item.unit_price_da)} l&apos;unité
+                {t("perUnit", { price: formatDA(item.unit_price_da) })}
               </p>
               <p className="text-foreground mt-0.5 text-[15px] font-extrabold tabular-nums">
                 {formatDA(item.unit_price_da * item.quantity)}
@@ -121,7 +122,7 @@ export function CartView() {
                 onClick={() =>
                   setItemQuantity(item.product_id, item.quantity - 1)
                 }
-                aria-label={item.quantity === 1 ? "Retirer" : "Retirer 1"}
+                aria-label={item.quantity === 1 ? t("remove") : t("removeOne")}
                 className={cn(
                   "flex size-9 items-center justify-center rounded-full",
                   item.quantity === 1 ? "text-danger-600" : "text-primary-700"
@@ -141,7 +142,7 @@ export function CartView() {
                 onClick={() =>
                   setItemQuantity(item.product_id, item.quantity + 1)
                 }
-                aria-label="Ajouter 1"
+                aria-label={t("addOne")}
                 className="text-primary-700 flex size-9 items-center justify-center rounded-full"
               >
                 <Plus className="size-4" />
@@ -157,12 +158,12 @@ export function CartView() {
           {cashbackGain > 0 && (
             <div className="bg-success-50 text-success-700 mb-2.5 flex items-center gap-2 rounded-[10px] px-3 py-2 text-[12px] font-bold">
               <Gift className="size-4 shrink-0" />
-              Tu gagnes {formatDA(cashbackGain)} de cashback en payant en ligne
+              {t("cashbackGain", { amount: formatDA(cashbackGain) })}
             </div>
           )}
           <div className="mb-2.5 flex items-center justify-between">
             <span className="text-muted text-[13px] font-semibold">
-              Sous-total · {units} article{units > 1 ? "s" : ""}
+              {t("subtotalUnits", { count: units })}
             </span>
             <span className="text-foreground text-[21px] font-black tracking-[-0.6px] tabular-nums">
               {formatDA(subtotal)}
@@ -172,7 +173,7 @@ export function CartView() {
             href="/checkout"
             className="bg-primary-600 hover:bg-primary-700 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-base font-extrabold text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"
           >
-            Passer au paiement
+            {t("checkout")}
             <ArrowRight className="size-5" />
           </Link>
         </div>

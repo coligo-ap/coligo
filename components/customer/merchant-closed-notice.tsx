@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { CalendarClock, Clock, X } from "lucide-react";
 import { isOpenNow, nextOpening } from "@/lib/merchant/opening-hours";
 import {
@@ -8,17 +9,7 @@ import {
   pauseReasonMessage,
   type MerchantPauseInput,
 } from "@/lib/merchant/pause-state";
-import type { DayKey, OpeningHours } from "@/lib/types";
-
-const DAY_LABEL: Record<DayKey, string> = {
-  mon: "lundi",
-  tue: "mardi",
-  wed: "mercredi",
-  thu: "jeudi",
-  fri: "vendredi",
-  sat: "samedi",
-  sun: "dimanche",
-};
+import type { OpeningHours } from "@/lib/types";
 
 /**
  * Bandeau + pop-up « commerce fermé » côté client (façon Deliveroo / Uber Eats).
@@ -40,6 +31,7 @@ export function MerchantClosedNotice({
   maxDaysAhead: number;
   pause: MerchantPauseInput;
 }) {
+  const t = useTranslations("merchant");
   const [mounted, setMounted] = useState(false);
   const [showModal, setShowModal] = useState(true);
 
@@ -64,20 +56,24 @@ export function MerchantClosedNotice({
   if (state.reopensAt) {
     const sameDay = state.reopensAt.toDateString() === now.toDateString();
     reopenText = sameDay
-      ? `Réouverture vers ${fmtTime(state.reopensAt)}`
-      : `Réouverture le ${state.reopensAt.toLocaleDateString("fr-DZ", {
-          day: "numeric",
-          month: "long",
-          timeZone: "Africa/Algiers",
-        })}`;
+      ? t("reopensAround", { time: fmtTime(state.reopensAt) })
+      : t("reopensOn", {
+          date: state.reopensAt.toLocaleDateString("fr-DZ", {
+            day: "numeric",
+            month: "long",
+            timeZone: "Africa/Algiers",
+          }),
+        });
   } else if (!openByHours) {
     const nx = nextOpening(openingHours, now);
-    if (nx) reopenText = `Ouvre ${DAY_LABEL[nx.day]} à ${nx.slot.open}`;
+    if (nx)
+      reopenText = t("opensDayAt", {
+        day: t(`day_${nx.day}`),
+        time: nx.slot.open,
+      });
   }
 
-  const reason =
-    pauseReasonMessage(state) ||
-    "Ce commerce est fermé pour le moment et ne prend pas de commandes.";
+  const reason = pauseReasonMessage(state) || t("closedDefault");
   const canSchedule = maxDaysAhead > 0;
 
   return (
@@ -91,10 +87,7 @@ export function MerchantClosedNotice({
             <p className="text-warning-800 mt-0.5">{reopenText}</p>
           )}
           {canSchedule && (
-            <p className="text-warning-800 mt-0.5">
-              Vous pouvez programmer une commande pour plus tard — choisissez un
-              créneau au moment de payer.
-            </p>
+            <p className="text-warning-800 mt-0.5">{t("scheduleHint")}</p>
           )}
         </div>
       </div>
@@ -118,7 +111,7 @@ export function MerchantClosedNotice({
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                aria-label="Fermer"
+                aria-label={t("close")}
                 className="text-subtle hover:bg-surface-2 -mt-1 -mr-1 flex size-8 items-center justify-center rounded-full"
               >
                 <X className="size-4" />
@@ -137,7 +130,7 @@ export function MerchantClosedNotice({
                   className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center gap-2 rounded-[12px] px-4 text-sm font-semibold text-white"
                 >
                   <CalendarClock className="size-4" />
-                  Programmer une commande
+                  {t("scheduleOrder")}
                 </button>
               ) : (
                 <button
@@ -145,7 +138,7 @@ export function MerchantClosedNotice({
                   onClick={() => setShowModal(false)}
                   className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-[12px] px-4 text-sm font-semibold text-white"
                 >
-                  J&apos;ai compris
+                  {t("gotIt")}
                 </button>
               )}
               <button
@@ -153,7 +146,7 @@ export function MerchantClosedNotice({
                 onClick={() => setShowModal(false)}
                 className="text-muted h-10 text-sm font-medium hover:underline"
               >
-                Voir le catalogue
+                {t("seeCatalog")}
               </button>
             </div>
           </div>

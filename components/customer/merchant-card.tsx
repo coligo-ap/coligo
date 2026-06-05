@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Bike, Clock, MapPin, Star, Tag, Zap } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
@@ -39,8 +42,10 @@ export function MerchantCard({
   isAuth = false,
   refreshOnToggle = false,
 }: Props) {
+  const t = useTranslations("listing");
   const showPromo =
-    promo ?? (hasPromo ? { text: "Promo", kind: "discount" as const } : null);
+    promo ??
+    (hasPromo ? { text: t("promo"), kind: "discount" as const } : null);
   const open = isOpenNow(merchant.opening_hours, nowInAlgiers());
   const wilayaName = merchant.wilaya_code
     ? WILAYAS.find((w) => w.code === merchant.wilaya_code)?.name
@@ -102,7 +107,7 @@ export function MerchantCard({
               open ? "animate-pulse bg-[var(--color-success-600)]" : "bg-subtle"
             )}
           />
-          {open ? "Ouvert" : "Fermé"}
+          {open ? t("open") : t("closed")}
         </span>
 
         {/* cœur favori (haut-droite) */}
@@ -144,14 +149,14 @@ export function MerchantCard({
             </span>
           ) : (
             <span className="bg-primary-50 text-primary-700 inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-bold">
-              Nouveau
+              {t("new")}
             </span>
           )}
         </div>
 
         {/* ligne d'infos : frais · distance · ville/min */}
         <div className="text-muted mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px] font-semibold">
-          <span className="text-success-700 font-bold">Retrait gratuit</span>
+          <span className="text-success-700 font-bold">{t("freePickup")}</span>
           {distLabel && (
             <>
               <Dot />
@@ -167,7 +172,9 @@ export function MerchantCard({
           {merchant.min_order_da > 0 && (
             <>
               <Dot />
-              <span>Min {formatDA(merchant.min_order_da)}</span>
+              <span>
+                {t("min", { amount: formatDA(merchant.min_order_da) })}
+              </span>
             </>
           )}
         </div>
@@ -177,18 +184,18 @@ export function MerchantCard({
           {merchant.delivery_enabled && (
             <Mode tone="deliv">
               <Bike className="size-3.5" />
-              Livraison
+              {t("delivery")}
             </Mode>
           )}
           {merchant.express_enabled && (
             <Mode>
               <Zap className="size-3.5" />
-              Express
+              {t("express")}
             </Mode>
           )}
           <Mode>
             <MapPin className="size-3.5" />
-            Retrait
+            {t("pickup")}
           </Mode>
         </div>
       </div>

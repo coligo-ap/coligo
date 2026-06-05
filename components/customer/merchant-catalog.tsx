@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProductDetailSheet } from "@/components/customer/product-detail-sheet";
@@ -47,6 +48,7 @@ export function MerchantCatalog({
   categories,
   promoPriceById,
 }: Props) {
+  const t = useTranslations("merchant");
   const [selected, setSelected] = useState<PublicProduct | null>(null);
   // Recherche produit (filtre client, sur le catalogue déjà chargé).
   const [query, setQuery] = useState("");
@@ -85,7 +87,8 @@ export function MerchantCatalog({
     } else {
       // Fallback : groupage par texte
       for (const p of products) {
-        const k = (p.category && p.category.trim()) || "Autres";
+        const hasCat = !!(p.category && p.category.trim());
+        const k = hasCat ? p.category!.trim() : "Autres";
         const existing = richByKey.get(k);
         if (existing) existing.items.push(p);
         else
@@ -94,7 +97,7 @@ export function MerchantCatalog({
             category: {
               id: k,
               merchant_id: merchant.id,
-              title: k,
+              title: hasCat ? k : t("otherCategory"),
               image_url: null,
               position: 0,
             },
@@ -104,7 +107,7 @@ export function MerchantCatalog({
     }
 
     return Array.from(richByKey.values()).filter((g) => g.items.length > 0);
-  }, [products, categories, merchant.id]);
+  }, [products, categories, merchant.id, t]);
 
   // Groupes filtrés par la recherche (sections vides masquées).
   const q = norm(query.trim());
@@ -205,7 +208,7 @@ export function MerchantCatalog({
   if (products.length === 0) {
     return (
       <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-10 text-center text-sm">
-        Ce commerce n&apos;a pas encore publié son catalogue.
+        {t("emptyCatalog")}
       </div>
     );
   }
@@ -220,14 +223,14 @@ export function MerchantCatalog({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un produit…"
+            placeholder={t("searchProductPlaceholder")}
             className="placeholder:text-hint text-foreground w-full bg-transparent text-[13.5px] font-medium outline-none"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
-              aria-label="Effacer"
+              aria-label={t("clear")}
               className="text-muted hover:text-foreground shrink-0"
             >
               <X className="size-4" />
@@ -283,7 +286,7 @@ export function MerchantCatalog({
                           className="size-6 shrink-0 rounded-full object-cover"
                         />
                       )}
-                      {g.category?.title ?? "Autres"}
+                      {g.category?.title ?? t("otherCategory")}
                     </button>
                   );
                 })}
@@ -297,7 +300,7 @@ export function MerchantCatalog({
           titre h2 et la liste compacte des produits dessous. */}
       {q && visibleGroups.length === 0 && (
         <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-10 text-center text-sm">
-          Aucun produit ne correspond à «&nbsp;{query}&nbsp;».
+          {t("noProductMatch", { query })}
         </div>
       )}
 
@@ -323,7 +326,7 @@ export function MerchantCatalog({
                   className="size-8 shrink-0 rounded-[8px] object-cover"
                 />
               )}
-              {g.category?.title ?? "Autres"}
+              {g.category?.title ?? t("otherCategory")}
             </h2>
             <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[16px] border">
               {g.items.map((p) => (

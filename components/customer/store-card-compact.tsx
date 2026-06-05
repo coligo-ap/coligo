@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
@@ -26,7 +27,12 @@ type Props = {
   promoLabel?: string | null;
 };
 
-export function StoreCardCompact({ merchant, hasPromo, promoLabel }: Props) {
+export async function StoreCardCompact({
+  merchant,
+  hasPromo,
+  promoLabel,
+}: Props) {
+  const t = await getTranslations("listing");
   const open = isOpenNow(merchant.opening_hours, nowInAlgiers());
   const rawCover =
     merchant.cover_url ?? categoryImageFor(merchant.category) ?? null;
@@ -81,13 +87,13 @@ export function StoreCardCompact({ merchant, hasPromo, promoLabel }: Props) {
               open ? "animate-pulse bg-white" : "bg-white/70"
             )}
           />
-          {open ? "Ouvert" : "Fermé"}
+          {open ? t("open") : t("closed")}
         </span>
 
         {/* Badge promo — label custom si fourni, sinon "PROMO" générique. */}
         {hasPromo && (
           <span className="bg-coral-500 absolute top-1.5 right-1.5 z-10 rounded-full px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-white shadow-sm">
-            {promoLabel ?? "PROMO"}
+            {promoLabel ?? t("promoBadge")}
           </span>
         )}
       </div>

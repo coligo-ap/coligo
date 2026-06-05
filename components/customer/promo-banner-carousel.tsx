@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PromoBanner } from "@/lib/data/promo-banners";
@@ -30,6 +31,7 @@ const ACCENT_CLASSES: Record<PromoBanner["accent"], string> = {
 
 export function PromoBannerCarousel({ banners }: Props) {
   const [active, setActive] = useState(0);
+  const t = useTranslations("browse");
   if (banners.length === 0) return null;
 
   return (
@@ -51,7 +53,7 @@ export function PromoBannerCarousel({ banners }: Props) {
         <div
           className="flex justify-center gap-1.5"
           role="tablist"
-          aria-label="Bannières promo"
+          aria-label={t("promoBannersLabel")}
         >
           {banners.map((b, i) => (
             <span

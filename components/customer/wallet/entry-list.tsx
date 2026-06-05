@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { ArrowDownLeft, ArrowUpRight, Gift } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import type { CustomerWalletEntry } from "@/lib/customer/cashback";
@@ -15,12 +16,13 @@ type Props = {
   emptyHint: string;
 };
 
-export function WalletEntryList({ entries, emptyHint }: Props) {
+export async function WalletEntryList({ entries, emptyHint }: Props) {
+  const t = await getTranslations("wallet");
   if (entries.length === 0) {
     return (
       <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-12 text-center text-sm">
         <Gift className="text-subtle mx-auto mb-2 size-6" />
-        Aucune écriture pour le moment.
+        {t("noEntries")}
         <p className="mt-3">
           <Link
             href="/"
@@ -36,7 +38,7 @@ export function WalletEntryList({ entries, emptyHint }: Props) {
     <ul className="border-border bg-surface divide-border divide-y rounded-[16px] border">
       {entries.map((entry) => {
         const credit = entry.amount_da > 0;
-        const meta = describe(entry.type);
+        const meta = describe(entry.type, t);
         return (
           <li key={entry.id} className="flex items-center gap-3 px-4 py-3">
             <div
@@ -72,7 +74,7 @@ export function WalletEntryList({ entries, emptyHint }: Props) {
                       href={`/commandes/${entry.order_id}`}
                       className="text-primary-700 hover:underline"
                     >
-                      Voir la commande
+                      {t("viewOrder")}
                     </Link>
                   </>
                 )}
@@ -99,17 +101,20 @@ export function WalletEntryList({ entries, emptyHint }: Props) {
   );
 }
 
-function describe(type: CustomerWalletEntry["type"]) {
+function describe(
+  type: CustomerWalletEntry["type"],
+  t: (key: string) => string
+) {
   switch (type) {
     case "cashback_earned":
-      return { label: "Cashback gagné" };
+      return { label: t("entryCashbackEarned") };
     case "cashback_spent":
-      return { label: "Cashback utilisé" };
+      return { label: t("entryCashbackSpent") };
     case "topup_credit":
-      return { label: "Recharge Coligo Pay" };
+      return { label: t("entryTopupCredit") };
     case "topup_spent":
-      return { label: "Paiement par Coligo Pay" };
+      return { label: t("entryTopupSpent") };
     case "adjustment":
-      return { label: "Ajustement" };
+      return { label: t("entryAdjustment") };
   }
 }

@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import type { OrderStatus } from "@/lib/types";
 
@@ -17,8 +18,20 @@ import type { OrderStatus } from "@/lib/types";
  * le suivi vertical.
  */
 
-const PICKUP_STEPS = ["Envoyée", "Acceptée", "Prépa", "Prête", "Récup."];
-const DELIVERY_STEPS = ["Envoyée", "Acceptée", "Prépa", "En route", "Livrée"];
+const PICKUP_STEP_KEYS = [
+  "stepSent",
+  "stepAccepted",
+  "stepPrep",
+  "stepReady",
+  "stepPickedUp",
+] as const;
+const DELIVERY_STEP_KEYS = [
+  "stepSent",
+  "stepAccepted",
+  "stepPrep",
+  "stepOnTheWay",
+  "stepDelivered",
+] as const;
 
 /** Étape active (0-4) selon le statut. completed → tout franchi. */
 function currentStep(
@@ -55,7 +68,10 @@ export function OrderTrack({
   status: OrderStatus;
   pickedUp?: boolean;
 }) {
-  const labels = isDelivery ? DELIVERY_STEPS : PICKUP_STEPS;
+  const t = useTranslations("orders");
+  const labels = (isDelivery ? DELIVERY_STEP_KEYS : PICKUP_STEP_KEYS).map((k) =>
+    t(k)
+  );
   const { step, allDone } = currentStep(isDelivery, status, pickedUp);
   // Largeur de la barre verte : 0 / 25 / 50 / 75 / 100 % (cf. maquette).
   const progPct = allDone ? 100 : step * 25;

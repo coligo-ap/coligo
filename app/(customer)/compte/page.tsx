@@ -8,6 +8,7 @@ import {
   Receipt,
   Wallet,
 } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { CustomerLogoutButton } from "@/components/customer/logout-button";
@@ -27,6 +28,7 @@ export default async function CustomerAccountPage({
   searchParams: Promise<{ complete?: string }>;
 }) {
   const completePhone = (await searchParams).complete === "phone";
+  const t = await getTranslations("account");
   const supabase = await createClient();
   const {
     data: { user },
@@ -61,17 +63,16 @@ export default async function CustomerAccountPage({
       <div className="mx-auto max-w-2xl px-4 py-6 lg:px-6 lg:py-10">
         <header className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
-            Mon compte
+            {t("myAccount")}
           </h1>
-          <p className="text-muted mt-1 text-sm">
-            Tes informations personnelles et tes préférences.
-          </p>
+          <p className="text-muted mt-1 text-sm">{t("accountSubtitle")}</p>
         </header>
 
         {completePhone && !customer?.phone && (
           <div className="border-warning-200 bg-warning-50 text-warning-800 mb-4 rounded-[14px] border px-4 py-3 text-sm font-medium">
-            Bienvenue&nbsp;! Ajoute ton <strong>numéro de téléphone</strong>{" "}
-            ci-dessous pour pouvoir commander.
+            {t.rich("completePhoneBanner", {
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </div>
         )}
 
@@ -87,10 +88,10 @@ export default async function CustomerAccountPage({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-foreground text-sm font-semibold">
-                  Mon Cashback
+                  {t("cashbackTitle")}
                 </p>
                 <p className="text-muted text-xs">
-                  Récompense non retirable ·{" "}
+                  {t("cashbackDesc")} ·{" "}
                   <span className="text-primary-700 font-bold tabular-nums">
                     {formatDA(cashbackBalance)}
                   </span>
@@ -112,7 +113,7 @@ export default async function CustomerAccountPage({
                   Coligo Pay
                 </p>
                 <p className="text-muted text-xs">
-                  Solde réel rechargeable ·{" "}
+                  {t("coligoPayDesc")} ·{" "}
                   <span className="text-primary-700 font-bold tabular-nums">
                     {formatDA(topupBalance)}
                   </span>
@@ -131,11 +132,9 @@ export default async function CustomerAccountPage({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-foreground text-sm font-semibold">
-                  Mes commandes
+                  {t("myOrders")}
                 </p>
-                <p className="text-muted text-xs">
-                  Historique et suivi en cours
-                </p>
+                <p className="text-muted text-xs">{t("myOrdersDesc")}</p>
               </div>
               <ChevronRight className="text-muted size-4" />
             </Link>
@@ -150,11 +149,9 @@ export default async function CustomerAccountPage({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-foreground text-sm font-semibold">
-                  Mes favoris
+                  {t("myFavorites")}
                 </p>
-                <p className="text-muted text-xs">
-                  Tes commerces préférés, en accès rapide
-                </p>
+                <p className="text-muted text-xs">{t("myFavoritesDesc")}</p>
               </div>
               <ChevronRight className="text-muted size-4" />
             </Link>
@@ -178,12 +175,12 @@ export default async function CustomerAccountPage({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-foreground text-sm font-semibold">
-              Mes adresses
+              {t("myAddresses")}
             </p>
             <p className="text-muted text-xs">
               {wilayaName
-                ? `Zone : ${wilayaName}${customer?.default_commune ? ` · ${customer.default_commune}` : ""}`
-                : "Gère tes adresses de livraison"}
+                ? `${t("zone")} : ${wilayaName}${customer?.default_commune ? ` · ${customer.default_commune}` : ""}`
+                : t("manageDeliveryAddresses")}
             </p>
           </div>
           <ChevronRight className="text-muted size-4" />

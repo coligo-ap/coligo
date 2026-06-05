@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ShoppingBag, X } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
@@ -34,6 +35,7 @@ type Props = {
 };
 
 export function CartConflictModal({ current, others, onResolved }: Props) {
+  const t = useTranslations("cart");
   const router = useRouter();
 
   // Empêche le scroll du body tant que la modale est ouverte.
@@ -72,19 +74,22 @@ export function CartConflictModal({ current, others, onResolved }: Props) {
               id="cart-conflict-title"
               className="text-foreground text-lg font-bold"
             >
-              Tu as déjà un panier en cours
+              {t("conflictTitle")}
             </h2>
             <p className="text-muted mt-0.5 text-xs">
               {others.length === 1
-                ? `Tu prépares une commande chez ${current.merchant_name ?? "ce commerce"} mais ton panier chez ${others[0].merchant_name ?? "un autre commerce"} contient encore des articles.`
-                : `Tu as plusieurs paniers en attente. Une commande ne peut concerner qu'un seul commerce.`}
+                ? t("conflictBodyOne", {
+                    current: current.merchant_name ?? t("thisMerchant"),
+                    other: others[0].merchant_name ?? t("anotherMerchant"),
+                  })
+                : t("conflictBodyMany")}
             </p>
           </div>
           <button
             type="button"
             onClick={onResolved}
             className="text-muted hover:text-foreground hover:bg-surface-2 rounded-full p-1.5"
-            aria-label="Fermer"
+            aria-label={t("close")}
           >
             <X className="size-4" />
           </button>
@@ -98,19 +103,23 @@ export function CartConflictModal({ current, others, onResolved }: Props) {
               highlight={false}
               onContinue={() => continueWith(other)}
               onAbandon={() => abandon(other)}
-              currentName={current.merchant_name ?? "ce commerce"}
+              currentName={current.merchant_name ?? t("thisMerchant")}
             />
           ))}
 
           {/* Petit rappel du panier en cours (B), pour orientation. */}
           <div className="border-border bg-primary-50/40 mt-2 rounded-[14px] border border-dashed p-3 text-xs">
             <p className="text-muted">
-              Tu es actuellement sur le checkout de{" "}
+              {t("currentCheckoutPrefix")}{" "}
               <strong className="text-foreground">
-                {current.merchant_name ?? "ce commerce"}
+                {current.merchant_name ?? t("thisMerchant")}
               </strong>{" "}
-              ({totalUnits(current)} article{totalUnits(current) > 1 ? "s" : ""}{" "}
-              · {formatDA(rawSubtotal(current))}).
+              (
+              {t("itemsAndTotal", {
+                count: totalUnits(current),
+                total: formatDA(rawSubtotal(current)),
+              })}
+              ).
             </p>
           </div>
         </div>
@@ -132,6 +141,7 @@ function CartCard({
   onAbandon: () => void;
   currentName: string;
 }) {
+  const t = useTranslations("cart");
   const count = totalUnits(cart);
   const subtotal = rawSubtotal(cart);
   const logoOptimized = cldUrl(cart.merchant_logo, {
@@ -165,11 +175,11 @@ function CartCard({
         )}
         <div className="min-w-0 flex-1">
           <p className="text-foreground line-clamp-1 text-sm font-semibold">
-            {cart.merchant_name ?? "Commerce"}
+            {cart.merchant_name ?? t("merchant")}
           </p>
           <p className="text-muted text-xs">
             <ShoppingBag className="-mt-0.5 mr-1 inline size-3" />
-            {count} article{count > 1 ? "s" : ""} ·{" "}
+            {t("itemsCount", { count })} ·{" "}
             <span className="text-foreground font-semibold tabular-nums">
               {formatDA(subtotal)}
             </span>
@@ -183,14 +193,14 @@ function CartCard({
           onClick={onContinue}
           className="bg-primary-600 hover:bg-primary-700 inline-flex flex-1 items-center justify-center gap-1.5 rounded-[10px] px-3 py-2.5 text-sm font-semibold text-white transition-colors"
         >
-          Continuer chez {cart.merchant_name ?? "ce commerce"}
+          {t("continueWith", { name: cart.merchant_name ?? t("thisMerchant") })}
         </button>
         <button
           type="button"
           onClick={onAbandon}
           className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 inline-flex flex-1 items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2.5 text-xs font-semibold transition-colors sm:text-sm"
         >
-          Abandonner et commander chez {currentName}
+          {t("abandonAndOrder", { name: currentName })}
         </button>
       </div>
     </div>

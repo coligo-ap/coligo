@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { MapPin } from "lucide-react";
 import { useCustomerLocation } from "@/lib/customer/location-store";
 import { LocationPicker } from "@/components/customer/location-picker";
@@ -10,6 +11,7 @@ import { LocationPicker } from "@/components/customer/location-picker";
  * choisie. Cliqué → ouvre le sélecteur. Disparait dès qu'une zone est définie.
  */
 export function LocationBanner() {
+  const t = useTranslations("account");
   const loc = useCustomerLocation();
   const [open, setOpen] = useState(false);
 
@@ -25,11 +27,9 @@ export function LocationBanner() {
         className="border-warning-100 bg-warning-50 text-warning-700 hover:bg-warning-100/70 mb-4 flex w-full items-center gap-3 rounded-[14px] border px-4 py-3 text-left text-sm transition-colors"
       >
         <MapPin className="text-warning-600 size-4 shrink-0" />
-        <span className="flex-1">
-          Indique ta zone pour voir les commerces près de toi.
-        </span>
+        <span className="flex-1">{t("setZonePrompt")}</span>
         <span className="text-warning-700 text-xs font-semibold">
-          Choisir →
+          {t("choose")}
         </span>
       </button>
 

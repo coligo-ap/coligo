@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Crosshair, Loader2, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,7 @@ export function AddressPicker({
   onChange,
   className,
 }: AddressPickerProps) {
+  const t = useTranslations("checkout");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const [loading, setLoading] = useState(false);
@@ -108,7 +110,7 @@ export function AddressPicker({
         zoom: 16,
       });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Géoloc indisponible");
+      toast.error(err instanceof Error ? err.message : t("geolocUnavailable"));
     } finally {
       setLoading(false);
     }
@@ -146,7 +148,7 @@ export function AddressPicker({
           ) : (
             <Crosshair className="size-3.5" />
           )}
-          Ma position
+          {t("myPosition")}
         </button>
       </div>
     </div>
@@ -175,6 +177,7 @@ export function AddressForm({
     phone_override: string;
   }) => void;
 }) {
+  const t = useTranslations("checkout");
   const [lat, setLat] = useState(initial?.lat ?? DEFAULT_CENTER.lat);
   const [lng, setLng] = useState(initial?.lng ?? DEFAULT_CENTER.lng);
   const [label, setLabel] = useState(initial?.label ?? "");
@@ -211,41 +214,42 @@ export function AddressForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="addr_label">Nom de l&apos;adresse</Label>
+          <Label htmlFor="addr_label">{t("addressName")}</Label>
           <Input
             id="addr_label"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder="Domicile, bureau…"
+            placeholder={t("addressLabelPlaceholder")}
             required
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="addr_phone">Téléphone alternatif (optionnel)</Label>
+          <Label htmlFor="addr_phone">{t("altPhone")}</Label>
           <Input
             id="addr_phone"
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="+213 6XX XX XX XX"
+            placeholder={t("phonePlaceholder")}
           />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="addr_text">
-          Complément (bâtiment, étage, point de repère)
-        </Label>
+        <Label htmlFor="addr_text">{t("addressComplement")}</Label>
         <Input
           id="addr_text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Bât B, 3e étage, en face de la pharmacie"
+          placeholder={t("addressComplementPlaceholder")}
         />
       </div>
 
       <p className="text-subtle text-xs">
-        Coordonnées : {lat.toFixed(5)}, {lng.toFixed(5)}
+        {t("coordinates", {
+          lat: lat.toFixed(5),
+          lng: lng.toFixed(5),
+        })}
       </p>
 
       {/* Hidden inputs pour FormData côté <form action={…}>. */}
