@@ -294,10 +294,17 @@ export async function createOrder(
     .select(
       `id, merchant_id, type, status, discount_kind, discount_value, code,
        buy_qty, get_qty, starts_at, ends_at,
+       max_uses, max_uses_per_customer, uses_count,
        promotion_products ( product_id )`
     )
     .eq("merchant_id", merchant.id)
     .eq("status", "active");
+
+  // Quotas par promo (plafonds d'usage) pour la validation anti-fraude du code.
+  const quotaById = new Map<
+    string,
+    { maxUses: number | null; maxPerCustomer: number | null; usesCount: number }
+  >();
 
   const promotions: EnginePromotion[] = (
     (promosRaw ?? []) as unknown as {
@@ -311,21 +318,31 @@ export async function createOrder(
       get_qty: number | null;
       starts_at: string | null;
       ends_at: string | null;
+      max_uses: number | null;
+      max_uses_per_customer: number | null;
+      uses_count: number | null;
       promotion_products: { product_id: string }[];
     }[]
-  ).map((p) => ({
-    id: p.id,
-    type: p.type,
-    status: p.status,
-    discountKind: p.discount_kind,
-    discountValue: p.discount_value,
-    code: p.code,
-    buyQty: p.buy_qty,
-    getQty: p.get_qty,
-    productIds: (p.promotion_products ?? []).map((x) => x.product_id),
-    startsAt: p.starts_at,
-    endsAt: p.ends_at,
-  }));
+  ).map((p) => {
+    quotaById.set(p.id, {
+      maxUses: p.max_uses,
+      maxPerCustomer: p.max_uses_per_customer,
+      usesCount: p.uses_count ?? 0,
+    });
+    return {
+      id: p.id,
+      type: p.type,
+      status: p.status,
+      discountKind: p.discount_kind,
+      discountValue: p.discount_value,
+      code: p.code,
+      buyQty: p.buy_qty,
+      getQty: p.get_qty,
+      productIds: (p.promotion_products ?? []).map((x) => x.product_id),
+      startsAt: p.starts_at,
+      endsAt: p.ends_at,
+    };
+  });
 
   const lines = input.items.map((it) => {
     const p = products.find((pp) => pp.id === it.product_id)!;
@@ -341,6 +358,53 @@ export async function createOrder(
     commissionRate: APP_CONFIG.commission.rate,
     promoCode: input.promo_code ?? null,
   });
+
+  // ---------------------------------------------------------------------------
+  // 5-bis. CODE PROMO — validation serveur (le client a vu une estimation, le
+  // serveur tranche). Si un code est saisi mais invalide/épuisé → on REFUSE
+  // pour que le montant affiché reste honnête. Financeur = merchant (la promo
+  // baisse le net ; la commission se calcule sur ce net → plateforme jamais
+  // perdante). uses_count + journal d'usage gérés via redeem_promo après insert.
+  // ---------------------------------------------------------------------------
+  const codeTyped = (input.promo_code ?? "").trim();
+  if (codeTyped) {
+    if (!settled.promoCode) {
+      return { ok: false, error: "Code promo invalide ou expiré." };
+    }
+    const quota = quotaById.get(settled.promoCode.id);
+    if (quota) {
+      if (quota.maxUses != null && quota.usesCount >= quota.maxUses) {
+        return { ok: false, error: "Ce code promo n'est plus disponible." };
+      }
+      if (quota.maxPerCustomer != null) {
+        const { count } = await (
+          supabase.from("promotion_redemptions" as never) as unknown as {
+            select: (
+              c: string,
+              o: { count: "exact"; head: true }
+            ) => {
+              eq: (
+                c: string,
+                v: string
+              ) => {
+                eq: (
+                  c: string,
+                  v: string
+                ) => PromiseLike<{ count: number | null }>;
+              };
+            };
+          }
+        )
+          .select("id", { count: "exact", head: true })
+          .eq("promotion_id", settled.promoCode.id)
+          .eq("customer_id", customer.id);
+        if ((count ?? 0) >= quota.maxPerCustomer) {
+          return { ok: false, error: "Tu as déjà utilisé ce code promo." };
+        }
+      }
+    }
+  }
+  const appliedPromo = settled.promoCode;
 
   // Minimum de commande — résolution PLANCHER plateforme + surcharge commerçant.
   // S'applique sur le total APRÈS promos (avant cashback/topup, pour empêcher
@@ -758,6 +822,35 @@ export async function createOrder(
     return { ok: false, error: `Erreur ajout articles : ${itemsErr.message}` };
   }
 
+  // Code promo : snapshot sur la commande + journal d'usage. Colonnes/tables
+  // pas encore dans database.types.ts généré (Docker requis pour gen types) →
+  // accès via cast localisé. Best-effort : n'échoue jamais la commande.
+  if (appliedPromo) {
+    try {
+      await (
+        supabase.from("orders") as unknown as {
+          update: (v: Record<string, unknown>) => {
+            eq: (c: string, val: string) => Promise<unknown>;
+          };
+        }
+      )
+        .update({ promo_id: appliedPromo.id, promo_code: appliedPromo.code })
+        .eq("id", order.id);
+      await supabase.rpc(
+        "redeem_promo" as never,
+        {
+          p_promotion_id: appliedPromo.id,
+          p_order_id: order.id,
+          p_customer_id: customer.id,
+          p_code: appliedPromo.code,
+          p_discount_da: appliedPromo.discountDa,
+        } as never
+      );
+    } catch (e) {
+      console.warn("[createOrder] promo snapshot/redeem failed:", e);
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // 7. Paiement en ligne — création du checkout Chargily.
   //
@@ -936,5 +1029,142 @@ export async function retryOnlineOrderPayment(
           ? `Paiement indisponible : ${e.message}`
           : "Paiement indisponible.",
     };
+  }
+}
+
+// =============================================================================
+// Aperçu CODE PROMO (estimation client). Le serveur tranche à la création de
+// commande (createOrder) ; ici on renvoie juste la remise estimée ou l'erreur.
+// =============================================================================
+export type PromoPreview =
+  | { ok: true; discount_da: number; code: string }
+  | { ok: false; error: string };
+
+export async function previewPromoCode(input: {
+  merchant_id: string;
+  items: { product_id: string; quantity: number }[];
+  code: string;
+}): Promise<PromoPreview> {
+  try {
+    const code = (input.code ?? "").trim();
+    if (!code) return { ok: false, error: "Saisis un code promo." };
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "Reconnecte-toi." };
+    const { data: customer } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!customer) return { ok: false, error: "Profil client introuvable." };
+
+    const ids = input.items.map((i) => i.product_id);
+    if (ids.length === 0) return { ok: false, error: "Panier vide." };
+    const { data: prods } = await supabase
+      .from("products")
+      .select("id, price_da")
+      .eq("merchant_id", input.merchant_id)
+      .in("id", ids);
+    const priceById = new Map(
+      (prods ?? []).map((p) => [p.id as string, p.price_da as number])
+    );
+    const lines = input.items
+      .filter((i) => priceById.has(i.product_id))
+      .map((i) => ({
+        productId: i.product_id,
+        quantity: i.quantity,
+        unitPriceDa: priceById.get(i.product_id)!,
+      }));
+    if (lines.length === 0) return { ok: false, error: "Panier vide." };
+
+    const { data: promosRaw } = await supabase
+      .from("promotions")
+      .select(
+        `id, type, status, discount_kind, discount_value, code, buy_qty, get_qty,
+         starts_at, ends_at, max_uses, max_uses_per_customer, uses_count,
+         promotion_products ( product_id )`
+      )
+      .eq("merchant_id", input.merchant_id)
+      .eq("status", "active");
+
+    const rows = (promosRaw ?? []) as unknown as {
+      id: string;
+      type: EnginePromotion["type"];
+      status: EnginePromotion["status"];
+      discount_kind: EnginePromotion["discountKind"];
+      discount_value: number | null;
+      code: string | null;
+      buy_qty: number | null;
+      get_qty: number | null;
+      starts_at: string | null;
+      ends_at: string | null;
+      max_uses: number | null;
+      max_uses_per_customer: number | null;
+      uses_count: number | null;
+      promotion_products: { product_id: string }[];
+    }[];
+
+    const promotions: EnginePromotion[] = rows.map((p) => ({
+      id: p.id,
+      type: p.type,
+      status: p.status,
+      discountKind: p.discount_kind,
+      discountValue: p.discount_value,
+      code: p.code,
+      buyQty: p.buy_qty,
+      getQty: p.get_qty,
+      productIds: (p.promotion_products ?? []).map((x) => x.product_id),
+      startsAt: p.starts_at,
+      endsAt: p.ends_at,
+    }));
+
+    const settled = computeCart(lines, promotions, {
+      minPriceDa: APP_CONFIG.promotions.minPriceDa,
+      commissionRate: APP_CONFIG.commission.rate,
+      promoCode: code,
+    });
+    if (!settled.promoCode) {
+      return { ok: false, error: "Code promo invalide ou expiré." };
+    }
+    const raw = rows.find((p) => p.id === settled.promoCode!.id);
+    if (raw?.max_uses != null && (raw.uses_count ?? 0) >= raw.max_uses) {
+      return { ok: false, error: "Ce code promo n'est plus disponible." };
+    }
+    if (raw?.max_uses_per_customer != null) {
+      const { count } = await (
+        supabase.from("promotion_redemptions" as never) as unknown as {
+          select: (
+            c: string,
+            o: { count: "exact"; head: true }
+          ) => {
+            eq: (
+              c: string,
+              v: string
+            ) => {
+              eq: (
+                c: string,
+                v: string
+              ) => PromiseLike<{ count: number | null }>;
+            };
+          };
+        }
+      )
+        .select("id", { count: "exact", head: true })
+        .eq("promotion_id", settled.promoCode.id)
+        .eq("customer_id", customer.id);
+      if ((count ?? 0) >= raw.max_uses_per_customer) {
+        return { ok: false, error: "Tu as déjà utilisé ce code promo." };
+      }
+    }
+    return {
+      ok: true,
+      discount_da: settled.promoCode.discountDa,
+      code: settled.promoCode.code,
+    };
+  } catch (e) {
+    console.warn("[previewPromoCode] failed:", e);
+    return { ok: false, error: "Vérification impossible. Réessaie." };
   }
 }

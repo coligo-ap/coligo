@@ -10,11 +10,14 @@ import {
   CreditCard,
   Gift,
   Loader2,
+  Check,
   Receipt,
   ShoppingCart,
   Sparkles,
   Store,
+  Tag,
   Wallet,
+  X,
   Zap,
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
@@ -33,7 +36,11 @@ import {
   fetchCheckoutContext,
   type CheckoutContext,
 } from "@/app/(customer)/checkout/context";
-import { createOrder } from "@/app/(customer)/checkout/actions";
+import {
+  createOrder,
+  previewPromoCode,
+} from "@/app/(customer)/checkout/actions";
+import { CHARGILY_MIN_AMOUNT_DA } from "@/lib/config/payment-limits";
 import type { PaymentMethod } from "@/lib/types";
 import {
   CheckoutDeliverySection,
@@ -79,6 +86,15 @@ export function CheckoutView({ customer }: Props) {
   const [useCashback, setUseCashback] = useState(false);
   const [useTopup, setUseTopup] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  // Code promo : saisie + code validé côté serveur (estimation ; le serveur
+  // retranche et revalide à la création de la commande).
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    discount_da: number;
+  } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoChecking, startPromoCheck] = useTransition();
 
   // Charge le contexte serveur (merchant + recalcul prix) dès qu'on a un cart.
   useEffect(() => {
@@ -97,6 +113,16 @@ export function CheckoutView({ customer }: Props) {
       setCtx(data);
     });
   }, [cart]);
+
+  // Si le panier change, l'estimation du code promo n'est plus garantie →
+  // on l'efface (le client réapplique ; le serveur reste juge final).
+  const itemsSig = cart.items
+    .map((i) => `${i.product_id}:${i.quantity}`)
+    .join(",");
+  useEffect(() => {
+    setAppliedPromo(null);
+    setPromoError(null);
+  }, [itemsSig]);
 
   // Force "cash" si l'online n'est pas accepté.
   useEffect(() => {
@@ -314,6 +340,7 @@ export function CheckoutView({ customer }: Props) {
             : null,
         cashback_to_use_da: useCashback ? cashbackApplied : 0,
         topup_to_use_da: useTopup ? topupApplied : 0,
+        promo_code: appliedPromo?.code ?? null,
       });
       if (!res.ok) {
         toast.error(res.error);
@@ -328,6 +355,36 @@ export function CheckoutView({ customer }: Props) {
       clearCart();
       router.push(`/commandes/${res.order_id}`);
     });
+  }
+
+  function applyPromo() {
+    const code = promoInput.trim();
+    if (!code || !cart.merchant_id) return;
+    setPromoError(null);
+    startPromoCheck(async () => {
+      const res = await previewPromoCode({
+        merchant_id: cart.merchant_id!,
+        items: cart.items.map((i) => ({
+          product_id: i.product_id,
+          quantity: i.quantity,
+        })),
+        code,
+      });
+      if (res.ok) {
+        setAppliedPromo({ code: res.code, discount_da: res.discount_da });
+        setPromoInput(res.code);
+        setPromoError(null);
+      } else {
+        setAppliedPromo(null);
+        setPromoError(res.error);
+      }
+    });
+  }
+
+  function clearPromo() {
+    setAppliedPromo(null);
+    setPromoInput("");
+    setPromoError(null);
   }
 
   // ── Calculs (recalculés côté serveur — source de vérité) ──
@@ -361,17 +418,31 @@ export function CheckoutView({ customer }: Props) {
 
   const totalBeforeWallets =
     ctx.cart.totalDa + ctx.service_fee_da + deliveryFeeDa;
-  const cashbackApplied = useCashback
-    ? Math.min(ctx.cashback_balance_da, totalBeforeWallets)
+  // Le code promo (estimation client) retranche du total avant soldes ; le
+  // serveur recalcule et tranche à la création.
+  const promoDiscount = appliedPromo
+    ? Math.min(appliedPromo.discount_da, totalBeforeWallets)
     : 0;
-  const totalAfterCashback = Math.max(0, totalBeforeWallets - cashbackApplied);
+  const totalAfterPromo = Math.max(0, totalBeforeWallets - promoDiscount);
+  const cashbackApplied = useCashback
+    ? Math.min(ctx.cashback_balance_da, totalAfterPromo)
+    : 0;
+  const totalAfterCashback = Math.max(0, totalAfterPromo - cashbackApplied);
   const topupApplied = useTopup
     ? Math.min(ctx.topup_balance_da, totalAfterCashback)
     : 0;
   const totalAfterWallets = Math.max(0, totalAfterCashback - topupApplied);
 
+  const walletUsed = cashbackApplied > 0 || topupApplied > 0;
+  // Cas « soldes couvrent tout » : 0 DA à régler en ligne → autorisé (le
+  // serveur marque payé). On rassure le client au lieu de bloquer.
+  const onlineFullyCovered =
+    payment === "online" && walletUsed && totalAfterWallets === 0;
+  // Sinon, le reste en ligne doit atteindre le minimum Chargily.
   const onlineTooLow =
-    payment === "online" && totalAfterWallets > 0 && totalAfterWallets < 50;
+    payment === "online" &&
+    totalAfterWallets > 0 &&
+    totalAfterWallets < CHARGILY_MIN_AMOUNT_DA;
   const slotMissing = pickupType === "slot" && chosenSlotIdx == null;
   const canSubmit =
     !submitting && deliveryReady && !slotMissing && !onlineTooLow;
@@ -383,7 +454,6 @@ export function CheckoutView({ customer }: Props) {
         : "À payer espèces au retrait"
       : "Payé en ligne";
 
-  const walletUsed = cashbackApplied > 0 || topupApplied > 0;
   const resteLabel =
     payment === "cash" ? "Reste à payer espèces" : "Reste à payer en ligne";
   const barLabel =
@@ -572,9 +642,21 @@ export function CheckoutView({ customer }: Props) {
           </div>
           {onlineTooLow && (
             <div className="border-danger-200 bg-danger-50 text-danger-800 mt-3 rounded-[10px] border px-3 py-2 text-xs">
-              Le paiement en ligne nécessite au moins <strong>50 DA</strong> à
-              régler. Ton total après cashback/Coligo Pay est de{" "}
-              <strong>{formatDA(totalAfterWallets)}</strong>.
+              Le montant minimum de paiement en ligne est de{" "}
+              <strong>{formatDA(CHARGILY_MIN_AMOUNT_DA)}</strong>. Après tes
+              soldes (cashback / Coligo Pay), il ne reste que{" "}
+              <strong>{formatDA(totalAfterWallets)}</strong> à régler en ligne.
+              Ajoute des articles à ton panier, ou réduis le cashback / Coligo
+              Pay utilisé — ou paie en espèces.
+            </div>
+          )}
+          {onlineFullyCovered && (
+            <div className="border-success-200 bg-success-50 text-success-800 mt-3 flex items-center gap-2 rounded-[10px] border px-3 py-2 text-xs">
+              <Check className="size-4 shrink-0" />
+              <span>
+                Tes soldes couvrent <strong>toute la commande</strong> — aucun
+                paiement en ligne n&apos;est nécessaire.
+              </span>
             </div>
           )}
 
@@ -613,6 +695,65 @@ export function CheckoutView({ customer }: Props) {
           />
         </Card>
 
+        {/* Code promo */}
+        <Card className="mt-3">
+          <CardH icon={Tag}>Code promo</CardH>
+          {appliedPromo ? (
+            <div className="border-success-200 bg-success-50 flex items-center justify-between gap-3 rounded-[12px] border px-3 py-2.5">
+              <span className="text-success-800 flex items-center gap-2 text-sm font-extrabold">
+                <Check className="size-4 shrink-0" />
+                Code «&nbsp;{appliedPromo.code}&nbsp;» appliqué · −
+                {formatDA(appliedPromo.discount_da)}
+              </span>
+              <button
+                type="button"
+                onClick={clearPromo}
+                className="text-muted hover:text-foreground grid size-7 shrink-0 place-items-center rounded-full transition"
+                aria-label="Retirer le code promo"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <input
+                  value={promoInput}
+                  onChange={(e) => {
+                    setPromoInput(e.target.value.toUpperCase());
+                    if (promoError) setPromoError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applyPromo();
+                    }
+                  }}
+                  placeholder="Ex. BIENVENUE10"
+                  className="border-border bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-[12px] border px-3 py-2.5 text-sm uppercase focus-visible:ring-2 focus-visible:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={applyPromo}
+                  disabled={promoChecking || promoInput.trim() === ""}
+                  className="bg-foreground text-background shrink-0 rounded-[12px] px-4 text-sm font-extrabold transition disabled:opacity-40"
+                >
+                  {promoChecking ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    "Appliquer"
+                  )}
+                </button>
+              </div>
+              {promoError && (
+                <p className="text-danger-600 mt-2 text-xs font-semibold">
+                  {promoError}
+                </p>
+              )}
+            </>
+          )}
+        </Card>
+
         {/* Récap */}
         <Card className="mt-3">
           <CardH icon={Receipt}>Récap</CardH>
@@ -647,12 +788,19 @@ export function CheckoutView({ customer }: Props) {
             {deliveryFeeDa > 0 && (
               <RRow label="Livraison" value={formatDA(deliveryFeeDa)} />
             )}
+            {promoDiscount > 0 && (
+              <RRow
+                label={`Code promo (${appliedPromo?.code})`}
+                value={`− ${formatDA(promoDiscount)}`}
+                tone="success"
+              />
+            )}
 
             {walletUsed ? (
               <>
                 <RRow
                   label="Total commande"
-                  value={formatDA(totalBeforeWallets)}
+                  value={formatDA(totalAfterPromo)}
                 />
                 <hr className="border-border my-2" />
                 {cashbackApplied > 0 && (
