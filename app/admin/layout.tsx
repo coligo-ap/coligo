@@ -3,6 +3,7 @@ import { LogOut, ShieldCheck } from "lucide-react";
 import { requireSuperAdmin } from "@/lib/auth/admin";
 import { logout } from "@/app/(merchant)/actions";
 import { APP_CONFIG } from "@/lib/config/app-config";
+import { getLateOrdersCountForAdmin } from "@/lib/data/platform";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,9 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   await requireSuperAdmin();
+
+  // Badge « commandes en retard » sur l'entrée Alertes.
+  const lateCount = await getLateOrdersCountForAdmin();
 
   return (
     <div className="bg-surface-2 min-h-screen">
@@ -39,6 +43,22 @@ export default async function AdminLayout({
               className="text-muted hover:bg-surface-2 hover:text-foreground rounded-[10px] px-3 py-1.5 font-medium"
             >
               Sécurité
+            </Link>
+            <Link
+              href="/admin/alertes"
+              className={
+                "relative inline-flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 font-medium " +
+                (lateCount > 0
+                  ? "text-danger-700 bg-danger-50 hover:bg-danger-100"
+                  : "text-muted hover:bg-surface-2 hover:text-foreground")
+              }
+            >
+              Alertes
+              {lateCount > 0 && (
+                <span className="bg-danger-500 inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums">
+                  {lateCount}
+                </span>
+              )}
             </Link>
           </nav>
         </div>

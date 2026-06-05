@@ -265,6 +265,17 @@ function useLateByMin(iso: string): number | null {
     : Math.round((now - new Date(iso).getTime()) / 60_000);
 }
 
+/**
+ * Formate une durée en minutes : « 45 min » sous une heure, « 1h05 » au-delà
+ * (au-delà de 60 min de retard, on bascule en heures pour rester lisible).
+ */
+function fmtDur(min: number): string {
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? `${h} h` : `${h}h${String(m).padStart(2, "0")}`;
+}
+
 /** Heure du créneau, fuseau Algérie figé → même rendu serveur ET client. */
 function slotTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("fr-DZ", {
@@ -376,7 +387,7 @@ export function OrderCard({
               {alert && (
                 <span className="bg-danger-500 size-1.5 rounded-full" />
               )}
-              il y a {elapsed} min
+              il y a {fmtDur(elapsed)}
             </span>
           )}
           {column === "preparing" && lateBy !== null && (
@@ -391,10 +402,10 @@ export function OrderCard({
               )}
             >
               {lateBy >= 1
-                ? `En retard ${lateBy} min`
+                ? `En retard ${fmtDur(lateBy)}`
                 : lateBy >= 0
                   ? "À sortir"
-                  : `Dans ${Math.abs(lateBy)} min`}
+                  : `Dans ${fmtDur(Math.abs(lateBy))}`}
             </span>
           )}
         </div>
