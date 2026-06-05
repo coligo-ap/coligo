@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Crosshair, Loader2, MapPin } from "lucide-react";
+import { Check, Crosshair, Loader2, MapPin, Maximize2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { getPosition } from "@/lib/native/geolocation";
 import { toast } from "@/components/ui/toast";
 
@@ -72,6 +73,9 @@ export function MapPositionPicker({
   const [loading, setLoading] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  // Mode plein écran : la même carte passe en overlay fixe pour ajuster
+  // précisément la position, puis retour au checkout.
+  const [fullscreen, setFullscreen] = useState(false);
 
   // onChange peut changer entre renders (closure différente). On le passe via
   // ref pour que les handlers MapLibre (attachés une seule fois) appellent
@@ -284,8 +288,25 @@ export function MapPositionPicker({
       zoom: focusTarget.zoom ?? 14,
       duration: 800,
     });
-     
   }, [focusTarget, mapReady]);
+
+  // Quand on bascule plein écran / retour, le conteneur change de taille →
+  // MapLibre doit recalculer son viewport.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const ts = [50, 250, 550].map((t) => setTimeout(() => map.resize(), t));
+    // Bloque le scroll du body en plein écran.
+    if (fullscreen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        ts.forEach(clearTimeout);
+        document.body.style.overflow = prev;
+      };
+    }
+    return () => ts.forEach(clearTimeout);
+  }, [fullscreen]);
 
   const useGps = async () => {
     setLoading(true);
@@ -315,8 +336,19 @@ export function MapPositionPicker({
 
   return (
     <div
-      className="bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
-      style={{ height: typeof height === "number" ? `${height}px` : height }}
+      className={cn(
+        "bg-surface-2 w-full overflow-hidden",
+        fullscreen
+          ? "fixed inset-0 z-[120] rounded-none"
+          : "relative rounded-[12px]"
+      )}
+      style={{
+        height: fullscreen
+          ? "100dvh"
+          : typeof height === "number"
+            ? `${height}px`
+            : height,
+      }}
     >
       {/* La classe `maplibregl-map` injectée par MapLibre force
           position:relative, ce qui annule un `absolute inset-0`. On utilise
@@ -375,6 +407,30 @@ export function MapPositionPicker({
         )}
         {gpsLabel}
       </button>
+
+      {/* Agrandir / plein écran (coin bas-gauche). */}
+      {mapReady && !fullscreen && (
+        <button
+          type="button"
+          onClick={() => setFullscreen(true)}
+          aria-label="Agrandir la carte"
+          className="bg-surface border-border text-foreground absolute bottom-2 left-2 grid size-8 place-items-center rounded-[9px] border shadow"
+        >
+          <Maximize2 className="size-4" />
+        </button>
+      )}
+
+      {/* Plein écran : bouton « Terminer » pour valider et revenir. */}
+      {fullscreen && (
+        <button
+          type="button"
+          onClick={() => setFullscreen(false)}
+          className="bg-primary-600 absolute top-[max(12px,env(safe-area-inset-top))] left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold text-white shadow-lg"
+        >
+          <Check className="size-4" />
+          Terminer
+        </button>
+      )}
     </div>
   );
 }

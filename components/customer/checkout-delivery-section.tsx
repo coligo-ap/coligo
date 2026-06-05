@@ -8,6 +8,7 @@ import {
   Calendar,
   Check,
   MapPin,
+  Maximize2,
   Truck,
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
@@ -501,6 +502,11 @@ function CustomPositionPicker({
         }
         gpsLabel="Ma position"
       />
+
+      <p className="text-primary-600 mt-1 flex items-center justify-center gap-1 text-center text-[11px] font-bold">
+        <Maximize2 className="size-3" />
+        Touche « agrandir » pour ajuster précisément
+      </p>
 
       {value.customPosition && (
         <>

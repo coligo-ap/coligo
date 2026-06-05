@@ -363,6 +363,12 @@ export function CheckoutView({ customer }: Props) {
         : "À payer espèces au retrait"
       : "Payé en ligne";
 
+  const walletUsed = cashbackApplied > 0 || topupApplied > 0;
+  const resteLabel =
+    payment === "cash" ? "Reste à payer espèces" : "Reste à payer en ligne";
+  const barLabel =
+    totalAfterWallets === 0 && walletUsed ? "Payé avec mes soldes" : totalLabel;
+
   // Message d'aide sous le bouton (livraison incomplète).
   const blockReason =
     isDelivery && !deliveryReady
@@ -551,45 +557,28 @@ export function CheckoutView({ customer }: Props) {
               <strong>{formatDA(totalAfterWallets)}</strong>.
             </div>
           )}
-        </Card>
 
-        {/* Cashback (si solde) */}
-        {ctx.cashback_balance_da > 0 && (
-          <Card className="mt-3">
-            <WalletToggle
+          {/* Soldes utilisables — DEUX toggles séparés, cumulables (visible si
+              solde > 0). Le cashback ne sert qu'à payer → jamais masqué. */}
+          {ctx.cashback_balance_da > 0 && (
+            <WalletToggleRow
               icon={Gift}
+              title="Mon cashback"
+              sub={`Disponible : ${formatDA(ctx.cashback_balance_da)}`}
               checked={useCashback}
               onToggle={() => setUseCashback((v) => !v)}
-              title={`Utiliser mes ${formatDA(ctx.cashback_balance_da)} de cashback`}
-              sub={
-                !useCashback
-                  ? "Désactivé — conservé pour plus tard."
-                  : cashbackApplied < ctx.cashback_balance_da
-                    ? `Plafonné à ${formatDA(cashbackApplied)} (total commande).`
-                    : "Déduit du total. Non retirable."
-              }
             />
-          </Card>
-        )}
-
-        {/* Coligo Pay (si solde) */}
-        {ctx.topup_balance_da > 0 && totalAfterCashback > 0 && (
-          <Card className="mt-3">
-            <WalletToggle
+          )}
+          {ctx.topup_balance_da > 0 && (
+            <WalletToggleRow
               icon={Wallet}
+              title="Coligo Pay"
+              sub={`Solde : ${formatDA(ctx.topup_balance_da)}`}
               checked={useTopup}
               onToggle={() => setUseTopup((v) => !v)}
-              title={`Utiliser mon solde ${formatDA(ctx.topup_balance_da)}`}
-              sub={
-                !useTopup
-                  ? "Désactivé — solde conservé."
-                  : topupApplied < ctx.topup_balance_da
-                    ? `Plafonné à ${formatDA(topupApplied)} (reste à payer).`
-                    : "Déduit du total. Solde réel."
-              }
             />
-          </Card>
-        )}
+          )}
+        </Card>
 
         {/* Note */}
         <Card className="mt-3">
@@ -638,37 +627,61 @@ export function CheckoutView({ customer }: Props) {
             {deliveryFeeDa > 0 && (
               <RRow label="Livraison" value={formatDA(deliveryFeeDa)} />
             )}
-            {cashbackApplied > 0 && (
-              <RRow
-                label="Cashback utilisé"
-                value={`− ${formatDA(cashbackApplied)}`}
-                tone="success"
-              />
+
+            {walletUsed ? (
+              <>
+                <RRow
+                  label="Total commande"
+                  value={formatDA(totalBeforeWallets)}
+                />
+                <hr className="border-border my-2" />
+                {cashbackApplied > 0 && (
+                  <RRow
+                    label="Cashback utilisé"
+                    value={`− ${formatDA(cashbackApplied)}`}
+                    tone="success"
+                  />
+                )}
+                {topupApplied > 0 && (
+                  <RRow
+                    label="Coligo Pay utilisé"
+                    value={`− ${formatDA(topupApplied)}`}
+                    tone="success"
+                  />
+                )}
+                <hr className="border-border my-2" />
+                <TotRow
+                  label={resteLabel}
+                  value={formatDA(totalAfterWallets)}
+                />
+              </>
+            ) : (
+              <>
+                <hr className="border-border my-2" />
+                <TotRow
+                  label={totalLabel}
+                  value={formatDA(totalAfterWallets)}
+                />
+              </>
             )}
-            {topupApplied > 0 && (
-              <RRow
-                label="Coligo Pay"
-                value={`− ${formatDA(topupApplied)}`}
-                tone="success"
-              />
-            )}
-            {payment === "online" && ctx.cart.totalDa > 0 && (
-              <RRow
-                label="Cashback estimé"
-                value={`+ ${formatDA(Math.round(ctx.cart.totalDa * 0.03))}`}
-                tone="primary"
-              />
-            )}
-            <hr className="border-border my-2" />
-            <div className="flex items-center justify-between">
-              <dt className="text-foreground text-base font-extrabold">
-                {totalLabel}
-              </dt>
-              <dd className="text-foreground text-base font-extrabold tabular-nums">
-                {formatDA(totalAfterWallets)}
-              </dd>
-            </div>
           </dl>
+
+          {/* Cashback GAGNÉ = gain futur (jamais un frais). Encadré vert. */}
+          {payment === "online" && ctx.cart.totalDa > 0 && (
+            <div className="bg-success-50 mt-3 flex items-center gap-2.5 rounded-[11px] p-3">
+              <span className="text-success-700 grid size-[30px] shrink-0 place-items-center rounded-[9px] bg-white">
+                <Gift className="size-4" />
+              </span>
+              <p className="text-success-700 text-[12.5px] font-bold">
+                Tu gagnes{" "}
+                <strong className="font-extrabold">
+                  {formatDA(Math.round(ctx.cart.totalDa * 0.03))}
+                </strong>{" "}
+                de cashback pour ta prochaine commande
+              </p>
+            </div>
+          )}
+
           {ctx.merchant.min_order_da > 0 &&
             ctx.cart.totalDa < ctx.merchant.min_order_da && (
               <p className="text-danger-600 mt-2 text-xs">
@@ -684,7 +697,7 @@ export function CheckoutView({ customer }: Props) {
         <div className="mx-auto max-w-[560px]">
           <div className="mb-2.5 flex items-center justify-between gap-3">
             <span className="text-muted text-[12.5px] font-semibold">
-              {totalLabel}
+              {barLabel}
             </span>
             <span className="text-foreground text-[21px] font-extrabold tracking-tight tabular-nums">
               {formatDA(totalAfterWallets)}
@@ -852,7 +865,8 @@ function PickChoice({
   );
 }
 
-function WalletToggle({
+/** Toggle de solde (cashback / Coligo Pay) — encart violet doux, façon Uber. */
+function WalletToggleRow({
   icon: Icon,
   checked,
   onToggle,
@@ -871,30 +885,46 @@ function WalletToggle({
       role="switch"
       aria-checked={checked}
       onClick={onToggle}
-      className="flex w-full items-center gap-3 text-left"
+      className="border-primary-100 from-primary-50 mt-2.5 flex w-full items-center gap-3 rounded-[13px] border bg-gradient-to-br to-[#F5F2FF] p-3 text-left"
     >
-      <span className="bg-surface-2 text-primary-600 grid size-9 shrink-0 place-items-center rounded-[10px]">
+      <span className="text-primary-600 grid size-[38px] shrink-0 place-items-center rounded-[11px] bg-white">
         <Icon className="size-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="text-foreground block text-sm font-bold">{title}</span>
-        <span className="text-muted block text-xs">{sub}</span>
+        <span className="text-foreground block text-[13.5px] font-extrabold">
+          {title}
+        </span>
+        <span className="text-primary-700 block text-[11.5px] font-bold">
+          {sub}
+        </span>
       </span>
       <span
         aria-hidden
         className={cn(
-          "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
+          "relative inline-flex h-[27px] w-[46px] shrink-0 items-center rounded-full transition-colors",
           checked ? "bg-primary-600" : "bg-border-strong"
         )}
       >
         <span
           className={cn(
-            "inline-block size-5 transform rounded-full bg-white shadow transition-transform",
-            checked ? "translate-x-[22px]" : "translate-x-0.5"
+            "inline-block size-[21px] transform rounded-full bg-white shadow transition-transform",
+            checked ? "translate-x-[22px]" : "translate-x-[3px]"
           )}
         />
       </span>
     </button>
+  );
+}
+
+/** Ligne total en gras (récap). */
+function TotRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between pt-0.5">
+      <dt className="text-foreground text-base font-extrabold">{label}</dt>
+      <dd className="text-foreground text-base font-extrabold tabular-nums">
+        {value}
+      </dd>
+    </div>
   );
 }
 
