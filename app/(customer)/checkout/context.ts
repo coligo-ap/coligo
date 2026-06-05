@@ -90,6 +90,8 @@ export type CheckoutContext = {
   }[];
   cart: {
     subtotalDa: number;
+    /** Prix catalogue AVANT toute promo (= sous-total brut affiché). */
+    normalTotalDa: number;
     /** Total APRÈS promos, AVANT service_fee/cashback/topup. */
     totalDa: number;
     savingsDa: number;
@@ -150,7 +152,7 @@ export async function fetchCheckoutContext(
       max_days_ahead: 7,
     },
     lines: [],
-    cart: { subtotalDa: 0, totalDa: 0, savingsDa: 0 },
+    cart: { subtotalDa: 0, normalTotalDa: 0, totalDa: 0, savingsDa: 0 },
     cashback_balance_da: cashbackBalance,
     topup_balance_da: topupBalance,
     service_fee_da: 0,
@@ -412,6 +414,7 @@ export async function fetchCheckoutContext(
     }),
     cart: {
       subtotalDa: settled.subtotalDa,
+      normalTotalDa: settled.normalTotalDa,
       totalDa: settled.totalDa,
       savingsDa: settled.savingsDa,
     },

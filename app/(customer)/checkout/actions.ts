@@ -294,7 +294,7 @@ export async function createOrder(
     .select(
       `id, merchant_id, type, status, discount_kind, discount_value, code,
        buy_qty, get_qty, starts_at, ends_at,
-       max_uses, max_uses_per_customer, uses_count,
+       max_uses, max_uses_per_customer, uses_count, financeur,
        promotion_products ( product_id )`
     )
     .eq("merchant_id", merchant.id)
@@ -305,6 +305,8 @@ export async function createOrder(
     string,
     { maxUses: number | null; maxPerCustomer: number | null; usesCount: number }
   >();
+  // Financeur par promo (snapshot immuable sur la commande). Défaut 'merchant'.
+  const financeurById = new Map<string, string>();
 
   const promotions: EnginePromotion[] = (
     (promosRaw ?? []) as unknown as {
@@ -321,6 +323,7 @@ export async function createOrder(
       max_uses: number | null;
       max_uses_per_customer: number | null;
       uses_count: number | null;
+      financeur: string | null;
       promotion_products: { product_id: string }[];
     }[]
   ).map((p) => {
@@ -329,6 +332,7 @@ export async function createOrder(
       maxPerCustomer: p.max_uses_per_customer,
       usesCount: p.uses_count ?? 0,
     });
+    financeurById.set(p.id, p.financeur ?? "merchant");
     return {
       id: p.id,
       type: p.type,
@@ -405,6 +409,16 @@ export async function createOrder(
     }
   }
   const appliedPromo = settled.promoCode;
+
+  // Snapshot immuable (PARTIE B) : prix produits AVANT promo (gross) et APRÈS
+  // promo (net = base figée de la commission). La réduction se déduit
+  // (gross − net). Le financeur est figé sur la commande (défaut 'merchant' ;
+  // aucune logique plateforme n'est codée — la plateforme ne perd rien).
+  const grossTotalDa = settled.normalTotalDa;
+  const netTotalDa = settled.totalDa;
+  const promoFinanceur = appliedPromo
+    ? (financeurById.get(appliedPromo.id) ?? "merchant")
+    : null;
 
   // Minimum de commande — résolution PLANCHER plateforme + surcharge commerçant.
   // S'applique sur le total APRÈS promos (avant cashback/topup, pour empêcher
@@ -740,8 +754,21 @@ export async function createOrder(
 
   const totalWithDelivery = totalAfterWallets + deliveryFeeDa;
 
-  const { data: order, error: orderErr } = await supabase
-    .from("orders")
+  // Cast localisé : promo_id/promo_code/promo_financeur/gross_total_da/
+  // net_total_da ne sont pas encore dans database.types.ts généré (Docker
+  // requis pour gen types). On caste le builder en gardant le typage du retour.
+  const { data: order, error: orderErr } = await (
+    supabase.from("orders") as unknown as {
+      insert: (v: Record<string, unknown>) => {
+        select: (c: string) => {
+          single: () => Promise<{
+            data: { id: string; pickup_code: string } | null;
+            error: { code?: string; message: string } | null;
+          }>;
+        };
+      };
+    }
+  )
     .insert({
       merchant_id: merchant.id,
       customer_id: customer.id,
@@ -756,17 +783,24 @@ export async function createOrder(
       pickup_slot_end: input.pickup_slot_end ?? null,
       customer_note: input.customer_note ?? null,
       client_operation_id: input.client_operation_id,
+      // subtotal_da = somme des lignes APRÈS réductions produit (= ce qui est
+      // affiché). discount_da = code promo SEUL (les réductions produit sont
+      // déjà fondues dans les prix de ligne → pas de double comptage).
       subtotal_da: settled.subtotalDa,
-      discount_da:
-        Math.max(0, settled.normalTotalDa - settled.subtotalDa) +
-        (settled.promoCode?.discountDa ?? 0),
+      discount_da: settled.promoCode?.discountDa ?? 0,
+      // Snapshot immuable de la base de commission (PARTIE B).
+      gross_total_da: grossTotalDa,
+      net_total_da: netTotalDa,
+      promo_id: appliedPromo?.id ?? null,
+      promo_code: appliedPromo?.code ?? null,
+      promo_financeur: promoFinanceur,
       total_da: totalWithDelivery,
       cashback_used_da: cashbackUsed,
       topup_used_da: topupUsed,
       service_fee_da: serviceFeeDa,
       cashback_da: 0,
       cashback_estimate_da: cashbackEstimate,
-      commission_da: 0, // figé à la complétion par le trigger wallet
+      commission_da: 0, // figé à la complétion par le trigger wallet (sur le net)
       fulfillment_type: isDelivery ? "delivery" : "pickup",
       delivery_mode: deliverySnapshot?.mode ?? null,
       delivery_fee_da: deliveryFeeDa,
@@ -822,20 +856,11 @@ export async function createOrder(
     return { ok: false, error: `Erreur ajout articles : ${itemsErr.message}` };
   }
 
-  // Code promo : snapshot sur la commande + journal d'usage. Colonnes/tables
-  // pas encore dans database.types.ts généré (Docker requis pour gen types) →
-  // accès via cast localisé. Best-effort : n'échoue jamais la commande.
+  // Code promo : journal d'usage (incrémente uses_count, idempotent via
+  // UNIQUE(order_id, promotion_id)). Le snapshot est déjà figé dans l'insert.
+  // Best-effort : n'échoue jamais la commande.
   if (appliedPromo) {
     try {
-      await (
-        supabase.from("orders") as unknown as {
-          update: (v: Record<string, unknown>) => {
-            eq: (c: string, val: string) => Promise<unknown>;
-          };
-        }
-      )
-        .update({ promo_id: appliedPromo.id, promo_code: appliedPromo.code })
-        .eq("id", order.id);
       await supabase.rpc(
         "redeem_promo" as never,
         {
@@ -847,7 +872,7 @@ export async function createOrder(
         } as never
       );
     } catch (e) {
-      console.warn("[createOrder] promo snapshot/redeem failed:", e);
+      console.warn("[createOrder] redeem_promo failed:", e);
     }
   }
 

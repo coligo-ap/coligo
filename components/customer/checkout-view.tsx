@@ -767,10 +767,10 @@ export function CheckoutView({ customer }: Props) {
             </div>
           )}
           <dl className="space-y-1">
-            <RRow label="Sous-total" value={formatDA(ctx.cart.subtotalDa)} />
+            <RRow label="Sous-total" value={formatDA(ctx.cart.normalTotalDa)} />
             {ctx.cart.savingsDa > 0 && (
               <RRow
-                label="Promo"
+                label="Promo produits"
                 value={`− ${formatDA(ctx.cart.savingsDa)}`}
                 tone="success"
               />
