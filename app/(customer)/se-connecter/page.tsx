@@ -18,6 +18,13 @@ import {
 
 const initialState: CustomerAuthState = {};
 
+// Photo professionnelle de fond du panneau marketing (gauche, desktop) — même
+// traitement que la page de connexion commerçant (photo + ombre noire + texte
+// blanc). Pour utiliser ta propre image : dépose-la dans public/ et remplace
+// par "/login-client-hero.jpg". Le dégradé primaire reste en fond de secours.
+const HERO_IMG =
+  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1400&q=80";
+
 export default function CustomerLoginPage() {
   // Suspense requise par Next 15 dès qu'on utilise useSearchParams dans une
   // page rendue côté serveur statiquement.
@@ -49,20 +56,50 @@ function CustomerLoginInner() {
       <div className="flex min-h-screen flex-col pb-20 lg:pb-0">
         <AuthNavBar variant="customer" />
         <div className="flex flex-1 flex-col lg:grid lg:grid-cols-5">
-          {/* Colonne marketing */}
-          <aside className="from-primary-500 via-primary-600 to-primary-700 hidden flex-col justify-between bg-gradient-to-br p-12 text-white lg:col-span-2 lg:flex">
-            <Logo variant="amber" size="xl" iconOnly className="!gap-0" />
-            <div>
-              <h1 className="mb-4 text-4xl leading-tight font-bold">
+          {/* Colonne marketing à gauche (desktop only) — photo pro + ombre
+              noire (même traitement que les cartes commerçants de la
+              marketplace et la page de login commerçant) + texte blanc. */}
+          <aside className="relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:col-span-2 lg:flex">
+            {/* Fond de secours (si la photo ne charge pas) */}
+            <div
+              aria-hidden
+              className="from-primary-500 via-primary-600 to-primary-800 absolute inset-0 bg-gradient-to-br"
+            />
+            {/* Photo professionnelle */}
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url("${HERO_IMG}")` }}
+            />
+            {/* Ombre noire (dégradé) pour la lisibilité du texte blanc */}
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/35"
+            />
+
+            <div className="relative z-10">
+              <Logo variant="amber" size="xl" iconOnly className="!gap-0" />
+            </div>
+
+            <div className="relative z-10">
+              <h1 className="mb-4 text-4xl leading-tight font-bold drop-shadow-md">
                 Vos commerces de quartier,
                 <br />
                 en un clic.
               </h1>
-              <p className="text-primary-50/90 mb-8 text-lg">
+              <p className="mb-8 text-lg text-white/90 drop-shadow">
                 Commandez à l&apos;avance, récupérez sur place. Sans attente.
               </p>
+
+              <div className="space-y-4 text-sm">
+                <Feature title="Commandez à l'avance, récupérez sans attente" />
+                <Feature title="Tous vos commerces de quartier réunis" />
+                <Feature title="Suivez vos commandes en temps réel" />
+                <Feature title="Cashback et Coligo Pay à chaque achat" />
+              </div>
             </div>
-            <p className="text-primary-50/70 text-xs">
+
+            <p className="relative z-10 text-xs text-white/70 drop-shadow">
               © {new Date().getFullYear()} {APP_CONFIG.name}
             </p>
           </aside>
@@ -178,5 +215,26 @@ function CustomerLoginInner() {
       </div>
       <CustomerBottomNav />
     </>
+  );
+}
+
+function Feature({ title }: { title: string }) {
+  return (
+    <div className="flex items-center gap-3 drop-shadow">
+      <div className="bg-primary-500 flex size-6 shrink-0 items-center justify-center rounded-full ring-2 ring-white/25">
+        <svg
+          className="size-3.5 text-white"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fillRule="evenodd"
+            d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </div>
+      <span>{title}</span>
+    </div>
   );
 }
