@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getPosition } from "@/lib/native/geolocation";
 import { toast } from "@/components/ui/toast";
+import { MapPositionPicker } from "@/components/shared/map-position-picker";
 
 /**
  * Sélecteur de position sur carte (MapLibre).
@@ -193,9 +194,15 @@ export function AddressForm({
 
   return (
     <div className="space-y-3">
-      <AddressPicker
+      {/* Carte plein écran + recherche d'adresse : par défaut la position
+          actuelle (autoLocate). « Agrandir » → plein écran avec barre de
+          recherche pour trouver précisément le lieu. */}
+      <MapPositionPicker
         initial={initial ? { lat: initial.lat, lng: initial.lng } : undefined}
         defaultCenter={defaultCenter}
+        autoLocate={!initial}
+        searchEnabled
+        height={300}
         onChange={(p) => {
           setLat(p.lat);
           setLng(p.lng);

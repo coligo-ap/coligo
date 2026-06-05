@@ -30,6 +30,7 @@ type CurrentOrder = {
   payment_method: "cash" | "online";
   delivery_address_text: string | null;
   delivery_phone: string | null;
+  delivery_recipient_name: string | null;
   delivery_lat: number | null;
   delivery_lng: number | null;
   delivery_note: string | null;

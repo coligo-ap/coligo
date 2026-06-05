@@ -58,6 +58,8 @@ export type CreateOrderInput = {
   delivery_address_id?: string | null;
   delivery_slot_id?: string | null;
   delivery_phone_override?: string | null;
+  /** Nom du destinataire si on livre à quelqu'un d'autre. */
+  delivery_recipient_name?: string | null;
   /**
    * Position custom posée à la volée sur la carte (alternative à
    * `delivery_address_id`). Si fournie, ON L'UTILISE comme source de
@@ -809,6 +811,10 @@ export async function createOrder(
       delivery_lat: deliverySnapshot?.lat ?? null,
       delivery_lng: deliverySnapshot?.lng ?? null,
       delivery_phone: deliverySnapshot?.phone ?? null,
+      delivery_recipient_name:
+        isDelivery && input.delivery_recipient_name
+          ? input.delivery_recipient_name.slice(0, 80)
+          : null,
       delivery_distance_km: deliverySnapshot?.distance_km ?? null,
       delivery_slot_id: deliverySnapshot?.slot_id ?? null,
       delivery_note:

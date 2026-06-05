@@ -28,6 +28,7 @@ type RunOrder = {
   payment_method: "cash" | "online";
   delivery_address_text: string | null;
   delivery_phone: string | null;
+  delivery_recipient_name: string | null;
   delivery_lat: number | null;
   delivery_lng: number | null;
 };
@@ -78,8 +79,10 @@ export function ExpressRun({
   // Profil de l'étape : commerçant (récup) ou client (livraison).
   const who = pickedUp
     ? {
-        name: order.customer_name ?? "Client",
-        initial: (order.customer_name ?? "C").charAt(0).toUpperCase(),
+        name: order.delivery_recipient_name ?? order.customer_name ?? "Client",
+        initial: (order.delivery_recipient_name ?? order.customer_name ?? "C")
+          .charAt(0)
+          .toUpperCase(),
         phone: order.delivery_phone ?? order.customer_phone,
       }
     : {

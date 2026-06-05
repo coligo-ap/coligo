@@ -78,6 +78,7 @@ export function CheckoutView({ customer }: Props) {
     mode: null,
     slotId: null,
     phoneOverride: "",
+    recipientName: "",
     deliveryNote: "",
   });
   const [conflictDismissed, setConflictDismissed] = useState(false);
@@ -322,6 +323,10 @@ export function CheckoutView({ customer }: Props) {
           delivery.fulfillment === "delivery"
             ? delivery.phoneOverride.trim() || null
             : null,
+        delivery_recipient_name:
+          delivery.fulfillment === "delivery"
+            ? delivery.recipientName.trim() || null
+            : null,
         delivery_custom_lat:
           delivery.fulfillment === "delivery" && delivery.customPosition
             ? delivery.customPosition.lat
@@ -407,12 +412,17 @@ export function CheckoutView({ customer }: Props) {
     ""
   ).trim();
   const isDelivery = delivery.fulfillment === "delivery";
+  // Livraison à un tiers : nom + téléphone du destinataire obligatoires.
+  const recipientName = delivery.recipientName.trim();
+  const recipientReady =
+    recipientName === "" || delivery.phoneOverride.trim() !== "";
   const deliveryReady =
     !isDelivery ||
     (hasValidDeliveryPosition &&
       delivery.mode != null &&
       (delivery.mode !== "tour" || !!delivery.slotId) &&
-      deliveryPhone !== "");
+      deliveryPhone !== "" &&
+      recipientReady);
 
   const totalUnits = ctx.lines.reduce((s, l) => s + l.quantity, 0);
 

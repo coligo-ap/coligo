@@ -356,6 +356,60 @@ export async function reverseGeocode(input: {
   }
 }
 
+// Recherche d'adresse (forward geocoding) via Nominatim, biaisée Algérie.
+// Sert la barre de recherche de la carte plein écran. On reste gentil avec
+// l'API publique : cache 5 min, limite 6 résultats.
+export type GeocodeSearchResult =
+  | { ok: true; results: { display: string; lat: number; lng: number }[] }
+  | { ok: false; error: string };
+
+export async function geocodeSearch(input: {
+  q: string;
+}): Promise<GeocodeSearchResult> {
+  const q = (input.q ?? "").trim();
+  if (q.length < 3) return { ok: true, results: [] };
+
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("q", q);
+  url.searchParams.set("countrycodes", "dz");
+  url.searchParams.set("accept-language", "fr");
+  url.searchParams.set("limit", "6");
+
+  try {
+    const res = await fetch(url.toString(), {
+      headers: {
+        "User-Agent": "Coligo/0.3 (contact: dev@coligo.app)",
+        Accept: "application/json",
+      },
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) {
+      return { ok: false, error: `Recherche indisponible (${res.status}).` };
+    }
+    const data = (await res.json()) as {
+      display_name?: string;
+      lat?: string;
+      lon?: string;
+    }[];
+    const results = (data ?? [])
+      .map((d) => ({
+        display: d.display_name ?? "",
+        lat: Number(d.lat),
+        lng: Number(d.lon),
+      }))
+      .filter(
+        (r) => r.display && Number.isFinite(r.lat) && Number.isFinite(r.lng)
+      );
+    return { ok: true, results };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Recherche indisponible.",
+    };
+  }
+}
+
 /** Déconnexion client (utilisable depuis n'importe quelle page client). */
 export async function customerLogout(): Promise<void> {
   const supabase = await createClient();

@@ -1,24 +1,25 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   AlertTriangle,
   Bolt,
   Calendar,
   Check,
+  Loader2,
   MapPin,
   Maximize2,
   Truck,
+  UserPlus,
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import { computeDeliveryFee } from "@/lib/delivery/pricing";
 import { haversineKm } from "@/lib/delivery/distance";
 import { reverseGeocode } from "@/app/(customer)/actions";
+import { saveCustomerAddress } from "@/app/(customer)/adresses/actions";
+import { toast } from "@/components/ui/toast";
 import type {
   CheckoutDeliveryContext,
   CheckoutMerchantPosition,
@@ -39,8 +40,10 @@ export type DeliveryChoice = {
   mode: "express" | "tour" | null;
   /** Slot (requis si mode=tour). */
   slotId: string | null;
-  /** Téléphone alternatif (optionnel). */
+  /** Téléphone de contact pour la livraison (destinataire). */
   phoneOverride: string;
+  /** Nom du destinataire si on livre à quelqu'un d'autre. */
+  recipientName: string;
   /** Note livraison (commentaire client → livreur). */
   deliveryNote: string;
 };
@@ -65,7 +68,6 @@ export function CheckoutDeliverySection({
   } | null;
   value: DeliveryChoice;
   onChange: (next: DeliveryChoice) => void;
-  /** Position exacte par défaut du client (centre initial de la carte). */
   defaultPosition?: { lat: number; lng: number } | null;
 }) {
   const update = (patch: Partial<DeliveryChoice>) =>
@@ -75,9 +77,6 @@ export function CheckoutDeliverySection({
     (a) => a.id === value.addressId
   );
 
-  // Calcul de la quote pour une position custom (live, côté client).
-  // useMemo DOIT être appelé avant tout early-return pour respecter la
-  // règle des hooks.
   const customQuote = useMemo(() => {
     if (!value.customPosition || !merchantPosition || !pricing) return null;
     const distKm = haversineKm(
@@ -89,13 +88,11 @@ export function CheckoutDeliverySection({
 
   if (!delivery.enabled) return null;
 
-  // Le client doit avoir une position EXACTE et CONFIRMÉE avant de pouvoir
-  // submit. Si position custom, le bouton "Confirmer" la valide. Si adresse
-  // enregistrée, on considère la confirmation implicite (on a déjà sa lat/lng).
+  const ready = hasValidPosition(value, selectedSavedAddress);
 
   return (
     <section className="space-y-3">
-      {/* Toggle Retrait / Livraison (style Uber : fond gris, actif blanc) */}
+      {/* Toggle Retrait / Livraison */}
       <div className="bg-surface-2 flex gap-1.5 rounded-[14px] p-1.5">
         <Tab
           icon={<MapPin className="size-4" />}
@@ -141,130 +138,88 @@ export function CheckoutDeliverySection({
             defaultPosition={defaultPosition}
           />
 
-          {/* Modes Express / Tournée (uniquement si position valide) */}
-          {hasValidPosition(value, selectedSavedAddress) && (
-            <div className="space-y-2">
-              <p className="text-sm font-semibold">Mode de livraison</p>
-              <div className="grid grid-cols-2 gap-2">
-                {delivery.express_enabled && (
-                  <ModeButton
-                    icon={<Bolt className="size-4" />}
-                    label="Express"
-                    sub="Dès qu'un livreur est dispo"
-                    active={value.mode === "express"}
-                    onClick={() => update({ mode: "express", slotId: null })}
-                  />
-                )}
-                {delivery.tours_enabled && (
-                  <ModeButton
-                    icon={<Calendar className="size-4" />}
-                    label="Tournée"
-                    sub="Choisis un créneau"
-                    active={value.mode === "tour"}
-                    onClick={() => update({ mode: "tour" })}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Sélecteur de créneau (tour) */}
-          {hasValidPosition(value, selectedSavedAddress) &&
-            value.mode === "tour" && (
-              <div className="space-y-2">
-                <p className="text-sm font-semibold">Créneau</p>
-                {delivery.slots.length === 0 ? (
-                  <p className="text-muted text-xs">
-                    Aucun créneau ouvert. Choisis Express ou repasse plus tard.
-                  </p>
-                ) : (
-                  <ul className="space-y-1.5">
-                    {delivery.slots.map((s) => {
-                      const full = s.available === 0;
-                      const isSel = value.slotId === s.id;
-                      return (
-                        <li key={s.id}>
-                          <button
-                            type="button"
-                            disabled={full}
-                            onClick={() => update({ slotId: s.id })}
-                            className={cn(
-                              "flex w-full items-center gap-3 rounded-[10px] border px-3 py-2 text-left text-sm",
-                              full
-                                ? "border-border bg-surface-2 text-muted cursor-not-allowed opacity-60"
-                                : isSel
-                                  ? "border-primary-500 bg-primary-50"
-                                  : "border-border bg-surface hover:border-primary-300"
-                            )}
-                          >
-                            <Calendar className="size-4 shrink-0" />
-                            <span className="flex-1 tabular-nums">
-                              {new Date(s.slot_date).toLocaleDateString(
-                                "fr-FR",
-                                {
-                                  weekday: "short",
-                                  day: "2-digit",
-                                  month: "short",
-                                }
-                              )}{" "}
-                              · {s.start_time.slice(0, 5)}–
-                              {s.end_time.slice(0, 5)}
-                            </span>
-                            <span className="text-muted text-xs tabular-nums">
-                              {full
-                                ? "Complet"
-                                : `${s.available} place${s.available > 1 ? "s" : ""}`}
-                            </span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
-            )}
-
-          {/* Tél alternatif + note livraison */}
-          {hasValidPosition(value, selectedSavedAddress) && (
+          {ready && (
             <>
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="phone_override"
-                  className="text-sm font-semibold"
-                >
-                  Téléphone livraison (optionnel)
-                </Label>
-                <Input
-                  id="phone_override"
-                  type="tel"
-                  value={value.phoneOverride}
-                  onChange={(e) => update({ phoneOverride: e.target.value })}
-                  placeholder={
-                    selectedSavedAddress?.phone_override ??
-                    "Si différent du compte"
-                  }
-                />
+              {/* Modes Express / Tournée */}
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">Mode</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {delivery.express_enabled && (
+                    <ModeButton
+                      icon={<Bolt className="size-4" />}
+                      label="Express"
+                      sub="Au plus vite"
+                      active={value.mode === "express"}
+                      onClick={() => update({ mode: "express", slotId: null })}
+                    />
+                  )}
+                  {delivery.tours_enabled && (
+                    <ModeButton
+                      icon={<Calendar className="size-4" />}
+                      label="Tournée"
+                      sub="Sur créneau"
+                      active={value.mode === "tour"}
+                      onClick={() => update({ mode: "tour" })}
+                    />
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="delivery_note"
-                  className="text-sm font-semibold"
-                >
-                  Note pour le livreur (optionnel)
-                </Label>
-                <textarea
-                  id="delivery_note"
-                  value={value.deliveryNote}
-                  onChange={(e) => update({ deliveryNote: e.target.value })}
-                  placeholder="Ex: Sonner 2 fois, bâtiment B, 3e étage, code porte 1234…"
-                  className="border-border bg-surface min-h-[64px] w-full rounded-[10px] border px-3 py-2 text-sm"
-                  maxLength={300}
-                />
-                <p className="text-subtle text-xs">
-                  Vu par le livreur ET le commerçant.
-                </p>
-              </div>
+              {/* Créneau (tour) */}
+              {value.mode === "tour" && (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold">Créneau</p>
+                  {delivery.slots.length === 0 ? (
+                    <p className="text-muted text-xs">
+                      Aucun créneau. Choisis Express.
+                    </p>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {delivery.slots.map((s) => {
+                        const full = s.available === 0;
+                        const isSel = value.slotId === s.id;
+                        return (
+                          <li key={s.id}>
+                            <button
+                              type="button"
+                              disabled={full}
+                              onClick={() => update({ slotId: s.id })}
+                              className={cn(
+                                "flex w-full items-center gap-3 rounded-[10px] border px-3 py-2 text-left text-sm",
+                                full
+                                  ? "border-border bg-surface-2 text-muted cursor-not-allowed opacity-60"
+                                  : isSel
+                                    ? "border-primary-500 bg-primary-50"
+                                    : "border-border bg-surface hover:border-primary-300"
+                              )}
+                            >
+                              <Calendar className="size-4 shrink-0" />
+                              <span className="flex-1 tabular-nums">
+                                {new Date(s.slot_date).toLocaleDateString(
+                                  "fr-FR",
+                                  {
+                                    weekday: "short",
+                                    day: "2-digit",
+                                    month: "short",
+                                  }
+                                )}{" "}
+                                · {s.start_time.slice(0, 5)}–
+                                {s.end_time.slice(0, 5)}
+                              </span>
+                              <span className="text-muted text-xs tabular-nums">
+                                {full ? "Complet" : `${s.available} pl.`}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {/* Livrer à quelqu'un d'autre + note */}
+              <RecipientBlock value={value} update={update} />
             </>
           )}
         </div>
@@ -300,14 +255,9 @@ function DeliveryAddressBlock({
   merchantPosition: CheckoutMerchantPosition | null;
   defaultPosition?: { lat: number; lng: number } | null;
 }) {
-  // La carte est ouverte PAR DÉFAUT : le client doit voir tout de suite sa
-  // position actuelle pour la livraison (exigence métier). Ses adresses
-  // enregistrées restent listées au-dessus et il peut basculer dessus d'un
-  // clic. On ne referme la carte que s'il choisit une adresse enregistrée.
+  // Carte ouverte par défaut (= ma position actuelle). Se referme si le client
+  // choisit une adresse enregistrée.
   const [pickerOpen, setPickerOpen] = useState(true);
-
-  // Quand le client choisit une adresse enregistrée, on remet à zéro le
-  // picker custom.
   useEffect(() => {
     if (value.addressId) setPickerOpen(false);
   }, [value.addressId]);
@@ -319,7 +269,7 @@ function DeliveryAddressBlock({
         Où livrer ?
       </p>
 
-      {/* Adresses enregistrées (cards cliquables) */}
+      {/* Adresses enregistrées (raccourcis) */}
       {delivery.addresses.length > 0 && (
         <ul className="space-y-2">
           {delivery.addresses.map((a) => {
@@ -330,13 +280,13 @@ function DeliveryAddressBlock({
                 <button
                   type="button"
                   disabled={disabled}
-                  onClick={() => {
+                  onClick={() =>
                     update({
                       addressId: a.id,
                       customPosition: null,
                       positionConfirmed: false,
-                    });
-                  }}
+                    })
+                  }
                   className={cn(
                     "flex w-full items-start gap-3 rounded-[10px] border p-3 text-left",
                     disabled
@@ -349,14 +299,9 @@ function DeliveryAddressBlock({
                   <MapPin className="mt-0.5 size-4 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{a.label}</p>
-                    {a.address_text && (
-                      <p className="text-muted mt-0.5 truncate text-xs">
-                        {a.address_text}
-                      </p>
-                    )}
                     <p className="text-subtle mt-0.5 text-xs tabular-nums">
                       {a.out_of_range
-                        ? `Hors zone (${a.distance_km > 0 ? a.distance_km.toFixed(1) + " km" : "—"})`
+                        ? "Hors zone"
                         : `${a.distance_km.toFixed(1)} km · ${formatDA(a.fee_da ?? 0)}`}
                     </p>
                   </div>
@@ -370,7 +315,7 @@ function DeliveryAddressBlock({
         </ul>
       )}
 
-      {/* Bascule "Nouvelle position" */}
+      {/* Carte (position actuelle) OU bascule */}
       {!pickerOpen ? (
         <button
           type="button"
@@ -380,14 +325,13 @@ function DeliveryAddressBlock({
           }}
           className="border-primary-300 bg-primary-50 text-primary-700 hover:bg-primary-100 w-full rounded-[10px] border-2 border-dashed px-3 py-2 text-center text-sm font-semibold"
         >
-          + Indiquer une autre position sur la carte
+          + Autre position sur la carte
         </button>
       ) : (
         <CustomPositionPicker
           value={value}
           update={update}
           customQuote={customQuote}
-          merchantPosition={merchantPosition}
           defaultPosition={defaultPosition}
           canSwitchToSaved={delivery.addresses.length > 0}
           onSwitchToSaved={() => {
@@ -401,16 +345,15 @@ function DeliveryAddressBlock({
         />
       )}
 
-      {/* Avertissement adresse enregistrée hors zone */}
+      {/* Adresse enregistrée hors zone */}
       {selectedSavedAddress?.out_of_range && (
         <p className="border-danger-200 bg-danger-50 text-danger-700 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-          Cette adresse dépasse le rayon de livraison du commerçant
+          Hors zone de livraison
           {merchantPosition
             ? ` (${merchantPosition.radiusKm.toFixed(1)} km max)`
             : ""}
-          . Choisis une autre adresse, indique une position plus proche, ou
-          prends en retrait sur place.
+          . Choisis une autre adresse ou le retrait.
         </p>
       )}
     </div>
@@ -421,7 +364,6 @@ function CustomPositionPicker({
   value,
   update,
   customQuote,
-  merchantPosition,
   defaultPosition,
   canSwitchToSaved,
   onSwitchToSaved,
@@ -429,17 +371,14 @@ function CustomPositionPicker({
   value: DeliveryChoice;
   update: (patch: Partial<DeliveryChoice>) => void;
   customQuote: ReturnType<typeof computeDeliveryFee> | null;
-  merchantPosition: CheckoutMerchantPosition | null;
   defaultPosition?: { lat: number; lng: number } | null;
   canSwitchToSaved: boolean;
   onSwitchToSaved: () => void;
 }) {
   const outOfRange = customQuote?.outOfRange ?? false;
+  const [locateFailed, setLocateFailed] = useState(false);
 
-  // Adresse lisible du point pointé (reverse-geocode), réactualisée à chaque
-  // déplacement du curseur (debounce 800 ms pour ménager l'API). On la stocke
-  // aussi dans le choix pour que le livreur ait une adresse, pas que des
-  // coordonnées.
+  // Adresse lisible du point pointé (reverse-geocode, debounce 800 ms).
   const [addr, setAddr] = useState<string | null>(null);
   const [addrLoading, setAddrLoading] = useState(false);
   const lat = value.customPosition?.lat ?? null;
@@ -470,32 +409,26 @@ function CustomPositionPicker({
   return (
     <div className="border-primary-300 bg-primary-50/40 space-y-2 rounded-[12px] border p-3">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-sm font-semibold">Pointe ta position exacte</p>
+        <p className="text-sm font-semibold">Ta position</p>
         {canSwitchToSaved && (
           <button
             type="button"
             onClick={onSwitchToSaved}
             className="text-primary-700 text-xs underline"
           >
-            ← Choisir une adresse enregistrée
+            Mes adresses
           </button>
         )}
       </div>
-      <p className="text-muted text-xs">
-        Déplace la carte ou clique « Ma position » pour pointer exactement
-        l&apos;endroit où tu veux être livré. Tu peux ensuite ajuster.
-      </p>
-      {/* Position de livraison :
-          - si le client a déjà déplacé/choisi un point → on le garde (`initial`)
-          - sinon la carte se centre sur sa position exacte enregistrée
-            (`defaultCenter`) puis tente d'obtenir sa position GPS ACTUELLE
-            (`autoLocate`) pour proposer par défaut là où il est vraiment.
-          Il confirme ensuite via la case ci-dessous (obligatoire). */}
+
       <MapPositionPicker
         initial={value.customPosition ?? undefined}
         defaultCenter={defaultPosition ?? undefined}
         autoLocate={value.customPosition == null}
-        height={160}
+        height={180}
+        searchEnabled
+        gpsLabel="Ma position"
+        onLocate={(ok) => setLocateFailed(!ok)}
         onChange={(p) =>
           update({
             customPosition: p,
@@ -503,25 +436,30 @@ function CustomPositionPicker({
             positionConfirmed: false,
           })
         }
-        gpsLabel="Ma position"
+        onConfirm={(p) =>
+          update({
+            customPosition: p,
+            addressId: null,
+            positionConfirmed: true,
+          })
+        }
       />
 
-      <p className="text-primary-600 mt-1 flex items-center justify-center gap-1 text-center text-[11px] font-bold">
-        <Maximize2 className="size-3" />
-        Touche « agrandir » pour ajuster précisément
-      </p>
+      {locateFailed && !value.positionConfirmed && (
+        <p className="border-warning-200 bg-warning-50 text-warning-800 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+          Position non détectée. Cherche ton adresse ou pointe-la sur la carte.
+        </p>
+      )}
 
       {value.customPosition && (
         <>
-          {/* Adresse résolue (mise à jour à chaque déplacement) + frais en
-              chip à droite — façon maquette. Fallback sur les coordonnées. */}
+          {/* Adresse résolue + frais */}
           <div className="text-foreground flex items-center gap-2 text-[13.5px] font-bold">
             <MapPin className="text-primary-600 size-4 shrink-0" />
             <span className="min-w-0 flex-1 truncate">
               {addrLoading ? (
-                <span className="text-muted font-medium">
-                  Recherche de l&apos;adresse…
-                </span>
+                <span className="text-muted font-medium">Recherche…</span>
               ) : addr ? (
                 addr
               ) : (
@@ -541,49 +479,188 @@ function CustomPositionPicker({
           {outOfRange ? (
             <p className="border-danger-200 bg-danger-50 text-danger-700 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
               <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-              Cette position est hors de la zone de livraison du commerçant
+              Hors zone
               {customQuote?.outOfRange === true && customQuote.maxRadiusKm
                 ? ` (${customQuote.maxRadiusKm.toFixed(1)} km max)`
                 : ""}
-              . Rapproche le pointeur ou choisis « Retrait sur place ».
+              . Rapproche le point ou prends en retrait.
             </p>
-          ) : (
-            <>
+          ) : value.positionConfirmed ? (
+            <div className="space-y-2">
               <p className="text-success-700 flex items-center gap-1.5 text-[12.5px] font-bold">
                 <Check className="size-4" />
-                Dans la zone de livraison
+                Position confirmée
               </p>
-              {/* Case « Je confirme » — encart violet façon maquette */}
-              <label className="bg-primary-50 text-foreground flex cursor-pointer items-center gap-2.5 rounded-[11px] p-3 text-[12.5px]">
-                <input
-                  type="checkbox"
-                  className="sr-only"
-                  checked={value.positionConfirmed}
-                  onChange={(e) =>
-                    update({ positionConfirmed: e.target.checked })
-                  }
-                />
-                <span
-                  className={cn(
-                    "grid size-[22px] shrink-0 place-items-center rounded-[7px] border-2 transition-colors",
-                    value.positionConfirmed
-                      ? "border-primary-600 bg-primary-600 text-white"
-                      : "border-border-strong bg-white"
-                  )}
-                >
-                  {value.positionConfirmed && <Check className="size-3.5" />}
-                </span>
-                <span>
-                  <strong className="text-foreground font-extrabold">
-                    Je confirme cette position.
-                  </strong>{" "}
-                  Le livreur s&apos;y rendra.
-                </span>
-              </label>
-            </>
+              <SaveAddressInline
+                lat={value.customPosition.lat}
+                lng={value.customPosition.lng}
+                addressText={addr}
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => update({ positionConfirmed: true })}
+              className="bg-primary-600 hover:bg-primary-700 inline-flex w-full items-center justify-center gap-2 rounded-[12px] py-3 text-sm font-extrabold text-white"
+            >
+              <Check className="size-4" />
+              Confirmer cette position
+            </button>
+          )}
+
+          {!value.positionConfirmed && !outOfRange && (
+            <p className="text-primary-600 flex items-center justify-center gap-1 text-center text-[11px] font-bold">
+              <Maximize2 className="size-3" />
+              Agrandis pour ajuster précisément
+            </p>
           )}
         </>
       )}
+    </div>
+  );
+}
+
+/** Enregistrer la position confirmée comme adresse du profil (label + save). */
+function SaveAddressInline({
+  lat,
+  lng,
+  addressText,
+}: {
+  lat: number;
+  lng: number;
+  addressText: string | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const [label, setLabel] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [pending, start] = useTransition();
+
+  if (saved) {
+    return (
+      <p className="text-success-700 flex items-center gap-1.5 text-[12px] font-semibold">
+        <Check className="size-3.5" />
+        Adresse enregistrée dans ton profil
+      </p>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-primary-700 text-xs font-semibold underline"
+      >
+        Enregistrer cette adresse
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex gap-2">
+      <Input
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        placeholder="Domicile, bureau…"
+        className="h-10 flex-1"
+        maxLength={60}
+      />
+      <button
+        type="button"
+        disabled={pending || label.trim() === ""}
+        onClick={() =>
+          start(async () => {
+            const res = await saveCustomerAddress({
+              label,
+              lat,
+              lng,
+              address_text: addressText,
+            });
+            if (res.ok) setSaved(true);
+            else toast.error(res.error ?? "Échec de l'enregistrement.");
+          })
+        }
+        className="bg-foreground text-background shrink-0 rounded-[10px] px-4 text-sm font-extrabold disabled:opacity-40"
+      >
+        {pending ? <Loader2 className="size-4 animate-spin" /> : "Enregistrer"}
+      </button>
+    </div>
+  );
+}
+
+/** Livrer à quelqu'un d'autre (nom + tél) + note livreur. */
+function RecipientBlock({
+  value,
+  update,
+}: {
+  value: DeliveryChoice;
+  update: (patch: Partial<DeliveryChoice>) => void;
+}) {
+  const [forSomeoneElse, setForSomeoneElse] = useState(
+    value.recipientName.trim() !== ""
+  );
+
+  return (
+    <div className="space-y-3">
+      <button
+        type="button"
+        onClick={() => {
+          const next = !forSomeoneElse;
+          setForSomeoneElse(next);
+          if (!next) update({ recipientName: "", phoneOverride: "" });
+        }}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-[12px] border p-3 text-left transition",
+          forSomeoneElse
+            ? "border-primary-500 bg-primary-50"
+            : "border-border bg-surface hover:border-primary-300"
+        )}
+      >
+        <UserPlus
+          className={cn(
+            "size-4 shrink-0",
+            forSomeoneElse ? "text-primary-600" : "text-muted"
+          )}
+        />
+        <span className="flex-1 text-sm font-semibold">
+          Livrer à quelqu&apos;un d&apos;autre
+        </span>
+        <span
+          className={cn(
+            "grid size-[22px] shrink-0 place-items-center rounded-[7px] border-2",
+            forSomeoneElse
+              ? "border-primary-600 bg-primary-600 text-white"
+              : "border-border-strong bg-white"
+          )}
+        >
+          {forSomeoneElse && <Check className="size-3.5" />}
+        </span>
+      </button>
+
+      {forSomeoneElse && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Input
+            value={value.recipientName}
+            onChange={(e) => update({ recipientName: e.target.value })}
+            placeholder="Nom du destinataire"
+            maxLength={80}
+          />
+          <Input
+            type="tel"
+            value={value.phoneOverride}
+            onChange={(e) => update({ phoneOverride: e.target.value })}
+            placeholder="Téléphone du destinataire"
+          />
+        </div>
+      )}
+
+      <textarea
+        value={value.deliveryNote}
+        onChange={(e) => update({ deliveryNote: e.target.value })}
+        placeholder="Note livreur (étage, code, repère…)"
+        className="border-border bg-surface min-h-[52px] w-full rounded-[10px] border px-3 py-2 text-sm"
+        maxLength={300}
+      />
     </div>
   );
 }

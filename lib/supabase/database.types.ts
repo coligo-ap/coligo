@@ -234,6 +234,7 @@ export type Database = {
           delivery_lat: number | null;
           delivery_lng: number | null;
           delivery_phone: string | null;
+          delivery_recipient_name: string | null;
           delivery_distance_km: number | null;
           delivery_driver_id: string | null;
           delivery_picked_up_at: string | null;
@@ -285,6 +286,7 @@ export type Database = {
           delivery_lat?: number | null;
           delivery_lng?: number | null;
           delivery_phone?: string | null;
+          delivery_recipient_name?: string | null;
           delivery_distance_km?: number | null;
           delivery_driver_id?: string | null;
           delivery_picked_up_at?: string | null;
@@ -336,6 +338,7 @@ export type Database = {
           delivery_lat?: number | null;
           delivery_lng?: number | null;
           delivery_phone?: string | null;
+          delivery_recipient_name?: string | null;
           delivery_distance_km?: number | null;
           delivery_driver_id?: string | null;
           delivery_picked_up_at?: string | null;

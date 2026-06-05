@@ -2,10 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Check, Crosshair, Loader2, MapPin, Maximize2 } from "lucide-react";
+import {
+  Check,
+  Crosshair,
+  Loader2,
+  MapPin,
+  Maximize2,
+  Search,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPosition } from "@/lib/native/geolocation";
 import { toast } from "@/components/ui/toast";
+import { geocodeSearch } from "@/app/(customer)/actions";
 
 /**
  * Sélecteur de position sur carte — réutilisable client + commerçant.
@@ -57,6 +66,16 @@ export type MapPositionPickerProps = {
    * `null`/undefined = aucun recentrage.
    */
   focusTarget?: (LatLng & { zoom?: number }) | null;
+  /**
+   * Confirmation EXPLICITE depuis le plein écran (« Confirmer ma position »).
+   * Si fourni, le bouton appelle ceci au lieu de onChange → le parent peut
+   * marquer la position comme confirmée sans case à cocher redondante.
+   */
+  onConfirm?: (pos: LatLng) => void;
+  /** Affiche une barre de recherche d'adresse (forward geocoding). */
+  searchEnabled?: boolean;
+  /** Statut de la géoloc auto : true = obtenue, false = refusée/indispo. */
+  onLocate?: (ok: boolean) => void;
 };
 
 export function MapPositionPicker({
@@ -67,6 +86,9 @@ export function MapPositionPicker({
   gpsLabel = "Ma position",
   autoLocate = false,
   focusTarget = null,
+  onConfirm,
+  searchEnabled = false,
+  onLocate,
 }: MapPositionPickerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
@@ -86,6 +108,22 @@ export function MapPositionPicker({
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+  const onConfirmRef = useRef(onConfirm);
+  useEffect(() => {
+    onConfirmRef.current = onConfirm;
+  }, [onConfirm]);
+  const onLocateRef = useRef(onLocate);
+  useEffect(() => {
+    onLocateRef.current = onLocate;
+  }, [onLocate]);
+
+  // Barre de recherche d'adresse (forward geocoding).
+  const [searchQ, setSearchQ] = useState("");
+  const [searchResults, setSearchResults] = useState<
+    { display: string; lat: number; lng: number }[]
+  >([]);
+  const [searching, setSearching] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const start = initial ?? defaultCenter ?? DEFAULT_CENTER;
 
@@ -232,9 +270,11 @@ export function MapPositionPicker({
                         });
                     }, 800)
                   );
+                  onLocateRef.current?.(true);
                 })
                 .catch(() => {
                   /* GPS indispo/refusé : on reste sur le centre par défaut */
+                  onLocateRef.current?.(false);
                 })
                 .finally(() => {
                   if (!disposed) setLoading(false);
@@ -318,13 +358,54 @@ export function MapPositionPicker({
     const map = mapRef.current;
     if (map) {
       const c = map.getCenter();
-      onChangeRef.current({ lat: c.lat, lng: c.lng });
+      // Confirmation EXPLICITE : le parent marque la position comme confirmée
+      // (plus de case « Je confirme » redondante). Fallback sur onChange.
+      if (onConfirmRef.current)
+        onConfirmRef.current({ lat: c.lat, lng: c.lng });
+      else onChangeRef.current({ lat: c.lat, lng: c.lng });
     }
     setConfirming(true);
     window.setTimeout(() => {
       setConfirming(false);
       setFullscreen(false);
     }, 650);
+  };
+
+  // Recherche d'adresse : debounce 450 ms.
+  useEffect(() => {
+    if (!searchEnabled) return;
+    const q = searchQ.trim();
+    if (q.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await geocodeSearch({ q });
+        if (res.ok) {
+          setSearchResults(res.results);
+          setSearchOpen(true);
+        }
+      } finally {
+        setSearching(false);
+      }
+    }, 450);
+    return () => clearTimeout(t);
+  }, [searchQ, searchEnabled]);
+
+  const flyToResult = (r: { lat: number; lng: number }) => {
+    setSearchOpen(false);
+    const map = mapRef.current;
+    if (map) {
+      map.flyTo({ center: [r.lng, r.lat], zoom: 17, duration: 700 });
+      window.setTimeout(
+        () => onChangeRef.current({ lat: r.lat, lng: r.lng }),
+        800
+      );
+    } else {
+      onChangeRef.current({ lat: r.lat, lng: r.lng });
+    }
   };
 
   const useGps = async () => {
@@ -380,6 +461,59 @@ export function MapPositionPicker({
         style={{ touchAction: "none" }}
       />
 
+      {/* Barre de recherche d'adresse (forward geocoding) — au-dessus de tout. */}
+      {searchEnabled && mapReady && (
+        <div
+          className={cn(
+            "absolute right-2 left-2 z-30",
+            fullscreen ? "top-[max(12px,env(safe-area-inset-top))]" : "top-2"
+          )}
+        >
+          <div className="bg-surface border-border flex items-center gap-2 rounded-full border px-3 py-2 shadow-lg">
+            <Search className="text-subtle size-4 shrink-0" />
+            <input
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              onFocus={() => searchResults.length && setSearchOpen(true)}
+              placeholder="Rechercher une adresse, un lieu…"
+              className="placeholder:text-subtle min-w-0 flex-1 bg-transparent text-sm outline-none"
+            />
+            {searching ? (
+              <Loader2 className="text-subtle size-4 shrink-0 animate-spin" />
+            ) : searchQ ? (
+              <button
+                type="button"
+                aria-label="Effacer"
+                onClick={() => {
+                  setSearchQ("");
+                  setSearchResults([]);
+                  setSearchOpen(false);
+                }}
+                className="text-subtle hover:text-foreground shrink-0"
+              >
+                <X className="size-4" />
+              </button>
+            ) : null}
+          </div>
+          {searchOpen && searchResults.length > 0 && (
+            <ul className="bg-surface border-border mt-1.5 max-h-64 overflow-auto rounded-[14px] border py-1 shadow-xl">
+              {searchResults.map((r, i) => (
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() => flyToResult(r)}
+                    className="hover:bg-surface-2 flex w-full items-start gap-2 px-3 py-2 text-left text-[13px]"
+                  >
+                    <MapPin className="text-primary-600 mt-0.5 size-4 shrink-0" />
+                    <span className="min-w-0 flex-1">{r.display}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       {/* État de chargement / erreur — pointer-events-none CRITIQUE :
           sans ça l'overlay bloque tous les drags / clics sur la carte si
           mapReady ne devient pas true assez vite. */}
@@ -406,8 +540,9 @@ export function MapPositionPicker({
         </div>
       )}
 
-      {/* Indice d'usage — discret en haut, disparait après interaction. */}
-      {mapReady && (
+      {/* Indice d'usage — discret en haut, masqué si la barre de recherche
+          occupe déjà le haut. */}
+      {mapReady && !searchEnabled && (
         <div className="bg-foreground/75 pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-full px-2.5 py-1 text-[10px] font-medium text-white">
           Tape ou glisse pour ajuster
         </div>

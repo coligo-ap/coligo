@@ -41,7 +41,7 @@ export default async function OrderDetailPage({
          pickup_code, order_number, pickup_slot_at, notes, created_at,
          payment_method, payment_status,
          fulfillment_type, delivery_mode, delivery_fee_da,
-         delivery_address_text, delivery_phone, delivery_note, delivery_distance_km,
+         delivery_address_text, delivery_phone, delivery_recipient_name, delivery_note, delivery_distance_km,
          delivery_picked_up_at,
          order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`
       )
@@ -67,6 +67,7 @@ export default async function OrderDetailPage({
     delivery_fee_da: number;
     delivery_address_text: string | null;
     delivery_phone: string | null;
+    delivery_recipient_name: string | null;
     delivery_distance_km: number | null;
     delivery_picked_up_at: string | null;
   };
@@ -277,6 +278,12 @@ export default async function OrderDetailPage({
                 Mode : {o.delivery_mode === "express" ? "Express" : "Tournée"} ·
                 Frais : {o.delivery_fee_da ?? 0} DA
               </p>
+              {o.delivery_recipient_name && (
+                <p className="mt-1 text-sm font-semibold">
+                  Destinataire : {o.delivery_recipient_name}
+                  {o.delivery_phone ? ` · ${o.delivery_phone}` : ""}
+                </p>
+              )}
               {o.delivery_address_text && (
                 <p className="text-muted mt-1 text-xs">
                   {o.delivery_address_text}

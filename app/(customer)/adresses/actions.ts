@@ -75,6 +75,38 @@ export async function addAddress(
   return { ok: true };
 }
 
+/**
+ * Enregistre une adresse depuis le checkout (appel JSON direct, pas un form).
+ * La position vient de la carte plein écran + recherche. Best-effort.
+ */
+export async function saveCustomerAddress(input: {
+  label: string;
+  lat: number;
+  lng: number;
+  address_text?: string | null;
+}): Promise<AddressActionState> {
+  const label = (input.label ?? "").trim();
+  if (!label) return { error: "Donne un nom à l'adresse." };
+  if (!Number.isFinite(input.lat) || !Number.isFinite(input.lng)) {
+    return { error: "Position invalide." };
+  }
+  const c = await requireCustomer();
+  if ("error" in c) return c;
+  const supabase = await createClient();
+  const { error } = await supabase.from("customer_addresses").insert({
+    customer_id: c.id,
+    label: label.slice(0, 60),
+    lat: input.lat,
+    lng: input.lng,
+    address_text: (input.address_text ?? "").slice(0, 200) || null,
+    is_default: false,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/adresses");
+  revalidatePath("/checkout");
+  return { ok: true };
+}
+
 export async function setDefaultAddress(
   id: string
 ): Promise<AddressActionState> {
