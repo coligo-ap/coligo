@@ -6,6 +6,7 @@ import { LocateFixed } from "lucide-react";
 import { haversineKm } from "@/lib/delivery/distance";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { useRoute } from "@/lib/delivery/use-route";
+import { MAP_STYLE_URL } from "@/lib/config/map";
 
 /**
  * Carte PLEIN ÉCRAN de la course en cours (écran 3, style Uber Eats Driver).
@@ -21,14 +22,6 @@ import { useRoute } from "@/lib/delivery/use-route";
  */
 
 type LatLng = { lat: number; lng: number };
-
-function buildStyle() {
-  const key = process.env.NEXT_PUBLIC_MAPTILER_KEY;
-  if (key) {
-    return `https://api.maptiler.com/maps/streets-v2-light/style.json?key=${key}`;
-  }
-  return "https://tiles.openfreemap.org/styles/positron";
-}
 
 export function ExpressRunMap({
   target,
@@ -59,7 +52,7 @@ export function ExpressRunMap({
       if (disposed || !containerRef.current) return;
       const map = new Map({
         container: containerRef.current,
-        style: buildStyle() as never,
+        style: MAP_STYLE_URL as never,
         center: [target.lng, target.lat],
         zoom: 14,
         attributionControl: { compact: true },

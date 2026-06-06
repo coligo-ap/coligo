@@ -9,14 +9,13 @@ import { Label } from "@/components/ui/label";
 import { getPosition } from "@/lib/native/geolocation";
 import { toast } from "@/components/ui/toast";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
+import { MAP_STYLE_URL } from "@/lib/config/map";
 
 /**
  * Sélecteur de position sur carte (MapLibre).
  *
- * Source de tuiles :
- *  - Si `NEXT_PUBLIC_MAPTILER_KEY` est défini → MapTiler "streets" (recommandé).
- *  - Sinon → tuiles OpenStreetMap raster (libres, attribution requise,
- *    pas de clé). Adapté au MVP.
+ * Source de tuiles : OpenFreeMap (gratuit, vectoriel, sans clé) — cf.
+ * lib/config/map.ts.
  *
  * UX : le marqueur reste au CENTRE du viewport ; le client déplace la carte
  * pour positionner. Bouton « Ma position GPS » qui recentre.
@@ -33,15 +32,6 @@ export type AddressPickerProps = {
 };
 
 const DEFAULT_CENTER: LatLng = { lat: 36.7538, lng: 3.0588 }; // Alger
-
-function buildStyle() {
-  const key = process.env.NEXT_PUBLIC_MAPTILER_KEY;
-  if (key) {
-    return `https://api.maptiler.com/maps/streets/style.json?key=${key}`;
-  }
-  // OpenFreeMap (gratuit, vectoriel, sans clé). Plus rapide qu'OSM raster.
-  return "https://tiles.openfreemap.org/styles/liberty";
-}
 
 export function AddressPicker({
   initial,
@@ -65,7 +55,7 @@ export function AddressPicker({
 
       const map = new Map({
         container: containerRef.current,
-        style: buildStyle() as never,
+        style: MAP_STYLE_URL as never,
         center: [start.lng, start.lat],
         zoom: 14,
         attributionControl: { compact: true },

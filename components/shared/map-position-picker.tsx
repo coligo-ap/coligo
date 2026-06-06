@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { getPosition } from "@/lib/native/geolocation";
 import { toast } from "@/components/ui/toast";
 import { geocodeSearch } from "@/app/(customer)/actions";
+import { MAP_STYLE_URL } from "@/lib/config/map";
 
 /**
  * Sélecteur de position sur carte — réutilisable client + commerçant.
@@ -24,21 +25,12 @@ import { geocodeSearch } from "@/app/(customer)/actions";
  * veut (la carte recentre dessus avec animation). Bouton « Ma position GPS »
  * pour recentrer rapidement sur sa position réelle.
  *
- * Source tuiles : MapTiler si NEXT_PUBLIC_MAPTILER_KEY défini, sinon
- * OpenFreeMap (fallback gratuit sans clé).
+ * Source tuiles : OpenFreeMap (gratuit, sans clé). Cf. lib/config/map.ts.
  */
 
 type LatLng = { lat: number; lng: number };
 
 const DEFAULT_CENTER: LatLng = { lat: 36.7538, lng: 3.0588 }; // Alger
-
-function buildStyle() {
-  const key = process.env.NEXT_PUBLIC_MAPTILER_KEY;
-  if (key) {
-    return `https://api.maptiler.com/maps/streets/style.json?key=${key}`;
-  }
-  return "https://tiles.openfreemap.org/styles/liberty";
-}
 
 export type MapPositionPickerProps = {
   initial?: LatLng | null;
@@ -146,8 +138,6 @@ export function MapPositionPicker({
       return;
     }
 
-    let triedFallback = false;
-
     const init = (styleUrl: string) => {
       if (disposed || !containerRef.current) return;
 
@@ -190,26 +180,9 @@ export function MapPositionPicker({
           // Gestion d'erreur. IMPORTANT : on NE détruit PAS la carte sur une
           // simple erreur de tuile/sprite/glyphe — sinon une carte
           // parfaitement fonctionnelle est rasée pour un POI manquant. On ne
-          // bascule sur le fallback OpenFreeMap QUE si le style lui-même n'a
-          // jamais réussi à charger (échec réseau/clé sur MapTiler).
+          // signale une erreur que si le style lui-même n'a jamais chargé.
           map.on("error", (e) => {
             const msg = e?.error?.message ?? "Erreur carte inconnue";
-            const styleFailed = !styleArrived;
-            if (
-              styleFailed &&
-              !triedFallback &&
-              styleUrl.includes("maptiler.com")
-            ) {
-              triedFallback = true;
-              try {
-                map.remove();
-              } catch {}
-              mapRef.current = null;
-              init("https://tiles.openfreemap.org/styles/liberty");
-              return;
-            }
-            // Erreur non fatale (tuile/glyphe) une fois le style chargé : on
-            // log seulement, la carte reste utilisable.
             if (!styleArrived) setMapError("Erreur carte : " + msg);
           });
 
@@ -309,7 +282,7 @@ export function MapPositionPicker({
         });
     };
 
-    init(buildStyle());
+    init(MAP_STYLE_URL);
 
     return () => {
       disposed = true;

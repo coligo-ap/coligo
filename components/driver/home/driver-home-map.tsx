@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { LocateFixed } from "lucide-react";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
+import { MAP_STYLE_URL } from "@/lib/config/map";
 
 /**
  * Carte plein écran de l'accueil livreur (style Uber Eats Driver). Centrée sur
@@ -14,14 +15,6 @@ import { useDriverPosition } from "@/lib/native/use-driver-position";
  */
 
 type MerchantPin = { id: string; name: string; lat: number; lng: number };
-
-function buildStyle() {
-  const key = process.env.NEXT_PUBLIC_MAPTILER_KEY;
-  if (key) {
-    return `https://api.maptiler.com/maps/streets-v2-light/style.json?key=${key}`;
-  }
-  return "https://tiles.openfreemap.org/styles/positron";
-}
 
 export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -42,7 +35,7 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
       if (disposed || !containerRef.current) return;
       const map = new Map({
         container: containerRef.current,
-        style: buildStyle() as never,
+        style: MAP_STYLE_URL as never,
         center: fallback,
         zoom: 13,
         attributionControl: { compact: true },

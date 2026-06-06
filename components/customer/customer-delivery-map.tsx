@@ -7,6 +7,7 @@ import { Loader2, Phone } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { haversineKm } from "@/lib/delivery/distance";
 import { useRoute } from "@/lib/delivery/use-route";
+import { MAP_STYLE_URL } from "@/lib/config/map";
 
 /**
  * Mini-carte de suivi LIVE côté CLIENT (refonte « suivi v2 », façon Uber) :
@@ -25,12 +26,6 @@ type LatLng = { lat: number; lng: number };
 
 // Seuil « arrive bientôt / à ta porte » (km).
 const NEAR_KM = 0.3;
-
-function buildStyle() {
-  const key = process.env.NEXT_PUBLIC_MAPTILER_KEY;
-  if (key) return `https://api.maptiler.com/maps/streets/style.json?key=${key}`;
-  return "https://tiles.openfreemap.org/styles/liberty";
-}
 
 export function CustomerDeliveryMap({
   orderId,
@@ -133,7 +128,7 @@ export function CustomerDeliveryMap({
         try {
           map = new Map({
             container: containerRef.current,
-            style: buildStyle() as never,
+            style: MAP_STYLE_URL as never,
             center: [destination.lng, destination.lat],
             zoom: 14,
             attributionControl: { compact: true },

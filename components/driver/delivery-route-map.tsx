@@ -6,6 +6,7 @@ import { Clock, ExternalLink, MapPin } from "lucide-react";
 import { haversineKm } from "@/lib/delivery/distance";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { useRoute } from "@/lib/delivery/use-route";
+import { MAP_STYLE_URL } from "@/lib/config/map";
 
 /**
  * Carte montrant la position du livreur (live via watchPosition) et la cible
@@ -18,14 +19,6 @@ import { useRoute } from "@/lib/delivery/use-route";
  */
 
 type LatLng = { lat: number; lng: number };
-
-function buildStyle() {
-  const key = process.env.NEXT_PUBLIC_MAPTILER_KEY;
-  if (key) {
-    return `https://api.maptiler.com/maps/streets/style.json?key=${key}`;
-  }
-  return "https://tiles.openfreemap.org/styles/liberty";
-}
 
 export function DeliveryRouteMap({
   target,
@@ -59,7 +52,7 @@ export function DeliveryRouteMap({
 
         const map = new Map({
           container: containerRef.current,
-          style: buildStyle() as never,
+          style: MAP_STYLE_URL as never,
           center: [target.lng, target.lat],
           zoom: 14,
           attributionControl: { compact: true },
