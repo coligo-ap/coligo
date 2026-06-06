@@ -84,7 +84,9 @@ export default async function MerchantPublicPage({
   }
 
   return (
-    <CustomerShell>
+    // hideHeader : la fiche porte sa propre topbar fixe (← retour · ♡ · panier)
+    // posée sur le hero immersif, donc on masque le header global du shell.
+    <CustomerShell hideHeader>
       <div className="mx-auto max-w-[1100px] px-4 pt-4 pb-4 lg:px-6 lg:pt-6 lg:pb-8">
         {/* En-tête compact style Uber Eats : cover plate + 2 boutons ronds
             par-dessus + bande d'infos compacte sous la cover (3 lignes max).

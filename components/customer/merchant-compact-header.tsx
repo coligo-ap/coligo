@@ -1,9 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, ChevronDown, ChevronUp, Clock, MapPin } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  MapPin,
+  ShoppingCart,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
@@ -12,24 +19,28 @@ import { getTagLabel } from "@/lib/config/merchant-tags";
 import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badge";
 import { MerchantReviewsDialog } from "@/components/customer/merchant-reviews-dialog";
 import { FavoriteHeart } from "@/components/customer/favorite-heart";
+import { totalUnits, useCart } from "@/lib/customer/cart-store";
 import { DAY_KEYS, DAY_LABELS, type OpeningHours } from "@/lib/types";
 import { formatDA } from "@/lib/utils";
 import type { ReviewWithCustomer } from "@/lib/data/reviews";
 
 // =============================================================================
-// MerchantCompactHeader — en-tête fiche commerçant, style Uber Eats / Glovo.
+// MerchantCompactHeader — en-tête fiche commerçant, refonte « ULTRA » immersive.
 // =============================================================================
-// Objectif : voir les produits vite + densité maximale d'infos utiles.
+//   ┌───────────────────────────────────────────────┐
+//   │  topbar fixe (← retour · ♡ · 🛒) translucide    │  ← devient verre dépoli
+//   │  ┌─────────────────────────────────────────┐   │     + nom au scroll
+//   │  │   COVER plein-cadre · dégradé sombre haut │   │
+//   │  │   Nom de la boutique (posé sur la photo)  │   │
+//   │  └─────────────────────────────────────────┘   │
+//   └───────────────────────────────────────────────┘
+//   [logo]   ●Ouvert   ★4.5 (28)            ← chevauche le bas du hero
+//   Type · Commune, Wilaya                  ← zone blanche
+//   ⏱ ~15 min · Min 500 DA · 📍Retrait gratuit · Horaires⌄
+//   [ tags · description repliable · horaires repliables ]
 //
-//   ┌─────────────────────────────────────────┐
-//   │ ←   [ COVER rectangulaire plein-cadre ] ♡│  ← bords droits, plein-cadre
-//   └─────────────────────────────────────────┘
-//   [logo]  Nom du commerce
-//           Catégorie · ★4.5 (28) · ●Ouvert · 📍Commune · ~15 min · Min 500 DA · Horaires⌄
-//   [   description repliable · horaires repliables   ]
-//
-// Toutes les infos secondaires sont sur UNE ligne meta qui s'enroule, pour
-// gagner de la hauteur. Favori persisté en DB via <FavoriteHeart>.
+// Le hero plonge sous l'encoche (env(safe-area-inset-top)) ; le dégradé sombre
+// du haut garantit la lisibilité de la barre système et des boutons.
 // =============================================================================
 
 type Props = {
@@ -78,52 +89,47 @@ export function MerchantCompactHeader({
   const locale = useLocale();
   const [showHours, setShowHours] = useState(false);
   const [expandDesc, setExpandDesc] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const cart = useCart();
+  const cartCount = totalUnits(cart);
+
+  // Topbar : transparente sur la photo, puis verre dépoli + nom dès qu'on
+  // dépasse le hero (≈150 px). On écoute le scroll de la fenêtre.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 140);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const heroSrc = cover_url ?? categoryImageFor(category) ?? null;
   const heroOptimized = heroSrc
     ? (cldUrl(heroSrc, {
         width: 1200,
-        height: 360,
+        height: 480,
         crop: "fill",
         gravity: "auto",
       }) ?? heroSrc)
     : null;
   const logoOptimized = cldUrl(logo_url, {
-    width: 128,
-    height: 128,
+    width: 144,
+    height: 144,
     crop: "fill",
     gravity: "auto",
   });
   const categoryLabel = category ? getCategoryLabel(category, locale) : null;
   const hasDescription = Boolean(description_fr || description_ar);
-  const addressLine = [commune, wilaya_name].filter(Boolean).join(" · ");
+  const addressLine = [commune, wilaya_name].filter(Boolean).join(", ");
+  const typeline = [categoryLabel, addressLine].filter(Boolean);
 
-  // Ligne meta unique : on assemble les items présents puis on les sépare par
-  // des points médians (catégorie + avis côte à côte, puis logistique).
+  // Ligne logistique compacte (sous l'identité) : délai · minimum · retrait
+  // gratuit · horaires. La catégorie et le lieu remontent dans la "typeline".
   const meta: React.ReactNode[] = [];
-  if (categoryLabel) meta.push(<span key="cat">{categoryLabel}</span>);
-  if (rating_count > 0)
-    meta.push(
-      <MerchantReviewsDialog
-        key="rev"
-        ratingAvg={rating_avg}
-        ratingCount={rating_count}
-        reviews={reviews}
-      />
-    );
-  meta.push(<OpenStatusBadge key="open" hours={opening_hours} />);
-  if (addressLine)
-    meta.push(
-      <span key="addr" className="inline-flex items-center gap-1">
-        <MapPin className="text-primary-600 size-3" />
-        <span className="text-foreground">{addressLine}</span>
-      </span>
-    );
   if (prep_time_min > 0)
     meta.push(
       <span key="prep" className="inline-flex items-center gap-1">
-        <Clock className="text-primary-600 size-3" />
-        <span className="text-foreground">
+        <Clock className="text-primary-600 size-3.5" />
+        <span className="text-foreground font-bold">
           ~{t("prepMinutes", { count: prep_time_min })}
         </span>
       </span>
@@ -135,27 +141,74 @@ export function MerchantCompactHeader({
       </span>
     );
   meta.push(
-    <button
-      key="hours"
-      type="button"
-      onClick={() => setShowHours((v) => !v)}
-      aria-expanded={showHours}
-      className="text-primary-700 inline-flex items-center gap-0.5 font-semibold hover:underline"
+    <span
+      key="pickup"
+      className="text-success-700 inline-flex items-center gap-1"
     >
-      {t("hours")}
-      {showHours ? (
-        <ChevronUp className="size-3" />
-      ) : (
-        <ChevronDown className="size-3" />
-      )}
-    </button>
+      <MapPin className="size-3.5" />
+      <span className="font-bold">{t("freePickup")}</span>
+    </span>
+  );
+
+  // Bouton "verre" de la topbar : translucide sur la photo, plein au scroll.
+  const rb = cn(
+    "relative grid size-9 place-items-center rounded-full backdrop-blur transition-colors active:scale-90",
+    scrolled
+      ? "bg-surface-2 text-foreground hover:bg-surface-3"
+      : "bg-white/15 text-white ring-1 ring-white/25 hover:bg-white/25"
   );
 
   return (
     <div>
-      {/* ───── COVER plein-cadre rectangulaire (bords droits), à ras du haut.
-              `-mx`/`-mt` annulent le padding de la page pour un rendu edge-to-edge. */}
-      <div className="bg-surface-3 relative -mx-4 -mt-4 h-[160px] w-[calc(100%+2rem)] lg:-mx-6 lg:-mt-6 lg:h-[240px] lg:w-[calc(100%+3rem)]">
+      {/* ───── TOPBAR FIXE — toujours présente pour revenir / voir le panier.
+              Translucide sur la photo, puis verre dépoli + nom au scroll. ───── */}
+      <div
+        className={cn(
+          "fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)] transition-[background-color,box-shadow]",
+          scrolled
+            ? "border-border border-b bg-white/85 shadow-sm backdrop-blur-xl"
+            : "bg-transparent"
+        )}
+      >
+        <div className="mx-auto flex h-14 max-w-[1100px] items-center gap-2 px-3 lg:px-4">
+          <Link href="/" aria-label={t("back")} className={rb}>
+            <ArrowLeft className="size-[18px] rtl:-scale-x-100" />
+          </Link>
+          <h2
+            className={cn(
+              "text-foreground min-w-0 flex-1 truncate text-base font-extrabold transition-opacity",
+              scrolled ? "opacity-100" : "opacity-0"
+            )}
+          >
+            {name}
+          </h2>
+          <FavoriteHeart
+            merchantId={merchantId}
+            initialFavorite={initialFavorite}
+            isAuth={isAuth}
+            variant={scrolled ? "card" : "hero"}
+            className={cn(
+              "size-9 shrink-0",
+              scrolled && "bg-surface-2 shadow-none"
+            )}
+          />
+          <Link
+            href="/cart"
+            aria-label={t("viewMyCart")}
+            className={cn(rb, "shrink-0")}
+          >
+            <ShoppingCart className="size-[18px]" />
+            {cartCount > 0 && (
+              <span className="bg-success-600 absolute -end-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full border-2 border-white px-0.5 text-[9px] font-extrabold text-white">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+        </div>
+      </div>
+
+      {/* ───── HERO immersif plein-cadre (plonge sous l'encoche). ───── */}
+      <div className="bg-surface-3 relative -mx-4 -mt-4 h-[228px] w-[calc(100%+2rem)] overflow-hidden lg:-mx-6 lg:-mt-6 lg:h-[300px] lg:w-[calc(100%+3rem)]">
         {heroOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -164,35 +217,32 @@ export function MerchantCompactHeader({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="from-primary-500/20 to-primary-700/30 flex h-full w-full items-center justify-center bg-gradient-to-br">
-            <span className="text-primary-700/70 text-5xl font-bold">
+          <div className="from-primary-500/25 to-primary-700/35 flex h-full w-full items-center justify-center bg-gradient-to-br">
+            <span className="text-primary-700/70 text-6xl font-bold">
               {name.charAt(0)}
             </span>
           </div>
         )}
-        {/* Dégradé bas pour la lisibilité des boutons et du logo. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/25 to-transparent" />
-
-        {/* Retour (haut-début) — flèche miroir en RTL. */}
-        <Link
-          href="/"
-          aria-label={t("back")}
-          className="text-foreground absolute start-3 top-3 z-10 inline-flex size-9 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur transition-colors hover:bg-white"
-        >
-          <ArrowLeft className="size-4 rtl:-scale-x-100" />
-        </Link>
-
-        {/* Favori (haut-fin) — persisté en DB. */}
-        <FavoriteHeart
-          merchantId={merchantId}
-          initialFavorite={initialFavorite}
-          isAuth={isAuth}
-          className="absolute end-3 top-3 z-10 size-9 bg-white/90"
+        {/* Dégradé riche : sombre en haut (barre système + topbar), bande
+            sombre en bas pour le nom, puis fondu vers le fond clair de la page. */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(8,8,18,.58) 0%, rgba(8,8,18,.12) 20%, transparent 44%, rgba(8,8,18,.30) 70%, rgba(8,8,18,.20) 88%, #f7f7fb 100%)",
+          }}
         />
+        {/* Nom posé sur la photo (au-dessus de la zone que le logo chevauche). */}
+        <h1
+          className="absolute inset-x-4 bottom-11 z-[1] line-clamp-2 text-[22px] leading-tight font-black tracking-tight text-white lg:bottom-14 lg:text-3xl"
+          style={{ textShadow: "0 2px 12px rgba(0,0,0,.45)" }}
+        >
+          {name}
+        </h1>
       </div>
 
-      {/* ───── Rangée identité : logo (chevauche la cover) + nom. ───── */}
-      <div className="relative z-10 -mt-9 flex items-end gap-3 lg:-mt-11">
+      {/* ───── Identité : logo (chevauche le hero) + badges Ouvert / note. ───── */}
+      <div className="relative z-[1] -mt-9 flex items-end gap-3 lg:-mt-11">
         {logoOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -200,32 +250,69 @@ export function MerchantCompactHeader({
             alt=""
             loading="eager"
             decoding="async"
-            className="size-[72px] shrink-0 rounded-2xl border-[3px] border-white bg-white object-cover shadow-lg lg:size-20"
+            className="size-[72px] shrink-0 rounded-[20px] border-[3px] border-white bg-white object-cover shadow-xl lg:size-20"
           />
         ) : (
-          <div className="bg-primary-100 text-primary-700 flex size-[72px] shrink-0 items-center justify-center rounded-2xl border-[3px] border-white text-xl font-bold shadow-lg lg:size-20">
+          <div className="bg-primary-100 text-primary-700 flex size-[72px] shrink-0 items-center justify-center rounded-[20px] border-[3px] border-white text-2xl font-bold shadow-xl lg:size-20">
             {name.charAt(0)}
           </div>
         )}
-        <h1 className="font-display text-foreground line-clamp-2 flex-1 pb-1 text-xl leading-tight font-bold lg:text-2xl">
-          {name}
-        </h1>
+        <div className="flex flex-1 flex-wrap items-center gap-2 pb-1.5">
+          <OpenStatusBadge hours={opening_hours} />
+          {rating_count > 0 && (
+            <MerchantReviewsDialog
+              ratingAvg={rating_avg}
+              ratingCount={rating_count}
+              reviews={reviews}
+            />
+          )}
+        </div>
       </div>
 
-      {/* ───── Ligne meta unique (catégorie · avis · ouvert · commune · délai ·
-              minimum · horaires) — s'enroule pour gagner de la hauteur. ───── */}
-      <div className="text-muted mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+      {/* ───── Type de commerce + lieu (zone blanche, jamais sur la photo). ───── */}
+      {typeline.length > 0 && (
+        <p className="text-muted mt-3 text-[13px] font-semibold">
+          {typeline.map((item, i) => (
+            <Fragment key={i}>
+              {i > 0 && <span aria-hidden> · </span>}
+              <span className={i === 0 ? "text-foreground font-extrabold" : ""}>
+                {item}
+              </span>
+            </Fragment>
+          ))}
+        </p>
+      )}
+
+      {/* ───── Ligne logistique (délai · minimum · retrait gratuit · horaires). ───── */}
+      <div className="text-foreground mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold">
         {meta.map((item, i) => (
           <Fragment key={i}>
-            {i > 0 && <span aria-hidden>·</span>}
+            {i > 0 && (
+              <span aria-hidden className="text-subtle">
+                ·
+              </span>
+            )}
             {item}
           </Fragment>
         ))}
+        <button
+          type="button"
+          onClick={() => setShowHours((v) => !v)}
+          aria-expanded={showHours}
+          className="text-primary-700 ms-auto inline-flex items-center gap-0.5 font-bold hover:underline"
+        >
+          {t("hours")}
+          {showHours ? (
+            <ChevronUp className="size-3.5" />
+          ) : (
+            <ChevronDown className="size-3.5" />
+          )}
+        </button>
       </div>
 
       {/* Pilules de spécialités (tags) — situent l'offre d'un coup d'œil. */}
       {tags.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
           {tags.slice(0, 8).map((code) => (
             <span
               key={code}
@@ -239,7 +326,7 @@ export function MerchantCompactHeader({
 
       {/* Description repliable (1 ligne par défaut). */}
       {hasDescription && (
-        <div className="mt-2">
+        <div className="mt-2.5">
           {description_fr && (
             <p
               className={cn(
@@ -269,7 +356,7 @@ export function MerchantCompactHeader({
 
       {/* Horaires détaillés repliables (fermés par défaut). */}
       {showHours && (
-        <ul className="border-border bg-surface-2 mt-2 grid gap-1 rounded-[10px] border p-3 sm:grid-cols-2">
+        <ul className="border-border bg-surface-2 mt-3 grid gap-1 rounded-[12px] border p-3 sm:grid-cols-2">
           {DAY_KEYS.map((d) => {
             const slots = opening_hours[d] ?? [];
             return (

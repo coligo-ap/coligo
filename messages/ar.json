@@ -24,6 +24,8 @@
   },
   "merchant": {
     "promoBanner": "تخفيضات سارية اليوم على مجموعة مختارة من المنتجات.",
+    "popular": "الأكثر طلبًا",
+    "productCount": "{count, plural, one {# منتج} other {# منتجات}}",
     "merchantPhotoAlt": "صورة المتجر {name}",
     "back": "رجوع",
     "seeMore": "عرض المزيد",

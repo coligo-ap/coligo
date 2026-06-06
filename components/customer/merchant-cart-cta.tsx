@@ -48,21 +48,28 @@ export function MerchantCartCta({ merchantId }: { merchantId: string }) {
           href="/cart"
           onClick={() => setActiveMerchant(merchantId)}
           className={cn(
-            "bg-primary-600 hover:bg-primary-700 flex items-center justify-between gap-3 rounded-[14px] px-4 py-3 text-white shadow-lg transition-transform",
-            pulse && "scale-[1.03]"
+            "bg-primary-600 hover:bg-primary-700 relative flex items-center gap-3 overflow-hidden rounded-[18px] py-2.5 ps-2.5 pe-3 text-white shadow-[0_20px_42px_-12px_rgba(92,92,224,0.55)] transition-transform",
+            pulse && "scale-[1.02]"
           )}
         >
+          {/* Reflet "shine" léger sur le haut de la barre. */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/15 to-transparent"
+          />
           <span
             className={cn(
-              "inline-flex items-center gap-2 rounded-full bg-white/15 px-2.5 py-1 text-sm font-semibold transition-transform",
+              "relative inline-flex h-10 items-center gap-2 rounded-[12px] bg-white/15 px-3 text-[15px] font-extrabold tabular-nums transition-transform",
               pulse && "bg-coral-500 scale-110"
             )}
           >
             <ShoppingBag className="size-4" />
             {count}
           </span>
-          <span className="text-sm font-semibold">{t("viewMyCart")}</span>
-          <span className="text-sm font-bold tabular-nums">
+          <span className="relative flex-1 text-center text-[15px] font-extrabold">
+            {t("viewMyCart")}
+          </span>
+          <span className="relative text-base font-black tracking-tight tabular-nums">
             {formatDA(subtotal)}
           </span>
         </Link>

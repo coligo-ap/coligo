@@ -6,6 +6,7 @@ import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProductDetailSheet } from "@/components/customer/product-detail-sheet";
 import { ProductRow } from "@/components/customer/product-row";
+import { PopularCarousel } from "@/components/customer/popular-carousel";
 import type {
   PublicCategory,
   PublicProduct,
@@ -108,6 +109,19 @@ export function MerchantCatalog({
 
     return Array.from(richByKey.values()).filter((g) => g.items.length > 0);
   }, [products, categories, merchant.id, t]);
+
+  // Sélection « Populaires » : on met en avant d'abord les produits en promo,
+  // puis les autres en stock — sans inventer de métrique de popularité. Limité
+  // à 10 cartes et affiché seulement si le catalogue est assez fourni.
+  const popular = useMemo(() => {
+    const available = products.filter(
+      (p) =>
+        p.is_available !== false && (p.stock_qty == null || p.stock_qty > 0)
+    );
+    const promo = available.filter((p) => promoPriceById[p.id] != null);
+    const rest = available.filter((p) => promoPriceById[p.id] == null);
+    return [...promo, ...rest].slice(0, 10);
+  }, [products, promoPriceById]);
 
   // Groupes filtrés par la recherche (sections vides masquées).
   const q = norm(query.trim());
@@ -246,9 +260,9 @@ export function MerchantCatalog({
           <div ref={stickySentinelRef} aria-hidden className="h-px w-full" />
           <div
             className={cn(
-              "sticky top-[57px] z-20 -mx-4 mb-4 transition-shadow lg:top-16 lg:-mx-6",
+              "sticky top-[calc(env(safe-area-inset-top)+56px)] z-20 -mx-4 mb-4 transition-shadow lg:-mx-6",
               stuck
-                ? "border-border border-b bg-white shadow-[0_2px_6px_rgba(0,0,0,0.04)]"
+                ? "border-border border-b bg-white/90 shadow-[0_2px_6px_rgba(0,0,0,0.04)] backdrop-blur-xl"
                 : "bg-surface-2"
             )}
           >
@@ -269,11 +283,11 @@ export function MerchantCatalog({
                       }}
                       onClick={() => scrollToGroup(g.key)}
                       className={cn(
-                        "inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pe-3 text-xs font-semibold whitespace-nowrap transition-colors active:scale-[0.96]",
-                        g.category?.image_url ? "ps-1" : "ps-3",
+                        "inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pe-3.5 text-[13px] font-bold whitespace-nowrap transition-colors active:scale-[0.96]",
+                        g.category?.image_url ? "ps-1.5" : "ps-3.5",
                         active
-                          ? "border-primary-600 bg-primary-600 text-white"
-                          : "border-border bg-surface text-foreground hover:border-primary-300"
+                          ? "border-primary-600 bg-primary-600 text-white shadow-[0_6px_16px_-4px_rgba(92,92,224,0.45)]"
+                          : "border-border bg-surface text-foreground hover:border-primary-300 shadow-[0_2px_6px_-3px_rgba(40,35,90,0.12)]"
                       )}
                     >
                       {g.category?.image_url && (
@@ -283,7 +297,7 @@ export function MerchantCatalog({
                           alt=""
                           loading="lazy"
                           decoding="async"
-                          className="size-6 shrink-0 rounded-full object-cover"
+                          className="size-7 shrink-0 rounded-full object-cover"
                         />
                       )}
                       {g.category?.title ?? t("otherCategory")}
@@ -294,6 +308,16 @@ export function MerchantCatalog({
             </div>
           </div>
         </>
+      )}
+
+      {/* POPULAIRES — carrousel horizontal (masqué pendant une recherche). */}
+      {!q && popular.length >= 4 && (
+        <PopularCarousel
+          merchant={merchant}
+          products={popular}
+          promoPriceById={promoPriceById}
+          onOpenDetail={(p) => setSelected(p)}
+        />
       )}
 
       {/* SECTIONS — toutes visibles (pas d'accordéon). Chacune a un petit
@@ -313,9 +337,9 @@ export function MerchantCatalog({
               if (el) sectionRefs.current.set(g.key, el);
               else sectionRefs.current.delete(g.key);
             }}
-            className="scroll-mt-[112px] lg:scroll-mt-[120px]"
+            className="scroll-mt-[calc(env(safe-area-inset-top)+118px)]"
           >
-            <h2 className="font-display text-foreground mb-2 flex items-center gap-2 px-1 text-lg font-bold">
+            <h2 className="font-display text-foreground mb-2.5 flex items-center gap-2.5 px-1 text-lg font-bold">
               {g.category?.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -323,10 +347,15 @@ export function MerchantCatalog({
                   alt=""
                   loading="lazy"
                   decoding="async"
-                  className="size-8 shrink-0 rounded-[8px] object-cover"
+                  className="size-8 shrink-0 rounded-[10px] object-cover shadow-[0_3px_8px_-3px_rgba(0,0,0,0.2)]"
                 />
               )}
-              {g.category?.title ?? t("otherCategory")}
+              <span className="truncate">
+                {g.category?.title ?? t("otherCategory")}
+              </span>
+              <span className="text-subtle ms-auto shrink-0 text-xs font-bold">
+                {t("productCount", { count: g.items.length })}
+              </span>
             </h2>
             <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[16px] border">
               {g.items.map((p) => (

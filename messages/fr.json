@@ -24,6 +24,8 @@
   },
   "merchant": {
     "promoBanner": "Promotions en cours sur une sélection de produits aujourd'hui.",
+    "popular": "Populaires",
+    "productCount": "{count, plural, one {# produit} other {# produits}}",
     "merchantPhotoAlt": "Photo du commerce {name}",
     "back": "Retour",
     "seeMore": "Voir plus",
