@@ -15,6 +15,10 @@ import {
   type PublicMerchant,
   type PromoLabel,
 } from "@/lib/data/merchants-public";
+import {
+  searchProductsInZone,
+  type ProductSearchOutcome,
+} from "@/lib/data/product-search";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { getCommunes } from "@/lib/config/communes";
 
@@ -191,6 +195,24 @@ export async function fetchPromoLabels(
 ): Promise<Record<string, PromoLabel>> {
   if (merchantIds.length === 0) return {};
   return getPromoLabelsByMerchant(merchantIds);
+}
+
+/**
+ * Recherche par PRODUIT (volet 2). Renvoie les commerçants de la zone qui ont
+ * le produit (ou un tag/catégorie/nom correspondant), groupés avec leurs
+ * produits trouvés. Le filtre dur (fermé/hors-zone) + le tri par pilule sont
+ * appliqués côté client à partir des champs commerçant complets.
+ */
+export async function searchProducts(input: {
+  q: string;
+  wilaya_code: string | null;
+  commune: string | null;
+}): Promise<ProductSearchOutcome> {
+  return searchProductsInZone({
+    q: input.q,
+    wilaya_code: input.wilaya_code,
+    commune: input.commune,
+  });
 }
 
 // =============================================================================

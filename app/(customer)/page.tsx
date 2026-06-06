@@ -15,7 +15,7 @@ import { HomeFilterPills } from "@/components/customer/home-filter-pills";
 import { LocationAutoDetect } from "@/components/customer/location-auto-detect";
 import { LocationBanner } from "@/components/customer/location-banner";
 import { MarketplaceSearchBar } from "@/components/customer/marketplace-search-bar";
-import { MarketplaceGrid } from "@/components/customer/marketplace-grid";
+import { MarketplaceSection } from "@/components/customer/marketplace-section";
 import { PromoBanner } from "@/components/customer/promo-banner";
 import { ReviewPrompt } from "@/components/customer/review-prompt";
 
@@ -119,7 +119,7 @@ export default async function CustomerHomePage() {
           {/* Commerces près de toi. */}
           <section className="mt-3 pb-8">
             <Suspense fallback={null}>
-              <MarketplaceGrid
+              <MarketplaceSection
                 fallback={rankedFallback}
                 promoIds={promoIds}
                 promoLabels={promoLabels}

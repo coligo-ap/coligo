@@ -73,6 +73,11 @@
     "day_sun": "dimanche"
   },
   "cart": {
+    "monoTitle": "Commencer un nouveau panier ?",
+    "monoBody": "Ton panier contient déjà des articles de <b>{current}</b>. Tu ne peux commander que chez un commerce à la fois.",
+    "monoConfirm": "Vider et commander chez {name}",
+    "monoKeep": "Garder mon panier actuel",
+    "monoSwitched": "Nouveau panier démarré chez {name}.",
     "emptyTitle": "Ton panier est vide",
     "emptySubtitle": "Découvre les commerces près de chez toi et remplis ton panier.",
     "seeMerchants": "Voir les commerces",
@@ -564,6 +569,22 @@
     "entryTopupCredit": "Recharge Coligo Pay",
     "entryTopupSpent": "Paiement par Coligo Pay",
     "entryAdjustment": "Ajustement"
+  },
+  "productSearch": {
+    "searching": "Recherche…",
+    "nMerchants": "{count} commerce(s)",
+    "haveItNearYou": "ont ce produit près de toi",
+    "sortRelevant": "Pertinents",
+    "sortCheap": "Moins cher",
+    "sortNear": "Plus proche",
+    "sortRated": "Mieux notés",
+    "nProducts": "{count} produit(s)",
+    "badgeFast": "Rapide",
+    "badgeCheap": "Moins cher",
+    "open": "Ouvert",
+    "closedShort": "Fermé",
+    "closedSection": "Fermés pour le moment",
+    "empty": "Aucun produit « {q} » près de toi pour le moment."
   },
   "footer": {
     "allRightsReserved": "Tous droits réservés.",

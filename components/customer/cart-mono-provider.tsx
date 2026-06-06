@@ -1,0 +1,137 @@
+"use client";
+
+import { createContext, useContext, useState } from "react";
+import { useTranslations } from "next-intl";
+import { ShoppingBag } from "lucide-react";
+import {
+  addItem,
+  clearAllCarts,
+  readAllCarts,
+  type CartItem,
+} from "@/lib/customer/cart-store";
+import { toast } from "@/components/ui/toast";
+
+// =============================================================================
+// Panier MONO-COMMERÇANT (volet 4) — un panier ne contient des articles que
+// d'UN SEUL commerce. À l'ajout, si le client a déjà un panier NON VIDE chez un
+// AUTRE commerçant → bottom-sheet de confirmation (vider / garder). Le panier
+// n'est JAMAIS vidé sans confirmation explicite.
+//
+// `requestAdd` renvoie `true` si l'ajout a été fait immédiatement (pas de
+// conflit) — l'appelant peut alors déclencher son feedback visuel (flash vert).
+// Si un conflit ouvre la modale, il renvoie `false`.
+// =============================================================================
+
+type AddMerchant = {
+  id: string;
+  slug: string;
+  name: string;
+  logo_url?: string | null;
+};
+type AddItemInput = Omit<CartItem, "quantity"> & { quantity?: number };
+
+type CartAddCtx = {
+  requestAdd: (merchant: AddMerchant, item: AddItemInput) => boolean;
+};
+
+const Ctx = createContext<CartAddCtx | null>(null);
+
+/**
+ * Accès à l'ajout panier protégé mono-commerçant. Fallback hors provider :
+ * ajout direct (par sécurité, ne casse pas un composant non enveloppé).
+ */
+export function useCartAdd(): CartAddCtx {
+  const ctx = useContext(Ctx);
+  if (ctx) return ctx;
+  return {
+    requestAdd: (merchant, item) => {
+      addItem(merchant, item);
+      return true;
+    },
+  };
+}
+
+export function CartMonoProvider({ children }: { children: React.ReactNode }) {
+  const t = useTranslations("cart");
+  const [pending, setPending] = useState<{
+    merchant: AddMerchant;
+    item: AddItemInput;
+    otherName: string;
+  } | null>(null);
+
+  const requestAdd = (merchant: AddMerchant, item: AddItemInput): boolean => {
+    const conflict = readAllCarts().find(
+      (c) =>
+        c.merchant_id && c.merchant_id !== merchant.id && c.items.length > 0
+    );
+    if (conflict) {
+      setPending({
+        merchant,
+        item,
+        otherName: conflict.merchant_name ?? "",
+      });
+      return false;
+    }
+    addItem(merchant, item);
+    return true;
+  };
+
+  const confirmSwitch = () => {
+    if (!pending) return;
+    clearAllCarts();
+    addItem(pending.merchant, pending.item);
+    toast.success(t("monoSwitched", { name: pending.merchant.name }));
+    setPending(null);
+  };
+
+  return (
+    <Ctx.Provider value={{ requestAdd }}>
+      {children}
+      {pending && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="animate-fade-in fixed inset-0 z-[95] flex items-end justify-center bg-[rgba(11,11,15,0.5)] backdrop-blur-[2px] sm:items-center"
+          onClick={() => setPending(null)}
+        >
+          <div
+            className="bg-surface animate-fade-in w-full max-w-[420px] rounded-t-[26px] px-5 pt-2 pb-7 shadow-2xl sm:rounded-[26px] sm:pb-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-border mx-auto mb-4 h-[5px] w-9 rounded-full sm:hidden" />
+            <div className="mx-auto mb-3.5 grid size-[54px] place-items-center rounded-[16px] bg-[#FFF0EE] text-[#FF5A3C]">
+              <ShoppingBag className="size-[26px]" />
+            </div>
+            <h3 className="text-foreground text-center text-[18px] font-extrabold tracking-[-0.4px]">
+              {t("monoTitle")}
+            </h3>
+            <p className="text-muted mx-auto mt-2 max-w-[340px] text-center text-[13.5px] leading-relaxed font-semibold">
+              {t.rich("monoBody", {
+                current: pending.otherName,
+                b: (chunks) => (
+                  <b className="text-foreground font-extrabold">{chunks}</b>
+                ),
+              })}
+            </p>
+            <div className="mt-5 flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={confirmSwitch}
+                className="bg-primary-600 hover:bg-primary-700 rounded-[14px] px-4 py-4 text-[15px] font-extrabold text-white transition active:scale-[0.98]"
+              >
+                {t("monoConfirm", { name: pending.merchant.name })}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPending(null)}
+                className="text-muted hover:text-foreground rounded-[12px] py-3 text-sm font-bold transition"
+              >
+                {t("monoKeep")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </Ctx.Provider>
+  );
+}

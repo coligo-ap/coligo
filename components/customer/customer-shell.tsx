@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CustomerHeader } from "@/components/customer/customer-header";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { CustomerFooter } from "@/components/customer/customer-footer";
+import { CartMonoProvider } from "@/components/customer/cart-mono-provider";
 import { PushRegistrar } from "@/components/native/push-registrar";
 
 /**
@@ -39,7 +40,9 @@ export async function CustomerShell({
       {!hideHeader && (
         <CustomerHeader isAuth={!!user} customerName={customerName} />
       )}
-      <main className="pb-20 lg:pb-0">{children}</main>
+      <main className="pb-20 lg:pb-0">
+        <CartMonoProvider>{children}</CartMonoProvider>
+      </main>
       <CustomerFooter />
       <CustomerBottomNav />
 

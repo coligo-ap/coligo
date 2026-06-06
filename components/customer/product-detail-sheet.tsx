@@ -5,7 +5,8 @@ import { useTranslations } from "next-intl";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatDA } from "@/lib/utils";
-import { addItem, useCart, setItemQuantity } from "@/lib/customer/cart-store";
+import { useCart, setItemQuantity } from "@/lib/customer/cart-store";
+import { useCartAdd } from "@/components/customer/cart-mono-provider";
 import { toast } from "@/components/ui/toast";
 import type { PublicProduct } from "@/lib/data/customer-catalog";
 
@@ -33,6 +34,7 @@ export function ProductDetailSheet({
   onClose,
 }: Props) {
   const t = useTranslations("merchant");
+  const { requestAdd } = useCartAdd();
   const cart = useCart();
   const [qty, setQty] = useState(1);
 
@@ -67,10 +69,10 @@ export function ProductDetailSheet({
       setItemQuantity(product!.id, qty);
       toast.success(t("quantityUpdated", { qty }));
     } else {
-      // addItem ajoute par incrément ; on injecte la quantité voulue d'un coup.
-      // Plus de blocage en cas de "panier d'un autre commerce" — c'est géré
-      // bienveillamment au checkout (prompt 16).
-      addItem(merchant, {
+      // Mono-commerçant (volet 4) : requestAdd ajoute directement si le panier
+      // est vide ou du même commerce ; sinon il ouvre la modale de confirmation
+      // « vider / garder » (gérée par CartMonoProvider au niveau du shell).
+      requestAdd(merchant, {
         product_id: product!.id,
         name: product!.name_fr,
         unit_price_da: product!.price_da,

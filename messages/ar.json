@@ -73,6 +73,11 @@
     "day_sun": "الأحد"
   },
   "cart": {
+    "monoTitle": "بدء سلة جديدة؟",
+    "monoBody": "سلتك تحتوي بالفعل على منتجات من <b>{current}</b>. لا يمكنك الطلب إلا من متجر واحد في كل مرة.",
+    "monoConfirm": "إفراغ والطلب من {name}",
+    "monoKeep": "الاحتفاظ بسلتي الحالية",
+    "monoSwitched": "بدأت سلة جديدة لدى {name}.",
     "emptyTitle": "سلتك فارغة",
     "emptySubtitle": "اكتشف المتاجر القريبة منك واملأ سلتك.",
     "seeMerchants": "عرض المتاجر",
@@ -564,6 +569,22 @@
     "entryTopupCredit": "شحن كوليغو باي",
     "entryTopupSpent": "دفع عبر كوليغو باي",
     "entryAdjustment": "تعديل"
+  },
+  "productSearch": {
+    "searching": "جارٍ البحث…",
+    "nMerchants": "{count} متجر",
+    "haveItNearYou": "لديها هذا المنتج بالقرب منك",
+    "sortRelevant": "الأنسب",
+    "sortCheap": "الأرخص",
+    "sortNear": "الأقرب",
+    "sortRated": "الأعلى تقييماً",
+    "nProducts": "{count} منتج",
+    "badgeFast": "سريع",
+    "badgeCheap": "الأرخص",
+    "open": "مفتوح",
+    "closedShort": "مغلق",
+    "closedSection": "مغلقة حالياً",
+    "empty": "لا يوجد منتج « {q} » بالقرب منك حالياً."
   },
   "footer": {
     "allRightsReserved": "جميع الحقوق محفوظة.",

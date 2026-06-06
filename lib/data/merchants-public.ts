@@ -38,6 +38,8 @@ export type PublicMerchant = {
   paused_until: string | null;
   closure_start: string | null;
   closure_end: string | null;
+  /** Sous-spécialités du commerçant (volet 1 — recherche/filtres). */
+  tags: string[];
 };
 
 type Filters = {
@@ -300,5 +302,6 @@ function toPublicMerchant(row: Record<string, unknown>): PublicMerchant {
     paused_until: (row.paused_until as string | null) ?? null,
     closure_start: (row.closure_start as string | null) ?? null,
     closure_end: (row.closure_end as string | null) ?? null,
+    tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
   };
 }

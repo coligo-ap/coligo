@@ -12,11 +12,11 @@ import {
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import {
-  addItem,
   setActiveMerchant,
   setItemQuantity,
   useCartFor,
 } from "@/lib/customer/cart-store";
+import { useCartAdd } from "@/components/customer/cart-mono-provider";
 import { toast } from "@/components/ui/toast";
 import { cldUrl } from "@/lib/images/cloudinary";
 import type { PublicProduct } from "@/lib/data/customer-catalog";
@@ -45,6 +45,7 @@ export function ProductRow({
   onOpenDetail: () => void;
 }) {
   const t = useTranslations("merchant");
+  const { requestAdd } = useCartAdd();
   const cart = useCartFor(merchant.id);
   const inCart = cart.items.find((i) => i.product_id === product.id);
   const hasPromo =
@@ -75,14 +76,16 @@ export function ProductRow({
   function quickAdd(e: React.MouseEvent) {
     e.stopPropagation();
     if (isOut) return;
-    addItem(merchant, {
+    // Mono-commerçant : si conflit, la modale s'ouvre et requestAdd renvoie
+    // false → on ne flashe pas (l'ajout n'est pas encore confirmé).
+    const addedNow = requestAdd(merchant, {
       product_id: product.id,
       name: product.name_fr,
       unit_price_da: product.price_da,
       image_url: product.image_url,
       category_title: product.category,
     });
-    flash();
+    if (addedNow) flash();
   }
 
   function increment(e: React.MouseEvent) {
