@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ClipboardList, Home, ShoppingCart, User } from "lucide-react";
+import { useCart, totalUnits } from "@/lib/customer/cart-store";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
@@ -16,6 +17,8 @@ const ITEMS = [
 export function CustomerBottomNav() {
   const pathname = usePathname();
   const t = useTranslations("nav");
+  const cart = useCart();
+  const cartCount = totalUnits(cart);
 
   return (
     <nav
@@ -35,7 +38,14 @@ export function CustomerBottomNav() {
               active ? "text-primary-700" : "text-muted hover:text-foreground"
             )}
           >
-            <Icon className={cn("size-5", active && "fill-primary-100")} />
+            <span className="relative">
+              <Icon className={cn("size-5", active && "fill-primary-100")} />
+              {item.key === "cart" && cartCount > 0 && (
+                <span className="bg-success-600 absolute -top-1.5 -right-2 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full border-2 border-white px-1 text-[9px] font-bold text-white">
+                  {cartCount}
+                </span>
+              )}
+            </span>
             <span className="font-medium">{t(item.key)}</span>
           </Link>
         );
