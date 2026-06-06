@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { WalletQrView } from "@/components/customer/wallet-qr-view";
-import { getWalletPinStatus } from "@/app/(customer)/coligo-pay/qr/actions";
+import {
+  getMyPayHandle,
+  getWalletPinStatus,
+} from "@/app/(customer)/coligo-pay/qr/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -35,16 +38,19 @@ export default async function ColigoPayQrPage({
     .maybeSingle();
 
   const name = customer?.full_name ?? "Coligo";
-  // Identifiant public (handle) dérivé du local-part de l'email — sert à encoder
-  // le QR « Recevoir » (architecture prête ; pas un secret). Pas de PII sensible.
-  const handle = "@" + (user.email ?? name).split("@")[0].toLowerCase();
 
-  const pinStatus = await getWalletPinStatus();
+  // Handle de réception STABLE (code unique, généré au 1er appel) encodé dans le
+  // QR « Recevoir ». Pas un secret : il sert à identifier le bénéficiaire d'un
+  // transfert Coligo Pay (boucle fermée).
+  const [pinStatus, handleRes] = await Promise.all([
+    getWalletPinStatus(),
+    getMyPayHandle(),
+  ]);
 
   return (
     <WalletQrView
       customerName={name}
-      identifier={handle}
+      myHandle={handleRes?.handle ?? null}
       initialTab={tab}
       hasPin={pinStatus.hasPin}
       locked={pinStatus.locked}

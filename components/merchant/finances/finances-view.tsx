@@ -8,7 +8,9 @@ import {
   ArrowUpRight,
   Banknote,
   ChevronDown,
+  Globe,
   Loader2,
+  QrCode,
   Wallet,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -103,6 +105,24 @@ export function FinancesView({
           tone="danger"
         />
       </section>
+
+      {/* Répartition des encaissements par source (traçabilité au dinar près).
+          Le cash n'apparaît pas ici : le commerçant l'encaisse directement en
+          magasin (seules sa commission/ses frais restent dus à Coligo). */}
+      {(summary.coligoPayCollected > 0 || summary.onlineCollected > 0) && (
+        <section className="mb-6 grid gap-4 sm:grid-cols-2">
+          <SourceCard
+            label="Encaissé via Coligo Pay (QR)"
+            value={formatDA(summary.coligoPayCollected)}
+            icon={QrCode}
+          />
+          <SourceCard
+            label="Encaissé en ligne (carte)"
+            value={formatDA(summary.onlineCollected)}
+            icon={Globe}
+          />
+        </section>
+      )}
 
       {summary.debt > 0 && (
         <div className="border-danger-200 bg-danger-50 mb-6 flex items-center justify-between gap-3 rounded-[16px] border px-5 py-4">
@@ -204,6 +224,28 @@ function StatCard({
   );
 }
 
+function SourceCard({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <div className="border-border bg-surface flex items-center gap-3 rounded-[16px] border p-4 shadow-sm">
+      <div className="bg-primary-50 text-primary-600 grid size-10 shrink-0 place-items-center rounded-xl">
+        <Icon className="size-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-muted text-xs font-medium">{label}</p>
+        <p className="text-lg font-bold tracking-tight tabular-nums">{value}</p>
+      </div>
+    </div>
+  );
+}
+
 function EntryRow({ entry }: { entry: WalletEntryRow }) {
   const meta = WALLET_ENTRY_META[entry.type];
   const positive = entry.amount_da >= 0;
@@ -213,6 +255,9 @@ function EntryRow({ entry }: { entry: WalletEntryRow }) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={meta.tone}>{meta.label}</Badge>
+          {entry.coligo_pay_payment_id && (
+            <Badge tone="primary">Coligo Pay</Badge>
+          )}
           {method && (
             <Badge tone={PAYMENT_METHOD_META[method].tone}>
               {PAYMENT_METHOD_META[method].short}

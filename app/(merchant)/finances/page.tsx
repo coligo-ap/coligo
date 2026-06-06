@@ -96,6 +96,8 @@ export default async function FinancesPage({
     totalCommission: walletSummary.totalCommission,
     totalServiceFeesOwed: walletSummary.totalServiceFeesOwed,
     totalPaidOut: walletSummary.totalPaidOut,
+    coligoPayCollected: walletSummary.coligoPayCollected,
+    onlineCollected: walletSummary.onlineCollected,
   };
 
   const pageCount = Math.max(1, Math.ceil(pageData.total / PAGE_SIZE));
@@ -124,4 +126,6 @@ export type FinancesSummary = {
   totalCommission: number;
   totalServiceFeesOwed: number;
   totalPaidOut: number;
+  coligoPayCollected: number;
+  onlineCollected: number;
 };

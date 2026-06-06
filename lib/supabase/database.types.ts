@@ -650,6 +650,7 @@ export type Database = {
           commission_rate: number | null;
           note: string | null;
           created_at: string;
+          coligo_pay_payment_id: string | null;
         };
         Insert: {
           id?: string;
@@ -660,6 +661,7 @@ export type Database = {
           commission_rate?: number | null;
           note?: string | null;
           created_at?: string;
+          coligo_pay_payment_id?: string | null;
         };
         Update: {
           id?: string;
@@ -670,6 +672,7 @@ export type Database = {
           commission_rate?: number | null;
           note?: string | null;
           created_at?: string;
+          coligo_pay_payment_id?: string | null;
         };
         Relationships: [
           {

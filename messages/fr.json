@@ -620,6 +620,15 @@
     "qrErrPinLocked": "Trop d'essais. Réessaie dans 15 minutes.",
     "qrErrPinNotSet": "Crée d'abord ton code Coligo Pay.",
     "qrErrGeneric": "Paiement impossible. Réessaie.",
+    "qrScanAny": "Scanne le QR d'un commerçant pour payer, ou celui d'un ami pour lui envoyer.",
+    "qrSendTo": "Envoyer à",
+    "qrAmountLabel": "Montant",
+    "qrContinue": "Continuer",
+    "qrSendNow": "Envoyer {amount}",
+    "qrTransferSuccessTitle": "Transfert réussi",
+    "qrTransferSuccessDesc": "Tu as envoyé à <b>{name}</b>.",
+    "qrErrSelf": "Tu ne peux pas t'envoyer de l'argent à toi-même.",
+    "qrErrReceiverNotFound": "Bénéficiaire Coligo introuvable.",
     "cancel": "Annuler"
   },
   "productSearch": {

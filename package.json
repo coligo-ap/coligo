@@ -21,6 +21,7 @@
     "test:offline:queue": "node scripts/test-queue-logic.mjs",
     "test:offline:e2e": "node scripts/test-offline-e2e.mjs",
     "test:promo:money": "node scripts/test-promo-money.mjs",
+    "test:coligo:pay": "node scripts/test-coligo-pay.mjs",
     "android:assets": "node scripts/android-assets.mjs",
     "cap:sync": "cap sync android",
     "cap:sync:prod": "node scripts/cap-sync.mjs prod",

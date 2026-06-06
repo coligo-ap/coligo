@@ -9,6 +9,8 @@ import type {
 /** Écriture + mode de paiement de la commande liée (badge Cash/En ligne). */
 export type WalletEntryRow = WalletEntry & {
   orders: { payment_method: PaymentMethod } | null;
+  /** Non-null si l'écriture provient d'un encaissement Coligo Pay (QR). */
+  coligo_pay_payment_id: string | null;
 };
 
 /**
@@ -27,6 +29,10 @@ export type WalletSummary = {
    */
   totalServiceFeesOwed: number;
   totalPaidOut: number;
+  /** Ventes encaissées via Coligo Pay (QR en magasin). */
+  coligoPayCollected: number;
+  /** Ventes encaissées en ligne (Chargily) = totalSales − Coligo Pay. */
+  onlineCollected: number;
 };
 
 export async function getWalletSummary(): Promise<WalletSummary> {
@@ -34,19 +40,31 @@ export async function getWalletSummary(): Promise<WalletSummary> {
   // RLS filtre déjà sur le commerçant connecté → toutes ses écritures.
   const { data } = await supabase
     .from("wallet_entries")
-    .select("amount_da, type");
+    .select("amount_da, type, coligo_pay_payment_id");
   const out: WalletSummary = {
     balance: 0,
     totalSales: 0,
     totalCommission: 0,
     totalServiceFeesOwed: 0,
     totalPaidOut: 0,
+    coligoPayCollected: 0,
+    onlineCollected: 0,
   };
   for (const e of data ?? []) {
     out.balance += e.amount_da;
     const t = e.type as WalletEntryType;
-    if (t === "sale") out.totalSales += e.amount_da;
-    else if (t === "commission") out.totalCommission += e.amount_da;
+    if (t === "sale") {
+      out.totalSales += e.amount_da;
+      // Une vente provient soit d'un encaissement Coligo Pay (lien non-null),
+      // soit d'une commande en ligne (Chargily). Le cash ne crée PAS de "sale".
+      if (
+        (e as { coligo_pay_payment_id: string | null }).coligo_pay_payment_id
+      ) {
+        out.coligoPayCollected += e.amount_da;
+      } else {
+        out.onlineCollected += e.amount_da;
+      }
+    } else if (t === "commission") out.totalCommission += e.amount_da;
     else if (t === "service_fee") out.totalServiceFeesOwed += -e.amount_da;
     else if (t === "payout") out.totalPaidOut += e.amount_da;
   }
@@ -67,7 +85,7 @@ export async function getWalletEntriesPage(
     .from("wallet_entries")
     .select(
       `id, merchant_id, order_id, type, amount_da, commission_rate, note,
-       created_at, orders ( payment_method )`,
+       created_at, coligo_pay_payment_id, orders ( payment_method )`,
       { count: "exact" }
     )
     .order("created_at", { ascending: false })

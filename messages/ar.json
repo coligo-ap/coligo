@@ -620,6 +620,15 @@
     "qrErrPinLocked": "محاولات كثيرة. أعد المحاولة بعد 15 دقيقة.",
     "qrErrPinNotSet": "أنشئ أولًا رمز كوليغو باي.",
     "qrErrGeneric": "تعذّر الدفع. أعد المحاولة.",
+    "qrScanAny": "امسح رمز تاجر للدفع، أو رمز صديق لإرسال الأموال إليه.",
+    "qrSendTo": "إرسال إلى",
+    "qrAmountLabel": "المبلغ",
+    "qrContinue": "متابعة",
+    "qrSendNow": "إرسال {amount}",
+    "qrTransferSuccessTitle": "تم التحويل بنجاح",
+    "qrTransferSuccessDesc": "لقد أرسلت إلى <b>{name}</b>.",
+    "qrErrSelf": "لا يمكنك إرسال الأموال إلى نفسك.",
+    "qrErrReceiverNotFound": "المستفيد غير موجود على كوليغو.",
     "cancel": "إلغاء"
   },
   "productSearch": {

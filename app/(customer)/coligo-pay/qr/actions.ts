@@ -141,3 +141,73 @@ export async function executePayment(input: {
   }
   return { ok: false, error: res?.error ?? "unknown" };
 }
+
+// ─── Transfert P2P (boucle fermée Coligo Pay → Coligo Pay) ─────────────────
+
+export type MyPayHandle = { handle: string; name: string } | null;
+
+/** Mon handle de réception (génère un code stable au 1er appel). */
+export async function getMyPayHandle(): Promise<MyPayHandle> {
+  const res = await callRpc<{ ok: boolean; handle?: string; name?: string }>(
+    "coligo_pay_my_handle"
+  );
+  if (res?.ok && res.handle) {
+    return { handle: res.handle, name: res.name ?? "" };
+  }
+  return null;
+}
+
+export type ResolvedReceiver =
+  | { ok: true; recipientName: string }
+  | { ok: false; error: string };
+
+/** Résout un bénéficiaire par son handle (aperçu avant transfert). */
+export async function resolveReceiver(
+  handle: string
+): Promise<ResolvedReceiver> {
+  const h = handle.trim();
+  if (h.length < 4) return { ok: false, error: "not_found" };
+  const res = await callRpc<{
+    ok: boolean;
+    error?: string;
+    recipient_name?: string;
+  }>("coligo_pay_resolve_receiver", { p_handle: h });
+  if (res?.ok) return { ok: true, recipientName: res.recipient_name ?? "" };
+  return { ok: false, error: res?.error ?? "not_found" };
+}
+
+export type ExecutedTransfer =
+  | { ok: true; recipientName: string; amountDa: number }
+  | { ok: false; error: string };
+
+/** Exécute un transfert P2P : handle + montant + PIN + idempotency key. */
+export async function executeTransfer(input: {
+  handle: string;
+  amountDa: number;
+  pin: string;
+  clientOperationId: string;
+}): Promise<ExecutedTransfer> {
+  const amount = Math.floor(Number(input.amountDa));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, error: "invalid_amount" };
+  }
+  const res = await callRpc<{
+    ok: boolean;
+    error?: string;
+    recipient_name?: string;
+    amount_da?: number;
+  }>("coligo_pay_transfer", {
+    p_handle: input.handle.trim(),
+    p_amount_da: amount,
+    p_pin: input.pin,
+    p_client_operation_id: input.clientOperationId,
+  });
+  if (res?.ok) {
+    return {
+      ok: true,
+      recipientName: res.recipient_name ?? "",
+      amountDa: res.amount_da ?? amount,
+    };
+  }
+  return { ok: false, error: res?.error ?? "unknown" };
+}
