@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Loader2,
   LogOut,
+  ScanLine,
   Settings,
   Tag,
   Truck,
@@ -36,6 +37,7 @@ type DrawerItem = {
 // Sections secondaires (celles retirées de la bottom-nav) + bientôt-disponibles.
 const DRAWER_ITEMS: DrawerItem[] = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+  { href: "/encaisser", label: "Encaisser (QR)", icon: ScanLine },
   { href: "/promotions", label: "Promotions", icon: Tag },
   { href: "/livreurs", label: "Livreurs", icon: Truck },
   { href: "/livraison/creneaux", label: "Créneaux livraison", icon: Truck },

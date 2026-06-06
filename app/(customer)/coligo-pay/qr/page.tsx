@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { WalletQrView } from "@/components/customer/wallet-qr-view";
+import { getWalletPinStatus } from "@/app/(customer)/coligo-pay/qr/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,15 @@ export default async function ColigoPayQrPage({
   // le QR « Recevoir » (architecture prête ; pas un secret). Pas de PII sensible.
   const handle = "@" + (user.email ?? name).split("@")[0].toLowerCase();
 
+  const pinStatus = await getWalletPinStatus();
+
   return (
-    <WalletQrView customerName={name} identifier={handle} initialTab={tab} />
+    <WalletQrView
+      customerName={name}
+      identifier={handle}
+      initialTab={tab}
+      hasPin={pinStatus.hasPin}
+      locked={pinStatus.locked}
+    />
   );
 }
