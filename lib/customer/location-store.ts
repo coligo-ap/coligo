@@ -12,6 +12,13 @@ export type CustomerLocation = {
   commune: string | null;
   latitude: number | null;
   longitude: number | null;
+  /**
+   * Adresse exacte LISIBLE (rue/quartier/commune) du point confirmé par le
+   * client (GPS ou repère carte). Affichée telle quelle dans le header de la
+   * marketplace pour que le client soit SÛR que sa position exacte est prise en
+   * compte. `null` si seule une wilaya/commune a été choisie manuellement.
+   */
+  address: string | null;
   /** ISO date du dernier set (debug / "à jour depuis…"). */
   updated_at: string;
 };
@@ -29,6 +36,7 @@ export function readStoredLocation(): CustomerLocation | null {
       commune: parsed.commune ?? null,
       latitude: parsed.latitude ?? null,
       longitude: parsed.longitude ?? null,
+      address: parsed.address ?? null,
       updated_at: parsed.updated_at ?? new Date().toISOString(),
     };
   } catch {
@@ -43,6 +51,7 @@ export function writeStoredLocation(loc: Partial<CustomerLocation>): void {
     commune: null,
     latitude: null,
     longitude: null,
+    address: null,
     updated_at: new Date().toISOString(),
   };
   const merged: CustomerLocation = {

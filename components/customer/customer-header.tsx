@@ -28,6 +28,11 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
       `Wilaya ${loc.wilaya_code}`)
     : t("chooseZone");
 
+  // Si le client a confirmé une POSITION EXACTE (GPS ou repère carte), on
+  // affiche son adresse précise telle quelle → il voit que sa vraie position
+  // est prise en compte. Sinon on retombe sur « wilaya · commune ».
+  const exactAddress = loc?.address?.trim() ? loc.address.trim() : null;
+
   return (
     <>
       <header className="border-border sticky top-0 z-30 border-b bg-white pt-[env(safe-area-inset-top)]">
@@ -43,10 +48,14 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
             className="hover:bg-surface-2 border-border inline-flex items-center gap-2 rounded-[10px] border px-3 py-2 text-sm"
           >
             <MapPin className="text-primary-600 size-4" />
-            <span className="max-w-[160px] truncate font-medium">
-              {wilayaLabel}
-              {loc?.commune && (
-                <span className="text-muted"> · {loc.commune}</span>
+            <span className="max-w-[220px] truncate font-medium">
+              {exactAddress ?? (
+                <>
+                  {wilayaLabel}
+                  {loc?.commune && (
+                    <span className="text-muted"> · {loc.commune}</span>
+                  )}
+                </>
               )}
             </span>
             <ChevronDown className="text-muted size-3.5" />
@@ -108,9 +117,13 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
             >
               <MapPin className="text-primary-600 size-4 shrink-0" />
               <span className="min-w-0 truncate text-sm font-medium">
-                {wilayaLabel}
-                {loc?.commune && (
-                  <span className="text-muted"> · {loc.commune}</span>
+                {exactAddress ?? (
+                  <>
+                    {wilayaLabel}
+                    {loc?.commune && (
+                      <span className="text-muted"> · {loc.commune}</span>
+                    )}
+                  </>
                 )}
               </span>
               <ChevronDown className="text-muted size-3.5 shrink-0" />

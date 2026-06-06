@@ -10,6 +10,8 @@ import {
   reverseGeocode,
   updateCustomerLocation,
 } from "@/app/(customer)/actions";
+// Libellé d'adresse PRÉCIS (rue/quartier) pour le header.
+import { reverseGeocode as reverseGeocodeAddress } from "@/lib/geo/geocode";
 
 // =============================================================================
 // LocationAutoDetect — tente une détection silencieuse au chargement.
@@ -102,6 +104,18 @@ export function LocationAutoDetect() {
       const wilayaCode = geo.ok ? (geo.wilaya_code ?? null) : null;
       const commune = geo.ok ? (geo.commune ?? null) : null;
 
+      // Adresse exacte lisible (best-effort) → le header affiche d'emblée la
+      // position précise détectée, pas seulement la zone.
+      let address: string | null = null;
+      try {
+        address = await reverseGeocodeAddress(
+          coords.latitude,
+          coords.longitude
+        );
+      } catch {
+        /* géocodage indispo : le header retombe sur commune · wilaya */
+      }
+
       // 5) On stocke (au minimum les coords, même si la wilaya n'a pas matché
       // — la home pourra trier par proximité GPS).
       writeStoredLocation({
@@ -109,6 +123,7 @@ export function LocationAutoDetect() {
         longitude: coords.longitude,
         wilaya_code: wilayaCode,
         commune,
+        address,
       });
 
       // Sync DB si l'user est connecté (no-op silencieux sinon).

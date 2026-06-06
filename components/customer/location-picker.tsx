@@ -20,6 +20,9 @@ import {
   reverseGeocode,
   updateCustomerLocation,
 } from "@/app/(customer)/actions";
+// Reverse géocodage PRÉCIS (zoom 18 : rue/quartier) pour le libellé exact
+// affiché dans le header — distinct du reverseGeocode serveur (zoom 12 = zone).
+import { reverseGeocode as reverseGeocodeAddress } from "@/lib/geo/geocode";
 
 type Props = {
   /** Affiche un bouton "Annuler" / "Fermer" en haut à droite. */
@@ -152,11 +155,22 @@ export function LocationPicker({ onClose, initial }: Props) {
         setResolving(false);
       }
     }
+    // Adresse EXACTE lisible du point confirmé → affichée dans le header pour
+    // que le client soit sûr que sa position précise est prise en compte.
+    // Échec silencieux : on enregistre quand même (le header retombe alors sur
+    // commune · wilaya).
+    let address: string | null = null;
+    try {
+      address = await reverseGeocodeAddress(coords.lat, coords.lng);
+    } catch {
+      /* géocodage indispo */
+    }
     await save({
       latitude: coords.lat,
       longitude: coords.lng,
       wilaya_code: w || null,
       commune: c || null,
+      address,
     });
   }
 
@@ -166,7 +180,9 @@ export function LocationPicker({ onClose, initial }: Props) {
       toast.error(t("chooseWilaya"));
       return;
     }
-    void save({ wilaya_code: wilaya, commune: commune || null });
+    // Choix manuel d'une zone (pas un point précis) → on EFFACE l'adresse
+    // exacte pour que le header affiche bien « commune · wilaya ».
+    void save({ wilaya_code: wilaya, commune: commune || null, address: null });
   }
 
   const gpsLoading = geo.loading || resolving;
