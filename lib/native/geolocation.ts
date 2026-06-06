@@ -52,7 +52,10 @@ function mapError(err: GeolocationPositionError): GeolocationError {
         "Délai dépassé pour obtenir la position."
       );
     default:
-      return new GeolocationError("unknown", "Erreur inconnue.");
+      return new GeolocationError(
+        "unknown",
+        "Localisation impossible. Choisis ta position sur la carte."
+      );
   }
 }
 
@@ -209,7 +212,7 @@ export async function getPosition(opts?: PositionOptions): Promise<Coords> {
     // Repli tolérant : basse précision + cache récent accepté.
     return await getOnce({
       enableHighAccuracy: false,
-      timeout: 20_000,
+      timeout: 12_000,
       maximumAge: 60_000,
     });
   }

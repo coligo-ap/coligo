@@ -446,6 +446,7 @@
     "logout": "Déconnexion",
     "locationSaved": "Localisation enregistrée",
     "permissionDenied": "Permission refusée. Choisis ta wilaya manuellement.",
+    "geolocFailed": "Localisation impossible — choisis ta position sur la carte.",
     "positionNotSet": "Position non définie.",
     "chooseWilaya": "Choisis une wilaya.",
     "whereToOrder": "Où veux-tu commander ?",

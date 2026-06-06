@@ -446,6 +446,7 @@
     "logout": "تسجيل الخروج",
     "locationSaved": "تم حفظ الموقع",
     "permissionDenied": "تم رفض الإذن. اختر ولايتك يدوياً.",
+    "geolocFailed": "تعذّر تحديد الموقع — اختر موقعك على الخريطة.",
     "positionNotSet": "الموقع غير محدد.",
     "chooseWilaya": "اختر ولاية.",
     "whereToOrder": "أين تريد أن تطلب؟",

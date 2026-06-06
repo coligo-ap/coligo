@@ -85,11 +85,10 @@ export function LocationPicker({ onClose, initial }: Props) {
     setDetected(null);
     const gpsCoords = await geo.requestOnce();
     if (!gpsCoords) {
-      if (geo.error?.kind === "denied") {
-        toast.error(t("permissionDenied"));
-      } else if (geo.error) {
-        toast.error(geo.error.message);
-      }
+      // Échec NON bloquant : la carte reste là pour choisir à la main.
+      toast.error(
+        geo.error?.kind === "denied" ? t("permissionDenied") : t("geolocFailed")
+      );
       return;
     }
     setCoords({ lat: gpsCoords.latitude, lng: gpsCoords.longitude });

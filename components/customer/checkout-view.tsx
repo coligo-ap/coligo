@@ -1093,7 +1093,11 @@ function WalletToggleRow({
         <span
           className={cn(
             "inline-block size-[21px] transform rounded-full bg-white shadow transition-transform",
-            checked ? "translate-x-[22px]" : "translate-x-[3px]"
+            // RTL : le curseur démarre du bord DROIT (flex-start en RTL), donc on
+            // inverse la translation (sinon il sort du rail vers la droite).
+            checked
+              ? "translate-x-[22px] rtl:-translate-x-[22px]"
+              : "translate-x-[3px] rtl:-translate-x-[3px]"
           )}
         />
       </span>
