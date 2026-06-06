@@ -35,17 +35,17 @@ export async function WalletEntryList({ entries, emptyHint }: Props) {
     );
   }
   return (
-    <ul className="border-border bg-surface divide-border divide-y rounded-[16px] border">
+    <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[20px] border shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
       {entries.map((entry) => {
         const credit = entry.amount_da > 0;
         const meta = describe(entry.type, t);
         return (
-          <li key={entry.id} className="flex items-center gap-3 px-4 py-3">
+          <li key={entry.id} className="flex items-center gap-3 px-4 py-3.5">
             <div
               className={cn(
-                "flex size-10 shrink-0 items-center justify-center rounded-full",
+                "flex size-[42px] shrink-0 items-center justify-center rounded-[13px]",
                 credit
-                  ? "bg-success-100 text-success-700"
+                  ? "bg-success-50 text-success-700"
                   : "bg-danger-50 text-danger-700"
               )}
             >
@@ -56,10 +56,10 @@ export async function WalletEntryList({ entries, emptyHint }: Props) {
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-foreground text-sm font-semibold">
+              <p className="text-foreground text-sm font-extrabold tracking-tight">
                 {meta.label}
               </p>
-              <p className="text-muted text-xs">
+              <p className="text-muted text-xs font-medium">
                 {new Date(entry.created_at).toLocaleDateString("fr-DZ", {
                   day: "numeric",
                   month: "short",
@@ -87,7 +87,7 @@ export async function WalletEntryList({ entries, emptyHint }: Props) {
             </div>
             <span
               className={cn(
-                "text-base font-bold tabular-nums",
+                "shrink-0 text-[15px] font-black tabular-nums",
                 credit ? "text-success-700" : "text-danger-700"
               )}
             >

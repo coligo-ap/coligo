@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Gift, Wallet } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
-import { ColigoPayCard } from "@/components/customer/coligo-pay-card";
+import { WalletActions } from "@/components/customer/wallet-actions";
 import { WalletEntryList } from "@/components/customer/wallet/entry-list";
 import { createClient } from "@/lib/supabase/server";
 import { formatDA } from "@/lib/utils";
@@ -67,47 +67,48 @@ export default async function CustomerColigoPayPage() {
   return (
     <CustomerShell>
       <div className="mx-auto max-w-2xl px-4 pb-24 lg:px-6">
-        {/* HERO solde plein-cadre rectangulaire (bords droits, à ras du haut),
-            gradient + icône Wallet distincts du cashback pour éviter la confusion. */}
-        <section className="from-primary-700 to-primary-900 relative -mx-4 overflow-hidden bg-gradient-to-br px-4 pt-6 pb-7 text-white lg:-mx-6 lg:px-6 lg:pt-8 lg:pb-8">
-          <Wallet className="absolute -end-4 -top-4 size-32 text-white/10" />
-          <p className="text-xs font-semibold tracking-wider text-white/85 uppercase">
+        {/* HERO violet premium : grand solde + « argent réel ». */}
+        <section className="from-primary-400 via-primary-600 to-primary-800 relative -mx-4 overflow-hidden bg-gradient-to-br px-5 pt-7 pb-7 text-white lg:-mx-6 lg:px-6 lg:pt-8 lg:pb-8">
+          <Wallet className="absolute -end-7 -top-5 size-32 text-white/[.13]" />
+          <span className="pointer-events-none absolute end-10 -bottom-12 size-32 rounded-full border border-white/10" />
+          <p className="text-xs font-extrabold tracking-wider uppercase opacity-85">
             {t("coligoPayTitle")} · {t("coligoPayBalance")}
           </p>
-          <p className="mt-1 text-4xl leading-none font-bold tabular-nums lg:text-5xl">
+          <p className="mt-1 text-[32px] leading-none font-black tracking-tight tabular-nums lg:text-5xl">
             {formatDA(balance)}
           </p>
-          <p className="text-primary-50/90 mt-3 max-w-md text-xs">
+          <p className="mt-2.5 max-w-md text-[12.5px] leading-relaxed font-semibold opacity-90">
             {t("coligoPayBalanceDesc")}
           </p>
         </section>
 
-        {/* Bouton de recharge (modale presets + libre) */}
-        <ColigoPayCard
-          balanceDa={balance}
+        {/* Rangée d'actions wallet (façon Alipay) : Payer / Recevoir / Recharger */}
+        <WalletActions
           remaining30d={remaining30d}
           maxPerRecharge={maxPerRecharge}
         />
 
-        {/* Renvoi vers le cashback */}
+        {/* Card info : Mon Cashback (différent de Coligo Pay) → page dédiée. */}
         <Link
           href="/cashback"
-          className="border-border bg-surface hover:border-primary-300 mt-4 flex items-center gap-3 rounded-[16px] border p-4 transition-colors"
+          className="mt-4 flex items-center gap-3 rounded-[18px] bg-white p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)] transition-transform active:scale-[.99]"
         >
-          <div className="bg-primary-100 text-primary-700 flex size-10 shrink-0 items-center justify-center rounded-full">
+          <div className="flex size-[46px] shrink-0 items-center justify-center rounded-[13px] bg-amber-50 text-amber-600">
             <Gift className="size-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-foreground text-sm font-semibold">
+            <p className="text-foreground text-[14.5px] font-extrabold tracking-tight">
               {t("cashbackLinkTitle")}
             </p>
-            <p className="text-muted mt-0.5 text-xs">{t("cashbackLinkDesc")}</p>
+            <p className="text-muted mt-0.5 text-xs font-medium">
+              {t("cashbackLinkDesc")}
+            </p>
           </div>
         </Link>
 
-        {/* Historique TOPUP uniquement */}
+        {/* Historique TOPUP uniquement (timeline) */}
         <section className="mt-6">
-          <h2 className="text-foreground mb-3 text-base font-bold">
+          <h2 className="text-foreground mb-2.5 text-[18px] font-black tracking-tight">
             {t("coligoPayHistory")}
           </h2>
           <WalletEntryList entries={history} emptyHint={t("rechargeNow")} />

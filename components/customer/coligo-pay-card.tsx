@@ -59,7 +59,7 @@ export function ColigoPayCard({
   );
 }
 
-function TopupModal({
+export function TopupModal({
   onClose,
   remaining30d,
   maxPerRecharge,

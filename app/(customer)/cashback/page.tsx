@@ -37,44 +37,46 @@ export default async function CustomerCashbackPage() {
   return (
     <CustomerShell>
       <div className="mx-auto max-w-2xl px-4 pb-24 lg:px-6">
-        {/* HERO solde plein-cadre rectangulaire (bords droits, à ras du haut).
-            Le titre est intégré dans le bandeau → plus de ligne d'en-tête séparée. */}
-        <section className="from-primary-600 via-primary-700 to-primary-800 relative -mx-4 overflow-hidden bg-gradient-to-br px-4 pt-6 pb-7 text-white lg:-mx-6 lg:px-6 lg:pt-8 lg:pb-8">
-          <Gift className="absolute -end-4 -top-4 size-32 text-white/10" />
-          <p className="text-xs font-semibold tracking-wider text-white/85 uppercase">
+        {/* HERO violet premium : grand solde + rappel « non retirable ». */}
+        <section className="from-primary-400 via-primary-600 to-primary-800 relative -mx-4 overflow-hidden bg-gradient-to-br px-5 pt-7 pb-7 text-white lg:-mx-6 lg:px-6 lg:pt-8 lg:pb-8">
+          <Gift className="absolute -end-7 -top-5 size-32 text-white/[.13]" />
+          <span className="pointer-events-none absolute end-10 -bottom-12 size-32 rounded-full border border-white/10" />
+          <p className="text-xs font-extrabold tracking-wider uppercase opacity-85">
             {t("cashbackTitle")} · {t("availableBalance")}
           </p>
-          <p className="mt-1 text-4xl leading-none font-bold tabular-nums lg:text-5xl">
+          <p className="mt-1 text-[32px] leading-none font-black tracking-tight tabular-nums lg:text-5xl">
             {formatDA(balance)}
           </p>
-          <p className="text-primary-50/90 mt-3 max-w-md text-xs">
+          <p className="mt-2.5 max-w-md text-[12.5px] leading-relaxed font-semibold opacity-90">
             {t.rich("cashbackNonWithdrawable", {
-              strong: (chunks) => <strong>{chunks}</strong>,
+              strong: (chunks) => (
+                <strong className="font-extrabold">{chunks}</strong>
+              ),
             })}
           </p>
         </section>
 
-        {/* Renvoi vers la page Coligo Pay (distincte du cashback) */}
+        {/* Card info : Coligo Pay (différent du cashback) → page dédiée. */}
         <Link
           href="/coligo-pay"
-          className="border-border bg-surface hover:border-primary-300 mt-4 flex items-center gap-3 rounded-[16px] border p-4 transition-colors"
+          className="mt-4 flex items-center gap-3 rounded-[18px] bg-white p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)] transition-transform active:scale-[.99]"
         >
-          <div className="bg-primary-50 text-primary-700 flex size-10 shrink-0 items-center justify-center rounded-full">
+          <div className="bg-primary-50 text-primary-600 flex size-[46px] shrink-0 items-center justify-center rounded-[13px]">
             <Wallet className="size-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-foreground text-sm font-semibold">
+            <p className="text-foreground text-[14.5px] font-extrabold tracking-tight">
               {t("coligoPayLinkTitle")}
             </p>
-            <p className="text-muted mt-0.5 text-xs">
+            <p className="text-muted mt-0.5 text-xs font-medium">
               {t("coligoPayLinkDesc")}
             </p>
           </div>
         </Link>
 
-        {/* Historique CASHBACK uniquement */}
+        {/* Historique CASHBACK uniquement (timeline) */}
         <section className="mt-6">
-          <h2 className="text-foreground mb-3 text-base font-bold">
+          <h2 className="text-foreground mb-2.5 text-[18px] font-black tracking-tight">
             {t("cashbackHistory")}
           </h2>
           <WalletEntryList
