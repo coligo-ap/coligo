@@ -104,7 +104,7 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
             <button
               type="button"
               onClick={() => setPickerOpen(true)}
-              className="flex min-w-0 flex-1 items-center gap-2 text-left"
+              className="flex min-w-0 flex-1 items-center gap-2 text-start"
             >
               <MapPin className="text-primary-600 size-4 shrink-0" />
               <span className="min-w-0 truncate text-sm font-medium">

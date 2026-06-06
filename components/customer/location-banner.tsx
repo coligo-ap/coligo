@@ -24,7 +24,7 @@ export function LocationBanner() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="border-warning-100 bg-warning-50 text-warning-700 hover:bg-warning-100/70 mb-4 flex w-full items-center gap-3 rounded-[14px] border px-4 py-3 text-left text-sm transition-colors"
+        className="border-warning-100 bg-warning-50 text-warning-700 hover:bg-warning-100/70 mb-4 flex w-full items-center gap-3 rounded-[14px] border px-4 py-3 text-start text-sm transition-colors"
       >
         <MapPin className="text-warning-600 size-4 shrink-0" />
         <span className="flex-1">{t("setZonePrompt")}</span>

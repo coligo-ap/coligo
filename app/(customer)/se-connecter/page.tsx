@@ -133,7 +133,7 @@ function CustomerLoginInner() {
                         placeholder="vous@exemple.dz"
                         required
                         disabled={pending}
-                        className="pl-9"
+                        className="ps-9"
                       />
                     </div>
                   </div>
@@ -158,7 +158,7 @@ function CustomerLoginInner() {
                         placeholder="••••••••"
                         required
                         disabled={pending}
-                        className="pl-9"
+                        className="ps-9"
                       />
                     </div>
                   </div>
@@ -179,7 +179,8 @@ function CustomerLoginInner() {
                       t("signingIn")
                     ) : (
                       <>
-                        {t("signIn")} <ArrowRight className="size-4" />
+                        {t("signIn")}{" "}
+                        <ArrowRight className="size-4 rtl:-scale-x-100" />
                       </>
                     )}
                   </Button>

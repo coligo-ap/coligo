@@ -112,7 +112,7 @@ export function MerchantHeroCard({
       />
 
       {/* Carte info — chevauche légèrement le bas du hero (-mt-10).
-          Padding gauche augmenté à `pl-28` pour réserver la place du logo
+          Padding gauche augmenté à `ps-28` pour réserver la place du logo
           qui remonte (size-20 + marge), évitant tout chevauchement texte. */}
       <div className="bg-surface border-border relative mx-3 -mt-10 rounded-[20px] border p-4 shadow-sm lg:mx-10 lg:p-5">
         {/* Logo flottant, positionné absolument pour libérer le flux du texte. */}
@@ -135,7 +135,7 @@ export function MerchantHeroCard({
 
         {/* En-tête : titre + catégorie + badge ouvert. Padding-left pour ne
             jamais passer sous le logo (qui fait 80–96px de large + marge). */}
-        <header className="min-h-[3rem] pl-[5.5rem] lg:min-h-[3.5rem] lg:pl-[6.5rem]">
+        <header className="min-h-[3rem] ps-[5.5rem] lg:min-h-[3.5rem] lg:ps-[6.5rem]">
           <h1 className="text-foreground line-clamp-2 text-xl leading-tight font-bold lg:text-2xl">
             {name}
           </h1>
@@ -232,7 +232,7 @@ export function MerchantHeroCard({
             type="button"
             onClick={() => setShowHours((v) => !v)}
             aria-expanded={showHours}
-            className="text-foreground hover:bg-surface-2 -mx-2 flex w-[calc(100%+1rem)] items-center gap-2 rounded-[10px] px-2 py-1.5 text-left text-sm font-medium transition-colors"
+            className="text-foreground hover:bg-surface-2 -mx-2 flex w-[calc(100%+1rem)] items-center gap-2 rounded-[10px] px-2 py-1.5 text-start text-sm font-medium transition-colors"
           >
             <Clock className="text-primary-600 size-4" />
             <span className="flex-1">{t("seeOpeningHours")}</span>

@@ -112,7 +112,7 @@ export function MerchantClosedNotice({
                 type="button"
                 onClick={() => setShowModal(false)}
                 aria-label={t("close")}
-                className="text-subtle hover:bg-surface-2 -mt-1 -mr-1 flex size-8 items-center justify-center rounded-full"
+                className="text-subtle hover:bg-surface-2 -me-1 -mt-1 flex size-8 items-center justify-center rounded-full"
               >
                 <X className="size-4" />
               </button>

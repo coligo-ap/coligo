@@ -976,7 +976,7 @@ function PayOption({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex w-full items-center gap-3 rounded-[13px] border p-3.5 text-left transition disabled:cursor-not-allowed disabled:opacity-50",
+        "flex w-full items-center gap-3 rounded-[13px] border p-3.5 text-start transition disabled:cursor-not-allowed disabled:opacity-50",
         selected
           ? "border-primary-500 bg-primary-50"
           : "border-border bg-surface hover:border-primary-300"
@@ -1038,7 +1038,7 @@ function PickChoice({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "rounded-[12px] border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50",
+        "rounded-[12px] border p-3 text-start transition disabled:cursor-not-allowed disabled:opacity-50",
         checked
           ? "border-primary-600 ring-primary-100 ring-2"
           : "border-border bg-surface hover:border-primary-300"
@@ -1070,7 +1070,7 @@ function WalletToggleRow({
       role="switch"
       aria-checked={checked}
       onClick={onToggle}
-      className="border-primary-100 from-primary-50 mt-2.5 flex w-full items-center gap-3 rounded-[13px] border bg-gradient-to-br to-[#F5F2FF] p-3 text-left"
+      className="border-primary-100 from-primary-50 mt-2.5 flex w-full items-center gap-3 rounded-[13px] border bg-gradient-to-br to-[#F5F2FF] p-3 text-start"
     >
       <span className="text-primary-600 grid size-[38px] shrink-0 place-items-center rounded-[11px] bg-white">
         <Icon className="size-4" />

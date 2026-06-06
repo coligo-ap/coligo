@@ -72,7 +72,7 @@ function IdentityCard({
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+213 6XX XX XX XX"
-            className="pl-9"
+            className="ps-9"
           />
         </div>
       </div>

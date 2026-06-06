@@ -131,7 +131,7 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
           placeholder={t("commentPlaceholder")}
           className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 mt-1.5 w-full rounded-[12px] border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
         />
-        <p className="text-subtle mt-1 text-right text-[10px]">
+        <p className="text-subtle mt-1 text-end text-[10px]">
           {comment.length}/{MAX_COMMENT}
         </p>
 

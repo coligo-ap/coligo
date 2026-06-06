@@ -328,7 +328,7 @@ export default async function CustomerOrderDetailPage({
           href="/commandes"
           className="text-muted hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm"
         >
-          <ArrowLeft className="size-4" />
+          <ArrowLeft className="size-4 rtl:-scale-x-100" />
           {t("myOrders")}
         </Link>
 
@@ -393,7 +393,7 @@ export default async function CustomerOrderDetailPage({
               ) : (
                 <span />
               )}
-              <div className="text-right">
+              <div className="text-end">
                 {isCash ? (
                   <>
                     <small className="text-muted block text-[9.5px] font-bold tracking-wide uppercase">
@@ -482,12 +482,12 @@ export default async function CustomerOrderDetailPage({
               className="flex items-baseline justify-between py-1.5 text-sm"
             >
               <span className="min-w-0 font-semibold">
-                <span className="text-primary-600 mr-1 font-extrabold">
+                <span className="text-primary-600 me-1 font-extrabold">
                   {it.quantity}×
                 </span>
                 {it.product_name}
               </span>
-              <span className="shrink-0 pl-2 font-bold tabular-nums">
+              <span className="shrink-0 ps-2 font-bold tabular-nums">
                 {formatDA(it.line_total_da)}
               </span>
             </div>
@@ -556,7 +556,7 @@ export default async function CustomerOrderDetailPage({
               {merchant.name}
             </b>
             <small className="text-muted text-xs">
-              <MapPin className="-mt-0.5 mr-0.5 inline size-3" />
+              <MapPin className="me-0.5 -mt-0.5 inline size-3" />
               {[merchant.address, merchant.commune]
                 .filter(Boolean)
                 .join(" · ") || "—"}

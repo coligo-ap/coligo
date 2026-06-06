@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft, ChevronDown, ChevronUp, Clock, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,26 +18,22 @@ import type { ReviewWithCustomer } from "@/lib/data/reviews";
 // =============================================================================
 // MerchantCompactHeader — en-tête fiche commerçant, style Uber Eats / Glovo.
 // =============================================================================
-// PRIORITÉ ABSOLUE : voir les produits vite. Aucun bloc qui chevauche la
-// photo, hauteur minimale. Toutes les infos secondaires (description,
-// horaires détaillés) sont repliables.
+// Objectif : voir les produits vite + densité maximale d'infos utiles.
 //
-// Composition :
-//   ┌───────────────────────────────────┐
-//   │  ← [cover 140px nette]      ♡    │  ← boutons ronds par-dessus
-//   └───────────────────────────────────┘
-//   [logo] Nom du commerce  · Catégorie · ● Ouvert maintenant
-//          📍 Commune · 🕒 ~15 min · Horaires ⌄ · ★ 4.5 (28 avis)
-//   [    horaires détaillés repliés    ]
+//   ┌─────────────────────────────────────────┐
+//   │ ←   [ COVER rectangulaire plein-cadre ] ♡│  ← bords droits, plein-cadre
+//   └─────────────────────────────────────────┘
+//   [logo]  Nom du commerce
+//           Catégorie · ★4.5 (28) · ●Ouvert · 📍Commune · ~15 min · Min 500 DA · Horaires⌄
+//   [   description repliable · horaires repliables   ]
 //
-// Favori : persisté en DB (table customer_favorites) via <FavoriteHeart>.
+// Toutes les infos secondaires sont sur UNE ligne meta qui s'enroule, pour
+// gagner de la hauteur. Favori persisté en DB via <FavoriteHeart>.
 // =============================================================================
 
 type Props = {
   merchantId: string;
-  /** Le client a-t-il ce commerce en favori ? (état initial du cœur) */
   initialFavorite?: boolean;
-  /** Client connecté — sinon le cœur redirige vers la connexion. */
   isAuth?: boolean;
   name: string;
   category: string | null;
@@ -98,134 +94,132 @@ export function MerchantCompactHeader({
   const hasDescription = Boolean(description_fr || description_ar);
   const addressLine = [commune, wilaya_name].filter(Boolean).join(" · ");
 
+  // Ligne meta unique : on assemble les items présents puis on les sépare par
+  // des points médians (catégorie + avis côte à côte, puis logistique).
+  const meta: React.ReactNode[] = [];
+  if (categoryLabel) meta.push(<span key="cat">{categoryLabel}</span>);
+  if (rating_count > 0)
+    meta.push(
+      <MerchantReviewsDialog
+        key="rev"
+        ratingAvg={rating_avg}
+        ratingCount={rating_count}
+        reviews={reviews}
+      />
+    );
+  meta.push(<OpenStatusBadge key="open" hours={opening_hours} />);
+  if (addressLine)
+    meta.push(
+      <span key="addr" className="inline-flex items-center gap-1">
+        <MapPin className="text-primary-600 size-3" />
+        <span className="text-foreground">{addressLine}</span>
+      </span>
+    );
+  if (prep_time_min > 0)
+    meta.push(
+      <span key="prep" className="inline-flex items-center gap-1">
+        <Clock className="text-primary-600 size-3" />
+        <span className="text-foreground">
+          ~{t("prepMinutes", { count: prep_time_min })}
+        </span>
+      </span>
+    );
+  if (min_order_da > 0)
+    meta.push(
+      <span key="min" className="text-foreground">
+        {t("min")} <strong>{formatDA(min_order_da)}</strong>
+      </span>
+    );
+  meta.push(
+    <button
+      key="hours"
+      type="button"
+      onClick={() => setShowHours((v) => !v)}
+      aria-expanded={showHours}
+      className="text-primary-700 inline-flex items-center gap-0.5 font-semibold hover:underline"
+    >
+      {t("hours")}
+      {showHours ? (
+        <ChevronUp className="size-3" />
+      ) : (
+        <ChevronDown className="size-3" />
+      )}
+    </button>
+  );
+
   return (
     <div>
-      {/* ───── COVER plate 140px (mobile) / 200px (desktop). Le LOGO est
-              positionné absolument SUR la cover (chevauche par-dessus la
-              photo), façon Uber Eats. ───── */}
-      <div className="bg-surface-3 relative h-[140px] w-full rounded-[16px] lg:h-[200px]">
-        <div className="absolute inset-0 overflow-hidden rounded-[16px]">
-          {heroOptimized ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={heroOptimized}
-              alt={t("merchantPhotoAlt", { name })}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="from-primary-500/20 to-primary-700/30 flex h-full w-full items-center justify-center bg-gradient-to-br">
-              <span className="text-primary-700/70 text-5xl font-bold">
-                {name.charAt(0)}
-              </span>
-            </div>
-          )}
-        </div>
+      {/* ───── COVER plein-cadre rectangulaire (bords droits), à ras du haut.
+              `-mx`/`-mt` annulent le padding de la page pour un rendu edge-to-edge. */}
+      <div className="bg-surface-3 relative -mx-4 -mt-4 h-[160px] w-[calc(100%+2rem)] lg:-mx-6 lg:-mt-6 lg:h-[240px] lg:w-[calc(100%+3rem)]">
+        {heroOptimized ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={heroOptimized}
+            alt={t("merchantPhotoAlt", { name })}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="from-primary-500/20 to-primary-700/30 flex h-full w-full items-center justify-center bg-gradient-to-br">
+            <span className="text-primary-700/70 text-5xl font-bold">
+              {name.charAt(0)}
+            </span>
+          </div>
+        )}
+        {/* Dégradé bas pour la lisibilité des boutons et du logo. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/25 to-transparent" />
 
-        {/* Bouton retour (rond blanc translucide) */}
+        {/* Retour (haut-début) — flèche miroir en RTL. */}
         <Link
           href="/"
           aria-label={t("back")}
-          className="text-foreground absolute top-3 left-3 z-10 inline-flex size-9 items-center justify-center rounded-full bg-white/85 shadow-sm backdrop-blur transition-colors hover:bg-white"
+          className="text-foreground absolute start-3 top-3 z-10 inline-flex size-9 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur transition-colors hover:bg-white"
         >
-          <ArrowLeft className="size-4" />
+          <ArrowLeft className="size-4 rtl:-scale-x-100" />
         </Link>
 
-        {/* Bouton favori (persisté en DB) */}
+        {/* Favori (haut-fin) — persisté en DB. */}
         <FavoriteHeart
           merchantId={merchantId}
           initialFavorite={initialFavorite}
           isAuth={isAuth}
-          className="absolute top-3 right-3 z-10 size-9 bg-white/85"
+          className="absolute end-3 top-3 z-10 size-9 bg-white/90"
         />
-
-        {/* Logo SUPERPOSÉ sur la cover (bottom-left, dépasse de moitié au
-            dessous pour rester aussi visible que possible). */}
-        <div className="absolute -bottom-7 left-4 z-10 lg:-bottom-8 lg:left-5">
-          {logoOptimized ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={logoOptimized}
-              alt=""
-              loading="eager"
-              decoding="async"
-              className="size-16 rounded-2xl border-[3px] border-white bg-white object-cover shadow-lg lg:size-20"
-            />
-          ) : (
-            <div className="bg-primary-100 text-primary-700 flex size-16 items-center justify-center rounded-2xl border-[3px] border-white text-xl font-bold shadow-lg lg:size-20">
-              {name.charAt(0)}
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* ───── BANDE D'INFOS COMPACTE — sous la cover, décalée à droite pour
-              laisser la moitié inférieure du logo respirer. ───── */}
-      <div className="mt-3 flex items-start gap-3 pl-24 lg:pl-28">
-        {/* Bloc texte — toute la ligne 1 sur une rangée horizontale */}
-        <div className="min-w-0 flex-1">
-          <h1 className="font-display text-foreground line-clamp-1 text-lg font-bold lg:text-xl">
-            {name}
-          </h1>
-          <div className="text-muted mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-            {categoryLabel && <span>{categoryLabel}</span>}
-            {categoryLabel && <span aria-hidden>·</span>}
-            <OpenStatusBadge hours={opening_hours} />
-            {rating_count > 0 && (
-              <>
-                <span aria-hidden>·</span>
-                <MerchantReviewsDialog
-                  ratingAvg={rating_avg}
-                  ratingCount={rating_count}
-                  reviews={reviews}
-                />
-              </>
-            )}
+      {/* ───── Rangée identité : logo (chevauche la cover) + nom. ───── */}
+      <div className="relative z-10 -mt-9 flex items-end gap-3 lg:-mt-11">
+        {logoOptimized ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoOptimized}
+            alt=""
+            loading="eager"
+            decoding="async"
+            className="size-[72px] shrink-0 rounded-2xl border-[3px] border-white bg-white object-cover shadow-lg lg:size-20"
+          />
+        ) : (
+          <div className="bg-primary-100 text-primary-700 flex size-[72px] shrink-0 items-center justify-center rounded-2xl border-[3px] border-white text-xl font-bold shadow-lg lg:size-20">
+            {name.charAt(0)}
           </div>
-        </div>
+        )}
+        <h1 className="font-display text-foreground line-clamp-2 flex-1 pb-1 text-xl leading-tight font-bold lg:text-2xl">
+          {name}
+        </h1>
       </div>
 
-      {/* Ligne 2 : commune · prep · "Horaires ⌄" */}
+      {/* ───── Ligne meta unique (catégorie · avis · ouvert · commune · délai ·
+              minimum · horaires) — s'enroule pour gagner de la hauteur. ───── */}
       <div className="text-muted mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-        {addressLine && (
-          <span className="inline-flex items-center gap-1">
-            <MapPin className="text-primary-600 size-3" />
-            <span className="text-foreground">{addressLine}</span>
-          </span>
-        )}
-        {addressLine && prep_time_min > 0 && <span aria-hidden>·</span>}
-        {prep_time_min > 0 && (
-          <span className="inline-flex items-center gap-1">
-            <Clock className="text-primary-600 size-3" />
-            <span className="text-foreground">
-              ~{t("prepMinutes", { count: prep_time_min })}
-            </span>
-          </span>
-        )}
-        {min_order_da > 0 && (
-          <>
-            <span aria-hidden>·</span>
-            <span className="text-foreground">
-              {t("min")} <strong>{formatDA(min_order_da)}</strong>
-            </span>
-          </>
-        )}
-        <span aria-hidden>·</span>
-        <button
-          type="button"
-          onClick={() => setShowHours((v) => !v)}
-          aria-expanded={showHours}
-          className="text-primary-700 inline-flex items-center gap-0.5 font-semibold hover:underline"
-        >
-          {t("hours")}
-          {showHours ? (
-            <ChevronUp className="size-3" />
-          ) : (
-            <ChevronDown className="size-3" />
-          )}
-        </button>
+        {meta.map((item, i) => (
+          <Fragment key={i}>
+            {i > 0 && <span aria-hidden>·</span>}
+            {item}
+          </Fragment>
+        ))}
       </div>
 
-      {/* Description (1 ligne, "Voir plus" pour étendre) */}
+      {/* Description repliable (1 ligne par défaut). */}
       {hasDescription && (
         <div className="mt-2">
           {description_fr && (
@@ -255,7 +249,7 @@ export function MerchantCompactHeader({
         </div>
       )}
 
-      {/* Horaires repliables (fermé par défaut) */}
+      {/* Horaires détaillés repliables (fermés par défaut). */}
       {showHours && (
         <ul className="border-border bg-surface-2 mt-2 grid gap-1 rounded-[10px] border p-3 sm:grid-cols-2">
           {DAY_KEYS.map((d) => {

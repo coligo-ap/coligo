@@ -269,8 +269,8 @@ export function MerchantCatalog({
                       }}
                       onClick={() => scrollToGroup(g.key)}
                       className={cn(
-                        "inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pr-3 text-xs font-semibold whitespace-nowrap transition-colors active:scale-[0.96]",
-                        g.category?.image_url ? "pl-1" : "pl-3",
+                        "inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pe-3 text-xs font-semibold whitespace-nowrap transition-colors active:scale-[0.96]",
+                        g.category?.image_url ? "ps-1" : "ps-3",
                         active
                           ? "border-primary-600 bg-primary-600 text-white"
                           : "border-border bg-surface text-foreground hover:border-primary-300"

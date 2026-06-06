@@ -178,7 +178,7 @@ function CartCard({
             {cart.merchant_name ?? t("merchant")}
           </p>
           <p className="text-muted text-xs">
-            <ShoppingBag className="-mt-0.5 mr-1 inline size-3" />
+            <ShoppingBag className="me-1 -mt-0.5 inline size-3" />
             {t("itemsCount", { count })} ·{" "}
             <span className="text-foreground font-semibold tabular-nums">
               {formatDA(subtotal)}

@@ -32,7 +32,7 @@ export default async function CustomerFavoritesPage() {
           href="/"
           className="text-muted hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm"
         >
-          <ArrowLeft className="size-4" />
+          <ArrowLeft className="size-4 rtl:-scale-x-100" />
           {t("home")}
         </Link>
 

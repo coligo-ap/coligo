@@ -77,7 +77,7 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
               {t.label}
               <span
                 className={cn(
-                  "ml-1.5 rounded-full px-1.5 py-0.5 text-[11px] font-bold tabular-nums",
+                  "ms-1.5 rounded-full px-1.5 py-0.5 text-[11px] font-bold tabular-nums",
                   active
                     ? "bg-primary-100 text-primary-700"
                     : "bg-surface-3 text-muted"

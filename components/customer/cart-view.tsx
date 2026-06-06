@@ -58,7 +58,7 @@ export function CartView() {
           href={`/m/${cart.merchant_slug}`}
           className="bg-surface-2 text-foreground mb-3 inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-bold"
         >
-          <ArrowLeft className="size-4" />
+          <ArrowLeft className="size-4 rtl:-scale-x-100" />
           {t("backTo")}{" "}
           <span className="text-primary-700">
             {cart.merchant_name ?? t("theShop")}
@@ -174,7 +174,7 @@ export function CartView() {
             className="bg-primary-600 hover:bg-primary-700 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-base font-extrabold text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"
           >
             {t("checkout")}
-            <ArrowRight className="size-5" />
+            <ArrowRight className="size-5 rtl:-scale-x-100" />
           </Link>
         </div>
       </div>

@@ -104,7 +104,7 @@ function Banner({ banner }: { banner: PromoBanner }) {
         <div className="relative mt-4">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold backdrop-blur transition-colors group-hover:bg-white/30">
             {banner.cta_label}
-            <ArrowRight className="size-3.5" />
+            <ArrowRight className="size-3.5 rtl:-scale-x-100" />
           </span>
         </div>
       )}

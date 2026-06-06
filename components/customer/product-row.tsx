@@ -108,7 +108,7 @@ export function ProductRow({
       type="button"
       onClick={onOpenDetail}
       className={cn(
-        "hover:bg-surface-2 group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors",
+        "hover:bg-surface-2 group flex w-full items-center gap-3 px-3 py-2.5 text-start transition-colors",
         isOut && "opacity-60"
       )}
     >

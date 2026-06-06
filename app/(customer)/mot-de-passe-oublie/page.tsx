@@ -16,7 +16,7 @@ export default async function CustomerForgotPasswordPage() {
           href="/se-connecter"
           className="text-muted inline-flex items-center gap-1 text-sm"
         >
-          <ArrowLeft className="size-4" /> {t("signIn")}
+          <ArrowLeft className="size-4 rtl:-scale-x-100" /> {t("signIn")}
         </Link>
         <header className="mt-4 mb-5 space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">

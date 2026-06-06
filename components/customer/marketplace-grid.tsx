@@ -209,7 +209,7 @@ export function MarketplaceGrid({
         <div className="flex items-center gap-2">
           {pending && <Loader2 className="text-muted size-4 animate-spin" />}
           <span className="bg-surface-2 grid size-8 place-items-center rounded-full">
-            <ArrowRight className="text-foreground size-4" />
+            <ArrowRight className="text-foreground size-4 rtl:-scale-x-100" />
           </span>
         </div>
       </div>

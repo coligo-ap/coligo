@@ -122,7 +122,7 @@ export function ReviewPrompt({ orders }: Props) {
       <button
         type="button"
         onClick={() => setActive(o)}
-        className="group hidden w-full items-center gap-3 rounded-[14px] border border-amber-200 bg-amber-50 p-3 text-left transition-all hover:border-amber-300 hover:shadow-md hover:shadow-amber-100 active:scale-[0.99] sm:flex"
+        className="group hidden w-full items-center gap-3 rounded-[14px] border border-amber-200 bg-amber-50 p-3 text-start transition-all hover:border-amber-300 hover:shadow-md hover:shadow-amber-100 active:scale-[0.99] sm:flex"
       >
         {logo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -149,7 +149,7 @@ export function ReviewPrompt({ orders }: Props) {
                 className="size-3.5 fill-amber-300 text-amber-400"
               />
             ))}
-            <span className="text-muted ml-1 text-[11px]">
+            <span className="text-muted ms-1 text-[11px]">
               {t("rateInOneClick")}
             </span>
           </div>

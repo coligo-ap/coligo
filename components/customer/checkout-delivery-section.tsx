@@ -187,7 +187,7 @@ export function CheckoutDeliverySection({
                               disabled={full}
                               onClick={() => update({ slotId: s.id })}
                               className={cn(
-                                "flex w-full items-center gap-3 rounded-[10px] border px-3 py-2 text-left text-sm",
+                                "flex w-full items-center gap-3 rounded-[10px] border px-3 py-2 text-start text-sm",
                                 full
                                   ? "border-border bg-surface-2 text-muted cursor-not-allowed opacity-60"
                                   : isSel
@@ -295,7 +295,7 @@ function DeliveryAddressBlock({
                     })
                   }
                   className={cn(
-                    "flex w-full items-start gap-3 rounded-[10px] border p-3 text-left",
+                    "flex w-full items-start gap-3 rounded-[10px] border p-3 text-start",
                     disabled
                       ? "border-border bg-surface-2 text-muted cursor-not-allowed opacity-60"
                       : isSel
@@ -478,7 +478,7 @@ function CustomPositionPicker({
               )}
             </span>
             {customQuote && !customQuote.outOfRange && (
-              <span className="bg-surface-2 ml-auto shrink-0 rounded-[8px] px-2.5 py-1 text-[13px] font-extrabold tabular-nums">
+              <span className="bg-surface-2 ms-auto shrink-0 rounded-[8px] px-2.5 py-1 text-[13px] font-extrabold tabular-nums">
                 {formatDA(customQuote.feeDa)}
               </span>
             )}
@@ -620,7 +620,7 @@ function RecipientBlock({
           if (!next) update({ recipientName: "", phoneOverride: "" });
         }}
         className={cn(
-          "flex w-full items-center gap-3 rounded-[12px] border p-3 text-left transition",
+          "flex w-full items-center gap-3 rounded-[12px] border p-3 text-start transition",
           forSomeoneElse
             ? "border-primary-500 bg-primary-50"
             : "border-border bg-surface hover:border-primary-300"
@@ -719,7 +719,7 @@ function ModeButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-start gap-2 rounded-[12px] border p-3 text-left transition",
+        "flex items-start gap-2 rounded-[12px] border p-3 text-start transition",
         active
           ? "border-primary-500 bg-primary-50"
           : "border-border bg-surface hover:border-primary-300"

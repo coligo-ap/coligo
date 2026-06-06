@@ -166,7 +166,8 @@ function CustomerSignupInner() {
                       t("creating")
                     ) : (
                       <>
-                        {t("createMyAccount")} <ArrowRight className="size-4" />
+                        {t("createMyAccount")}{" "}
+                        <ArrowRight className="size-4 rtl:-scale-x-100" />
                       </>
                     )}
                   </Button>
@@ -222,7 +223,7 @@ function Field({
       <Label htmlFor={id}>{label}</Label>
       <div className="relative">
         <Icon className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-        <Input id={id} {...inputProps} disabled={disabled} className="pl-9" />
+        <Input id={id} {...inputProps} disabled={disabled} className="ps-9" />
       </div>
       {hint && <p className="text-subtle text-xs">{hint}</p>}
     </div>

@@ -97,7 +97,7 @@ export default async function CustomerAccountPage({
                   </span>
                 </p>
               </div>
-              <ChevronRight className="text-muted size-4" />
+              <ChevronRight className="text-muted size-4 rtl:-scale-x-100" />
             </Link>
           </li>
           <li>
@@ -119,7 +119,7 @@ export default async function CustomerAccountPage({
                   </span>
                 </p>
               </div>
-              <ChevronRight className="text-muted size-4" />
+              <ChevronRight className="text-muted size-4 rtl:-scale-x-100" />
             </Link>
           </li>
           <li>
@@ -136,7 +136,7 @@ export default async function CustomerAccountPage({
                 </p>
                 <p className="text-muted text-xs">{t("myOrdersDesc")}</p>
               </div>
-              <ChevronRight className="text-muted size-4" />
+              <ChevronRight className="text-muted size-4 rtl:-scale-x-100" />
             </Link>
           </li>
           <li>
@@ -153,7 +153,7 @@ export default async function CustomerAccountPage({
                 </p>
                 <p className="text-muted text-xs">{t("myFavoritesDesc")}</p>
               </div>
-              <ChevronRight className="text-muted size-4" />
+              <ChevronRight className="text-muted size-4 rtl:-scale-x-100" />
             </Link>
           </li>
         </ul>
@@ -183,7 +183,7 @@ export default async function CustomerAccountPage({
                 : t("manageDeliveryAddresses")}
             </p>
           </div>
-          <ChevronRight className="text-muted size-4" />
+          <ChevronRight className="text-muted size-4 rtl:-scale-x-100" />
         </Link>
 
         <CustomerLogoutButton />
