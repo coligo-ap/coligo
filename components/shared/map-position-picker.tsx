@@ -68,6 +68,16 @@ export type MapPositionPickerProps = {
   searchEnabled?: boolean;
   /** Statut de la géoloc auto : true = obtenue, false = refusée/indispo. */
   onLocate?: (ok: boolean) => void;
+  /**
+   * Halo qui pulse + chute du pin au chargement (touche premium du checkout
+   * livraison). Défaut false → marqueur statique (usage commerçant inchangé).
+   */
+  pulse?: boolean;
+  /**
+   * Classe de couleur du marqueur central (ex. "text-primary-700",
+   * "text-danger-600" hors zone). Défaut : violet primaire.
+   */
+  markerColorClass?: string;
 };
 
 export function MapPositionPicker({
@@ -81,6 +91,8 @@ export function MapPositionPicker({
   onConfirm,
   searchEnabled = false,
   onLocate,
+  pulse = false,
+  markerColorClass = "text-primary-700",
 }: MapPositionPickerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
@@ -503,13 +515,28 @@ export function MapPositionPicker({
       )}
 
       {/* Marqueur central fixe (overlay HTML). pointer-events-none pour
-          laisser passer les clics → carte. */}
+          laisser passer les clics → carte. Le conteneur est ancré au POINT
+          (centre du viewport) ; le pin se décale au-dessus, le halo pulse
+          depuis ce point exact. */}
       {mapReady && (
-        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full">
-          <MapPin
-            className="text-primary-700 size-9 drop-shadow-md"
-            fill="currentColor"
-          />
+        <div
+          className={cn(
+            "pointer-events-none absolute top-1/2 left-1/2 z-[2]",
+            markerColorClass
+          )}
+        >
+          {pulse && (
+            <span
+              aria-hidden
+              className="co-halo absolute top-0 left-0 size-7 rounded-full bg-current"
+            />
+          )}
+          <span className="absolute top-0 left-0 -translate-x-1/2 -translate-y-full">
+            <MapPin
+              className={cn("size-9 drop-shadow-md", pulse && "co-drop")}
+              fill="currentColor"
+            />
+          </span>
         </div>
       )}
 

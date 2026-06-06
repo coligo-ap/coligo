@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
+  ArrowLeft,
   Banknote,
+  ChevronRight,
   Clock,
   CreditCard,
   Gift,
@@ -90,6 +92,11 @@ export function CheckoutView({ customer }: Props) {
   const [useCashback, setUseCashback] = useState(false);
   const [useTopup, setUseTopup] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  // Lignes repliables compactes (mockup) : promo + note s'ouvrent au tap.
+  const [promoOpen, setPromoOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  // Re-déclenche l'anim « bump » du total quand on bascule un solde.
+  const [walletBump, setWalletBump] = useState(0);
   // Code promo : saisie + code validé côté serveur (estimation ; le serveur
   // retranche et revalide à la création de la commande).
   const [promoInput, setPromoInput] = useState("");
@@ -484,8 +491,30 @@ export function CheckoutView({ customer }: Props) {
         ? t("errPickupSlot")
         : "";
 
+  // Jauge « frais offerts » : progression vers le palier de gratuité.
+  const gaugePct =
+    ctx.service_fee_free_in_da != null && ctx.service_fee_free_in_da > 0
+      ? Math.max(
+          8,
+          Math.min(
+            92,
+            Math.round(
+              (ctx.cart.totalDa /
+                (ctx.cart.totalDa + ctx.service_fee_free_in_da)) *
+                100
+            )
+          )
+        )
+      : 100;
+
+  const toggleWallet = (which: "cashback" | "topup") => {
+    if (which === "cashback") setUseCashback((v) => !v);
+    else setUseTopup((v) => !v);
+    setWalletBump((n) => n + 1);
+  };
+
   return (
-    <>
+    <div data-checkout>
       <div className="mx-auto max-w-[560px] px-4 pt-3 pb-44">
         {showConflict && (
           <CartConflictModal
@@ -495,34 +524,48 @@ export function CheckoutView({ customer }: Props) {
           />
         )}
 
-        {/* En-tête fusionné : le titre devient un eyebrow dans la carte
-            boutique → on gagne la ligne du <h1> séparé. */}
-        <Card>
-          <div className="flex items-center gap-3">
-            <span className="bg-foreground grid size-11 shrink-0 place-items-center rounded-[12px] text-white">
+        {/* En-tête : flèche retour + titre. */}
+        <div className="flex items-center gap-3 pt-1 pb-2">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            aria-label={t("backToCart")}
+            className="bg-surface-2 text-foreground grid size-9 shrink-0 place-items-center rounded-full transition active:scale-90"
+          >
+            <ArrowLeft className="size-[18px]" />
+          </button>
+          <h1 className="text-foreground text-[20px] font-extrabold tracking-tight">
+            {t("title")}
+          </h1>
+        </div>
+
+        {/* Bloc boutique — logo dégradé sombre + eyebrow violet. */}
+        <Block delay={0.02}>
+          <div className="flex items-center gap-3 p-4">
+            <span className="grid size-[46px] shrink-0 place-items-center rounded-[13px] bg-gradient-to-br from-[#26262e] to-[#0b0b0f] text-white shadow-[0_6px_14px_-4px_rgba(0,0,0,0.4)]">
               <Store className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-muted text-[10.5px] font-bold tracking-wider uppercase">
-                {t("title")}
+              <p className="text-primary-600 text-[10px] font-extrabold tracking-wider uppercase">
+                {t("myOrder")}
               </p>
-              <p className="text-foreground truncate text-[15px] font-extrabold">
+              <p className="text-foreground truncate text-[16px] font-extrabold">
                 {ctx.merchant.name}
               </p>
-              <p className="text-muted text-[12.5px] font-semibold">
+              <p className="text-muted text-[12px] font-semibold">
                 {t("itemsInCart", { count: totalUnits })}
               </p>
             </div>
             <Link
               href="/cart"
-              className="text-primary-700 shrink-0 text-[13px] font-bold"
+              className="text-primary-700 shrink-0 text-[13px] font-extrabold transition active:scale-90"
             >
               {t("edit")}
             </Link>
           </div>
-        </Card>
+        </Block>
 
-        {/* Toggle Retrait / Livraison + détail livraison */}
+        {/* Toggle Retrait / Livraison + détail livraison (carte, statut, repli). */}
         <CheckoutDeliverySection
           delivery={ctx.delivery}
           merchantPosition={ctx.delivery.merchantPosition}
@@ -534,32 +577,33 @@ export function CheckoutView({ customer }: Props) {
 
         {/* Créneau de retrait (uniquement si retrait) */}
         {!isDelivery && (
-          <Card className="mt-3">
-            <CardH icon={Clock}>{t("pickupSlot")}</CardH>
-            <div className="flex items-center gap-2 text-[13.5px] font-semibold">
+          <Block className="mt-3" delay={0.07}>
+            <div className="text-muted flex items-center gap-2 px-4 pt-4 pb-3 text-[13px] font-bold">
               <Store className="text-primary-600 size-4 shrink-0" />
               {t("pickupAt", { name: ctx.merchant.name })}
             </div>
 
             {!openNow && (
-              <div className="border-warning-100 bg-warning-50 text-warning-800 mt-3 rounded-[10px] border px-3 py-2 text-xs">
+              <div className="border-warning-100 bg-warning-50 text-warning-800 mx-4 mb-3 rounded-[10px] border px-3 py-2 text-xs">
                 {t("closedPickSlot")}
               </div>
             )}
 
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <PickChoice
+            <div className="divide-border border-border divide-y border-t">
+              <SlotRadio
                 checked={pickupType === "asap"}
                 onClick={() => setPickupType("asap")}
+                icon={<Clock className="size-[17px]" />}
                 title={t("immediatePrep")}
                 hint={formatAsapReady(
                   new Date(Date.now() + ctx.merchant.prep_time_min * 60_000)
                 )}
                 disabled={!openNow}
               />
-              <PickChoice
+              <SlotRadio
                 checked={pickupType === "slot"}
                 onClick={() => setPickupType("slot")}
+                icon={<CalendarGlyph />}
                 title={t("chooseSlot")}
                 hint={
                   availableDays.length === 0
@@ -571,7 +615,7 @@ export function CheckoutView({ customer }: Props) {
             </div>
 
             {pickupType === "slot" && availableDays.length > 0 && (
-              <div className="mt-3 space-y-2">
+              <div className="space-y-2 px-4 pt-3 pb-4">
                 <div className="scrollbar-hide -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
                   {availableDays.map((dayKey) => {
                     const sample = slotsByDay.get(dayKey)?.[0]?.start;
@@ -587,7 +631,7 @@ export function CheckoutView({ customer }: Props) {
                           setChosenSlotIdx(null);
                         }}
                         className={cn(
-                          "shrink-0 rounded-[10px] border px-3 py-1.5 text-xs font-medium capitalize transition",
+                          "shrink-0 rounded-[10px] border px-3 py-1.5 text-xs font-bold capitalize transition",
                           active
                             ? "border-primary-600 bg-primary-50 text-primary-700"
                             : "border-border bg-surface hover:border-primary-300"
@@ -605,7 +649,7 @@ export function CheckoutView({ customer }: Props) {
                       type="button"
                       onClick={() => setChosenSlotIdx(i)}
                       className={cn(
-                        "rounded-[10px] border px-3 py-1.5 text-sm font-medium tabular-nums transition",
+                        "rounded-[10px] border px-3 py-1.5 text-sm font-bold tabular-nums transition",
                         chosenSlotIdx === i
                           ? "border-primary-600 bg-primary-600 text-white"
                           : "border-border bg-surface hover:border-primary-300"
@@ -617,14 +661,16 @@ export function CheckoutView({ customer }: Props) {
                 </div>
               </div>
             )}
-          </Card>
+          </Block>
         )}
 
-        {/* Paiement */}
-        <Card className="mt-3">
-          <CardH icon={CreditCard}>{t("payment")}</CardH>
-          <div className="space-y-2">
-            <PayOption
+        {/* Paiement — UNE carte, options séparées par traits fins. */}
+        <Block className="mt-3" delay={0.12}>
+          <SectionTitle icon={CreditCard} className="px-4 pt-4">
+            {t("payment")}
+          </SectionTitle>
+          <div className="divide-border border-border mt-1 divide-y border-t">
+            <PayRow
               icon={Banknote}
               selected={payment === "cash"}
               onClick={() => setPayment("cash")}
@@ -632,7 +678,7 @@ export function CheckoutView({ customer }: Props) {
               sub={isDelivery ? t("cashDeliverySub") : t("cashPickupSub")}
               disabled={!ctx.merchant.accepts_cash}
             />
-            <PayOption
+            <PayRow
               icon={CreditCard}
               selected={payment === "online"}
               onClick={() => setPayment("online")}
@@ -641,9 +687,33 @@ export function CheckoutView({ customer }: Props) {
               sub={t("onlineSub")}
               disabled={!ctx.merchant.accepts_online}
             />
+            {/* Soldes — DEUX switches séparés, cumulables (si solde > 0). */}
+            {ctx.topup_balance_da > 0 && (
+              <WalletRow
+                icon={Wallet}
+                title="Coligo Pay"
+                sub={t("balanceAmount", {
+                  amount: formatDA(ctx.topup_balance_da),
+                })}
+                checked={useTopup}
+                onToggle={() => toggleWallet("topup")}
+              />
+            )}
+            {ctx.cashback_balance_da > 0 && (
+              <WalletRow
+                icon={Gift}
+                title={t("myCashback")}
+                sub={t("availableAmount", {
+                  amount: formatDA(ctx.cashback_balance_da),
+                })}
+                checked={useCashback}
+                onToggle={() => toggleWallet("cashback")}
+              />
+            )}
           </div>
+
           {onlineTooLow && (
-            <div className="border-danger-200 bg-danger-50 text-danger-800 mt-3 rounded-[10px] border px-3 py-2 text-xs">
+            <div className="border-danger-200 bg-danger-50 text-danger-800 mx-4 mt-3 mb-1 rounded-[10px] border px-3 py-2 text-xs">
               {t.rich("onlineTooLow", {
                 min: formatDA(CHARGILY_MIN_AMOUNT_DA),
                 remaining: formatDA(totalAfterWallets),
@@ -652,7 +722,7 @@ export function CheckoutView({ customer }: Props) {
             </div>
           )}
           {onlineFullyCovered && (
-            <div className="border-success-200 bg-success-50 text-success-800 mt-3 flex items-center gap-2 rounded-[10px] border px-3 py-2 text-xs">
+            <div className="border-success-200 bg-success-50 text-success-800 mx-4 mt-3 mb-1 flex items-center gap-2 rounded-[10px] border px-3 py-2 text-xs">
               <Check className="size-4 shrink-0" />
               <span>
                 {t.rich("onlineFullyCovered", {
@@ -661,53 +731,16 @@ export function CheckoutView({ customer }: Props) {
               </span>
             </div>
           )}
+        </Block>
 
-          {/* Soldes utilisables — DEUX toggles séparés, cumulables (visible si
-              solde > 0). Le cashback ne sert qu'à payer → jamais masqué. */}
-          {ctx.cashback_balance_da > 0 && (
-            <WalletToggleRow
-              icon={Gift}
-              title={t("myCashback")}
-              sub={t("availableAmount", {
-                amount: formatDA(ctx.cashback_balance_da),
-              })}
-              checked={useCashback}
-              onToggle={() => setUseCashback((v) => !v)}
-            />
-          )}
-          {ctx.topup_balance_da > 0 && (
-            <WalletToggleRow
-              icon={Wallet}
-              title="Coligo Pay"
-              sub={t("balanceAmount", {
-                amount: formatDA(ctx.topup_balance_da),
-              })}
-              checked={useTopup}
-              onToggle={() => setUseTopup((v) => !v)}
-            />
-          )}
-        </Card>
-
-        {/* Note */}
-        <Card className="mt-3">
-          <CardH icon={Sparkles}>{t("noteToMerchant")}</CardH>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={2}
-            maxLength={300}
-            placeholder={t("notePlaceholder")}
-            className="border-border bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full resize-none rounded-[12px] border px-3 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none"
-          />
-        </Card>
-
-        {/* Code promo */}
-        <Card className="mt-3">
-          <CardH icon={Tag}>{t("promoCode")}</CardH>
+        {/* Promo + Note = lignes repliables compactes. */}
+        <Block className="mt-3" delay={0.17}>
           {appliedPromo ? (
-            <div className="border-success-200 bg-success-50 flex items-center justify-between gap-3 rounded-[12px] border px-3 py-2.5">
-              <span className="text-success-800 flex items-center gap-2 text-sm font-extrabold">
-                <Check className="size-4 shrink-0" />
+            <div className="flex items-center gap-3 p-4">
+              <span className="bg-success-50 text-success-700 grid size-[34px] shrink-0 place-items-center rounded-[10px]">
+                <Tag className="size-[17px]" />
+              </span>
+              <span className="text-success-800 flex-1 text-sm font-extrabold">
                 {t("promoApplied", {
                   code: appliedPromo.code,
                   discount: formatDA(appliedPromo.discount_da),
@@ -722,11 +755,12 @@ export function CheckoutView({ customer }: Props) {
                 <X className="size-4" />
               </button>
             </div>
-          ) : (
-            <>
+          ) : promoOpen ? (
+            <div className="p-4">
               <div className="flex gap-2">
                 <input
                   value={promoInput}
+                  autoFocus
                   onChange={(e) => {
                     setPromoInput(e.target.value.toUpperCase());
                     if (promoError) setPromoError(null);
@@ -758,133 +792,189 @@ export function CheckoutView({ customer }: Props) {
                   {promoError}
                 </p>
               )}
-            </>
-          )}
-        </Card>
-
-        {/* Récap */}
-        <Card className="mt-3">
-          <CardH icon={Receipt}>{t("recap")}</CardH>
-          {ctx.service_fee_da > 0 && ctx.service_fee_free_in_da != null && (
-            <div className="from-primary-50 text-primary-700 mb-3 flex items-center gap-2 rounded-[11px] bg-gradient-to-br to-[#F4F0FF] px-3 py-2.5 text-[12.5px] font-bold">
-              <Zap className="text-primary-600 size-4 shrink-0" />
-              <span>
-                {t.rich("serviceFeeFreeIn", {
-                  amount: formatDA(ctx.service_fee_free_in_da),
-                  strong: (chunks) => <strong>{chunks}</strong>,
-                })}
-              </span>
             </div>
-          )}
-          <dl className="space-y-1">
-            <RRow
-              label={t("subtotal")}
-              value={formatDA(ctx.cart.normalTotalDa)}
+          ) : (
+            <AddLine
+              icon={<Tag className="size-[17px]" />}
+              title={t("addPromoCode")}
+              onClick={() => setPromoOpen(true)}
             />
-            {ctx.cart.savingsDa > 0 && (
-              <RRow
-                label={t("productPromo")}
-                value={`− ${formatDA(ctx.cart.savingsDa)}`}
-                tone="success"
+          )}
+
+          <div className="border-border border-t">
+            {noteOpen || note.trim() !== "" ? (
+              <div className="p-4">
+                <p className="text-muted mb-2 flex items-center gap-2 text-[11px] font-extrabold tracking-wider uppercase">
+                  <Sparkles className="text-foreground size-[14px]" />
+                  {t("noteToMerchant")}
+                </p>
+                <textarea
+                  value={note}
+                  autoFocus={noteOpen && note === ""}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  maxLength={300}
+                  placeholder={t("notePlaceholder")}
+                  className="border-border bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full resize-none rounded-[12px] border px-3 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none"
+                />
+              </div>
+            ) : (
+              <AddLine
+                icon={<Sparkles className="size-[17px]" />}
+                title={t("noteToMerchant")}
+                sub={t("noteHint")}
+                onClick={() => setNoteOpen(true)}
               />
             )}
-            {ctx.service_fee_da > 0 ? (
+          </div>
+        </Block>
+
+        {/* Récap dense */}
+        <Block className="mt-3" delay={0.22}>
+          <div className="p-4">
+            <SectionTitle icon={Receipt} className="mb-3">
+              {t("recap")}
+            </SectionTitle>
+            {ctx.service_fee_da > 0 && ctx.service_fee_free_in_da != null && (
+              <div className="from-primary-50 text-primary-700 relative mb-3.5 flex items-center gap-2.5 overflow-hidden rounded-[13px] bg-gradient-to-r to-[#f3f0ff] px-3.5 py-3 text-[12.5px] font-bold">
+                <span className="text-primary-600 grid size-7 shrink-0 place-items-center rounded-[8px] bg-white shadow-[0_2px_6px_-1px_rgba(91,91,230,0.4)]">
+                  <Zap className="size-3.5" />
+                </span>
+                <span>
+                  {t.rich("serviceFeeFreeIn", {
+                    amount: formatDA(ctx.service_fee_free_in_da),
+                    strong: (chunks) => <strong>{chunks}</strong>,
+                  })}
+                </span>
+                <span
+                  className="from-primary-600 to-primary-400 absolute bottom-0 left-0 h-[3px] rounded-r-full bg-gradient-to-r"
+                  style={{ width: `${gaugePct}%` }}
+                />
+              </div>
+            )}
+            <dl className="space-y-1">
               <RRow
-                label={t("serviceFee")}
-                value={`+ ${formatDA(ctx.service_fee_da)}`}
+                label={t("subtotal")}
+                value={formatDA(ctx.cart.normalTotalDa)}
+                muted
               />
-            ) : (
-              ctx.cart.totalDa > 0 && (
+              {ctx.cart.savingsDa > 0 && (
                 <RRow
-                  label={t("serviceFee")}
-                  value={t("free")}
+                  label={t("productPromo")}
+                  value={`− ${formatDA(ctx.cart.savingsDa)}`}
                   tone="success"
                 />
-              )
-            )}
-            {deliveryFeeDa > 0 && (
-              <RRow label={t("deliveryFee")} value={formatDA(deliveryFeeDa)} />
-            )}
-            {promoDiscount > 0 && (
-              <RRow
-                label={t("promoCodeLabel", { code: appliedPromo?.code ?? "" })}
-                value={`− ${formatDA(promoDiscount)}`}
-                tone="success"
-              />
-            )}
-
-            {walletUsed ? (
-              <>
+              )}
+              {ctx.service_fee_da > 0 ? (
                 <RRow
-                  label={t("orderTotal")}
-                  value={formatDA(totalAfterPromo)}
+                  label={t("serviceFee")}
+                  value={`+ ${formatDA(ctx.service_fee_da)}`}
+                  muted
                 />
-                <hr className="border-border my-2" />
-                {cashbackApplied > 0 && (
+              ) : (
+                ctx.cart.totalDa > 0 && (
                   <RRow
-                    label={t("cashbackUsed")}
-                    value={`− ${formatDA(cashbackApplied)}`}
+                    label={t("serviceFee")}
+                    value={t("free")}
                     tone="success"
                   />
-                )}
-                {topupApplied > 0 && (
+                )
+              )}
+              {deliveryFeeDa > 0 && (
+                <RRow
+                  label={t("deliveryFee")}
+                  value={formatDA(deliveryFeeDa)}
+                />
+              )}
+              {promoDiscount > 0 && (
+                <RRow
+                  label={t("promoCodeLabel", {
+                    code: appliedPromo?.code ?? "",
+                  })}
+                  value={`− ${formatDA(promoDiscount)}`}
+                  tone="success"
+                />
+              )}
+
+              {walletUsed ? (
+                <>
                   <RRow
-                    label={t("topupUsed")}
-                    value={`− ${formatDA(topupApplied)}`}
-                    tone="success"
+                    label={t("orderTotal")}
+                    value={formatDA(totalAfterPromo)}
                   />
-                )}
-                <hr className="border-border my-2" />
-                <TotRow
-                  label={resteLabel}
-                  value={formatDA(totalAfterWallets)}
-                />
-              </>
-            ) : (
-              <>
-                <hr className="border-border my-2" />
-                <TotRow
-                  label={totalLabel}
-                  value={formatDA(totalAfterWallets)}
-                />
-              </>
-            )}
-          </dl>
+                  <hr className="border-border my-2 border-dashed" />
+                  {cashbackApplied > 0 && (
+                    <RRow
+                      label={t("cashbackUsed")}
+                      value={`− ${formatDA(cashbackApplied)}`}
+                      tone="success"
+                    />
+                  )}
+                  {topupApplied > 0 && (
+                    <RRow
+                      label={t("topupUsed")}
+                      value={`− ${formatDA(topupApplied)}`}
+                      tone="success"
+                    />
+                  )}
+                  <hr className="border-border my-2 border-dashed" />
+                  <TotRow
+                    label={resteLabel}
+                    value={formatDA(totalAfterWallets)}
+                  />
+                </>
+              ) : (
+                <>
+                  <hr className="border-border my-2 border-dashed" />
+                  <TotRow
+                    label={totalLabel}
+                    value={formatDA(totalAfterWallets)}
+                  />
+                </>
+              )}
+            </dl>
 
-          {/* Cashback GAGNÉ = gain futur (jamais un frais). Encadré vert. */}
-          {payment === "online" && ctx.cart.totalDa > 0 && (
-            <div className="bg-success-50 mt-3 flex items-center gap-2.5 rounded-[11px] p-3">
-              <span className="text-success-700 grid size-[30px] shrink-0 place-items-center rounded-[9px] bg-white">
-                <Gift className="size-4" />
-              </span>
-              <p className="text-success-700 text-[12.5px] font-bold">
-                {t.rich("cashbackEarn", {
-                  amount: formatDA(Math.round(ctx.cart.totalDa * 0.03)),
-                  strong: (chunks) => (
-                    <strong className="font-extrabold">{chunks}</strong>
-                  ),
-                })}
-              </p>
-            </div>
-          )}
+            {ctx.merchant.min_order_da > 0 &&
+              ctx.cart.totalDa < ctx.merchant.min_order_da && (
+                <p className="text-danger-600 mt-2 text-xs">
+                  {t("minOrder", {
+                    amount: formatDA(ctx.merchant.min_order_da),
+                  })}
+                </p>
+              )}
+          </div>
+        </Block>
 
-          {ctx.merchant.min_order_da > 0 &&
-            ctx.cart.totalDa < ctx.merchant.min_order_da && (
-              <p className="text-danger-600 mt-2 text-xs">
-                {t("minOrder", { amount: formatDA(ctx.merchant.min_order_da) })}
-              </p>
-            )}
-        </Card>
+        {/* Cashback GAGNÉ = gain futur (jamais un frais). Encadré vert séparé. */}
+        {payment === "online" && ctx.cart.totalDa > 0 && (
+          <div className="from-success-50 co-rise relative mt-3 flex items-center gap-3 overflow-hidden rounded-[16px] bg-gradient-to-r to-[#e8faf0] p-3.5 shadow-[0_6px_18px_-10px_rgba(21,145,90,0.4)]">
+            <span className="text-success-700 z-[2] grid size-9 shrink-0 place-items-center rounded-[11px] bg-white shadow-[0_3px_8px_-2px_rgba(21,145,90,0.35)]">
+              <Gift className="size-[18px]" />
+            </span>
+            <p className="z-[2] text-[12.5px] leading-snug font-bold text-[#0e6b43]">
+              {t.rich("cashbackEarn", {
+                amount: formatDA(Math.round(ctx.cart.totalDa * 0.03)),
+                strong: (chunks) => (
+                  <strong className="font-extrabold">{chunks}</strong>
+                ),
+              })}
+            </p>
+            <span className="absolute -top-5 -right-5 size-20 rounded-full bg-[rgba(21,145,90,0.06)]" />
+          </div>
+        )}
       </div>
 
       {/* ── Barre d'action UNIQUE, fixe en bas ── */}
-      <div className="border-border fixed inset-x-0 bottom-16 z-40 border-t bg-white px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
+      <div className="border-border fixed inset-x-0 bottom-16 z-40 border-t bg-white/95 px-4 pt-3 pb-3 shadow-[0_-8px_30px_rgba(40,35,90,0.1)] backdrop-blur-md lg:bottom-0">
         <div className="mx-auto max-w-[560px]">
           <div className="mb-2.5 flex items-center justify-between gap-3">
             <span className="text-muted text-[12.5px] font-semibold">
               {barLabel}
             </span>
-            <span className="text-foreground text-[21px] font-extrabold tracking-tight tabular-nums">
+            <span
+              key={walletBump}
+              className="text-foreground co-bump text-[23px] font-extrabold tracking-tight tabular-nums"
+            >
               {formatDA(totalAfterWallets)}
             </span>
           </div>
@@ -893,16 +983,19 @@ export function CheckoutView({ customer }: Props) {
             onClick={submit}
             disabled={!canSubmit}
             className={cn(
-              "inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-base font-extrabold transition-colors",
+              "relative inline-flex h-[54px] w-full items-center justify-center gap-2 overflow-hidden rounded-[16px] text-base font-extrabold transition-all",
               canSubmit
-                ? "bg-primary-600 hover:bg-primary-700 text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"
-                : "bg-foreground/90 cursor-not-allowed text-white opacity-60"
+                ? "from-primary-400 to-primary-700 co-shine bg-gradient-to-br text-white shadow-[0_10px_26px_-8px_rgba(91,91,230,0.55)] active:scale-[0.98]"
+                : "bg-foreground/90 cursor-not-allowed text-white opacity-50"
             )}
           >
             {submitting ? (
               <Loader2 className="size-5 animate-spin" />
             ) : (
-              t("confirmOrder")
+              <span className="relative z-[2] flex items-center justify-center gap-2">
+                {t("confirmOrder")}
+                <ChevronRight className="size-[18px]" />
+              </span>
             )}
           </button>
           {blockReason && (
@@ -913,47 +1006,59 @@ export function CheckoutView({ customer }: Props) {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
-// ── Sous-composants visuels (style Uber, accent violet) ──
+// ── Sous-composants visuels (style Uber, accent violet Coligo) ──
 
-function Card({
+/** Bloc premium : ombre douce multi-couche + entrée en cascade (co-rise). */
+function Block({
   children,
   className,
+  delay = 0,
 }: {
   children: React.ReactNode;
   className?: string;
+  delay?: number;
 }) {
   return (
     <section
       className={cn(
-        "border-border bg-surface rounded-[16px] border p-4 shadow-sm",
+        "bg-surface co-rise overflow-hidden rounded-[20px] shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]",
         className
       )}
+      style={{ animationDelay: `${delay}s` }}
     >
       {children}
     </section>
   );
 }
 
-function CardH({
+function SectionTitle({
   icon: Icon,
   children,
+  className,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <h2 className="text-muted mb-3 flex items-center gap-2 text-[12px] font-bold tracking-wide uppercase">
-      <Icon className="text-foreground size-[15px]" />
+    <h2
+      className={cn(
+        "text-muted flex items-center gap-2 text-[11px] font-extrabold tracking-wider uppercase",
+        className
+      )}
+    >
+      <Icon className="text-foreground size-[14px]" />
       {children}
     </h2>
   );
 }
 
-function PayOption({
+/** Option de paiement (radio) — ligne dans la carte paiement. */
+function PayRow({
   icon: Icon,
   selected,
   onClick,
@@ -976,28 +1081,26 @@ function PayOption({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex w-full items-center gap-3 rounded-[13px] border p-3.5 text-start transition disabled:cursor-not-allowed disabled:opacity-50",
-        selected
-          ? "border-primary-500 bg-primary-50"
-          : "border-border bg-surface hover:border-primary-300"
+        "flex w-full items-center gap-3 px-4 py-3.5 text-start transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50",
+        selected && "from-primary-50 bg-gradient-to-r to-[#f4f2ff]"
       )}
     >
       <span
         className={cn(
-          "grid size-10 shrink-0 place-items-center rounded-[11px]",
+          "grid size-[38px] shrink-0 place-items-center rounded-[11px]",
           selected
-            ? "text-primary-600 bg-white"
+            ? "text-primary-600 bg-white shadow-[0_3px_8px_-2px_rgba(91,91,230,0.4)]"
             : "bg-surface-2 text-foreground"
         )}
       >
-        <Icon className="size-5" />
+        <Icon className="size-[18px]" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="text-foreground flex items-center gap-1.5 text-sm font-extrabold">
+        <span className="text-foreground flex items-center gap-1.5 text-[14.5px] font-extrabold">
           {title}
           {bolt && (
-            <span className="bg-warning-50 text-warning-700 grid size-[18px] place-items-center rounded-[5px]">
-              <Zap className="size-3" />
+            <span className="grid size-[18px] place-items-center rounded-[6px] bg-gradient-to-br from-[#ffb02e] to-[#c77a18] text-white shadow-[0_2px_5px_rgba(199,122,24,0.4)]">
+              <Zap className="size-3" fill="currentColor" />
             </span>
           )}
         </span>
@@ -1007,51 +1110,20 @@ function PayOption({
       </span>
       <span
         className={cn(
-          "grid size-[21px] shrink-0 place-items-center rounded-full border-2",
+          "relative grid size-[21px] shrink-0 place-items-center rounded-full border-2",
           selected ? "border-primary-600" : "border-border-strong"
         )}
       >
         {selected && (
-          <span className="bg-primary-600 size-[11px] rounded-full" />
+          <span className="bg-primary-600 co-pop size-[11px] rounded-full" />
         )}
       </span>
     </button>
   );
 }
 
-function PickChoice({
-  checked,
-  onClick,
-  title,
-  hint,
-  disabled,
-}: {
-  checked: boolean;
-  onClick: () => void;
-  title: string;
-  hint?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "rounded-[12px] border p-3 text-start transition disabled:cursor-not-allowed disabled:opacity-50",
-        checked
-          ? "border-primary-600 ring-primary-100 ring-2"
-          : "border-border bg-surface hover:border-primary-300"
-      )}
-    >
-      <span className="text-foreground block text-sm font-bold">{title}</span>
-      {hint && <span className="text-muted block text-xs">{hint}</span>}
-    </button>
-  );
-}
-
-/** Toggle de solde (cashback / Coligo Pay) — encart violet doux, façon Uber. */
-function WalletToggleRow({
+/** Ligne de solde (cashback / Coligo Pay) — switch dans la carte paiement. */
+function WalletRow({
   icon: Icon,
   checked,
   onToggle,
@@ -1070,16 +1142,16 @@ function WalletToggleRow({
       role="switch"
       aria-checked={checked}
       onClick={onToggle}
-      className="border-primary-100 from-primary-50 mt-2.5 flex w-full items-center gap-3 rounded-[13px] border bg-gradient-to-br to-[#F5F2FF] p-3 text-start"
+      className="flex w-full items-center gap-3 px-4 py-3.5 text-start transition active:scale-[0.99]"
     >
-      <span className="text-primary-600 grid size-[38px] shrink-0 place-items-center rounded-[11px] bg-white">
-        <Icon className="size-4" />
+      <span className="text-primary-600 bg-surface-2 grid size-[38px] shrink-0 place-items-center rounded-[11px]">
+        <Icon className="size-[18px]" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="text-foreground block text-[13.5px] font-extrabold">
+        <span className="text-foreground block text-[14.5px] font-extrabold">
           {title}
         </span>
-        <span className="text-primary-700 block text-[11.5px] font-bold">
+        <span className="text-muted block text-[11.5px] font-semibold">
           {sub}
         </span>
       </span>
@@ -1093,8 +1165,7 @@ function WalletToggleRow({
         <span
           className={cn(
             "inline-block size-[21px] transform rounded-full bg-white shadow transition-transform",
-            // RTL : le curseur démarre du bord DROIT (flex-start en RTL), donc on
-            // inverse la translation (sinon il sort du rail vers la droite).
+            // RTL : le curseur démarre du bord DROIT → on inverse la translation.
             checked
               ? "translate-x-[22px] rtl:-translate-x-[22px]"
               : "translate-x-[3px] rtl:-translate-x-[3px]"
@@ -1105,12 +1176,125 @@ function WalletToggleRow({
   );
 }
 
+/** Ligne repliable compacte (« Ajouter un code promo › »). */
+function AddLine({
+  icon,
+  title,
+  sub,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  sub?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 p-4 text-start transition active:scale-[0.99]"
+    >
+      <span className="bg-primary-50 text-primary-600 grid size-[34px] shrink-0 place-items-center rounded-[10px]">
+        {icon}
+      </span>
+      <span className="text-foreground flex-1 text-sm font-bold">
+        {title}
+        {sub && (
+          <span className="text-muted mt-0.5 block text-[11.5px] font-semibold">
+            {sub}
+          </span>
+        )}
+      </span>
+      <ChevronRight className="text-subtle size-4 shrink-0" />
+    </button>
+  );
+}
+
+/** Créneau de retrait (radio) — ligne dans la carte retrait. */
+function SlotRadio({
+  checked,
+  onClick,
+  icon,
+  title,
+  hint,
+  disabled,
+}: {
+  checked: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  hint?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex w-full items-center gap-3 px-4 py-3.5 text-start transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50",
+        checked && "from-primary-50 bg-gradient-to-r to-[#f4f2ff]"
+      )}
+    >
+      <span
+        className={cn(
+          "grid size-9 shrink-0 place-items-center rounded-[11px]",
+          checked
+            ? "text-primary-600 bg-white shadow-[0_3px_8px_-2px_rgba(91,91,230,0.4)]"
+            : "bg-surface-2 text-foreground"
+        )}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="text-foreground block text-[14.5px] font-extrabold">
+          {title}
+        </span>
+        {hint && (
+          <span className="text-muted block text-[11.5px] font-semibold">
+            {hint}
+          </span>
+        )}
+      </span>
+      <span
+        className={cn(
+          "relative grid size-[21px] shrink-0 place-items-center rounded-full border-2",
+          checked ? "border-primary-600" : "border-border-strong"
+        )}
+      >
+        {checked && (
+          <span className="bg-primary-600 co-pop size-[11px] rounded-full" />
+        )}
+      </span>
+    </button>
+  );
+}
+
+/** Petit glyphe calendrier (line icon) pour le créneau programmé. */
+function CalendarGlyph() {
+  return (
+    <svg
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="4" y="5" width="16" height="16" rx="2" />
+      <path d="M4 9h16M9 3v4M15 3v4" />
+    </svg>
+  );
+}
+
 /** Ligne total en gras (récap). */
 function TotRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between pt-0.5">
-      <dt className="text-foreground text-base font-extrabold">{label}</dt>
-      <dd className="text-foreground text-base font-extrabold tabular-nums">
+      <dt className="text-foreground text-[17px] font-extrabold">{label}</dt>
+      <dd className="text-foreground text-[17px] font-extrabold tabular-nums">
         {value}
       </dd>
     </div>
@@ -1121,22 +1305,28 @@ function RRow({
   label,
   value,
   tone,
+  muted,
 }: {
   label: string;
   value: string;
   tone?: "success" | "primary";
+  muted?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between py-0.5 text-sm">
-      <dt className="text-muted">{label}</dt>
+    <div className="flex items-center justify-between py-[3px] text-sm">
+      <dt className={muted ? "text-muted" : "text-foreground font-semibold"}>
+        {label}
+      </dt>
       <dd
         className={cn(
           "font-semibold tabular-nums",
           tone === "success"
-            ? "text-success-700"
+            ? "text-success-700 font-extrabold"
             : tone === "primary"
               ? "text-primary-700"
-              : "text-foreground"
+              : muted
+                ? "text-foreground"
+                : "text-foreground"
         )}
       >
         {value}

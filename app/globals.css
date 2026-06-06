@@ -275,3 +275,124 @@ body {
     background-color: #fdecec;
   }
 }
+
+/* =============================================================================
+   CHECKOUT — « design maximum » (refonte 2026, style Uber, accent violet Coligo).
+   Tout est scopé sous [data-checkout] (porté par le conteneur racine du
+   checkout) pour ne JAMAIS polluer le reste de l'app ni le @theme global.
+   Effets : entrée en cascade, pop du radio, bump du total, marqueur qui chute
+   + halo qui pulse, reflet brillant qui balaie le bouton Confirmer.
+   ========================================================================== */
+@keyframes co-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+[data-checkout] .co-rise {
+  animation: co-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes co-pop {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+[data-checkout] .co-pop {
+  animation: co-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes co-bump {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.16);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+[data-checkout] .co-bump {
+  animation: co-bump 0.32s ease;
+}
+
+/* Halo qui pulse autour du marqueur de la carte de livraison. */
+@keyframes co-halo {
+  0% {
+    transform: translate(-50%, -50%) scale(0.55);
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.4);
+    opacity: 0;
+  }
+}
+[data-checkout] .co-halo {
+  animation: co-halo 2s ease-out infinite;
+}
+
+/* Chute du pin au chargement de la carte. */
+@keyframes co-drop {
+  0% {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(2px);
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+[data-checkout] .co-drop {
+  animation: co-drop 0.5s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* Reflet brillant qui balaie le bouton Confirmer (premium). */
+@keyframes co-shine {
+  0%,
+  55% {
+    transform: translateX(-130%);
+  }
+  80%,
+  100% {
+    transform: translateX(130%);
+  }
+}
+[data-checkout] .co-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 70%
+  );
+  transform: translateX(-130%);
+  animation: co-shine 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-checkout] .co-rise,
+  [data-checkout] .co-pop,
+  [data-checkout] .co-bump,
+  [data-checkout] .co-halo,
+  [data-checkout] .co-drop {
+    animation: none;
+  }
+  [data-checkout] .co-shine::after {
+    animation: none;
+    opacity: 0;
+  }
+}

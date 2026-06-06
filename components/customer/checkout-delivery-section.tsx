@@ -9,7 +9,6 @@ import {
   Check,
   Loader2,
   MapPin,
-  Maximize2,
   Truck,
   UserPlus,
 } from "lucide-react";
@@ -75,6 +74,9 @@ export function CheckoutDeliverySection({
   const update = (patch: Partial<DeliveryChoice>) =>
     onChange({ ...value, ...patch });
 
+  // « Modifier » rouvre la grande carte après repliement (position confirmée).
+  const [editing, setEditing] = useState(false);
+
   const selectedSavedAddress = delivery.addresses.find(
     (a) => a.id === value.addressId
   );
@@ -88,19 +90,47 @@ export function CheckoutDeliverySection({
     return computeDeliveryFee(distKm, pricing, merchantPosition.radiusKm);
   }, [value.customPosition, merchantPosition, pricing]);
 
-  if (!delivery.enabled) return null;
+  if (!delivery.enabled) {
+    // Livraison désactivée chez ce commerçant → uniquement le retrait, pas de
+    // toggle (le créneau de retrait est rendu par le parent).
+    return null;
+  }
 
+  const isDelivery = value.fulfillment === "delivery";
   const ready = hasValidPosition(value, selectedSavedAddress);
+  const collapsed = isDelivery && ready && !editing;
+
+  // Résumé de la position retenue (ligne repliée + statut « dans la zone »).
+  const inZoneFee =
+    selectedSavedAddress && !selectedSavedAddress.out_of_range
+      ? (selectedSavedAddress.fee_da ?? 0)
+      : customQuote && !customQuote.outOfRange
+        ? customQuote.feeDa
+        : null;
+  const summaryLabel =
+    selectedSavedAddress && !selectedSavedAddress.out_of_range
+      ? selectedSavedAddress.label
+      : (value.customAddressText ?? null);
 
   return (
-    <section className="space-y-3">
-      {/* Toggle Retrait / Livraison */}
-      <div className="bg-surface-2 flex gap-1.5 rounded-[14px] p-1.5">
-        <Tab
+    <section className="mt-3 space-y-3" data-checkout>
+      {/* Toggle Retrait / Livraison — pilule blanche qui GLISSE. */}
+      <div className="bg-surface-2 relative flex rounded-[15px] p-[5px]">
+        <span
+          aria-hidden
+          className={cn(
+            "bg-surface absolute top-[5px] bottom-[5px] w-[calc(50%-5px)] rounded-[11px] shadow-[0_3px_10px_-2px_rgba(40,35,90,0.18)] transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)]",
+            isDelivery
+              ? "translate-x-full rtl:-translate-x-full"
+              : "translate-x-0"
+          )}
+        />
+        <ModeTab
           icon={<MapPin className="size-4" />}
           label={t("pickup")}
-          active={value.fulfillment === "pickup"}
-          onClick={() =>
+          active={!isDelivery}
+          onClick={() => {
+            setEditing(false);
             update({
               fulfillment: "pickup",
               addressId: null,
@@ -108,13 +138,13 @@ export function CheckoutDeliverySection({
               positionConfirmed: false,
               mode: null,
               slotId: null,
-            })
-          }
+            });
+          }}
         />
-        <Tab
+        <ModeTab
           icon={<Truck className="size-4" />}
           label={t("delivery")}
-          active={value.fulfillment === "delivery"}
+          active={isDelivery}
           onClick={() =>
             update({
               fulfillment: "delivery",
@@ -128,49 +158,143 @@ export function CheckoutDeliverySection({
         />
       </div>
 
-      {value.fulfillment === "delivery" && (
-        <div className="border-border bg-surface space-y-4 rounded-[16px] border p-4 shadow-sm">
-          <DeliveryAddressBlock
-            delivery={delivery}
-            value={value}
-            update={update}
-            customQuote={customQuote}
-            selectedSavedAddress={selectedSavedAddress}
-            merchantPosition={merchantPosition}
-            defaultPosition={defaultPosition}
-          />
-
-          {ready && (
-            <>
-              {/* Modes Express / Tournée */}
-              <div className="space-y-2">
-                <p className="text-sm font-semibold">{t("mode")}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {delivery.express_enabled && (
-                    <ModeButton
-                      icon={<Bolt className="size-4" />}
-                      label={t("express")}
-                      sub={t("expressSub")}
-                      active={value.mode === "express"}
-                      onClick={() => update({ mode: "express", slotId: null })}
-                    />
-                  )}
-                  {delivery.tours_enabled && (
-                    <ModeButton
-                      icon={<Calendar className="size-4" />}
-                      label={t("tour")}
-                      sub={t("tourSub")}
-                      active={value.mode === "tour"}
-                      onClick={() => update({ mode: "tour" })}
-                    />
-                  )}
+      {isDelivery && (
+        <>
+          {collapsed ? (
+            /* ── Position confirmée → ligne compacte premium + « Modifier ». ── */
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="border-border bg-surface co-rise flex w-full items-center gap-3 rounded-[20px] border p-3.5 text-start shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]"
+            >
+              <span className="from-primary-100 relative grid size-[50px] shrink-0 place-items-center overflow-hidden rounded-[13px] bg-gradient-to-br to-[#dfdfea]">
+                <MapPin
+                  className="text-primary-600 size-5"
+                  fill="currentColor"
+                />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="text-foreground flex items-center gap-1.5 text-[14px] font-extrabold">
+                  <Check className="text-success-600 size-4 shrink-0" />
+                  {t("positionConfirmed")}
+                </span>
+                <span className="text-muted mt-0.5 block truncate text-[12px] font-semibold">
+                  {[
+                    summaryLabel,
+                    t("inZone"),
+                    inZoneFee != null ? formatDA(inZoneFee) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              </span>
+              <span className="text-primary-700 shrink-0 text-[13px] font-extrabold">
+                {t("edit")}
+              </span>
+            </button>
+          ) : (
+            /* ── Grande carte de sélection (hero). ── */
+            <div className="bg-surface co-rise overflow-hidden rounded-[20px] shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]">
+              {/* Adresses enregistrées = raccourcis (chips). */}
+              {delivery.addresses.length > 0 && (
+                <div className="scrollbar-hide flex gap-2 overflow-x-auto p-3 pb-0">
+                  {delivery.addresses.map((a) => {
+                    const isSel = value.addressId === a.id;
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        disabled={a.out_of_range}
+                        onClick={() => {
+                          setEditing(false);
+                          update({
+                            addressId: a.id,
+                            customPosition: null,
+                            customAddressText: null,
+                            positionConfirmed: false,
+                          });
+                        }}
+                        className={cn(
+                          "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold transition",
+                          a.out_of_range
+                            ? "border-border text-subtle cursor-not-allowed opacity-60"
+                            : isSel
+                              ? "border-primary-500 bg-primary-50 text-primary-700"
+                              : "border-border bg-surface text-foreground hover:border-primary-300"
+                        )}
+                      >
+                        <MapPin className="size-3.5" />
+                        {a.label}
+                        {a.out_of_range && (
+                          <span className="text-danger-600 text-[11px]">
+                            · {t("outOfZone")}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
+              )}
 
-              {/* Créneau (tour) */}
+              <DeliveryMapCard
+                value={value}
+                update={update}
+                customQuote={customQuote}
+                defaultPosition={defaultPosition}
+                onConfirmed={() => setEditing(false)}
+              />
+            </div>
+          )}
+
+          {selectedSavedAddress?.out_of_range && (
+            <p className="border-danger-200 bg-danger-50 text-danger-700 flex items-start gap-2 rounded-[12px] border px-3 py-2 text-xs">
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+              {t("outOfDeliveryZone")}
+              {merchantPosition
+                ? ` (${t("maxRadius", { km: merchantPosition.radiusKm.toFixed(1) })})`
+                : ""}
+              {t("chooseOtherAddressOrPickup")}
+            </p>
+          )}
+
+          {/* Mode + créneau + destinataire — révélés une fois la position prête. */}
+          {ready && (
+            <div className="border-border bg-surface space-y-4 rounded-[20px] border p-4 shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]">
+              {(delivery.express_enabled || delivery.tours_enabled) && (
+                <div className="space-y-2">
+                  <p className="text-muted text-[11px] font-extrabold tracking-wider uppercase">
+                    {t("mode")}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {delivery.express_enabled && (
+                      <ModeButton
+                        icon={<Bolt className="size-4" />}
+                        label={t("express")}
+                        sub={t("expressSub")}
+                        active={value.mode === "express"}
+                        onClick={() =>
+                          update({ mode: "express", slotId: null })
+                        }
+                      />
+                    )}
+                    {delivery.tours_enabled && (
+                      <ModeButton
+                        icon={<Calendar className="size-4" />}
+                        label={t("tour")}
+                        sub={t("tourSub")}
+                        active={value.mode === "tour"}
+                        onClick={() => update({ mode: "tour" })}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
               {value.mode === "tour" && (
                 <div className="space-y-2">
-                  <p className="text-sm font-semibold">{t("slot")}</p>
+                  <p className="text-muted text-[11px] font-extrabold tracking-wider uppercase">
+                    {t("slot")}
+                  </p>
                   {delivery.slots.length === 0 ? (
                     <p className="text-muted text-xs">
                       {t("noSlotPickExpress")}
@@ -187,7 +311,7 @@ export function CheckoutDeliverySection({
                               disabled={full}
                               onClick={() => update({ slotId: s.id })}
                               className={cn(
-                                "flex w-full items-center gap-3 rounded-[10px] border px-3 py-2 text-start text-sm",
+                                "flex w-full items-center gap-3 rounded-[12px] border px-3 py-2.5 text-start text-sm transition",
                                 full
                                   ? "border-border bg-surface-2 text-muted cursor-not-allowed opacity-60"
                                   : isSel
@@ -211,9 +335,7 @@ export function CheckoutDeliverySection({
                               <span className="text-muted text-xs tabular-nums">
                                 {full
                                   ? t("slotFull")
-                                  : t("slotAvailable", {
-                                      count: s.available,
-                                    })}
+                                  : t("slotAvailable", { count: s.available })}
                               </span>
                             </button>
                           </li>
@@ -224,11 +346,10 @@ export function CheckoutDeliverySection({
                 </div>
               )}
 
-              {/* Livrer à quelqu'un d'autre + note */}
               <RecipientBlock value={value} update={update} />
-            </>
+            </div>
           )}
-        </div>
+        </>
       )}
     </section>
   );
@@ -244,150 +365,30 @@ function hasValidPosition(
   return false;
 }
 
-function DeliveryAddressBlock({
-  delivery,
-  value,
-  update,
-  customQuote,
-  selectedSavedAddress,
-  merchantPosition,
-  defaultPosition,
-}: {
-  delivery: CheckoutDeliveryContext;
-  value: DeliveryChoice;
-  update: (patch: Partial<DeliveryChoice>) => void;
-  customQuote: ReturnType<typeof computeDeliveryFee> | null;
-  selectedSavedAddress?: CheckoutDeliveryContext["addresses"][number];
-  merchantPosition: CheckoutMerchantPosition | null;
-  defaultPosition?: { lat: number; lng: number } | null;
-}) {
-  const t = useTranslations("checkout");
-  // Carte ouverte par défaut (= ma position actuelle). Se referme si le client
-  // choisit une adresse enregistrée.
-  const [pickerOpen, setPickerOpen] = useState(true);
-  useEffect(() => {
-    if (value.addressId) setPickerOpen(false);
-  }, [value.addressId]);
-
-  return (
-    <div className="space-y-3">
-      <p className="text-muted flex items-center gap-2 text-[12px] font-bold tracking-wide uppercase">
-        <MapPin className="text-foreground size-[15px]" />
-        {t("whereToDeliver")}
-      </p>
-
-      {/* Adresses enregistrées (raccourcis) */}
-      {delivery.addresses.length > 0 && (
-        <ul className="space-y-2">
-          {delivery.addresses.map((a) => {
-            const disabled = a.out_of_range;
-            const isSel = value.addressId === a.id;
-            return (
-              <li key={a.id}>
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() =>
-                    update({
-                      addressId: a.id,
-                      customPosition: null,
-                      positionConfirmed: false,
-                    })
-                  }
-                  className={cn(
-                    "flex w-full items-start gap-3 rounded-[10px] border p-3 text-start",
-                    disabled
-                      ? "border-border bg-surface-2 text-muted cursor-not-allowed opacity-60"
-                      : isSel
-                        ? "border-primary-500 bg-primary-50"
-                        : "border-border bg-surface hover:border-primary-300"
-                  )}
-                >
-                  <MapPin className="mt-0.5 size-4 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{a.label}</p>
-                    <p className="text-subtle mt-0.5 text-xs tabular-nums">
-                      {a.out_of_range
-                        ? t("outOfZone")
-                        : `${a.distance_km.toFixed(1)} km · ${formatDA(a.fee_da ?? 0)}`}
-                    </p>
-                  </div>
-                  {isSel && (
-                    <Check className="text-primary-700 mt-0.5 size-4" />
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      {/* Carte (position actuelle) OU bascule */}
-      {!pickerOpen ? (
-        <button
-          type="button"
-          onClick={() => {
-            update({ addressId: null, positionConfirmed: false });
-            setPickerOpen(true);
-          }}
-          className="border-primary-300 bg-primary-50 text-primary-700 hover:bg-primary-100 w-full rounded-[10px] border-2 border-dashed px-3 py-2 text-center text-sm font-semibold"
-        >
-          {t("otherPositionOnMap")}
-        </button>
-      ) : (
-        <CustomPositionPicker
-          value={value}
-          update={update}
-          customQuote={customQuote}
-          defaultPosition={defaultPosition}
-          canSwitchToSaved={delivery.addresses.length > 0}
-          onSwitchToSaved={() => {
-            update({
-              customPosition: null,
-              positionConfirmed: false,
-              addressId: delivery.addresses[0]?.id ?? null,
-            });
-            setPickerOpen(false);
-          }}
-        />
-      )}
-
-      {/* Adresse enregistrée hors zone */}
-      {selectedSavedAddress?.out_of_range && (
-        <p className="border-danger-200 bg-danger-50 text-danger-700 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
-          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-          {t("outOfDeliveryZone")}
-          {merchantPosition
-            ? ` (${t("maxRadius", { km: merchantPosition.radiusKm.toFixed(1) })})`
-            : ""}
-          {t("chooseOtherAddressOrPickup")}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function CustomPositionPicker({
+/**
+ * Grande carte de sélection : map MapLibre plein largeur + statut zone en UNE
+ * ligne (3 états) + case « Je confirme cette position ». Le marqueur change de
+ * couleur selon l'état (violet OK / rouge hors-zone).
+ */
+function DeliveryMapCard({
   value,
   update,
   customQuote,
   defaultPosition,
-  canSwitchToSaved,
-  onSwitchToSaved,
+  onConfirmed,
 }: {
   value: DeliveryChoice;
   update: (patch: Partial<DeliveryChoice>) => void;
   customQuote: ReturnType<typeof computeDeliveryFee> | null;
   defaultPosition?: { lat: number; lng: number } | null;
-  canSwitchToSaved: boolean;
-  onSwitchToSaved: () => void;
+  onConfirmed: () => void;
 }) {
   const t = useTranslations("checkout");
   const outOfRange = customQuote?.outOfRange ?? false;
-  const [locateFailed, setLocateFailed] = useState(false);
+  const hasPoint = value.customPosition != null;
 
   // Adresse lisible du point pointé (reverse-geocode, debounce 800 ms).
-  const [addr, setAddr] = useState<string | null>(null);
+  const [addr, setAddr] = useState<string | null>(value.customAddressText);
   const [addrLoading, setAddrLoading] = useState(false);
   const lat = value.customPosition?.lat ?? null;
   const lng = value.customPosition?.lng ?? null;
@@ -397,7 +398,7 @@ function CustomPositionPicker({
       return;
     }
     setAddrLoading(true);
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const res = await reverseGeocode({ latitude: lat, longitude: lng });
         const label = res.ok
@@ -410,33 +411,24 @@ function CustomPositionPicker({
         setAddrLoading(false);
       }
     }, 800);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lng]);
 
-  return (
-    <div className="border-primary-300 bg-primary-50/40 space-y-2 rounded-[12px] border p-3">
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="text-sm font-semibold">{t("yourPosition")}</p>
-        {canSwitchToSaved && (
-          <button
-            type="button"
-            onClick={onSwitchToSaved}
-            className="text-primary-700 text-xs underline"
-          >
-            {t("myAddresses")}
-          </button>
-        )}
-      </div>
+  // Couleur du marqueur : rouge hors zone, sinon violet.
+  const markerColorClass = outOfRange ? "text-danger-600" : "text-primary-700";
 
+  return (
+    <div>
       <MapPositionPicker
         initial={value.customPosition ?? undefined}
         defaultCenter={defaultPosition ?? undefined}
         autoLocate={value.customPosition == null}
-        height={180}
+        height={208}
         searchEnabled
+        pulse
+        markerColorClass={markerColorClass}
         gpsLabel={t("myPosition")}
-        onLocate={(ok) => setLocateFailed(!ok)}
         onChange={(p) =>
           update({
             customPosition: p,
@@ -444,85 +436,106 @@ function CustomPositionPicker({
             positionConfirmed: false,
           })
         }
-        onConfirm={(p) =>
+        onConfirm={(p) => {
           update({
             customPosition: p,
             addressId: null,
             positionConfirmed: true,
-          })
-        }
+          });
+          onConfirmed();
+        }}
       />
 
-      {locateFailed && !value.positionConfirmed && (
-        <p className="border-warning-200 bg-warning-50 text-warning-800 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
-          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-          {t("positionNotDetected")}
-        </p>
+      {/* Statut zone — UNE ligne, 3 états. */}
+      {!hasPoint ? (
+        <div className="flex items-center gap-2.5 px-4 py-3.5 text-[13px] font-bold text-amber-600">
+          <span className="grid size-[30px] shrink-0 place-items-center rounded-[9px] bg-amber-50 text-amber-600">
+            <MapPin className="size-4" />
+          </span>
+          <span>{t("pinYourPosition")}</span>
+        </div>
+      ) : outOfRange ? (
+        <div className="text-danger-700 flex items-center gap-2.5 px-4 py-3.5 text-[13px] font-bold">
+          <span className="bg-danger-50 text-danger-600 grid size-[30px] shrink-0 place-items-center rounded-[9px]">
+            <AlertTriangle className="size-4" />
+          </span>
+          <span>
+            {t("outOfZoneFull", {
+              km:
+                customQuote?.outOfRange === true && customQuote.maxRadiusKm
+                  ? customQuote.maxRadiusKm.toFixed(0)
+                  : "",
+            })}
+          </span>
+        </div>
+      ) : (
+        <div className="text-success-700 flex items-center gap-2.5 px-4 py-3.5 text-[13.5px] font-bold">
+          <span className="bg-success-50 text-success-600 grid size-[30px] shrink-0 place-items-center rounded-[9px]">
+            <Check className="size-4" />
+          </span>
+          <span className="min-w-0 flex-1 truncate">
+            {addrLoading ? (
+              <span className="text-muted font-semibold">{t("searching")}</span>
+            ) : (
+              <>
+                <span className="text-foreground font-extrabold">
+                  {addr ??
+                    (value.customPosition
+                      ? `${value.customPosition.lat.toFixed(4)}, ${value.customPosition.lng.toFixed(4)}`
+                      : "")}
+                </span>{" "}
+                · {t("inZone")}
+              </>
+            )}
+          </span>
+          {customQuote && !customQuote.outOfRange && (
+            <span className="bg-surface-2 text-foreground ms-auto shrink-0 rounded-[9px] px-2.5 py-1 text-[13px] font-extrabold tabular-nums">
+              {formatDA(customQuote.feeDa)}
+            </span>
+          )}
+        </div>
       )}
 
-      {value.customPosition && (
-        <>
-          {/* Adresse résolue + frais */}
-          <div className="text-foreground flex items-center gap-2 text-[13.5px] font-bold">
-            <MapPin className="text-primary-600 size-4 shrink-0" />
-            <span className="min-w-0 flex-1 truncate">
-              {addrLoading ? (
-                <span className="text-muted font-medium">{t("searching")}</span>
-              ) : addr ? (
-                addr
-              ) : (
-                <span className="text-subtle tabular-nums">
-                  {value.customPosition.lat.toFixed(5)},{" "}
-                  {value.customPosition.lng.toFixed(5)}
-                </span>
-              )}
-            </span>
-            {customQuote && !customQuote.outOfRange && (
-              <span className="bg-surface-2 ms-auto shrink-0 rounded-[8px] px-2.5 py-1 text-[13px] font-extrabold tabular-nums">
-                {formatDA(customQuote.feeDa)}
-              </span>
+      {/* Confirmation explicite — case « Je confirme cette position ». Reste
+          accessible même après confirmation (réouverture via « Modifier »)
+          pour offrir un retour vers la vue repliée. */}
+      {hasPoint && !outOfRange && (
+        <button
+          type="button"
+          onClick={() => {
+            update({ positionConfirmed: true });
+            onConfirmed();
+          }}
+          className="from-primary-50 mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-3 rounded-[13px] bg-gradient-to-r to-[#f4f2ff] p-3.5 text-start active:scale-[0.99]"
+        >
+          <span
+            className={cn(
+              "text-background grid size-6 shrink-0 place-items-center rounded-[8px] shadow-[0_3px_8px_-2px_rgba(91,91,230,0.4)] transition",
+              value.positionConfirmed
+                ? "from-primary-400 to-primary-700 bg-gradient-to-br"
+                : "border-primary-400 border-2 bg-white"
             )}
-          </div>
+          >
+            {value.positionConfirmed && <Check className="size-4" />}
+          </span>
+          <span className="text-muted text-[12.5px] font-semibold">
+            <span className="text-foreground font-extrabold">
+              {t("confirmThisPosition")}.
+            </span>{" "}
+            {t("driverGoesThere")}
+          </span>
+        </button>
+      )}
 
-          {outOfRange ? (
-            <p className="border-danger-200 bg-danger-50 text-danger-700 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
-              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-              {t("outOfZone")}
-              {customQuote?.outOfRange === true && customQuote.maxRadiusKm
-                ? ` (${t("maxRadius", { km: customQuote.maxRadiusKm.toFixed(1) })})`
-                : ""}
-              {t("movePointOrPickup")}
-            </p>
-          ) : value.positionConfirmed ? (
-            <div className="space-y-2">
-              <p className="text-success-700 flex items-center gap-1.5 text-[12.5px] font-bold">
-                <Check className="size-4" />
-                {t("positionConfirmed")}
-              </p>
-              <SaveAddressInline
-                lat={value.customPosition.lat}
-                lng={value.customPosition.lng}
-                addressText={addr}
-              />
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => update({ positionConfirmed: true })}
-              className="bg-primary-600 hover:bg-primary-700 inline-flex w-full items-center justify-center gap-2 rounded-[12px] py-3 text-sm font-extrabold text-white"
-            >
-              <Check className="size-4" />
-              {t("confirmThisPosition")}
-            </button>
-          )}
-
-          {!value.positionConfirmed && !outOfRange && (
-            <p className="text-primary-600 flex items-center justify-center gap-1 text-center text-[11px] font-bold">
-              <Maximize2 className="size-3" />
-              {t("enlargeToAdjust")}
-            </p>
-          )}
-        </>
+      {/* Enregistrer la position confirmée dans le profil. */}
+      {hasPoint && !outOfRange && value.positionConfirmed && (
+        <div className="px-4 pb-4">
+          <SaveAddressInline
+            lat={value.customPosition!.lat}
+            lng={value.customPosition!.lng}
+            addressText={addr}
+          />
+        </div>
       )}
     </div>
   );
@@ -675,7 +688,8 @@ function RecipientBlock({
   );
 }
 
-function Tab({
+/** Onglet du toggle Retrait/Livraison (au-dessus de la pilule glissante). */
+function ModeTab({
   icon,
   label,
   active,
@@ -691,8 +705,8 @@ function Tab({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-1 items-center justify-center gap-2 rounded-[10px] py-3 text-sm font-extrabold transition",
-        active ? "bg-surface text-foreground shadow-sm" : "text-muted"
+        "relative z-[2] flex flex-1 items-center justify-center gap-2 rounded-[11px] py-3 text-sm font-extrabold transition active:scale-[0.98]",
+        active ? "text-foreground" : "text-muted"
       )}
     >
       <span className={active ? "text-primary-600" : ""}>{icon}</span>
@@ -719,13 +733,17 @@ function ModeButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-start gap-2 rounded-[12px] border p-3 text-start transition",
+        "flex items-start gap-2 rounded-[12px] border p-3 text-start transition active:scale-[0.98]",
         active
           ? "border-primary-500 bg-primary-50"
           : "border-border bg-surface hover:border-primary-300"
       )}
     >
-      <span className="mt-0.5">{icon}</span>
+      <span
+        className={cn("mt-0.5", active ? "text-primary-600" : "text-muted")}
+      >
+        {icon}
+      </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold">{label}</span>
         <span className="text-muted text-xs">{sub}</span>
