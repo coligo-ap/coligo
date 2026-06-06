@@ -59,8 +59,16 @@ export async function getWalletPinStatus(): Promise<PinStatus> {
 export async function setWalletPin(
   pin: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  // Sait-on déjà s'il existait un PIN ? → pour journaliser set vs changed.
+  const before = await callRpc<{ has_pin?: boolean }>("coligo_pay_pin_status");
   const res = await callRpc<JsonOk>("coligo_pay_set_pin", { p_pin: pin });
-  if (res?.ok) return { ok: true };
+  if (res?.ok) {
+    await callRpc("coligo_log_security_event", {
+      p_event: before?.has_pin ? "pin_changed" : "pin_set",
+      p_detail: null,
+    });
+    return { ok: true };
+  }
   return { ok: false, error: res?.error ?? "unknown" };
 }
 

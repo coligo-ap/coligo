@@ -240,6 +240,47 @@ async function main() {
       ).r.error === "not_found"
     );
 
+    // ── ROBUSTESSE : changer email + téléphone ne doit RIEN perdre ─────────
+    // (wallet/PIN/pay_handle/solde indexés par customers.id, jamais par
+    // l'email/le téléphone). Le sender a déjà un pay_handle + PIN à ce stade.
+    await c.query("reset role");
+    const before = await one(
+      `select pay_handle,
+              public.customer_topup_balance(id) bal,
+              (select count(*) from customer_wallet_security where customer_id=$1) pin,
+              (select count(*) from coligo_pay_payments where customer_id=$1) pays
+       from customers where id=$1`,
+      [sender.id]
+    );
+    await c.query(
+      "update customers set email = 'changed_' || id || '@test.dz', phone = '+213700000000' where id = $1",
+      [sender.id]
+    );
+    const after = await one(
+      `select pay_handle,
+              public.customer_topup_balance(id) bal,
+              (select count(*) from customer_wallet_security where customer_id=$1) pin,
+              (select count(*) from coligo_pay_payments where customer_id=$1) pays
+       from customers where id=$1`,
+      [sender.id]
+    );
+    check(
+      "Email/Tél changé: pay_handle conservé",
+      !!after.pay_handle && before.pay_handle === after.pay_handle
+    );
+    check(
+      "Email/Tél changé: solde conservé",
+      String(before.bal) === String(after.bal)
+    );
+    check(
+      "Email/Tél changé: PIN conservé",
+      String(before.pin) === String(after.pin)
+    );
+    check(
+      "Email/Tél changé: historique paiements conservé",
+      String(before.pays) === String(after.pays)
+    );
+
     await c.query("ROLLBACK");
   } catch (e) {
     await c.query("ROLLBACK").catch(() => {});

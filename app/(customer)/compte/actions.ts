@@ -7,6 +7,27 @@ export type ProfileState = { error?: string; success?: string };
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+/**
+ * Journalise une action sensible (best-effort, jamais bloquant). La fonction SQL
+ * résout le client via auth.uid() et n'enregistre que pour un vrai client.
+ */
+async function logSecurityEvent(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  event: "email_changed" | "phone_changed"
+): Promise<void> {
+  try {
+    await supabase.rpc(
+      "coligo_log_security_event" as never,
+      {
+        p_event: event,
+        p_detail: null,
+      } as never
+    );
+  } catch {
+    /* journal best-effort : un échec ne casse jamais l'action */
+  }
+}
+
 /** Met à jour le nom + le téléphone du client (aucune confirmation requise). */
 export async function updateProfile(input: {
   full_name: string;
@@ -27,6 +48,14 @@ export async function updateProfile(input: {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Session expirée." };
 
+  // Téléphone actuel (pour ne journaliser QUE s'il change réellement).
+  const { data: existing } = await supabase
+    .from("customers")
+    .select("phone")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const phoneChanged = (existing?.phone ?? "").trim() !== phone;
+
   const { error } = await supabase
     .from("customers")
     .update({ full_name, phone })
@@ -35,6 +64,11 @@ export async function updateProfile(input: {
 
   // Garde le nom aussi dans les métadonnées auth (cohérence).
   await supabase.auth.updateUser({ data: { full_name } });
+
+  // NB : le wallet (solde, PIN, pay_handle, paiements, transferts) est indexé
+  // par customers.id — modifier le téléphone ne fait RIEN perdre. On journalise
+  // juste l'action pour la traçabilité.
+  if (phoneChanged) await logSecurityEvent(supabase, "phone_changed");
 
   revalidatePath("/compte");
   return { success: "Profil mis à jour." };
@@ -91,6 +125,10 @@ export async function confirmEmailChange(input: {
   if (user) {
     await supabase.from("customers").update({ email }).eq("user_id", user.id);
   }
+
+  // L'identité (user_id/customers.id) est inchangée → wallet et historique
+  // intacts. On journalise le changement d'email pour l'audit.
+  await logSecurityEvent(supabase, "email_changed");
 
   revalidatePath("/compte");
   return { success: "Adresse email mise à jour." };

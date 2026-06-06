@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Store,
   Truck,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const LINKS = [
     exact: true,
   },
   { href: "/admin/merchants", label: "Commerçants", icon: Store },
+  { href: "/admin/coligo-pay", label: "Coligo Pay", icon: Wallet },
   { href: "/admin/drivers", label: "Livreurs", icon: Truck },
   { href: "/admin/livraison", label: "Livraison", icon: Bike },
   { href: "/admin/settings", label: "Taux", icon: Percent },
