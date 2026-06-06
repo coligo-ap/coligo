@@ -109,7 +109,7 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
               <li key={o.id}>
                 <Link
                   href={`/commandes/${o.id}`}
-                  className="border-border bg-surface hover:border-primary-300 flex items-center gap-3 rounded-[14px] border p-4 transition"
+                  className="border-border bg-surface hover:border-primary-300 flex items-center gap-3 rounded-[14px] border p-3 transition"
                 >
                   {o.merchant_logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -125,41 +125,53 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
                       alt=""
                       loading="lazy"
                       decoding="async"
-                      className="border-border size-12 shrink-0 rounded-full border bg-white object-cover"
+                      className="border-border size-11 shrink-0 self-start rounded-full border bg-white object-cover"
                     />
                   ) : (
-                    <div className="bg-primary-100 text-primary-700 flex size-12 shrink-0 items-center justify-center rounded-full text-base font-bold">
+                    <div className="bg-primary-100 text-primary-700 flex size-11 shrink-0 items-center justify-center self-start rounded-full text-base font-bold">
                       {o.merchant_name.charAt(0)}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-foreground line-clamp-1 text-sm font-semibold">
-                      {o.merchant_name}
-                    </p>
-                    <p className="text-muted text-xs">
-                      {date} ·{" "}
-                      {o.fulfillment_type === "delivery"
-                        ? t("delivery")
-                        : t("pickup")}{" "}
-                      {o.order_number
-                        ? `· ${t("orderNumberShort")} ${o.order_number}`
-                        : ""}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="text-foreground text-sm font-bold tabular-nums">
-                      {formatDA(o.total_da)}
-                    </span>
-                    <Badge tone={meta.tone}>{meta.label}</Badge>
-                    <PaymentBadge
-                      method={o.payment_method}
-                      status={o.payment_status}
-                    />
-                    {o.status === "completed" && !o.reviewed && (
-                      <OrderReviewCta
-                        orderId={o.id}
-                        merchantName={o.merchant_name}
+                    {/* Ligne 1 : nom du commerce + montant */}
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-foreground line-clamp-1 text-sm font-semibold">
+                        {o.merchant_name}
+                      </p>
+                      <span className="text-foreground shrink-0 text-sm font-bold tabular-nums">
+                        {formatDA(o.total_da)}
+                      </span>
+                    </div>
+                    {/* Ligne 2 : statut + date · type · n° + paiement (s'enroule) */}
+                    <div className="text-muted mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                      <Badge tone={meta.tone}>{meta.label}</Badge>
+                      <span>{date}</span>
+                      <span aria-hidden>·</span>
+                      <span>
+                        {o.fulfillment_type === "delivery"
+                          ? t("delivery")
+                          : t("pickup")}
+                      </span>
+                      {o.order_number && (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span>
+                            {t("orderNumberShort")} {o.order_number}
+                          </span>
+                        </>
+                      )}
+                      <PaymentBadge
+                        method={o.payment_method}
+                        status={o.payment_status}
                       />
+                    </div>
+                    {o.status === "completed" && !o.reviewed && (
+                      <div className="mt-1.5">
+                        <OrderReviewCta
+                          orderId={o.id}
+                          merchantName={o.merchant_name}
+                        />
+                      </div>
                     )}
                   </div>
                 </Link>

@@ -323,10 +323,10 @@ export default async function CustomerOrderDetailPage({
       {/* Suivi live (Realtime + polling) : pop-up + son sur changement de statut. */}
       <CustomerOrderLive orderId={order.id} initialStatus={status} />
 
-      <div className="mx-auto max-w-2xl px-4 py-4 pb-24 lg:px-6 lg:py-8">
+      <div className="mx-auto max-w-2xl px-4 pt-3 pb-24 lg:px-6 lg:pt-5">
         <Link
           href="/commandes"
-          className="text-muted hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm"
+          className="text-muted hover:text-foreground mb-2 inline-flex items-center gap-1.5 text-sm"
         >
           <ArrowLeft className="size-4 rtl:-scale-x-100" />
           {t("myOrders")}

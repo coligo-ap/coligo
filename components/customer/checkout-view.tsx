@@ -495,17 +495,17 @@ export function CheckoutView({ customer }: Props) {
           />
         )}
 
-        <h1 className="text-foreground mb-3 text-[24px] font-black tracking-[-0.9px]">
-          {t("title")}
-        </h1>
-
-        {/* Boutique */}
+        {/* En-tête fusionné : le titre devient un eyebrow dans la carte
+            boutique → on gagne la ligne du <h1> séparé. */}
         <Card>
           <div className="flex items-center gap-3">
             <span className="bg-foreground grid size-11 shrink-0 place-items-center rounded-[12px] text-white">
               <Store className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
+              <p className="text-muted text-[10.5px] font-bold tracking-wider uppercase">
+                {t("title")}
+              </p>
               <p className="text-foreground truncate text-[15px] font-extrabold">
                 {ctx.merchant.name}
               </p>

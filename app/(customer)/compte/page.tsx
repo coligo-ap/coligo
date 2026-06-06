@@ -60,110 +60,88 @@ export default async function CustomerAccountPage({
 
   return (
     <CustomerShell>
-      <div className="mx-auto max-w-2xl px-4 py-6 lg:px-6 lg:py-10">
-        <header className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
+      <div className="mx-auto max-w-2xl px-4 pb-24 lg:px-6">
+        {/* HERO plein-cadre : identité + les 2 soldes côte à côte (Cashback /
+            Coligo Pay) → fusionne l'en-tête et les 2 cartes solde en un bandeau. */}
+        <section className="from-primary-600 to-primary-800 relative -mx-4 bg-gradient-to-br px-4 pt-6 pb-5 text-white lg:-mx-6 lg:px-6 lg:pt-8">
+          <p className="text-xs font-semibold tracking-wider text-white/80 uppercase">
             {t("myAccount")}
-          </h1>
-          <p className="text-muted mt-1 text-sm">{t("accountSubtitle")}</p>
-        </header>
+          </p>
+          {customer?.full_name && (
+            <p className="mt-0.5 text-xl leading-tight font-bold">
+              {customer.full_name}
+            </p>
+          )}
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <Link
+              href="/cashback"
+              className="rounded-2xl bg-white/15 p-3 backdrop-blur transition-colors hover:bg-white/25"
+            >
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/85">
+                <Gift className="size-3.5" />
+                {t("cashbackTitle")}
+              </span>
+              <p className="mt-1 text-lg leading-none font-bold tabular-nums">
+                {formatDA(cashbackBalance)}
+              </p>
+            </Link>
+            <Link
+              href="/coligo-pay"
+              className="rounded-2xl bg-white/15 p-3 backdrop-blur transition-colors hover:bg-white/25"
+            >
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/85">
+                <Wallet className="size-3.5" />
+                Coligo Pay
+              </span>
+              <p className="mt-1 text-lg leading-none font-bold tabular-nums">
+                {formatDA(topupBalance)}
+              </p>
+            </Link>
+          </div>
+        </section>
 
         {completePhone && !customer?.phone && (
-          <div className="border-warning-200 bg-warning-50 text-warning-800 mb-4 rounded-[14px] border px-4 py-3 text-sm font-medium">
+          <div className="border-warning-200 bg-warning-50 text-warning-800 mt-4 rounded-[14px] border px-4 py-3 text-sm font-medium">
             {t.rich("completePhoneBanner", {
               strong: (chunks) => <strong>{chunks}</strong>,
             })}
           </div>
         )}
 
-        {/* Raccourcis : Cashback / Coligo Pay / Commandes — chacun DISTINCT. */}
-        <ul className="mb-4 space-y-2">
-          <li>
-            <Link
-              href="/cashback"
-              className="border-border bg-surface hover:border-primary-300 group flex items-center gap-3 rounded-[14px] border p-4 transition-colors"
-            >
-              <div className="bg-primary-100 text-primary-700 flex size-11 shrink-0 items-center justify-center rounded-full">
-                <Gift className="size-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-foreground text-sm font-semibold">
-                  {t("cashbackTitle")}
-                </p>
-                <p className="text-muted text-xs">
-                  {t("cashbackDesc")} ·{" "}
-                  <span className="text-primary-700 font-bold tabular-nums">
-                    {formatDA(cashbackBalance)}
-                  </span>
-                </p>
-              </div>
-              <ChevronRight className="text-muted size-4 rtl:-scale-x-100" />
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/coligo-pay"
-              className="border-border bg-surface hover:border-primary-300 group flex items-center gap-3 rounded-[14px] border p-4 transition-colors"
-            >
-              <div className="bg-primary-50 text-primary-700 flex size-11 shrink-0 items-center justify-center rounded-full">
-                <Wallet className="size-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-foreground text-sm font-semibold">
-                  Coligo Pay
-                </p>
-                <p className="text-muted text-xs">
-                  {t("coligoPayDesc")} ·{" "}
-                  <span className="text-primary-700 font-bold tabular-nums">
-                    {formatDA(topupBalance)}
-                  </span>
-                </p>
-              </div>
-              <ChevronRight className="text-muted size-4 rtl:-scale-x-100" />
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/commandes"
-              className="border-border bg-surface hover:border-primary-300 group flex items-center gap-3 rounded-[14px] border p-4 transition-colors"
-            >
-              <div className="bg-primary-50 text-primary-700 flex size-11 shrink-0 items-center justify-center rounded-full">
-                <Receipt className="size-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-foreground text-sm font-semibold">
-                  {t("myOrders")}
-                </p>
-                <p className="text-muted text-xs">{t("myOrdersDesc")}</p>
-              </div>
-              <ChevronRight className="text-muted size-4 rtl:-scale-x-100" />
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/favoris"
-              className="border-border bg-surface hover:border-primary-300 group flex items-center gap-3 rounded-[14px] border p-4 transition-colors"
-            >
-              <div className="bg-coral-50 text-coral-600 flex size-11 shrink-0 items-center justify-center rounded-full">
-                <Heart className="size-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-foreground text-sm font-semibold">
-                  {t("myFavorites")}
-                </p>
-                <p className="text-muted text-xs">{t("myFavoritesDesc")}</p>
-              </div>
-              <ChevronRight className="text-muted size-4 rtl:-scale-x-100" />
-            </Link>
-          </li>
-        </ul>
+        {/* Raccourcis Commandes / Favoris — grille 2 colonnes compacte. */}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Link
+            href="/commandes"
+            className="border-border bg-surface hover:border-primary-300 flex items-center gap-2.5 rounded-[14px] border p-3 transition-colors"
+          >
+            <div className="bg-primary-50 text-primary-700 flex size-10 shrink-0 items-center justify-center rounded-full">
+              <Receipt className="size-5" />
+            </div>
+            <span className="text-foreground min-w-0 text-sm font-semibold">
+              {t("myOrders")}
+            </span>
+          </Link>
+          <Link
+            href="/favoris"
+            className="border-border bg-surface hover:border-primary-300 flex items-center gap-2.5 rounded-[14px] border p-3 transition-colors"
+          >
+            <div className="bg-coral-50 text-coral-600 flex size-10 shrink-0 items-center justify-center rounded-full">
+              <Heart className="size-5" />
+            </div>
+            <span className="text-foreground min-w-0 text-sm font-semibold">
+              {t("myFavorites")}
+            </span>
+          </Link>
+        </div>
 
         {/* Informations éditables : nom + téléphone, et email avec code. */}
-        <AccountEditor
-          initialName={customer?.full_name ?? ""}
-          initialPhone={customer?.phone ?? ""}
-          initialEmail={user.email ?? customer?.email ?? ""}
-        />
+        <div className="mt-4">
+          <AccountEditor
+            initialName={customer?.full_name ?? ""}
+            initialPhone={customer?.phone ?? ""}
+            initialEmail={user.email ?? customer?.email ?? ""}
+          />
+        </div>
 
         {/* Adresses enregistrées (gérées sur leur page dédiée). */}
         <Link

@@ -106,14 +106,16 @@ export function CartView() {
               ) : null}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-foreground line-clamp-1 text-sm font-bold">
-                {item.name}
-              </p>
-              <p className="text-muted text-xs font-semibold">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-foreground line-clamp-1 text-sm font-bold">
+                  {item.name}
+                </p>
+                <p className="text-foreground shrink-0 text-[15px] font-extrabold tabular-nums">
+                  {formatDA(item.unit_price_da * item.quantity)}
+                </p>
+              </div>
+              <p className="text-muted mt-0.5 text-xs font-semibold">
                 {t("perUnit", { price: formatDA(item.unit_price_da) })}
-              </p>
-              <p className="text-foreground mt-0.5 text-[15px] font-extrabold tabular-nums">
-                {formatDA(item.unit_price_da * item.quantity)}
               </p>
             </div>
             <div className="bg-surface-2 inline-flex shrink-0 items-center rounded-full">
