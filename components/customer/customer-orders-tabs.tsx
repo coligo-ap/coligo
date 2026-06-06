@@ -29,6 +29,16 @@ type TabKey = "ongoing" | "done" | "cancelled";
 
 const ONGOING: OrderStatus[] = ["pending", "accepted", "preparing", "ready"];
 
+// Clé i18n du libellé de badge par statut (la COULEUR vient de ORDER_STATUS_META).
+const STATUS_BADGE_KEY: Record<OrderStatus, string> = {
+  pending: "badgePending",
+  accepted: "badgeAccepted",
+  preparing: "badgePreparing",
+  ready: "badgeReady",
+  completed: "badgeCompleted",
+  cancelled: "badgeCancelled",
+};
+
 function tabOf(status: OrderStatus): TabKey {
   if (status === "completed") return "done";
   if (status === "cancelled") return "cancelled";
@@ -144,7 +154,9 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
                     </div>
                     {/* Ligne 2 : statut + date · type · n° + paiement (s'enroule) */}
                     <div className="text-muted mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                      <Badge tone={meta.tone}>{meta.label}</Badge>
+                      <Badge tone={meta.tone}>
+                        {t(STATUS_BADGE_KEY[o.status])}
+                      </Badge>
                       <span>{date}</span>
                       <span aria-hidden>·</span>
                       <span>

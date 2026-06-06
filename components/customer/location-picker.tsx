@@ -148,9 +148,6 @@ export function LocationPicker({ onClose, initial }: Props) {
           <h2 className="text-foreground text-lg font-bold">
             {t("whereToOrder")}
           </h2>
-          <p className="text-muted mt-0.5 text-xs">
-            {t("nearbyMerchantsHint")}
-          </p>
         </div>
         {onClose && (
           <button
@@ -204,7 +201,6 @@ export function LocationPicker({ onClose, initial }: Props) {
       {(showMap || coords) && (
         <div className="border-primary-200 bg-primary-50/40 space-y-2 rounded-[12px] border p-3">
           <p className="text-sm font-semibold">{t("adjustExactPosition")}</p>
-          <p className="text-muted text-xs">{t("adjustPositionHint")}</p>
           <MapPositionPicker
             initial={coords ?? undefined}
             autoLocate={coords == null}
@@ -212,11 +208,6 @@ export function LocationPicker({ onClose, initial }: Props) {
             gpsLabel="GPS"
             height={260}
           />
-          {coords && (
-            <p className="text-subtle text-xs tabular-nums">
-              {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-            </p>
-          )}
           <Button
             type="button"
             className="w-full"

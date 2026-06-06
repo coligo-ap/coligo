@@ -40,16 +40,19 @@ export function ShopModeToggle({
         onClick={() => setCartMode(merchant, "pickup")}
         aria-pressed={mode === "pickup"}
         className={cn(
-          "flex flex-1 items-center justify-center gap-2 rounded-[10px] py-2.5 text-sm font-extrabold transition",
+          "flex min-w-0 flex-1 items-center justify-center gap-2 rounded-[10px] px-2 py-2.5 text-sm font-extrabold transition",
           mode === "pickup"
             ? "bg-surface text-foreground shadow-sm"
             : "text-muted"
         )}
       >
         <MapPin
-          className={cn("size-4", mode === "pickup" && "text-primary-600")}
+          className={cn(
+            "size-4 shrink-0",
+            mode === "pickup" && "text-primary-600"
+          )}
         />
-        {t("freePickup")}
+        <span className="truncate">{t("freePickup")}</span>
       </button>
       <button
         type="button"
@@ -57,18 +60,23 @@ export function ShopModeToggle({
         aria-pressed={mode === "delivery"}
         disabled={!deliveryEnabled}
         className={cn(
-          "flex flex-1 items-center justify-center gap-2 rounded-[10px] py-2.5 text-sm font-extrabold transition disabled:opacity-40",
+          "flex min-w-0 flex-1 items-center justify-center gap-2 rounded-[10px] px-2 py-2.5 text-sm font-extrabold transition disabled:opacity-40",
           mode === "delivery"
             ? "bg-surface text-foreground shadow-sm"
             : "text-muted"
         )}
       >
         <Bike
-          className={cn("size-4", mode === "delivery" && "text-primary-600")}
+          className={cn(
+            "size-4 shrink-0",
+            mode === "delivery" && "text-primary-600"
+          )}
         />
-        {deliveryEnabled
-          ? `${t("delivery")}${deliveryFeeLabel ? ` ${deliveryFeeLabel}` : ""}`
-          : t("deliveryUnavailable")}
+        <span className="truncate">
+          {deliveryEnabled
+            ? `${t("delivery")}${deliveryFeeLabel ? ` ${deliveryFeeLabel}` : ""}`
+            : t("deliveryUnavailable")}
+        </span>
       </button>
     </div>
   );

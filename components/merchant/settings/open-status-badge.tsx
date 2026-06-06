@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
-import { isOpenNow, nextOpening } from "@/lib/merchant/opening-hours";
-import { DAY_LABELS, type OpeningHours } from "@/lib/types";
+import { isOpenNow } from "@/lib/merchant/opening-hours";
+import { type OpeningHours } from "@/lib/types";
 
 /**
  * Badge "Ouvert maintenant / Fermé" calculé à la VOLÉE depuis `opening_hours`.
- * Rafraîchi toutes les 30s pour suivre les bascules de créneau.
+ * Rafraîchi toutes les 30s pour suivre les bascules de créneau. Localisé FR/AR.
  */
 export function OpenStatusBadge({ hours }: { hours: OpeningHours }) {
+  const t = useTranslations("listing");
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000);
@@ -17,7 +19,6 @@ export function OpenStatusBadge({ hours }: { hours: OpeningHours }) {
   }, []);
 
   const open = isOpenNow(hours, now);
-  const next = open ? null : nextOpening(hours, now);
 
   return (
     <span
@@ -32,19 +33,7 @@ export function OpenStatusBadge({ hours }: { hours: OpeningHours }) {
           open ? "bg-success-500" : "bg-stone-400"
         )}
       />
-      {open ? (
-        "Ouvert maintenant"
-      ) : (
-        <>
-          Fermé
-          {next && (
-            <span className="text-subtle font-normal">
-              · ouvre {DAY_LABELS[next.day].short.toLowerCase()}{" "}
-              {next.slot.open}
-            </span>
-          )}
-        </>
-      )}
+      {open ? t("openNow") : t("closed")}
     </span>
   );
 }

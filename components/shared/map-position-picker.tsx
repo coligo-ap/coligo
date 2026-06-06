@@ -513,14 +513,6 @@ export function MapPositionPicker({
         </div>
       )}
 
-      {/* Indice d'usage — discret en haut, masqué si la barre de recherche
-          occupe déjà le haut. */}
-      {mapReady && !searchEnabled && (
-        <div className="bg-foreground/75 pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-full px-2.5 py-1 text-[10px] font-medium text-white">
-          Tape ou glisse pour ajuster
-        </div>
-      )}
-
       <button
         type="button"
         onClick={useGps}

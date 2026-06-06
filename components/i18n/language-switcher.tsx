@@ -30,7 +30,7 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
   return (
     <div
       className={cn(
-        "border-border bg-surface inline-flex items-center rounded-full border p-0.5",
+        "border-border bg-surface inline-flex shrink-0 items-center rounded-full border p-0.5",
         pending && "opacity-60"
       )}
       role="group"
