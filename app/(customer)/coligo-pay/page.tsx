@@ -66,25 +66,18 @@ export default async function CustomerColigoPayPage() {
 
   return (
     <CustomerShell>
-      <div className="mx-auto max-w-2xl px-4 py-6 pb-24 lg:px-6 lg:py-10">
-        <header className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
-            {t("coligoPayTitle")}
-          </h1>
-          <p className="text-muted mt-1 text-sm">{t("coligoPaySubtitle")}</p>
-        </header>
-
-        {/* Solde principal — visuellement DIFFÉRENT du cashback (gradient
-            différent + icône Wallet) pour éviter la confusion à l'œil. */}
-        <section className="from-primary-700 to-primary-900 relative overflow-hidden rounded-[20px] bg-gradient-to-br p-6 text-white shadow-md">
-          <Wallet className="absolute -top-2 -right-2 size-28 text-white/10" />
+      <div className="mx-auto max-w-2xl px-4 pb-24 lg:px-6">
+        {/* HERO solde plein-cadre rectangulaire (bords droits, à ras du haut),
+            gradient + icône Wallet distincts du cashback pour éviter la confusion. */}
+        <section className="from-primary-700 to-primary-900 relative -mx-4 overflow-hidden bg-gradient-to-br px-4 pt-6 pb-7 text-white lg:-mx-6 lg:px-6 lg:pt-8 lg:pb-8">
+          <Wallet className="absolute -end-4 -top-4 size-32 text-white/10" />
           <p className="text-xs font-semibold tracking-wider text-white/85 uppercase">
-            {t("coligoPayBalance")}
+            {t("coligoPayTitle")} · {t("coligoPayBalance")}
           </p>
           <p className="mt-1 text-4xl leading-none font-bold tabular-nums lg:text-5xl">
             {formatDA(balance)}
           </p>
-          <p className="text-primary-50/85 mt-3 max-w-md text-xs">
+          <p className="text-primary-50/90 mt-3 max-w-md text-xs">
             {t("coligoPayBalanceDesc")}
           </p>
         </section>

@@ -36,24 +36,18 @@ export default async function CustomerCashbackPage() {
 
   return (
     <CustomerShell>
-      <div className="mx-auto max-w-2xl px-4 py-6 pb-24 lg:px-6 lg:py-10">
-        <header className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
-            {t("cashbackTitle")}
-          </h1>
-          <p className="text-muted mt-1 text-sm">{t("cashbackSubtitle")}</p>
-        </header>
-
-        {/* Solde principal */}
-        <section className="from-primary-600 via-primary-700 to-primary-800 relative overflow-hidden rounded-[20px] bg-gradient-to-br p-6 text-white shadow-md">
-          <Gift className="absolute -top-2 -right-2 size-28 text-white/10" />
+      <div className="mx-auto max-w-2xl px-4 pb-24 lg:px-6">
+        {/* HERO solde plein-cadre rectangulaire (bords droits, à ras du haut).
+            Le titre est intégré dans le bandeau → plus de ligne d'en-tête séparée. */}
+        <section className="from-primary-600 via-primary-700 to-primary-800 relative -mx-4 overflow-hidden bg-gradient-to-br px-4 pt-6 pb-7 text-white lg:-mx-6 lg:px-6 lg:pt-8 lg:pb-8">
+          <Gift className="absolute -end-4 -top-4 size-32 text-white/10" />
           <p className="text-xs font-semibold tracking-wider text-white/85 uppercase">
-            {t("availableBalance")}
+            {t("cashbackTitle")} · {t("availableBalance")}
           </p>
           <p className="mt-1 text-4xl leading-none font-bold tabular-nums lg:text-5xl">
             {formatDA(balance)}
           </p>
-          <p className="text-primary-50/85 mt-3 max-w-md text-xs">
+          <p className="text-primary-50/90 mt-3 max-w-md text-xs">
             {t.rich("cashbackNonWithdrawable", {
               strong: (chunks) => <strong>{chunks}</strong>,
             })}
