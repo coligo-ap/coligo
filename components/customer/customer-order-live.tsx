@@ -68,7 +68,9 @@ export function CustomerOrderLive({
   const [popup, setPopup] = useState<Popup | null>(null);
   const { unlock, play } = useAlertSound();
   // Réf stable vers la logique de transition (évite de re-souscrire/re-poller).
-  const onStatusRef = useRef<(next: OrderStatus) => void>(() => {});
+  const onStatusRef = useRef<
+    (next: OrderStatus, cancelledBy?: string | null) => void
+  >(() => {});
 
   // Déverrouille l'audio au 1er geste utilisateur (autoplay bloqué sinon).
   useEffect(() => {
@@ -90,10 +92,18 @@ export function CustomerOrderLive({
 
   // Réagit à un (nouveau) statut : pop-up + son + vibration + notif système,
   // puis refresh. Idempotent (ignore si statut inchangé).
-  onStatusRef.current = (next: OrderStatus) => {
+  //
+  // `cancelledBy` distingue l'origine d'une annulation : si c'est le CLIENT
+  // lui-même qui a annulé (cancelled_by='customer'), on NE montre PAS le pop-up
+  // « Commande refusée » (il vient de l'annuler et a déjà eu sa confirmation) —
+  // ce message ne concerne que les refus commerçant / auto-refus (15 min).
+  onStatusRef.current = (next: OrderStatus, cancelledBy?: string | null) => {
     if (next === lastStatusRef.current) return;
     lastStatusRef.current = next;
-    const tmpl = STATUS_POPUP[next];
+    const tmpl =
+      next === "cancelled" && cancelledBy === "customer"
+        ? undefined
+        : STATUS_POPUP[next];
     if (tmpl) {
       const title = t(tmpl.titleKey);
       const body = t(tmpl.bodyKey);
@@ -128,18 +138,26 @@ export function CustomerOrderLive({
           filter: `id=eq.${orderId}`,
         },
         (payload) => {
-          onStatusRef.current((payload.new as { status: OrderStatus }).status);
+          const row = payload.new as {
+            status: OrderStatus;
+            cancelled_by?: string | null;
+          };
+          onStatusRef.current(row.status, row.cancelled_by ?? null);
         }
       )
       .subscribe();
 
     const poll = async () => {
-      const { data } = await supabase
+      // `cancelled_by` n'est pas (encore) dans database.types.ts généré → on
+      // cast le résultat localement (la colonne existe bien côté DB, mig 0073).
+      const { data } = (await supabase
         .from("orders")
-        .select("status")
+        .select("status, cancelled_by")
         .eq("id", orderId)
-        .maybeSingle();
-      if (data?.status) onStatusRef.current(data.status as OrderStatus);
+        .maybeSingle()) as unknown as {
+        data: { status: OrderStatus; cancelled_by: string | null } | null;
+      };
+      if (data?.status) onStatusRef.current(data.status, data.cancelled_by);
     };
     const interval = setInterval(() => void poll(), 6000);
 
