@@ -48,8 +48,14 @@ export function LocationPicker({ onClose, initial }: Props) {
       ? { lat: initial.latitude, lng: initial.longitude }
       : null
   );
-  // True quand le user a ouvert la carte pour ajuster sa position.
-  const [showMap, setShowMap] = useState(false);
+  // Cible de recentrage IMPÉRATIF de la carte (posée par le bouton « ma
+  // position »). Identité séparée de `coords` (alimenté par les déplacements de
+  // carte) pour éviter toute boucle recentrage ↔ moveend.
+  const [flyTarget, setFlyTarget] = useState<{
+    lat: number;
+    lng: number;
+    zoom?: number;
+  } | null>(null);
   const geo = useGeolocation();
 
   const communes = useMemo(() => getCommunes(wilaya), [wilaya]);
@@ -87,7 +93,11 @@ export function LocationPicker({ onClose, initial }: Props) {
       return;
     }
     setCoords({ lat: gpsCoords.latitude, lng: gpsCoords.longitude });
-    setShowMap(true);
+    setFlyTarget({
+      lat: gpsCoords.latitude,
+      lng: gpsCoords.longitude,
+      zoom: 17,
+    });
 
     // Reverse-geocoding pour identifier wilaya + commune à partir des GPS
     // (pré-remplit les selects, le user pourra ajuster avant de valider).
@@ -121,11 +131,33 @@ export function LocationPicker({ onClose, initial }: Props) {
       toast.error(t("positionNotSet"));
       return;
     }
+    // Si aucune wilaya n'est encore choisie (point posé directement sur la
+    // carte), on reverse-géocode le point pour déduire wilaya + commune → la
+    // marketplace peut filtrer par zone. Échec silencieux (on garde les coords).
+    let w = wilaya;
+    let c = commune;
+    if (!w) {
+      setResolving(true);
+      try {
+        const res = await reverseGeocode({
+          latitude: coords.lat,
+          longitude: coords.lng,
+        });
+        if (res.ok) {
+          w = res.wilaya_code ?? w;
+          c = res.commune ?? c;
+        }
+      } catch {
+        /* reverse-geocode indispo : on enregistre quand même les coordonnées */
+      } finally {
+        setResolving(false);
+      }
+    }
     await save({
       latitude: coords.lat,
       longitude: coords.lng,
-      wilaya_code: wilaya || null,
-      commune: commune || null,
+      wilaya_code: w || null,
+      commune: c || null,
     });
   }
 
@@ -195,34 +227,34 @@ export function LocationPicker({ onClose, initial }: Props) {
         </p>
       )}
 
-      {/* Carte d'ajustement — visible quand le user a cliqué GPS ou a déjà
-          des coordonnées en mémoire. Permet d'ajuster le point exact en
-          déplaçant le marqueur central avant de confirmer. */}
-      {(showMap || coords) && (
-        <div className="border-primary-200 bg-primary-50/40 space-y-2 rounded-[12px] border p-3">
-          <p className="text-sm font-semibold">{t("adjustExactPosition")}</p>
-          <MapPositionPicker
-            initial={coords ?? undefined}
-            autoLocate={coords == null}
-            onChange={(p) => setCoords(p)}
-            gpsLabel="GPS"
-            height={260}
-          />
-          <Button
-            type="button"
-            className="w-full"
-            onClick={confirmFromMap}
-            disabled={saving || !coords}
-          >
-            {saving ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Check className="size-4" />
-            )}
-            {t("confirmMyPosition")}
-          </Button>
-        </div>
-      )}
+      {/* Carte TOUJOURS visible : choisir directement en déplaçant la carte,
+          recentrer sur sa position (bouton GPS sur la carte), ou agrandir en
+          plein écran (bouton ⤢). Auto-centrage sur la position actuelle à
+          l'ouverture si aucune position mémorisée. */}
+      <div className="border-primary-200 bg-primary-50/40 space-y-2 rounded-[12px] border p-3">
+        <p className="text-sm font-semibold">{t("adjustExactPosition")}</p>
+        <MapPositionPicker
+          initial={coords ?? undefined}
+          autoLocate={coords == null}
+          focusTarget={flyTarget}
+          onChange={(p) => setCoords(p)}
+          gpsLabel={t("useMyPosition")}
+          height={300}
+        />
+        <Button
+          type="button"
+          className="w-full"
+          onClick={confirmFromMap}
+          disabled={saving || !coords}
+        >
+          {saving ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Check className="size-4" />
+          )}
+          {t("confirmMyPosition")}
+        </Button>
+      </div>
 
       <div className="text-muted relative text-center text-[11px] tracking-wider uppercase">
         <span className="bg-surface relative z-10 px-2">

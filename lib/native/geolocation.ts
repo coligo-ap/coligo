@@ -63,20 +63,48 @@ export function geolocationSupported(): boolean {
   return typeof navigator !== "undefined" && "geolocation" in navigator;
 }
 
-export function getPosition(
-  opts: PositionOptions = { enableHighAccuracy: true, timeout: 15_000 }
-): Promise<Coords> {
+/** Tentative unique `getCurrentPosition` enveloppée en Promise. */
+function getOnce(opts: PositionOptions): Promise<Coords> {
   return new Promise((resolve, reject) => {
-    if (!geolocationSupported()) {
-      reject(new GeolocationError("unsupported", "Géoloc non supportée."));
-      return;
-    }
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve(toCoords(pos)),
       (err) => reject(mapError(err)),
       opts
     );
   });
+}
+
+/**
+ * Position one-shot ROBUSTE (stratégie à deux niveaux) :
+ *  1) haute précision, timeout court (8 s), pas de cache → meilleur fix rapide.
+ *  2) si échec NON définitif (timeout / indisponible), repli basse précision
+ *     (Wi-Fi/IP), timeout plus long, cache accepté (≤ 60 s) → beaucoup plus
+ *     fiable sur desktop et mobiles à GPS lent/capricieux.
+ * Un refus de permission (`denied`) ou l'absence de support sont définitifs :
+ * on ne réessaie pas (inutile, et on évite un 2ᵉ prompt).
+ */
+export async function getPosition(opts?: PositionOptions): Promise<Coords> {
+  if (!geolocationSupported()) {
+    throw new GeolocationError("unsupported", "Géoloc non supportée.");
+  }
+  // Si l'appelant fournit des options explicites, on respecte son choix.
+  if (opts) return getOnce(opts);
+
+  try {
+    return await getOnce({
+      enableHighAccuracy: true,
+      timeout: 8_000,
+      maximumAge: 0,
+    });
+  } catch (err) {
+    if (err instanceof GeolocationError && err.kind === "denied") throw err;
+    // Repli tolérant : basse précision + cache récent accepté.
+    return await getOnce({
+      enableHighAccuracy: false,
+      timeout: 20_000,
+      maximumAge: 60_000,
+    });
+  }
 }
 
 export type WatchHandle = { id: number; stop: () => void };
