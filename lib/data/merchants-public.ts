@@ -40,6 +40,11 @@ export type PublicMerchant = {
   closure_end: string | null;
   /** Sous-spécialités du commerçant (volet 1 — recherche/filtres). */
   tags: string[];
+  /** Scores pré-calculés (volet 3 — classement). 0..1. */
+  score_quality: number;
+  score_speed: number;
+  avg_prep_min: number | null;
+  orders_count: number;
 };
 
 type Filters = {
@@ -303,5 +308,19 @@ function toPublicMerchant(row: Record<string, unknown>): PublicMerchant {
     closure_start: (row.closure_start as string | null) ?? null,
     closure_end: (row.closure_end as string | null) ?? null,
     tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
+    score_quality: numOr(row.score_quality, 0.5),
+    score_speed: numOr(row.score_speed, 0.5),
+    avg_prep_min: row.avg_prep_min == null ? null : numOr(row.avg_prep_min, 0),
+    orders_count: (row.orders_count as number | null) ?? 0,
   };
+}
+
+/** Parse un NUMERIC Postgres (string|number|null) en number, avec défaut. */
+function numOr(v: unknown, fallback: number): number {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : fallback;
+  }
+  return fallback;
 }

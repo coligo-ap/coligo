@@ -11,6 +11,30 @@ import {
 } from "@/lib/validation/merchant-settings";
 import { merchantDeliverySchema } from "@/lib/validation/delivery";
 import { MIN_ORDER_CASH_DA } from "@/lib/config/payment-limits";
+import {
+  MAX_MERCHANT_TAGS,
+  normalizeTagCode,
+} from "@/lib/config/merchant-tags";
+
+/** Parse + assainit les tags envoyés par le formulaire (JSON string). */
+function parseTags(raw: FormDataEntryValue | null): string[] {
+  if (typeof raw !== "string" || raw.trim() === "") return [];
+  let arr: unknown;
+  try {
+    arr = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(arr)) return [];
+  const out: string[] = [];
+  for (const v of arr) {
+    if (typeof v !== "string") continue;
+    const code = normalizeTagCode(v);
+    if (code && !out.includes(code)) out.push(code);
+    if (out.length >= MAX_MERCHANT_TAGS) break;
+  }
+  return out;
+}
 
 const SettingsSchema = z.object({
   auto_accept_orders: z.boolean(),
@@ -101,6 +125,8 @@ export async function updateProfile(
   const merchant = await requireMerchant();
   if ("error" in merchant) return { error: merchant.error };
 
+  const tags = parseTags(formData.get("tags"));
+
   const supabase = await createClient();
 
   // Si le nom change, on régénère un slug unique côté DB (fonction SQL).
@@ -134,6 +160,7 @@ export async function updateProfile(
       description_fr: parsed.data.description_fr,
       description_ar: parsed.data.description_ar,
       phone_public: parsed.data.phone_public,
+      tags,
     })
     .eq("id", merchant.id);
 

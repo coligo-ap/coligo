@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
 import { getCategoryLabel } from "@/lib/config/categories";
+import { getTagLabel } from "@/lib/config/merchant-tags";
 import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badge";
 import { MerchantReviewsDialog } from "@/components/customer/merchant-reviews-dialog";
 import { FavoriteHeart } from "@/components/customer/favorite-heart";
@@ -49,6 +50,8 @@ type Props = {
   rating_avg: number;
   rating_count: number;
   reviews: ReviewWithCustomer[];
+  /** Sous-spécialités (volet 1) — affichées en pilules. */
+  tags?: string[];
 };
 
 export function MerchantCompactHeader({
@@ -69,6 +72,7 @@ export function MerchantCompactHeader({
   rating_avg,
   rating_count,
   reviews,
+  tags = [],
 }: Props) {
   const t = useTranslations("merchant");
   const locale = useLocale();
@@ -218,6 +222,20 @@ export function MerchantCompactHeader({
           </Fragment>
         ))}
       </div>
+
+      {/* Pilules de spécialités (tags) — situent l'offre d'un coup d'œil. */}
+      {tags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {tags.slice(0, 8).map((code) => (
+            <span
+              key={code}
+              className="bg-primary-50 text-primary-700 rounded-full px-2.5 py-1 text-[11px] font-bold"
+            >
+              {getTagLabel(code, locale)}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Description repliable (1 ligne par défaut). */}
       {hasDescription && (

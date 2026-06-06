@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { MediaUpload } from "@/components/merchant/settings/media-upload";
 import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
+import { TagsPicker } from "@/components/merchant/settings/tags-picker";
 import { MERCHANT_CATEGORIES } from "@/lib/config/categories";
 import {
   setMediaUrl,
@@ -22,6 +23,8 @@ const initial: SettingsFormState = {};
 export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(updateProfile, initial);
+  // Catégorie en state → pilote la liste de tags proposée (TagsPicker).
+  const [category, setCategory] = useState(merchant.category ?? "");
   const btnState = useFormActionFeedback({
     pending,
     ok: state.ok,
@@ -74,7 +77,8 @@ export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
             <div className="relative">
               <select
                 name="category"
-                defaultValue={merchant.category ?? ""}
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
                 disabled={pending}
                 className="border-border-strong focus:ring-primary-400 focus:border-primary-400 flex h-10 w-full appearance-none rounded-[10px] border bg-white py-2 pr-8 pl-3 text-sm focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -89,6 +93,14 @@ export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
             </div>
           </Field>
         </div>
+
+        <Field label="Spécialités (tags)">
+          <TagsPicker
+            category={category || null}
+            initialTags={merchant.tags ?? []}
+            disabled={pending}
+          />
+        </Field>
 
         <Field label="Téléphone public">
           <Input

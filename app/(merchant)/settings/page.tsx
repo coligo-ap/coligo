@@ -51,7 +51,7 @@ export default async function SettingsPage() {
        pickup_slot_minutes, max_orders_per_slot, is_active,
        commission_rate, auto_accept_orders, auto_print, print_copies, print_width,
        delivery_enabled, express_enabled, tours_enabled, delivery_radius_km,
-       closure_start, closure_end`
+       closure_start, closure_end, tags`
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -117,6 +117,7 @@ export default async function SettingsPage() {
     max_orders_per_slot: m.max_orders_per_slot,
     commission_rate: m.commission_rate,
     is_active: m.is_active,
+    tags: (m.tags as string[] | null) ?? [],
   };
 
   return (

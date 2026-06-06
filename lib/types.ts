@@ -149,6 +149,8 @@ export type MerchantSettings = {
   max_orders_per_slot: number | null;
   commission_rate: number;
   is_active: boolean;
+  /** Sous-spécialités (volet 1 — recherche/filtres). */
+  tags: string[];
 };
 
 export type Order = {

@@ -226,11 +226,13 @@ function MerchantGroup({
   const t = useTranslations("productSearch");
   const m = group.merchant;
 
+  // Badge dérivé du score : « Moins cher » (prix plancher) prioritaire, sinon
+  // « Rapide » si le score de rapidité MESURÉ est élevé (volet 3).
   const badge: { label: string; tone: "fast" | "cheap" } | null = closed
     ? null
     : cheapest
       ? { label: t("badgeCheap"), tone: "cheap" }
-      : m.prep_time_min > 0 && m.prep_time_min <= 15
+      : m.score_speed >= 0.7
         ? { label: t("badgeFast"), tone: "fast" }
         : null;
 

@@ -90,6 +90,7 @@ export type Database = {
           tours_enabled: boolean;
           delivery_radius_km: number | null;
           shop_public_id: string;
+          tags: string[];
           created_at: string;
         };
         Insert: {
@@ -140,6 +141,7 @@ export type Database = {
           tours_enabled?: boolean;
           delivery_radius_km?: number | null;
           shop_public_id?: string;
+          tags?: string[];
           created_at?: string;
         };
         Update: {
@@ -190,6 +192,7 @@ export type Database = {
           tours_enabled?: boolean;
           delivery_radius_km?: number | null;
           shop_public_id?: string;
+          tags?: string[];
           created_at?: string;
         };
         Relationships: [];

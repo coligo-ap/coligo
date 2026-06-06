@@ -190,10 +190,12 @@ export async function searchProductsInZone(input: {
       products: entry.products,
       matchKind: "product",
       cheapestDa: cheapest,
+      // Pertinence = match produit + qualité/rapidité MESURÉES (volet 3).
       relevance:
         KIND_WEIGHT.product +
         entry.maxSim +
-        Math.min(merchant.rating_avg, 5) * 0.05,
+        0.6 * merchant.score_quality +
+        0.3 * merchant.score_speed,
     });
   }
 
@@ -208,7 +210,10 @@ export async function searchProductsInZone(input: {
       products,
       matchKind: kind,
       cheapestDa: cheapest,
-      relevance: KIND_WEIGHT[kind] + Math.min(merchant.rating_avg, 5) * 0.05,
+      relevance:
+        KIND_WEIGHT[kind] +
+        0.6 * merchant.score_quality +
+        0.3 * merchant.score_speed,
     });
   }
 

@@ -107,6 +107,7 @@ export default async function MerchantPublicPage({
           rating_avg={m.rating_avg}
           rating_count={m.rating_count}
           reviews={reviews}
+          tags={m.tags}
         />
 
         {/* Choix Retrait / Livraison dès la fiche (persisté → pré-rempli au
