@@ -284,6 +284,7 @@
     "codeToGiveMerchant": "الرمز الذي تعطيه للتاجر",
     "codeScanHintDriver": "عند الاستلام، أعطِ هذا الرمز لعامل التوصيل — يمكنه أيضًا مسح رمز QR لتأكيد التسليم.",
     "codeScanHintMerchant": "عند الاستلام، أعطِ هذا الرمز للتاجر — يمكنه أيضًا مسح رمز QR.",
+    "tapToEnlarge": "اضغط على رمز QR لتكبيره في وضع ملء الشاشة.",
     "callName": "اتصل بـ {name}",
     "detailTitle": "التفاصيل",
     "itemsCount": "{count} عنصر",

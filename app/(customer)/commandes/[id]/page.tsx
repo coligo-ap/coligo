@@ -11,7 +11,7 @@ import { CancelOrderButton } from "@/components/customer/cancel-order-button";
 import { OrderTrack } from "@/components/customer/order-track";
 import { CustomerDeliveryMap } from "@/components/customer/customer-delivery-map";
 import { OrderChat } from "@/components/chat/order-chat";
-import { OrderQr } from "@/components/customer/order-qr";
+import { QrZoom } from "@/components/shared/qr-zoom";
 import { DriverReviewCard } from "@/components/customer/driver-review-card";
 import { estimateDeliveryEtaMin } from "@/lib/delivery/eta";
 import { cldUrl } from "@/lib/images/cloudinary";
@@ -453,11 +453,23 @@ export default async function CustomerOrderDetailPage({
               </span>
             </div>
             <div className="border-primary-100 mt-3 flex items-center gap-3.5 border-t pt-3">
-              <OrderQr value={order.pickup_code} size={92} />
+              <QrZoom
+                value={order.pickup_code}
+                size={92}
+                fullValue={order.pickup_code}
+                caption={
+                  isDelivery
+                    ? t("codeScanHintDriver")
+                    : t("codeScanHintMerchant")
+                }
+              />
               <p className="text-primary-700/90 text-[12px] font-semibold">
                 {isDelivery
                   ? t("codeScanHintDriver")
                   : t("codeScanHintMerchant")}
+                <span className="mt-1 block text-[11px] font-bold opacity-80">
+                  {t("tapToEnlarge")}
+                </span>
               </p>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { watchPosition, type Coords } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
 import { DeliveryRouteMap } from "@/components/driver/delivery-route-map";
+import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
 
 /**
  * Écran 2 — OFFRE DE COURSE (plein écran noir, style Uber Eats Driver).
@@ -55,6 +56,22 @@ export function ExpressOffer({
 }) {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [left, setLeft] = useState(30);
+  const { play, stop, unlock } = useAlertSound();
+
+  // Sonnerie + vibration tant que l'offre est affichée (façon Uber/Yassir).
+  // S'arrête à l'acceptation/au refus (démontage du composant).
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      await unlock();
+      if (active) await play({ repeat: true, intervalMs: 2500 });
+    })();
+    vibrate([400, 200, 400, 200, 400]);
+    return () => {
+      active = false;
+      stop();
+    };
+  }, [play, stop, unlock]);
 
   // Géoloc live (pour estimer les distances de l'offre).
   useEffect(() => {

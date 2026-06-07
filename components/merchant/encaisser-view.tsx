@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Loader2, QrCode, RefreshCw } from "lucide-react";
-import { OrderQr } from "@/components/customer/order-qr";
+import { QrZoom } from "@/components/shared/qr-zoom";
 import { toast } from "@/components/ui/toast";
 import { formatDA } from "@/lib/utils";
 import {
@@ -246,7 +246,11 @@ function QrWaiting({
       </p>
 
       <div className="mt-5 flex justify-center">
-        <OrderQr value={req.token} size={220} />
+        <QrZoom
+          value={req.token}
+          size={220}
+          caption="Fais scanner ce QR au client"
+        />
       </div>
 
       <p className="text-foreground mt-4 text-sm font-bold">
