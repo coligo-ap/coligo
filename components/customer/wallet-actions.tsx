@@ -29,8 +29,9 @@ export function WalletActions({
 
   return (
     <>
-      {/* Panneau d'actions UNIFIÉ (une seule carte, 4 colonnes) — épuré. */}
-      <div className="border-border -mt-7 grid grid-cols-4 gap-1 rounded-[22px] border bg-white p-2 shadow-[0_14px_34px_-18px_rgba(40,35,90,.3)]">
+      {/* Panneau d'actions UNIFIÉ (une seule carte, 4 colonnes) — épuré.
+          Pas de chevauchement avec le hero : marge nette au-dessus. */}
+      <div className="border-border mt-4 grid grid-cols-4 gap-1 rounded-[22px] border bg-white p-2 shadow-[0_10px_28px_-18px_rgba(40,35,90,.28)]">
         <Action
           href="/coligo-pay/qr"
           icon={<QrCode className="size-[21px]" />}

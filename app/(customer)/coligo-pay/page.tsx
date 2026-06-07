@@ -81,8 +81,8 @@ export default async function CustomerColigoPayPage() {
           {tAccount("myAccount")}
         </Link>
 
-        {/* HERO premium : carte arrondie flottante (solde + identité). */}
-        <section className="from-primary-400 via-primary-600 to-primary-800 relative overflow-hidden rounded-[26px] bg-gradient-to-br px-6 pt-6 pb-12 text-white shadow-[0_22px_50px_-22px_rgba(91,91,230,.65)]">
+        {/* HERO premium : carte arrondie (solde + identité), sans pavé de texte. */}
+        <section className="from-primary-400 via-primary-600 to-primary-800 relative overflow-hidden rounded-[26px] bg-gradient-to-br px-6 py-6 text-white shadow-[0_22px_50px_-24px_rgba(91,91,230,.6)]">
           {/* anneaux décoratifs */}
           <span className="pointer-events-none absolute -end-12 -top-16 size-52 rounded-full border border-white/12" />
           <span className="pointer-events-none absolute end-6 -top-6 size-32 rounded-full border border-white/10" />
@@ -96,14 +96,11 @@ export default async function CustomerColigoPayPage() {
             </span>
           </div>
 
-          <p className="mt-4 text-[12px] font-bold tracking-wide uppercase opacity-75">
+          <p className="mt-5 text-[11px] font-bold tracking-wide uppercase opacity-70">
             {t("coligoPayBalance")}
           </p>
-          <p className="mt-0.5 text-[40px] leading-none font-black tracking-tight tabular-nums">
+          <p className="mt-0.5 text-[42px] leading-none font-black tracking-tight tabular-nums">
             {formatDA(balance)}
-          </p>
-          <p className="mt-2.5 max-w-md text-[12px] leading-relaxed font-medium opacity-85">
-            {t("coligoPayBalanceDesc")}
           </p>
 
           {/* Identifiant (tag) à partager pour recevoir — intégré au hero. */}
