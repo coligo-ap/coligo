@@ -1,0 +1,90 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { useDriverPosition } from "@/lib/native/use-driver-position";
+import { pullNextExpressNearby } from "@/app/(driver)/actions";
+import { toast } from "@/components/ui/toast";
+import { getDriverMode, modeAllowsExpress } from "@/lib/driver/mode";
+
+/**
+ * Dispatch par ZONE (accueil livreur). Quand le livreur est EN LIGNE, tente
+ * d'attribuer une commande express d'un commerçant proche (RPC géographique
+ * pull_next_express_nearby) — qu'il soit rattaché ou non. À l'attribution, on
+ * route vers /driver/m/[mdId] : tout le flux éprouvé (offre qui sonne → course
+ * → validation) prend le relais (le livreur est auto-rattaché côté serveur).
+ *
+ * Déclencheurs : Realtime sur les commandes express (réception ~instantanée) +
+ * repli polling 20 s (le timing intelligent rend une commande attribuable à son
+ * prep_notif_at, sans évènement Realtime à cet instant précis). La RPC est
+ * idempotente et ne fait rien si le livreur a déjà une course → poll sûr.
+ */
+export function ZoneDispatch({ online }: { online: boolean }) {
+  const coords = useDriverPosition();
+  const router = useRouter();
+  const coordsRef = useRef(coords);
+  coordsRef.current = coords;
+  const busy = useRef(false);
+  const tickRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    if (!online) return;
+    let alive = true;
+
+    const tick = async () => {
+      const c = coordsRef.current;
+      if (!alive || busy.current || !c) return;
+      // Respecte le mode local (ex. « Tournée » → pas d'auto-pull express).
+      if (!modeAllowsExpress(getDriverMode())) return;
+      busy.current = true;
+      try {
+        const r = await pullNextExpressNearby(c.latitude, c.longitude);
+        if (alive && r.orderId && r.mdId) {
+          toast.success("Nouvelle course à proximité ⚡");
+          router.push(`/driver/m/${r.mdId}`);
+        }
+      } finally {
+        busy.current = false;
+      }
+    };
+    tickRef.current = tick;
+
+    void tick();
+    const poll = setInterval(tick, 20_000);
+
+    // Realtime : réagit aux commandes express (création / passage prêt).
+    const supabase = createClient();
+    const channel = supabase
+      .channel("driver-zone-dispatch")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "orders",
+          filter: "delivery_mode=eq.express",
+        },
+        () => void tickRef.current()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
+          filter: "delivery_mode=eq.express",
+        },
+        () => void tickRef.current()
+      )
+      .subscribe();
+
+    return () => {
+      alive = false;
+      clearInterval(poll);
+      void supabase.removeChannel(channel);
+    };
+  }, [online, router]);
+
+  return null;
+}

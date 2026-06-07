@@ -7,6 +7,7 @@ import { DriverHomeMap } from "@/components/driver/home/driver-home-map";
 import { DriverHomeSheet } from "@/components/driver/home/driver-home-sheet";
 import { DriverHomeTopbar } from "@/components/driver/home/driver-home-topbar";
 import { DriverBottomNav } from "@/components/driver/driver-bottom-nav";
+import { ZoneDispatch } from "@/components/driver/home/zone-dispatch";
 
 export const dynamic = "force-dynamic";
 
@@ -160,6 +161,9 @@ export default async function DriverHomePage() {
         blocked={blocked}
         bottomOffset={58}
       />
+
+      {/* Dispatch par zone : reçoit les commandes des commerçants proches. */}
+      <ZoneDispatch online={isOnline} />
 
       {/* Nav basse — onglet « Courses » actif sur l'accueil. */}
       <DriverBottomNav />

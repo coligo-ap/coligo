@@ -607,3 +607,37 @@ export async function reportCustomer(input: {
     return { ok: false, reason: "error" };
   }
 }
+
+/**
+ * Dispatch par ZONE : tente d'attribuer au livreur la commande express d'un
+ * commerçant proche (RPC pull_next_express_nearby, mig 0098). Renvoie l'order +
+ * le merchant_driver_id (pour router vers la page de course). No-op si rien à
+ * proximité ou si le livreur a déjà une course. Jamais throw.
+ */
+export async function pullNextExpressNearby(
+  lat: number,
+  lng: number,
+  radiusKm = 6
+): Promise<{ orderId?: string; mdId?: string }> {
+  try {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return {};
+    const supabase = await createClient();
+    const rpc = supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    const { data, error } = await rpc("pull_next_express_nearby", {
+      p_lat: lat,
+      p_lng: lng,
+      p_radius_km: radiusKm,
+    });
+    if (error || !data) return {};
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | { order_id?: string; merchant_driver_id?: string }
+      | undefined;
+    if (!row?.order_id) return {};
+    return { orderId: row.order_id, mdId: row.merchant_driver_id };
+  } catch {
+    return {};
+  }
+}
