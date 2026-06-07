@@ -310,3 +310,145 @@ export async function resolveDeliveryReport(input: {
   revalidatePath("/admin/reports");
   return { ok: true };
 }
+
+// =============================================================================
+// Pouvoirs super-admin sur les commandes (mig 0097).
+// =============================================================================
+async function logAdmin(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  action: string,
+  orderId: string,
+  note?: string | null
+) {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    await supabase.from("admin_audit_log").insert({
+      admin_email: user?.email ?? null,
+      action,
+      target_kind: "order",
+      target_id: orderId,
+      note: note ?? null,
+    });
+  } catch {
+    /* l'audit ne doit jamais faire échouer l'action métier */
+  }
+}
+
+/** Super-admin valide une livraison (sans code, sans être le livreur). */
+export async function adminValidateDelivery(
+  orderId: string,
+  note?: string
+): Promise<AdminFormState> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const supabase = await createClient();
+  const rpc = supabase.rpc as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc("admin_validate_delivery", {
+    p_order_id: orderId,
+    p_note: note ?? null,
+  });
+  if (error) return { error: error.message };
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { ok?: boolean; reason?: string | null }
+    | undefined;
+  if (!row?.ok && row?.reason && row.reason !== "already_delivered") {
+    return { error: row.reason };
+  }
+  await logAdmin(supabase, "validate_delivery", orderId, note);
+  revalidatePath("/admin/orders");
+  return { ok: true };
+}
+
+/** Super-admin annule une commande à n'importe quelle étape (suivi conservé). */
+export async function adminCancelOrder(
+  orderId: string,
+  reason: string
+): Promise<AdminFormState> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const supabase = await createClient();
+  const rpc = supabase.rpc as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc("admin_cancel_order", {
+    p_order_id: orderId,
+    p_reason: reason ?? null,
+  });
+  if (error) return { error: error.message };
+  const res = (data ?? {}) as {
+    ok?: boolean;
+    reason?: string;
+    merchant_id?: string;
+    order_number?: string | null;
+    customer_name?: string | null;
+  };
+  if (!res.ok) {
+    return {
+      error:
+        res.reason === "already_terminal"
+          ? "Commande déjà terminée ou annulée."
+          : "Annulation impossible.",
+    };
+  }
+  await logAdmin(supabase, "cancel_order", orderId, reason);
+
+  // Notifications best-effort (jamais bloquantes).
+  try {
+    const { notifyMerchantOrderCancelled, notifyCustomerStatusChange } =
+      await import("@/lib/fcm/triggers");
+    if (res.merchant_id) {
+      await notifyMerchantOrderCancelled({
+        merchantId: res.merchant_id,
+        orderId,
+        orderRef: res.order_number ?? null,
+        customerName: res.customer_name ?? null,
+      });
+    }
+    await notifyCustomerStatusChange({ orderId, newStatus: "cancelled" });
+  } catch {
+    /* noop */
+  }
+
+  revalidatePath("/admin/orders");
+  return { ok: true };
+}
+
+/** Super-admin crédite/rembourse le wallet d'un commerçant pour une commande. */
+export async function adminRefundMerchant(
+  orderId: string,
+  amountDa: number,
+  reason: string
+): Promise<AdminFormState> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const amt = Math.floor(Number(amountDa));
+  if (!Number.isFinite(amt) || amt < 1) return { error: "Montant invalide." };
+  const supabase = await createClient();
+  const rpc = supabase.rpc as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc("admin_refund_merchant_wallet", {
+    p_order_id: orderId,
+    p_amount_da: amt,
+    p_reason: reason ?? null,
+  });
+  if (error) return { error: error.message };
+  const res = (data ?? {}) as { ok?: boolean; reason?: string };
+  if (!res.ok) {
+    return {
+      error:
+        res.reason === "already_refunded"
+          ? "Cette commande a déjà été remboursée au commerçant."
+          : res.reason === "bad_amount"
+            ? "Montant invalide."
+            : "Remboursement impossible.",
+    };
+  }
+  await logAdmin(supabase, "refund_merchant", orderId, `${amt} DA — ${reason}`);
+  revalidatePath("/admin/orders");
+  return { ok: true };
+}
