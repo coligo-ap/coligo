@@ -51,6 +51,7 @@ export function DriverHomeSheet({
   merchants,
   pending,
   blocked,
+  bottomOffset = 0,
 }: {
   firstName: string;
   coursesToday: number;
@@ -59,6 +60,8 @@ export function DriverHomeSheet({
   merchants: MerchantRow[];
   pending: PendingLink[];
   blocked: PendingLink[];
+  /** Décalage bas (px) pour laisser place à la nav livreur. */
+  bottomOffset?: number;
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
@@ -155,6 +158,7 @@ export function DriverHomeSheet({
       ref={sheetRef}
       className="absolute inset-x-0 bottom-0 z-[60] rounded-t-[20px] bg-white pb-[max(18px,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,.1)]"
       style={{
+        bottom: bottomOffset,
         transform: `translateY(${ty}px)`,
         transition: dragging ? "none" : "transform .25s ease",
       }}

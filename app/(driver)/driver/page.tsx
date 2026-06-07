@@ -6,6 +6,7 @@ import { DriverDashboardLive } from "@/components/driver/driver-dashboard-live";
 import { DriverHomeMap } from "@/components/driver/home/driver-home-map";
 import { DriverHomeSheet } from "@/components/driver/home/driver-home-sheet";
 import { DriverHomeTopbar } from "@/components/driver/home/driver-home-topbar";
+import { DriverBottomNav } from "@/components/driver/driver-bottom-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -157,7 +158,11 @@ export default async function DriverHomePage() {
         merchants={merchants}
         pending={pending}
         blocked={blocked}
+        bottomOffset={58}
       />
+
+      {/* Nav basse — onglet « Courses » actif sur l'accueil. */}
+      <DriverBottomNav />
     </div>
   );
 }

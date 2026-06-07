@@ -1,5 +1,6 @@
 import { DriverHeader } from "./driver-header";
 import { DriverDrawer } from "./driver-drawer";
+import { DriverBottomNav } from "./driver-bottom-nav";
 import { PullToRefresh } from "./pull-to-refresh";
 
 /**
@@ -25,6 +26,7 @@ export function DriverShell({
       <footer className="mx-auto max-w-md px-4 pb-6 text-center text-[11px] font-medium text-[#9e9e9e]">
         Coligo — Espace livreur
       </footer>
+      <DriverBottomNav />
     </div>
   );
 }

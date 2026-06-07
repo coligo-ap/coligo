@@ -42,7 +42,18 @@ export default async function DriverHistoryPage() {
     .order("created_at", { ascending: false })
     .limit(500);
 
-  const rows = (orders ?? []) as OrderRow[];
+  // Confidentialité client : une fois la commande LIVRÉE (ou terminée /
+  // annulée), le livreur ne doit plus voir les infos personnelles du client.
+  // On masque le nom AVANT envoi au navigateur (le composant retombe sur
+  // « Client »). Restent visibles : n° commande, commerçant, date/heure,
+  // montants, adresse — tout ce qui est utile sans être personnel.
+  const rows = ((orders ?? []) as OrderRow[]).map((r) => {
+    const done =
+      r.status === "completed" ||
+      r.status === "cancelled" ||
+      r.delivery_delivered_at != null;
+    return done ? { ...r, customer_name: null } : r;
+  });
   const merchantIds = Array.from(new Set(rows.map((r) => r.merchant_id)));
 
   // Lookup nom du commerçant (pour affichage + filtre).
