@@ -1,23 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
-import { createClient } from "@/lib/supabase/client";
 import {
   declineExpress,
   markDeliveryArrived,
   markOrderPickedUp,
-  pullNextExpress,
 } from "@/app/(driver)/actions";
-import { AvailabilityToggle } from "./availability-toggle";
 import { DeliveryValidationDialog } from "./delivery-validation-dialog";
 import { PostDeliveryFeedback } from "./post-delivery-feedback";
 import { DriverLocationBroadcaster } from "./driver-location-broadcaster";
 import { ExpressOffer } from "./express-offer";
 import { ExpressRun } from "./course/express-run";
-import { getDriverMode, modeAllowsExpress } from "@/lib/driver/mode";
 
 const ACCEPTED_KEY = "coligo_driver_accepted_orders";
 
@@ -41,17 +36,20 @@ type CurrentOrder = {
   delivery_mode: "express" | "tour" | null;
 };
 
+/**
+ * Carte Express d'un espace commerçant. La RÉCEPTION des courses Express est
+ * désormais GLOBALE (dispatch par zone monté dans le layout livreur, piloté par
+ * l'intention « en ligne ») — plus aucun pull ni inscription par commerçant ici.
+ * Ce composant ne gère plus que le DÉROULÉ d'une course déjà attribuée :
+ * offre plein écran (qui sonne) → course en cours → validation → retour.
+ */
 export function ExpressCard({
-  merchantDriverId,
-  availStatus,
   currentOrder,
   itemCount,
   merchantName,
   merchantLat,
   merchantLng,
 }: {
-  merchantDriverId: string;
-  availStatus: "offline" | "available" | "busy";
   currentOrder: CurrentOrder | null;
   itemCount: number;
   merchantName: string;
@@ -66,9 +64,9 @@ export function ExpressCard({
     id: string;
     name: string | null;
   } | null>(null);
-  // Offre acceptée (écran 2 → écran 3). L'attribution FIFO ayant déjà eu lieu
-  // côté serveur, on garde le « consentement » du livreur côté client pour ne
-  // pas ré-afficher l'offre plein écran après acceptation / reload.
+  // Offre acceptée (écran 2 → écran 3). L'attribution ayant déjà eu lieu côté
+  // serveur, on garde le « consentement » du livreur côté client pour ne pas
+  // ré-afficher l'offre plein écran après acceptation / reload.
   const [accepted, setAccepted] = useState(false);
 
   useEffect(() => {
@@ -111,67 +109,11 @@ export function ExpressCard({
         );
         return;
       }
-      toast.success("Course refusée");
-      router.refresh();
+      // La course repart automatiquement vers un autre livreur en ligne.
+      toast.success("Course refusée — proposée à un autre livreur");
+      router.push("/driver");
     });
   };
-
-  // Realtime : si on est dispo et qu'une nouvelle commande express arrive,
-  // on tente de la puller (le serveur fait FIFO + skip locked).
-  const onChange = useCallback(() => {
-    if (availStatus !== "available") return;
-    // Mode « Tournée » → le livreur ne veut pas d'auto-attribution Express.
-    if (!modeAllowsExpress(getDriverMode())) return;
-    start(async () => {
-      const r = await pullNextExpress(merchantDriverId);
-      if (r.orderId) {
-        toast.success("Commande attribuée !");
-        router.refresh();
-      }
-    });
-  }, [availStatus, merchantDriverId, router]);
-
-  useEffect(() => {
-    if (availStatus !== "available") return;
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`driver-express-${merchantDriverId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "orders",
-          filter: `delivery_mode=eq.express`,
-        },
-        onChange
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "orders",
-          filter: `delivery_mode=eq.express`,
-        },
-        onChange
-      )
-      .subscribe();
-
-    onChange();
-
-    // Poll de secours toutes les 45 s : le timing intelligent (migration 0060)
-    // ne rend une commande attribuable qu'à partir de son prep_notif_at. Comme
-    // aucun évènement Realtime ne se déclenche à cet instant précis, le livreur
-    // en ligne re-vérifie régulièrement → il récupère la course pile au bon
-    // moment (≈ ±45 s) sans cron serveur.
-    const poll = setInterval(onChange, 45_000);
-
-    return () => {
-      clearInterval(poll);
-      void supabase.removeChannel(channel);
-    };
-  }, [availStatus, merchantDriverId, onChange]);
 
   const pickedUp = !!currentOrder?.delivery_picked_up_at;
   const arrived = !!currentOrder?.delivery_arrived_at;
@@ -205,18 +147,6 @@ export function ExpressCard({
       }
       toast.success("Arrivée signalée au client");
       router.refresh();
-    });
-  };
-
-  const onNext = () => {
-    start(async () => {
-      const r = await pullNextExpress(merchantDriverId);
-      if (r.orderId) {
-        toast.success("Nouvelle commande attribuée !");
-        router.refresh();
-      } else {
-        toast.success("Pas d'autre commande en attente — tu es libre.");
-      }
     });
   };
 
@@ -258,43 +188,22 @@ export function ExpressCard({
       )}
 
       <section className="space-y-3 rounded-[14px] bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,.06)]">
-        <header className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-full bg-[#f5f5f5] text-sm">
-              ⚡
-            </span>
-            <p className="text-sm font-bold text-[#0a0a0a]">
-              Livraison Express
-            </p>
-          </div>
-          <AvailabilityToggle
-            merchantDriverId={merchantDriverId}
-            status={availStatus}
-          />
+        <header className="flex items-center gap-2">
+          <span className="grid size-8 place-items-center rounded-full bg-[#f5f5f5] text-sm">
+            ⚡
+          </span>
+          <p className="text-sm font-bold text-[#0a0a0a]">Livraison Express</p>
         </header>
 
         {currentOrder ? (
           <p className="text-xs font-medium text-[#757575]">
             Course en cours — suis les étapes sur l&apos;écran plein.
           </p>
-        ) : availStatus === "available" ? (
-          <div className="space-y-2.5">
-            <p className="flex items-center gap-2 text-xs font-medium text-[#757575]">
-              {pending && <Loader2 className="size-3.5 animate-spin" />}
-              En attente d&apos;une commande Express…
-            </p>
-            <button
-              type="button"
-              onClick={onNext}
-              disabled={pending}
-              className="w-full rounded-[12px] bg-[#f5f5f5] py-3 text-sm font-bold text-[#0a0a0a] active:scale-[0.99] disabled:opacity-60"
-            >
-              Vérifier maintenant
-            </button>
-          </div>
         ) : (
           <p className="text-xs font-medium text-[#757575]">
-            Bascule sur « Disponible » pour recevoir des commandes Express.
+            Aucune course Express ici. Passe en ligne depuis l&apos;accueil :
+            les courses proches arrivent automatiquement, où que tu sois dans
+            l&apos;app.
           </p>
         )}
 
@@ -308,14 +217,11 @@ export function ExpressCard({
             onClose={() => setShowValidate(false)}
             onSuccess={() => {
               setShowValidate(false);
-              // Affiche le retour post-livraison (note + signalement). Le pull
-              // de la course suivante est déclenché APRÈS le retour (onDone).
-              if (currentOrder) {
-                setFeedbackOrder({
-                  id: currentOrder.id,
-                  name: currentOrder.customer_name,
-                });
-              }
+              // Affiche le retour post-livraison (note + signalement).
+              setFeedbackOrder({
+                id: currentOrder.id,
+                name: currentOrder.customer_name,
+              });
               router.refresh();
             }}
           />
@@ -328,16 +234,9 @@ export function ExpressCard({
           customerName={feedbackOrder.name}
           onDone={() => {
             setFeedbackOrder(null);
-            // Auto-propose la course suivante après le retour.
-            setTimeout(() => {
-              start(async () => {
-                const r = await pullNextExpress(merchantDriverId);
-                if (r.orderId) {
-                  toast.success("Une nouvelle commande t'attend !");
-                  router.refresh();
-                }
-              });
-            }, 600);
+            // La prochaine course arrive via le dispatch global (réception en
+            // ligne) — on renvoie le livreur à l'accueil.
+            router.push("/driver");
           }}
         />
       )}

@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, RotateCw } from "lucide-react";
-import { driverDrawer } from "./driver-drawer-store";
+import { RotateCw } from "lucide-react";
 
 /**
  * Header de l'espace livreur (style Uber) — fond blanc, titre, bouton
@@ -46,14 +45,6 @@ export function DriverHeader({
             <RotateCw
               className={"size-5 " + (spinning ? "animate-spin" : "")}
             />
-          </button>
-          <button
-            type="button"
-            onClick={() => driverDrawer.toggle()}
-            aria-label="Ouvrir le menu"
-            className="grid size-10 place-items-center rounded-full bg-[#f5f5f5] text-[#0a0a0a] active:scale-95"
-          >
-            <Menu className="size-5" />
           </button>
         </div>
       </div>

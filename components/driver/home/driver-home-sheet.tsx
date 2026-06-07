@@ -12,12 +12,7 @@ import { useRouter } from "next/navigation";
 import { Bike, ChevronRight, KeyRound, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { setGlobalAvailability } from "@/app/(driver)/actions";
-import { ZoneDispatch } from "@/components/driver/home/zone-dispatch";
-import {
-  getDriverMode,
-  setDriverMode,
-  type DriverMode,
-} from "@/lib/driver/mode";
+import { useDriverOnline, setDriverOnline } from "@/lib/driver/online-store";
 
 type MerchantRow = {
   mdId: string;
@@ -35,20 +30,18 @@ const nf = new Intl.NumberFormat("fr-FR");
  * Bottom sheet de l'accueil livreur (style Uber, glissable).
  *
  * Quand le sheet est REPLIÉ, la zone visible (peek) montre l'essentiel pour
- * agir et motiver : le GAIN du jour + le bouton EN LIGNE / HORS LIGNE + le
- * sélecteur de mode (Tout / Express / Tournée). Le « Bonjour {prénom} » en
- * grand a été retiré (peu utile, distrayant). Le reste (stats détaillées,
- * commerçants…) se déplie en glissant vers le haut.
+ * agir et motiver : le GAIN du jour + le bouton EN LIGNE / HORS LIGNE. Le reste
+ * (commerçants pour les tournées…) se déplie en glissant vers le haut.
  *
- * Le mode est une préférence locale (localStorage) qui aide à basculer
- * facilement ; il ne change pas l'attribution serveur, seulement l'auto-pull
- * Express côté client (cf. lib/driver/mode + express-card).
+ * EN LIGNE = disponible pour l'EXPRESS (réception immédiate des courses
+ * proches, sans inscription chez un commerçant). L'intention est persistée dans
+ * un store partagé (online-store) qui pilote le dispatch global monté dans le
+ * layout. La Tournée, elle, nécessite de rejoindre un commerçant (code).
  */
 export function DriverHomeSheet({
   firstName,
   coursesToday,
   earnedToday,
-  initialOnline,
   merchants,
   pending,
   blocked,
@@ -57,7 +50,6 @@ export function DriverHomeSheet({
   firstName: string;
   coursesToday: number;
   earnedToday: number;
-  initialOnline: boolean;
   merchants: MerchantRow[];
   pending: PendingLink[];
   blocked: PendingLink[];
@@ -66,15 +58,8 @@ export function DriverHomeSheet({
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
-  const [online, setOnline] = useState(initialOnline);
+  const online = useDriverOnline();
   const [onlineLabel, setOnlineLabel] = useState("0h00");
-  const [mode, setMode] = useState<DriverMode>("all");
-
-  useEffect(() => setMode(getDriverMode()), []);
-  const pickMode = (m: DriverMode) => {
-    setMode(m);
-    setDriverMode(m);
-  };
 
   // --- Bottom sheet glissable -----------------------------------------------
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -141,15 +126,15 @@ export function DriverHomeSheet({
 
   const toggle = () => {
     const next = !online;
-    setOnline(next); // optimiste
+    setDriverOnline(next); // intention (store partagé) → pilote le dispatch global
+    toast.success(
+      next ? "Tu es en ligne ⚡ Réception Express active" : "Tu es hors ligne"
+    );
+    // Best-effort : met aussi à jour la dispo des commerçants où le livreur est
+    // inscrit (utile pour la Tournée). Sans inscription, c'est un no-op côté
+    // serveur — l'Express fonctionne déjà via le store + le dispatch global.
     start(async () => {
-      const r = await setGlobalAvailability(next ? "available" : "offline");
-      if (!r.ok) {
-        setOnline(!next);
-        toast.error(r.error ?? "Erreur");
-        return;
-      }
-      toast.success(next ? "Tu es en ligne ⚡" : "Tu es hors ligne");
+      await setGlobalAvailability(next ? "available" : "offline");
       router.refresh();
     });
   };
@@ -164,10 +149,6 @@ export function DriverHomeSheet({
         transition: dragging ? "none" : "transform .25s ease",
       }}
     >
-      {/* Dispatch par zone piloté par l'INTENTION « en ligne » du livreur (state
-          local), pas par la dispo serveur : un livreur SANS lien commerçant peut
-          ainsi recevoir les courses express proches (auto-rattachement côté RPC). */}
-      <ZoneDispatch online={online} />
       {/* Poignée draggable */}
       <div
         onPointerDown={onHandleDown}
@@ -226,8 +207,8 @@ export function DriverHomeSheet({
               </span>
               <span className="mt-px block text-[11px] font-medium opacity-70">
                 {online
-                  ? "Disponible pour livrer"
-                  : "Touchez pour passer en ligne"}
+                  ? "Disponible — réception Express en cours"
+                  : "Touchez pour recevoir des courses Express"}
               </span>
             </span>
           </span>
@@ -249,31 +230,19 @@ export function DriverHomeSheet({
             </span>
           )}
         </button>
-
-        {/* Sélecteur de mode : Tout / Express / Tournée. */}
-        <div className="mt-2.5 flex gap-1.5 rounded-[12px] bg-[#f2f2f2] p-1">
-          <ModeBtn active={mode === "all"} onClick={() => pickMode("all")}>
-            Tout
-          </ModeBtn>
-          <ModeBtn
-            active={mode === "express"}
-            onClick={() => pickMode("express")}
-          >
-            ⚡ Express
-          </ModeBtn>
-          <ModeBtn active={mode === "tour"} onClick={() => pickMode("tour")}>
-            📅 Tournée
-          </ModeBtn>
-        </div>
       </div>
 
       {/* ===== Zone dépliable (scroll) ===== */}
       <div className="mt-3 max-h-[42vh] overflow-y-auto overscroll-contain px-4">
-        <p className="px-1 pb-2 text-[13px] font-medium text-[#757575]">
+        <p className="px-1 pb-1 text-[13px] font-medium text-[#757575]">
           Bonjour {firstName} — prêt pour la prochaine course.
         </p>
+        <p className="px-1 pb-2 text-[11px] font-bold tracking-wide text-[#9e9e9e] uppercase">
+          Tournées — commerçants rejoints
+        </p>
 
-        {/* Liste des commerçants */}
+        {/* Liste des commerçants (pour les TOURNÉES : l'Express, lui, arrive tout
+            seul quand tu es en ligne, sans rejoindre de commerçant). */}
         {merchants.length > 0 ? (
           <ul>
             {merchants.map((m) => (
@@ -353,28 +322,5 @@ export function DriverHomeSheet({
         )}
       </div>
     </div>
-  );
-}
-
-function ModeBtn({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        "flex-1 rounded-[9px] py-2 text-xs font-bold transition-colors " +
-        (active ? "bg-white text-[#0a0a0a] shadow-sm" : "text-[#757575]")
-      }
-    >
-      {children}
-    </button>
   );
 }

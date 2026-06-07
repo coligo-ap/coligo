@@ -1,5 +1,6 @@
 import { Inter } from "next/font/google";
 import { OfflineSyncIndicator } from "@/components/driver/offline-sync-indicator";
+import { DriverDispatchMount } from "@/components/driver/driver-dispatch-mount";
 import { InstallBanner } from "@/components/pwa/install-banner";
 
 /**
@@ -28,6 +29,8 @@ export default function DriverLayout({
   return (
     <div data-space="driver" className={fontDriver.variable}>
       {children}
+      {/* Réception Express globale (pilotée par l'intention « en ligne »). */}
+      <DriverDispatchMount />
       <InstallBanner />
       <OfflineSyncIndicator />
     </div>

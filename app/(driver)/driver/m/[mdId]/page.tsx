@@ -100,8 +100,6 @@ export default async function DriverMerchantSpacePage({
 
         {merchant.express_enabled && (
           <ExpressCard
-            merchantDriverId={link.id}
-            availStatus={avail?.status ?? "offline"}
             currentOrder={
               (currentOrder ?? null) as Parameters<
                 typeof ExpressCard

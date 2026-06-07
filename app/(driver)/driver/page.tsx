@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
-import { DriverDrawer } from "@/components/driver/driver-drawer";
 import { DriverDashboardLive } from "@/components/driver/driver-dashboard-live";
 import { DriverHomeMap } from "@/components/driver/home/driver-home-map";
 import { DriverHomeSheet } from "@/components/driver/home/driver-home-sheet";
@@ -43,7 +42,6 @@ export default async function DriverHomePage() {
   if (driver.is_frozen) {
     return (
       <div className="relative min-h-[100dvh] bg-[#f2f2f2]">
-        <DriverDrawer driverFirstName={firstName} />
         <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col items-center justify-center gap-3 px-6 text-center">
           <h1 className="text-xl font-extrabold text-[#0a0a0a]">Compte gelé</h1>
           <p className="text-sm font-medium text-[#757575]">
@@ -82,24 +80,16 @@ export default async function DriverHomePage() {
 
   const linkById = new Map(links.map((l) => [l.id, l]));
 
-  // Dispo courante du livreur (requête séparée : la relation merchant_drivers
-  // ↔ driver_availability n'est pas inférée par PostgREST côté types).
-  const activeIds = links.filter((l) => l.status === "active").map((l) => l.id);
-  const { data: availRows } = activeIds.length
-    ? await supabase
-        .from("driver_availability")
-        .select("merchant_driver_id, status")
-        .in("merchant_driver_id", activeIds)
-    : { data: [] };
-
-  // Commerçants actifs → lignes du sheet + pins (fusion avec les compteurs).
+  // Commerçants rejoints → lignes du sheet (pour les TOURNÉES) + pins carte.
+  // L'Express ne dépend plus d'aucune inscription : seul le compteur Tournée
+  // est pertinent par commerçant.
   const merchants = counts.map((c) => {
     const m = one(linkById.get(c.merchant_driver_id)?.merchants ?? null);
     return {
       mdId: c.merchant_driver_id,
       name: c.merchant_name,
       commune: m?.commune ?? null,
-      pending: c.express_available + c.tour_pending,
+      pending: c.tour_pending,
       lat: m?.latitude ?? null,
       lng: m?.longitude ?? null,
     };
@@ -108,9 +98,6 @@ export default async function DriverHomePage() {
   const pins = merchants
     .filter((m) => m.lat != null && m.lng != null)
     .map((m) => ({ id: m.mdId, name: m.name, lat: m.lat!, lng: m.lng! }));
-
-  // En ligne si au moins une paire active est « available ».
-  const isOnline = (availRows ?? []).some((a) => a.status === "available");
 
   // En attente / bloqué (fonctionnel, conservé).
   const pending = links
@@ -144,25 +131,22 @@ export default async function DriverHomePage() {
     <div className="relative h-[100dvh] overflow-hidden bg-[#f2f2f2]">
       {/* Refresh temps réel des compteurs + toast nouvelle course. */}
       <DriverDashboardLive />
-      {/* Drawer (menu burger) — ouvert par le bouton de la top bar. */}
-      <DriverDrawer driverFirstName={firstName} />
 
       <DriverHomeMap merchants={pins} />
-      <DriverHomeTopbar online={isOnline} />
+      <DriverHomeTopbar />
 
       <DriverHomeSheet
         firstName={firstName}
         coursesToday={coursesToday ?? 0}
         earnedToday={earnedToday}
-        initialOnline={isOnline}
         merchants={merchants}
         pending={pending}
         blocked={blocked}
         bottomOffset={58}
       />
 
-      {/* Le dispatch par zone est rendu DANS le sheet (piloté par l'intention
-          « en ligne » du livreur) pour couvrir les livreurs sans lien commerçant. */}
+      {/* La réception Express (dispatch par zone) est montée GLOBALEMENT dans le
+          layout livreur, pilotée par l'intention « en ligne » (store partagé). */}
 
       {/* Nav basse — onglet « Courses » actif sur l'accueil. */}
       <DriverBottomNav />

@@ -342,21 +342,6 @@ export async function setGlobalAvailability(
 }
 
 // ---------------------------------------------------------------------------
-// Pull next express (si dispo)
-// ---------------------------------------------------------------------------
-export async function pullNextExpress(
-  merchantDriverId: string
-): Promise<{ orderId?: string; error?: string }> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("pull_next_express", {
-    p_merchant_driver_id: merchantDriverId,
-  });
-  if (error) return { error: error.message };
-  const row = (data as Array<{ order_id: string }> | null)?.[0];
-  return row ? { orderId: row.order_id } : {};
-}
-
-// ---------------------------------------------------------------------------
 // Refuser une offre Express (release + cooldown 10 min) — cf. migration 0056
 // ---------------------------------------------------------------------------
 export async function declineExpress(

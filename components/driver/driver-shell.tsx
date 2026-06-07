@@ -1,11 +1,11 @@
 import { DriverHeader } from "./driver-header";
-import { DriverDrawer } from "./driver-drawer";
 import { DriverBottomNav } from "./driver-bottom-nav";
 import { PullToRefresh } from "./pull-to-refresh";
 
 /**
- * Chrome unifié de l'espace livreur (style Uber) — header (titre + hamburger),
- * drawer (menu burger avec tous les écrans), fond gris #F2F2F2. Mobile-first.
+ * Chrome unifié de l'espace livreur (style Uber) — header (titre + refresh),
+ * barre de navigation basse, fond gris #F2F2F2. Mobile-first. (Le drawer a été
+ * retiré : la nav passe entièrement par la barre du bas.)
  *
  * Pas d'auth ici : chaque page protégée appelle déjà `getCurrentDriver()`.
  */
@@ -19,7 +19,6 @@ export function DriverShell({
   return (
     <div className="min-h-[100dvh] bg-[#f2f2f2] pb-16 text-[#0a0a0a]">
       <DriverHeader driverFirstName={driverFirstName} />
-      <DriverDrawer driverFirstName={driverFirstName} />
       <PullToRefresh>
         <main className="mx-auto max-w-md px-4 py-4">{children}</main>
       </PullToRefresh>
