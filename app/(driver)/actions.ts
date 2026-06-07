@@ -633,10 +633,10 @@ export async function pullNextExpressNearby(
     });
     if (error || !data) return {};
     const row = (Array.isArray(data) ? data[0] : data) as
-      | { order_id?: string; merchant_driver_id?: string }
+      | { res_order_id?: string; res_md_id?: string }
       | undefined;
-    if (!row?.order_id) return {};
-    return { orderId: row.order_id, mdId: row.merchant_driver_id };
+    if (!row?.res_order_id) return {};
+    return { orderId: row.res_order_id, mdId: row.res_md_id };
   } catch {
     return {};
   }
