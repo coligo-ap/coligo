@@ -282,6 +282,8 @@
     "paid": "مدفوع",
     "codeToGiveDriver": "الرمز الذي تعطيه لعامل التوصيل",
     "codeToGiveMerchant": "الرمز الذي تعطيه للتاجر",
+    "codeScanHintDriver": "عند الاستلام، أعطِ هذا الرمز لعامل التوصيل — يمكنه أيضًا مسح رمز QR لتأكيد التسليم.",
+    "codeScanHintMerchant": "عند الاستلام، أعطِ هذا الرمز للتاجر — يمكنه أيضًا مسح رمز QR.",
     "callName": "اتصل بـ {name}",
     "detailTitle": "التفاصيل",
     "itemsCount": "{count} عنصر",

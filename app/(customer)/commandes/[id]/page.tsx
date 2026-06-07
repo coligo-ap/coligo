@@ -11,6 +11,7 @@ import { CancelOrderButton } from "@/components/customer/cancel-order-button";
 import { OrderTrack } from "@/components/customer/order-track";
 import { CustomerDeliveryMap } from "@/components/customer/customer-delivery-map";
 import { OrderChat } from "@/components/chat/order-chat";
+import { OrderQr } from "@/components/customer/order-qr";
 import { DriverReviewCard } from "@/components/customer/driver-review-card";
 import { estimateDeliveryEtaMin } from "@/lib/delivery/eta";
 import { cldUrl } from "@/lib/images/cloudinary";
@@ -428,15 +429,28 @@ export default async function CustomerOrderDetailPage({
           )}
         </div>
 
-        {/* ═══ CODE PIN (uniquement payé en ligne : livraison ou retrait) ═══ */}
-        {needsCode && !isCancelled && (
-          <div className="bg-primary-50 text-primary-800 mt-2.5 flex items-center justify-between gap-3 rounded-[13px] px-3.5 py-2.5 text-[12.5px] font-bold">
-            <span>
-              🔑 {isDelivery ? t("codeToGiveDriver") : t("codeToGiveMerchant")}
-            </span>
-            <span className="text-primary-600 text-[22px] font-black tracking-[5px] tabular-nums">
-              {order.pickup_code}
-            </span>
+        {/* ═══ CODE PIN + QR (payé en ligne : livraison ou retrait) ═══
+            Le client le montre/à scanner par le livreur (livraison) ou le
+            commerçant (retrait) pour valider. PIN visible client uniquement. */}
+        {needsCode && !isCancelled && order.pickup_code && (
+          <div className="border-primary-100 bg-primary-50 mt-2.5 rounded-[16px] border p-3.5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-primary-800 text-[12.5px] font-extrabold">
+                🔑{" "}
+                {isDelivery ? t("codeToGiveDriver") : t("codeToGiveMerchant")}
+              </span>
+              <span className="text-primary-600 text-[26px] leading-none font-black tracking-[6px] tabular-nums">
+                {order.pickup_code}
+              </span>
+            </div>
+            <div className="border-primary-100 mt-3 flex items-center gap-3.5 border-t pt-3">
+              <OrderQr value={order.pickup_code} size={92} />
+              <p className="text-primary-700/90 text-[12px] font-semibold">
+                {isDelivery
+                  ? t("codeScanHintDriver")
+                  : t("codeScanHintMerchant")}
+              </p>
+            </div>
           </div>
         )}
 

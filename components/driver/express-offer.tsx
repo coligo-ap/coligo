@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { watchPosition, type Coords } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
+import { DeliveryRouteMap } from "@/components/driver/delivery-route-map";
 
 /**
  * Écran 2 — OFFRE DE COURSE (plein écran noir, style Uber Eats Driver).
@@ -112,79 +113,96 @@ export function ExpressOffer({
         </span>
       </div>
 
-      {/* Bloc principal : distance + montant violet */}
-      <div className="mt-6 flex items-end justify-between">
-        <h1 className="text-[48px] leading-none font-black tracking-[-1.5px]">
-          {fmtKm(totalKm)}
-          <span className="ml-1 text-[18px] font-semibold opacity-60">km</span>
-        </h1>
-        <div className="text-right">
-          <div className="text-[36px] leading-none font-black tracking-[-1px] text-[#5c5ce0]">
-            {fee}
-          </div>
-          <div className="mt-1 text-[13px] font-semibold tracking-[0.5px] opacity-60">
-            DA
+      {/* Zone scrollable : le contenu peut défiler sans pousser les boutons. */}
+      <div className="-mx-[22px] min-h-0 flex-1 overflow-y-auto px-[22px]">
+        {/* Bloc principal : distance + montant violet */}
+        <div className="mt-6 flex items-end justify-between">
+          <h1 className="text-[48px] leading-none font-black tracking-[-1.5px]">
+            {fmtKm(totalKm)}
+            <span className="ml-1 text-[18px] font-semibold opacity-60">
+              km
+            </span>
+          </h1>
+          <div className="text-right">
+            <div className="text-[36px] leading-none font-black tracking-[-1px] text-[#5c5ce0]">
+              {fee}
+            </div>
+            <div className="mt-1 text-[13px] font-semibold tracking-[0.5px] opacity-60">
+              DA
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Chips */}
-      <div className="mt-[18px] flex flex-wrap gap-2">
-        <Chip violet>⚡ Express</Chip>
-        <Chip>
-          {order.payment_method === "cash" ? "💵 Cash" : "💳 Payé en ligne"}
-        </Chip>
-        {itemCount > 0 && (
+        {/* Chips */}
+        <div className="mt-[18px] flex flex-wrap gap-2">
+          <Chip violet>⚡ Express</Chip>
           <Chip>
-            📦 {itemCount} article{itemCount > 1 ? "s" : ""}
+            {order.payment_method === "cash" ? "💵 Cash" : "💳 Payé en ligne"}
           </Chip>
-        )}
-        {totalMin != null && <Chip>~{totalMin} min</Chip>}
-      </div>
-
-      {/* Bloc trajet */}
-      <div className="mt-[22px] flex gap-3.5 rounded-[14px] bg-white/[0.04] p-4">
-        <div className="flex flex-col items-center pt-[5px]">
-          <span className="size-[11px] rounded-full bg-white" />
-          <span
-            className="my-1 w-0.5 flex-1"
-            style={{
-              minHeight: 30,
-              backgroundImage:
-                "linear-gradient(to bottom,#666 50%,transparent 50%)",
-              backgroundSize: "2px 6px",
-            }}
-          />
-          <span className="size-[11px] rounded-[2px] bg-[#5c5ce0]" />
+          {itemCount > 0 && (
+            <Chip>
+              📦 {itemCount} article{itemCount > 1 ? "s" : ""}
+            </Chip>
+          )}
+          {totalMin != null && <Chip>~{totalMin} min</Chip>}
         </div>
-        <div className="flex-1">
-          <div className="mb-3.5">
-            <small className="text-[10px] font-bold tracking-[1px] opacity-50">
-              RÉCUPÉRER
-            </small>
-            <div className="mt-[3px] text-[13.5px] font-semibold">
-              {merchantName}
-            </div>
-            <div className="mt-px text-[11px] font-medium opacity-60">
-              {fmtLeg(legPickup)}
-            </div>
+
+        {/* Carte + tracé de l'itinéraire (vers le commerçant à récupérer) :
+          le livreur voit le chemin réel et l'ETA dès la réception de l'offre. */}
+        {pickup && (
+          <div className="mt-[18px] overflow-hidden rounded-[14px]">
+            <DeliveryRouteMap
+              target={pickup}
+              label="Vers le commerçant"
+              height={180}
+            />
           </div>
-          <div>
-            <small className="text-[10px] font-bold tracking-[1px] opacity-50">
-              LIVRER À
-            </small>
-            <div className="mt-[3px] text-[13.5px] font-semibold">
-              {order.delivery_address_text ?? "Adresse client"}
+        )}
+
+        {/* Bloc trajet */}
+        <div className="mt-[22px] flex gap-3.5 rounded-[14px] bg-white/[0.04] p-4">
+          <div className="flex flex-col items-center pt-[5px]">
+            <span className="size-[11px] rounded-full bg-white" />
+            <span
+              className="my-1 w-0.5 flex-1"
+              style={{
+                minHeight: 30,
+                backgroundImage:
+                  "linear-gradient(to bottom,#666 50%,transparent 50%)",
+                backgroundSize: "2px 6px",
+              }}
+            />
+            <span className="size-[11px] rounded-[2px] bg-[#5c5ce0]" />
+          </div>
+          <div className="flex-1">
+            <div className="mb-3.5">
+              <small className="text-[10px] font-bold tracking-[1px] opacity-50">
+                RÉCUPÉRER
+              </small>
+              <div className="mt-[3px] text-[13.5px] font-semibold">
+                {merchantName}
+              </div>
+              <div className="mt-px text-[11px] font-medium opacity-60">
+                {fmtLeg(legPickup)}
+              </div>
             </div>
-            <div className="mt-px text-[11px] font-medium opacity-60">
-              {fmtLeg(legDrop)}
+            <div>
+              <small className="text-[10px] font-bold tracking-[1px] opacity-50">
+                LIVRER À
+              </small>
+              <div className="mt-[3px] text-[13.5px] font-semibold">
+                {order.delivery_address_text ?? "Adresse client"}
+              </div>
+              <div className="mt-px text-[11px] font-medium opacity-60">
+                {fmtLeg(legDrop)}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="mt-auto flex gap-2.5 pt-[18px]">
+      <div className="flex gap-2.5 pt-[14px]">
         <button
           type="button"
           onClick={onRefuse}
