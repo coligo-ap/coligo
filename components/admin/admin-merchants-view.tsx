@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Snowflake } from "lucide-react";
+import { Loader2, PackagePlus, Snowflake } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +12,12 @@ import type { PlatformSettings } from "@/lib/types";
 import { rateToPct } from "@/lib/validation/platform";
 import type { AdminMerchant } from "@/lib/data/platform";
 import {
+  seedMerchantCatalog,
   toggleMerchantFrozen,
   updateMerchantRates,
   type AdminFormState,
 } from "@/app/admin/actions";
+import { getCatalogTemplate } from "@/lib/config/catalog-templates";
 
 const initialState: AdminFormState = {};
 
@@ -101,6 +103,26 @@ function MerchantRow({
     });
   }
 
+  const [seeding, startSeed] = useTransition();
+  const template = getCatalogTemplate(merchant.category);
+
+  function onSeedCatalog() {
+    if (
+      !confirm(
+        `Remplir automatiquement le catalogue de « ${merchant.name} » avec le modèle ${template?.label} ?\n\nLes produits/catégories déjà présents ne seront pas dupliqués. Le commerçant pourra tout ajuster (prix, photos, détails).`
+      )
+    )
+      return;
+    startSeed(async () => {
+      const res = await seedMerchantCatalog(merchant.id);
+      if (!res.ok) return toast.error(res.error);
+      toast.success(
+        `Catalogue rempli (${res.label}) : +${res.categoriesAdded} catégories, +${res.productsAdded} produits`
+      );
+      router.refresh();
+    });
+  }
+
   return (
     <li className="border-border bg-surface rounded-[16px] border p-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -178,6 +200,35 @@ function MerchantRow({
           </span>
         </div>
       </form>
+
+      {/* Remplissage automatique du catalogue selon le type de commerce. */}
+      <div className="border-border mt-4 flex flex-wrap items-center gap-3 border-t pt-4">
+        {template ? (
+          <>
+            <button
+              type="button"
+              onClick={onSeedCatalog}
+              disabled={seeding}
+              className="bg-primary-50 text-primary-700 hover:bg-primary-100 inline-flex items-center gap-2 rounded-[10px] px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
+            >
+              {seeding ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <PackagePlus className="size-4" />
+              )}
+              Remplir le catalogue ({template.label})
+            </button>
+            <span className="text-subtle text-xs">
+              Idempotent · le commerçant ajuste ensuite prix / photos / détails.
+            </span>
+          </>
+        ) : (
+          <span className="text-subtle text-xs">
+            Aucun modèle de catalogue pour ce type de commerce
+            {merchant.category ? ` (« ${merchant.category} »)` : ""}.
+          </span>
+        )}
+      </div>
     </li>
   );
 }

@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isSuperAdmin } from "@/lib/auth/admin";
+import { getCatalogTemplate } from "@/lib/config/catalog-templates";
 import {
   merchantRatesSchema,
   platformSettingsSchema,
@@ -159,4 +161,124 @@ export async function toggleDriverFrozen(
 
   revalidatePath("/admin/drivers");
   return {};
+}
+
+// =============================================================================
+// Remplissage AUTOMATIQUE du catalogue d'un commerçant (super-admin).
+// =============================================================================
+// Le super-admin remplit le magasin d'un commerçant à partir d'un MODÈLE Coligo
+// (catégories + produits courants, prix indicatifs) selon son type de commerce.
+// Le commerçant ajuste ensuite prix / détails / photos (tout est éditable).
+//
+// - Données 100 % possédées (cf. lib/config/catalog-templates) — aucune copie
+//   d'un catalogue tiers, aucune photo importée (le commerçant ajoute les siennes).
+// - Service-role : l'admin agit sur le magasin d'un AUTRE commerçant (hors RLS).
+// - IDEMPOTENT : on n'ajoute pas une catégorie / un produit déjà présents (par
+//   titre / nom) → on peut relancer sans créer de doublons.
+// =============================================================================
+export type SeedCatalogResult =
+  | { ok: true; categoriesAdded: number; productsAdded: number; label: string }
+  | { ok: false; error: string };
+
+const norm = (s: string) =>
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+export async function seedMerchantCatalog(
+  merchantId: string,
+  templateType?: string
+): Promise<SeedCatalogResult> {
+  if (!(await isSuperAdmin())) return { ok: false, error: "Accès refusé." };
+  if (!merchantId) return { ok: false, error: "Commerçant manquant." };
+
+  const admin = createAdminClient();
+
+  const { data: merchant, error: mErr } = await admin
+    .from("merchants")
+    .select("id, category")
+    .eq("id", merchantId)
+    .maybeSingle();
+  if (mErr || !merchant) return { ok: false, error: "Commerçant introuvable." };
+
+  const type = (templateType || merchant.category || "").trim();
+  const tpl = getCatalogTemplate(type);
+  if (!tpl) {
+    return {
+      ok: false,
+      error: `Aucun modèle de catalogue pour le type « ${type || "?"} ».`,
+    };
+  }
+
+  // État existant (idempotence par titre de catégorie / nom de produit).
+  const { data: existCats } = await admin
+    .from("categories")
+    .select("id, title")
+    .eq("merchant_id", merchantId);
+  const catIdByTitle = new Map<string, string>();
+  for (const c of existCats ?? []) catIdByTitle.set(norm(c.title), c.id);
+
+  const { data: existProds } = await admin
+    .from("products")
+    .select("name_fr")
+    .eq("merchant_id", merchantId);
+  const prodNames = new Set<string>(
+    (existProds ?? []).map((p) => norm(p.name_fr))
+  );
+
+  let categoriesAdded = 0;
+  let productsAdded = 0;
+  let position = existCats?.length ?? 0;
+
+  for (const cat of tpl.categories) {
+    let categoryId = catIdByTitle.get(norm(cat.title));
+    if (!categoryId) {
+      const { data: insCat, error: cErr } = await admin
+        .from("categories")
+        .insert({
+          merchant_id: merchantId,
+          title: cat.title,
+          position: position++,
+        })
+        .select("id")
+        .single();
+      if (cErr || !insCat) continue;
+      categoryId = insCat.id;
+      catIdByTitle.set(norm(cat.title), categoryId);
+      categoriesAdded++;
+    }
+
+    const rows = cat.products
+      .filter((p) => !prodNames.has(norm(p.name_fr)))
+      .map((p) => ({
+        merchant_id: merchantId,
+        name_fr: p.name_fr,
+        name_ar: p.name_ar ?? null,
+        price_da: p.price_da,
+        unit: p.unit ?? "piece",
+        category_id: categoryId ?? null,
+        is_available: true,
+      }));
+
+    if (rows.length > 0) {
+      const { error: pErr } = await admin.from("products").insert(rows);
+      if (!pErr) {
+        for (const r of rows) prodNames.add(norm(r.name_fr));
+        productsAdded += rows.length;
+      }
+    }
+  }
+
+  // Audit : qui a rempli, quel magasin, combien.
+  const {
+    data: { user },
+  } = await (await createClient()).auth.getUser();
+  await admin.from("admin_audit_log").insert({
+    admin_email: user?.email ?? null,
+    action: "seed_catalog",
+    target_kind: "merchant",
+    target_id: merchantId,
+    note: `${tpl.label} · +${categoriesAdded} cat. / +${productsAdded} produits`,
+  });
+
+  revalidatePath("/admin/merchants");
+  return { ok: true, categoriesAdded, productsAdded, label: tpl.label };
 }

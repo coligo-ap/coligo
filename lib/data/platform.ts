@@ -22,6 +22,7 @@ export type AdminMerchant = {
   id: string;
   name: string;
   city: string | null;
+  category: string | null;
   is_active: boolean;
   is_frozen: boolean;
   commission_cash: number | null;
@@ -40,7 +41,7 @@ export async function getAllMerchantsForAdmin(): Promise<AdminMerchant[]> {
   const { data: merchants } = await supabase
     .from("merchants")
     .select(
-      "id, name, city, is_active, is_frozen, commission_cash, commission_online, cashback_online, cashback_cash"
+      "id, name, city, category, is_active, is_frozen, commission_cash, commission_online, cashback_online, cashback_cash"
     )
     .order("created_at", { ascending: true });
 
