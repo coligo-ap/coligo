@@ -73,6 +73,7 @@ export function DeliveryValidationDialog({
           [
             "bad_code",
             "online_requires_code",
+            "code_required",
             "not_attributed_to_you",
             "order_not_found",
             "already_delivered",
@@ -241,6 +242,8 @@ function reasonLabel(reason?: string): string {
   switch (reason) {
     case "online_requires_code":
       return "Code requis pour les commandes payées en ligne.";
+    case "code_required":
+      return "Code obligatoire : cette commande est prépayée (en ligne, cashback ou Coligo Pay). Le client doit te communiquer son code.";
     case "bad_code":
       return "Code incorrect.";
     case "not_attributed_to_you":

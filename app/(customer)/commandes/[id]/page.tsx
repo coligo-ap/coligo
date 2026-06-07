@@ -37,7 +37,7 @@ export default async function CustomerOrderDetailPage({
     .select(
       `id, status, payment_method, payment_status, pickup_code, order_number, pickup_type,
        pickup_slot_at, pickup_slot_start, pickup_slot_end, customer_note,
-       subtotal_da, discount_da, cashback_estimate_da, total_da, created_at,
+       subtotal_da, discount_da, cashback_estimate_da, cashback_used_da, topup_used_da, total_da, created_at,
        merchant_id,
        fulfillment_type, delivery_mode, delivery_fee_da, delivery_distance_km,
        delivery_driver_id,
@@ -163,7 +163,16 @@ export default async function CustomerOrderDetailPage({
   //    NUMÉRO DE COMMANDE.
   // Le PIN ne s'affiche QUE côté client, jamais imprimé, jamais visible
   // commerçant/livreur.
-  const needsCode = order.payment_method === "online";
+  // Le code est requis dès qu'il y a la MOINDRE part PRÉPAYÉE : payé en ligne
+  // (Chargily), OU cashback utilisé, OU Coligo Pay utilisé. Seule une commande
+  // 100 % espèces (rien de prépayé) n'a pas de code. ⟹ cohérent avec la RPC
+  // validate_delivery (mig 0090) côté livreur.
+  const cashbackUsed =
+    (order as { cashback_used_da: number | null }).cashback_used_da ?? 0;
+  const topupUsed =
+    (order as { topup_used_da: number | null }).topup_used_da ?? 0;
+  const needsCode =
+    order.payment_method === "online" || cashbackUsed > 0 || topupUsed > 0;
 
   // Livraison EN COURS = récupérée par le livreur et pas encore livrée. On
   // affiche alors la mini-carte de suivi live (position du livreur + ETA).
