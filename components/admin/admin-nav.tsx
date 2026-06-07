@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
   Bike,
+  Flag,
   LayoutDashboard,
   Percent,
   ShieldCheck,
@@ -25,6 +26,7 @@ const LINKS = [
   { href: "/admin/coligo-pay", label: "Coligo Pay", icon: Wallet },
   { href: "/admin/drivers", label: "Livreurs", icon: Truck },
   { href: "/admin/livraison", label: "Livraison", icon: Bike },
+  { href: "/admin/reports", label: "Signalements", icon: Flag },
   { href: "/admin/settings", label: "Taux", icon: Percent },
   { href: "/admin/security", label: "Sécurité", icon: ShieldCheck },
 ] as const;

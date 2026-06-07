@@ -516,3 +516,94 @@ export async function getDemandZones(): Promise<
     return [];
   }
 }
+
+// =============================================================================
+// Notation + signalement du CLIENT par le livreur (après livraison).
+// =============================================================================
+
+/** Le livreur note le client (1..5 + commentaire). Insertion directe (RLS +
+ *  trigger valident : commande livrée + attribuée au livreur). Idempotent. */
+export async function rateCustomer(input: {
+  orderId: string;
+  rating: number;
+  comment?: string | null;
+}): Promise<{ ok: boolean; reason?: string }> {
+  try {
+    const driver = await getCurrentDriver();
+    if (!driver) return { ok: false, reason: "not_a_driver" };
+    if (
+      !Number.isInteger(input.rating) ||
+      input.rating < 1 ||
+      input.rating > 5
+    ) {
+      return { ok: false, reason: "bad_rating" };
+    }
+    const comment = (input.comment ?? "").trim().slice(0, 500) || null;
+
+    const supabase = await createClient();
+    const { data: order } = await supabase
+      .from("orders")
+      .select("id, customer_id, delivery_driver_id, status")
+      .eq("id", input.orderId)
+      .maybeSingle();
+    if (!order) return { ok: false, reason: "order_not_found" };
+    if (order.delivery_driver_id !== driver.id)
+      return { ok: false, reason: "not_attributed" };
+    if (order.status !== "completed")
+      return { ok: false, reason: "not_completed" };
+    if (!order.customer_id) return { ok: false, reason: "no_customer" };
+
+    const table = supabase.from("customer_ratings" as never) as unknown as {
+      insert: (v: Record<string, unknown>) => Promise<{
+        error: { code?: string; message: string } | null;
+      }>;
+    };
+    const { error } = await table.insert({
+      order_id: order.id,
+      driver_id: driver.id,
+      customer_id: order.customer_id,
+      rating: input.rating,
+      comment,
+    });
+    if (error) {
+      if (error.code === "23505") return { ok: false, reason: "already_rated" };
+      return { ok: false, reason: error.message };
+    }
+    revalidatePath("/driver");
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "error" };
+  }
+}
+
+/** Le livreur signale un problème avec le client. RPC SECURITY DEFINER (rôle
+ *  livreur déterminé serveur). */
+export async function reportCustomer(input: {
+  orderId: string;
+  reason: string;
+  details?: string | null;
+}): Promise<{ ok: boolean; reason?: string }> {
+  try {
+    const supabase = await createClient();
+    const reason = (input.reason ?? "").trim().slice(0, 60);
+    if (!reason) return { ok: false, reason: "bad_reason" };
+    const details = (input.details ?? "").trim().slice(0, 1000) || null;
+    const rpc = supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    const { data, error } = await rpc("submit_delivery_report", {
+      p_order_id: input.orderId,
+      p_reason: reason,
+      p_details: details,
+    });
+    if (error) return { ok: false, reason: error.message };
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | { ok?: boolean; reason?: string | null }
+      | undefined;
+    if (!row?.ok) return { ok: false, reason: row?.reason ?? "error" };
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "error" };
+  }
+}

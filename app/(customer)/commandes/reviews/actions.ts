@@ -184,3 +184,49 @@ export async function updateReview(input: {
   revalidatePath("/");
   return { ok: true };
 }
+
+// =============================================================================
+// Signalement d'un LIVREUR par le client (motif + détails).
+// =============================================================================
+// Écriture via la RPC SECURITY DEFINER `submit_delivery_report` (mig 0095) :
+// le rôle (client) et la cohérence commande sont vérifiés côté serveur.
+export async function reportDriver(input: {
+  order_id: string;
+  reason: string;
+  details?: string | null;
+}): Promise<ReviewResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Tu dois te reconnecter." };
+
+  const reason = (input.reason ?? "").trim().slice(0, 60);
+  if (!reason) return { ok: false, error: "Choisis un motif." };
+  const details = (input.details ?? "").trim().slice(0, 1000) || null;
+
+  const { data, error } = await supabase.rpc(
+    "submit_delivery_report" as never,
+    {
+      p_order_id: input.order_id,
+      p_reason: reason,
+      p_details: details,
+    } as never
+  );
+  if (error) return { ok: false, error: error.message };
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { ok?: boolean; reason?: string | null }
+    | undefined;
+  if (!row?.ok) {
+    const r = row?.reason ?? "";
+    const msg =
+      r === "already_reported"
+        ? "Tu as déjà signalé cette livraison."
+        : r === "no_delivery"
+          ? "Aucun livreur sur cette commande."
+          : "Signalement impossible pour le moment.";
+    return { ok: false, error: msg };
+  }
+  revalidatePath(`/commandes/${input.order_id}`);
+  return { ok: true };
+}

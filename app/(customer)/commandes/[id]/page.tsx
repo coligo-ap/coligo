@@ -11,6 +11,7 @@ import { CancelOrderButton } from "@/components/customer/cancel-order-button";
 import { OrderTrack } from "@/components/customer/order-track";
 import { CustomerDeliveryMap } from "@/components/customer/customer-delivery-map";
 import { ConfirmReception } from "@/components/customer/confirm-reception";
+import { ReportDriver } from "@/components/customer/report-driver";
 import { OrderChat } from "@/components/chat/order-chat";
 import { QrZoom } from "@/components/shared/qr-zoom";
 import { DriverReviewCard } from "@/components/customer/driver-review-card";
@@ -661,6 +662,7 @@ export default async function CustomerOrderDetailPage({
               driverName={driverReview.name}
               initialRating={driverReview.rating}
             />
+            <ReportDriver orderId={order.id} />
           </div>
         )}
       </div>

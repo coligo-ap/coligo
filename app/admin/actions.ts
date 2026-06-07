@@ -282,3 +282,31 @@ export async function seedMerchantCatalog(
   revalidatePath("/admin/merchants");
   return { ok: true, categoriesAdded, productsAdded, label: tpl.label };
 }
+
+// =============================================================================
+// Modération des signalements de livraison (super-admin).
+// =============================================================================
+export async function resolveDeliveryReport(input: {
+  reportId: string;
+  status: "open" | "reviewing" | "resolved" | "dismissed";
+  note?: string | null;
+}): Promise<AdminFormState> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const supabase = await createClient();
+  const rpc = supabase.rpc as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc("admin_resolve_delivery_report", {
+    p_report_id: input.reportId,
+    p_status: input.status,
+    p_note: input.note ?? null,
+  });
+  if (error) return { error: error.message };
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { ok?: boolean; reason?: string | null }
+    | undefined;
+  if (!row?.ok) return { error: row?.reason ?? "Échec." };
+  revalidatePath("/admin/reports");
+  return { ok: true };
+}

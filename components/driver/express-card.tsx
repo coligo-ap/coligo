@@ -13,6 +13,7 @@ import {
 } from "@/app/(driver)/actions";
 import { AvailabilityToggle } from "./availability-toggle";
 import { DeliveryValidationDialog } from "./delivery-validation-dialog";
+import { PostDeliveryFeedback } from "./post-delivery-feedback";
 import { DriverLocationBroadcaster } from "./driver-location-broadcaster";
 import { ExpressOffer } from "./express-offer";
 import { ExpressRun } from "./course/express-run";
@@ -60,6 +61,11 @@ export function ExpressCard({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [showValidate, setShowValidate] = useState(false);
+  // Retour post-livraison (noter + signaler le client) une fois validée.
+  const [feedbackOrder, setFeedbackOrder] = useState<{
+    id: string;
+    name: string | null;
+  } | null>(null);
   // Offre acceptée (écran 2 → écran 3). L'attribution FIFO ayant déjà eu lieu
   // côté serveur, on garde le « consentement » du livreur côté client pour ne
   // pas ré-afficher l'offre plein écran après acceptation / reload.
@@ -302,21 +308,39 @@ export function ExpressCard({
             onClose={() => setShowValidate(false)}
             onSuccess={() => {
               setShowValidate(false);
-              router.refresh();
-              // Auto-propose la suivante après 1.5 s.
-              setTimeout(() => {
-                start(async () => {
-                  const r = await pullNextExpress(merchantDriverId);
-                  if (r.orderId) {
-                    toast.success("Une nouvelle commande t'attend !");
-                    router.refresh();
-                  }
+              // Affiche le retour post-livraison (note + signalement). Le pull
+              // de la course suivante est déclenché APRÈS le retour (onDone).
+              if (currentOrder) {
+                setFeedbackOrder({
+                  id: currentOrder.id,
+                  name: currentOrder.customer_name,
                 });
-              }, 1500);
+              }
+              router.refresh();
             }}
           />
         )}
       </section>
+
+      {feedbackOrder && (
+        <PostDeliveryFeedback
+          orderId={feedbackOrder.id}
+          customerName={feedbackOrder.name}
+          onDone={() => {
+            setFeedbackOrder(null);
+            // Auto-propose la course suivante après le retour.
+            setTimeout(() => {
+              start(async () => {
+                const r = await pullNextExpress(merchantDriverId);
+                if (r.orderId) {
+                  toast.success("Une nouvelle commande t'attend !");
+                  router.refresh();
+                }
+              });
+            }, 600);
+          }}
+        />
+      )}
     </>
   );
 }
