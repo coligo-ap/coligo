@@ -15,7 +15,9 @@ export type CustomerWalletEntry = {
     | "cashback_spent"
     | "adjustment"
     | "topup_credit"
-    | "topup_spent";
+    | "topup_spent"
+    | "transfer_in"
+    | "transfer_out";
   source: "cashback" | "topup";
   amount_da: number;
   note: string | null;

@@ -104,7 +104,7 @@ export async function WalletEntryList({ entries, emptyHint }: Props) {
 function describe(
   type: CustomerWalletEntry["type"],
   t: (key: string) => string
-) {
+): { label: string } {
   switch (type) {
     case "cashback_earned":
       return { label: t("entryCashbackEarned") };
@@ -114,7 +114,15 @@ function describe(
       return { label: t("entryTopupCredit") };
     case "topup_spent":
       return { label: t("entryTopupSpent") };
+    case "transfer_in":
+      return { label: t("entryTransferIn") };
+    case "transfer_out":
+      return { label: t("entryTransferOut") };
     case "adjustment":
+      return { label: t("entryAdjustment") };
+    default:
+      // Garde-fou : un type ledger inconnu ne doit JAMAIS faire planter la page
+      // (sinon 500 sur tout l'historique). On retombe sur un libellé générique.
       return { label: t("entryAdjustment") };
   }
 }

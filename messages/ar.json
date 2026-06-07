@@ -585,6 +585,8 @@
     "entryTopupCredit": "شحن كوليغو باي",
     "entryTopupSpent": "دفع عبر كوليغو باي",
     "entryAdjustment": "تعديل",
+    "entryTransferIn": "تحويل وارد",
+    "entryTransferOut": "تحويل صادر",
     "actionPay": "ادفع (QR)",
     "actionReceive": "استلام",
     "actionRecharge": "شحن",

@@ -585,6 +585,8 @@
     "entryTopupCredit": "Recharge Coligo Pay",
     "entryTopupSpent": "Paiement par Coligo Pay",
     "entryAdjustment": "Ajustement",
+    "entryTransferIn": "Transfert reçu",
+    "entryTransferOut": "Transfert envoyé",
     "actionPay": "Payer (QR)",
     "actionReceive": "Recevoir",
     "actionRecharge": "Recharger",
