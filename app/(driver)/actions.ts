@@ -594,16 +594,17 @@ export async function reportCustomer(input: {
 }
 
 /**
- * Dispatch par ZONE : tente d'attribuer au livreur la commande express d'un
- * commerçant proche (RPC pull_next_express_nearby, mig 0098). Renvoie l'order +
- * le merchant_driver_id (pour router vers la page de course). No-op si rien à
+ * Dispatch par ZONE : tente d'attribuer au livreur la commande express du
+ * commerçant le PLUS PROCHE (RPC pull_next_express_nearby, mig 0100). Renvoie
+ * uniquement l'orderId → le livreur est routé vers /driver/course/[orderId]
+ * (course autonome, SANS inscription chez le commerçant). No-op si rien à
  * proximité ou si le livreur a déjà une course. Jamais throw.
  */
 export async function pullNextExpressNearby(
   lat: number,
   lng: number,
   radiusKm = 6
-): Promise<{ orderId?: string; mdId?: string }> {
+): Promise<{ orderId?: string }> {
   try {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return {};
     const supabase = await createClient();
@@ -618,10 +619,10 @@ export async function pullNextExpressNearby(
     });
     if (error || !data) return {};
     const row = (Array.isArray(data) ? data[0] : data) as
-      | { res_order_id?: string; res_md_id?: string }
+      | { res_order_id?: string }
       | undefined;
     if (!row?.res_order_id) return {};
-    return { orderId: row.res_order_id, mdId: row.res_md_id };
+    return { orderId: row.res_order_id };
   } catch {
     return {};
   }

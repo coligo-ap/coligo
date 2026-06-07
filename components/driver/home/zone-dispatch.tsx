@@ -10,12 +10,11 @@ import { toast } from "@/components/ui/toast";
 /**
  * Dispatch par ZONE (réception Express GLOBALE). Quand le livreur est EN LIGNE,
  * tente d'attribuer une commande express d'un commerçant proche (RPC
- * géographique pull_next_express_nearby) — SANS aucune inscription préalable
- * chez le commerçant. À l'attribution, on route vers /driver/m/[mdId] : tout le
- * flux éprouvé (offre qui sonne → course → validation) prend le relais (le
- * livreur est auto-rattaché côté serveur). Monté globalement dans le layout
- * livreur → la réception fonctionne sur n'importe quelle page tant qu'il est
- * en ligne.
+ * géographique pull_next_express_nearby) — SANS aucune inscription chez le
+ * commerçant. À l'attribution, on route vers /driver/course/[orderId] (course
+ * autonome) : le flux éprouvé (offre qui sonne → course → validation) prend le
+ * relais. Monté globalement dans le layout livreur → la réception fonctionne
+ * sur n'importe quelle page tant qu'il est en ligne.
  *
  * Déclencheurs : Realtime sur les commandes express (réception ~instantanée) +
  * repli polling 20 s (le timing intelligent rend une commande attribuable à son
@@ -40,9 +39,9 @@ export function ZoneDispatch({ online }: { online: boolean }) {
       busy.current = true;
       try {
         const r = await pullNextExpressNearby(c.latitude, c.longitude);
-        if (alive && r.orderId && r.mdId) {
+        if (alive && r.orderId) {
           toast.success("Nouvelle course à proximité ⚡");
-          router.push(`/driver/m/${r.mdId}`);
+          router.push(`/driver/course/${r.orderId}`);
         }
       } finally {
         busy.current = false;
