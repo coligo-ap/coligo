@@ -206,6 +206,8 @@ export function GainsView({ entries }: { entries: Entry[] }) {
                       month: "short",
                       hour: "2-digit",
                       minute: "2-digit",
+                      // timeZone fixe → pas de mismatch d'hydratation (#418).
+                      timeZone: "Africa/Algiers",
                     })}
                   </small>
                 </div>
