@@ -273,9 +273,10 @@ export function MarketplaceGrid({
             </>
           )}
         </div>
-      ) : filters.promoOnly ? (
-        // Liste « Promos » : cartes COMPACTES (vignette + ligne promo), parcours
-        // rapide façon Uber Eats / Glovo.
+      ) : filters.promoOnly || !!filters.q ? (
+        // Listes à PARCOURIR (Promos, résultats de recherche) : cartes COMPACTES
+        // (vignette + ligne promo / modes), façon Uber Eats / Glovo. La grande
+        // carte photo reste pour l'accueil « Commerces près de toi » + catégories.
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {visible.map((m) => (
             <MerchantCardCompact
