@@ -493,7 +493,7 @@ export async function getDemandZones(): Promise<
 > {
   try {
     const supabase = await createClient();
-    const rpc = supabase.rpc as unknown as (
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
       fn: string,
       args: Record<string, unknown>
     ) => Promise<{ data: unknown; error: { message: string } | null }>;
@@ -588,7 +588,7 @@ export async function reportCustomer(input: {
     const reason = (input.reason ?? "").trim().slice(0, 60);
     if (!reason) return { ok: false, reason: "bad_reason" };
     const details = (input.details ?? "").trim().slice(0, 1000) || null;
-    const rpc = supabase.rpc as unknown as (
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
       fn: string,
       args: Record<string, unknown>
     ) => Promise<{ data: unknown; error: { message: string } | null }>;
@@ -622,7 +622,7 @@ export async function pullNextExpressNearby(
   try {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return {};
     const supabase = await createClient();
-    const rpc = supabase.rpc as unknown as (
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
       fn: string,
       args: Record<string, unknown>
     ) => Promise<{ data: unknown; error: { message: string } | null }>;

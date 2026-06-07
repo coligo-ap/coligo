@@ -50,7 +50,9 @@ export async function sendOrderText(
 ): Promise<{ ok: boolean; reason?: string }> {
   const supabase = await createClient();
   // RPC pas encore présent dans les types générés → appel non typé.
-  const rpc = supabase.rpc as unknown as (
+  // On LIE `this` (bind) : extraire `supabase.rpc` sans binding casse la méthode
+  // (elle lit `this.rest` en interne → TypeError « reading 'rest' », digest 2927042609).
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
     args: Record<string, unknown>
   ) => Promise<{ data: unknown; error: { message: string } | null }>;

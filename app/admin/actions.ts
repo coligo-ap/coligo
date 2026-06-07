@@ -293,7 +293,7 @@ export async function resolveDeliveryReport(input: {
 }): Promise<AdminFormState> {
   if (!(await isSuperAdmin())) return { error: "Accès refusé." };
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as (
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
     args: Record<string, unknown>
   ) => Promise<{ data: unknown; error: { message: string } | null }>;
@@ -343,7 +343,7 @@ export async function adminValidateDelivery(
 ): Promise<AdminFormState> {
   if (!(await isSuperAdmin())) return { error: "Accès refusé." };
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as (
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
     args: Record<string, unknown>
   ) => Promise<{ data: unknown; error: { message: string } | null }>;
@@ -370,7 +370,7 @@ export async function adminCancelOrder(
 ): Promise<AdminFormState> {
   if (!(await isSuperAdmin())) return { error: "Accès refusé." };
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as (
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
     args: Record<string, unknown>
   ) => Promise<{ data: unknown; error: { message: string } | null }>;
@@ -427,7 +427,7 @@ export async function adminRefundMerchant(
   const amt = Math.floor(Number(amountDa));
   if (!Number.isFinite(amt) || amt < 1) return { error: "Montant invalide." };
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as (
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
     args: Record<string, unknown>
   ) => Promise<{ data: unknown; error: { message: string } | null }>;

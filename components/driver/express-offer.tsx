@@ -1,23 +1,30 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, MapPin, Store, Wallet } from "lucide-react";
 import { watchPosition, type Coords } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
+import { cashToCollectDa, isPrepaid } from "@/lib/delivery/cash";
 import { DeliveryRouteMap } from "@/components/driver/delivery-route-map";
 import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
 
 /**
- * Écran 2 — OFFRE DE COURSE (plein écran noir, style Uber Eats Driver).
+ * Écran 2 — OFFRE DE COURSE (plein écran BLANC, style Uber Eats Driver clair).
  *
- * La commande est DÉJÀ attribuée par le serveur (FIFO `pull_next_express`) au
- * moment où cet écran s'affiche. « Accepter » confirme et passe à la course en
- * cours (écran 3) ; « Refuser » libère la commande (cooldown 10 min) via
- * `release_express_order`. Aucune logique d'attribution n'est ré-inventée ici.
+ * La commande est DÉJÀ attribuée par le serveur (FIFO `pull_next_express` ou
+ * dispatch par zone `pull_next_express_nearby`) au moment où cet écran
+ * s'affiche. « Accepter » confirme et passe à la course en cours (écran 3) ;
+ * « Refuser » libère la commande (cooldown 10 min). Aucune logique
+ * d'attribution n'est ré-inventée ici.
+ *
+ * Infos trajet mises en avant pour décider vite : distance jusqu'au commerçant,
+ * distance commerçant → client, distance/temps TOTAUX, et l'ENCAISSEMENT (0 DA
+ * si la commande est déjà payée en ligne, montant cash sinon).
  */
 
 type OfferOrder = {
   payment_method: "cash" | "online";
+  total_da: number | null;
   delivery_fee_da: number | null;
   delivery_address_text: string | null;
   delivery_lat: number | null;
@@ -126,29 +133,31 @@ export function ExpressOffer({
     totalKm != null ? Math.max(1, Math.round(totalKm * KM_TO_MIN)) : null;
 
   const fee = order.delivery_fee_da ?? 0;
+  const prepaid = isPrepaid(order);
+  const toCollect = cashToCollectDa(order);
   const mm = Math.floor(left / 60);
   const ss = String(left % 60).padStart(2, "0");
   // Pression visuelle : dans les 10 dernières secondes, le minuteur vire au
-  // corail (couleur d'alerte Coligo) et la barre se vide plus « chaud ».
+  // rouge et la barre se vide plus « chaud ».
   const urgent = left <= 10;
   const pct = Math.max(0, Math.min(100, (left / OFFER_SECONDS) * 100));
   const timerColor = urgent ? "#e53935" : "#5c5ce0";
 
   return (
-    <div className="fixed inset-0 z-[90] flex flex-col bg-[#0a0a0a] px-[22px] pt-[max(50px,calc(env(safe-area-inset-top)+18px))] pb-[max(22px,env(safe-area-inset-bottom))] text-white">
+    <div className="fixed inset-0 z-[90] flex flex-col bg-white px-[22px] pt-[max(50px,calc(env(safe-area-inset-top)+18px))] pb-[max(22px,env(safe-area-inset-bottom))] text-[#0a0a0a]">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-[2px] text-[#a8a8ff]">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-[2px] text-[#5c5ce0]">
           <span className="grid size-[18px] place-items-center rounded-md bg-[#5c5ce0] text-[11px] leading-none text-white">
             ⚡
           </span>
           EXPRESS COLIGO
         </span>
         <span
-          className="inline-flex items-center gap-2 rounded-full px-3.5 py-[7px] text-sm font-black tabular-nums backdrop-blur transition-colors"
+          className="inline-flex items-center gap-2 rounded-full px-3.5 py-[7px] text-sm font-black tabular-nums transition-colors"
           style={{
-            background: urgent ? "rgba(229,57,53,.18)" : "rgba(255,255,255,.1)",
-            color: urgent ? "#ff8a85" : "#fff",
+            background: urgent ? "rgba(229,57,53,.12)" : "rgba(92,92,224,.1)",
+            color: urgent ? "#e53935" : "#5c5ce0",
           }}
         >
           <span
@@ -164,7 +173,7 @@ export function ExpressOffer({
       </div>
 
       {/* Barre de minuteur — se vide en temps réel pour matérialiser l'urgence. */}
-      <div className="mt-3 h-[5px] w-full overflow-hidden rounded-full bg-white/10">
+      <div className="mt-3 h-[5px] w-full overflow-hidden rounded-full bg-[#eee]">
         <div
           className="h-full rounded-full"
           style={{
@@ -179,35 +188,65 @@ export function ExpressOffer({
 
       {/* Zone scrollable : le contenu peut défiler sans pousser les boutons. */}
       <div className="-mx-[22px] min-h-0 flex-1 overflow-y-auto px-[22px]">
-        {/* Bloc principal : distance + montant violet */}
+        {/* Bloc principal : distance totale + gain violet */}
         <div className="mt-6 flex items-end justify-between">
-          <h1 className="text-[48px] leading-none font-black tracking-[-1.5px]">
-            {fmtKm(totalKm)}
-            <span className="ml-1 text-[18px] font-semibold opacity-60">
-              km
-            </span>
-          </h1>
-          <div
-            className="rounded-[16px] px-4 py-2.5 text-right"
-            style={{
-              background:
-                "linear-gradient(135deg,rgba(92,92,224,.22),rgba(92,92,224,.06))",
-              boxShadow: "0 0 32px rgba(92,92,224,.35)",
-              border: "1px solid rgba(168,168,255,.25)",
-            }}
-          >
-            <div className="text-[34px] leading-none font-black tracking-[-1px] text-[#a8a8ff]">
-              {fee}
-              <span className="ml-1 text-[14px] font-bold opacity-80">DA</span>
+          <div>
+            <div className="text-[11px] font-bold tracking-[0.5px] text-[#9e9e9e] uppercase">
+              Distance totale
             </div>
-            <div className="mt-1 text-[11px] font-semibold tracking-[0.5px] opacity-60">
+            <h1 className="text-[48px] leading-none font-black tracking-[-1.5px]">
+              {fmtKm(totalKm)}
+              <span className="ml-1 text-[18px] font-semibold text-[#9e9e9e]">
+                km
+              </span>
+            </h1>
+            {totalMin != null && (
+              <div className="mt-1 text-[13px] font-semibold text-[#757575]">
+                ~{totalMin} min de trajet
+              </div>
+            )}
+          </div>
+          <div className="rounded-[16px] border border-[#e0e0f5] bg-[#f4f4fb] px-4 py-2.5 text-right">
+            <div className="text-[34px] leading-none font-black tracking-[-1px] text-[#5c5ce0]">
+              {fee}
+              <span className="ml-1 text-[14px] font-bold text-[#9e9e9e]">
+                DA
+              </span>
+            </div>
+            <div className="mt-1 text-[11px] font-semibold tracking-[0.5px] text-[#757575]">
               Votre gain
             </div>
           </div>
         </div>
 
+        {/* Encaissement : 0 DA si déjà payé en ligne, montant cash sinon. */}
+        <div
+          className={
+            "mt-[18px] flex items-center gap-2.5 rounded-[14px] border px-4 py-3.5 " +
+            (prepaid
+              ? "border-[#b6e2c6] bg-[#effaf3] text-[#1d7a44]"
+              : "border-[#f5e0a1] bg-[#fff8e5] text-[#8b6500]")
+          }
+        >
+          <Wallet className="size-[18px] shrink-0" />
+          <div className="min-w-0 flex-1">
+            <div className="text-[13px] font-extrabold">
+              {prepaid ? "Déjà payé en ligne" : "À encaisser auprès du client"}
+            </div>
+            <div className="text-[11px] font-medium opacity-80">
+              {prepaid
+                ? "Le client a tout réglé — ne rien demander"
+                : "Le client règle en espèces à la remise"}
+            </div>
+          </div>
+          <b className="text-[20px] font-black tabular-nums">
+            {prepaid ? 0 : toCollect}
+            <span className="ml-0.5 text-[12px] font-bold">DA</span>
+          </b>
+        </div>
+
         {/* Chips */}
-        <div className="mt-[18px] flex flex-wrap gap-2">
+        <div className="mt-[14px] flex flex-wrap gap-2">
           <Chip violet>⚡ Express</Chip>
           <Chip>
             {order.payment_method === "cash" ? "💵 Cash" : "💳 Payé en ligne"}
@@ -217,13 +256,12 @@ export function ExpressOffer({
               📦 {itemCount} article{itemCount > 1 ? "s" : ""}
             </Chip>
           )}
-          {totalMin != null && <Chip>~{totalMin} min</Chip>}
         </div>
 
         {/* Carte + tracé de l'itinéraire (vers le commerçant à récupérer) :
           le livreur voit le chemin réel et l'ETA dès la réception de l'offre. */}
         {pickup && (
-          <div className="mt-[18px] overflow-hidden rounded-[14px]">
+          <div className="mt-[18px] overflow-hidden rounded-[14px] border border-[#eee]">
             <DeliveryRouteMap
               target={pickup}
               label="Vers le commerçant"
@@ -232,42 +270,48 @@ export function ExpressOffer({
           </div>
         )}
 
-        {/* Bloc trajet */}
-        <div className="mt-[22px] flex gap-3.5 rounded-[14px] bg-white/[0.04] p-4">
-          <div className="flex flex-col items-center pt-[5px]">
-            <span className="size-[11px] rounded-full bg-white" />
-            <span
-              className="my-1 w-0.5 flex-1"
-              style={{
-                minHeight: 30,
-                backgroundImage:
-                  "linear-gradient(to bottom,#666 50%,transparent 50%)",
-                backgroundSize: "2px 6px",
-              }}
-            />
-            <span className="size-[11px] rounded-[2px] bg-[#5c5ce0]" />
-          </div>
-          <div className="flex-1">
-            <div className="mb-3.5">
-              <small className="text-[10px] font-bold tracking-[1px] opacity-50">
-                RÉCUPÉRER
-              </small>
-              <div className="mt-[3px] text-[13.5px] font-semibold">
-                {merchantName}
-              </div>
-              <div className="mt-px text-[11px] font-medium opacity-60">
-                {fmtLeg(legPickup)}
-              </div>
+        {/* Bloc trajet détaillé */}
+        <div className="mt-[18px] rounded-[14px] border border-[#eee] bg-[#fafafa] p-4">
+          <div className="flex gap-3.5">
+            <div className="flex flex-col items-center pt-[5px]">
+              <span className="grid size-[22px] place-items-center rounded-full bg-[#0a0a0a] text-white">
+                <Store className="size-[12px]" />
+              </span>
+              <span
+                className="my-1 w-0.5 flex-1"
+                style={{
+                  minHeight: 28,
+                  backgroundImage:
+                    "linear-gradient(to bottom,#ccc 50%,transparent 50%)",
+                  backgroundSize: "2px 6px",
+                }}
+              />
+              <span className="grid size-[22px] place-items-center rounded-full bg-[#5c5ce0] text-white">
+                <MapPin className="size-[12px]" />
+              </span>
             </div>
-            <div>
-              <small className="text-[10px] font-bold tracking-[1px] opacity-50">
-                LIVRER À
-              </small>
-              <div className="mt-[3px] text-[13.5px] font-semibold">
-                {order.delivery_address_text ?? "Adresse client"}
+            <div className="flex-1">
+              <div className="mb-3.5">
+                <small className="text-[10px] font-bold tracking-[1px] text-[#9e9e9e]">
+                  RÉCUPÉRER CHEZ
+                </small>
+                <div className="mt-[3px] text-[13.5px] font-semibold">
+                  {merchantName}
+                </div>
+                <div className="mt-px text-[11px] font-medium text-[#757575]">
+                  Vous → commerçant : {fmtLeg(legPickup)}
+                </div>
               </div>
-              <div className="mt-px text-[11px] font-medium opacity-60">
-                {fmtLeg(legDrop)}
+              <div>
+                <small className="text-[10px] font-bold tracking-[1px] text-[#9e9e9e]">
+                  LIVRER AU CLIENT
+                </small>
+                <div className="mt-[3px] text-[13.5px] font-semibold">
+                  {order.delivery_address_text ?? "Adresse client"}
+                </div>
+                <div className="mt-px text-[11px] font-medium text-[#757575]">
+                  Commerçant → client : {fmtLeg(legDrop)}
+                </div>
               </div>
             </div>
           </div>
@@ -280,7 +324,7 @@ export function ExpressOffer({
           type="button"
           onClick={onRefuse}
           disabled={refusing}
-          className="flex flex-1 items-center justify-center rounded-[14px] bg-white/[0.08] py-[17px] text-[15px] font-extrabold text-white disabled:opacity-60"
+          className="flex flex-1 items-center justify-center rounded-[14px] bg-[#f2f2f2] py-[17px] text-[15px] font-extrabold text-[#0a0a0a] active:scale-[0.99] disabled:opacity-60"
         >
           {refusing ? <Loader2 className="size-5 animate-spin" /> : "Refuser"}
         </button>
@@ -288,10 +332,10 @@ export function ExpressOffer({
           type="button"
           onClick={onAccept}
           disabled={refusing}
-          className="flex-[2] rounded-[14px] py-[17px] text-[15px] font-extrabold text-white disabled:opacity-60"
+          className="flex-[2] rounded-[14px] py-[17px] text-[15px] font-extrabold text-white active:scale-[0.99] disabled:opacity-60"
           style={{
             background: "linear-gradient(135deg,#6d6df0,#5c5ce0)",
-            boxShadow: "0 8px 24px rgba(92,92,224,.45)",
+            boxShadow: "0 8px 24px rgba(92,92,224,.35)",
           }}
         >
           Accepter la course
@@ -312,9 +356,7 @@ function Chip({
     <span
       className={
         "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold " +
-        (violet
-          ? "bg-[#5c5ce0]/20 text-[#a8a8ff]"
-          : "bg-white/[0.08] text-white")
+        (violet ? "bg-[#5c5ce0]/12 text-[#5c5ce0]" : "bg-[#f2f2f2] text-[#444]")
       }
     >
       {children}

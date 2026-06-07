@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowRight, Loader2, MessageCircle, Phone, X } from "lucide-react";
 import { ExpressRunMap } from "./express-run-map";
 import { OrderChat } from "@/components/chat/order-chat";
+import { cashToCollectDa, isPrepaid } from "@/lib/delivery/cash";
 
 /**
  * Écran 3 — COURSE EN COURS (plein écran, style Uber Eats Driver).
@@ -97,7 +98,10 @@ export function ExpressRun({
     ? (order.delivery_address_text ?? "Adresse client")
     : merchantName;
 
-  const showCash = order.payment_method === "cash";
+  // Encaissement : commande prépayée (en ligne) → rien à encaisser (0 DA) ;
+  // commande cash → le client règle la totalité à la remise.
+  const prepaid = isPrepaid(order);
+  const toCollect = cashToCollectDa(order);
 
   const gmapsUrl = target
     ? `https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}&travelmode=driving`
@@ -188,14 +192,18 @@ export function ExpressRun({
             <span className="min-w-0 flex-1">{address}</span>
           </div>
 
-          {/* Pill encaissement cash. */}
-          {showCash && (
+          {/* Pill encaissement : vert si déjà payé (0 DA), ambre si cash. */}
+          {prepaid ? (
+            <div className="mb-3.5 flex items-center gap-2.5 rounded-[11px] border border-[#b6e2c6] bg-[#effaf3] px-3.5 py-[13px] text-[13px] font-bold text-[#1d7a44]">
+              <span>✅</span>
+              <span>Déjà payé en ligne — rien à encaisser</span>
+              <b className="ml-auto text-sm">0 DA</b>
+            </div>
+          ) : (
             <div className="mb-3.5 flex items-center gap-2.5 rounded-[11px] border border-[#f5e0a1] bg-[#fff8e5] px-3.5 py-[13px] text-[13px] font-bold text-[#8b6500]">
               <span>💵</span>
-              <span>Encaisser</span>
-              <b className="ml-auto text-sm">
-                {order.total_da != null ? `${order.total_da} DA` : "—"}
-              </b>
+              <span>À encaisser auprès du client</span>
+              <b className="ml-auto text-sm">{toCollect} DA</b>
             </div>
           )}
         </div>

@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { Bike, ChevronRight, KeyRound, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { setGlobalAvailability } from "@/app/(driver)/actions";
+import { ZoneDispatch } from "@/components/driver/home/zone-dispatch";
 import {
   getDriverMode,
   setDriverMode,
@@ -163,6 +164,10 @@ export function DriverHomeSheet({
         transition: dragging ? "none" : "transform .25s ease",
       }}
     >
+      {/* Dispatch par zone piloté par l'INTENTION « en ligne » du livreur (state
+          local), pas par la dispo serveur : un livreur SANS lien commerçant peut
+          ainsi recevoir les courses express proches (auto-rattachement côté RPC). */}
+      <ZoneDispatch online={online} />
       {/* Poignée draggable */}
       <div
         onPointerDown={onHandleDown}
