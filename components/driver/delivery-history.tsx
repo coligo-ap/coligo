@@ -318,6 +318,9 @@ function RowItem({ row, merchantName }: { row: Row; merchantName: string }) {
             month: "short",
             hour: "2-digit",
             minute: "2-digit",
+            // timeZone fixe : sinon le rendu serveur (UTC) ≠ client (Alger)
+            // → mismatch d'hydratation React #418.
+            timeZone: "Africa/Algiers",
           })}
         </span>
         <span className="font-semibold text-[#0a0a0a] tabular-nums">

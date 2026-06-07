@@ -117,9 +117,9 @@ export function GainsView({ entries }: { entries: Entry[] }) {
           Total gagné · {PERIOD_LABEL[period]}
         </small>
         <div className="mt-1.5 text-[42px] leading-none font-black tracking-[-1px] text-[#5c5ce0]">
-          {new Intl.NumberFormat("fr-DZ", { maximumFractionDigits: 0 }).format(
-            total
-          )}
+          {/* Groupement manuel (espace) — déterministe SSR↔client (Intl peut
+              différer entre Node et navigateur → hydratation React #418). */}
+          {String(Math.round(total)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
           <span className="ml-1.5 text-[18px] font-bold text-[#666]">DA</span>
         </div>
         <div className="mt-4 inline-flex rounded-full bg-[#f2f2f2] p-[3px]">

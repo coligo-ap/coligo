@@ -48,3 +48,5 @@ android/app/debug/
 # Firebase / FCM — config Android push (déposée à la main par chaque dev)
 android/app/google-services.json
 
+
+playwright-shots/
