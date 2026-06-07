@@ -14,6 +14,7 @@ import {
   fetchPromoLabels,
 } from "@/app/(customer)/actions";
 import { MerchantCard } from "@/components/customer/merchant-card";
+import { MerchantCardCompact } from "@/components/customer/merchant-card-compact";
 import type { PublicMerchant, PromoLabel } from "@/lib/data/merchants-public";
 
 type Props = {
@@ -271,6 +272,22 @@ export function MarketplaceGrid({
               {t("noActiveMerchants")}
             </>
           )}
+        </div>
+      ) : filters.promoOnly ? (
+        // Liste « Promos » : cartes COMPACTES (vignette + ligne promo), parcours
+        // rapide façon Uber Eats / Glovo.
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {visible.map((m) => (
+            <MerchantCardCompact
+              key={m.id}
+              merchant={m}
+              hasPromo={promoIds?.has(m.id)}
+              promo={promos[m.id] ?? null}
+              distanceKm={distanceFor(m)}
+              initialFavorite={favoriteIds?.has(m.id)}
+              isAuth={isAuth}
+            />
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
