@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, Phone, User } from "lucide-react";
+import { ArrowLeft, Clock, Phone, Truck, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
+import { deliveryPhase } from "@/lib/delivery/merchant-status";
 import { OrderStatusTimeline } from "@/components/merchant/order-status-timeline";
 import { OrderActions } from "@/components/merchant/order-actions";
 import { PrintOrderButton } from "@/components/ticket/print-order-button";
@@ -42,7 +43,7 @@ export default async function OrderDetailPage({
          payment_method, payment_status,
          fulfillment_type, delivery_mode, delivery_fee_da,
          delivery_address_text, delivery_phone, delivery_recipient_name, delivery_note, delivery_distance_km,
-         delivery_picked_up_at,
+         delivery_driver_id, delivery_picked_up_at, delivery_arrived_at, delivery_delivered_at,
          order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`
       )
       .eq("id", id)
@@ -69,7 +70,10 @@ export default async function OrderDetailPage({
     delivery_phone: string | null;
     delivery_recipient_name: string | null;
     delivery_distance_km: number | null;
+    delivery_driver_id: string | null;
     delivery_picked_up_at: string | null;
+    delivery_arrived_at: string | null;
+    delivery_delivered_at: string | null;
   };
 
   // Réglages d'impression + nom du commerce pour le ticket. RLS filtre déjà
@@ -130,7 +134,21 @@ export default async function OrderDetailPage({
             <h1 className="font-mono text-2xl font-bold tracking-tight lg:text-3xl">
               #{orderRef}
             </h1>
-            <Badge tone={meta.tone}>{meta.label}</Badge>
+            {(() => {
+              const phase = deliveryPhase(o);
+              if (phase) {
+                const tone =
+                  phase.tone === "success"
+                    ? "green"
+                    : phase.tone === "amber"
+                      ? "amber"
+                      : phase.tone === "neutral"
+                        ? "stone"
+                        : "teal";
+                return <Badge tone={tone}>{phase.short}</Badge>;
+              }
+              return <Badge tone={meta.tone}>{meta.label}</Badge>;
+            })()}
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <p className="text-muted flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
@@ -274,6 +292,16 @@ export default async function OrderDetailPage({
               <p className="text-warning-700 mb-2 text-xs font-semibold tracking-wide uppercase">
                 Commande en LIVRAISON
               </p>
+              {(() => {
+                const phase = deliveryPhase(o);
+                if (!phase) return null;
+                return (
+                  <p className="bg-surface text-foreground mb-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold">
+                    <Truck className="text-primary-600 size-3.5" />
+                    {phase.label}
+                  </p>
+                );
+              })()}
               <p className="text-sm font-medium">
                 Mode : {o.delivery_mode === "express" ? "Express" : "Tournée"} ·
                 Frais : {o.delivery_fee_da ?? 0} DA

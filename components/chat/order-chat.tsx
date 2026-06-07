@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Loader2, Phone, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { sendOrderMessage } from "@/lib/chat/actions";
+import { sendOrderMessage, sendOrderText } from "@/lib/chat/actions";
 import {
   labelFor,
   quickFor,
@@ -14,17 +14,22 @@ import {
 /**
  * Chat in-app léger client ↔ livreur, attaché à UNE commande en livraison.
  *
- * - Messages PRÉDÉFINIS uniquement (boutons), pas de texte libre.
+ * - Messages PRÉDÉFINIS (boutons) + TEXTE LIBRE (≤ 300 caractères/message).
  * - Temps réel via Realtime sur `order_messages` + repli polling 10 s.
- * - L'envoi passe par l'action serveur `sendOrderMessage` (RPC + push au
- *   destinataire).
+ * - L'envoi passe par les actions serveur `sendOrderMessage` (code) /
+ *   `sendOrderText` (texte) — RPC + push au destinataire.
+ * - La discussion se ferme automatiquement à la livraison (refus côté RPC).
  * - Réutilisé des deux côtés via la prop `role` ("customer" | "courier").
  */
+
+/** Limite de caractères par message (alignée sur le RPC `send_order_text_message`). */
+const MAX_CHARS = 300;
 
 type Msg = {
   id: string;
   sender_role: "customer" | "courier";
-  code: string;
+  code: string | null;
+  body: string | null;
   created_at: string;
 };
 
@@ -74,10 +79,10 @@ export function OrderChat({
     const load = async () => {
       const { data } = await supabase
         .from("order_messages")
-        .select("id, sender_role, code, created_at")
+        .select("id, sender_role, code, body, created_at")
         .eq("order_id", orderId)
         .order("created_at", { ascending: true });
-      if (data) merge(data as Msg[]);
+      if (data) merge(data as unknown as Msg[]);
     };
     void load();
 
@@ -91,7 +96,7 @@ export function OrderChat({
           table: "order_messages",
           filter: `order_id=eq.${orderId}`,
         },
-        (payload) => merge([payload.new as Msg])
+        (payload) => merge([payload.new as unknown as Msg])
       )
       .subscribe();
 
@@ -111,17 +116,40 @@ export function OrderChat({
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
+  const [text, setText] = useState("");
+
+  const reasonToMessage = (reason?: string): string => {
+    if (reason === "not_active")
+      return isRtl
+        ? "لم يعد التوصيل نشطاً."
+        : "La livraison n'est plus active.";
+    if (reason === "too_many")
+      return isRtl
+        ? "وصلت المحادثة إلى الحد الأقصى."
+        : "Discussion trop longue (limite atteinte).";
+    if (reason === "too_long")
+      return isRtl ? "الرسالة طويلة جداً." : "Message trop long.";
+    return isRtl
+      ? "تعذّر الإرسال. أعد المحاولة."
+      : "Envoi impossible. Réessayez.";
+  };
+
   const send = (code: string) => {
     setError(null);
     start(async () => {
       const r = await sendOrderMessage(orderId, code);
-      if (!r.ok) {
-        setError(
-          r.reason === "not_active"
-            ? "La livraison n'est plus active."
-            : "Envoi impossible. Réessayez."
-        );
-      }
+      if (!r.ok) setError(reasonToMessage(r.reason));
+    });
+  };
+
+  const sendText = () => {
+    const value = text.trim();
+    if (value.length === 0 || value.length > MAX_CHARS) return;
+    setError(null);
+    start(async () => {
+      const r = await sendOrderText(orderId, value);
+      if (r.ok) setText("");
+      else setError(reasonToMessage(r.reason));
     });
   };
 
@@ -175,7 +203,9 @@ export function OrderChat({
                       : "bg-surface-2 text-foreground rounded-bl-md"
                   }`}
                 >
-                  <span>{labelFor(m.code, locale)}</span>
+                  <span className="break-words whitespace-pre-wrap">
+                    {m.body ?? labelFor(m.code ?? "", locale)}
+                  </span>
                   <span
                     className={`ml-2 align-middle text-[10px] font-medium ${
                       mine ? "text-white/70" : "text-muted"
@@ -207,6 +237,44 @@ export function OrderChat({
           <span className="text-muted inline-flex items-center gap-1 px-1 text-[12px]">
             <Loader2 className="size-3 animate-spin" />
           </span>
+        )}
+      </div>
+
+      {/* Saisie libre (≤ 300 caractères) */}
+      <div className="border-border border-t px-3 py-2.5">
+        <div className="bg-surface-2 focus-within:border-primary-400 border-border flex items-end gap-2 rounded-[14px] border px-3 py-2">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendText();
+              }
+            }}
+            rows={1}
+            placeholder={isRtl ? "اكتب رسالة…" : "Écrire un message…"}
+            disabled={pending}
+            className="text-foreground max-h-24 min-h-[24px] w-full resize-none bg-transparent text-[13px] outline-none disabled:opacity-50"
+          />
+          <button
+            type="button"
+            onClick={sendText}
+            disabled={pending || text.trim().length === 0}
+            aria-label={isRtl ? "إرسال" : "Envoyer"}
+            className="bg-primary-600 hover:bg-primary-700 grid size-8 shrink-0 place-items-center rounded-full text-white transition-colors disabled:opacity-40"
+          >
+            {pending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Send className="size-4" />
+            )}
+          </button>
+        </div>
+        {text.length > MAX_CHARS - 50 && (
+          <p className="text-subtle mt-1 text-right text-[11px] tabular-nums">
+            {text.length}/{MAX_CHARS}
+          </p>
         )}
       </div>
 

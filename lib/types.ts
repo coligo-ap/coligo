@@ -179,6 +179,11 @@ export type Order = {
   delivery_address_text?: string | null;
   delivery_phone?: string | null;
   delivery_note?: string | null;
+  /** Cycle de vie livraison (mig 0038/0055) — pour la phase côté commerçant. */
+  delivery_driver_id?: string | null;
+  delivery_picked_up_at?: string | null;
+  delivery_arrived_at?: string | null;
+  delivery_delivered_at?: string | null;
   created_at: string;
 };
 

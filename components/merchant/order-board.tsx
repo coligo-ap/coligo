@@ -35,6 +35,10 @@ import { toast } from "@/components/ui/toast";
 import { cn, formatDA } from "@/lib/utils";
 import { updateOrderStatus } from "@/app/(merchant)/orders/actions";
 import type { OrderWithItems } from "@/lib/types";
+import {
+  deliveryPhase,
+  type DeliveryPhaseTone,
+} from "@/lib/delivery/merchant-status";
 
 const REFUSAL_REASONS = [
   "Article(s) en rupture",
@@ -285,6 +289,17 @@ function slotTime(iso: string): string {
   });
 }
 
+/** Mappe le ton de phase livraison vers les tons du Badge du board. */
+function phaseBadgeTone(
+  tone: DeliveryPhaseTone
+): "primary" | "success" | "warning" | "neutral" {
+  if (tone === "amber") return "warning";
+  if (tone === "violet") return "primary";
+  if (tone === "success") return "success";
+  if (tone === "primary") return "primary";
+  return "neutral";
+}
+
 export function OrderCard({
   order,
   column,
@@ -301,6 +316,9 @@ export function OrderCard({
     .map((it) => it.product_name)
     .join(", ");
   const isDelivery = order.fulfillment_type === "delivery";
+  // Phase de livraison en direct (livreur en route / récupérée / arrivé / livrée)
+  // — affichée dans la colonne « Prêtes » pour ne plus laisser un simple « Prête ».
+  const phase = isDelivery && column === "ready" ? deliveryPhase(order) : null;
   const hasNote = !!order.notes && order.notes !== "seed";
   const elapsed = useElapsedMin(order.created_at);
   // Retard de préparation : minutes au-delà de l'heure « prête pour ».
@@ -360,12 +378,18 @@ export function OrderCard({
 
         {/* Ligne 4 : badges */}
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <Badge
-            tone={isDelivery ? "primary" : "neutral"}
-            icon={isDelivery ? Bike : Package}
-          >
-            {isDelivery ? "Livraison" : "Retrait"}
-          </Badge>
+          {phase ? (
+            <Badge tone={phaseBadgeTone(phase.tone)} icon={Bike}>
+              {phase.short}
+            </Badge>
+          ) : (
+            <Badge
+              tone={isDelivery ? "primary" : "neutral"}
+              icon={isDelivery ? Bike : Package}
+            >
+              {isDelivery ? "Livraison" : "Retrait"}
+            </Badge>
+          )}
           <Badge
             tone={order.payment_method === "online" ? "success" : "neutral"}
           >
@@ -557,10 +581,22 @@ function CardActions({
   // ─── Colonne PRÊTES ───
   const isDelivery = order.fulfillment_type === "delivery";
   if (isDelivery) {
+    // Phase en direct : « En attente d'un livreur » → « Livreur en route » →
+    // « En livraison » → « Livreur arrivé ». La commande sort du board une fois
+    // livrée (status=completed). Le commerçant suit la course sans rafraîchir.
+    const phase = deliveryPhase(order);
+    const isActive = phase != null && phase.key !== "awaiting_driver";
     return (
-      <p className="text-primary-700 bg-primary-50 flex items-center gap-1.5 rounded-[10px] px-2.5 py-2 text-xs font-medium">
+      <p
+        className={cn(
+          "flex items-center gap-1.5 rounded-[10px] px-2.5 py-2 text-xs font-medium",
+          isActive
+            ? "text-primary-700 bg-primary-50"
+            : "text-muted bg-surface-3"
+        )}
+      >
         <Bike className="size-3.5 shrink-0" />
-        En attente du livreur
+        {phase?.label ?? "En attente d'un livreur"}
       </p>
     );
   }

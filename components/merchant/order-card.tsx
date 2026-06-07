@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { ORDER_STATUS_META, type OrderWithItems } from "@/lib/types";
+import { deliveryPhase } from "@/lib/delivery/merchant-status";
 import {
   countItems,
   formatDA,
@@ -93,7 +94,23 @@ export function OrderCard({ order, variant = "compact" }: OrderCardProps) {
             {formatRelativeTime(order.created_at)}
           </div>
         </div>
-        <Badge tone={meta.tone}>{meta.label}</Badge>
+        {(() => {
+          // Livraison : on montre la PHASE réelle (livrée / en livraison /
+          // livreur en route…) plutôt que « Récupérée » ou « Prête » figés.
+          const phase = deliveryPhase(order);
+          if (phase) {
+            const tone =
+              phase.tone === "success"
+                ? "green"
+                : phase.tone === "amber"
+                  ? "amber"
+                  : phase.tone === "neutral"
+                    ? "stone"
+                    : "teal";
+            return <Badge tone={tone}>{phase.short}</Badge>;
+          }
+          return <Badge tone={meta.tone}>{meta.label}</Badge>;
+        })()}
       </div>
 
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
@@ -184,14 +201,26 @@ function OrderBadges({
           compact={compact}
         />
       )}
-      {isDelivery && (
-        <BadgeChip
-          icon={<Truck className="size-3" />}
-          label="À livrer"
-          tone="violet"
-          compact={compact}
-        />
-      )}
+      {isDelivery &&
+        (() => {
+          const phase = deliveryPhase(order);
+          const tone =
+            phase?.tone === "success"
+              ? "green"
+              : phase?.tone === "amber"
+                ? "orange"
+                : phase?.tone === "neutral"
+                  ? "stone"
+                  : "violet";
+          return (
+            <BadgeChip
+              icon={<Truck className="size-3" />}
+              label={phase?.short ?? "À livrer"}
+              tone={tone}
+              compact={compact}
+            />
+          );
+        })()}
     </>
   );
 }

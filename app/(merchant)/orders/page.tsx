@@ -55,6 +55,8 @@ export default async function OrdersPage({
        payment_method, payment_status,
        fulfillment_type, delivery_mode,
        delivery_address_text, delivery_phone, delivery_note,
+       delivery_driver_id, delivery_picked_up_at, delivery_arrived_at,
+       delivery_delivered_at,
        order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`,
       { count: "exact" }
     )
