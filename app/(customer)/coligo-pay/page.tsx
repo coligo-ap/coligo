@@ -4,7 +4,9 @@ import { getTranslations } from "next-intl/server";
 import { ArrowLeft, Gift, Wallet } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { WalletActions } from "@/components/customer/wallet-actions";
+import { MyPayTag } from "@/components/customer/my-pay-tag";
 import { WalletEntryList } from "@/components/customer/wallet/entry-list";
+import { getMyPayHandle } from "@/app/(customer)/coligo-pay/qr/actions";
 import { createClient } from "@/lib/supabase/server";
 import { formatDA } from "@/lib/utils";
 import {
@@ -62,9 +64,10 @@ export default async function CustomerColigoPayPage() {
   ]);
   const remaining30d = Math.max(0, maxPerRecharge - credited30d);
 
-  const [t, tAccount] = await Promise.all([
+  const [t, tAccount, payTag] = await Promise.all([
     getTranslations("wallet"),
     getTranslations("account"),
+    getMyPayHandle(),
   ]);
 
   return (
@@ -92,11 +95,16 @@ export default async function CustomerColigoPayPage() {
           </p>
         </section>
 
-        {/* Rangée d'actions wallet (façon Alipay) : Payer / Recevoir / Recharger */}
+        {/* Rangée d'actions wallet (façon Alipay) : Payer / Envoyer / Recevoir / Recharger */}
         <WalletActions
           remaining30d={remaining30d}
           maxPerRecharge={maxPerRecharge}
         />
+
+        {/* Identifiant Coligo Pay (tag) à partager pour recevoir un transfert. */}
+        {payTag?.handle && (
+          <MyPayTag handle={payTag.handle} name={payTag.name} />
+        )}
 
         {/* Card info : Mon Cashback (différent de Coligo Pay) → page dédiée. */}
         <Link

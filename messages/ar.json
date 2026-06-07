@@ -656,6 +656,13 @@
     "sendSuccessDesc": "لقد أرسلت إلى <b>{name}</b>.",
     "sendNotFound": "لا يوجد حساب كوليغو لهذا البحث.",
     "sendEnterPin": "أدخل رمز كوليغو باي",
+    "myTagTitle": "معرّف كوليغو باي الخاص بك",
+    "myTagHint": "شاركه مع صديق ليُرسل لك الأموال.",
+    "copy": "نسخ",
+    "copied": "تم النسخ ✓",
+    "copyFailed": "تعذّر النسخ.",
+    "share": "مشاركة",
+    "shareTagText": "أرسل لي أموالاً عبر كوليغو باي: معرّفي هو @{handle} ({name}).",
     "cancel": "إلغاء"
   },
   "productSearch": {
