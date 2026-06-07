@@ -29,56 +29,30 @@ export function WalletActions({
 
   return (
     <>
-      <div className="mt-5 grid grid-cols-4 gap-2.5">
-        <Link
+      {/* Panneau d'actions UNIFIÉ (une seule carte, 4 colonnes) — épuré. */}
+      <div className="border-border -mt-7 grid grid-cols-4 gap-1 rounded-[22px] border bg-white p-2 shadow-[0_14px_34px_-18px_rgba(40,35,90,.3)]">
+        <Action
           href="/coligo-pay/qr"
-          className="flex flex-col items-center gap-2 rounded-[18px] bg-white p-3.5 shadow-[0_8px_20px_-14px_rgba(40,35,90,.2)] transition-transform active:scale-95"
-        >
-          <span className="bg-primary-600 grid size-[46px] place-items-center rounded-[14px] text-white shadow-[0_6px_14px_-4px_rgba(91,91,230,.45)]">
-            <QrCode className="size-[22px]" />
-          </span>
-          <span className="text-foreground text-[11.5px] font-extrabold">
-            {t("actionPay")}
-          </span>
-        </Link>
-
-        <Link
+          icon={<QrCode className="size-[21px]" />}
+          label={t("actionPay")}
+          primary
+        />
+        <Action
           href="/coligo-pay/envoyer"
-          className="flex flex-col items-center gap-2 rounded-[18px] bg-white p-3.5 shadow-[0_8px_20px_-14px_rgba(40,35,90,.2)] transition-transform active:scale-95"
-        >
-          <span className="bg-primary-50 text-primary-600 grid size-[46px] place-items-center rounded-[14px]">
-            <Send className="size-[22px]" />
-          </span>
-          <span className="text-foreground text-[11.5px] font-extrabold">
-            {t("actionSend")}
-          </span>
-        </Link>
-
-        <Link
+          icon={<Send className="size-[21px]" />}
+          label={t("actionSend")}
+        />
+        <Action
           href="/coligo-pay/qr?tab=recv"
-          className="flex flex-col items-center gap-2 rounded-[18px] bg-white p-3.5 shadow-[0_8px_20px_-14px_rgba(40,35,90,.2)] transition-transform active:scale-95"
-        >
-          <span className="bg-primary-50 text-primary-600 grid size-[46px] place-items-center rounded-[14px]">
-            <Plus className="size-[22px]" />
-          </span>
-          <span className="text-foreground text-[11.5px] font-extrabold">
-            {t("actionReceive")}
-          </span>
-        </Link>
-
-        <button
-          type="button"
-          disabled={rechargeDisabled}
+          icon={<Plus className="size-[21px]" />}
+          label={t("actionReceive")}
+        />
+        <Action
           onClick={() => setOpen(true)}
-          className="flex flex-col items-center gap-2 rounded-[18px] bg-white p-3.5 shadow-[0_8px_20px_-14px_rgba(40,35,90,.2)] transition-transform active:scale-95 disabled:opacity-50"
-        >
-          <span className="bg-primary-50 text-primary-600 grid size-[46px] place-items-center rounded-[14px]">
-            <ArrowDownToLine className="size-[22px]" />
-          </span>
-          <span className="text-foreground text-[11.5px] font-extrabold">
-            {t("actionRecharge")}
-          </span>
-        </button>
+          disabled={rechargeDisabled}
+          icon={<ArrowDownToLine className="size-[21px]" />}
+          label={t("actionRecharge")}
+        />
       </div>
 
       {rechargeDisabled && (
@@ -95,5 +69,55 @@ export function WalletActions({
         />
       )}
     </>
+  );
+}
+
+function Action({
+  href,
+  onClick,
+  disabled,
+  icon,
+  label,
+  primary,
+}: {
+  href?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  icon: React.ReactNode;
+  label: string;
+  primary?: boolean;
+}) {
+  const inner = (
+    <span className="flex flex-col items-center gap-1.5 rounded-[16px] py-2.5 transition active:scale-95">
+      <span
+        className={
+          primary
+            ? "bg-primary-600 grid size-[46px] place-items-center rounded-[14px] text-white shadow-[0_6px_14px_-4px_rgba(91,91,230,.45)]"
+            : "bg-primary-50 text-primary-600 grid size-[46px] place-items-center rounded-[14px]"
+        }
+      >
+        {icon}
+      </span>
+      <span className="text-foreground text-[11.5px] font-extrabold">
+        {label}
+      </span>
+    </span>
+  );
+  if (href) {
+    return (
+      <Link href={href} className="hover:bg-surface-2 rounded-[16px]">
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="hover:bg-surface-2 rounded-[16px] disabled:opacity-50"
+    >
+      {inner}
+    </button>
   );
 }

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { ArrowLeft, Gift, Wallet } from "lucide-react";
+import { ArrowLeft, ChevronRight, Gift, Wallet } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { WalletActions } from "@/components/customer/wallet-actions";
 import { MyPayTag } from "@/components/customer/my-pay-tag";
@@ -72,59 +72,72 @@ export default async function CustomerColigoPayPage() {
 
   return (
     <CustomerShell>
-      <div className="mx-auto max-w-2xl px-4 pb-24 lg:px-6">
+      <div className="mx-auto max-w-2xl px-4 pt-2 pb-24 lg:px-6">
         <Link
           href="/compte"
-          className="text-muted hover:text-foreground mt-1 mb-2 inline-flex items-center gap-1.5 text-sm font-medium"
+          className="text-muted hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm font-medium"
         >
           <ArrowLeft className="size-4 rtl:-scale-x-100" />
           {tAccount("myAccount")}
         </Link>
-        {/* HERO violet premium : grand solde + « argent réel ». */}
-        <section className="from-primary-400 via-primary-600 to-primary-800 relative -mx-4 overflow-hidden bg-gradient-to-br px-5 pt-7 pb-7 text-white lg:-mx-6 lg:px-6 lg:pt-8 lg:pb-8">
-          <Wallet className="absolute -end-7 -top-5 size-32 text-white/[.13]" />
-          <span className="pointer-events-none absolute end-10 -bottom-12 size-32 rounded-full border border-white/10" />
-          <p className="text-xs font-extrabold tracking-wider uppercase opacity-85">
-            {t("coligoPayTitle")} · {t("coligoPayBalance")}
+
+        {/* HERO premium : carte arrondie flottante (solde + identité). */}
+        <section className="from-primary-400 via-primary-600 to-primary-800 relative overflow-hidden rounded-[26px] bg-gradient-to-br px-6 pt-6 pb-12 text-white shadow-[0_22px_50px_-22px_rgba(91,91,230,.65)]">
+          {/* anneaux décoratifs */}
+          <span className="pointer-events-none absolute -end-12 -top-16 size-52 rounded-full border border-white/12" />
+          <span className="pointer-events-none absolute end-6 -top-6 size-32 rounded-full border border-white/10" />
+
+          <div className="flex items-center gap-2">
+            <span className="grid size-7 place-items-center rounded-lg bg-white/20 backdrop-blur">
+              <Wallet className="size-4" />
+            </span>
+            <span className="text-[12.5px] font-extrabold tracking-wide uppercase opacity-90">
+              {t("coligoPayTitle")}
+            </span>
+          </div>
+
+          <p className="mt-4 text-[12px] font-bold tracking-wide uppercase opacity-75">
+            {t("coligoPayBalance")}
           </p>
-          <p className="mt-1 text-[32px] leading-none font-black tracking-tight tabular-nums lg:text-5xl">
+          <p className="mt-0.5 text-[40px] leading-none font-black tracking-tight tabular-nums">
             {formatDA(balance)}
           </p>
-          <p className="mt-2.5 max-w-md text-[12.5px] leading-relaxed font-semibold opacity-90">
+          <p className="mt-2.5 max-w-md text-[12px] leading-relaxed font-medium opacity-85">
             {t("coligoPayBalanceDesc")}
           </p>
+
+          {/* Identifiant (tag) à partager pour recevoir — intégré au hero. */}
+          {payTag?.handle && (
+            <MyPayTag handle={payTag.handle} name={payTag.name} />
+          )}
         </section>
 
-        {/* Rangée d'actions wallet (façon Alipay) : Payer / Envoyer / Recevoir / Recharger */}
+        {/* Actions unifiées (chevauchent le bas du hero) */}
         <WalletActions
           remaining30d={remaining30d}
           maxPerRecharge={maxPerRecharge}
         />
 
-        {/* Identifiant Coligo Pay (tag) à partager pour recevoir un transfert. */}
-        {payTag?.handle && (
-          <MyPayTag handle={payTag.handle} name={payTag.name} />
-        )}
-
-        {/* Card info : Mon Cashback (différent de Coligo Pay) → page dédiée. */}
+        {/* Lien cashback ÉPURÉ (ligne fine, plus une grosse carte). */}
         <Link
           href="/cashback"
-          className="mt-4 flex items-center gap-3 rounded-[18px] bg-white p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)] transition-transform active:scale-[.99]"
+          className="hover:bg-surface-2 mt-4 flex items-center gap-3 rounded-[16px] px-1.5 py-1 transition-colors"
         >
-          <div className="flex size-[46px] shrink-0 items-center justify-center rounded-[13px] bg-amber-50 text-amber-600">
-            <Gift className="size-5" />
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+            <Gift className="size-[18px]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-foreground text-[14.5px] font-extrabold tracking-tight">
+            <p className="text-foreground text-[14px] font-extrabold tracking-tight">
               {t("cashbackLinkTitle")}
             </p>
-            <p className="text-muted mt-0.5 text-xs font-medium">
+            <p className="text-muted truncate text-xs font-medium">
               {t("cashbackLinkDesc")}
             </p>
           </div>
+          <ChevronRight className="text-subtle size-4 shrink-0 rtl:-scale-x-100" />
         </Link>
 
-        {/* Historique TOPUP uniquement (timeline) */}
+        {/* Historique TOPUP (timeline) */}
         <section className="mt-6">
           <h2 className="text-foreground mb-2.5 text-[18px] font-black tracking-tight">
             {t("coligoPayHistory")}
