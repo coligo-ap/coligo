@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { ArrowDownToLine, Plus, QrCode } from "lucide-react";
+import { ArrowDownToLine, Plus, QrCode, Send } from "lucide-react";
 import { TopupModal } from "@/components/customer/coligo-pay-card";
 
 // =============================================================================
@@ -29,7 +29,7 @@ export function WalletActions({
 
   return (
     <>
-      <div className="mt-5 grid grid-cols-3 gap-2.5">
+      <div className="mt-5 grid grid-cols-4 gap-2.5">
         <Link
           href="/coligo-pay/qr"
           className="flex flex-col items-center gap-2 rounded-[18px] bg-white p-3.5 shadow-[0_8px_20px_-14px_rgba(40,35,90,.2)] transition-transform active:scale-95"
@@ -39,6 +39,18 @@ export function WalletActions({
           </span>
           <span className="text-foreground text-[11.5px] font-extrabold">
             {t("actionPay")}
+          </span>
+        </Link>
+
+        <Link
+          href="/coligo-pay/envoyer"
+          className="flex flex-col items-center gap-2 rounded-[18px] bg-white p-3.5 shadow-[0_8px_20px_-14px_rgba(40,35,90,.2)] transition-transform active:scale-95"
+        >
+          <span className="bg-primary-50 text-primary-600 grid size-[46px] place-items-center rounded-[14px]">
+            <Send className="size-[22px]" />
+          </span>
+          <span className="text-foreground text-[11.5px] font-extrabold">
+            {t("actionSend")}
           </span>
         </Link>
 

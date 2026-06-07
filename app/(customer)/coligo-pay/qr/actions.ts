@@ -188,12 +188,13 @@ export type ExecutedTransfer =
   | { ok: true; recipientName: string; amountDa: number }
   | { ok: false; error: string };
 
-/** Exécute un transfert P2P : handle + montant + PIN + idempotency key. */
+/** Exécute un transfert P2P : handle + montant + PIN + idempotency key + note. */
 export async function executeTransfer(input: {
   handle: string;
   amountDa: number;
   pin: string;
   clientOperationId: string;
+  note?: string | null;
 }): Promise<ExecutedTransfer> {
   const amount = Math.floor(Number(input.amountDa));
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -209,6 +210,7 @@ export async function executeTransfer(input: {
     p_amount_da: amount,
     p_pin: input.pin,
     p_client_operation_id: input.clientOperationId,
+    p_note: input.note ?? null,
   });
   if (res?.ok) {
     return {
@@ -218,4 +220,39 @@ export async function executeTransfer(input: {
     };
   }
   return { ok: false, error: res?.error ?? "unknown" };
+}
+
+export type RecipientHit =
+  | { ok: true; handle: string; name: string }
+  | { ok: false; error: string };
+
+/** Recherche un bénéficiaire par téléphone exact ou @handle exact. */
+export async function searchRecipient(query: string): Promise<RecipientHit> {
+  const q = query.trim();
+  if (q.length < 4) return { ok: false, error: "too_short" };
+  const res = await callRpc<{
+    ok: boolean;
+    error?: string;
+    handle?: string;
+    name?: string;
+  }>("coligo_pay_search_recipient", { p_query: q });
+  if (res?.ok && res.handle) {
+    return { ok: true, handle: res.handle, name: res.name ?? "" };
+  }
+  return { ok: false, error: res?.error ?? "not_found" };
+}
+
+export type RecentRecipient = { handle: string; name: string };
+
+/** Bénéficiaires récents (à qui le client a déjà envoyé). */
+export async function getRecentRecipients(): Promise<RecentRecipient[]> {
+  const res = await callRpc<{ handle: string; name: string }[]>(
+    "coligo_pay_recent_recipients",
+    { p_limit: 8 }
+  );
+  return Array.isArray(res)
+    ? res
+        .filter((r) => r && r.handle)
+        .map((r) => ({ handle: r.handle, name: r.name ?? "" }))
+    : [];
 }
