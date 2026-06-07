@@ -482,3 +482,37 @@ export async function validateDelivery(input: {
   }
   return { ok: row.ok, reason: row.reason ?? undefined };
 }
+
+/**
+ * Zones de forte demande en temps réel (carte livreur). Agrégat sans donnée
+ * personnelle via le RPC `delivery_demand_zones` (mig 0093). Renvoie une liste
+ * VIDE quand l'activité est normale. Tolérant aux erreurs (jamais throw).
+ */
+export async function getDemandZones(): Promise<
+  { lat: number; lng: number; cnt: number; level: string }[]
+> {
+  try {
+    const supabase = await createClient();
+    const rpc = supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    const { data, error } = await rpc("delivery_demand_zones", {});
+    if (error || !data) return [];
+    return (
+      data as Array<{
+        lat: number;
+        lng: number;
+        cnt: number;
+        level: string;
+      }>
+    ).filter(
+      (z) =>
+        Number.isFinite(z.lat) &&
+        Number.isFinite(z.lng) &&
+        Number.isFinite(z.cnt)
+    );
+  } catch {
+    return [];
+  }
+}

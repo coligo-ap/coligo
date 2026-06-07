@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { LocateFixed } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Flame, LocateFixed } from "lucide-react";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { MAP_STYLE_URL } from "@/lib/config/map";
+import { getDemandZones } from "@/app/(driver)/actions";
+import {
+  DEMAND_LEVEL_META,
+  zonesToGeoJSON,
+  type DemandLevel,
+  type DemandZone,
+} from "@/lib/delivery/zones";
 
 /**
  * Carte plein écran de l'accueil livreur (style Uber Eats Driver). Centrée sur
@@ -22,6 +29,11 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
   const meMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
   const coords = useDriverPosition();
   const followedOnce = useRef(false);
+  // Zones de forte demande (heatmap discret). `zonesRef` permet de réappliquer
+  // les données dès que la couche est prête, sans dépendre de l'ordre des effets.
+  const [zones, setZones] = useState<DemandZone[]>([]);
+  const zonesRef = useRef<DemandZone[]>([]);
+  const zonesLayerReady = useRef(false);
 
   // Init carte (une fois). Centre par défaut : 1er commerçant ou Béjaïa.
   useEffect(() => {
@@ -41,6 +53,70 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
         attributionControl: { compact: true },
       });
       mapRef.current = map;
+
+      // Couche « zones de forte demande » — ajoutée au chargement du style.
+      map.on("load", () => {
+        try {
+          if (map.getSource("demand-zones")) return;
+          map.addSource("demand-zones", {
+            type: "geojson",
+            data: zonesToGeoJSON(zonesRef.current) as never,
+          });
+          // Halo flou (la « zone »). Rayon ~constant au sol (exponentiel base 2
+          // ≈ échelle Mercator) × poids du niveau d'intensité.
+          map.addLayer({
+            id: "demand-zones-glow",
+            type: "circle",
+            source: "demand-zones",
+            paint: {
+              "circle-color": ["get", "color"],
+              "circle-opacity": 0.28,
+              "circle-blur": 0.85,
+              "circle-radius": [
+                "interpolate",
+                ["exponential", 2],
+                ["zoom"],
+                10,
+                ["*", 7, ["get", "w"]],
+                14,
+                ["*", 30, ["get", "w"]],
+                17,
+                ["*", 110, ["get", "w"]],
+              ],
+            } as never,
+          });
+          // Petit cœur net + compte de commandes au centre.
+          map.addLayer({
+            id: "demand-zones-core",
+            type: "circle",
+            source: "demand-zones",
+            paint: {
+              "circle-color": ["get", "color"],
+              "circle-opacity": 0.9,
+              "circle-radius": 13,
+              "circle-stroke-color": "#fff",
+              "circle-stroke-width": 2,
+            } as never,
+          });
+          map.addLayer({
+            id: "demand-zones-count",
+            type: "symbol",
+            source: "demand-zones",
+            layout: {
+              "text-field": ["get", "label"],
+              "text-size": 12,
+              "text-font": ["Open Sans Bold", "Noto Sans Bold"],
+              "text-allow-overlap": true,
+            } as never,
+            paint: { "text-color": "#fff" } as never,
+          });
+          zonesLayerReady.current = true;
+        } catch {
+          // Style sans glyphes / autre incompat. → on dégrade silencieusement
+          // (la carte reste fonctionnelle, juste sans la couche zones).
+          zonesLayerReady.current = false;
+        }
+      });
 
       // Pins commerçants — goutte noire avec 🏪.
       for (const m of merchants) {
@@ -112,6 +188,45 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
     });
   }, [coords]);
 
+  // Rafraîchit les zones de forte demande (temps réel léger : 60 s).
+  useEffect(() => {
+    let alive = true;
+    const tick = async () => {
+      const raw = await getDemandZones();
+      if (!alive) return;
+      // Filtre/normalise les niveaux côté client (anti-erreur si valeur exotique).
+      const valid: DemandLevel[] = ["medium", "high", "very_high"];
+      const next: DemandZone[] = raw
+        .filter((z) => valid.includes(z.level as DemandLevel))
+        .map((z) => ({
+          lat: z.lat,
+          lng: z.lng,
+          cnt: z.cnt,
+          level: z.level as DemandLevel,
+        }));
+      zonesRef.current = next;
+      setZones(next);
+    };
+    void tick();
+    const id = setInterval(tick, 60_000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
+
+  // Pousse les zones dans la couche dès qu'elles changent (si la couche existe).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !zonesLayerReady.current) return;
+    const src = map.getSource("demand-zones") as
+      | { setData: (d: unknown) => void }
+      | undefined;
+    src?.setData(zonesToGeoJSON(zones));
+  }, [zones]);
+
+  const hasZones = zones.length > 0;
+
   return (
     <div className="absolute inset-0">
       <div
@@ -119,6 +234,30 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
         className="h-full w-full bg-[#e8e8e8]"
         style={{ touchAction: "none" }}
       />
+      {/* Légende des zones de forte demande — visible uniquement s'il y en a. */}
+      {hasZones && (
+        <div className="absolute top-[max(14px,env(safe-area-inset-top))] left-3.5 z-[55] rounded-[14px] bg-white/95 px-3 py-2.5 shadow-[0_6px_16px_rgba(0,0,0,.15)] backdrop-blur">
+          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-[#0a0a0a] uppercase">
+            <Flame className="size-3.5 text-[#f97316]" />
+            Zones de forte demande
+          </p>
+          <div className="flex flex-col gap-1">
+            {(["very_high", "high", "medium"] as DemandLevel[]).map((lvl) => (
+              <span
+                key={lvl}
+                className="flex items-center gap-2 text-[11px] font-semibold text-[#0a0a0a]"
+              >
+                <span
+                  className="size-2.5 rounded-full"
+                  style={{ background: DEMAND_LEVEL_META[lvl].color }}
+                />
+                {DEMAND_LEVEL_META[lvl].label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* FAB recentrer — flotte au-dessus du bottom sheet. */}
       <button
         type="button"
