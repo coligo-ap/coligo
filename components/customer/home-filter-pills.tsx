@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Bike, Star, Zap } from "lucide-react";
+import { Bike, Percent, Star, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
@@ -29,14 +29,16 @@ export function HomeFilterPills() {
     const mode = params.get("delivery_mode");
     const sort = params.get("sort");
     const open = params.get("open_now") === "1";
+    const promo = params.get("promo") === "1";
     const express = delivery && mode === "express";
     return {
+      promo,
       express,
       // "Livraison" = livraison sans mode spécifique (sinon c'est Express).
       delivery: delivery && !express,
       rating: sort === "rating",
       open,
-      tous: !delivery && !open && sort !== "rating",
+      tous: !delivery && !open && !promo && sort !== "rating",
     };
   }, [params]);
 
@@ -52,7 +54,14 @@ export function HomeFilterPills() {
       sp.delete("delivery");
       sp.delete("delivery_mode");
       sp.delete("open_now");
+      sp.delete("promo");
       if (sp.get("sort") === "rating") sp.delete("sort");
+    });
+
+  const togglePromo = () =>
+    apply((sp) => {
+      if (state.promo) sp.delete("promo");
+      else sp.set("promo", "1");
     });
 
   const toggleDelivery = () =>
@@ -94,6 +103,14 @@ export function HomeFilterPills() {
       <Pill active={state.tous} accent="violet" onClick={reset}>
         {t("filterAll")}
       </Pill>
+      {/* Promos — mis en évidence (rose réduction), juste après « Tous ». */}
+      <Pill active={state.promo} accent="rose" onClick={togglePromo}>
+        <Percent
+          className={cn("size-4", !state.promo && "text-rose-500")}
+          strokeWidth={2.5}
+        />
+        {t("filterPromos")}
+      </Pill>
       <Pill active={state.delivery} accent="mint" onClick={toggleDelivery}>
         <Bike
           className={cn("size-4", !state.delivery && "text-mint-600")}
@@ -131,10 +148,11 @@ export function HomeFilterPills() {
   );
 }
 
-type Accent = "violet" | "mint" | "coral" | "amber" | "green";
+type Accent = "violet" | "rose" | "mint" | "coral" | "amber" | "green";
 
 const ACCENT_ACTIVE: Record<Accent, string> = {
   violet: "border-primary-600 bg-primary-600 text-white",
+  rose: "border-rose-500 bg-rose-500 text-white",
   mint: "border-mint-600 bg-mint-600 text-white",
   coral: "border-coral-500 bg-coral-500 text-white",
   amber: "border-amber-500 bg-amber-500 text-white",

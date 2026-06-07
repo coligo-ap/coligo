@@ -17,6 +17,7 @@
     "searchPlaceholder": "ابحث في كوليغو",
     "clearSearch": "مسح البحث",
     "filterAll": "الكل",
+    "filterPromos": "تخفيضات",
     "filterDelivery": "توصيل",
     "filterExpress": "سريع",
     "filterTopRated": "الأعلى تقييماً",
@@ -538,6 +539,7 @@
   },
   "browse": {
     "all": "الكل",
+    "promosOfTheMoment": "عروض اللحظة",
     "merchantsNearYou": "متاجر بالقرب منك",
     "allMerchantsAlgeria": "جميع المتاجر في الجزائر",
     "resultsFor": "نتائج البحث عن « {query} »",

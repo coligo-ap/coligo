@@ -44,6 +44,8 @@ type Filters = {
   openNow: boolean;
   deliveryOnly: boolean;
   deliveryMode: "any" | "express" | "tour";
+  /** Filtre « Promos » : ne garder que les commerces avec une promo active. */
+  promoOnly: boolean;
 };
 
 export function MarketplaceGrid({
@@ -80,6 +82,7 @@ export function MarketplaceGrid({
           : params.get("delivery_mode") === "tour"
             ? "tour"
             : "any",
+      promoOnly: params.get("promo") === "1",
     }),
     [params]
   );
@@ -140,6 +143,9 @@ export function MarketplaceGrid({
 
   const visible = useMemo(() => {
     let base = items;
+    // Filtre « Promos » : commerces ayant une promo active (présents dans la map
+    // promos, alimentée par le serveur puis par fetchPromoLabels au refetch).
+    if (filters.promoOnly) base = base.filter((m) => !!promos[m.id]);
     if (filters.openNow) base = base.filter((m) => isOpenNow(m.opening_hours));
     if (filters.deliveryOnly) base = base.filter((m) => m.delivery_enabled);
     if (filters.deliveryMode === "express") {
@@ -173,6 +179,8 @@ export function MarketplaceGrid({
     filters.deliveryOnly,
     filters.deliveryMode,
     filters.sort,
+    filters.promoOnly,
+    promos,
     items,
   ]);
 
@@ -186,6 +194,7 @@ export function MarketplaceGrid({
     filters.openNow ||
     filters.deliveryOnly ||
     filters.deliveryMode !== "any" ||
+    filters.promoOnly ||
     filters.sort !== "name";
 
   const heading = emptyZone
@@ -194,7 +203,9 @@ export function MarketplaceGrid({
       ? t("resultsFor", { query: filters.q })
       : filters.category
         ? getCategoryLabel(filters.category, locale)
-        : t("merchantsNearYou");
+        : filters.promoOnly
+          ? t("promosOfTheMoment")
+          : t("merchantsNearYou");
 
   function resetFilters() {
     router.replace("/", { scroll: false });

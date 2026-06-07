@@ -17,6 +17,7 @@
     "searchPlaceholder": "Rechercher sur Coligo",
     "clearSearch": "Effacer la recherche",
     "filterAll": "Tous",
+    "filterPromos": "Promos",
     "filterDelivery": "Livraison",
     "filterExpress": "Express",
     "filterTopRated": "Mieux notés",
@@ -538,6 +539,7 @@
   },
   "browse": {
     "all": "Tous",
+    "promosOfTheMoment": "Promos du moment",
     "merchantsNearYou": "Commerces près de toi",
     "allMerchantsAlgeria": "Tous les commerces en Algérie",
     "resultsFor": "Résultats pour « {query} »",
