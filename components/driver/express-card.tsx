@@ -225,6 +225,7 @@ export function ExpressCard({
           merchantLng={merchantLng}
           onAccept={acceptOffer}
           onRefuse={refuseOffer}
+          onTimeout={refuseOffer}
           refusing={pending}
         />
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { watchPosition, type Coords } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
@@ -35,6 +35,8 @@ function fmtLeg(km: number | null) {
   return `${fmtKm(km)} km · ${Math.max(1, Math.round(km * KM_TO_MIN))} min`;
 }
 
+const OFFER_SECONDS = 30; // Durée de l'offre avant libération automatique.
+
 export function ExpressOffer({
   order,
   itemCount,
@@ -43,6 +45,7 @@ export function ExpressOffer({
   merchantLng,
   onAccept,
   onRefuse,
+  onTimeout,
   refusing,
 }: {
   order: OfferOrder;
@@ -52,10 +55,15 @@ export function ExpressOffer({
   merchantLng?: number | null;
   onAccept: () => void;
   onRefuse: () => void;
+  /** Appelé une seule fois quand le compte à rebours atteint 0 (libération). */
+  onTimeout?: () => void;
   refusing: boolean;
 }) {
   const [coords, setCoords] = useState<Coords | null>(null);
-  const [left, setLeft] = useState(30);
+  const [left, setLeft] = useState(OFFER_SECONDS);
+  const firedTimeout = useRef(false);
+  const onTimeoutRef = useRef(onTimeout);
+  onTimeoutRef.current = onTimeout;
   const { play, stop, unlock } = useAlertSound();
 
   // Sonnerie + vibration tant que l'offre est affichée (façon Uber/Yassir).
@@ -83,10 +91,17 @@ export function ExpressOffer({
     return () => h?.stop();
   }, []);
 
-  // Compte à rebours d'urgence (visuel). Se fige à 0:00 — aucune action auto :
-  // le livreur choisit explicitement Accepter / Refuser.
+  // Compte à rebours d'acceptation : met la pression (façon Uber/Yassir). À
+  // 0:00, la course est LIBÉRÉE automatiquement (onTimeout → release) pour
+  // qu'elle reparte vers un autre livreur. Déclenché une seule fois.
   useEffect(() => {
-    if (left <= 0) return;
+    if (left <= 0) {
+      if (!firedTimeout.current) {
+        firedTimeout.current = true;
+        onTimeoutRef.current?.();
+      }
+      return;
+    }
     const t = setTimeout(() => setLeft((v) => v - 1), 1000);
     return () => clearTimeout(t);
   }, [left]);
@@ -113,21 +128,53 @@ export function ExpressOffer({
   const fee = order.delivery_fee_da ?? 0;
   const mm = Math.floor(left / 60);
   const ss = String(left % 60).padStart(2, "0");
+  // Pression visuelle : dans les 10 dernières secondes, le minuteur vire au
+  // corail (couleur d'alerte Coligo) et la barre se vide plus « chaud ».
+  const urgent = left <= 10;
+  const pct = Math.max(0, Math.min(100, (left / OFFER_SECONDS) * 100));
+  const timerColor = urgent ? "#e53935" : "#5c5ce0";
 
   return (
     <div className="fixed inset-0 z-[90] flex flex-col bg-[#0a0a0a] px-[22px] pt-[max(50px,calc(env(safe-area-inset-top)+18px))] pb-[max(22px,env(safe-area-inset-bottom))] text-white">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-extrabold tracking-[2px] opacity-60">
-          NOUVELLE COURSE
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-[2px] text-[#a8a8ff]">
+          <span className="grid size-[18px] place-items-center rounded-md bg-[#5c5ce0] text-[11px] leading-none text-white">
+            ⚡
+          </span>
+          EXPRESS COLIGO
         </span>
-        <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-[7px] text-sm font-extrabold backdrop-blur">
+        <span
+          className="inline-flex items-center gap-2 rounded-full px-3.5 py-[7px] text-sm font-black tabular-nums backdrop-blur transition-colors"
+          style={{
+            background: urgent ? "rgba(229,57,53,.18)" : "rgba(255,255,255,.1)",
+            color: urgent ? "#ff8a85" : "#fff",
+          }}
+        >
           <span
-            className="size-3.5 rounded-full border-2 border-[#5c5ce0] border-t-transparent"
-            style={{ animation: "driver-spin 1s linear infinite" }}
+            className="size-3.5 rounded-full border-2 border-t-transparent"
+            style={{
+              borderColor: timerColor,
+              borderTopColor: "transparent",
+              animation: "driver-spin 1s linear infinite",
+            }}
           />
           {mm}:{ss}
         </span>
+      </div>
+
+      {/* Barre de minuteur — se vide en temps réel pour matérialiser l'urgence. */}
+      <div className="mt-3 h-[5px] w-full overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: `${pct}%`,
+            background: urgent
+              ? "linear-gradient(90deg,#e53935,#ff8a85)"
+              : "linear-gradient(90deg,#5c5ce0,#a8a8ff)",
+            transition: "width 1s linear, background .3s ease",
+          }}
+        />
       </div>
 
       {/* Zone scrollable : le contenu peut défiler sans pousser les boutons. */}
@@ -140,12 +187,21 @@ export function ExpressOffer({
               km
             </span>
           </h1>
-          <div className="text-right">
-            <div className="text-[36px] leading-none font-black tracking-[-1px] text-[#5c5ce0]">
+          <div
+            className="rounded-[16px] px-4 py-2.5 text-right"
+            style={{
+              background:
+                "linear-gradient(135deg,rgba(92,92,224,.22),rgba(92,92,224,.06))",
+              boxShadow: "0 0 32px rgba(92,92,224,.35)",
+              border: "1px solid rgba(168,168,255,.25)",
+            }}
+          >
+            <div className="text-[34px] leading-none font-black tracking-[-1px] text-[#a8a8ff]">
               {fee}
+              <span className="ml-1 text-[14px] font-bold opacity-80">DA</span>
             </div>
-            <div className="mt-1 text-[13px] font-semibold tracking-[0.5px] opacity-60">
-              DA
+            <div className="mt-1 text-[11px] font-semibold tracking-[0.5px] opacity-60">
+              Votre gain
             </div>
           </div>
         </div>
@@ -232,9 +288,13 @@ export function ExpressOffer({
           type="button"
           onClick={onAccept}
           disabled={refusing}
-          className="flex-[2] rounded-[14px] bg-white py-[17px] text-[15px] font-extrabold text-black disabled:opacity-60"
+          className="flex-[2] rounded-[14px] py-[17px] text-[15px] font-extrabold text-white disabled:opacity-60"
+          style={{
+            background: "linear-gradient(135deg,#6d6df0,#5c5ce0)",
+            boxShadow: "0 8px 24px rgba(92,92,224,.45)",
+          }}
         >
-          Accepter
+          Accepter la course
         </button>
       </div>
     </div>
