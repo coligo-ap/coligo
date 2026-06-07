@@ -10,6 +10,7 @@ import { CustomerOrderLive } from "@/components/customer/customer-order-live";
 import { CancelOrderButton } from "@/components/customer/cancel-order-button";
 import { OrderTrack } from "@/components/customer/order-track";
 import { CustomerDeliveryMap } from "@/components/customer/customer-delivery-map";
+import { ConfirmReception } from "@/components/customer/confirm-reception";
 import { OrderChat } from "@/components/chat/order-chat";
 import { QrZoom } from "@/components/shared/qr-zoom";
 import { DriverReviewCard } from "@/components/customer/driver-review-card";
@@ -487,6 +488,23 @@ export default async function CustomerOrderDetailPage({
               driverPhone={driverContact?.phone ?? null}
             />
           </div>
+        )}
+
+        {/* ═══ GLISSER POUR CONFIRMER LA RÉCEPTION (livreur arrivé) ═══
+            Voie de validation côté client : utile si le téléphone du livreur
+            est déchargé. N'apparaît qu'une fois le livreur ARRIVÉ. */}
+        {inTransit && order.delivery_arrived_at != null && (
+          <ConfirmReception
+            orderId={order.id}
+            labels={{
+              title: t("confirmReceptionTitle"),
+              slide: t("confirmReceptionSlide"),
+              body: t("confirmReceptionBody"),
+              confirm: t("confirmReceptionCta"),
+              cancel: t("confirmReceptionCancel"),
+              success: t("confirmReceptionSuccess"),
+            }}
+          />
         )}
 
         {/* ═══ CHAT in-app client ↔ livreur (livraison en cours) ═══ */}

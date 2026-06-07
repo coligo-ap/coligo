@@ -364,7 +364,13 @@
     "mapLoading": "جارٍ تحميل الخريطة…",
     "waitingDriverPosition": "في انتظار موقع عامل التوصيل…",
     "mapUnavailable": "الخريطة غير متاحة",
-    "live": "مباشر"
+    "live": "مباشر",
+    "confirmReceptionTitle": "تأكيد الاستلام",
+    "confirmReceptionSlide": "اسحب لتأكيد الاستلام",
+    "confirmReceptionBody": "هل تؤكد أنك استلمت طلبك كاملاً؟ هذا الإجراء يثبّت التسليم لصالح عامل التوصيل.",
+    "confirmReceptionCta": "نعم، استلمت طلبي",
+    "confirmReceptionCancel": "إلغاء",
+    "confirmReceptionSuccess": "تم تأكيد الاستلام. شكراً!"
   },
   "reviews": {
     "customerReviews": "تقييمات العملاء",

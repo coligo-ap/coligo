@@ -364,7 +364,13 @@
     "mapLoading": "Chargement de la carte…",
     "waitingDriverPosition": "En attente de la position du livreur…",
     "mapUnavailable": "Carte indisponible",
-    "live": "en direct"
+    "live": "en direct",
+    "confirmReceptionTitle": "Confirmer la réception",
+    "confirmReceptionSlide": "Glissez pour confirmer la réception",
+    "confirmReceptionBody": "Confirmez-vous avoir bien reçu toute votre commande ? Cette action valide la livraison au livreur.",
+    "confirmReceptionCta": "Oui, j'ai bien reçu ma commande",
+    "confirmReceptionCancel": "Annuler",
+    "confirmReceptionSuccess": "Réception confirmée. Merci !"
   },
   "reviews": {
     "customerReviews": "Avis clients",

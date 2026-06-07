@@ -82,3 +82,61 @@ export async function cancelMyOrder(orderId: string): Promise<CancelResult> {
     };
   }
 }
+
+export type ConfirmReceptionResult = { ok: boolean; error?: string };
+
+/**
+ * Le CLIENT confirme avoir bien reçu sa commande (glisser pour confirmer +
+ * double confirmation côté UI). Valide la livraison au livreur via la RPC
+ * SECURITY DEFINER `customer_confirm_delivery` (mig 0094) : conditions
+ * anti-fraude (livreur arrivé, commande active) vérifiées côté SQL. Ne THROW
+ * jamais — renvoie toujours un résultat propre.
+ */
+export async function confirmDeliveryReception(
+  orderId: string
+): Promise<ConfirmReceptionResult> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "Tu dois te reconnecter." };
+
+    const { data, error } = await supabase.rpc(
+      "customer_confirm_delivery" as never,
+      { p_order_id: orderId } as never
+    );
+    if (error) {
+      return {
+        ok: false,
+        error:
+          (error as { message?: string }).message || "Confirmation impossible.",
+      };
+    }
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | { ok?: boolean; reason?: string | null }
+      | undefined;
+    if (!row?.ok) {
+      const reason = row?.reason ?? "";
+      const msg =
+        reason === "driver_not_arrived"
+          ? "Le livreur n'a pas encore signalé son arrivée."
+          : reason === "no_driver"
+            ? "Aucun livreur n'est encore attribué."
+            : reason === "cancelled"
+              ? "Cette commande a été annulée."
+              : "Confirmation impossible pour le moment.";
+      return { ok: false, error: msg };
+    }
+
+    revalidatePath(`/commandes/${orderId}`);
+    revalidatePath("/commandes");
+    return { ok: true };
+  } catch (e) {
+    console.error("[confirmDeliveryReception] failed:", e);
+    return {
+      ok: false,
+      error: "Confirmation impossible pour le moment. Réessaie.",
+    };
+  }
+}
