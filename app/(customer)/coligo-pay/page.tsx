@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { Gift, Wallet } from "lucide-react";
+import { ArrowLeft, Gift, Wallet } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { WalletActions } from "@/components/customer/wallet-actions";
 import { WalletEntryList } from "@/components/customer/wallet/entry-list";
@@ -62,11 +62,21 @@ export default async function CustomerColigoPayPage() {
   ]);
   const remaining30d = Math.max(0, maxPerRecharge - credited30d);
 
-  const t = await getTranslations("wallet");
+  const [t, tAccount] = await Promise.all([
+    getTranslations("wallet"),
+    getTranslations("account"),
+  ]);
 
   return (
     <CustomerShell>
       <div className="mx-auto max-w-2xl px-4 pb-24 lg:px-6">
+        <Link
+          href="/compte"
+          className="text-muted hover:text-foreground mt-1 mb-2 inline-flex items-center gap-1.5 text-sm font-medium"
+        >
+          <ArrowLeft className="size-4 rtl:-scale-x-100" />
+          {tAccount("myAccount")}
+        </Link>
         {/* HERO violet premium : grand solde + « argent réel ». */}
         <section className="from-primary-400 via-primary-600 to-primary-800 relative -mx-4 overflow-hidden bg-gradient-to-br px-5 pt-7 pb-7 text-white lg:-mx-6 lg:px-6 lg:pt-8 lg:pb-8">
           <Wallet className="absolute -end-7 -top-5 size-32 text-white/[.13]" />

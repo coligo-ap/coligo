@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ArrowLeft } from "lucide-react";
+import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { AddressesPanel } from "@/components/customer/addresses-panel";
 
@@ -28,14 +31,23 @@ export default async function AddressesPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="mx-auto max-w-2xl p-4 lg:p-6">
-      <header className="mb-5">
-        <h1 className="text-2xl font-bold tracking-tight">
-          {t("myAddresses")}
-        </h1>
-        <p className="text-muted mt-1 text-sm">{t("addressesSubtitle")}</p>
-      </header>
-      <AddressesPanel addresses={addresses ?? []} />
-    </div>
+    <CustomerShell>
+      <div className="mx-auto max-w-2xl p-4 pb-24 lg:p-6">
+        <Link
+          href="/compte"
+          className="text-muted hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm font-medium"
+        >
+          <ArrowLeft className="size-4 rtl:-scale-x-100" />
+          {t("myAccount")}
+        </Link>
+        <header className="mb-5">
+          <h1 className="text-2xl font-bold tracking-tight">
+            {t("myAddresses")}
+          </h1>
+          <p className="text-muted mt-1 text-sm">{t("addressesSubtitle")}</p>
+        </header>
+        <AddressesPanel addresses={addresses ?? []} />
+      </div>
+    </CustomerShell>
   );
 }
