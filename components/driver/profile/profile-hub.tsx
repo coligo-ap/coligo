@@ -82,7 +82,7 @@ export function ProfileHub({
         )}
 
         <div className="mt-3.5 flex flex-wrap justify-center gap-[7px]">
-          {isActive && <Badge>✓ Validé</Badge>}
+          {isActive && <Badge tone="success">✓ Validé</Badge>}
           <Badge>📦 {stats.courses} courses</Badge>
         </div>
       </div>
@@ -143,9 +143,25 @@ export function ProfileHub({
   );
 }
 
-function Badge({ children }: { children: React.ReactNode }) {
+function Badge({
+  children,
+  tone = "neutral",
+}: {
+  children: React.ReactNode;
+  tone?: "neutral" | "success";
+}) {
+  // « Validé » = concept de réussite → vert ; les autres badges restent neutres.
+  const cls =
+    tone === "success"
+      ? "bg-[#e6f7ee] text-[#00854f]"
+      : "bg-[#f2f2f2] text-[#0a0a0a]";
   return (
-    <span className="inline-flex items-center gap-[5px] rounded-full bg-[#f2f2f2] px-3 py-1.5 text-[11px] font-bold text-[#0a0a0a]">
+    <span
+      className={
+        "inline-flex items-center gap-[5px] rounded-full px-3 py-1.5 text-[11px] font-bold " +
+        cls
+      }
+    >
       {children}
     </span>
   );
