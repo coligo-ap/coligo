@@ -261,6 +261,12 @@ export type Database = {
           validated_without_code: boolean;
           delivery_slot_id: string | null;
           delivery_note: string | null;
+          driver_fee_rate_applied: number | null;
+          driver_fee_da: number | null;
+          driver_net_da: number | null;
+          driver_owes_platform_da: number | null;
+          driver_owes_merchant_da: number | null;
+          driver_cash_collected_da: number | null;
           created_at: string;
         };
         Insert: {
@@ -313,6 +319,12 @@ export type Database = {
           validated_without_code?: boolean;
           delivery_slot_id?: string | null;
           delivery_note?: string | null;
+          driver_fee_rate_applied?: number | null;
+          driver_fee_da?: number | null;
+          driver_net_da?: number | null;
+          driver_owes_platform_da?: number | null;
+          driver_owes_merchant_da?: number | null;
+          driver_cash_collected_da?: number | null;
           created_at?: string;
         };
         Update: {
@@ -365,6 +377,12 @@ export type Database = {
           validated_without_code?: boolean;
           delivery_slot_id?: string | null;
           delivery_note?: string | null;
+          driver_fee_rate_applied?: number | null;
+          driver_fee_da?: number | null;
+          driver_net_da?: number | null;
+          driver_owes_platform_da?: number | null;
+          driver_owes_merchant_da?: number | null;
+          driver_cash_collected_da?: number | null;
           created_at?: string;
         };
         Relationships: [
@@ -759,6 +777,11 @@ export type Database = {
           delivery_min_da: number;
           delivery_max_da: number;
           delivery_max_radius_km: number;
+          driver_fee_rate: number;
+          driver_fee_cap_rate: number;
+          driver_fee_min_da: number;
+          driver_float_cap_da: number;
+          driver_settlement_cycle: "weekly" | "monthly";
           updated_at: string;
         };
         Insert: {
@@ -778,6 +801,11 @@ export type Database = {
           delivery_min_da?: number;
           delivery_max_da?: number;
           delivery_max_radius_km?: number;
+          driver_fee_rate?: number;
+          driver_fee_cap_rate?: number;
+          driver_fee_min_da?: number;
+          driver_float_cap_da?: number;
+          driver_settlement_cycle?: "weekly" | "monthly";
           updated_at?: string;
         };
         Update: {
@@ -797,6 +825,11 @@ export type Database = {
           delivery_min_da?: number;
           delivery_max_da?: number;
           delivery_max_radius_km?: number;
+          driver_fee_rate?: number;
+          driver_fee_cap_rate?: number;
+          driver_fee_min_da?: number;
+          driver_float_cap_da?: number;
+          driver_settlement_cycle?: "weekly" | "monthly";
           updated_at?: string;
         };
         Relationships: [];
@@ -813,6 +846,11 @@ export type Database = {
           rating_avg: number;
           rating_count: number;
           created_at: string;
+          vehicle_label: string | null;
+          vehicle_plate: string | null;
+          payout_method: string | null;
+          payout_details: string | null;
+          joined_year: number | null;
         };
         Insert: {
           id?: string;
@@ -825,6 +863,11 @@ export type Database = {
           rating_avg?: number;
           rating_count?: number;
           created_at?: string;
+          vehicle_label?: string | null;
+          vehicle_plate?: string | null;
+          payout_method?: string | null;
+          payout_details?: string | null;
+          joined_year?: number | null;
         };
         Update: {
           id?: string;
@@ -837,6 +880,11 @@ export type Database = {
           rating_avg?: number;
           rating_count?: number;
           created_at?: string;
+          vehicle_label?: string | null;
+          vehicle_plate?: string | null;
+          payout_method?: string | null;
+          payout_details?: string | null;
+          joined_year?: number | null;
         };
         Relationships: [];
       };
@@ -1370,6 +1418,8 @@ export type Database = {
           amount_da: number;
           note: string | null;
           created_at: string;
+          statement_id: string | null;
+          settled_at: string | null;
         };
         Insert: {
           id?: string;
@@ -1385,6 +1435,8 @@ export type Database = {
           amount_da: number;
           note?: string | null;
           created_at?: string;
+          statement_id?: string | null;
+          settled_at?: string | null;
         };
         Update: {
           id?: string;
@@ -1399,6 +1451,77 @@ export type Database = {
             | "adjustment";
           amount_da?: number;
           note?: string | null;
+          created_at?: string;
+          statement_id?: string | null;
+          settled_at?: string | null;
+        };
+        Relationships: [];
+      };
+      driver_statements: {
+        Row: {
+          id: string;
+          driver_id: string;
+          period_start: string;
+          period_end: string;
+          deliveries_count: number;
+          gross_driver_da: number;
+          commission_da: number;
+          service_fee_da: number;
+          driver_fee_da: number;
+          cashback_provisioned_da: number;
+          to_reverse_da: number;
+          to_receive_da: number;
+          net_da: number;
+          direction: "reverse" | "receive" | "settled";
+          status: "open" | "due" | "paid";
+          method: string | null;
+          details: string | null;
+          due_at: string | null;
+          settled_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          driver_id: string;
+          period_start: string;
+          period_end: string;
+          deliveries_count?: number;
+          gross_driver_da?: number;
+          commission_da?: number;
+          service_fee_da?: number;
+          driver_fee_da?: number;
+          cashback_provisioned_da?: number;
+          to_reverse_da?: number;
+          to_receive_da?: number;
+          net_da?: number;
+          direction?: "reverse" | "receive" | "settled";
+          status?: "open" | "due" | "paid";
+          method?: string | null;
+          details?: string | null;
+          due_at?: string | null;
+          settled_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          driver_id?: string;
+          period_start?: string;
+          period_end?: string;
+          deliveries_count?: number;
+          gross_driver_da?: number;
+          commission_da?: number;
+          service_fee_da?: number;
+          driver_fee_da?: number;
+          cashback_provisioned_da?: number;
+          to_reverse_da?: number;
+          to_receive_da?: number;
+          net_da?: number;
+          direction?: "reverse" | "receive" | "settled";
+          status?: "open" | "due" | "paid";
+          method?: string | null;
+          details?: string | null;
+          due_at?: string | null;
+          settled_at?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -1504,6 +1627,18 @@ export type Database = {
       merchant_balance: {
         Args: { p_merchant_id: string };
         Returns: number;
+      };
+      driver_outstanding: {
+        Args: { p_driver_id: string };
+        Returns: number;
+      };
+      driver_can_accept: {
+        Args: { p_driver_id: string };
+        Returns: boolean;
+      };
+      generate_driver_statements: {
+        Args: { p_period_start: string; p_period_end: string };
+        Returns: { statements_created: number; drivers_total: number }[];
       };
       order_driver_contact: {
         Args: { p_order_id: string };

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { DeleteAccountSection } from "@/components/driver/delete-account-section";
 import { ProfileHub } from "@/components/driver/profile/profile-hub";
+import { FloatGauge } from "@/components/driver/profile/float-gauge";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,21 @@ export default async function DriverProfilePage() {
       ? Math.round(durations.reduce((s, m) => s + m, 0) / durations.length)
       : null;
 
+  // Encours cash (float) + plafond, pour la jauge garde-fou (cf. docs §8).
+  const [{ data: outstanding }, { data: settings }] = await Promise.all([
+    supabase.rpc("driver_outstanding", { p_driver_id: driver.id }),
+    supabase
+      .from("platform_settings")
+      .select("driver_float_cap_da")
+      .eq("id", true)
+      .single(),
+  ]);
+  const outstandingDa = Number(outstanding ?? 0);
+  const capDa = Number(
+    (settings as { driver_float_cap_da?: number } | null)
+      ?.driver_float_cap_da ?? 8000
+  );
+
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
       <Link
@@ -80,6 +96,10 @@ export default async function DriverProfilePage() {
         ratingCount={ratingRow?.rating_count ?? 0}
         stats={{ courses, avgMin, merchants: merchants ?? 0 }}
       />
+
+      <div className="mt-4">
+        <FloatGauge outstandingDa={outstandingDa} capDa={capDa} />
+      </div>
 
       <div className="mt-5">
         <DeleteAccountSection />

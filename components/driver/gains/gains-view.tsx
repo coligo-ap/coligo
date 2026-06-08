@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
+import { Receipt, ChevronRight } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 
 /**
@@ -172,6 +174,25 @@ export function GainsView({ entries }: { entries: Entry[] }) {
         <Tile icon="💵" label="Cash encaissé" value={cashCollected} />
         <Tile icon="🏪" label="Dû commerçant" value={owesMerchant} />
       </div>
+
+      {/* Lien Relevé & versement (cf. maquette Gains). */}
+      <Link
+        href="/driver/releve"
+        className="flex items-center gap-3 rounded-[16px] bg-[#efe8fb] p-[15px]"
+      >
+        <div className="grid size-10 place-items-center rounded-[12px] bg-white">
+          <Receipt className="size-[19px] text-[#6c2bd9]" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <b className="block text-sm font-bold text-[#0a0a0a]">
+            Relevé &amp; versement
+          </b>
+          <span className="text-[12px] text-[#757575]">
+            Solde à reverser / à recevoir · CCP · BaridiMob
+          </span>
+        </div>
+        <ChevronRight className="size-[18px] shrink-0 text-[#6c2bd9]" />
+      </Link>
 
       {/* Historique. */}
       <h2 className="px-1 pt-2 pb-1 text-[13px] font-bold text-[#0a0a0a]">
