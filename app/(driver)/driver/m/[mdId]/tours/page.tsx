@@ -74,7 +74,7 @@ export default async function DriverToursPage({
           <ArrowLeft className="size-4" /> Retour
         </Link>
         <header>
-          <h1 className="text-[22px] font-extrabold tracking-tight text-[#0a0a0a]">
+          <h1 className="text-[18px] font-bold tracking-tight text-[#0a0a0a]">
             Tournées
           </h1>
           <p className="text-xs font-medium text-[#757575]">{merchant?.name}</p>

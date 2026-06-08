@@ -142,10 +142,10 @@ export function TourExecution({
       <div className="rounded-[16px] bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,.06)]">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-[11px] font-bold tracking-[0.5px] text-[#757575] uppercase">
+            <p className="text-[10.5px] font-semibold tracking-[0.4px] text-[#757575] uppercase">
               Tes gains · tournée
             </p>
-            <p className="mt-1 text-[28px] leading-none font-black tracking-[-0.5px] text-[#5c5ce0]">
+            <p className="mt-1 text-[22px] leading-none font-extrabold tracking-[-0.4px] text-[#5c5ce0]">
               {formatDA(earnings)}
             </p>
           </div>

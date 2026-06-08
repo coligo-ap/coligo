@@ -206,6 +206,25 @@ body {
     transform: rotate(360deg);
   }
 }
+/* Barre indéterminée de l'écran de lancement livreur (splash). */
+@keyframes driver-splash-bar {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(420%);
+  }
+}
+@keyframes driver-splash-rise {
+  0% {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
 
 /* -----------------------------------------------------------------------------
  * Re-thématisation des PRIMITIVES PARTAGÉES dans l'espace livreur uniquement.

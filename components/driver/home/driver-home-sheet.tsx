@@ -170,21 +170,21 @@ export function DriverHomeSheet({
         {/* Gain du jour — motivation. */}
         <div className="mb-3 flex items-end justify-between">
           <div>
-            <p className="text-[11px] font-bold tracking-[0.5px] text-[#757575] uppercase">
+            <p className="text-[10.5px] font-semibold tracking-[0.4px] text-[#757575] uppercase">
               Gagné aujourd&apos;hui
             </p>
-            <p className="mt-0.5 text-[32px] leading-none font-black tracking-[-1px] text-[#5c5ce0]">
+            <p className="mt-0.5 text-[26px] leading-none font-extrabold tracking-[-0.6px] text-[#5c5ce0]">
               {nf.format(earnedToday)}
-              <span className="ml-1 text-[15px] font-bold text-[#757575]">
+              <span className="ml-1 text-[12px] font-semibold text-[#757575]">
                 DA
               </span>
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[20px] leading-none font-extrabold text-[#0a0a0a]">
+            <p className="text-[16px] leading-none font-bold text-[#0a0a0a]">
               {coursesToday}
             </p>
-            <p className="mt-1 text-[11px] font-semibold text-[#757575]">
+            <p className="mt-1 text-[10.5px] font-medium text-[#757575]">
               course{coursesToday > 1 ? "s" : ""} · {onlineLabel}
             </p>
           </div>
@@ -202,7 +202,7 @@ export function DriverHomeSheet({
               <Bike className="size-[18px]" />
             </span>
             <span>
-              <span className="block text-[16px] font-extrabold">
+              <span className="block text-[14px] font-bold">
                 {online ? "Vous êtes en ligne" : "Vous êtes hors ligne"}
               </span>
               <span className="mt-px block text-[11px] font-medium opacity-70">

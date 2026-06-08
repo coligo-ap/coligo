@@ -43,7 +43,7 @@ export default async function DriverHomePage() {
     return (
       <div className="relative min-h-[100dvh] bg-[#f2f2f2]">
         <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col items-center justify-center gap-3 px-6 text-center">
-          <h1 className="text-xl font-extrabold text-[#0a0a0a]">Compte gelé</h1>
+          <h1 className="text-lg font-bold text-[#0a0a0a]">Compte gelé</h1>
           <p className="text-sm font-medium text-[#757575]">
             Ton accès a été suspendu par Coligo. Contacte le support.
           </p>

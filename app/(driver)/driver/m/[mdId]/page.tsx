@@ -71,7 +71,7 @@ export default async function DriverMerchantSpacePage({
           <p className="text-xs font-bold tracking-wide text-[#757575] uppercase">
             Tournées
           </p>
-          <h1 className="text-[22px] font-extrabold tracking-tight text-[#0a0a0a]">
+          <h1 className="text-[18px] font-bold tracking-tight text-[#0a0a0a]">
             {merchant.name}
           </h1>
         </header>

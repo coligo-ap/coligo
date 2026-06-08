@@ -107,20 +107,22 @@ export function GainsView({ entries }: { entries: Entry[] }) {
 
   return (
     <div className="space-y-3 pb-4">
-      <h1 className="text-[22px] font-extrabold tracking-tight text-[#0a0a0a]">
+      <h1 className="px-1 text-[18px] font-bold tracking-tight text-[#0a0a0a]">
         Mes gains
       </h1>
 
       {/* Grande card : total période + toggle. */}
-      <div className="rounded-[16px] bg-white p-[22px] shadow-[0_4px_16px_rgba(0,0,0,.06)]">
-        <small className="text-[11px] font-bold tracking-[1px] text-[#757575] uppercase">
+      <div className="rounded-[16px] bg-white p-5 shadow-[0_4px_16px_rgba(0,0,0,.06)]">
+        <small className="text-[10.5px] font-semibold tracking-[0.6px] text-[#757575] uppercase">
           Total gagné · {PERIOD_LABEL[period]}
         </small>
-        <div className="mt-1.5 text-[42px] leading-none font-black tracking-[-1px] text-[#5c5ce0]">
+        <div className="mt-1.5 text-[30px] leading-none font-extrabold tracking-[-0.6px] text-[#5c5ce0]">
           {/* Groupement manuel (espace) — déterministe SSR↔client (Intl peut
               différer entre Node et navigateur → hydratation React #418). */}
           {String(Math.round(total)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
-          <span className="ml-1.5 text-[18px] font-bold text-[#666]">DA</span>
+          <span className="ml-1.5 text-[14px] font-semibold text-[#666]">
+            DA
+          </span>
         </div>
         <div className="mt-4 inline-flex rounded-full bg-[#f2f2f2] p-[3px]">
           {PERIODS.map((p) => (
@@ -172,7 +174,7 @@ export function GainsView({ entries }: { entries: Entry[] }) {
       </div>
 
       {/* Historique. */}
-      <h2 className="px-1 pt-2 pb-1 text-[15px] font-extrabold text-[#0a0a0a]">
+      <h2 className="px-1 pt-2 pb-1 text-[13px] font-bold text-[#0a0a0a]">
         Historique récent
       </h2>
       {recent.length === 0 ? (

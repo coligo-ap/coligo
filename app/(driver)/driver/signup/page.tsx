@@ -19,7 +19,7 @@ export default function DriverSignupPage() {
 
           <div className="border-border space-y-6 rounded-[14px] border bg-white p-6 shadow-sm">
             <header className="space-y-1">
-              <h1 className="text-2xl font-bold tracking-tight">
+              <h1 className="text-xl font-bold tracking-tight">
                 Devenir livreur
               </h1>
               <p className="text-muted text-sm">

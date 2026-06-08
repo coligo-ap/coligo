@@ -77,7 +77,7 @@ export default async function DriverHistoryPage() {
           <ArrowLeft className="size-4" />
           Accueil
         </Link>
-        <h1 className="text-[22px] font-extrabold tracking-tight text-[#0a0a0a]">
+        <h1 className="text-[18px] font-bold tracking-tight text-[#0a0a0a]">
           Historique
         </h1>
         <DeliveryHistory

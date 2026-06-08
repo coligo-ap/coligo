@@ -43,7 +43,7 @@ export default async function DriverSubmitCodePage({
           Accueil
         </Link>
         <header className="space-y-1">
-          <h1 className="text-[22px] font-extrabold tracking-tight text-[#0a0a0a]">
+          <h1 className="text-[18px] font-bold tracking-tight text-[#0a0a0a]">
             Rejoindre un commerçant
           </h1>
           <p className="text-sm font-medium text-[#757575]">

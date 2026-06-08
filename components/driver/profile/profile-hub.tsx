@@ -47,16 +47,14 @@ export function ProfileHub({
 
   return (
     <div className="space-y-3 pb-4">
-      <h1 className="px-1 text-[19px] font-extrabold text-[#0a0a0a]">
-        Mon profil
-      </h1>
+      <h1 className="px-1 text-[17px] font-bold text-[#0a0a0a]">Mon profil</h1>
 
       {/* Hero */}
       <div className="rounded-[16px] bg-white px-5 py-6 text-center shadow-[0_4px_16px_rgba(0,0,0,.06)]">
-        <div className="mx-auto grid size-20 place-items-center rounded-full bg-black text-[32px] font-black text-white">
+        <div className="mx-auto grid size-16 place-items-center rounded-full bg-black text-[22px] font-extrabold text-white">
           {initials}
         </div>
-        <h2 className="mt-3.5 text-[20px] font-extrabold text-[#0a0a0a]">
+        <h2 className="mt-3 text-[17px] font-bold text-[#0a0a0a]">
           {fullName}
         </h2>
         <p className="mt-0.5 text-[13px] font-medium text-[#757575]">{phone}</p>

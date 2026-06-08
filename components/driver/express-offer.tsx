@@ -191,12 +191,12 @@ export function ExpressOffer({
         {/* Bloc principal : distance totale + gain violet */}
         <div className="mt-6 flex items-end justify-between">
           <div>
-            <div className="text-[11px] font-bold tracking-[0.5px] text-[#9e9e9e] uppercase">
+            <div className="text-[10.5px] font-semibold tracking-[0.4px] text-[#9e9e9e] uppercase">
               Distance totale
             </div>
-            <h1 className="text-[48px] leading-none font-black tracking-[-1.5px]">
+            <h1 className="text-[32px] leading-none font-extrabold tracking-[-1px]">
               {fmtKm(totalKm)}
-              <span className="ml-1 text-[18px] font-semibold text-[#9e9e9e]">
+              <span className="ml-1 text-[14px] font-semibold text-[#9e9e9e]">
                 km
               </span>
             </h1>
@@ -207,13 +207,13 @@ export function ExpressOffer({
             )}
           </div>
           <div className="rounded-[16px] border border-[#e0e0f5] bg-[#f4f4fb] px-4 py-2.5 text-right">
-            <div className="text-[34px] leading-none font-black tracking-[-1px] text-[#5c5ce0]">
+            <div className="text-[26px] leading-none font-extrabold tracking-[-0.6px] text-[#5c5ce0]">
               {fee}
-              <span className="ml-1 text-[14px] font-bold text-[#9e9e9e]">
+              <span className="ml-1 text-[13px] font-bold text-[#9e9e9e]">
                 DA
               </span>
             </div>
-            <div className="mt-1 text-[11px] font-semibold tracking-[0.5px] text-[#757575]">
+            <div className="mt-1 text-[10.5px] font-semibold tracking-[0.4px] text-[#757575]">
               Votre gain
             </div>
           </div>
@@ -239,9 +239,9 @@ export function ExpressOffer({
                 : "Le client règle en espèces à la remise"}
             </div>
           </div>
-          <b className="text-[20px] font-black tabular-nums">
+          <b className="text-[17px] font-extrabold tabular-nums">
             {prepaid ? 0 : toCollect}
-            <span className="ml-0.5 text-[12px] font-bold">DA</span>
+            <span className="ml-0.5 text-[11px] font-bold">DA</span>
           </b>
         </div>
 
