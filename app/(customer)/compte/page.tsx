@@ -121,7 +121,9 @@ export default async function CustomerAccountPage({
                 </p>
               )}
               {verified && (
-                <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[10.5px] font-extrabold">
+                // Vérifié = concept de réussite → vert (pastille blanche + coche
+                // verte pour rester lisible sur le héro violet).
+                <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10.5px] font-extrabold text-[#00854f] shadow-sm">
                   <BadgeCheck className="size-3" />
                   {t("verifiedAccount")}
                 </span>
