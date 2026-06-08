@@ -63,6 +63,19 @@ export default async function DriverCoursePage({
     .select("id", { count: "exact", head: true })
     .eq("order_id", order.id);
 
+  // Config de la part Coligo livraison (driver_fee) — figée en base, jamais en
+  // dur. Sert à afficher dans l'offre le GAIN NET (D − driver_fee) du livreur.
+  const { data: settings } = await supabase
+    .from("platform_settings")
+    .select("driver_fee_rate, driver_fee_cap_rate, driver_fee_min_da")
+    .eq("id", true)
+    .single();
+  const driverFeeConfig = {
+    driverFeeRate: Number(settings?.driver_fee_rate ?? 0.08),
+    driverFeeCapRate: Number(settings?.driver_fee_cap_rate ?? 0.1),
+    driverFeeMinDa: Number(settings?.driver_fee_min_da ?? 10),
+  };
+
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
       <ExpressCard
@@ -73,6 +86,7 @@ export default async function DriverCoursePage({
         merchantName={merchant?.name ?? "Commerçant"}
         merchantLat={merchant?.latitude}
         merchantLng={merchant?.longitude}
+        driverFeeConfig={driverFeeConfig}
       />
     </DriverShell>
   );

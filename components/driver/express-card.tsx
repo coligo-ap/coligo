@@ -13,6 +13,7 @@ import { PostDeliveryFeedback } from "./post-delivery-feedback";
 import { DriverLocationBroadcaster } from "./driver-location-broadcaster";
 import { ExpressOffer } from "./express-offer";
 import { ExpressRun } from "./course/express-run";
+import type { DriverFeeConfig } from "@/lib/driver/settlement";
 
 const ACCEPTED_KEY = "coligo_driver_accepted_orders";
 
@@ -49,12 +50,14 @@ export function ExpressCard({
   merchantName,
   merchantLat,
   merchantLng,
+  driverFeeConfig,
 }: {
   currentOrder: CurrentOrder | null;
   itemCount: number;
   merchantName: string;
   merchantLat?: number | null;
   merchantLng?: number | null;
+  driverFeeConfig?: DriverFeeConfig;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -163,6 +166,7 @@ export function ExpressCard({
           onRefuse={refuseOffer}
           onTimeout={refuseOffer}
           refusing={pending}
+          driverFeeConfig={driverFeeConfig}
         />
       )}
 

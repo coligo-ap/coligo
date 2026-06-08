@@ -7,6 +7,11 @@ import { haversineKm } from "@/lib/delivery/distance";
 import { cashToCollectDa, isPrepaid } from "@/lib/delivery/cash";
 import { DeliveryRouteMap } from "@/components/driver/delivery-route-map";
 import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
+import {
+  computeDriverNet,
+  DEFAULT_DRIVER_FEE_CONFIG,
+  type DriverFeeConfig,
+} from "@/lib/driver/settlement";
 
 /**
  * Écran 2 — OFFRE DE COURSE (plein écran BLANC, style Uber Eats Driver clair).
@@ -54,6 +59,7 @@ export function ExpressOffer({
   onRefuse,
   onTimeout,
   refusing,
+  driverFeeConfig,
 }: {
   order: OfferOrder;
   itemCount: number;
@@ -65,6 +71,8 @@ export function ExpressOffer({
   /** Appelé une seule fois quand le compte à rebours atteint 0 (libération). */
   onTimeout?: () => void;
   refusing: boolean;
+  /** Config part Coligo (driver_fee), figée en base. Défaut = défauts SQL. */
+  driverFeeConfig?: DriverFeeConfig;
 }) {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [left, setLeft] = useState(OFFER_SECONDS);
@@ -133,6 +141,13 @@ export function ExpressOffer({
     totalKm != null ? Math.max(1, Math.round(totalKm * KM_TO_MIN)) : null;
 
   const fee = order.delivery_fee_da ?? 0;
+  // Gain NET du livreur = D − driver_fee (la part Coligo livraison est prélevée
+  // sur D). C'est ce que montre la maquette (« 184 DA · gain net »), pas le D
+  // brut. Taux figé en base (driverFeeConfig), jamais codé en dur.
+  const driverNet = computeDriverNet(
+    fee,
+    driverFeeConfig ?? DEFAULT_DRIVER_FEE_CONFIG
+  );
   const prepaid = isPrepaid(order);
   const toCollect = cashToCollectDa(order);
   const mm = Math.floor(left / 60);
@@ -208,13 +223,13 @@ export function ExpressOffer({
           </div>
           <div className="rounded-[16px] border border-[#e0e0f5] bg-[#f4f4fb] px-4 py-2.5 text-right">
             <div className="text-[26px] leading-none font-extrabold tracking-[-0.6px] text-[#6c2bd9]">
-              {fee}
+              {driverNet}
               <span className="ml-1 text-[13px] font-bold text-[#9e9e9e]">
                 DA
               </span>
             </div>
             <div className="mt-1 text-[10.5px] font-semibold tracking-[0.4px] text-[#757575]">
-              Votre gain
+              Votre gain net
             </div>
           </div>
         </div>
