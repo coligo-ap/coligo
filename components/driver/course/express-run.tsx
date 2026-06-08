@@ -1,24 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Loader2, MessageCircle, Phone, X } from "lucide-react";
+import { ArrowRight, MessageCircle, Phone, X } from "lucide-react";
 import { ExpressRunMap } from "./express-run-map";
 import { OrderChat } from "@/components/chat/order-chat";
 import { cashToCollectDa, isPrepaid } from "@/lib/delivery/cash";
 
 /**
- * Écran 3 — COURSE EN COURS (plein écran, style Uber Eats Driver).
- *
- * Carte plein écran avec itinéraire néon + bandeau d'étape flottant + bottom
- * sheet (profil de l'étape, adresse, encaissement cash, CTA d'avancement).
- * Purement visuel : les actions (`onPickup` / `onArrived` / `onValidate`) et
- * leur logique métier vivent dans le parent `ExpressCard` — on ne fait que les
- * brancher sur des boutons.
- *
- * Étapes :
- *  - !pickedUp            → ÉTAPE 1 « Récupérer la commande » (cible : commerçant)
- *  - pickedUp & !arrived  → ÉTAPE 2 « Livrer au client »      (cible : client)
- *  - pickedUp &  arrived  → ÉTAPE 2, CTA « Scanner / Saisir le code » (→ écran 4)
+ * Écran NAVIGATION ACTIVE (course en cours) reproduit À L'IDENTIQUE de
+ * MAQUETTE-livreur-pages : carte plein écran + .navbanner (direction : distance
+ * + étape + rue) + .navsheet (étape en cours : icône, titre, adresse, ETA +
+ * bouton « Je suis arrivé »). Fonctions conservées (chat, appel, itinéraire).
+ * La logique métier vit dans le parent ExpressCard.
  */
 
 type RunOrder = {
@@ -67,7 +60,6 @@ export function ExpressRun({
   const [eta, setEta] = useState<{ min: number; km: number } | null>(null);
   const [showChat, setShowChat] = useState(false);
 
-  // Cible courante : commerçant avant pickup, client après.
   const target = pickedUp
     ? order.delivery_lat != null && order.delivery_lng != null
       ? { lat: order.delivery_lat, lng: order.delivery_lng }
@@ -76,30 +68,20 @@ export function ExpressRun({
       ? { lat: merchantLat, lng: merchantLng }
       : null;
 
-  const stepNum = pickedUp ? 2 : 1;
-  const stepTitle = pickedUp ? "Livrer au client" : "Récupérer la commande";
-
-  // Profil de l'étape : commerçant (récup) ou client (livraison).
   const who = pickedUp
     ? {
         name: order.delivery_recipient_name ?? order.customer_name ?? "Client",
-        initial: (order.delivery_recipient_name ?? order.customer_name ?? "C")
-          .charAt(0)
-          .toUpperCase(),
         phone: order.delivery_phone ?? order.customer_phone,
       }
-    : {
-        name: merchantName,
-        initial: merchantName.charAt(0).toUpperCase(),
-        phone: null as string | null,
-      };
+    : { name: merchantName, phone: null as string | null };
 
   const address = pickedUp
     ? (order.delivery_address_text ?? "Adresse client")
     : merchantName;
+  const stepTitle = pickedUp
+    ? `Livrer à ${who.name}`
+    : `Récupérer chez ${merchantName}`;
 
-  // Encaissement : commande prépayée (en ligne) → rien à encaisser (0 DA) ;
-  // commande cash → le client règle la totalité à la remise.
   const prepaid = isPrepaid(order);
   const toCollect = cashToCollectDa(order);
 
@@ -107,9 +89,14 @@ export function ExpressRun({
     ? `https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}&travelmode=driving`
     : null;
 
+  const cta = pickedUp
+    ? arrived
+      ? { label: "Scanner / Saisir le code", onClick: onValidate }
+      : { label: "Je suis arrivé chez le client", onClick: onArrived }
+    : { label: "J'ai récupéré la commande", onClick: onPickup };
+
   return (
-    <div className="fixed inset-0 z-[80] bg-[#f2f2f2] text-[#0a0a0a]">
-      {/* Carte plein écran (ou repli si pas de coordonnées cible). */}
+    <div className="mq-screen fixed inset-0 z-[80]">
       {target ? (
         <ExpressRunMap
           target={target}
@@ -117,124 +104,160 @@ export function ExpressRun({
           onEta={setEta}
         />
       ) : (
-        <div className="absolute inset-0 grid place-items-center bg-[#e8e8e8] px-8 text-center text-sm font-medium text-[#757575]">
+        <div
+          className="absolute inset-0 grid place-items-center px-8 text-center"
+          style={{ background: "var(--block)", color: "var(--muted)" }}
+        >
           Position de destination indisponible — utilise l&apos;adresse
           ci-dessous.
         </div>
       )}
 
-      {/* Bandeau d'étape flottant. */}
-      <div className="absolute top-[max(46px,calc(env(safe-area-inset-top)+14px))] right-3.5 left-3.5 z-50 flex items-center gap-3 rounded-[14px] bg-black px-4 py-[13px] text-white shadow-[0_8px_22px_rgba(0,0,0,.2)]">
-        <span className="grid size-[30px] shrink-0 place-items-center rounded-full bg-[#6c2bd9] text-[13px] font-extrabold text-white">
-          {stepNum}
-        </span>
-        <div className="flex-1">
-          <small className="text-[10px] font-bold tracking-[0.8px] uppercase opacity-55">
-            Étape en cours
-          </small>
-          <b className="mt-px block text-sm font-semibold">{stepTitle}</b>
+      {/* Bandeau direction. */}
+      <div
+        className="navbanner"
+        style={{ top: "max(14px,env(safe-area-inset-top))" }}
+      >
+        <div className="ar">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            strokeWidth={2.4}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 18l6-6-6-6" />
+          </svg>
         </div>
-        <div className="text-right">
-          <b className="block text-[15px] font-extrabold text-[#6c2bd9]">
-            {eta ? `${eta.min} min` : "…"}
-          </b>
-          <small className="text-[10px] opacity-60">
-            {eta ? `${eta.km.toFixed(1).replace(".", ",")} km` : ""}
-          </small>
+        <div>
+          <div className="d">
+            {eta ? `${eta.km.toFixed(1).replace(".", ",")} km` : "…"}
+          </div>
+          <div className="s">
+            {stepTitle}
+            {address && address !== merchantName ? ` · ${address}` : ""}
+          </div>
         </div>
       </div>
 
-      {/* Bottom sheet. */}
-      <div className="absolute right-0 bottom-0 left-0 z-[60] rounded-t-[18px] bg-white pt-2 pb-[max(18px,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,.1)]">
-        <div className="mx-auto mt-1 mb-1 h-1 w-[42px] rounded-full bg-[#e0e0e0]" />
-
-        <div className="px-[18px] pt-1.5">
-          {/* Profil de l'étape. */}
-          <div className="flex items-center gap-[11px] border-b border-[#eee] pb-3.5">
-            <div className="grid size-[46px] place-items-center rounded-full bg-[#f5f5f5] text-[18px] font-extrabold text-[#0a0a0a]">
-              {who.initial}
-            </div>
-            <div className="min-w-0 flex-1">
-              <b className="block truncate text-base font-bold text-[#0a0a0a]">
-                {who.name}
-              </b>
-              <small className="text-xs font-medium text-[#757575]">
-                Commande #{order.order_number ?? shortRef(order.id)}
-                {itemCount > 0
-                  ? ` · ${itemCount} article${itemCount > 1 ? "s" : ""}`
-                  : ""}
-              </small>
-            </div>
-            {pickedUp && (
-              <button
-                type="button"
-                onClick={() => setShowChat(true)}
-                aria-label="Discuter avec le client"
-                className="grid size-[42px] place-items-center rounded-full bg-[#f5f5f5] text-[#000] active:scale-95"
+      {/* Feuille basse : étape en cours. */}
+      <div className="navsheet">
+        <div className="step">
+          <div className="dot">
+            {pickedUp ? (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <MessageCircle className="size-[17px]" />
-              </button>
-            )}
-            {who.phone && (
-              <a
-                href={`tel:${who.phone}`}
-                aria-label="Appeler"
-                className="grid size-[42px] place-items-center rounded-full bg-[#f5f5f5] text-[#000] active:scale-95"
+                <path d="M3 11l9-8 9 8M5 10v10h14V10" />
+              </svg>
+            ) : (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <Phone className="size-[17px]" />
-              </a>
+                <path d="M3 9l1-5h16l1 5M5 9v11h14V9M9 13h6" />
+              </svg>
             )}
           </div>
-
-          {/* Pill adresse. */}
-          <div className="my-3.5 flex items-center gap-2.5 rounded-[11px] bg-[#f8f8f8] px-3.5 py-3 text-[13px] font-semibold text-[#0a0a0a]">
-            <span className="text-[15px]">📍</span>
-            <span className="min-w-0 flex-1">{address}</span>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <b>{stepTitle}</b>
+            <span
+              style={{
+                display: "block",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {address} · #{order.order_number ?? shortRef(order.id)}
+              {itemCount > 0
+                ? ` · ${itemCount} article${itemCount > 1 ? "s" : ""}`
+                : ""}
+            </span>
           </div>
-
-          {/* Pill encaissement : vert si déjà payé (0 DA), ambre si cash. */}
-          {prepaid ? (
-            <div className="mb-3.5 flex items-center gap-2.5 rounded-[11px] border border-[#b6e2c6] bg-[#effaf3] px-3.5 py-[13px] text-[13px] font-bold text-[#1d7a44]">
-              <span>✅</span>
-              <span>Déjà payé en ligne — rien à encaisser</span>
-              <b className="ml-auto text-sm">0 DA</b>
-            </div>
-          ) : (
-            <div className="mb-3.5 flex items-center gap-2.5 rounded-[11px] border border-[#f5e0a1] bg-[#fff8e5] px-3.5 py-[13px] text-[13px] font-bold text-[#8b6500]">
-              <span>💵</span>
-              <span>À encaisser auprès du client</span>
-              <b className="ml-auto text-sm">{toCollect} DA</b>
-            </div>
-          )}
+          <span className="eta">{eta ? `${eta.min} min` : "…"}</span>
         </div>
 
-        {/* Actions. */}
-        <div className="space-y-2 px-[18px]">
-          {!pickedUp && (
-            <CtaButton onClick={onPickup} pending={pending}>
-              J&apos;ai récupéré la commande
-            </CtaButton>
-          )}
-          {pickedUp && !arrived && (
-            <CtaButton onClick={onArrived} pending={pending}>
-              Je suis arrivé chez le client
-            </CtaButton>
-          )}
-          {pickedUp && arrived && (
-            <CtaButton onClick={onValidate} pending={pending}>
-              Scanner / Saisir le code
-            </CtaButton>
-          )}
+        {/* Encaissement à la livraison. */}
+        {prepaid ? (
+          <div className="cash" style={{ marginTop: 0, marginBottom: 12 }}>
+            <div className="l">✅ Déjà payé en ligne</div>
+            <div className="am">0 DA</div>
+          </div>
+        ) : (
+          <div
+            className="cash"
+            style={{
+              marginTop: 0,
+              marginBottom: 12,
+              background: "rgba(243,156,18,.12)",
+            }}
+          >
+            <div className="l" style={{ color: "#8b6500" }}>
+              💵 À encaisser à la livraison
+            </div>
+            <div className="am" style={{ color: "#8b6500" }}>
+              {toCollect} DA
+            </div>
+          </div>
+        )}
 
+        <button
+          type="button"
+          className="mq-btn"
+          style={{ marginTop: 0 }}
+          onClick={cta.onClick}
+          disabled={pending}
+        >
+          {pending ? "…" : cta.label}
+        </button>
+
+        {/* Actions secondaires. */}
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
           {gmapsUrl && (
             <a
               href={gmapsUrl}
               target="_blank"
               rel="noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-[13px] bg-[#f5f5f5] py-[15px] text-[15px] font-extrabold text-[#0a0a0a] active:scale-[0.99]"
+              className="btnlink"
+              style={{
+                flex: 1,
+                marginTop: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+              }}
             >
-              Voir l&apos;itinéraire
-              <ArrowRight className="size-[18px]" />
+              Itinéraire <ArrowRight className="size-4" />
+            </a>
+          )}
+          {pickedUp && (
+            <button
+              type="button"
+              onClick={() => setShowChat(true)}
+              className="btnlink"
+              style={{ flex: 1, marginTop: 0 }}
+            >
+              <MessageCircle className="mr-1 inline size-4" />
+              Message
+            </button>
+          )}
+          {who.phone && (
+            <a
+              href={`tel:${who.phone}`}
+              className="btnlink"
+              style={{ flex: 1, marginTop: 0 }}
+            >
+              <Phone className="mr-1 inline size-4" />
+              Appeler
             </a>
           )}
         </div>
@@ -243,22 +266,23 @@ export function ExpressRun({
       {/* Modale chat avec le client (messages prédéfinis). */}
       {showChat && (
         <div
-          className="absolute inset-0 z-[90] flex items-end bg-black/40"
+          className="absolute inset-0 z-[90] flex items-end"
+          style={{ background: "rgba(0,0,0,.4)" }}
           onClick={() => setShowChat(false)}
         >
           <div
-            className="w-full rounded-t-[18px] bg-white p-3 pb-[max(18px,env(safe-area-inset-bottom))]"
+            className="w-full rounded-t-[18px] bg-[var(--surface)] p-3 pb-[max(18px,env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-2 flex items-center justify-between px-1">
-              <b className="text-sm font-bold text-[#0a0a0a]">
+              <b className="text-sm font-bold text-[var(--ink)]">
                 Discuter avec {who.name}
               </b>
               <button
                 type="button"
                 onClick={() => setShowChat(false)}
                 aria-label="Fermer"
-                className="grid size-8 place-items-center rounded-full bg-[#f5f5f5] active:scale-95"
+                className="grid size-8 place-items-center rounded-full bg-[var(--soft)]"
               >
                 <X className="size-4" />
               </button>
@@ -273,26 +297,5 @@ export function ExpressRun({
         </div>
       )}
     </div>
-  );
-}
-
-function CtaButton({
-  children,
-  onClick,
-  pending,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  pending: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={pending}
-      className="flex w-full items-center justify-center gap-2 rounded-[13px] bg-[#0a0a0a] py-[16px] text-[15px] font-extrabold text-white active:scale-[0.99] disabled:opacity-60"
-    >
-      {pending ? <Loader2 className="size-5 animate-spin" /> : children}
-    </button>
   );
 }

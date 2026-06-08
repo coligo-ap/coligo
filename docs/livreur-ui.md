@@ -1,10 +1,13 @@
 # Livreur — UI (composants, états, navigation)
 
-Design system « style Uber » scopé `[data-space="driver"]` (cf.
-`app/globals.css` et `app/(driver)/layout.tsx`) : police **Inter**, fond gris,
-cards blanches, encre noire, **violet de marque `#6c2bd9`** (et non l'indigo
-`#5B5BE6` des maquettes — décision : unifier sur la marque Coligo). Le `@theme`
-global (commerçant/client/admin) n'est jamais touché.
+Refonte **100 % maquette** : le CSS des 3 maquettes est porté À L'IDENTIQUE dans
+`app/(driver)/maquette.css` (scopé `[data-space="driver"]`), polices **Sora**
+(titres/chiffres, `.mq-sora`) + **Plus Jakarta Sans** (corps), palette **indigo
+`#5B5BE6`** exactement comme les maquettes, **bascule clair/sombre**
+(`[data-space="driver"].dark`, store `theme-store` + `DriverThemeRoot`, défaut
+clair). Le `@theme` global (commerçant/client/admin) n'est jamais touché. Le
+cadre téléphone / status bar / home-bar des maquettes ne sont PAS reproduits
+(artefacts).
 
 > Source de vérité visuelle : `MAQUETTE-livreur-uber.html`,
 > `MAQUETTE-livreur-pages.html`, `MAQUETTE-livreur-navigation.html`.
@@ -68,22 +71,26 @@ Server Actions `(driver)/actions.ts` (`markOrderPickedUp`,
 `delivery_*_at` sur `orders`. Le minuteur/expiration de l'offre est aussi gardé
 côté serveur (cooldown 0056).
 
-## Reste à aligner (suites)
+## Écrans refaits 100 % maquette (ce lot)
 
-- **Bandeau « Course en cours » réductible** persistant au-dessus de la tabbar
-  (maquette navigation, écrans 2-3) : aujourd'hui la course est plein écran sur
-  sa propre route ; le bandeau réductible inter-onglets (store global
-  `{activeOrderId, step, collapsed}`) reste à câbler pour consulter
-  Gains/Historique **sans quitter** la course.
-- **Mode sombre** : les maquettes ont une bascule clair/sombre ; l'espace
-  livreur est actuellement **clair uniquement**. Tokens à dédoubler sous
-  `[data-space="driver"].dark`.
-- **Sons fichiers** `online.mp3` / `new-order.mp3` : actuellement synthèse Web
-  Audio (`use-alert-sound`) ; remplacer par 2 fichiers courts avec repli Web
-  Audio.
+Tous les écrans des 3 maquettes sont reproduits au markup/SVG exacts, branchés
+sur les vraies données : **Accueil** (GO violet→vert + radar + son + sheet +
+stats, sur la vraie carte MapLibre), **Offre** (`.offer-card` slide-up, gain net,
+minuteur 3 zones, 2 arrêts), **Navigation active** (`.navbanner` + `.navsheet`),
+**Validation** (`.valid` QR + code + encart cash), **Gains**, **Historique**,
+**Relevé**, **Compte** (+ bascule apparence), **Tabbar**, **bandeau course
+réductible** (`.coursebar`, store `active-course-store`). Mode **clair/sombre** +
+**sons** (fichier mp3 sinon synthèse Web Audio, `lib/driver/sounds.ts`) faits.
+
+## Reste (optionnel)
+
+- **Fichiers audio** : déposer `public/sounds/online.mp3` & `new-order.mp3` pour
+  remplacer la synthèse Web Audio (le repli fonctionne déjà sans).
+- **Turn-by-turn** : le `.navbanner` affiche distance + étape (pas d'instruction
+  « tournez à droite » — nécessiterait un moteur de routage).
 - **AR / RTL livreur** : le parcours **client** est bilingue ; commerçant /
   livreur / admin restent **FR** (décision projet i18n). Bascule AR du livreur =
-  décision à prendre.
+  gros lot à confirmer (extraction next-intl de tout l'espace livreur).
 
 ## Écran financier branché (ce lot)
 
