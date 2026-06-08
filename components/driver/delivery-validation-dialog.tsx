@@ -1,34 +1,30 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { QrScanner } from "@/components/scanner/qr-scanner";
 import { enqueueValidation } from "@/lib/driver-offline/db";
 import { validateDelivery } from "@/app/(driver)/actions";
 
 /**
- * Écran 4 — VALIDATION DE LIVRAISON (plein écran, e-ticket style Uber).
+ * Écran VALIDATION DE REMISE reproduit À L'IDENTIQUE de MAQUETTE-livreur-pages
+ * (.valid) : titre + sous-titre, zone .qr (scanner caméra), « — ou — », code en
+ * cases (.pinrow), encart vert .cash « Espèces à encaisser », bouton .mq-btn.
  *
- * Le livreur SCANNE le QR du client (caméra live au centre du ticket) OU saisit
- * son code de retrait à 6 chiffres. Style purement refait ; la logique métier
- * anti-fraude est inchangée (cf. prompt 9 / migration 0041) :
- *  - online : code OBLIGATOIRE (CTA désactivé tant que 6 chiffres absents).
- *  - cash   : code encouragé mais validation possible sans code (tracée
- *    `validated_without_code=true`).
- * Le mode hors-ligne (enqueue + synchro auto) est conservé tel quel.
+ * Logique métier anti-fraude inchangée (mig 0041/0090) :
+ *  - online/prépayé : code OBLIGATOIRE.
+ *  - cash : code encouragé, validation possible sans code (tracée).
+ * Le QR encode le pickup_code (4 chiffres ; tolérance legacy 6). Mode hors-ligne
+ * (enqueue + synchro) conservé. Chemins scan et saisie unifiés côté serveur.
  */
 export function DeliveryValidationDialog({
   orderId,
-  orderNumber,
   paymentMethod,
-  customerName,
   totalDa,
   onClose,
   onSuccess,
 }: {
   orderId: string;
-  /** Numéro de commande (référence, ex. « A042 »). Affiché ; non secret. */
   orderNumber?: string | null;
   paymentMethod: "cash" | "online";
   customerName?: string | null;
@@ -41,15 +37,10 @@ export function DeliveryValidationDialog({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isOnline = paymentMethod === "online";
-  const orderRef =
-    orderNumber ?? orderId.replace(/-/g, "").slice(0, 6).toUpperCase();
-  const paymentLabel = isOnline
-    ? "En ligne · payé"
-    : `Cash${totalDa != null ? ` · ${totalDa} DA` : ""}`;
+  const collect = isOnline ? 0 : (totalDa ?? 0);
 
   const submit = (skip: boolean) =>
     start(async () => {
-      // Hors ligne ? On enqueue, le processeur sync au retour réseau.
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         await enqueueValidation({
           orderId,
@@ -66,8 +57,6 @@ export function DeliveryValidationDialog({
         skipCode: skip,
       });
       if (!r.ok) {
-        // Vraies erreurs métier : on affiche. Erreur transitoire (réseau coupé
-        // en plein vol) : on enqueue pour rejouer.
         if (
           r.reason &&
           [
@@ -96,29 +85,18 @@ export function DeliveryValidationDialog({
     });
 
   const handleScannedText = (text: string) => {
-    // Le QR du client encode son code PIN (4 chiffres). On reste tolérant aux
-    // anciens codes 6 chiffres (commandes legacy) : on prend la 1re séquence.
     const digits = text.match(/\d{4,6}/)?.[0];
     if (digits) {
-      setCode(digits);
+      setCode(digits.slice(0, 4));
       toast.success("Code détecté");
     }
   };
 
-  // CTA : online → submit avec code. cash → submit avec code si saisi, sinon
-  // validation sans code (confirmée + tracée).
   const onValidateClick = () => {
-    if (isOnline) {
-      submit(false);
-      return;
-    }
-    if (code.length >= 4) {
-      submit(false);
-      return;
-    }
-    if (confirm("Confirmer la remise au client (paiement cash) ?")) {
+    if (isOnline) return submit(false);
+    if (code.length >= 4) return submit(false);
+    if (confirm("Confirmer la remise au client (paiement cash) ?"))
       submit(true);
-    }
   };
 
   const ctaDisabled = pending || (isOnline && code.length < 4);
@@ -126,114 +104,100 @@ export function DeliveryValidationDialog({
   const curIdx = Math.min(code.length, 3);
 
   return (
-    <div className="fixed inset-0 z-[95] overflow-auto bg-[#f2f2f2] pt-[max(48px,calc(env(safe-area-inset-top)+18px))] pb-[max(24px,env(safe-area-inset-bottom))] text-[#0a0a0a]">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-5 pb-5">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Retour"
-          className="grid size-[38px] place-items-center rounded-full bg-white text-[#0a0a0a] shadow-[0_2px_6px_rgba(0,0,0,.06)] active:scale-95"
-        >
-          <ArrowLeft className="size-[18px]" />
-        </button>
-        <h2 className="text-[19px] font-extrabold">Valider la livraison</h2>
-      </div>
+    <div className="mq-screen fixed inset-0 z-[95] overflow-auto">
+      <div className="valid">
+        <div className="backh" style={{ margin: "2px 0 6px" }}>
+          <button
+            type="button"
+            className="b"
+            onClick={onClose}
+            aria-label="Retour"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              strokeWidth={2.2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+        </div>
 
-      {/* Ticket */}
-      <div className="mx-4 overflow-hidden rounded-[16px] bg-white shadow-[0_4px_16px_rgba(0,0,0,.06)]">
-        <div className="relative border-b-2 border-dashed border-[#e5e5e5] px-[22px] pt-[22px] pb-[22px] text-center">
-          {/* Encoches latérales du ticket. */}
-          <span className="absolute bottom-[-12px] -left-[11px] size-[22px] rounded-full bg-[#f2f2f2]" />
-          <span className="absolute -right-[11px] bottom-[-12px] size-[22px] rounded-full bg-[#f2f2f2]" />
+        <h2>Confirmer la remise</h2>
+        <p>Scannez le QR du client ou saisissez son code.</p>
+
+        <div className="qr" style={{ overflow: "hidden" }}>
           <QrScanner
             onScan={handleScannedText}
             oneShot={false}
-            className="mx-auto max-w-[190px] rounded-[10px]"
+            className="size-full rounded-[20px]"
           />
-          <div className="mt-3.5 text-[11px] font-bold tracking-[0.8px] text-[#757575] uppercase">
-            📷 Scanner le QR du client
-          </div>
         </div>
-        <div className="px-[22px] py-[18px]">
-          <InfoLine label="Client" value={customerName ?? "Client"} />
-          <InfoLine label="Commande" value={`#${orderRef}`} />
-          <InfoLine label="Paiement" value={paymentLabel} />
-        </div>
-      </div>
 
-      {/* Saisie manuelle du code. */}
-      <div className="mt-5 mb-3 text-center text-[11px] font-bold tracking-[1.5px] text-[#757575]">
-        OU SAISIR LE CODE
-      </div>
-      <button
-        type="button"
-        onClick={() => inputRef.current?.focus()}
-        className="relative mx-auto flex w-full justify-center gap-2 px-3.5"
-        aria-label="Saisir le code à 6 chiffres"
-      >
-        {boxes.map((d, i) => {
-          const filled = d !== "";
-          const cur = !filled && i === curIdx;
-          return (
-            <span
-              key={i}
-              className={
-                "grid h-[50px] w-[40px] place-items-center rounded-[10px] bg-white text-[22px] font-extrabold text-[#0a0a0a] " +
-                (filled
-                  ? "border-2 border-[#0a0a0a]"
-                  : cur
-                    ? "border-2 border-[#6c2bd9]"
-                    : "border-[1.5px] border-[#e5e5e5]")
-              }
-            >
-              {d}
-            </span>
-          );
-        })}
-        {/* Input réel transparent, capte la frappe / clavier numérique. */}
-        <input
-          ref={inputRef}
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={4}
-          value={code}
-          onChange={(e) =>
-            setCode(e.target.value.replace(/\D/g, "").slice(0, 4))
-          }
-          disabled={pending}
-          className="absolute inset-0 size-full cursor-pointer opacity-0"
-        />
-      </button>
+        <div className="or">— ou —</div>
 
-      {/* CTA */}
-      <div className="mt-5 px-4">
         <button
           type="button"
+          onClick={() => inputRef.current?.focus()}
+          className="pinrow"
+          style={{ position: "relative", width: "100%" }}
+          aria-label="Saisir le code"
+        >
+          {boxes.map((d, i) => {
+            const filled = d !== "";
+            const cur = !filled && i === curIdx;
+            return (
+              <span key={i} className={"c" + (filled || cur ? " f" : "")}>
+                {d}
+              </span>
+            );
+          })}
+          <input
+            ref={inputRef}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={4}
+            value={code}
+            onChange={(e) =>
+              setCode(e.target.value.replace(/\D/g, "").slice(0, 4))
+            }
+            disabled={pending}
+            className="absolute inset-0 size-full cursor-pointer opacity-0"
+          />
+        </button>
+
+        <div className="cash">
+          <div className="l">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="2" y="6" width="20" height="12" rx="2" />
+              <circle cx="12" cy="12" r="2.5" />
+            </svg>
+            {isOnline ? "Déjà payé en ligne" : "Espèces à encaisser"}
+          </div>
+          <div className="am">{isOnline ? "0" : collect} DA</div>
+        </div>
+
+        <button
+          type="button"
+          className="mq-btn"
           onClick={onValidateClick}
           disabled={ctaDisabled}
-          className="flex w-full items-center justify-center gap-2 rounded-[13px] bg-[#0a0a0a] py-[17px] text-base font-extrabold text-white active:scale-[0.99] disabled:opacity-50"
+          style={ctaDisabled ? { opacity: 0.5 } : undefined}
         >
-          {pending && <Loader2 className="size-5 animate-spin" />}
-          Valider la livraison
+          {pending ? "Validation…" : "Valider la livraison"}
         </button>
       </div>
-
-      {/* Warning rouge selon le paiement. */}
-      <div className="mx-4 mt-3 flex items-center gap-2 rounded-[11px] bg-[#fff3f2] px-3.5 py-3 text-xs font-semibold text-[#b22a1f]">
-        {isOnline
-          ? "⚠ Le code est obligatoire pour cette livraison"
-          : "⚠ Cash · le client doit te donner son code de retrait"}
-      </div>
-    </div>
-  );
-}
-
-function InfoLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between py-[7px] text-[13px]">
-      <span className="font-medium text-[#757575]">{label}</span>
-      <b className="font-bold text-[#0a0a0a]">{value}</b>
     </div>
   );
 }
@@ -243,7 +207,7 @@ function reasonLabel(reason?: string): string {
     case "online_requires_code":
       return "Code requis pour les commandes payées en ligne.";
     case "code_required":
-      return "Code obligatoire : cette commande est prépayée (en ligne, cashback ou Coligo Pay). Le client doit te communiquer son code.";
+      return "Code obligatoire : commande prépayée. Le client doit te communiquer son code.";
     case "bad_code":
       return "Code incorrect.";
     case "not_attributed_to_you":

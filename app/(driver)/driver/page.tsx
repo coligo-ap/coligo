@@ -3,8 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverDashboardLive } from "@/components/driver/driver-dashboard-live";
 import { DriverHomeMap } from "@/components/driver/home/driver-home-map";
-import { DriverHomeSheet } from "@/components/driver/home/driver-home-sheet";
-import { DriverHomeTopbar } from "@/components/driver/home/driver-home-topbar";
+import { DriverHomeMaquette } from "@/components/driver/home/driver-home-maquette";
 import { DriverBottomNav } from "@/components/driver/driver-bottom-nav";
 
 export const dynamic = "force-dynamic";
@@ -36,8 +35,6 @@ export default async function DriverHomePage() {
   const supabase = await createClient();
   const driver = await getCurrentDriver();
   if (!driver) redirect("/driver/login");
-
-  const firstName = driver.full_name.split(" ")[0];
 
   if (driver.is_frozen) {
     return (
@@ -99,14 +96,6 @@ export default async function DriverHomePage() {
     .filter((m) => m.lat != null && m.lng != null)
     .map((m) => ({ id: m.mdId, name: m.name, lat: m.lat!, lng: m.lng! }));
 
-  // En attente / bloqué (fonctionnel, conservé).
-  const pending = links
-    .filter((l) => l.status === "pending")
-    .map((l) => ({ id: l.id, name: one(l.merchants)?.name ?? "Commerçant" }));
-  const blocked = links
-    .filter((l) => l.status === "blocked")
-    .map((l) => ({ id: l.id, name: one(l.merchants)?.name ?? "Commerçant" }));
-
   // ===== Stats du jour (données réelles) =====
   const since = startOfTodayAlgiers();
 
@@ -127,28 +116,32 @@ export default async function DriverHomePage() {
     0
   );
 
+  // Note réelle (avis clients, mig 0059).
+  const { data: ratingRow } = await supabase
+    .from("drivers")
+    .select("rating_avg")
+    .eq("id", driver.id)
+    .maybeSingle();
+
   return (
-    <div className="relative h-[100dvh] overflow-hidden bg-[#f2f2f2]">
+    <div className="mq-screen min-h-[100dvh]">
       {/* Refresh temps réel des compteurs + toast nouvelle course. */}
       <DriverDashboardLive />
 
+      {/* Vraie carte (MapLibre) en fond — les maquettes la simulent en SVG. */}
       <DriverHomeMap merchants={pins} />
-      <DriverHomeTopbar />
 
-      <DriverHomeSheet
-        firstName={firstName}
-        coursesToday={coursesToday ?? 0}
+      {/* Chrome maquette (GO + radar + son + sheet + stats) en overlay. */}
+      <DriverHomeMaquette
         earnedToday={earnedToday}
-        merchants={merchants}
-        pending={pending}
-        blocked={blocked}
-        bottomOffset={58}
+        coursesToday={coursesToday ?? 0}
+        ratingAvg={Number(ratingRow?.rating_avg ?? 0)}
       />
 
-      {/* La réception Express (dispatch par zone) est montée GLOBALEMENT dans le
-          layout livreur, pilotée par l'intention « en ligne » (store partagé). */}
+      {/* Réception Express (dispatch par zone) montée GLOBALEMENT dans le layout,
+          pilotée par l'intention « en ligne » (store partagé). */}
 
-      {/* Nav basse — onglet « Courses » actif sur l'accueil. */}
+      {/* Nav basse persistante — onglet « Accueil » actif. */}
       <DriverBottomNav />
     </div>
   );

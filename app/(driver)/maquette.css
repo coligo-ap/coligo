@@ -525,13 +525,22 @@
   position: absolute;
   left: 8px;
   right: 8px;
-  bottom: 8px;
+  bottom: max(8px, env(safe-area-inset-bottom));
   z-index: 65;
   background: var(--surface);
   border: 2px solid var(--violet);
   border-radius: 26px;
   overflow: hidden;
   box-shadow: 0 -10px 50px -10px var(--violet-glow);
+  animation: mq-offer-up 0.42s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+@keyframes mq-offer-up {
+  from {
+    transform: translateY(115%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 [data-space="driver"] .count {
   height: 6px;
