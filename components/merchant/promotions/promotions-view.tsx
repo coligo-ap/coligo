@@ -49,6 +49,9 @@ function formatDate(iso: string | null): string | null {
     day: "numeric",
     month: "short",
     year: "numeric",
+    // timeZone fixe (Alger) → pas de bascule de jour serveur(UTC)/client(UTC+1)
+    // qui provoquerait un mismatch d'hydratation #418.
+    timeZone: "Africa/Algiers",
   });
 }
 

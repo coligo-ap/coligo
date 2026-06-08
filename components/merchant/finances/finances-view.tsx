@@ -41,6 +41,10 @@ function formatDate(iso: string): string {
     day: "numeric",
     month: "short",
     year: "numeric",
+    // timeZone FIXE (Alger) : sinon un horodatage proche de minuit bascule d'un
+    // jour entre le serveur (UTC) et le navigateur (UTC+1) → texte différent →
+    // mismatch d'hydratation React #418.
+    timeZone: "Africa/Algiers",
   });
 }
 
