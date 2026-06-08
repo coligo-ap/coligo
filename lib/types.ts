@@ -151,6 +151,10 @@ export type MerchantSettings = {
   is_active: boolean;
   /** Sous-spécialités (volet 1 — recherche/filtres). */
   tags: string[];
+  /** Versements : cadence auto + coordonnées par défaut (CCP/RIB). */
+  payout_auto: "none" | "weekly" | "monthly";
+  payout_method: string | null;
+  payout_details: string | null;
 };
 
 export type Order = {

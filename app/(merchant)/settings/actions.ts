@@ -64,6 +64,61 @@ async function requireMerchant(): Promise<
 }
 
 /**
+ * Réglages de VERSEMENT : cadence automatique (none/weekly/monthly) + méthode
+ * + coordonnées (CCP/RIB). Si une cadence auto est choisie, méthode + détails
+ * sont obligatoires (sinon le cron ne pourrait pas verser). RLS
+ * `merchants_update_own` borne à sa propre boutique.
+ */
+const PayoutSettingsSchema = z
+  .object({
+    payout_auto: z.enum(["none", "weekly", "monthly"]),
+    payout_method: z.enum(["ccp", "baridimob", "bank"]).nullable(),
+    payout_details: z.string().trim().max(300).nullable(),
+  })
+  .refine(
+    (v) =>
+      v.payout_auto === "none" ||
+      (!!v.payout_method && !!v.payout_details && v.payout_details.length > 0),
+    {
+      message: "Méthode et coordonnées requises pour un versement automatique.",
+    }
+  );
+
+export async function updatePayoutSettings(
+  _prev: SettingsResult,
+  formData: FormData
+): Promise<SettingsResult> {
+  const m = await requireMerchant();
+  if ("error" in m) return { error: m.error };
+
+  const rawMethod = (formData.get("payout_method") as string) || "";
+  const rawDetails = ((formData.get("payout_details") as string) || "").trim();
+  const parsed = PayoutSettingsSchema.safeParse({
+    payout_auto: formData.get("payout_auto"),
+    payout_method: rawMethod || null,
+    payout_details: rawDetails || null,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Données invalides" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("merchants")
+    .update({
+      payout_auto: parsed.data.payout_auto,
+      payout_method: parsed.data.payout_method,
+      payout_details: parsed.data.payout_details,
+    })
+    .eq("id", m.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings");
+  revalidatePath("/finances");
+  return { ok: true, success: "Réglages de versement enregistrés." };
+}
+
+/**
  * Réglages d'impression (legacy : appelée depuis order-realtime-bridge en JSON).
  * RLS `merchants_update_own` garantit qu'il ne peut modifier que sa boutique.
  */

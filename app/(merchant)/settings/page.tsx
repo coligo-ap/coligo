@@ -19,6 +19,7 @@ import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badg
 import { AccountSection } from "@/components/merchant/settings/account-section";
 import { DeliverySettingsForm } from "@/components/merchant/settings/delivery-settings-form";
 import { NotificationsForm } from "@/components/merchant/settings/notifications-form";
+import { PayoutSettingsForm } from "@/components/merchant/settings/payout-settings-form";
 import { normalizeOpeningHours } from "@/lib/merchant/opening-hours";
 import { getPlatformSettings } from "@/lib/data/platform";
 import {
@@ -51,7 +52,8 @@ export default async function SettingsPage() {
        pickup_slot_minutes, max_orders_per_slot, is_active,
        commission_rate, auto_accept_orders, auto_print, print_copies, print_width,
        delivery_enabled, express_enabled, tours_enabled, delivery_radius_km,
-       closure_start, closure_end, tags`
+       closure_start, closure_end, tags,
+       payout_auto, payout_method, payout_details`
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -118,6 +120,10 @@ export default async function SettingsPage() {
     commission_rate: m.commission_rate,
     is_active: m.is_active,
     tags: (m.tags as string[] | null) ?? [],
+    payout_auto:
+      (m.payout_auto as "none" | "weekly" | "monthly" | null) ?? "none",
+    payout_method: m.payout_method ?? null,
+    payout_details: m.payout_details ?? null,
   };
 
   return (
@@ -213,6 +219,20 @@ export default async function SettingsPage() {
           description="Son, notifications système et mode comptoir pour ne rater aucune commande."
         >
           <NotificationsForm />
+        </SettingsSection>
+
+        <SettingsSection
+          icon={<Wallet />}
+          title="Versements"
+          description="Fréquence de versement de votre solde (à la demande, hebdo ou mensuel) et coordonnées CCP/RIB."
+        >
+          <PayoutSettingsForm
+            payoutAuto={
+              (merchant.payout_auto as "none" | "weekly" | "monthly") ?? "none"
+            }
+            payoutMethod={merchant.payout_method ?? null}
+            payoutDetails={merchant.payout_details ?? null}
+          />
         </SettingsSection>
 
         <SettingsSection

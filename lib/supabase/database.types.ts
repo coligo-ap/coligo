@@ -76,6 +76,10 @@ export type Database = {
           cashback_online: number | null;
           cashback_cash: number | null;
           is_frozen: boolean;
+          payout_auto: string;
+          payout_method: string | null;
+          payout_details: string | null;
+          last_auto_payout_at: string | null;
           auto_accept_orders: boolean;
           orders_paused: boolean;
           paused_until: string | null;
@@ -127,6 +131,10 @@ export type Database = {
           cashback_online?: number | null;
           cashback_cash?: number | null;
           is_frozen?: boolean;
+          payout_auto?: string;
+          payout_method?: string | null;
+          payout_details?: string | null;
+          last_auto_payout_at?: string | null;
           auto_accept_orders?: boolean;
           orders_paused?: boolean;
           paused_until?: string | null;
@@ -178,6 +186,10 @@ export type Database = {
           cashback_online?: number | null;
           cashback_cash?: number | null;
           is_frozen?: boolean;
+          payout_auto?: string;
+          payout_method?: string | null;
+          payout_details?: string | null;
+          last_auto_payout_at?: string | null;
           auto_accept_orders?: boolean;
           orders_paused?: boolean;
           paused_until?: string | null;
