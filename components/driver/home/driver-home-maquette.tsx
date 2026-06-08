@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import { setGlobalAvailability } from "@/app/(driver)/actions";
@@ -9,8 +10,25 @@ import { playGo } from "@/lib/driver/sounds";
 
 const ONLINE_SINCE_KEY = "coligo_driver_online_since";
 
+export type TodayDelivery = {
+  id: string;
+  merchantName: string;
+  address: string | null;
+  at: string | null;
+  gain: number;
+  paymentMethod: "cash" | "online";
+};
+
 function grp(n: number) {
   return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+function hhmm(iso: string | null) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Africa/Algiers",
+  });
 }
 
 /**
@@ -25,15 +43,18 @@ export function DriverHomeMaquette({
   earnedToday,
   coursesToday,
   ratingAvg,
+  todayDeliveries,
 }: {
   earnedToday: number;
   coursesToday: number;
   ratingAvg: number;
+  todayDeliveries: TodayDelivery[];
 }) {
   const online = useDriverOnline();
   const [busy, start] = useTransition();
   const router = useRouter();
   const [onlineLabel, setOnlineLabel] = useState("0h00");
+  const [showToday, setShowToday] = useState(false);
 
   // Session « en ligne » (localStorage) → durée affichée dans les stats.
   useEffect(() => {
@@ -80,10 +101,15 @@ export function DriverHomeMaquette({
 
   return (
     <>
-      {/* Pastille gains du jour. */}
-      <div className="earn-pill">
+      {/* Pastille gains du jour — tap → mini-historique du jour. */}
+      <button
+        type="button"
+        className="earn-pill"
+        onClick={() => setShowToday(true)}
+        aria-label="Voir les courses d'aujourd'hui"
+      >
         <div>
-          <div className="e-t">Aujourd&apos;hui</div>
+          <div className="e-t">Aujourd&apos;hui · {coursesToday}</div>
           <div className="e-v">{grp(earnedToday)} DA</div>
         </div>
         <div className="chev">
@@ -97,7 +123,125 @@ export function DriverHomeMaquette({
             <path d="M9 6l6 6-6 6" />
           </svg>
         </div>
-      </div>
+      </button>
+
+      {/* Feuille « Aujourd'hui » : courses du jour uniquement + lien Historique. */}
+      {showToday && (
+        <div
+          className="fixed inset-0 z-[80] flex items-end"
+          style={{ background: "rgba(8,9,16,.45)" }}
+          onClick={() => setShowToday(false)}
+        >
+          <div
+            className="mx-auto w-full max-w-md"
+            style={{
+              background: "var(--surface)",
+              borderRadius: "24px 24px 0 0",
+              padding: "14px 18px max(20px,env(safe-area-inset-bottom))",
+              maxHeight: "78vh",
+              overflowY: "auto",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="grab" />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                margin: "2px 2px 14px",
+              }}
+            >
+              <h2
+                className="mq-sora"
+                style={{
+                  fontSize: 19,
+                  fontWeight: 800,
+                  letterSpacing: "-0.4px",
+                }}
+              >
+                Aujourd&apos;hui · {coursesToday} course
+                {coursesToday > 1 ? "s" : ""}
+              </h2>
+              <b
+                className="mq-sora"
+                style={{ fontSize: 18, color: "var(--go)" }}
+              >
+                +{grp(earnedToday)} DA
+              </b>
+            </div>
+
+            {todayDeliveries.length === 0 ? (
+              <p
+                style={{
+                  color: "var(--muted)",
+                  fontSize: 13,
+                  padding: "8px 2px 16px",
+                }}
+              >
+                Aucune course livrée aujourd&apos;hui pour le moment.
+              </p>
+            ) : (
+              todayDeliveries.map((d) => (
+                <div className="hcard" key={d.id}>
+                  <div className="rail">
+                    <span className="d s" />
+                    <span className="ln" />
+                    <span className="d e" />
+                  </div>
+                  <div className="mid">
+                    <div className="nm">{d.merchantName}</div>
+                    <div className="nm">{d.address ?? "Adresse client"}</div>
+                    <div className="meta">
+                      <span>{hhmm(d.at)}</span>·
+                      <span className="tg">
+                        {d.paymentMethod === "cash" ? "Espèces" : "Prépayé"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="right">
+                    <span className="amt">+{grp(d.gain)} DA</span>
+                    <span className="badge ok">Livrée</span>
+                  </div>
+                </div>
+              ))
+            )}
+
+            <Link
+              href="/driver/historique"
+              className="linkcard"
+              style={{ marginTop: 8 }}
+            >
+              <div className="ic">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+              </div>
+              <div className="t">
+                <b>Voir tout l&apos;historique</b>
+                <span>Toutes les courses, filtres et jours précédents</span>
+              </div>
+              <svg
+                className="chev"
+                viewBox="0 0 24 24"
+                fill="none"
+                strokeWidth={2.4}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Bouton GO. */}
       <div
@@ -115,7 +259,7 @@ export function DriverHomeMaquette({
             className="go-btn"
             onClick={toggle}
             disabled={busy}
-            aria-label={online ? "Passer hors ligne" : "Passer en ligne"}
+            aria-label={online ? "Se déconnecter" : "Passer en ligne"}
           >
             <span className="go-off">GO</span>
             <span className="go-on">
@@ -124,26 +268,22 @@ export function DriverHomeMaquette({
             </span>
           </button>
         </div>
-        <div className="go-cap">Appuyez pour passer en ligne</div>
+        {/* Légende = unique source de statut + comment se déconnecter (pas de
+            doublon « Vous êtes en ligne / Prêt à livrer »). */}
+        <div className="go-cap" style={{ display: "inline-block" }}>
+          {online
+            ? "Appuyez pour vous déconnecter"
+            : "Appuyez pour passer en ligne"}
+        </div>
       </div>
 
-      {/* Bottom sheet (au-dessus de la tabbar persistante). */}
+      {/* Bottom sheet (au-dessus de la tabbar persistante) — sans répéter le
+          statut : juste la recherche animée (en ligne) + les stats. */}
       <div className="mq-sheet" style={{ bottom: 74 }}>
         <div className="grab" />
-        <div className={"online-row" + (online ? " online" : "")}>
-          <span className="dot" />
-          <div className="ttl">
-            <b>{online ? "Vous êtes en ligne" : "Vous êtes hors ligne"}</b>
-            <span>
-              {online
-                ? "Prêt à livrer"
-                : "Appuyez sur GO pour recevoir des courses"}
-            </span>
-          </div>
-        </div>
 
         {online && (
-          <div className="searchbar">
+          <div className="searchbar" style={{ marginTop: 2, marginBottom: 16 }}>
             <div className="lbl">
               <span className="sp" />
               Recherche d&apos;une commande à livrer…
