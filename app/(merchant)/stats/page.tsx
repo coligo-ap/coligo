@@ -30,9 +30,19 @@ export const dynamic = "force-dynamic";
 type OrderRow = {
   id: string;
   status: OrderStatus;
-  total_da: number;
+  // CA = ventes PRODUITS (ce que le commerçant facture et garde réellement) :
+  // subtotal − remise. On EXCLUT volontairement `total_da` car il agrège aussi
+  // les frais de service (plateforme) et de livraison (livreur) que le
+  // commerçant ne perçoit pas → sinon le CA serait surévalué.
+  subtotal_da: number | null;
+  discount_da: number | null;
   created_at: string;
 };
+
+/** CA produits d'une commande = sous-total − remise (jamais négatif). */
+function productsDa(o: OrderRow): number {
+  return Math.max(0, (o.subtotal_da ?? 0) - (o.discount_da ?? 0));
+}
 type ItemRow = {
   product_name: string;
   quantity: number;
@@ -59,7 +69,7 @@ export default async function StatsPage({
   //    commerçant uniquement.
   const { data: ordersData } = await supabase
     .from("orders")
-    .select("id, status, total_da, created_at")
+    .select("id, status, subtotal_da, discount_da, created_at")
     .gte("created_at", cfg.prevStart.toISOString())
     .lte("created_at", cfg.end.toISOString())
     .limit(5000);
@@ -85,14 +95,15 @@ export default async function StatsPage({
       totalCur++;
       if (o.status === "cancelled") cancelledCur++;
       if (o.status === "completed") {
-        caCur += o.total_da;
+        const ca = productsDa(o);
+        caCur += ca;
         nbCur++;
         completedIds.push(o.id);
         const idx = bucketIndex(cfg, d);
-        if (idx >= 0 && idx < buckets.length) buckets[idx].ca += o.total_da;
+        if (idx >= 0 && idx < buckets.length) buckets[idx].ca += ca;
       }
     } else if (inPrevious(d) && o.status === "completed") {
-      caPrev += o.total_da;
+      caPrev += productsDa(o);
       nbPrev++;
     }
   }
@@ -153,7 +164,8 @@ export default async function StatsPage({
           Statistiques
         </h1>
         <p className="text-muted mt-1 text-sm">
-          Vos ventes — {periodLabel.toLowerCase()}.
+          Vos ventes produits — {periodLabel.toLowerCase()}. Le CA exclut les
+          frais de service et de livraison (non perçus par vous).
         </p>
         <nav className="bg-surface-3 mt-3 inline-flex max-w-full [scrollbar-width:none] gap-0.5 overflow-x-auto rounded-[12px] p-1 [&::-webkit-scrollbar]:hidden">
           {STATS_PERIODS.map((p) => (
