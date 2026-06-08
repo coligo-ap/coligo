@@ -2,6 +2,7 @@ import { Inter } from "next/font/google";
 import { OfflineSyncIndicator } from "@/components/driver/offline-sync-indicator";
 import { DriverDispatchMount } from "@/components/driver/driver-dispatch-mount";
 import { DriverSplash } from "@/components/driver/driver-splash";
+import { ActiveCourseBanner } from "@/components/driver/active-course-banner";
 import { InstallBanner } from "@/components/pwa/install-banner";
 
 /**
@@ -34,6 +35,8 @@ export default function DriverLayout({
       <DriverSplash />
       {/* Réception Express globale (pilotée par l'intention « en ligne »). */}
       <DriverDispatchMount />
+      {/* Bandeau « Course en cours » réductible, épinglé sur tous les onglets. */}
+      <ActiveCourseBanner />
       <InstallBanner />
       <OfflineSyncIndicator />
     </div>

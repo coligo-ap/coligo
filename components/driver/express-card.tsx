@@ -11,9 +11,14 @@ import {
 import { DeliveryValidationDialog } from "./delivery-validation-dialog";
 import { PostDeliveryFeedback } from "./post-delivery-feedback";
 import { DriverLocationBroadcaster } from "./driver-location-broadcaster";
+import { ChevronDown } from "lucide-react";
 import { ExpressOffer } from "./express-offer";
 import { ExpressRun } from "./course/express-run";
 import type { DriverFeeConfig } from "@/lib/driver/settlement";
+import {
+  setActiveCourse,
+  clearActiveCourse,
+} from "@/lib/driver/active-course-store";
 
 const ACCEPTED_KEY = "coligo_driver_accepted_orders";
 
@@ -113,6 +118,7 @@ export function ExpressCard({
         return;
       }
       // La course repart automatiquement vers un autre livreur en ligne.
+      clearActiveCourse();
       toast.success("Course refusée — proposée à un autre livreur");
       router.push("/driver");
     });
@@ -126,6 +132,18 @@ export function ExpressCard({
   // Écran 3 : course en cours plein écran une fois l'offre acceptée (ou si la
   // commande est déjà récupérée — ex. reload en pleine course).
   const showRun = !!currentOrder && !showOffer;
+
+  // Pose/maintient la course active dans le store global (pour le bandeau
+  // réductible inter-onglets) tant que la course tourne ; la retire sinon.
+  useEffect(() => {
+    if (showRun && currentOrder) {
+      setActiveCourse({
+        orderId: currentOrder.id,
+        merchantName,
+        step: pickedUp ? "dropoff" : "pickup",
+      });
+    }
+  }, [showRun, currentOrder, merchantName, pickedUp]);
 
   const onPickup = () => {
     if (!currentOrder) return;
@@ -188,6 +206,16 @@ export function ExpressCard({
             onValidate={() => setShowValidate(true)}
           />
           {pickedUp && <DriverLocationBroadcaster orderId={currentOrder.id} />}
+          {/* Réduire la navigation → revient sur un onglet ; le bandeau
+              « Course en cours » reste épinglé au-dessus de la tabbar. */}
+          <button
+            type="button"
+            onClick={() => router.push("/driver")}
+            className="fixed top-[max(14px,calc(env(safe-area-inset-top)+10px))] right-3 z-[95] inline-flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-[12px] font-semibold text-white backdrop-blur"
+          >
+            <ChevronDown className="size-4" />
+            Réduire
+          </button>
         </>
       )}
 
@@ -238,6 +266,7 @@ export function ExpressCard({
           customerName={feedbackOrder.name}
           onDone={() => {
             setFeedbackOrder(null);
+            clearActiveCourse();
             // La prochaine course arrive via le dispatch global (réception en
             // ligne) — on renvoie le livreur à l'accueil.
             router.push("/driver");
