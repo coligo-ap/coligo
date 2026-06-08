@@ -23,7 +23,10 @@ export function DriverThemeRoot({
   const isDark = mounted && dark;
 
   return (
-    <div data-space="driver" className={`${fontVars}${isDark ? "dark" : ""}`}>
+    <div
+      data-space="driver"
+      className={[fontVars, isDark ? "dark" : ""].filter(Boolean).join(" ")}
+    >
       {children}
     </div>
   );

@@ -1,12 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { createClient } from "@/lib/supabase/server";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { DeleteAccountSection } from "@/components/driver/delete-account-section";
-import { ProfileHub } from "@/components/driver/profile/profile-hub";
-import { FloatGauge } from "@/components/driver/profile/float-gauge";
+import { CompteView } from "@/components/driver/profile/compte-view";
 
 export const dynamic = "force-dynamic";
 
@@ -22,47 +19,22 @@ export default async function DriverProfilePage() {
   const driver = await getCurrentDriver();
   if (!driver) redirect("/driver/login");
 
-  // Note moyenne réelle (alimentée par les avis clients — migration 0059).
-  const { data: ratingRow } = await supabase
+  const { data: prof } = await supabase
     .from("drivers")
-    .select("rating_avg, rating_count")
+    .select(
+      "rating_avg, rating_count, vehicle_label, vehicle_plate, payout_method, payout_details, joined_year, created_at"
+    )
     .eq("id", driver.id)
     .maybeSingle();
 
-  // === Stats réelles (aucune donnée inventée) ===
-  // Nb de commerçants actifs.
-  const { count: merchants } = await supabase
-    .from("merchant_drivers")
-    .select("id", { count: "exact", head: true })
-    .eq("driver_id", driver.id)
-    .eq("status", "active");
-
-  // Courses livrées + temps moyen de livraison (pickup → livré).
-  const { data: delivered } = await supabase
+  // Nb de courses livrées (réel).
+  const { count: courses } = await supabase
     .from("orders")
-    .select("delivery_picked_up_at, delivery_delivered_at")
+    .select("id", { count: "exact", head: true })
     .eq("delivery_driver_id", driver.id)
-    .not("delivery_delivered_at", "is", null)
-    .order("delivery_delivered_at", { ascending: false })
-    .limit(300);
+    .not("delivery_delivered_at", "is", null);
 
-  const rows = delivered ?? [];
-  const courses = rows.length;
-  const durations = rows
-    .map((o) =>
-      o.delivery_picked_up_at && o.delivery_delivered_at
-        ? (new Date(o.delivery_delivered_at).getTime() -
-            new Date(o.delivery_picked_up_at).getTime()) /
-          60000
-        : null
-    )
-    .filter((m): m is number => m != null && m > 0 && m < 600);
-  const avgMin =
-    durations.length > 0
-      ? Math.round(durations.reduce((s, m) => s + m, 0) / durations.length)
-      : null;
-
-  // Encours cash (float) + plafond, pour la jauge garde-fou (cf. docs §8).
+  // Encours (float) + plafond pour la jauge.
   const [{ data: outstanding }, { data: settings }] = await Promise.all([
     supabase.rpc("driver_outstanding", { p_driver_id: driver.id }),
     supabase
@@ -71,37 +43,43 @@ export default async function DriverProfilePage() {
       .eq("id", true)
       .single(),
   ]);
-  const outstandingDa = Number(outstanding ?? 0);
-  const capDa = Number(
-    (settings as { driver_float_cap_da?: number } | null)
-      ?.driver_float_cap_da ?? 8000
-  );
+
+  const p = (prof ?? {}) as {
+    rating_avg?: number;
+    rating_count?: number;
+    vehicle_label?: string | null;
+    vehicle_plate?: string | null;
+    payout_method?: string | null;
+    payout_details?: string | null;
+    joined_year?: number | null;
+    created_at?: string;
+  };
+  const joinedYear =
+    p.joined_year ??
+    (p.created_at ? new Date(p.created_at).getFullYear() : null);
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
-      <Link
-        href="/driver"
-        className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-[#757575]"
-      >
-        <ArrowLeft className="size-4" />
-        Accueil
-      </Link>
-
-      <ProfileHub
-        fullName={driver.full_name}
-        phone={driver.phone}
-        initials={initialsOf(driver.full_name)}
-        isActive={(merchants ?? 0) > 0}
-        ratingAvg={Number(ratingRow?.rating_avg ?? 0)}
-        ratingCount={ratingRow?.rating_count ?? 0}
-        stats={{ courses, avgMin, merchants: merchants ?? 0 }}
+      <CompteView
+        data={{
+          initials: initialsOf(driver.full_name),
+          fullName: driver.full_name,
+          ratingAvg: Number(p.rating_avg ?? 0),
+          ratingCount: p.rating_count ?? 0,
+          coursesCount: courses ?? 0,
+          joinedYear,
+          vehicleLabel: p.vehicle_label ?? null,
+          vehiclePlate: p.vehicle_plate ?? null,
+          payoutMethod: p.payout_method ?? null,
+          payoutDetails: p.payout_details ?? null,
+          outstandingDa: Number(outstanding ?? 0),
+          capDa: Number(
+            (settings as { driver_float_cap_da?: number } | null)
+              ?.driver_float_cap_da ?? 8000
+          ),
+        }}
       />
-
-      <div className="mt-4">
-        <FloatGauge outstandingDa={outstandingDa} capDa={capDa} />
-      </div>
-
-      <div className="mt-5">
+      <div style={{ marginTop: 18 }}>
         <DeleteAccountSection />
       </div>
     </DriverShell>
