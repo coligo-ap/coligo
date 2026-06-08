@@ -144,10 +144,17 @@ export function nowInAlgiers(): Date {
   return d;
 }
 
-/** Renvoie `true` si le commerce est ouvert AU MOMENT donné (par défaut now). */
+/**
+ * Renvoie `true` si le commerce est ouvert AU MOMENT donné.
+ *
+ * Par défaut = heure murale d'ALGER (`nowInAlgiers()`), PAS `new Date()` : sinon
+ * l'heure locale du runtime diffère (serveur Vercel en UTC vs navigateur en
+ * UTC+1) → résultat ouvert/fermé différent côté serveur et client → mismatch
+ * d'hydratation React #418 (tri/filtre de la marketplace, badges…).
+ */
 export function isOpenNow(
   hours: OpeningHours | null | undefined,
-  at: Date = new Date()
+  at: Date = nowInAlgiers()
 ): boolean {
   if (!hours) return false;
   const now = hhmm(at);

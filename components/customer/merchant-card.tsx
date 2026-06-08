@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Bike, Clock, MapPin, Star, Tag, Zap } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
@@ -46,7 +47,15 @@ export function MerchantCard({
   const showPromo =
     promo ??
     (hasPromo ? { text: t("promo"), kind: "discount" as const } : null);
-  const open = isOpenNow(merchant.opening_hours, nowInAlgiers());
+  // Ouvert/fermé dépend de l'HEURE COURANTE → on le calcule APRÈS montage pour
+  // que le HTML serveur (SSR) et la 1ʳᵉ hydratation client soient identiques
+  // (sinon mismatch d'hydratation React #418). `null` = pas encore déterminé :
+  // on n'affiche le badge qu'une fois l'état réel connu (apparition immédiate),
+  // sans jamais montrer un statut erroné.
+  const [open, setOpen] = useState<boolean | null>(null);
+  useEffect(() => {
+    setOpen(isOpenNow(merchant.opening_hours, nowInAlgiers()));
+  }, [merchant.opening_hours]);
   const wilayaName = merchant.wilaya_code
     ? WILAYAS.find((w) => w.code === merchant.wilaya_code)?.name
     : null;
@@ -74,7 +83,7 @@ export function MerchantCard({
       // barre de recherche sticky quand on scrolle.
       className={cn(
         "group isolate block active:scale-[0.99]",
-        !open && "opacity-90"
+        open === false && "opacity-90"
       )}
     >
       {/* ─── Image de couverture + overlays ─── */}
@@ -99,16 +108,21 @@ export function MerchantCard({
           className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/25"
         />
 
-        {/* badge Ouvert / Fermé (haut-gauche) */}
-        <span className="text-foreground absolute top-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1.5 text-[11px] font-extrabold shadow-sm backdrop-blur">
-          <span
-            className={cn(
-              "size-[5px] rounded-full",
-              open ? "animate-pulse bg-[var(--color-success-600)]" : "bg-subtle"
-            )}
-          />
-          {open ? t("open") : t("closed")}
-        </span>
+        {/* badge Ouvert / Fermé (haut-gauche) — affiché une fois l'état connu
+            (post-montage) pour éviter tout mismatch d'hydratation (#418). */}
+        {open !== null && (
+          <span className="text-foreground absolute top-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1.5 text-[11px] font-extrabold shadow-sm backdrop-blur">
+            <span
+              className={cn(
+                "size-[5px] rounded-full",
+                open
+                  ? "animate-pulse bg-[var(--color-success-600)]"
+                  : "bg-subtle"
+              )}
+            />
+            {open ? t("open") : t("closed")}
+          </span>
+        )}
 
         {/* cœur favori (haut-droite) */}
         <FavoriteHeart
