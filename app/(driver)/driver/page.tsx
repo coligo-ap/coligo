@@ -123,45 +123,6 @@ export default async function DriverHomePage() {
     .eq("id", driver.id)
     .maybeSingle();
 
-  // Livraisons du JOUR (détail pour la pastille « Aujourd'hui » → mini-historique).
-  const { data: todayRows } = await supabase
-    .from("orders")
-    .select(
-      "id, merchant_id, delivery_address_text, delivery_delivered_at, driver_net_da, delivery_fee_da, payment_method"
-    )
-    .eq("delivery_driver_id", driver.id)
-    .gte("delivery_delivered_at", since)
-    .order("delivery_delivered_at", { ascending: false });
-  const todayList = (todayRows ?? []) as {
-    id: string;
-    merchant_id: string;
-    delivery_address_text: string | null;
-    delivery_delivered_at: string | null;
-    driver_net_da: number | null;
-    delivery_fee_da: number | null;
-    payment_method: "cash" | "online";
-  }[];
-  const todayMerchantIds = Array.from(
-    new Set(todayList.map((r) => r.merchant_id))
-  );
-  const { data: todayMerchants } = todayMerchantIds.length
-    ? await supabase
-        .from("merchants_public")
-        .select("id, name")
-        .in("id", todayMerchantIds)
-    : { data: [] as { id: string; name: string }[] };
-  const todayMerchantMap = new Map(
-    (todayMerchants ?? []).map((m) => [m.id, m.name])
-  );
-  const todayDeliveries = todayList.map((r) => ({
-    id: r.id,
-    merchantName: todayMerchantMap.get(r.merchant_id) ?? "Commerçant",
-    address: r.delivery_address_text,
-    at: r.delivery_delivered_at,
-    gain: r.driver_net_da ?? r.delivery_fee_da ?? 0,
-    paymentMethod: r.payment_method,
-  }));
-
   return (
     <div className="mq-screen min-h-[100dvh]">
       {/* Refresh temps réel des compteurs + toast nouvelle course. */}
@@ -175,7 +136,6 @@ export default async function DriverHomePage() {
         earnedToday={earnedToday}
         coursesToday={coursesToday ?? 0}
         ratingAvg={Number(ratingRow?.rating_avg ?? 0)}
-        todayDeliveries={todayDeliveries}
       />
 
       {/* Réception Express (dispatch par zone) montée GLOBALEMENT dans le layout,

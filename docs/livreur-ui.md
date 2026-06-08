@@ -9,8 +9,33 @@ clair). Le `@theme` global (commerçant/client/admin) n'est jamais touché. Le
 cadre téléphone / status bar / home-bar des maquettes ne sont PAS reproduits
 (artefacts).
 
-> Source de vérité visuelle : `MAQUETTE-livreur-uber.html`,
-> `MAQUETTE-livreur-pages.html`, `MAQUETTE-livreur-navigation.html`.
+> Source de vérité visuelle : `MAQUETTE-livreur-COMPLETE.html` (consolide
+> `MAQUETTE-livreur-uber/pages/navigation/tournee`).
+
+## Accueil — version PRO « corrigée » (dernière maquette)
+
+L'accueil suit désormais la **maquette COMPLETE** (`DriverHomeMaquette` +
+`DriverHomeMap` + `maquette.css`) :
+
+- **Carte plein écran épurée** : seul le **bouton recentrer** (haut-droite, porté
+  par `DriverHomeMap`) et, **en ligne**, un **chip discret « ● En ligne »**
+  (haut-gauche, `.home-chip`). **Plus de pastille gains flottante** sur la carte.
+- **Feuille basse = tête d'information** (`.mq-sheet`, posée au-dessus de la
+  tabbar) : Ligne 1 `Aujourd'hui` + **montant du jour en gros** (Sora 800,
+  raccourci `Link` vers `/driver/gains` via `.home-head`/`.gchev`) ; Ligne 2
+  **3 métriques EN LIGNE FINE** dans un seul bloc `--soft` (`.metrics` :
+  Courses · En ligne · Note, séparées par des `.sep`) ; **en ligne** un
+  `.statusline` (libellé + barre de balayage `.track`), **hors ligne** une simple
+  invite `.offhint`.
+- **Bouton GO rond COMPACT en dock** (`.go-dock`/`.go-btn`, ~66 px, **couleur
+  pleine SANS dégradé**), centré **à cheval sur le bord supérieur** de la feuille
+  (`top:0; translate(-50%,-50%)`). Hors ligne : **violet plein + anneau interne +
+  « GO »**. En ligne : **vert plein, sans anneau, sans point blanc, « EN LIGNE »**
+  - **halo doux** + **3 vagues encerclées** (`.radar`, `@keyframes mq-radar`).
+    Légende `.go-cap` **au-dessus** du bouton dans les 2 états.
+- Transition hors→en ligne : **son « mise en ligne »** (`playGo`). **AUCUN toast
+  de statut** (le bouton vert + le chip suffisent — cf. prompt). La classe
+  `online` sur `.mq-sheet` pilote bouton/radar/statusline en CSS.
 
 ## Mapping maquette → code
 
@@ -31,6 +56,9 @@ cadre téléphone / status bar / home-bar des maquettes ne sont PAS reproduits
 | **Compte** (profil, note, menu)               | `components/driver/profile/profile-hub.tsx`                               | ✅             |
 
 ## Gain net de l'offre (important)
+
+Badge **ambre « ⚡ Express »** (`.offer-pill.ex`) — la Tournée garde le badge
+**violet** (`.offer-pill.to`), conforme à la maquette COMPLETE et au prompt §D.
 
 L'offre affiche désormais le **gain NET** = `D − driver_fee` (ex. 184 DA), pas
 le `delivery_fee_da` brut, exactement comme la maquette. Le calcul vient de

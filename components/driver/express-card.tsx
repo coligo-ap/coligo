@@ -176,7 +176,6 @@ export function ExpressCard({
       {showOffer && currentOrder && (
         <ExpressOffer
           order={currentOrder}
-          itemCount={itemCount}
           merchantName={merchantName}
           merchantLat={merchantLat}
           merchantLng={merchantLng}

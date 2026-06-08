@@ -23,6 +23,8 @@
   --go-soft: rgba(22, 179, 100, 0.12);
   --red: #e5484d;
   --red-soft: rgba(229, 72, 77, 0.12);
+  --amber: #f59e0b;
+  --amber-d: #c2790a;
   --page: #e9ebf1;
   --surface: #ffffff;
   --ink: #0b0c12;
@@ -190,95 +192,70 @@
   background: var(--ink);
 }
 
-/* ---------- pastille gains + boutons ronds ---------- */
-[data-space="driver"] .earn-pill {
+/* ---------- accueil PRO : chip « en ligne » (haut-gauche) ---------- */
+/* Carte épurée : seul le bouton recentrer (haut-droite, dans la carte React)
+   et, EN LIGNE, ce chip discret restent au-dessus de la carte. */
+[data-space="driver"] .home-chip {
   position: absolute;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 40;
-  background: var(--surface);
-  border-radius: 30px;
-  padding: 9px 8px 9px 18px;
-  display: flex;
+  top: max(58px, calc(env(safe-area-inset-top) + 14px));
+  left: 16px;
+  z-index: 45;
+  display: inline-flex;
   align-items: center;
-  gap: 14px;
-  box-shadow: var(--pill-shadow);
-}
-[data-space="driver"] .earn-pill .e-t {
-  font-size: 11px;
-  color: var(--muted);
-  font-weight: 600;
-  line-height: 1.1;
-}
-[data-space="driver"] .earn-pill .e-v {
-  font-family: var(--font-sora), "Sora", sans-serif;
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  color: var(--ink);
-}
-[data-space="driver"] .earn-pill .chev {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--violet-soft);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-[data-space="driver"] .earn-pill .chev svg {
-  width: 16px;
-  height: 16px;
-  stroke: var(--violet);
-}
-[data-space="driver"] .side-btn {
-  position: absolute;
-  z-index: 40;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
+  gap: 7px;
   background: var(--surface);
   border: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 7px 12px;
+  border-radius: 30px;
   box-shadow: var(--pill-shadow);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
 }
-[data-space="driver"] .side-btn svg {
-  width: 22px;
-  height: 22px;
-  stroke: var(--ink);
-}
-[data-space="driver"] .sb-search {
-  top: 78px;
-  left: 18px;
-}
-[data-space="driver"] .sb-loc {
-  bottom: 300px;
-  right: 18px;
+[data-space="driver"] .home-chip .d {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--go);
+  box-shadow: 0 0 0 4px var(--go-glow);
 }
 
-/* ---------- bouton GO ---------- */
-[data-space="driver"] .go-wrap {
+/* ---------- feuille d'accueil (tête d'information) ---------- */
+/* Posée AU-DESSUS de la barre d'onglets (bottom = hauteur tabbar). Padding-haut
+   suffisant pour que l'en-tête ne passe pas sous le bouton GO en dock. */
+[data-space="driver"] .mq-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 74px;
+  z-index: 50;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  padding: 46px 18px 16px;
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -12px 30px -18px rgba(20, 22, 40, 0.22);
+}
+[data-space="driver"] .grab {
+  width: 40px;
+  height: 5px;
+  border-radius: 5px;
+  background: var(--line);
+  margin: 0 auto 16px;
+}
+
+/* ---------- bouton GO en dock (à cheval sur le bord supérieur) ---------- */
+[data-space="driver"] .go-dock {
   position: absolute;
   left: 50%;
-  bottom: 212px;
-  transform: translateX(-50%);
-  z-index: 55;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 13px;
-  transition: opacity 0.25s;
+  top: 0;
+  transform: translate(-50%, -50%);
+  width: 66px;
+  height: 66px;
+  z-index: 56;
 }
 [data-space="driver"] .radar {
   position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 86px;
-  height: 86px;
+  inset: 0;
   pointer-events: none;
 }
 [data-space="driver"] .radar span {
@@ -288,171 +265,197 @@
   border: 2px solid var(--go);
   opacity: 0;
 }
-[data-space="driver"] .go-wrap.online .radar span {
-  animation: mq-radar 2.2s ease-out infinite;
+[data-space="driver"] .mq-sheet.online .radar span {
+  animation: mq-radar 2.6s ease-out infinite;
 }
-[data-space="driver"] .go-wrap.online .radar span:nth-child(2) {
-  animation-delay: 0.73s;
+[data-space="driver"] .mq-sheet.online .radar span:nth-child(2) {
+  animation-delay: 0.86s;
 }
-[data-space="driver"] .go-wrap.online .radar span:nth-child(3) {
-  animation-delay: 1.46s;
+[data-space="driver"] .mq-sheet.online .radar span:nth-child(3) {
+  animation-delay: 1.72s;
 }
 @keyframes mq-radar {
   0% {
-    transform: scale(0.62);
-    opacity: 0.65;
+    transform: scale(0.7);
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0.12;
   }
   100% {
-    transform: scale(2.15);
+    transform: scale(2.05);
     opacity: 0;
   }
 }
+/* Hors ligne : violet plein (SANS dégradé) + fine bordure blanche + anneau
+   interne fin + libellé GO. */
 [data-space="driver"] .go-btn {
-  width: 86px;
-  height: 86px;
+  width: 66px;
+  height: 66px;
   border-radius: 50%;
   border: 4px solid var(--surface);
   cursor: pointer;
   position: relative;
-  background: radial-gradient(
-    circle at 36% 30%,
-    var(--violet-l),
-    var(--violet) 56%,
-    var(--violet-d)
-  );
-  box-shadow:
-    0 14px 34px -8px var(--violet-glow),
-    inset 0 2px 5px rgba(255, 255, 255, 0.35),
-    inset 0 -6px 12px rgba(0, 0, 0, 0.18);
+  background: var(--violet);
+  box-shadow: 0 10px 24px -6px var(--violet-glow);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   font-family: var(--font-sora), "Sora", sans-serif;
   font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.5px;
   transition:
     transform 0.12s,
     background 0.3s,
-    box-shadow 0.3s;
+    box-shadow 0.3s,
+    font-size 0.2s;
 }
 [data-space="driver"] .go-btn::after {
   content: "";
   position: absolute;
-  inset: 8px;
+  inset: 6px;
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border: 1.5px solid rgba(255, 255, 255, 0.34);
 }
 [data-space="driver"] .go-btn:active {
   transform: scale(0.93);
 }
 [data-space="driver"] .go-btn .go-off {
-  font-size: 25px;
-  letter-spacing: 1px;
+  display: inline;
 }
 [data-space="driver"] .go-btn .go-on {
   display: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  font-size: 10.5px;
-  letter-spacing: 0.5px;
 }
-[data-space="driver"] .go-btn .go-on .liv {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #fff;
-}
-[data-space="driver"] .go-wrap.online .go-btn {
-  background: radial-gradient(
-    circle at 36% 30%,
-    var(--go-l),
-    var(--go) 58%,
-    var(--go-d)
-  );
+/* En ligne : vert plein, SANS anneau interne, SANS point blanc, libellé
+   EN LIGNE seul, halo doux (anneau concentrique) + vagues encerclées (radar). */
+[data-space="driver"] .mq-sheet.online .go-btn {
+  background: var(--go);
+  font-size: 9px;
+  letter-spacing: 0.4px;
   box-shadow:
-    0 14px 34px -8px var(--go-glow),
-    inset 0 2px 5px rgba(255, 255, 255, 0.35),
-    inset 0 -6px 12px rgba(0, 0, 0, 0.18);
+    0 0 0 5px rgba(22, 179, 100, 0.15),
+    0 10px 24px -6px var(--go-glow);
 }
-[data-space="driver"] .go-wrap.online .go-off {
+[data-space="driver"] .mq-sheet.online .go-btn::after {
   display: none;
 }
-[data-space="driver"] .go-wrap.online .go-on {
-  display: flex;
+[data-space="driver"] .mq-sheet.online .go-btn .go-off {
+  display: none;
 }
+[data-space="driver"] .mq-sheet.online .go-btn .go-on {
+  display: inline;
+}
+/* Légende fine AU-DESSUS du bouton (pilule discrète), visible dans les 2 états. */
 [data-space="driver"] .go-cap {
-  background: var(--surface);
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, calc(-50% - 56px));
+  z-index: 56;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--ink);
-  font-weight: 700;
-  font-size: 12px;
-  padding: 6px 13px;
+  background: var(--surface);
+  padding: 5px 12px;
   border-radius: 20px;
   box-shadow: var(--pill-shadow);
-}
-[data-space="driver"] .go-wrap.online .go-cap {
-  display: none;
+  white-space: nowrap;
 }
 
-/* ---------- bottom sheet accueil ---------- */
-[data-space="driver"] .mq-sheet {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 50;
-  background: var(--surface);
-  border-radius: 28px 28px 0 0;
-  padding: 14px 18px 26px;
-  border-top: 1px solid var(--line);
-  transition: transform 0.3s;
-}
-[data-space="driver"] .grab {
-  width: 40px;
-  height: 5px;
-  border-radius: 5px;
-  background: var(--line);
-  margin: 0 auto 16px;
-}
-[data-space="driver"] .online-row {
+/* ---------- en-tête de la feuille (raccourci vers Gains) ---------- */
+[data-space="driver"] .home-head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
+  justify-content: space-between;
 }
-[data-space="driver"] .online-row .dot {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: var(--muted);
+[data-space="driver"] .home-head .lbl {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 600;
 }
-[data-space="driver"] .online-row.online .dot {
-  background: var(--go);
-  box-shadow: 0 0 0 5px var(--go-glow);
-}
-[data-space="driver"] .online-row .ttl b {
+[data-space="driver"] .home-head .v {
+  font-family: var(--font-sora), "Sora", sans-serif;
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: -0.8px;
+  margin-top: 1px;
   color: var(--ink);
+}
+[data-space="driver"] .home-head .gchev {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--violet-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+[data-space="driver"] .home-head .gchev svg {
+  width: 17px;
+  height: 17px;
+  stroke: var(--violet);
+}
+
+/* ---------- 3 métriques EN LIGNE FINE dans un seul bloc --soft ---------- */
+[data-space="driver"] .metrics {
+  display: flex;
+  align-items: center;
+  margin-top: 13px;
+  background: var(--soft);
+  border-radius: 15px;
+  padding: 11px 4px;
+}
+[data-space="driver"] .metrics .m {
+  flex: 1;
+  text-align: center;
+}
+[data-space="driver"] .metrics .m .mv {
   font-family: var(--font-sora), "Sora", sans-serif;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 15px;
+  color: var(--ink);
+}
+[data-space="driver"] .metrics .m .mv small {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+}
+[data-space="driver"] .metrics .m .ml {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+[data-space="driver"] .metrics .sep {
+  width: 1px;
+  height: 28px;
+  background: var(--line);
+}
+
+/* ---------- statut de recherche (en ligne) / invite (hors ligne) ---------- */
+[data-space="driver"] .statusline {
+  display: none;
+  margin-top: 15px;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+}
+[data-space="driver"] .mq-sheet.online .statusline {
   display: block;
 }
-[data-space="driver"] .online-row .ttl span {
-  color: var(--muted);
-  font-size: 12.5px;
-}
-[data-space="driver"] .searchbar .lbl {
+[data-space="driver"] .statusline .lbl {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--violet);
   font-weight: 700;
   margin-bottom: 9px;
 }
-[data-space="driver"] .searchbar .sp {
-  width: 13px;
-  height: 13px;
+[data-space="driver"] .statusline .sp {
+  width: 12px;
+  height: 12px;
   border: 2px solid var(--violet-soft);
   border-top-color: var(--violet);
   border-radius: 50%;
@@ -469,7 +472,6 @@
   background: var(--line);
   overflow: hidden;
   position: relative;
-  margin-bottom: 16px;
 }
 [data-space="driver"] .track::after {
   content: "";
@@ -490,34 +492,15 @@
     left: 100%;
   }
 }
-[data-space="driver"] .stats {
-  display: flex;
-  gap: 10px;
-}
-[data-space="driver"] .stat {
-  flex: 1;
-  background: var(--soft);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 12px;
-}
-[data-space="driver"] .stat .sv {
-  font-family: var(--font-sora), "Sora", sans-serif;
-  font-weight: 800;
-  font-size: 18px;
-  color: var(--ink);
-  letter-spacing: -0.5px;
-}
-[data-space="driver"] .stat .sv small {
-  font-size: 11px;
+[data-space="driver"] .offhint {
+  display: block;
+  margin-top: 13px;
+  text-align: center;
+  font-size: 12px;
   color: var(--muted);
-  font-weight: 600;
 }
-[data-space="driver"] .stat .sl {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 3px;
-  font-weight: 500;
+[data-space="driver"] .mq-sheet.online .offhint {
+  display: none;
 }
 
 /* ---------- offer card ---------- */
@@ -574,6 +557,13 @@
   align-items: center;
   gap: 8px;
 }
+/* Express = ambre (⚡), Tournée = violet — cf. PROMPT §D et maquette COMPLETE. */
+[data-space="driver"] .offer-pill.ex {
+  background: var(--amber);
+}
+[data-space="driver"] .offer-pill.to {
+  background: var(--violet);
+}
 [data-space="driver"] .offer-pill .pfill {
   position: absolute;
   left: 0;
@@ -582,6 +572,9 @@
   right: 0;
   background: var(--violet-d);
   transform-origin: left;
+}
+[data-space="driver"] .offer-pill.ex .pfill {
+  background: var(--amber-d);
 }
 [data-space="driver"] .offer-pill .ptxt {
   position: relative;

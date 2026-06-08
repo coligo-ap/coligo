@@ -41,7 +41,6 @@ function fmtKm(km: number | null) {
 
 export function ExpressOffer({
   order,
-  itemCount,
   merchantName,
   merchantLat,
   merchantLng,
@@ -52,7 +51,6 @@ export function ExpressOffer({
   driverFeeConfig,
 }: {
   order: OfferOrder;
-  itemCount: number;
   merchantName: string;
   merchantLat?: number | null;
   merchantLng?: number | null;
@@ -153,20 +151,21 @@ export function ExpressOffer({
         </div>
         <div className="oc-pad">
           <div className="oc-top">
-            <div className="offer-pill">
+            {/* Badge ambre « ⚡ Express » (cf. PROMPT §D + maquette COMPLETE). */}
+            <div className="offer-pill ex">
               {/* Minuteur — pastille qui se vide. */}
               <span className="pfill" style={fillStyle} />
               <span className="ptxt">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
-                  strokeWidth={2}
+                  strokeWidth={2.2}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <path d="M4 3v7a3 3 0 0 0 3 3v8M7 3v6M10 3v6M19 3c-1.5 0-2.5 2-2.5 5s1 4 2.5 4v8" />
+                  <path d="M13 2 4 14h7l-1 8 9-12h-7z" />
                 </svg>
-                Livraison ({Math.max(1, itemCount)})
+                Express
               </span>
             </div>
             <button

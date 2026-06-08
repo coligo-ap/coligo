@@ -15,7 +15,7 @@ import {
 /**
  * Carte plein écran de l'accueil livreur (style Uber Eats Driver). Centrée sur
  * la position GPS du livreur (point violet qui pulse) avec les pins de ses
- * commerçants. FAB « recentrer » en bas à droite.
+ * commerçants. FAB « recentrer » en haut à droite (carte épurée).
  *
  * Purement visuel : la géoloc utilise `watchPosition` (déjà câblé pour les
  * autres écrans), aucune logique métier ici.
@@ -258,12 +258,12 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
         </div>
       )}
 
-      {/* FAB recentrer — flotte au-dessus du bottom sheet. */}
+      {/* FAB recentrer — haut-droite (carte épurée, cf. maquette COMPLETE). */}
       <button
         type="button"
         onClick={() => flyToMe(16)}
         aria-label="Recentrer sur ma position"
-        className="absolute right-3.5 bottom-[calc(64vh+14px)] z-[55] grid size-12 place-items-center rounded-full bg-white text-[#0a0a0a] shadow-[0_6px_16px_rgba(0,0,0,.15)] active:scale-95"
+        className="absolute top-[max(56px,calc(env(safe-area-inset-top)+14px))] right-4 z-[55] grid size-[42px] place-items-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] shadow-[var(--pill-shadow)] active:scale-95"
       >
         <LocateFixed className="size-5" />
       </button>
