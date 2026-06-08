@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { createClient } from "@/lib/supabase/server";
 import { DriverShell } from "@/components/driver/driver-shell";
@@ -23,13 +21,6 @@ export default async function DriverGainsPage() {
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
-      <Link
-        href="/driver"
-        className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-[#757575]"
-      >
-        <ArrowLeft className="size-4" />
-        Accueil
-      </Link>
       <GainsView entries={rows ?? []} />
     </DriverShell>
   );

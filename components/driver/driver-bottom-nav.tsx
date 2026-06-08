@@ -2,39 +2,47 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bike, ClipboardList, User, Wallet } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 /**
- * Barre de navigation basse de l'espace livreur (mobile-first), pour rendre la
- * navigation évidente sans passer par le menu burger. Onglet par défaut =
- * « Courses » (la page d'accueil `/driver` où arrivent les demandes en direct).
- *
- * Couleurs Coligo (violet de marque #6c2bd9 pour l'actif). Hauteur ~58 px : la
- * page d'accueil surélève d'autant son bottom-sheet pour ne pas le masquer.
+ * Barre d'onglets persistante (Accueil · Gains · Historique · Compte) reproduite
+ * À L'IDENTIQUE de MAQUETTE-livreur-pages / navigation (classes .mq-tabbar /
+ * .mq-tab + SVG exacts). Couleur active = violet maquette (--violet #5B5BE6).
  */
 const ITEMS = [
-  { href: "/driver", label: "Courses", icon: Bike, exact: true },
-  { href: "/driver/gains", label: "Gains", icon: Wallet, exact: false },
+  {
+    href: "/driver",
+    label: "Accueil",
+    exact: true,
+    path: "M3 11l9-8 9 8M5 10v10h14V10",
+  },
+  {
+    href: "/driver/gains",
+    label: "Gains",
+    exact: false,
+    path: "M3 3v18h18M7 14l3-4 3 3 4-6",
+  },
   {
     href: "/driver/historique",
     label: "Historique",
-    icon: ClipboardList,
     exact: false,
+    path: "",
+    clock: true,
   },
-  { href: "/driver/parametres", label: "Compte", icon: User, exact: false },
+  {
+    href: "/driver/parametres",
+    label: "Compte",
+    exact: false,
+    path: "",
+    user: true,
+  },
 ] as const;
 
 export function DriverBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav
-      aria-label="Navigation livreur"
-      className="fixed inset-x-0 bottom-0 z-[70] grid grid-cols-4 border-t border-black/10 bg-white pb-[max(env(safe-area-inset-bottom),0px)]"
-    >
+    <nav className="mq-tabbar" aria-label="Navigation livreur">
       {ITEMS.map((item) => {
-        const Icon = item.icon;
         const active = item.exact
           ? pathname === item.href
           : pathname.startsWith(item.href);
@@ -42,15 +50,28 @@ export function DriverBottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={cn(
-              "flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-semibold transition-colors",
-              active ? "text-[#6c2bd9]" : "text-[#9e9e9e]"
-            )}
+            className={"mq-tab" + (active ? " active" : "")}
           >
-            <Icon
-              className={cn("size-[22px]", active && "fill-[#6c2bd9]/10")}
-              strokeWidth={active ? 2.4 : 2}
-            />
+            <svg
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {"clock" in item && item.clock ? (
+                <>
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </>
+              ) : "user" in item && item.user ? (
+                <>
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 21a8 8 0 0 1 16 0" />
+                </>
+              ) : (
+                <path d={item.path} />
+              )}
+            </svg>
             {item.label}
           </Link>
         );

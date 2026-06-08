@@ -179,7 +179,11 @@ body {
   --d-coral: #e53935;
   --d-amber: #f39c12;
 
+  /* Refonte « 100 % maquette » : Plus Jakarta Sans (corps) + Sora (titres,
+     classe .mq-sora) — cf. app/(driver)/maquette.css. */
   font-family:
+    var(--font-jakarta),
+    "Plus Jakarta Sans",
     var(--font-inter),
     "Inter",
     -apple-system,

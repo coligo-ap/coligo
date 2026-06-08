@@ -1,8 +1,10 @@
-import { Inter } from "next/font/google";
+import { Sora, Plus_Jakarta_Sans } from "next/font/google";
+import "./maquette.css";
 import { OfflineSyncIndicator } from "@/components/driver/offline-sync-indicator";
 import { DriverDispatchMount } from "@/components/driver/driver-dispatch-mount";
 import { DriverSplash } from "@/components/driver/driver-splash";
 import { ActiveCourseBanner } from "@/components/driver/active-course-banner";
+import { DriverThemeRoot } from "@/components/driver/driver-theme-root";
 import { InstallBanner } from "@/components/pwa/install-banner";
 
 /**
@@ -16,11 +18,19 @@ import { InstallBanner } from "@/components/pwa/install-banner";
  * (fond gris, cards blanches, boutons noirs, violet rare). Le `@theme` global
  * de l'app (commerçant/client/admin) n'est PAS touché.
  */
-const fontDriver = Inter({
+// Polices EXACTES des maquettes : Sora (titres/chiffres) + Plus Jakarta Sans
+// (corps). Exposées en variables CSS consommées par app/(driver)/maquette.css.
+const fontSora = Sora({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
-  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-sora",
+  weight: ["500", "600", "700", "800"],
+});
+const fontJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-jakarta",
+  weight: ["400", "500", "600", "700"],
 });
 
 export default function DriverLayout({
@@ -29,7 +39,7 @@ export default function DriverLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div data-space="driver" className={fontDriver.variable}>
+    <DriverThemeRoot fontVars={`${fontSora.variable} ${fontJakarta.variable}`}>
       {children}
       {/* Écran de lancement (une fois par session). */}
       <DriverSplash />
@@ -39,6 +49,6 @@ export default function DriverLayout({
       <ActiveCourseBanner />
       <InstallBanner />
       <OfflineSyncIndicator />
-    </div>
+    </DriverThemeRoot>
   );
 }
