@@ -286,7 +286,7 @@ export function MerchantCatalog({
                         "inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pe-3.5 text-[13px] font-bold whitespace-nowrap transition-colors active:scale-[0.96]",
                         g.category?.image_url ? "ps-1.5" : "ps-3.5",
                         active
-                          ? "border-primary-600 bg-primary-600 text-white shadow-[0_6px_16px_-4px_rgba(92,92,224,0.45)]"
+                          ? "border-primary-600 bg-primary-600 text-white shadow-[0_6px_16px_-4px_rgba(108,43,217,0.45)]"
                           : "border-border bg-surface text-foreground hover:border-primary-300 shadow-[0_2px_6px_-3px_rgba(40,35,90,0.12)]"
                       )}
                     >

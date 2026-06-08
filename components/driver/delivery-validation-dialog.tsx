@@ -183,7 +183,7 @@ export function DeliveryValidationDialog({
                 (filled
                   ? "border-2 border-[#0a0a0a]"
                   : cur
-                    ? "border-2 border-[#5c5ce0]"
+                    ? "border-2 border-[#6c2bd9]"
                     : "border-[1.5px] border-[#e5e5e5]")
               }
             >

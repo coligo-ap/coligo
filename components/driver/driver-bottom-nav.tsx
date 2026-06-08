@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
  * navigation évidente sans passer par le menu burger. Onglet par défaut =
  * « Courses » (la page d'accueil `/driver` où arrivent les demandes en direct).
  *
- * Couleurs Coligo (violet de marque #5c5ce0 pour l'actif). Hauteur ~58 px : la
+ * Couleurs Coligo (violet de marque #6c2bd9 pour l'actif). Hauteur ~58 px : la
  * page d'accueil surélève d'autant son bottom-sheet pour ne pas le masquer.
  */
 const ITEMS = [
@@ -44,11 +44,11 @@ export function DriverBottomNav() {
             href={item.href}
             className={cn(
               "flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-semibold transition-colors",
-              active ? "text-[#5c5ce0]" : "text-[#9e9e9e]"
+              active ? "text-[#6c2bd9]" : "text-[#9e9e9e]"
             )}
           >
             <Icon
-              className={cn("size-[22px]", active && "fill-[#5c5ce0]/10")}
+              className={cn("size-[22px]", active && "fill-[#6c2bd9]/10")}
               strokeWidth={active ? 2.4 : 2}
             />
             {item.label}

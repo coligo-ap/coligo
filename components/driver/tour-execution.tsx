@@ -145,7 +145,7 @@ export function TourExecution({
             <p className="text-[10.5px] font-semibold tracking-[0.4px] text-[#757575] uppercase">
               Tes gains · tournée
             </p>
-            <p className="mt-1 text-[22px] leading-none font-extrabold tracking-[-0.4px] text-[#5c5ce0]">
+            <p className="mt-1 text-[22px] leading-none font-extrabold tracking-[-0.4px] text-[#6c2bd9]">
               {formatDA(earnings)}
             </p>
           </div>

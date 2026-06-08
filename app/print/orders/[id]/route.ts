@@ -161,7 +161,7 @@ export async function GET(
     position: fixed; top: 8px; left: 8px; z-index: 9999;
     display: inline-flex; align-items: center; gap: 4px;
     padding: 8px 12px; border-radius: 999px;
-    background: #5c5ce0; color: #fff; text-decoration: none;
+    background: #6c2bd9; color: #fff; text-decoration: none;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
     font-size: 13px; font-weight: 600;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);

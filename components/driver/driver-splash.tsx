@@ -54,11 +54,22 @@ export function DriverSplash() {
         pointerEvents: phase === "fade" ? "none" : "auto",
       }}
     >
+      {/* Halo violet de marque derrière le logo. */}
       <div
-        className="flex flex-col items-center gap-4"
+        className="pointer-events-none absolute size-[280px] rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(108,43,217,.35) 0%, rgba(108,43,217,0) 70%)",
+        }}
+      />
+      <div
+        className="relative flex flex-col items-center gap-4"
         style={{ animation: "driver-splash-rise .45s ease-out both" }}
       >
-        <div className="grid size-[68px] place-items-center rounded-[20px] bg-white/[0.06] ring-1 ring-white/10">
+        <div
+          className="grid size-[68px] place-items-center rounded-[20px] ring-1 ring-white/10"
+          style={{ background: "linear-gradient(135deg,#5b2eff,#6c2bd9)" }}
+        >
           <Image
             src="/icon-512.png"
             alt=""
@@ -78,11 +89,14 @@ export function DriverSplash() {
         </div>
       </div>
 
-      {/* Barre de chargement indéterminée. */}
+      {/* Barre de chargement indéterminée (dégradé signature). */}
       <div className="absolute bottom-[12%] h-[3px] w-[120px] overflow-hidden rounded-full bg-white/10">
         <div
-          className="h-full w-1/3 rounded-full bg-[#5c5ce0]"
-          style={{ animation: "driver-splash-bar 1s ease-in-out infinite" }}
+          className="h-full w-1/3 rounded-full"
+          style={{
+            background: "linear-gradient(90deg,#5b2eff,#8a4dff)",
+            animation: "driver-splash-bar 1s ease-in-out infinite",
+          }}
         />
       </div>
     </div>

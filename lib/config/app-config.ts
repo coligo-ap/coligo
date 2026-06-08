@@ -29,8 +29,9 @@ export const APP_CONFIG = {
   },
 
   brand: {
-    primary: process.env.NEXT_PUBLIC_BRAND_PRIMARY ?? "#5C5CE0",
-    accent: process.env.NEXT_PUBLIC_BRAND_ACCENT ?? "#d97706",
+    // Violet de marque Coligo (#6C2BD9) + accent rose (#FF2D7A, rare).
+    primary: process.env.NEXT_PUBLIC_BRAND_PRIMARY ?? "#6C2BD9",
+    accent: process.env.NEXT_PUBLIC_BRAND_ACCENT ?? "#FF2D7A",
   },
 
   // Commission prélevée par Coligo sur chaque commande (affichage commerçant).

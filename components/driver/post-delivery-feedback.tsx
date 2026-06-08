@@ -156,7 +156,7 @@ export function PostDeliveryFeedback({
             onClick={submit}
             disabled={pending}
             className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-50"
-            style={{ background: "linear-gradient(135deg,#6d6df0,#5c5ce0)" }}
+            style={{ background: "linear-gradient(135deg,#5b2eff,#6c2bd9)" }}
           >
             {pending ? <Loader2 className="size-5 animate-spin" /> : "Valider"}
           </button>

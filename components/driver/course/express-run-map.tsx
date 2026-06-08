@@ -83,7 +83,7 @@ export function ExpressRunMap({
           type: "line",
           source: "run-route",
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": "#5c5ce0", "line-width": 3 },
+          paint: { "line-color": "#6c2bd9", "line-width": 3 },
         });
       };
       if (map.loaded()) onLoad();
@@ -129,8 +129,8 @@ export function ExpressRunMap({
         el.style.cssText = "position:relative;width:20px;height:20px";
         // Pulse et point concentriques (même centre).
         el.innerHTML = `
-          <div style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:rgba(92,92,224,.25);animation:driver-me-pulse 2s infinite"></div>
-          <div style="position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#5c5ce0;border:3px solid #fff;box-shadow:0 0 0 2px rgba(92,92,224,.6),0 4px 12px rgba(0,0,0,.3)"></div>`;
+          <div style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:rgba(108,43,217,.25);animation:driver-me-pulse 2s infinite"></div>
+          <div style="position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#6c2bd9;border:3px solid #fff;box-shadow:0 0 0 2px rgba(108,43,217,.6),0 4px 12px rgba(0,0,0,.3)"></div>`;
         meMarkerRef.current = new Marker({ element: el, anchor: "center" })
           .setLngLat([coords.longitude, coords.latitude])
           .addTo(map);

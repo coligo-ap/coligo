@@ -88,7 +88,7 @@ export function DeliveryRouteMap({
             type: "line",
             source: "route",
             layout: { "line-cap": "round", "line-join": "round" },
-            paint: { "line-color": "#5c5ce0", "line-width": 5 },
+            paint: { "line-color": "#6c2bd9", "line-width": 5 },
           });
         };
         if (map.loaded()) onLoad();
@@ -127,7 +127,7 @@ export function DeliveryRouteMap({
       if (!driverMarkerRef.current) {
         const el = document.createElement("div");
         el.innerHTML =
-          '<div style="background:#5c5ce0;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);font-weight:bold;font-size:11px;">🚗</div>';
+          '<div style="background:#6c2bd9;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);font-weight:bold;font-size:11px;">🚗</div>';
         driverMarkerRef.current = new Marker({ element: el })
           .setLngLat([coords.longitude, coords.latitude])
           .addTo(map);

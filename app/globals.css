@@ -16,24 +16,24 @@
   --color-violet-100: #e0e0f8;
   --color-violet-200: #c4c4f1;
   --color-violet-300: #a3a3e8;
-  --color-violet-400: #8080de;
-  --color-violet-500: #6363d6;
-  --color-violet-600: #5c5ce0;
+  --color-violet-400: #8a4dff;
+  --color-violet-500: #7a3aec;
+  --color-violet-600: #6c2bd9;
   --color-violet-700: #4a4ac4;
   --color-violet-800: #3c3c9e;
   --color-violet-900: #313178;
 
-  /* Couleur primaire = violet du kit (#5C5CE0) */
-  --color-primary-50: #eeeefb;
-  --color-primary-100: #e0e0f8;
-  --color-primary-200: #c4c4f1;
-  --color-primary-300: #a3a3e8;
-  --color-primary-400: #8080de;
-  --color-primary-500: #6363d6;
-  --color-primary-600: #5c5ce0;
-  --color-primary-700: #4a4ac4;
-  --color-primary-800: #3c3c9e;
-  --color-primary-900: #313178;
+  /* Couleur primaire = violet de marque Coligo (#6C2BD9) */
+  --color-primary-50: #f4eefe;
+  --color-primary-100: #e9ddfd;
+  --color-primary-200: #d2bcfb;
+  --color-primary-300: #b493f9;
+  --color-primary-400: #8a4dff;
+  --color-primary-500: #7a3aec;
+  --color-primary-600: #6c2bd9;
+  --color-primary-700: #4b1fa6;
+  --color-primary-800: #3a1880;
+  --color-primary-900: #2b1160;
 
   /* Accents sémantiques */
   --color-success-50: #ecfdf5;
@@ -160,7 +160,7 @@ body {
  * Scopé sous [data-space="driver"] (cf. app/(driver)/layout.tsx) pour NE PAS
  * impacter le reste de l'app (commerçant / client / admin) ni le @theme global.
  *   - Police : Inter (var --font-inter, injectée par next/font dans le layout)
- *   - Palette : fond gris, cards blanches, encre noire, violet #5C5CE0 RARE
+ *   - Palette : fond gris, cards blanches, encre noire, violet #6c2bd9 RARE
  * Les écrans livreur consomment ces tokens via Tailwind arbitrary values
  * (ex. bg-[var(--d-bg)]) ou hex direct quand la valeur est figée.
  * ============================================================================= */
@@ -173,8 +173,8 @@ body {
   --d-hint: #9e9e9e;
   --d-bd: #eeeeee;
   --d-bd2: #e5e5e5;
-  --d-p: #5c5ce0;
-  --d-p-d: #4a48c0;
+  --d-p: #6c2bd9;
+  --d-p-d: #4b1fa6;
   --d-mint: #00a86b;
   --d-coral: #e53935;
   --d-amber: #f39c12;
@@ -229,12 +229,12 @@ body {
 /* -----------------------------------------------------------------------------
  * Re-thématisation des PRIMITIVES PARTAGÉES dans l'espace livreur uniquement.
  * Les composants partagés (Button, Input, ActionButton…) utilisent la couleur
- * de marque `primary` = violet #5C5CE0. Or le design livreur « style Uber » veut
+ * de marque `primary` = violet #6c2bd9. Or le design livreur « style Uber » veut
  * des CTA NOIRS et un violet rare. On remappe donc ces utilitaires Tailwind à
  * l'intérieur de [data-space="driver"] (spécificité 0,2,0 > 0,1,0 → l'emporte
  * sur l'utilitaire de base) SANS toucher au reste de l'app (commerçant/client/
  * admin), qui n'a pas l'attribut data-space="driver".
- * Les écrans 1-6 refaits utilisent du hex explicite (bg-[#0a0a0a], #5c5ce0…) et
+ * Les écrans 1-6 refaits utilisent du hex explicite (bg-[#0a0a0a], #6c2bd9…) et
  * ne sont donc pas affectés par ces règles.
  * --------------------------------------------------------------------------- */
 [data-space="driver"] .bg-primary-600 {

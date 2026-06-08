@@ -176,7 +176,7 @@ export function CustomerDeliveryMap({
             type: "line",
             source: "route",
             layout: { "line-cap": "round", "line-join": "round" },
-            paint: { "line-color": "#5c5ce0", "line-width": 5 },
+            paint: { "line-color": "#6c2bd9", "line-width": 5 },
           });
         };
         if (map.loaded()) onLoad();
@@ -212,7 +212,7 @@ export function CustomerDeliveryMap({
       if (!driverMarkerRef.current) {
         const el = document.createElement("div");
         el.innerHTML =
-          '<div style="background:#5c5ce0;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 8px rgba(92,92,224,.5);font-size:13px;">🛵</div>';
+          '<div style="background:#6c2bd9;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 8px rgba(108,43,217,.5);font-size:13px;">🛵</div>';
         driverMarkerRef.current = new Marker({ element: el })
           .setLngLat([driver.lng, driver.lat])
           .addTo(map);

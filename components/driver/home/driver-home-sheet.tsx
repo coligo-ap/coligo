@@ -173,7 +173,7 @@ export function DriverHomeSheet({
             <p className="text-[10.5px] font-semibold tracking-[0.4px] text-[#757575] uppercase">
               Gagné aujourd&apos;hui
             </p>
-            <p className="mt-0.5 text-[26px] leading-none font-extrabold tracking-[-0.6px] text-[#5c5ce0]">
+            <p className="mt-0.5 text-[26px] leading-none font-extrabold tracking-[-0.6px] text-[#6c2bd9]">
               {nf.format(earnedToday)}
               <span className="ml-1 text-[12px] font-semibold text-[#757575]">
                 DA
@@ -278,7 +278,7 @@ export function DriverHomeSheet({
         ) : (
           <Link
             href="/driver/codes"
-            className="flex items-center justify-center gap-2 rounded-[14px] border-2 border-dashed border-[#d8d8f0] bg-[#f4f4fb] px-4 py-3 text-sm font-bold text-[#4a48c0]"
+            className="flex items-center justify-center gap-2 rounded-[14px] border-2 border-dashed border-[#d8d8f0] bg-[#f4f4fb] px-4 py-3 text-sm font-bold text-[#4b1fa6]"
           >
             <KeyRound className="size-4" />
             Rejoindre un commerçant (saisir un code)

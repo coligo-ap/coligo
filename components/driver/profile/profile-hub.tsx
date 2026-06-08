@@ -62,7 +62,7 @@ export function ProfileHub({
         {/* Note moyenne (réelle) — étoiles violettes. */}
         {ratingCount > 0 ? (
           <div className="mt-2.5 flex items-center justify-center gap-1.5">
-            <span className="text-[14px] tracking-[1px] text-[#5c5ce0]">
+            <span className="text-[14px] tracking-[1px] text-[#6c2bd9]">
               {"★".repeat(Math.round(ratingAvg))}
               <span className="text-[#d8d8e8]">
                 {"★".repeat(5 - Math.round(ratingAvg))}

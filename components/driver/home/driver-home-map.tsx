@@ -169,8 +169,8 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
         // Pulse et point partagent le MÊME centre (left/top 50% + marges
         // négatives) → l'onde reste bien concentrique au point.
         el.innerHTML = `
-          <div style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:rgba(92,92,224,.25);animation:driver-me-pulse 2s infinite"></div>
-          <div style="position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#5c5ce0;border:3px solid #fff;box-shadow:0 0 0 2px rgba(92,92,224,.6),0 4px 12px rgba(0,0,0,.3)"></div>`;
+          <div style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:rgba(108,43,217,.25);animation:driver-me-pulse 2s infinite"></div>
+          <div style="position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#6c2bd9;border:3px solid #fff;box-shadow:0 0 0 2px rgba(108,43,217,.6),0 4px 12px rgba(0,0,0,.3)"></div>`;
         el.addEventListener("click", (e) => {
           e.stopPropagation();
           flyToMe(16);

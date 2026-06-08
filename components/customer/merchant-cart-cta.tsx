@@ -48,7 +48,7 @@ export function MerchantCartCta({ merchantId }: { merchantId: string }) {
           href="/cart"
           onClick={() => setActiveMerchant(merchantId)}
           className={cn(
-            "bg-primary-600 hover:bg-primary-700 relative flex items-center gap-3 overflow-hidden rounded-[18px] py-2.5 ps-2.5 pe-3 text-white shadow-[0_20px_42px_-12px_rgba(92,92,224,0.55)] transition-transform",
+            "bg-primary-600 hover:bg-primary-700 relative flex items-center gap-3 overflow-hidden rounded-[18px] py-2.5 ps-2.5 pe-3 text-white shadow-[0_20px_42px_-12px_rgba(108,43,217,0.55)] transition-transform",
             pulse && "scale-[1.02]"
           )}
         >

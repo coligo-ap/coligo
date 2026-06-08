@@ -125,7 +125,7 @@ export function ExpressRun({
 
       {/* Bandeau d'étape flottant. */}
       <div className="absolute top-[max(46px,calc(env(safe-area-inset-top)+14px))] right-3.5 left-3.5 z-50 flex items-center gap-3 rounded-[14px] bg-black px-4 py-[13px] text-white shadow-[0_8px_22px_rgba(0,0,0,.2)]">
-        <span className="grid size-[30px] shrink-0 place-items-center rounded-full bg-[#5c5ce0] text-[13px] font-extrabold text-white">
+        <span className="grid size-[30px] shrink-0 place-items-center rounded-full bg-[#6c2bd9] text-[13px] font-extrabold text-white">
           {stepNum}
         </span>
         <div className="flex-1">
@@ -135,7 +135,7 @@ export function ExpressRun({
           <b className="mt-px block text-sm font-semibold">{stepTitle}</b>
         </div>
         <div className="text-right">
-          <b className="block text-[15px] font-extrabold text-[#5c5ce0]">
+          <b className="block text-[15px] font-extrabold text-[#6c2bd9]">
             {eta ? `${eta.min} min` : "…"}
           </b>
           <small className="text-[10px] opacity-60">

@@ -141,14 +141,14 @@ export function ExpressOffer({
   // rouge et la barre se vide plus « chaud ».
   const urgent = left <= 10;
   const pct = Math.max(0, Math.min(100, (left / OFFER_SECONDS) * 100));
-  const timerColor = urgent ? "#e53935" : "#5c5ce0";
+  const timerColor = urgent ? "#e53935" : "#6c2bd9";
 
   return (
     <div className="fixed inset-0 z-[90] flex flex-col bg-white px-[22px] pt-[max(50px,calc(env(safe-area-inset-top)+18px))] pb-[max(22px,env(safe-area-inset-bottom))] text-[#0a0a0a]">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-[2px] text-[#5c5ce0]">
-          <span className="grid size-[18px] place-items-center rounded-md bg-[#5c5ce0] text-[11px] leading-none text-white">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold tracking-[2px] text-[#6c2bd9]">
+          <span className="grid size-[18px] place-items-center rounded-md bg-[#6c2bd9] text-[11px] leading-none text-white">
             ⚡
           </span>
           EXPRESS COLIGO
@@ -156,8 +156,8 @@ export function ExpressOffer({
         <span
           className="inline-flex items-center gap-2 rounded-full px-3.5 py-[7px] text-sm font-black tabular-nums transition-colors"
           style={{
-            background: urgent ? "rgba(229,57,53,.12)" : "rgba(92,92,224,.1)",
-            color: urgent ? "#e53935" : "#5c5ce0",
+            background: urgent ? "rgba(229,57,53,.12)" : "rgba(108,43,217,.1)",
+            color: urgent ? "#e53935" : "#6c2bd9",
           }}
         >
           <span
@@ -180,7 +180,7 @@ export function ExpressOffer({
             width: `${pct}%`,
             background: urgent
               ? "linear-gradient(90deg,#e53935,#ff8a85)"
-              : "linear-gradient(90deg,#5c5ce0,#a8a8ff)",
+              : "linear-gradient(90deg,#6c2bd9,#8a4dff)",
             transition: "width 1s linear, background .3s ease",
           }}
         />
@@ -207,7 +207,7 @@ export function ExpressOffer({
             )}
           </div>
           <div className="rounded-[16px] border border-[#e0e0f5] bg-[#f4f4fb] px-4 py-2.5 text-right">
-            <div className="text-[26px] leading-none font-extrabold tracking-[-0.6px] text-[#5c5ce0]">
+            <div className="text-[26px] leading-none font-extrabold tracking-[-0.6px] text-[#6c2bd9]">
               {fee}
               <span className="ml-1 text-[13px] font-bold text-[#9e9e9e]">
                 DA
@@ -286,7 +286,7 @@ export function ExpressOffer({
                   backgroundSize: "2px 6px",
                 }}
               />
-              <span className="grid size-[22px] place-items-center rounded-full bg-[#5c5ce0] text-white">
+              <span className="grid size-[22px] place-items-center rounded-full bg-[#6c2bd9] text-white">
                 <MapPin className="size-[12px]" />
               </span>
             </div>
@@ -334,8 +334,8 @@ export function ExpressOffer({
           disabled={refusing}
           className="flex-[2] rounded-[14px] py-[17px] text-[15px] font-extrabold text-white active:scale-[0.99] disabled:opacity-60"
           style={{
-            background: "linear-gradient(135deg,#6d6df0,#5c5ce0)",
-            boxShadow: "0 8px 24px rgba(92,92,224,.35)",
+            background: "linear-gradient(135deg,#5b2eff,#6c2bd9)",
+            boxShadow: "0 8px 24px rgba(108,43,217,.35)",
           }}
         >
           Accepter la course
@@ -356,7 +356,7 @@ function Chip({
     <span
       className={
         "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold " +
-        (violet ? "bg-[#5c5ce0]/12 text-[#5c5ce0]" : "bg-[#f2f2f2] text-[#444]")
+        (violet ? "bg-[#6c2bd9]/12 text-[#6c2bd9]" : "bg-[#f2f2f2] text-[#444]")
       }
     >
       {children}

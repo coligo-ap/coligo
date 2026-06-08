@@ -116,7 +116,7 @@ export function GainsView({ entries }: { entries: Entry[] }) {
         <small className="text-[10.5px] font-semibold tracking-[0.6px] text-[#757575] uppercase">
           Total gagné · {PERIOD_LABEL[period]}
         </small>
-        <div className="mt-1.5 text-[30px] leading-none font-extrabold tracking-[-0.6px] text-[#5c5ce0]">
+        <div className="mt-1.5 text-[30px] leading-none font-extrabold tracking-[-0.6px] text-[#6c2bd9]">
           {/* Groupement manuel (espace) — déterministe SSR↔client (Intl peut
               différer entre Node et navigateur → hydratation React #418). */}
           {String(Math.round(total)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
@@ -154,7 +154,7 @@ export function GainsView({ entries }: { entries: Entry[] }) {
                 <div
                   className={
                     "w-full rounded-t-[5px] " +
-                    (b.now ? "bg-[#5c5ce0]" : "bg-[#e8e8e8]")
+                    (b.now ? "bg-[#6c2bd9]" : "bg-[#e8e8e8]")
                   }
                   style={{ height: `${Math.max(4, b.pct)}%` }}
                 />
