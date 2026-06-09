@@ -271,6 +271,50 @@ export async function toggleDriverBlocked(
   return {};
 }
 
+/**
+ * Déconnexion FORCÉE d'un livreur (indépendante du blocage) : révoque ses
+ * sessions GoTrue. Utile pour couper un accès suspect / un appareil perdu sans
+ * geler ni bloquer le compte.
+ */
+export async function forceDriverSignout(
+  driverId: string
+): Promise<{ error?: string; killed?: number }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const supabase = await createClient();
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc("admin_force_driver_signout", {
+    p_driver_id: driverId,
+  });
+  if (error) return { error: error.message };
+  const res = (data ?? {}) as {
+    ok?: boolean;
+    reason?: string;
+    sessions_killed?: number;
+  };
+  if (!res.ok) {
+    return {
+      error:
+        res.reason === "no_user" ? "Ce livreur n'a pas de session." : "Échec.",
+    };
+  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  await createAdminClient()
+    .from("admin_audit_log")
+    .insert({
+      admin_email: user?.email ?? null,
+      action: "force_signout_driver",
+      target_kind: "driver",
+      target_id: driverId,
+      note: `${res.sessions_killed ?? 0} session(s)`,
+    });
+  return { killed: res.sessions_killed ?? 0 };
+}
+
 // =============================================================================
 // Remplissage AUTOMATIQUE du catalogue d'un commerçant (super-admin).
 // =============================================================================

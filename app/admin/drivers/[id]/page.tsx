@@ -15,6 +15,7 @@ import { isSuperAdmin } from "@/lib/auth/admin";
 import { formatDA } from "@/lib/utils";
 import { DriverFreezeButton } from "@/components/admin/driver-freeze-button";
 import { DriverBlockButton } from "@/components/admin/drivers/driver-block-button";
+import { DriverForceSignoutButton } from "@/components/admin/drivers/driver-force-signout-button";
 import { DriverVerifyToggle } from "@/components/admin/drivers/driver-verify-toggle";
 import {
   DriverProfileForm,
@@ -322,6 +323,7 @@ export default async function AdminDriverDetailPage({
               driverId={driver.id}
               blocked={driver.is_blocked ?? false}
             />
+            <DriverForceSignoutButton driverId={driver.id} />
           </div>
         </div>
         {driver.is_blocked ? (
