@@ -550,8 +550,11 @@ export async function adminCancelOrder(
 
   // Notifications best-effort (jamais bloquantes).
   try {
-    const { notifyMerchantOrderCancelled, notifyCustomerStatusChange } =
-      await import("@/lib/fcm/triggers");
+    const {
+      notifyMerchantOrderCancelled,
+      notifyCustomerStatusChange,
+      notifyDriverOrderCancelled,
+    } = await import("@/lib/fcm/triggers");
     if (res.merchant_id) {
       await notifyMerchantOrderCancelled({
         merchantId: res.merchant_id,
@@ -561,6 +564,8 @@ export async function adminCancelOrder(
       });
     }
     await notifyCustomerStatusChange({ orderId, newStatus: "cancelled" });
+    // Stoppe le livreur affecté (push + pop-up temps réel via DriverCancelWatch).
+    await notifyDriverOrderCancelled({ orderId });
   } catch {
     /* noop */
   }

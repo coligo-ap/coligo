@@ -10,6 +10,7 @@ import {
 import {
   notifyCustomerStatusChange,
   notifyDriversNewExpress,
+  notifyDriverOrderCancelled,
 } from "@/lib/fcm/triggers";
 
 export type OrderActionResult = {
@@ -155,6 +156,9 @@ export async function cancelOrderByMerchant(
   }
 
   void notifyCustomerStatusChange({ orderId, newStatus: "cancelled" });
+  // Stoppe le livreur s'il avait accepté la course (push instantané ; le pop-up
+  // + arrêt en temps réel sont gérés par DriverCancelWatch côté app livreur).
+  void notifyDriverOrderCancelled({ orderId });
   revalidatePath("/dashboard");
   revalidatePath("/orders");
   revalidatePath(`/orders/${orderId}`);

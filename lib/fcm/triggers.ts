@@ -143,6 +143,58 @@ export async function notifyMerchantOrderCancelled(input: {
   }
 }
 
+/**
+ * Notifie le LIVREUR affecté qu'une commande qu'il a acceptée vient d'être
+ * ANNULÉE (par le commerçant ou le super-admin) AVANT récupération → il doit
+ * s'arrêter immédiatement. Le `kind: 'driver_order_cancelled'` + `orderId`
+ * permettent à l'app livreur d'afficher le pop-up et de couper la course.
+ * Fire-and-forget.
+ */
+export async function notifyDriverOrderCancelled(input: {
+  orderId: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("orders")
+      .select("delivery_driver_id, order_number, fulfillment_type")
+      .eq("id", input.orderId)
+      .maybeSingle();
+    if (
+      !order ||
+      order.fulfillment_type !== "delivery" ||
+      !order.delivery_driver_id
+    ) {
+      return;
+    }
+    const { data: driver } = await admin
+      .from("drivers")
+      .select("user_id")
+      .eq("id", order.delivery_driver_id)
+      .maybeSingle();
+    if (!driver?.user_id) return;
+
+    const tokens = await tokensFor(driver.user_id, "courier");
+    if (tokens.length === 0) return;
+
+    const ref = order.order_number ? `#${order.order_number}` : "";
+    await sendFcm(
+      tokens,
+      {
+        title: "Commande annulée",
+        body: `La commande ${ref} a été annulée. Arrête-toi — contacte le support si besoin de détails.`,
+      },
+      {
+        route: "/driver",
+        kind: "driver_order_cancelled",
+        orderId: input.orderId,
+      }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyDriverOrderCancelled failed:", err);
+  }
+}
+
 /** Libellés clients par statut — alignés sur la copy commerçant. */
 const STATUS_PUSH: Partial<
   Record<OrderStatus, { title: string; body: string }>

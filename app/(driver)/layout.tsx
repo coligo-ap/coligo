@@ -4,6 +4,7 @@ import { OfflineSyncIndicator } from "@/components/driver/offline-sync-indicator
 import { DriverDispatchMount } from "@/components/driver/driver-dispatch-mount";
 import { DriverSplash } from "@/components/driver/driver-splash";
 import { ActiveCourseBanner } from "@/components/driver/active-course-banner";
+import { DriverCancelWatch } from "@/components/driver/driver-cancel-watch";
 import { DriverThemeRoot } from "@/components/driver/driver-theme-root";
 import { DriverBlockedScreen } from "@/components/driver/driver-blocked-screen";
 import { InstallBanner } from "@/components/pwa/install-banner";
@@ -63,6 +64,8 @@ export default async function DriverLayout({
       <DriverDispatchMount />
       {/* Bandeau « Course en cours » réductible, épinglé sur tous les onglets. */}
       <ActiveCourseBanner />
+      {/* STOP temps réel : pop-up si la course active est annulée (commerçant/admin). */}
+      <DriverCancelWatch />
       <InstallBanner />
       <OfflineSyncIndicator />
     </DriverThemeRoot>
