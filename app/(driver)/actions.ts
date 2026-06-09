@@ -441,24 +441,14 @@ export async function validateDelivery(input: {
   orderId: string;
   code?: string;
   skipCode?: boolean;
-  /** Montant ESPÈCES réellement encaissé (cash). Si < total → appoint manquant
-   *  (créance client, mig 0114). null/undefined = montant exact supposé. */
-  collectedDa?: number | null;
 }): Promise<{ ok: boolean; reason?: string }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc(
-    "validate_delivery" as never,
-    {
-      p_order_id: input.orderId,
-      p_provided_code: input.code ?? null,
-      p_skip_code: input.skipCode ?? false,
-      p_client_operation_id: `validate-${input.orderId}-${Date.now()}`,
-      p_collected_da:
-        input.collectedDa == null
-          ? null
-          : Math.max(0, Math.floor(input.collectedDa)),
-    } as never
-  );
+  const { data, error } = await supabase.rpc("validate_delivery", {
+    p_order_id: input.orderId,
+    p_provided_code: input.code ?? null,
+    p_skip_code: input.skipCode ?? false,
+    p_client_operation_id: `validate-${input.orderId}-${Date.now()}`,
+  });
   if (error) return { ok: false, reason: error.message };
   const row = (
     data as Array<{ ok: boolean; reason: string | null }> | null

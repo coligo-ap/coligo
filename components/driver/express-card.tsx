@@ -245,6 +245,7 @@ export function ExpressCard({
             paymentMethod={currentOrder.payment_method}
             customerName={currentOrder.customer_name}
             totalDa={currentOrder.total_da}
+            arrivedAt={currentOrder.delivery_arrived_at}
             onClose={() => setShowValidate(false)}
             onSuccess={() => {
               setShowValidate(false);

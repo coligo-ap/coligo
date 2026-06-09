@@ -327,6 +327,7 @@ export function TourExecution({
           paymentMethod={validateFor.payment_method}
           customerName={validateFor.customer_name}
           totalDa={validateFor.total_da}
+          arrivedAt={validateFor.delivery_arrived_at}
           onClose={() => setValidateFor(null)}
           onSuccess={() => {
             const nextPending = stops.find(

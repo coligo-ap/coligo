@@ -103,11 +103,11 @@ export async function createOrder(
   if (!user)
     return { ok: false, error: "Tu dois te connecter pour commander." };
 
-  // cod_blocked / debt_da (mig 0114) pas encore dans database.types.ts généré
-  // (Docker requis pour gen types) → cast localisé du retour.
+  // cod_blocked / noshow_pending (mig 0116) pas encore dans database.types.ts
+  // généré (Docker requis pour gen types) → cast localisé du retour.
   const { data: customer } = (await supabase
     .from("customers")
-    .select("id, full_name, phone, cod_blocked, debt_da")
+    .select("id, full_name, phone, cod_blocked, noshow_pending")
     .eq("user_id", user.id)
     .maybeSingle()) as {
     data: {
@@ -115,7 +115,7 @@ export async function createOrder(
       full_name: string | null;
       phone: string | null;
       cod_blocked: boolean | null;
-      debt_da: number | null;
+      noshow_pending: boolean | null;
     } | null;
   };
   if (!customer) {
@@ -265,11 +265,9 @@ export async function createOrder(
       error: "Ce commerce n'accepte pas le paiement en espèces.",
     };
   }
-  // ANTI-FRAUDE COD (mig 0114) : le paiement en espèces (à la livraison) n'est
-  // autorisé que si le client y a droit — pas bloqué après un no-show ET assez
-  // de commandes complétées (compte non jetable). Sinon → prépaiement imposé
-  // (en ligne / Coligo Pay). Gate UNIQUEMENT sur la livraison COD (le retrait
-  // en boutique se paie sur place, hors périmètre no-show).
+  // COD (mig 0116, façon Yassir) : pas de blocage des comptes neufs. Le COD est
+  // dispo SAUF blocage dur (super-admin) via customer_cod_allowed = !cod_blocked.
+  // Gate UNIQUEMENT sur la livraison COD (le retrait en boutique se paie sur place).
   if (
     input.payment_method === "cash" &&
     input.fulfillment_type === "delivery"
@@ -557,7 +555,19 @@ export async function createOrder(
     .maybeSingle();
   const serviceFeeTiers = parseTiers(settingsRow?.service_fee_tiers);
   const productsDa = settled.totalDa; // = subtotal - discount, AVANT wallet
-  const serviceFeeDa = computeServiceFeeDa(productsDa, serviceFeeTiers);
+  let serviceFeeDa = computeServiceFeeDa(productsDa, serviceFeeTiers);
+
+  // PÉNALITÉ NO-SHOW (mig 0116) : si le client a un no-show non soldé, sa
+  // prochaine commande a des frais de service RELEVÉS mais PLAFONNÉS à 100 DA
+  // (douceur volontaire — priorité = garder la confiance, façon Yassir). Le
+  // drapeau noshow_pending se lève automatiquement dès cette commande honorée.
+  const NOSHOW_PENALTY_SF_DA = 100;
+  if (customer.noshow_pending === true) {
+    serviceFeeDa = Math.min(
+      NOSHOW_PENALTY_SF_DA,
+      Math.max(serviceFeeDa, NOSHOW_PENALTY_SF_DA)
+    );
+  }
 
   // ---------------------------------------------------------------------------
   // 5b. Cashback DÉPENSÉ par le client — recalcul serveur :
@@ -799,13 +809,7 @@ export async function createOrder(
     };
   }
 
-  // RECOUVREMENT CRÉANCE (mig 0114) : si le client porte une créance (no-show
-  // ou appoint manquant passé), on la solde sur CETTE commande — ajoutée au
-  // montant à régler. Décrémentée après création réussie (cf. plus bas).
-  // Limite connue (pré-lancement) : pour une commande online ABANDONNÉE, la
-  // créance est soldée à la création — fuite mineure, acceptable.
-  const debtRecovered = Math.max(0, Math.floor(customer.debt_da ?? 0));
-  const totalWithDelivery = totalAfterWallets + deliveryFeeDa + debtRecovered;
+  const totalWithDelivery = totalAfterWallets + deliveryFeeDa;
 
   // Cast localisé : promo_id/promo_code/promo_financeur/gross_total_da/
   // net_total_da ne sont pas encore dans database.types.ts généré (Docker
@@ -848,7 +852,6 @@ export async function createOrder(
       promo_code: appliedPromo?.code ?? null,
       promo_financeur: promoFinanceur,
       total_da: totalWithDelivery,
-      debt_recovered_da: debtRecovered,
       cashback_used_da: cashbackUsed,
       topup_used_da: topupUsed,
       service_fee_da: serviceFeeDa,
@@ -912,23 +915,6 @@ export async function createOrder(
     // Compensation : si les items échouent, on annule la commande.
     await supabase.from("orders").delete().eq("id", order.id);
     return { ok: false, error: `Erreur ajout articles : ${itemsErr.message}` };
-  }
-
-  // Créance soldée sur cette commande → décrément via RPC SECURITY DEFINER
-  // (mig 0115). Le champ debt_da est verrouillé côté RLS : le client ne peut
-  // pas le modifier directement. Best-effort, jamais bloquant.
-  if (debtRecovered > 0) {
-    try {
-      await supabase.rpc(
-        "recover_customer_debt" as never,
-        {
-          p_customer_id: customer.id,
-          p_amount: debtRecovered,
-        } as never
-      );
-    } catch (e) {
-      console.warn("[createOrder] recover_customer_debt failed:", e);
-    }
   }
 
   // Code promo : journal d'usage (incrémente uses_count, idempotent via
