@@ -7,7 +7,6 @@ import {
   CreditCard,
   FileText,
   Package,
-  Snowflake,
   Star,
   TrendingUp,
   Truck,
@@ -34,6 +33,7 @@ import {
   type CandidateDriver,
 } from "@/components/admin/drivers/order-reassign";
 import { DriverAvatarUpload } from "@/components/admin/drivers/driver-avatar-upload";
+import { DriverStatusBadge } from "@/components/admin/drivers/driver-status-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -301,18 +301,14 @@ export default async function AdminDriverDetailPage({
                 </span>
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {driver.is_verified ? (
+                <DriverStatusBadge
+                  isFrozen={driver.is_frozen}
+                  isVerified={driver.is_verified}
+                />
+                {/* Si gelé MAIS déjà vérifié, on garde l'info de vérification. */}
+                {driver.is_frozen && driver.is_verified && (
                   <span className="bg-success-50 text-success-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold">
-                    <BadgeCheck className="size-3.5" /> Profil vérifié
-                  </span>
-                ) : (
-                  <span className="bg-warning-50 text-warning-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold">
-                    Profil non vérifié
-                  </span>
-                )}
-                {driver.is_frozen && (
-                  <span className="bg-danger-100 text-danger-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold">
-                    <Snowflake className="size-3.5" /> Compte gelé
+                    <BadgeCheck className="size-3.5" /> Pièces vérifiées
                   </span>
                 )}
               </div>

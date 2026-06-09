@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BadgeCheck, ChevronRight, Truck } from "lucide-react";
+import { ChevronRight, Truck } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSuperAdmin } from "@/lib/auth/admin";
 import { DriverFreezeButton } from "@/components/admin/driver-freeze-button";
+import { DriverStatusBadge } from "@/components/admin/drivers/driver-status-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -53,11 +54,10 @@ export default async function AdminDriversPage() {
           <tr>
             <th className="px-3 py-2 text-left">Nom</th>
             <th className="px-3 py-2 text-left">Téléphone</th>
-            <th className="px-3 py-2 text-center">Vérifié</th>
+            <th className="px-3 py-2 text-center">Statut</th>
             <th className="px-3 py-2 text-right">Actifs</th>
             <th className="px-3 py-2 text-right">En attente</th>
             <th className="px-3 py-2 text-right">Bloqués</th>
-            <th className="px-3 py-2 text-center">Gelé</th>
             <th className="px-3 py-2 text-right">Action</th>
           </tr>
         </thead>
@@ -65,7 +65,12 @@ export default async function AdminDriversPage() {
           {(drivers ?? []).map((d) => {
             const s = stats.get(d.id) ?? { active: 0, pending: 0, blocked: 0 };
             return (
-              <tr key={d.id} className="hover:bg-surface-2">
+              <tr
+                key={d.id}
+                className={
+                  d.is_frozen ? "bg-danger-50/60" : "hover:bg-surface-2"
+                }
+              >
                 <td className="px-3 py-2 font-medium">
                   <Link
                     href={`/admin/drivers/${d.id}`}
@@ -94,11 +99,10 @@ export default async function AdminDriversPage() {
                 </td>
                 <td className="text-muted px-3 py-2 tabular-nums">{d.phone}</td>
                 <td className="px-3 py-2 text-center">
-                  {d.is_verified ? (
-                    <BadgeCheck className="text-success-600 inline size-4" />
-                  ) : (
-                    <span className="text-muted text-xs">—</span>
-                  )}
+                  <DriverStatusBadge
+                    isFrozen={d.is_frozen}
+                    isVerified={d.is_verified}
+                  />
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">
                   {s.active}
@@ -108,15 +112,6 @@ export default async function AdminDriversPage() {
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">
                   {s.blocked}
-                </td>
-                <td className="px-3 py-2 text-center">
-                  {d.is_frozen ? (
-                    <span className="bg-danger-100 text-danger-700 rounded-full px-2 py-0.5 text-xs">
-                      Gelé
-                    </span>
-                  ) : (
-                    "—"
-                  )}
                 </td>
                 <td className="px-3 py-2 text-right">
                   <div className="flex items-center justify-end gap-2">
@@ -137,7 +132,7 @@ export default async function AdminDriversPage() {
           })}
           {(drivers ?? []).length === 0 && (
             <tr>
-              <td colSpan={8} className="text-muted px-3 py-6 text-center">
+              <td colSpan={7} className="text-muted px-3 py-6 text-center">
                 Aucun livreur enregistré.
               </td>
             </tr>
