@@ -1029,6 +1029,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      email_change_throttle: {
+        Row: {
+          user_id: string;
+          fails: number;
+          lock_level: number;
+          locked_until: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          fails?: number;
+          lock_level?: number;
+          locked_until?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          fails?: number;
+          lock_level?: number;
+          locked_until?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       driver_change_requests: {
         Row: {
           id: string;

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeContactPhone, DZ_PHONE_ERROR } from "@/lib/dz/phone";
 
 export type ProfileState = { error?: string; success?: string };
@@ -97,6 +98,34 @@ export async function requestEmailChange(input: {
     return { error: "C'est déjà ton adresse actuelle." };
   }
 
+  // ANTI-FRAUDE : interdit de basculer vers un email DÉJÀ associé à un autre
+  // compte (peu importe la méthode d'inscription : email/mot de passe ou Google).
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data: used } = await rpc("email_already_used", { p_email: email });
+  if (used === true) {
+    return { error: "Cette adresse est déjà associée à un autre compte." };
+  }
+
+  // Si l'utilisateur est actuellement bloqué (trop d'essais de code), on ne
+  // renvoie pas de nouveau code tant que le délai n'est pas écoulé.
+  const admin = createAdminClient();
+  const { data: th } = await admin
+    .from("email_change_throttle")
+    .select("locked_until")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (th?.locked_until && new Date(th.locked_until).getTime() > Date.now()) {
+    const mins = Math.ceil(
+      (new Date(th.locked_until).getTime() - Date.now()) / 60000
+    );
+    return { error: `Trop de tentatives. Réessaie dans ${mins} min.` };
+  }
+
+  // NB : fonctionne aussi pour un compte créé via Google — Supabase envoie le
+  // code à la NOUVELLE adresse ; l'identité (Google) et le wallet restent liés.
   const { error } = await supabase.auth.updateUser({ email });
   if (error) return { error: `Erreur : ${error.message}` };
 
@@ -109,25 +138,65 @@ export async function confirmEmailChange(input: {
   token: string;
 }): Promise<ProfileState> {
   const email = (input.email ?? "").trim().toLowerCase();
-  const token = (input.token ?? "").replace(/\s/g, "");
+  const token = (input.token ?? "").replace(/\D/g, "");
   if (!EMAIL_RE.test(email)) return { error: "Adresse email invalide." };
-  if (token.length < 6) return { error: "Entre le code à 6 chiffres reçu." };
+  // Le code Supabase fait 6 OU 8 chiffres selon la config projet.
+  if (token.length < 6) return { error: "Entre le code reçu par email." };
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée." };
+
+  // ANTI-BRUTEFORCE : 3 essais ratés → blocage 10 min, puis 20 min (escalade).
+  const admin = createAdminClient();
+  const { data: th } = await admin
+    .from("email_change_throttle")
+    .select("fails, lock_level, locked_until")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (th?.locked_until && new Date(th.locked_until).getTime() > Date.now()) {
+    const mins = Math.ceil(
+      (new Date(th.locked_until).getTime() - Date.now()) / 60000
+    );
+    return { error: `Trop de tentatives. Réessaie dans ${mins} min.` };
+  }
+
   const { error } = await supabase.auth.verifyOtp({
     email,
     token,
     type: "email_change",
   });
-  if (error) return { error: `Code invalide ou expiré (${error.message}).` };
+  if (error) {
+    const fails = (th?.fails ?? 0) + 1;
+    if (fails >= 3) {
+      const lock_level = (th?.lock_level ?? 0) + 1;
+      const minutes = lock_level <= 1 ? 10 : 20;
+      await admin.from("email_change_throttle").upsert({
+        user_id: user.id,
+        fails: 0,
+        lock_level,
+        locked_until: new Date(Date.now() + minutes * 60_000).toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      return {
+        error: `Code incorrect. Trop de tentatives : réessaie dans ${minutes} min.`,
+      };
+    }
+    await admin.from("email_change_throttle").upsert({
+      user_id: user.id,
+      fails,
+      updated_at: new Date().toISOString(),
+    });
+    return { error: `Code invalide. ${3 - fails} essai(s) restant(s).` };
+  }
+
+  // Succès → on efface le compteur de tentatives.
+  await admin.from("email_change_throttle").delete().eq("user_id", user.id);
 
   // Synchronise customers.email avec la nouvelle adresse auth.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) {
-    await supabase.from("customers").update({ email }).eq("user_id", user.id);
-  }
+  await supabase.from("customers").update({ email }).eq("user_id", user.id);
 
   // L'identité (user_id/customers.id) est inchangée → wallet et historique
   // intacts. On journalise le changement d'email pour l'audit.
