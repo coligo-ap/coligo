@@ -8,9 +8,12 @@ import { TopupModal } from "@/components/customer/coligo-pay-card";
 
 // =============================================================================
 // WalletActions — rangée d'actions wallet (façon Alipay) sur /coligo-pay :
-//   • Payer (QR)  → écran scanner /coligo-pay/qr (MVP : payer un commerçant)
-//   • Recevoir    → /coligo-pay/qr?tab=recv (affiché « bientôt » — P2P gelé)
+//   • Payer (QR)  → scanner /coligo-pay/qr (commerçant OU QR ami → transfert)
+//   • Envoyer     → /coligo-pay/envoyer (P2P : recherche tél/@handle, récents)
+//   • Recevoir    → /coligo-pay/qr?tab=recv : mon QR perso (handle) — ACTIF
 //   • Recharger   → modale recharge (CIB/EDAHABIA via Chargily)
+// Transfert P2P boucle fermée (mig 0084/0085/0086) : PIN, idempotence,
+// double-entrée (SUM=0), anti double-dépense — testé de bout en bout.
 // =============================================================================
 // Le plafond glissant (remaining30d) est vérifié serveur ; côté client on
 // désactive « Recharger » s'il est nul.
