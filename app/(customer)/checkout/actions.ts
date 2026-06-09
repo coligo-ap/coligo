@@ -9,6 +9,7 @@ import {
   pauseReasonMessage,
 } from "@/lib/merchant/pause-state";
 import { APP_CONFIG } from "@/lib/config/app-config";
+import { isValidDzPhone } from "@/lib/dz/phone";
 import {
   getCashbackBalanceForCustomer,
   getTopupBalanceForCustomer,
@@ -113,13 +114,14 @@ export async function createOrder(
       error: "Profil client introuvable. Recrée ton compte client.",
     };
   }
-  // Téléphone obligatoire pour commander (commande NOT NULL + contact livraison).
-  // Cas des comptes créés via connexion sociale sans numéro.
-  if (!customer.phone || customer.phone.trim() === "") {
+  // Téléphone VALIDE obligatoire pour commander (commande NOT NULL + contact
+  // livraison). Cas des comptes créés via connexion sociale (Google) sans numéro
+  // OU avec un numéro non conforme.
+  if (!isValidDzPhone(customer.phone)) {
     return {
       ok: false,
       error:
-        "Ajoute ton numéro de téléphone dans ton profil (Compte) avant de commander.",
+        "Ajoute un numéro de téléphone algérien valide (0X XX XX XX XX) dans ton profil (Compte) avant de commander.",
     };
   }
 
@@ -740,11 +742,11 @@ export async function createOrder(
       addrPhone?.trim() ||
       customer.phone?.trim() ||
       "";
-    if (deliveryPhone === "") {
+    if (!isValidDzPhone(deliveryPhone)) {
       return {
         ok: false,
         error:
-          "Un numéro de téléphone est requis pour la livraison. Ajoute-le à ton profil ou saisis-en un.",
+          "Numéro de livraison invalide. Saisis un mobile algérien valide (0X XX XX XX XX).",
       };
     }
 
