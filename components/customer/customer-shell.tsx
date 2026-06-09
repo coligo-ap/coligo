@@ -4,6 +4,7 @@ import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { CustomerFooter } from "@/components/customer/customer-footer";
 import { CartMonoProvider } from "@/components/customer/cart-mono-provider";
 import { PushRegistrar } from "@/components/native/push-registrar";
+import { TawkChat } from "@/components/support/tawk-chat";
 
 /**
  * Chrome client : header (desktop + mobile), bottom-nav (mobile), footer (desktop).
@@ -50,6 +51,9 @@ export async function CustomerShell({
           que si l'utilisateur est connecté — sinon l'endpoint répondra 401
           et le registrar abandonne silencieusement). */}
       {user && <PushRegistrar role="customer" />}
+
+      {/* Live chat support (Tawk.to) — lanceur masqué, ouvert via « Aide ». */}
+      <TawkChat role="client" name={customerName} email={user?.email ?? null} />
     </div>
   );
 }

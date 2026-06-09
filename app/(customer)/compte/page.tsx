@@ -16,6 +16,7 @@ import { getTranslations } from "next-intl/server";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { CustomerLogoutButton } from "@/components/customer/logout-button";
+import { CustomerSupportRow } from "@/components/support/customer-support-row";
 import {
   getMyCashbackBalance,
   getMyTopupBalance,
@@ -229,6 +230,17 @@ export default async function CustomerAccountPage({
             icon={<Heart className="size-[19px] fill-current" />}
             title={t("myFavorites")}
             subtitle={t("favoritesDesc")}
+          />
+        </div>
+
+        {/* Section AIDE — live chat support (Tawk.to) */}
+        <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
+          {t("sectionHelp")}
+        </p>
+        <div className="divide-border mx-4 divide-y overflow-hidden rounded-[20px] bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+          <CustomerSupportRow
+            title={t("helpSupport")}
+            subtitle={t("helpSupportDesc")}
           />
         </div>
 

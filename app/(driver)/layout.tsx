@@ -6,6 +6,7 @@ import { DriverSplash } from "@/components/driver/driver-splash";
 import { ActiveCourseBanner } from "@/components/driver/active-course-banner";
 import { DriverCancelWatch } from "@/components/driver/driver-cancel-watch";
 import { DriverThemeRoot } from "@/components/driver/driver-theme-root";
+import { TawkChat } from "@/components/support/tawk-chat";
 import { DriverBlockedScreen } from "@/components/driver/driver-blocked-screen";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import { getCurrentDriver } from "@/lib/auth/driver";
@@ -66,6 +67,8 @@ export default async function DriverLayout({
       <ActiveCourseBanner />
       {/* STOP temps réel : pop-up si la course active est annulée (commerçant/admin). */}
       <DriverCancelWatch />
+      {/* Live chat support (Tawk.to) — lanceur masqué, ouvert via « Aide & support ». */}
+      <TawkChat role="livreur" name={driver?.full_name ?? null} />
       <InstallBanner />
       <OfflineSyncIndicator />
     </DriverThemeRoot>

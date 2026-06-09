@@ -2,6 +2,7 @@
 
 import { driverLogout } from "@/app/(driver)/actions";
 import { useDriverDark, toggleDriverDark } from "@/lib/driver/theme-store";
+import { openSupportChat } from "@/components/support/tawk-chat";
 
 /**
  * Écran COMPTE livreur — refonte « pro » : hero violet (avatar + nom + statut
@@ -153,6 +154,7 @@ export function CompteView({
         <Mrow
           label="Aide & support"
           chevron
+          onClick={() => openSupportChat()}
           icon={
             <>
               <circle cx="12" cy="12" r="9" />
