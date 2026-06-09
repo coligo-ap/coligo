@@ -337,13 +337,20 @@ export default async function CustomerOrderDetailPage({
       <CustomerOrderLive orderId={order.id} initialStatus={status} />
 
       <div className="mx-auto max-w-2xl px-4 pt-3 pb-24 lg:px-6 lg:pt-5">
-        <Link
-          href="/commandes"
-          className="text-muted hover:text-foreground mb-2 inline-flex items-center gap-1.5 text-sm"
-        >
-          <ArrowLeft className="size-4 rtl:-scale-x-100" />
-          {t("myOrders")}
-        </Link>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <Link
+            href="/commandes"
+            className="text-muted hover:text-foreground inline-flex items-center gap-1.5 text-sm"
+          >
+            <ArrowLeft className="size-4 rtl:-scale-x-100" />
+            {t("myOrders")}
+          </Link>
+          <OrderSupportButton
+            orderRef={orderNumber}
+            label={t("contactSupport")}
+            className="border-border bg-surface text-foreground hover:bg-surface-2 inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold shadow-sm transition-colors"
+          />
+        </div>
 
         {/* ═══ BLOC PRINCIPAL UNIQUE : statut + suivi horizontal + montant ═══ */}
         <div className="border-border bg-surface rounded-[20px] border p-4 shadow-sm">
@@ -666,14 +673,6 @@ export default async function CustomerOrderDetailPage({
             <ReportDriver orderId={order.id} />
           </div>
         )}
-
-        {/* ═══ Contacter le support (live chat Tawk.to, n° commande injecté) ═══ */}
-        <div className="mt-3">
-          <OrderSupportButton
-            orderRef={orderNumber}
-            label={t("contactSupport")}
-          />
-        </div>
       </div>
     </CustomerShell>
   );
