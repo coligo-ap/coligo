@@ -1,5 +1,20 @@
 # Coligo — guide pour Claude Code
 
+## UX — messages d'erreur/succès : PRIVILÉGIER L'INLINE, ÉVITER LES TOASTS
+
+Règle produit : **ne pas abuser des toasts** (`toast.error`/`toast.success`).
+En répétition ils encombrent l'interface client. Par défaut, **afficher le
+message LÀ OÙ se trouve l'action** :
+
+- sous l'input concerné (validation, « code invalide », « 2 essais restants »…),
+- au-dessus / sur le bouton d'action (résultat d'un enregistrement),
+- dans la section / la carte concernée.
+
+N'utiliser un **toast QUE** quand il n'y a aucun contexte visuel adapté (ex.
+événement global asynchrone : nouvelle commande, perte de connexion). Pour toute
+soumission de formulaire, validation de champ ou action sur un bouton →
+**message inline** (rouge erreur / vert succès), pas de toast.
+
 ## Accès production Supabase (à utiliser SANS REDEMANDER)
 
 Pour toute tâche d'admin/DB, **fais-le toi-même** au lieu de me lister

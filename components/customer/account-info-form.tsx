@@ -10,7 +10,6 @@ import {
   Phone,
   User as UserIcon,
 } from "lucide-react";
-import { toast } from "@/components/ui/toast";
 import { isValidContactPhone } from "@/lib/dz/phone";
 import {
   confirmEmailChange,
@@ -40,6 +39,10 @@ export function AccountInfoForm({
   const [name, setName] = useState(initialName);
   const [phone, setPhone] = useState(initialPhone);
   const [pending, start] = useTransition();
+  // Retour EN LIGNE (au-dessus du bouton) plutôt que toast (cf. CLAUDE.md).
+  const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(
+    null
+  );
 
   // Validation EN DIRECT du numéro (mobile algérien ou international).
   const phoneValid = isValidContactPhone(phone);
@@ -107,14 +110,26 @@ export function AccountInfoForm({
       {/* Barre « Enregistrer les modifications » FIXE en bas. */}
       <div className="border-border fixed inset-x-0 bottom-0 z-30 border-t bg-white/95 px-4 pt-3.5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] backdrop-blur">
         <div className="mx-auto max-w-2xl">
+          {/* Message EN LIGNE (au-dessus du bouton) — pas de toast. */}
+          {saveMsg && (
+            <p
+              className={
+                "mb-2 text-center text-[12.5px] font-semibold " +
+                (saveMsg.ok ? "text-[#16b364]" : "text-[#e5484d]")
+              }
+            >
+              {saveMsg.text}
+            </p>
+          )}
           <button
             type="button"
             disabled={!dirty || pending || !phoneValid}
             onClick={() =>
               start(async () => {
+                setSaveMsg(null);
                 const res = await updateProfile({ full_name: name, phone });
-                if (res.error) toast.error(res.error);
-                else toast.success(res.success ?? t("saved"));
+                if (res.error) setSaveMsg({ ok: false, text: res.error });
+                else setSaveMsg({ ok: true, text: res.success ?? t("saved") });
               })
             }
             className="bg-primary-600 hover:bg-primary-700 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[15px] text-[15px] font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] transition disabled:opacity-40"
@@ -177,6 +192,9 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
   const [newEmail, setNewEmail] = useState("");
   const [code, setCode] = useState("");
   const [pending, start] = useTransition();
+  // Messages AFFICHÉS EN LIGNE (sous l'input) — pas de toast (cf. CLAUDE.md).
+  const [err, setErr] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
 
   return (
     <div className="border-border py-4">
@@ -195,6 +213,8 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
               type="button"
               onClick={() => {
                 setNewEmail("");
+                setErr(null);
+                setOkMsg(null);
                 setStep("editing");
               }}
               className="text-primary-700 shrink-0 text-[13px] font-extrabold"
@@ -202,9 +222,15 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
               {t("edit")}
             </button>
           </div>
-          <p className="text-muted mt-2 px-0.5 text-[11.5px] font-medium">
-            {t("emailReceiptsHint")}
-          </p>
+          {okMsg ? (
+            <p className="mt-2 px-0.5 text-[11.5px] font-semibold text-[#16b364]">
+              {okMsg}
+            </p>
+          ) : (
+            <p className="text-muted mt-2 px-0.5 text-[11.5px] font-medium">
+              {t("emailReceiptsHint")}
+            </p>
+          )}
         </>
       )}
 
@@ -215,15 +241,25 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
             <input
               type="email"
               value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
+              onChange={(e) => {
+                setNewEmail(e.target.value);
+                setErr(null);
+              }}
               placeholder="nouvelle@adresse.dz"
               autoComplete="email"
               className="text-foreground w-full bg-transparent text-sm font-bold outline-none placeholder:font-medium"
             />
           </div>
-          <p className="text-muted px-0.5 text-[11.5px] font-medium">
-            {t("confirmCodeWillBeSent")}
-          </p>
+          {/* Erreur EN LIGNE (email déjà utilisé, etc.) */}
+          {err ? (
+            <p className="px-0.5 text-[11.5px] font-semibold text-[#e5484d]">
+              {err}
+            </p>
+          ) : (
+            <p className="text-muted px-0.5 text-[11.5px] font-medium">
+              {t("confirmCodeWillBeSent")}
+            </p>
+          )}
           <div className="flex gap-2">
             <button
               type="button"
@@ -237,10 +273,11 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
               disabled={pending || newEmail.trim() === ""}
               onClick={() =>
                 start(async () => {
+                  setErr(null);
                   const res = await requestEmailChange({ email: newEmail });
-                  if (res.error) toast.error(res.error);
+                  if (res.error) setErr(res.error);
                   else {
-                    toast.success(res.success ?? t("codeSent"));
+                    setCode("");
                     setStep("code");
                   }
                 })
@@ -270,16 +307,32 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
           <input
             inputMode="numeric"
             value={code}
-            onChange={(e) =>
-              setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-            }
+            onChange={(e) => {
+              setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+              setErr(null);
+            }}
             placeholder="Code à 6 chiffres"
-            className="border-border bg-surface-2 focus:border-primary-400 w-full rounded-[13px] border px-3.5 py-3.5 text-center text-lg font-bold tracking-[0.3em] tabular-nums outline-none"
+            aria-invalid={!!err}
+            className={
+              "bg-surface-2 w-full rounded-[13px] border px-3.5 py-3.5 text-center text-lg font-bold tracking-[0.3em] tabular-nums outline-none " +
+              (err
+                ? "border-[#e5484d]"
+                : "border-border focus:border-primary-400")
+            }
           />
+          {/* Erreur EN LIGNE sous le champ code (essais restants, blocage…) */}
+          {err && (
+            <p className="px-0.5 text-[11.5px] font-semibold text-[#e5484d]">
+              {err}
+            </p>
+          )}
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setStep("editing")}
+              onClick={() => {
+                setErr(null);
+                setStep("editing");
+              }}
               className="border-border text-muted h-11 flex-1 rounded-[12px] border text-sm font-semibold"
             >
               {t("back")}
@@ -289,15 +342,16 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
               disabled={pending || code.length < 6}
               onClick={() =>
                 start(async () => {
+                  setErr(null);
                   const res = await confirmEmailChange({
                     email: newEmail,
                     token: code,
                   });
-                  if (res.error) toast.error(res.error);
+                  if (res.error) setErr(res.error);
                   else {
-                    toast.success(res.success ?? t("emailUpdated"));
                     setEmail(newEmail.trim().toLowerCase());
                     setCode("");
+                    setOkMsg(res.success ?? t("emailUpdated"));
                     setStep("idle");
                   }
                 })

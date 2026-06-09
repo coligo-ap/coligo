@@ -13,7 +13,6 @@ import {
 import { Logo } from "@/components/shared/logo";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
-import { toast } from "@/components/ui/toast";
 import { COUNTRY_CODES, DEFAULT_DIAL, composePhone } from "@/lib/dz/phone";
 import { updateProfile } from "@/app/(customer)/compte/actions";
 
@@ -37,6 +36,7 @@ export function PhoneGateForm({
   const [dial, setDial] = useState(DEFAULT_DIAL);
   const [national, setNational] = useState("");
   const [pending, start] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
 
   const composed = composePhone(dial, national);
   const valid = composed !== null && name.trim().length >= 2;
@@ -45,12 +45,12 @@ export function PhoneGateForm({
   const submit = () =>
     start(async () => {
       if (!composed) return;
+      setErr(null);
       const res = await updateProfile({ full_name: name, phone: composed });
       if (res.error) {
-        toast.error(res.error);
+        setErr(res.error); // erreur EN LIGNE (pas de toast)
         return;
       }
-      toast.success("Inscription finalisée ✓");
       router.replace(next);
       router.refresh();
     });
@@ -171,6 +171,13 @@ export function PhoneGateForm({
                     )}
                   </p>
                 </div>
+
+                {/* Erreur EN LIGNE (ex. email déjà associé) — pas de toast. */}
+                {err && (
+                  <p className="text-center text-[12.5px] font-semibold text-[#e5484d]">
+                    {err}
+                  </p>
+                )}
 
                 <button
                   type="button"
