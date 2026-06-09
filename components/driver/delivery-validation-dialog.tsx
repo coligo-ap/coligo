@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "@/components/ui/toast";
 import { QrScanner } from "@/components/scanner/qr-scanner";
 import { enqueueValidation } from "@/lib/driver-offline/db";
-import { validateDelivery } from "@/app/(driver)/actions";
+import { validateDelivery, reportNoShow } from "@/app/(driver)/actions";
 
 /**
  * Écran VALIDATION DE REMISE reproduit À L'IDENTIQUE de MAQUETTE-livreur-pages
@@ -38,6 +38,11 @@ export function DeliveryValidationDialog({
 
   const isOnline = paymentMethod === "online";
   const collect = isOnline ? 0 : (totalDa ?? 0);
+  // Montant ESPÈCES réellement encaissé — éditable (appoint manquant, mig 0114).
+  // Saisie en DA ; défaut = montant dû. < dû → l'écart devient une créance client.
+  const [collected, setCollected] = useState<string>(String(collect));
+  const collectedNum = Math.max(0, Math.floor(Number(collected) || 0));
+  const shortfall = isOnline ? 0 : Math.max(0, collect - collectedNum);
 
   const submit = (skip: boolean) =>
     start(async () => {
@@ -55,6 +60,7 @@ export function DeliveryValidationDialog({
         orderId,
         code: code || undefined,
         skipCode: skip,
+        collectedDa: isOnline ? null : collectedNum,
       });
       if (!r.ok) {
         if (
@@ -94,9 +100,47 @@ export function DeliveryValidationDialog({
 
   const onValidateClick = () => {
     if (isOnline) return submit(false);
+    // Cash : avertir si appoint manquant (écart imputé en créance au client).
+    if (shortfall > 0) {
+      if (
+        !confirm(
+          `Le client n'a payé que ${collectedNum} DA sur ${collect} DA.\n` +
+            `L'écart de ${shortfall} DA sera porté en créance sur sa prochaine commande.\n\n` +
+            `Confirmer la remise ?`
+        )
+      )
+        return;
+      return code.length >= 4 ? submit(false) : submit(true);
+    }
     if (code.length >= 4) return submit(false);
     if (confirm("Confirmer la remise au client (paiement cash) ?"))
       submit(true);
+  };
+
+  // No-show / refus : commande annulée, livreur indemnisé, client perd le COD.
+  const onNoShow = () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      toast.error("Connexion requise pour signaler un client absent.");
+      return;
+    }
+    if (
+      !confirm(
+        "Client absent ou commande refusée ?\n\n" +
+          "La commande sera ANNULÉE et renvoyée au commerçant. Tu seras indemnisé " +
+          "d'une course. Le client perdra le paiement en espèces. À n'utiliser " +
+          "qu'après avoir réellement tenté la remise."
+      )
+    )
+      return;
+    start(async () => {
+      const r = await reportNoShow({ orderId, reason: "no_show" });
+      if (!r.ok) {
+        toast.error(reasonLabel(r.reason));
+        return;
+      }
+      toast.success("Signalé — commande annulée, tu es indemnisé.");
+      onSuccess();
+    });
   };
 
   const ctaDisabled = pending || (isOnline && code.length < 4);
@@ -185,8 +229,51 @@ export function DeliveryValidationDialog({
             </svg>
             {isOnline ? "Déjà payé en ligne" : "Espèces à encaisser"}
           </div>
-          <div className="am">{isOnline ? "0" : collect} DA</div>
+          {isOnline ? (
+            <div className="am">0 DA</div>
+          ) : (
+            <div
+              className="am"
+              style={{ display: "flex", alignItems: "center", gap: 4 }}
+            >
+              <input
+                inputMode="numeric"
+                value={collected}
+                onChange={(e) =>
+                  setCollected(e.target.value.replace(/\D/g, "").slice(0, 7))
+                }
+                disabled={pending}
+                aria-label="Montant encaissé"
+                style={{
+                  width: `${Math.max(2, collected.length)}ch`,
+                  background: "transparent",
+                  border: "none",
+                  borderBottom: "2px solid currentColor",
+                  textAlign: "right",
+                  font: "inherit",
+                  color: "inherit",
+                  padding: 0,
+                }}
+              />
+              <span>DA</span>
+            </div>
+          )}
         </div>
+
+        {/* Appoint manquant : écart visible avant validation (mig 0114). */}
+        {!isOnline && shortfall > 0 && (
+          <p
+            style={{
+              margin: "6px 2px 0",
+              fontSize: 12.5,
+              fontWeight: 700,
+              color: "#b54708",
+            }}
+          >
+            Appoint manquant : {shortfall} DA porté en créance au client (à
+            recouvrer à sa prochaine commande).
+          </p>
+        )}
 
         <button
           type="button"
@@ -196,6 +283,27 @@ export function DeliveryValidationDialog({
           style={ctaDisabled ? { opacity: 0.5 } : undefined}
         >
           {pending ? "Validation…" : "Valider la livraison"}
+        </button>
+
+        {/* Client absent / refus — action secondaire, discrète mais accessible. */}
+        <button
+          type="button"
+          onClick={onNoShow}
+          disabled={pending}
+          style={{
+            width: "100%",
+            marginTop: 10,
+            padding: "11px 12px",
+            borderRadius: 14,
+            border: "1.5px solid #fda29b",
+            background: "#fffbfa",
+            color: "#b42318",
+            fontWeight: 700,
+            fontSize: 14,
+            opacity: pending ? 0.5 : 1,
+          }}
+        >
+          Client absent / commande refusée
         </button>
       </div>
     </div>
@@ -218,6 +326,10 @@ function reasonLabel(reason?: string): string {
       return "Commande introuvable.";
     case "already_delivered":
       return "Déjà validée.";
+    case "already_closed":
+      return "Commande déjà clôturée.";
+    case "not_picked_up":
+      return "Récupère d'abord la commande chez le commerçant.";
     default:
       return reason ?? "Erreur";
   }

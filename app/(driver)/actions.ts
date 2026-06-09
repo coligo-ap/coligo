@@ -441,14 +441,24 @@ export async function validateDelivery(input: {
   orderId: string;
   code?: string;
   skipCode?: boolean;
+  /** Montant ESPÈCES réellement encaissé (cash). Si < total → appoint manquant
+   *  (créance client, mig 0114). null/undefined = montant exact supposé. */
+  collectedDa?: number | null;
 }): Promise<{ ok: boolean; reason?: string }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("validate_delivery", {
-    p_order_id: input.orderId,
-    p_provided_code: input.code ?? null,
-    p_skip_code: input.skipCode ?? false,
-    p_client_operation_id: `validate-${input.orderId}-${Date.now()}`,
-  });
+  const { data, error } = await supabase.rpc(
+    "validate_delivery" as never,
+    {
+      p_order_id: input.orderId,
+      p_provided_code: input.code ?? null,
+      p_skip_code: input.skipCode ?? false,
+      p_client_operation_id: `validate-${input.orderId}-${Date.now()}`,
+      p_collected_da:
+        input.collectedDa == null
+          ? null
+          : Math.max(0, Math.floor(input.collectedDa)),
+    } as never
+  );
   if (error) return { ok: false, reason: error.message };
   const row = (
     data as Array<{ ok: boolean; reason: string | null }> | null
@@ -462,6 +472,39 @@ export async function validateDelivery(input: {
     void notifyCustomerStatusChange({
       orderId: input.orderId,
       newStatus: "completed",
+    });
+  }
+  return { ok: row.ok, reason: row.reason ?? undefined };
+}
+
+// ---------------------------------------------------------------------------
+// No-show / refus (mig 0114) : le client est absent ou refuse la commande COD.
+// La commande est ANNULÉE (remboursement prépaiement auto), le livreur indemnisé
+// d'une course, le client perd le COD + porte une créance = frais de livraison.
+// ---------------------------------------------------------------------------
+export async function reportNoShow(input: {
+  orderId: string;
+  reason?: "no_show" | "refused";
+}): Promise<{ ok: boolean; reason?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(
+    "driver_report_no_show" as never,
+    {
+      p_order_id: input.orderId,
+      p_reason: input.reason ?? "no_show",
+      p_client_operation_id: `noshow-${input.orderId}-${Date.now()}`,
+    } as never
+  );
+  if (error) return { ok: false, reason: error.message };
+  const row = (
+    data as Array<{ ok: boolean; reason: string | null }> | null
+  )?.[0];
+  if (!row) return { ok: false, reason: "no_response" };
+  if (row.ok) {
+    revalidatePath("/driver");
+    void notifyCustomerStatusChange({
+      orderId: input.orderId,
+      newStatus: "cancelled",
     });
   }
   return { ok: row.ok, reason: row.reason ?? undefined };

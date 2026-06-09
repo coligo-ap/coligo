@@ -103,11 +103,21 @@ export async function createOrder(
   if (!user)
     return { ok: false, error: "Tu dois te connecter pour commander." };
 
-  const { data: customer } = await supabase
+  // cod_blocked / debt_da (mig 0114) pas encore dans database.types.ts généré
+  // (Docker requis pour gen types) → cast localisé du retour.
+  const { data: customer } = (await supabase
     .from("customers")
-    .select("id, full_name, phone")
+    .select("id, full_name, phone, cod_blocked, debt_da")
     .eq("user_id", user.id)
-    .maybeSingle();
+    .maybeSingle()) as {
+    data: {
+      id: string;
+      full_name: string | null;
+      phone: string | null;
+      cod_blocked: boolean | null;
+      debt_da: number | null;
+    } | null;
+  };
   if (!customer) {
     return {
       ok: false,
@@ -254,6 +264,30 @@ export async function createOrder(
       ok: false,
       error: "Ce commerce n'accepte pas le paiement en espèces.",
     };
+  }
+  // ANTI-FRAUDE COD (mig 0114) : le paiement en espèces (à la livraison) n'est
+  // autorisé que si le client y a droit — pas bloqué après un no-show ET assez
+  // de commandes complétées (compte non jetable). Sinon → prépaiement imposé
+  // (en ligne / Coligo Pay). Gate UNIQUEMENT sur la livraison COD (le retrait
+  // en boutique se paie sur place, hors périmètre no-show).
+  if (
+    input.payment_method === "cash" &&
+    input.fulfillment_type === "delivery"
+  ) {
+    const { data: codOk } = await supabase.rpc(
+      "customer_cod_allowed" as never,
+      {
+        p_customer_id: customer.id,
+      } as never
+    );
+    if (codOk !== true) {
+      return {
+        ok: false,
+        error:
+          "Le paiement en espèces à la livraison n'est pas disponible sur ce compte. " +
+          "Règle en ligne ou via Coligo Pay (commande payée d'avance).",
+      };
+    }
   }
   if (input.payment_method === "online" && !merchant.accepts_online) {
     return {
@@ -765,7 +799,13 @@ export async function createOrder(
     };
   }
 
-  const totalWithDelivery = totalAfterWallets + deliveryFeeDa;
+  // RECOUVREMENT CRÉANCE (mig 0114) : si le client porte une créance (no-show
+  // ou appoint manquant passé), on la solde sur CETTE commande — ajoutée au
+  // montant à régler. Décrémentée après création réussie (cf. plus bas).
+  // Limite connue (pré-lancement) : pour une commande online ABANDONNÉE, la
+  // créance est soldée à la création — fuite mineure, acceptable.
+  const debtRecovered = Math.max(0, Math.floor(customer.debt_da ?? 0));
+  const totalWithDelivery = totalAfterWallets + deliveryFeeDa + debtRecovered;
 
   // Cast localisé : promo_id/promo_code/promo_financeur/gross_total_da/
   // net_total_da ne sont pas encore dans database.types.ts généré (Docker
@@ -808,6 +848,7 @@ export async function createOrder(
       promo_code: appliedPromo?.code ?? null,
       promo_financeur: promoFinanceur,
       total_da: totalWithDelivery,
+      debt_recovered_da: debtRecovered,
       cashback_used_da: cashbackUsed,
       topup_used_da: topupUsed,
       service_fee_da: serviceFeeDa,
@@ -871,6 +912,23 @@ export async function createOrder(
     // Compensation : si les items échouent, on annule la commande.
     await supabase.from("orders").delete().eq("id", order.id);
     return { ok: false, error: `Erreur ajout articles : ${itemsErr.message}` };
+  }
+
+  // Créance soldée sur cette commande → décrément via RPC SECURITY DEFINER
+  // (mig 0115). Le champ debt_da est verrouillé côté RLS : le client ne peut
+  // pas le modifier directement. Best-effort, jamais bloquant.
+  if (debtRecovered > 0) {
+    try {
+      await supabase.rpc(
+        "recover_customer_debt" as never,
+        {
+          p_customer_id: customer.id,
+          p_amount: debtRecovered,
+        } as never
+      );
+    } catch (e) {
+      console.warn("[createOrder] recover_customer_debt failed:", e);
+    }
   }
 
   // Code promo : journal d'usage (incrémente uses_count, idempotent via
