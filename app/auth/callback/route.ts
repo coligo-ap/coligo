@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isValidDzPhone } from "@/lib/dz/phone";
 
 /**
  * Callback OAuth (Google, etc.) — échange le code contre une session, puis
@@ -66,10 +67,10 @@ export async function GET(request: NextRequest) {
     phone = null;
   }
 
-  // Sans téléphone (obligatoire pour commander) → page Compte pour le compléter.
-  if (!phone) {
-    const url = new URL("/compte", origin);
-    url.searchParams.set("complete", "phone");
+  // Sans numéro valide (obligatoire) → page de saisie BLOQUANTE. Le middleware
+  // applique la même règle sur toutes les pages (filet de sécurité).
+  if (!isValidDzPhone(phone)) {
+    const url = new URL("/compte/telephone", origin);
     if (next !== "/") url.searchParams.set("next", next);
     return NextResponse.redirect(url);
   }

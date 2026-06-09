@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 import { withLongSession } from "./session-config";
+import { isValidDzPhone } from "@/lib/dz/phone";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -87,6 +88,56 @@ export async function updateSession(request: NextRequest) {
     // Session livreur sur une route autorisée (/driver…) → on laisse passer sans
     // exécuter la logique d'atterrissage marchand/client ci-dessous.
     return supabaseResponse;
+  }
+
+  // ===========================================================================
+  // NUMÉRO DE TÉLÉPHONE OBLIGATOIRE (client) — anti-fraude + contact livraison.
+  // ---------------------------------------------------------------------------
+  // Un client connecté (notamment via Google, qui ne fournit pas de numéro)
+  // DOIT renseigner un mobile algérien valide. Tant que ce n'est pas fait, on
+  // le force sur /compte/telephone, quelle que soit la page demandée. Le cookie
+  // `coligo_phone_ok` court-circuite la vérif une fois le numéro validé (évite
+  // une requête DB à chaque navigation).
+  // ===========================================================================
+  if (user) {
+    const phoneExempt =
+      path.startsWith("/api") ||
+      path.startsWith("/auth") ||
+      path.startsWith("/dashboard") ||
+      path.startsWith("/offline") ||
+      path === "/login" ||
+      path === "/signup" ||
+      path === "/se-connecter" ||
+      path === "/inscription" ||
+      path.startsWith("/compte/telephone");
+    const phoneOk = request.cookies.get("coligo_phone_ok")?.value === "1";
+    if (!phoneExempt && !phoneOk) {
+      const { data: cust } = await supabase
+        .from("customers")
+        .select("phone")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cust) {
+        if (isValidDzPhone(cust.phone)) {
+          // Numéro déjà valide → on mémorise pour ne plus requêter.
+          supabaseResponse.cookies.set("coligo_phone_ok", "1", {
+            httpOnly: true,
+            sameSite: "lax",
+            path: "/",
+            maxAge: 60 * 60 * 24 * 30,
+          });
+        } else {
+          // Numéro manquant/non conforme → page de saisie OBLIGATOIRE.
+          const url = request.nextUrl.clone();
+          url.pathname = "/compte/telephone";
+          url.search = "";
+          if (path && path !== "/") url.searchParams.set("next", path);
+          const gate = NextResponse.redirect(url);
+          supabaseResponse.cookies.getAll().forEach((c) => gate.cookies.set(c));
+          return gate;
+        }
+      }
+    }
   }
 
   // /dashboard exige une session — sinon login marchand.
