@@ -16,7 +16,9 @@ import {
   deleteDriverDocumentSelf,
   addDriverPayoutSelf,
   deleteDriverPayoutSelf,
-  submitDriverChangeRequest,
+  proposeVehicleChange,
+  proposePayoutChange,
+  proposeDocumentChange,
 } from "@/app/(driver)/actions";
 
 type ActionState = { ok?: boolean; error?: string };
@@ -101,7 +103,6 @@ const lab: CSSProperties = {
   marginBottom: 4,
 };
 
-/** Petit spinner blanc réutilisant le keyframe mq-spin de maquette.css. */
 function Spinner() {
   return (
     <span
@@ -120,10 +121,6 @@ function Spinner() {
   );
 }
 
-/**
- * Bouton submit : loader pendant l'envoi (useFormStatus), puis VERT « ✓ … »
- * quelques secondes au succès (piloté par le parent via `success`).
- */
 function SubmitBtn({
   idle,
   success,
@@ -151,7 +148,7 @@ function SubmitBtn({
       {pending ? (
         <>
           <Spinner />
-          Enregistrement…
+          Envoi…
         </>
       ) : success ? (
         `✓ ${successLabel}`
@@ -162,16 +159,53 @@ function SubmitBtn({
   );
 }
 
-/** Section repliable (ouvrir / fermer) avec pastille d'état optionnelle. */
+/** Pastille d'état d'une section : orange « en cours de vérification » / vert. */
+function StatusPill({
+  verified,
+  pending,
+}: {
+  verified: boolean;
+  pending: boolean;
+}) {
+  if (pending) {
+    return (
+      <span style={pillStyle("var(--amber)", "rgba(245,158,11,.14)")}>
+        ⏳ En cours de vérification…
+      </span>
+    );
+  }
+  if (verified) {
+    return (
+      <span style={pillStyle("var(--go)", "var(--go-soft)")}>✓ Vérifié</span>
+    );
+  }
+  return (
+    <span style={pillStyle("var(--amber)", "rgba(245,158,11,.14)")}>
+      ⏳ En cours de vérification…
+    </span>
+  );
+}
+function pillStyle(color: string, bg: string): CSSProperties {
+  return {
+    fontSize: 10.5,
+    fontWeight: 800,
+    color,
+    background: bg,
+    borderRadius: 20,
+    padding: "3px 8px",
+    whiteSpace: "nowrap",
+  };
+}
+
 function Section({
   title,
-  defaultOpen = false,
   badge,
+  defaultOpen = false,
   children,
 }: {
   title: string;
-  defaultOpen?: boolean;
   badge?: React.ReactNode;
+  defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -187,10 +221,10 @@ function Section({
           width: "100%",
           display: "flex",
           alignItems: "center",
-          gap: 10,
+          gap: 8,
           background: "none",
           border: 0,
-          padding: "16px 16px",
+          padding: "15px 16px",
           cursor: "pointer",
           color: "var(--ink)",
         }}
@@ -214,6 +248,7 @@ function Section({
             stroke: "var(--muted)",
             transform: open ? "rotate(180deg)" : "none",
             transition: "transform .2s",
+            flex: "none",
           }}
         >
           <path d="M6 9l6 6 6-6" />
@@ -242,6 +277,25 @@ function KV({ k, v }: { k: string; v: string | null }) {
   );
 }
 
+function PendingBanner() {
+  return (
+    <div
+      style={{
+        background: "rgba(245,158,11,.12)",
+        color: "var(--amber)",
+        borderRadius: 10,
+        padding: "9px 12px",
+        fontSize: 12.5,
+        fontWeight: 600,
+        marginBottom: 10,
+      }}
+    >
+      ⏳ Modification en cours de vérification — elle sera prise en compte après
+      validation par Coligo.
+    </div>
+  );
+}
+
 export function DriverInfoManager({
   verified,
   vehicle,
@@ -255,57 +309,60 @@ export function DriverInfoManager({
   payouts: SelfPayout[];
   requests: SelfRequest[];
 }) {
-  const pendingReqs = requests.filter((r) => r.status === "pending").length;
+  const pendingKinds = new Set(
+    requests.filter((r) => r.status === "pending").map((r) => r.kind)
+  );
   return (
     <>
       <div className="head">
         <h1>Mes informations</h1>
       </div>
 
-      {verified ? (
-        <div
-          className="card"
-          style={{ borderColor: "var(--go)", marginBottom: 14 }}
-        >
-          <b style={{ color: "var(--go)" }}>✓ Compte vérifié</b>
-          <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 4 }}>
-            Vos informations sont validées et en lecture seule. Pour toute
-            modification, envoyez une demande : elle sera appliquée après
-            vérification par l&apos;équipe Coligo.
-          </p>
-        </div>
-      ) : (
+      {!verified && (
         <div
           className="card"
           style={{ borderColor: "var(--violet)", marginBottom: 14 }}
         >
           <b style={{ color: "var(--violet)" }}>Complétez votre profil</b>
           <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 4 }}>
-            Renseignez votre véhicule, vos pièces et votre versement, puis
-            attendez la vérification par Coligo. Une fois vérifié, le profil
-            devient verrouillé.
+            Renseignez votre véhicule, vos pièces et votre versement. Tout est «
+            en cours de vérification » jusqu&apos;à validation par Coligo. Une
+            fois vérifié, chaque nouvelle modification repassera par une
+            demande.
           </p>
         </div>
       )}
 
-      <VehicleSection vehicle={vehicle} locked={verified} />
-      <DocsSection documents={documents} locked={verified} />
-      <PayoutsSection payouts={payouts} locked={verified} />
+      <VehicleSection
+        vehicle={vehicle}
+        verified={verified}
+        pending={pendingKinds.has("vehicle")}
+      />
+      <DocsSection
+        documents={documents}
+        verified={verified}
+        pending={pendingKinds.has("document")}
+      />
+      <PayoutsSection
+        payouts={payouts}
+        verified={verified}
+        pending={pendingKinds.has("payout")}
+      />
 
-      {verified && (
-        <ChangeRequestSection requests={requests} pendingCount={pendingReqs} />
-      )}
+      {requests.length > 0 && <RequestHistory requests={requests} />}
     </>
   );
 }
 
-// ---------------- Véhicule (contrôlé → pas de perte de valeur au submit) ----
+// ---------------- Véhicule ----------------
 function VehicleSection({
   vehicle,
-  locked,
+  verified,
+  pending,
 }: {
   vehicle: SelfVehicle;
-  locked: boolean;
+  verified: boolean;
+  pending: boolean;
 }) {
   const router = useRouter();
   const [v, setV] = useState(vehicle);
@@ -314,44 +371,43 @@ function VehicleSection({
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setV((s) => ({ ...s, [k]: e.target.value }));
   const [ok, setOk] = useState(false);
+  // Vérifié → on PROPOSE (demande) ; sinon édition directe.
   const [state, action] = useActionState<ActionState, FormData>(
-    saveDriverVehicleSelf,
+    verified ? proposeVehicleChange : saveDriverVehicleSelf,
     {}
   );
   useEffect(() => {
     if (state.ok) {
       setOk(true);
-      toast.success("Véhicule & identité enregistrés");
+      toast.success(
+        verified ? "Demande envoyée — en cours de vérification" : "Enregistré"
+      );
       router.refresh();
       const t = setTimeout(() => setOk(false), 2500);
       return () => clearTimeout(t);
     }
     if (state.error) toast.error(state.error);
-  }, [state, router]);
+  }, [state, router, verified]);
 
-  if (locked) {
+  const badge = <StatusPill verified={verified} pending={pending} />;
+
+  // Vérifié + une demande déjà en attente → lecture seule + bandeau.
+  if (verified && pending) {
     return (
-      <Section title="Véhicule & identité">
-        <KV k="Type" v={lbl(VEHICLE_TYPES, v.vehicle_type)} />
-        <KV
-          k="Véhicule"
-          v={
-            [v.vehicle_brand, v.vehicle_model].filter(Boolean).join(" ") || null
-          }
-        />
-        <KV k="Immatriculation" v={v.vehicle_plate} />
-        <KV k="Couleur" v={v.vehicle_color} />
-        <KV k="Année" v={v.vehicle_year ? String(v.vehicle_year) : null} />
-        <KV k="N° carte d'identité" v={v.id_card_number} />
-        <KV k="N° national" v={v.national_id_number} />
-        <KV k="Wilaya" v={v.wilaya} />
-        <KV k="Adresse" v={v.address} />
+      <Section title="Véhicule & identité" badge={badge}>
+        <PendingBanner />
+        <VehicleReadonly v={v} />
       </Section>
     );
   }
 
   return (
-    <Section title="Véhicule & identité" defaultOpen>
+    <Section title="Véhicule & identité" badge={badge} defaultOpen={!verified}>
+      {verified && (
+        <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>
+          Modifiez puis envoyez : la demande sera appliquée après validation.
+        </p>
+      )}
       <form action={action} style={{ display: "grid", gap: 10 }}>
         <div>
           <label style={lab}>Type de véhicule</label>
@@ -432,9 +488,31 @@ function VehicleSection({
           value={v.address}
           onChange={set("address")}
         />
-        <SubmitBtn idle="Enregistrer" success={ok} />
+        <SubmitBtn
+          idle={verified ? "Envoyer la demande" : "Enregistrer"}
+          success={ok}
+          successLabel={verified ? "Envoyée" : "Enregistré"}
+        />
       </form>
     </Section>
+  );
+}
+function VehicleReadonly({ v }: { v: SelfVehicle }) {
+  return (
+    <>
+      <KV k="Type" v={lbl(VEHICLE_TYPES, v.vehicle_type)} />
+      <KV
+        k="Véhicule"
+        v={[v.vehicle_brand, v.vehicle_model].filter(Boolean).join(" ") || null}
+      />
+      <KV k="Immatriculation" v={v.vehicle_plate} />
+      <KV k="Couleur" v={v.vehicle_color} />
+      <KV k="Année" v={v.vehicle_year ? String(v.vehicle_year) : null} />
+      <KV k="N° carte d'identité" v={v.id_card_number} />
+      <KV k="N° national" v={v.national_id_number} />
+      <KV k="Wilaya" v={v.wilaya} />
+      <KV k="Adresse" v={v.address} />
+    </>
   );
 }
 
@@ -445,7 +523,6 @@ function Row({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-/** Champ CONTRÔLÉ (valeur conservée même après le reset auto du form action). */
 function CField({
   name,
   label,
@@ -472,7 +549,6 @@ function CField({
     </div>
   );
 }
-/** Champ non contrôlé (pour les formulaires « ajouter » qui se ferment). */
 function Field({
   name,
   label,
@@ -493,35 +569,45 @@ function Field({
 // ---------------- Documents ----------------
 function DocsSection({
   documents,
-  locked,
+  verified,
+  pending,
 }: {
   documents: SelfDoc[];
-  locked: boolean;
+  verified: boolean;
+  pending: boolean;
 }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [del, startDel] = useTransition();
   const [ok, setOk] = useState(false);
   const [state, action] = useActionState<ActionState, FormData>(
-    addDriverDocumentSelf,
+    verified ? proposeDocumentChange : addDriverDocumentSelf,
     {}
   );
   useEffect(() => {
     if (state.ok) {
       setOk(true);
-      toast.success("Pièce ajoutée");
+      toast.success(
+        verified
+          ? "Demande envoyée — en cours de vérification"
+          : "Pièce ajoutée"
+      );
       router.refresh();
       const t = setTimeout(() => {
         setOk(false);
         setAdding(false);
-      }, 1200);
+      }, 1300);
       return () => clearTimeout(t);
     }
     if (state.error) toast.error(state.error);
-  }, [state, router]);
+  }, [state, router, verified]);
 
   return (
-    <Section title={`Pièces d'identité (${documents.length})`}>
+    <Section
+      title={`Pièces d'identité (${documents.length})`}
+      badge={<StatusPill verified={verified} pending={pending} />}
+    >
+      {verified && pending && <PendingBanner />}
       {documents.length === 0 && (
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
           Aucune pièce.
@@ -560,7 +646,7 @@ function DocsSection({
               </a>
             )}
           </div>
-          {!locked && (
+          {!verified && (
             <button
               type="button"
               onClick={() => {
@@ -589,7 +675,7 @@ function DocsSection({
         </div>
       ))}
 
-      {locked ? null : adding ? (
+      {verified && pending ? null : adding ? (
         <form
           action={action}
           style={{ display: "grid", gap: 10, marginTop: 12 }}
@@ -619,7 +705,11 @@ function DocsSection({
             />
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <SubmitBtn idle="Ajouter" success={ok} successLabel="Ajoutée" />
+            <SubmitBtn
+              idle={verified ? "Envoyer la demande" : "Ajouter"}
+              success={ok}
+              successLabel={verified ? "Envoyée" : "Ajoutée"}
+            />
             <button
               type="button"
               className="btnlink"
@@ -636,7 +726,7 @@ function DocsSection({
           style={{ textAlign: "left", marginTop: 10 }}
           onClick={() => setAdding(true)}
         >
-          + Ajouter une pièce
+          {verified ? "+ Proposer une pièce" : "+ Ajouter une pièce"}
         </button>
       )}
     </Section>
@@ -646,35 +736,43 @@ function DocsSection({
 // ---------------- Versement ----------------
 function PayoutsSection({
   payouts,
-  locked,
+  verified,
+  pending,
 }: {
   payouts: SelfPayout[];
-  locked: boolean;
+  verified: boolean;
+  pending: boolean;
 }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [del, startDel] = useTransition();
   const [ok, setOk] = useState(false);
   const [state, action] = useActionState<ActionState, FormData>(
-    addDriverPayoutSelf,
+    verified ? proposePayoutChange : addDriverPayoutSelf,
     {}
   );
   useEffect(() => {
     if (state.ok) {
       setOk(true);
-      toast.success("Moyen ajouté");
+      toast.success(
+        verified ? "Demande envoyée — en cours de vérification" : "Moyen ajouté"
+      );
       router.refresh();
       const t = setTimeout(() => {
         setOk(false);
         setAdding(false);
-      }, 1200);
+      }, 1300);
       return () => clearTimeout(t);
     }
     if (state.error) toast.error(state.error);
-  }, [state, router]);
+  }, [state, router, verified]);
 
   return (
-    <Section title={`Versement (${payouts.length})`}>
+    <Section
+      title={`Versement (${payouts.length})`}
+      badge={<StatusPill verified={verified} pending={pending} />}
+    >
+      {verified && pending && <PendingBanner />}
       {payouts.length === 0 && (
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
           Aucun moyen de versement.
@@ -702,7 +800,7 @@ function PayoutsSection({
               {p.account_name ? ` · ${p.account_name}` : ""}
             </div>
           </div>
-          {!locked && (
+          {!verified && (
             <button
               type="button"
               onClick={() => {
@@ -731,7 +829,7 @@ function PayoutsSection({
         </div>
       ))}
 
-      {locked ? null : adding ? (
+      {verified && pending ? null : adding ? (
         <form
           action={action}
           style={{ display: "grid", gap: 10, marginTop: 12 }}
@@ -760,7 +858,11 @@ function PayoutsSection({
             <input type="checkbox" name="is_default" /> Par défaut
           </label>
           <div style={{ display: "flex", gap: 8 }}>
-            <SubmitBtn idle="Ajouter" success={ok} successLabel="Ajouté" />
+            <SubmitBtn
+              idle={verified ? "Envoyer la demande" : "Ajouter"}
+              success={ok}
+              successLabel={verified ? "Envoyée" : "Ajouté"}
+            />
             <button
               type="button"
               className="btnlink"
@@ -777,135 +879,69 @@ function PayoutsSection({
           style={{ textAlign: "left", marginTop: 10 }}
           onClick={() => setAdding(true)}
         >
-          + Ajouter un moyen
+          {verified ? "+ Proposer un moyen" : "+ Ajouter un moyen"}
         </button>
       )}
     </Section>
   );
 }
 
-// ---------------- Demande de modification (vérifié) ----------------
-function ChangeRequestSection({
-  requests,
-  pendingCount,
-}: {
-  requests: SelfRequest[];
-  pendingCount: number;
-}) {
-  const router = useRouter();
-  const [ok, setOk] = useState(false);
-  const [state, action] = useActionState<ActionState, FormData>(
-    submitDriverChangeRequest,
-    {}
-  );
-  useEffect(() => {
-    if (state.ok) {
-      setOk(true);
-      toast.success("Demande envoyée — en attente de validation");
-      router.refresh();
-      const t = setTimeout(() => setOk(false), 2500);
-      return () => clearTimeout(t);
-    }
-    if (state.error) toast.error(state.error);
-  }, [state, router]);
-
+// ---------------- Historique des demandes ----------------
+function RequestHistory({ requests }: { requests: SelfRequest[] }) {
   const badge = (s: string) =>
     s === "approved"
-      ? { t: "Approuvée", c: "var(--go)", bg: "var(--go-soft)" }
+      ? { t: "Approuvée ✓", c: "var(--go)", bg: "var(--go-soft)" }
       : s === "rejected"
         ? { t: "Refusée", c: "var(--red)", bg: "var(--red-soft)" }
-        : { t: "En attente", c: "var(--amber)", bg: "rgba(245,158,11,.14)" };
-
-  const headBadge =
-    pendingCount > 0 ? (
-      <span
-        style={{
-          fontSize: 11,
-          fontWeight: 800,
-          color: "var(--amber)",
-          background: "rgba(245,158,11,.14)",
-          borderRadius: 20,
-          padding: "3px 9px",
-        }}
-      >
-        {pendingCount} en attente
-      </span>
-    ) : undefined;
-
+        : {
+            t: "En cours de vérification…",
+            c: "var(--amber)",
+            bg: "rgba(245,158,11,.14)",
+          };
   return (
-    <Section title="Demander une modification" badge={headBadge} defaultOpen>
-      <form action={action} style={{ display: "grid", gap: 10 }}>
-        <div>
-          <label style={lab}>Concerne</label>
-          <select name="kind" style={inp} defaultValue="vehicle">
-            <option value="vehicle">Véhicule</option>
-            <option value="document">Pièce d&apos;identité</option>
-            <option value="payout">Versement</option>
-            <option value="profile">Profil</option>
-            <option value="other">Autre</option>
-          </select>
-        </div>
-        <div>
-          <label style={lab}>Détail de la demande *</label>
-          <textarea
-            name="note"
-            required
-            rows={3}
-            style={{ ...inp, height: "auto", padding: "10px 12px" }}
-          />
-        </div>
-        <SubmitBtn
-          idle="Envoyer la demande"
-          success={ok}
-          successLabel="Envoyée"
-        />
-      </form>
-
-      {requests.length > 0 && (
-        <div style={{ marginTop: 14 }}>
-          {requests.map((r) => {
-            const b = badge(r.status);
-            return (
-              <div
-                key={r.id}
+    <Section title="Mes demandes" defaultOpen={false}>
+      {requests.map((r) => {
+        const b = badge(r.status);
+        return (
+          <div
+            key={r.id}
+            style={{
+              padding: "8px 0",
+              borderBottom: "1px solid var(--line)",
+              fontSize: 13,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <b style={{ textTransform: "capitalize" }}>{r.kind}</b>
+              <span
                 style={{
-                  padding: "8px 0",
-                  borderTop: "1px solid var(--line)",
-                  fontSize: 13,
+                  color: b.c,
+                  background: b.bg,
+                  fontWeight: 700,
+                  fontSize: 11,
+                  borderRadius: 20,
+                  padding: "2px 9px",
+                  whiteSpace: "nowrap",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 8,
-                  }}
-                >
-                  <b style={{ textTransform: "capitalize" }}>{r.kind}</b>
-                  <span
-                    style={{
-                      color: b.c,
-                      background: b.bg,
-                      fontWeight: 700,
-                      fontSize: 11,
-                      borderRadius: 20,
-                      padding: "2px 9px",
-                    }}
-                  >
-                    {b.t}
-                  </span>
-                </div>
-                <div style={{ color: "var(--muted)" }}>{r.note}</div>
-                {r.review_note && (
-                  <div style={{ color: "var(--muted)", fontSize: 12 }}>
-                    Réponse : {r.review_note}
-                  </div>
-                )}
+                {b.t}
+              </span>
+            </div>
+            <div style={{ color: "var(--muted)" }}>{r.note}</div>
+            {r.review_note && (
+              <div style={{ color: "var(--muted)", fontSize: 12 }}>
+                Réponse : {r.review_note}
               </div>
-            );
-          })}
-        </div>
-      )}
+            )}
+          </div>
+        );
+      })}
     </Section>
   );
 }

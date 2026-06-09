@@ -704,7 +704,7 @@ export async function saveDriverVehicleSelf(
       return { error: "Profil verrouillé (compte vérifié)." };
     return { error: error.message };
   }
-  revalidatePath("/driver/profil");
+  revalidatePath("/driver/parametres");
   return { ok: true };
 }
 
@@ -754,7 +754,7 @@ export async function addDriverDocumentSelf(
       await supabase.storage.from(SELF_DOCS_BUCKET).remove([filePath]);
     return { error: error.message };
   }
-  revalidatePath("/driver/profil");
+  revalidatePath("/driver/parametres");
   return { ok: true };
 }
 
@@ -779,7 +779,7 @@ export async function deleteDriverDocumentSelf(
   if (error) return { error: error.message };
   const path = (doc?.file_url as string | null) ?? null;
   if (path) await supabase.storage.from(SELF_DOCS_BUCKET).remove([path]);
-  revalidatePath("/driver/profil");
+  revalidatePath("/driver/parametres");
   return {};
 }
 
@@ -807,7 +807,7 @@ export async function addDriverPayoutSelf(
     is_default: formData.get("is_default") === "on",
   });
   if (error) return { error: error.message };
-  revalidatePath("/driver/profil");
+  revalidatePath("/driver/parametres");
   return { ok: true };
 }
 
@@ -824,7 +824,7 @@ export async function deleteDriverPayoutSelf(
     .eq("id", methodId)
     .eq("driver_id", g.driverId);
   if (error) return { error: error.message };
-  revalidatePath("/driver/profil");
+  revalidatePath("/driver/parametres");
   return {};
 }
 
@@ -846,6 +846,143 @@ export async function submitDriverChangeRequest(
     note,
   });
   if (error) return { error: error.message };
-  revalidatePath("/driver/profil");
+  revalidatePath("/driver/parametres");
+  return { ok: true };
+}
+
+// =============================================================================
+// DEMANDES DE MODIFICATION STRUCTURÉES (livreur vérifié) — mig 0110/0111
+// =============================================================================
+// Le livreur vérifié ne modifie plus directement : il PROPOSE un changement
+// (payload). C'est « en cours de vérification » jusqu'à approbation du
+// super-admin, qui applique alors le payload aux tables réelles.
+
+/** Refuse une 2ᵉ demande en attente du même type (anti-spam). */
+async function hasPendingReq(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  driverId: string,
+  kind: string
+): Promise<boolean> {
+  const { count } = await supabase
+    .from("driver_change_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("driver_id", driverId)
+    .eq("kind", kind)
+    .eq("status", "pending");
+  return (count ?? 0) > 0;
+}
+
+export async function proposeVehicleChange(
+  _prev: DriverAuthState,
+  formData: FormData
+): Promise<DriverAuthState> {
+  const driver = await getCurrentDriver();
+  if (!driver) return { error: "Session expirée." };
+  if (driver.is_blocked) return { error: "Compte bloqué." };
+  const supabase = await createClient();
+  if (await hasPendingReq(supabase, driver.id, "vehicle"))
+    return { error: "Une demande véhicule est déjà en cours de vérification." };
+  const payload = {
+    vehicle_type: selfTxt(formData.get("vehicle_type")),
+    vehicle_brand: selfTxt(formData.get("vehicle_brand")),
+    vehicle_model: selfTxt(formData.get("vehicle_model")),
+    vehicle_color: selfTxt(formData.get("vehicle_color")),
+    vehicle_year: selfInt(formData.get("vehicle_year")),
+    vehicle_plate: selfTxt(formData.get("vehicle_plate")),
+    national_id_number: selfTxt(formData.get("national_id_number")),
+    id_card_number: selfTxt(formData.get("id_card_number")),
+    wilaya: selfTxt(formData.get("wilaya")),
+    address: selfTxt(formData.get("address")),
+  };
+  const { error } = await supabase.from("driver_change_requests").insert({
+    driver_id: driver.id,
+    kind: "vehicle",
+    note: "Mise à jour véhicule & identité",
+    payload,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/driver/parametres");
+  return { ok: true };
+}
+
+export async function proposePayoutChange(
+  _prev: DriverAuthState,
+  formData: FormData
+): Promise<DriverAuthState> {
+  const driver = await getCurrentDriver();
+  if (!driver) return { error: "Session expirée." };
+  if (driver.is_blocked) return { error: "Compte bloqué." };
+  const method = selfTxt(formData.get("method"));
+  const allowed = ["especes", "ccp", "baridimob", "virement"];
+  if (!method || !allowed.includes(method))
+    return { error: "Moyen de versement invalide." };
+  const supabase = await createClient();
+  if (await hasPendingReq(supabase, driver.id, "payout"))
+    return {
+      error: "Une demande versement est déjà en cours de vérification.",
+    };
+  const payload = {
+    method,
+    label: selfTxt(formData.get("label")),
+    account_number: selfTxt(formData.get("account_number")),
+    account_name: selfTxt(formData.get("account_name")),
+    is_default: formData.get("is_default") === "on",
+  };
+  const { error } = await supabase.from("driver_change_requests").insert({
+    driver_id: driver.id,
+    kind: "payout",
+    note: `Nouveau moyen de versement (${method})`,
+    payload,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/driver/parametres");
+  return { ok: true };
+}
+
+export async function proposeDocumentChange(
+  _prev: DriverAuthState,
+  formData: FormData
+): Promise<DriverAuthState> {
+  const driver = await getCurrentDriver();
+  if (!driver) return { error: "Session expirée." };
+  if (driver.is_blocked) return { error: "Compte bloqué." };
+  const docType = selfTxt(formData.get("doc_type"));
+  const allowed = ["cni", "permis", "carte_grise", "passeport", "autre"];
+  if (!docType || !allowed.includes(docType))
+    return { error: "Type de pièce invalide." };
+  const supabase = await createClient();
+  if (await hasPendingReq(supabase, driver.id, "document"))
+    return { error: "Une demande pièce est déjà en cours de vérification." };
+
+  let filePath: string | null = null;
+  const file = formData.get("file");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > SELF_MAX_SCAN)
+      return { error: "Scan trop lourd (max 8 Mo)." };
+    if (!SELF_SCAN_TYPES.includes(file.type))
+      return { error: "Format accepté : JPG, PNG, WEBP ou PDF." };
+    const safe = (file.name || "scan").replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${driver.id}/${globalThis.crypto.randomUUID()}-${safe}`;
+    const { error: upErr } = await supabase.storage
+      .from(SELF_DOCS_BUCKET)
+      .upload(path, file, { contentType: file.type, upsert: false });
+    if (upErr) return { error: `Upload échoué : ${upErr.message}` };
+    filePath = path;
+  }
+  const payload = {
+    doc_type: docType,
+    number: selfTxt(formData.get("number")),
+    issued_at: selfTxt(formData.get("issued_at")),
+    expires_at: selfTxt(formData.get("expires_at")),
+    file_url: filePath,
+  };
+  const { error } = await supabase.from("driver_change_requests").insert({
+    driver_id: driver.id,
+    kind: "document",
+    note: `Nouvelle pièce (${docType})`,
+    payload,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/driver/parametres");
   return { ok: true };
 }

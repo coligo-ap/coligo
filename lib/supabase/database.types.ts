@@ -1028,6 +1028,7 @@ export type Database = {
           review_note: string | null;
           reviewed_by: string | null;
           reviewed_at: string | null;
+          applied_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -1040,6 +1041,7 @@ export type Database = {
           review_note?: string | null;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
+          applied_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -1052,6 +1054,7 @@ export type Database = {
           review_note?: string | null;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
+          applied_at?: string | null;
           created_at?: string;
         };
         Relationships: [];

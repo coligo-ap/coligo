@@ -405,6 +405,41 @@ export async function resolveDriverChangeRequest(input: {
 }): Promise<{ error?: string }> {
   if (!(await isSuperAdmin())) return { error: "Accès refusé." };
   const admin = createAdminClient();
+
+  // Charge la demande (pour appliquer le payload à l'approbation).
+  const { data: req } = await admin
+    .from("driver_change_requests")
+    .select("id, driver_id, kind, payload, status")
+    .eq("id", input.requestId)
+    .maybeSingle();
+  if (!req) return { error: "Demande introuvable." };
+  if (req.status !== "pending") return { error: "Demande déjà traitée." };
+
+  // APPLICATION du changement (uniquement à l'approbation, service-role).
+  if (input.decision === "approved") {
+    const p = (req.payload ?? {}) as Record<string, unknown>;
+    let applyErr: string | null = null;
+    if (req.kind === "vehicle" || req.kind === "profile") {
+      const { error } = await admin
+        .from("drivers")
+        .update(p as never)
+        .eq("id", req.driver_id);
+      applyErr = error?.message ?? null;
+    } else if (req.kind === "payout") {
+      const { error } = await admin
+        .from("driver_payout_methods")
+        .insert({ driver_id: req.driver_id, ...p } as never);
+      applyErr = error?.message ?? null;
+    } else if (req.kind === "document") {
+      const { error } = await admin
+        .from("driver_documents")
+        .insert({ driver_id: req.driver_id, ...p } as never);
+      applyErr = error?.message ?? null;
+    }
+    // kind 'other' → pas d'application auto (l'admin agit manuellement).
+    if (applyErr) return { error: `Application échouée : ${applyErr}` };
+  }
+
   const { error } = await admin
     .from("driver_change_requests")
     .update({
@@ -412,6 +447,8 @@ export async function resolveDriverChangeRequest(input: {
       review_note: input.reviewNote ?? null,
       reviewed_by: await adminEmail(),
       reviewed_at: new Date().toISOString(),
+      applied_at:
+        input.decision === "approved" ? new Date().toISOString() : null,
     })
     .eq("id", input.requestId)
     .eq("status", "pending");

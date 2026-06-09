@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { driverLogout } from "@/app/(driver)/actions";
 import { useDriverDark, toggleDriverDark } from "@/lib/driver/theme-store";
 
@@ -26,12 +25,6 @@ export type CompteData = {
   capDa: number;
 };
 
-const METHOD_LABEL: Record<string, string> = {
-  ccp: "CCP",
-  baridimob: "BaridiMob",
-  bank: "Virement",
-};
-
 function grp(n: number) {
   return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
@@ -42,14 +35,6 @@ export function CompteView({ data }: { data: CompteData }) {
     100,
     Math.round((data.outstandingDa / Math.max(1, data.capDa)) * 100)
   );
-  const vehicle =
-    data.vehicleLabel || data.vehiclePlate
-      ? [data.vehicleLabel, data.vehiclePlate].filter(Boolean).join(" · ")
-      : "Non renseigné";
-  const payout =
-    data.payoutMethod && METHOD_LABEL[data.payoutMethod]
-      ? `${METHOD_LABEL[data.payoutMethod]}${data.payoutDetails ? ` ••• ${data.payoutDetails.slice(-4)}` : ""}`
-      : "À configurer";
 
   return (
     <>
@@ -97,42 +82,6 @@ export function CompteView({ data }: { data: CompteData }) {
       </div>
 
       <div className="menu">
-        <Mrow
-          label="Véhicule"
-          value={vehicle}
-          href="/driver/profil"
-          chevron
-          icon={
-            <>
-              <circle cx="5.5" cy="16.5" r="3" />
-              <circle cx="18.5" cy="16.5" r="3" />
-              <path d="M5.5 16.5 9 10h5l2 3.5" />
-            </>
-          }
-        />
-        <Mrow
-          label="Documents"
-          href="/driver/profil"
-          chevron
-          icon={
-            <>
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <path d="M14 2v6h6" />
-            </>
-          }
-        />
-        <Mrow
-          label="Versement"
-          value={payout}
-          href="/driver/profil"
-          chevron
-          icon={
-            <>
-              <rect x="2" y="5" width="20" height="14" rx="2" />
-              <path d="M2 10h20" />
-            </>
-          }
-        />
         <Mrow
           label="Apparence"
           value={dark ? "Sombre" : "Clair"}
@@ -191,7 +140,6 @@ function Mrow({
   valueColor,
   chevron,
   onClick,
-  href,
   icon,
 }: {
   label: string;
@@ -199,7 +147,6 @@ function Mrow({
   valueColor?: string;
   chevron?: boolean;
   onClick?: () => void;
-  href?: string;
   icon: React.ReactNode;
 }) {
   const content = (
@@ -235,13 +182,6 @@ function Mrow({
       </span>
     </>
   );
-  if (href) {
-    return (
-      <Link href={href} className="mrow">
-        {content}
-      </Link>
-    );
-  }
   if (onClick) {
     return (
       <button type="button" className="mrow" onClick={onClick}>

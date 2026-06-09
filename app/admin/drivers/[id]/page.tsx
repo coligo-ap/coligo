@@ -208,11 +208,24 @@ export default async function AdminDriverDetailPage({
   // --- Demandes de modification du livreur ---
   const { data: changeReqRaw } = await admin
     .from("driver_change_requests")
-    .select("id, kind, note, status, review_note, created_at")
+    .select("id, kind, note, status, review_note, payload, created_at")
     .eq("driver_id", id)
     .order("created_at", { ascending: false })
     .limit(20);
   const changeRequests = (changeReqRaw ?? []) as ChangeRequest[];
+  // Snapshot « avant » (valeurs actuelles) pour comparer aux demandes véhicule.
+  const currentVehicle: Record<string, unknown> = {
+    vehicle_type: driver.vehicle_type,
+    vehicle_brand: driver.vehicle_brand,
+    vehicle_model: driver.vehicle_model,
+    vehicle_color: driver.vehicle_color,
+    vehicle_year: driver.vehicle_year,
+    vehicle_plate: driver.vehicle_plate,
+    national_id_number: driver.national_id_number,
+    id_card_number: driver.id_card_number,
+    wilaya: driver.wilaya,
+    address: driver.address,
+  };
   const pendingReqCount = changeRequests.filter(
     (r) => r.status === "pending"
   ).length;
@@ -488,7 +501,11 @@ export default async function AdminDriverDetailPage({
           demandes. Vérifie, applique le changement via les sections ci-dessous,
           puis approuve/refuse.
         </p>
-        <DriverChangeRequests driverId={id} requests={changeRequests} />
+        <DriverChangeRequests
+          driverId={id}
+          requests={changeRequests}
+          currentVehicle={currentVehicle}
+        />
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

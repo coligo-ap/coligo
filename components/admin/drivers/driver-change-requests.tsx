@@ -13,8 +13,40 @@ export type ChangeRequest = {
   note: string;
   status: string;
   review_note: string | null;
+  payload: Record<string, unknown> | null;
   created_at: string;
 };
+
+const FIELD_LABELS: Record<string, string> = {
+  vehicle_type: "Type",
+  vehicle_brand: "Marque",
+  vehicle_model: "Modèle",
+  vehicle_color: "Couleur",
+  vehicle_year: "Année",
+  vehicle_plate: "Immatriculation",
+  national_id_number: "N° national",
+  id_card_number: "N° carte d'identité",
+  wilaya: "Wilaya",
+  address: "Adresse",
+  method: "Moyen",
+  label: "Libellé",
+  account_number: "N° compte",
+  account_name: "Titulaire",
+  is_default: "Par défaut",
+  doc_type: "Type de pièce",
+  number: "Numéro",
+  issued_at: "Émission",
+  expires_at: "Expiration",
+  file_url: "Scan",
+};
+const fmt = (v: unknown) =>
+  v === null || v === undefined || v === ""
+    ? "—"
+    : typeof v === "boolean"
+      ? v
+        ? "oui"
+        : "non"
+      : String(v);
 
 /**
  * Demandes de modification soumises par le livreur (compte vérifié). Le
@@ -24,9 +56,11 @@ export type ChangeRequest = {
 export function DriverChangeRequests({
   driverId,
   requests,
+  currentVehicle,
 }: {
   driverId: string;
   requests: ChangeRequest[];
+  currentVehicle?: Record<string, unknown>;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -95,6 +129,35 @@ export function DriverChangeRequests({
                   : "En attente"}
             </span>
           </div>
+
+          {/* Avant → après : ce que le livreur veut changer. */}
+          {r.payload && Object.keys(r.payload).length > 0 && (
+            <div className="bg-surface-2 mt-2 rounded-[10px] p-2.5 text-xs">
+              {Object.entries(r.payload).map(([k, v]) => {
+                const before = currentVehicle?.[k];
+                const showBefore = r.kind === "vehicle" || r.kind === "profile";
+                return (
+                  <div
+                    key={k}
+                    className="flex items-center justify-between gap-2 py-0.5"
+                  >
+                    <span className="text-muted">{FIELD_LABELS[k] ?? k}</span>
+                    <span className="text-right">
+                      {showBefore && (
+                        <span className="text-muted line-through">
+                          {fmt(before)}
+                        </span>
+                      )}{" "}
+                      <span className="text-foreground font-semibold">
+                        {k === "file_url" ? (v ? "fourni" : "—") : fmt(v)}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {r.status === "pending" && (
             <div className="mt-2 flex gap-2">
               <Button
