@@ -271,10 +271,10 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
             inputMode="numeric"
             value={code}
             onChange={(e) =>
-              setCode(e.target.value.replace(/\D/g, "").slice(0, 8))
+              setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
             }
-            placeholder="Code reçu par email"
-            className="border-border bg-surface-2 focus:border-primary-400 w-full rounded-[13px] border px-3.5 py-3.5 text-center text-lg font-bold tracking-[0.25em] tabular-nums outline-none"
+            placeholder="Code à 6 chiffres"
+            className="border-border bg-surface-2 focus:border-primary-400 w-full rounded-[13px] border px-3.5 py-3.5 text-center text-lg font-bold tracking-[0.3em] tabular-nums outline-none"
           />
           <div className="flex gap-2">
             <button

@@ -140,8 +140,8 @@ export async function confirmEmailChange(input: {
   const email = (input.email ?? "").trim().toLowerCase();
   const token = (input.token ?? "").replace(/\D/g, "");
   if (!EMAIL_RE.test(email)) return { error: "Adresse email invalide." };
-  // Le code Supabase fait 6 OU 8 chiffres selon la config projet.
-  if (token.length < 6) return { error: "Entre le code reçu par email." };
+  // Code Supabase à 6 chiffres (config projet alignée à 6).
+  if (token.length < 6) return { error: "Entre le code à 6 chiffres reçu." };
 
   const supabase = await createClient();
   const {
