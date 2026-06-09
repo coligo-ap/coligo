@@ -141,17 +141,39 @@ export async function toggleDriverFrozen(
 ): Promise<{ error?: string }> {
   if (!(await isSuperAdmin())) return { error: "Accès refusé." };
 
-  const supabase = await createClient();
-  const { error } = await supabase
+  // ⚠️ La table `drivers` n'a PAS de policy UPDATE super-admin (seulement
+  // `drivers_update_self`). Un update via la session admin matchait 0 ligne →
+  // le gel ne s'appliquait jamais. On passe par le service-role (bypass RLS).
+  const admin = createAdminClient();
+  const { error, count } = await admin
     .from("drivers")
-    .update({ is_frozen: frozen })
+    .update({ is_frozen: frozen }, { count: "exact" })
     .eq("id", driverId);
   if (error) return { error: error.message };
+  if (!count) return { error: "Livreur introuvable." };
 
+  // Gel → sortie IMMÉDIATE de toutes les files de réception (en plus du garde
+  // `is_frozen` déjà vérifié dans pull_next_express*/set_driver_availability).
+  if (frozen) {
+    const { data: mds } = await admin
+      .from("merchant_drivers")
+      .select("id")
+      .eq("driver_id", driverId);
+    const ids = (mds ?? []).map((m) => m.id);
+    if (ids.length) {
+      await admin
+        .from("driver_availability")
+        .update({ status: "offline" })
+        .in("merchant_driver_id", ids)
+        .neq("status", "busy"); // on ne casse pas une course en cours
+    }
+  }
+
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  await supabase.from("admin_audit_log").insert({
+  await admin.from("admin_audit_log").insert({
     admin_email: user?.email ?? null,
     action: frozen ? "freeze_driver" : "unfreeze_driver",
     target_kind: "driver",
@@ -160,6 +182,7 @@ export async function toggleDriverFrozen(
   });
 
   revalidatePath("/admin/drivers");
+  revalidatePath(`/admin/drivers/${driverId}`);
   return {};
 }
 

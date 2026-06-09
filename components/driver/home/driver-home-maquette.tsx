@@ -9,6 +9,9 @@ import { playGo } from "@/lib/driver/sounds";
 
 const ONLINE_SINCE_KEY = "coligo_driver_online_since";
 
+export const FROZEN_MESSAGE =
+  "Votre compte est gelé/bloqué. Merci de prendre contact avec le support pour résoudre le problème.";
+
 function grp(n: number) {
   return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
@@ -42,6 +45,8 @@ export function DriverHomeMaquette({
   const [busy, start] = useTransition();
   const router = useRouter();
   const [onlineLabel, setOnlineLabel] = useState("0h00");
+  // Affiche le message « compte gelé » si le serveur refuse la mise en ligne.
+  const [frozenMsg, setFrozenMsg] = useState(false);
 
   // Session « en ligne » (localStorage) → durée affichée dans les stats.
   useEffect(() => {
@@ -75,17 +80,106 @@ export function DriverHomeMaquette({
 
   const toggle = () => {
     const next = !online;
-    setDriverOnline(next);
-    if (next) void playGo();
     // AUCUN toast de statut : le bouton vert + le chip suffisent (cf. prompt).
-    start(async () => {
-      await setGlobalAvailability(next ? "available" : "offline");
-      router.refresh();
-    });
+    if (next) {
+      // Passage en ligne : optimiste, mais le serveur peut refuser (gelé).
+      setDriverOnline(true);
+      start(async () => {
+        const r = await setGlobalAvailability("available");
+        if (r?.error === "FROZEN") {
+          setDriverOnline(false); // on annule la mise en ligne
+          setFrozenMsg(true); // et on réaffiche le message de blocage
+          return;
+        }
+        void playGo();
+        router.refresh();
+      });
+    } else {
+      setDriverOnline(false);
+      start(async () => {
+        await setGlobalAvailability("offline");
+        router.refresh();
+      });
+    }
   };
 
   return (
     <>
+      {/* Message bloquant « compte gelé » (réaffiché à chaque clic sur GO). */}
+      {frozenMsg && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-6"
+          style={{ background: "rgba(8,9,16,.6)" }}
+          onClick={() => setFrozenMsg(false)}
+        >
+          <div
+            className="w-full max-w-sm text-center"
+            style={{
+              background: "var(--surface)",
+              color: "var(--ink)",
+              borderRadius: 22,
+              padding: "26px 22px",
+              boxShadow: "var(--pill-shadow)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                margin: "0 auto 14px",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "var(--red-soft)",
+              }}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ width: 28, height: 28, stroke: "var(--red)" }}
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v4M12 16h.01" />
+              </svg>
+            </div>
+            <h2
+              className="mq-sora"
+              style={{ fontSize: 19, fontWeight: 800, marginBottom: 8 }}
+            >
+              Compte gelé
+            </h2>
+            <p
+              style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.5 }}
+            >
+              {FROZEN_MESSAGE}
+            </p>
+            <button
+              type="button"
+              onClick={() => setFrozenMsg(false)}
+              style={{
+                marginTop: 18,
+                width: "100%",
+                height: 48,
+                border: 0,
+                borderRadius: 14,
+                background: "var(--ink)",
+                color: "var(--surface)",
+                fontFamily: "var(--font-sora), Sora, sans-serif",
+                fontWeight: 700,
+                fontSize: 15,
+              }}
+            >
+              J&apos;ai compris
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Chip discret « ● En ligne » (haut-gauche) — uniquement en ligne. */}
       {online && (
         <div className="home-chip">

@@ -73,6 +73,10 @@ export function OrderReassign({
       <p className="text-muted text-xs font-semibold uppercase">
         Retirer cette commande au livreur
       </p>
+      <p className="text-muted text-xs">
+        Remet la course en livraison comme une nouvelle commande — même si le
+        livreur a déclaré l&apos;avoir récupérée par erreur.
+      </p>
 
       <Button
         type="button"
@@ -87,7 +91,7 @@ export function OrderReassign({
         ) : (
           <Users className="size-3.5" />
         )}
-        Remettre au réseau (re-disponible)
+        Remettre au réseau (priorité réseau)
       </Button>
 
       <div className="flex gap-2">

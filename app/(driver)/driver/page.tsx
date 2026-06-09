@@ -39,10 +39,26 @@ export default async function DriverHomePage() {
   if (driver.is_frozen) {
     return (
       <div className="relative min-h-[100dvh] bg-[#f2f2f2]">
-        <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col items-center justify-center gap-3 px-6 text-center">
-          <h1 className="text-lg font-bold text-[#0a0a0a]">Compte gelé</h1>
-          <p className="text-sm font-medium text-[#757575]">
-            Ton accès a été suspendu par Coligo. Contacte le support.
+        <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
+          <div className="flex size-16 items-center justify-center rounded-full bg-[#fdecec]">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-8 stroke-[#e5484d]"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v4M12 16h.01" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-[#0a0a0a]">
+            Compte gelé / bloqué
+          </h1>
+          <p className="max-w-xs text-sm font-medium text-[#757575]">
+            Votre compte est gelé/bloqué. Merci de prendre contact avec le
+            support pour résoudre le problème.
           </p>
         </div>
       </div>
