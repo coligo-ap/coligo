@@ -395,6 +395,37 @@ export async function deleteDriverPayoutMethod(
 }
 
 // ---------------------------------------------------------------------------
+// 4bis. Demandes de modification du livreur (après vérification)
+// ---------------------------------------------------------------------------
+export async function resolveDriverChangeRequest(input: {
+  requestId: string;
+  driverId: string;
+  decision: "approved" | "rejected";
+  reviewNote?: string | null;
+}): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("driver_change_requests")
+    .update({
+      status: input.decision,
+      review_note: input.reviewNote ?? null,
+      reviewed_by: await adminEmail(),
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", input.requestId)
+    .eq("status", "pending");
+  if (error) return { error: error.message };
+  await audit(
+    input.decision === "approved" ? "approve_change_req" : "reject_change_req",
+    input.driverId,
+    input.reviewNote ?? null
+  );
+  refreshDriver(input.driverId);
+  return {};
+}
+
+// ---------------------------------------------------------------------------
 // 5. Retrait / réattribution instantanée d'une commande
 //    mode : 'pool' (réseau) · 'driver' (livreur précis) · 'cancel' (annulation)
 // ---------------------------------------------------------------------------

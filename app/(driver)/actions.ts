@@ -631,3 +631,221 @@ export async function pullNextExpressNearby(
     return {};
   }
 }
+
+// =============================================================================
+// SELF-SERVICE LIVREUR — véhicule / pièces / versements (mig 0110)
+// =============================================================================
+// PREMIÈRE FOIS (compte NON vérifié) : le livreur renseigne lui-même ses infos
+// dans les MÊMES tables que le super-admin (cohérence). Une fois le compte
+// VÉRIFIÉ, tout est verrouillé (RLS + trigger SQL) → il passe par une DEMANDE
+// de modification (submitDriverChangeRequest), appliquée après approbation.
+
+const SELF_DOCS_BUCKET = "driver-docs";
+const SELF_MAX_SCAN = 8 * 1024 * 1024;
+const SELF_SCAN_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+];
+
+const selfTxt = (v: FormDataEntryValue | null): string | null => {
+  const s = (v == null ? "" : String(v)).trim();
+  return s === "" ? null : s;
+};
+const selfInt = (v: FormDataEntryValue | null): number | null => {
+  const s = selfTxt(v);
+  if (s == null) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? Math.trunc(n) : null;
+};
+
+/** Garde commune : récupère le livreur ; refuse si vérifié (sauf demande). */
+async function selfGuard(): Promise<
+  | { ok: true; driverId: string; verified: boolean }
+  | { ok: false; error: string }
+> {
+  const driver = await getCurrentDriver();
+  if (!driver) return { ok: false, error: "Session expirée." };
+  if (driver.is_blocked) return { ok: false, error: "Compte bloqué." };
+  // Le verrouillage des self-edits dépend UNIQUEMENT de la vérification.
+  return { ok: true, driverId: driver.id, verified: driver.is_verified };
+}
+
+export async function saveDriverVehicleSelf(
+  _prev: DriverAuthState,
+  formData: FormData
+): Promise<DriverAuthState> {
+  const g = await selfGuard();
+  if (!g.ok) return { error: g.error };
+  if (g.verified) {
+    return {
+      error: "Profil vérifié : passez par une demande de modification.",
+    };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("drivers")
+    .update({
+      vehicle_type: selfTxt(formData.get("vehicle_type")),
+      vehicle_brand: selfTxt(formData.get("vehicle_brand")),
+      vehicle_model: selfTxt(formData.get("vehicle_model")),
+      vehicle_color: selfTxt(formData.get("vehicle_color")),
+      vehicle_year: selfInt(formData.get("vehicle_year")),
+      vehicle_plate: selfTxt(formData.get("vehicle_plate")),
+      national_id_number: selfTxt(formData.get("national_id_number")),
+      id_card_number: selfTxt(formData.get("id_card_number")),
+      wilaya: selfTxt(formData.get("wilaya")),
+      address: selfTxt(formData.get("address")),
+    })
+    .eq("id", g.driverId);
+  if (error) {
+    if (error.message.includes("profile_locked"))
+      return { error: "Profil verrouillé (compte vérifié)." };
+    return { error: error.message };
+  }
+  revalidatePath("/driver/profil");
+  return { ok: true };
+}
+
+export async function addDriverDocumentSelf(
+  _prev: DriverAuthState,
+  formData: FormData
+): Promise<DriverAuthState> {
+  const g = await selfGuard();
+  if (!g.ok) return { error: g.error };
+  if (g.verified)
+    return {
+      error: "Profil vérifié : passez par une demande de modification.",
+    };
+
+  const docType = selfTxt(formData.get("doc_type"));
+  const allowed = ["cni", "permis", "carte_grise", "passeport", "autre"];
+  if (!docType || !allowed.includes(docType))
+    return { error: "Type de pièce invalide." };
+
+  const supabase = await createClient();
+  let filePath: string | null = null;
+  const file = formData.get("file");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > SELF_MAX_SCAN)
+      return { error: "Scan trop lourd (max 8 Mo)." };
+    if (!SELF_SCAN_TYPES.includes(file.type))
+      return { error: "Format accepté : JPG, PNG, WEBP ou PDF." };
+    const safe = (file.name || "scan").replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${g.driverId}/${globalThis.crypto.randomUUID()}-${safe}`;
+    const { error: upErr } = await supabase.storage
+      .from(SELF_DOCS_BUCKET)
+      .upload(path, file, { contentType: file.type, upsert: false });
+    if (upErr) return { error: `Upload échoué : ${upErr.message}` };
+    filePath = path;
+  }
+
+  const { error } = await supabase.from("driver_documents").insert({
+    driver_id: g.driverId,
+    doc_type: docType,
+    number: selfTxt(formData.get("number")),
+    issued_at: selfTxt(formData.get("issued_at")),
+    expires_at: selfTxt(formData.get("expires_at")),
+    file_url: filePath,
+  });
+  if (error) {
+    if (filePath)
+      await supabase.storage.from(SELF_DOCS_BUCKET).remove([filePath]);
+    return { error: error.message };
+  }
+  revalidatePath("/driver/profil");
+  return { ok: true };
+}
+
+export async function deleteDriverDocumentSelf(
+  docId: string
+): Promise<{ error?: string }> {
+  const g = await selfGuard();
+  if (!g.ok) return { error: g.error };
+  if (g.verified) return { error: "Profil vérifié." };
+  const supabase = await createClient();
+  const { data: doc } = await supabase
+    .from("driver_documents")
+    .select("file_url")
+    .eq("id", docId)
+    .eq("driver_id", g.driverId)
+    .maybeSingle();
+  const { error } = await supabase
+    .from("driver_documents")
+    .delete()
+    .eq("id", docId)
+    .eq("driver_id", g.driverId);
+  if (error) return { error: error.message };
+  const path = (doc?.file_url as string | null) ?? null;
+  if (path) await supabase.storage.from(SELF_DOCS_BUCKET).remove([path]);
+  revalidatePath("/driver/profil");
+  return {};
+}
+
+export async function addDriverPayoutSelf(
+  _prev: DriverAuthState,
+  formData: FormData
+): Promise<DriverAuthState> {
+  const g = await selfGuard();
+  if (!g.ok) return { error: g.error };
+  if (g.verified)
+    return {
+      error: "Profil vérifié : passez par une demande de modification.",
+    };
+  const method = selfTxt(formData.get("method"));
+  const allowed = ["especes", "ccp", "baridimob", "virement"];
+  if (!method || !allowed.includes(method))
+    return { error: "Moyen de versement invalide." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("driver_payout_methods").insert({
+    driver_id: g.driverId,
+    method,
+    label: selfTxt(formData.get("label")),
+    account_number: selfTxt(formData.get("account_number")),
+    account_name: selfTxt(formData.get("account_name")),
+    is_default: formData.get("is_default") === "on",
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/driver/profil");
+  return { ok: true };
+}
+
+export async function deleteDriverPayoutSelf(
+  methodId: string
+): Promise<{ error?: string }> {
+  const g = await selfGuard();
+  if (!g.ok) return { error: g.error };
+  if (g.verified) return { error: "Profil vérifié." };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("driver_payout_methods")
+    .delete()
+    .eq("id", methodId)
+    .eq("driver_id", g.driverId);
+  if (error) return { error: error.message };
+  revalidatePath("/driver/profil");
+  return {};
+}
+
+/** Demande de modification (compte vérifié) → file d'approbation super-admin. */
+export async function submitDriverChangeRequest(
+  _prev: DriverAuthState,
+  formData: FormData
+): Promise<DriverAuthState> {
+  const driver = await getCurrentDriver();
+  if (!driver) return { error: "Session expirée." };
+  if (driver.is_blocked) return { error: "Compte bloqué." };
+  const kind = selfTxt(formData.get("kind")) ?? "other";
+  const note = selfTxt(formData.get("note"));
+  if (!note) return { error: "Décris la modification souhaitée." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("driver_change_requests").insert({
+    driver_id: driver.id,
+    kind,
+    note,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/driver/profil");
+  return { ok: true };
+}

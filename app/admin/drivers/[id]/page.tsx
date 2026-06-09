@@ -35,6 +35,10 @@ import {
 } from "@/components/admin/drivers/order-reassign";
 import { DriverAvatarUpload } from "@/components/admin/drivers/driver-avatar-upload";
 import { DriverStatusBadge } from "@/components/admin/drivers/driver-status-badge";
+import {
+  DriverChangeRequests,
+  type ChangeRequest,
+} from "@/components/admin/drivers/driver-change-requests";
 
 export const dynamic = "force-dynamic";
 
@@ -200,6 +204,18 @@ export default async function AdminDriverDetailPage({
     .eq("driver_id", id)
     .order("period_start", { ascending: false })
     .limit(8);
+
+  // --- Demandes de modification du livreur ---
+  const { data: changeReqRaw } = await admin
+    .from("driver_change_requests")
+    .select("id, kind, note, status, review_note, created_at")
+    .eq("driver_id", id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const changeRequests = (changeReqRaw ?? []) as ChangeRequest[];
+  const pendingReqCount = changeRequests.filter(
+    (r) => r.status === "pending"
+  ).length;
 
   // --- Candidats pour réattribution ---
   const { data: candRows } = await admin
@@ -454,6 +470,25 @@ export default async function AdminDriverDetailPage({
               : "depuis le début"}{" "}
           · valeurs figées par commande (snapshots immuables).
         </p>
+      </section>
+
+      {/* Demandes de modification (livreur vérifié) */}
+      <section className="border-border bg-surface rounded-[16px] border p-5">
+        <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
+          <FileText className="size-4" />
+          Demandes de modification
+          {pendingReqCount > 0 && (
+            <span className="bg-warning-100 text-warning-800 rounded-full px-2 py-0.5 text-xs font-bold">
+              {pendingReqCount} en attente
+            </span>
+          )}
+        </h2>
+        <p className="text-muted mb-3 text-xs">
+          Le livreur étant vérifié, ses infos sont verrouillées : il soumet des
+          demandes. Vérifie, applique le changement via les sections ci-dessous,
+          puis approuve/refuse.
+        </p>
+        <DriverChangeRequests driverId={id} requests={changeRequests} />
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -1017,6 +1017,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      driver_change_requests: {
+        Row: {
+          id: string;
+          driver_id: string;
+          kind: string;
+          note: string;
+          payload: Json | null;
+          status: string;
+          review_note: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          driver_id: string;
+          kind: string;
+          note: string;
+          payload?: Json | null;
+          status?: string;
+          review_note?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          driver_id?: string;
+          kind?: string;
+          note?: string;
+          payload?: Json | null;
+          status?: string;
+          review_note?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       driver_reviews: {
         Row: {
           id: string;
