@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { isValidDzPhone } from "@/lib/dz/phone";
+import { isValidContactPhone } from "@/lib/dz/phone";
 import { PhoneGateForm } from "@/components/customer/phone-gate-form";
 
 export const dynamic = "force-dynamic";
@@ -30,13 +30,19 @@ export default async function PhoneGatePage({
 
   const { data: cust } = await supabase
     .from("customers")
-    .select("full_name, phone")
+    .select("full_name, email, phone")
     .eq("user_id", user.id)
     .maybeSingle();
   // Pas un client (commerçant) → vers son espace.
   if (!cust) redirect("/dashboard");
   // Numéro déjà valide → rien à faire ici.
-  if (isValidDzPhone(cust.phone)) redirect(next);
+  if (isValidContactPhone(cust.phone)) redirect(next);
 
-  return <PhoneGateForm fullName={cust.full_name ?? ""} next={next} />;
+  return (
+    <PhoneGateForm
+      fullName={cust.full_name ?? ""}
+      email={cust.email ?? user.email ?? ""}
+      next={next}
+    />
+  );
 }

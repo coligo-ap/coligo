@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 import { withLongSession } from "./session-config";
-import { isValidDzPhone } from "@/lib/dz/phone";
+import { isValidContactPhone } from "@/lib/dz/phone";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -118,7 +118,7 @@ export async function updateSession(request: NextRequest) {
         .eq("user_id", user.id)
         .maybeSingle();
       if (cust) {
-        if (isValidDzPhone(cust.phone)) {
+        if (isValidContactPhone(cust.phone)) {
           // Numéro déjà valide → on mémorise pour ne plus requêter.
           supabaseResponse.cookies.set("coligo_phone_ok", "1", {
             httpOnly: true,

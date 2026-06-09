@@ -9,7 +9,7 @@ import {
   pauseReasonMessage,
 } from "@/lib/merchant/pause-state";
 import { APP_CONFIG } from "@/lib/config/app-config";
-import { isValidDzPhone } from "@/lib/dz/phone";
+import { isValidContactPhone } from "@/lib/dz/phone";
 import {
   getCashbackBalanceForCustomer,
   getTopupBalanceForCustomer,
@@ -117,7 +117,7 @@ export async function createOrder(
   // Téléphone VALIDE obligatoire pour commander (commande NOT NULL + contact
   // livraison). Cas des comptes créés via connexion sociale (Google) sans numéro
   // OU avec un numéro non conforme.
-  if (!isValidDzPhone(customer.phone)) {
+  if (!isValidContactPhone(customer.phone)) {
     return {
       ok: false,
       error:
@@ -742,7 +742,7 @@ export async function createOrder(
       addrPhone?.trim() ||
       customer.phone?.trim() ||
       "";
-    if (!isValidDzPhone(deliveryPhone)) {
+    if (!isValidContactPhone(deliveryPhone)) {
       return {
         ok: false,
         error:

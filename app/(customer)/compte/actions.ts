@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { normalizeDzPhone, DZ_PHONE_ERROR } from "@/lib/dz/phone";
+import { normalizeContactPhone, DZ_PHONE_ERROR } from "@/lib/dz/phone";
 
 export type ProfileState = { error?: string; success?: string };
 
@@ -38,8 +38,9 @@ export async function updateProfile(input: {
   if (full_name.length < 2) {
     return { error: "Entre ton nom et prénom." };
   }
-  // Numéro algérien valide OBLIGATOIRE (cas des inscriptions Google sans tel).
-  const phone = normalizeDzPhone(input.phone);
+  // Numéro valide OBLIGATOIRE (cas des inscriptions Google sans tel) — mobile
+  // algérien par défaut, ou numéro international (E.164).
+  const phone = normalizeContactPhone(input.phone);
   if (!phone) {
     return { error: DZ_PHONE_ERROR };
   }

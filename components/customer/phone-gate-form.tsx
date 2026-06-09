@@ -2,109 +2,200 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2, Phone, ShieldCheck } from "lucide-react";
+import {
+  CheckCircle2,
+  Loader2,
+  Lock,
+  Mail,
+  Phone,
+  User as UserIcon,
+} from "lucide-react";
+import { Logo } from "@/components/shared/logo";
+import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
+import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { toast } from "@/components/ui/toast";
-import { isValidDzPhone } from "@/lib/dz/phone";
+import { COUNTRY_CODES, DEFAULT_DIAL, composePhone } from "@/lib/dz/phone";
 import { updateProfile } from "@/app/(customer)/compte/actions";
 
 /**
- * Saisie OBLIGATOIRE du numéro de téléphone (mobile algérien). Bloque l'accès
- * à la plateforme tant qu'un numéro valide n'est pas enregistré. Validation en
- * direct + bouton désactivé tant que le numéro n'est pas conforme.
+ * Dernière étape d'inscription (connexion Google) : on garde le HEADER et le
+ * cadre « login client », on PRÉ-REMPLIT le nom et l'email récupérés de Google,
+ * et il ne reste au client qu'à saisir son TÉLÉPHONE (indicatif pays, Algérie
+ * par défaut). Pas de page « nue » séparée.
  */
 export function PhoneGateForm({
   fullName,
+  email,
   next,
 }: {
   fullName: string;
+  email: string;
   next: string;
 }) {
   const router = useRouter();
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(fullName);
+  const [dial, setDial] = useState(DEFAULT_DIAL);
+  const [national, setNational] = useState("");
   const [pending, start] = useTransition();
 
-  const valid = isValidDzPhone(phone);
-  const showError = phone.trim().length > 0 && !valid;
+  const composed = composePhone(dial, national);
+  const valid = composed !== null && name.trim().length >= 2;
+  const showError = national.trim().length > 0 && composed === null;
 
   const submit = () =>
     start(async () => {
-      const res = await updateProfile({
-        full_name: fullName || "Client",
-        phone,
-      });
+      if (!composed) return;
+      const res = await updateProfile({ full_name: name, phone: composed });
       if (res.error) {
         toast.error(res.error);
         return;
       }
-      toast.success("Numéro enregistré ✓");
+      toast.success("Inscription finalisée ✓");
       router.replace(next);
       router.refresh();
     });
 
   return (
-    <div className="bg-surface-2 flex min-h-[100dvh] flex-col items-center justify-center px-5 py-10">
-      <div className="w-full max-w-sm rounded-[22px] bg-white p-6 shadow-[0_18px_44px_-22px_rgba(40,35,90,.3)]">
-        <div className="bg-primary-50 text-primary-700 mb-4 flex size-12 items-center justify-center rounded-full">
-          <ShieldCheck className="size-6" />
-        </div>
-        <h1 className="text-foreground text-xl font-extrabold tracking-tight">
-          Votre numéro de téléphone
-        </h1>
-        <p className="text-muted mt-1.5 text-sm font-medium">
-          Un numéro de mobile algérien est <b>obligatoire</b> pour utiliser
-          Coligo (confirmation de commande et contact à la livraison).
-        </p>
+    <>
+      <div className="flex min-h-screen flex-col pb-20 lg:pb-0">
+        <AuthNavBar variant="customer" />
 
-        <label className="text-muted mt-5 mb-2 block text-[11.5px] font-extrabold tracking-wide uppercase">
-          Téléphone
-        </label>
-        <div
-          className={
-            "bg-surface-2 flex items-center gap-2.5 rounded-[13px] border px-3.5 py-3.5 transition focus-within:ring-2 " +
-            (showError
-              ? "border-[#e5484d] focus-within:border-[#e5484d] focus-within:ring-[#e5484d]/15"
-              : "border-border focus-within:border-primary-400 focus-within:ring-primary-100")
-          }
-        >
-          <Phone className="text-muted size-4 shrink-0" />
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            type="tel"
-            inputMode="tel"
-            autoFocus
-            placeholder="06 12 34 56 78"
-            aria-invalid={showError}
-            className="text-foreground w-full bg-transparent text-sm font-bold outline-none placeholder:font-medium"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && valid && !pending) submit();
-            }}
-          />
-          {valid && <CheckCircle2 className="size-4 shrink-0 text-[#16b364]" />}
-        </div>
-        <p className="mt-1.5 px-0.5 text-[11.5px] font-medium">
-          {showError ? (
-            <span className="text-[#e5484d]">
-              Numéro algérien invalide — format 0X XX XX XX XX (05/06/07).
-            </span>
-          ) : valid ? (
-            <span className="text-[#16b364]">Numéro valide ✓</span>
-          ) : (
-            <span className="text-muted">
-              Mobile algérien requis (ex. 06 12 34 56 78).
-            </span>
-          )}
-        </p>
+        <main className="bg-surface-2 flex flex-1 items-center justify-center p-4 lg:p-12">
+          <div className="w-full max-w-md">
+            <div className="mb-8 flex justify-center lg:hidden">
+              <Logo variant="amber" size="lg" />
+            </div>
 
-        <button
-          type="button"
-          disabled={!valid || pending}
-          onClick={submit}
-          className="bg-primary-600 hover:bg-primary-700 mt-5 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[15px] text-[15px] font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] transition disabled:opacity-40"
-        >
-          {pending ? <Loader2 className="size-4 animate-spin" /> : "Continuer"}
-        </button>
+            <div className="border-border rounded-[16px] border bg-white p-6 shadow-sm">
+              <h2 className="text-foreground mb-1 text-2xl font-bold">
+                Dernière étape
+              </h2>
+              <p className="text-muted mb-6 text-sm">
+                Vérifie tes informations et ajoute ton numéro de téléphone pour
+                finaliser ton inscription.
+              </p>
+
+              <div className="space-y-4">
+                {/* Nom (préremlpi depuis Google, modifiable) */}
+                <div className="space-y-1.5">
+                  <label className="text-foreground text-sm font-medium">
+                    Nom et prénom
+                  </label>
+                  <div className="border-border bg-surface-2 focus-within:border-primary-400 focus-within:ring-primary-100 flex items-center gap-2.5 rounded-[12px] border px-3.5 py-3 transition focus-within:ring-2">
+                    <UserIcon className="text-muted size-4 shrink-0" />
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={80}
+                      placeholder="Nom et prénom"
+                      className="text-foreground w-full bg-transparent text-sm font-semibold outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Email (préremlpi depuis Google, non modifiable ici) */}
+                <div className="space-y-1.5">
+                  <label className="text-foreground text-sm font-medium">
+                    Email
+                  </label>
+                  <div className="border-border flex items-center gap-2.5 rounded-[12px] border bg-[var(--surface-2)] px-3.5 py-3 opacity-80">
+                    <Mail className="text-muted size-4 shrink-0" />
+                    <span className="text-foreground min-w-0 flex-1 truncate text-sm font-semibold">
+                      {email || "—"}
+                    </span>
+                    <Lock className="text-muted size-3.5 shrink-0" />
+                  </div>
+                </div>
+
+                {/* Téléphone : indicatif pays (Algérie par défaut) + numéro */}
+                <div className="space-y-1.5">
+                  <label className="text-foreground text-sm font-medium">
+                    Téléphone <span className="text-[#e5484d]">*</span>
+                  </label>
+                  <div
+                    className={
+                      "bg-surface-2 flex items-center gap-1.5 rounded-[12px] border pr-3.5 transition focus-within:ring-2 " +
+                      (showError
+                        ? "border-[#e5484d] focus-within:border-[#e5484d] focus-within:ring-[#e5484d]/15"
+                        : "border-border focus-within:border-primary-400 focus-within:ring-primary-100")
+                    }
+                  >
+                    <select
+                      value={dial}
+                      onChange={(e) => setDial(e.target.value)}
+                      aria-label="Indicatif pays"
+                      className="text-foreground h-[46px] shrink-0 rounded-l-[12px] bg-transparent pr-1 pl-3 text-sm font-semibold outline-none"
+                    >
+                      {COUNTRY_CODES.map((c) => (
+                        <option key={c.dial + c.name} value={c.dial}>
+                          {c.flag} {c.dial}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-border">|</span>
+                    <Phone className="text-muted size-4 shrink-0" />
+                    <input
+                      value={national}
+                      onChange={(e) => setNational(e.target.value)}
+                      type="tel"
+                      inputMode="tel"
+                      autoFocus
+                      placeholder={
+                        dial === "+213" ? "06 12 34 56 78" : "Numéro"
+                      }
+                      aria-invalid={showError}
+                      className="text-foreground w-full bg-transparent py-3 text-sm font-semibold outline-none placeholder:font-medium"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && valid && !pending) submit();
+                      }}
+                    />
+                    {composed !== null && (
+                      <CheckCircle2 className="size-4 shrink-0 text-[#16b364]" />
+                    )}
+                  </div>
+                  <p className="px-0.5 text-[11.5px] font-medium">
+                    {showError ? (
+                      <span className="text-[#e5484d]">
+                        {dial === "+213"
+                          ? "Mobile algérien invalide — ex. 06 12 34 56 78."
+                          : "Numéro invalide."}
+                      </span>
+                    ) : composed !== null ? (
+                      <span className="text-[#16b364]">Numéro valide ✓</span>
+                    ) : (
+                      <span className="text-muted">
+                        {dial === "+213"
+                          ? "Mobile algérien (05/06/07)."
+                          : "Saisis ton numéro national."}
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!valid || pending}
+                  onClick={submit}
+                  className="bg-primary-600 hover:bg-primary-700 mt-1 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] transition disabled:opacity-40"
+                >
+                  {pending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    "Finaliser mon inscription"
+                  )}
+                </button>
+                <p className="text-muted text-center text-[11.5px]">
+                  Un numéro valide est obligatoire (confirmation de commande et
+                  contact à la livraison).
+                </p>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <AuthFooter />
       </div>
-    </div>
+      <CustomerBottomNav />
+    </>
   );
 }

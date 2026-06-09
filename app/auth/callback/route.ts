@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { isValidDzPhone } from "@/lib/dz/phone";
+import { isValidContactPhone } from "@/lib/dz/phone";
 
 /**
  * Callback OAuth (Google, etc.) — échange le code contre une session, puis
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
   // Sans numéro valide (obligatoire) → page de saisie BLOQUANTE. Le middleware
   // applique la même règle sur toutes les pages (filet de sécurité).
-  if (!isValidDzPhone(phone)) {
+  if (!isValidContactPhone(phone)) {
     const url = new URL("/compte/telephone", origin);
     if (next !== "/") url.searchParams.set("next", next);
     return NextResponse.redirect(url);

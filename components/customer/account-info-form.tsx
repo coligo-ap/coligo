@@ -11,7 +11,7 @@ import {
   User as UserIcon,
 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
-import { isValidDzPhone } from "@/lib/dz/phone";
+import { isValidContactPhone } from "@/lib/dz/phone";
 import {
   confirmEmailChange,
   requestEmailChange,
@@ -41,8 +41,8 @@ export function AccountInfoForm({
   const [phone, setPhone] = useState(initialPhone);
   const [pending, start] = useTransition();
 
-  // Validation EN DIRECT du numéro algérien.
-  const phoneValid = isValidDzPhone(phone);
+  // Validation EN DIRECT du numéro (mobile algérien ou international).
+  const phoneValid = isValidContactPhone(phone);
   const phoneShowError = phone.trim().length > 0 && !phoneValid;
 
   const dirty =
@@ -76,13 +76,14 @@ export function AccountInfoForm({
             footer={
               phoneShowError ? (
                 <span className="text-[#e5484d]">
-                  Numéro algérien invalide — format 0X XX XX XX XX (05/06/07).
+                  Numéro invalide — mobile algérien (0X XX XX XX XX) ou
+                  international (+…).
                 </span>
               ) : phoneValid ? (
                 <span className="text-[#16b364]">Numéro valide ✓</span>
               ) : (
                 <span className="text-muted">
-                  Numéro mobile algérien requis (ex. 06 12 34 56 78).
+                  Numéro obligatoire (ex. 06 12 34 56 78).
                 </span>
               )
             }
