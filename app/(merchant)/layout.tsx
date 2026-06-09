@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { MerchantShell } from "@/components/merchant/merchant-shell";
+import { APP_CONFIG } from "@/lib/config/app-config";
+
+// Titre propre à l'espace commerçant (le layout racine est neutre « Coligo »).
+export const metadata: Metadata = {
+  title: `${APP_CONFIG.name} — Espace commerçant`,
+};
 
 /**
  * Coque commerçant PARTAGÉE par toutes les sections (dashboard, orders,

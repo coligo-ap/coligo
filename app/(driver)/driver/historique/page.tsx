@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 type OrderRow = {
   id: string;
+  order_number: string | null;
   customer_name: string | null;
   total_da: number | null;
   delivery_fee_da: number | null;
@@ -33,7 +34,7 @@ export default async function DriverHistoryPage() {
   const { data: orders } = await supabase
     .from("orders")
     .select(
-      `id, customer_name, total_da, delivery_fee_da, driver_net_da, payment_method,
+      `id, order_number, customer_name, total_da, delivery_fee_da, driver_net_da, payment_method,
        delivery_mode, status, delivery_address_text, delivery_delivered_at,
        delivery_picked_up_at, created_at, merchant_id, validated_without_code`
     )

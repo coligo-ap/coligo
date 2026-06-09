@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Sora, Plus_Jakarta_Sans } from "next/font/google";
 import "./maquette.css";
 import { OfflineSyncIndicator } from "@/components/driver/offline-sync-indicator";
@@ -10,6 +11,7 @@ import { TawkChat } from "@/components/support/tawk-chat";
 import { DriverBlockedScreen } from "@/components/driver/driver-blocked-screen";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { APP_CONFIG } from "@/lib/config/app-config";
 
 /**
  * Layout du groupe (driver). Volontairement MINIMAL : chaque page gère son
@@ -36,6 +38,12 @@ const fontJakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   weight: ["400", "500", "600", "700"],
 });
+
+// Titre propre à l'espace livreur (le layout racine est neutre « Coligo ») —
+// sinon Tawk.to annonçait « Espace commerçant » pour un livreur.
+export const metadata: Metadata = {
+  title: `${APP_CONFIG.name} — Espace livreur`,
+};
 
 export default async function DriverLayout({
   children,

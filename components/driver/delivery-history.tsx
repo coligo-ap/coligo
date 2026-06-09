@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { LifeBuoy } from "lucide-react";
+import { openSupportChat } from "@/components/support/tawk-chat";
 
 /**
  * Écran HISTORIQUE reproduit À L'IDENTIQUE de MAQUETTE-livreur-pages :
@@ -11,6 +13,7 @@ import { useMemo, useState } from "react";
 
 type Row = {
   id: string;
+  order_number: string | null;
   customer_name: string | null;
   total_da: number | null;
   delivery_fee_da: number | null;
@@ -179,6 +182,23 @@ export function DeliveryHistory({
                       <span className="tg">
                         {r.payment_method === "cash" ? "Espèces" : "Prépayé"}
                       </span>
+                      ·
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openSupportChat({ orderRef: r.order_number })
+                        }
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 3,
+                          color: "var(--primary, #6C2BD9)",
+                          fontWeight: 700,
+                        }}
+                      >
+                        <LifeBuoy style={{ width: 12, height: 12 }} />
+                        Aide
+                      </button>
                     </div>
                   </div>
                   <div className="right">

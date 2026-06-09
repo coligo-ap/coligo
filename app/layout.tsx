@@ -66,7 +66,11 @@ const IOS_STARTUP_IMAGES = IOS_STARTUP_DEVICES.flatMap((d) => {
 });
 
 export const metadata: Metadata = {
-  title: `${APP_CONFIG.name} — Espace commerçant`,
+  // Titre neutre par défaut (espace CLIENT / marketplace). Chaque autre espace
+  // (commerçant, livreur) surcharge ce titre dans son propre layout — sinon
+  // Tawk.to (qui reprend `document.title`) annonçait « Espace commerçant »
+  // même pour un client.
+  title: APP_CONFIG.name,
   description: APP_CONFIG.description,
   applicationName: APP_CONFIG.name,
   appleWebApp: {

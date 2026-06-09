@@ -15,6 +15,7 @@ import { ReportDriver } from "@/components/customer/report-driver";
 import { OrderChat } from "@/components/chat/order-chat";
 import { QrZoom } from "@/components/shared/qr-zoom";
 import { DriverReviewCard } from "@/components/customer/driver-review-card";
+import { OrderSupportButton } from "@/components/support/order-support-button";
 import { estimateDeliveryEtaMin } from "@/lib/delivery/eta";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { formatAsapReady, formatSlotRange } from "@/lib/customer/pickup-format";
@@ -665,6 +666,14 @@ export default async function CustomerOrderDetailPage({
             <ReportDriver orderId={order.id} />
           </div>
         )}
+
+        {/* ═══ Contacter le support (live chat Tawk.to, n° commande injecté) ═══ */}
+        <div className="mt-3">
+          <OrderSupportButton
+            orderRef={orderNumber}
+            label={t("contactSupport")}
+          />
+        </div>
       </div>
     </CustomerShell>
   );

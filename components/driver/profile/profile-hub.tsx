@@ -14,6 +14,7 @@ import { useFormStatus } from "react-dom";
 import { driverLogout } from "@/app/(driver)/actions";
 import { DriverProfileForm } from "@/components/driver/profile-form";
 import { DriverNotificationsPanel } from "@/components/driver/notifications/notifications-panel";
+import { openSupportChat } from "@/components/support/tawk-chat";
 
 /**
  * Écran 6 — MON PROFIL (style Uber). Hero (avatar + nom + badges) + 3 stats +
@@ -129,10 +130,10 @@ export function ProfileHub({
           icon={<KeyRound className="size-[15px]" />}
           label="Rejoindre un commerçant"
         />
-        <MenuLink
-          href="mailto:coligo.noreply@gmail.com?subject=Support%20livreur"
+        <MenuButton
           icon={<HelpCircle className="size-[15px]" />}
           label="Aide & support"
+          onClick={() => openSupportChat()}
         />
 
         <form action={driverLogout}>

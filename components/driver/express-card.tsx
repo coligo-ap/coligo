@@ -11,7 +11,8 @@ import {
 import { DeliveryValidationDialog } from "./delivery-validation-dialog";
 import { PostDeliveryFeedback } from "./post-delivery-feedback";
 import { DriverLocationBroadcaster } from "./driver-location-broadcaster";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, LifeBuoy } from "lucide-react";
+import { openSupportChat } from "@/components/support/tawk-chat";
 import { ExpressOffer } from "./express-offer";
 import { ExpressRun } from "./course/express-run";
 import type { DriverFeeConfig } from "@/lib/driver/settlement";
@@ -214,6 +215,17 @@ export function ExpressCard({
           >
             <ChevronDown className="size-4" />
             Réduire
+          </button>
+          {/* Support en cours de course (Tawk.to) — n° commande injecté. */}
+          <button
+            type="button"
+            onClick={() =>
+              openSupportChat({ orderRef: currentOrder.order_number })
+            }
+            className="fixed top-[max(14px,calc(env(safe-area-inset-top)+10px))] left-3 z-[95] inline-flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-[12px] font-semibold text-white backdrop-blur"
+          >
+            <LifeBuoy className="size-4" />
+            Aide
           </button>
         </>
       )}
