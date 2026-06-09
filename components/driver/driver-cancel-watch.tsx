@@ -7,6 +7,7 @@ import {
   useActiveCourse,
   clearActiveCourse,
 } from "@/lib/driver/active-course-store";
+import { playAlert } from "@/lib/driver/sounds";
 
 /**
  * DriverCancelWatch — STOP temps réel d'une course annulée.
@@ -52,6 +53,7 @@ export function DriverCancelWatch() {
           };
           if (row.status === "cancelled") {
             // Coupe la course immédiatement (bandeau + écran plein) puis pop-up.
+            void playAlert();
             clearActiveCourse();
             setCancelled({
               orderNumber: row.order_number ?? null,

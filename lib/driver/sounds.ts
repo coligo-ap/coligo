@@ -144,9 +144,46 @@ function synthNewOrder() {
   setTimeout(() => ac.close().catch(() => {}), 1300);
 }
 
+/** Repli synthèse : double bip GRAVE descendant (alerte/annulation). */
+function synthAlert() {
+  const ac = ctx();
+  if (!ac) return;
+  const now = ac.currentTime;
+  const m = ac.createGain();
+  m.gain.value = 0.6;
+  m.connect(ac.destination);
+  // Deux bips descendants (440 → 330 Hz), timbre carré « buzzer ».
+  const seq: [number, number][] = [
+    [440, 0],
+    [330, 0.22],
+  ];
+  seq.forEach(([f, d]) => {
+    const t = now + d;
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+    o.type = "square";
+    o.frequency.setValueAtTime(f, t);
+    o.frequency.exponentialRampToValueAtTime(f * 0.85, t + 0.18);
+    o.connect(g);
+    g.connect(m);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.5, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+    o.start(t);
+    o.stop(t + 0.22);
+  });
+  setTimeout(() => ac.close().catch(() => {}), 700);
+}
+
 export async function playGo() {
   if (await tryFile("/sounds/online.mp3")) return;
   synthGo();
+}
+
+/** Alerte (course annulée, incident) — fichier alert.mp3 sinon synthèse. */
+export async function playAlert() {
+  if (await tryFile("/sounds/alert.mp3")) return;
+  synthAlert();
 }
 
 export async function playNewOrder() {
