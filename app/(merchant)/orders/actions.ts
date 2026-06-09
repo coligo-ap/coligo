@@ -113,6 +113,55 @@ export async function updateOrderStatus(
 }
 
 /**
+ * Annulation commerçant DURCIE (mig 0117) — appel de confirmation client.
+ *
+ * Passe par la RPC `merchant_cancel_order` (SECURITY DEFINER) qui :
+ *  - vérifie la propriété de la commande,
+ *  - REFUSE si le livreur a déjà récupéré la commande (already_picked_up),
+ *  - libère le livreur express + rembourse un éventuel paiement en ligne,
+ *  - trace le motif (par défaut « Client injoignable »).
+ * À utiliser pour TOUTE annulation commerçant (refus pending inclus) à la place
+ * d'un simple updateOrderStatus → 'cancelled'.
+ */
+export async function cancelOrderByMerchant(
+  orderId: string,
+  reason?: string
+): Promise<OrderActionResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(
+    "merchant_cancel_order" as never,
+    {
+      p_order_id: orderId,
+      p_reason: reason ?? null,
+    } as never
+  );
+  if (error) return { error: `Erreur : ${error.message}` };
+  const res = data as { ok: boolean; reason?: string } | null;
+  if (!res?.ok) {
+    const map: Record<string, { msg: string; stale?: boolean }> = {
+      already_picked_up: {
+        msg: "Impossible d'annuler : le livreur a déjà récupéré la commande. Contacte le support (super-admin) si besoin.",
+        stale: true,
+      },
+      already_terminal: {
+        msg: "Cette commande est déjà terminée ou annulée. La liste va se rafraîchir.",
+        stale: true,
+      },
+      forbidden: { msg: "Action non autorisée." },
+      order_not_found: { msg: "Commande introuvable.", stale: true },
+    };
+    const e = map[res?.reason ?? ""] ?? { msg: "Annulation impossible." };
+    return { error: e.msg, stale: e.stale };
+  }
+
+  void notifyCustomerStatusChange({ orderId, newStatus: "cancelled" });
+  revalidatePath("/dashboard");
+  revalidatePath("/orders");
+  revalidatePath(`/orders/${orderId}`);
+  return { success: "Commande annulée." };
+}
+
+/**
  * Valide un retrait à partir du code à 6 chiffres : passe la commande
  * (du commerçant connecté) en « récupérée ». N'accepte que les commandes
  * prêtes (transition ready → completed).

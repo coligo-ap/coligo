@@ -33,7 +33,10 @@ import {
 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { cn, formatDA } from "@/lib/utils";
-import { updateOrderStatus } from "@/app/(merchant)/orders/actions";
+import {
+  updateOrderStatus,
+  cancelOrderByMerchant,
+} from "@/app/(merchant)/orders/actions";
 import type { OrderWithItems } from "@/lib/types";
 import {
   deliveryPhase,
@@ -501,37 +504,76 @@ function CardActions({
       router.refresh();
     });
 
+  // Annulation DURCIE (mig 0117) : passe par merchant_cancel_order (refus si la
+  // commande est déjà récupérée par le livreur, libère l'express, rembourse).
+  const cancel = (reason: string) =>
+    start(async () => {
+      const res = await cancelOrderByMerchant(order.id, reason);
+      if (res.error) {
+        toast.error(res.error);
+        if (res.stale) {
+          setRefusing(false);
+          router.refresh();
+        }
+        return;
+      }
+      toast.success("Commande annulée");
+      setRefusing(false);
+      router.refresh();
+    });
+
+  // Une fois la commande RÉCUPÉRÉE par le livreur, le commerçant ne peut plus
+  // annuler (seul le flux livreur / super-admin agit).
+  const pickedUp = !!order.delivery_picked_up_at;
+  const canCancel = !pickedUp;
+
+  // ─── Sélecteur de MOTIF d'annulation — partagé par toutes les colonnes ───
+  if (refusing) {
+    return (
+      <div className="space-y-1">
+        <p className="text-muted px-0.5 text-[11px] font-semibold tracking-wide uppercase">
+          Motif de l&apos;annulation
+        </p>
+        <div className="grid grid-cols-1 gap-0.5">
+          {REFUSAL_REASONS.map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => cancel(r)}
+              disabled={pending}
+              className="hover:bg-danger-50 text-foreground rounded-[8px] px-2 py-1.5 text-left text-xs disabled:opacity-50"
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setRefusing(false)}
+          className="text-muted w-full pt-0.5 text-center text-[11px] hover:underline"
+        >
+          Retour
+        </button>
+      </div>
+    );
+  }
+
+  // Petit bouton « Annuler » secondaire (appel de confirmation client) — caché
+  // dès que la commande est récupérée.
+  const cancelLink = canCancel ? (
+    <button
+      type="button"
+      onClick={() => setRefusing(true)}
+      disabled={pending}
+      className="text-danger-700 hover:bg-danger-50 mt-1.5 inline-flex w-full items-center justify-center gap-1 rounded-[10px] py-1.5 text-[12px] font-semibold disabled:opacity-50"
+    >
+      <X className="size-3.5" />
+      Annuler (client injoignable)
+    </button>
+  ) : null;
+
   // ─── Colonne À CONFIRMER : Accepter / Refuser (motif) ───
   if (column === "pending") {
-    if (refusing) {
-      return (
-        <div className="space-y-1">
-          <p className="text-muted px-0.5 text-[11px] font-semibold tracking-wide uppercase">
-            Motif du refus
-          </p>
-          <div className="grid grid-cols-1 gap-0.5">
-            {REFUSAL_REASONS.map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => move("cancelled", r, "Commande refusée")}
-                disabled={pending}
-                className="hover:bg-danger-50 text-foreground rounded-[8px] px-2 py-1.5 text-left text-xs disabled:opacity-50"
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setRefusing(false)}
-            className="text-muted w-full pt-0.5 text-center text-[11px] hover:underline"
-          >
-            Annuler
-          </button>
-        </div>
-      );
-    }
     return (
       <div className="flex items-center gap-1.5">
         <button
@@ -559,22 +601,25 @@ function CardActions({
     );
   }
 
-  // ─── Colonne EN PRÉPARATION : Marquer prête ───
+  // ─── Colonne EN PRÉPARATION : Marquer prête (+ annuler) ───
   if (column === "preparing") {
     return (
-      <button
-        type="button"
-        onClick={() => move("ready", undefined, "Commande prête")}
-        disabled={pending}
-        className="bg-primary-600 hover:bg-primary-700 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white disabled:opacity-50"
-      >
-        {pending ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Check className="size-4" />
-        )}
-        Marquer prête
-      </button>
+      <div>
+        <button
+          type="button"
+          onClick={() => move("ready", undefined, "Commande prête")}
+          disabled={pending}
+          className="bg-primary-600 hover:bg-primary-700 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white disabled:opacity-50"
+        >
+          {pending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Check className="size-4" />
+          )}
+          Marquer prête
+        </button>
+        {cancelLink}
+      </div>
     );
   }
 
@@ -587,44 +632,54 @@ function CardActions({
     const phase = deliveryPhase(order);
     const isActive = phase != null && phase.key !== "awaiting_driver";
     return (
-      <p
-        className={cn(
-          "flex items-center gap-1.5 rounded-[10px] px-2.5 py-2 text-xs font-medium",
-          isActive
-            ? "text-primary-700 bg-primary-50"
-            : "text-muted bg-surface-3"
-        )}
-      >
-        <Bike className="size-3.5 shrink-0" />
-        {phase?.label ?? "En attente d'un livreur"}
-      </p>
+      <div>
+        <p
+          className={cn(
+            "flex items-center gap-1.5 rounded-[10px] px-2.5 py-2 text-xs font-medium",
+            isActive
+              ? "text-primary-700 bg-primary-50"
+              : "text-muted bg-surface-3"
+          )}
+        >
+          <Bike className="size-3.5 shrink-0" />
+          {phase?.label ?? "En attente d'un livreur"}
+        </p>
+        {/* Annuler tant que le livreur n'a PAS récupéré la commande. */}
+        {cancelLink}
+      </div>
     );
   }
   // Retrait espèces : confirmation directe. Retrait en ligne : code client.
   if (order.payment_method === "cash") {
     return (
-      <button
-        type="button"
-        onClick={() => move("completed", undefined, "Retrait confirmé")}
-        disabled={pending}
-        className="bg-success-600 hover:bg-success-700 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white disabled:opacity-50"
-      >
-        {pending ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Check className="size-4" />
-        )}
-        Confirmer le retrait
-      </button>
+      <div>
+        <button
+          type="button"
+          onClick={() => move("completed", undefined, "Retrait confirmé")}
+          disabled={pending}
+          className="bg-success-600 hover:bg-success-700 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white disabled:opacity-50"
+        >
+          {pending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Check className="size-4" />
+          )}
+          Confirmer le retrait
+        </button>
+        {cancelLink}
+      </div>
     );
   }
   return (
-    <Link
-      href="/orders/validate"
-      className="bg-primary-600 hover:bg-primary-700 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white"
-    >
-      <QrCode className="size-4" />
-      Valider le code
-    </Link>
+    <div>
+      <Link
+        href="/orders/validate"
+        className="bg-primary-600 hover:bg-primary-700 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white"
+      >
+        <QrCode className="size-4" />
+        Valider le code
+      </Link>
+      {cancelLink}
+    </div>
   );
 }
