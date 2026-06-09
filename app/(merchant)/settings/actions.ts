@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   orderRulesSchema,
   parseOpeningHoursFromForm,
@@ -441,4 +442,120 @@ export async function changePassword(
   if (error) return { error: `Erreur : ${error.message}` };
 
   return { ok: true, success: "Mot de passe mis à jour." };
+}
+
+// =============================================================================
+// CHANGEMENT D'EMAIL COMMERÇANT (code OTP 6 chiffres + anti-bruteforce)
+// =============================================================================
+// Même sécurité que le client : code à 6 chiffres (Supabase), 3 essais ratés →
+// blocage 10 min puis 20 min (table partagée email_change_throttle), et refus
+// si l'email est déjà associé à un autre compte (RPC email_already_used).
+// L'email commerçant = auth.users.email (aucune colonne merchants.email à
+// synchroniser).
+const MERCHANT_EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+export async function requestMerchantEmailChange(input: {
+  email: string;
+}): Promise<SettingsResult> {
+  const email = (input.email ?? "").trim().toLowerCase();
+  if (!MERCHANT_EMAIL_RE.test(email))
+    return { error: "Adresse email invalide." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée." };
+  if (email === (user.email ?? "").toLowerCase()) {
+    return { error: "C'est déjà ton adresse actuelle." };
+  }
+
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data: used } = await rpc("email_already_used", { p_email: email });
+  if (used === true) {
+    return { error: "Cette adresse est déjà associée à un autre compte." };
+  }
+
+  const admin = createAdminClient();
+  const { data: th } = await admin
+    .from("email_change_throttle")
+    .select("locked_until")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (th?.locked_until && new Date(th.locked_until).getTime() > Date.now()) {
+    const mins = Math.ceil(
+      (new Date(th.locked_until).getTime() - Date.now()) / 60000
+    );
+    return { error: `Trop de tentatives. Réessaie dans ${mins} min.` };
+  }
+
+  const { error } = await supabase.auth.updateUser({ email });
+  if (error) return { error: `Erreur : ${error.message}` };
+  return { ok: true, success: "Code envoyé à ta nouvelle adresse." };
+}
+
+export async function confirmMerchantEmailChange(input: {
+  email: string;
+  token: string;
+}): Promise<SettingsResult> {
+  const email = (input.email ?? "").trim().toLowerCase();
+  const token = (input.token ?? "").replace(/\D/g, "");
+  if (!MERCHANT_EMAIL_RE.test(email))
+    return { error: "Adresse email invalide." };
+  if (token.length < 6) return { error: "Entre le code à 6 chiffres reçu." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée." };
+
+  const admin = createAdminClient();
+  const { data: th } = await admin
+    .from("email_change_throttle")
+    .select("fails, lock_level, locked_until")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (th?.locked_until && new Date(th.locked_until).getTime() > Date.now()) {
+    const mins = Math.ceil(
+      (new Date(th.locked_until).getTime() - Date.now()) / 60000
+    );
+    return { error: `Trop de tentatives. Réessaie dans ${mins} min.` };
+  }
+
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "email_change",
+  });
+  if (error) {
+    const fails = (th?.fails ?? 0) + 1;
+    if (fails >= 3) {
+      const lock_level = (th?.lock_level ?? 0) + 1;
+      const minutes = lock_level <= 1 ? 10 : 20;
+      await admin.from("email_change_throttle").upsert({
+        user_id: user.id,
+        fails: 0,
+        lock_level,
+        locked_until: new Date(Date.now() + minutes * 60_000).toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      return {
+        error: `Code incorrect. Trop de tentatives : réessaie dans ${minutes} min.`,
+      };
+    }
+    await admin.from("email_change_throttle").upsert({
+      user_id: user.id,
+      fails,
+      updated_at: new Date().toISOString(),
+    });
+    return { error: `Code invalide. ${3 - fails} essai(s) restant(s).` };
+  }
+
+  await admin.from("email_change_throttle").delete().eq("user_id", user.id);
+  revalidatePath("/settings");
+  return { ok: true, success: "Adresse email mise à jour." };
 }

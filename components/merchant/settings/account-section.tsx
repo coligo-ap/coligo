@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
-import { ArrowRight, KeyRound, Loader2, LogOut } from "lucide-react";
+import { ArrowRight, Check, KeyRound, Loader2, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import {
   changePassword,
+  requestMerchantEmailChange,
+  confirmMerchantEmailChange,
   type SettingsFormState,
 } from "@/app/(merchant)/settings/actions";
 import { logout } from "@/app/(merchant)/actions";
@@ -39,10 +41,7 @@ export function AccountSection({
 
   return (
     <div className="space-y-5">
-      <div className="space-y-1">
-        <Label>Adresse email</Label>
-        <p className="text-foreground text-sm font-medium">{email}</p>
-      </div>
+      <EmailChange initialEmail={email} />
 
       <div className="border-border bg-surface-2 rounded-[12px] border p-4">
         <p className="text-foreground text-sm font-semibold">
@@ -112,6 +111,174 @@ export function AccountSection({
       <form action={logout}>
         <LogoutButton />
       </form>
+    </div>
+  );
+}
+
+/**
+ * Changement d'email commerçant — flux par CODE à 6 chiffres (Supabase),
+ * anti-bruteforce (3 essais → 10/20 min), refus si email déjà associé à un
+ * autre compte. Messages EN LIGNE (pas de toast, cf. CLAUDE.md).
+ */
+function EmailChange({ initialEmail }: { initialEmail: string }) {
+  const [step, setStep] = useState<"idle" | "editing" | "code">("idle");
+  const [email, setEmail] = useState(initialEmail);
+  const [newEmail, setNewEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [pending, start] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-1">
+      <Label>Adresse email</Label>
+
+      {step === "idle" && (
+        <div className="flex items-center gap-2">
+          <p className="text-foreground min-w-0 flex-1 truncate text-sm font-medium">
+            {email}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setNewEmail("");
+              setErr(null);
+              setOkMsg(null);
+              setStep("editing");
+            }}
+            className="text-primary-700 shrink-0 text-[13px] font-semibold"
+          >
+            Modifier
+          </button>
+        </div>
+      )}
+      {step === "idle" && okMsg && (
+        <p className="text-[12px] font-semibold text-[#16b364]">{okMsg}</p>
+      )}
+
+      {step === "editing" && (
+        <div className="space-y-2">
+          <Input
+            type="email"
+            value={newEmail}
+            onChange={(e) => {
+              setNewEmail(e.target.value);
+              setErr(null);
+            }}
+            placeholder="nouvelle@adresse.dz"
+            autoComplete="email"
+            disabled={pending}
+          />
+          {err ? (
+            <p className="text-danger-600 text-[12px] font-semibold">{err}</p>
+          ) : (
+            <p className="text-muted text-[12px]">
+              Un code à 6 chiffres sera envoyé à la nouvelle adresse.
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setStep("idle")}
+              className="border-border text-muted h-10 flex-1 rounded-[10px] border text-sm font-semibold"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              disabled={pending || newEmail.trim() === ""}
+              onClick={() =>
+                start(async () => {
+                  setErr(null);
+                  const res = await requestMerchantEmailChange({
+                    email: newEmail,
+                  });
+                  if (res.error) setErr(res.error);
+                  else {
+                    setCode("");
+                    setStep("code");
+                  }
+                })
+              }
+              className="bg-foreground text-background inline-flex h-10 flex-1 items-center justify-center rounded-[10px] text-sm font-semibold disabled:opacity-40"
+            >
+              {pending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Envoyer le code"
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === "code" && (
+        <div className="space-y-2">
+          <p className="text-muted text-sm">
+            Code envoyé à{" "}
+            <strong className="text-foreground">{newEmail}</strong>.
+          </p>
+          <Input
+            inputMode="numeric"
+            value={code}
+            onChange={(e) => {
+              setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+              setErr(null);
+            }}
+            placeholder="Code à 6 chiffres"
+            aria-invalid={!!err}
+            className={
+              "text-center text-lg font-bold tracking-[0.3em] tabular-nums " +
+              (err ? "border-danger-400" : "")
+            }
+          />
+          {err && (
+            <p className="text-danger-600 text-[12px] font-semibold">{err}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setErr(null);
+                setStep("editing");
+              }}
+              className="border-border text-muted h-10 flex-1 rounded-[10px] border text-sm font-semibold"
+            >
+              Retour
+            </button>
+            <button
+              type="button"
+              disabled={pending || code.length < 6}
+              onClick={() =>
+                start(async () => {
+                  setErr(null);
+                  const res = await confirmMerchantEmailChange({
+                    email: newEmail,
+                    token: code,
+                  });
+                  if (res.error) setErr(res.error);
+                  else {
+                    setEmail(newEmail.trim().toLowerCase());
+                    setCode("");
+                    setOkMsg(res.success ?? "Adresse email mise à jour.");
+                    setStep("idle");
+                  }
+                })
+              }
+              className="bg-primary-600 hover:bg-primary-700 inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-sm font-semibold text-white disabled:opacity-40"
+            >
+              {pending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <>
+                  <Check className="size-4" />
+                  Confirmer
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
