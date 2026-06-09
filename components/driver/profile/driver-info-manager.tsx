@@ -314,9 +314,7 @@ export function DriverInfoManager({
   );
   return (
     <>
-      <div className="head">
-        <h1>Mes informations</h1>
-      </div>
+      <div className="acc-grp">Mes informations</div>
 
       {!verified && (
         <div

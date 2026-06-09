@@ -1547,6 +1547,114 @@
   transform: translate(-50%, -50%) scale(1);
 }
 
+/* ---------- compte livreur — refonte pro ---------- */
+[data-space="driver"] .acc-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, var(--violet), var(--violet-d));
+  color: #fff;
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 18px 40px -16px var(--violet-glow);
+  margin-bottom: 14px;
+}
+[data-space="driver"] .acc-hero .av {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  flex: none;
+  background: rgba(255, 255, 255, 0.18);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-family: var(--font-sora), "Sora", sans-serif;
+  font-weight: 800;
+  font-size: 24px;
+  color: #fff;
+}
+[data-space="driver"] .acc-hero .av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+[data-space="driver"] .acc-hero .nm {
+  font-family: var(--font-sora), "Sora", sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.4px;
+  line-height: 1.1;
+}
+[data-space="driver"] .acc-hero .sub {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-top: 5px;
+}
+[data-space="driver"] .acc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-top: 7px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+[data-space="driver"] .acc-chip.ok {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--go-d);
+}
+[data-space="driver"] .acc-chip.warn {
+  background: rgba(255, 255, 255, 0.95);
+  color: #b45309;
+}
+[data-space="driver"] .acc-chip.red {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--red);
+}
+[data-space="driver"] .acc-stats {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+[data-space="driver"] .acc-stat {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 13px 8px;
+  text-align: center;
+}
+[data-space="driver"] .acc-stat .v {
+  font-family: var(--font-sora), "Sora", sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.5px;
+}
+[data-space="driver"] .acc-stat .v small {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
+}
+[data-space="driver"] .acc-stat .l {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 3px;
+  font-weight: 600;
+}
+[data-space="driver"] .acc-grp {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 20px 4px 9px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-space="driver"] .radar span,
   [data-space="driver"] .track::after,

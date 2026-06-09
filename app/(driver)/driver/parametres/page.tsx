@@ -139,6 +139,8 @@ export default async function DriverProfilePage() {
           ratingCount: p.rating_count ?? 0,
           coursesCount: courses ?? 0,
           joinedYear,
+          verified: driver.is_verified,
+          frozen: driver.is_frozen,
           vehicleLabel: p.vehicle_label ?? null,
           vehiclePlate: p.vehicle_plate ?? null,
           payoutMethod: p.payout_method ?? null,
@@ -149,9 +151,7 @@ export default async function DriverProfilePage() {
               ?.driver_float_cap_da ?? 8000
           ),
         }}
-      />
-
-      <div style={{ marginTop: 18 }}>
+      >
         <DriverInfoManager
           verified={driver.is_verified}
           vehicle={infoVehicle}
@@ -159,7 +159,7 @@ export default async function DriverProfilePage() {
           payouts={(payoutsRaw ?? []) as SelfPayout[]}
           requests={(reqRaw ?? []) as SelfRequest[]}
         />
-      </div>
+      </CompteView>
 
       <div style={{ marginTop: 18 }}>
         <DeleteAccountSection />

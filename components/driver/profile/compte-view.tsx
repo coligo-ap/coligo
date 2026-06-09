@@ -4,10 +4,10 @@ import { driverLogout } from "@/app/(driver)/actions";
 import { useDriverDark, toggleDriverDark } from "@/lib/driver/theme-store";
 
 /**
- * Écran COMPTE reproduit À L'IDENTIQUE de MAQUETTE-livreur-pages : .prof
- * (avatar + note + ancienneté) + .floatc (encours/plafond) + .menu (.mrow :
- * Véhicule, Documents, Versement, Apparence clair/sombre, Langue, Aide,
- * Déconnexion). Données réelles.
+ * Écran COMPTE livreur — refonte « pro » : hero violet (avatar + nom + statut
+ * de compte), 3 tuiles stats (note / courses / ancienneté), carte encours,
+ * puis les sections « Mes informations » (children), les préférences et le
+ * support. Reste scopé [data-space="driver"] (palette + Sora/Jakarta).
  */
 export type CompteData = {
   initials: string;
@@ -17,6 +17,8 @@ export type CompteData = {
   ratingCount: number;
   coursesCount: number;
   joinedYear: number | null;
+  verified: boolean;
+  frozen: boolean;
   vehicleLabel: string | null;
   vehiclePlate: string | null;
   payoutMethod: string | null;
@@ -29,58 +31,98 @@ function grp(n: number) {
   return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
 
-export function CompteView({ data }: { data: CompteData }) {
+export function CompteView({
+  data,
+  children,
+}: {
+  data: CompteData;
+  children?: React.ReactNode;
+}) {
   const dark = useDriverDark();
   const pct = Math.min(
     100,
     Math.round((data.outstandingDa / Math.max(1, data.capDa)) * 100)
   );
+  const overCap = data.outstandingDa >= data.capDa;
+  const status = data.frozen
+    ? { cls: "red", label: "Compte gelé" }
+    : data.verified
+      ? { cls: "ok", label: "Vérifié ✓" }
+      : { cls: "warn", label: "En cours de vérification" };
 
   return (
     <>
       <div className="head">
-        <h1>Compte</h1>
+        <h1>Mon compte</h1>
       </div>
 
-      <div className="prof">
-        <div className="av" style={{ overflow: "hidden" }}>
+      {/* Hero */}
+      <div className="acc-hero">
+        <div className="av">
           {data.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={data.avatarUrl}
-              alt="Photo de profil"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
+            <img src={data.avatarUrl} alt="Photo de profil" />
           ) : (
             data.initials
           )}
         </div>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <div className="nm">{data.fullName}</div>
-          <div className="sub">
-            <b>★ {data.ratingAvg ? data.ratingAvg.toFixed(1) : "—"}</b> ·{" "}
-            {data.coursesCount} course{data.coursesCount > 1 ? "s" : ""}
-            {data.joinedYear ? ` · Livreur depuis ${data.joinedYear}` : ""}
-          </div>
+          <span className={"acc-chip " + status.cls}>{status.label}</span>
+          {data.joinedYear && (
+            <div className="sub">Livreur Coligo depuis {data.joinedYear}</div>
+          )}
         </div>
       </div>
 
+      {/* Stats */}
+      <div className="acc-stats">
+        <div className="acc-stat">
+          <div className="v">
+            {data.ratingAvg ? data.ratingAvg.toFixed(1) : "—"}
+            <small> ★</small>
+          </div>
+          <div className="l">Note</div>
+        </div>
+        <div className="acc-stat">
+          <div className="v">{data.coursesCount}</div>
+          <div className="l">Courses</div>
+        </div>
+        <div className="acc-stat">
+          <div className="v">{data.joinedYear ?? "—"}</div>
+          <div className="l">Membre depuis</div>
+        </div>
+      </div>
+
+      {/* Encours */}
+      <div className="acc-grp">Encours & versement</div>
       <div className="floatc">
         <div className="top">
           <span>Encours à reverser</span>
-          <b>
+          <b style={overCap ? { color: "var(--red)" } : undefined}>
             {grp(data.outstandingDa)} / {grp(data.capDa)} DA
           </b>
         </div>
         <div className="bar">
-          <i style={{ width: `${Math.max(2, pct)}%` }} />
+          <i
+            style={{
+              width: `${Math.max(2, pct)}%`,
+              background: overCap ? "var(--red)" : undefined,
+            }}
+          />
         </div>
         <div className="note">
-          Au-delà du plafond, l&apos;acceptation de nouvelles courses est
-          suspendue jusqu&apos;au versement.
+          {overCap
+            ? "Plafond atteint : l'acceptation de nouvelles courses est suspendue jusqu'au versement."
+            : "Au-delà du plafond, l'acceptation de nouvelles courses est suspendue jusqu'au versement."}
         </div>
       </div>
 
+      {/* Sections « Mes informations » (véhicule / pièces / versement) */}
+      {children}
+
+      {/* Préférences */}
+      <div className="acc-grp">Préférences</div>
       <div className="menu">
         <Mrow
           label="Apparence"
@@ -103,6 +145,11 @@ export function CompteView({ data }: { data: CompteData }) {
             </>
           }
         />
+      </div>
+
+      {/* Support & compte */}
+      <div className="acc-grp">Support & compte</div>
+      <div className="menu">
         <Mrow
           label="Aide & support"
           chevron
