@@ -7,6 +7,7 @@ import {
   useTransition,
   type CSSProperties,
 } from "react";
+import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import {
@@ -100,6 +101,147 @@ const lab: CSSProperties = {
   marginBottom: 4,
 };
 
+/** Petit spinner blanc réutilisant le keyframe mq-spin de maquette.css. */
+function Spinner() {
+  return (
+    <span
+      style={{
+        width: 14,
+        height: 14,
+        border: "2px solid rgba(255,255,255,.45)",
+        borderTopColor: "#fff",
+        borderRadius: "50%",
+        display: "inline-block",
+        animation: "mq-spin .7s linear infinite",
+        marginRight: 7,
+        verticalAlign: "-2px",
+      }}
+    />
+  );
+}
+
+/**
+ * Bouton submit : loader pendant l'envoi (useFormStatus), puis VERT « ✓ … »
+ * quelques secondes au succès (piloté par le parent via `success`).
+ */
+function SubmitBtn({
+  idle,
+  success,
+  successLabel = "Enregistré",
+}: {
+  idle: string;
+  success: boolean;
+  successLabel?: string;
+}) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      className="mq-btn"
+      type="submit"
+      disabled={pending}
+      style={
+        success
+          ? {
+              background: "var(--go)",
+              boxShadow: "0 14px 28px -12px var(--go)",
+            }
+          : undefined
+      }
+    >
+      {pending ? (
+        <>
+          <Spinner />
+          Enregistrement…
+        </>
+      ) : success ? (
+        `✓ ${successLabel}`
+      ) : (
+        idle
+      )}
+    </button>
+  );
+}
+
+/** Section repliable (ouvrir / fermer) avec pastille d'état optionnelle. */
+function Section({
+  title,
+  defaultOpen = false,
+  badge,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  badge?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div
+      className="card"
+      style={{ marginBottom: 14, padding: 0, overflow: "hidden" }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          background: "none",
+          border: 0,
+          padding: "16px 16px",
+          cursor: "pointer",
+          color: "var(--ink)",
+        }}
+      >
+        <span
+          className="mq-sora"
+          style={{ fontSize: 15, fontWeight: 800, flex: 1, textAlign: "left" }}
+        >
+          {title}
+        </span>
+        {badge}
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          strokeWidth={2.4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            width: 18,
+            height: 18,
+            stroke: "var(--muted)",
+            transform: open ? "rotate(180deg)" : "none",
+            transition: "transform .2s",
+          }}
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open && <div style={{ padding: "0 16px 16px" }}>{children}</div>}
+    </div>
+  );
+}
+
+function KV({ k, v }: { k: string; v: string | null }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 12,
+        padding: "7px 0",
+        borderBottom: "1px solid var(--line)",
+        fontSize: 13.5,
+      }}
+    >
+      <span style={{ color: "var(--muted)" }}>{k}</span>
+      <span style={{ fontWeight: 600, textAlign: "right" }}>{v || "—"}</span>
+    </div>
+  );
+}
+
 export function DriverInfoManager({
   verified,
   vehicle,
@@ -113,6 +255,7 @@ export function DriverInfoManager({
   payouts: SelfPayout[];
   requests: SelfRequest[];
 }) {
+  const pendingReqs = requests.filter((r) => r.status === "pending").length;
   return (
     <>
       <div className="head">
@@ -149,50 +292,14 @@ export function DriverInfoManager({
       <DocsSection documents={documents} locked={verified} />
       <PayoutsSection payouts={payouts} locked={verified} />
 
-      {verified && <ChangeRequestSection requests={requests} />}
+      {verified && (
+        <ChangeRequestSection requests={requests} pendingCount={pendingReqs} />
+      )}
     </>
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="card" style={{ marginBottom: 14 }}>
-      <h2
-        className="mq-sora"
-        style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}
-      >
-        {title}
-      </h2>
-      {children}
-    </div>
-  );
-}
-
-function KV({ k, v }: { k: string; v: string | null }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 12,
-        padding: "7px 0",
-        borderBottom: "1px solid var(--line)",
-        fontSize: 13.5,
-      }}
-    >
-      <span style={{ color: "var(--muted)" }}>{k}</span>
-      <span style={{ fontWeight: 600, textAlign: "right" }}>{v || "—"}</span>
-    </div>
-  );
-}
-
-// ---------------- Véhicule ----------------
+// ---------------- Véhicule (contrôlé → pas de perte de valeur au submit) ----
 function VehicleSection({
   vehicle,
   locked,
@@ -201,110 +308,131 @@ function VehicleSection({
   locked: boolean;
 }) {
   const router = useRouter();
-  const [state, action, pending] = useActionState<ActionState, FormData>(
+  const [v, setV] = useState(vehicle);
+  const set =
+    (k: keyof SelfVehicle) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setV((s) => ({ ...s, [k]: e.target.value }));
+  const [ok, setOk] = useState(false);
+  const [state, action] = useActionState<ActionState, FormData>(
     saveDriverVehicleSelf,
     {}
   );
   useEffect(() => {
     if (state.ok) {
+      setOk(true);
       toast.success("Véhicule & identité enregistrés");
       router.refresh();
-    } else if (state.error) toast.error(state.error);
+      const t = setTimeout(() => setOk(false), 2500);
+      return () => clearTimeout(t);
+    }
+    if (state.error) toast.error(state.error);
   }, [state, router]);
 
   if (locked) {
     return (
       <Section title="Véhicule & identité">
-        <KV k="Type" v={lbl(VEHICLE_TYPES, vehicle.vehicle_type)} />
+        <KV k="Type" v={lbl(VEHICLE_TYPES, v.vehicle_type)} />
         <KV
           k="Véhicule"
           v={
-            [vehicle.vehicle_brand, vehicle.vehicle_model]
-              .filter(Boolean)
-              .join(" ") || null
+            [v.vehicle_brand, v.vehicle_model].filter(Boolean).join(" ") || null
           }
         />
-        <KV k="Immatriculation" v={vehicle.vehicle_plate} />
-        <KV k="Couleur" v={vehicle.vehicle_color} />
-        <KV
-          k="Année"
-          v={vehicle.vehicle_year ? String(vehicle.vehicle_year) : null}
-        />
-        <KV k="N° carte d'identité" v={vehicle.id_card_number} />
-        <KV k="N° national" v={vehicle.national_id_number} />
-        <KV k="Wilaya" v={vehicle.wilaya} />
-        <KV k="Adresse" v={vehicle.address} />
+        <KV k="Immatriculation" v={v.vehicle_plate} />
+        <KV k="Couleur" v={v.vehicle_color} />
+        <KV k="Année" v={v.vehicle_year ? String(v.vehicle_year) : null} />
+        <KV k="N° carte d'identité" v={v.id_card_number} />
+        <KV k="N° national" v={v.national_id_number} />
+        <KV k="Wilaya" v={v.wilaya} />
+        <KV k="Adresse" v={v.address} />
       </Section>
     );
   }
 
   return (
-    <Section title="Véhicule & identité">
+    <Section title="Véhicule & identité" defaultOpen>
       <form action={action} style={{ display: "grid", gap: 10 }}>
         <div>
           <label style={lab}>Type de véhicule</label>
           <select
             name="vehicle_type"
-            defaultValue={vehicle.vehicle_type ?? ""}
+            value={v.vehicle_type ?? ""}
+            onChange={set("vehicle_type")}
             style={inp}
           >
             <option value="">—</option>
-            {VEHICLE_TYPES.map(([v, l]) => (
-              <option key={v} value={v}>
+            {VEHICLE_TYPES.map(([val, l]) => (
+              <option key={val} value={val}>
                 {l}
               </option>
             ))}
           </select>
         </div>
         <Row>
-          <Field
+          <CField
             name="vehicle_brand"
             label="Marque"
-            def={vehicle.vehicle_brand}
+            value={v.vehicle_brand}
+            onChange={set("vehicle_brand")}
           />
-          <Field
+          <CField
             name="vehicle_model"
             label="Modèle"
-            def={vehicle.vehicle_model}
+            value={v.vehicle_model}
+            onChange={set("vehicle_model")}
           />
         </Row>
         <Row>
-          <Field
+          <CField
             name="vehicle_plate"
             label="Immatriculation"
-            def={vehicle.vehicle_plate}
+            value={v.vehicle_plate}
+            onChange={set("vehicle_plate")}
           />
-          <Field
+          <CField
             name="vehicle_color"
             label="Couleur"
-            def={vehicle.vehicle_color}
+            value={v.vehicle_color}
+            onChange={set("vehicle_color")}
           />
         </Row>
         <Row>
-          <Field
+          <CField
             name="vehicle_year"
             label="Année"
             type="number"
-            def={vehicle.vehicle_year ? String(vehicle.vehicle_year) : null}
+            value={v.vehicle_year ? String(v.vehicle_year) : ""}
+            onChange={set("vehicle_year")}
           />
-          <Field name="wilaya" label="Wilaya" def={vehicle.wilaya} />
+          <CField
+            name="wilaya"
+            label="Wilaya"
+            value={v.wilaya}
+            onChange={set("wilaya")}
+          />
         </Row>
         <Row>
-          <Field
+          <CField
             name="id_card_number"
             label="N° carte d'identité"
-            def={vehicle.id_card_number}
+            value={v.id_card_number}
+            onChange={set("id_card_number")}
           />
-          <Field
+          <CField
             name="national_id_number"
             label="N° national"
-            def={vehicle.national_id_number}
+            value={v.national_id_number}
+            onChange={set("national_id_number")}
           />
         </Row>
-        <Field name="address" label="Adresse" def={vehicle.address} />
-        <button className="mq-btn" type="submit" disabled={pending}>
-          {pending ? "Enregistrement…" : "Enregistrer"}
-        </button>
+        <CField
+          name="address"
+          label="Adresse"
+          value={v.address}
+          onChange={set("address")}
+        />
+        <SubmitBtn idle="Enregistrer" success={ok} />
       </form>
     </Section>
   );
@@ -317,21 +445,47 @@ function Row({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-function Field({
+/** Champ CONTRÔLÉ (valeur conservée même après le reset auto du form action). */
+function CField({
   name,
   label,
-  def,
+  value,
+  onChange,
   type = "text",
 }: {
   name: string;
   label: string;
-  def: string | null;
+  value: string | null;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   type?: string;
 }) {
   return (
     <div>
       <label style={lab}>{label}</label>
-      <input name={name} type={type} defaultValue={def ?? ""} style={inp} />
+      <input
+        name={name}
+        type={type}
+        value={value ?? ""}
+        onChange={onChange}
+        style={inp}
+      />
+    </div>
+  );
+}
+/** Champ non contrôlé (pour les formulaires « ajouter » qui se ferment). */
+function Field({
+  name,
+  label,
+  type = "text",
+}: {
+  name: string;
+  label: string;
+  type?: string;
+}) {
+  return (
+    <div>
+      <label style={lab}>{label}</label>
+      <input name={name} type={type} style={inp} />
     </div>
   );
 }
@@ -347,20 +501,27 @@ function DocsSection({
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [del, startDel] = useTransition();
-  const [state, action, pending] = useActionState<ActionState, FormData>(
+  const [ok, setOk] = useState(false);
+  const [state, action] = useActionState<ActionState, FormData>(
     addDriverDocumentSelf,
     {}
   );
   useEffect(() => {
     if (state.ok) {
+      setOk(true);
       toast.success("Pièce ajoutée");
-      setAdding(false);
       router.refresh();
-    } else if (state.error) toast.error(state.error);
+      const t = setTimeout(() => {
+        setOk(false);
+        setAdding(false);
+      }, 1200);
+      return () => clearTimeout(t);
+    }
+    if (state.error) toast.error(state.error);
   }, [state, router]);
 
   return (
-    <Section title="Pièces d'identité">
+    <Section title={`Pièces d'identité (${documents.length})`}>
       {documents.length === 0 && (
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
           Aucune pièce.
@@ -436,22 +597,17 @@ function DocsSection({
           <div>
             <label style={lab}>Type *</label>
             <select name="doc_type" required style={inp} defaultValue="cni">
-              {DOC_TYPES.map(([v, l]) => (
-                <option key={v} value={v}>
+              {DOC_TYPES.map(([val, l]) => (
+                <option key={val} value={val}>
                   {l}
                 </option>
               ))}
             </select>
           </div>
-          <Field name="number" label="Numéro" def={null} />
+          <Field name="number" label="Numéro" />
           <Row>
-            <Field name="issued_at" label="Émission" def={null} type="date" />
-            <Field
-              name="expires_at"
-              label="Expiration"
-              def={null}
-              type="date"
-            />
+            <Field name="issued_at" label="Émission" type="date" />
+            <Field name="expires_at" label="Expiration" type="date" />
           </Row>
           <div>
             <label style={lab}>Scan (JPG/PNG/WEBP/PDF, max 8 Mo)</label>
@@ -463,9 +619,7 @@ function DocsSection({
             />
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button className="mq-btn" type="submit" disabled={pending}>
-              {pending ? "Ajout…" : "Ajouter"}
-            </button>
+            <SubmitBtn idle="Ajouter" success={ok} successLabel="Ajoutée" />
             <button
               type="button"
               className="btnlink"
@@ -500,20 +654,27 @@ function PayoutsSection({
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [del, startDel] = useTransition();
-  const [state, action, pending] = useActionState<ActionState, FormData>(
+  const [ok, setOk] = useState(false);
+  const [state, action] = useActionState<ActionState, FormData>(
     addDriverPayoutSelf,
     {}
   );
   useEffect(() => {
     if (state.ok) {
+      setOk(true);
       toast.success("Moyen ajouté");
-      setAdding(false);
       router.refresh();
-    } else if (state.error) toast.error(state.error);
+      const t = setTimeout(() => {
+        setOk(false);
+        setAdding(false);
+      }, 1200);
+      return () => clearTimeout(t);
+    }
+    if (state.error) toast.error(state.error);
   }, [state, router]);
 
   return (
-    <Section title="Versement">
+    <Section title={`Versement (${payouts.length})`}>
       {payouts.length === 0 && (
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
           Aucun moyen de versement.
@@ -578,20 +739,16 @@ function PayoutsSection({
           <div>
             <label style={lab}>Moyen *</label>
             <select name="method" required style={inp} defaultValue="ccp">
-              {METHODS.map(([v, l]) => (
-                <option key={v} value={v}>
+              {METHODS.map(([val, l]) => (
+                <option key={val} value={val}>
                   {l}
                 </option>
               ))}
             </select>
           </div>
-          <Field name="label" label="Libellé" def={null} />
-          <Field
-            name="account_number"
-            label="N° de compte / CCP / RIP"
-            def={null}
-          />
-          <Field name="account_name" label="Titulaire" def={null} />
+          <Field name="label" label="Libellé" />
+          <Field name="account_number" label="N° de compte / CCP / RIP" />
+          <Field name="account_name" label="Titulaire" />
           <label
             style={{
               display: "flex",
@@ -603,9 +760,7 @@ function PayoutsSection({
             <input type="checkbox" name="is_default" /> Par défaut
           </label>
           <div style={{ display: "flex", gap: 8 }}>
-            <button className="mq-btn" type="submit" disabled={pending}>
-              {pending ? "Ajout…" : "Ajouter"}
-            </button>
+            <SubmitBtn idle="Ajouter" success={ok} successLabel="Ajouté" />
             <button
               type="button"
               className="btnlink"
@@ -630,28 +785,55 @@ function PayoutsSection({
 }
 
 // ---------------- Demande de modification (vérifié) ----------------
-function ChangeRequestSection({ requests }: { requests: SelfRequest[] }) {
+function ChangeRequestSection({
+  requests,
+  pendingCount,
+}: {
+  requests: SelfRequest[];
+  pendingCount: number;
+}) {
   const router = useRouter();
-  const [state, action, pending] = useActionState<ActionState, FormData>(
+  const [ok, setOk] = useState(false);
+  const [state, action] = useActionState<ActionState, FormData>(
     submitDriverChangeRequest,
     {}
   );
   useEffect(() => {
     if (state.ok) {
+      setOk(true);
       toast.success("Demande envoyée — en attente de validation");
       router.refresh();
-    } else if (state.error) toast.error(state.error);
+      const t = setTimeout(() => setOk(false), 2500);
+      return () => clearTimeout(t);
+    }
+    if (state.error) toast.error(state.error);
   }, [state, router]);
 
   const badge = (s: string) =>
     s === "approved"
-      ? { t: "Approuvée", c: "var(--go)" }
+      ? { t: "Approuvée", c: "var(--go)", bg: "var(--go-soft)" }
       : s === "rejected"
-        ? { t: "Refusée", c: "var(--red)" }
-        : { t: "En attente", c: "var(--muted)" };
+        ? { t: "Refusée", c: "var(--red)", bg: "var(--red-soft)" }
+        : { t: "En attente", c: "var(--amber)", bg: "rgba(245,158,11,.14)" };
+
+  const headBadge =
+    pendingCount > 0 ? (
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 800,
+          color: "var(--amber)",
+          background: "rgba(245,158,11,.14)",
+          borderRadius: 20,
+          padding: "3px 9px",
+        }}
+      >
+        {pendingCount} en attente
+      </span>
+    ) : undefined;
 
   return (
-    <Section title="Demander une modification">
+    <Section title="Demander une modification" badge={headBadge} defaultOpen>
       <form action={action} style={{ display: "grid", gap: 10 }}>
         <div>
           <label style={lab}>Concerne</label>
@@ -672,9 +854,11 @@ function ChangeRequestSection({ requests }: { requests: SelfRequest[] }) {
             style={{ ...inp, height: "auto", padding: "10px 12px" }}
           />
         </div>
-        <button className="mq-btn" type="submit" disabled={pending}>
-          {pending ? "Envoi…" : "Envoyer la demande"}
-        </button>
+        <SubmitBtn
+          idle="Envoyer la demande"
+          success={ok}
+          successLabel="Envoyée"
+        />
       </form>
 
       {requests.length > 0 && (
@@ -691,10 +875,23 @@ function ChangeRequestSection({ requests }: { requests: SelfRequest[] }) {
                 }}
               >
                 <div
-                  style={{ display: "flex", justifyContent: "space-between" }}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 8,
+                  }}
                 >
-                  <b>{r.kind}</b>
-                  <span style={{ color: b.c, fontWeight: 700, fontSize: 12 }}>
+                  <b style={{ textTransform: "capitalize" }}>{r.kind}</b>
+                  <span
+                    style={{
+                      color: b.c,
+                      background: b.bg,
+                      fontWeight: 700,
+                      fontSize: 11,
+                      borderRadius: 20,
+                      padding: "2px 9px",
+                    }}
+                  >
                     {b.t}
                   </span>
                 </div>
