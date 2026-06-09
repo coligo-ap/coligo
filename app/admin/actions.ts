@@ -240,6 +240,24 @@ export async function toggleDriverBlocked(
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // KILL-SWITCH : au blocage, on coupe la session ACTIVE du livreur tout de
+  // suite (révocation GoTrue). La RPC est gardée par is_super_admin() côté SQL
+  // → on l'appelle avec la SESSION admin (pas le service-role, qui n'a pas de
+  // JWT). Best-effort : ne jamais faire échouer le blocage si la révocation
+  // rate (le layout `(driver)` bloque déjà l'accès au prochain rendu).
+  if (blocked) {
+    try {
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      await rpc("admin_force_driver_signout", { p_driver_id: driverId });
+    } catch {
+      /* noop : révocation best-effort */
+    }
+  }
+
   await admin.from("admin_audit_log").insert({
     admin_email: user?.email ?? null,
     action: blocked ? "block_driver" : "unblock_driver",
