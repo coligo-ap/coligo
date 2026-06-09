@@ -316,6 +316,10 @@ export async function setGlobalAvailability(
   const supabase = await createClient();
   const driver = await getCurrentDriver();
   if (!driver) return { ok: false, changed: 0, error: "Session expirée." };
+  // Livreur gelé : ne peut PAS passer en ligne (le retour hors ligne reste ok).
+  if (driver.is_frozen && status !== "offline") {
+    return { ok: false, changed: 0, error: "Compte gelé." };
+  }
 
   const { data: links } = await supabase
     .from("merchant_drivers")

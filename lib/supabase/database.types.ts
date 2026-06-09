@@ -851,6 +851,19 @@ export type Database = {
           payout_method: string | null;
           payout_details: string | null;
           joined_year: number | null;
+          vehicle_type: string | null;
+          vehicle_brand: string | null;
+          vehicle_model: string | null;
+          vehicle_color: string | null;
+          vehicle_year: number | null;
+          national_id_number: string | null;
+          id_card_number: string | null;
+          date_of_birth: string | null;
+          address: string | null;
+          is_verified: boolean;
+          verified_at: string | null;
+          verified_by: string | null;
+          admin_note: string | null;
         };
         Insert: {
           id?: string;
@@ -868,6 +881,19 @@ export type Database = {
           payout_method?: string | null;
           payout_details?: string | null;
           joined_year?: number | null;
+          vehicle_type?: string | null;
+          vehicle_brand?: string | null;
+          vehicle_model?: string | null;
+          vehicle_color?: string | null;
+          vehicle_year?: number | null;
+          national_id_number?: string | null;
+          id_card_number?: string | null;
+          date_of_birth?: string | null;
+          address?: string | null;
+          is_verified?: boolean;
+          verified_at?: string | null;
+          verified_by?: string | null;
+          admin_note?: string | null;
         };
         Update: {
           id?: string;
@@ -885,6 +911,91 @@ export type Database = {
           payout_method?: string | null;
           payout_details?: string | null;
           joined_year?: number | null;
+          vehicle_type?: string | null;
+          vehicle_brand?: string | null;
+          vehicle_model?: string | null;
+          vehicle_color?: string | null;
+          vehicle_year?: number | null;
+          national_id_number?: string | null;
+          id_card_number?: string | null;
+          date_of_birth?: string | null;
+          address?: string | null;
+          is_verified?: boolean;
+          verified_at?: string | null;
+          verified_by?: string | null;
+          admin_note?: string | null;
+        };
+        Relationships: [];
+      };
+      driver_documents: {
+        Row: {
+          id: string;
+          driver_id: string;
+          doc_type: string;
+          number: string | null;
+          issued_at: string | null;
+          expires_at: string | null;
+          file_url: string | null;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          driver_id: string;
+          doc_type: string;
+          number?: string | null;
+          issued_at?: string | null;
+          expires_at?: string | null;
+          file_url?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          driver_id?: string;
+          doc_type?: string;
+          number?: string | null;
+          issued_at?: string | null;
+          expires_at?: string | null;
+          file_url?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      driver_payout_methods: {
+        Row: {
+          id: string;
+          driver_id: string;
+          method: string;
+          label: string | null;
+          account_number: string | null;
+          account_name: string | null;
+          is_default: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          driver_id: string;
+          method: string;
+          label?: string | null;
+          account_number?: string | null;
+          account_name?: string | null;
+          is_default?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          driver_id?: string;
+          method?: string;
+          label?: string | null;
+          account_number?: string | null;
+          account_name?: string | null;
+          is_default?: boolean;
+          created_at?: string;
         };
         Relationships: [];
       };
