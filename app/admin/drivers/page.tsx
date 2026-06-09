@@ -16,7 +16,9 @@ export default async function AdminDriversPage() {
 
   const { data: drivers } = await admin
     .from("drivers")
-    .select("id, full_name, phone, is_frozen, is_verified, created_at")
+    .select(
+      "id, full_name, phone, is_frozen, is_verified, avatar_url, created_at"
+    )
     .order("created_at", { ascending: false })
     .limit(500);
 
@@ -67,8 +69,25 @@ export default async function AdminDriversPage() {
                 <td className="px-3 py-2 font-medium">
                   <Link
                     href={`/admin/drivers/${d.id}`}
-                    className="hover:text-primary-700 inline-flex items-center gap-1"
+                    className="hover:text-primary-700 inline-flex items-center gap-2"
                   >
+                    {d.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={d.avatar_url}
+                        alt=""
+                        className="size-7 shrink-0 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="bg-primary-100 text-primary-700 grid size-7 shrink-0 place-items-center rounded-full text-[10px] font-bold">
+                        {d.full_name
+                          .split(/\s+/)
+                          .slice(0, 2)
+                          .map((w) => w.charAt(0))
+                          .join("")
+                          .toUpperCase()}
+                      </span>
+                    )}
                     {d.full_name}
                     <ChevronRight className="text-muted size-3.5" />
                   </Link>

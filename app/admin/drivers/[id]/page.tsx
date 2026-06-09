@@ -33,8 +33,16 @@ import {
   OrderReassign,
   type CandidateDriver,
 } from "@/components/admin/drivers/order-reassign";
+import { DriverAvatarUpload } from "@/components/admin/drivers/driver-avatar-upload";
 
 export const dynamic = "force-dynamic";
+
+function initialsOf(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
 
 type Period = "week" | "month" | "all";
 
@@ -267,40 +275,47 @@ export default async function AdminDriverDetailPage({
           Tous les livreurs
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-              <Truck className="size-6" />
-              {driver.full_name}
-            </h1>
-            <p className="text-muted mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm tabular-nums">
-              <span>{driver.phone}</span>
-              {driver.email && <span>· {driver.email}</span>}
-              {driver.wilaya && <span>· {driver.wilaya}</span>}
-              <span className="inline-flex items-center gap-1">
-                <Star className="size-3.5 fill-amber-400 text-amber-400" />
-                {Number(driver.rating_avg ?? 0).toFixed(1)} (
-                {driver.rating_count})
-              </span>
-              <span>
-                · Inscrit le{" "}
-                {new Date(driver.created_at).toLocaleDateString("fr-FR")}
-              </span>
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {driver.is_verified ? (
-                <span className="bg-success-50 text-success-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold">
-                  <BadgeCheck className="size-3.5" /> Profil vérifié
+          <div className="flex items-start gap-4">
+            <DriverAvatarUpload
+              driverId={driver.id}
+              avatarUrl={driver.avatar_url}
+              initials={initialsOf(driver.full_name)}
+            />
+            <div>
+              <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+                <Truck className="size-6" />
+                {driver.full_name}
+              </h1>
+              <p className="text-muted mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm tabular-nums">
+                <span>{driver.phone}</span>
+                {driver.email && <span>· {driver.email}</span>}
+                {driver.wilaya && <span>· {driver.wilaya}</span>}
+                <span className="inline-flex items-center gap-1">
+                  <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                  {Number(driver.rating_avg ?? 0).toFixed(1)} (
+                  {driver.rating_count})
                 </span>
-              ) : (
-                <span className="bg-warning-50 text-warning-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold">
-                  Profil non vérifié
+                <span>
+                  · Inscrit le{" "}
+                  {new Date(driver.created_at).toLocaleDateString("fr-FR")}
                 </span>
-              )}
-              {driver.is_frozen && (
-                <span className="bg-danger-100 text-danger-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold">
-                  <Snowflake className="size-3.5" /> Compte gelé
-                </span>
-              )}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {driver.is_verified ? (
+                  <span className="bg-success-50 text-success-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold">
+                    <BadgeCheck className="size-3.5" /> Profil vérifié
+                  </span>
+                ) : (
+                  <span className="bg-warning-50 text-warning-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold">
+                    Profil non vérifié
+                  </span>
+                )}
+                {driver.is_frozen && (
+                  <span className="bg-danger-100 text-danger-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold">
+                    <Snowflake className="size-3.5" /> Compte gelé
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">

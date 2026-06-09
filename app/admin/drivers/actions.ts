@@ -125,6 +125,103 @@ export async function setDriverVerified(
 }
 
 // ---------------------------------------------------------------------------
+// 2bis. Photo de profil (bucket PUBLIC `driver-avatars`)
+// ---------------------------------------------------------------------------
+const AVATARS_BUCKET = "driver-avatars";
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 Mo
+const ALLOWED_AVATAR = ["image/jpeg", "image/png", "image/webp"];
+
+/** Extrait le chemin storage depuis une URL publique du bucket avatars. */
+function avatarPathFromUrl(url: string | null): string | null {
+  if (!url) return null;
+  const marker = `/${AVATARS_BUCKET}/`;
+  const i = url.indexOf(marker);
+  return i === -1 ? null : url.slice(i + marker.length);
+}
+
+export async function updateDriverAvatar(
+  driverId: string,
+  _prev: AdminFormState,
+  formData: FormData
+): Promise<AdminFormState> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const file = formData.get("avatar");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choisis une image." };
+  }
+  if (file.size > MAX_AVATAR_BYTES)
+    return { error: "Image trop lourde (max 5 Mo)." };
+  if (!ALLOWED_AVATAR.includes(file.type)) {
+    return { error: "Format accepté : JPG, PNG ou WEBP." };
+  }
+
+  const admin = createAdminClient();
+  const ext =
+    file.type === "image/png"
+      ? "png"
+      : file.type === "image/webp"
+        ? "webp"
+        : "jpg";
+  const path = `${driverId}/${globalThis.crypto.randomUUID()}.${ext}`;
+  const { error: upErr } = await admin.storage
+    .from(AVATARS_BUCKET)
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (upErr) return { error: `Upload échoué : ${upErr.message}` };
+
+  const { data: pub } = admin.storage.from(AVATARS_BUCKET).getPublicUrl(path);
+
+  // Ancienne photo (à nettoyer après mise à jour réussie).
+  const { data: existing } = await admin
+    .from("drivers")
+    .select("avatar_url")
+    .eq("id", driverId)
+    .maybeSingle();
+  const oldPath = avatarPathFromUrl(
+    (existing?.avatar_url as string | null) ?? null
+  );
+
+  const { error } = await admin
+    .from("drivers")
+    .update({ avatar_url: pub.publicUrl })
+    .eq("id", driverId);
+  if (error) {
+    await admin.storage.from(AVATARS_BUCKET).remove([path]);
+    return { error: `Échec : ${error.message}` };
+  }
+  if (oldPath && oldPath !== path) {
+    await admin.storage.from(AVATARS_BUCKET).remove([oldPath]);
+  }
+
+  await audit("update_driver_avatar", driverId);
+  refreshDriver(driverId);
+  return { ok: true };
+}
+
+export async function removeDriverAvatar(
+  driverId: string
+): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { data: existing } = await admin
+    .from("drivers")
+    .select("avatar_url")
+    .eq("id", driverId)
+    .maybeSingle();
+  const { error } = await admin
+    .from("drivers")
+    .update({ avatar_url: null })
+    .eq("id", driverId);
+  if (error) return { error: error.message };
+  const path = avatarPathFromUrl(
+    (existing?.avatar_url as string | null) ?? null
+  );
+  if (path) await admin.storage.from(AVATARS_BUCKET).remove([path]);
+  await audit("remove_driver_avatar", driverId);
+  refreshDriver(driverId);
+  return {};
+}
+
+// ---------------------------------------------------------------------------
 // 3. Documents d'identité (+ scan dans le bucket privé `driver-docs`)
 // ---------------------------------------------------------------------------
 const DOCS_BUCKET = "driver-docs";

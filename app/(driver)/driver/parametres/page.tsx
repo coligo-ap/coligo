@@ -63,6 +63,7 @@ export default async function DriverProfilePage() {
       <CompteView
         data={{
           initials: initialsOf(driver.full_name),
+          avatarUrl: driver.avatar_url,
           fullName: driver.full_name,
           ratingAvg: Number(p.rating_avg ?? 0),
           ratingCount: p.rating_count ?? 0,

@@ -11,6 +11,7 @@ import { useDriverDark, toggleDriverDark } from "@/lib/driver/theme-store";
  */
 export type CompteData = {
   initials: string;
+  avatarUrl: string | null;
   fullName: string;
   ratingAvg: number;
   ratingCount: number;
@@ -56,7 +57,18 @@ export function CompteView({ data }: { data: CompteData }) {
       </div>
 
       <div className="prof">
-        <div className="av">{data.initials}</div>
+        <div className="av" style={{ overflow: "hidden" }}>
+          {data.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={data.avatarUrl}
+              alt="Photo de profil"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : (
+            data.initials
+          )}
+        </div>
         <div>
           <div className="nm">{data.fullName}</div>
           <div className="sub">

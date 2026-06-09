@@ -864,6 +864,7 @@ export type Database = {
           verified_at: string | null;
           verified_by: string | null;
           admin_note: string | null;
+          avatar_url: string | null;
         };
         Insert: {
           id?: string;
@@ -894,6 +895,7 @@ export type Database = {
           verified_at?: string | null;
           verified_by?: string | null;
           admin_note?: string | null;
+          avatar_url?: string | null;
         };
         Update: {
           id?: string;
@@ -924,6 +926,7 @@ export type Database = {
           verified_at?: string | null;
           verified_by?: string | null;
           admin_note?: string | null;
+          avatar_url?: string | null;
         };
         Relationships: [];
       };

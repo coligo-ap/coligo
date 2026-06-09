@@ -29,6 +29,7 @@ export async function getCurrentDriver(): Promise<{
   full_name: string;
   phone: string;
   is_frozen: boolean;
+  avatar_url: string | null;
 } | null> {
   const supabase = await createClient();
   const {
@@ -37,7 +38,7 @@ export async function getCurrentDriver(): Promise<{
   if (!user) return null;
   const { data } = await supabase
     .from("drivers")
-    .select("id, user_id, full_name, phone, is_frozen")
+    .select("id, user_id, full_name, phone, is_frozen, avatar_url")
     .eq("user_id", user.id)
     .maybeSingle();
   return data
@@ -47,6 +48,7 @@ export async function getCurrentDriver(): Promise<{
         full_name: data.full_name,
         phone: data.phone,
         is_frozen: data.is_frozen ?? false,
+        avatar_url: data.avatar_url ?? null,
       }
     : null;
 }
