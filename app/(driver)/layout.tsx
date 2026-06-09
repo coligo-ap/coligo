@@ -75,8 +75,18 @@ export default async function DriverLayout({
       <ActiveCourseBanner />
       {/* STOP temps réel : pop-up si la course active est annulée (commerçant/admin). */}
       <DriverCancelWatch />
-      {/* Live chat support (Tawk.to) — lanceur masqué, ouvert via « Aide & support ». */}
-      <TawkChat role="livreur" name={driver?.full_name ?? null} />
+      {/* Live chat support (Tawk.to) — lanceur masqué, ouvert via « Aide & support ».
+          Contexte max pour l'agent : identité + statut du livreur. */}
+      <TawkChat
+        role="livreur"
+        name={driver?.full_name ?? null}
+        phone={driver?.phone ?? null}
+        attributes={{
+          "ID livreur": driver?.id,
+          Vérifié: driver?.is_verified,
+          Gelé: driver?.is_frozen,
+        }}
+      />
       <InstallBanner />
       <OfflineSyncIndicator />
     </DriverThemeRoot>

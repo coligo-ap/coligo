@@ -220,7 +220,13 @@ export function ExpressCard({
           <button
             type="button"
             onClick={() =>
-              openSupportChat({ orderRef: currentOrder.order_number })
+              openSupportChat({
+                orderRef: currentOrder.order_number,
+                attributes: {
+                  Boutique: merchantName,
+                  Étape: pickedUp ? "Vers le client" : "Vers le commerçant",
+                },
+              })
             }
             className="fixed top-[max(14px,calc(env(safe-area-inset-top)+10px))] left-3 z-[95] inline-flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-[12px] font-semibold text-white backdrop-blur"
           >

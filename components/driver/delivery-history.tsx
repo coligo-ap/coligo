@@ -186,7 +186,17 @@ export function DeliveryHistory({
                       <button
                         type="button"
                         onClick={() =>
-                          openSupportChat({ orderRef: r.order_number })
+                          openSupportChat({
+                            orderRef: r.order_number,
+                            attributes: {
+                              Boutique: merchantNameOf(r.merchant_id),
+                              Statut: delivered
+                                ? "Livrée"
+                                : cancelled
+                                  ? "Annulée"
+                                  : "En cours",
+                            },
+                          })
                         }
                         style={{
                           display: "inline-flex",

@@ -8,6 +8,7 @@ import { MobileDrawer } from "@/components/merchant/mobile-drawer";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import { OrderRealtimeBridge } from "@/components/merchant/order-realtime-bridge";
 import { PushRegistrar } from "@/components/native/push-registrar";
+import { TawkChat } from "@/components/support/tawk-chat";
 import { expireStalePendingOrders } from "@/lib/merchant/expire-pending";
 import {
   DEFAULT_PRINT_SETTINGS,
@@ -139,6 +140,18 @@ export async function MerchantShell({
 
       {/* Enregistrement du token FCM (no-op hors APK Capacitor). */}
       <PushRegistrar role="merchant" />
+
+      {/* Live chat support (Tawk.to) — lanceur masqué, ouvert via « Centre
+          d'aide » (sidebar/drawer). Contexte max pour l'agent. */}
+      <TawkChat
+        role="commercant"
+        name={merchant.name}
+        email={user.email ?? null}
+        attributes={{
+          Boutique: merchant.name,
+          "ID commerçant": merchant.id,
+        }}
+      />
     </div>
   );
 }

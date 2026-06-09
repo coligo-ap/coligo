@@ -27,13 +27,15 @@ export async function CustomerShell({
   } = await supabase.auth.getUser();
 
   let customerName: string | null = null;
+  let customerPhone: string | null = null;
   if (user) {
     const { data: customer } = await supabase
       .from("customers")
-      .select("full_name")
+      .select("full_name, phone")
       .eq("user_id", user.id)
       .maybeSingle();
     customerName = customer?.full_name ?? null;
+    customerPhone = customer?.phone ?? null;
   }
 
   return (
@@ -52,8 +54,18 @@ export async function CustomerShell({
           et le registrar abandonne silencieusement). */}
       {user && <PushRegistrar role="customer" />}
 
-      {/* Live chat support (Tawk.to) — lanceur masqué, ouvert via « Aide ». */}
-      <TawkChat role="client" name={customerName} email={user?.email ?? null} />
+      {/* Live chat support (Tawk.to) — lanceur masqué, ouvert via « Aide ».
+          Contexte max pour l'agent : nom, e-mail, tél, et statut du compte. */}
+      <TawkChat
+        role="client"
+        name={customerName}
+        email={user?.email ?? null}
+        phone={customerPhone}
+        attributes={{
+          Compte: user ? "Connecté" : "Visiteur",
+          "ID client": user?.id,
+        }}
+      />
     </div>
   );
 }

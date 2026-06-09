@@ -348,6 +348,11 @@ export default async function CustomerOrderDetailPage({
           <OrderSupportButton
             orderRef={orderNumber}
             label={t("contactSupport")}
+            attributes={{
+              Boutique: merchant.name,
+              Statut: stateTitle,
+              Montant: formatDA(order.total_da),
+            }}
             className="border-border bg-surface text-foreground hover:bg-surface-2 inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold shadow-sm transition-colors"
           />
         </div>

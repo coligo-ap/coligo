@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/logo";
+import { openSupportChat } from "@/components/support/tawk-chat";
 
 type NavItem = {
   href: string;
@@ -93,13 +94,14 @@ export function MerchantSidebar({ merchantName }: { merchantName: string }) {
       </nav>
 
       <div className="border-border border-t px-3 py-4">
-        <a
-          href="#"
-          className="text-muted hover:bg-surface-2 hover:text-foreground flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors"
+        <button
+          type="button"
+          onClick={() => openSupportChat()}
+          className="text-muted hover:bg-surface-2 hover:text-foreground flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors"
         >
           <HelpCircle className="size-4 shrink-0" />
-          Centre d&apos;aide
-        </a>
+          Aide &amp; support
+        </button>
       </div>
     </aside>
   );
