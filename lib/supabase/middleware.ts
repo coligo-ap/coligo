@@ -62,6 +62,33 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   };
 
+  // ===========================================================================
+  // ISOLATION DES RÔLES (anti-fraude) — un livreur reste DANS son espace.
+  // ---------------------------------------------------------------------------
+  // Un livreur s'authentifie avec un email synthétique `<tel>@drivers.coligo.local`
+  // (cf. lib/auth/driver). On le détecte SANS requête DB. Une session livreur ne
+  // doit JAMAIS pouvoir naviguer la marketplace client ni l'espace commerçant
+  // (chacun son rôle). Pour agir en client/commerçant, il doit se déconnecter
+  // puis s'inscrire/se connecter via l'écran dédié. Une seule identité active
+  // par session (même navigateur / même fenêtre).
+  // ===========================================================================
+  const isDriverSession =
+    !!user?.email && user.email.endsWith("@drivers.coligo.local");
+  if (isDriverSession) {
+    const allowed =
+      path === "/driver" ||
+      path.startsWith("/driver/") ||
+      path.startsWith("/api/") ||
+      path.startsWith("/auth") ||
+      path.startsWith("/offline");
+    if (!allowed) {
+      return redirectTo("/driver");
+    }
+    // Session livreur sur une route autorisée (/driver…) → on laisse passer sans
+    // exécuter la logique d'atterrissage marchand/client ci-dessous.
+    return supabaseResponse;
+  }
+
   // /dashboard exige une session — sinon login marchand.
   if (path.startsWith("/dashboard") && !user) {
     return redirectTo("/login");

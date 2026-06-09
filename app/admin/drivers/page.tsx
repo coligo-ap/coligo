@@ -18,7 +18,7 @@ export default async function AdminDriversPage() {
   const { data: drivers } = await admin
     .from("drivers")
     .select(
-      "id, full_name, phone, is_frozen, is_verified, avatar_url, created_at"
+      "id, full_name, phone, is_frozen, is_blocked, is_verified, avatar_url, created_at"
     )
     .order("created_at", { ascending: false })
     .limit(500);
@@ -68,7 +68,11 @@ export default async function AdminDriversPage() {
               <tr
                 key={d.id}
                 className={
-                  d.is_frozen ? "bg-danger-50/60" : "hover:bg-surface-2"
+                  d.is_blocked
+                    ? "bg-danger-50"
+                    : d.is_frozen
+                      ? "bg-warning-50/60"
+                      : "hover:bg-surface-2"
                 }
               >
                 <td className="px-3 py-2 font-medium">
@@ -100,6 +104,7 @@ export default async function AdminDriversPage() {
                 <td className="text-muted px-3 py-2 tabular-nums">{d.phone}</td>
                 <td className="px-3 py-2 text-center">
                   <DriverStatusBadge
+                    isBlocked={d.is_blocked}
                     isFrozen={d.is_frozen}
                     isVerified={d.is_verified}
                   />

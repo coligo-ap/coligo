@@ -36,10 +36,14 @@ export function DriverHomeMaquette({
   earnedToday,
   coursesToday,
   ratingAvg,
+  isFrozen = false,
+  freezeReason = null,
 }: {
   earnedToday: number;
   coursesToday: number;
   ratingAvg: number;
+  isFrozen?: boolean;
+  freezeReason?: string | null;
 }) {
   const online = useDriverOnline();
   const [busy, start] = useTransition();
@@ -82,6 +86,11 @@ export function DriverHomeMaquette({
     const next = !online;
     // AUCUN toast de statut : le bouton vert + le chip suffisent (cf. prompt).
     if (next) {
+      // Compte gelé : on refuse immédiatement la mise en ligne + message.
+      if (isFrozen) {
+        setFrozenMsg(true);
+        return;
+      }
       // Passage en ligne : optimiste, mais le serveur peut refuser (gelé).
       setDriverOnline(true);
       start(async () => {
@@ -158,6 +167,17 @@ export function DriverHomeMaquette({
             >
               {FROZEN_MESSAGE}
             </p>
+            {freezeReason && (
+              <p
+                style={{
+                  fontSize: 12.5,
+                  color: "var(--muted)",
+                  marginTop: 8,
+                }}
+              >
+                Motif : {freezeReason}
+              </p>
+            )}
             <button
               type="button"
               onClick={() => setFrozenMsg(false)}
@@ -180,8 +200,49 @@ export function DriverHomeMaquette({
         </div>
       )}
 
+      {/* Bandeau « compte gelé » (souple) : accès aux pages OK, activité bloquée. */}
+      {isFrozen && (
+        <button
+          type="button"
+          onClick={() => setFrozenMsg(true)}
+          className="mq-sora"
+          style={{
+            position: "absolute",
+            top: "max(58px, calc(env(safe-area-inset-top) + 14px))",
+            left: 16,
+            right: 16,
+            zIndex: 46,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            background: "var(--red)",
+            color: "#fff",
+            border: 0,
+            borderRadius: 14,
+            padding: "10px 14px",
+            fontSize: 12.5,
+            fontWeight: 700,
+            boxShadow: "var(--pill-shadow)",
+            textAlign: "left",
+          }}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ width: 18, height: 18, stroke: "#fff", flex: "none" }}
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v4M12 16h.01" />
+          </svg>
+          Compte gelé · activité suspendue — appuyez pour en savoir plus
+        </button>
+      )}
+
       {/* Chip discret « ● En ligne » (haut-gauche) — uniquement en ligne. */}
-      {online && (
+      {online && !isFrozen && (
         <div className="home-chip">
           <span className="d" />
           En ligne

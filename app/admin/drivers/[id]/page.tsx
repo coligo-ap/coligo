@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
   ArrowLeft,
-  BadgeCheck,
   Banknote,
   CreditCard,
   FileText,
@@ -15,6 +14,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isSuperAdmin } from "@/lib/auth/admin";
 import { formatDA } from "@/lib/utils";
 import { DriverFreezeButton } from "@/components/admin/driver-freeze-button";
+import { DriverBlockButton } from "@/components/admin/drivers/driver-block-button";
 import { DriverVerifyToggle } from "@/components/admin/drivers/driver-verify-toggle";
 import {
   DriverProfileForm,
@@ -302,15 +302,10 @@ export default async function AdminDriverDetailPage({
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <DriverStatusBadge
+                  isBlocked={driver.is_blocked}
                   isFrozen={driver.is_frozen}
                   isVerified={driver.is_verified}
                 />
-                {/* Si gelé MAIS déjà vérifié, on garde l'info de vérification. */}
-                {driver.is_frozen && driver.is_verified && (
-                  <span className="bg-success-50 text-success-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold">
-                    <BadgeCheck className="size-3.5" /> Pièces vérifiées
-                  </span>
-                )}
               </div>
             </div>
           </div>
@@ -323,15 +318,36 @@ export default async function AdminDriverDetailPage({
               driverId={driver.id}
               frozen={driver.is_frozen ?? false}
             />
+            <DriverBlockButton
+              driverId={driver.id}
+              blocked={driver.is_blocked ?? false}
+            />
           </div>
         </div>
-        {driver.is_frozen && (
-          <p className="border-danger-100 bg-danger-50 text-danger-700 mt-3 rounded-[12px] border px-4 py-2.5 text-xs">
-            Ce livreur est <strong>gelé</strong> : il peut consulter son profil
+        {driver.is_blocked ? (
+          <p className="border-danger-200 bg-danger-50 text-danger-700 mt-3 rounded-[12px] border px-4 py-2.5 text-xs">
+            Ce livreur est <strong>bloqué</strong> (sanction dure) : aucun accès
+            à ses pages — il ne voit qu&apos;un message de blocage.
+            {driver.block_reason ? (
+              <>
+                {" "}
+                Motif : <em>{driver.block_reason}</em>.
+              </>
+            ) : null}
+          </p>
+        ) : driver.is_frozen ? (
+          <p className="border-warning-200 bg-warning-50 text-warning-800 mt-3 rounded-[12px] border px-4 py-2.5 text-xs">
+            Ce livreur est <strong>gelé</strong> : il peut consulter son compte
             mais ne peut{" "}
             <strong>ni passer en ligne ni recevoir de course</strong>.
+            {driver.freeze_reason ? (
+              <>
+                {" "}
+                Motif : <em>{driver.freeze_reason}</em>.
+              </>
+            ) : null}
           </p>
-        )}
+        ) : null}
       </div>
 
       {/* Performance */}

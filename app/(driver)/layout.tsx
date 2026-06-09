@@ -5,7 +5,9 @@ import { DriverDispatchMount } from "@/components/driver/driver-dispatch-mount";
 import { DriverSplash } from "@/components/driver/driver-splash";
 import { ActiveCourseBanner } from "@/components/driver/active-course-banner";
 import { DriverThemeRoot } from "@/components/driver/driver-theme-root";
+import { DriverBlockedScreen } from "@/components/driver/driver-blocked-screen";
 import { InstallBanner } from "@/components/pwa/install-banner";
+import { getCurrentDriver } from "@/lib/auth/driver";
 
 /**
  * Layout du groupe (driver). Volontairement MINIMAL : chaque page gère son
@@ -33,11 +35,25 @@ const fontJakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
-export default function DriverLayout({
+export default async function DriverLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // BLOCAGE (sanction dure) : un livreur bloqué n'a AUCUN accès à ses pages —
+  // quel que soit l'onglet, on n'affiche que l'écran de blocage (+ la nav).
+  // Le GEL (souple) laisse au contraire l'accès aux pages (géré écran par écran).
+  const driver = await getCurrentDriver();
+  if (driver?.is_blocked) {
+    return (
+      <DriverThemeRoot
+        fontVars={`${fontSora.variable} ${fontJakarta.variable}`}
+      >
+        <DriverBlockedScreen reason={driver.block_reason} />
+      </DriverThemeRoot>
+    );
+  }
+
   return (
     <DriverThemeRoot fontVars={`${fontSora.variable} ${fontJakarta.variable}`}>
       {children}

@@ -865,6 +865,11 @@ export type Database = {
           verified_by: string | null;
           admin_note: string | null;
           avatar_url: string | null;
+          is_blocked: boolean;
+          blocked_at: string | null;
+          block_reason: string | null;
+          frozen_at: string | null;
+          freeze_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -896,6 +901,11 @@ export type Database = {
           verified_by?: string | null;
           admin_note?: string | null;
           avatar_url?: string | null;
+          is_blocked?: boolean;
+          blocked_at?: string | null;
+          block_reason?: string | null;
+          frozen_at?: string | null;
+          freeze_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -927,6 +937,11 @@ export type Database = {
           verified_by?: string | null;
           admin_note?: string | null;
           avatar_url?: string | null;
+          is_blocked?: boolean;
+          blocked_at?: string | null;
+          block_reason?: string | null;
+          frozen_at?: string | null;
+          freeze_reason?: string | null;
         };
         Relationships: [];
       };

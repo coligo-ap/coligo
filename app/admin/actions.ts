@@ -147,7 +147,14 @@ export async function toggleDriverFrozen(
   const admin = createAdminClient();
   const { error, count } = await admin
     .from("drivers")
-    .update({ is_frozen: frozen }, { count: "exact" })
+    .update(
+      {
+        is_frozen: frozen,
+        frozen_at: frozen ? new Date().toISOString() : null,
+        freeze_reason: frozen ? (note ?? null) : null,
+      },
+      { count: "exact" }
+    )
     .eq("id", driverId);
   if (error) return { error: error.message };
   if (!count) return { error: "Livreur introuvable." };
@@ -176,6 +183,66 @@ export async function toggleDriverFrozen(
   await admin.from("admin_audit_log").insert({
     admin_email: user?.email ?? null,
     action: frozen ? "freeze_driver" : "unfreeze_driver",
+    target_kind: "driver",
+    target_id: driverId,
+    note: note ?? null,
+  });
+
+  revalidatePath("/admin/drivers");
+  revalidatePath(`/admin/drivers/${driverId}`);
+  return {};
+}
+
+/**
+ * BLOCAGE d'un livreur (sanction DURE : dangereux / suspect / violation).
+ * Différent du gel : un livreur bloqué n'a PLUS accès à ses pages (juste un
+ * message « compte bloqué » + la nav). L'activité est suspendue aussi.
+ */
+export async function toggleDriverBlocked(
+  driverId: string,
+  blocked: boolean,
+  note?: string
+): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+
+  const admin = createAdminClient();
+  const { error, count } = await admin
+    .from("drivers")
+    .update(
+      {
+        is_blocked: blocked,
+        blocked_at: blocked ? new Date().toISOString() : null,
+        block_reason: blocked ? (note ?? null) : null,
+      },
+      { count: "exact" }
+    )
+    .eq("id", driverId);
+  if (error) return { error: error.message };
+  if (!count) return { error: "Livreur introuvable." };
+
+  // Blocage → sortie immédiate des files (en plus du garde is_blocked SQL).
+  if (blocked) {
+    const { data: mds } = await admin
+      .from("merchant_drivers")
+      .select("id")
+      .eq("driver_id", driverId);
+    const ids = (mds ?? []).map((m) => m.id);
+    if (ids.length) {
+      await admin
+        .from("driver_availability")
+        .update({ status: "offline" })
+        .in("merchant_driver_id", ids)
+        .neq("status", "busy");
+    }
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  await admin.from("admin_audit_log").insert({
+    admin_email: user?.email ?? null,
+    action: blocked ? "block_driver" : "unblock_driver",
     target_kind: "driver",
     target_id: driverId,
     note: note ?? null,
