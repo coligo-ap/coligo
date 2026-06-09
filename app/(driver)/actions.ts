@@ -190,19 +190,14 @@ export async function updateDriverProfile(
 // Suppression de compte livreur (danger zone)
 // ---------------------------------------------------------------------------
 export async function deleteDriverAccount(): Promise<DriverAuthState> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Session expirée." };
-
-  // ON DELETE CASCADE sur auth.users → drivers + merchant_drivers +
-  // driver_availability + delivery_tours sont nettoyés en cascade.
-  const admin = createAdminClient();
-  const { error } = await admin.auth.admin.deleteUser(user.id);
-  if (error) return { error: error.message };
-
-  redirect("/driver/login");
+  // ANTI-FRAUDE : un livreur ne peut PLUS supprimer lui-même son compte (il
+  // pourrait disparaître à tout moment, ex. après un litige/vol). La suppression
+  // définitive passe désormais EXCLUSIVEMENT par l'équipe super-admin. On refuse
+  // donc toute auto-suppression, même si l'action est appelée directement.
+  return {
+    error:
+      "La suppression d'un compte livreur passe par l'équipe Coligo. Contacte le support.",
+  };
 }
 
 // ---------------------------------------------------------------------------

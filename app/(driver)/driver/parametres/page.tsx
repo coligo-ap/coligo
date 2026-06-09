@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { createClient } from "@/lib/supabase/server";
 import { DriverShell } from "@/components/driver/driver-shell";
-import { DeleteAccountSection } from "@/components/driver/delete-account-section";
 import { CompteView } from "@/components/driver/profile/compte-view";
 import {
   DriverInfoManager,
@@ -164,10 +163,6 @@ export default async function DriverProfilePage() {
           requests={(reqRaw ?? []) as SelfRequest[]}
         />
       </CompteView>
-
-      <div style={{ marginTop: 18 }}>
-        <DeleteAccountSection />
-      </div>
     </DriverShell>
   );
 }
