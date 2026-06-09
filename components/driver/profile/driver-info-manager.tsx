@@ -12,13 +12,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
 import {
   saveDriverVehicleSelf,
-  addDriverDocumentSelf,
-  deleteDriverDocumentSelf,
+  submitDriverDocument,
   addDriverPayoutSelf,
   deleteDriverPayoutSelf,
   proposeVehicleChange,
   proposePayoutChange,
-  proposeDocumentChange,
 } from "@/app/(driver)/actions";
 
 type ActionState = { ok?: boolean; error?: string };
@@ -43,6 +41,8 @@ export type SelfDoc = {
   expires_at: string | null;
   hasScan: boolean;
   scanUrl: string | null;
+  status: string;
+  review_note: string | null;
 };
 export type SelfPayout = {
   id: string;
@@ -336,11 +336,7 @@ export function DriverInfoManager({
         verified={verified}
         pending={pendingKinds.has("vehicle")}
       />
-      <DocsSection
-        documents={documents}
-        verified={verified}
-        pending={pendingKinds.has("document")}
-      />
+      <DocsSection documents={documents} />
       <PayoutsSection
         payouts={payouts}
         verified={verified}
@@ -565,31 +561,57 @@ function Field({
 }
 
 // ---------------- Documents ----------------
-function DocsSection({
-  documents,
-  verified,
-  pending,
-}: {
-  documents: SelfDoc[];
-  verified: boolean;
-  pending: boolean;
-}) {
+function docBadge(s: string) {
+  if (s === "approved")
+    return { t: "✓ Vérifiée", c: "var(--go)", bg: "var(--go-soft)" };
+  if (s === "rejected")
+    return { t: "Refusée", c: "var(--red)", bg: "var(--red-soft)" };
+  return {
+    t: "⏳ En vérification",
+    c: "var(--amber)",
+    bg: "rgba(245,158,11,.14)",
+  };
+}
+
+function DocsSection({ documents }: { documents: SelfDoc[] }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
-  const [del, startDel] = useTransition();
   const [ok, setOk] = useState(false);
   const [state, action] = useActionState<ActionState, FormData>(
-    verified ? proposeDocumentChange : addDriverDocumentSelf,
+    submitDriverDocument,
     {}
   );
+  // Aperçu AVANT envoi (rien n'est écrit tant que non envoyé).
+  const [preview, setPreview] = useState<{
+    name: string;
+    url: string | null;
+    isImage: boolean;
+  } | null>(null);
+
+  const clearPreview = () => {
+    if (preview?.url) URL.revokeObjectURL(preview.url);
+    setPreview(null);
+  };
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (preview?.url) URL.revokeObjectURL(preview.url);
+    if (!f) {
+      setPreview(null);
+      return;
+    }
+    const isImage = f.type.startsWith("image/");
+    setPreview({
+      name: f.name,
+      url: isImage ? URL.createObjectURL(f) : null,
+      isImage,
+    });
+  };
+
   useEffect(() => {
     if (state.ok) {
       setOk(true);
-      toast.success(
-        verified
-          ? "Demande envoyée — en cours de vérification"
-          : "Pièce ajoutée"
-      );
+      clearPreview();
+      toast.success("Pièce envoyée — en cours de vérification");
       router.refresh();
       const t = setTimeout(() => {
         setOk(false);
@@ -598,37 +620,72 @@ function DocsSection({
       return () => clearTimeout(t);
     }
     if (state.error) toast.error(state.error);
-  }, [state, router, verified]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, router]);
+
+  const hasPending = documents.some((d) => d.status === "pending");
+  const allApproved =
+    documents.length > 0 && documents.every((d) => d.status === "approved");
+  const headBadge = hasPending ? (
+    <span style={pillStyle("var(--amber)", "rgba(245,158,11,.14)")}>
+      ⏳ En vérification…
+    </span>
+  ) : allApproved ? (
+    <span style={pillStyle("var(--go)", "var(--go-soft)")}>✓ Vérifiées</span>
+  ) : undefined;
 
   return (
     <Section
       title={`Pièces d'identité (${documents.length})`}
-      badge={<StatusPill verified={verified} pending={pending} />}
+      badge={headBadge}
     >
-      {verified && pending && <PendingBanner />}
       {documents.length === 0 && (
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
-          Aucune pièce.
+          Aucune pièce envoyée.
         </p>
       )}
-      {documents.map((d) => (
-        <div
-          key={d.id}
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 10,
-            padding: "8px 0",
-            borderBottom: "1px solid var(--line)",
-            fontSize: 13.5,
-          }}
-        >
-          <div>
-            <b>{lbl(DOC_TYPES, d.doc_type)}</b>
-            <div style={{ color: "var(--muted)", fontSize: 12 }}>
+      {documents.map((d) => {
+        const b = docBadge(d.status);
+        return (
+          <div
+            key={d.id}
+            style={{
+              padding: "10px 0",
+              borderBottom: "1px solid var(--line)",
+              fontSize: 13.5,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <b>{lbl(DOC_TYPES, d.doc_type)}</b>
+              <span
+                style={{
+                  color: b.c,
+                  background: b.bg,
+                  fontWeight: 700,
+                  fontSize: 11,
+                  borderRadius: 20,
+                  padding: "2px 9px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {b.t}
+              </span>
+            </div>
+            <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 2 }}>
               {d.number ?? "N° —"}
               {d.expires_at ? ` · exp. ${d.expires_at}` : ""}
             </div>
+            {d.status === "rejected" && d.review_note && (
+              <div style={{ color: "var(--red)", fontSize: 12, marginTop: 2 }}>
+                Motif : {d.review_note}
+              </div>
+            )}
             {d.scanUrl && (
               <a
                 href={d.scanUrl}
@@ -640,40 +697,14 @@ function DocsSection({
                   fontWeight: 700,
                 }}
               >
-                Voir le scan
+                Revoir le document
               </a>
             )}
           </div>
-          {!verified && (
-            <button
-              type="button"
-              onClick={() => {
-                if (!confirm("Supprimer cette pièce ?")) return;
-                startDel(async () => {
-                  const r = await deleteDriverDocumentSelf(d.id);
-                  if (r.error) toast.error(r.error);
-                  else {
-                    toast.success("Supprimée");
-                    router.refresh();
-                  }
-                });
-              }}
-              disabled={del}
-              style={{
-                background: "none",
-                border: 0,
-                color: "var(--red)",
-                fontWeight: 700,
-                fontSize: 12,
-              }}
-            >
-              Supprimer
-            </button>
-          )}
-        </div>
-      ))}
+        );
+      })}
 
-      {verified && pending ? null : adding ? (
+      {adding ? (
         <form
           action={action}
           style={{ display: "grid", gap: 10, marginTop: 12 }}
@@ -693,25 +724,129 @@ function DocsSection({
             <Field name="issued_at" label="Émission" type="date" />
             <Field name="expires_at" label="Expiration" type="date" />
           </Row>
+
+          {/* Sélection + APERÇU avant envoi */}
           <div>
-            <label style={lab}>Scan (JPG/PNG/WEBP/PDF, max 8 Mo)</label>
+            <label style={lab}>Scan / photo * (JPG, PNG, WEBP ou PDF)</label>
             <input
+              id="doc-file"
               name="file"
               type="file"
+              required
               accept="image/jpeg,image/png,image/webp,application/pdf"
-              style={{ ...inp, height: "auto", padding: 8 }}
+              onChange={onPick}
+              style={{
+                display: preview ? "none" : "block",
+                ...inp,
+                height: "auto",
+                padding: 8,
+              }}
             />
+            {preview && (
+              <div
+                style={{
+                  border: "1px solid var(--line)",
+                  borderRadius: 12,
+                  padding: 10,
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "center",
+                }}
+              >
+                {preview.isImage && preview.url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={preview.url}
+                    alt="Aperçu"
+                    style={{
+                      width: 56,
+                      height: 56,
+                      objectFit: "cover",
+                      borderRadius: 8,
+                      flex: "none",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 8,
+                      background: "var(--soft)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "var(--muted)",
+                      flex: "none",
+                    }}
+                  >
+                    PDF
+                  </div>
+                )}
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {preview.name}
+                  </div>
+                  <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+                    <label
+                      htmlFor="doc-file"
+                      style={{
+                        color: "var(--violet)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Remplacer
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const el = document.getElementById(
+                          "doc-file"
+                        ) as HTMLInputElement | null;
+                        if (el) el.value = "";
+                        clearPreview();
+                      }}
+                      style={{
+                        color: "var(--red)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        background: "none",
+                        border: 0,
+                      }}
+                    >
+                      Retirer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
+
+          <p style={{ fontSize: 11.5, color: "var(--muted)" }}>
+            Une fois envoyée, la pièce passe « en vérification » et ne peut plus
+            être modifiée ni supprimée.
+          </p>
           <div style={{ display: "flex", gap: 8 }}>
-            <SubmitBtn
-              idle={verified ? "Envoyer la demande" : "Ajouter"}
-              success={ok}
-              successLabel={verified ? "Envoyée" : "Ajoutée"}
-            />
+            <SubmitBtn idle="Envoyer" success={ok} successLabel="Envoyée" />
             <button
               type="button"
               className="btnlink"
-              onClick={() => setAdding(false)}
+              onClick={() => {
+                clearPreview();
+                setAdding(false);
+              }}
             >
               Annuler
             </button>
@@ -724,7 +859,7 @@ function DocsSection({
           style={{ textAlign: "left", marginTop: 10 }}
           onClick={() => setAdding(true)}
         >
-          {verified ? "+ Proposer une pièce" : "+ Ajouter une pièce"}
+          + Envoyer une pièce
         </button>
       )}
     </Section>

@@ -955,6 +955,10 @@ export type Database = {
           expires_at: string | null;
           file_url: string | null;
           note: string | null;
+          status: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          review_note: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -967,6 +971,10 @@ export type Database = {
           expires_at?: string | null;
           file_url?: string | null;
           note?: string | null;
+          status?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          review_note?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -979,6 +987,10 @@ export type Database = {
           expires_at?: string | null;
           file_url?: string | null;
           note?: string | null;
+          status?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          review_note?: string | null;
           created_at?: string;
           updated_at?: string;
         };

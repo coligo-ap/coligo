@@ -708,79 +708,58 @@ export async function saveDriverVehicleSelf(
   return { ok: true };
 }
 
-export async function addDriverDocumentSelf(
+/**
+ * Envoi d'une pièce par le livreur (1ʳᵉ fois OU ajout ultérieur). La pièce est
+ * insérée en statut `pending` AVEC son scan → elle apparaît « en vérification »,
+ * reste consultable mais NON modifiable/supprimable (verrouillée par la RLS) :
+ * c'est déjà en cours de vérification côté admin. L'aperçu / remplacement /
+ * retrait se fait AVANT l'envoi, côté client (rien n'est écrit tant que non
+ * envoyé). Le scan est OBLIGATOIRE.
+ */
+export async function submitDriverDocument(
   _prev: DriverAuthState,
   formData: FormData
 ): Promise<DriverAuthState> {
-  const g = await selfGuard();
-  if (!g.ok) return { error: g.error };
-  if (g.verified)
-    return {
-      error: "Profil vérifié : passez par une demande de modification.",
-    };
+  const driver = await getCurrentDriver();
+  if (!driver) return { error: "Session expirée." };
+  if (driver.is_blocked) return { error: "Compte bloqué." };
 
   const docType = selfTxt(formData.get("doc_type"));
   const allowed = ["cni", "permis", "carte_grise", "passeport", "autre"];
   if (!docType || !allowed.includes(docType))
     return { error: "Type de pièce invalide." };
 
-  const supabase = await createClient();
-  let filePath: string | null = null;
   const file = formData.get("file");
-  if (file instanceof File && file.size > 0) {
-    if (file.size > SELF_MAX_SCAN)
-      return { error: "Scan trop lourd (max 8 Mo)." };
-    if (!SELF_SCAN_TYPES.includes(file.type))
-      return { error: "Format accepté : JPG, PNG, WEBP ou PDF." };
-    const safe = (file.name || "scan").replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `${g.driverId}/${globalThis.crypto.randomUUID()}-${safe}`;
-    const { error: upErr } = await supabase.storage
-      .from(SELF_DOCS_BUCKET)
-      .upload(path, file, { contentType: file.type, upsert: false });
-    if (upErr) return { error: `Upload échoué : ${upErr.message}` };
-    filePath = path;
-  }
+  if (!(file instanceof File) || file.size === 0)
+    return { error: "Joignez le scan / la photo de la pièce." };
+  if (file.size > SELF_MAX_SCAN)
+    return { error: "Fichier trop lourd (max 8 Mo)." };
+  if (!SELF_SCAN_TYPES.includes(file.type))
+    return { error: "Format accepté : JPG, PNG, WEBP ou PDF." };
+
+  const supabase = await createClient();
+  const safe = (file.name || "scan").replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${driver.id}/${globalThis.crypto.randomUUID()}-${safe}`;
+  const { error: upErr } = await supabase.storage
+    .from(SELF_DOCS_BUCKET)
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (upErr) return { error: `Upload échoué : ${upErr.message}` };
 
   const { error } = await supabase.from("driver_documents").insert({
-    driver_id: g.driverId,
+    driver_id: driver.id,
     doc_type: docType,
     number: selfTxt(formData.get("number")),
     issued_at: selfTxt(formData.get("issued_at")),
     expires_at: selfTxt(formData.get("expires_at")),
-    file_url: filePath,
+    file_url: path,
+    status: "pending",
   });
   if (error) {
-    if (filePath)
-      await supabase.storage.from(SELF_DOCS_BUCKET).remove([filePath]);
+    await supabase.storage.from(SELF_DOCS_BUCKET).remove([path]);
     return { error: error.message };
   }
   revalidatePath("/driver/parametres");
   return { ok: true };
-}
-
-export async function deleteDriverDocumentSelf(
-  docId: string
-): Promise<{ error?: string }> {
-  const g = await selfGuard();
-  if (!g.ok) return { error: g.error };
-  if (g.verified) return { error: "Profil vérifié." };
-  const supabase = await createClient();
-  const { data: doc } = await supabase
-    .from("driver_documents")
-    .select("file_url")
-    .eq("id", docId)
-    .eq("driver_id", g.driverId)
-    .maybeSingle();
-  const { error } = await supabase
-    .from("driver_documents")
-    .delete()
-    .eq("id", docId)
-    .eq("driver_id", g.driverId);
-  if (error) return { error: error.message };
-  const path = (doc?.file_url as string | null) ?? null;
-  if (path) await supabase.storage.from(SELF_DOCS_BUCKET).remove([path]);
-  revalidatePath("/driver/parametres");
-  return {};
 }
 
 export async function addDriverPayoutSelf(
@@ -939,50 +918,5 @@ export async function proposePayoutChange(
   return { ok: true };
 }
 
-export async function proposeDocumentChange(
-  _prev: DriverAuthState,
-  formData: FormData
-): Promise<DriverAuthState> {
-  const driver = await getCurrentDriver();
-  if (!driver) return { error: "Session expirée." };
-  if (driver.is_blocked) return { error: "Compte bloqué." };
-  const docType = selfTxt(formData.get("doc_type"));
-  const allowed = ["cni", "permis", "carte_grise", "passeport", "autre"];
-  if (!docType || !allowed.includes(docType))
-    return { error: "Type de pièce invalide." };
-  const supabase = await createClient();
-  if (await hasPendingReq(supabase, driver.id, "document"))
-    return { error: "Une demande pièce est déjà en cours de vérification." };
-
-  let filePath: string | null = null;
-  const file = formData.get("file");
-  if (file instanceof File && file.size > 0) {
-    if (file.size > SELF_MAX_SCAN)
-      return { error: "Scan trop lourd (max 8 Mo)." };
-    if (!SELF_SCAN_TYPES.includes(file.type))
-      return { error: "Format accepté : JPG, PNG, WEBP ou PDF." };
-    const safe = (file.name || "scan").replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `${driver.id}/${globalThis.crypto.randomUUID()}-${safe}`;
-    const { error: upErr } = await supabase.storage
-      .from(SELF_DOCS_BUCKET)
-      .upload(path, file, { contentType: file.type, upsert: false });
-    if (upErr) return { error: `Upload échoué : ${upErr.message}` };
-    filePath = path;
-  }
-  const payload = {
-    doc_type: docType,
-    number: selfTxt(formData.get("number")),
-    issued_at: selfTxt(formData.get("issued_at")),
-    expires_at: selfTxt(formData.get("expires_at")),
-    file_url: filePath,
-  };
-  const { error } = await supabase.from("driver_change_requests").insert({
-    driver_id: driver.id,
-    kind: "document",
-    note: `Nouvelle pièce (${docType})`,
-    payload,
-  });
-  if (error) return { error: error.message };
-  revalidatePath("/driver/parametres");
-  return { ok: true };
-}
+// (proposeDocumentChange retiré : les pièces passent désormais par
+//  submitDriverDocument — statut `pending` sur la pièce, verrouillée après envoi.)

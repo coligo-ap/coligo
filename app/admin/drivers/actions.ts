@@ -320,6 +320,34 @@ export async function upsertDriverDocument(
   return { ok: true };
 }
 
+/** Valide ou refuse une pièce envoyée par le livreur (statut de vérification). */
+export async function setDriverDocumentStatus(
+  driverId: string,
+  docId: string,
+  status: "approved" | "rejected",
+  note?: string | null
+): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("driver_documents")
+    .update({
+      status,
+      review_note: note ?? null,
+      reviewed_by: await adminEmail(),
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", docId);
+  if (error) return { error: error.message };
+  await audit(
+    status === "approved" ? "approve_document" : "reject_document",
+    driverId,
+    note ?? null
+  );
+  refreshDriver(driverId);
+  return {};
+}
+
 export async function deleteDriverDocument(
   driverId: string,
   docId: string

@@ -10,6 +10,8 @@ import {
   Pencil,
   Paperclip,
   FileImage,
+  Check,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +20,7 @@ import { toast } from "@/components/ui/toast";
 import {
   upsertDriverDocument,
   deleteDriverDocument,
+  setDriverDocumentStatus,
 } from "@/app/admin/drivers/actions";
 import type { AdminFormState } from "@/app/admin/actions";
 
@@ -30,6 +33,17 @@ export type DriverDocument = {
   note: string | null;
   hasScan: boolean;
   scanUrl: string | null;
+  status: string;
+  review_note: string | null;
+};
+
+const STATUS_META: Record<string, { label: string; cls: string }> = {
+  pending: {
+    label: "⏳ En vérification",
+    cls: "bg-warning-50 text-warning-700",
+  },
+  approved: { label: "✓ Vérifiée", cls: "bg-success-50 text-success-700" },
+  rejected: { label: "Refusée", cls: "bg-danger-50 text-danger-700" },
 };
 
 const DOC_TYPES = [
@@ -91,7 +105,17 @@ export function DriverDocumentsManager({
             className="border-border flex items-start justify-between gap-3 rounded-[12px] border p-3"
           >
             <div className="min-w-0 text-sm">
-              <p className="font-semibold">{docLabel(d.doc_type)}</p>
+              <p className="flex items-center gap-2 font-semibold">
+                {docLabel(d.doc_type)}
+                <span
+                  className={
+                    "rounded-full px-2 py-0.5 text-[10px] font-bold " +
+                    (STATUS_META[d.status]?.cls ?? "bg-surface-2 text-muted")
+                  }
+                >
+                  {STATUS_META[d.status]?.label ?? d.status}
+                </span>
+              </p>
               <p className="text-muted tabular-nums">
                 {d.number ?? "N° non renseigné"}
               </p>
@@ -127,7 +151,58 @@ export function DriverDocumentsManager({
                 </a>
               )}
             </div>
-            <div className="flex shrink-0 gap-1">
+            <div className="flex shrink-0 items-start gap-1">
+              {d.status === "pending" && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Valider la pièce"
+                    className="text-success-700 hover:bg-success-50 rounded-[8px] p-1.5"
+                    disabled={delPending}
+                    onClick={() => {
+                      startDel(async () => {
+                        const r = await setDriverDocumentStatus(
+                          driverId,
+                          d.id,
+                          "approved"
+                        );
+                        if (r.error) toast.error(r.error);
+                        else {
+                          toast.success("Pièce validée");
+                          router.refresh();
+                        }
+                      });
+                    }}
+                  >
+                    <Check className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Refuser la pièce"
+                    className="text-danger-600 hover:bg-danger-50 rounded-[8px] p-1.5"
+                    disabled={delPending}
+                    onClick={() => {
+                      const note =
+                        prompt("Motif du refus (optionnel) :") ?? null;
+                      startDel(async () => {
+                        const r = await setDriverDocumentStatus(
+                          driverId,
+                          d.id,
+                          "rejected",
+                          note
+                        );
+                        if (r.error) toast.error(r.error);
+                        else {
+                          toast.success("Pièce refusée");
+                          router.refresh();
+                        }
+                      });
+                    }}
+                  >
+                    <X className="size-4" />
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 aria-label="Modifier"

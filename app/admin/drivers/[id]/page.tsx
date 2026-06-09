@@ -96,7 +96,9 @@ export default async function AdminDriverDetailPage({
   const [{ data: docs }, { data: payouts }, { data: cap }] = await Promise.all([
     admin
       .from("driver_documents")
-      .select("id, doc_type, number, issued_at, expires_at, note, file_url")
+      .select(
+        "id, doc_type, number, issued_at, expires_at, note, file_url, status, review_note"
+      )
       .eq("driver_id", id)
       .order("created_at", { ascending: false }),
     admin
@@ -249,6 +251,8 @@ export default async function AdminDriverDetailPage({
     expires_at: string | null;
     note: string | null;
     file_url: string | null;
+    status: string;
+    review_note: string | null;
   }>;
   const documents: DriverDocument[] = await Promise.all(
     docList.map(async (d) => {
@@ -268,6 +272,8 @@ export default async function AdminDriverDetailPage({
         note: d.note,
         hasScan: !!d.file_url,
         scanUrl,
+        status: d.status,
+        review_note: d.review_note,
       };
     })
   );

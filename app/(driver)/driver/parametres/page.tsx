@@ -39,7 +39,9 @@ export default async function DriverProfilePage() {
     await Promise.all([
       supabase
         .from("driver_documents")
-        .select("id, doc_type, number, issued_at, expires_at, file_url")
+        .select(
+          "id, doc_type, number, issued_at, expires_at, file_url, status, review_note"
+        )
         .eq("driver_id", driver.id)
         .order("created_at", { ascending: false }),
       supabase
@@ -71,6 +73,8 @@ export default async function DriverProfilePage() {
         expires_at: x.expires_at,
         hasScan: !!x.file_url,
         scanUrl,
+        status: x.status,
+        review_note: x.review_note,
       };
     })
   );
