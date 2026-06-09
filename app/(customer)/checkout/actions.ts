@@ -24,7 +24,10 @@ import {
 } from "@/lib/config/payment-limits";
 import { computeServiceFeeDa, parseTiers } from "@/lib/finance/service-fee";
 import { notifyMerchantNewOrder } from "@/lib/fcm/triggers";
-import { computeDeliveryFee } from "@/lib/delivery/pricing";
+import {
+  computeDeliveryFee,
+  computeTourDeliveryFee,
+} from "@/lib/delivery/pricing";
 import { haversineKm } from "@/lib/delivery/distance";
 import type { OpeningHours, PaymentMethod } from "@/lib/types";
 
@@ -749,6 +752,33 @@ export async function createOrder(
       };
     }
     deliveryFeeDa = quote.feeDa;
+
+    // TOURNÉE : le prix n'est PAS le barème mais le tarif que le commerçant a
+    // fixé par bande de distance (≤ plafond barème, garanti par le trigger
+    // serveur 0119). On recalcule depuis ses zones — jamais de confiance client.
+    if (input.delivery_mode === "tour") {
+      const { data: zones } = await supabase
+        .from("merchant_delivery_zones")
+        .select("band_index, max_km, price_da")
+        .eq("merchant_id", merchant.id);
+      const tourQuote = computeTourDeliveryFee(
+        distanceKm,
+        (zones ?? []).map((z) => ({
+          band_index: z.band_index,
+          max_km: Number(z.max_km),
+          price_da: z.price_da,
+        })),
+        ps,
+        merchDelivery.delivery_radius_km
+      );
+      if (tourQuote.outOfRange) {
+        return {
+          ok: false,
+          error: `Hors zone de livraison (${distanceKm.toFixed(1)} km). Choisis le retrait sur place.`,
+        };
+      }
+      deliveryFeeDa = tourQuote.feeDa;
+    }
 
     // Tournée : vérifier la capacité du créneau choisi.
     if (input.delivery_mode === "tour") {

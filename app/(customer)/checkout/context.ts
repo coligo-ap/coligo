@@ -13,7 +13,11 @@ import {
   parseTiers,
   type ServiceFeeTier,
 } from "@/lib/finance/service-fee";
-import { computeDeliveryFee } from "@/lib/delivery/pricing";
+import {
+  computeDeliveryFee,
+  computeTourDeliveryFee,
+  type TourBand,
+} from "@/lib/delivery/pricing";
 import { haversineKm } from "@/lib/delivery/distance";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -54,10 +58,14 @@ export type CheckoutDeliveryContext = {
     is_default: boolean;
     /** Distance estimée au commerçant (km), -1 si on n'a pas pu calculer. */
     distance_km: number;
-    /** Frais estimés (DA), null si hors rayon. */
+    /** Frais EXPRESS estimés (barème, DA), null si hors rayon. */
     fee_da: number | null;
+    /** Frais TOURNÉE estimés (prix marchand par bande, DA), null si hors rayon. */
+    tour_fee_da: number | null;
     out_of_range: boolean;
   }[];
+  /** Bandes de prix tournée du commerçant (pour le calcul live d'une position custom). */
+  tour_bands: TourBand[];
   /** Créneaux de tournée ouverts à venir, avec capacité restante. */
   slots: {
     id: string;
@@ -165,6 +173,7 @@ export async function fetchCheckoutContext(
       merchantPosition: null,
       pricing: null,
       addresses: [] as CheckoutDeliveryContext["addresses"],
+      tour_bands: [] as CheckoutDeliveryContext["tour_bands"],
       slots: [] as CheckoutDeliveryContext["slots"],
     },
   };
@@ -246,56 +255,69 @@ export async function fetchCheckoutContext(
   });
 
   // Livraison : champs commerçant + barème + adresses client + créneaux.
-  const [merchDeliveryRes, deliverySettingsRes, addressesRes, slotsRes] =
-    await Promise.all([
-      supabase
-        .from("merchants")
-        .select(
-          "delivery_enabled, express_enabled, tours_enabled, delivery_radius_km, latitude, longitude"
-        )
-        .eq("id", merchant.id)
-        .maybeSingle(),
-      supabase
-        .from("platform_settings")
-        .select(
-          "delivery_base_da, delivery_per_km_da, delivery_free_km_threshold, delivery_min_da, delivery_max_da, delivery_max_radius_km"
-        )
-        .eq("id", true)
-        .maybeSingle(),
-      (async () => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return { data: [] };
-        const { data: customer } = await supabase
-          .from("customers")
-          .select("id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (!customer) return { data: [] };
-        return supabase
-          .from("customer_addresses")
-          .select(
-            "id, label, lat, lng, address_text, phone_override, is_default"
-          )
-          .eq("customer_id", customer.id)
-          .order("is_default", { ascending: false });
-      })(),
-      supabase
-        .from("delivery_slots")
-        .select("id, slot_date, start_time, end_time, max_orders")
-        .eq("merchant_id", merchant.id)
-        .eq("status", "open")
-        .gte("slot_date", new Date().toISOString().slice(0, 10))
-        .order("slot_date", { ascending: true })
-        .order("start_time", { ascending: true })
-        .limit(30),
-    ]);
+  const [
+    merchDeliveryRes,
+    deliverySettingsRes,
+    addressesRes,
+    slotsRes,
+    zonesRes,
+  ] = await Promise.all([
+    supabase
+      .from("merchants")
+      .select(
+        "delivery_enabled, express_enabled, tours_enabled, delivery_radius_km, latitude, longitude"
+      )
+      .eq("id", merchant.id)
+      .maybeSingle(),
+    supabase
+      .from("platform_settings")
+      .select(
+        "delivery_base_da, delivery_per_km_da, delivery_free_km_threshold, delivery_min_da, delivery_max_da, delivery_max_radius_km"
+      )
+      .eq("id", true)
+      .maybeSingle(),
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return { data: [] };
+      const { data: customer } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!customer) return { data: [] };
+      return supabase
+        .from("customer_addresses")
+        .select("id, label, lat, lng, address_text, phone_override, is_default")
+        .eq("customer_id", customer.id)
+        .order("is_default", { ascending: false });
+    })(),
+    supabase
+      .from("delivery_slots")
+      .select("id, slot_date, start_time, end_time, max_orders")
+      .eq("merchant_id", merchant.id)
+      .eq("status", "open")
+      .gte("slot_date", new Date().toISOString().slice(0, 10))
+      .order("slot_date", { ascending: true })
+      .order("start_time", { ascending: true })
+      .limit(30),
+    supabase
+      .from("merchant_delivery_zones")
+      .select("band_index, max_km, price_da")
+      .eq("merchant_id", merchant.id)
+      .order("band_index", { ascending: true }),
+  ]);
 
   const merchDelivery = merchDeliveryRes.data;
   const deliverySettings = deliverySettingsRes.data;
   const rawAddresses = addressesRes.data ?? [];
   const rawSlots = slotsRes.data ?? [];
+  const tourBands: TourBand[] = (zonesRes.data ?? []).map((z) => ({
+    band_index: z.band_index,
+    max_km: Number(z.max_km),
+    price_da: z.price_da,
+  }));
 
   // Capacité restante par slot (compte commandes non-cancelled).
   const slotIds = rawSlots.map((s) => s.id);
@@ -337,6 +359,7 @@ export async function fetchCheckoutContext(
         is_default: a.is_default,
         distance_km: -1,
         fee_da: null,
+        tour_fee_da: null,
         out_of_range: true,
       };
     }
@@ -346,6 +369,12 @@ export async function fetchCheckoutContext(
     );
     const quote = computeDeliveryFee(
       dist,
+      deliverySettings,
+      merchDelivery.delivery_radius_km
+    );
+    const tourQuote = computeTourDeliveryFee(
+      dist,
+      tourBands,
       deliverySettings,
       merchDelivery.delivery_radius_km
     );
@@ -359,6 +388,7 @@ export async function fetchCheckoutContext(
       is_default: a.is_default,
       distance_km: Number(dist.toFixed(2)),
       fee_da: quote.outOfRange ? null : quote.feeDa,
+      tour_fee_da: tourQuote.outOfRange ? null : tourQuote.feeDa,
       out_of_range: quote.outOfRange,
     };
   });
@@ -381,6 +411,7 @@ export async function fetchCheckoutContext(
         : null,
     pricing: deliverySettings ?? null,
     addresses,
+    tour_bands: tourBands,
     slots: rawSlots.map((s) => ({
       id: s.id,
       slot_date: s.slot_date,

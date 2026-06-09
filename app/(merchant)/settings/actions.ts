@@ -416,6 +416,33 @@ export async function setDeliverySettings(
 
   if (error) return { error: `Erreur : ${error.message}` };
 
+  // Prix de tournée par bande — le trigger serveur (0119) plafonne au barème,
+  // on n'a donc pas à valider le plafond ici (défense en profondeur).
+  const { data: merchantRow } = await supabase
+    .from("merchants")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (merchantRow?.id) {
+    await supabase.rpc("ensure_merchant_delivery_zones", {
+      p_merchant_id: merchantRow.id,
+    });
+    const { data: zoneRows } = await supabase
+      .from("merchant_delivery_zones")
+      .select("id, band_index")
+      .eq("merchant_id", merchantRow.id);
+    for (const z of zoneRows ?? []) {
+      const raw = formData.get(`zone_price_${z.band_index}`);
+      if (raw == null || raw === "") continue;
+      const price = Math.max(0, Math.floor(Number(raw)));
+      if (!Number.isFinite(price)) continue;
+      await supabase
+        .from("merchant_delivery_zones")
+        .update({ price_da: price })
+        .eq("id", z.id);
+    }
+  }
+
   revalidatePath("/settings");
   return { ok: true, success: "Livraison mise à jour." };
 }

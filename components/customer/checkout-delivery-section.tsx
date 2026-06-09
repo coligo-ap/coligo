@@ -15,7 +15,10 @@ import {
 import { cn, formatDA } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
-import { computeDeliveryFee } from "@/lib/delivery/pricing";
+import {
+  computeDeliveryFee,
+  computeTourDeliveryFee,
+} from "@/lib/delivery/pricing";
 import { haversineKm } from "@/lib/delivery/distance";
 import { reverseGeocode } from "@/app/(customer)/actions";
 import { saveCustomerAddress } from "@/app/(customer)/adresses/actions";
@@ -87,8 +90,24 @@ export function CheckoutDeliverySection({
       { lat: merchantPosition.lat, lng: merchantPosition.lng },
       value.customPosition
     );
+    // En tournée, on applique le tarif marchand par bande (cohérent avec le
+    // prix que le commerçant a fixé) ; sinon barème express.
+    if (value.mode === "tour") {
+      return computeTourDeliveryFee(
+        distKm,
+        delivery.tour_bands,
+        pricing,
+        merchantPosition.radiusKm
+      );
+    }
     return computeDeliveryFee(distKm, pricing, merchantPosition.radiusKm);
-  }, [value.customPosition, merchantPosition, pricing]);
+  }, [
+    value.customPosition,
+    value.mode,
+    merchantPosition,
+    pricing,
+    delivery.tour_bands,
+  ]);
 
   if (!delivery.enabled) {
     // Livraison désactivée chez ce commerçant → uniquement le retrait, pas de
@@ -103,7 +122,9 @@ export function CheckoutDeliverySection({
   // Résumé de la position retenue (ligne repliée + statut « dans la zone »).
   const inZoneFee =
     selectedSavedAddress && !selectedSavedAddress.out_of_range
-      ? (selectedSavedAddress.fee_da ?? 0)
+      ? value.mode === "tour"
+        ? (selectedSavedAddress.tour_fee_da ?? selectedSavedAddress.fee_da ?? 0)
+        : (selectedSavedAddress.fee_da ?? 0)
       : customQuote && !customQuote.outOfRange
         ? customQuote.feeDa
         : null;

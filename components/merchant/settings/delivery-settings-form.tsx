@@ -9,9 +9,15 @@ import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import { cn } from "@/lib/utils";
-import { computeDeliveryFee } from "@/lib/delivery/pricing";
+import { computeDeliveryFee, tourBandCeilingDa } from "@/lib/delivery/pricing";
 import { formatDA } from "@/lib/utils";
 import type { DeliveryPricing, MerchantDeliverySettings } from "@/lib/types";
+
+export type TourZoneInput = {
+  band_index: number;
+  max_km: number;
+  price_da: number;
+};
 import {
   setDeliverySettings,
   type SettingsFormState,
@@ -22,12 +28,14 @@ const initial: SettingsFormState = {};
 export function DeliverySettingsForm({
   pricing,
   current,
+  zones,
 }: {
   pricing: DeliveryPricing;
   current: MerchantDeliverySettings & {
     latitude: number | null;
     longitude: number | null;
   };
+  zones: TourZoneInput[];
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(
@@ -42,6 +50,16 @@ export function DeliverySettingsForm({
     current.delivery_radius_km ?? Math.min(5, pricing.delivery_max_radius_km)
   );
   const [simKm, setSimKm] = useState<number>(3);
+  // Prix tournée par bande (édités par le commerçant, plafonnés au barème).
+  const [zonePrices, setZonePrices] = useState<number[]>(() =>
+    [...zones]
+      .sort((a, b) => a.band_index - b.band_index)
+      .map((z) => z.price_da)
+  );
+  const sortedZones = useMemo(
+    () => [...zones].sort((a, b) => a.band_index - b.band_index),
+    [zones]
+  );
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(
     current.latitude != null && current.longitude != null
       ? { lat: current.latitude, lng: current.longitude }
@@ -165,6 +183,72 @@ export function DeliverySettingsForm({
               réduire ; tu ne peux pas étendre au-delà.
             </p>
           </div>
+
+          {/* Tarifs de TOURNÉE par zone (le commerçant fixe son prix ≤ plafond) */}
+          {tours && (
+            <div className="border-border space-y-3 rounded-[12px] border p-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="size-4" />
+                <p className="text-sm font-semibold">
+                  Tarifs de tournée par zone
+                </p>
+              </div>
+              <p className="text-muted text-xs">
+                En tournée, tu fixes ton prix de livraison par tranche de
+                distance. Tu peux <strong>baisser</strong> pour être plus
+                attractif, mais jamais dépasser le plafond plateforme (prix
+                juste garant des « prix imbattables »). La plateforme prélève
+                une petite commission sur ces frais.
+              </p>
+              {sortedZones.map((z, i) => {
+                const ceiling = tourBandCeilingDa(z.max_km, pricing);
+                const lowKm = i === 0 ? 0 : sortedZones[i - 1].max_km;
+                return (
+                  <div
+                    key={z.band_index}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <Label
+                      htmlFor={`zone_price_${z.band_index}`}
+                      className="text-xs"
+                    >
+                      De {lowKm} à {z.max_km} km
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={`zone_price_${z.band_index}`}
+                        name={`zone_price_${z.band_index}`}
+                        type="number"
+                        min={pricing.delivery_min_da}
+                        max={ceiling}
+                        step="10"
+                        value={zonePrices[i] ?? z.price_da}
+                        onChange={(e) => {
+                          const next = [...zonePrices];
+                          next[i] = Number(e.target.value) || 0;
+                          setZonePrices(next);
+                        }}
+                        className="max-w-[110px] tabular-nums"
+                        disabled={pending}
+                      />
+                      <span className="text-subtle text-xs whitespace-nowrap">
+                        DA · max {formatDA(ceiling)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+              {zonePrices.some(
+                (p, i) =>
+                  p > tourBandCeilingDa(sortedZones[i]?.max_km ?? 0, pricing)
+              ) && (
+                <p className="text-warning-700 text-xs">
+                  Un prix dépasse le plafond — il sera automatiquement ramené au
+                  maximum autorisé à l&apos;enregistrement.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Barème (lecture seule) + simulateur */}
           <div className="bg-surface-2 border-border space-y-3 rounded-[12px] border p-4">

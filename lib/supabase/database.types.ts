@@ -1547,6 +1547,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      merchant_delivery_zones: {
+        Row: {
+          id: string;
+          merchant_id: string;
+          band_index: number;
+          max_km: number;
+          price_da: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          merchant_id: string;
+          band_index: number;
+          max_km: number;
+          price_da: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          merchant_id?: string;
+          band_index?: number;
+          max_km?: number;
+          price_da?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       delivery_tours: {
         Row: {
           id: string;
@@ -1833,6 +1863,18 @@ export type Database = {
     Functions: {
       merchant_balance: {
         Args: { p_merchant_id: string };
+        Returns: number;
+      };
+      ensure_merchant_delivery_zones: {
+        Args: { p_merchant_id: string };
+        Returns: undefined;
+      };
+      platform_delivery_fee_da: {
+        Args: { p_km: number };
+        Returns: number;
+      };
+      tour_delivery_fee_da: {
+        Args: { p_merchant_id: string; p_distance_km: number };
         Returns: number;
       };
       driver_outstanding: {

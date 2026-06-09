@@ -93,6 +93,86 @@ export function computeDeliveryFee(
   };
 }
 
+/** Une bande de prix tournée (zone de distance) configurée par le commerçant. */
+export type TourBand = {
+  band_index: number;
+  /** Borne haute de la bande, en km (3, 6, 10…). */
+  max_km: number;
+  /** Prix fixé par le commerçant pour cette bande (DA). */
+  price_da: number;
+};
+
+/**
+ * Plafond (= prix par défaut) d'une bande tournée : le prix BARÈME plateforme à
+ * la borne haute de la bande. Le commerçant ne peut JAMAIS dépasser ce plafond.
+ */
+export function tourBandCeilingDa(upperKm: number, s: DeliveryPricing): number {
+  const q = computeDeliveryFee(upperKm, s);
+  return q.outOfRange ? s.delivery_max_da : q.feeDa;
+}
+
+/**
+ * Prix de livraison TOURNÉE pour une distance : la bande dont la borne haute
+ * couvre la distance (plus petite max_km ≥ distance). Le prix est borné côté
+ * affichage à [delivery_min_da, plafond barème] — le serveur clampe aussi (0119).
+ *
+ * Fallback barème si aucune bande n'est configurée (sécurité). Hors rayon ou
+ * au-delà de la dernière bande → `outOfRange`.
+ */
+export function computeTourDeliveryFee(
+  distanceKm: number,
+  bands: TourBand[],
+  s: DeliveryPricing,
+  merchantRadiusKm?: number | null
+): DeliveryQuote {
+  const dist = Math.max(0, distanceKm);
+  const effectiveRadius =
+    merchantRadiusKm != null && merchantRadiusKm > 0
+      ? Math.min(merchantRadiusKm, s.delivery_max_radius_km)
+      : s.delivery_max_radius_km;
+
+  if (dist > effectiveRadius) {
+    return {
+      outOfRange: true,
+      feeDa: null,
+      reason: "beyond_max_radius",
+      maxRadiusKm: effectiveRadius,
+    };
+  }
+  if (bands.length === 0) {
+    // Pas de bande configurée → on retombe sur le barème (jamais bloquant).
+    return computeDeliveryFee(distanceKm, s, merchantRadiusKm);
+  }
+
+  const sorted = [...bands].sort((a, b) => a.max_km - b.max_km);
+  const band = sorted.find((b) => dist <= b.max_km);
+  if (!band) {
+    return {
+      outOfRange: true,
+      feeDa: null,
+      reason: "beyond_max_radius",
+      maxRadiusKm: effectiveRadius,
+    };
+  }
+
+  const ceiling = tourBandCeilingDa(band.max_km, s);
+  const feeDa = Math.min(
+    Math.max(Math.round(band.price_da), s.delivery_min_da),
+    ceiling
+  );
+  return {
+    outOfRange: false,
+    feeDa,
+    breakdown: {
+      baseDa: s.delivery_base_da,
+      billableKm: Number(dist.toFixed(2)),
+      kmCostDa: 0,
+      beforeClamp: feeDa,
+      clamped: null,
+    },
+  };
+}
+
 /**
  * Borne un rayon commerçant au max plateforme (utile côté UI pour le slider).
  */

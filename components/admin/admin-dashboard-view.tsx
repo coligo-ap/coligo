@@ -31,8 +31,14 @@ export function AdminDashboardView({ stats, merchants }: Props) {
     );
   }
 
-  const grossRevenue = stats.commission_income_da + stats.service_fee_income_da;
-  const deliveryMargin = stats.delivery_fees_da - stats.driver_payouts_da;
+  const grossRevenue =
+    stats.commission_income_da +
+    stats.service_fee_income_da +
+    stats.tour_delivery_commission_income_da;
+  // Marge EXPRESS uniquement : en tournée, les frais de livraison vont au
+  // commerçant (la plateforme n'en touche que la commission, ligne dédiée).
+  const deliveryMargin =
+    stats.express_delivery_fees_da - stats.driver_payouts_da;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 lg:px-6">
@@ -91,7 +97,12 @@ export function AdminDashboardView({ stats, merchants }: Props) {
             positive
           />
           <Line
-            label="Marge plateforme livraison"
+            label="Commission livraison tournée"
+            value={stats.tour_delivery_commission_income_da}
+            positive
+          />
+          <Line
+            label="Marge plateforme livraison express"
             value={deliveryMargin}
             positive={deliveryMargin >= 0}
             muted

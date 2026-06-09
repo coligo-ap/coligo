@@ -406,7 +406,9 @@ export function CheckoutView({ customer }: Props) {
       : null;
   const deliveryFeeDa =
     selectedDeliveryAddr && !selectedDeliveryAddr.out_of_range
-      ? (selectedDeliveryAddr.fee_da ?? 0)
+      ? delivery.mode === "tour"
+        ? (selectedDeliveryAddr.tour_fee_da ?? selectedDeliveryAddr.fee_da ?? 0)
+        : (selectedDeliveryAddr.fee_da ?? 0)
       : 0;
 
   const hasValidDeliveryPosition =

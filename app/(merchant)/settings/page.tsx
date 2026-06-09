@@ -80,6 +80,19 @@ export default async function SettingsPage() {
     longitude: m.longitude ?? null,
   };
 
+  // Zones de prix tournée (créées à la volée si absentes).
+  await supabase.rpc("ensure_merchant_delivery_zones", { p_merchant_id: m.id });
+  const { data: zoneRows } = await supabase
+    .from("merchant_delivery_zones")
+    .select("band_index, max_km, price_da")
+    .eq("merchant_id", m.id)
+    .order("band_index", { ascending: true });
+  const tourZones = (zoneRows ?? []).map((z) => ({
+    band_index: z.band_index as number,
+    max_km: Number(z.max_km),
+    price_da: z.price_da as number,
+  }));
+
   const platform = await getPlatformSettings();
   const deliveryPricing: DeliveryPricing | null = platform
     ? {
@@ -193,6 +206,7 @@ export default async function SettingsPage() {
             <DeliverySettingsForm
               pricing={deliveryPricing}
               current={deliverySettings}
+              zones={tourZones}
             />
           ) : (
             <p className="text-muted text-sm">

@@ -79,12 +79,14 @@ export type PlatformDashboard = {
   net_profit_da: number;
   commission_income_da: number;
   service_fee_income_da: number;
+  tour_delivery_commission_income_da: number;
   chargily_fee_da: number;
   cashback_expense_da: number;
   online_orders: number;
   online_net_da: number;
   delivery_orders: number;
   delivery_fees_da: number;
+  express_delivery_fees_da: number;
   driver_payouts_da: number;
   cashback_earned_da: number;
   cashback_spent_da: number;
@@ -114,12 +116,14 @@ export async function getPlatformDashboard(): Promise<PlatformDashboard | null> 
     net_profit_da: n("net_profit_da"),
     commission_income_da: n("commission_income_da"),
     service_fee_income_da: n("service_fee_income_da"),
+    tour_delivery_commission_income_da: n("tour_delivery_commission_income_da"),
     chargily_fee_da: n("chargily_fee_da"),
     cashback_expense_da: n("cashback_expense_da"),
     online_orders: n("online_orders"),
     online_net_da: n("online_net_da"),
     delivery_orders: n("delivery_orders"),
     delivery_fees_da: n("delivery_fees_da"),
+    express_delivery_fees_da: n("express_delivery_fees_da"),
     driver_payouts_da: n("driver_payouts_da"),
     cashback_earned_da: n("cashback_earned_da"),
     cashback_spent_da: n("cashback_spent_da"),
