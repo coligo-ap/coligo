@@ -125,8 +125,30 @@ export async function setDriverVerified(
 }
 
 // ---------------------------------------------------------------------------
-// 3. Documents d'identité
+// 3. Documents d'identité (+ scan dans le bucket privé `driver-docs`)
 // ---------------------------------------------------------------------------
+const DOCS_BUCKET = "driver-docs";
+const MAX_SCAN_BYTES = 8 * 1024 * 1024; // 8 Mo
+const ALLOWED_SCAN = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+];
+
+/** Génère une URL signée (1 h) pour afficher un scan côté serveur. */
+export async function signDriverDocUrl(
+  path: string
+): Promise<{ url?: string; error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage
+    .from(DOCS_BUCKET)
+    .createSignedUrl(path, 3600);
+  if (error) return { error: error.message };
+  return { url: data.signedUrl };
+}
+
 export async function upsertDriverDocument(
   driverId: string,
   _prev: AdminFormState,
@@ -139,7 +161,39 @@ export async function upsertDriverDocument(
     return { error: "Type de pièce invalide." };
   }
   const id = txt(formData.get("doc_id"));
-  const row = {
+  const admin = createAdminClient();
+
+  // Upload du scan (optionnel) → bucket privé, dossier {driver_id}/.
+  let newPath: string | null = null;
+  const file = formData.get("file");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > MAX_SCAN_BYTES) {
+      return { error: "Scan trop lourd (max 8 Mo)." };
+    }
+    if (!ALLOWED_SCAN.includes(file.type)) {
+      return { error: "Format accepté : JPG, PNG, WEBP ou PDF." };
+    }
+    const safe = (file.name || "scan").replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${driverId}/${globalThis.crypto.randomUUID()}-${safe}`;
+    const { error: upErr } = await admin.storage
+      .from(DOCS_BUCKET)
+      .upload(path, file, { contentType: file.type, upsert: false });
+    if (upErr) return { error: `Upload échoué : ${upErr.message}` };
+    newPath = path;
+  }
+
+  // Ancien scan (pour le remplacer/nettoyer lors d'une édition).
+  let oldPath: string | null = null;
+  if (id) {
+    const { data: existing } = await admin
+      .from("driver_documents")
+      .select("file_url")
+      .eq("id", id)
+      .maybeSingle();
+    oldPath = (existing?.file_url as string | null) ?? null;
+  }
+
+  const base = {
     driver_id: driverId,
     doc_type: docType,
     number: txt(formData.get("number")),
@@ -148,12 +202,22 @@ export async function upsertDriverDocument(
     note: txt(formData.get("note")),
     updated_at: new Date().toISOString(),
   };
+  // On ne touche file_url QUE si un nouveau scan a été fourni (préserve l'existant).
+  const row = newPath ? { ...base, file_url: newPath } : base;
 
-  const admin = createAdminClient();
   const { error } = id
     ? await admin.from("driver_documents").update(row).eq("id", id)
     : await admin.from("driver_documents").insert(row);
-  if (error) return { error: `Échec : ${error.message}` };
+  if (error) {
+    // Rollback du scan fraîchement uploadé si l'écriture DB échoue.
+    if (newPath) await admin.storage.from(DOCS_BUCKET).remove([newPath]);
+    return { error: `Échec : ${error.message}` };
+  }
+  // Nettoie l'ancien scan une fois le remplacement confirmé.
+  if (newPath && oldPath && oldPath !== newPath) {
+    await admin.storage.from(DOCS_BUCKET).remove([oldPath]);
+  }
+
   await audit("upsert_driver_document", driverId, docType);
   refreshDriver(driverId);
   return { ok: true };
@@ -165,11 +229,19 @@ export async function deleteDriverDocument(
 ): Promise<{ error?: string }> {
   if (!(await isSuperAdmin())) return { error: "Accès refusé." };
   const admin = createAdminClient();
+  // Récupère le chemin du scan pour le supprimer du bucket.
+  const { data: doc } = await admin
+    .from("driver_documents")
+    .select("file_url")
+    .eq("id", docId)
+    .maybeSingle();
   const { error } = await admin
     .from("driver_documents")
     .delete()
     .eq("id", docId);
   if (error) return { error: error.message };
+  const path = (doc?.file_url as string | null) ?? null;
+  if (path) await admin.storage.from(DOCS_BUCKET).remove([path]);
   await audit("delete_driver_document", driverId);
   refreshDriver(driverId);
   return {};

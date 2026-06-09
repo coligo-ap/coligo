@@ -83,7 +83,7 @@ export default async function AdminDriverDetailPage({
   const [{ data: docs }, { data: payouts }, { data: cap }] = await Promise.all([
     admin
       .from("driver_documents")
-      .select("id, doc_type, number, issued_at, expires_at, note")
+      .select("id, doc_type, number, issued_at, expires_at, note, file_url")
       .eq("driver_id", id)
       .order("created_at", { ascending: false }),
     admin
@@ -201,6 +201,38 @@ export default async function AdminDriverDetailPage({
     .order("full_name")
     .limit(200);
   const candidates = (candRows ?? []) as CandidateDriver[];
+
+  // URLs signées (1 h) pour afficher les scans des pièces (bucket privé).
+  const docList = (docs ?? []) as Array<{
+    id: string;
+    doc_type: string;
+    number: string | null;
+    issued_at: string | null;
+    expires_at: string | null;
+    note: string | null;
+    file_url: string | null;
+  }>;
+  const documents: DriverDocument[] = await Promise.all(
+    docList.map(async (d) => {
+      let scanUrl: string | null = null;
+      if (d.file_url) {
+        const { data: signed } = await admin.storage
+          .from("driver-docs")
+          .createSignedUrl(d.file_url, 3600);
+        scanUrl = signed?.signedUrl ?? null;
+      }
+      return {
+        id: d.id,
+        doc_type: d.doc_type,
+        number: d.number,
+        issued_at: d.issued_at,
+        expires_at: d.expires_at,
+        note: d.note,
+        hasScan: !!d.file_url,
+        scanUrl,
+      };
+    })
+  );
 
   const profile: DriverProfile = {
     id: driver.id,
@@ -409,10 +441,7 @@ export default async function AdminDriverDetailPage({
               <FileText className="size-4" />
               Pièces d&apos;identité
             </h2>
-            <DriverDocumentsManager
-              driverId={id}
-              documents={(docs ?? []) as DriverDocument[]}
-            />
+            <DriverDocumentsManager driverId={id} documents={documents} />
           </section>
 
           {/* Versement */}

@@ -2,7 +2,15 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, Trash2, AlertTriangle } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  AlertTriangle,
+  Pencil,
+  Paperclip,
+  FileImage,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +28,8 @@ export type DriverDocument = {
   issued_at: string | null;
   expires_at: string | null;
   note: string | null;
+  hasScan: boolean;
+  scanUrl: string | null;
 };
 
 const DOC_TYPES = [
@@ -37,6 +47,9 @@ function isExpired(d: string | null) {
   return new Date(d) < new Date(new Date().toDateString());
 }
 
+// `null` = aucun formulaire ; "new" = ajout ; sinon = édition de cette pièce.
+type Editing = null | "new" | DriverDocument;
+
 export function DriverDocumentsManager({
   driverId,
   documents,
@@ -45,7 +58,7 @@ export function DriverDocumentsManager({
   documents: DriverDocument[];
 }) {
   const router = useRouter();
-  const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<Editing>(null);
   const [delPending, startDel] = useTransition();
   const [state, formAction, pending] = useActionState<AdminFormState, FormData>(
     upsertDriverDocument.bind(null, driverId),
@@ -55,77 +68,108 @@ export function DriverDocumentsManager({
   useEffect(() => {
     if (state.ok) {
       toast.success("Pièce enregistrée");
-      setAdding(false);
+      setEditing(null);
       router.refresh();
     } else if (state.error) {
       toast.error(state.error);
     }
   }, [state, router]);
 
+  const doc = editing && editing !== "new" ? editing : null;
+
   return (
     <div className="space-y-3">
-      {documents.length === 0 && (
+      {documents.length === 0 && editing === null && (
         <p className="text-muted text-sm">Aucune pièce enregistrée.</p>
       )}
 
-      {documents.map((d) => (
-        <div
-          key={d.id}
-          className="border-border flex items-start justify-between gap-3 rounded-[12px] border p-3"
-        >
-          <div className="min-w-0 text-sm">
-            <p className="font-semibold">{docLabel(d.doc_type)}</p>
-            <p className="text-muted tabular-nums">
-              {d.number ?? "N° non renseigné"}
-            </p>
-            <p className="text-muted text-xs tabular-nums">
-              {d.issued_at ? `Émise le ${d.issued_at}` : "—"}
-              {d.expires_at && (
-                <span
-                  className={
-                    isExpired(d.expires_at)
-                      ? "text-danger-600 font-semibold"
-                      : ""
-                  }
-                >
-                  {" · "}
-                  {isExpired(d.expires_at) ? "Expirée le " : "Expire le "}
-                  {d.expires_at}
-                  {isExpired(d.expires_at) && (
-                    <AlertTriangle className="ml-1 inline size-3" />
-                  )}
-                </span>
-              )}
-            </p>
-            {d.note && <p className="text-muted mt-0.5 text-xs">{d.note}</p>}
-          </div>
-          <button
-            type="button"
-            aria-label="Supprimer"
-            className="text-danger-600 hover:bg-danger-50 rounded-[8px] p-1.5"
-            disabled={delPending}
-            onClick={() => {
-              if (!confirm("Supprimer cette pièce ?")) return;
-              startDel(async () => {
-                const r = await deleteDriverDocument(driverId, d.id);
-                if (r.error) toast.error(r.error);
-                else {
-                  toast.success("Pièce supprimée");
-                  router.refresh();
-                }
-              });
-            }}
+      {documents.map((d) =>
+        // La pièce en cours d'édition est masquée au profit du formulaire.
+        editing && editing !== "new" && editing.id === d.id ? null : (
+          <div
+            key={d.id}
+            className="border-border flex items-start justify-between gap-3 rounded-[12px] border p-3"
           >
-            <Trash2 className="size-4" />
-          </button>
-        </div>
-      ))}
+            <div className="min-w-0 text-sm">
+              <p className="font-semibold">{docLabel(d.doc_type)}</p>
+              <p className="text-muted tabular-nums">
+                {d.number ?? "N° non renseigné"}
+              </p>
+              <p className="text-muted text-xs tabular-nums">
+                {d.issued_at ? `Émise le ${d.issued_at}` : "—"}
+                {d.expires_at && (
+                  <span
+                    className={
+                      isExpired(d.expires_at)
+                        ? "text-danger-600 font-semibold"
+                        : ""
+                    }
+                  >
+                    {" · "}
+                    {isExpired(d.expires_at) ? "Expirée le " : "Expire le "}
+                    {d.expires_at}
+                    {isExpired(d.expires_at) && (
+                      <AlertTriangle className="ml-1 inline size-3" />
+                    )}
+                  </span>
+                )}
+              </p>
+              {d.note && <p className="text-muted mt-0.5 text-xs">{d.note}</p>}
+              {d.scanUrl && (
+                <a
+                  href={d.scanUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary-700 mt-1 inline-flex items-center gap-1 text-xs font-semibold"
+                >
+                  <FileImage className="size-3.5" />
+                  Voir le scan
+                </a>
+              )}
+            </div>
+            <div className="flex shrink-0 gap-1">
+              <button
+                type="button"
+                aria-label="Modifier"
+                className="text-muted hover:bg-surface-2 rounded-[8px] p-1.5"
+                onClick={() => setEditing(d)}
+              >
+                <Pencil className="size-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Supprimer"
+                className="text-danger-600 hover:bg-danger-50 rounded-[8px] p-1.5"
+                disabled={delPending}
+                onClick={() => {
+                  if (!confirm("Supprimer cette pièce et son scan ?")) return;
+                  startDel(async () => {
+                    const r = await deleteDriverDocument(driverId, d.id);
+                    if (r.error) toast.error(r.error);
+                    else {
+                      toast.success("Pièce supprimée");
+                      router.refresh();
+                    }
+                  });
+                }}
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </div>
+          </div>
+        )
+      )}
 
-      {adding ? (
+      {editing !== null ? (
         <form
+          key={editing === "new" ? "new" : editing.id}
           action={formAction}
           className="border-border space-y-3 rounded-[12px] border border-dashed p-3"
         >
+          {doc && <input type="hidden" name="doc_id" value={doc.id} />}
+          <p className="text-muted text-xs font-semibold uppercase">
+            {doc ? `Modifier — ${docLabel(doc.doc_type)}` : "Nouvelle pièce"}
+          </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="doc_type" className="mb-1 block text-xs">
@@ -135,6 +179,7 @@ export function DriverDocumentsManager({
                 id="doc_type"
                 name="doc_type"
                 required
+                defaultValue={doc?.doc_type ?? "cni"}
                 className="border-border bg-surface h-10 w-full rounded-[10px] border px-3 text-sm"
               >
                 {DOC_TYPES.map(([v, l]) => (
@@ -148,37 +193,69 @@ export function DriverDocumentsManager({
               <Label htmlFor="number" className="mb-1 block text-xs">
                 Numéro
               </Label>
-              <Input id="number" name="number" />
+              <Input
+                id="number"
+                name="number"
+                defaultValue={doc?.number ?? ""}
+              />
             </div>
             <div>
               <Label htmlFor="issued_at" className="mb-1 block text-xs">
                 Date d&apos;émission
               </Label>
-              <Input id="issued_at" name="issued_at" type="date" />
+              <Input
+                id="issued_at"
+                name="issued_at"
+                type="date"
+                defaultValue={doc?.issued_at ?? ""}
+              />
             </div>
             <div>
               <Label htmlFor="expires_at" className="mb-1 block text-xs">
                 Date d&apos;expiration
               </Label>
-              <Input id="expires_at" name="expires_at" type="date" />
+              <Input
+                id="expires_at"
+                name="expires_at"
+                type="date"
+                defaultValue={doc?.expires_at ?? ""}
+              />
             </div>
           </div>
           <div>
             <Label htmlFor="note" className="mb-1 block text-xs">
               Note
             </Label>
-            <Input id="note" name="note" />
+            <Input id="note" name="note" defaultValue={doc?.note ?? ""} />
+          </div>
+          <div>
+            <Label htmlFor="file" className="mb-1 block text-xs">
+              Scan (JPG, PNG, WEBP ou PDF — max 8 Mo)
+            </Label>
+            <input
+              id="file"
+              name="file"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              className="border-border file:bg-surface-2 block w-full rounded-[10px] border text-sm file:mr-3 file:border-0 file:px-3 file:py-2 file:text-sm"
+            />
+            {doc?.hasScan && (
+              <p className="text-muted mt-1 flex items-center gap-1 text-xs">
+                <Paperclip className="size-3" />
+                Un scan existe déjà — en choisir un nouveau le remplace.
+              </p>
+            )}
           </div>
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={pending}>
               {pending && <Loader2 className="size-4 animate-spin" />}
-              Ajouter
+              {doc ? "Enregistrer" : "Ajouter"}
             </Button>
             <Button
               type="button"
               size="sm"
               variant="secondary"
-              onClick={() => setAdding(false)}
+              onClick={() => setEditing(null)}
             >
               Annuler
             </Button>
@@ -189,7 +266,7 @@ export function DriverDocumentsManager({
           type="button"
           size="sm"
           variant="secondary"
-          onClick={() => setAdding(true)}
+          onClick={() => setEditing("new")}
         >
           <Plus className="size-4" />
           Ajouter une pièce
