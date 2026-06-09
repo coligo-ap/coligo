@@ -2,8 +2,16 @@
 
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { Check, Loader2, Mail, Phone, User as UserIcon } from "lucide-react";
+import {
+  Check,
+  CheckCircle2,
+  Loader2,
+  Mail,
+  Phone,
+  User as UserIcon,
+} from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import { isValidDzPhone } from "@/lib/dz/phone";
 import {
   confirmEmailChange,
   requestEmailChange,
@@ -33,6 +41,10 @@ export function AccountInfoForm({
   const [phone, setPhone] = useState(initialPhone);
   const [pending, start] = useTransition();
 
+  // Validation EN DIRECT du numéro algérien.
+  const phoneValid = isValidDzPhone(phone);
+  const phoneShowError = phone.trim().length > 0 && !phoneValid;
+
   const dirty =
     name.trim() !== initialName.trim() || phone.trim() !== initialPhone.trim();
 
@@ -51,13 +63,37 @@ export function AccountInfoForm({
             />
           </Field>
 
-          {/* Téléphone */}
-          <Field label={t("phone")} icon={<Phone className="size-4" />}>
+          {/* Téléphone — validation en direct */}
+          <Field
+            label={t("phone")}
+            icon={<Phone className="size-4" />}
+            invalid={phoneShowError}
+            trailing={
+              phoneValid ? (
+                <CheckCircle2 className="size-4 shrink-0 text-[#16b364]" />
+              ) : undefined
+            }
+            footer={
+              phoneShowError ? (
+                <span className="text-[#e5484d]">
+                  Numéro algérien invalide — format 0X XX XX XX XX (05/06/07).
+                </span>
+              ) : phoneValid ? (
+                <span className="text-[#16b364]">Numéro valide ✓</span>
+              ) : (
+                <span className="text-muted">
+                  Numéro mobile algérien requis (ex. 06 12 34 56 78).
+                </span>
+              )
+            }
+          >
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               type="tel"
-              placeholder="+213 6XX XX XX XX"
+              inputMode="tel"
+              placeholder="06 12 34 56 78"
+              aria-invalid={phoneShowError}
               className="text-foreground w-full bg-transparent text-sm font-bold outline-none placeholder:font-medium"
             />
           </Field>
@@ -72,7 +108,7 @@ export function AccountInfoForm({
         <div className="mx-auto max-w-2xl">
           <button
             type="button"
-            disabled={!dirty || pending}
+            disabled={!dirty || pending || !phoneValid}
             onClick={() =>
               start(async () => {
                 const res = await updateProfile({ full_name: name, phone });
@@ -99,22 +135,36 @@ function Field({
   icon,
   children,
   trailing,
+  footer,
+  invalid,
 }: {
   label: string;
   icon: React.ReactNode;
   children: React.ReactNode;
   trailing?: React.ReactNode;
+  footer?: React.ReactNode;
+  invalid?: boolean;
 }) {
   return (
     <div className="border-border py-4">
       <label className="text-muted mb-2.5 block text-[11.5px] font-extrabold tracking-wide uppercase">
         {label}
       </label>
-      <div className="border-border bg-surface-2 focus-within:border-primary-400 focus-within:ring-primary-100 flex items-center gap-2.5 rounded-[13px] border px-3.5 py-3.5 transition focus-within:ring-2">
+      <div
+        className={
+          "bg-surface-2 flex items-center gap-2.5 rounded-[13px] border px-3.5 py-3.5 transition focus-within:ring-2 " +
+          (invalid
+            ? "border-[#e5484d] focus-within:border-[#e5484d] focus-within:ring-[#e5484d]/15"
+            : "border-border focus-within:border-primary-400 focus-within:ring-primary-100")
+        }
+      >
         <span className="text-muted shrink-0">{icon}</span>
         {children}
         {trailing}
       </div>
+      {footer && (
+        <p className="mt-1.5 px-0.5 text-[11.5px] font-medium">{footer}</p>
+      )}
     </div>
   );
 }
