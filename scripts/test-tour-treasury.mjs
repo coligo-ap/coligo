@@ -95,6 +95,15 @@ try {
   const comm = Math.round(P * 0.08),
     tour = Math.round(D * 0.08),
     cb = Math.round(P * 0.03);
+  // Frais Chargily (coût plateforme sur les commandes online) = round(total × taux).
+  const settingsRow = (
+    await c.query(
+      "SELECT chargily_fee, cashback_cash FROM platform_settings WHERE id=true"
+    )
+  ).rows[0];
+  const chg = Math.round((P + S + D) * Number(settingsRow.chargily_fee));
+  // Cashback CASH (provisionné en charge sur les commandes cash hors-COD).
+  const cashCb = Math.round(P * Number(settingsRow.cashback_cash));
   check("wallet sale", await walletSum(c, o1, "sale"), P);
   check("wallet commission", await walletSum(c, o1, "commission"), -comm);
   check(
@@ -129,14 +138,20 @@ try {
     await ledgerSum(c, o1, "cashback_expense"),
     -cb
   );
+  check("ledger chargily_fee", await ledgerSum(c, o1, "chargily_fee"), -chg);
   const pnet1 = await ledgerSum(c, o1);
-  check("platform NET", pnet1, comm + S + tour - cb);
+  check(
+    "platform NET (comm+S+tour−cashback−chargily)",
+    pnet1,
+    comm + S + tour - cb - chg
+  );
   const credit1 = await cashbackCredit(c, o1);
   check("customer cashback credit == expense", credit1, cb);
+  // Conservation : le coût Chargily SORT du système (vers le PSP) → total − chargily.
   check(
-    "CONSERVATION (wallet+platform+cashback == total)",
+    "CONSERVATION (wallet+platform+cashback == total−chargily)",
     wnet1 + pnet1 + credit1,
-    P + S + D
+    P + S + D - chg
   );
   check(
     "no delivery_ledger payout (tour)",
@@ -166,12 +181,24 @@ try {
     await walletSum(c, o2, "delivery_revenue"),
     0
   );
+  check(
+    "cash cashback provisionné (charge plateforme)",
+    await ledgerSum(c, o2, "cashback_expense"),
+    -cashCb
+  );
+  check("cash cashback crédité au client", await cashbackCredit(c, o2), cashCb);
   const wnet2 = await walletSum(c, o2);
   check("merchant OWES platform == -(comm+S+tour)", wnet2, -(comm + S + tour));
   check(
-    "platform income == comm+S+tour",
+    "platform income == comm+S+tour−cashback",
     await ledgerSum(c, o2),
-    comm + S + tour
+    comm + S + tour - cashCb
+  );
+  // Cash : le cash est hors-ledger (détenu par le marchand) → SUM ledger == 0.
+  check(
+    "CONSERVATION cash (wallet+platform+cashback == 0)",
+    wnet2 + (await ledgerSum(c, o2)) + (await cashbackCredit(c, o2)),
+    0
   );
   check(
     "no delivery_ledger payout (tour)",

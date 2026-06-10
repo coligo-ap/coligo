@@ -538,10 +538,6 @@ export async function createOrder(
       ? new Date(input.pickup_slot_start)
       : new Date(Date.now() + merchant.prep_time_min * 60_000);
 
-  const cashbackEstimate = Math.round(
-    settled.totalDa * (input.payment_method === "online" ? 0.03 : 0) // estimation MVP
-  );
-
   // ---------------------------------------------------------------------------
   // 5a-bis. FRAIS DE SERVICE — calculés sur (subtotal - discount).
   //   - cashback EXCLU des frais (on ne donne pas de cashback sur ses propres
@@ -553,11 +549,20 @@ export async function createOrder(
   // ---------------------------------------------------------------------------
   const { data: settingsRow } = await supabase
     .from("platform_settings")
-    .select("service_fee_tiers")
+    .select("service_fee_tiers, cashback_online, cashback_cash")
     .eq("id", true)
     .maybeSingle();
   const serviceFeeTiers = parseTiers(settingsRow?.service_fee_tiers);
   const productsDa = settled.totalDa; // = subtotal - discount, AVANT wallet
+
+  // Estimation cashback AFFICHÉE (display only ; le montant réellement versé est
+  // recalculé par le trigger 0118 sur le panier net). On utilise les taux
+  // globaux selon le mode de paiement (cash gagne désormais cashback_cash).
+  const cashbackRate =
+    input.payment_method === "online"
+      ? Number(settingsRow?.cashback_online ?? 0.03)
+      : Number(settingsRow?.cashback_cash ?? 0);
+  const cashbackEstimate = Math.round(productsDa * cashbackRate);
   let serviceFeeDa = computeServiceFeeDa(productsDa, serviceFeeTiers);
 
   // PÉNALITÉ NO-SHOW (mig 0116) : si le client a un no-show non soldé, sa
@@ -970,14 +975,17 @@ export async function createOrder(
   // ---------------------------------------------------------------------------
   // 7. Paiement en ligne — création du checkout Chargily.
   //
-  // Cas exotique mais possible : online + totalAfterCashback === 0 (le cashback
-  // couvre tout). Dans ce cas, AUCUN paiement n'est nécessaire ; on bascule la
-  // commande directement à `payment_status = paid` côté serveur (le trigger
-  // wallet fera ses écritures normalement). Pas de Chargily à appeler.
+  // IMPORTANT (correctif trésorerie) : on facture `totalWithDelivery`, c.-à-d.
+  // produits + frais de service + LIVRAISON − cashback − Coligo Pay. La livraison
+  // DOIT être encaissée en ligne (sinon la plateforme paie le livreur/commerçant
+  // une livraison jamais payée par le client).
+  //
+  // Cas où totalWithDelivery === 0 (le wallet couvre tout, livraison comprise) :
+  // aucun paiement nécessaire → on bascule directement à `payment_status = paid`.
   // ---------------------------------------------------------------------------
   let checkoutUrl: string | undefined;
   if (input.payment_method === "online") {
-    if (totalAfterWallets === 0) {
+    if (totalWithDelivery === 0) {
       await supabase
         .from("orders")
         .update({ payment_status: "paid" })
@@ -989,7 +997,7 @@ export async function createOrder(
           orderId: order.id,
         });
         const checkout = await createChargilyCheckout({
-          amount: totalAfterWallets,
+          amount: totalWithDelivery,
           successUrl,
           failureUrl,
           webhookEndpoint,

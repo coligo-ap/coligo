@@ -24,6 +24,7 @@
     "test:driver:money": "node scripts/test-driver-money.mjs",
     "test:tour:money": "node scripts/test-tour-treasury.mjs",
     "test:tour:e2e": "node scripts/e2e-tour.mjs",
+    "test:audit:cod": "node scripts/audit-cod-cashback.mjs",
     "test:coligo:pay": "node scripts/test-coligo-pay.mjs",
     "android:assets": "node scripts/android-assets.mjs",
     "cap:sync": "cap sync android",

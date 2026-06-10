@@ -241,15 +241,37 @@ try {
     await wallet(o1.id),
     -(commCash + S + tourComm)
   );
+  const cashCb = Math.round(
+    P *
+      Number(
+        (
+          await c.query(
+            "SELECT cashback_cash FROM platform_settings WHERE id=true"
+          )
+        ).rows[0].cashback_cash
+      )
+  );
   ok(
-    "platform income = comm+S+tourComm",
+    "platform income = comm+S+tourComm−cashback",
     await ledger(o1.id),
-    commCash + S + tourComm
+    commCash + S + tourComm - cashCb
+  );
+  ok(
+    "cash cashback provisionné",
+    await ledger(o1.id, "cashback_expense"),
+    -cashCb
   );
   ok(
     "platform tour_delivery_commission_income",
     await ledger(o1.id, "tour_delivery_commission_income"),
     tourComm
+  );
+  ok(
+    "CONSERVATION cash (wallet+platform+cashback == 0)",
+    (await wallet(o1.id)) +
+      (await ledger(o1.id)) +
+      (await cashbackCredit(o1.id)),
+    0
   );
   ok(
     "AUCUNE écriture livreur custodian (tournée)",
@@ -276,6 +298,11 @@ try {
 
   const commOnline = Math.round(P * Number(rates.co));
   const cb = Math.round(P * Number(rates.cbo));
+  const chgRate = Number(
+    (await c.query("SELECT chargily_fee FROM platform_settings WHERE id=true"))
+      .rows[0].chargily_fee
+  );
+  const chg = Math.round((P + S + D) * chgRate);
   ok("wallet sale (online=P)", await wallet(o2.id, "sale"), P);
   ok("wallet commission", await wallet(o2.id, "commission"), -commOnline);
   ok(
@@ -300,13 +327,15 @@ try {
     tourComm
   );
   ok("platform cashback_expense", await ledger(o2.id, "cashback_expense"), -cb);
+  ok("platform chargily_fee", await ledger(o2.id, "chargily_fee"), -chg);
   const credit = await cashbackCredit(o2.id);
   ok("cashback crédit client == dépense plateforme", credit, cb);
   const pnet = await ledger(o2.id);
+  // Le coût Chargily sort du système (vers le PSP) → conservation = total − chargily.
   ok(
-    "CONSERVATION (wallet+plateforme+cashback = total)",
+    "CONSERVATION (wallet+plateforme+cashback = total−chargily)",
     wnet + pnet + credit,
-    P + S + D
+    P + S + D - chg
   );
   ok(
     "AUCUNE écriture livreur custodian (tournée)",
