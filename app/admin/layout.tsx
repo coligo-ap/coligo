@@ -4,6 +4,7 @@ import { logout } from "@/app/(merchant)/actions";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { getLateOrdersCountForAdmin } from "@/lib/data/platform";
 import { AdminNav } from "@/components/admin/admin-nav";
+import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,8 @@ export default async function AdminLayout({
   return (
     <div className="bg-surface-2 min-h-screen">
       <header className="border-border sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b bg-white px-4 lg:px-6">
-        <div className="flex min-w-0 items-center gap-4">
+        <div className="flex min-w-0 items-center gap-3 lg:gap-4">
+          <AdminMobileNav lateCount={lateCount} />
           <span className="flex shrink-0 items-center gap-2 font-semibold">
             <ShieldCheck className="text-primary-600 size-5" />
             <span className="hidden sm:inline">{APP_CONFIG.name} Admin</span>

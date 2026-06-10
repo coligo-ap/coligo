@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const LINKS = [
+export const ADMIN_LINKS = [
   {
     href: "/admin",
     label: "Tableau de bord",
@@ -39,8 +39,9 @@ export function AdminNav({ lateCount }: { lateCount: number }) {
     exact ? pathname === href : pathname.startsWith(href);
 
   return (
-    <nav className="scrollbar-hide flex items-center gap-1 overflow-x-auto text-sm">
-      {LINKS.map((l) => {
+    // Barre horizontale : DESKTOP uniquement. Sur mobile → drawer (AdminMobileNav).
+    <nav className="scrollbar-hide hidden items-center gap-1 overflow-x-auto text-sm lg:flex">
+      {ADMIN_LINKS.map((l) => {
         const Icon = l.icon;
         const active = isActive(l.href, "exact" in l ? l.exact : false);
         return (
