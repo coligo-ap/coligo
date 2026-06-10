@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
-import { pullNextExpressNearby } from "@/app/(driver)/actions";
+import { driverHeartbeat, pullNextExpressNearby } from "@/app/(driver)/actions";
 import { toast } from "@/components/ui/toast";
 
 /**
@@ -37,6 +37,9 @@ export function ZoneDispatch({ online }: { online: boolean }) {
       const c = coordsRef.current;
       if (!alive || busy.current || !c) return;
       busy.current = true;
+      // Heartbeat de présence (best-effort) : permet de notifier ce livreur si
+      // une course express apparaît près de lui (réseau global géolocalisé).
+      void driverHeartbeat(c.latitude, c.longitude);
       try {
         const r = await pullNextExpressNearby(c.latitude, c.longitude);
         if (alive && r.orderId) {

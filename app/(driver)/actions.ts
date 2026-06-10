@@ -501,6 +501,25 @@ export async function reportNoShow(input: {
 }
 
 /**
+ * Heartbeat de présence : le livreur EN LIGNE pousse sa position (toutes les
+ * ~20 s, depuis ZoneDispatch). Sert à notifier le RÉSEAU GLOBAL géolocalisé
+ * quand une course express apparaît (mig 0130). Tolérant aux erreurs (no-op).
+ */
+export async function driverHeartbeat(lat: number, lng: number): Promise<void> {
+  try {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    const supabase = await createClient();
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ error: { message: string } | null }>;
+    await rpc("driver_heartbeat", { p_lat: lat, p_lng: lng });
+  } catch {
+    /* no-op : la présence est best-effort */
+  }
+}
+
+/**
  * Zones de forte demande en temps réel (carte livreur). Agrégat sans donnée
  * personnelle via le RPC `delivery_demand_zones` (mig 0093). Renvoie une liste
  * VIDE quand l'activité est normale. Tolérant aux erreurs (jamais throw).

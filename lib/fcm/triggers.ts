@@ -318,22 +318,50 @@ export async function notifyDriversNewExpress(input: {
       return;
     }
 
-    // Livreurs ACTIFS liés à ce commerçant.
+    // Destinataires = UNION de deux sources :
+    //  (a) RÉSEAU GLOBAL géolocalisé : livreurs présents (heartbeat récent) dans
+    //      le rayon du commerçant — peu importe l'inscription (mig 0130).
+    //  (b) les livreurs ACTIFS inscrits chez ce commerçant (toujours prévenus).
+    const userIdSet = new Set<string>();
+
+    const { data: merchant } = await admin
+      .from("merchants")
+      .select("latitude, longitude")
+      .eq("id", order.merchant_id)
+      .maybeSingle();
+    if (merchant?.latitude != null && merchant?.longitude != null) {
+      const rpc = admin.rpc.bind(admin) as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { data: near } = await rpc("drivers_present_near", {
+        p_lat: merchant.latitude,
+        p_lng: merchant.longitude,
+        p_radius_km: 6,
+        p_within_min: 3,
+      });
+      for (const r of (near as { user_id: string }[] | null) ?? []) {
+        if (r.user_id) userIdSet.add(r.user_id);
+      }
+    }
+
     const { data: links } = await admin
       .from("merchant_drivers")
       .select("driver_id")
       .eq("merchant_id", order.merchant_id)
       .eq("status", "active");
     const driverIds = (links ?? []).map((l) => l.driver_id).filter(Boolean);
-    if (driverIds.length === 0) return;
+    if (driverIds.length > 0) {
+      const { data: drivers } = await admin
+        .from("drivers")
+        .select("user_id")
+        .in("id", driverIds);
+      for (const d of drivers ?? []) {
+        if (d.user_id) userIdSet.add(d.user_id);
+      }
+    }
 
-    const { data: drivers } = await admin
-      .from("drivers")
-      .select("user_id")
-      .in("id", driverIds);
-    const userIds = (drivers ?? [])
-      .map((d) => d.user_id)
-      .filter((x): x is string => !!x);
+    const userIds = [...userIdSet];
     if (userIds.length === 0) return;
 
     const tokenLists = await Promise.all(
