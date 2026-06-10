@@ -37,6 +37,8 @@ export const platformSettingsSchema = z
     delivery_max_radius_km: z.coerce
       .number({ message: "Rayon invalide" })
       .positive("Doit être > 0"),
+    // Commission plateforme sur les frais de livraison de tournée (%).
+    tour_delivery_commission_rate: pct,
   })
   .refine((v) => v.delivery_min_da <= v.delivery_max_da, {
     message: "Plancher livraison doit être ≤ plafond",

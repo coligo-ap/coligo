@@ -782,6 +782,7 @@ export type Database = {
           driver_fee_min_da: number;
           driver_float_cap_da: number;
           driver_settlement_cycle: "weekly" | "monthly";
+          tour_delivery_commission_rate: number;
           updated_at: string;
         };
         Insert: {
@@ -806,6 +807,7 @@ export type Database = {
           driver_fee_min_da?: number;
           driver_float_cap_da?: number;
           driver_settlement_cycle?: "weekly" | "monthly";
+          tour_delivery_commission_rate?: number;
           updated_at?: string;
         };
         Update: {
@@ -830,6 +832,7 @@ export type Database = {
           driver_fee_min_da?: number;
           driver_float_cap_da?: number;
           driver_settlement_cycle?: "weekly" | "monthly";
+          tour_delivery_commission_rate?: number;
           updated_at?: string;
         };
         Relationships: [];

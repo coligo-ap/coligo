@@ -11,6 +11,7 @@ export async function getPlatformSettings(): Promise<PlatformSettings | null> {
        chargily_fee, max_debt_da,
        delivery_base_da, delivery_per_km_da, delivery_free_km_threshold,
        delivery_min_da, delivery_max_da, delivery_max_radius_km,
+       tour_delivery_commission_rate,
        updated_at`
     )
     .eq("id", true)

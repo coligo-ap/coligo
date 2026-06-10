@@ -187,6 +187,25 @@ export function PlatformSettingsForm({
               disabled={pending}
             />
           </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Commission tournée (%)</Label>
+            <Input
+              type="number"
+              name="tour_delivery_commission_rate"
+              defaultValue={rateToPct(settings.tour_delivery_commission_rate)}
+              min={0}
+              max={100}
+              step="0.01"
+              required
+              disabled={pending}
+            />
+            <p className="text-subtle text-xs">
+              Part prélevée par Coligo sur les frais de livraison des commandes
+              en <strong>tournée</strong> (payée par le commerçant, qui fixe
+              lui-même son prix de livraison ≤ barème). N&apos;affecte ni
+              l&apos;express ni la commission sur les produits.
+            </p>
+          </div>
         </div>
       </div>
 

@@ -32,6 +32,9 @@ export async function updatePlatformSettings(
     delivery_min_da: formData.get("delivery_min_da"),
     delivery_max_da: formData.get("delivery_max_da"),
     delivery_max_radius_km: formData.get("delivery_max_radius_km"),
+    tour_delivery_commission_rate: formData.get(
+      "tour_delivery_commission_rate"
+    ),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Données invalides" };
@@ -54,6 +57,7 @@ export async function updatePlatformSettings(
       delivery_min_da: d.delivery_min_da,
       delivery_max_da: d.delivery_max_da,
       delivery_max_radius_km: d.delivery_max_radius_km,
+      tour_delivery_commission_rate: pctToRate(d.tour_delivery_commission_rate),
       updated_at: new Date().toISOString(),
     })
     .eq("id", true);

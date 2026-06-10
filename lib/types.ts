@@ -464,6 +464,8 @@ export type PlatformSettings = {
   delivery_min_da: number;
   delivery_max_da: number;
   delivery_max_radius_km: number;
+  /** Commission plateforme (0–1) sur les frais de livraison TOURNÉE (payée par le commerçant). */
+  tour_delivery_commission_rate: number;
   updated_at: string;
 };
 
