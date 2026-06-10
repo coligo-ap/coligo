@@ -46,6 +46,12 @@
          temps réel. @capacitor/geolocation gère le runtime grant. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Géoloc EN ARRIÈRE-PLAN du livreur EN SERVICE : permet de « sonner » pour
+         une course Express proche même app en arrière-plan / écran éteint
+         (@capacitor-community/background-geolocation, service de premier plan). -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature
       android:name="android.hardware.location.gps"
