@@ -373,8 +373,11 @@ export type WalletEntryType =
   | "sale"
   | "commission"
   | "service_fee"
+  | "service_fee_owed"
   | "payout"
-  | "adjustment";
+  | "adjustment"
+  | "delivery_revenue"
+  | "tour_delivery_commission";
 
 export type PayoutStatus = "pending" | "approved" | "paid" | "rejected";
 
@@ -387,8 +390,16 @@ export const WALLET_ENTRY_META: Record<
   // Cash : le commerçant a encaissé les frais de service pour la plateforme,
   // il les lui doit. C'est une dette, donc tone "danger".
   service_fee: { label: "Frais de service à reverser", tone: "danger" },
+  service_fee_owed: { label: "Frais de service à reverser", tone: "danger" },
   payout: { label: "Versement", tone: "primary" },
   adjustment: { label: "Ajustement", tone: "neutral" },
+  // Tournée : le commerçant encaisse la livraison (revenu) et paie une petite
+  // commission Coligo dessus.
+  delivery_revenue: { label: "Livraison encaissée", tone: "success" },
+  tour_delivery_commission: {
+    label: "Commission livraison Coligo",
+    tone: "danger",
+  },
 };
 
 export const PAYOUT_STATUS_META: Record<

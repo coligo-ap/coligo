@@ -33,6 +33,12 @@ export type WalletSummary = {
   coligoPayCollected: number;
   /** Ventes encaissées en ligne (Chargily) = totalSales − Coligo Pay. */
   onlineCollected: number;
+  /** Revenu livraison tournée encaissé pour le commerçant (online). */
+  deliveryRevenue: number;
+  /** Commission Coligo sur les livraisons de tournée (positif = dû). */
+  tourDeliveryCommission: number;
+  /** Ajustements manuels (peut être ±). */
+  adjustments: number;
 };
 
 export async function getWalletSummary(): Promise<WalletSummary> {
@@ -49,6 +55,9 @@ export async function getWalletSummary(): Promise<WalletSummary> {
     totalPaidOut: 0,
     coligoPayCollected: 0,
     onlineCollected: 0,
+    deliveryRevenue: 0,
+    tourDeliveryCommission: 0,
+    adjustments: 0,
   };
   for (const e of data ?? []) {
     out.balance += e.amount_da;
@@ -65,8 +74,13 @@ export async function getWalletSummary(): Promise<WalletSummary> {
         out.onlineCollected += e.amount_da;
       }
     } else if (t === "commission") out.totalCommission += e.amount_da;
-    else if (t === "service_fee") out.totalServiceFeesOwed += -e.amount_da;
+    else if (t === "service_fee" || t === "service_fee_owed")
+      out.totalServiceFeesOwed += -e.amount_da;
     else if (t === "payout") out.totalPaidOut += e.amount_da;
+    else if (t === "delivery_revenue") out.deliveryRevenue += e.amount_da;
+    else if (t === "tour_delivery_commission")
+      out.tourDeliveryCommission += -e.amount_da;
+    else if (t === "adjustment") out.adjustments += e.amount_da;
   }
   return out;
 }

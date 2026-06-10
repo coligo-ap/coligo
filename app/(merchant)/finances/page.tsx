@@ -3,9 +3,9 @@ import {
   getWalletEntriesPage,
   getWalletSummary,
 } from "@/lib/data/wallet";
+import { getInvoiceMonths } from "@/lib/data/invoices";
 import { reservedAmount } from "@/lib/finances/balance";
 import { FinancesView } from "@/components/merchant/finances/finances-view";
-import { MerchantDeliveryFinances } from "@/components/merchant/finances/merchant-delivery-finances";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -37,28 +37,35 @@ export default async function FinancesPage({
         .maybeSingle()
     : { data: null };
 
-  const [walletSummary, pageData, requests, deliveryRows, ordersDelivery] =
-    await Promise.all([
-      getWalletSummary(),
-      getWalletEntriesPage(page, PAGE_SIZE),
-      getPayoutRequests(),
-      // Delivery_ledger : ce que ses livreurs lui doivent (cash produits)
-      // OU ce qu'il leur paie (rare au MVP, on garde minimal).
-      merchant
-        ? supabase
-            .from("delivery_ledger")
-            .select("type, amount_da")
-            .eq("merchant_id", merchant.id)
-        : Promise.resolve({ data: [] }),
-      // Total des frais de livraison sur ses commandes complétées.
-      merchant
-        ? supabase
-            .from("orders")
-            .select("delivery_fee_da, payment_method, status")
-            .eq("merchant_id", merchant.id)
-            .eq("fulfillment_type", "delivery")
-        : Promise.resolve({ data: [] }),
-    ]);
+  const [
+    walletSummary,
+    pageData,
+    requests,
+    deliveryRows,
+    ordersDelivery,
+    invoiceMonths,
+  ] = await Promise.all([
+    getWalletSummary(),
+    getWalletEntriesPage(page, PAGE_SIZE),
+    getPayoutRequests(),
+    // Delivery_ledger : ce que ses livreurs lui doivent (cash produits)
+    // OU ce qu'il leur paie (rare au MVP, on garde minimal).
+    merchant
+      ? supabase
+          .from("delivery_ledger")
+          .select("type, amount_da")
+          .eq("merchant_id", merchant.id)
+      : Promise.resolve({ data: [] }),
+    // Total des frais de livraison sur ses commandes complétées.
+    merchant
+      ? supabase
+          .from("orders")
+          .select("delivery_fee_da, payment_method, status")
+          .eq("merchant_id", merchant.id)
+          .eq("fulfillment_type", "delivery")
+      : Promise.resolve({ data: [] }),
+    getInvoiceMonths(),
+  ]);
 
   type DeliveryRow = { type: string; amount_da: number };
   type OrderDeliveryRow = {
@@ -98,24 +105,34 @@ export default async function FinancesPage({
     totalPaidOut: walletSummary.totalPaidOut,
     coligoPayCollected: walletSummary.coligoPayCollected,
     onlineCollected: walletSummary.onlineCollected,
+    deliveryRevenue: walletSummary.deliveryRevenue,
+    tourDeliveryCommission: walletSummary.tourDeliveryCommission,
+    adjustments: walletSummary.adjustments,
   };
 
   const pageCount = Math.max(1, Math.ceil(pageData.total / PAGE_SIZE));
 
   return (
-    <>
-      <MerchantDeliveryFinances stats={deliveryStats} />
-      <FinancesView
-        entries={pageData.entries}
-        requests={requests}
-        summary={summary}
-        page={page}
-        pageCount={pageCount}
-        total={pageData.total}
-      />
-    </>
+    <FinancesView
+      entries={pageData.entries}
+      requests={requests}
+      summary={summary}
+      deliveryStats={deliveryStats}
+      invoiceMonths={invoiceMonths}
+      page={page}
+      pageCount={pageCount}
+      total={pageData.total}
+    />
   );
 }
+
+export type DeliveryStats = {
+  totalDeliveryOrders: number;
+  completedDeliveryOrders: number;
+  cashDeliveryFeesDa: number;
+  onlineDeliveryFeesDa: number;
+  owedByDriversDa: number;
+};
 
 export type FinancesSummary = {
   balance: number;
@@ -128,4 +145,7 @@ export type FinancesSummary = {
   totalPaidOut: number;
   coligoPayCollected: number;
   onlineCollected: number;
+  deliveryRevenue: number;
+  tourDeliveryCommission: number;
+  adjustments: number;
 };
