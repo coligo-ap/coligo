@@ -140,23 +140,31 @@ function Verdict({ summary }: { summary: FinancesSummary }) {
         <p className="mt-2 text-[2.6rem] leading-none font-extrabold tracking-tight tabular-nums">
           {formatDA(summary.balance)}
         </p>
-        <p className="mt-3 text-sm text-white/90">
+        <div className="mt-3 text-sm text-white/90">
           {summary.reserved > 0 ? (
             <>
-              <strong>{formatDA(summary.available)}</strong> à retirer
-              maintenant
-              <span className="text-white/75">
-                {" "}
-                · {formatDA(summary.reserved)} en cours de versement
-              </span>
+              <p>
+                <strong>{formatDA(summary.available)}</strong> à retirer
+                maintenant.
+              </p>
+              <p className="mt-1 text-white/80">
+                {formatDA(summary.reserved)} déjà demandés — versement en cours
+                de traitement.{" "}
+                <Link
+                  href="/aide"
+                  className="font-medium text-white underline underline-offset-2"
+                >
+                  Comprendre
+                </Link>
+              </p>
             </>
           ) : (
-            <>
+            <p>
               <strong>{formatDA(summary.available)}</strong> disponibles à
               retirer
-            </>
+            </p>
           )}
-        </p>
+        </div>
       </section>
     );
   }

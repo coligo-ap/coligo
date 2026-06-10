@@ -26,7 +26,6 @@ import {
   mobileDrawer,
   useMobileDrawerOpen,
 } from "@/components/merchant/use-mobile-drawer";
-import { openSupportChat } from "@/components/support/tawk-chat";
 
 type DrawerItem = {
   href: string;
@@ -183,17 +182,14 @@ export function MobileDrawer({
             );
           })}
 
-          <button
-            type="button"
-            onClick={() => {
-              close();
-              openSupportChat();
-            }}
+          <Link
+            href="/aide"
+            onClick={close}
             className="text-muted hover:bg-surface-2 hover:text-foreground flex min-h-[44px] w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors"
           >
             <HelpCircle className="size-5 shrink-0" />
             <span className="flex-1 text-left">Aide &amp; support</span>
-          </button>
+          </Link>
 
           <InstallButton variant="nav" onAfterPrompt={close} />
         </nav>
