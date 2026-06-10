@@ -346,7 +346,7 @@ export async function notifyDriversNewExpress(input: {
       tokens,
       {
         title: "Nouvelle course Express ⚡",
-        body: `Une livraison de ${formatDA(order.total_da ?? 0)} est prête à récupérer.`,
+        body: `Une livraison de ${formatDA(order.total_da ?? 0)} à récupérer — fonce, le commerçant prépare.`,
       },
       { route: "/driver", kind: "driver_new_express" }
     );

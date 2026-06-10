@@ -101,9 +101,11 @@ export async function updateOrderStatus(
   // ready / completed / cancelled). Fire-and-forget — pas de blocage.
   void notifyCustomerStatusChange({ orderId, newStatus: to });
 
-  // Commande prête → on alerte les livreurs du commerçant si c'est une course
-  // EXPRESS non encore attribuée (le helper revérifie le mode/attribution).
-  if (to === "ready") {
+  // Express : on alerte les livreurs DÈS le DÉBUT de la préparation (la course
+  // est sur le réseau immédiatement — mig 0129 — le livreur peut foncer pendant
+  // que le plat se prépare). On ré-alerte à « prête » au cas où personne n'a
+  // encore pris la course. Le helper revérifie mode/attribution (no-op sinon).
+  if (to === "preparing" || to === "ready") {
     void notifyDriversNewExpress({ orderId });
   }
 
