@@ -16,10 +16,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *    bypass ne sert qu'ici).
  */
 
-type Role = "merchant" | "customer" | "courier";
+type Role = "merchant" | "customer" | "courier" | "chauffeur";
 type Platform = "android" | "ios" | "web";
 
-const ROLES: readonly Role[] = ["merchant", "customer", "courier"];
+const ROLES: readonly Role[] = ["merchant", "customer", "courier", "chauffeur"];
 const PLATFORMS: readonly Platform[] = ["android", "ios", "web"];
 
 const isRole = (v: unknown): v is Role =>

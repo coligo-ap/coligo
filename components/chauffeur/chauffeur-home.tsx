@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
+import { PushRegistrar } from "@/components/native/push-registrar";
 import {
   cancelRideAction,
   chauffeurHeartbeat,
@@ -97,6 +98,8 @@ export function ChauffeurHome({
 
   return (
     <div className="mx-auto max-w-md p-4">
+      {/* Enregistre le token push (rôle chauffeur) → sonnerie des courses */}
+      <PushRegistrar role="chauffeur" />
       {/* En-tête */}
       <header className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">

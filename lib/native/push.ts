@@ -16,7 +16,7 @@
 
 import { getNativePlatform, isNative } from "./context";
 
-export type PushRole = "merchant" | "customer" | "courier";
+export type PushRole = "merchant" | "customer" | "courier" | "chauffeur";
 
 export function isPushAvailable(): boolean {
   return isNative() && getNativePlatform() === "android";
