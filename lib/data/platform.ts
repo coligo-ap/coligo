@@ -22,8 +22,13 @@ export async function getPlatformSettings(): Promise<PlatformSettings | null> {
 export type AdminMerchant = {
   id: string;
   name: string;
+  slug: string | null;
   city: string | null;
   category: string | null;
+  /** Téléphone public de la boutique. */
+  phone: string | null;
+  /** E-mail du compte de connexion (auth.users). */
+  email: string | null;
   is_active: boolean;
   is_frozen: boolean;
   commission_cash: number | null;
@@ -34,36 +39,35 @@ export type AdminMerchant = {
 };
 
 /**
- * Tous les commerçants pour l'admin (RLS : is_super_admin), avec leur solde
- * (SUM du ledger). Le solde négatif = dette de commissions (cash).
+ * Tous les commerçants pour l'admin avec leur solde + e-mail/téléphone/identifiant
+ * (RPC SECURITY DEFINER `admin_merchants_directory`, gardée is_super_admin).
+ * L'e-mail vit dans auth.users → indispensable pour la recherche côté admin.
+ * Solde négatif = dette de commissions (cash).
  */
 export async function getAllMerchantsForAdmin(): Promise<AdminMerchant[]> {
   const supabase = await createClient();
-  const { data: merchants } = await supabase
-    .from("merchants")
-    .select(
-      "id, name, city, category, is_active, is_frozen, commission_cash, commission_online, cashback_online, cashback_cash"
-    )
-    .order("created_at", { ascending: true });
-
-  if (!merchants) return [];
-
-  // Solde par commerçant : on agrège les écritures visibles (RLS admin).
-  const { data: entries } = await supabase
-    .from("wallet_entries")
-    .select("merchant_id, amount_da");
-
-  const balances = new Map<string, number>();
-  for (const e of entries ?? []) {
-    balances.set(
-      e.merchant_id,
-      (balances.get(e.merchant_id) ?? 0) + e.amount_da
-    );
+  const { data, error } = await supabase.rpc(
+    "admin_merchants_directory" as never
+  );
+  if (error) {
+    console.error("admin_merchants_directory:", error.message);
+    return [];
   }
-
-  return merchants.map((m) => ({
-    ...m,
-    balance: balances.get(m.id) ?? 0,
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => ({
+    id: String(r.id),
+    name: String(r.name ?? "Commerce"),
+    slug: (r.slug as string | null) ?? null,
+    city: (r.city as string | null) ?? null,
+    category: (r.category as string | null) ?? null,
+    phone: (r.phone as string | null) ?? null,
+    email: (r.email as string | null) ?? null,
+    is_active: !!r.is_active,
+    is_frozen: !!r.is_frozen,
+    commission_cash: (r.commission_cash as number | null) ?? null,
+    commission_online: (r.commission_online as number | null) ?? null,
+    cashback_online: (r.cashback_online as number | null) ?? null,
+    cashback_cash: (r.cashback_cash as number | null) ?? null,
+    balance: Number(r.balance_da ?? 0),
   }));
 }
 

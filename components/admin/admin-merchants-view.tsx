@@ -1,8 +1,21 @@
 "use client";
 
-import { useActionState, useEffect, useTransition } from "react";
+import {
+  useActionState,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, PackagePlus, Snowflake } from "lucide-react";
+import {
+  Loader2,
+  Mail,
+  PackagePlus,
+  Phone,
+  Search,
+  Snowflake,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,15 +72,53 @@ export function AdminMerchantsView({
   merchants: AdminMerchant[];
   settings: PlatformSettings | null;
 }) {
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return merchants;
+    return merchants.filter((m) =>
+      [m.name, m.email, m.phone, m.id, m.slug, m.city]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q))
+    );
+  }, [merchants, query]);
+
   if (merchants.length === 0) {
     return <p className="text-muted text-sm">Aucun commerçant.</p>;
   }
+
   return (
-    <ul className="space-y-4">
-      {merchants.map((m) => (
-        <MerchantRow key={m.id} merchant={m} settings={settings} />
-      ))}
-    </ul>
+    <div className="space-y-4">
+      {/* Recherche : nom, e-mail, téléphone, identifiant (id) ou slug. */}
+      <div className="relative">
+        <Search className="text-muted pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
+        <Input
+          type="search"
+          inputMode="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Rechercher : nom, e-mail, téléphone, identifiant…"
+          className="h-12 pl-10"
+        />
+      </div>
+      <p className="text-muted text-xs tabular-nums">
+        {filtered.length} commerçant{filtered.length > 1 ? "s" : ""}
+        {query ? ` sur ${merchants.length}` : ""}
+      </p>
+
+      {filtered.length === 0 ? (
+        <p className="text-muted py-8 text-center text-sm">
+          Aucun commerçant ne correspond à « {query} ».
+        </p>
+      ) : (
+        <ul className="space-y-4">
+          {filtered.map((m) => (
+            <MerchantRow key={m.id} merchant={m} settings={settings} />
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -126,12 +177,32 @@ function MerchantRow({
   return (
     <li className="border-border bg-surface rounded-[16px] border p-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold">{merchant.name}</h3>
             {merchant.is_frozen && <Badge tone="danger">Gelé</Badge>}
+            {!merchant.is_active && <Badge tone="neutral">Inactif</Badge>}
           </div>
-          <p className="text-muted text-xs">{merchant.city ?? "—"}</p>
+          {/* Infos existantes — l'admin voit d'emblée ce qui existe. */}
+          <div className="text-muted mt-1 space-y-0.5 text-xs">
+            <p>{merchant.city ?? "—"}</p>
+            {merchant.email && (
+              <p className="flex items-center gap-1.5">
+                <Mail className="size-3" />
+                <span className="truncate">{merchant.email}</span>
+              </p>
+            )}
+            {merchant.phone && (
+              <p className="flex items-center gap-1.5">
+                <Phone className="size-3" />
+                {merchant.phone}
+              </p>
+            )}
+            <p className="text-subtle font-mono text-[10px]">
+              id&nbsp;{merchant.id}
+              {merchant.slug ? ` · ${merchant.slug}` : ""}
+            </p>
+          </div>
         </div>
         <div className="text-right">
           {debt > 0 ? (
