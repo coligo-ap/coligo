@@ -90,6 +90,22 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Isolation CHAUFFEUR VTC (population séparée) — confiné à /chauffeur.
+  const isChauffeurSession =
+    !!user?.email && user.email.endsWith("@chauffeurs.coligo.local");
+  if (isChauffeurSession) {
+    const allowed =
+      path === "/chauffeur" ||
+      path.startsWith("/chauffeur/") ||
+      path.startsWith("/api/") ||
+      path.startsWith("/auth") ||
+      path.startsWith("/offline");
+    if (!allowed) {
+      return redirectTo("/chauffeur");
+    }
+    return supabaseResponse;
+  }
+
   // ===========================================================================
   // NUMÉRO DE TÉLÉPHONE OBLIGATOIRE (client) — anti-fraude + contact livraison.
   // ---------------------------------------------------------------------------

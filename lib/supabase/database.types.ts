@@ -20,6 +20,180 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      chauffeurs: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          full_name: string;
+          phone: string;
+          email: string | null;
+          wilaya: string | null;
+          vehicle_make: string | null;
+          vehicle_model: string | null;
+          vehicle_plate: string | null;
+          vehicle_color: string | null;
+          is_verified: boolean;
+          is_frozen: boolean;
+          is_blocked: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          full_name: string;
+          phone: string;
+          email?: string | null;
+          wilaya?: string | null;
+          vehicle_make?: string | null;
+          vehicle_model?: string | null;
+          vehicle_plate?: string | null;
+          vehicle_color?: string | null;
+          is_verified?: boolean;
+          is_frozen?: boolean;
+          is_blocked?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["chauffeurs"]["Insert"]>;
+        Relationships: [];
+      };
+      chauffeur_presence: {
+        Row: {
+          chauffeur_id: string;
+          lat: number;
+          lng: number;
+          is_online: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          chauffeur_id: string;
+          lat: number;
+          lng: number;
+          is_online?: boolean;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["chauffeur_presence"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      rides: {
+        Row: {
+          id: string;
+          customer_id: string;
+          chauffeur_id: string | null;
+          status:
+            | "searching"
+            | "accepted"
+            | "arriving"
+            | "arrived"
+            | "in_progress"
+            | "completed"
+            | "cancelled";
+          pickup_lat: number;
+          pickup_lng: number;
+          pickup_text: string | null;
+          dest_lat: number;
+          dest_lng: number;
+          dest_text: string | null;
+          distance_km: number;
+          suggested_price_da: number;
+          proposed_price_da: number;
+          agreed_price_da: number | null;
+          payment_method: "cash" | "coligo_pay";
+          commission_rate_applied: number | null;
+          commission_da: number | null;
+          chauffeur_net_da: number | null;
+          cancelled_by: string | null;
+          client_rating: number | null;
+          chauffeur_rating: number | null;
+          created_at: string;
+          accepted_at: string | null;
+          arrived_at: string | null;
+          started_at: string | null;
+          completed_at: string | null;
+          cancelled_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          status?: string;
+          pickup_lat: number;
+          pickup_lng: number;
+          dest_lat: number;
+          dest_lng: number;
+          [k: string]: unknown;
+        };
+        Update: Partial<Database["public"]["Tables"]["rides"]["Insert"]>;
+        Relationships: [];
+      };
+      ride_offers: {
+        Row: {
+          id: string;
+          ride_id: string;
+          chauffeur_id: string;
+          price_da: number;
+          status: "offered" | "accepted" | "declined" | "expired";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ride_id: string;
+          chauffeur_id: string;
+          price_da: number;
+          status?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ride_offers"]["Insert"]>;
+        Relationships: [];
+      };
+      ride_events: {
+        Row: {
+          id: string;
+          ride_id: string;
+          from_status: string | null;
+          to_status: string | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ride_id: string;
+          from_status?: string | null;
+          to_status?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ride_events"]["Insert"]>;
+        Relationships: [];
+      };
+      ride_ledger: {
+        Row: {
+          id: string;
+          chauffeur_id: string | null;
+          ride_id: string | null;
+          type:
+            | "chauffeur_payout"
+            | "chauffeur_owes_platform"
+            | "chauffeur_cash_collected"
+            | "adjustment";
+          amount_da: number;
+          note: string | null;
+          settled_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          chauffeur_id?: string | null;
+          ride_id?: string | null;
+          type: string;
+          amount_da: number;
+          note?: string | null;
+          settled_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ride_ledger"]["Insert"]>;
+        Relationships: [];
+      };
       customer_favorites: {
         Row: {
           id: string;
@@ -1431,7 +1605,7 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          role: "merchant" | "customer" | "courier";
+          role: "merchant" | "customer" | "courier" | "chauffeur";
           token: string;
           platform: "android" | "ios" | "web";
           created_at: string;
@@ -1440,7 +1614,7 @@ export type Database = {
         Insert: {
           id?: string;
           user_id: string;
-          role: "merchant" | "customer" | "courier";
+          role: "merchant" | "customer" | "courier" | "chauffeur";
           token: string;
           platform: "android" | "ios" | "web";
           created_at?: string;
@@ -1449,7 +1623,7 @@ export type Database = {
         Update: {
           id?: string;
           user_id?: string;
-          role?: "merchant" | "customer" | "courier";
+          role?: "merchant" | "customer" | "courier" | "chauffeur";
           token?: string;
           platform?: "android" | "ios" | "web";
           created_at?: string;

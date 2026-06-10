@@ -22,7 +22,7 @@ import { sendFcm } from "./send";
 
 async function tokensFor(
   userId: string,
-  role: "merchant" | "customer" | "courier"
+  role: "merchant" | "customer" | "courier" | "chauffeur"
 ): Promise<string[]> {
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -297,6 +297,65 @@ export async function notifyCustomerStatusChange(input: {
  * Déclenché quand le commerçant passe une commande express à « prête ».
  * Fire-and-forget. Multi-tokens (plusieurs livreurs liés au commerçant).
  */
+/**
+ * VTC — notifie les CHAUFFEURS en ligne proches du DÉPART d'une nouvelle course
+ * (réseau global géolocalisé, `chauffeurs_present_near`, mig 0131). Best-effort.
+ */
+export async function notifyChauffeursNewRide(input: {
+  rideId: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: ride } = await admin
+      .from("rides")
+      .select("status, chauffeur_id, pickup_lat, pickup_lng, proposed_price_da")
+      .eq("id", input.rideId)
+      .maybeSingle();
+    if (
+      !ride ||
+      ride.status !== "searching" ||
+      ride.chauffeur_id != null ||
+      ride.pickup_lat == null ||
+      ride.pickup_lng == null
+    ) {
+      return;
+    }
+    const rpc = admin.rpc.bind(admin) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    const { data: near } = await rpc("chauffeurs_present_near", {
+      p_lat: ride.pickup_lat,
+      p_lng: ride.pickup_lng,
+      p_radius_km: 8,
+      p_within_min: 3,
+    });
+    const userIds = [
+      ...new Set(
+        ((near as { user_id: string }[] | null) ?? [])
+          .map((r) => r.user_id)
+          .filter(Boolean)
+      ),
+    ];
+    if (userIds.length === 0) return;
+    const tokenLists = await Promise.all(
+      userIds.map((uid) => tokensFor(uid, "chauffeur"))
+    );
+    const tokens = [...new Set(tokenLists.flat())];
+    if (tokens.length === 0) return;
+    await sendFcm(
+      tokens,
+      {
+        title: "Nouvelle course 🚗",
+        body: `Un client propose ${formatDA(ride.proposed_price_da ?? 0)}. Fais ton offre !`,
+      },
+      { route: "/chauffeur", kind: "chauffeur_new_ride" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyChauffeursNewRide failed:", err);
+  }
+}
+
 export async function notifyDriversNewExpress(input: {
   orderId: string;
 }): Promise<void> {
