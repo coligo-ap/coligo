@@ -133,8 +133,61 @@ try {
     topupUsed: 50,
   });
 
+  // --- CASH NON-CUSTODIAN (retrait + tournée) avec redemption wallet ---
+  // Le commerçant détient le cash → réconciliation = SUM(wallet+platform+client) = 0
+  // (la plateforme reverse au commerçant le cashback/Coligo Pay dépensé).
+  async function reconcileNonCustodian(label, { mode, fulfillment }) {
+    const P = 400,
+      S = 30,
+      D = fulfillment === "delivery" ? 200 : 0,
+      C = 100,
+      T = 50;
+    const total = P + S + D - C - T;
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    const dm = fulfillment === "delivery" ? mode : null;
+    const o = (
+      await c.query(
+        `INSERT INTO orders (merchant_id,customer_id,customer_name,customer_phone,
+           subtotal_da,discount_da,net_total_da,service_fee_da,delivery_fee_da,total_da,
+           cashback_used_da,topup_used_da,pickup_code,pickup_slot_at,payment_method,
+           payment_status,fulfillment_type,delivery_mode,delivery_lat,delivery_lng,
+           delivery_address_text,status)
+         VALUES ($1,$2,'Y','0',$3,0,$3,$4,$5,$6,$7,$8,$9,now(),'cash','pending',$10,$11,
+           36.76,5.07,'t','preparing') RETURNING id`,
+        [M, CUST, P, S, D, total, C, T, code, fulfillment, dm]
+      )
+    ).rows[0];
+    await c.query("UPDATE orders SET status='completed' WHERE id=$1", [o.id]);
+    const w = await merchW(o.id);
+    const pl = await plat(o.id);
+    const cwd = (
+      await c.query(
+        "SELECT COALESCE(SUM(amount_da),0)::int s FROM customer_wallet_entries WHERE order_id=$1",
+        [o.id]
+      )
+    ).rows[0].s;
+    const red = (
+      await c.query(
+        "SELECT COALESCE(SUM(amount_da),0)::int s FROM wallet_entries WHERE order_id=$1 AND type='wallet_redemption'",
+        [o.id]
+      )
+    ).rows[0].s;
+    const sum = w + pl + cwd;
+    console.log(
+      `\n=== ${label} (cash + 100 cashback + 50 Coligo Pay) ===\n  reversé au commerçant=${red} | SUM(wallet+platform+client)=${sum} ${sum === 0 ? "✅ équilibré" : "❌ commerçant court de " + -sum}`
+    );
+  }
+  await reconcileNonCustodian("RETRAIT cash", {
+    mode: null,
+    fulfillment: "pickup",
+  });
+  await reconcileNonCustodian("TOURNÉE cash", {
+    mode: "tour",
+    fulfillment: "delivery",
+  });
+
   console.log(
-    "\nRappel : un livreur custodian DOIT être à résidu 0 (il n'est ni gagnant ni perdant sur le cash ; sa paie = payout)."
+    "\nRappel : custodian (express COD) → résidu livreur = 0 ; cash non-custodian → SUM ledger = 0."
   );
 } catch (e) {
   console.error("ERREUR:", e.message);

@@ -377,7 +377,8 @@ export type WalletEntryType =
   | "payout"
   | "adjustment"
   | "delivery_revenue"
-  | "tour_delivery_commission";
+  | "tour_delivery_commission"
+  | "wallet_redemption";
 
 export type PayoutStatus = "pending" | "approved" | "paid" | "rejected";
 
@@ -400,6 +401,8 @@ export const WALLET_ENTRY_META: Record<
     label: "Commission livraison Coligo",
     tone: "danger",
   },
+  // Cash : cashback / Coligo Pay du client, reversé au commerçant par Coligo.
+  wallet_redemption: { label: "Cashback / Coligo Pay client", tone: "success" },
 };
 
 export const PAYOUT_STATUS_META: Record<

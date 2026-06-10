@@ -79,6 +79,7 @@ function accumulate(m: InvoiceMonth, e: Row, orderSet: Set<string>) {
   switch (e.type) {
     case "sale":
     case "delivery_revenue":
+    case "wallet_redemption":
       m.collectedForYou += e.amount_da;
       break;
     case "commission":

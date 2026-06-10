@@ -37,6 +37,8 @@ export type WalletSummary = {
   deliveryRevenue: number;
   /** Commission Coligo sur les livraisons de tournée (positif = dû). */
   tourDeliveryCommission: number;
+  /** Cashback / Coligo Pay du client reversé au commerçant (cash). */
+  walletRedemption: number;
   /** Ajustements manuels (peut être ±). */
   adjustments: number;
 };
@@ -57,6 +59,7 @@ export async function getWalletSummary(): Promise<WalletSummary> {
     onlineCollected: 0,
     deliveryRevenue: 0,
     tourDeliveryCommission: 0,
+    walletRedemption: 0,
     adjustments: 0,
   };
   for (const e of data ?? []) {
@@ -80,6 +83,7 @@ export async function getWalletSummary(): Promise<WalletSummary> {
     else if (t === "delivery_revenue") out.deliveryRevenue += e.amount_da;
     else if (t === "tour_delivery_commission")
       out.tourDeliveryCommission += -e.amount_da;
+    else if (t === "wallet_redemption") out.walletRedemption += e.amount_da;
     else if (t === "adjustment") out.adjustments += e.amount_da;
   }
   return out;

@@ -205,7 +205,8 @@ function Verdict({ summary }: { summary: FinancesSummary }) {
 /* ─────────────────────── DÉTAIL « FAIT POUR VOUS » ─────────────────────── */
 
 function SimpleBreakdown({ summary }: { summary: FinancesSummary }) {
-  const collectedForYou = summary.totalSales + summary.deliveryRevenue;
+  const collectedForYou =
+    summary.totalSales + summary.deliveryRevenue + summary.walletRedemption;
   const commission = -summary.totalCommission; // magnitude positive
   const hasAnything =
     collectedForYou > 0 ||

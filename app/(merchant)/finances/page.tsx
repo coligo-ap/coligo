@@ -107,6 +107,7 @@ export default async function FinancesPage({
     onlineCollected: walletSummary.onlineCollected,
     deliveryRevenue: walletSummary.deliveryRevenue,
     tourDeliveryCommission: walletSummary.tourDeliveryCommission,
+    walletRedemption: walletSummary.walletRedemption,
     adjustments: walletSummary.adjustments,
   };
 
@@ -147,5 +148,6 @@ export type FinancesSummary = {
   onlineCollected: number;
   deliveryRevenue: number;
   tourDeliveryCommission: number;
+  walletRedemption: number;
   adjustments: number;
 };
