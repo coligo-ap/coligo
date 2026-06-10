@@ -26,11 +26,15 @@ type ReportRow = {
 
 export default async function AdminReportsPage() {
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as (
-    fn: string,
-    args: Record<string, unknown>
-  ) => Promise<{ data: unknown; error: { message: string } | null }>;
-  const { data } = await rpc("admin_delivery_reports", { p_limit: 300 });
+  // IMPORTANT : appeler supabase.rpc EN MÉTHODE (this lié). Extraire la fonction
+  // (`const rpc = supabase.rpc`) casse `this.rest` → exception serveur.
+  const { data, error } = await supabase.rpc(
+    "admin_delivery_reports" as never,
+    { p_limit: 300 } as never
+  );
+  if (error) {
+    console.error("admin_delivery_reports:", error.message);
+  }
   const rows = (Array.isArray(data) ? data : []) as ReportRow[];
 
   return (
