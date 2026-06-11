@@ -799,11 +799,6 @@ export function DriveView() {
         markers={pickup ? [{ id: "me", pos: pickup, kind: "me" }] : []}
         padding={{ top: 100, bottom: 420, left: 60, right: 60 }}
       />
-      {/* Pill « Coligo Drive » */}
-      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold shadow-lg">
-        <Car className="size-4" style={{ color: VIOLET }} />
-        <span className="drive-sora">Coligo Drive</span>
-      </div>
       {/* Historique */}
       <button
         type="button"
@@ -811,6 +806,15 @@ export function DriveView() {
         className="absolute top-3 right-4 z-10 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
       >
         <History className="size-3.5" /> {t("history")}
+      </button>
+      {/* Espace chauffeur (en face de l'historique) */}
+      <button
+        type="button"
+        onClick={() => router.push("/chauffeur")}
+        className="absolute top-3 left-4 z-20 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
+      >
+        <Car className="size-3.5" style={{ color: VIOLET }} />{" "}
+        {t("home.imDriver")}
       </button>
       {/* Contacts d'urgence (gestion : ajouter / appeler / retirer) */}
       <button
@@ -826,6 +830,14 @@ export function DriveView() {
       {/* Feuille « Votre trajet » */}
       <div className="absolute right-0 bottom-[64px] left-0 z-10 rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-4 shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
         <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
+        {/* Branding (ex-pill flottante : la carte est dégagée pour les
+            boutons Chauffeur / Historique). */}
+        <p
+          className="drive-sora flex items-center gap-1.5 text-[11px] font-extrabold tracking-[0.5px] uppercase"
+          style={{ color: VIOLET }}
+        >
+          <Car className="size-3.5" /> Coligo Drive
+        </p>
         <h1 className="drive-sora mb-2 text-[21px] font-extrabold tracking-[-0.5px]">
           {t("home.title")}
         </h1>

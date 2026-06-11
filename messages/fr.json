@@ -748,7 +748,8 @@
       "title": "Votre trajet",
       "locating": "Localisation…",
       "whereTo": "Où allez-vous ?",
-      "continue": "Continuer"
+      "continue": "Continuer",
+      "imDriver": "Je suis chauffeur"
     },
     "mappick": {
       "depLabel": "Point de départ — déplacez la carte",
