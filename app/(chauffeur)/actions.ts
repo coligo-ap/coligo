@@ -10,6 +10,7 @@ import {
   getCurrentChauffeur,
 } from "@/lib/auth/chauffeur";
 import { isWilaya } from "@/lib/dz/wilayas";
+import { signSelfiePath } from "@/lib/drive/avatar-server";
 import {
   notifyFemaleDriverOnline,
   notifyRideCustomer,
@@ -317,6 +318,8 @@ export type ChauffeurGate = {
   isFemaleVerified: boolean;
   vehicle: string | null;
   plate: string | null;
+  /** Photo de visage (selfie du dossier), URL signée 1 h. */
+  avatarUrl: string | null;
 };
 
 export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
@@ -326,7 +329,7 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
   const { data } = await admin
     .from("chauffeurs")
     .select(
-      "id, full_name, first_name, phone, gamme, is_verified, is_frozen, is_blocked, frozen_reason, submitted_at, rejected_reason, home_addr_text, home_lat, home_lng, created_at, is_female_verified, vehicle_make, vehicle_model, vehicle_color, vehicle_plate"
+      "id, full_name, first_name, phone, gamme, is_verified, is_frozen, is_blocked, frozen_reason, submitted_at, rejected_reason, home_addr_text, home_lat, home_lng, created_at, is_female_verified, vehicle_make, vehicle_model, vehicle_color, vehicle_plate, selfie_url"
     )
     .eq("id", ch.id)
     .maybeSingle();
@@ -379,6 +382,7 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
         .filter(Boolean)
         .join(" · ") || null,
     plate: data.vehicle_plate,
+    avatarUrl: await signSelfiePath(data.selfie_url),
   };
 }
 
@@ -413,6 +417,25 @@ export async function chauffeurHeartbeat(
   } catch {
     /* best-effort */
   }
+}
+
+/**
+ * Bascule en ligne / hors ligne IMMÉDIATE (bouton GO / Se mettre hors ligne).
+ * Met à jour la présence existante sans exiger de coordonnées — le heartbeat
+ * périodique (qui porte le flag online côté client) rafraîchit ensuite la
+ * position. Hors ligne ⇒ plus de dispatch ni de push « nouvelle course ».
+ */
+export async function setChauffeurOnline(
+  online: boolean
+): Promise<{ ok: boolean }> {
+  const ch = await getCurrentChauffeur();
+  if (!ch) return { ok: false };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("chauffeur_presence")
+    .update({ is_online: online, updated_at: new Date().toISOString() })
+    .eq("chauffeur_id", ch.id);
+  return { ok: !error };
 }
 
 // ---------------------------------------------------------------------------

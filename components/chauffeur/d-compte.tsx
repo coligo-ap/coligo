@@ -17,6 +17,7 @@ import {
   VIOLET,
   type SosContact,
 } from "@/components/customer/drive/drive-modals";
+import { ChAvatar } from "@/components/customer/drive/ch-avatar";
 import { DNav, PLAN_LABEL, fmtPct } from "./d-ui";
 import {
   chauffeurLogout,
@@ -65,12 +66,12 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
       </h1>
 
       <div className="mb-4 flex items-center gap-3">
-        <span
-          className="drive-sora grid size-14 shrink-0 place-items-center rounded-full text-[21px] font-extrabold text-white"
-          style={{ background: `linear-gradient(135deg,#7B7BF0,${VIOLET})` }}
-        >
-          {gate.firstName[0]?.toUpperCase()}
-        </span>
+        <ChAvatar
+          name={gate.firstName}
+          url={gate.avatarUrl}
+          size={56}
+          textClassName="text-[21px]"
+        />
         <span>
           <span className="drive-sora flex items-center gap-2 text-[17px] font-bold">
             {gate.firstName}{" "}

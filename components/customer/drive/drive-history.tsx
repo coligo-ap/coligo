@@ -7,6 +7,7 @@ import { Car, ChevronLeft, Heart } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { VIOLET, ROSE } from "./drive-modals";
+import { ChAvatar } from "./ch-avatar";
 import {
   toggleFavoriteChauffeur,
   type DriveHistory,
@@ -117,14 +118,7 @@ export function DriveHistoryView({ history }: { history: DriveHistory }) {
             key={f.chauffeur_id}
             className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] p-3"
           >
-            <span
-              className="drive-sora grid size-[38px] shrink-0 place-items-center rounded-full font-extrabold text-white"
-              style={{
-                background: `linear-gradient(135deg,#7B7BF0,${VIOLET})`,
-              }}
-            >
-              {f.name[0]?.toUpperCase()}
-            </span>
+            <ChAvatar name={f.name} url={f.avatar_url} size={38} />
             <span className="min-w-0 flex-1">
               <b className="block text-[13.5px]">
                 {f.name}

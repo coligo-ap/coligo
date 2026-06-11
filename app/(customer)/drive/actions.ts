@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { chauffeurAvatarUrls } from "@/lib/drive/avatar-server";
 import { notifyChauffeursNewRide } from "@/lib/fcm/triggers";
 
 type Rpc = (
@@ -283,6 +284,8 @@ export type DriveOffer = {
   price_da: number;
   chauffeur_id: string;
   name: string;
+  /** Photo de visage (selfie), URL signée — null si pas de photo. */
+  avatar_url: string | null;
   vehicle: string | null;
   plate: string | null;
   rating: number | null;
@@ -299,13 +302,18 @@ export type DriveOffer = {
 export async function getDriveOffers(rideId: string): Promise<DriveOffer[]> {
   const rpc = await rpcClient();
   const { data } = await rpc("my_ride_offers", { p_ride_id: rideId });
-  return ((data as Record<string, unknown>[] | null) ?? []).map((o) => {
+  const rows = (data as Record<string, unknown>[] | null) ?? [];
+  const avatars = await chauffeurAvatarUrls(
+    rows.map((o) => o.chauffeur_id as string)
+  );
+  return rows.map((o) => {
     const etaKm = o.eta_km == null ? null : Number(o.eta_km);
     return {
       id: o.id as string,
       price_da: o.price_da as number,
       chauffeur_id: o.chauffeur_id as string,
       name: (o.chauffeur_name as string) ?? "Chauffeur",
+      avatar_url: avatars.get(o.chauffeur_id as string) ?? null,
       vehicle: (o.vehicle as string) ?? null,
       plate: (o.plate as string) ?? null,
       rating: o.rating == null ? null : Number(o.rating),
@@ -384,6 +392,7 @@ export type DriveActiveRide = {
   chauffeur: {
     id: string;
     name: string;
+    avatar_url: string | null;
     vehicle: string | null;
     plate: string | null;
     phone: string | null;
@@ -430,6 +439,10 @@ export async function getDriveActiveRide(): Promise<DriveActiveRide | null> {
       ? {
           id: r.chauffeur_id as string,
           name: r.ch_name as string,
+          avatar_url:
+            (await chauffeurAvatarUrls([r.chauffeur_id as string])).get(
+              r.chauffeur_id as string
+            ) ?? null,
           vehicle: (r.ch_vehicle as string) ?? null,
           plate: (r.ch_plate as string) ?? null,
           phone: (r.ch_phone as string) ?? null,
@@ -461,6 +474,7 @@ export type DriveLastRide = {
   chauffeur: {
     id: string;
     name: string;
+    avatar_url: string | null;
     is_favorite: boolean;
   } | null;
 } | null;
@@ -527,6 +541,10 @@ export async function getDriveLastRide(sinceMin = 30): Promise<DriveLastRide> {
         ? {
             id: r.chauffeur_id,
             name: ch.first_name ?? ch.full_name.split(" ")[0],
+            avatar_url:
+              (await chauffeurAvatarUrls([r.chauffeur_id])).get(
+                r.chauffeur_id
+              ) ?? null,
             is_favorite: isFav,
           }
         : null,
@@ -702,6 +720,7 @@ export type DriveHistory = {
   favorites: {
     chauffeur_id: string;
     name: string;
+    avatar_url: string | null;
     rating: number | null;
     rides_count: number;
     vehicle: string | null;
@@ -741,6 +760,9 @@ export async function getDriveHistory(): Promise<DriveHistory> {
       .order("created_at", { ascending: false }),
   ]);
 
+  const favAvatars = await chauffeurAvatarUrls(
+    (favs ?? []).map((f) => f.chauffeur_id)
+  );
   const favorites = await Promise.all(
     (favs ?? []).map(async (f) => {
       const ch = f.chauffeurs as unknown as {
@@ -768,6 +790,7 @@ export async function getDriveHistory(): Promise<DriveHistory> {
       return {
         chauffeur_id: f.chauffeur_id,
         name: ch ? (ch.first_name ?? ch.full_name.split(" ")[0]) : "Chauffeur",
+        avatar_url: favAvatars.get(f.chauffeur_id) ?? null,
         rating: rating == null ? null : Math.round(Number(rating) * 10) / 10,
         rides_count: count ?? 0,
         vehicle: ch

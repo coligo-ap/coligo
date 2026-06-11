@@ -32,9 +32,13 @@ import {
   getChauffeurActiveRide,
   getDriveHome,
   setChauffeurHome,
+  setChauffeurOnline,
   type ChauffeurGate,
   type DriveHome,
 } from "@/app/(chauffeur)/actions";
+
+/** Dernier choix en ligne / hors ligne (persisté en local). */
+const ONLINE_KEY = "coligo-drive-online";
 
 const GAMME_LABEL: Record<string, string> = {
   classic: "Classic",
@@ -66,10 +70,35 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const coordsRef = useRef(coords);
   coordsRef.current = coords;
 
+  // En ligne / hors ligne : le chauffeur choisit (bouton GO), choix persisté.
+  const [online, setOnline] = useState(false);
+  const onlineRef = useRef(online);
+  onlineRef.current = online;
+  const [onlineBusy, setOnlineBusy] = useState(false);
+  useEffect(() => {
+    const saved = localStorage.getItem(ONLINE_KEY) === "1";
+    setOnline(saved);
+    onlineRef.current = saved;
+  }, []);
+
+  const toggleOnline = async () => {
+    if (onlineBusy) return;
+    const next = !onlineRef.current;
+    setOnlineBusy(true);
+    setOnline(next);
+    onlineRef.current = next;
+    localStorage.setItem(ONLINE_KEY, next ? "1" : "0");
+    // Bascule serveur immédiate (le heartbeat suivant entretient l'état).
+    await setChauffeurOnline(next);
+    const c = coordsRef.current;
+    if (c) void chauffeurHeartbeat(c.latitude, c.longitude, next);
+    setOnlineBusy(false);
+  };
+
   // Présence (en ligne) + rafraîchissement accueil + détection course active.
   const tick = useCallback(async () => {
     const c = coordsRef.current;
-    if (c) void chauffeurHeartbeat(c.latitude, c.longitude, true);
+    if (c) void chauffeurHeartbeat(c.latitude, c.longitude, onlineRef.current);
     const [h, active] = await Promise.all([
       getDriveHome(c?.latitude ?? null, c?.longitude ?? null),
       getChauffeurActiveRide(),
@@ -159,13 +188,15 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         focusTarget={focusMe}
         padding={{ top: 110, bottom: 460, left: 60, right: 60 }}
       />
-      {/* Pill en ligne */}
+      {/* Pill état en ligne / hors ligne */}
       <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold shadow-lg">
         <span
-          className="size-2 animate-pulse rounded-full"
-          style={{ background: GO }}
+          className={`size-2 rounded-full ${online ? "animate-pulse" : ""}`}
+          style={{ background: online ? GO : "#9CA3AF" }}
         />
-        <span className="drive-sora">En ligne · Drive</span>
+        <span className="drive-sora">
+          {online ? "En ligne · Drive" : "Hors ligne"}
+        </span>
       </div>
       {/* Légende heatmap */}
       <div className="absolute top-[64px] left-4 z-10 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-2.5 py-1.5 text-[10.5px] font-bold text-[var(--d-muted)] shadow">
@@ -205,16 +236,20 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           onClick={() => setMini((m) => !m)}
           className="drive-sora flex w-full items-center justify-between text-[21px] font-extrabold tracking-[-0.5px]"
         >
-          {home
-            ? `${home.requestsCount} demandes proches`
-            : "Demandes proches…"}
+          {online
+            ? home
+              ? `${home.requestsCount} demandes proches`
+              : "Demandes proches…"
+            : "Vous êtes hors ligne"}
           <ChevronUp
             className="size-[18px] text-[var(--d-muted)] transition-transform duration-300"
             style={{ transform: mini ? "rotate(180deg)" : undefined }}
           />
         </button>
         <p className="mb-3 text-[13px] text-[var(--d-muted)]">
-          Plusieurs clients attendent un chauffeur autour de vous.
+          {online
+            ? "Plusieurs clients attendent un chauffeur autour de vous."
+            : "Passez en ligne pour commencer à recevoir les courses."}
         </p>
 
         {/* Gains du jour */}
@@ -323,13 +358,41 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           <span className="text-[var(--d-muted)]">›</span>
         </button>
 
-        <PrimaryBtn
-          onClick={() => router.push("/chauffeur/demandes")}
-          className="!mt-0"
-        >
-          Voir les demandes
-          {home && home.requestsCount > 0 ? ` (${home.requestsCount})` : ""}
-        </PrimaryBtn>
+        {online ? (
+          <>
+            <PrimaryBtn
+              onClick={() => router.push("/chauffeur/demandes")}
+              className="!mt-0"
+            >
+              Voir les demandes
+              {home && home.requestsCount > 0 ? ` (${home.requestsCount})` : ""}
+            </PrimaryBtn>
+            <button
+              type="button"
+              disabled={onlineBusy}
+              onClick={() => void toggleOnline()}
+              className="drive-sora mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-[14px] border text-[13.5px] font-bold disabled:opacity-50"
+              style={{
+                borderColor: "rgba(229,72,77,.35)",
+                color: RED,
+                background: "rgba(229,72,77,.06)",
+              }}
+            >
+              {onlineBusy ? <Loader2 className="size-4 animate-spin" /> : null}
+              Se mettre hors ligne
+            </button>
+          </>
+        ) : (
+          <PrimaryBtn
+            onClick={() => void toggleOnline()}
+            disabled={onlineBusy}
+            color={GO}
+            className="!mt-0"
+          >
+            {onlineBusy ? <Loader2 className="size-5 animate-spin" /> : null}
+            Passer en ligne · GO
+          </PrimaryBtn>
+        )}
       </div>
 
       {/* Popup domicile : recherche d'adresse + repère sur la carte. */}

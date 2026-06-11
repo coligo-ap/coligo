@@ -22,6 +22,7 @@ import { cn, formatDA } from "@/lib/utils";
 import { haversineKm } from "@/lib/delivery/distance";
 import { routeEstimate } from "@/app/(customer)/actions";
 import { DriveMap, type LatLng } from "./drive-map";
+import { ChAvatar } from "./ch-avatar";
 import {
   CancelModal,
   ChatModal,
@@ -537,19 +538,19 @@ function SearchScreen({
                     : "var(--d-line)",
                 }}
               >
-                <span
-                  className="drive-sora grid size-11 shrink-0 place-items-center rounded-full text-base font-extrabold text-white"
-                  style={{
-                    background:
-                      tone === "var(--d-ink)"
-                        ? "var(--d-ink)"
-                        : tone === ROSE
-                          ? `linear-gradient(135deg,#F9A8D4,${ROSE})`
-                          : `linear-gradient(135deg,#7B7BF0,${VIOLET})`,
-                  }}
-                >
-                  {o.name[0]?.toUpperCase()}
-                </span>
+                <ChAvatar
+                  name={o.name}
+                  url={o.avatar_url}
+                  size={44}
+                  textClassName="text-base"
+                  background={
+                    tone === "var(--d-ink)"
+                      ? "var(--d-ink)"
+                      : tone === ROSE
+                        ? `linear-gradient(135deg,#F9A8D4,${ROSE})`
+                        : `linear-gradient(135deg,#7B7BF0,${VIOLET})`
+                  }
+                />
                 <span className="min-w-0 flex-1">
                   <span
                     className="flex flex-wrap items-center gap-1.5 text-sm leading-tight font-bold"
@@ -940,16 +941,13 @@ function EnrouteScreen({
         {ch && (
           <div className="mb-3 rounded-[22px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
             <div className="flex items-center gap-3">
-              <span
-                className="drive-sora grid size-[58px] shrink-0 place-items-center rounded-full text-[22px] font-extrabold text-white"
-                style={{
-                  background: ch.is_female
-                    ? `linear-gradient(135deg,#F9A8D4,${ROSE})`
-                    : `linear-gradient(135deg,#7B7BF0,${VIOLET})`,
-                }}
-              >
-                {ch.name[0]?.toUpperCase()}
-              </span>
+              <ChAvatar
+                name={ch.name}
+                url={ch.avatar_url}
+                size={58}
+                female={ch.is_female}
+                textClassName="text-[22px]"
+              />
               <span className="min-w-0 flex-1">
                 <span className="drive-sora flex items-center gap-1.5 text-[17px] font-extrabold">
                   {ch.name}
@@ -1201,12 +1199,11 @@ function DoneScreen({
 
       {ride.chauffeur && (
         <div className="mb-3 flex items-center gap-3 rounded-[15px] bg-[var(--d-soft)] px-3 py-2.5">
-          <span
-            className="drive-sora grid size-10 shrink-0 place-items-center rounded-full font-extrabold text-white"
-            style={{ background: `linear-gradient(135deg,#7B7BF0,${VIOLET})` }}
-          >
-            {ride.chauffeur.name[0]?.toUpperCase()}
-          </span>
+          <ChAvatar
+            name={ride.chauffeur.name}
+            url={ride.chauffeur.avatar_url}
+            size={40}
+          />
           <span>
             <b className="block text-[13.5px]">{ride.chauffeur.name}</b>
             <span className="text-[10.5px] text-[var(--d-muted)]">
