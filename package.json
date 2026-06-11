@@ -33,7 +33,8 @@
     "cap:sync:prod": "node scripts/cap-sync.mjs prod",
     "cap:open": "cap open android",
     "prepare": "husky",
-    "test:drive:money": "node scripts/test-drive-money.mjs"
+    "test:drive:money": "node scripts/test-drive-money.mjs",
+    "test:drive:demo": "node scripts/test-drive-demo-e2e.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
