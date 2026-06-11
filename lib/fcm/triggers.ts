@@ -597,3 +597,85 @@ export async function notifyOrderMessage(input: {
     console.warn("[fcm] notifyOrderMessage failed:", err);
   }
 }
+
+/**
+ * Drive — notifie le CLIENT d'une course (chauffeur arrivé, etc.).
+ * Fire-and-forget ; le poll client couvre le cas app ouverte.
+ */
+export async function notifyRideCustomer(
+  rideId: string,
+  kind: "arrived"
+): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: ride } = await admin
+      .from("rides")
+      .select("customer_id, chauffeurs(first_name, full_name)")
+      .eq("id", rideId)
+      .maybeSingle();
+    if (!ride) return;
+    const { data: cust } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", ride.customer_id)
+      .maybeSingle();
+    if (!cust?.user_id) return;
+    const tokens = await tokensFor(cust.user_id, "customer");
+    if (tokens.length === 0) return;
+    const ch = ride.chauffeurs as unknown as {
+      first_name: string | null;
+      full_name: string;
+    } | null;
+    const name = ch
+      ? (ch.first_name ?? ch.full_name.split(" ")[0])
+      : "Votre chauffeur";
+    if (kind === "arrived") {
+      await sendFcm(
+        tokens,
+        {
+          title: "Votre chauffeur est arrivé 🚗",
+          body: `${name} vous attend au point de départ.`,
+        },
+        { route: "/drive", kind: "drive_arrived" }
+      );
+    }
+  } catch (err) {
+    console.warn("[fcm] notifyRideCustomer failed:", err);
+  }
+}
+
+/**
+ * Drive — « Femme au volant » : une conductrice vient de se connecter →
+ * prévient les clientes en repli (demandes female_only en recherche).
+ * La RPC marque female_notified_at (une seule notification par demande).
+ */
+export async function notifyFemaleDriverOnline(): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const rpc = admin.rpc.bind(admin) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    const { data } = await rpc("drive_female_waiting_customers", {});
+    const rows =
+      (data as { ride_id: string; customer_user_id: string }[] | null) ?? [];
+    if (rows.length === 0) return;
+    const tokenLists = await Promise.all(
+      [...new Set(rows.map((r) => r.customer_user_id))].map((uid) =>
+        tokensFor(uid, "customer")
+      )
+    );
+    const tokens = [...new Set(tokenLists.flat())];
+    if (tokens.length === 0) return;
+    await sendFcm(
+      tokens,
+      {
+        title: "Une conductrice est en ligne 🎀",
+        body: "Une conductrice vérifiée vient de se connecter près de vous.",
+      },
+      { route: "/drive", kind: "drive_female_online" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyFemaleDriverOnline failed:", err);
+  }
+}

@@ -20,6 +20,7 @@ export function DriveMap({
   markers,
   route,
   approach,
+  heatZones,
   interactive = false,
   onMove,
   className,
@@ -30,6 +31,8 @@ export function DriveMap({
   route?: LatLng[] | null;
   /** Tracé approche (gris pointillé) : voiture → client. */
   approach?: LatLng[] | null;
+  /** Halos violets « zones de forte demande » (accueil chauffeur). */
+  heatZones?: { lat: number; lng: number; count: number }[] | null;
   /** true = carte déplaçable (écran de choix du point). */
   interactive?: boolean;
   /** Émis à chaque fin de déplacement (centre courant). */
@@ -94,6 +97,30 @@ export function DriveMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Halos de demande (heatmap accueil chauffeur) — marqueurs HTML dédiés.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    void import("maplibre-gl").then(({ Marker: Mk }) => {
+      // Purge les anciens halos puis pose les nouveaux.
+      markerObjs.current.forEach((mk, id) => {
+        if (id.startsWith("heat-")) {
+          mk.remove();
+          markerObjs.current.delete(id);
+        }
+      });
+      (heatZones ?? []).forEach((z, i) => {
+        const size = Math.min(170, 90 + z.count * 22);
+        const el = document.createElement("div");
+        el.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(91,91,230,.4),rgba(91,91,230,.16) 55%,transparent 72%)`;
+        const mk = new Mk({ element: el, anchor: "center" })
+          .setLngLat([z.lng, z.lat])
+          .addTo(map);
+        markerObjs.current.set(`heat-${i}`, mk);
+      });
+    });
+  }, [heatZones, ready]);
+
   // Marqueurs HTML (style maquette).
   useEffect(() => {
     const map = mapRef.current;
@@ -127,7 +154,7 @@ export function DriveMap({
         markerObjs.current.set(m.id, mk);
       }
       markerObjs.current.forEach((mk, id) => {
-        if (!seen.has(id)) {
+        if (!seen.has(id) && !id.startsWith("heat-")) {
           mk.remove();
           markerObjs.current.delete(id);
         }
