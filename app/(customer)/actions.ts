@@ -390,9 +390,14 @@ export async function reverseGeocode(input: {
   }
 }
 
-// Recherche d'adresse (forward geocoding) via Nominatim, biaisée Algérie.
-// Sert la barre de recherche de la carte plein écran. On reste gentil avec
-// l'API publique : cache 5 min, limite 6 résultats.
+// Recherche d'adresse HYBRIDE — sert la barre de recherche des cartes :
+//   1. Gazetteer local `geo_places` (GeoNames + OSM + ajouts manuels, RPC
+//      search_geo_places) : tolérant aux variantes de translittération des
+//      toponymes algériens (« Lekhmisse » ≈ « Souk El Khemis ») + biais de
+//      proximité quand la position est fournie.
+//   2. Photon (komoot, données OSM, gratuit) : rues/POI + recherche floue.
+//      Fallback Nominatim si Photon est indisponible.
+// Les deux tournent en parallèle ; fusion dédupliquée, gazetteer sûr d'abord.
 export type GeocodeSearchResult =
   | {
       ok: true;
@@ -405,12 +410,121 @@ export type GeocodeSearchResult =
     }
   | { ok: false; error: string };
 
-export async function geocodeSearch(input: {
-  q: string;
-}): Promise<GeocodeSearchResult> {
-  const q = (input.q ?? "").trim();
-  if (q.length < 3) return { ok: true, results: [] };
+type GeoHit = {
+  display: string;
+  secondary?: string;
+  lat: number;
+  lng: number;
+};
 
+// Algérie entière (Photon n'a pas de filtre pays → bbox + countrycode).
+const DZ_BBOX = "-8.7,18.9,12.1,37.3";
+
+/** Clé de dédup : nom replié (minuscules sans accents/ponctuation) + ~1 km. */
+function geoDedupeKey(r: GeoHit): string {
+  const norm = r.display
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^\p{L}\p{N}]/gu, "");
+  return `${norm}|${r.lat.toFixed(2)}|${r.lng.toFixed(2)}`;
+}
+
+/** Gazetteer local : RPC search_geo_places (échec silencieux → []). */
+async function searchLocalGazetteer(
+  q: string,
+  lat?: number,
+  lng?: number
+): Promise<(GeoHit & { score: number })[]> {
+  try {
+    const supabase = await createClient();
+    // ⚠️ Toujours .bind(supabase) — extraire rpc sans bind casse this.rest.
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: unknown }>;
+    const { data, error } = await rpc("search_geo_places", {
+      p_q: q,
+      p_lat: lat ?? null,
+      p_lng: lng ?? null,
+      p_limit: 6,
+    });
+    if (error || !data) return [];
+    return (
+      data as {
+        name: string;
+        wilaya: string | null;
+        lat: number;
+        lng: number;
+        score: number;
+      }[]
+    ).map((d) => ({
+      display: d.name,
+      secondary: d.wilaya ?? undefined,
+      lat: d.lat,
+      lng: d.lng,
+      score: d.score,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Photon (komoot) : recherche floue OSM, biaisée position. */
+async function searchPhoton(
+  q: string,
+  lat?: number,
+  lng?: number
+): Promise<GeoHit[]> {
+  const url = new URL("https://photon.komoot.io/api/");
+  url.searchParams.set("q", q);
+  url.searchParams.set("limit", "6");
+  url.searchParams.set("lang", "fr");
+  url.searchParams.set("bbox", DZ_BBOX);
+  if (lat !== undefined && lng !== undefined) {
+    url.searchParams.set("lat", String(lat));
+    url.searchParams.set("lon", String(lng));
+  }
+  const res = await fetch(url.toString(), {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 300 },
+  });
+  if (!res.ok) throw new Error(String(res.status));
+  const data = (await res.json()) as {
+    features?: {
+      geometry?: { coordinates?: [number, number] };
+      properties?: Record<string, string | undefined>;
+    }[];
+  };
+  return (data.features ?? [])
+    .map((f) => {
+      const p = f.properties ?? {};
+      const [lon2, lat2] = f.geometry?.coordinates ?? [];
+      const main = (p.name ?? "").trim();
+      const city = p.city ?? p.county ?? "";
+      const area = [p.district, p.suburb].find(
+        (x): x is string => !!x && x !== main && x !== city
+      );
+      return {
+        display: city && city !== main ? `${main}, ${city}` : main,
+        secondary: [area, p.state].filter(Boolean).join(" · ") || undefined,
+        lat: Number(lat2),
+        lng: Number(lon2),
+        countrycode: p.countrycode,
+      };
+    })
+    .filter(
+      (r) =>
+        r.display &&
+        Number.isFinite(r.lat) &&
+        Number.isFinite(r.lng) &&
+        (r.countrycode ?? "DZ").toUpperCase() === "DZ"
+    )
+    .map(({ countrycode: _cc, ...r }) => r);
+}
+
+/** Nominatim : fallback si Photon est indisponible. */
+async function searchNominatim(q: string): Promise<GeoHit[]> {
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("q", q);
@@ -418,63 +532,80 @@ export async function geocodeSearch(input: {
   url.searchParams.set("accept-language", "fr");
   url.searchParams.set("limit", "6");
   url.searchParams.set("addressdetails", "1");
+  const res = await fetch(url.toString(), {
+    headers: {
+      "User-Agent": "Coligo/0.3 (contact: dev@coligo.app)",
+      Accept: "application/json",
+    },
+    next: { revalidate: 300 },
+  });
+  if (!res.ok) throw new Error(String(res.status));
+  const data = (await res.json()) as {
+    display_name?: string;
+    name?: string;
+    lat?: string;
+    lon?: string;
+    address?: Record<string, string | undefined>;
+  }[];
+  return (data ?? [])
+    .map((d) => {
+      const a = d.address ?? {};
+      const main =
+        (d.name ?? "").trim() ||
+        (d.display_name ?? "").split(",")[0]?.trim() ||
+        "";
+      const city =
+        a.city ?? a.town ?? a.village ?? a.municipality ?? a.county ?? "";
+      const area = [a.neighbourhood, a.suburb].find(
+        (x): x is string => !!x && x !== main && x !== city
+      );
+      return {
+        display: city && city !== main ? `${main}, ${city}` : main,
+        secondary: [area, a.state].filter(Boolean).join(" · ") || undefined,
+        lat: Number(d.lat),
+        lng: Number(d.lon),
+      };
+    })
+    .filter(
+      (r) => r.display && Number.isFinite(r.lat) && Number.isFinite(r.lng)
+    );
+}
 
-  try {
-    const res = await fetch(url.toString(), {
-      headers: {
-        "User-Agent": "Coligo/0.3 (contact: dev@coligo.app)",
-        Accept: "application/json",
-      },
-      next: { revalidate: 300 },
+export async function geocodeSearch(input: {
+  q: string;
+  lat?: number;
+  lng?: number;
+}): Promise<GeocodeSearchResult> {
+  const q = (input.q ?? "").trim();
+  if (q.length < 3) return { ok: true, results: [] };
+  const lat = Number.isFinite(input.lat) ? input.lat : undefined;
+  const lng = Number.isFinite(input.lng) ? input.lng : undefined;
+
+  const [local, remote] = await Promise.all([
+    searchLocalGazetteer(q, lat, lng),
+    searchPhoton(q, lat, lng).catch(() => searchNominatim(q).catch(() => [])),
+  ]);
+
+  // Fusion : gazetteer confiant (score ≥ 0.5) d'abord — c'est lui qui comprend
+  // les graphies locales — puis rues/POI Photon, puis le reste du gazetteer.
+  const confident = local.filter((r) => r.score >= 0.5);
+  const weak = local.filter((r) => r.score < 0.5);
+  const seen = new Set<string>();
+  const results: GeoHit[] = [];
+  for (const r of [...confident, ...remote, ...weak]) {
+    const k = geoDedupeKey(r);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    results.push({
+      display: r.display,
+      secondary: r.secondary,
+      lat: r.lat,
+      lng: r.lng,
     });
-    if (!res.ok) {
-      return { ok: false, error: `Recherche indisponible (${res.status}).` };
-    }
-    const data = (await res.json()) as {
-      display_name?: string;
-      name?: string;
-      lat?: string;
-      lon?: string;
-      address?: Record<string, string | undefined>;
-    }[];
-    // Libellés simplifiés : « Lieu, Commune » plutôt que l'adresse Nominatim
-    // complète (les clients connaissent leur zone — inutile de tout détailler).
-    const seen = new Set<string>();
-    const results = (data ?? [])
-      .map((d) => {
-        const a = d.address ?? {};
-        const main =
-          (d.name ?? "").trim() ||
-          (d.display_name ?? "").split(",")[0]?.trim() ||
-          "";
-        const city =
-          a.city ?? a.town ?? a.village ?? a.municipality ?? a.county ?? "";
-        const area = [a.neighbourhood, a.suburb].find(
-          (x): x is string => !!x && x !== main && x !== city
-        );
-        return {
-          display: city && city !== main ? `${main}, ${city}` : main,
-          secondary: [area, a.state].filter(Boolean).join(" · ") || undefined,
-          lat: Number(d.lat),
-          lng: Number(d.lon),
-        };
-      })
-      .filter(
-        (r) => r.display && Number.isFinite(r.lat) && Number.isFinite(r.lng)
-      )
-      .filter((r) => {
-        const k = `${r.display}|${r.secondary ?? ""}`;
-        if (seen.has(k)) return false;
-        seen.add(k);
-        return true;
-      });
-    return { ok: true, results };
-  } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Recherche indisponible.",
-    };
+    if (results.length >= 8) break;
   }
+
+  return { ok: true, results };
 }
 
 // Itinéraire routier réel (OSRM public) : distance ET durée fiables, au lieu

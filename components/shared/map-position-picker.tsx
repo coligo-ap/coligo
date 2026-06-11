@@ -386,7 +386,10 @@ export function MapPositionPicker({
     setSearching(true);
     const t = setTimeout(async () => {
       try {
-        const res = await geocodeSearch({ q });
+        // Biais de proximité : le centre actuel de la carte départage les
+        // homonymes (plusieurs lieux portent le même nom en Algérie).
+        const c = mapRef.current?.getCenter();
+        const res = await geocodeSearch({ q, lat: c?.lat, lng: c?.lng });
         if (res.ok) {
           setSearchResults(res.results);
           setSearchOpen(true);

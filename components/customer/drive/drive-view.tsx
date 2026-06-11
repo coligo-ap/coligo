@@ -1030,7 +1030,12 @@ function MapPickScreen({
     setSearching(true);
     const id = setTimeout(async () => {
       try {
-        const res = await geocodeSearch({ q });
+        // Biais de proximité : le centre courant départage les homonymes.
+        const res = await geocodeSearch({
+          q,
+          lat: center?.lat,
+          lng: center?.lng,
+        });
         if (res.ok) {
           setSearchResults(res.results);
           setSearchOpen(true);
