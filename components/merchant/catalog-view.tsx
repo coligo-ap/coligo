@@ -37,6 +37,7 @@ import {
   ChevronDown,
   ChevronsDownUp,
   GripVertical,
+  SlidersHorizontal,
   Trash2,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -396,43 +397,39 @@ export function CatalogView({
             ))}
           </select>
 
-          {grouped && groups && groups.length > 0 && (
-            <button
-              type="button"
-              onClick={toggleAll}
-              className="border-border-strong text-muted hover:bg-surface-2 inline-flex h-11 items-center gap-1.5 rounded-[12px] border px-3 text-xs font-medium whitespace-nowrap"
-            >
-              <ChevronsDownUp
-                className={cn("size-4", !allExpanded && "rotate-180")}
-              />
-              {allExpanded ? "Tout replier" : "Tout déplier"}
-            </button>
-          )}
-
-          <ToolToggle
-            active={grouped}
-            onClick={() => setGrouped((v) => !v)}
-            title={grouped ? "Vue grille" : "Grouper par catégorie"}
-          >
-            {grouped ? (
-              <LayoutGrid className="size-4" />
-            ) : (
-              <Rows3 className="size-4" />
-            )}
-          </ToolToggle>
-
-          <ToolToggle
-            active={selectMode}
-            onClick={() => {
+          {/* Outils secondaires regroupés dans UN menu (la barre restait
+              chargée sur mobile avec 3 boutons toujours visibles). */}
+          <ToolsMenu
+            grouped={grouped}
+            onToggleGrouped={() => setGrouped((v) => !v)}
+            selectMode={selectMode}
+            onToggleSelectMode={() => {
               setSelectMode((v) => !v);
               clearSelection();
             }}
-            title="Sélection multiple"
-          >
-            <CheckSquare className="size-4" />
-          </ToolToggle>
+            canFold={Boolean(grouped && groups && groups.length > 0)}
+            allExpanded={allExpanded}
+            onToggleFold={toggleAll}
+          />
         </div>
       </div>
+
+      {/* Bandeau mode sélection : rappel visible + sortie en un tap. */}
+      {selectMode && selProducts.size === 0 && selCats.size === 0 && (
+        <div className="border-primary-200 bg-primary-50 text-primary-800 mb-4 flex items-center justify-between gap-2 rounded-[12px] border px-3 py-2 text-sm">
+          <span>Touchez des produits pour les sélectionner.</span>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectMode(false);
+              clearSelection();
+            }}
+            className="hover:bg-primary-100 rounded-[8px] px-2 py-1 text-xs font-semibold"
+          >
+            Quitter
+          </button>
+        </div>
+      )}
 
       {/* Chips catégories */}
       {cats.length > 0 && (
@@ -606,32 +603,112 @@ export function CatalogView({
   );
 }
 
-function ToolToggle({
-  active,
-  onClick,
-  title,
-  children,
+/**
+ * Menu « Outils » : regroupe les options secondaires (vue groupée/grille,
+ * sélection multiple, tout déplier/replier) derrière un seul bouton pour
+ * alléger la barre, surtout sur mobile.
+ */
+function ToolsMenu({
+  grouped,
+  onToggleGrouped,
+  selectMode,
+  onToggleSelectMode,
+  canFold,
+  allExpanded,
+  onToggleFold,
 }: {
-  active: boolean;
-  onClick: () => void;
-  title: string;
-  children: React.ReactNode;
+  grouped: boolean;
+  onToggleGrouped: () => void;
+  selectMode: boolean;
+  onToggleSelectMode: () => void;
+  canFold: boolean;
+  allExpanded: boolean;
+  onToggleFold: () => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const item =
+    "flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-sm hover:bg-surface-2";
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      aria-pressed={active}
-      className={cn(
-        "flex size-11 items-center justify-center rounded-[12px] border transition-colors",
-        active
-          ? "border-primary-600 bg-primary-50 text-primary-700"
-          : "border-border-strong text-muted hover:bg-surface-2"
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        title="Outils"
+        aria-expanded={open}
+        className={cn(
+          "flex size-11 items-center justify-center rounded-[12px] border transition-colors",
+          selectMode
+            ? "border-primary-600 bg-primary-50 text-primary-700"
+            : "border-border-strong text-muted hover:bg-surface-2"
+        )}
+      >
+        <SlidersHorizontal className="size-4" />
+      </button>
+
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-30"
+            onClick={() => setOpen(false)}
+            aria-hidden
+          />
+          <div className="border-border bg-surface absolute right-0 z-40 mt-2 w-60 rounded-[12px] border p-1 shadow-lg">
+            <button
+              type="button"
+              className={item}
+              onClick={() => {
+                onToggleGrouped();
+                setOpen(false);
+              }}
+            >
+              {grouped ? (
+                <LayoutGrid className="text-muted size-4" />
+              ) : (
+                <Rows3 className="text-muted size-4" />
+              )}
+              {grouped ? "Vue grille" : "Grouper par catégorie"}
+            </button>
+            <button
+              type="button"
+              className={cn(item, selectMode && "text-primary-700 font-medium")}
+              onClick={() => {
+                onToggleSelectMode();
+                setOpen(false);
+              }}
+            >
+              <CheckSquare
+                className={cn(
+                  "size-4",
+                  selectMode ? "text-primary-600" : "text-muted"
+                )}
+              />
+              {selectMode
+                ? "Quitter la sélection multiple"
+                : "Sélection multiple"}
+            </button>
+            {canFold && (
+              <button
+                type="button"
+                className={item}
+                onClick={() => {
+                  onToggleFold();
+                  setOpen(false);
+                }}
+              >
+                <ChevronsDownUp
+                  className={cn(
+                    "text-muted size-4",
+                    !allExpanded && "rotate-180"
+                  )}
+                />
+                {allExpanded ? "Tout replier" : "Tout déplier"}
+              </button>
+            )}
+          </div>
+        </>
       )}
-    >
-      {children}
-    </button>
+    </div>
   );
 }
 

@@ -51,79 +51,88 @@ export function SlotsManager({ slots }: { slots: Slot[] }) {
         )}
       </ul>
 
-      {!adding ? (
-        <Button type="button" onClick={() => setAdding(true)}>
-          <Plus className="size-4" />
-          Nouveau créneau
-        </Button>
-      ) : (
-        <form
-          action={action}
-          className="border-border bg-surface grid gap-3 rounded-[14px] border p-4 sm:grid-cols-4"
+      <Button type="button" onClick={() => setAdding(true)}>
+        <Plus className="size-4" />
+        Nouveau créneau
+      </Button>
+
+      {/* Modal de création — overlay centré plutôt qu'un formulaire inline qui
+          allonge la page (surtout sur mobile, où les 4 champs s'empilaient). */}
+      {adding && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          onClick={() => !pending && setAdding(false)}
         >
-          <div className="space-y-1.5">
-            <Label htmlFor="slot_date">Date</Label>
-            <Input
-              id="slot_date"
-              name="slot_date"
-              type="date"
-              required
-              disabled={pending}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="start_time">Début</Label>
-            <Input
-              id="start_time"
-              name="start_time"
-              type="time"
-              required
-              disabled={pending}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="end_time">Fin</Label>
-            <Input
-              id="end_time"
-              name="end_time"
-              type="time"
-              required
-              disabled={pending}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="max_orders">Capacité</Label>
-            <Input
-              id="max_orders"
-              name="max_orders"
-              type="number"
-              min={1}
-              max={500}
-              defaultValue={10}
-              required
-              disabled={pending}
-            />
-          </div>
-          {state.error && (
-            <p className="text-danger-600 text-sm sm:col-span-4">
-              {state.error}
-            </p>
-          )}
-          <div className="flex gap-2 sm:col-span-4">
-            <Button type="submit" disabled={pending}>
-              {pending && <Loader2 className="size-4 animate-spin" />}
-              Créer
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setAdding(false)}
-              disabled={pending}
-            >
-              Annuler
-            </Button>
-          </div>
-        </form>
+          <form
+            action={action}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-surface w-full max-w-sm space-y-4 rounded-[16px] p-5 shadow-xl"
+          >
+            <h2 className="text-base font-semibold">Nouveau créneau</h2>
+            <div className="space-y-1.5">
+              <Label htmlFor="slot_date">Date</Label>
+              <Input
+                id="slot_date"
+                name="slot_date"
+                type="date"
+                required
+                disabled={pending}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="start_time">Début</Label>
+                <Input
+                  id="start_time"
+                  name="start_time"
+                  type="time"
+                  required
+                  disabled={pending}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="end_time">Fin</Label>
+                <Input
+                  id="end_time"
+                  name="end_time"
+                  type="time"
+                  required
+                  disabled={pending}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="max_orders">Capacité (commandes max)</Label>
+              <Input
+                id="max_orders"
+                name="max_orders"
+                type="number"
+                min={1}
+                max={500}
+                defaultValue={10}
+                required
+                disabled={pending}
+              />
+            </div>
+            {state.error && (
+              <p className="text-danger-600 text-sm">{state.error}</p>
+            )}
+            <div className="flex gap-2">
+              <Button type="submit" disabled={pending} className="flex-1">
+                {pending && <Loader2 className="size-4 animate-spin" />}
+                Créer
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setAdding(false)}
+                disabled={pending}
+              >
+                Annuler
+              </Button>
+            </div>
+          </form>
+        </div>
       )}
     </div>
   );

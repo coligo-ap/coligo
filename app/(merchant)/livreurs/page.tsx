@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import { Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ReferralCodeCard } from "@/components/merchant/livreurs/referral-code-card";
-import { DriversList } from "@/components/merchant/livreurs/drivers-list";
+import { DriversTabs } from "@/components/merchant/livreurs/drivers-list";
 
 export const dynamic = "force-dynamic";
 
@@ -100,31 +99,7 @@ export default async function MerchantDriversPage() {
           createdAt={activeCode?.created_at ?? null}
         />
 
-        <DriversList
-          title="Demandes en attente"
-          icon={<Truck className="size-4" />}
-          drivers={pending}
-          variant="pending"
-          emptyHint="Aucune demande pour le moment."
-        />
-
-        <DriversList
-          title="Livreurs actifs"
-          icon={<Truck className="size-4" />}
-          drivers={active}
-          variant="active"
-          emptyHint="Aucun livreur actif."
-        />
-
-        {blocked.length > 0 && (
-          <DriversList
-            title="Bloqués"
-            icon={<Truck className="size-4" />}
-            drivers={blocked}
-            variant="blocked"
-            emptyHint=""
-          />
-        )}
+        <DriversTabs pending={pending} active={active} blocked={blocked} />
       </div>
     </div>
   );
