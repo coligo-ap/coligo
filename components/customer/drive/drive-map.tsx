@@ -23,6 +23,7 @@ export function DriveMap({
   heatZones,
   interactive = false,
   onMove,
+  focusTarget = null,
   className,
   padding = { top: 120, bottom: 340, left: 40, right: 40 },
 }: {
@@ -37,6 +38,12 @@ export function DriveMap({
   interactive?: boolean;
   /** Émis à chaque fin de déplacement (centre courant). */
   onMove?: (center: LatLng) => void;
+  /**
+   * Recentrage IMPÉRATIF (recherche d'adresse) : à chaque changement
+   * d'identité, la carte vole vers ce point — l'épingle centrale se
+   * retrouve EXACTEMENT dessus, `moveend` émet la position.
+   */
+  focusTarget?: (LatLng & { zoom?: number }) | null;
   className?: string;
   padding?: { top: number; bottom: number; left: number; right: number };
 }) {
@@ -48,6 +55,17 @@ export function DriveMap({
   useEffect(() => {
     onMoveRef.current = onMove;
   }, [onMove]);
+
+  // Vol vers la cible de recherche (l'épingle suit le centre de la carte).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || !focusTarget) return;
+    map.flyTo({
+      center: [focusTarget.lng, focusTarget.lat],
+      zoom: focusTarget.zoom ?? 17,
+      duration: 700,
+    });
+  }, [focusTarget, ready]);
 
   useEffect(() => {
     if (!containerRef.current) return;

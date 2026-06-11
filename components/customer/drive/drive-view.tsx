@@ -10,8 +10,10 @@ import {
   Clock,
   History,
   Loader2,
+  MapPin,
   Pencil,
   Route,
+  Search,
   User,
   Users,
   Zap,
@@ -19,7 +21,7 @@ import {
 import { cn, formatDA } from "@/lib/utils";
 import { getPosition } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
-import { reverseGeocode } from "@/app/(customer)/actions";
+import { geocodeSearch, reverseGeocode } from "@/app/(customer)/actions";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { DriveMap, type LatLng } from "./drive-map";
 import {
@@ -830,6 +832,49 @@ function MapPickScreen({
   const [resolving, setResolving] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Recherche d'adresse SUR la carte (suggestions, debounce 450 ms).
+  const [searchQ, setSearchQ] = useState("");
+  const [searchResults, setSearchResults] = useState<
+    { display: string; lat: number; lng: number }[]
+  >([]);
+  const [searching, setSearching] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [focusTarget, setFocusTarget] = useState<
+    (LatLng & { zoom?: number }) | null
+  >(null);
+
+  useEffect(() => {
+    const q = searchQ.trim();
+    if (q.length < 3) {
+      setSearchResults([]);
+      setSearchOpen(false);
+      return;
+    }
+    setSearching(true);
+    const id = setTimeout(async () => {
+      try {
+        const res = await geocodeSearch({ q });
+        if (res.ok) {
+          setSearchResults(res.results);
+          setSearchOpen(true);
+        }
+      } finally {
+        setSearching(false);
+      }
+    }, 450);
+    return () => clearTimeout(id);
+  }, [searchQ]);
+
+  // Suggestion choisie → l'épingle se recale EXACTEMENT sur ce lieu (le
+  // client peut ensuite affiner au doigt — moveend ré-émettra la position).
+  const pickSuggestion = (r: { display: string; lat: number; lng: number }) => {
+    setSearchOpen(false);
+    setSearchQ(r.display);
+    setAddr(r.display);
+    setCenter({ lat: r.lat, lng: r.lng });
+    setFocusTarget({ lat: r.lat, lng: r.lng, zoom: 17 });
+  };
+
   // Repli : si la rue est introuvable, on affiche les coordonnées GPS EXACTES
   // du point sélectionné (et on les garde comme libellé du point).
   const gpsLabel = (c: LatLng) => `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`;
@@ -856,6 +901,7 @@ function MapPickScreen({
         markers={initial ? [{ id: "init", pos: initial, kind: "me" }] : []}
         interactive
         onMove={onMove}
+        focusTarget={focusTarget}
       />
       <button
         type="button"
@@ -865,6 +911,65 @@ function MapPickScreen({
       >
         <ChevronLeft className="size-5" />
       </button>
+
+      {/* Recherche d'adresse SUR la carte : suggestions, et la sélection
+          recentre l'épingle EXACTEMENT sur le lieu choisi (affinable au
+          doigt ensuite). */}
+      <div className="absolute top-3 right-4 left-[68px] z-20">
+        <div className="flex items-center gap-2 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3.5 py-2.5 shadow-lg">
+          <Search className="size-4 shrink-0 text-[var(--d-muted)]" />
+          <input
+            value={searchQ}
+            onChange={(e) => setSearchQ(e.target.value)}
+            onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
+            placeholder={t("searchPh")}
+            className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
+          />
+          {searching ? (
+            <Loader2 className="size-4 shrink-0 animate-spin text-[var(--d-muted)]" />
+          ) : searchQ ? (
+            <button
+              type="button"
+              aria-label="Effacer"
+              onClick={() => {
+                setSearchQ("");
+                setSearchResults([]);
+                setSearchOpen(false);
+              }}
+              className="shrink-0 text-[var(--d-muted)]"
+            >
+              ✕
+            </button>
+          ) : null}
+        </div>
+        {searchOpen && searchResults.length > 0 && (
+          <ul className="mt-1.5 max-h-60 overflow-auto rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
+            {searchResults.map((r, i) => (
+              <li key={`${r.lat}-${r.lng}-${i}`}>
+                <button
+                  type="button"
+                  onClick={() => pickSuggestion(r)}
+                  className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-[13px] font-semibold"
+                >
+                  <MapPin
+                    className="mt-0.5 size-4 shrink-0"
+                    style={{ color: VIOLET }}
+                  />
+                  <span className="min-w-0 flex-1">{r.display}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {searchOpen &&
+          !searching &&
+          searchResults.length === 0 &&
+          searchQ.trim().length >= 3 && (
+            <p className="mt-1.5 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2.5 text-center text-xs font-semibold text-[var(--d-muted)] shadow-xl">
+              {t("noResults")}
+            </p>
+          )}
+      </div>
       {/* Épingle centrale fixe (la carte se déplace dessous) */}
       <div className="pointer-events-none absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-full">
         <div
