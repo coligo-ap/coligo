@@ -1,12 +1,12 @@
-// Types de la base Supabase — schéma `public`.
+﻿// Types de la base Supabase â€” schÃ©ma `public`.
 //
-// Maintenu à la main d'après supabase/migrations/ (0001 → 0004).
-// `supabase gen types` nécessite Docker (indispo ici) ; on édite donc ce
-// fichier à la main à chaque migration qui change le schéma.
-// Pour régénérer automatiquement depuis la base (nécessite Docker OU un
+// Maintenu Ã  la main d'aprÃ¨s supabase/migrations/ (0001 â†’ 0004).
+// `supabase gen types` nÃ©cessite Docker (indispo ici) ; on Ã©dite donc ce
+// fichier Ã  la main Ã  chaque migration qui change le schÃ©ma.
+// Pour rÃ©gÃ©nÃ©rer automatiquement depuis la base (nÃ©cessite Docker OU un
 // SUPABASE_ACCESS_TOKEN) :
 //   npx supabase gen types typescript --project-id htxqzktwuymzetbdqghx > lib/supabase/database.types.ts
-// ou, avec Docker lancé :
+// ou, avec Docker lancÃ© :
 //   npx supabase gen types typescript --db-url "<connection-string>" > lib/supabase/database.types.ts
 
 export type Json =
@@ -244,7 +244,7 @@ export type Database = {
             | "selfie";
           url: string;
           created_at: string;
-          // Mig 0148 : validation pièce par pièce
+          // Mig 0148 : validation piÃ¨ce par piÃ¨ce
           status: "pending" | "approved" | "rejected";
           review_note: string | null;
           reviewed_by: string | null;
@@ -630,6 +630,8 @@ export type Database = {
           driver_owes_platform_da: number | null;
           driver_owes_merchant_da: number | null;
           driver_cash_collected_da: number | null;
+          delivery_failed_at: string | null;
+          delivery_failed_reason: string | null;
           created_at: string;
         };
         Insert: {
@@ -2063,7 +2065,8 @@ export type Database = {
             | "driver_cash_collected"
             | "driver_owes_platform"
             | "driver_owes_merchant"
-            | "adjustment";
+            | "adjustment"
+            | "driver_advance_refund";
           amount_da: number;
           note: string | null;
           created_at: string;
@@ -2080,7 +2083,8 @@ export type Database = {
             | "driver_cash_collected"
             | "driver_owes_platform"
             | "driver_owes_merchant"
-            | "adjustment";
+            | "adjustment"
+            | "driver_advance_refund";
           amount_da: number;
           note?: string | null;
           created_at?: string;
@@ -2097,12 +2101,70 @@ export type Database = {
             | "driver_cash_collected"
             | "driver_owes_platform"
             | "driver_owes_merchant"
-            | "adjustment";
+            | "adjustment"
+            | "driver_advance_refund";
           amount_da?: number;
           note?: string | null;
           created_at?: string;
           statement_id?: string | null;
           settled_at?: string | null;
+        };
+        Relationships: [];
+      };
+      driver_refund_claims: {
+        Row: {
+          id: string;
+          order_id: string;
+          driver_id: string;
+          merchant_id: string | null;
+          customer_id: string | null;
+          advance_da: number;
+          reason: string;
+          status: "pending" | "approved" | "rejected";
+          goods_decision:
+            | "return_to_merchant"
+            | "driver_keeps"
+            | "give_away"
+            | null;
+          admin_note: string | null;
+          resolved_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          driver_id: string;
+          merchant_id?: string | null;
+          customer_id?: string | null;
+          advance_da: number;
+          reason?: string;
+          status?: "pending" | "approved" | "rejected";
+          goods_decision?:
+            | "return_to_merchant"
+            | "driver_keeps"
+            | "give_away"
+            | null;
+          admin_note?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          driver_id?: string;
+          merchant_id?: string | null;
+          customer_id?: string | null;
+          advance_da?: number;
+          reason?: string;
+          status?: "pending" | "approved" | "rejected";
+          goods_decision?:
+            | "return_to_merchant"
+            | "driver_keeps"
+            | "give_away"
+            | null;
+          admin_note?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };

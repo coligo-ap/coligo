@@ -88,7 +88,7 @@ export function DeliverySettingsForm({
       <Switch
         name="delivery_enabled"
         label="Activer la livraison"
-        description="Permet aux clients de choisir la livraison au checkout (arrive à l'étape 5 / prompt 6)."
+        description="Les clients peuvent se faire livrer au checkout."
         icon={<Truck className="size-4" />}
         checked={enabled}
         onChange={setEnabled}
@@ -130,9 +130,8 @@ export function DeliverySettingsForm({
                 Position de la boutique
               </p>
               <p className="text-muted text-xs">
-                Indispensable pour calculer la distance à chaque livraison.
-                Déplace la carte pour placer le pointeur exactement sur ta
-                vitrine, ou clique « Ma position » pour utiliser ton GPS.
+                Place le pointeur exactement sur ta vitrine (ou « Ma position »
+                pour utiliser ton GPS).
               </p>
             </div>
             {positionMissing && (
@@ -178,9 +177,8 @@ export function DeliverySettingsForm({
               disabled={pending}
             />
             <p className="text-subtle text-xs">
-              Maximum imposé par la plateforme :{" "}
-              <strong>{pricing.delivery_max_radius_km} km</strong>. Tu peux
-              réduire ; tu ne peux pas étendre au-delà.
+              Maximum plateforme :{" "}
+              <strong>{pricing.delivery_max_radius_km} km</strong>.
             </p>
           </div>
 
@@ -194,11 +192,8 @@ export function DeliverySettingsForm({
                 </p>
               </div>
               <p className="text-muted text-xs">
-                En tournée, tu fixes ton prix de livraison par tranche de
-                distance. Tu peux <strong>baisser</strong> pour être plus
-                attractif, mais jamais dépasser le plafond plateforme (prix
-                juste garant des « prix imbattables »). La plateforme prélève
-                une petite commission sur ces frais.
+                Ton prix par tranche de distance — tu peux baisser, jamais
+                dépasser le plafond plateforme.
               </p>
               {sortedZones.map((z, i) => {
                 const ceiling = tourBandCeilingDa(z.max_km, pricing);
@@ -250,58 +245,65 @@ export function DeliverySettingsForm({
             </div>
           )}
 
-          {/* Barème (lecture seule) + simulateur */}
-          <div className="bg-surface-2 border-border space-y-3 rounded-[12px] border p-4">
-            <div className="flex items-center gap-2">
+          {/* Barème (lecture seule) + simulateur — repliés par défaut, info
+              secondaire que la plupart des commerçants ne consultent qu'une fois. */}
+          <details className="bg-surface-2 border-border rounded-[12px] border p-4">
+            <summary className="flex cursor-pointer items-center gap-2 select-none">
               <Truck className="size-4" />
-              <p className="text-sm font-semibold">Barème plateforme</p>
-            </div>
-            <dl className="text-muted grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-              <dt>Base</dt>
-              <dd className="text-right tabular-nums">
-                {formatDA(pricing.delivery_base_da)}
-              </dd>
-              <dt>Au km au-delà de {pricing.delivery_free_km_threshold} km</dt>
-              <dd className="text-right tabular-nums">
-                {formatDA(pricing.delivery_per_km_da)}
-              </dd>
-              <dt>Plancher / Plafond</dt>
-              <dd className="text-right tabular-nums">
-                {formatDA(pricing.delivery_min_da)} —{" "}
-                {formatDA(pricing.delivery_max_da)}
-              </dd>
-            </dl>
+              <p className="text-sm font-semibold">
+                Barème plateforme & simulateur de prix
+              </p>
+            </summary>
+            <div className="mt-3 space-y-3">
+              <dl className="text-muted grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                <dt>Base</dt>
+                <dd className="text-right tabular-nums">
+                  {formatDA(pricing.delivery_base_da)}
+                </dd>
+                <dt>
+                  Au km au-delà de {pricing.delivery_free_km_threshold} km
+                </dt>
+                <dd className="text-right tabular-nums">
+                  {formatDA(pricing.delivery_per_km_da)}
+                </dd>
+                <dt>Plancher / Plafond</dt>
+                <dd className="text-right tabular-nums">
+                  {formatDA(pricing.delivery_min_da)} —{" "}
+                  {formatDA(pricing.delivery_max_da)}
+                </dd>
+              </dl>
 
-            <div className="border-border space-y-2 border-t pt-3">
-              <Label htmlFor="sim_km">Simulateur</Label>
-              <div className="flex items-center gap-3">
-                <Input
-                  id="sim_km"
-                  type="number"
-                  min={0}
-                  step="0.5"
-                  value={simKm}
-                  onChange={(e) => setSimKm(Number(e.target.value) || 0)}
-                  className="max-w-[120px]"
-                />
-                <span className="text-muted text-sm">km →</span>
-                <span className="text-base font-semibold tabular-nums">
-                  {quote.outOfRange ? (
-                    <span className="text-danger-600">Hors rayon</span>
-                  ) : (
-                    formatDA(quote.feeDa)
-                  )}
-                </span>
+              <div className="border-border space-y-2 border-t pt-3">
+                <Label htmlFor="sim_km">Simulateur</Label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    id="sim_km"
+                    type="number"
+                    min={0}
+                    step="0.5"
+                    value={simKm}
+                    onChange={(e) => setSimKm(Number(e.target.value) || 0)}
+                    className="max-w-[120px]"
+                  />
+                  <span className="text-muted text-sm">km →</span>
+                  <span className="text-base font-semibold tabular-nums">
+                    {quote.outOfRange ? (
+                      <span className="text-danger-600">Hors rayon</span>
+                    ) : (
+                      formatDA(quote.feeDa)
+                    )}
+                  </span>
+                </div>
+                {!quote.outOfRange && quote.breakdown.clamped && (
+                  <p className="text-subtle text-xs">
+                    {quote.breakdown.clamped === "min"
+                      ? "Plancher appliqué."
+                      : "Plafond appliqué."}
+                  </p>
+                )}
               </div>
-              {!quote.outOfRange && quote.breakdown.clamped && (
-                <p className="text-subtle text-xs">
-                  {quote.breakdown.clamped === "min"
-                    ? "Plancher appliqué."
-                    : "Plafond appliqué."}
-                </p>
-              )}
             </div>
-          </div>
+          </details>
         </>
       )}
 

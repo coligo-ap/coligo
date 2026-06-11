@@ -20,6 +20,7 @@ type Entry = {
     | "driver_cash_collected"
     | "driver_owes_merchant"
     | "driver_owes_platform"
+    | "driver_advance_refund"
     | "adjustment";
   amount_da: number;
   note: string | null;

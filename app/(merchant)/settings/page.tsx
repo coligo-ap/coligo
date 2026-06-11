@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import {
-  Bell,
   Clock,
   Printer,
   Store,
@@ -154,7 +153,7 @@ export default async function SettingsPage() {
         <SettingsSection
           icon={<Store />}
           title="Profil du commerce"
-          description="Vitrine visible des clients (logo, description, adresse, contact)."
+          description="Ce que voient les clients : logo, adresse, contact."
           summary={
             <span className="text-muted mr-2 text-xs">
               {merchant.logo_url ? "Logo OK" : "Pas de logo"}
@@ -167,7 +166,7 @@ export default async function SettingsPage() {
         <SettingsSection
           icon={<Clock />}
           title="Horaires d'ouverture"
-          description="Définissez vos créneaux jour par jour (pause possible)."
+          description="Créneaux jour par jour et fermeture exceptionnelle."
           summary={<OpenStatusBadge hours={merchant.opening_hours} />}
         >
           <OpeningHoursForm initial={merchant.opening_hours} />
@@ -180,11 +179,10 @@ export default async function SettingsPage() {
         <SettingsSection
           icon={<Wallet />}
           title="Règles de commande"
-          description="Montant minimum, délai de préparation, paiements, créneaux."
+          description="Minimum, délai de préparation et paiements."
           summary={
             <span className="text-muted mr-2 text-xs tabular-nums">
-              Min {merchant.min_order_da} DA · {merchant.prep_time_min} min ·{" "}
-              {merchant.pickup_slot_minutes} min/créneau
+              Min {merchant.min_order_da} DA · {merchant.prep_time_min} min
             </span>
           }
         >
@@ -194,7 +192,7 @@ export default async function SettingsPage() {
         <SettingsSection
           icon={<Truck />}
           title="Livraison"
-          description="Active la livraison, choisis les modes (Express/Tournée) et le rayon. Le barème est imposé par la plateforme."
+          description="Modes (Express/Tournée), rayon et tarifs."
           summary={
             <DeliverySummary
               settings={deliverySettings}
@@ -217,28 +215,37 @@ export default async function SettingsPage() {
 
         <SettingsSection
           icon={<Printer />}
-          title="Impression du ticket"
-          description="Auto-acceptation, imprimante thermique et copies."
+          title="Impression & alertes"
+          description="Auto-acceptation, ticket, son et notifications."
           summary={<PrintSummary settings={printSettings} />}
         >
           <PrintSettingsForm
             initial={printSettings}
             merchantName={merchant.name}
           />
-        </SettingsSection>
-
-        <SettingsSection
-          icon={<Bell />}
-          title="Notifications & alertes"
-          description="Son, notifications système et mode comptoir pour ne rater aucune commande."
-        >
-          <NotificationsForm />
+          <div className="border-border mt-6 border-t pt-5">
+            <h3 className="text-foreground text-sm font-semibold">
+              Alertes sur cet appareil
+            </h3>
+            <p className="text-muted mb-2 text-xs">
+              Son, notifications système et mode comptoir.
+            </p>
+            <NotificationsForm />
+          </div>
         </SettingsSection>
 
         <SettingsSection
           icon={<Wallet />}
           title="Versements"
-          description="Fréquence de versement de votre solde (à la demande, hebdo ou mensuel) et coordonnées CCP/RIB."
+          description="Fréquence et coordonnées CCP/RIB."
+          summary={
+            <span className="text-muted mr-2 text-xs">
+              {PAYOUT_AUTO_LABEL[merchant.payout_auto ?? "none"]}
+              {merchant.payout_method
+                ? ` · ${merchant.payout_method.toUpperCase()}`
+                : ""}
+            </span>
+          }
         >
           <PayoutSettingsForm
             payoutAuto={
@@ -253,6 +260,11 @@ export default async function SettingsPage() {
           icon={<UserIcon />}
           title="Compte"
           description="Email, mot de passe, déconnexion."
+          summary={
+            <span className="text-muted mr-2 max-w-[220px] truncate text-xs">
+              {user.email}
+            </span>
+          }
         >
           <AccountSection
             email={user.email ?? ""}
@@ -263,6 +275,12 @@ export default async function SettingsPage() {
     </div>
   );
 }
+
+const PAYOUT_AUTO_LABEL: Record<string, string> = {
+  none: "À la demande",
+  weekly: "Hebdomadaire",
+  monthly: "Mensuel",
+};
 
 function DeliverySummary({
   settings,

@@ -88,32 +88,16 @@ export function OpeningHoursForm({
       {/* Champ caché : JSON sérialisé envoyé à la Server Action */}
       <input type="hidden" name="hours" value={JSON.stringify(hours)} />
 
-      {/* Hint général — explique comment saisir un horaire de nuit. */}
-      <div className="border-primary-100 bg-primary-50 text-primary-800 flex items-start gap-2 rounded-[12px] border px-3 py-2 text-xs">
+      {/* Hint général compact — l'horaire de nuit est signalé par le badge
+          « jusqu'au lendemain » directement sur le créneau concerné. */}
+      <p className="text-muted flex items-start gap-1.5 text-xs">
         <Info className="text-primary-600 mt-0.5 size-3.5 shrink-0" />
-        <div>
-          <p className="font-medium">Comment saisir tes horaires</p>
-          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px]">
-            <li>
-              Horaire normal : ouverture <strong>09:00</strong> → fermeture{" "}
-              <strong>18:00</strong>.
-            </li>
-            <li>
-              Horaire de nuit (qui passe minuit) : ouverture{" "}
-              <strong>06:00</strong> → fermeture <strong>03:00</strong>. On
-              comprend tout seul que ça ferme à 3h du <em>lendemain</em>.
-            </li>
-            <li>
-              Tu peux ajouter plusieurs créneaux par jour (matin + soir par
-              exemple), tant qu&apos;ils ne se chevauchent pas.
-            </li>
-            <li>
-              Aucun créneau = jour fermé. Bouton « Copier » : applique la
-              journée à tous les autres jours.
-            </li>
-          </ul>
-        </div>
-      </div>
+        <span>
+          Aucun créneau = jour fermé. Un créneau qui dépasse minuit (ex. 18:00 →
+          02:00) est compris automatiquement. « Copier » applique la journée à
+          tous les jours.
+        </span>
+      </p>
 
       <div className="space-y-2">
         {DAY_KEYS.map((day) => {

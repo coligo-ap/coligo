@@ -19,6 +19,7 @@ type Entry = {
     | "driver_cash_collected"
     | "driver_owes_platform"
     | "driver_owes_merchant"
+    | "driver_advance_refund"
     | "adjustment";
   amount_da: number;
 };
@@ -51,6 +52,7 @@ export default async function AdminDeliveryFinancesPage() {
   const owesPlatform = sum("driver_owes_platform");
   const owesMerchant = sum("driver_owes_merchant");
   const adjustments = sum("adjustment");
+  const advanceRefunds = sum("driver_advance_refund");
 
   // 2. Compteurs commandes livraison
   const { data: ordersAgg } = await admin
@@ -126,11 +128,15 @@ export default async function AdminDeliveryFinancesPage() {
           <Truck className="size-4" />
           Ledger livreurs (cumul)
         </h2>
-        <dl className="grid grid-cols-2 gap-3 text-sm lg:grid-cols-5">
+        <dl className="grid grid-cols-2 gap-3 text-sm lg:grid-cols-6">
           <LedgerCell label="Rémunérations livreurs" value={totalPayouts} />
           <LedgerCell label="Cash encaissé livreurs" value={cashCollected} />
           <LedgerCell label="Dû livreur → commerçant" value={owesMerchant} />
           <LedgerCell label="Dû livreur → plateforme" value={owesPlatform} />
+          <LedgerCell
+            label="Avances no-show remboursées"
+            value={advanceRefunds}
+          />
           <LedgerCell label="Ajustements" value={adjustments} />
         </dl>
         <p className="text-subtle mt-3 text-xs">

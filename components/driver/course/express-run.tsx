@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, MessageCircle, Phone, X } from "lucide-react";
 import { ExpressRunMap } from "./express-run-map";
 import { OrderChat } from "@/components/chat/order-chat";
 import { cashToCollectDa, isPrepaid } from "@/lib/delivery/cash";
+import { createClient } from "@/lib/supabase/client";
 
 /**
  * Écran NAVIGATION ACTIVE (course en cours) reproduit À L'IDENTIQUE de
@@ -59,6 +60,18 @@ export function ExpressRun({
 }) {
   const [eta, setEta] = useState<{ min: number; km: number } | null>(null);
   const [showChat, setShowChat] = useState(false);
+  // Avance à remettre au commerçant au pickup (COD express, modèle Yassir) :
+  // P − commission, calculée côté serveur (RPC mig 0161).
+  const [advanceDa, setAdvanceDa] = useState<number | null>(null);
+  useEffect(() => {
+    if (order.payment_method !== "cash") return;
+    const supabase = createClient();
+    supabase
+      .rpc("driver_advance_da" as never, { p_order_id: order.id } as never)
+      .then(({ data }) => {
+        if (typeof data === "number" && data > 0) setAdvanceDa(data);
+      });
+  }, [order.id, order.payment_method]);
 
   const target = pickedUp
     ? order.delivery_lat != null && order.delivery_lng != null
@@ -184,6 +197,26 @@ export function ExpressRun({
           </div>
           <span className="eta">{eta ? `${eta.min} min` : "…"}</span>
         </div>
+
+        {/* Avance commerçant au pickup (COD : le livreur paie P − commission
+            en récupérant la commande, puis se rembourse chez le client). */}
+        {!pickedUp && advanceDa != null && (
+          <div
+            className="cash"
+            style={{
+              marginTop: 0,
+              marginBottom: 8,
+              background: "rgba(108,43,217,.10)",
+            }}
+          >
+            <div className="l" style={{ color: "#4b1fa6" }}>
+              💰 À avancer au commerçant
+            </div>
+            <div className="am" style={{ color: "#4b1fa6" }}>
+              {advanceDa} DA
+            </div>
+          </div>
+        )}
 
         {/* Encaissement à la livraison. */}
         {prepaid ? (

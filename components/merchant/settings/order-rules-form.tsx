@@ -83,39 +83,46 @@ export function OrderRulesForm({ merchant }: { merchant: MerchantSettings }) {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          label="Granularité des créneaux de retrait"
-          hint="Pas de temps proposé au client (en minutes)"
-        >
-          <select
-            name="pickup_slot_minutes"
-            defaultValue={merchant.pickup_slot_minutes}
-            disabled={pending}
-            className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-12 w-full rounded-[12px] border px-4 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+      <details className="group">
+        <summary className="text-muted hover:text-foreground cursor-pointer list-none text-sm font-medium select-none">
+          <span className="group-open:hidden">▸</span>
+          <span className="hidden group-open:inline">▾</span> Options avancées
+          (créneaux de retrait)
+        </summary>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <Field
+            label="Granularité des créneaux de retrait"
+            hint="Pas de temps proposé au client (en minutes)"
           >
-            {SLOT_OPTIONS.map((m) => (
-              <option key={m} value={m}>
-                {m} min
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field
-          label="Capacité par créneau"
-          hint="Nombre max de commandes acceptées sur un même créneau (vide = illimité)"
-        >
-          <Input
-            type="number"
-            name="max_orders_per_slot"
-            defaultValue={merchant.max_orders_per_slot ?? ""}
-            min={1}
-            step={1}
-            placeholder="Illimité"
-            disabled={pending}
-          />
-        </Field>
-      </div>
+            <select
+              name="pickup_slot_minutes"
+              defaultValue={merchant.pickup_slot_minutes}
+              disabled={pending}
+              className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-12 w-full rounded-[12px] border px-4 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+            >
+              {SLOT_OPTIONS.map((m) => (
+                <option key={m} value={m}>
+                  {m} min
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field
+            label="Capacité par créneau"
+            hint="Nombre max de commandes sur un même créneau (vide = illimité)"
+          >
+            <Input
+              type="number"
+              name="max_orders_per_slot"
+              defaultValue={merchant.max_orders_per_slot ?? ""}
+              min={1}
+              step={1}
+              placeholder="Illimité"
+              disabled={pending}
+            />
+          </Field>
+        </div>
+      </details>
 
       {state.error && btnState === "error" && (
         <p className="text-danger-600 text-sm">{state.error}</p>

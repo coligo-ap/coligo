@@ -136,8 +136,12 @@ export function DeliveryValidationDialog({
       !confirm(
         "Client absent ou commande refusée ?\n\n" +
           "Vérifie que tu as bien CONTACTÉ le client (message) et attendu sur place. " +
-          "La commande sera ANNULÉE et renvoyée au commerçant ; tu es indemnisé " +
-          "d'une course."
+          "La commande sera ANNULÉE ; tu es indemnisé d'une course." +
+          (isOnline
+            ? ""
+            : "\n\nTon avance au commerçant sera remboursée APRÈS validation du " +
+              "support. GARDE la commande avec toi : le support te dira quoi en " +
+              "faire (retour, garder ou donner). Suivi dans Relevé.")
       )
     )
       return;
@@ -147,7 +151,11 @@ export function DeliveryValidationDialog({
         toast.error(reasonLabel(r.reason));
         return;
       }
-      toast.success("Signalé — commande annulée, tu es indemnisé.");
+      toast.success(
+        isOnline
+          ? "Signalé — commande annulée, tu es indemnisé."
+          : "Signalé — le support examine le remboursement de ton avance (voir Relevé)."
+      );
       onSuccess();
     });
   };

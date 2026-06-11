@@ -613,3 +613,55 @@ export async function adminRefundMerchant(
   revalidatePath("/admin/orders");
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// Réclamations d'avance no-show (mig 0160). Le livreur a avancé (P − commission)
+// au commerçant au pickup d'une commande COD finie en no-show ; le support
+// valide (et décide du sort de la marchandise) ou refuse. La RPC (service role
+// uniquement) écrit le ledger + l'audit de façon atomique.
+// ---------------------------------------------------------------------------
+export async function resolveDriverRefundClaim(input: {
+  claimId: string;
+  approve: boolean;
+  goodsDecision?: "return_to_merchant" | "driver_keeps" | "give_away";
+  note?: string;
+}): Promise<AdminFormState> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (input.approve && !input.goodsDecision) {
+    return { error: "Choisis le sort de la marchandise avant de valider." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const admin = createAdminClient();
+  // RPC pas (encore) dans database.types → cast as never, comme les autres RPC admin.
+  const { data, error } = await admin.rpc(
+    "admin_resolve_driver_refund_claim" as never,
+    {
+      p_claim_id: input.claimId,
+      p_approve: input.approve,
+      p_goods_decision: input.goodsDecision ?? null,
+      p_note: input.note?.trim() || null,
+      p_admin_email: user?.email ?? null,
+    } as never
+  );
+  if (error) return { error: error.message };
+  const row = (
+    data as Array<{ ok: boolean; reason: string | null }> | null
+  )?.[0];
+  if (!row?.ok) {
+    return {
+      error:
+        row?.reason === "already_resolved"
+          ? "Réclamation déjà traitée."
+          : row?.reason === "goods_decision_required"
+            ? "Choisis le sort de la marchandise avant de valider."
+            : "Traitement impossible.",
+    };
+  }
+  revalidatePath("/admin/reports");
+  return { ok: true };
+}

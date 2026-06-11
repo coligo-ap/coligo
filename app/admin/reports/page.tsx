@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminReportsList } from "@/components/admin/admin-reports-list";
+import {
+  AdminRefundClaims,
+  type RefundClaimRow,
+} from "@/components/admin/admin-refund-claims";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +42,59 @@ export default async function AdminReportsPage() {
   }
   const rows = (Array.isArray(data) ? data : []) as ReportRow[];
 
+  // Réclamations d'avance no-show (mig 0160) — service role (table gardée RLS).
+  const admin = createAdminClient();
+  const { data: claimRows } = await admin
+    .from("driver_refund_claims")
+    .select(
+      `id, order_id, advance_da, reason, status, goods_decision, admin_note,
+       created_at, driver_id,
+       drivers ( full_name, phone ),
+       orders ( order_number ),
+       merchants ( name ),
+       customers ( noshow_count )`
+    )
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  type RawClaim = {
+    id: string;
+    order_id: string;
+    advance_da: number;
+    reason: string;
+    status: "pending" | "approved" | "rejected";
+    goods_decision: RefundClaimRow["goods_decision"];
+    admin_note: string | null;
+    created_at: string;
+    driver_id: string;
+    drivers: { full_name: string; phone: string } | null;
+    orders: { order_number: string | null } | null;
+    merchants: { name: string } | null;
+    customers: { noshow_count: number } | null;
+  };
+  const raw = (claimRows ?? []) as unknown as RawClaim[];
+  // Compteur de réclamations par livreur (détection d'abus).
+  const byDriver = new Map<string, number>();
+  for (const c of raw) {
+    byDriver.set(c.driver_id, (byDriver.get(c.driver_id) ?? 0) + 1);
+  }
+  const claims: RefundClaimRow[] = raw.map((c) => ({
+    id: c.id,
+    order_id: c.order_id,
+    advance_da: c.advance_da,
+    reason: c.reason,
+    status: c.status,
+    goods_decision: c.goods_decision,
+    admin_note: c.admin_note,
+    created_at: c.created_at,
+    order_number: c.orders?.order_number ?? null,
+    driver_name: c.drivers?.full_name ?? null,
+    driver_phone: c.drivers?.phone ?? null,
+    driver_claims_count: byDriver.get(c.driver_id) ?? 1,
+    merchant_name: c.merchants?.name ?? null,
+    customer_noshow_count: c.customers?.noshow_count ?? null,
+  }));
+
   return (
     <div className="mx-auto max-w-4xl p-4 lg:p-6">
       <header className="mb-6">
@@ -46,6 +104,21 @@ export default async function AdminReportsPage() {
           cours, résolu ou rejeté.
         </p>
       </header>
+
+      <section className="mb-8">
+        <h2 className="mb-2 text-lg font-semibold">
+          Avances no-show à valider
+        </h2>
+        <p className="text-muted mb-3 text-sm">
+          Le livreur a avancé l&apos;argent de la commande au commerçant, le
+          client n&apos;a pas répondu (paiement espèces). Choisis le sort de la
+          marchandise : retour au commerçant (remboursement en main propre),
+          garder ou donner (Coligo crédite le relevé du livreur).
+        </p>
+        <AdminRefundClaims rows={claims} />
+      </section>
+
+      <h2 className="mb-2 text-lg font-semibold">Signalements de livraison</h2>
       <AdminReportsList rows={rows} />
     </div>
   );
