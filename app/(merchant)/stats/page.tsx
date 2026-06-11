@@ -164,8 +164,7 @@ export default async function StatsPage({
           Statistiques
         </h1>
         <p className="text-muted mt-1 text-sm">
-          Vos ventes produits — {periodLabel.toLowerCase()}. Le CA exclut les
-          frais de service et de livraison (non perçus par vous).
+          Vos ventes produits — {periodLabel.toLowerCase()}.
         </p>
         <nav className="bg-surface-3 mt-3 inline-flex max-w-full [scrollbar-width:none] gap-0.5 overflow-x-auto rounded-[12px] p-1 [&::-webkit-scrollbar]:hidden">
           {STATS_PERIODS.map((p) => (
@@ -199,12 +198,15 @@ export default async function StatsPage({
           variation={variationPct(basketCur, basketPrev)}
           icon={Wallet}
         />
-        <Kpi
-          label="Taux d'annulation"
-          value={`${cancelRate}%`}
-          icon={XCircle}
-          tone={cancelRate > 5 ? "danger" : undefined}
-        />
+        {/* Affiché seulement s'il y a des annulations — 0 % n'apprend rien. */}
+        {cancelRate > 0 && (
+          <Kpi
+            label="Taux d'annulation"
+            value={`${cancelRate}%`}
+            icon={XCircle}
+            tone={cancelRate > 5 ? "danger" : undefined}
+          />
+        )}
       </section>
 
       {!hasData ? (

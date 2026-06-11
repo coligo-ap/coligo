@@ -142,22 +142,10 @@ function Verdict({ summary }: { summary: FinancesSummary }) {
         </p>
         <div className="mt-3 text-sm text-white/90">
           {summary.reserved > 0 ? (
-            <>
-              <p>
-                <strong>{formatDA(summary.available)}</strong> à retirer
-                maintenant.
-              </p>
-              <p className="mt-1 text-white/80">
-                {formatDA(summary.reserved)} déjà demandés — versement en cours
-                de traitement.{" "}
-                <Link
-                  href="/aide"
-                  className="font-medium text-white underline underline-offset-2"
-                >
-                  Comprendre
-                </Link>
-              </p>
-            </>
+            <p>
+              <strong>{formatDA(summary.available)}</strong> à retirer ·{" "}
+              {formatDA(summary.reserved)} en cours de versement
+            </p>
           ) : (
             <p>
               <strong>{formatDA(summary.available)}</strong> disponibles à
@@ -220,16 +208,16 @@ function SimpleBreakdown({ summary }: { summary: FinancesSummary }) {
 
   return (
     <section className="border-border bg-surface mt-5 rounded-[16px] border p-5">
-      <h2 className="mb-1 text-base font-semibold">Comment on arrive là</h2>
+      <h2 className="mb-1 text-base font-semibold">Le détail du calcul</h2>
       <p className="text-muted mb-4 text-xs">
-        On additionne tout pour vous. Vert = pour vous, rouge = part Coligo.
+        Vert = pour vous · rouge = part Coligo.
       </p>
 
       <div className="divide-border divide-y">
         {collectedForYou > 0 && (
           <Line
             label="Encaissé pour vous"
-            sub="Ventes en ligne, QR Coligo Pay et livraisons de tournée"
+            sub="Ventes en ligne, Coligo Pay, tournées"
             amount={collectedForYou}
             sign="+"
           />
@@ -378,10 +366,9 @@ function DeliverySection({ stats }: { stats: DeliveryStats }) {
         />
         {stats.owedByDriversDa > 0 && (
           <MiniStat
-            label="Vos livreurs vous doivent"
+            label="Avances reçues des livreurs"
             value={formatDA(stats.owedByDriversDa)}
-            sub="cash de vos produits à reverser"
-            tone="amber"
+            sub="payées en main propre au retrait (COD)"
           />
         )}
       </div>

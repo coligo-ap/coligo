@@ -107,11 +107,23 @@ const SECTIONS: Section[] = [
         q: "Différence entre Express et Tournée ?",
         a: (
           <>
-            <strong>Express</strong> : un livreur indépendant prend la commande
-            dès qu&apos;il est disponible (livreurs gérés par Coligo).
+            <strong>Express</strong> : Coligo vous envoie un livreur
+            immédiatement — vous n&apos;avez rien à gérer.
             <br />
-            <strong>Tournée</strong> : <em>votre</em> livreur (inscrit chez
-            vous) livre plusieurs commandes sur un créneau planifié.
+            <strong>Tournée</strong> : <em>votre</em> livreur livre plusieurs
+            commandes sur un créneau planifié, au prix que vous fixez.
+          </>
+        ),
+      },
+      {
+        q: "Quand suis-je payé pour une livraison en espèces ?",
+        a: (
+          <>
+            <strong>Au retrait</strong> : le livreur Express vous remet le
+            montant de la commande (commission déduite) en la récupérant. Si le
+            client ne répond pas à la livraison, le support peut vous demander
+            de reprendre la commande — vous rendez alors cette avance au
+            livreur.
           </>
         ),
       },

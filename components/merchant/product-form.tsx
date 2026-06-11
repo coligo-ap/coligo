@@ -311,9 +311,7 @@ export function ProductForm({
                 placeholder="Laisser vide = non suivi"
                 disabled={pending}
               />
-              <p className="text-subtle text-xs">
-                Vide = stock non suivi · 0 = épuisé
-              </p>
+              <p className="text-subtle text-xs">0 = épuisé</p>
             </Field>
           </div>
 

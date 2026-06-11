@@ -78,19 +78,17 @@ export default async function MerchantDriversPage() {
           Mes livreurs
         </h1>
         <p className="text-muted mt-1 text-sm">
-          Partage ton code à des livreurs pour qu&apos;ils rejoignent ta
-          boutique. Tu valides chaque demande.
+          Gère tes livreurs et approuve les demandes.
         </p>
       </header>
 
       {!deliveryReady && (
         <div className="border-warning-200 bg-warning-50 text-warning-700 mb-4 rounded-[12px] border px-4 py-3 text-sm">
-          La livraison n&apos;est pas activée (ou aucun mode coché) — active-la
-          dans{" "}
+          Active d&apos;abord la livraison (Express ou Tournée) dans{" "}
           <a className="underline" href="/settings">
-            Paramètres → Livraison
-          </a>{" "}
-          avant de recruter des livreurs.
+            Paramètres
+          </a>
+          .
         </div>
       )}
 

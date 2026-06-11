@@ -79,7 +79,7 @@ const SORT_LABELS: Record<SortKey, string> = {
   price_asc: "Prix croissant",
   price_desc: "Prix décroissant",
   name: "Nom (A→Z)",
-  stock: "Stock croissant",
+  stock: "Stock bas d'abord",
 };
 
 export function CatalogView({

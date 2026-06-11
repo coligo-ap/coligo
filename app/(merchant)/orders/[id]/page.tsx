@@ -323,8 +323,8 @@ export default async function OrderDetailPage({
                 </p>
               )}
               <p className="text-muted mt-2 text-xs italic">
-                🔒 Le code de retrait est <strong>masqué</strong> en livraison :
-                le client le communique au livreur à la remise (anti-fraude).
+                🔒 Code de retrait masqué (sécurité) — le client le donne au
+                livreur.
               </p>
             </section>
           ) : (
@@ -341,8 +341,8 @@ export default async function OrderDetailPage({
               </p>
               <p className="text-muted mt-2 text-xs italic">
                 {o.payment_method === "online"
-                  ? "🔒 Payé en ligne : demande au client son code à 4 chiffres pour valider (le code est masqué de ton côté — anti-fraude)."
-                  : "💵 Cash : encaisse le montant et confirme le retrait. Aucun code requis (le client donne juste son numéro)."}
+                  ? "🔒 Payé en ligne — demande au client son code à 4 chiffres."
+                  : "💵 Cash — encaisse et confirme, aucun code requis."}
               </p>
             </section>
           )}

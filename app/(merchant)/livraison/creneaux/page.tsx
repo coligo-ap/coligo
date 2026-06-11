@@ -54,17 +54,16 @@ export default async function MerchantSlotsPage() {
             Créneaux de tournée
           </h1>
           <p className="text-muted mt-1 text-sm">
-            Définis les créneaux où tes tournées sortent. Le client choisit son
-            créneau au checkout.
+            Définis les horaires de sortie de tes tournées.
           </p>
         </div>
       </header>
 
       {!merchant.tours_enabled && (
         <div className="border-warning-200 bg-warning-50 text-warning-700 mb-4 rounded-[12px] border px-4 py-3 text-sm">
-          Le mode Tournée n&apos;est pas activé — active-le dans{" "}
+          Active d&apos;abord le mode Tournée dans{" "}
           <a className="underline" href="/settings">
-            Paramètres → Livraison
+            Paramètres
           </a>
           .
         </div>

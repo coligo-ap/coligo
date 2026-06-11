@@ -188,8 +188,7 @@ export function PromotionForm({
         <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
           <h2 className="text-base font-semibold">Période (optionnel)</h2>
           <p className="text-muted -mt-2 text-xs">
-            Laissez vide pour une promotion permanente. Une date de début future
-            programme la promo automatiquement.
+            Vide = permanente · début futur = programmée automatiquement.
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
