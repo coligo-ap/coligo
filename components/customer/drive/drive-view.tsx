@@ -209,7 +209,11 @@ export function DriveView() {
 
   // Itinéraire routier réel (OSRM) : distance et durée fiables. En attendant
   // la réponse (ou si l'API est indisponible) : vol d'oiseau × 1,25 ≈ route.
-  const [route, setRoute] = useState<{ km: number; min: number } | null>(null);
+  const [route, setRoute] = useState<{
+    km: number;
+    min: number;
+    path?: LatLng[];
+  } | null>(null);
   useEffect(() => {
     setRoute(null);
     if (!pickup || !dest) return;
@@ -220,7 +224,11 @@ export function DriveView() {
     })
       .then((r) => {
         if (!cancelled && r.ok)
-          setRoute({ km: r.distance_km, min: r.duration_min });
+          setRoute({
+            km: r.distance_km,
+            min: r.duration_min,
+            path: r.geometry,
+          });
       })
       .catch(() => {});
     return () => {
@@ -457,7 +465,7 @@ export function DriveView() {
               { id: "me", pos: pickup, kind: "me" },
               { id: "dest", pos: dest, kind: "pin" },
             ]}
-            route={[pickup, dest]}
+            route={route?.path ?? [pickup, dest]}
             padding={{ top: 40, bottom: 30, left: 50, right: 50 }}
             className="absolute inset-0"
           />

@@ -198,7 +198,7 @@ export function DriveMap({
         const el = document.createElement("div");
         if (m.kind === "me") {
           el.innerHTML =
-            '<div style="width:20px;height:20px;border-radius:50%;background:#5B5BE6;border:4px solid #fff;box-shadow:0 0 0 6px rgba(91,91,230,.42)"></div>';
+            '<div style="width:20px;height:20px;border-radius:50%;background:#6C2BD9;border:4px solid #fff;box-shadow:0 0 0 6px rgba(108,43,217,.38)"></div>';
         } else if (m.kind === "car") {
           el.innerHTML =
             '<div style="width:38px;height:38px;border-radius:50%;background:#0B0C12;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 8px 18px -4px rgba(0,0,0,.4)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14l-1.5-5.5a2 2 0 0 0-1.9-1.5H8.4a2 2 0 0 0-1.9 1.5L5 17Z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/></svg></div>';
@@ -223,7 +223,7 @@ export function DriveMap({
     });
   }, [markers, ready]);
 
-  // Tracés (course violette / approche grise pointillée).
+  // Tracés (course aux couleurs Coligo / approche grise pointillée).
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
@@ -258,7 +258,19 @@ export function DriveMap({
         }
       }
     };
-    setLine("drive-route", route, { "line-color": "#5B5BE6", "line-width": 6 });
+    // Liseré blanc sous la route : contraste sur fond clair ET sombre.
+    setLine("drive-route-casing", route, {
+      "line-color": "#FFFFFF",
+      "line-width": 10,
+      "line-opacity": 0.85,
+    });
+    setLine("drive-route", route, { "line-color": "#6C2BD9", "line-width": 6 });
+    // Pointillés animés (rose Coligo) qui « avancent » vers l'arrivée.
+    setLine("drive-route-anim", route, {
+      "line-color": "#FF2D7A",
+      "line-width": 2.5,
+      "line-dasharray": [0, 4, 3],
+    });
     setLine("drive-approach", approach, {
       "line-color": "#B7BBC8",
       "line-width": 5,
@@ -266,9 +278,54 @@ export function DriveMap({
     });
   }, [route, approach, ready]);
 
-  // Cadrage automatique sur l'ensemble des points.
+  // Animation du tracé : on fait défiler la séquence de pointillés d'un cran
+  // à intervalle fixe (technique MapLibre standard) → le rose file de D vers A.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || !route || route.length < 2) return;
+    const seq: number[][] = [
+      [0, 4, 3],
+      [0.5, 4, 2.5],
+      [1, 4, 2],
+      [1.5, 4, 1.5],
+      [2, 4, 1],
+      [2.5, 4, 0.5],
+      [3, 4, 0],
+      [0, 0.5, 3, 3.5],
+      [0, 1, 3, 3],
+      [0, 1.5, 3, 2.5],
+      [0, 2, 3, 2],
+      [0, 2.5, 3, 1.5],
+      [0, 3, 3, 1],
+      [0, 3.5, 3, 0.5],
+    ];
+    let step = 0;
+    const timer = setInterval(() => {
+      step = (step + 1) % seq.length;
+      try {
+        if (map.getLayer("drive-route-anim")) {
+          map.setPaintProperty("drive-route-anim", "line-dasharray", seq[step]);
+        }
+      } catch {
+        /* style en cours de rechargement */
+      }
+    }, 80);
+    return () => clearInterval(timer);
+  }, [route, ready]);
+
+  // Cadrage automatique sur l'ensemble des points. La bbox du tracé fait
+  // partie de la clé : quand la vraie route (OSRM) remplace la ligne droite,
+  // la carte se recadre (dézoome) pour montrer le trajet complet D → A.
   const fitKey = JSON.stringify([
     markers.map((m) => [m.pos.lat.toFixed(4), m.pos.lng.toFixed(4)]),
+    route && route.length > 0
+      ? [
+          Math.min(...route.map((p) => p.lat)).toFixed(3),
+          Math.min(...route.map((p) => p.lng)).toFixed(3),
+          Math.max(...route.map((p) => p.lat)).toFixed(3),
+          Math.max(...route.map((p) => p.lng)).toFixed(3),
+        ]
+      : null,
   ]);
   useEffect(() => {
     const map = mapRef.current;

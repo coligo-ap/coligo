@@ -630,7 +630,13 @@ export async function geocodeSearch(input: {
 // du vol d'oiseau. Durée ×1,2 (circulation urbaine DZ). Cache 1 h par paire de
 // points arrondis (~10 m) pour rester gentil avec l'API gratuite.
 export type RouteEstimateResult =
-  | { ok: true; distance_km: number; duration_min: number }
+  | {
+      ok: true;
+      distance_km: number;
+      duration_min: number;
+      /** Tracé simplifié de la route (pour dessin sur la carte). */
+      geometry?: { lat: number; lng: number }[];
+    }
   | { ok: false; error: string };
 
 export async function routeEstimate(input: {
@@ -646,7 +652,7 @@ export async function routeEstimate(input: {
   const url =
     `https://router.project-osrm.org/route/v1/driving/` +
     `${r4(from.lng)},${r4(from.lat)};${r4(to.lng)},${r4(to.lat)}` +
-    `?overview=false&alternatives=false&steps=false`;
+    `?overview=simplified&geometries=geojson&alternatives=false&steps=false`;
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": "Coligo/0.3 (contact: dev@coligo.app)" },
@@ -656,16 +662,27 @@ export async function routeEstimate(input: {
       return { ok: false, error: `Itinéraire indisponible (${res.status}).` };
     const data = (await res.json()) as {
       code?: string;
-      routes?: { distance?: number; duration?: number }[];
+      routes?: {
+        distance?: number;
+        duration?: number;
+        geometry?: { coordinates?: [number, number][] };
+      }[];
     };
     const route = data.code === "Ok" ? data.routes?.[0] : null;
     if (!route?.distance || !route?.duration) {
       return { ok: false, error: "Itinéraire introuvable." };
     }
+    const geometry = (route.geometry?.coordinates ?? [])
+      .filter(
+        (c) =>
+          Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1])
+      )
+      .map(([lng, lat]) => ({ lat, lng }));
     return {
       ok: true,
       distance_km: Math.max(0.1, Number((route.distance / 1000).toFixed(2))),
       duration_min: Math.max(2, Math.round((route.duration / 60) * 1.2)),
+      geometry: geometry.length > 1 ? geometry : undefined,
     };
   } catch (err) {
     return {
