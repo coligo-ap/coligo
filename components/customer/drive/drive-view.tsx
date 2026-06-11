@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
+  ArrowUpDown,
   Car,
   ChevronLeft,
   Clock,
@@ -20,9 +21,13 @@ import {
   Zap,
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
-import { getPosition } from "@/lib/native/geolocation";
+import { getPosition, watchPosition } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
-import { geocodeSearch, reverseGeocode } from "@/app/(customer)/actions";
+import {
+  geocodeSearch,
+  reverseGeocode,
+  routeEstimate,
+} from "@/app/(customer)/actions";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { DriveMap, type LatLng } from "./drive-map";
 import {
@@ -137,32 +142,56 @@ export function DriveView() {
     })();
   }, []);
 
-  // Départ = position actuelle (GPS) par défaut.
+  // Départ = position actuelle (GPS) par défaut. Quasi instantané : un fix
+  // « rapide » (cache OS / réseau) s'affiche tout de suite, puis le GPS haute
+  // précision affine en arrière-plan tant que le départ reste « Ma position ».
   useEffect(() => {
-    void (async () => {
-      try {
-        const p = await getPosition();
-        const r = await reverseGeocode({
-          latitude: p.latitude,
-          longitude: p.longitude,
-        });
-        setPickup((prev) =>
-          prev && !prev.gps
-            ? prev
-            : {
-                lat: p.latitude,
-                lng: p.longitude,
-                text: r?.display ?? null,
-                gps: true,
-              }
-        );
-      } catch {
+    let cancelled = false;
+    let bestAcc = Infinity;
+    let lastRev: { lat: number; lng: number } | null = null;
+    const apply = (lat: number, lng: number, accuracy: number) => {
+      if (cancelled || accuracy >= bestAcc) return;
+      bestAcc = accuracy;
+      setPickup((prev) =>
+        prev && !prev.gps
+          ? prev
+          : { lat, lng, text: prev?.gps ? prev.text : null, gps: true }
+      );
+      // Reverse géocode seulement si on a bougé de plus de ~120 m.
+      if (lastRev && haversineKm(lastRev, { lat, lng }) < 0.12) return;
+      lastRev = { lat, lng };
+      void reverseGeocode({ latitude: lat, longitude: lng, precise: true })
+        .then((r) => {
+          if (cancelled || !r?.display) return;
+          setPickup((prev) =>
+            prev?.gps ? { ...prev, text: r.display ?? null } : prev
+          );
+        })
+        .catch(() => {});
+    };
+    void getPosition({
+      enableHighAccuracy: false,
+      timeout: 4_000,
+      maximumAge: 180_000,
+    })
+      .then((p) => apply(p.latitude, p.longitude, p.accuracy ?? 9_999))
+      .catch(() => {
         /* géoloc refusée : le client choisira sur la carte */
-      }
-    })();
+      });
+    const watch = watchPosition(
+      (p) => apply(p.latitude, p.longitude, p.accuracy ?? 9_999),
+      undefined,
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15_000 }
+    );
+    const stopId = setTimeout(() => watch?.stop(), 15_000);
+    return () => {
+      cancelled = true;
+      clearTimeout(stopId);
+      watch?.stop();
+    };
   }, []);
 
-  const distanceKm = useMemo(
+  const crowKm = useMemo(
     () =>
       pickup && dest
         ? Math.max(
@@ -177,7 +206,31 @@ export function DriveView() {
         : 0,
     [pickup, dest]
   );
-  const etaMin = Math.max(2, Math.round(distanceKm * 2.2));
+
+  // Itinéraire routier réel (OSRM) : distance et durée fiables. En attendant
+  // la réponse (ou si l'API est indisponible) : vol d'oiseau × 1,25 ≈ route.
+  const [route, setRoute] = useState<{ km: number; min: number } | null>(null);
+  useEffect(() => {
+    setRoute(null);
+    if (!pickup || !dest) return;
+    let cancelled = false;
+    void routeEstimate({
+      from: { lat: pickup.lat, lng: pickup.lng },
+      to: { lat: dest.lat, lng: dest.lng },
+    })
+      .then((r) => {
+        if (!cancelled && r.ok)
+          setRoute({ km: r.distance_km, min: r.duration_min });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [pickup, dest]);
+
+  const distanceKm =
+    route?.km ?? (crowKm > 0 ? Number((crowKm * 1.25).toFixed(2)) : 0);
+  const etaMin = route?.min ?? Math.max(2, Math.round((distanceKm / 26) * 60));
 
   /* ───────── Devis par gamme à l'arrivée sur l'écran prix ───────── */
   useEffect(() => {
@@ -715,6 +768,22 @@ export function DriveView() {
     );
   }
 
+  // Inverser départ ↔ arrivée (erreur de saisie) — le départ issu du swap
+  // n'est plus « GPS » : il a été choisi explicitement.
+  const swapPoints = () => {
+    const oldPickup = pickup;
+    setPickup(dest ? { ...dest, gps: false } : null);
+    setDest(
+      oldPickup
+        ? {
+            lat: oldPickup.lat,
+            lng: oldPickup.lng,
+            text: oldPickup.text ?? (oldPickup.gps ? t("myPosition") : null),
+          }
+        : null
+    );
+  };
+
   /* ════════════════ ACCUEIL DRIVE (trajet) ════════════════ */
   return (
     <div className="drive-jakarta drive-screen z-40 bg-[var(--d-page)]">
@@ -753,59 +822,75 @@ export function DriveView() {
           {t("home.title")}
         </h1>
 
-        <button
-          type="button"
-          onClick={() => setDepOpen(true)}
-          className="mb-2.5 flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
-        >
-          <span
-            className="size-3 shrink-0 rounded-full"
-            style={{ background: VIOLET }}
-          />
-          <span className="min-w-0 flex-1">
-            <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
-              {t("departure")}
-            </span>
-            <span className="block truncate text-[14.5px] font-bold">
-              {pickup?.gps
-                ? t("myPosition")
-                : (pickup?.text ?? t("home.locating"))}
-            </span>
-          </span>
-          {pickup?.gps && (
-            <span
-              className="flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-bold"
-              style={{ background: "#EEEEFD", color: VIOLET }}
+        <div className="mb-2.5 flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => setDepOpen(true)}
+              className="mb-2 flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
             >
-              GPS
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setMapPickFor("dest");
-            setScreen("mappick");
-          }}
-          className="mb-2.5 flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
-        >
-          <span className="size-3 shrink-0 rounded-[3px] bg-[var(--d-ink)]" />
-          <span className="min-w-0 flex-1">
-            <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
-              {t("destination")}
-            </span>
-            <span
-              className={cn(
-                "block truncate text-[14.5px] font-bold",
-                !dest && "font-semibold text-[var(--d-muted)]"
+              <span
+                className="size-3 shrink-0 rounded-full"
+                style={{ background: VIOLET }}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+                  {t("departure")}
+                </span>
+                <span className="block truncate text-[14.5px] font-bold">
+                  {pickup?.gps
+                    ? t("myPosition")
+                    : (pickup?.text ?? t("home.locating"))}
+                </span>
+              </span>
+              {pickup?.gps && (
+                <span
+                  className="flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-bold"
+                  style={{ background: "#EEEEFD", color: VIOLET }}
+                >
+                  GPS
+                </span>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setMapPickFor("dest");
+                setScreen("mappick");
+              }}
+              className="flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
             >
-              {dest?.text ?? t("home.whereTo")}
-            </span>
-          </span>
-          <Pencil className="size-4 shrink-0 text-[var(--d-muted)]" />
-        </button>
+              <span className="size-3 shrink-0 rounded-[3px] bg-[var(--d-ink)]" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+                  {t("destination")}
+                </span>
+                <span
+                  className={cn(
+                    "block truncate text-[14.5px] font-bold",
+                    !dest && "font-semibold text-[var(--d-muted)]"
+                  )}
+                >
+                  {dest?.text ?? t("home.whereTo")}
+                </span>
+              </span>
+              <Pencil className="size-4 shrink-0 text-[var(--d-muted)]" />
+            </button>
+          </div>
+          {/* Inverser départ ↔ arrivée */}
+          <button
+            type="button"
+            onClick={swapPoints}
+            disabled={!pickup && !dest}
+            aria-label={t("swap")}
+            title={t("swap")}
+            className="grid size-10 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-sm disabled:opacity-40"
+            style={{ color: VIOLET }}
+          >
+            <ArrowUpDown className="size-[18px]" />
+          </button>
+        </div>
 
         <PrimaryBtn
           onClick={() => setScreen("price")}
@@ -865,10 +950,15 @@ export function DriveView() {
         onGps={async () => {
           setDepOpen(false);
           try {
-            const p = await getPosition();
+            const p = await getPosition({
+              enableHighAccuracy: true,
+              timeout: 8_000,
+              maximumAge: 30_000,
+            });
             const r = await reverseGeocode({
               latitude: p.latitude,
               longitude: p.longitude,
+              precise: true,
             });
             setPickup({
               lat: p.latitude,
@@ -922,7 +1012,7 @@ function MapPickScreen({
   // Recherche d'adresse SUR la carte (suggestions, debounce 450 ms).
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState<
-    { display: string; lat: number; lng: number }[]
+    { display: string; secondary?: string; lat: number; lng: number }[]
   >([]);
   const [searching, setSearching] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -972,7 +1062,11 @@ function MapPickScreen({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        const r = await reverseGeocode({ latitude: c.lat, longitude: c.lng });
+        const r = await reverseGeocode({
+          latitude: c.lat,
+          longitude: c.lng,
+          precise: true,
+        });
         setAddr(r?.display ?? null);
       } catch {
         setAddr(null);
@@ -1042,7 +1136,14 @@ function MapPickScreen({
                     className="mt-0.5 size-4 shrink-0"
                     style={{ color: VIOLET }}
                   />
-                  <span className="min-w-0 flex-1">{r.display}</span>
+                  <span className="min-w-0 flex-1">
+                    {r.display}
+                    {r.secondary && (
+                      <small className="block text-[11px] font-medium text-[var(--d-muted)]">
+                        {r.secondary}
+                      </small>
+                    )}
+                  </span>
                 </button>
               </li>
             ))}

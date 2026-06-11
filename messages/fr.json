@@ -732,6 +732,7 @@
     "departure": "Départ",
     "destination": "Destination",
     "myPosition": "Ma position actuelle",
+    "swap": "Inverser départ et arrivée",
     "requestFailed": "Demande impossible — réessayez.",
     "status": {
       "completed": "Terminée",

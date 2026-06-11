@@ -102,15 +102,15 @@ async function ensureNativePermission(
   }
 }
 
-async function nativeGetPosition(): Promise<Coords> {
+async function nativeGetPosition(opts?: PositionOptions): Promise<Coords> {
   const { Geolocation } = await import("@capacitor/geolocation");
   await ensureNativePermission(Geolocation);
   try {
     return fromCap(
       await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true,
-        timeout: 10_000,
-        maximumAge: 0,
+        enableHighAccuracy: opts?.enableHighAccuracy ?? true,
+        timeout: opts?.timeout ?? 10_000,
+        maximumAge: opts?.maximumAge ?? 0,
       })
     );
   } catch {
@@ -193,7 +193,7 @@ function getOnce(opts: PositionOptions): Promise<Coords> {
  */
 export async function getPosition(opts?: PositionOptions): Promise<Coords> {
   // APK : plugin natif (gère le runtime grant Android).
-  if (isNative()) return nativeGetPosition();
+  if (isNative()) return nativeGetPosition(opts);
 
   if (!geolocationSupported()) {
     throw new GeolocationError("unsupported", "Géoloc non supportée.");

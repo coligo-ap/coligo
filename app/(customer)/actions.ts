@@ -285,8 +285,10 @@ function findCommuneIn(
 export async function reverseGeocode(input: {
   latitude: number;
   longitude: number;
+  /** Libellé précis (lieu/rue + commune) — pour Drive ; défaut = zone. */
+  precise?: boolean;
 }): Promise<ReverseGeocodeResult> {
-  const { latitude, longitude } = input;
+  const { latitude, longitude, precise } = input;
   if (
     typeof latitude !== "number" ||
     typeof longitude !== "number" ||
@@ -301,7 +303,7 @@ export async function reverseGeocode(input: {
   url.searchParams.set("lat", String(latitude));
   url.searchParams.set("lon", String(longitude));
   url.searchParams.set("accept-language", "fr");
-  url.searchParams.set("zoom", "12");
+  url.searchParams.set("zoom", precise ? "16" : "12");
   url.searchParams.set("addressdetails", "1");
 
   try {
@@ -355,12 +357,22 @@ export async function reverseGeocode(input: {
       : null;
 
     const rawLocality = localityCandidates[0] ?? null;
+    // Libellé court et lisible : « lieu/quartier, Commune » en mode précis,
+    // sinon « Commune · Wilaya » (zone). Jamais l'adresse complète Nominatim.
+    const detail = precise
+      ? [addr.amenity, addr.road, addr.neighbourhood, addr.suburb].find(
+          (x): x is string => !!x
+        )
+      : undefined;
+    const locality = commune ?? rawLocality ?? wilaya?.name ?? null;
     const display =
-      commune && wilaya
-        ? `${commune} · ${wilaya.name}`
-        : wilaya
-          ? wilaya.name
-          : rawLocality;
+      detail && locality && detail !== locality
+        ? `${detail}, ${locality}`
+        : commune && wilaya
+          ? `${commune} · ${wilaya.name}`
+          : wilaya
+            ? wilaya.name
+            : rawLocality;
 
     return {
       ok: true,
@@ -382,7 +394,15 @@ export async function reverseGeocode(input: {
 // Sert la barre de recherche de la carte plein écran. On reste gentil avec
 // l'API publique : cache 5 min, limite 6 résultats.
 export type GeocodeSearchResult =
-  | { ok: true; results: { display: string; lat: number; lng: number }[] }
+  | {
+      ok: true;
+      results: {
+        display: string;
+        secondary?: string;
+        lat: number;
+        lng: number;
+      }[];
+    }
   | { ok: false; error: string };
 
 export async function geocodeSearch(input: {
@@ -397,6 +417,7 @@ export async function geocodeSearch(input: {
   url.searchParams.set("countrycodes", "dz");
   url.searchParams.set("accept-language", "fr");
   url.searchParams.set("limit", "6");
+  url.searchParams.set("addressdetails", "1");
 
   try {
     const res = await fetch(url.toString(), {
@@ -411,23 +432,96 @@ export async function geocodeSearch(input: {
     }
     const data = (await res.json()) as {
       display_name?: string;
+      name?: string;
       lat?: string;
       lon?: string;
+      address?: Record<string, string | undefined>;
     }[];
+    // Libellés simplifiés : « Lieu, Commune » plutôt que l'adresse Nominatim
+    // complète (les clients connaissent leur zone — inutile de tout détailler).
+    const seen = new Set<string>();
     const results = (data ?? [])
-      .map((d) => ({
-        display: d.display_name ?? "",
-        lat: Number(d.lat),
-        lng: Number(d.lon),
-      }))
+      .map((d) => {
+        const a = d.address ?? {};
+        const main =
+          (d.name ?? "").trim() ||
+          (d.display_name ?? "").split(",")[0]?.trim() ||
+          "";
+        const city =
+          a.city ?? a.town ?? a.village ?? a.municipality ?? a.county ?? "";
+        const area = [a.neighbourhood, a.suburb].find(
+          (x): x is string => !!x && x !== main && x !== city
+        );
+        return {
+          display: city && city !== main ? `${main}, ${city}` : main,
+          secondary: [area, a.state].filter(Boolean).join(" · ") || undefined,
+          lat: Number(d.lat),
+          lng: Number(d.lon),
+        };
+      })
       .filter(
         (r) => r.display && Number.isFinite(r.lat) && Number.isFinite(r.lng)
-      );
+      )
+      .filter((r) => {
+        const k = `${r.display}|${r.secondary ?? ""}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
     return { ok: true, results };
   } catch (err) {
     return {
       ok: false,
       error: err instanceof Error ? err.message : "Recherche indisponible.",
+    };
+  }
+}
+
+// Itinéraire routier réel (OSRM public) : distance ET durée fiables, au lieu
+// du vol d'oiseau. Durée ×1,2 (circulation urbaine DZ). Cache 1 h par paire de
+// points arrondis (~10 m) pour rester gentil avec l'API gratuite.
+export type RouteEstimateResult =
+  | { ok: true; distance_km: number; duration_min: number }
+  | { ok: false; error: string };
+
+export async function routeEstimate(input: {
+  from: { lat: number; lng: number };
+  to: { lat: number; lng: number };
+}): Promise<RouteEstimateResult> {
+  const { from, to } = input;
+  const pts = [from.lat, from.lng, to.lat, to.lng];
+  if (pts.some((v) => typeof v !== "number" || Number.isNaN(v))) {
+    return { ok: false, error: "Coordonnées invalides." };
+  }
+  const r4 = (v: number) => v.toFixed(4);
+  const url =
+    `https://router.project-osrm.org/route/v1/driving/` +
+    `${r4(from.lng)},${r4(from.lat)};${r4(to.lng)},${r4(to.lat)}` +
+    `?overview=false&alternatives=false&steps=false`;
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Coligo/0.3 (contact: dev@coligo.app)" },
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok)
+      return { ok: false, error: `Itinéraire indisponible (${res.status}).` };
+    const data = (await res.json()) as {
+      code?: string;
+      routes?: { distance?: number; duration?: number }[];
+    };
+    const route = data.code === "Ok" ? data.routes?.[0] : null;
+    if (!route?.distance || !route?.duration) {
+      return { ok: false, error: "Itinéraire introuvable." };
+    }
+    return {
+      ok: true,
+      distance_km: Math.max(0.1, Number((route.distance / 1000).toFixed(2))),
+      duration_min: Math.max(2, Math.round((route.duration / 60) * 1.2)),
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Itinéraire indisponible.",
     };
   }
 }

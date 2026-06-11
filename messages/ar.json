@@ -732,6 +732,7 @@
     "departure": "الانطلاق",
     "destination": "الوجهة",
     "myPosition": "موقعي الحالي",
+    "swap": "عكس نقطتي الانطلاق والوصول",
     "requestFailed": "تعذّر إرسال الطلب — أعد المحاولة.",
     "status": {
       "completed": "مكتملة",
