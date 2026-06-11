@@ -46,10 +46,16 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
   const plan = fin?.plan ?? "free";
 
   const editHome = async () => {
-    const v = window.prompt("Adresse de votre domicile :", homeAddr ?? "");
+    const v = window.prompt(
+      "Adresse de votre domicile (modifiable 1 fois par semaine) :",
+      homeAddr ?? ""
+    );
     if (v == null || !v.trim()) return;
-    setHomeAddr(v.trim());
-    await setChauffeurHome(v.trim());
+    // Le serveur applique la limite anti-fraude : on n'affiche la nouvelle
+    // adresse QUE si le changement est accepté.
+    const res = await setChauffeurHome(v.trim());
+    if (res.ok) setHomeAddr(v.trim());
+    else if (res.error) window.alert(res.error);
   };
 
   return (

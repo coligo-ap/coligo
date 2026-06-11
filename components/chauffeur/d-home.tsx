@@ -2,14 +2,26 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Car, ChevronUp, Home, Pencil } from "lucide-react";
+import {
+  Car,
+  ChevronUp,
+  Crosshair,
+  Home,
+  Loader2,
+  Pencil,
+  X,
+} from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
+import { getPosition } from "@/lib/native/geolocation";
+import { reverseGeocode } from "@/lib/geo/geocode";
 import { PushRegistrar } from "@/components/native/push-registrar";
-import { DriveMap } from "@/components/customer/drive/drive-map";
+import { DriveMap, type LatLng } from "@/components/customer/drive/drive-map";
+import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import {
   VIOLET,
   GO,
+  RED,
   PrimaryBtn,
 } from "@/components/customer/drive/drive-modals";
 import { DNav, PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
@@ -74,11 +86,47 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     return () => clearInterval(id);
   }, [tick]);
 
-  const editHome = async () => {
-    const v = window.prompt("Adresse de votre domicile :", homeAddr ?? "");
-    if (v == null || !v.trim()) return;
-    setHomeAddr(v.trim());
-    await setChauffeurHome(v.trim());
+  // Domicile : popup carte (recherche + repère) — plus de prompt texte.
+  // Le changement d'adresse est LIMITÉ côté serveur (1×/semaine, anti-fraude).
+  const [homeOpen, setHomeOpen] = useState(false);
+  const [homePos, setHomePos] = useState<LatLng | null>(null);
+  const [homeSaving, setHomeSaving] = useState(false);
+  const [homeErr, setHomeErr] = useState<string | null>(null);
+
+  const saveHome = async () => {
+    if (!homePos || homeSaving) return;
+    setHomeSaving(true);
+    setHomeErr(null);
+    // Adresse lisible du repère (échec silencieux → libellé générique).
+    const text =
+      (await reverseGeocode(homePos.lat, homePos.lng).catch(() => null)) ??
+      "Domicile (repère carte)";
+    const res = await setChauffeurHome(text, homePos);
+    setHomeSaving(false);
+    if (!res.ok) {
+      setHomeErr(res.error ?? "Enregistrement impossible.");
+      return;
+    }
+    setHomeAddr(text);
+    setHomeOpen(false);
+  };
+
+  // Recentrage de la carte sur la position actuelle du chauffeur.
+  const [focusMe, setFocusMe] = useState<(LatLng & { zoom?: number }) | null>(
+    null
+  );
+  const recenter = async () => {
+    const c = coordsRef.current;
+    if (c) {
+      setFocusMe({ lat: c.latitude, lng: c.longitude, zoom: 16 });
+      return;
+    }
+    try {
+      const p = await getPosition({ enableHighAccuracy: true, timeout: 8000 });
+      setFocusMe({ lat: p.latitude, lng: p.longitude, zoom: 16 });
+    } catch {
+      /* géoloc refusée */
+    }
   };
 
   const toggleDir = async () => {
@@ -108,6 +156,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
       <DriveMap
         markers={me ? [{ id: "me", pos: me, kind: "me" }] : []}
         heatZones={home?.heatZones ?? []}
+        focusTarget={focusMe}
         padding={{ top: 110, bottom: 460, left: 60, right: 60 }}
       />
       {/* Pill en ligne */}
@@ -128,6 +177,15 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         />
         Zones de forte demande
       </div>
+      {/* Recentrer la carte sur ma position (curseur chauffeur) */}
+      <button
+        type="button"
+        onClick={() => void recenter()}
+        aria-label="Centrer sur ma position"
+        className="absolute top-[64px] right-4 z-10 grid size-[42px] place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+      >
+        <Crosshair className="size-5" style={{ color: VIOLET }} />
+      </button>
 
       {/* Feuille réductible */}
       <div
@@ -192,7 +250,11 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               Je rentre chez moi · {homeAddr ?? "—"}
               <button
                 type="button"
-                onClick={editHome}
+                onClick={() => {
+                  setHomeErr(null);
+                  setHomePos(null);
+                  setHomeOpen(true);
+                }}
                 aria-label="Modifier l'adresse"
               >
                 <Pencil className="size-3" style={{ color: VIOLET }} />
@@ -269,6 +331,61 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           {home && home.requestsCount > 0 ? ` (${home.requestsCount})` : ""}
         </PrimaryBtn>
       </div>
+
+      {/* Popup domicile : recherche d'adresse + repère sur la carte. */}
+      {homeOpen && (
+        <div className="fixed inset-0 z-[130] flex flex-col justify-end bg-black/45">
+          <div className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+            <div className="mb-2 flex items-center justify-between">
+              <b className="drive-sora text-[16px] font-extrabold">
+                Mon domicile
+              </b>
+              <button
+                type="button"
+                onClick={() => setHomeOpen(false)}
+                aria-label="Fermer"
+                className="grid size-9 place-items-center rounded-full bg-[var(--d-soft)]"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <p className="mb-2 text-[12px] text-[var(--d-muted)]">
+              Cherchez votre adresse ou déplacez la carte pour placer le repère
+              sur votre domicile.
+            </p>
+            <MapPositionPicker
+              initial={null}
+              defaultCenter={me ?? undefined}
+              autoLocate={!me}
+              searchEnabled
+              height={300}
+              gpsLabel="Ma position"
+              onChange={(p) => setHomePos(p)}
+            />
+            <p className="mt-2 text-[11px] text-[var(--d-muted)]">
+              ⚠️ Anti-fraude : l&apos;adresse domicile est modifiable{" "}
+              <b>1 fois par semaine</b> (correction libre pendant 15 min après
+              un changement).
+            </p>
+            {homeErr && (
+              <p
+                className="mt-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+                style={{ background: "rgba(229,72,77,.1)", color: RED }}
+              >
+                {homeErr}
+              </p>
+            )}
+            <PrimaryBtn
+              onClick={() => void saveHome()}
+              disabled={homeSaving || !homePos}
+              className="!mt-3"
+            >
+              {homeSaving ? <Loader2 className="size-5 animate-spin" /> : null}
+              Enregistrer mon domicile
+            </PrimaryBtn>
+          </div>
+        </div>
+      )}
 
       <DNav />
       <PushRegistrar role="chauffeur" />

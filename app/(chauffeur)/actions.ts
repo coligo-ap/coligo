@@ -1071,20 +1071,24 @@ export async function subscribeDrivePlan(
 // « JE RENTRE CHEZ MOI » + HISTORIQUE
 // ---------------------------------------------------------------------------
 export async function setChauffeurHome(
-  addr: string
-): Promise<{ ok: boolean; error?: string }> {
-  // Géocode l'adresse (G4) : le filtre directionnel a besoin de lat/lng.
-  let lat: number | null = null;
-  let lng: number | null = null;
-  try {
-    const { geocodeSearch } = await import("@/app/(customer)/actions");
-    const res = await geocodeSearch({ q: addr });
-    if (res.ok && res.results[0]) {
-      lat = res.results[0].lat;
-      lng = res.results[0].lng;
+  addr: string,
+  coords?: { lat: number; lng: number }
+): Promise<{ ok: boolean; error?: string; nextAllowed?: string }> {
+  // Coordonnées exactes fournies par le sélecteur carte (cas nominal) ;
+  // sinon géocodage du texte (G4 : le filtre directionnel a besoin de lat/lng).
+  let lat: number | null = coords?.lat ?? null;
+  let lng: number | null = coords?.lng ?? null;
+  if (lat == null || lng == null) {
+    try {
+      const { geocodeSearch } = await import("@/app/(customer)/actions");
+      const res = await geocodeSearch({ q: addr });
+      if (res.ok && res.results[0]) {
+        lat = res.results[0].lat;
+        lng = res.results[0].lng;
+      }
+    } catch {
+      /* adresse non géocodable : le toggle restera sans filtre géo */
     }
-  } catch {
-    /* adresse non géocodable : le toggle restera sans filtre géo */
   }
   const rpc = await rpcClient();
   const { data, error } = await rpc("chauffeur_set_home", {
@@ -1096,8 +1100,23 @@ export async function setChauffeurHome(
   const row = (Array.isArray(data) ? data[0] : data) as {
     ok?: boolean;
     reason?: string;
+    next_allowed?: string;
   };
-  return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
+  if (row?.ok) return { ok: true };
+  if (row?.reason === "rate_limited") {
+    const when = row.next_allowed
+      ? new Date(row.next_allowed).toLocaleDateString("fr-FR", {
+          day: "numeric",
+          month: "long",
+        })
+      : "";
+    return {
+      ok: false,
+      nextAllowed: row.next_allowed,
+      error: `Adresse modifiable 1 fois par semaine (anti-fraude)${when ? ` — prochain changement possible le ${when}` : ""}.`,
+    };
+  }
+  return { ok: false, error: row?.reason ?? "Échec." };
 }
 
 export async function activateHomeDir(): Promise<{
