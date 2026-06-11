@@ -250,7 +250,7 @@ function SearchScreen({
   };
 
   return (
-    <div className="drive-jakarta fixed inset-0 z-40 bg-[var(--d-page)]">
+    <div className="drive-jakarta drive-screen z-40 bg-[var(--d-page)]">
       {ride?.pickup_lat != null && (
         <DriveMap
           markers={[
@@ -700,7 +700,7 @@ function EnrouteScreen({
   const prepaid = ride.payment_method !== "cash";
 
   return (
-    <div className="drive-jakarta fixed inset-0 z-40 bg-[var(--d-page)]">
+    <div className="drive-jakarta drive-screen z-40 bg-[var(--d-page)]">
       <DriveMap
         markers={[
           ...(chPos ? [{ id: "car", pos: chPos, kind: "car" as const }] : []),
@@ -1104,7 +1104,7 @@ function DoneScreen({
       : null;
 
   return (
-    <div className="drive-jakarta fixed inset-0 z-40 overflow-y-auto bg-[var(--d-surface)] px-5 pt-6 pb-8">
+    <div className="drive-jakarta drive-screen z-40 overflow-y-auto bg-[var(--d-surface)] px-5 pt-6 pb-8">
       <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
         {t("title")}
       </h1>
@@ -1269,7 +1269,7 @@ function CancelledScreen({
 }) {
   const t = useTranslations("drive.cancelledScreen");
   return (
-    <div className="drive-jakarta fixed inset-0 z-40 bg-[var(--d-surface)] px-5 pt-12">
+    <div className="drive-jakarta drive-screen z-40 bg-[var(--d-surface)] px-5 pt-12">
       <div className="flex flex-col items-center text-center">
         <span
           className="mb-3 grid size-16 place-items-center rounded-full"

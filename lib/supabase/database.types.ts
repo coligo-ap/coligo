@@ -55,6 +55,9 @@ export type Database = {
           frozen_reason: string | null;
           frozen_at: string | null;
           sos_contacts: unknown;
+          is_demo: boolean;
+          ccp_number: string | null;
+          ccp_key: string | null;
         };
         Insert: {
           id?: string;
@@ -241,6 +244,11 @@ export type Database = {
             | "selfie";
           url: string;
           created_at: string;
+          // Mig 0148 : validation pièce par pièce
+          status: "pending" | "approved" | "rejected";
+          review_note: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -248,6 +256,7 @@ export type Database = {
           kind: string;
           url: string;
           created_at?: string;
+          [k: string]: unknown;
         };
         Update: Partial<
           Database["public"]["Tables"]["chauffeur_documents"]["Insert"]

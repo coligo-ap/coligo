@@ -10,12 +10,20 @@ import {
   Home,
   LogOut,
   Pencil,
+  ShieldAlert,
 } from "lucide-react";
-import { VIOLET } from "@/components/customer/drive/drive-modals";
+import {
+  SosContactsSheet,
+  VIOLET,
+  type SosContact,
+} from "@/components/customer/drive/drive-modals";
 import { DNav, PLAN_LABEL, fmtPct } from "./d-ui";
 import {
   chauffeurLogout,
   getChauffeurFinances,
+  getChauffeurSosContacts,
+  setChauffeurCcp,
+  setChauffeurSosContacts,
   setChauffeurHome,
   type ChauffeurFinances,
   type ChauffeurGate,
@@ -26,9 +34,12 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
   const router = useRouter();
   const [fin, setFin] = useState<ChauffeurFinances | null>(null);
   const [homeAddr, setHomeAddr] = useState(gate.homeAddr);
+  const [sosContacts, setSosContactsState] = useState<SosContact[]>([]);
+  const [contactsOpen, setContactsOpen] = useState(false);
 
   useEffect(() => {
     void getChauffeurFinances().then(setFin);
+    void getChauffeurSosContacts().then(setSosContactsState);
   }, []);
 
   const since = new Date(gate.memberSince).getFullYear();
@@ -42,7 +53,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
   };
 
   return (
-    <div className="drive-jakarta min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
+    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
       <h1 className="drive-sora mb-3.5 text-[21px] font-extrabold tracking-[-0.5px]">
         Compte
       </h1>
@@ -117,6 +128,27 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
           onClick={() => router.push("/chauffeur/documents")}
         />
         <Row
+          icon={<CreditCard className="size-4" />}
+          label="Mon CCP (versements)"
+          value="Renseigner / modifier"
+          onClick={async () => {
+            const num = window.prompt("Numéro CCP (pour vos versements) :", "");
+            if (num == null) return;
+            const key = window.prompt("Clé CCP :", "") ?? "";
+            await setChauffeurCcp(num, key);
+          }}
+        />
+        <Row
+          icon={<ShieldAlert className="size-4" />}
+          label="Contacts d'urgence"
+          value={
+            sosContacts.length > 0
+              ? sosContacts.map((x) => x.name).join(", ")
+              : "À renseigner"
+          }
+          onClick={() => setContactsOpen(true)}
+        />
+        <Row
           icon={<Globe className="size-4" />}
           label="Langue"
           value="FR · العربية"
@@ -134,6 +166,16 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         </button>
       </div>
 
+      <SosContactsSheet
+        open={contactsOpen}
+        onClose={() => setContactsOpen(false)}
+        contacts={sosContacts}
+        onSave={async (next) => {
+          const res = await setChauffeurSosContacts(next);
+          if (res.ok) setSosContactsState(next);
+          return res;
+        }}
+      />
       <DNav />
     </div>
   );

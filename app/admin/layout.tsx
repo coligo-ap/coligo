@@ -3,8 +3,8 @@ import { requireSuperAdmin } from "@/lib/auth/admin";
 import { logout } from "@/app/(merchant)/actions";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { getLateOrdersCountForAdmin } from "@/lib/data/platform";
-import { AdminNav } from "@/components/admin/admin-nav";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
+import { AdminShell } from "@/components/admin/admin-sidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,6 @@ export default async function AdminLayout({
             <ShieldCheck className="text-primary-600 size-5" />
             <span className="hidden sm:inline">{APP_CONFIG.name} Admin</span>
           </span>
-          <AdminNav lateCount={lateCount} />
         </div>
         <form action={logout} className="shrink-0">
           <button
@@ -39,7 +38,11 @@ export default async function AdminLayout({
           </button>
         </form>
       </header>
-      <main>{children}</main>
+      {/* Drawer desktop (sidebar repliable) + contenu. Sur mobile la nav
+          reste le drawer hamburger ci-dessus. */}
+      <AdminShell lateCount={lateCount}>
+        <main>{children}</main>
+      </AdminShell>
     </div>
   );
 }

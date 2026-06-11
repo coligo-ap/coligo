@@ -790,7 +790,8 @@
     "female": {
       "title": "Femme au volant",
       "subOff": "Réservé aux clientes (profil vérifié ✓) · {count} conductrices en ligne",
-      "subOn": "Actif · réservé aux clientes (profil vérifié ✓) — seules les conductrices recevront votre demande"
+      "subOn": "Actif · réservé aux clientes (profil vérifié ✓) — seules les conductrices recevront votre demande",
+      "subLocked": "Réservé aux clientes au profil vérifié — contactez le support pour vérifier votre profil."
     },
     "prox": {
       "title": "Course pour un proche",

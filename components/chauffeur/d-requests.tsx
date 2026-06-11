@@ -146,7 +146,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
         ? { lat: mapReq.dest_lat, lng: mapReq.dest_lng! }
         : null;
     return (
-      <div className="drive-jakarta fixed inset-0 bg-[var(--d-page)]">
+      <div className="drive-jakarta drive-screen bg-[var(--d-page)]">
         <DriveMap
           markers={[
             ...(me ? [{ id: "car", pos: me, kind: "car" as const }] : []),
@@ -224,7 +224,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
 
   /* ── Liste des demandes ── */
   return (
-    <div className="drive-jakarta min-h-screen bg-[var(--d-surface)] px-[18px] pt-3.5 pb-24">
+    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-[18px] pt-3.5 pb-24">
       <div className="mb-3 flex items-center gap-3">
         <button
           type="button"

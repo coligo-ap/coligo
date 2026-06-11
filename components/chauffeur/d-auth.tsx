@@ -32,7 +32,7 @@ export function DAuth({ tab: initialTab = "log" }: { tab?: "log" | "reg" }) {
     "mb-2 w-full rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]";
 
   return (
-    <div className="drive-jakarta min-h-screen bg-[var(--d-surface)] px-5 pt-8 pb-10">
+    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-8 pb-10">
       <div className="mb-4 text-center">
         <h1 className="drive-sora text-[22px] font-extrabold tracking-[-0.5px]">
           Coligo <span style={{ color: VIOLET }}>Drive</span>

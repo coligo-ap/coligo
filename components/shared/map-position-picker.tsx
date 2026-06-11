@@ -28,6 +28,23 @@ import { MAP_STYLE_URL } from "@/lib/config/map";
  * Source tuiles : OpenFreeMap (gratuit, sans clé). Cf. lib/config/map.ts.
  */
 
+// Façonnage RTL (arabe) : sans ce plugin, MapLibre affiche les libellés
+// arabes inversés et avec des lettres détachées. Chargé une seule fois,
+// en lazy (uniquement si la carte contient du texte RTL).
+let rtlReady = false;
+function ensureRtlPlugin(maplibre: typeof import("maplibre-gl")) {
+  if (rtlReady) return;
+  rtlReady = true;
+  try {
+    void maplibre.setRTLTextPlugin(
+      "https://unpkg.com/@mapbox/mapbox-gl-rtl-text@0.2.3/mapbox-gl-rtl-text.js",
+      true
+    );
+  } catch {
+    /* déjà chargé par une autre carte */
+  }
+}
+
 type LatLng = { lat: number; lng: number };
 
 const DEFAULT_CENTER: LatLng = { lat: 36.7538, lng: 3.0588 }; // Alger
@@ -154,7 +171,9 @@ export function MapPositionPicker({
       if (disposed || !containerRef.current) return;
 
       void import("maplibre-gl")
-        .then(({ Map }) => {
+        .then((maplibre) => {
+          const { Map } = maplibre;
+          ensureRtlPlugin(maplibre);
           if (disposed || !containerRef.current) return;
 
           let map: import("maplibre-gl").Map;

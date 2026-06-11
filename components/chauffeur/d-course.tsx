@@ -211,7 +211,7 @@ export function DCourse() {
   if (!ride) {
     // Course annulée par le client pendant le flux → retour aux demandes.
     return (
-      <div className="drive-jakarta fixed inset-0 bg-[var(--d-surface)] px-5 pt-12">
+      <div className="drive-jakarta drive-screen bg-[var(--d-surface)] px-5 pt-12">
         <div className="flex flex-col items-center text-center">
           <span
             className="mb-3 grid size-16 place-items-center rounded-full"
@@ -251,7 +251,7 @@ export function DCourse() {
   /* ════════ ATTRIBUTION (s-dmatch) ════════ */
   if (ride.status === "accepted" && !matchSeen) {
     return (
-      <div className="drive-jakarta fixed inset-0 overflow-y-auto bg-[var(--d-surface)] px-5 pt-10 pb-8">
+      <div className="drive-jakarta drive-screen overflow-y-auto bg-[var(--d-surface)] px-5 pt-10 pb-8">
         <div className="text-center">
           <span
             className="mx-auto mb-3 grid size-16 place-items-center rounded-full"
@@ -318,7 +318,7 @@ export function DCourse() {
 
   /* ════════ PRISE EN CHARGE / COURSE (s-dpickup / s-dride) ════════ */
   return (
-    <div className="drive-jakarta fixed inset-0 bg-[var(--d-page)]">
+    <div className="drive-jakarta drive-screen bg-[var(--d-page)]">
       <DriveMap
         markers={[
           ...(me ? [{ id: "car", pos: me, kind: "car" as const }] : []),
@@ -778,7 +778,7 @@ function DoneScreen({
   const pct = done.commission_rate != null ? fmtPct(done.commission_rate) : "—";
 
   return (
-    <div className="drive-jakarta fixed inset-0 overflow-y-auto bg-[var(--d-surface)] px-5 pt-8 pb-8">
+    <div className="drive-jakarta drive-screen overflow-y-auto bg-[var(--d-surface)] px-5 pt-8 pb-8">
       <div className="mb-3 text-center">
         <span
           className="mx-auto mb-2.5 grid size-16 place-items-center rounded-full"

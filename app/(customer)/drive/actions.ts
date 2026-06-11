@@ -14,6 +14,20 @@ async function rpcClient(): Promise<Rpc> {
   return supabase.rpc.bind(supabase) as unknown as Rpc;
 }
 
+/**
+ * Répondeur DÉMO : les chauffeurs de démonstration (is_demo) font des offres
+ * automatiques pour rendre tout le parcours testable (mig 0147). Best-effort.
+ */
+async function triggerDemoResponder(rideId: string): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const rpc = admin.rpc.bind(admin) as unknown as Rpc;
+    await rpc("drive_demo_respond", { p_ride_id: rideId });
+  } catch {
+    /* démo uniquement — ne bloque jamais */
+  }
+}
+
 /* ─────────────────────────── Contexte Drive ─────────────────────────── */
 
 export type DriveContext = {
@@ -213,7 +227,10 @@ export async function requestDriveRide(input: {
   });
   if (error) return { ok: false, error: error.message };
   const rideId = typeof data === "string" ? data : undefined;
-  if (rideId) void notifyChauffeursNewRide({ rideId });
+  if (rideId) {
+    void notifyChauffeursNewRide({ rideId });
+    void triggerDemoResponder(rideId);
+  }
   return { ok: true, rideId };
 }
 
@@ -234,6 +251,7 @@ export async function boostRide(
   if (row?.ok) {
     // Relance la diffusion en priorité (badge ⚡ côté chauffeur).
     void notifyChauffeursNewRide({ rideId });
+    void triggerDemoResponder(rideId);
     return { ok: true };
   }
   return { ok: false, error: row?.reason };

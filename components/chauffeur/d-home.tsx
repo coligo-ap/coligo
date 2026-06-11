@@ -104,7 +104,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const me = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
 
   return (
-    <div className="drive-jakarta fixed inset-0 bg-[var(--d-page)]">
+    <div className="drive-jakarta drive-screen bg-[var(--d-page)]">
       <DriveMap
         markers={me ? [{ id: "me", pos: me, kind: "me" }] : []}
         heatZones={home?.heatZones ?? []}

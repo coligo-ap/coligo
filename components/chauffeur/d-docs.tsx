@@ -97,7 +97,7 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
   };
 
   return (
-    <div className="drive-jakarta min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-10">
+    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-10">
       <div className="mb-2 flex items-center gap-3">
         <button
           type="button"

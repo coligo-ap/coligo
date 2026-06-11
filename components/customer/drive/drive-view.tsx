@@ -14,6 +14,7 @@ import {
   Pencil,
   Route,
   Search,
+  ShieldAlert,
   User,
   Users,
   Zap,
@@ -29,9 +30,11 @@ import {
   GhostBtn,
   PrimaryBtn,
   ProxModal,
+  SosContactsSheet,
   GO,
   ROSE,
   VIOLET,
+  type SosContact,
 } from "./drive-modals";
 import { DriveRide } from "./drive-ride";
 import {
@@ -45,7 +48,9 @@ import {
   getDriveActiveRide,
   getDriveContext,
   getDriveQuotes,
+  getSosContacts,
   requestDriveRide,
+  setSosContacts as saveSosContacts,
   type DriveActiveRide,
   type DriveContext,
   type DriveQuote,
@@ -109,6 +114,12 @@ export function DriveView() {
   // Modales
   const [depOpen, setDepOpen] = useState(false);
   const [proxOpen, setProxOpen] = useState(false);
+  // Contacts d'urgence (gérables dès l'accueil — sécurité).
+  const [sosContacts, setSosContactsState] = useState<SosContact[]>([]);
+  const [contactsOpen, setContactsOpen] = useState(false);
+  useEffect(() => {
+    void getSosContacts().then(setSosContactsState);
+  }, []);
 
   /* ───────── Boot : contexte + course active + GPS ───────── */
   useEffect(() => {
@@ -591,19 +602,23 @@ export function DriveView() {
             </div>
           )}
 
-          {/* Femme au volant (rose) — clientes au profil vérifié uniquement */}
-          {ctx.femaleFilterEnabled && ctx.isFemaleVerified && (
+          {/* Femme au volant (rose) — visible pour tous, actif pour les
+              clientes au profil vérifié (le serveur ré-applique la règle). */}
+          {ctx.femaleFilterEnabled && (
             <OptRow
               color={ROSE}
               soft="rgba(236,72,153,.13)"
               icon={<User className="size-[18px]" />}
               title={t("female.title")}
               sub={
-                femaleOnly
-                  ? t("female.subOn")
-                  : t("female.subOff", { count: ctx.femaleOnlineCount })
+                !ctx.isFemaleVerified
+                  ? t("female.subLocked")
+                  : femaleOnly
+                    ? t("female.subOn")
+                    : t("female.subOff", { count: ctx.femaleOnlineCount })
               }
               on={femaleOnly}
+              disabled={!ctx.isFemaleVerified}
               onToggle={() => setFemaleOnly((v) => !v)}
             />
           )}
@@ -650,7 +665,7 @@ export function DriveView() {
 
   /* ════════════════ ACCUEIL DRIVE (trajet) ════════════════ */
   return (
-    <div className="drive-jakarta fixed inset-0 z-40 bg-[var(--d-page)]">
+    <div className="drive-jakarta drive-screen z-40 bg-[var(--d-page)]">
       <DriveMap
         markers={pickup ? [{ id: "me", pos: pickup, kind: "me" }] : []}
         padding={{ top: 100, bottom: 420, left: 60, right: 60 }}
@@ -667,6 +682,16 @@ export function DriveView() {
         className="absolute top-3 right-4 z-10 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
       >
         <History className="size-3.5" /> {t("history")}
+      </button>
+      {/* Contacts d'urgence (gestion : ajouter / appeler / retirer) */}
+      <button
+        type="button"
+        onClick={() => setContactsOpen(true)}
+        aria-label={t("sosContacts.title")}
+        className="absolute top-[54px] right-4 z-10 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
+        style={{ color: ROSE }}
+      >
+        <ShieldAlert className="size-3.5" /> {t("sosContacts.title")}
       </button>
 
       {/* Feuille « Votre trajet » */}
@@ -809,6 +834,16 @@ export function DriveView() {
           setScreen("mappick");
         }}
       />
+      <SosContactsSheet
+        open={contactsOpen}
+        onClose={() => setContactsOpen(false)}
+        contacts={sosContacts}
+        onSave={async (next) => {
+          const res = await saveSosContacts(next);
+          if (res.ok) setSosContactsState(next);
+          return res;
+        }}
+      />
     </div>
   );
 }
@@ -896,7 +931,7 @@ function MapPickScreen({
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-[var(--d-page)]">
+    <div className="drive-jakarta drive-screen z-50 bg-[var(--d-page)]">
       <DriveMap
         markers={initial ? [{ id: "init", pos: initial, kind: "me" }] : []}
         interactive
@@ -1066,6 +1101,7 @@ function OptRow({
   title,
   sub,
   on,
+  disabled = false,
   onToggle,
 }: {
   color: string;
@@ -1074,10 +1110,15 @@ function OptRow({
   title: string;
   sub: string;
   on: boolean;
+  /** Option visible mais verrouillée (ex. profil non vérifié). */
+  disabled?: boolean;
   onToggle: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between border-t border-[var(--d-line)] py-3">
+    <div
+      className="flex items-center justify-between border-t border-[var(--d-line)] py-3"
+      style={disabled ? { opacity: 0.55 } : undefined}
+    >
       <div className="flex min-w-0 items-center gap-3">
         <span
           className="grid size-[34px] shrink-0 place-items-center rounded-[11px]"
@@ -1101,9 +1142,13 @@ function OptRow({
         type="button"
         role="switch"
         aria-checked={on}
-        onClick={onToggle}
+        aria-disabled={disabled}
+        onClick={disabled ? undefined : onToggle}
         className="relative h-7 w-12 shrink-0 rounded-full transition-colors"
-        style={{ background: on ? color : "var(--d-line)" }}
+        style={{
+          background: on ? color : "var(--d-line)",
+          cursor: disabled ? "not-allowed" : "pointer",
+        }}
       >
         <span
           className="absolute top-[3px] size-[22px] rounded-full bg-white shadow transition-all"

@@ -208,6 +208,135 @@ const DRIVERS = [
   },
 ];
 
+/** Dossiers EN ATTENTE (file de validation admin) : docs placeholder inclus. */
+const PENDING_DRIVERS = [
+  {
+    first: "Walid",
+    last: "Z.",
+    city: "Alger",
+    base: "alger",
+    phone: "0550100012",
+    gamme: "classic",
+    female: false,
+    vehicle: ["Seat", "Ibiza", "Grise", "00888-126-16"],
+    docs: ["permis_recto", "permis_verso", "carte_grise", "plaque", "selfie"],
+  },
+  {
+    first: "Amina",
+    last: "G.",
+    city: "Béjaïa",
+    base: "bejaia",
+    phone: "0550100013",
+    gamme: "confort",
+    female: true,
+    vehicle: ["Hyundai", "Tucson", "Noire", "00999-127-06"],
+    docs: [
+      "permis_recto",
+      "permis_verso",
+      "carte_grise",
+      "plaque",
+      "selfie",
+      "assurance",
+    ],
+  },
+];
+
+const DOC_LABELS = {
+  permis_recto: "PERMIS (RECTO)",
+  permis_verso: "PERMIS (VERSO)",
+  carte_grise: "CARTE GRISE",
+  plaque: "PLAQUE",
+  selfie: "SELFIE",
+  assurance: "ASSURANCE",
+};
+
+/** Placeholder SVG lisible (aperçu admin) pour un document de démo. */
+function placeholderSvg(title, name) {
+  return Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400">
+  <rect width="640" height="400" fill="#EEEEFD"/>
+  <rect x="20" y="20" width="600" height="360" rx="18" fill="#fff" stroke="#5B5BE6" stroke-width="3"/>
+  <text x="320" y="170" text-anchor="middle" font-family="Arial" font-size="34" font-weight="bold" fill="#5B5BE6">${title}</text>
+  <text x="320" y="225" text-anchor="middle" font-family="Arial" font-size="22" fill="#0B0C12">${name} — document de DÉMO</text>
+  <text x="320" y="265" text-anchor="middle" font-family="Arial" font-size="16" fill="#6B7280">Pièce factice pour tester la validation super admin</text>
+</svg>`,
+    "utf8"
+  );
+}
+
+async function seedPending(supa, db) {
+  for (const d of PENDING_DRIVERS) {
+    const email = `${d.phone}@chauffeurs.coligo.local`;
+    const fullName = `${d.first} ${d.last}`;
+    const dup = await db.query("SELECT id FROM chauffeurs WHERE phone=$1", [
+      d.phone,
+    ]);
+    let chId = dup.rows[0]?.id;
+    if (!chId) {
+      const { data: authData, error: authErr } =
+        await supa.auth.admin.createUser({
+          email,
+          password: d.phone,
+          email_confirm: true,
+        });
+      let userId = authData?.user?.id;
+      if (authErr) {
+        const { data: list } = await supa.auth.admin.listUsers({
+          perPage: 1000,
+        });
+        userId = list?.users?.find((u) => u.email === email)?.id;
+        if (!userId) throw new Error(`auth ${email}: ${authErr.message}`);
+      }
+      const ins = await db.query(
+        `INSERT INTO chauffeurs (user_id, full_name, first_name, phone, city, wilaya,
+           gamme, is_female, is_female_verified, is_verified, submitted_at, is_demo,
+           vehicle_make, vehicle_model, vehicle_color, vehicle_plate, birth_date)
+         VALUES ($1,$2,$3,$4,$5,$5,$6,$7,$7,false,now(),true,$8,$9,$10,$11,'1995-09-03')
+         RETURNING id`,
+        [
+          userId,
+          fullName,
+          d.first,
+          d.phone,
+          d.city,
+          d.gamme,
+          d.female,
+          d.vehicle[0],
+          d.vehicle[1],
+          d.vehicle[2],
+          d.vehicle[3],
+        ]
+      );
+      chId = ins.rows[0].id;
+    }
+    // Documents placeholder (statut 'pending' → file de validation).
+    for (const kind of d.docs) {
+      const existing = await db.query(
+        "SELECT id FROM chauffeur_documents WHERE chauffeur_id=$1 AND kind=$2",
+        [chId, kind]
+      );
+      if (existing.rows[0]) continue;
+      const path = `chauffeur/${chId}/${kind}-demo.svg`;
+      const { error: upErr } = await supa.storage
+        .from("driver-docs")
+        .upload(path, placeholderSvg(DOC_LABELS[kind], fullName), {
+          contentType: "image/svg+xml",
+          upsert: true,
+        });
+      if (upErr && !String(upErr.message).includes("exists"))
+        throw new Error(`upload ${kind}: ${upErr.message}`);
+      await db.query(
+        "INSERT INTO chauffeur_documents (chauffeur_id, kind, url) VALUES ($1,$2,$3) ON CONFLICT (chauffeur_id, kind) DO NOTHING",
+        [chId, kind, path]
+      );
+    }
+    console.log(
+      `✓ ${fullName.padEnd(12)} ${d.city.padEnd(8)} ${d.gamme.padEnd(8)} ` +
+        `${d.female ? "F" : "H"}  DOSSIER EN ATTENTE (${d.docs.length} pièces)  tél/mdp: ${d.phone}`
+    );
+  }
+}
+
 const DEMO_CLIENT_EMAIL = "demo.drive.client@coligo.local";
 
 async function main() {
@@ -279,9 +408,9 @@ async function main() {
       // 2. Profil chauffeur VÉRIFIÉ (dossier validé) + véhicule + gamme.
       const ins = await db.query(
         `INSERT INTO chauffeurs (user_id, full_name, first_name, phone, city, wilaya,
-           gamme, is_female, is_female_verified, is_verified, verified_at, submitted_at,
+           gamme, is_female, is_female_verified, is_verified, verified_at, submitted_at, is_demo,
            vehicle_make, vehicle_model, vehicle_color, vehicle_plate, birth_date)
-         VALUES ($1,$2,$3,$4,$5,$5,$6,$7,$7,true,now(),now(),$8,$9,$10,$11,'1992-05-12')
+         VALUES ($1,$2,$3,$4,$5,$5,$6,$7,$7,true,now(),now(),true,$8,$9,$10,$11,'1992-05-12')
          RETURNING id`,
         [
           userId,
@@ -358,6 +487,14 @@ async function main() {
         `★${d.rating}  ${d.dKm} km  ${d.online ? "EN LIGNE" : "hors ligne"}  tél/mdp: ${d.phone}`
     );
   }
+
+  // Dossiers EN ATTENTE pour la file de validation super admin.
+  await seedPending(supa, db);
+
+  // Rattrapage : tous les comptes de démo sont marqués is_demo (répondeur).
+  await db.query(
+    "UPDATE chauffeurs SET is_demo=true WHERE phone LIKE '05501000%'"
+  );
 
   // Vérification finale.
   const check = await db.query(

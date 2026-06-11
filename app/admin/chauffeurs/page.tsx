@@ -192,7 +192,14 @@ export default async function AdminChauffeursPage() {
             <tbody>
               {rows.map((c) => (
                 <tr key={c.id} className="border-border border-t">
-                  <td className="px-3 py-2 font-medium">{c.full_name}</td>
+                  <td className="px-3 py-2 font-medium">
+                    <a
+                      href={`/admin/chauffeurs/${c.id}`}
+                      className="text-primary-700 hover:underline"
+                    >
+                      {c.full_name}
+                    </a>
+                  </td>
                   <td className="text-muted px-3 py-2 tabular-nums">
                     {c.phone}
                   </td>

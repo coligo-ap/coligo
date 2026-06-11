@@ -1074,3 +1074,22 @@ export async function setChauffeurSosContacts(
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
+
+/** CCP du chauffeur (facultatif — requis avant le premier versement). */
+export async function setChauffeurCcp(
+  ccpNumber: string,
+  ccpKey: string
+): Promise<{ ok: boolean; error?: string }> {
+  const ch = await getCurrentChauffeur();
+  if (!ch) return { ok: false, error: "auth" };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("chauffeurs")
+    .update({
+      ccp_number: ccpNumber.trim().slice(0, 30) || null,
+      ccp_key: ccpKey.trim().slice(0, 5) || null,
+    })
+    .eq("id", ch.id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

@@ -57,7 +57,7 @@ export function ShareTrackView({ token }: { token: string }) {
   const finished = ride.status === "completed";
 
   return (
-    <div className="fixed inset-0 bg-[var(--d-page)]">
+    <div className="drive-screen bg-[var(--d-page)]">
       <DriveMap
         markers={[
           ...(carPos ? [{ id: "car", pos: carPos, kind: "car" as const }] : []),

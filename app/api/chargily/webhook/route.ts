@@ -265,6 +265,8 @@ export async function POST(req: NextRequest) {
       if (row?.ok && !row.refunded) {
         const { notifyChauffeursNewRide } = await import("@/lib/fcm/triggers");
         void notifyChauffeursNewRide({ rideId });
+        // Chauffeurs démo : offres automatiques dès que la carte est payée.
+        void rpc("drive_demo_respond", { p_ride_id: rideId });
       }
     }
     return NextResponse.json({ ok: true });

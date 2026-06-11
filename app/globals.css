@@ -492,3 +492,40 @@ body {
   color: #0b0c12;
   border-color: #0b0c12;
 }
+
+/* ── Drive : responsive DESKTOP — cadre « téléphone » centré (430px) ──
+   Le transform crée un containing block : les feuilles/modales/nav fixed
+   internes restent CONTENUES dans le cadre (rendu type app mobile). */
+.drive-screen {
+  position: fixed;
+  inset: 0;
+}
+@media (min-width: 1024px) {
+  .drive-screen {
+    left: 50%;
+    right: auto;
+    width: 430px;
+    transform: translateX(-50%);
+    overflow: hidden;
+    border-left: 1px solid var(--d-line);
+    border-right: 1px solid var(--d-line);
+    box-shadow: 0 0 60px -18px rgba(20, 22, 40, 0.35);
+  }
+  .drive-page {
+    max-width: 430px;
+    margin-inline: auto;
+    border-inline: 1px solid var(--d-line);
+    box-shadow: 0 0 60px -18px rgba(20, 22, 40, 0.35);
+  }
+  /* La bottom-nav (lg:hidden côté marketplace) reste visible DANS Drive. */
+  .drive-screen nav[aria-label="Navigation principale"],
+  .drive-page nav[aria-label="Navigation principale"] {
+    display: grid;
+  }
+  .drive-page nav[aria-label="Navigation principale"] {
+    max-width: 430px;
+    margin-inline: auto;
+    right: 0;
+    left: 0;
+  }
+}

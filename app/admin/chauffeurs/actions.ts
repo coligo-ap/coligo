@@ -302,3 +302,120 @@ export async function rejectSubPayment(
   revalidatePath("/admin/chauffeurs");
   return {};
 }
+
+// =============================================================================
+// VALIDATION PIÈCE PAR PIÈCE (mig 0148) + fiche chauffeur.
+// Obligatoire : permis recto/verso, carte grise, plaque, selfie.
+// Facultatif : assurance, adresse, CCP (requis avant le 1er versement).
+// =============================================================================
+
+export const REQUIRED_DOC_KINDS = [
+  "permis_recto",
+  "permis_verso",
+  "carte_grise",
+  "plaque",
+  "selfie",
+] as const;
+
+/** Valide ou refuse UNE pièce (avec motif transmis au chauffeur). */
+export async function setChauffeurDocStatus(
+  chauffeurId: string,
+  docId: string,
+  status: "approved" | "rejected",
+  note?: string | null
+): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("chauffeur_documents")
+    .update({
+      status,
+      review_note: note ?? null,
+      reviewed_by: await adminEmail(),
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", docId)
+    .eq("chauffeur_id", chauffeurId);
+  if (error) return { error: error.message };
+  await audit(`doc_${status}`, chauffeurId);
+  revalidatePath(`/admin/chauffeurs/${chauffeurId}`);
+  return {};
+}
+
+/** Met à jour la fiche (véhicule, adresse, CCP) depuis la carte grise & docs. */
+export async function updateChauffeurInfo(
+  chauffeurId: string,
+  patch: {
+    vehicle_make?: string | null;
+    vehicle_model?: string | null;
+    vehicle_color?: string | null;
+    vehicle_plate?: string | null;
+    gamme?: "classic" | "confort" | "moto";
+    home_addr_text?: string | null;
+    ccp_number?: string | null;
+    ccp_key?: string | null;
+    is_female?: boolean;
+    is_female_verified?: boolean;
+  }
+): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("chauffeurs")
+    .update(patch)
+    .eq("id", chauffeurId);
+  if (error) return { error: error.message };
+  await audit("update_chauffeur_info", chauffeurId);
+  revalidatePath(`/admin/chauffeurs/${chauffeurId}`);
+  return {};
+}
+
+/**
+ * Activation du compte GATÉE : toutes les pièces OBLIGATOIRES doivent être
+ * VALIDÉES (et l'identité complète) avant que le chauffeur puisse travailler.
+ */
+export async function approveChauffeurGated(
+  chauffeurId: string
+): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const [{ data: ch }, { data: docs }] = await Promise.all([
+    admin
+      .from("chauffeurs")
+      .select("first_name, full_name, phone, birth_date, city, wilaya")
+      .eq("id", chauffeurId)
+      .maybeSingle(),
+    admin
+      .from("chauffeur_documents")
+      .select("kind, status")
+      .eq("chauffeur_id", chauffeurId),
+  ]);
+  if (!ch) return { error: "Chauffeur introuvable." };
+
+  const missingId: string[] = [];
+  if (!ch.full_name?.trim()) missingId.push("nom/prénom");
+  if (!ch.phone?.trim()) missingId.push("téléphone");
+  if (!ch.birth_date) missingId.push("date de naissance");
+  if (!ch.city?.trim() && !ch.wilaya?.trim()) missingId.push("ville/wilaya");
+
+  const byKind = new Map((docs ?? []).map((d) => [d.kind, d.status]));
+  const missingDocs = REQUIRED_DOC_KINDS.filter(
+    (k) => byKind.get(k) !== "approved"
+  );
+  if (missingId.length > 0 || missingDocs.length > 0) {
+    const labels: Record<string, string> = {
+      permis_recto: "permis (recto)",
+      permis_verso: "permis (verso)",
+      carte_grise: "carte grise",
+      plaque: "photo de plaque",
+      selfie: "selfie",
+    };
+    return {
+      error:
+        "Activation impossible — à compléter/valider d'abord : " +
+        [...missingId, ...missingDocs.map((k) => labels[k] ?? k)].join(", ") +
+        ".",
+    };
+  }
+  return approveChauffeur(chauffeurId);
+}
