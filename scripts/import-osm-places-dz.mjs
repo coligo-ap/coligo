@@ -19,12 +19,40 @@ import pg from "pg";
 import { getDbUrl } from "./_supabase.mjs";
 
 const OVERPASS = "https://overpass-api.de/api/interpreter";
+// Localités + POI structurants : les clients donnent souvent un repère connu
+// (« Place Gueydon », « gare de Béjaïa », « stade ») plutôt qu'une adresse.
 const QUERY = `
 [out:json][timeout:300];
 area["ISO3166-1"="DZ"][admin_level=2]->.dz;
-node["place"~"^(city|town|village|hamlet|suburb|quarter|neighbourhood|locality|isolated_dwelling)$"]["name"](area.dz);
-out body;
+(
+  node["place"~"^(city|town|village|hamlet|suburb|quarter|neighbourhood|locality|isolated_dwelling|square)$"]["name"](area.dz);
+  way["place"="square"]["name"](area.dz);
+  nwr["amenity"~"^(hospital|clinic|university|college|bus_station|marketplace|townhall|place_of_worship)$"]["name"](area.dz);
+  nwr["railway"="station"]["name"](area.dz);
+  nwr["aeroway"~"^(aerodrome|terminal)$"]["name"](area.dz);
+  nwr["tourism"~"^(attraction|museum|hotel|zoo|theme_park)$"]["name"](area.dz);
+  nwr["leisure"~"^(park|stadium|beach_resort)$"]["name"](area.dz);
+  nwr["natural"="beach"]["name"](area.dz);
+  nwr["historic"]["name"](area.dz);
+  nwr["shop"="mall"]["name"](area.dz);
+);
+out center;
 `;
+
+/** Catégorie stockée dans feature_code (sert au bonus POI du RPC). */
+function categoryOf(t) {
+  if (t.place) return t.place;
+  if (t.railway === "station") return "station";
+  if (t.aeroway) return "aerodrome";
+  if (t.amenity) return t.amenity;
+  if (t.leisure === "stadium") return "stadium";
+  if (t.leisure) return t.leisure;
+  if (t.tourism) return t.tourism;
+  if (t.natural === "beach") return "beach";
+  if (t.shop === "mall") return "mall";
+  if (t.historic) return "historic";
+  return null;
+}
 
 // --- Normalisation (PARITÉ avec public.geo_skeleton / import-geonames) ------
 
@@ -59,19 +87,30 @@ async function main() {
   console.log(`   ${data.elements.length} nœuds reçus.`);
 
   const rows = [];
+  const dedupe = new Set(); // squelette principal + ~1 km (nœud vs way du même lieu)
   for (const el of data.elements) {
     const t = el.tags ?? {};
     const name = t["name:fr"] || t.name;
-    if (!name || !Number.isFinite(el.lat) || !Number.isFinite(el.lon)) continue;
+    const lat = Number.isFinite(el.lat) ? el.lat : el.center?.lat;
+    const lon = Number.isFinite(el.lon) ? el.lon : el.center?.lon;
+    if (!name || !Number.isFinite(lat) || !Number.isFinite(lon)) continue;
 
+    // Tous les noms connus, dont les ANCIENS (« Place Gueydon » → renommée
+    // « Place du 1er Novembre 1954 » : les habitants utilisent l'ancien nom).
     const variants = [
       ...new Set(
         [
           t.name,
           t["name:fr"],
           t["name:ar"],
+          t["name:kab"],
           t.alt_name,
           t["alt_name:fr"],
+          t.old_name,
+          t["old_name:fr"],
+          t.loc_name,
+          t.short_name,
+          t.official_name,
           t.int_name,
         ]
           .flatMap((v) => (v ? v.split(";") : []))
@@ -81,16 +120,21 @@ async function main() {
     ];
     if (variants.length === 0) continue;
 
+    const skels = [
+      ...new Set(variants.map(skeleton).filter((s) => s.length >= 3)),
+    ];
+    const key = `${skels[0] ?? fold(name)}|${lat.toFixed(2)}|${lon.toFixed(2)}`;
+    if (dedupe.has(key)) continue;
+    dedupe.add(key);
+
     rows.push({
       name,
-      lat: el.lat,
-      lng: el.lon,
-      feature_code: t.place,
+      lat,
+      lng: lon,
+      feature_code: categoryOf(t),
       population: Number(t.population) || 0,
       search_text: [...new Set(variants.map(fold))].join(" "),
-      skel: [
-        ...new Set(variants.map(skeleton).filter((s) => s.length >= 3)),
-      ].join("|"),
+      skel: skels.join("|"),
     });
   }
   console.log(`📍 ${rows.length} lieux OSM retenus.`);

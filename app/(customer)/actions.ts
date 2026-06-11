@@ -605,6 +605,24 @@ export async function geocodeSearch(input: {
     if (results.length >= 8) break;
   }
 
+  if (results.length === 0) {
+    // Recherche manquée → notée pour enrichissement manuel du gazetteer
+    // (le super-admin voit ce que les clients cherchent en vain).
+    try {
+      const supabase = await createClient();
+      const from = supabase.from.bind(supabase) as unknown as (t: string) => {
+        insert: (v: Record<string, unknown>) => PromiseLike<unknown>;
+      };
+      await from("geo_search_misses").insert({
+        q,
+        lat: lat ?? null,
+        lng: lng ?? null,
+      });
+    } catch {
+      /* best effort */
+    }
+  }
+
   return { ok: true, results };
 }
 
