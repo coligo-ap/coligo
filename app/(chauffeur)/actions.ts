@@ -523,6 +523,34 @@ export async function offerRide(
   return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
 }
 
+/** Refus explicite (mig 0149) : la demande disparaît pour ce chauffeur. */
+export async function declineRide(
+  rideId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const rpc = await rpcClient();
+  const { data, error } = await rpc("chauffeur_decline_ride", {
+    p_ride_id: rideId,
+  });
+  if (error) return { ok: false, error: error.message };
+  const row = (Array.isArray(data) ? data[0] : data) as {
+    ok?: boolean;
+    reason?: string;
+  };
+  return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
+}
+
+/** Taux de commission effectif (plan) — pour le net estimé des demandes. */
+export async function getChauffeurPlanRate(): Promise<number> {
+  const ch = await getCurrentChauffeur();
+  if (!ch) return 0.08;
+  const rpc = await rpcClient();
+  const { data } = await rpc("resolve_drive_plan", { p_chauffeur_id: ch.id });
+  const row = (Array.isArray(data) ? data[0] : null) as {
+    rate?: number;
+  } | null;
+  return row?.rate == null ? 0.08 : Number(row.rate);
+}
+
 // ---------------------------------------------------------------------------
 // COURSE ACTIVE (attribution → prise en charge → course → fin)
 // ---------------------------------------------------------------------------
@@ -546,6 +574,7 @@ export type ChauffeurActiveRide = {
   customer_rating: number | null;
   commission_da: number | null;
   net_da: number | null;
+  share_token: string | null;
 };
 
 export async function getChauffeurActiveRide(): Promise<ChauffeurActiveRide | null> {
@@ -555,7 +584,7 @@ export async function getChauffeurActiveRide(): Promise<ChauffeurActiveRide | nu
   const { data } = await admin
     .from("rides")
     .select(
-      "id, status, pickup_text, dest_text, pickup_lat, pickup_lng, dest_lat, dest_lng, distance_km, agreed_price_da, proposed_price_da, boost_amount_da, payment_method, gamme, proxy_name, customer_id, commission_da, chauffeur_net_da, customers(full_name)"
+      "id, status, pickup_text, dest_text, pickup_lat, pickup_lng, dest_lat, dest_lng, distance_km, agreed_price_da, proposed_price_da, boost_amount_da, payment_method, gamme, proxy_name, customer_id, commission_da, chauffeur_net_da, share_token, customers(full_name)"
     )
     .eq("chauffeur_id", ch.id)
     .in("status", ["accepted", "arriving", "arrived", "in_progress"])
@@ -593,6 +622,7 @@ export async function getChauffeurActiveRide(): Promise<ChauffeurActiveRide | nu
       rating == null ? null : Math.round(Number(rating) * 10) / 10,
     commission_da: data.commission_da,
     net_da: data.chauffeur_net_da,
+    share_token: data.share_token ?? null,
   };
 }
 

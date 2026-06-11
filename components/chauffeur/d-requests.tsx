@@ -4,18 +4,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Check, Home, Map as MapIcon, Zap } from "lucide-react";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
+import { createClient } from "@/lib/supabase/client";
 import { DriveMap } from "@/components/customer/drive/drive-map";
 import {
   VIOLET,
   GO,
   ROSE,
+  RED,
   PrimaryBtn,
 } from "@/components/customer/drive/drive-modals";
 import { DNav } from "./d-ui";
 import {
   chauffeurHeartbeat,
+  declineRide,
   getChauffeurActiveRide,
   getChauffeurGate,
+  getChauffeurPlanRate,
   getNearbyRides,
   offerRide,
   type NearbyRide,
@@ -48,8 +52,14 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const [sent, setSent] = useState<Record<string, number>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [mapReq, setMapReq] = useState<NearbyRide | null>(null);
+  // Net estimé : taux de commission du plan (free 8 % / pro / premium).
+  const [planRate, setPlanRate] = useState(0.08);
+  const [chId, setChId] = useState<string | null>(null);
   const coordsRef = useRef(coords);
   coordsRef.current = coords;
+  useEffect(() => {
+    void getChauffeurPlanRate().then(setPlanRate);
+  }, []);
 
   // « Je rentre chez moi » (G4) : toggle partagé avec l'accueil + domicile
   // géocodé + tolérance angulaire (config admin).
@@ -63,7 +73,8 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   useEffect(() => {
     const on = localStorage.getItem(HOME_DIR_KEY) === "1";
     void getChauffeurGate().then((g) => {
-      if (g)
+      if (g) {
+        setChId(g.id);
         setHomeDir({
           on,
           addr: g.homeAddr,
@@ -71,6 +82,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
           lng: g.homeLng,
           tolerance: g.homeDirToleranceDeg,
         });
+      }
     });
   }, []);
 
@@ -93,6 +105,47 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     const id = setInterval(poll, 8000);
     return () => clearInterval(id);
   }, [poll]);
+
+  // Temps réel (mig 0149) : nouvelles demandes instantanées + redirection
+  // immédiate quand le client accepte UNE de mes offres.
+  useEffect(() => {
+    const supabase = createClient();
+    const chans = [
+      supabase
+        .channel("nearby-rides")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "rides" },
+          () => void poll()
+        )
+        .subscribe(),
+      ...(chId
+        ? [
+            supabase
+              .channel(`my-offers-${chId}`)
+              .on(
+                "postgres_changes",
+                {
+                  event: "UPDATE",
+                  schema: "public",
+                  table: "ride_offers",
+                  filter: `chauffeur_id=eq.${chId}`,
+                },
+                (payload) => {
+                  if (
+                    (payload.new as { status?: string }).status === "accepted"
+                  )
+                    router.replace("/chauffeur/course");
+                }
+              )
+              .subscribe(),
+          ]
+        : []),
+    ];
+    return () => {
+      for (const c of chans) void supabase.removeChannel(c);
+    };
+  }, [poll, chId, router]);
 
   const total = (q: NearbyRide) => q.proposed_price_da + q.boost_amount_da;
   // Filtre directionnel « je rentre chez moi » : ne garder que les demandes
@@ -130,8 +183,23 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
             ? "Demande réservée aux conductrices."
             : res.error === "gamme_mismatch"
               ? "Cette demande ne correspond pas à votre gamme."
-              : (res.error ?? "Proposition impossible"),
+              : res.error === "below_floor"
+                ? "Prix trop bas pour ce trajet — remontez votre offre."
+                : (res.error ?? "Proposition impossible"),
       }));
+  };
+
+  // Refus explicite : la demande disparaît pour ce chauffeur (mig 0149).
+  const decline = async (q: NearbyRide) => {
+    setReqs((list) => list.filter((x) => x.id !== q.id));
+    await declineRide(q.id);
+  };
+
+  // Plancher local de la contre-offre (le serveur fait foi : ~70 % du
+  // conseillé) — la contre-offre peut descendre SOUS le prix client.
+  const minCounter = (q: NearbyRide) => {
+    const ref = q.suggested_price_da > 0 ? q.suggested_price_da : total(q);
+    return Math.max(priceStep, Math.round((ref * 0.7) / priceStep) * priceStep);
   };
 
   /* ── Écran : trajet sur la carte (s-dmap) ── */
@@ -410,13 +478,32 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
               </div>
             ) : (
               <>
+                {/* Aide à la décision : prix conseillé par l'algorithme,
+                    net estimé (après commission du plan) et rentabilité. */}
+                <p className="mb-2 text-center text-[11px] font-semibold text-[var(--d-muted)]">
+                  Conseillé :{" "}
+                  <b className="text-[var(--d-ink)]">
+                    {q.suggested_price_da} DA
+                  </b>{" "}
+                  · net estimé ≈{" "}
+                  <b style={{ color: GO }}>
+                    {Math.round(myPrice * (1 - planRate))} DA
+                  </b>{" "}
+                  ·{" "}
+                  {Math.round(
+                    myPrice / Math.max(0.5, q.distance_km + q.pickup_dist_km)
+                  )}{" "}
+                  DA/km
+                </p>
                 <div className="mb-2.5 flex items-center justify-center gap-3">
                   <button
                     type="button"
                     onClick={() =>
                       setMyPrices((p) => ({
                         ...p,
-                        [q.id]: Math.max(cp, myPrice - priceStep),
+                        // Contre-offre libre : possible SOUS le prix client,
+                        // jamais sous le plancher (serveur = below_floor).
+                        [q.id]: Math.max(minCounter(q), myPrice - priceStep),
                       }))
                     }
                     className="grid size-10 place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-xl font-bold"
@@ -470,6 +557,14 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
                     Accepter {cp}
                   </button>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => void decline(q)}
+                  className="mt-2 block w-full text-center text-[12px] font-bold"
+                  style={{ color: RED }}
+                >
+                  Refuser cette course
+                </button>
               </>
             )}
           </div>

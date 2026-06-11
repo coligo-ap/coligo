@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
+  Check,
+  Copy,
   Crosshair,
   MapPin,
   MessageCircle,
@@ -26,6 +28,28 @@ export const VIOLET = "#5B5BE6";
 export const GO = "#16B364";
 export const ROSE = "#EC4899";
 export const RED = "#E5484D";
+
+/** Copie dans le presse-papiers (repli execCommand pour les WebViews). */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
 
 /* ─────────────── Base : overlay + feuille montante (maquette .ov/.md) ─────────────── */
 
@@ -381,6 +405,7 @@ export function ShareModal({
 }) {
   const t = useTranslations("drive.share");
   const text = t("message", { name: chName, url: shareUrl });
+  const [copied, setCopied] = useState(false);
   return (
     <Sheet open={open} onClose={onClose}>
       <SheetTitle>{t("title")}</SheetTitle>
@@ -431,6 +456,25 @@ export function ShareModal({
           <Smartphone className="size-4" /> SMS
         </button>
       </div>
+      {/* Copier le lien de suivi (partage libre : Telegram, e-mail…) */}
+      <button
+        type="button"
+        className="drive-sora mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] text-[13.5px] font-bold"
+        style={
+          copied
+            ? { borderColor: GO, color: GO }
+            : { borderColor: "var(--d-line)" }
+        }
+        onClick={async () => {
+          if (await copyText(shareUrl)) {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2500);
+          }
+        }}
+      >
+        {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+        {copied ? t("copied") : t("copy")}
+      </button>
       {/* Partage direct au CONTACT D'URGENCE enregistré (un tap). */}
       {emergencyContacts.length > 0 && (
         <button

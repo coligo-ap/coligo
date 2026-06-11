@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   BadgeCheck,
   Check,
+  Copy,
   Loader2,
   MessageSquare,
   Send,
@@ -19,6 +20,7 @@ import { haversineKm } from "@/lib/delivery/distance";
 import { DriveMap } from "@/components/customer/drive/drive-map";
 import {
   CancelModal,
+  copyText,
   GhostBtn,
   PrimaryBtn,
   Sheet,
@@ -82,6 +84,8 @@ export function DCourse() {
   const [error, setError] = useState<string | null>(null);
   const [endCode, setEndCode] = useState("");
   const [askCode, setAskCode] = useState(false);
+  // Lien public de suivi t/{token} — copiable pour le partager librement.
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Back-to-back
   const [nextOff, setNextOff] = useState<B2BNext | null>(null);
@@ -237,6 +241,9 @@ export function DCourse() {
   }
 
   const me = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
+  const shareUrl = ride.share_token
+    ? `${typeof window !== "undefined" ? window.location.origin : "https://coligo.app"}/t/${ride.share_token}`
+    : null;
   const pickup =
     ride.pickup_lat != null
       ? { lat: ride.pickup_lat, lng: ride.pickup_lng! }
@@ -532,6 +539,34 @@ export function DCourse() {
           </p>
         )}
 
+        {/* Partage du suivi : lien public t/{token}, copiable (sans compte) */}
+        {shareUrl && (
+          <button
+            type="button"
+            onClick={async () => {
+              if (await copyText(shareUrl)) {
+                setLinkCopied(true);
+                setTimeout(() => setLinkCopied(false), 2500);
+              }
+            }}
+            className="mb-2.5 flex h-[46px] w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] text-[12.5px] font-bold"
+            style={
+              linkCopied
+                ? { borderColor: GO, color: GO }
+                : { borderColor: "var(--d-line)" }
+            }
+          >
+            {linkCopied ? (
+              <Check className="size-4" />
+            ) : (
+              <Copy className="size-4" />
+            )}
+            {linkCopied
+              ? "Lien copié ✓"
+              : "Suivi de la course · copier le lien"}
+          </button>
+        )}
+
         {error && (
           <p
             className="mb-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
@@ -642,7 +677,7 @@ export function DCourse() {
         onClose={() => setSosOpen(false)}
         rideId={ride.id}
         side="driver"
-        shareUrl={null}
+        shareUrl={shareUrl}
         position={me}
         contacts={sosContacts}
         onManageContacts={() => {

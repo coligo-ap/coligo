@@ -153,33 +153,52 @@ export async function getDriveContext(): Promise<DriveContext> {
 export type DriveQuote = {
   recommended: number;
   floor: number;
+  /** Prix mini conseillé (très attractif, moins de chauffeurs). */
+  mini: number;
+  /** Prix « rapide » (propositions plus vite). */
+  fast: number;
   low: number;
   high: number;
 };
 
+/**
+ * Devis intelligent (mig 0149) : mini / recommandé / rapide — barème +
+ * temps + heure de pointe + demande/offre locale + apprentissage des prix
+ * réellement acceptés, puis remise de lancement (5–12 %).
+ */
 export async function getDriveQuotes(
-  distanceKm: number
+  distanceKm: number,
+  pickup?: { lat: number; lng: number } | null
 ): Promise<Record<"classic" | "confort" | "moto", DriveQuote>> {
   const rpc = await rpcClient();
   const gammes = ["classic", "confort", "moto"] as const;
   const out = {} as Record<(typeof gammes)[number], DriveQuote>;
   await Promise.all(
     gammes.map(async (g) => {
-      const [reco, floor, range] = await Promise.all([
-        rpc("drive_recommended_price", {
+      const [smart, range] = await Promise.all([
+        rpc("drive_smart_quote", {
           p_distance_km: distanceKm,
           p_gamme: g,
+          p_pickup_lat: pickup?.lat ?? null,
+          p_pickup_lng: pickup?.lng ?? null,
         }),
-        rpc("drive_price_floor", { p_distance_km: distanceKm, p_gamme: g }),
         rpc("drive_similar_range", { p_distance_km: distanceKm, p_gamme: g }),
       ]);
+      const q = (Array.isArray(smart.data) ? smart.data[0] : null) as {
+        floor_da: number;
+        mini_da: number;
+        reco_da: number;
+        fast_da: number;
+      } | null;
       const r = (Array.isArray(range.data) ? range.data[0] : null) as {
         low_da: number;
         high_da: number;
       } | null;
       out[g] = {
-        recommended: typeof reco.data === "number" ? reco.data : 0,
-        floor: typeof floor.data === "number" ? floor.data : 0,
+        recommended: q?.reco_da ?? 0,
+        floor: q?.floor_da ?? 0,
+        mini: q?.mini_da ?? 0,
+        fast: q?.fast_da ?? 0,
         low: r?.low_da ?? 0,
         high: r?.high_da ?? 0,
       };
@@ -273,6 +292,8 @@ export type DriveOffer = {
   is_favorite: boolean;
   eta_km: number | null;
   eta_min: number | null;
+  /** Score de classement intelligent (mig 0149) — tri « Recommandés ». */
+  rank_score: number;
 };
 
 export async function getDriveOffers(rideId: string): Promise<DriveOffer[]> {
@@ -295,6 +316,7 @@ export async function getDriveOffers(rideId: string): Promise<DriveOffer[]> {
       eta_km: etaKm,
       eta_min:
         etaKm == null ? null : Math.max(1, Math.round((etaKm / 25) * 60)),
+      rank_score: Number(o.rank_score ?? 0),
     };
   });
 }
@@ -645,10 +667,16 @@ export async function toggleFavoriteChauffeur(
     .maybeSingle();
   if (!cust) return { ok: false, error: "no_customer" };
   if (on) {
+    // RLS (mig 0149) : insert refusé tant qu'aucune course TERMINÉE avec ce
+    // chauffeur — le bouton n'apparaît d'ailleurs qu'en fin de course.
     const { error } = await supabase
       .from("customer_favorite_chauffeurs")
       .upsert({ customer_id: cust.id, chauffeur_id: chauffeurId });
-    if (error) return { ok: false, error: error.message };
+    if (error)
+      return {
+        ok: false,
+        error: error.code === "42501" ? "no_completed_ride" : error.message,
+      };
   } else {
     const { error } = await supabase
       .from("customer_favorite_chauffeurs")

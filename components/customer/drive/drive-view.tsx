@@ -183,10 +183,15 @@ export function DriveView() {
   useEffect(() => {
     if (screen !== "price" || distanceKm <= 0) return;
     void (async () => {
-      const q = await getDriveQuotes(distanceKm);
+      // Devis intelligent : le départ permet l'ajustement demande/offre locale.
+      const q = await getDriveQuotes(
+        distanceKm,
+        pickup ? { lat: pickup.lat, lng: pickup.lng } : null
+      );
       setQuotes(q);
       setPrice((p) => (p > 0 ? p : q.classic.recommended));
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, distanceKm]);
 
   const quote = quotes?.[gamme] ?? null;
@@ -381,11 +386,15 @@ export function DriveView() {
   if (screen === "price" && pickup && dest) {
     const floorLabel = !quote
       ? null
-      : price < quote.recommended
-        ? t("price.belowReco", { reco: quote.recommended })
-        : price === quote.recommended
-          ? t("price.atReco")
-          : t("price.aboveReco", { reco: quote.recommended });
+      : price === quote.mini
+        ? t("price.tierMiniHint")
+        : price === quote.fast
+          ? t("price.tierFastHint")
+          : price < quote.recommended
+            ? t("price.belowReco", { reco: quote.recommended })
+            : price === quote.recommended
+              ? t("price.atReco")
+              : t("price.aboveReco", { reco: quote.recommended });
     return (
       <div className="fixed inset-0 z-40 flex flex-col bg-[var(--d-surface)]">
         {/* Carte du trajet (haut d'écran, maquette s-price) */}
@@ -507,6 +516,49 @@ export function DriveView() {
             <p className="text-xs font-semibold text-[var(--d-muted)]">
               {t("price.offerLabel")}
             </p>
+            {/* Fourchette intelligente : mini / recommandé / rapide (mig 0149) */}
+            {quote && (
+              <div className="mt-2 flex gap-1.5">
+                {(
+                  [
+                    ["mini", quote.mini, t("price.tierMini")],
+                    ["reco", quote.recommended, t("price.tierReco")],
+                    ["fast", quote.fast, t("price.tierFast")],
+                  ] as const
+                ).map(([k, v, label]) => {
+                  const on = price === v;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => {
+                        setPrice(v);
+                        if (boostOn) setBoostAmt(defBoost(v));
+                      }}
+                      className="flex flex-1 flex-col items-center rounded-[12px] border-[1.5px] px-1 py-2"
+                      style={
+                        on
+                          ? {
+                              borderColor: VIOLET,
+                              background: "#fff",
+                              color: VIOLET,
+                            }
+                          : {
+                              borderColor: "var(--d-line)",
+                              background: "var(--d-surface)",
+                              color: "var(--d-muted)",
+                            }
+                      }
+                    >
+                      <span className="text-[10px] font-bold">{label}</span>
+                      <b className="drive-sora text-[13px] font-extrabold">
+                        {v} DA
+                      </b>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             <div className="my-1.5 flex items-center justify-center gap-4">
               <button
                 type="button"

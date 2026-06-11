@@ -776,6 +776,11 @@
       "aboveReco": "Au-dessus du recommandé ({reco} DA)",
       "boostIncluded": "boost +{amount} DA inclus",
       "similar": "Courses similaires :",
+      "tierMini": "Mini",
+      "tierReco": "Recommandé",
+      "tierFast": "Rapide",
+      "tierMiniHint": "Prix très attractif — parfois moins de chauffeurs intéressés",
+      "tierFastHint": "Un peu plus élevé — des propositions plus vite",
       "propose": "Proposer {price} DA"
     },
     "pay": {
@@ -812,8 +817,10 @@
       "boostedChip": "Demande boostée · +{amount} DA",
       "boostBar": "Pas le bon prix ? Boostez (+{amount} DA)",
       "boostBarSub": "Votre demande passe en priorité",
+      "sortBest": "Recommandés",
       "sortCheap": "Moins chers",
       "sortRated": "Mieux notés",
+      "tagTop": "Top chauffeur",
       "femaleFallbackTitle": "Aucune conductrice en ligne pour le moment.",
       "femaleFallbackSub": "Nous vous proposons des chauffeurs (en noir) — ou patientez, vous serez prévenue dès qu'une conductrice se connecte.",
       "tagFav": "Favori",
@@ -864,6 +871,8 @@
       "livePosition": "position en direct",
       "message": "Je suis en course avec {name} (Coligo Drive). Suivez ma position en direct : {url}",
       "note": "Le lien contient : position du véhicule, plaque, photo et note du chauffeur, heure d'arrivée estimée.",
+      "copy": "Copier le lien",
+      "copied": "Lien copié ✓",
       "close": "Fermer",
       "toEmergency": "Envoyer au contact d'urgence ({name})"
     },

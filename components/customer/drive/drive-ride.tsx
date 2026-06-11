@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
@@ -8,7 +8,6 @@ import {
   BadgeCheck,
   CreditCard,
   Gift,
-  Heart,
   Loader2,
   MessageSquare,
   Phone,
@@ -18,6 +17,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { cn, formatDA } from "@/lib/utils";
 import { haversineKm } from "@/lib/delivery/distance";
 import { DriveMap } from "./drive-map";
@@ -114,6 +114,30 @@ export function DriveRide({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshActive]);
 
+  // Temps réel : tout changement de la course (acceptation, statut, prix
+  // convenu) rafraîchit instantanément — le poll 4 s reste en filet.
+  const activeId = active?.id ?? null;
+  useEffect(() => {
+    if (!activeId) return;
+    const supabase = createClient();
+    const ch = supabase
+      .channel(`ride-${activeId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "rides",
+          filter: `id=eq.${activeId}`,
+        },
+        () => void refreshActive()
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [activeId, refreshActive]);
+
   if (done) return <DoneScreen ride={done} onExit={onExit} />;
   if (cancelled)
     return (
@@ -175,7 +199,7 @@ function SearchScreen({
 }) {
   const t = useTranslations("drive.search");
   const [offers, setOffers] = useState<DriveOffer[]>([]);
-  const [sort, setSort] = useState<"cheap" | "rated">("cheap");
+  const [sort, setSort] = useState<"best" | "cheap" | "rated">("best");
   const [busy, setBusy] = useState(false);
   const [boosting, setBoosting] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -187,24 +211,56 @@ function SearchScreen({
   const waitingCard =
     !!ride && ride.payment_method === "card" && !ride.online_paid;
 
+  const stopRef = useRef(false);
+  const poll = useCallback(async () => {
+    if (!rideId) return;
+    const o = await getDriveOffers(rideId);
+    if (!stopRef.current) setOffers(o);
+  }, [rideId]);
+
   useEffect(() => {
     if (!rideId) return;
-    let stop = false;
-    const poll = async () => {
-      const o = await getDriveOffers(rideId);
-      if (!stop) setOffers(o);
-    };
+    stopRef.current = false;
     void poll();
-    const id = setInterval(poll, 4000);
+    const id = setInterval(() => void poll(), 4000);
     return () => {
-      stop = true;
+      stopRef.current = true;
       clearInterval(id);
     };
-  }, [rideId]);
+  }, [rideId, poll]);
+
+  // Temps réel (mig 0149) : chaque offre / contre-offre / retrait d'un
+  // chauffeur apparaît instantanément — le poll 4 s reste en filet.
+  useEffect(() => {
+    if (!rideId) return;
+    const supabase = createClient();
+    const ch = supabase
+      .channel(`ride-offers-${rideId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "ride_offers",
+          filter: `ride_id=eq.${rideId}`,
+        },
+        () => void poll()
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [rideId, poll]);
 
   const sorted = useMemo(() => {
     const list = [...offers];
-    if (sort === "cheap")
+    if (sort === "best")
+      // Classement intelligent : note, satisfaction, fiabilité, ponctualité,
+      // expérience, ancienneté, proximité + coef Premium (mig 0149).
+      list.sort(
+        (a, b) => b.rank_score - a.rank_score || a.price_da - b.price_da
+      );
+    else if (sort === "cheap")
       list.sort(
         (a, b) => a.price_da - b.price_da || (b.rating ?? 0) - (a.rating ?? 0)
       );
@@ -217,6 +273,7 @@ function SearchScreen({
   }, [offers, sort]);
   const minPrice = Math.min(...offers.map((o) => o.price_da));
   const maxRating = Math.max(...offers.map((o) => o.rating ?? 0));
+  const maxScore = Math.max(...offers.map((o) => o.rank_score));
   const femaleFallback =
     !!ride?.female_only && offers.some((o) => !o.is_female);
 
@@ -239,15 +296,8 @@ function SearchScreen({
     setBusy(false);
   };
 
-  // (Dé)favoriser depuis la liste des offres — optimiste (checklist C3).
-  const toggleFav = async (chauffeurId: string, on: boolean) => {
-    setOffers((list) =>
-      list.map((x) =>
-        x.chauffeur_id === chauffeurId ? { ...x, is_favorite: on } : x
-      )
-    );
-    await toggleFavoriteChauffeur(chauffeurId, on);
-  };
+  // NB : plus d'ajout aux favoris ici — un chauffeur ne peut devenir favori
+  // qu'APRÈS une course terminée avec lui (écran de fin, RLS mig 0149).
 
   return (
     <div className="drive-jakarta drive-screen z-40 bg-[var(--d-page)]">
@@ -391,6 +441,7 @@ function SearchScreen({
         <div className="mb-3 flex gap-2">
           {(
             [
+              ["best", t("sortBest")],
               ["cheap", t("sortCheap")],
               ["rated", t("sortRated")],
             ] as const
@@ -453,6 +504,12 @@ function SearchScreen({
               tag = (
                 <Tag color={VIOLET} soft="#EEEEFD">
                   ♥ {t("tagFav")}
+                </Tag>
+              );
+            else if (sort === "best" && o.rank_score === maxScore)
+              tag = (
+                <Tag color={GO} soft="rgba(22,179,100,.12)">
+                  {t("tagTop")}
                 </Tag>
               );
             else if (sort === "cheap" && o.price_da === minPrice)
@@ -533,22 +590,6 @@ function SearchScreen({
                       : t("ridesCount", { rides: o.rides_count })}
                   </span>
                 </span>
-                {/* Cœur (dé)favoriser — checklist C3 */}
-                <button
-                  type="button"
-                  aria-label={t("tagFav")}
-                  onClick={() => void toggleFav(o.chauffeur_id, !o.is_favorite)}
-                  className="grid size-[34px] shrink-0 place-items-center rounded-full border-[1.5px] bg-[var(--d-surface)]"
-                  style={{ borderColor: o.is_favorite ? RED : "var(--d-line)" }}
-                >
-                  <Heart
-                    className="size-4"
-                    style={{
-                      color: o.is_favorite ? RED : "var(--d-muted)",
-                      fill: o.is_favorite ? RED : "transparent",
-                    }}
-                  />
-                </button>
                 <span className="shrink-0 text-right">
                   <span className="drive-sora block text-[17px] font-extrabold">
                     {o.price_da} DA
