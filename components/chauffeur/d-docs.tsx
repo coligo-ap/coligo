@@ -97,12 +97,12 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
   };
 
   return (
-    <div className="drive-jakarta min-h-screen bg-white px-5 pt-4 pb-10">
+    <div className="drive-jakarta min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-10">
       <div className="mb-2 flex items-center gap-3">
         <button
           type="button"
           onClick={() => router.push("/chauffeur/login")}
-          className="grid size-[42px] place-items-center rounded-[14px] border border-[#EEF0F4] bg-white shadow"
+          className="grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
         >
           <ChevronLeft className="size-5" />
         </button>
@@ -119,7 +119,7 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
           dossier.
         </p>
       )}
-      <p className="mb-3 text-[13px] text-[#6B7280]">
+      <p className="mb-3 text-[13px] text-[var(--d-muted)]">
         Photos nettes et lisibles. Votre dossier sera vérifié par l&apos;équipe
         Coligo.
       </p>
@@ -165,11 +165,11 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
         <button
           type="button"
           onClick={() => setCameraOpen(true)}
-          className="drive-sora h-[46px] w-full rounded-[17px] bg-[#F4F5F9] text-sm font-bold"
+          className="drive-sora h-[46px] w-full rounded-[17px] bg-[var(--d-soft)] text-sm font-bold"
         >
           {done.selfie ? "Reprendre la photo" : "Ouvrir la caméra · capturer"}
         </button>
-        <p className="mt-1.5 text-[11px] text-[#6B7280]">
+        <p className="mt-1.5 text-[11px] text-[var(--d-muted)]">
           Visage neutre, sans lunettes ni casquette.{" "}
           <b>
             Prise en direct uniquement — aucun import de fichier n&apos;est
@@ -228,10 +228,10 @@ function DocRow({
       style={
         done
           ? { borderColor: GO, background: "rgba(22,179,100,.12)" }
-          : { borderColor: "#EEF0F4" }
+          : { borderColor: "var(--d-line)" }
       }
     >
-      <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[#F4F5F9]">
+      <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)]">
         {busy ? (
           <Loader2
             className="size-4.5 animate-spin"
@@ -243,7 +243,7 @@ function DocRow({
       </span>
       <span className="min-w-0 flex-1">
         <b className="block text-[13.5px]">{doc.title}</b>
-        <small className="text-[11px] text-[#6B7280]">{doc.sub}</small>
+        <small className="text-[11px] text-[var(--d-muted)]">{doc.sub}</small>
       </span>
       <span
         className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
@@ -252,7 +252,7 @@ function DocRow({
             ? { background: "rgba(22,179,100,.12)", color: GO }
             : doc.required
               ? { background: "rgba(229,72,77,.12)", color: RED }
-              : { background: "#F4F5F9", color: "#6B7280" }
+              : { background: "var(--d-soft)", color: "var(--d-muted)" }
         }
       >
         {done ? "✓ Ajouté" : doc.required ? "Obligatoire" : "Optionnel"}
@@ -364,7 +364,7 @@ function SelfieCamera({
         </div>
         {err && (
           <p
-            className="absolute right-4 bottom-28 left-4 rounded-[12px] bg-white px-3 py-2 text-center text-xs font-bold"
+            className="absolute right-4 bottom-28 left-4 rounded-[12px] bg-[var(--d-surface)] px-3 py-2 text-center text-xs font-bold"
             style={{ color: RED }}
           >
             {err}

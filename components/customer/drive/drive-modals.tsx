@@ -45,7 +45,7 @@ export function Sheet({
       onClick={onClose}
     >
       <div
-        className="drive-up w-full rounded-t-[26px] bg-white px-5 pt-[18px] pb-6"
+        className="drive-up w-full rounded-t-[26px] bg-[var(--d-surface)] px-5 pt-[18px] pb-6"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
@@ -85,7 +85,7 @@ export function GhostBtn({
       type="button"
       onClick={onClick}
       className="mt-0.5 flex h-11 w-full items-center justify-center text-sm font-semibold"
-      style={{ color: danger ? RED : "#6B7280" }}
+      style={{ color: danger ? RED : "var(--d-muted)" }}
     >
       {children}
     </button>
@@ -165,12 +165,12 @@ export function CancelModal({
             key={r}
             type="button"
             onClick={() => setSel(r)}
-            className="flex w-full items-center gap-3 border-b border-[#EEF0F4] px-1 py-3 text-left text-[13.5px] font-semibold last:border-b-0"
+            className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-1 py-3 text-left text-[13.5px] font-semibold last:border-b-0"
             style={sel === r ? { color: VIOLET } : undefined}
           >
             <span
               className="grid size-5 shrink-0 place-items-center rounded-full border-2"
-              style={{ borderColor: sel === r ? VIOLET : "#EEF0F4" }}
+              style={{ borderColor: sel === r ? VIOLET : "var(--d-line)" }}
             >
               {sel === r && (
                 <span
@@ -250,7 +250,7 @@ export function SOSModal({
     <button
       type="button"
       onClick={onClick}
-      className="mb-2 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[#EEF0F4] p-3 text-left text-[13.5px] font-bold"
+      className="mb-2 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-left text-[13.5px] font-bold"
     >
       <span
         className="grid size-[38px] shrink-0 place-items-center rounded-[12px]"
@@ -263,7 +263,7 @@ export function SOSModal({
       </span>
       <span>
         {title}
-        <small className="mt-0.5 block text-[11px] font-medium text-[#6B7280]">
+        <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
           {sub}
         </small>
       </span>
@@ -273,7 +273,7 @@ export function SOSModal({
   return (
     <Sheet open={open} onClose={onClose}>
       <SheetTitle danger>{t("title")}</SheetTitle>
-      <p className="mb-3 text-[13px] text-[#6B7280]">{t("sub")}</p>
+      <p className="mb-3 text-[13px] text-[var(--d-muted)]">{t("sub")}</p>
       <Item
         red
         icon={<Phone className="size-5" />}
@@ -307,7 +307,7 @@ export function SOSModal({
           {done}
         </p>
       ) : (
-        <p className="mt-1.5 text-center text-[11px] text-[#6B7280]">
+        <p className="mt-1.5 text-center text-[11px] text-[var(--d-muted)]">
           {side === "driver" ? t("noteDriver") : t("noteClient")}
         </p>
       )}
@@ -340,8 +340,8 @@ export function ShareModal({
   return (
     <Sheet open={open} onClose={onClose}>
       <SheetTitle>{t("title")}</SheetTitle>
-      <p className="mb-1 text-[13px] text-[#6B7280]">{t("sub")}</p>
-      <div className="my-3 rounded-[16px] bg-[#F4F5F9] p-3.5">
+      <p className="mb-1 text-[13px] text-[var(--d-muted)]">{t("sub")}</p>
+      <div className="my-3 rounded-[16px] bg-[var(--d-soft)] p-3.5">
         <div className="mb-2.5 flex items-center gap-3">
           <span
             className="drive-sora grid size-[42px] shrink-0 place-items-center rounded-full text-white"
@@ -354,12 +354,12 @@ export function ShareModal({
               {chName}
               {chRating ? ` · ★ ${chRating}` : ""}
             </b>
-            <small className="text-[11px] text-[#6B7280]">
+            <small className="text-[11px] text-[var(--d-muted)]">
               {[chCar, chPlate].filter(Boolean).join(" · ")}
             </small>
           </span>
         </div>
-        <div className="overflow-hidden rounded-[11px] border border-dashed border-[#EEF0F4] bg-white px-3 py-2 font-mono text-[11px] whitespace-nowrap text-[#6B7280]">
+        <div className="overflow-hidden rounded-[11px] border border-dashed border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 font-mono text-[11px] whitespace-nowrap text-[var(--d-muted)]">
           {shareUrl.replace(/^https?:\/\//, "")} · {t("livePosition")}
         </div>
       </div>
@@ -379,7 +379,7 @@ export function ShareModal({
         </button>
         <button
           type="button"
-          className="drive-sora flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] bg-[#F4F5F9] text-[13.5px] font-bold"
+          className="drive-sora flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
           onClick={() =>
             window.open(`sms:?body=${encodeURIComponent(text)}`, "_self")
           }
@@ -387,7 +387,9 @@ export function ShareModal({
           <Smartphone className="size-4" /> SMS
         </button>
       </div>
-      <p className="mt-2 text-center text-[11px] text-[#6B7280]">{t("note")}</p>
+      <p className="mt-2 text-center text-[11px] text-[var(--d-muted)]">
+        {t("note")}
+      </p>
       <GhostBtn onClick={onClose}>{t("close")}</GhostBtn>
     </Sheet>
   );
@@ -417,19 +419,19 @@ export function ReportModal({
   return (
     <Sheet open={open} onClose={onClose}>
       <SheetTitle>{t("title")}</SheetTitle>
-      <p className="mb-1.5 text-[13px] text-[#6B7280]">{t("sub")}</p>
+      <p className="mb-1.5 text-[13px] text-[var(--d-muted)]">{t("sub")}</p>
       <div>
         {reasons.map((r) => (
           <button
             key={r}
             type="button"
             onClick={() => setSel(r)}
-            className="flex w-full items-center gap-3 border-b border-[#EEF0F4] px-1 py-3 text-left text-[13.5px] font-semibold last:border-b-0"
+            className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-1 py-3 text-left text-[13.5px] font-semibold last:border-b-0"
             style={sel === r ? { color: VIOLET } : undefined}
           >
             <span
               className="grid size-5 shrink-0 place-items-center rounded-full border-2"
-              style={{ borderColor: sel === r ? VIOLET : "#EEF0F4" }}
+              style={{ borderColor: sel === r ? VIOLET : "var(--d-line)" }}
             >
               {sel === r && (
                 <span
@@ -471,21 +473,21 @@ export function ProxModal({
   return (
     <Sheet open={open} onClose={onClose}>
       <SheetTitle>{t("title")}</SheetTitle>
-      <p className="mb-2.5 text-[13px] text-[#6B7280]">{t("sub")}</p>
+      <p className="mb-2.5 text-[13px] text-[var(--d-muted)]">{t("sub")}</p>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder={t("namePh")}
-        className="mb-2 w-full rounded-[14px] border border-[#EEF0F4] bg-[#F4F5F9] px-3.5 py-3 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[#6B7280]"
+        className="mb-2 w-full rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
       />
       <input
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
         inputMode="tel"
         placeholder={t("phonePh")}
-        className="mb-1 w-full rounded-[14px] border border-[#EEF0F4] bg-[#F4F5F9] px-3.5 py-3 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[#6B7280]"
+        className="mb-1 w-full rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
       />
-      <p className="text-[11px] text-[#6B7280]">{t("note")}</p>
+      <p className="text-[11px] text-[var(--d-muted)]">{t("note")}</p>
       <PrimaryBtn
         disabled={!name.trim() || phone.trim().length < 9}
         onClick={() => onConfirm(name.trim(), phone.trim())}
@@ -514,11 +516,11 @@ export function DepModal({
   return (
     <Sheet open={open} onClose={onClose}>
       <SheetTitle>{t("title")}</SheetTitle>
-      <p className="mb-2.5 text-[13px] text-[#6B7280]">{t("sub")}</p>
+      <p className="mb-2.5 text-[13px] text-[var(--d-muted)]">{t("sub")}</p>
       <button
         type="button"
         onClick={onGps}
-        className="mb-2 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[#EEF0F4] p-3 text-left text-[13.5px] font-bold"
+        className="mb-2 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-left text-[13.5px] font-bold"
       >
         <span
           className="grid size-[38px] shrink-0 place-items-center rounded-[12px] bg-[#EEEEFD]"
@@ -528,7 +530,7 @@ export function DepModal({
         </span>
         <span>
           {t("gps")}
-          <small className="mt-0.5 block text-[11px] font-medium text-[#6B7280]">
+          <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
             {t("gpsSub")}
           </small>
         </span>
@@ -536,7 +538,7 @@ export function DepModal({
       <button
         type="button"
         onClick={onMap}
-        className="mb-1 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[#EEF0F4] p-3 text-left text-[13.5px] font-bold"
+        className="mb-1 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-left text-[13.5px] font-bold"
       >
         <span
           className="grid size-[38px] shrink-0 place-items-center rounded-[12px] bg-[#EEEEFD]"
@@ -546,7 +548,7 @@ export function DepModal({
         </span>
         <span>
           {t("map")}
-          <small className="mt-0.5 block text-[11px] font-medium text-[#6B7280]">
+          <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
             {t("mapSub")}
           </small>
         </span>
@@ -608,14 +610,14 @@ export function ChatModal({
   return (
     <Sheet open={open} onClose={onClose}>
       <SheetTitle>{t("title")}</SheetTitle>
-      <p className="mb-2 text-[12px] text-[#6B7280]">{t("sub")}</p>
+      <p className="mb-2 text-[12px] text-[var(--d-muted)]">{t("sub")}</p>
       <div className="mb-2 max-h-[34vh] space-y-1.5 overflow-y-auto">
         {msgs.map((m) => (
           <div
             key={m.id}
             className={cn(
               "max-w-[80%] rounded-[14px] px-3 py-2 text-[13px] font-medium",
-              m.sender === side ? "ml-auto text-white" : "bg-[#F4F5F9]"
+              m.sender === side ? "ml-auto text-white" : "bg-[var(--d-soft)]"
             )}
             style={m.sender === side ? { background: VIOLET } : undefined}
           >
@@ -630,7 +632,7 @@ export function ChatModal({
             key={q}
             type="button"
             onClick={() => void send(q)}
-            className="rounded-full border border-[#EEF0F4] bg-white px-3 py-1.5 text-xs font-bold"
+            className="rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 text-xs font-bold"
           >
             {q}
           </button>
@@ -642,7 +644,7 @@ export function ChatModal({
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && void send(text)}
           placeholder={t("ph")}
-          className="h-11 flex-1 rounded-[14px] border border-[#EEF0F4] bg-[#F4F5F9] px-3.5 text-sm font-semibold outline-none"
+          className="h-11 flex-1 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 text-sm font-semibold outline-none"
         />
         <button
           type="button"

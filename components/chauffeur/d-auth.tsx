@@ -29,15 +29,17 @@ export function DAuth({ tab: initialTab = "log" }: { tab?: "log" | "reg" }) {
   );
 
   const inp =
-    "mb-2 w-full rounded-[14px] border border-[#EEF0F4] bg-[#F4F5F9] px-3.5 py-3 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[#6B7280]";
+    "mb-2 w-full rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]";
 
   return (
-    <div className="drive-jakarta min-h-screen bg-white px-5 pt-8 pb-10">
+    <div className="drive-jakarta min-h-screen bg-[var(--d-surface)] px-5 pt-8 pb-10">
       <div className="mb-4 text-center">
         <h1 className="drive-sora text-[22px] font-extrabold tracking-[-0.5px]">
           Coligo <span style={{ color: VIOLET }}>Drive</span>
         </h1>
-        <p className="mt-0.5 text-[13px] text-[#6B7280]">Espace chauffeur</p>
+        <p className="mt-0.5 text-[13px] text-[var(--d-muted)]">
+          Espace chauffeur
+        </p>
       </div>
 
       <div className="mb-3 flex gap-2">
@@ -55,7 +57,7 @@ export function DAuth({ tab: initialTab = "log" }: { tab?: "log" | "reg" }) {
             style={
               tab === k
                 ? { borderColor: VIOLET, background: "#EEEEFD", color: VIOLET }
-                : { borderColor: "#EEF0F4", color: "#6B7280" }
+                : { borderColor: "var(--d-line)", color: "var(--d-muted)" }
             }
           >
             {label}
@@ -165,7 +167,7 @@ export function DAuth({ tab: initialTab = "log" }: { tab?: "log" | "reg" }) {
                         background: "#EEEEFD",
                         color: VIOLET,
                       }
-                    : { borderColor: "#EEF0F4", color: "#6B7280" }
+                    : { borderColor: "var(--d-line)", color: "var(--d-muted)" }
                 }
               >
                 {label}

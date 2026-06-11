@@ -337,6 +337,7 @@ export type DriveActiveRide = {
   payment_method: string;
   female_only: boolean;
   proxy_name: string | null;
+  proxy_phone: string | null;
   share_token: string | null;
   end_code: string | null;
   online_paid: boolean;
@@ -381,6 +382,7 @@ export async function getDriveActiveRide(): Promise<DriveActiveRide | null> {
     payment_method: (r.payment_method as string) ?? "cash",
     female_only: Boolean(r.female_only),
     proxy_name: (r.proxy_name as string) ?? null,
+    proxy_phone: (r.proxy_phone as string) ?? null,
     share_token: (r.share_token as string) ?? null,
     end_code: (r.end_code as string) ?? null,
     online_paid: r.online_paid_at != null,

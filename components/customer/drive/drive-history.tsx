@@ -22,12 +22,12 @@ export function DriveHistoryView({ history }: { history: DriveHistory }) {
   const [favs, setFavs] = useState(history.favorites);
 
   return (
-    <div className="drive-jakarta min-h-screen bg-white px-5 pt-4 pb-24">
+    <div className="drive-jakarta min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
       <div className="mb-3 flex items-center gap-3">
         <button
           type="button"
           onClick={() => router.push("/drive")}
-          className="grid size-[42px] place-items-center rounded-[14px] border border-[#EEF0F4] bg-white shadow"
+          className="grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
           aria-label={tc("back")}
         >
           <ChevronLeft className="size-5" />
@@ -52,7 +52,7 @@ export function DriveHistoryView({ history }: { history: DriveHistory }) {
             style={
               tab === k
                 ? { borderColor: VIOLET, background: "#EEEEFD", color: VIOLET }
-                : { borderColor: "#EEF0F4", color: "#6B7280" }
+                : { borderColor: "var(--d-line)", color: "var(--d-muted)" }
             }
           >
             {label}
@@ -62,23 +62,23 @@ export function DriveHistoryView({ history }: { history: DriveHistory }) {
 
       {tab === "c" ? (
         history.rides.length === 0 ? (
-          <p className="py-8 text-center text-sm text-[#6B7280]">
+          <p className="py-8 text-center text-sm text-[var(--d-muted)]">
             {t("emptyRides")}
           </p>
         ) : (
           history.rides.map((r) => (
             <div
               key={r.id}
-              className="mb-2 flex items-center gap-3 rounded-[15px] border border-[#EEF0F4] p-3"
+              className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] p-3"
             >
-              <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[#F4F5F9]">
+              <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)]">
                 <Car className="size-4" />
               </span>
               <span className="min-w-0 flex-1">
                 <b className="block truncate text-[13.5px]">
                   {r.dest_text ?? "—"}
                 </b>
-                <small className="text-[11px] text-[#6B7280]">
+                <small className="text-[11px] text-[var(--d-muted)]">
                   {[
                     new Date(r.when).toLocaleDateString(
                       locale === "ar" ? "ar-DZ" : "fr-FR",
@@ -108,14 +108,14 @@ export function DriveHistoryView({ history }: { history: DriveHistory }) {
           ))
         )
       ) : favs.length === 0 ? (
-        <p className="py-8 text-center text-sm text-[#6B7280]">
+        <p className="py-8 text-center text-sm text-[var(--d-muted)]">
           {t("emptyFavs")}
         </p>
       ) : (
         favs.map((f) => (
           <div
             key={f.chauffeur_id}
-            className="mb-2 flex items-center gap-3 rounded-[15px] border border-[#EEF0F4] p-3"
+            className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] p-3"
           >
             <span
               className="drive-sora grid size-[38px] shrink-0 place-items-center rounded-full font-extrabold text-white"
@@ -132,7 +132,7 @@ export function DriveHistoryView({ history }: { history: DriveHistory }) {
                   ? ` · ★ ${String(f.rating).replace(".", ",")}`
                   : ""}
               </b>
-              <small className="text-[11px] text-[#6B7280]">
+              <small className="text-[11px] text-[var(--d-muted)]">
                 {[f.vehicle, t("ridesCount", { count: f.rides_count })]
                   .filter(Boolean)
                   .join(" · ")}

@@ -33,6 +33,11 @@ import {
 } from "./drive-modals";
 import { DriveRide } from "./drive-ride";
 import {
+  clearPendingRide,
+  getPendingRide,
+  queueRideRequest,
+} from "@/lib/drive/offline-db";
+import {
   getDriveActiveRide,
   getDriveContext,
   getDriveQuotes,
@@ -64,7 +69,6 @@ const GAMME_IMG: Record<Gamme, string> = {
 };
 
 const rnd5 = (v: number) => Math.round(v / 5) * 5;
-export const PENDING_KEY = "coligo_drive_pending_request";
 
 export function DriveView() {
   const t = useTranslations("drive");
@@ -243,9 +247,9 @@ export function DriveView() {
     const payload = buildPayload();
     if (!payload || submitting) return;
     setRequestError(null);
-    // Hors connexion : demande en file locale, envoi auto au retour réseau.
+    // Hors connexion : demande en file Dexie, envoi auto au retour réseau (C8).
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      localStorage.setItem(PENDING_KEY, JSON.stringify(payload));
+      await queueRideRequest(payload.operation_id, payload);
       setOfflineQueued(true);
       setScreen("ride");
       return;
@@ -261,16 +265,18 @@ export function DriveView() {
     setScreen("ride");
   };
 
-  // Envoi auto de la demande en file dès le retour du réseau.
+  // Envoi auto de la demande en file (Dexie) dès le retour du réseau.
   useEffect(() => {
     const flush = async () => {
-      const raw = localStorage.getItem(PENDING_KEY);
-      if (!raw) return;
+      const pending = await getPendingRide();
+      if (!pending) return;
+      setOfflineQueued(true);
       try {
-        const payload = JSON.parse(raw);
-        const res = await requestDriveRide(payload);
+        const res = await requestDriveRide(
+          pending.payload as Parameters<typeof requestDriveRide>[0]
+        );
         if (res.ok) {
-          localStorage.removeItem(PENDING_KEY);
+          await clearPendingRide();
           setOfflineQueued(false);
           await refreshActive();
           setScreen("ride");
@@ -300,7 +306,7 @@ export function DriveView() {
 
   if (!booted || !ctx) {
     return (
-      <div className="grid min-h-[70vh] place-items-center bg-[#E9EBF1]">
+      <div className="grid min-h-[70vh] place-items-center bg-[var(--d-page)]">
         <Loader2 className="size-6 animate-spin" style={{ color: VIOLET }} />
       </div>
     );
@@ -353,9 +359,9 @@ export function DriveView() {
           ? t("price.atReco")
           : t("price.aboveReco", { reco: quote.recommended });
     return (
-      <div className="fixed inset-0 z-40 flex flex-col bg-white">
+      <div className="fixed inset-0 z-40 flex flex-col bg-[var(--d-surface)]">
         {/* Carte du trajet (haut d'écran, maquette s-price) */}
-        <div className="relative h-[196px] shrink-0 bg-[#E9EBF1]">
+        <div className="relative h-[196px] shrink-0 bg-[var(--d-page)]">
           <DriveMap
             markers={[
               { id: "me", pos: pickup, kind: "me" },
@@ -368,15 +374,15 @@ export function DriveView() {
           <button
             type="button"
             onClick={() => setScreen("home")}
-            className="absolute top-3 left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[#EEF0F4] bg-white shadow-lg"
+            className="absolute top-3 left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
             aria-label={t("back")}
           >
             <ChevronLeft className="size-5" />
           </button>
         </div>
 
-        <div className="drive-jakarta -mt-4 flex-1 overflow-y-auto rounded-t-[28px] border-t border-[#EEF0F4] bg-white px-5 pt-3.5 pb-8">
-          <div className="mx-auto mb-4 h-[5px] w-[42px] rounded-full bg-[#EEF0F4]" />
+        <div className="drive-jakarta -mt-4 flex-1 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-8">
+          <div className="mx-auto mb-4 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
           {/* Départ / destination (rail pointillé) */}
           <Leg
             label={t("departure")}
@@ -389,11 +395,11 @@ export function DriveView() {
           />
           <Leg label={t("destination")} value={dest.text ?? "—"} />
           <div className="mt-1 mb-3.5 flex gap-2">
-            <span className="flex items-center gap-1.5 rounded-full bg-[#F4F5F9] px-3 py-1.5 text-[12.5px] font-bold">
+            <span className="flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[12.5px] font-bold">
               <Route className="size-3.5" />{" "}
               {String(distanceKm).replace(".", ",")} km
             </span>
-            <span className="flex items-center gap-1.5 rounded-full bg-[#F4F5F9] px-3 py-1.5 text-[12.5px] font-bold">
+            <span className="flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[12.5px] font-bold">
               <Clock className="size-3.5" /> ~{etaMin} min
             </span>
           </div>
@@ -413,7 +419,7 @@ export function DriveView() {
                         background: "#EEEEFD",
                         boxShadow: "0 8px 20px -10px rgba(91,91,230,.42)",
                       }
-                    : { borderColor: "#EEF0F4", background: "#fff" }
+                    : { borderColor: "var(--d-line)", background: "#fff" }
                 }
               >
                 <Image
@@ -430,7 +436,7 @@ export function DriveView() {
                   <b className="text-[12px]" style={{ color: VIOLET }}>
                     {quotes ? formatDA(quotes[g].recommended) : "…"}
                   </b>
-                  <span className="block text-[9px] font-semibold text-[#6B7280]">
+                  <span className="block text-[9px] font-semibold text-[var(--d-muted)]">
                     {t("price.recommended")}
                   </span>
                 </span>
@@ -460,7 +466,7 @@ export function DriveView() {
                         background: "#EEEEFD",
                         color: VIOLET,
                       }
-                    : { borderColor: "#EEF0F4", color: "#6B7280" }
+                    : { borderColor: "var(--d-line)", color: "var(--d-muted)" }
                 }
               >
                 {label}
@@ -469,15 +475,15 @@ export function DriveView() {
           </div>
 
           {/* Votre offre (prix recommandé pré-rempli, ± pas de 20) */}
-          <div className="mb-3 rounded-[18px] bg-[#F4F5F9] p-4 text-center">
-            <p className="text-xs font-semibold text-[#6B7280]">
+          <div className="mb-3 rounded-[18px] bg-[var(--d-soft)] p-4 text-center">
+            <p className="text-xs font-semibold text-[var(--d-muted)]">
               {t("price.offerLabel")}
             </p>
             <div className="my-1.5 flex items-center justify-center gap-4">
               <button
                 type="button"
                 onClick={() => stepPrice(-1)}
-                className="grid size-[46px] place-items-center rounded-full border-[1.5px] border-[#EEF0F4] bg-white text-2xl font-bold"
+                className="grid size-[46px] place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-2xl font-bold"
                 style={{ color: VIOLET }}
               >
                 −
@@ -487,18 +493,18 @@ export function DriveView() {
                 style={boostOn ? { color: GO } : undefined}
               >
                 {offerPrice}{" "}
-                <small className="text-[17px] text-[#6B7280]">DA</small>
+                <small className="text-[17px] text-[var(--d-muted)]">DA</small>
               </div>
               <button
                 type="button"
                 onClick={() => stepPrice(1)}
-                className="grid size-[46px] place-items-center rounded-full border-[1.5px] border-[#EEF0F4] bg-white text-2xl font-bold"
+                className="grid size-[46px] place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-2xl font-bold"
                 style={{ color: VIOLET }}
               >
                 +
               </button>
             </div>
-            <p className="text-[11.5px] text-[#6B7280]">
+            <p className="text-[11.5px] text-[var(--d-muted)]">
               {floorLabel}
               {boostOn && (
                 <span className="font-bold" style={{ color: GO }}>
@@ -508,9 +514,9 @@ export function DriveView() {
               )}
             </p>
             {quote && quote.high > 0 && (
-              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[#EEF0F4] bg-white px-3 py-1 text-[11px] font-bold text-[#6B7280]">
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1 text-[11px] font-bold text-[var(--d-muted)]">
                 {t("price.similar")}{" "}
-                <b className="text-[#0B0C12]">
+                <b className="text-[var(--d-ink)]">
                   {quote.low}–{quote.high} DA
                 </b>
               </p>
@@ -534,7 +540,7 @@ export function DriveView() {
           />
           {boostOn && (
             <div className="flex items-center justify-between py-2 pl-11">
-              <span className="text-xs font-semibold text-[#6B7280]">
+              <span className="text-xs font-semibold text-[var(--d-muted)]">
                 {t("boost.amount")}
               </span>
               <div className="flex items-center gap-3">
@@ -545,13 +551,13 @@ export function DriveView() {
                       Math.max(ctx.boostMin, a - ctx.boostStep)
                     )
                   }
-                  className="grid size-10 place-items-center rounded-full border-[1.5px] border-[#EEF0F4] bg-white text-xl font-bold"
+                  className="grid size-10 place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-xl font-bold"
                   style={{ color: VIOLET }}
                 >
                   −
                 </button>
-                <span className="min-w-[74px] text-center text-[13px] font-semibold text-[#6B7280]">
-                  <b className="drive-sora text-[20px] text-[#0B0C12]">
+                <span className="min-w-[74px] text-center text-[13px] font-semibold text-[var(--d-muted)]">
+                  <b className="drive-sora text-[20px] text-[var(--d-ink)]">
                     {boostAmt}
                   </b>{" "}
                   DA
@@ -559,7 +565,7 @@ export function DriveView() {
                 <button
                   type="button"
                   onClick={() => setBoostAmt((a) => a + ctx.boostStep)}
-                  className="grid size-10 place-items-center rounded-full border-[1.5px] border-[#EEF0F4] bg-white text-xl font-bold"
+                  className="grid size-10 place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-xl font-bold"
                   style={{ color: VIOLET }}
                 >
                   +
@@ -587,8 +593,8 @@ export function DriveView() {
 
           {/* Pour un proche */}
           <OptRow
-            color="#0B0C12"
-            soft="#F4F5F9"
+            color="var(--d-ink)"
+            soft="var(--d-soft)"
             icon={<Users className="size-[18px]" />}
             title={t("prox.title")}
             sub={prox ? t("prox.subOn", { name: prox.name }) : t("prox.subOff")}
@@ -627,13 +633,13 @@ export function DriveView() {
 
   /* ════════════════ ACCUEIL DRIVE (trajet) ════════════════ */
   return (
-    <div className="drive-jakarta fixed inset-0 z-40 bg-[#E9EBF1]">
+    <div className="drive-jakarta fixed inset-0 z-40 bg-[var(--d-page)]">
       <DriveMap
         markers={pickup ? [{ id: "me", pos: pickup, kind: "me" }] : []}
         padding={{ top: 100, bottom: 420, left: 60, right: 60 }}
       />
       {/* Pill « Coligo Drive » */}
-      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2 text-[13.5px] font-bold shadow-lg">
+      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold shadow-lg">
         <Car className="size-4" style={{ color: VIOLET }} />
         <span className="drive-sora">Coligo Drive</span>
       </div>
@@ -641,14 +647,14 @@ export function DriveView() {
       <button
         type="button"
         onClick={() => router.push("/drive/historique")}
-        className="absolute top-3 right-4 z-10 flex items-center gap-1.5 rounded-full border border-[#EEF0F4] bg-white px-3 py-2 text-xs font-bold shadow-lg"
+        className="absolute top-3 right-4 z-10 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
       >
         <History className="size-3.5" /> {t("history")}
       </button>
 
       {/* Feuille « Votre trajet » */}
-      <div className="absolute right-0 bottom-[64px] left-0 z-10 rounded-t-[28px] border-t border-[#EEF0F4] bg-white px-5 pt-3.5 pb-4 shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
-        <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[#EEF0F4]" />
+      <div className="absolute right-0 bottom-[64px] left-0 z-10 rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-4 shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
+        <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
         <h1 className="drive-sora mb-2 text-[21px] font-extrabold tracking-[-0.5px]">
           {t("home.title")}
         </h1>
@@ -656,14 +662,14 @@ export function DriveView() {
         <button
           type="button"
           onClick={() => setDepOpen(true)}
-          className="mb-2.5 flex w-full items-center gap-3 rounded-[15px] border border-[#EEF0F4] bg-[#F4F5F9] px-3.5 py-3 text-left"
+          className="mb-2.5 flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
         >
           <span
             className="size-3 shrink-0 rounded-full"
             style={{ background: VIOLET }}
           />
           <span className="min-w-0 flex-1">
-            <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[#6B7280] uppercase">
+            <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
               {t("departure")}
             </span>
             <span className="block truncate text-[14.5px] font-bold">
@@ -688,23 +694,23 @@ export function DriveView() {
             setMapPickFor("dest");
             setScreen("mappick");
           }}
-          className="mb-2.5 flex w-full items-center gap-3 rounded-[15px] border border-[#EEF0F4] bg-[#F4F5F9] px-3.5 py-3 text-left"
+          className="mb-2.5 flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
         >
-          <span className="size-3 shrink-0 rounded-[3px] bg-[#0B0C12]" />
+          <span className="size-3 shrink-0 rounded-[3px] bg-[var(--d-ink)]" />
           <span className="min-w-0 flex-1">
-            <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[#6B7280] uppercase">
+            <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
               {t("destination")}
             </span>
             <span
               className={cn(
                 "block truncate text-[14.5px] font-bold",
-                !dest && "font-semibold text-[#6B7280]"
+                !dest && "font-semibold text-[var(--d-muted)]"
               )}
             >
               {dest?.text ?? t("home.whereTo")}
             </span>
           </span>
-          <Pencil className="size-4 shrink-0 text-[#6B7280]" />
+          <Pencil className="size-4 shrink-0 text-[var(--d-muted)]" />
         </button>
 
         <PrimaryBtn
@@ -722,9 +728,9 @@ export function DriveView() {
               key={r.text}
               type="button"
               onClick={() => setDest({ lat: r.lat, lng: r.lng, text: r.text })}
-              className="flex w-full items-center gap-3 border-b border-[#EEF0F4] px-0.5 py-2.5 text-left text-[13.5px] font-semibold last:border-b-0"
+              className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-0.5 py-2.5 text-left text-[13.5px] font-semibold last:border-b-0"
             >
-              <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[#F4F5F9]">
+              <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
                 <Clock className="size-4" />
               </span>
               <span className="min-w-0 flex-1 truncate">{r.text}</span>
@@ -732,14 +738,14 @@ export function DriveView() {
           ))}
           {ctx.lastRide && (
             <div className="flex w-full items-center gap-3 px-0.5 py-2.5 text-left text-[13.5px] font-semibold">
-              <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[#F4F5F9]">
+              <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
                 <Car className="size-4" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate">
                   {ctx.lastRide.dest_text ?? "—"}
                 </span>
-                <small className="block text-[11px] font-medium text-[#6B7280]">
+                <small className="block text-[11px] font-medium text-[var(--d-muted)]">
                   {[
                     ctx.lastRide.chauffeur_name,
                     ctx.lastRide.price_da
@@ -809,6 +815,10 @@ function MapPickScreen({
   const [resolving, setResolving] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Repli : si la rue est introuvable, on affiche les coordonnées GPS EXACTES
+  // du point sélectionné (et on les garde comme libellé du point).
+  const gpsLabel = (c: LatLng) => `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`;
+
   const onMove = useCallback((c: LatLng) => {
     setCenter(c);
     setResolving(true);
@@ -817,6 +827,8 @@ function MapPickScreen({
       try {
         const r = await reverseGeocode({ latitude: c.lat, longitude: c.lng });
         setAddr(r?.display ?? null);
+      } catch {
+        setAddr(null);
       } finally {
         setResolving(false);
       }
@@ -824,7 +836,7 @@ function MapPickScreen({
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#E9EBF1]">
+    <div className="fixed inset-0 z-50 bg-[var(--d-page)]">
       <DriveMap
         markers={initial ? [{ id: "init", pos: initial, kind: "me" }] : []}
         interactive
@@ -833,7 +845,7 @@ function MapPickScreen({
       <button
         type="button"
         onClick={onBack}
-        className="absolute top-3 left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[#EEF0F4] bg-white shadow-lg"
+        className="absolute top-3 left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
         aria-label="retour"
       >
         <ChevronLeft className="size-5" />
@@ -847,21 +859,34 @@ function MapPickScreen({
             boxShadow: "0 6px 16px -4px rgba(91,91,230,.42)",
           }}
         />
-        <div className="mx-auto h-3.5 w-[3px] rounded-sm bg-[#0B0C12]" />
+        <div className="mx-auto h-3.5 w-[3px] rounded-sm bg-[var(--d-ink)]" />
         <div className="mx-auto mt-1 size-[7px] rounded-full bg-[rgba(8,9,15,.3)]" />
       </div>
-      <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[#EEF0F4] bg-white px-5 pt-4 pb-[max(24px,env(safe-area-inset-bottom))]">
-        <p className="mb-1 text-[13px] text-[#6B7280]">
+      <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[max(24px,env(safe-area-inset-bottom))]">
+        <p className="mb-1 text-[13px] text-[var(--d-muted)]">
           {forWhat === "dep" ? t("depLabel") : t("destLabel")}
         </p>
-        <p className="drive-sora mb-3 min-h-[24px] text-[17px] font-extrabold">
-          {resolving ? "…" : (addr ?? t("moveMap"))}
+        <p className="drive-sora mb-0.5 min-h-[24px] text-[17px] font-extrabold">
+          {center
+            ? resolving
+              ? "…"
+              : (addr ?? t("gpsPoint", { coords: gpsLabel(center) }))
+            : t("moveMap")}
         </p>
+        {center && addr && !resolving && (
+          <p className="mb-2 text-[11px] text-[var(--d-muted)] tabular-nums">
+            GPS · {gpsLabel(center)}
+          </p>
+        )}
         <PrimaryBtn
-          disabled={!center}
+          disabled={!center || resolving}
           onClick={() =>
             center &&
-            onConfirm({ lat: center.lat, lng: center.lng, text: addr })
+            onConfirm({
+              lat: center.lat,
+              lng: center.lng,
+              text: addr ?? t("gpsPoint", { coords: gpsLabel(center) }),
+            })
           }
         >
           {t("confirm")}
@@ -889,7 +914,7 @@ function Leg({
         <span
           className={cn(
             "size-2.5",
-            start ? "rounded-full" : "rounded-[2px] bg-[#0B0C12]"
+            start ? "rounded-full" : "rounded-[2px] bg-[var(--d-ink)]"
           )}
           style={start ? { background: VIOLET } : undefined}
         />
@@ -905,7 +930,7 @@ function Leg({
         )}
       </div>
       <div className="flex-1 pb-2.5">
-        <p className="text-[10.5px] font-semibold tracking-[0.3px] text-[#6B7280] uppercase">
+        <p className="text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
           {label}
         </p>
         <p className="mt-0.5 text-sm font-bold">{value}</p>
@@ -932,7 +957,7 @@ function OptRow({
   onToggle: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between border-t border-[#EEF0F4] py-3">
+    <div className="flex items-center justify-between border-t border-[var(--d-line)] py-3">
       <div className="flex min-w-0 items-center gap-3">
         <span
           className="grid size-[34px] shrink-0 place-items-center rounded-[11px]"
@@ -943,11 +968,11 @@ function OptRow({
         <span className="min-w-0">
           <b
             className="block text-[13.5px]"
-            style={{ color: color === "#0B0C12" ? undefined : color }}
+            style={{ color: color === "var(--d-ink)" ? undefined : color }}
           >
             {title}
           </b>
-          <span className="block truncate text-[11px] text-[#6B7280]">
+          <span className="block truncate text-[11px] text-[var(--d-muted)]">
             {sub}
           </span>
         </span>
@@ -958,7 +983,7 @@ function OptRow({
         aria-checked={on}
         onClick={onToggle}
         className="relative h-7 w-12 shrink-0 rounded-full transition-colors"
-        style={{ background: on ? color : "#EEF0F4" }}
+        style={{ background: on ? color : "var(--d-line)" }}
       >
         <span
           className="absolute top-[3px] size-[22px] rounded-full bg-white shadow transition-all"

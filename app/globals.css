@@ -455,3 +455,40 @@ body {
 .drive-rise {
   animation: drive-rise 0.3s ease both;
 }
+
+/* ── Drive : thème clair/sombre (tokens maquette :root / body.dark) ──
+   Les écrans Drive consomment ces variables ; le mode sombre suit le
+   réglage système (équivalent du toggle Clair/Sombre de la maquette). */
+:root {
+  --d-page: #e9ebf1;
+  --d-surface: #fff;
+  --d-ink: #0b0c12;
+  --d-muted: #6b7280;
+  --d-line: #eef0f4;
+  --d-soft: #f4f5f9;
+}
+.drive-jakarta {
+  --d-page: #e9ebf1;
+  --d-surface: #fff;
+  --d-ink: #0b0c12;
+  --d-muted: #6b7280;
+  --d-line: #eef0f4;
+  --d-soft: #f4f5f9;
+  color: var(--d-ink);
+}
+@media (prefers-color-scheme: dark) {
+  .drive-jakarta {
+    --d-page: #06070b;
+    --d-surface: #161823;
+    --d-ink: #fff;
+    --d-muted: #9ca0b3;
+    --d-line: #262838;
+    --d-soft: #1f2230;
+  }
+}
+/* Plaque d'immatriculation : fixe (blanc/noir) dans LES DEUX thèmes (maquette .plate). */
+.drive-plate {
+  background: #fff;
+  color: #0b0c12;
+  border-color: #0b0c12;
+}

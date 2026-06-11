@@ -31,15 +31,15 @@ export function ShareTrackView({ token }: { token: string }) {
 
   if (!loaded) {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#E9EBF1]">
+      <div className="grid min-h-screen place-items-center bg-[var(--d-page)]">
         <Loader2 className="size-6 animate-spin" style={{ color: VIOLET }} />
       </div>
     );
   }
   if (!ride) {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#E9EBF1] px-6 text-center">
-        <p className="text-sm font-semibold text-[#6B7280]">
+      <div className="grid min-h-screen place-items-center bg-[var(--d-page)] px-6 text-center">
+        <p className="text-sm font-semibold text-[var(--d-muted)]">
           Ce lien de suivi n&apos;est plus actif.
         </p>
       </div>
@@ -57,7 +57,7 @@ export function ShareTrackView({ token }: { token: string }) {
   const finished = ride.status === "completed";
 
   return (
-    <div className="fixed inset-0 bg-[#E9EBF1]">
+    <div className="fixed inset-0 bg-[var(--d-page)]">
       <DriveMap
         markers={[
           ...(carPos ? [{ id: "car", pos: carPos, kind: "car" as const }] : []),
@@ -68,11 +68,11 @@ export function ShareTrackView({ token }: { token: string }) {
         route={carPos && destPos && !finished ? [carPos, destPos] : null}
         padding={{ top: 90, bottom: 260, left: 60, right: 60 }}
       />
-      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
+      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
         <Car className="size-4" style={{ color: VIOLET }} />
         <span className="drive-sora">Coligo Drive · suivi en direct</span>
       </div>
-      <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[#EEF0F4] bg-white px-5 pt-4 pb-[max(20px,env(safe-area-inset-bottom))]">
+      <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[max(20px,env(safe-area-inset-bottom))]">
         <div className="mb-3 flex items-center gap-3">
           <span
             className="drive-sora grid size-[46px] shrink-0 place-items-center rounded-full text-lg font-extrabold text-white"
@@ -87,17 +87,17 @@ export function ShareTrackView({ token }: { token: string }) {
                 ? ` · ★ ${String(ride.ch_rating).replace(".", ",")}`
                 : ""}
             </b>
-            <small className="text-[11.5px] text-[#6B7280]">
+            <small className="text-[11.5px] text-[var(--d-muted)]">
               {ride.ch_vehicle ?? ""}
             </small>
           </span>
           {ride.ch_plate && (
-            <span className="drive-sora shrink-0 rounded-[7px] border-2 border-[#0B0C12] bg-white px-2.5 py-1 text-[12.5px] font-extrabold tracking-[2px]">
+            <span className="drive-sora drive-plate shrink-0 rounded-[7px] border-2 px-2.5 py-1 text-[12.5px] font-extrabold tracking-[2px]">
               {ride.ch_plate}
             </span>
           )}
         </div>
-        <div className="rounded-[14px] bg-[#F4F5F9] px-4 py-3 text-[13px] font-semibold">
+        <div className="rounded-[14px] bg-[var(--d-soft)] px-4 py-3 text-[13px] font-semibold">
           {finished ? (
             <span style={{ color: GO }}>
               Course terminée — arrivée à destination ✓
@@ -106,7 +106,7 @@ export function ShareTrackView({ token }: { token: string }) {
             <>
               Vers <b>{ride.dest_text ?? "—"}</b>
               {etaMin != null && (
-                <span className="text-[#6B7280]">
+                <span className="text-[var(--d-muted)]">
                   {" "}
                   · arrivée estimée ~{etaMin} min
                 </span>
@@ -114,7 +114,7 @@ export function ShareTrackView({ token }: { token: string }) {
             </>
           )}
         </div>
-        <p className="mt-2 text-center text-[10.5px] text-[#6B7280]">
+        <p className="mt-2 text-center text-[10.5px] text-[var(--d-muted)]">
           Position mise à jour en continu · partagé via Coligo Drive
         </p>
       </div>

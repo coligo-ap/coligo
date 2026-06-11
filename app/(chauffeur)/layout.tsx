@@ -26,7 +26,7 @@ export default function ChauffeurLayout({
 }) {
   return (
     <div
-      className={`${sora.variable} ${jakarta.variable} drive-jakarta min-h-screen bg-white`}
+      className={`${sora.variable} ${jakarta.variable} drive-jakarta min-h-screen bg-[var(--d-surface)]`}
     >
       {children}
     </div>

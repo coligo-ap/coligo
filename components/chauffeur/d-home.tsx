@@ -13,6 +13,7 @@ import {
   PrimaryBtn,
 } from "@/components/customer/drive/drive-modals";
 import { DNav, PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
+import { formatOnline, HOME_DIR_KEY } from "@/lib/drive/geo";
 import {
   activateHomeDir,
   chauffeurHeartbeat,
@@ -45,6 +46,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const [home, setHome] = useState<DriveHome | null>(null);
   const [mini, setMini] = useState(false);
   const [dirOn, setDirOn] = useState(false);
+  useEffect(() => {
+    setDirOn(localStorage.getItem(HOME_DIR_KEY) === "1");
+  }, []);
   const [dirMsg, setDirMsg] = useState<string | null>(null);
   const [homeAddr, setHomeAddr] = useState(gate.homeAddr);
   const coordsRef = useRef(coords);
@@ -81,11 +85,13 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     setDirMsg(null);
     if (dirOn) {
       setDirOn(false);
+      localStorage.setItem(HOME_DIR_KEY, "0");
       return;
     }
     const res = await activateHomeDir();
     if (res.ok) {
       setDirOn(true);
+      localStorage.setItem(HOME_DIR_KEY, "1");
       if (res.remaining != null)
         setDirMsg(
           `Activé · ${res.remaining} activation(s) restante(s) aujourd'hui`
@@ -98,14 +104,14 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const me = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
 
   return (
-    <div className="drive-jakarta fixed inset-0 bg-[#E9EBF1]">
+    <div className="drive-jakarta fixed inset-0 bg-[var(--d-page)]">
       <DriveMap
         markers={me ? [{ id: "me", pos: me, kind: "me" }] : []}
         heatZones={home?.heatZones ?? []}
         padding={{ top: 110, bottom: 460, left: 60, right: 60 }}
       />
       {/* Pill en ligne */}
-      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2 text-[13.5px] font-bold shadow-lg">
+      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold shadow-lg">
         <span
           className="size-2 animate-pulse rounded-full"
           style={{ background: GO }}
@@ -113,7 +119,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         <span className="drive-sora">En ligne · Drive</span>
       </div>
       {/* Légende heatmap */}
-      <div className="absolute top-[64px] left-4 z-10 flex items-center gap-1.5 rounded-full border border-[#EEF0F4] bg-white px-2.5 py-1.5 text-[10.5px] font-bold text-[#6B7280] shadow">
+      <div className="absolute top-[64px] left-4 z-10 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-2.5 py-1.5 text-[10.5px] font-bold text-[var(--d-muted)] shadow">
         <span
           className="size-2.5 rounded-full"
           style={{
@@ -125,7 +131,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
 
       {/* Feuille réductible */}
       <div
-        className="absolute right-0 bottom-[66px] left-0 z-10 overflow-hidden rounded-t-[28px] border-t border-[#EEF0F4] bg-white px-5 pt-2 pb-4 transition-[max-height] duration-300"
+        className="absolute right-0 bottom-[66px] left-0 z-10 overflow-hidden rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-2 pb-4 transition-[max-height] duration-300"
         style={{ maxHeight: mini ? 96 : 540 }}
       >
         <button
@@ -134,7 +140,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           className="mx-auto block cursor-pointer px-10 py-1.5"
           aria-label="Réduire / agrandir"
         >
-          <span className="block h-[5px] w-[42px] rounded-full bg-[#EEF0F4]" />
+          <span className="block h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
         </button>
         <button
           type="button"
@@ -145,24 +151,25 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             ? `${home.requestsCount} demandes proches`
             : "Demandes proches…"}
           <ChevronUp
-            className="size-[18px] text-[#6B7280] transition-transform duration-300"
+            className="size-[18px] text-[var(--d-muted)] transition-transform duration-300"
             style={{ transform: mini ? "rotate(180deg)" : undefined }}
           />
         </button>
-        <p className="mb-3 text-[13px] text-[#6B7280]">
+        <p className="mb-3 text-[13px] text-[var(--d-muted)]">
           Plusieurs clients attendent un chauffeur autour de vous.
         </p>
 
         {/* Gains du jour */}
-        <div className="mb-3 rounded-[16px] bg-[#F4F5F9] px-3.5 py-3">
+        <div className="mb-3 rounded-[16px] bg-[var(--d-soft)] px-3.5 py-3">
           <div className="flex items-center justify-between text-xs font-semibold">
             <span>Gains du jour</span>
             <b className="drive-sora text-[17px]">
               {formatDA(home?.todayNet ?? 0)}
             </b>
           </div>
-          <p className="mt-1.5 text-[10.5px] text-[#6B7280]">
-            {home?.todayRides ?? 0} courses
+          <p className="mt-1.5 text-[10.5px] text-[var(--d-muted)]">
+            {home?.todayRides ?? 0} courses ·{" "}
+            {formatOnline(home?.todayOnlineMin ?? 0)}
             {home && home.todayRides > 0
               ? ` · moy. ${formatDA(Math.round(home.todayNet / home.todayRides))}/course`
               : ""}
@@ -174,7 +181,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           className="mb-3 flex items-center gap-2.5 rounded-[14px] px-3.5 py-3"
           style={{ background: "#EEEEFD" }}
         >
-          <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-white">
+          <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-surface)]">
             <Home className="size-4" style={{ color: VIOLET }} />
           </span>
           <span className="min-w-0 flex-1">
@@ -191,7 +198,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
                 <Pencil className="size-3" style={{ color: VIOLET }} />
               </button>
             </b>
-            <span className="block truncate text-[10.5px] text-[#6B7280]">
+            <span className="block truncate text-[10.5px] text-[var(--d-muted)]">
               {dirMsg ??
                 (dirOn
                   ? `Actif · seules les courses vers ${homeAddr ?? "chez vous"} sonneront`
@@ -217,7 +224,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         </div>
 
         {/* Bandeau gamme */}
-        <div className="mb-3 flex items-center gap-2.5 rounded-[14px] bg-[#F4F5F9] px-3.5 py-2.5 text-xs font-semibold text-[#6B7280]">
+        <div className="mb-3 flex items-center gap-2.5 rounded-[14px] bg-[var(--d-soft)] px-3.5 py-2.5 text-xs font-semibold text-[var(--d-muted)]">
           <span
             className="grid size-[30px] shrink-0 place-items-center rounded-[9px]"
             style={{ background: "#EEEEFD" }}
@@ -226,9 +233,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           </span>
           <span>
             Votre gamme :{" "}
-            <b className="text-[#0B0C12]">{GAMME_LABEL[gate.gamme]}</b> — vous
-            recevez les courses{" "}
-            <b className="text-[#0B0C12]">{GAMME_RECEIVES[gate.gamme]}</b>
+            <b className="text-[var(--d-ink)]">{GAMME_LABEL[gate.gamme]}</b> —
+            vous recevez les courses{" "}
+            <b className="text-[var(--d-ink)]">{GAMME_RECEIVES[gate.gamme]}</b>
           </span>
         </div>
 
@@ -236,14 +243,14 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         <button
           type="button"
           onClick={() => router.push("/chauffeur/abonnement")}
-          className="mb-3 flex w-full items-center gap-2.5 rounded-[15px] border border-[#EEF0F4] p-3 text-left"
+          className="mb-3 flex w-full items-center gap-2.5 rounded-[15px] border border-[var(--d-line)] p-3 text-left"
         >
           <PlanIcon plan={home?.plan ?? "free"} />
           <span className="min-w-0 flex-1">
             <b className="block text-[13.5px]">
               Abonnement : {PLAN_LABEL[home?.plan ?? "free"]}
             </b>
-            <span className="text-[11px] text-[#6B7280]">
+            <span className="text-[11px] text-[var(--d-muted)]">
               {home?.plan === "premium"
                 ? "0 % de commission · priorité dispatch"
                 : home?.plan === "pro"
@@ -251,7 +258,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
                   : "Commission 8 % · passez en Premium = 0 %"}
             </span>
           </span>
-          <span className="text-[#6B7280]">›</span>
+          <span className="text-[var(--d-muted)]">›</span>
         </button>
 
         <PrimaryBtn

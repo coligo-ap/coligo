@@ -164,7 +164,7 @@ export function DCourse() {
 
   if (!booted) {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#E9EBF1]">
+      <div className="grid min-h-screen place-items-center bg-[var(--d-page)]">
         <Loader2 className="size-6 animate-spin" style={{ color: VIOLET }} />
       </div>
     );
@@ -195,7 +195,7 @@ export function DCourse() {
   if (!ride) {
     // Course annulée par le client pendant le flux → retour aux demandes.
     return (
-      <div className="drive-jakarta fixed inset-0 bg-white px-5 pt-12">
+      <div className="drive-jakarta fixed inset-0 bg-[var(--d-surface)] px-5 pt-12">
         <div className="flex flex-col items-center text-center">
           <span
             className="mb-3 grid size-16 place-items-center rounded-full"
@@ -206,7 +206,7 @@ export function DCourse() {
           <h1 className="drive-sora text-[21px] font-extrabold">
             Course annulée
           </h1>
-          <p className="mt-1 max-w-[280px] text-[13px] text-[#6B7280]">
+          <p className="mt-1 max-w-[280px] text-[13px] text-[var(--d-muted)]">
             La course a été remise dans la liste des demandes. Aucun frais.
           </p>
         </div>
@@ -235,7 +235,7 @@ export function DCourse() {
   /* ════════ ATTRIBUTION (s-dmatch) ════════ */
   if (ride.status === "accepted" && !matchSeen) {
     return (
-      <div className="drive-jakarta fixed inset-0 overflow-y-auto bg-white px-5 pt-10 pb-8">
+      <div className="drive-jakarta fixed inset-0 overflow-y-auto bg-[var(--d-surface)] px-5 pt-10 pb-8">
         <div className="text-center">
           <span
             className="mx-auto mb-3 grid size-16 place-items-center rounded-full"
@@ -246,25 +246,25 @@ export function DCourse() {
           <h1 className="drive-sora text-[21px] font-extrabold">
             {ride.customer_name} a accepté !
           </h1>
-          <p className="text-[13px] text-[#6B7280]">
+          <p className="text-[13px] text-[var(--d-muted)]">
             Course confirmée à <b>{formatDA(ride.agreed_price_da)}</b>
           </p>
         </div>
-        <div className="mt-4 mb-2.5 flex flex-col gap-1.5 rounded-[12px] bg-[#F4F5F9] px-3 py-2.5 text-[12.5px] font-semibold text-[#6B7280]">
+        <div className="mt-4 mb-2.5 flex flex-col gap-1.5 rounded-[12px] bg-[var(--d-soft)] px-3 py-2.5 text-[12.5px] font-semibold text-[var(--d-muted)]">
           <span className="flex items-center gap-2">
             <i
               className="size-[9px] shrink-0 rounded-full"
               style={{ background: VIOLET }}
             />
             Vous → client
-            <b className="drive-sora ml-auto text-[#0B0C12]">
+            <b className="drive-sora ml-auto text-[var(--d-ink)]">
               {pkKm != null ? `${fmtkm(pkKm)} · ~${pkMin} min` : "…"}
             </b>
           </span>
           <span className="flex items-center gap-2">
-            <i className="size-[9px] shrink-0 rounded-[2px] bg-[#0B0C12]" />
+            <i className="size-[9px] shrink-0 rounded-[2px] bg-[var(--d-ink)]" />
             Course
-            <b className="drive-sora ml-auto text-[#0B0C12]">
+            <b className="drive-sora ml-auto text-[var(--d-ink)]">
               {fmtkm(ride.distance_km)} · ~
               {Math.max(4, Math.round(ride.distance_km * 2.2))} min
             </b>
@@ -302,7 +302,7 @@ export function DCourse() {
 
   /* ════════ PRISE EN CHARGE / COURSE (s-dpickup / s-dride) ════════ */
   return (
-    <div className="drive-jakarta fixed inset-0 bg-[#E9EBF1]">
+    <div className="drive-jakarta fixed inset-0 bg-[var(--d-page)]">
       <DriveMap
         markers={[
           ...(me ? [{ id: "car", pos: me, kind: "car" as const }] : []),
@@ -317,7 +317,7 @@ export function DCourse() {
         route={inProgress && me && dest ? [me, dest] : null}
         padding={{ top: 90, bottom: 420, left: 60, right: 60 }}
       />
-      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
+      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
         <span
           className="size-2 animate-pulse rounded-full"
           style={{ background: inProgress ? GO : VIOLET }}
@@ -332,7 +332,7 @@ export function DCourse() {
       {/* Back-to-back : course suivante près de la dépose (compteur 12 s) */}
       {inProgress && nextOff && (
         <div
-          className="drive-up absolute top-16 right-2.5 left-2.5 z-30 overflow-hidden rounded-[20px] border-2 bg-white shadow-xl"
+          className="drive-up absolute top-16 right-2.5 left-2.5 z-30 overflow-hidden rounded-[20px] border-2 bg-[var(--d-surface)] shadow-xl"
           style={{ borderColor: VIOLET }}
         >
           <div
@@ -359,7 +359,7 @@ export function DCourse() {
                     ? ` · ★ ${String(nextOff.customer_rating).replace(".", ",")}`
                     : ""}
                 </b>
-                <span className="text-[11px] text-[#6B7280]">
+                <span className="text-[11px] text-[var(--d-muted)]">
                   À {fmtkm(nextOff.pickup_dist_km)} de votre point de dépose ·
                   course {fmtkm(nextOff.distance_km)}
                 </span>
@@ -368,10 +368,12 @@ export function DCourse() {
                 <b className="drive-sora block text-lg">
                   {nextOff.proposed_price_da + nextOff.boost_amount_da} DA
                 </b>
-                <span className="text-[10px] text-[#6B7280]">prix client</span>
+                <span className="text-[10px] text-[var(--d-muted)]">
+                  prix client
+                </span>
               </span>
             </div>
-            <p className="mt-1.5 text-[11px] text-[#6B7280]">
+            <p className="mt-1.5 text-[11px] text-[var(--d-muted)]">
               {nextOff.pickup_text ?? "—"} → {nextOff.dest_text ?? "—"}
             </p>
             <div className="mt-2.5 flex gap-2">
@@ -388,7 +390,7 @@ export function DCourse() {
               </button>
               <button
                 type="button"
-                className="drive-sora h-[42px] flex-1 rounded-[12px] bg-[#F4F5F9] text-[13px] font-bold text-[#6B7280]"
+                className="drive-sora h-[42px] flex-1 rounded-[12px] bg-[var(--d-soft)] text-[13px] font-bold text-[var(--d-muted)]"
                 onClick={() => {
                   declined.current.add(nextOff.id);
                   setNextOff(null);
@@ -401,8 +403,8 @@ export function DCourse() {
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 z-10 max-h-[60vh] overflow-y-auto rounded-t-[28px] border-t border-[#EEF0F4] bg-white px-5 pt-3.5 pb-[max(20px,env(safe-area-inset-bottom))]">
-        <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[#EEF0F4]" />
+      <div className="absolute inset-x-0 bottom-0 z-10 max-h-[60vh] overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[max(20px,env(safe-area-inset-bottom))]">
+        <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
 
         {queued && (
           <div
@@ -414,7 +416,7 @@ export function DCourse() {
             {queued.proposed_price_da + queued.boost_amount_da} DA
             <button
               type="button"
-              className="ml-auto text-[11px] font-semibold text-[#6B7280]"
+              className="ml-auto text-[11px] font-semibold text-[var(--d-muted)]"
               onClick={() => setQueued(null)}
             >
               Retirer
@@ -423,7 +425,7 @@ export function DCourse() {
         )}
 
         {/* Fiche client */}
-        <div className="mb-2.5 rounded-[22px] border border-[#EEF0F4] bg-white p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
+        <div className="mb-2.5 rounded-[22px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
           <div className="flex items-center gap-3">
             <span
               className="drive-sora grid size-[52px] shrink-0 place-items-center rounded-full text-xl font-extrabold text-white"
@@ -444,14 +446,14 @@ export function DCourse() {
                   </span>
                 )}
                 {ride.proxy_name && (
-                  <span className="rounded-full bg-[#F4F5F9] px-2.5 py-1 text-[11px] font-bold text-[#6B7280]">
+                  <span className="rounded-full bg-[var(--d-soft)] px-2.5 py-1 text-[11px] font-bold text-[var(--d-muted)]">
                     Pour un proche
                   </span>
                 )}
               </span>
             </span>
           </div>
-          <div className="mt-3 rounded-[13px] bg-[#F4F5F9] px-3 py-2.5 text-[12.5px] font-bold">
+          <div className="mt-3 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-[12.5px] font-bold">
             {inProgress
               ? `${ride.dest_text ?? "Destination"}`
               : `Vous attend · ${ride.pickup_text ?? "—"}`}
@@ -460,7 +462,7 @@ export function DCourse() {
             <button
               type="button"
               onClick={() => setChatOpen(true)}
-              className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] bg-[#F4F5F9] text-[13.5px] font-bold"
+              className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
             >
               <MessageSquare className="size-4" /> Message
             </button>
@@ -519,7 +521,7 @@ export function DCourse() {
               <button
                 type="button"
                 onClick={() => setChatOpen(true)}
-                className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-[#EEF0F4] bg-white text-[12.5px] font-bold"
+                className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-[12.5px] font-bold"
               >
                 💬 Support live
               </button>
@@ -570,7 +572,7 @@ export function DCourse() {
       {/* Saisie du code de fin (course prépayée) */}
       <Sheet open={askCode} onClose={() => setAskCode(false)}>
         <SheetTitle>Code de fin du client</SheetTitle>
-        <p className="mb-3 text-[13px] text-[#6B7280]">
+        <p className="mb-3 text-[13px] text-[var(--d-muted)]">
           Demandez au client les <b>2 chiffres</b> affichés sur son écran pour
           valider la course prépayée.
         </p>
@@ -581,7 +583,7 @@ export function DCourse() {
           }
           inputMode="numeric"
           placeholder="• •"
-          className="drive-sora mb-1 w-full rounded-[14px] border border-[#EEF0F4] bg-[#F4F5F9] px-3.5 py-3 text-center text-2xl font-extrabold tracking-[8px] outline-none"
+          className="drive-sora mb-1 w-full rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-center text-2xl font-extrabold tracking-[8px] outline-none"
         />
         {error && (
           <p className="text-center text-xs font-bold" style={{ color: RED }}>
@@ -657,7 +659,7 @@ function DChat({ rideId, onClose }: { rideId: string; onClose: () => void }) {
   return (
     <Sheet open onClose={onClose}>
       <SheetTitle>Messages</SheetTitle>
-      <p className="mb-2 text-[12px] text-[#6B7280]">
+      <p className="mb-2 text-[12px] text-[var(--d-muted)]">
         Messages rapides · numéros masqués
       </p>
       <div className="mb-2 max-h-[34vh] space-y-1.5 overflow-y-auto">
@@ -668,7 +670,7 @@ function DChat({ rideId, onClose }: { rideId: string; onClose: () => void }) {
             style={
               m.sender === "chauffeur"
                 ? { marginLeft: "auto", background: VIOLET, color: "#fff" }
-                : { background: "#F4F5F9" }
+                : { background: "var(--d-soft)" }
             }
           >
             {m.body}
@@ -682,7 +684,7 @@ function DChat({ rideId, onClose }: { rideId: string; onClose: () => void }) {
               key={q}
               type="button"
               onClick={() => void send(q)}
-              className="rounded-full border border-[#EEF0F4] bg-white px-3 py-1.5 text-xs font-bold"
+              className="rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 text-xs font-bold"
             >
               {q}
             </button>
@@ -695,7 +697,7 @@ function DChat({ rideId, onClose }: { rideId: string; onClose: () => void }) {
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && void send(text)}
           placeholder="Écrire un message…"
-          className="h-11 flex-1 rounded-[14px] border border-[#EEF0F4] bg-[#F4F5F9] px-3.5 text-sm font-semibold outline-none"
+          className="h-11 flex-1 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 text-sm font-semibold outline-none"
         />
         <button
           type="button"
@@ -733,7 +735,7 @@ function DoneScreen({
   const pct = done.commission_rate != null ? fmtPct(done.commission_rate) : "—";
 
   return (
-    <div className="drive-jakarta fixed inset-0 overflow-y-auto bg-white px-5 pt-8 pb-8">
+    <div className="drive-jakarta fixed inset-0 overflow-y-auto bg-[var(--d-surface)] px-5 pt-8 pb-8">
       <div className="mb-3 text-center">
         <span
           className="mx-auto mb-2.5 grid size-16 place-items-center rounded-full"
@@ -744,22 +746,24 @@ function DoneScreen({
         <h1 className="drive-sora text-[21px] font-extrabold">
           Course terminée
         </h1>
-        <p className="text-[13px] text-[#6B7280]">
+        <p className="text-[13px] text-[var(--d-muted)]">
           {done.pickup_text ?? "—"} → {done.dest_text ?? "—"}
         </p>
       </div>
 
-      <div className="mb-3 rounded-[18px] border border-[#EEF0F4] p-4">
+      <div className="mb-3 rounded-[18px] border border-[var(--d-line)] p-4">
         <div className="flex items-center justify-between py-2 text-[13.5px]">
-          <span className="text-[#6B7280]">Prix de la course</span>
+          <span className="text-[var(--d-muted)]">Prix de la course</span>
           <span>{formatDA(done.price_da)}</span>
         </div>
         <div className="flex items-center justify-between py-2 text-[13.5px]">
-          <span className="text-[#6B7280]">Commission Coligo ({pct})</span>
+          <span className="text-[var(--d-muted)]">
+            Commission Coligo ({pct})
+          </span>
           <span style={{ color: RED }}>−{formatDA(done.commission_da)}</span>
         </div>
-        <div className="mt-1 flex items-center justify-between border-t border-[#EEF0F4] pt-3 text-sm font-bold">
-          <span className="text-[#6B7280]">Votre gain net</span>
+        <div className="mt-1 flex items-center justify-between border-t border-[var(--d-line)] pt-3 text-sm font-bold">
+          <span className="text-[var(--d-muted)]">Votre gain net</span>
           <span className="drive-sora text-lg" style={{ color: GO }}>
             {formatDA(done.net_da)}
           </span>
@@ -770,7 +774,7 @@ function DoneScreen({
         className="mb-3 flex items-center gap-3 rounded-[16px] p-3"
         style={{ background: "rgba(22,179,100,.12)" }}
       >
-        <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-white">
+        <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-surface)]">
           <BadgeCheck className="size-5" style={{ color: GO }} />
         </span>
         <span>
@@ -780,7 +784,7 @@ function DoneScreen({
               : "Prépayée · encaissée par Coligo, créditée sur votre solde"}
           </b>
           {done.commission_da > 0 && (
-            <span className="text-[11px] text-[#6B7280]">
+            <span className="text-[11px] text-[var(--d-muted)]">
               Avec Premium (0 %), vous auriez gardé{" "}
               <b>{formatDA(done.price_da)}</b>
             </span>
@@ -793,7 +797,7 @@ function DoneScreen({
           className="mb-3 flex items-center gap-3 rounded-[16px] p-3"
           style={{ background: "#EEEEFD" }}
         >
-          <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-white">
+          <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-surface)]">
             <Zap className="size-4.5" style={{ color: VIOLET }} />
           </span>
           <span>
@@ -801,7 +805,7 @@ function DoneScreen({
               Course suivante : {queued.customer_name} ·{" "}
               {queued.proposed_price_da + queued.boost_amount_da} DA
             </b>
-            <span className="text-[11px] text-[#6B7280]">
+            <span className="text-[11px] text-[var(--d-muted)]">
               À{" "}
               {`${(Math.round(queued.pickup_dist_km * 10) / 10).toString().replace(".", ",")} km`}{" "}
               · le client vous attend

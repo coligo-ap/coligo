@@ -21,7 +21,7 @@ import { chauffeurLogout } from "@/app/(chauffeur)/actions";
 /** Dossier envoyé — en attente de validation par les SUPER ADMINS (s-dwait). */
 export function DWait() {
   return (
-    <div className="drive-jakarta min-h-screen bg-white px-5 pt-10 pb-8">
+    <div className="drive-jakarta min-h-screen bg-[var(--d-surface)] px-5 pt-10 pb-8">
       <div className="text-center">
         <span
           className="mx-auto mb-3 grid size-16 place-items-center rounded-full"
@@ -32,7 +32,7 @@ export function DWait() {
         <h1 className="drive-sora text-[21px] font-extrabold">
           Dossier envoyé ✓
         </h1>
-        <p className="mx-auto mt-1 max-w-[290px] text-[13px] text-[#6B7280]">
+        <p className="mx-auto mt-1 max-w-[290px] text-[13px] text-[var(--d-muted)]">
           Les <b>super admins Coligo</b> vérifient vos documents. Vous ne
           pourrez accéder à votre compte chauffeur qu&apos;après validation
           (24–48 h). Vous serez notifié.
@@ -87,16 +87,18 @@ function Step({
                     color: VIOLET,
                     border: `2px solid ${VIOLET}`,
                   }
-                : { background: "#F4F5F9", color: "#6B7280" }
+                : { background: "var(--d-soft)", color: "var(--d-muted)" }
           }
         >
           {state === "ok" ? "✓" : state === "cur" ? "⏳" : n}
         </span>
-        {!last && <span className="min-h-[18px] w-[2px] flex-1 bg-[#EEF0F4]" />}
+        {!last && (
+          <span className="min-h-[18px] w-[2px] flex-1 bg-[var(--d-line)]" />
+        )}
       </div>
       <div className="pb-4 text-[13px] font-semibold">
         {title}
-        <small className="mt-0.5 block text-[11px] font-medium text-[#6B7280]">
+        <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
           {sub}
         </small>
       </div>
@@ -129,7 +131,7 @@ export function DFrozen({ reason }: { reason: string | null }) {
     },
   ];
   return (
-    <div className="drive-jakarta min-h-screen bg-white px-5 pt-10 pb-8">
+    <div className="drive-jakarta min-h-screen bg-[var(--d-surface)] px-5 pt-10 pb-8">
       <div className="text-center">
         <span
           className="mx-auto mb-3 grid size-16 place-items-center rounded-full"
@@ -143,11 +145,11 @@ export function DFrozen({ reason }: { reason: string | null }) {
         >
           Compte gelé
         </h1>
-        <p className="mx-auto mt-1 mb-3 max-w-[300px] text-[13px] text-[#6B7280]">
+        <p className="mx-auto mt-1 mb-3 max-w-[300px] text-[13px] text-[var(--d-muted)]">
           Votre compte chauffeur a été suspendu par Coligo.{" "}
           {reason ? (
             <>
-              Motif : <b className="text-[#0B0C12]">{reason}</b>
+              Motif : <b className="text-[var(--d-ink)]">{reason}</b>
             </>
           ) : (
             "Motifs possibles :"
@@ -157,14 +159,14 @@ export function DFrozen({ reason }: { reason: string | null }) {
       {motifs.map((m) => (
         <div
           key={m.title}
-          className="mb-2 flex items-center gap-3 rounded-[15px] border border-[#EEF0F4] p-3"
+          className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] p-3"
         >
-          <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[#F4F5F9]">
+          <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)]">
             {m.icon}
           </span>
           <span>
             <b className="block text-[13.5px]">{m.title}</b>
-            <small className="text-[11px] text-[#6B7280]">{m.sub}</small>
+            <small className="text-[11px] text-[var(--d-muted)]">{m.sub}</small>
           </span>
         </div>
       ))}
@@ -181,7 +183,7 @@ export function DFrozen({ reason }: { reason: string | null }) {
 /** Compte bloqué (suspension dure). */
 export function DBlocked() {
   return (
-    <div className="drive-jakarta grid min-h-screen place-items-center bg-white px-5">
+    <div className="drive-jakarta grid min-h-screen place-items-center bg-[var(--d-surface)] px-5">
       <div className="text-center">
         <span
           className="mx-auto mb-3 grid size-16 place-items-center rounded-full"
@@ -195,7 +197,7 @@ export function DBlocked() {
         >
           Compte suspendu
         </h1>
-        <p className="mx-auto mt-1 max-w-[290px] text-[13px] text-[#6B7280]">
+        <p className="mx-auto mt-1 max-w-[290px] text-[13px] text-[var(--d-muted)]">
           Votre compte a été suspendu définitivement. Contactez le support
           Coligo pour plus d&apos;informations.
         </p>

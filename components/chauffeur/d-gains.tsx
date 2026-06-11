@@ -6,6 +6,7 @@ import { Car, ChevronLeft, History, Loader2, Zap } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { VIOLET, GO, RED } from "@/components/customer/drive/drive-modals";
 import { DNav, PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
+import { formatOnline } from "@/lib/drive/geo";
 import {
   getChauffeurFinances,
   getChauffeurHistory,
@@ -39,7 +40,7 @@ export function DGains() {
 
   if (!fin) {
     return (
-      <div className="grid min-h-screen place-items-center bg-white">
+      <div className="grid min-h-screen place-items-center bg-[var(--d-surface)]">
         <Loader2 className="size-6 animate-spin" style={{ color: VIOLET }} />
       </div>
     );
@@ -55,7 +56,7 @@ export function DGains() {
         : "Commissions sur courses en espèces · avant le 5 du mois · CCP / BaridiMob";
 
   return (
-    <div className="drive-jakarta min-h-screen bg-white px-5 pt-4 pb-24">
+    <div className="drive-jakarta min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
       <div className="mb-3 flex items-center gap-3">
         <h1 className="drive-sora flex-1 text-[21px] font-extrabold tracking-[-0.5px]">
           Gains
@@ -63,25 +64,25 @@ export function DGains() {
         <button
           type="button"
           onClick={() => router.push("/chauffeur/historique")}
-          className="flex items-center gap-1.5 rounded-full border border-[#EEF0F4] bg-white px-3 py-2 text-xs font-bold shadow"
+          className="flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow"
         >
           <History className="size-3.5" /> Historique
         </button>
       </div>
 
-      <div className="mb-3 rounded-[16px] bg-[#F4F5F9] px-3.5 py-3">
+      <div className="mb-3 rounded-[16px] bg-[var(--d-soft)] px-3.5 py-3">
         <div className="flex items-center justify-between text-xs font-semibold">
           <span>Aujourd&apos;hui</span>
           <b className="drive-sora text-[17px]" style={{ color: GO }}>
             {formatDA(fin.todayNet)}
           </b>
         </div>
-        <p className="mt-1.5 text-[10.5px] text-[#6B7280]">
-          {fin.todayRides} courses
+        <p className="mt-1.5 text-[10.5px] text-[var(--d-muted)]">
+          {fin.todayRides} courses · {formatOnline(fin.todayOnlineMin)}
         </p>
       </div>
 
-      <div className="rounded-[18px] border border-[#EEF0F4] bg-white p-3.5">
+      <div className="rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5">
         <div className="mb-1 flex items-center justify-between">
           <b className="drive-sora text-sm">Ce mois ({month})</b>
           <span
@@ -127,20 +128,20 @@ export function DGains() {
       <button
         type="button"
         onClick={() => router.push("/chauffeur/abonnement")}
-        className="flex w-full items-center gap-2.5 rounded-[15px] border border-[#EEF0F4] p-3 text-left"
+        className="flex w-full items-center gap-2.5 rounded-[15px] border border-[var(--d-line)] p-3 text-left"
       >
         <PlanIcon plan={fin.plan} />
         <span className="min-w-0 flex-1">
           <b className="block text-[13.5px]">
             Abonnement : {PLAN_LABEL[fin.plan]}
           </b>
-          <span className="text-[11px] text-[#6B7280]">
+          <span className="text-[11px] text-[var(--d-muted)]">
             {fin.plan === "premium"
               ? "0 % de commission — vous gardez tout"
               : "Comparez : avec Premium vous gardiez tout"}
           </span>
         </span>
-        <span className="text-[#6B7280]">›</span>
+        <span className="text-[var(--d-muted)]">›</span>
       </button>
 
       <DNav />
@@ -150,8 +151,8 @@ export function DGains() {
 
 function Line({ k, v, tone }: { k: string; v: string; tone?: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-[#EEF0F4] py-2.5 text-[13px] last:border-b-0">
-      <span className="text-[#6B7280]">{k}</span>
+    <div className="flex items-center justify-between border-b border-[var(--d-line)] py-2.5 text-[13px] last:border-b-0">
+      <span className="text-[var(--d-muted)]">{k}</span>
       <b className="drive-sora" style={tone ? { color: tone } : undefined}>
         {v}
       </b>
@@ -169,12 +170,12 @@ export function DHisto() {
   }, []);
 
   return (
-    <div className="drive-jakarta min-h-screen bg-white px-5 pt-4 pb-24">
+    <div className="drive-jakarta min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
       <div className="mb-3 flex items-center gap-3">
         <button
           type="button"
           onClick={() => router.push("/chauffeur/gains")}
-          className="grid size-[42px] place-items-center rounded-[14px] border border-[#EEF0F4] bg-white shadow"
+          className="grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
         >
           <ChevronLeft className="size-5" />
         </button>
@@ -188,23 +189,23 @@ export function DHisto() {
           <Loader2 className="size-6 animate-spin" style={{ color: VIOLET }} />
         </div>
       ) : rides.length === 0 ? (
-        <p className="py-10 text-center text-sm text-[#6B7280]">
+        <p className="py-10 text-center text-sm text-[var(--d-muted)]">
           Aucune course pour le moment.
         </p>
       ) : (
         rides.map((r) => (
           <div
             key={r.id}
-            className="mb-2 flex items-center gap-3 rounded-[15px] border border-[#EEF0F4] p-3"
+            className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] p-3"
           >
-            <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[#F4F5F9]">
+            <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)]">
               <Car className="size-4" />
             </span>
             <span className="min-w-0 flex-1">
               <b className="block truncate text-[13.5px]">
                 {r.customer_name} → {r.dest_text ?? "—"}
               </b>
-              <small className="flex flex-wrap items-center gap-1 text-[11px] text-[#6B7280]">
+              <small className="flex flex-wrap items-center gap-1 text-[11px] text-[var(--d-muted)]">
                 {new Date(r.when).toLocaleDateString("fr-FR", {
                   day: "numeric",
                   month: "short",

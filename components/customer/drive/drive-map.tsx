@@ -57,10 +57,17 @@ export function DriveMap({
       if (disposed || !containerRef.current) return;
       const first = markers[0]?.pos ?? { lat: 36.7538, lng: 3.0588 };
       let map: maplibregl.Map;
+      // Thème sombre maquette : fond de carte sombre (OpenFreeMap "dark").
+      const prefersDark =
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+      const styleUrl = prefersDark
+        ? `${MAP_STYLE_URL.slice(0, MAP_STYLE_URL.lastIndexOf("/styles/"))}/styles/dark`
+        : MAP_STYLE_URL;
       try {
         map = new Map({
           container: containerRef.current,
-          style: MAP_STYLE_URL as never,
+          style: styleUrl as never,
           center: [first.lng, first.lat],
           zoom: 14,
           attributionControl: { compact: true },
@@ -73,13 +80,30 @@ export function DriveMap({
         map.dragPan.disable();
         map.scrollZoom.disable();
         map.doubleClickZoom.disable();
+      } else {
+        // Tap/clic = sélection directe : on recentre sur le point touché,
+        // `moveend` émettra alors la position exacte sous l'épingle.
+        map.on("click", (e) => {
+          map.flyTo({
+            center: [e.lngLat.lng, e.lngLat.lat],
+            zoom: Math.max(map.getZoom(), 16),
+            duration: 350,
+          });
+        });
       }
       map.on("moveend", () => {
         const c = map.getCenter();
         onMoveRef.current?.({ lat: c.lat, lng: c.lng });
       });
       const reveal = () => {
-        if (!disposed) setReady(true);
+        if (disposed) return;
+        setReady(true);
+        // En mode interactif, émettre la position initiale tout de suite
+        // (sinon l'écran reste sur « Déplacez la carte… » avant le 1er drag).
+        if (interactive) {
+          const c = map.getCenter();
+          onMoveRef.current?.({ lat: c.lat, lng: c.lng });
+        }
       };
       map.once("load", reveal);
       timers.push(setTimeout(reveal, 2200));

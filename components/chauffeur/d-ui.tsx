@@ -17,7 +17,7 @@ const TABS = [
 export function DNav() {
   const pathname = usePathname();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 grid h-[66px] grid-cols-4 border-t border-[#EEF0F4] bg-white pb-[max(env(safe-area-inset-bottom),9px)]">
+    <nav className="fixed inset-x-0 bottom-0 z-30 grid h-[66px] grid-cols-4 border-t border-[var(--d-line)] bg-[var(--d-surface)] pb-[max(env(safe-area-inset-bottom),9px)]">
       {TABS.map((tab) => {
         const Icon = tab.icon;
         const active =
@@ -29,7 +29,7 @@ export function DNav() {
             key={tab.href}
             href={tab.href}
             className="flex flex-col items-center justify-center gap-[3px] text-[9.5px] font-semibold"
-            style={{ color: active ? VIOLET : "#6B7280" }}
+            style={{ color: active ? VIOLET : "var(--d-muted)" }}
           >
             <Icon className="size-[21px]" />
             {tab.label}

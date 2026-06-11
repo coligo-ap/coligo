@@ -8,6 +8,7 @@ import {
   BadgeCheck,
   CreditCard,
   Gift,
+  Heart,
   Loader2,
   MessageSquare,
   Phone,
@@ -48,6 +49,7 @@ import {
   type DriveLastRide,
   type DriveOffer,
 } from "@/app/(customer)/drive/actions";
+import { clearPendingRide } from "@/lib/drive/offline-db";
 
 /**
  * Drive client — phase course : offres des chauffeurs (triables, favoris en
@@ -209,8 +211,18 @@ function SearchScreen({
     setBusy(false);
   };
 
+  // (Dé)favoriser depuis la liste des offres — optimiste (checklist C3).
+  const toggleFav = async (chauffeurId: string, on: boolean) => {
+    setOffers((list) =>
+      list.map((x) =>
+        x.chauffeur_id === chauffeurId ? { ...x, is_favorite: on } : x
+      )
+    );
+    await toggleFavoriteChauffeur(chauffeurId, on);
+  };
+
   return (
-    <div className="drive-jakarta fixed inset-0 z-40 bg-[#E9EBF1]">
+    <div className="drive-jakarta fixed inset-0 z-40 bg-[var(--d-page)]">
       {ride?.pickup_lat != null && (
         <DriveMap
           markers={[
@@ -223,8 +235,8 @@ function SearchScreen({
           padding={{ top: 80, bottom: 500, left: 60, right: 60 }}
         />
       )}
-      <div className="absolute inset-x-0 top-[230px] bottom-0 z-10 overflow-y-auto rounded-t-[28px] border-t border-[#EEF0F4] bg-white px-5 pt-3.5 pb-8 shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
-        <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[#EEF0F4]" />
+      <div className="absolute inset-x-0 top-[230px] bottom-0 z-10 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-8 shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
+        <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
 
         {/* Statut de recherche */}
         <div
@@ -256,13 +268,13 @@ function SearchScreen({
 
         {/* Hors connexion : demande en file (maquette offbanner) */}
         {offlineQueued && (
-          <div className="mb-3 flex items-start gap-2.5 rounded-[15px] border-[1.5px] border-dashed border-[#6B7280] bg-[#F4F5F9] p-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-white">
-              <WifiOff className="size-4.5 text-[#6B7280]" />
+          <div className="mb-3 flex items-start gap-2.5 rounded-[15px] border-[1.5px] border-dashed border-[#6B7280] bg-[var(--d-soft)] p-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-surface)]">
+              <WifiOff className="size-4.5 text-[var(--d-muted)]" />
             </span>
             <span>
               <b className="block text-[13px]">{t("offlineTitle")}</b>
-              <span className="text-[11px] leading-snug text-[#6B7280]">
+              <span className="text-[11px] leading-snug text-[var(--d-muted)]">
                 {t("offlineSub")}
               </span>
             </span>
@@ -283,14 +295,14 @@ function SearchScreen({
             className="mb-3 flex w-full items-center gap-3 rounded-[14px] p-3 text-left disabled:opacity-50"
             style={{ background: "rgba(22,179,100,.12)" }}
           >
-            <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-white">
+            <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-surface)]">
               <Zap className="size-4" style={{ color: GO }} />
             </span>
             <span className="min-w-0 flex-1">
               <b className="block text-[12.5px]" style={{ color: GO }}>
                 {t("boostBar", { amount: boostDefault })}
               </b>
-              <span className="text-[10.5px] text-[#6B7280]">
+              <span className="text-[10.5px] text-[var(--d-muted)]">
                 {t("boostBarSub")}
               </span>
             </span>
@@ -323,7 +335,7 @@ function SearchScreen({
                       background: "#EEEEFD",
                       color: VIOLET,
                     }
-                  : { borderColor: "#EEF0F4", color: "#6B7280" }
+                  : { borderColor: "var(--d-line)", color: "var(--d-muted)" }
               }
             >
               <ArrowDownUp className="size-3.5" />
@@ -334,13 +346,13 @@ function SearchScreen({
 
         {/* Repli conductrices */}
         {femaleFallback && (
-          <div className="mb-2.5 flex items-start gap-2.5 rounded-[13px] border border-[#EEF0F4] bg-[#F4F5F9] px-3 py-2.5 text-[11.5px] leading-relaxed font-semibold text-[#6B7280]">
+          <div className="mb-2.5 flex items-start gap-2.5 rounded-[13px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2.5 text-[11.5px] leading-relaxed font-semibold text-[var(--d-muted)]">
             <AlertTriangle
               className="mt-0.5 size-4 shrink-0"
               style={{ color: ROSE }}
             />
             <span>
-              <b className="text-[#0B0C12]">{t("femaleFallbackTitle")}</b>{" "}
+              <b className="text-[var(--d-ink)]">{t("femaleFallbackTitle")}</b>{" "}
               {t("femaleFallbackSub")}
             </span>
           </div>
@@ -359,7 +371,11 @@ function SearchScreen({
         <div>
           {sorted.map((o) => {
             const female = !!ride?.female_only;
-            const tone = female ? (o.is_female ? ROSE : "#0B0C12") : undefined;
+            const tone = female
+              ? o.is_female
+                ? ROSE
+                : "var(--d-ink)"
+              : undefined;
             let tag: React.ReactNode = null;
             if (o.is_favorite)
               tag = (
@@ -382,21 +398,21 @@ function SearchScreen({
             return (
               <div
                 key={o.id}
-                className="drive-rise mb-2 flex items-center gap-3 rounded-[18px] border bg-[#F4F5F9] p-3"
+                className="drive-rise mb-2 flex items-center gap-3 rounded-[18px] border bg-[var(--d-soft)] p-3"
                 style={{
                   borderColor: female
                     ? o.is_female
                       ? ROSE
-                      : "#0B0C12"
-                    : "#EEF0F4",
+                      : "var(--d-ink)"
+                    : "var(--d-line)",
                 }}
               >
                 <span
                   className="drive-sora grid size-11 shrink-0 place-items-center rounded-full text-base font-extrabold text-white"
                   style={{
                     background:
-                      tone === "#0B0C12"
-                        ? "#0B0C12"
+                      tone === "var(--d-ink)"
+                        ? "var(--d-ink)"
                         : tone === ROSE
                           ? `linear-gradient(135deg,#F9A8D4,${ROSE})`
                           : `linear-gradient(135deg,#7B7BF0,${VIOLET})`,
@@ -428,11 +444,11 @@ function SearchScreen({
                     )}
                   </span>
                   {o.vehicle && (
-                    <span className="mt-0.5 block truncate text-[11px] text-[#6B7280]">
+                    <span className="mt-0.5 block truncate text-[11px] text-[var(--d-muted)]">
                       {o.vehicle}
                     </span>
                   )}
-                  <span className="block truncate text-[11px] text-[#6B7280]">
+                  <span className="block truncate text-[11px] text-[var(--d-muted)]">
                     {o.eta_min != null
                       ? t("etaLine", {
                           min: o.eta_min,
@@ -445,6 +461,22 @@ function SearchScreen({
                       : t("ridesCount", { rides: o.rides_count })}
                   </span>
                 </span>
+                {/* Cœur (dé)favoriser — checklist C3 */}
+                <button
+                  type="button"
+                  aria-label={t("tagFav")}
+                  onClick={() => void toggleFav(o.chauffeur_id, !o.is_favorite)}
+                  className="grid size-[34px] shrink-0 place-items-center rounded-full border-[1.5px] bg-[var(--d-surface)]"
+                  style={{ borderColor: o.is_favorite ? RED : "var(--d-line)" }}
+                >
+                  <Heart
+                    className="size-4"
+                    style={{
+                      color: o.is_favorite ? RED : "var(--d-muted)",
+                      fill: o.is_favorite ? RED : "transparent",
+                    }}
+                  />
+                </button>
                 <span className="shrink-0 text-right">
                   <span className="drive-sora block text-[17px] font-extrabold">
                     {o.price_da} DA
@@ -476,7 +508,7 @@ function SearchScreen({
         onConfirm={async (reason) => {
           setCancelOpen(false);
           if (rideId) await cancelDriveRide(rideId, reason);
-          else localStorage.removeItem("coligo_drive_pending_request");
+          else await clearPendingRide();
           onCancelled(reason);
         }}
       />
@@ -485,7 +517,7 @@ function SearchScreen({
         <button
           type="button"
           onClick={onBackToPrice}
-          className="absolute top-3 left-4 z-20 grid size-[42px] place-items-center rounded-[14px] border border-[#EEF0F4] bg-white shadow-lg"
+          className="absolute top-3 left-4 z-20 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
         >
           <X className="size-5" />
         </button>
@@ -590,7 +622,7 @@ function EnrouteScreen({
   const prepaid = ride.payment_method !== "cash";
 
   return (
-    <div className="drive-jakarta fixed inset-0 z-40 bg-[#E9EBF1]">
+    <div className="drive-jakarta fixed inset-0 z-40 bg-[var(--d-page)]">
       <DriveMap
         markers={[
           ...(chPos ? [{ id: "car", pos: chPos, kind: "car" as const }] : []),
@@ -612,7 +644,7 @@ function EnrouteScreen({
         padding={{ top: 90, bottom: 440, left: 60, right: 60 }}
       />
       {/* Pill statut */}
-      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
+      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
         <span
           className="size-2 animate-pulse rounded-full"
           style={{ background: inProgress ? GO : VIOLET }}
@@ -622,14 +654,14 @@ function EnrouteScreen({
 
       {/* Itinéraire anormal : « Tout va bien ? » */}
       {devAlert && (
-        <div className="drive-up absolute top-16 right-2.5 left-2.5 z-30 rounded-[20px] border-2 border-[#F59E0B] bg-white p-3.5 shadow-[0_18px_44px_-14px_rgba(245,158,11,.45)]">
+        <div className="drive-up absolute top-16 right-2.5 left-2.5 z-30 rounded-[20px] border-2 border-[#F59E0B] bg-[var(--d-surface)] p-3.5 shadow-[0_18px_44px_-14px_rgba(245,158,11,.45)]">
           <div className="flex items-start gap-2.5">
             <span className="grid size-[38px] shrink-0 place-items-center rounded-[12px] bg-[rgba(245,158,11,.15)]">
               <AlertTriangle className="size-5 text-[#F59E0B]" />
             </span>
             <span>
               <b className="block text-sm">{t("devTitle")}</b>
-              <span className="text-[11.5px] leading-snug text-[#6B7280]">
+              <span className="text-[11.5px] leading-snug text-[var(--d-muted)]">
                 {t("devSub")}
               </span>
             </span>
@@ -637,7 +669,7 @@ function EnrouteScreen({
           <div className="mt-2.5 flex gap-2">
             <button
               type="button"
-              className="drive-sora h-[42px] flex-1 rounded-[12px] bg-[#F4F5F9] text-[13px] font-bold"
+              className="drive-sora h-[42px] flex-1 rounded-[12px] bg-[var(--d-soft)] text-[13px] font-bold"
               onClick={() => {
                 setDevAlert(false);
                 devSince.current = null;
@@ -662,21 +694,64 @@ function EnrouteScreen({
       )}
 
       {/* Feuille bas : fiche chauffeur v3 */}
-      <div className="absolute inset-x-0 bottom-0 z-10 max-h-[62vh] overflow-y-auto rounded-t-[28px] border-t border-[#EEF0F4] bg-white px-5 pt-3.5 pb-[max(20px,env(safe-area-inset-bottom))]">
-        <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[#EEF0F4]" />
+      <div className="absolute inset-x-0 bottom-0 z-10 max-h-[62vh] overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[max(20px,env(safe-area-inset-bottom))]">
+        <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
 
         {ride.proxy_name && (
           <div
-            className="mb-2.5 flex items-center gap-2 rounded-[13px] px-3 py-2.5 text-[12.5px] font-bold"
+            className="mb-2.5 rounded-[13px] px-3 py-2.5 text-[12.5px] font-bold"
             style={{ background: "rgba(236,72,153,.13)", color: ROSE }}
           >
-            <BadgeCheck className="size-4 shrink-0" />
-            {t("proxBadge", { name: ride.proxy_name })}
+            <span className="flex items-center gap-2">
+              <BadgeCheck className="size-4 shrink-0" />
+              {t("proxBadge", { name: ride.proxy_name })}
+            </span>
+            {/* Envoi du lien de suivi au proche (sans compte) — checklist B9 */}
+            {shareUrl && ride.proxy_phone && (
+              <span className="mt-1.5 flex gap-1.5">
+                <button
+                  type="button"
+                  className="flex-1 rounded-[9px] px-2 py-1.5 text-[11px] font-bold text-white"
+                  style={{ background: GO }}
+                  onClick={() =>
+                    window.open(
+                      `https://wa.me/${ride.proxy_phone!.replace(/\D/g, "")}?text=${encodeURIComponent(
+                        tc("share.message", {
+                          name: ch?.name ?? "—",
+                          url: shareUrl,
+                        })
+                      )}`,
+                      "_blank"
+                    )
+                  }
+                >
+                  {t("proxSendWa")}
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-[9px] bg-[var(--d-surface)] px-2 py-1.5 text-[11px] font-bold"
+                  style={{ color: ROSE }}
+                  onClick={() =>
+                    window.open(
+                      `sms:${ride.proxy_phone}?body=${encodeURIComponent(
+                        tc("share.message", {
+                          name: ch?.name ?? "—",
+                          url: shareUrl,
+                        })
+                      )}`,
+                      "_self"
+                    )
+                  }
+                >
+                  {t("proxSendSms")}
+                </button>
+              </span>
+            )}
           </div>
         )}
 
         {ch && (
-          <div className="mb-3 rounded-[22px] border border-[#EEF0F4] bg-white p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
+          <div className="mb-3 rounded-[22px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
             <div className="flex items-center gap-3">
               <span
                 className="drive-sora grid size-[58px] shrink-0 place-items-center rounded-full text-[22px] font-extrabold text-white"
@@ -707,7 +782,7 @@ function EnrouteScreen({
                       ★ {String(ch.rating).replace(".", ",")}
                     </span>
                   )}
-                  <span className="rounded-full bg-[#F4F5F9] px-2.5 py-1 text-[11px] font-bold text-[#6B7280]">
+                  <span className="rounded-full bg-[var(--d-soft)] px-2.5 py-1 text-[11px] font-bold text-[var(--d-muted)]">
                     {t("ridesChip", { rides: ch.rides })}
                   </span>
                   {ch.is_female && (
@@ -724,12 +799,12 @@ function EnrouteScreen({
                 </span>
               </span>
             </div>
-            <div className="mt-3 flex items-center justify-between gap-2.5 rounded-[13px] bg-[#F4F5F9] px-3 py-2.5">
+            <div className="mt-3 flex items-center justify-between gap-2.5 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5">
               <span className="truncate text-[12.5px] font-bold">
                 {ch.vehicle ?? "—"}
               </span>
               {ch.plate && (
-                <span className="drive-sora shrink-0 rounded-[7px] border-2 border-[#0B0C12] bg-white px-2.5 py-1 text-[12.5px] font-extrabold tracking-[2px] text-[#0B0C12]">
+                <span className="drive-sora drive-plate shrink-0 rounded-[7px] border-2 px-2.5 py-1 text-[12.5px] font-extrabold tracking-[2px] text-[var(--d-ink)]">
                   {ch.plate}
                 </span>
               )}
@@ -738,7 +813,7 @@ function EnrouteScreen({
               <button
                 type="button"
                 onClick={() => setChatOpen(true)}
-                className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] bg-[#F4F5F9] text-[13.5px] font-bold"
+                className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
               >
                 <MessageSquare className="size-4" /> {t("message")}
               </button>
@@ -830,7 +905,7 @@ function EnrouteScreen({
           <button
             type="button"
             onClick={() => shareUrl && setShareOpen(true)}
-            className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-[#EEF0F4] bg-white text-[12.5px] font-bold"
+            className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-[12.5px] font-bold"
           >
             <Share2 className="size-4" /> {t("shareTrip")}
           </button>
@@ -919,16 +994,16 @@ function DoneScreen({
       : null;
 
   return (
-    <div className="drive-jakarta fixed inset-0 z-40 overflow-y-auto bg-white px-5 pt-6 pb-8">
+    <div className="drive-jakarta fixed inset-0 z-40 overflow-y-auto bg-[var(--d-surface)] px-5 pt-6 pb-8">
       <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
         {t("title")}
       </h1>
-      <p className="mb-4 text-[13px] text-[#6B7280]">
+      <p className="mb-4 text-[13px] text-[var(--d-muted)]">
         {ride.pickup_text ?? "—"} → {ride.dest_text ?? "—"}
       </p>
 
       {ride.chauffeur && (
-        <div className="mb-3 flex items-center gap-3 rounded-[15px] bg-[#F4F5F9] px-3 py-2.5">
+        <div className="mb-3 flex items-center gap-3 rounded-[15px] bg-[var(--d-soft)] px-3 py-2.5">
           <span
             className="drive-sora grid size-10 shrink-0 place-items-center rounded-full font-extrabold text-white"
             style={{ background: `linear-gradient(135deg,#7B7BF0,${VIOLET})` }}
@@ -937,14 +1012,14 @@ function DoneScreen({
           </span>
           <span>
             <b className="block text-[13.5px]">{ride.chauffeur.name}</b>
-            <span className="text-[10.5px] text-[#6B7280]">
+            <span className="text-[10.5px] text-[var(--d-muted)]">
               {t("maskedAfter")}
             </span>
           </span>
         </div>
       )}
 
-      <div className="mb-3 rounded-[18px] border border-[#EEF0F4] p-4">
+      <div className="mb-3 rounded-[18px] border border-[var(--d-line)] p-4">
         <Row k={t("agreed")} v={formatDA(ride.price_da)} />
         {commissionPct && (
           <Row
@@ -953,8 +1028,8 @@ function DoneScreen({
             muted
           />
         )}
-        <div className="mt-1 flex items-center justify-between border-t border-[#EEF0F4] pt-3 text-sm font-bold">
-          <span className="text-[#6B7280]">{payLabel}</span>
+        <div className="mt-1 flex items-center justify-between border-t border-[var(--d-line)] pt-3 text-sm font-bold">
+          <span className="text-[var(--d-muted)]">{payLabel}</span>
           <span className="drive-sora text-lg">{formatDA(ride.price_da)}</span>
         </div>
       </div>
@@ -964,14 +1039,14 @@ function DoneScreen({
           className="mb-3 flex items-center gap-3 rounded-[16px] p-3"
           style={{ background: "rgba(22,179,100,.12)" }}
         >
-          <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-white">
+          <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-surface)]">
             <Gift className="size-5" style={{ color: GO }} />
           </span>
           <span>
             <b className="block text-[13.5px]" style={{ color: GO }}>
               {t("cashback", { amount: ride.cashback_da })}
             </b>
-            <span className="text-[11px] text-[#6B7280]">
+            <span className="text-[11px] text-[var(--d-muted)]">
               {t("cashbackSub")}
             </span>
           </span>
@@ -1016,7 +1091,7 @@ function DoneScreen({
                   color: ROSE,
                   background: "rgba(236,72,153,.13)",
                 }
-              : { borderColor: "#EEF0F4" }
+              : { borderColor: "var(--d-line)" }
           }
         >
           {fav
@@ -1063,8 +1138,8 @@ function DoneScreen({
 function Row({ k, v, muted }: { k: string; v: string; muted?: boolean }) {
   return (
     <div className="flex items-center justify-between py-2 text-[13.5px]">
-      <span className="text-[#6B7280]">{k}</span>
-      <span className={cn(muted && "text-[#6B7280]")}>{v}</span>
+      <span className="text-[var(--d-muted)]">{k}</span>
+      <span className={cn(muted && "text-[var(--d-muted)]")}>{v}</span>
     </div>
   );
 }
@@ -1082,7 +1157,7 @@ function CancelledScreen({
 }) {
   const t = useTranslations("drive.cancelledScreen");
   return (
-    <div className="drive-jakarta fixed inset-0 z-40 bg-white px-5 pt-12">
+    <div className="drive-jakarta fixed inset-0 z-40 bg-[var(--d-surface)] px-5 pt-12">
       <div className="flex flex-col items-center text-center">
         <span
           className="mb-3 grid size-16 place-items-center rounded-full"
@@ -1091,14 +1166,14 @@ function CancelledScreen({
           <X className="size-7" style={{ color: RED }} />
         </span>
         <h1 className="drive-sora text-[21px] font-extrabold">{t("title")}</h1>
-        <p className="mt-1 max-w-[280px] text-[13px] text-[#6B7280]">
+        <p className="mt-1 max-w-[280px] text-[13px] text-[var(--d-muted)]">
           {mine ? t("byYou") : t("byOther")}
         </p>
       </div>
       {reason && (
-        <div className="mt-4 rounded-[18px] border border-[#EEF0F4] p-4">
+        <div className="mt-4 rounded-[18px] border border-[var(--d-line)] p-4">
           <div className="flex items-center justify-between text-[13.5px]">
-            <span className="text-[#6B7280]">{t("reason")}</span>
+            <span className="text-[var(--d-muted)]">{t("reason")}</span>
             <span className="font-semibold">{reason}</span>
           </div>
         </div>

@@ -42,7 +42,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
   };
 
   return (
-    <div className="drive-jakarta min-h-screen bg-white px-5 pt-4 pb-24">
+    <div className="drive-jakarta min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
       <h1 className="drive-sora mb-3.5 text-[21px] font-extrabold tracking-[-0.5px]">
         Compte
       </h1>
@@ -64,9 +64,9 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
               </span>
             )}
           </span>
-          <span className="text-[13px] text-[#6B7280]">
+          <span className="text-[13px] text-[var(--d-muted)]">
             {gate.rating != null && (
-              <b className="text-[#0B0C12]">
+              <b className="text-[var(--d-ink)]">
                 ★ {String(gate.rating).replace(".", ",")}
               </b>
             )}
@@ -76,7 +76,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-[16px] border border-[#EEF0F4] bg-white">
+      <div className="overflow-hidden rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)]">
         <Row
           icon={<Car className="size-4" />}
           label="Véhicule"
@@ -127,7 +127,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
           className="flex w-full items-center gap-3 px-3.5 py-3.5 text-left text-[13.5px] font-semibold"
           style={{ color: "#E5484D" }}
         >
-          <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[#F4F5F9]">
+          <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
             <LogOut className="size-4" style={{ color: "#E5484D" }} />
           </span>
           Se déconnecter
@@ -154,13 +154,13 @@ function Row({
   return (
     <Tag
       {...(onClick ? { type: "button" as const, onClick } : {})}
-      className="flex w-full items-center gap-3 border-b border-[#EEF0F4] px-3.5 py-3.5 text-left text-[13.5px] font-semibold"
+      className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-3.5 py-3.5 text-left text-[13.5px] font-semibold"
     >
-      <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[#F4F5F9]">
+      <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
         {icon}
       </span>
       <span className="flex-1">{label}</span>
-      <span className="max-w-[55%] text-right text-xs font-medium text-[#6B7280]">
+      <span className="max-w-[55%] text-right text-xs font-medium text-[var(--d-muted)]">
         {value}
       </span>
     </Tag>

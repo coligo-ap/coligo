@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Check, Map as MapIcon, Zap } from "lucide-react";
+import { ChevronLeft, Check, Home, Map as MapIcon, Zap } from "lucide-react";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { DriveMap } from "@/components/customer/drive/drive-map";
 import {
@@ -15,10 +15,12 @@ import { DNav } from "./d-ui";
 import {
   chauffeurHeartbeat,
   getChauffeurActiveRide,
+  getChauffeurGate,
   getNearbyRides,
   offerRide,
   type NearbyRide,
 } from "@/app/(chauffeur)/actions";
+import { HOME_DIR_KEY, isTowardsHome } from "@/lib/drive/geo";
 
 const fmtkm = (v: number) =>
   `${(Math.round(v * 10) / 10).toString().replace(".", ",")} km`;
@@ -49,6 +51,29 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const coordsRef = useRef(coords);
   coordsRef.current = coords;
 
+  // « Je rentre chez moi » (G4) : toggle partagé avec l'accueil + domicile
+  // géocodé + tolérance angulaire (config admin).
+  const [homeDir, setHomeDir] = useState<{
+    on: boolean;
+    addr: string | null;
+    lat: number | null;
+    lng: number | null;
+    tolerance: number;
+  }>({ on: false, addr: null, lat: null, lng: null, tolerance: 45 });
+  useEffect(() => {
+    const on = localStorage.getItem(HOME_DIR_KEY) === "1";
+    void getChauffeurGate().then((g) => {
+      if (g)
+        setHomeDir({
+          on,
+          addr: g.homeAddr,
+          lat: g.homeLat,
+          lng: g.homeLng,
+          tolerance: g.homeDirToleranceDeg,
+        });
+    });
+  }, []);
+
   const poll = useCallback(async () => {
     const c = coordsRef.current;
     if (!c) return;
@@ -70,7 +95,23 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   }, [poll]);
 
   const total = (q: NearbyRide) => q.proposed_price_da + q.boost_amount_da;
-  const sorted = [...reqs];
+  // Filtre directionnel « je rentre chez moi » : ne garder que les demandes
+  // dont la destination va vers le domicile (cap ± tolérance ET rapprochement).
+  const dirActive = homeDir.on && homeDir.lat != null && homeDir.lng != null;
+  const filtered = dirActive
+    ? reqs.filter(
+        (q) =>
+          q.pickup_lat != null &&
+          q.dest_lat != null &&
+          isTowardsHome(
+            { lat: q.pickup_lat, lng: q.pickup_lng! },
+            { lat: q.dest_lat, lng: q.dest_lng! },
+            { lat: homeDir.lat!, lng: homeDir.lng! },
+            homeDir.tolerance
+          )
+      )
+    : reqs;
+  const sorted = [...filtered];
   if (sort === "pay") sorted.sort((a, b) => total(b) - total(a));
   else sorted.sort((a, b) => a.pickup_dist_km - b.pickup_dist_km);
   sorted.sort(
@@ -105,7 +146,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
         ? { lat: mapReq.dest_lat, lng: mapReq.dest_lng! }
         : null;
     return (
-      <div className="drive-jakarta fixed inset-0 bg-[#E9EBF1]">
+      <div className="drive-jakarta fixed inset-0 bg-[var(--d-page)]">
         <DriveMap
           markers={[
             ...(me ? [{ id: "car", pos: me, kind: "car" as const }] : []),
@@ -120,11 +161,11 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
         />
         {/* Étiquettes distances posées sur les segments */}
         <div className="pointer-events-none absolute top-[88px] left-1/2 z-10 flex -translate-x-1/2 gap-2">
-          <span className="rounded-full border-[1.5px] border-[#EEF0F4] bg-white px-3 py-1.5 text-[11px] font-extrabold text-[#6B7280] shadow">
+          <span className="rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 text-[11px] font-extrabold text-[var(--d-muted)] shadow">
             {fmtkm(mapReq.pickup_dist_km)} · approche
           </span>
           <span
-            className="rounded-full border-[1.5px] bg-white px-3 py-1.5 text-[11px] font-extrabold shadow"
+            className="rounded-full border-[1.5px] bg-[var(--d-surface)] px-3 py-1.5 text-[11px] font-extrabold shadow"
             style={{ borderColor: VIOLET, color: VIOLET }}
           >
             {fmtkm(mapReq.distance_km)} · course
@@ -133,11 +174,11 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
         <button
           type="button"
           onClick={() => setMapReq(null)}
-          className="absolute top-3 left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[#EEF0F4] bg-white shadow-lg"
+          className="absolute top-3 left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
         >
           <ChevronLeft className="size-5" />
         </button>
-        <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[#EEF0F4] bg-white px-5 pt-4 pb-[max(24px,env(safe-area-inset-bottom))]">
+        <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[max(24px,env(safe-area-inset-bottom))]">
           <div className="mb-1.5 flex items-center gap-2.5">
             <span
               className="drive-sora grid size-9 shrink-0 place-items-center rounded-full text-sm font-extrabold text-white"
@@ -152,23 +193,23 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
                 {mapReq.customer_name}
                 {mapReq.gamme === "confort" ? " · Confort" : ""}
               </b>
-              <span className="block text-[12px] text-[#6B7280]">
+              <span className="block text-[12px] text-[var(--d-muted)]">
                 {mapReq.pickup_text ?? "—"} → {mapReq.dest_text ?? "—"}
               </span>
             </span>
           </div>
-          <div className="mb-3 flex flex-col gap-1.5 rounded-[12px] bg-[#F4F5F9] px-3 py-2.5 text-[12.5px] font-semibold text-[#6B7280]">
+          <div className="mb-3 flex flex-col gap-1.5 rounded-[12px] bg-[var(--d-soft)] px-3 py-2.5 text-[12.5px] font-semibold text-[var(--d-muted)]">
             <span className="flex items-center gap-2">
               <i className="size-[9px] rounded-full bg-[#B7BBC8]" />
               Vous → client
-              <b className="drive-sora ml-auto text-[#0B0C12]">
+              <b className="drive-sora ml-auto text-[var(--d-ink)]">
                 {fmtkm(mapReq.pickup_dist_km)}
               </b>
             </span>
             <span className="flex items-center gap-2">
-              <i className="size-[9px] rounded-[2px] bg-[#0B0C12]" />
+              <i className="size-[9px] rounded-[2px] bg-[var(--d-ink)]" />
               Client → destination
-              <b className="drive-sora ml-auto text-[#0B0C12]">
+              <b className="drive-sora ml-auto text-[var(--d-ink)]">
                 {fmtkm(mapReq.distance_km)}
               </b>
             </span>
@@ -183,12 +224,12 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
 
   /* ── Liste des demandes ── */
   return (
-    <div className="drive-jakarta min-h-screen bg-white px-[18px] pt-3.5 pb-24">
+    <div className="drive-jakarta min-h-screen bg-[var(--d-surface)] px-[18px] pt-3.5 pb-24">
       <div className="mb-3 flex items-center gap-3">
         <button
           type="button"
           onClick={() => router.push("/chauffeur")}
-          className="grid size-[42px] shrink-0 place-items-center rounded-[14px] border border-[#EEF0F4] bg-white shadow"
+          className="grid size-[42px] shrink-0 place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
         >
           <ChevronLeft className="size-5" />
         </button>
@@ -196,8 +237,8 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
           <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
             Demandes de courses
           </h1>
-          <p className="text-[13px] text-[#6B7280]">
-            {reqs.length} clients · ajustez votre prix, puis proposez
+          <p className="text-[13px] text-[var(--d-muted)]">
+            {filtered.length} clients · ajustez votre prix, puis proposez
           </p>
         </div>
       </div>
@@ -217,7 +258,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
             style={
               sort === k
                 ? { borderColor: VIOLET, background: "#EEEEFD", color: VIOLET }
-                : { borderColor: "#EEF0F4", color: "#6B7280" }
+                : { borderColor: "var(--d-line)", color: "var(--d-muted)" }
             }
           >
             {label}
@@ -225,9 +266,32 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
         ))}
       </div>
 
+      {/* Filtre « je rentre chez moi » actif (maquette dirrow) */}
+      {dirActive && (
+        <div
+          className="mb-3 flex items-center gap-2.5 rounded-[14px] px-3.5 py-3"
+          style={{ background: "#EEEEFD" }}
+        >
+          <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-surface)]">
+            <Home className="size-4" style={{ color: VIOLET }} />
+          </span>
+          <span className="min-w-0">
+            <b className="block text-[12.5px]" style={{ color: VIOLET }}>
+              Filtre actif · vers {homeDir.addr ?? "votre domicile"}
+            </b>
+            <span className="text-[10.5px] text-[var(--d-muted)]">
+              {filtered.length} course{filtered.length > 1 ? "s" : ""} dans
+              votre direction
+            </span>
+          </span>
+        </div>
+      )}
+
       {sorted.length === 0 && (
-        <p className="py-10 text-center text-sm text-[#6B7280]">
-          Aucune demande autour de vous pour le moment.
+        <p className="py-10 text-center text-sm text-[var(--d-muted)]">
+          {dirActive
+            ? "Aucune course vers votre domicile pour le moment."
+            : "Aucune demande autour de vous pour le moment."}
         </p>
       )}
 
@@ -240,7 +304,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
             key={q.id}
             className="drive-rise mb-3 rounded-[18px] border p-3"
             style={{
-              borderColor: q.boost_amount_da > 0 ? GO : "#EEF0F4",
+              borderColor: q.boost_amount_da > 0 ? GO : "var(--d-line)",
               opacity: sentPrice ? 0.75 : 1,
             }}
           >
@@ -291,7 +355,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
                     </span>
                   )}
                 </span>
-                <span className="block text-[11px] text-[#6B7280]">
+                <span className="block text-[11px] text-[var(--d-muted)]">
                   {ago(q.created_at)}
                 </span>
               </span>
@@ -299,25 +363,27 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
                 <b className="drive-sora block text-lg font-extrabold">
                   {cp} DA
                 </b>
-                <span className="text-[10px] text-[#6B7280]">prix client</span>
+                <span className="text-[10px] text-[var(--d-muted)]">
+                  prix client
+                </span>
               </span>
             </div>
 
-            <div className="mb-2 flex flex-col gap-1.5 rounded-[12px] bg-[#F4F5F9] px-3 py-2.5 text-[12.5px] font-semibold text-[#6B7280]">
+            <div className="mb-2 flex flex-col gap-1.5 rounded-[12px] bg-[var(--d-soft)] px-3 py-2.5 text-[12.5px] font-semibold text-[var(--d-muted)]">
               <span className="flex items-center gap-2">
                 <i
                   className="size-[9px] shrink-0 rounded-full"
                   style={{ background: VIOLET }}
                 />
                 Vous → client
-                <b className="drive-sora ml-auto text-[#0B0C12]">
+                <b className="drive-sora ml-auto text-[var(--d-ink)]">
                   {fmtkm(q.pickup_dist_km)}
                 </b>
               </span>
               <span className="flex items-center gap-2">
-                <i className="size-[9px] shrink-0 rounded-[2px] bg-[#0B0C12]" />
+                <i className="size-[9px] shrink-0 rounded-[2px] bg-[var(--d-ink)]" />
                 Client → destination
-                <b className="drive-sora ml-auto text-[#0B0C12]">
+                <b className="drive-sora ml-auto text-[var(--d-ink)]">
                   {fmtkm(q.distance_km)}
                 </b>
               </span>
@@ -353,14 +419,14 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
                         [q.id]: Math.max(cp, myPrice - priceStep),
                       }))
                     }
-                    className="grid size-10 place-items-center rounded-full border-[1.5px] border-[#EEF0F4] bg-white text-xl font-bold"
+                    className="grid size-10 place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-xl font-bold"
                     style={{ color: VIOLET }}
                   >
                     −
                   </button>
-                  <span className="min-w-[130px] text-center text-[13px] font-semibold text-[#6B7280]">
+                  <span className="min-w-[130px] text-center text-[13px] font-semibold text-[var(--d-muted)]">
                     votre prix{" "}
-                    <b className="drive-sora text-xl font-extrabold text-[#0B0C12]">
+                    <b className="drive-sora text-xl font-extrabold text-[var(--d-ink)]">
                       {myPrice}
                     </b>{" "}
                     DA
@@ -373,7 +439,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
                         [q.id]: myPrice + priceStep,
                       }))
                     }
-                    className="grid size-10 place-items-center rounded-full border-[1.5px] border-[#EEF0F4] bg-white text-xl font-bold"
+                    className="grid size-10 place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-xl font-bold"
                     style={{ color: VIOLET }}
                   >
                     +
@@ -399,7 +465,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
                   <button
                     type="button"
                     onClick={() => void propose(q, cp)}
-                    className="drive-sora h-11 flex-1 rounded-[13px] bg-[#F4F5F9] text-[13.5px] font-bold"
+                    className="drive-sora h-11 flex-1 rounded-[13px] bg-[var(--d-soft)] text-[13.5px] font-bold"
                   >
                     Accepter {cp}
                   </button>

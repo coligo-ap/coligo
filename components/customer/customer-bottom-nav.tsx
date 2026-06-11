@@ -22,7 +22,7 @@ export function CustomerBottomNav() {
   return (
     <nav
       aria-label="Navigation principale"
-      className="border-border fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-white pb-[max(env(safe-area-inset-bottom),0px)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[var(--d-line)] bg-[var(--d-surface)] pb-[max(env(safe-area-inset-bottom),0px)] lg:hidden"
     >
       {ITEMS.map((item) => {
         const Icon = item.icon;

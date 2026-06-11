@@ -753,7 +753,8 @@
       "destLabel": "Destination — déplacez la carte",
       "moveMap": "Déplacez la carte pour placer l'épingle",
       "confirm": "Confirmer ce point",
-      "back": "Retour"
+      "back": "Retour",
+      "gpsPoint": "Position GPS ({coords})"
     },
     "dep": {
       "title": "Point de départ",
@@ -840,7 +841,9 @@
       "cardToPay": "Course par carte — payez maintenant pour valider.",
       "cardPayNow": "Payer par carte (CIB / Edahabia)",
       "shareTrip": "Partager mon trajet",
-      "cancelRide": "Annuler la course"
+      "cancelRide": "Annuler la course",
+      "proxSendWa": "Envoyer le suivi · WhatsApp",
+      "proxSendSms": "Envoyer le suivi · SMS"
     },
     "share": {
       "title": "Partager mon trajet",

@@ -258,6 +258,9 @@ export type ChauffeurGate = {
   submitted: boolean;
   rejectedReason: string | null;
   homeAddr: string | null;
+  homeLat: number | null;
+  homeLng: number | null;
+  homeDirToleranceDeg: number;
   rating: number | null;
   ridesCount: number;
   memberSince: string;
@@ -273,7 +276,7 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
   const { data } = await admin
     .from("chauffeurs")
     .select(
-      "id, full_name, first_name, phone, gamme, is_verified, is_frozen, is_blocked, frozen_reason, submitted_at, rejected_reason, home_addr_text, created_at, is_female_verified, vehicle_make, vehicle_model, vehicle_color, vehicle_plate"
+      "id, full_name, first_name, phone, gamme, is_verified, is_frozen, is_blocked, frozen_reason, submitted_at, rejected_reason, home_addr_text, home_lat, home_lng, created_at, is_female_verified, vehicle_make, vehicle_model, vehicle_color, vehicle_plate"
     )
     .eq("id", ch.id)
     .maybeSingle();
@@ -292,6 +295,12 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
       .eq("status", "completed"),
   ]);
   const rating = (avg as { avg?: number } | null)?.avg;
+  const { data: st } = await admin
+    .from("platform_settings")
+    .select("drive_home_dir_tolerance_deg")
+    .eq("id", true)
+    .maybeSingle();
+  const tolerance = st?.drive_home_dir_tolerance_deg ?? 45;
   return {
     id: data.id,
     firstName: data.first_name ?? data.full_name.split(" ")[0],
@@ -305,6 +314,9 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
     submitted: data.submitted_at != null,
     rejectedReason: data.rejected_reason,
     homeAddr: data.home_addr_text,
+    homeLat: data.home_lat,
+    homeLng: data.home_lng,
+    homeDirToleranceDeg: tolerance,
     rating: rating == null ? null : Math.round(Number(rating) * 10) / 10,
     ridesCount: count ?? 0,
     memberSince: data.created_at,
@@ -359,6 +371,7 @@ export async function chauffeurHeartbeat(
 export type DriveHome = {
   todayNet: number;
   todayRides: number;
+  todayOnlineMin: number;
   plan: "free" | "pro" | "premium";
   planRate: number;
   planPeriodEnd: string | null;
@@ -416,6 +429,7 @@ export async function getDriveHome(
   return {
     todayNet: Number(f?.today_net_da ?? 0),
     todayRides: Number(f?.today_rides ?? 0),
+    todayOnlineMin: Number(f?.today_online_minutes ?? 0),
     plan: ((f?.plan as string) ?? "free") as "free" | "pro" | "premium",
     planRate: Number(f?.plan_rate ?? 0.08),
     planPeriodEnd: (f?.plan_period_end as string) ?? null,
@@ -788,6 +802,7 @@ export async function getB2BNext(rideId: string): Promise<B2BNext | null> {
 export type ChauffeurFinances = {
   todayNet: number;
   todayRides: number;
+  todayOnlineMin: number;
   monthGross: number;
   monthRides: number;
   monthCommission: number;
@@ -837,6 +852,7 @@ export async function getChauffeurFinances(): Promise<ChauffeurFinances | null> 
   return {
     todayNet: Number(f.today_net_da ?? 0),
     todayRides: Number(f.today_rides ?? 0),
+    todayOnlineMin: Number(f.today_online_minutes ?? 0),
     monthGross: Number(f.month_gross_da ?? 0),
     monthRides: Number(f.month_rides ?? 0),
     monthCommission: Number(f.month_commission_da ?? 0),
@@ -919,11 +935,24 @@ export async function subscribeDrivePlan(
 export async function setChauffeurHome(
   addr: string
 ): Promise<{ ok: boolean; error?: string }> {
+  // Géocode l'adresse (G4) : le filtre directionnel a besoin de lat/lng.
+  let lat: number | null = null;
+  let lng: number | null = null;
+  try {
+    const { geocodeSearch } = await import("@/app/(customer)/actions");
+    const res = await geocodeSearch({ q: addr });
+    if (res.ok && res.results[0]) {
+      lat = res.results[0].lat;
+      lng = res.results[0].lng;
+    }
+  } catch {
+    /* adresse non géocodable : le toggle restera sans filtre géo */
+  }
   const rpc = await rpcClient();
   const { data, error } = await rpc("chauffeur_set_home", {
     p_addr: addr,
-    p_lat: null,
-    p_lng: null,
+    p_lat: lat,
+    p_lng: lng,
   });
   if (error) return { ok: false, error: error.message };
   const row = (Array.isArray(data) ? data[0] : data) as {
