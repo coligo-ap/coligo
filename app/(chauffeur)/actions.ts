@@ -899,6 +899,10 @@ export type ChauffeurFinances = {
   premiumFee: number;
   ccp: { number: string; key: string; name: string };
   pendingSub: { plan: string; amount: number; method: string } | null;
+  /** Début de la période d'abonnement active (affichage « du X au Y »). */
+  planPeriodStart: string | null;
+  /** Devis d'upgrade Pro → Premium (prorata des jours restants). */
+  upgradeQuote: { amountDa: number; daysLeft: number } | null;
 };
 
 export async function getChauffeurFinances(): Promise<ChauffeurFinances | null> {
@@ -906,24 +910,34 @@ export async function getChauffeurFinances(): Promise<ChauffeurFinances | null> 
   if (!ch) return null;
   const rpc = await rpcClient();
   const admin = createAdminClient();
-  const [{ data: fin }, { data: s }, { data: pending }] = await Promise.all([
-    rpc("drive_my_finances", {}),
-    admin
-      .from("platform_settings")
-      .select(
-        "drive_plan_pro_fee_da, drive_plan_pro_rate, drive_plan_premium_fee_da, drive_ccp_number, drive_ccp_key, drive_ccp_name"
-      )
-      .eq("id", true)
-      .maybeSingle(),
-    admin
-      .from("chauffeur_subscription_payments")
-      .select("plan, amount_da, method")
-      .eq("chauffeur_id", ch.id)
-      .eq("status", "pending")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const [{ data: fin }, { data: s }, { data: pending }, { data: activeSub }] =
+    await Promise.all([
+      rpc("drive_my_finances", {}),
+      admin
+        .from("platform_settings")
+        .select(
+          "drive_plan_pro_fee_da, drive_plan_pro_rate, drive_plan_premium_fee_da, drive_ccp_number, drive_ccp_key, drive_ccp_name"
+        )
+        .eq("id", true)
+        .maybeSingle(),
+      admin
+        .from("chauffeur_subscription_payments")
+        .select("plan, amount_da, method")
+        .eq("chauffeur_id", ch.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      admin
+        .from("chauffeur_subscriptions")
+        .select("plan, period_start, period_end")
+        .eq("chauffeur_id", ch.id)
+        .eq("status", "active")
+        .gt("period_end", new Date().toISOString())
+        .order("period_end", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
   const f = (Array.isArray(fin) ? fin[0] : null) as Record<
     string,
     unknown
@@ -959,7 +973,49 @@ export async function getChauffeurFinances(): Promise<ChauffeurFinances | null> 
           method: pending.method,
         }
       : null,
+    planPeriodStart: activeSub?.period_start ?? null,
+    // Devis upgrade Pro → Premium : différence de tarif au prorata des jours
+    // restants, même échéance (le RPC drive_sub_upgrade recalcule au clic —
+    // ceci n'est qu'un AFFICHAGE).
+    upgradeQuote: (() => {
+      const plan = ((f.plan as string) ?? "free") as string;
+      if (plan !== "pro" || !activeSub?.period_end) return null;
+      const daysLeft = Math.min(
+        30,
+        Math.max(
+          1,
+          Math.ceil(
+            (new Date(activeSub.period_end).getTime() - Date.now()) / 86400000
+          )
+        )
+      );
+      const proFee = s?.drive_plan_pro_fee_da ?? 1500;
+      const premiumFee = s?.drive_plan_premium_fee_da ?? 3900;
+      return {
+        amountDa: Math.max(
+          100,
+          Math.round(((premiumFee - proFee) * daysLeft) / 30)
+        ),
+        daysLeft,
+      };
+    })(),
   };
+}
+
+/** Annule la tentative de paiement d'abonnement en attente (carte abandonnée…). */
+export async function cancelMyPendingSub(): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
+  const rpc = await rpcClient();
+  const { data, error } = await rpc("drive_sub_cancel_my_pending", {});
+  if (error) return { ok: false, error: error.message };
+  const row = (Array.isArray(data) ? data[0] : data) as {
+    ok?: boolean;
+    reason?: string;
+  };
+  if (!row?.ok) return { ok: false, error: row?.reason ?? "Échec." };
+  return { ok: true };
 }
 
 /**
@@ -968,13 +1024,15 @@ export async function getChauffeurFinances(): Promise<ChauffeurFinances | null> 
  */
 export async function subscribeDrivePlan(
   plan: "pro" | "premium",
-  method: "ccp" | "card"
+  method: "ccp" | "card",
+  opts?: { upgrade?: boolean }
 ): Promise<{ ok: boolean; url?: string; error?: string }> {
   const rpc = await rpcClient();
-  const { data, error } = await rpc("drive_subscribe", {
-    p_plan: plan,
-    p_method: method,
-  });
+  // Upgrade Pro → Premium : montant au prorata des jours restants (calculé
+  // côté SQL, source de vérité), même date de renouvellement.
+  const { data, error } = opts?.upgrade
+    ? await rpc("drive_sub_upgrade", { p_method: method })
+    : await rpc("drive_subscribe", { p_plan: plan, p_method: method });
   if (error) return { ok: false, error: error.message };
   const row = (Array.isArray(data) ? data[0] : data) as {
     ok?: boolean;

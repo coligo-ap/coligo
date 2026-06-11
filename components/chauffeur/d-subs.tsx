@@ -1,17 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Calendar,
   ChevronLeft,
   CreditCard,
   Loader2,
   Wallet,
+  X,
+  Zap,
 } from "lucide-react";
 import {
   VIOLET,
   GO,
+  RED,
   PrimaryBtn,
   GhostBtn,
   Sheet,
@@ -19,6 +22,7 @@ import {
 } from "@/components/customer/drive/drive-modals";
 import { DNav, PLAN_LABEL } from "./d-ui";
 import {
+  cancelMyPendingSub,
   getChauffeurFinances,
   subscribeDrivePlan,
   type ChauffeurFinances,
@@ -30,19 +34,64 @@ const fmtDate = (iso: string) =>
 /**
  * Abonnements (maquette s-dsubs + modale paySub) : Gratuit 8 % · Pro 1 500
  * DA/mois 3,5 % · Premium 3 900 DA/mois 0 % + priorité + badge. Paiement
- * CCP/BaridiMob (reçu, vérification 24 h) ou carte (activation immédiate).
+ * CCP/BaridiMob (reçu, vérification 24 h) ou carte.
+ *
+ * ⚠️ Paiement carte : SEUL le webhook Chargily fait foi. Le retour
+ * `?card=success` ne prouve rien — on POLLE le serveur jusqu'à voir le plan
+ * réellement activé. Une tentative non finalisée s'affiche comme telle
+ * (rien d'activé) et peut être annulée.
  */
 export function DSubs() {
   const router = useRouter();
+  const search = useSearchParams();
   const [fin, setFin] = useState<ChauffeurFinances | null>(null);
   const [paying, setPaying] = useState<"pro" | "premium" | null>(null);
+  const [upgrade, setUpgrade] = useState(false);
   const [step, setStep] = useState<"choice" | "ccp">("choice");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Retour Chargily : "checking" tant que le webhook n'a pas confirmé.
+  const [cardReturn, setCardReturn] = useState<
+    "checking" | "confirmed" | "failed" | null
+  >(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = () => void getChauffeurFinances().then(setFin);
   useEffect(load, []);
+
+  // ?card=success → on NE croit PAS la redirection : on attend que le plan
+  // soit actif côté serveur (webhook). ?card=failed → échec affiché.
+  useEffect(() => {
+    const flag = search.get("card");
+    if (!flag) return;
+    router.replace("/chauffeur/abonnement");
+    if (flag === "failed") {
+      setCardReturn("failed");
+      return;
+    }
+    if (flag !== "success") return;
+    setCardReturn("checking");
+    let tries = 0;
+    pollRef.current = setInterval(async () => {
+      tries += 1;
+      const f = await getChauffeurFinances();
+      if (f) setFin(f);
+      // Confirmé quand plus AUCUN paiement en attente et un plan payant actif.
+      if (f && !f.pendingSub && f.plan !== "free") {
+        setCardReturn("confirmed");
+        if (pollRef.current) clearInterval(pollRef.current);
+      } else if (tries >= 15) {
+        // ~45 s sans confirmation : on reste honnête (toujours en attente).
+        if (pollRef.current) clearInterval(pollRef.current);
+        setCardReturn(null);
+      }
+    }, 3000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!fin) {
     return (
@@ -56,7 +105,7 @@ export function DSubs() {
     if (!paying || busy) return;
     setBusy(true);
     setError(null);
-    const res = await subscribeDrivePlan(paying, "ccp");
+    const res = await subscribeDrivePlan(paying, "ccp", { upgrade });
     setBusy(false);
     if (!res.ok) {
       setError(res.error ?? "Échec");
@@ -74,7 +123,7 @@ export function DSubs() {
     if (!paying || busy) return;
     setBusy(true);
     setError(null);
-    const res = await subscribeDrivePlan(paying, "card");
+    const res = await subscribeDrivePlan(paying, "card", { upgrade });
     setBusy(false);
     if (!res.ok || !res.url) {
       setError(res.error ?? "Paiement carte indisponible.");
@@ -84,8 +133,19 @@ export function DSubs() {
     setPaying(null);
     setStep("choice");
     setMsg(
-      "Finalisez le paiement par carte — l'abonnement s'active dès la confirmation."
+      "Paiement carte en cours — RIEN n'est activé tant que la banque n'a pas confirmé. Cette page se mettra à jour automatiquement."
     );
+    load();
+  };
+
+  const cancelPending = async () => {
+    if (busy) return;
+    setBusy(true);
+    const res = await cancelMyPendingSub();
+    setBusy(false);
+    if (!res.ok) setError(res.error ?? "Échec");
+    else setMsg("Tentative de paiement annulée — aucun montant n'est dû.");
+    load();
   };
 
   const renewBefore = fin.planPeriodEnd
@@ -110,6 +170,40 @@ export function DSubs() {
         Gardez plus sur chaque course. Changez quand vous voulez.
       </p>
 
+      {/* Retour Chargily : confirmation RÉELLE (webhook) ou échec. */}
+      {cardReturn === "checking" && (
+        <p className="mb-3 flex items-center gap-2 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-xs font-bold">
+          <Loader2
+            className="size-4 shrink-0 animate-spin"
+            style={{ color: VIOLET }}
+          />
+          Confirmation du paiement par la banque en cours… rien n&apos;est
+          activé pour l&apos;instant.
+        </p>
+      )}
+      {cardReturn === "confirmed" && (
+        <p
+          className="mb-3 rounded-[13px] px-3 py-2.5 text-xs font-bold"
+          style={{ background: "rgba(22,179,100,.12)", color: GO }}
+        >
+          ✓ Paiement confirmé par la banque — abonnement {PLAN_LABEL[fin.plan]}{" "}
+          actif
+          {fin.planPeriodStart && fin.planPeriodEnd
+            ? ` du ${fmtDate(fin.planPeriodStart)} au ${fmtDate(fin.planPeriodEnd)}`
+            : ""}
+          .
+        </p>
+      )}
+      {cardReturn === "failed" && (
+        <p
+          className="mb-3 rounded-[13px] px-3 py-2.5 text-xs font-bold"
+          style={{ background: "rgba(229,72,77,.1)", color: RED }}
+        >
+          Paiement refusé ou annulé — aucun montant débité, l&apos;abonnement
+          n&apos;a PAS été activé. Vous pouvez réessayer.
+        </p>
+      )}
+
       {fin.plan !== "free" && fin.planPeriodEnd && (
         <div className="mb-3 flex items-center gap-2.5 rounded-[14px] bg-[var(--d-soft)] px-3.5 py-2.5 text-xs font-semibold text-[var(--d-muted)]">
           <span
@@ -119,7 +213,17 @@ export function DSubs() {
             <Calendar className="size-4" style={{ color: VIOLET }} />
           </span>
           <span>
-            Actif jusqu&apos;au{" "}
+            Abonnement{" "}
+            <b className="text-[var(--d-ink)]">{PLAN_LABEL[fin.plan]}</b> actif{" "}
+            {fin.planPeriodStart && (
+              <>
+                du{" "}
+                <b className="text-[var(--d-ink)]">
+                  {fmtDate(fin.planPeriodStart)}
+                </b>{" "}
+              </>
+            )}
+            au{" "}
             <b className="text-[var(--d-ink)]">{fmtDate(fin.planPeriodEnd)}</b>{" "}
             · renouvelez avant le{" "}
             <b className="text-[var(--d-ink)]">
@@ -131,15 +235,38 @@ export function DSubs() {
         </div>
       )}
 
-      {fin.pendingSub && (
-        <p
+      {/* Tentative en attente : HONNÊTE selon le moyen de paiement. */}
+      {fin.pendingSub && cardReturn !== "checking" && (
+        <div
           className="mb-3 rounded-[13px] px-3 py-2.5 text-xs font-bold"
-          style={{ background: "rgba(22,179,100,.12)", color: GO }}
+          style={
+            fin.pendingSub.method === "ccp"
+              ? { background: "rgba(22,179,100,.12)", color: GO }
+              : { background: "rgba(245,158,11,.13)", color: "#B45309" }
+          }
         >
-          Paiement {PLAN_LABEL[fin.pendingSub.plan]} ({fin.pendingSub.amount} DA
-          · {fin.pendingSub.method === "ccp" ? "CCP" : "carte"}) en vérification
-          (24 h).
-        </p>
+          {fin.pendingSub.method === "ccp" ? (
+            <>
+              Reçu CCP {PLAN_LABEL[fin.pendingSub.plan]} (
+              {fin.pendingSub.amount} DA) en vérification par l&apos;équipe
+              Coligo (24 h).
+            </>
+          ) : (
+            <>
+              Paiement carte {PLAN_LABEL[fin.pendingSub.plan]} (
+              {fin.pendingSub.amount} DA) <b>non finalisé</b> — rien n&apos;est
+              activé tant que la banque n&apos;a pas confirmé.
+            </>
+          )}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void cancelPending()}
+            className="mt-1.5 flex items-center gap-1 text-[11px] font-extrabold underline"
+          >
+            <X className="size-3" /> Annuler cette tentative
+          </button>
+        </div>
       )}
       {msg && (
         <p
@@ -184,6 +311,15 @@ export function DSubs() {
         cta="Choisir Pro"
         secondary
         onClick={() => {
+          // Garde-fou : un Premium actif serait REMPLACÉ immédiatement.
+          if (
+            fin.plan === "premium" &&
+            !window.confirm(
+              "Votre Premium est encore actif : souscrire Pro le remplacera immédiatement, sans remboursement des jours restants. À l'échéance, le retour au plan Gratuit est automatique. Continuer quand même ?"
+            )
+          )
+            return;
+          setUpgrade(false);
           setPaying("pro");
           setStep("choice");
         }}
@@ -199,10 +335,29 @@ export function DSubs() {
           <>
             <b>0 % de commission</b> + priorité dispatch + badge Premium · vous
             ne devez que l&apos;abonnement
+            {/* Upgrade prorata (façon Claude) : on ne paie que la différence
+                pour les jours restants, même date de renouvellement. */}
+            {fin.plan === "pro" && fin.upgradeQuote && (
+              <span
+                className="mt-1.5 flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 font-bold"
+                style={{ background: "#EEEEFD", color: VIOLET }}
+              >
+                <Zap className="size-3.5 shrink-0" />
+                Passage immédiat : payez seulement la différence —{" "}
+                {fin.upgradeQuote.amountDa.toLocaleString("fr-FR")} DA pour vos{" "}
+                {fin.upgradeQuote.daysLeft} jours restants, même date de
+                renouvellement.
+              </span>
+            )}
           </>
         }
-        cta="Choisir Premium"
+        cta={
+          fin.plan === "pro" && fin.upgradeQuote
+            ? `Passer à Premium · ${fin.upgradeQuote.amountDa.toLocaleString("fr-FR")} DA`
+            : "Choisir Premium"
+        }
         onClick={() => {
+          setUpgrade(fin.plan === "pro" && !!fin.upgradeQuote);
           setPaying("premium");
           setStep("choice");
         }}
@@ -217,11 +372,21 @@ export function DSubs() {
         }}
       >
         <SheetTitle>
-          Payer l&apos;abonnement {paying ? PLAN_LABEL[paying] : ""} ·{" "}
-          {paying === "premium"
-            ? fin.premiumFee.toLocaleString("fr-FR")
-            : fin.proFee.toLocaleString("fr-FR")}{" "}
-          DA/mois
+          {upgrade && fin.upgradeQuote ? (
+            <>
+              Passer à Premium ·{" "}
+              {fin.upgradeQuote.amountDa.toLocaleString("fr-FR")} DA (prorata{" "}
+              {fin.upgradeQuote.daysLeft} j restants)
+            </>
+          ) : (
+            <>
+              Payer l&apos;abonnement {paying ? PLAN_LABEL[paying] : ""} ·{" "}
+              {paying === "premium"
+                ? fin.premiumFee.toLocaleString("fr-FR")
+                : fin.proFee.toLocaleString("fr-FR")}{" "}
+              DA/mois
+            </>
+          )}
         </SheetTitle>
         {step === "choice" ? (
           <>
