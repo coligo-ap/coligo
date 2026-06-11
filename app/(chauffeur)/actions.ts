@@ -205,17 +205,66 @@ export async function uploadChauffeurDoc(
   return { ok: true };
 }
 
-export async function getChauffeurDocs(): Promise<Record<string, boolean>> {
+export type ChauffeurDocInfo = {
+  kind: DocKind;
+  status: "pending" | "approved" | "rejected";
+  review_note: string | null;
+  /** URL signée (1 h) pour APERÇU/visualisation par le chauffeur lui-même. */
+  view_url: string | null;
+};
+
+/** Documents du chauffeur connecté, avec statut de revue et URL d'aperçu. */
+export async function getChauffeurDocs(): Promise<ChauffeurDocInfo[]> {
   const ch = await getCurrentChauffeur();
-  if (!ch) return {};
+  if (!ch) return [];
   const admin = createAdminClient();
   const { data } = await admin
     .from("chauffeur_documents")
-    .select("kind")
+    .select("kind, url, status, review_note")
     .eq("chauffeur_id", ch.id);
-  const out: Record<string, boolean> = {};
-  for (const d of data ?? []) out[d.kind] = true;
-  return out;
+  const rows = data ?? [];
+  // URLs signées en lot (bucket privé) — échec silencieux par pièce.
+  const { data: signed } = await admin.storage
+    .from(DOCS_BUCKET)
+    .createSignedUrls(
+      rows.map((r) => r.url),
+      3600
+    );
+  return rows.map((r, i) => ({
+    kind: r.kind as DocKind,
+    status: (r.status ?? "pending") as ChauffeurDocInfo["status"],
+    review_note: r.review_note ?? null,
+    view_url: signed?.[i]?.signedUrl ?? null,
+  }));
+}
+
+/** Supprime une pièce (fichier + ligne). Le dossier devra être renvoyé. */
+export async function deleteChauffeurDoc(
+  kind: DocKind
+): Promise<{ ok: boolean; error?: string }> {
+  const ch = await getCurrentChauffeur();
+  if (!ch) return { ok: false, error: "Session chauffeur introuvable." };
+  const admin = createAdminClient();
+  const { data: doc } = await admin
+    .from("chauffeur_documents")
+    .select("id, url")
+    .eq("chauffeur_id", ch.id)
+    .eq("kind", kind)
+    .maybeSingle();
+  if (!doc) return { ok: false, error: "Document introuvable." };
+  const { error } = await admin
+    .from("chauffeur_documents")
+    .delete()
+    .eq("id", doc.id);
+  if (error) return { ok: false, error: error.message };
+  await admin.storage
+    .from(DOCS_BUCKET)
+    .remove([doc.url])
+    .catch(() => {});
+  if (kind === "selfie") {
+    await admin.from("chauffeurs").update({ selfie_url: null }).eq("id", ch.id);
+  }
+  return { ok: true };
 }
 
 /** Envoi du dossier : exige permis r/v + carte grise + plaque + selfie. */
@@ -226,7 +275,8 @@ export async function submitChauffeurDossier(): Promise<{
   const ch = await getCurrentChauffeur();
   if (!ch) return { ok: false, error: "Session chauffeur introuvable." };
   const docs = await getChauffeurDocs();
-  const missing = REQUIRED_DOCS.filter((k) => !docs[k]);
+  const have = new Set(docs.map((d) => d.kind));
+  const missing = REQUIRED_DOCS.filter((k) => !have.has(k));
   if (missing.length > 0)
     return {
       ok: false,

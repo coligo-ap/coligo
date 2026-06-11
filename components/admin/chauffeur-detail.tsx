@@ -53,9 +53,12 @@ const DOC_META: Record<string, { label: string; required: boolean }> = {
 export function ChauffeurDocReview({
   chauffeurId,
   docs,
+  signedUrls = {},
 }: {
   chauffeurId: string;
   docs: AdminChauffeurDoc[];
+  /** URLs signées par id de document (aperçus inline, bucket privé). */
+  signedUrls?: Record<string, string>;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -101,6 +104,22 @@ export function ChauffeurDocReview({
               doc?.status === "rejected" && "border-danger-300 bg-danger-50"
             )}
           >
+            {/* Aperçu inline (clic = plein écran) */}
+            {doc && signedUrls[doc.id] && (
+              <button
+                type="button"
+                onClick={() => window.open(signedUrls[doc.id], "_blank")}
+                aria-label={`Voir ${meta.label}`}
+                className="border-border size-12 shrink-0 overflow-hidden rounded-[10px] border"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={signedUrls[doc.id]}
+                  alt={meta.label}
+                  className="h-full w-full object-cover"
+                />
+              </button>
+            )}
             <span className="min-w-0 flex-1">
               <b className="block text-sm">{meta.label}</b>
               <span className="text-muted text-xs">

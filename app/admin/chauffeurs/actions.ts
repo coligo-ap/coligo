@@ -309,7 +309,9 @@ export async function rejectSubPayment(
 // Facultatif : assurance, adresse, CCP (requis avant le 1er versement).
 // =============================================================================
 
-export const REQUIRED_DOC_KINDS = [
+// NB : PAS exporté — un fichier "use server" ne peut exporter que des
+// fonctions async (un export de constante fait planter toutes les actions).
+const REQUIRED_DOC_KINDS = [
   "permis_recto",
   "permis_verso",
   "carte_grise",

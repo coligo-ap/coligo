@@ -8,6 +8,13 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  experimental: {
+    serverActions: {
+      // Upload des documents chauffeur (photos téléphone) via server action :
+      // la limite par défaut (1 Mo) rejetait TOUTES les photos réelles.
+      bodySizeLimit: "10mb",
+    },
+  },
   images: {
     remotePatterns: [
       // Images produits servies depuis Supabase Storage (bucket public).

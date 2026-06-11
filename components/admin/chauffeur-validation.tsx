@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { BadgeCheck, ExternalLink, Loader2, X } from "lucide-react";
 import {
-  approveChauffeur,
+  approveChauffeurGated,
   getChauffeurDocUrl,
   rejectChauffeur,
   approveSubPayment,
@@ -80,6 +80,13 @@ export function ChauffeurValidationCard({
         )}
       </div>
 
+      <a
+        href={`/admin/chauffeurs/${chauffeur.id}`}
+        className="text-primary-700 mb-2 inline-block text-xs font-bold hover:underline"
+      >
+        Ouvrir la fiche — valider les pièces une à une →
+      </a>
+
       <div className="mb-3 flex flex-wrap gap-1.5">
         {docs.length === 0 && (
           <span className="text-muted text-xs">Aucun document reçu.</span>
@@ -107,7 +114,9 @@ export function ChauffeurValidationCard({
           disabled={pending}
           onClick={() =>
             start(async () => {
-              const res = await approveChauffeur(chauffeur.id);
+              // Version GATÉE : refuse tant que les pièces obligatoires ne
+              // sont pas validées une à une (fiche détail).
+              const res = await approveChauffeurGated(chauffeur.id);
               if (res.error) setError(res.error);
               else
                 setDone(

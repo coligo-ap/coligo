@@ -182,7 +182,14 @@ export default async function RootLayout({
     <html
       lang={locale}
       dir={dir}
-      className={`${fontDisplay.variable} ${fontBody.variable} ${fontArabic.variable}${isDark ? "theme-dark" : ""}`}
+      className={[
+        fontDisplay.variable,
+        fontBody.variable,
+        fontArabic.variable,
+        isDark ? "theme-dark" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       suppressHydrationWarning
     >
       <head>

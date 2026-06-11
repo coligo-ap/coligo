@@ -44,7 +44,7 @@ export default async function AdminChauffeurDetailPage({
   const [
     { data: planData },
     { data: debtRows },
-    { data: avgRow },
+    { data: ratingRows },
     { count: ridesCount },
   ] = await Promise.all([
     rpc("resolve_drive_plan", { p_chauffeur_id: id }),
@@ -54,12 +54,14 @@ export default async function AdminChauffeurDetailPage({
       .eq("chauffeur_id", id)
       .eq("type", "chauffeur_owes_platform")
       .is("settled_at", null),
+    // Moyenne calculée ici : la syntaxe d'agrégat PostgREST (`avg()`) n'est
+    // pas activée sur Supabase → la requête échouait silencieusement.
     admin
       .from("rides")
-      .select("chauffeur_rating.avg()")
+      .select("chauffeur_rating")
       .eq("chauffeur_id", id)
       .not("chauffeur_rating", "is", null)
-      .maybeSingle(),
+      .limit(1000),
     admin
       .from("rides")
       .select("id", { count: "exact", head: true })
@@ -71,10 +73,37 @@ export default async function AdminChauffeurDetailPage({
     rate: number;
   } | null;
   const debt = (debtRows ?? []).reduce((s, r) => s + (r.amount_da ?? 0), 0);
+  const ratings = (ratingRows ?? [])
+    .map((r) => Number(r.chauffeur_rating))
+    .filter((v) => Number.isFinite(v));
   const st = {
-    avg: (avgRow as { avg?: number } | null)?.avg ?? null,
+    avg: ratings.length
+      ? ratings.reduce((s, v) => s + v, 0) / ratings.length
+      : null,
     count: ridesCount ?? 0,
   };
+
+  // URLs signées (1 h) des pièces : aperçus inline (dont la photo du visage).
+  const docRows = (docs ?? []) as { id: string; url: string }[];
+  const signedByDocId = new Map<string, string>();
+  if (docRows.length > 0) {
+    const { data: signed } = await admin.storage
+      .from("driver-docs")
+      .createSignedUrls(
+        docRows.map((d) => d.url),
+        3600
+      );
+    docRows.forEach((d, i) => {
+      const u = signed?.[i]?.signedUrl;
+      if (u) signedByDocId.set(d.id, u);
+    });
+  }
+  const selfieDoc = (docs as { kind: string; id: string }[] | null)?.find(
+    (d) => d.kind === "selfie"
+  );
+  const selfieUrl = selfieDoc
+    ? (signedByDocId.get(selfieDoc.id) ?? null)
+    : null;
 
   const statusChip = ch.is_blocked ? (
     <span className="bg-danger-600 rounded-full px-2.5 py-1 text-xs font-bold text-white">
@@ -122,6 +151,28 @@ export default async function AdminChauffeurDetailPage({
         <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold uppercase">
           <User className="size-4" /> Identité
         </h2>
+        {/* Photo du visage (selfie en direct, OBLIGATOIRE) : affichée en
+            grand pour comparer avec le permis avant activation. */}
+        <div className="mb-3 flex items-center gap-3">
+          {selfieUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={selfieUrl}
+              alt={`Visage de ${ch.full_name}`}
+              className="border-border size-24 rounded-full border-2 object-cover"
+            />
+          ) : (
+            <div className="bg-surface-2 text-muted grid size-24 place-items-center rounded-full text-center text-[10px] font-bold">
+              Selfie
+              <br />
+              manquant
+            </div>
+          )}
+          <p className="text-muted max-w-[260px] text-xs">
+            Selfie <strong>en direct</strong> (capture caméra obligatoire) — à
+            comparer avec la photo du permis.
+          </p>
+        </div>
         <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
           <Item k="Nom complet *" v={ch.full_name} />
           <Item k="Prénom *" v={ch.first_name ?? "—"} />
@@ -164,6 +215,7 @@ export default async function AdminChauffeurDetailPage({
         <ChauffeurDocReview
           chauffeurId={id}
           docs={(docs ?? []) as AdminChauffeurDoc[]}
+          signedUrls={Object.fromEntries(signedByDocId)}
         />
       </section>
 
