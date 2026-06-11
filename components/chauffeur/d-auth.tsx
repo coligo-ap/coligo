@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useState, useActionState } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, LogOut, Loader2, Store, User } from "lucide-react";
 import { VIOLET } from "@/components/customer/drive/drive-modals";
 import {
   chauffeurLogin,
+  chauffeurLogout,
   chauffeurSignup,
   type ChauffeurAuthState,
 } from "@/app/(chauffeur)/actions";
@@ -17,7 +18,14 @@ const initial: ChauffeurAuthState = {};
  * mot de passe ; inscription = nom*, prénom*, tél*, date de naissance*,
  * wilaya/ville*, mot de passe*, GAMME du véhicule.
  */
-export function DAuth({ tab: initialTab = "log" }: { tab?: "log" | "reg" }) {
+export function DAuth({
+  tab: initialTab = "log",
+  connectedPhone = null,
+}: {
+  tab?: "log" | "reg";
+  /** Téléphone du chauffeur déjà connecté sur cet appareil (bandeau logout). */
+  connectedPhone?: string | null;
+}) {
   const [tab, setTab] = useState<"log" | "reg">(initialTab);
   const [gamme, setGamme] = useState<"classic" | "confort" | "moto">("classic");
   const [loginState, loginAction, loginPending] = useActionState(
@@ -33,16 +41,32 @@ export function DAuth({ tab: initialTab = "log" }: { tab?: "log" | "reg" }) {
     "mb-2 w-full rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]";
 
   return (
-    <div className="drive-jakarta drive-page h-full bg-[var(--d-surface)] px-5 pt-5 pb-28">
-      {/* Retour : accueil marketplace (la nav du bas étant fixe, ce lien
-          reste le retour visible immédiatement). */}
-      <Link
-        href="/"
-        className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-bold text-[var(--d-muted)]"
-      >
-        <ArrowLeft className="size-4" />
-        Retour
-      </Link>
+    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-10">
+      {/* Header Drive : retour accueil + bascule d'espace (client/commerçant).
+          Tout en variables --d-* → cohérent en clair COMME en sombre. */}
+      <div className="mb-5 flex items-center justify-between">
+        <Link
+          href="/"
+          aria-label="Retour à l'accueil"
+          className="grid size-10 place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)]"
+        >
+          <ArrowLeft className="size-5 rtl:-scale-x-100" />
+        </Link>
+        <div className="flex gap-1.5">
+          <Link
+            href="/se-connecter"
+            className="flex items-center gap-1.5 rounded-full border border-[var(--d-line)] px-3 py-2 text-[11px] font-bold text-[var(--d-muted)]"
+          >
+            <User className="size-3.5" /> Client
+          </Link>
+          <Link
+            href="/login"
+            className="flex items-center gap-1.5 rounded-full border border-[var(--d-line)] px-3 py-2 text-[11px] font-bold text-[var(--d-muted)]"
+          >
+            <Store className="size-3.5" /> Commerçant
+          </Link>
+        </div>
+      </div>
       <div className="mb-4 text-center">
         <h1 className="drive-sora text-[22px] font-extrabold tracking-[-0.5px]">
           Coligo <span style={{ color: VIOLET }}>Drive</span>
@@ -51,6 +75,28 @@ export function DAuth({ tab: initialTab = "log" }: { tab?: "log" | "reg" }) {
           Espace chauffeur
         </p>
       </div>
+
+      {/* Déjà connecté sur cet appareil : impossible d'inscrire un nouveau
+          chauffeur sans se déconnecter d'abord — on le dit et on donne le
+          bouton, au lieu de laisser l'inscription échouer silencieusement. */}
+      {connectedPhone && (
+        <div className="mb-3 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] p-3">
+          <p className="mb-2 text-[12.5px] font-semibold text-[var(--d-muted)]">
+            Vous êtes déjà connecté en tant que{" "}
+            <b className="text-[var(--d-ink)]">{connectedPhone}</b>. Pour
+            inscrire un autre chauffeur, déconnectez-vous d&apos;abord.
+          </p>
+          <form action={chauffeurLogout}>
+            <button
+              type="submit"
+              className="flex w-full items-center justify-center gap-2 rounded-[12px] border-[1.5px] border-[var(--d-line)] px-3 py-2.5 text-xs font-bold"
+              style={{ color: "#E5484D" }}
+            >
+              <LogOut className="size-4" /> Se déconnecter
+            </button>
+          </form>
+        </div>
+      )}
 
       <div className="mb-3 flex gap-2">
         {(

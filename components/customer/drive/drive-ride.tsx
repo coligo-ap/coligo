@@ -20,7 +20,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn, formatDA } from "@/lib/utils";
 import { haversineKm } from "@/lib/delivery/distance";
-import { DriveMap } from "./drive-map";
+import { routeEstimate } from "@/app/(customer)/actions";
+import { DriveMap, type LatLng } from "./drive-map";
 import {
   CancelModal,
   ChatModal,
@@ -660,6 +661,43 @@ function Tag({
 
 /* ════════════════ SUIVI DE COURSE (fiche chauffeur v3) ════════════════ */
 
+/**
+ * Tracé routier réel (OSRM) entre deux points mobiles, throttlé : on ne
+ * re-demande l'itinéraire que si le départ a bougé de > 150 m (la voiture
+ * avance) ou l'arrivée de > 50 m — sinon on garde le tracé en l'état.
+ * Fallback : l'appelant affiche la ligne droite tant que path est null.
+ */
+function useRoadPath(from: LatLng | null, to: LatLng | null) {
+  const [path, setPath] = useState<LatLng[] | null>(null);
+  const lastRef = useRef<{ from: LatLng; to: LatLng } | null>(null);
+  useEffect(() => {
+    if (!from || !to) {
+      lastRef.current = null;
+      setPath(null);
+      return;
+    }
+    const last = lastRef.current;
+    if (
+      last &&
+      haversineKm(last.from, from) < 0.15 &&
+      haversineKm(last.to, to) < 0.05
+    )
+      return;
+    lastRef.current = { from, to };
+    let cancelled = false;
+    void routeEstimate({ from, to })
+      .then((r) => {
+        if (!cancelled && r.ok && r.geometry) setPath(r.geometry);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [from?.lat, from?.lng, to?.lat, to?.lng]);
+  return path;
+}
+
 function EnrouteScreen({
   ctx,
   ride,
@@ -740,6 +778,16 @@ function EnrouteScreen({
     : null;
   const prepaid = ride.payment_method !== "cash";
 
+  // Tracés routiers réels (suivent les rues, throttlés) : approche voiture →
+  // client tant que la course n'a pas démarré, course (position courante ou
+  // départ) → destination. Ligne droite en attendant la 1re réponse.
+  const rideFrom = inProgress ? chPos : pickupPos;
+  const approachPath = useRoadPath(
+    !inProgress ? chPos : null,
+    !inProgress ? pickupPos : null
+  );
+  const ridePath = useRoadPath(rideFrom, destPos);
+
   return (
     <div className="drive-jakarta drive-screen z-40 bg-[var(--d-page)]">
       <DriveMap
@@ -752,14 +800,12 @@ function EnrouteScreen({
             ? [{ id: "dest", pos: destPos, kind: "pin" as const }]
             : []),
         ]}
-        approach={!inProgress && chPos && pickupPos ? [chPos, pickupPos] : null}
-        route={
-          inProgress && chPos && destPos
-            ? [chPos, destPos]
-            : pickupPos && destPos
-              ? [pickupPos, destPos]
-              : null
+        approach={
+          !inProgress && chPos && pickupPos
+            ? (approachPath ?? [chPos, pickupPos])
+            : null
         }
+        route={rideFrom && destPos ? (ridePath ?? [rideFrom, destPos]) : null}
         padding={{ top: 90, bottom: 440, left: 60, right: 60 }}
       />
       {/* Pill statut */}
