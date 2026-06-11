@@ -842,6 +842,13 @@ export function DriveView() {
                     ? t("myPosition")
                     : (pickup?.text ?? t("home.locating"))}
                 </span>
+                {/* Nom du lieu résolu (reverse geocode) : le client voit que
+                    le départ correspond bien à l'endroit où il se trouve. */}
+                {pickup?.gps && (
+                  <span className="block truncate text-[11.5px] font-medium text-[var(--d-muted)]">
+                    {pickup.text ?? t("home.locating")}
+                  </span>
+                )}
               </span>
               {pickup?.gps && (
                 <span
