@@ -10,6 +10,7 @@ import { useCustomerLocation } from "@/lib/customer/location-store";
 import { useCart, totalUnits } from "@/lib/customer/cart-store";
 import { LocationPicker } from "@/components/customer/location-picker";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { ThemeSwitcher } from "@/components/shared/theme-switcher";
 
 type Props = {
   isAuth: boolean;
@@ -73,6 +74,7 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
           </Link>
 
           <LanguageSwitcher />
+          <ThemeSwitcher />
 
           <Link
             href="/cart"
@@ -130,6 +132,7 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
             </button>
             <div className="flex shrink-0 items-center gap-2">
               <LanguageSwitcher compact />
+              <ThemeSwitcher />
               {isAuth ? (
                 <Link
                   href="/compte"

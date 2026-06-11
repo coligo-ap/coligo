@@ -476,15 +476,15 @@ body {
   --d-soft: #f4f5f9;
   color: var(--d-ink);
 }
-@media (prefers-color-scheme: dark) {
-  .drive-jakarta {
-    --d-page: #06070b;
-    --d-surface: #161823;
-    --d-ink: #fff;
-    --d-muted: #9ca0b3;
-    --d-line: #262838;
-    --d-soft: #1f2230;
-  }
+/* Mode sombre = CHOIX utilisateur (interrupteur du header, cookie
+   coligo_theme) — plus de suivi du réglage système : clair par défaut. */
+.theme-dark .drive-jakarta {
+  --d-page: #06070b;
+  --d-surface: #161823;
+  --d-ink: #fff;
+  --d-muted: #9ca0b3;
+  --d-line: #262838;
+  --d-soft: #1f2230;
 }
 /* Plaque d'immatriculation : fixe (blanc/noir) dans LES DEUX thèmes (maquette .plate). */
 .drive-plate {

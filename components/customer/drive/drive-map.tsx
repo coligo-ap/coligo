@@ -94,10 +94,11 @@ export function DriveMap({
       if (disposed || !containerRef.current) return;
       const first = markers[0]?.pos ?? { lat: 36.7538, lng: 3.0588 };
       let map: maplibregl.Map;
-      // Thème sombre maquette : fond de carte sombre (OpenFreeMap "dark").
+      // Thème sombre = choix utilisateur (classe `theme-dark` posée sur
+      // <html> par le layout racine) — plus de suivi du réglage système.
       const prefersDark =
-        typeof window !== "undefined" &&
-        window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+        typeof document !== "undefined" &&
+        document.documentElement.classList.contains("theme-dark");
       const styleUrl = prefersDark
         ? `${MAP_STYLE_URL.slice(0, MAP_STYLE_URL.lastIndexOf("/styles/"))}/styles/dark`
         : MAP_STYLE_URL;

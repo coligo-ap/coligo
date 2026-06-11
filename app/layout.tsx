@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Sora, Plus_Jakarta_Sans, Noto_Sans_Arabic } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { dirFor, type Locale } from "@/i18n/locale";
+import { THEME_COOKIE } from "@/lib/theme/theme";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Toaster } from "@/components/ui/toast";
 import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
@@ -173,11 +175,14 @@ export default async function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const locale = (await getLocale()) as Locale;
   const dir = dirFor(locale);
+  // Thème : clair par défaut, sombre uniquement si choisi dans le header
+  // (cookie) — on n'impose plus le réglage système de l'appareil.
+  const isDark = (await cookies()).get(THEME_COOKIE)?.value === "dark";
   return (
     <html
       lang={locale}
       dir={dir}
-      className={`${fontDisplay.variable} ${fontBody.variable} ${fontArabic.variable}`}
+      className={`${fontDisplay.variable} ${fontBody.variable} ${fontArabic.variable}${isDark ? "theme-dark" : ""}`}
       suppressHydrationWarning
     >
       <head>
