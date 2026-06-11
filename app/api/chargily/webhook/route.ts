@@ -56,6 +56,8 @@ export async function POST(req: NextRequest) {
   const type = (meta && typeof meta.type === "string" ? meta.type : null) as
     | "order"
     | "topup"
+    | "ride"
+    | "drive_sub"
     | null;
 
   const admin = createAdminClient();
@@ -219,6 +221,75 @@ export async function POST(req: NextRequest) {
 
     // checkout.failed / checkout.canceled sur un topup → on ne fait rien
     // (aucune écriture, le client n'a jamais été crédité).
+    return NextResponse.json({ ok: true });
+  }
+
+  // -------------------------------------------------------------------------
+  // ÉTAPE C — course Drive payée par carte (metadata.type === "ride")
+  // Le webhook seul fait foi : il pose `online_paid_at`, exigé par
+  // complete_ride pour une course `card` (mig 0141/0143). Idempotent via la
+  // mise à jour conditionnelle (online_paid_at IS NULL).
+  // -------------------------------------------------------------------------
+  if (type === "ride") {
+    const rideId =
+      meta && typeof meta.ride_id === "string" ? meta.ride_id : null;
+    if (!rideId) {
+      return NextResponse.json(
+        { error: "metadata.ride_id manquant." },
+        { status: 400 }
+      );
+    }
+    if (event.type === "checkout.paid") {
+      const { error } = await admin
+        .from("rides")
+        .update({
+          online_paid_at: new Date().toISOString(),
+          chargily_checkout_id: event.data.id ?? null,
+        })
+        .eq("id", rideId)
+        .is("online_paid_at", null);
+      if (error) {
+        console.error("[chargily/webhook] ride paid failed:", error);
+        return NextResponse.json(
+          { ok: false, error: error.message },
+          { status: 200 }
+        );
+      }
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  // -------------------------------------------------------------------------
+  // ÉTAPE D — abonnement chauffeur Drive par carte (metadata.type ===
+  // "drive_sub") : activation immédiate via drive_sub_mark_paid (idempotent —
+  // `already_approved` sur rejeu).
+  // -------------------------------------------------------------------------
+  if (type === "drive_sub") {
+    const paymentId =
+      meta && typeof meta.payment_id === "string" ? meta.payment_id : null;
+    if (!paymentId) {
+      return NextResponse.json(
+        { error: "metadata.payment_id manquant." },
+        { status: 400 }
+      );
+    }
+    if (event.type === "checkout.paid") {
+      const rpc = admin.rpc.bind(admin) as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { error } = await rpc("drive_sub_mark_paid", {
+        p_payment_id: paymentId,
+        p_reviewer: "chargily",
+      });
+      if (error) {
+        console.error("[chargily/webhook] drive_sub failed:", error);
+        return NextResponse.json(
+          { ok: false, error: error.message },
+          { status: 200 }
+        );
+      }
+    }
     return NextResponse.json({ ok: true });
   }
 

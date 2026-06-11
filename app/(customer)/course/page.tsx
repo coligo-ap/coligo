@@ -1,9 +1,6 @@
-import { CourseView } from "@/components/customer/course-view";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export const metadata = { title: "Course — Coligo" };
-
+// L'ancien parcours /course est remplacé par le module Coligo Drive.
 export default function CoursePage() {
-  return <CourseView />;
+  redirect("/drive");
 }

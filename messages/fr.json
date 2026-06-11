@@ -3,7 +3,9 @@
     "home": "Accueil",
     "cart": "Panier",
     "orders": "Commandes",
-    "account": "Compte"
+    "account": "Compte",
+    "drive": "Drive",
+    "pay": "Pay"
   },
   "header": {
     "chooseZone": "Choisir une zone",
@@ -723,5 +725,252 @@
     "legal": "Légal",
     "terms": "Conditions générales",
     "privacy": "Confidentialité"
+  },
+  "drive": {
+    "back": "Retour",
+    "history": "Historique",
+    "departure": "Départ",
+    "destination": "Destination",
+    "myPosition": "Ma position actuelle",
+    "requestFailed": "Demande impossible — réessayez.",
+    "status": {
+      "completed": "Terminée",
+      "cancelled": "Annulée"
+    },
+    "gammes": {
+      "classic": "Classic",
+      "confort": "Confort",
+      "moto": "Moto"
+    },
+    "home": {
+      "title": "Votre trajet",
+      "locating": "Localisation…",
+      "whereTo": "Où allez-vous ?",
+      "continue": "Continuer"
+    },
+    "mappick": {
+      "depLabel": "Point de départ — déplacez la carte",
+      "destLabel": "Destination — déplacez la carte",
+      "moveMap": "Déplacez la carte pour placer l'épingle",
+      "confirm": "Confirmer ce point",
+      "back": "Retour"
+    },
+    "dep": {
+      "title": "Point de départ",
+      "sub": "Par défaut : votre position actuelle (GPS).",
+      "gps": "Ma position actuelle",
+      "gpsSub": "GPS · recommandé",
+      "map": "Choisir sur la carte",
+      "mapSub": "Déplacez l'épingle librement",
+      "close": "Fermer"
+    },
+    "price": {
+      "payTitle": "Moyen de paiement",
+      "offerLabel": "Votre offre · prix recommandé pré-rempli",
+      "recommended": "recommandé",
+      "belowReco": "En dessous du recommandé ({reco} DA)",
+      "atReco": "Prix recommandé pour ce trajet",
+      "aboveReco": "Au-dessus du recommandé ({reco} DA)",
+      "boostIncluded": "boost +{amount} DA inclus",
+      "similar": "Courses similaires :",
+      "propose": "Proposer {price} DA"
+    },
+    "pay": {
+      "cash": "💵 Espèces",
+      "card": "💳 Carte"
+    },
+    "boost": {
+      "title": "Booster ma demande",
+      "sub": "Prioritaire · montant au choix (défaut 10 % du trajet)",
+      "amount": "Montant du boost"
+    },
+    "female": {
+      "title": "Femme au volant",
+      "subOff": "Réservé aux clientes (profil vérifié ✓) · {count} conductrices en ligne",
+      "subOn": "Actif · réservé aux clientes (profil vérifié ✓) — seules les conductrices recevront votre demande"
+    },
+    "prox": {
+      "title": "Course pour un proche",
+      "sub": "Le proche reçoit le suivi par SMS/WhatsApp, sans compte. Vous payez et suivez aussi la course.",
+      "subOff": "Le suivi sera envoyé à votre proche",
+      "subOn": "Pour {name} · suivi envoyé à son numéro",
+      "namePh": "Prénom du proche",
+      "phonePh": "Son numéro de téléphone",
+      "note": "Le départ de la course = la position de votre proche. Le chauffeur voit son prénom et peut l'appeler via un numéro masqué.",
+      "confirm": "Confirmer pour ce proche",
+      "cancelBtn": "Annuler"
+    },
+    "search": {
+      "incoming": "Vos propositions arrivent…",
+      "responded": "{count} chauffeurs ont répondu — choisissez",
+      "offlineTitle": "Hors connexion — demande enregistrée",
+      "offlineSub": "Votre demande est en file d'attente (stockée sur l'appareil) et partira automatiquement dès le retour du réseau. Rien à refaire.",
+      "boostedChip": "Demande boostée · +{amount} DA",
+      "boostBar": "Pas le bon prix ? Boostez (+{amount} DA)",
+      "boostBarSub": "Votre demande passe en priorité",
+      "sortCheap": "Moins chers",
+      "sortRated": "Mieux notés",
+      "femaleFallbackTitle": "Aucune conductrice en ligne pour le moment.",
+      "femaleFallbackSub": "Nous vous proposons des chauffeurs (en noir) — ou patientez, vous serez prévenue dès qu'une conductrice se connecte.",
+      "tagFav": "Favori",
+      "tagCheapest": "Le moins cher",
+      "tagBestRated": "Mieux noté",
+      "tagFemale": "Conductrice",
+      "etaLine": "{min} min · à {km} km · {rides} courses",
+      "ridesCount": "{rides} courses",
+      "choose": "Choisir",
+      "cancelSearch": "Annuler la recherche",
+      "driverBusy": "Ce chauffeur vient d'être pris — choisissez une autre offre."
+    },
+    "enroute": {
+      "pillArriving": "{name} arrive · {min} min",
+      "pillArrived": "{name} est arrivé",
+      "pillInProgress": "Course en cours · {min} min restantes",
+      "devTitle": "Tout va bien ?",
+      "devSub": "Le véhicule s'écarte de l'itinéraire prévu depuis 2 min. Si c'est un simple détour (travaux, circulation), ignorez ce message.",
+      "devOk": "Tout va bien",
+      "proxBadge": "Course pour {name} · suivi envoyé sur son téléphone",
+      "ridesChip": "{rides} courses",
+      "message": "Message",
+      "call": "Appeler",
+      "agreedPrice": "Prix convenu (négocié)",
+      "prepaid": "Course prépayée ·",
+      "endCode": "Code de fin :",
+      "endCodeGive": "donnez-le au chauffeur à l'arrivée pour valider la course.",
+      "cardToPay": "Course par carte — payez maintenant pour valider.",
+      "cardPayNow": "Payer par carte (CIB / Edahabia)",
+      "shareTrip": "Partager mon trajet",
+      "cancelRide": "Annuler la course"
+    },
+    "share": {
+      "title": "Partager mon trajet",
+      "sub": "Votre proche suit la course en direct, sans compte.",
+      "livePosition": "position en direct",
+      "message": "Je suis en course avec {name} (Coligo Drive). Suivez ma position en direct : {url}",
+      "note": "Le lien contient : position du véhicule, plaque, photo et note du chauffeur, heure d'arrivée estimée.",
+      "close": "Fermer"
+    },
+    "sos": {
+      "title": "SOS · Urgence",
+      "sub": "Votre position et les détails de la course sont joints automatiquement.",
+      "police": "Appeler les secours (17)",
+      "policeSub": "Police · appel direct",
+      "contacts": "Alerter mes contacts d'urgence",
+      "contactsSub": "Position en direct + détails course",
+      "contactsMsg": "🚨 SOS — j'ai besoin d'aide. Ma course Coligo en direct :",
+      "contactsDone": "Position envoyée à vos contacts d'urgence ✓",
+      "support": "Alerter le support Coligo",
+      "supportSub": "Suivi de course en priorité absolue",
+      "supportDone": "Support Coligo alerté · suivi prioritaire ✓",
+      "noteClient": "La course est suivie en temps réel par nos équipes dès l'alerte.",
+      "noteDriver": "Le client, la course et votre position sont joints à l'alerte.",
+      "close": "Fermer"
+    },
+    "report": {
+      "title": "Signaler un problème",
+      "sub": "Chaque signalement est examiné sous 24 h et peut entraîner la suspension du chauffeur.",
+      "clientReasons": [
+        "Conduite dangereuse",
+        "Remarques ou comportement déplacés",
+        "Itinéraire anormal / détour non justifié",
+        "Véhicule non conforme (plaque différente…)",
+        "Demande de paiement hors application",
+        "Autre"
+      ],
+      "driverReasons": [
+        "Course « Femme au volant » : le client n'était pas une femme",
+        "Client absent au point de rendez-vous",
+        "Comportement agressif ou irrespectueux",
+        "Demande de paiement hors application",
+        "Autre"
+      ],
+      "send": "Envoyer le signalement",
+      "cancelBtn": "Annuler"
+    },
+    "chat": {
+      "title": "Messages",
+      "sub": "Messages rapides · numéros masqués",
+      "quick": ["Je suis en bas", "J'arrive", "Merci !", "Où êtes-vous ?"],
+      "ph": "Écrire un message…",
+      "close": "Fermer"
+    },
+    "cancel": {
+      "confirm": "Confirmer l'annulation",
+      "keep": "Continuer",
+      "client_search": {
+        "title": "Annuler la recherche ?",
+        "reasons": [
+          "J'ai changé d'avis",
+          "Les prix proposés sont trop élevés",
+          "Trop d'attente",
+          "Autre motif"
+        ]
+      },
+      "client_enroute": {
+        "title": "Annuler la course ?",
+        "warn": "Le chauffeur est déjà en route. L'annulation est gratuite, mais merci de l'éviter au dernier moment.",
+        "reasons": [
+          "Le chauffeur est trop loin / trop lent",
+          "J'ai changé de plans",
+          "Mauvais point de départ",
+          "Autre motif"
+        ]
+      },
+      "driver_match": {
+        "title": "Annuler cette course ?",
+        "warn": "Annuler après attribution affecte votre taux d'acceptation. Des annulations répétées peuvent suspendre votre compte.",
+        "reasons": [
+          "Le client ne répond pas",
+          "Trop loin de ma position",
+          "Problème de véhicule",
+          "Autre motif"
+        ]
+      },
+      "driver_pickup": {
+        "title": "Annuler la prise en charge ?",
+        "warn": "Vous êtes au point de rendez-vous : attendez au moins 5 min avant d'annuler pour « client absent ».",
+        "reasons": [
+          "Client absent au point de rendez-vous",
+          "Le client ne répond pas",
+          "Le client demande un autre trajet (hors app)",
+          "Problème de sécurité",
+          "Autre motif"
+        ]
+      }
+    },
+    "done": {
+      "title": "Course terminée",
+      "maskedAfter": "Coordonnées et plaque masquées après la course",
+      "agreed": "Prix convenu",
+      "commission": "Commission Coligo ({pct})",
+      "included": "incluse",
+      "payCash": "À payer en espèces au chauffeur",
+      "payCard": "Payé par carte bancaire",
+      "payCpay": "Payé via Coligo Pay",
+      "cashback": "+{amount} DA de cashback",
+      "cashbackSub": "Utilisable sur Drive ET vos livraisons Coligo",
+      "rateTitle": "Notez le chauffeur",
+      "favOn": "♥ {name} est dans vos favoris · appuyer pour retirer",
+      "favOff": "♡ Ajouter {name} à mes favoris",
+      "reportBtn": "Signaler un problème avec ce chauffeur",
+      "reportOk": "Signalement transmis (« {reason} »). Examen sous 24 h — le chauffeur peut être suspendu. Vous serez informé(e) de la décision.",
+      "finish": "Terminer"
+    },
+    "cancelledScreen": {
+      "title": "Course annulée",
+      "byYou": "Votre demande a été annulée. Aucun frais appliqué.",
+      "byOther": "La course a été annulée. Aucun frais — le motif a été transmis.",
+      "reason": "Motif",
+      "back": "Retour à Drive"
+    },
+    "histo": {
+      "title": "Historique",
+      "tabRides": "Courses",
+      "tabFavs": "Favoris",
+      "emptyRides": "Aucune course pour le moment.",
+      "emptyFavs": "Aucun favori — touchez le ♥ sur un chauffeur lors d'une course.",
+      "ridesCount": "{count} courses",
+      "removeFav": "Retirer des favoris"
+    }
   }
 }

@@ -308,7 +308,9 @@ export async function notifyChauffeursNewRide(input: {
     const admin = createAdminClient();
     const { data: ride } = await admin
       .from("rides")
-      .select("status, chauffeur_id, pickup_lat, pickup_lng, proposed_price_da")
+      .select(
+        "status, chauffeur_id, customer_id, pickup_lat, pickup_lng, proposed_price_da, boost_amount_da, gamme, female_only"
+      )
       .eq("id", input.rideId)
       .maybeSingle();
     if (
@@ -324,11 +326,16 @@ export async function notifyChauffeursNewRide(input: {
       fn: string,
       args: Record<string, unknown>
     ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    // Matching dur gamme + femme au volant (repli géré côté SQL) ; la RPC trie
+    // déjà la diffusion : Premium > favoris du client > distance.
     const { data: near } = await rpc("chauffeurs_present_near", {
       p_lat: ride.pickup_lat,
       p_lng: ride.pickup_lng,
       p_radius_km: 8,
       p_within_min: 3,
+      p_gamme: ride.gamme ?? "classic",
+      p_female_only: ride.female_only ?? false,
+      p_customer_id: ride.customer_id ?? null,
     });
     const userIds = [
       ...new Set(
@@ -343,11 +350,15 @@ export async function notifyChauffeursNewRide(input: {
     );
     const tokens = [...new Set(tokenLists.flat())];
     if (tokens.length === 0) return;
+    const total = (ride.proposed_price_da ?? 0) + (ride.boost_amount_da ?? 0);
     await sendFcm(
       tokens,
       {
-        title: "Nouvelle course 🚗",
-        body: `Un client propose ${formatDA(ride.proposed_price_da ?? 0)}. Fais ton offre !`,
+        title:
+          (ride.boost_amount_da ?? 0) > 0
+            ? "⚡ Course boostée 🚗"
+            : "Nouvelle course 🚗",
+        body: `Un client propose ${formatDA(total)}. Fais ton offre !`,
       },
       { route: "/chauffeur", kind: "chauffeur_new_ride" }
     );

@@ -36,6 +36,25 @@ export type Database = {
           is_frozen: boolean;
           is_blocked: boolean;
           created_at: string;
+          // Drive (mig 0139)
+          first_name: string | null;
+          birth_date: string | null;
+          city: string | null;
+          gamme: "classic" | "confort" | "moto";
+          is_female: boolean;
+          is_female_verified: boolean;
+          home_addr_text: string | null;
+          home_lat: number | null;
+          home_lng: number | null;
+          home_dir_date: string | null;
+          home_dir_count: number;
+          selfie_url: string | null;
+          submitted_at: string | null;
+          verified_at: string | null;
+          rejected_reason: string | null;
+          frozen_reason: string | null;
+          frozen_at: string | null;
+          sos_contacts: unknown;
         };
         Insert: {
           id?: string;
@@ -52,6 +71,7 @@ export type Database = {
           is_frozen?: boolean;
           is_blocked?: boolean;
           created_at?: string;
+          [k: string]: unknown;
         };
         Update: Partial<Database["public"]["Tables"]["chauffeurs"]["Insert"]>;
         Relationships: [];
@@ -99,7 +119,7 @@ export type Database = {
           suggested_price_da: number;
           proposed_price_da: number;
           agreed_price_da: number | null;
-          payment_method: "cash" | "coligo_pay";
+          payment_method: "cash" | "card" | "coligo_pay";
           commission_rate_applied: number | null;
           commission_da: number | null;
           chauffeur_net_da: number | null;
@@ -112,6 +132,20 @@ export type Database = {
           started_at: string | null;
           completed_at: string | null;
           cancelled_at: string | null;
+          // Drive (mig 0139-0143)
+          gamme: "classic" | "confort" | "moto";
+          boost_amount_da: number;
+          female_only: boolean;
+          proxy_name: string | null;
+          proxy_phone: string | null;
+          share_token: string | null;
+          cashback_da: number;
+          client_operation_id: string | null;
+          expires_at: string | null;
+          female_notified_at: string | null;
+          online_paid_at: string | null;
+          chargily_checkout_id: string | null;
+          end_code: string | null;
         };
         Insert: {
           id?: string;
@@ -192,6 +226,152 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["ride_ledger"]["Insert"]>;
+        Relationships: [];
+      };
+      chauffeur_documents: {
+        Row: {
+          id: string;
+          chauffeur_id: string;
+          kind:
+            | "permis_recto"
+            | "permis_verso"
+            | "carte_grise"
+            | "plaque"
+            | "assurance"
+            | "selfie";
+          url: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          chauffeur_id: string;
+          kind: string;
+          url: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["chauffeur_documents"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      chauffeur_subscriptions: {
+        Row: {
+          id: string;
+          chauffeur_id: string;
+          plan: "pro" | "premium";
+          status: "pending_ccp" | "active" | "expired" | "cancelled";
+          payment_method: "ccp" | "card";
+          period_start: string | null;
+          period_end: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          chauffeur_id: string;
+          plan: string;
+          status?: string;
+          payment_method: string;
+          period_start?: string | null;
+          period_end?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["chauffeur_subscriptions"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      chauffeur_subscription_payments: {
+        Row: {
+          id: string;
+          subscription_id: string;
+          chauffeur_id: string;
+          plan: "pro" | "premium";
+          amount_da: number;
+          method: "ccp" | "card";
+          receipt_url: string | null;
+          reference: string | null;
+          status: "pending" | "approved" | "rejected";
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          subscription_id: string;
+          chauffeur_id: string;
+          plan: string;
+          amount_da: number;
+          method: string;
+          receipt_url?: string | null;
+          reference?: string | null;
+          status?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["chauffeur_subscription_payments"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      customer_favorite_chauffeurs: {
+        Row: {
+          customer_id: string;
+          chauffeur_id: string;
+          created_at: string;
+        };
+        Insert: {
+          customer_id: string;
+          chauffeur_id: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["customer_favorite_chauffeurs"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      ride_reports: {
+        Row: {
+          id: string;
+          ride_id: string;
+          reporter: "customer" | "chauffeur";
+          reason: string;
+          status: "open" | "reviewed" | "dismissed";
+          decision: string | null;
+          created_at: string;
+          reviewed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          ride_id: string;
+          reporter: string;
+          reason: string;
+          status?: string;
+          decision?: string | null;
+          created_at?: string;
+          reviewed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["ride_reports"]["Insert"]>;
+        Relationships: [];
+      };
+      ride_messages: {
+        Row: {
+          id: string;
+          ride_id: string;
+          sender: "customer" | "chauffeur";
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ride_id: string;
+          sender: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ride_messages"]["Insert"]>;
         Relationships: [];
       };
       customer_favorites: {
@@ -945,6 +1125,40 @@ export type Database = {
           max_topup_da_per_30d: number;
           service_fee_tiers: Json;
           ranking_weights: Json;
+          // Drive (mig 0139)
+          drive_pricing: Json;
+          drive_night_coef: number;
+          drive_night_start_h: number;
+          drive_night_end_h: number;
+          drive_floor_rate: number;
+          drive_price_step_da: number;
+          drive_boost_min_da: number;
+          drive_boost_step_da: number;
+          drive_boost_default_rate: number;
+          drive_cashback_rate: number;
+          drive_female_filter_enabled: boolean;
+          drive_freeze_debt_da: number;
+          drive_freeze_cancel_rate: number;
+          drive_freeze_cancel_window: number;
+          drive_freeze_min_rating: number;
+          drive_freeze_rating_window: number;
+          drive_plan_pro_fee_da: number;
+          drive_plan_pro_rate: number;
+          drive_plan_premium_fee_da: number;
+          drive_plan_premium_rate: number;
+          drive_sub_grace_days: number;
+          drive_ccp_number: string;
+          drive_ccp_key: string;
+          drive_ccp_name: string;
+          drive_home_dir_max_per_day: number;
+          drive_home_dir_tolerance_deg: number;
+          drive_request_ttl_min: number;
+          drive_offer_ttl_min: number;
+          drive_b2b_radius_km: number;
+          drive_b2b_ttl_sec: number;
+          drive_pickup_wait_min: number;
+          drive_deviation_km: number;
+          drive_deviation_min: number;
           delivery_base_da: number;
           delivery_per_km_da: number;
           delivery_free_km_threshold: number;
@@ -1572,6 +1786,9 @@ export type Database = {
           longitude: number | null;
           created_at: string;
           updated_at: string;
+          // Drive (mig 0139)
+          is_female_verified: boolean;
+          sos_contacts: unknown;
         };
         Insert: {
           id?: string;

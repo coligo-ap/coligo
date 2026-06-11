@@ -86,7 +86,14 @@ async function lifecycle(payment, offerPrice) {
   await c.query("SELECT ride_set_status($1,'arriving')", [ride]);
   await c.query("SELECT ride_set_status($1,'arrived')", [ride]);
   await c.query("SELECT ride_set_status($1,'in_progress')", [ride]);
-  const comp = await c.query("SELECT * FROM complete_ride($1)", [ride]);
+  // Course prépayée (mig 0143) : le chauffeur saisit le code de fin du client.
+  const endCode = (
+    await c.query("SELECT end_code FROM rides WHERE id=$1", [ride])
+  ).rows[0].end_code;
+  const comp = await c.query("SELECT * FROM complete_ride($1,$2)", [
+    ride,
+    endCode,
+  ]);
   ok("course terminée", comp.rows[0].ok, true);
 
   const F = offerPrice,

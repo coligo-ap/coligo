@@ -3,27 +3,26 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ClipboardList, Home, ShoppingCart, User } from "lucide-react";
-import { useCart, totalUnits } from "@/lib/customer/cart-store";
+import { Car, ClipboardList, Home, User, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Nav Coligo (PROMPT Drive §1) : Accueil · Commandes · Drive · Pay · Compte.
 const ITEMS = [
   { href: "/", key: "home", icon: Home },
-  { href: "/cart", key: "cart", icon: ShoppingCart },
   { href: "/commandes", key: "orders", icon: ClipboardList },
+  { href: "/drive", key: "drive", icon: Car },
+  { href: "/coligo-pay", key: "pay", icon: Wallet },
   { href: "/compte", key: "account", icon: User },
 ] as const;
 
 export function CustomerBottomNav() {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const cart = useCart();
-  const cartCount = totalUnits(cart);
 
   return (
     <nav
       aria-label="Navigation principale"
-      className="border-border fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t bg-white pb-[max(env(safe-area-inset-bottom),0px)] lg:hidden"
+      className="border-border fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-white pb-[max(env(safe-area-inset-bottom),0px)] lg:hidden"
     >
       {ITEMS.map((item) => {
         const Icon = item.icon;
@@ -38,14 +37,7 @@ export function CustomerBottomNav() {
               active ? "text-primary-700" : "text-muted hover:text-foreground"
             )}
           >
-            <span className="relative">
-              <Icon className={cn("size-5", active && "fill-primary-100")} />
-              {item.key === "cart" && cartCount > 0 && (
-                <span className="bg-success-600 absolute -top-1.5 -right-2 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full border-2 border-white px-1 text-[9px] font-bold text-white">
-                  {cartCount}
-                </span>
-              )}
-            </span>
+            <Icon className={cn("size-5", active && "fill-primary-100")} />
             <span className="font-medium">{t(item.key)}</span>
           </Link>
         );

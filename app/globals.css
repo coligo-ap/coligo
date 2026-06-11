@@ -419,3 +419,39 @@ body {
     opacity: 0;
   }
 }
+
+/* ───────────────────────── Coligo Drive (maquette VTC) ─────────────────────────
+   Polices Sora / Plus Jakarta Sans (variables posées par les layouts Drive)
+   + animations de la maquette (montée des feuilles, apparition des offres). */
+.drive-sora {
+  font-family: var(--font-sora), "Sora", system-ui, sans-serif;
+}
+.drive-jakarta {
+  font-family: var(--font-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+}
+@keyframes drive-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.drive-up {
+  animation: drive-up 0.25s ease;
+}
+@keyframes drive-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.drive-rise {
+  animation: drive-rise 0.3s ease both;
+}
