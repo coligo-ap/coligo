@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useActionState } from "react";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { VIOLET } from "@/components/customer/drive/drive-modals";
 import {
   chauffeurLogin,
@@ -32,7 +33,16 @@ export function DAuth({ tab: initialTab = "log" }: { tab?: "log" | "reg" }) {
     "mb-2 w-full rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]";
 
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-8 pb-10">
+    <div className="drive-jakarta drive-page h-full bg-[var(--d-surface)] px-5 pt-5 pb-28">
+      {/* Retour : accueil marketplace (la nav du bas étant fixe, ce lien
+          reste le retour visible immédiatement). */}
+      <Link
+        href="/"
+        className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-bold text-[var(--d-muted)]"
+      >
+        <ArrowLeft className="size-4" />
+        Retour
+      </Link>
       <div className="mb-4 text-center">
         <h1 className="drive-sora text-[22px] font-extrabold tracking-[-0.5px]">
           Coligo <span style={{ color: VIOLET }}>Drive</span>

@@ -19,8 +19,8 @@ import { APP_CONFIG } from "@/lib/config/app-config";
 export function AuthNavBar({
   variant,
 }: {
-  /** Espace courant : "merchant" = /login,/signup ; "customer" = /se-connecter,/inscription ; "driver" = /driver/login,/driver/signup. */
-  variant: "merchant" | "customer" | "driver";
+  /** Espace courant : "merchant" = /login,/signup ; "customer" = /se-connecter,/inscription ; "driver" = /driver/login,/driver/signup ; "chauffeur" = /chauffeur/login,/chauffeur/signup. */
+  variant: "merchant" | "customer" | "driver" | "chauffeur";
 }) {
   return (
     <header className="border-border sticky top-0 z-30 border-b bg-white pt-[env(safe-area-inset-top)]">
@@ -64,7 +64,7 @@ export function AuthNavBar({
               Je suis commerçant
             </Link>
           )}
-          {variant === "driver" && (
+          {(variant === "driver" || variant === "chauffeur") && (
             <>
               <Link
                 href="/login"
