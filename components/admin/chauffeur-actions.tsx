@@ -7,6 +7,7 @@ import {
   setChauffeurVerified,
   setChauffeurFrozen,
   setChauffeurBlocked,
+  freezeChauffeurWithReason,
 } from "@/app/admin/chauffeurs/actions";
 
 /**
@@ -58,7 +59,19 @@ export function ChauffeurActions({
         <button
           type="button"
           disabled={pending}
-          onClick={() => run(() => setChauffeurFrozen(chauffeurId, !isFrozen))}
+          onClick={() => {
+            // Gel AVEC MOTIF (affiché à l'écran « Compte gelé » du chauffeur).
+            if (!isFrozen) {
+              const motif = window.prompt(
+                "Motif du gel (affiché au chauffeur) :",
+                "Comportement signalé / non-respect des conditions"
+              );
+              if (motif == null) return;
+              run(() => freezeChauffeurWithReason(chauffeurId, motif));
+            } else {
+              run(() => setChauffeurFrozen(chauffeurId, false));
+            }
+          }}
           className={cn(
             "inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-xs font-semibold transition-colors disabled:opacity-50",
             isFrozen

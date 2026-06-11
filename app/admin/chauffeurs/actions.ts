@@ -94,3 +94,211 @@ export async function setChauffeurBlocked(
     blocked ? "block_chauffeur" : "unblock_chauffeur"
   );
 }
+
+// =============================================================================
+// DRIVE — file de validation (docs + selfie), motifs, paiements CCP, config.
+// =============================================================================
+
+const DOCS_BUCKET = "driver-docs";
+
+/** URL signée (1 h) d'un document chauffeur (bucket privé). */
+export async function getChauffeurDocUrl(
+  path: string
+): Promise<{ url?: string; error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage
+    .from(DOCS_BUCKET)
+    .createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) return { error: error?.message ?? "Échec." };
+  return { url: data.signedUrl };
+}
+
+/** Approuve le dossier : le chauffeur peut se connecter et recevoir des courses. */
+export async function approveChauffeur(
+  chauffeurId: string
+): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("chauffeurs")
+    .update({
+      is_verified: true,
+      verified_at: new Date().toISOString(),
+      rejected_reason: null,
+    })
+    .eq("id", chauffeurId)
+    .select("user_id, first_name, full_name")
+    .maybeSingle();
+  if (error) return { error: error.message };
+  await audit("approve_chauffeur", chauffeurId);
+  // FCM au chauffeur : compte activé.
+  if (data?.user_id) {
+    try {
+      const { sendFcm } = await import("@/lib/fcm/send");
+      const { data: tokens } = await admin
+        .from("device_tokens")
+        .select("token")
+        .eq("user_id", data.user_id)
+        .eq("role", "chauffeur");
+      const list = (tokens ?? []).map((t) => t.token).filter(Boolean);
+      if (list.length > 0) {
+        await sendFcm(
+          list,
+          {
+            title: "Compte activé ✓",
+            body: "Votre dossier est validé — vous pouvez recevoir des courses Coligo Drive.",
+          },
+          { route: "/chauffeur", kind: "drive_approved" }
+        );
+      }
+    } catch {
+      /* best-effort */
+    }
+  }
+  revalidatePath("/admin/chauffeurs");
+  return {};
+}
+
+/** Refuse le dossier avec motif : le chauffeur doit compléter ses documents. */
+export async function rejectChauffeur(
+  chauffeurId: string,
+  motif: string
+): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!motif.trim()) return { error: "Motif requis." };
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("chauffeurs")
+    .update({
+      is_verified: false,
+      submitted_at: null,
+      rejected_reason: motif.trim(),
+    })
+    .eq("id", chauffeurId)
+    .select("user_id")
+    .maybeSingle();
+  if (error) return { error: error.message };
+  await audit("reject_chauffeur", chauffeurId);
+  if (data?.user_id) {
+    try {
+      const { sendFcm } = await import("@/lib/fcm/send");
+      const { data: tokens } = await admin
+        .from("device_tokens")
+        .select("token")
+        .eq("user_id", data.user_id)
+        .eq("role", "chauffeur");
+      const list = (tokens ?? []).map((t) => t.token).filter(Boolean);
+      if (list.length > 0) {
+        await sendFcm(
+          list,
+          {
+            title: "Dossier refusé",
+            body: `${motif.trim()} — complétez vos documents puis renvoyez le dossier.`,
+          },
+          { route: "/chauffeur/documents", kind: "drive_rejected" }
+        );
+      }
+    } catch {
+      /* best-effort */
+    }
+  }
+  revalidatePath("/admin/chauffeurs");
+  return {};
+}
+
+/** Gel souple AVEC MOTIF (affiché sur l'écran « Compte gelé » du chauffeur). */
+export async function freezeChauffeurWithReason(
+  chauffeurId: string,
+  motif: string
+): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("chauffeurs")
+    .update({
+      is_frozen: true,
+      frozen_reason: motif.trim() || null,
+      frozen_at: new Date().toISOString(),
+    })
+    .eq("id", chauffeurId);
+  if (error) return { error: error.message };
+  await audit("freeze_chauffeur", chauffeurId);
+  revalidatePath("/admin/chauffeurs");
+  return {};
+}
+
+/** Valide un paiement d'abonnement CCP (active le plan, recette comptabilisée). */
+export async function approveSubPayment(
+  paymentId: string
+): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const rpc = admin.rpc.bind(admin) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc("drive_sub_mark_paid", {
+    p_payment_id: paymentId,
+    p_reviewer: await adminEmail(),
+  });
+  if (error) return { error: error.message };
+  const row = (Array.isArray(data) ? data[0] : data) as {
+    ok?: boolean;
+    reason?: string;
+    chauffeur_user_id?: string | null;
+    plan?: string;
+  };
+  if (!row?.ok) return { error: row?.reason ?? "Échec." };
+  if (row.chauffeur_user_id) {
+    try {
+      const { sendFcm } = await import("@/lib/fcm/send");
+      const { data: tokens } = await admin
+        .from("device_tokens")
+        .select("token")
+        .eq("user_id", row.chauffeur_user_id)
+        .eq("role", "chauffeur");
+      const list = (tokens ?? []).map((t) => t.token).filter(Boolean);
+      if (list.length > 0) {
+        await sendFcm(
+          list,
+          {
+            title: "Abonnement activé ✓",
+            body: `Votre paiement est vérifié — abonnement ${row.plan === "premium" ? "Premium" : "Pro"} actif pour 30 jours.`,
+          },
+          { route: "/chauffeur/abonnement", kind: "drive_sub_active" }
+        );
+      }
+    } catch {
+      /* best-effort */
+    }
+  }
+  revalidatePath("/admin/chauffeurs");
+  return {};
+}
+
+/** Rejette un paiement CCP (reçu introuvable / montant incorrect). */
+export async function rejectSubPayment(
+  paymentId: string,
+  note: string
+): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const rpc = admin.rpc.bind(admin) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc("drive_sub_reject", {
+    p_payment_id: paymentId,
+    p_note: note || null,
+    p_reviewer: await adminEmail(),
+  });
+  if (error) return { error: error.message };
+  const row = (Array.isArray(data) ? data[0] : data) as {
+    ok?: boolean;
+    reason?: string;
+  };
+  if (!row?.ok) return { error: row?.reason ?? "Échec." };
+  revalidatePath("/admin/chauffeurs");
+  return {};
+}

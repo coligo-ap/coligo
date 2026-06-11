@@ -60,7 +60,7 @@ const DOCS: {
  * flux caméra (getUserMedia, caméra frontale) — AUCUN import de fichier
  * accepté pour le selfie. Les pièces utilisent capture="environment".
  */
-export function DDocs() {
+export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
   const router = useRouter();
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState<string | null>(null);
@@ -110,6 +110,15 @@ export function DDocs() {
           Mes documents
         </h1>
       </div>
+      {rejectedReason && (
+        <p
+          className="mb-3 rounded-[13px] px-3 py-2.5 text-xs leading-relaxed font-bold"
+          style={{ background: "rgba(229,72,77,.1)", color: RED }}
+        >
+          Dossier refusé : {rejectedReason} — corrigez puis renvoyez votre
+          dossier.
+        </p>
+      )}
       <p className="mb-3 text-[13px] text-[#6B7280]">
         Photos nettes et lisibles. Votre dossier sera vérifié par l&apos;équipe
         Coligo.

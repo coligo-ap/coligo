@@ -1171,6 +1171,10 @@ export type Database = {
           driver_float_cap_da: number;
           driver_settlement_cycle: "weekly" | "monthly";
           tour_delivery_commission_rate: number;
+          vtc_base_da: number;
+          vtc_per_km_da: number;
+          vtc_min_da: number;
+          vtc_commission_rate: number;
           updated_at: string;
         };
         Insert: {
@@ -1196,7 +1200,9 @@ export type Database = {
           driver_float_cap_da?: number;
           driver_settlement_cycle?: "weekly" | "monthly";
           tour_delivery_commission_rate?: number;
+          vtc_commission_rate?: number;
           updated_at?: string;
+          [k: string]: unknown;
         };
         Update: {
           id?: boolean;
@@ -1221,7 +1227,9 @@ export type Database = {
           driver_float_cap_da?: number;
           driver_settlement_cycle?: "weekly" | "monthly";
           tour_delivery_commission_rate?: number;
+          vtc_commission_rate?: number;
           updated_at?: string;
+          [k: string]: unknown;
         };
         Relationships: [];
       };
