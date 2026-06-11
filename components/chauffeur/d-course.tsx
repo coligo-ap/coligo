@@ -23,16 +23,20 @@ import {
   PrimaryBtn,
   Sheet,
   SheetTitle,
+  SosContactsSheet,
   SOSModal,
   ReportModal,
   GO,
   RED,
   VIOLET,
+  type SosContact,
 } from "@/components/customer/drive/drive-modals";
 import { fmtPct } from "./d-ui";
 import {
   cancelRideAction,
   chauffeurHeartbeat,
+  getChauffeurSosContacts,
+  setChauffeurSosContacts,
   completeRideAction,
   getB2BNext,
   getChauffeurActiveRide,
@@ -69,6 +73,11 @@ export function DCourse() {
   >(null);
   const [sosOpen, setSosOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [sosContacts, setSosContacts] = useState<SosContact[]>([]);
+  const [contactsOpen, setContactsOpen] = useState(false);
+  useEffect(() => {
+    void getChauffeurSosContacts().then(setSosContacts);
+  }, []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [endCode, setEndCode] = useState("");
@@ -125,37 +134,44 @@ export function DCourse() {
     return () => clearTimeout(t);
   }, [nextOff, nextCd]);
 
-  const transition = async (status: "arriving" | "arrived" | "in_progress") => {
+  // Mig 0145 : le CODE PIN du client valide le DÉMARRAGE (courses en ligne,
+  // séquestre) ; la complétion libère le séquestre sans code.
+  const transition = async (
+    status: "arriving" | "arrived" | "in_progress",
+    pin?: string
+  ) => {
     if (!ride || busy) return;
-    setBusy(true);
-    setError(null);
-    const res = await setRideStatus(ride.id, status);
-    if (!res.ok) setError(res.error ?? "Action impossible");
-    await refresh();
-    setBusy(false);
-  };
-
-  const complete = async (code?: string) => {
-    if (!ride || busy) return;
-    if (ride.prepaid && !code) {
+    if (status === "in_progress" && ride.prepaid && !pin) {
       setAskCode(true);
       return;
     }
     setBusy(true);
     setError(null);
-    const res = await completeRideAction(ride.id, code ?? null);
+    const res = await setRideStatus(ride.id, status, pin ?? null);
     if (!res.ok) {
       setError(
-        res.error === "bad_end_code"
-          ? "Code de fin incorrect — demandez les 2 chiffres au client."
-          : res.error === "card_not_paid"
-            ? "Le client n'a pas encore payé par carte."
-            : (res.error ?? "Impossible de terminer")
+        res.error === "bad_pin"
+          ? "Code PIN incorrect — demandez les 4 chiffres au client."
+          : (res.error ?? "Action impossible")
       );
       setBusy(false);
       return;
     }
-    setAskCode(false);
+    if (status === "in_progress") setAskCode(false);
+    await refresh();
+    setBusy(false);
+  };
+
+  const complete = async () => {
+    if (!ride || busy) return;
+    setBusy(true);
+    setError(null);
+    const res = await completeRideAction(ride.id);
+    if (!res.ok) {
+      setError(res.error ?? "Impossible de terminer");
+      setBusy(false);
+      return;
+    }
     const d = await getChauffeurLastDone();
     setDone(d);
     setRide(null);
@@ -496,13 +512,23 @@ export function DCourse() {
           </span>
         </div>
 
-        {inProgress && ride.prepaid && (
+        {ride.prepaid && (
           <p
             className="mb-2.5 rounded-[13px] px-3 py-2.5 text-[12.5px] leading-relaxed font-bold"
             style={{ background: "rgba(22,179,100,.12)", color: GO }}
           >
-            🔒 Course prépayée — demandez le <b>code de fin (2 chiffres)</b> au
-            client pour valider la course. Rien à encaisser.
+            {inProgress ? (
+              <>
+                🔒 Course prépayée — montant en séquestre, versé sur votre solde
+                à la fin de la course. Rien à encaisser.
+              </>
+            ) : (
+              <>
+                🔒 Course prépayée — à votre arrivée, demandez le{" "}
+                <b>code PIN (4 chiffres)</b> au client : sa saisie démarre la
+                course. Rien à encaisser.
+              </>
+            )}
           </p>
         )}
 
@@ -569,20 +595,22 @@ export function DCourse() {
         )}
       </div>
 
-      {/* Saisie du code de fin (course prépayée) */}
+      {/* Saisie du CODE PIN du client — DÉMARRE la course prépayée (séquestre
+          maintenu jusqu'à la fin, mig 0145). */}
       <Sheet open={askCode} onClose={() => setAskCode(false)}>
-        <SheetTitle>Code de fin du client</SheetTitle>
+        <SheetTitle>Code PIN du client</SheetTitle>
         <p className="mb-3 text-[13px] text-[var(--d-muted)]">
-          Demandez au client les <b>2 chiffres</b> affichés sur son écran pour
-          valider la course prépayée.
+          À votre arrivée, demandez au client son <b>code PIN (4 chiffres)</b>.
+          Sa validation démarre la course — le montant reste bloqué en séquestre
+          et vous sera versé à la fin de la course.
         </p>
         <input
           value={endCode}
           onChange={(e) =>
-            setEndCode(e.target.value.replace(/\D/g, "").slice(0, 2))
+            setEndCode(e.target.value.replace(/\D/g, "").slice(0, 4))
           }
           inputMode="numeric"
-          placeholder="• •"
+          placeholder="• • • •"
           className="drive-sora mb-1 w-full rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-center text-2xl font-extrabold tracking-[8px] outline-none"
         />
         {error && (
@@ -591,10 +619,10 @@ export function DCourse() {
           </p>
         )}
         <PrimaryBtn
-          disabled={endCode.length !== 2 || busy}
-          onClick={() => void complete(endCode)}
+          disabled={endCode.length !== 4 || busy}
+          onClick={() => void transition("in_progress", endCode)}
         >
-          Valider la fin de course
+          Valider le PIN · démarrer la course
         </PrimaryBtn>
         <GhostBtn onClick={() => setAskCode(false)}>Annuler</GhostBtn>
       </Sheet>
@@ -616,6 +644,21 @@ export function DCourse() {
         side="driver"
         shareUrl={null}
         position={me}
+        contacts={sosContacts}
+        onManageContacts={() => {
+          setSosOpen(false);
+          setContactsOpen(true);
+        }}
+      />
+      <SosContactsSheet
+        open={contactsOpen}
+        onClose={() => setContactsOpen(false)}
+        contacts={sosContacts}
+        onSave={async (next) => {
+          const res = await setChauffeurSosContacts(next);
+          if (res.ok) setSosContacts(next);
+          return res;
+        }}
       />
       {chatOpen && (
         <DChat rideId={ride.id} onClose={() => setChatOpen(false)} />

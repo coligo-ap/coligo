@@ -309,7 +309,7 @@ export async function notifyChauffeursNewRide(input: {
     const { data: ride } = await admin
       .from("rides")
       .select(
-        "status, chauffeur_id, customer_id, pickup_lat, pickup_lng, proposed_price_da, boost_amount_da, gamme, female_only"
+        "status, chauffeur_id, customer_id, pickup_lat, pickup_lng, proposed_price_da, boost_amount_da, gamme, female_only, payment_method, online_paid_at"
       )
       .eq("id", input.rideId)
       .maybeSingle();
@@ -318,7 +318,9 @@ export async function notifyChauffeursNewRide(input: {
       ride.status !== "searching" ||
       ride.chauffeur_id != null ||
       ride.pickup_lat == null ||
-      ride.pickup_lng == null
+      ride.pickup_lng == null ||
+      // Carte : payer AVANT la diffusion — le webhook rappellera ce trigger.
+      (ride.payment_method === "card" && ride.online_paid_at == null)
     ) {
       return;
     }

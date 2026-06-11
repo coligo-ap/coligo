@@ -226,9 +226,10 @@ export async function POST(req: NextRequest) {
 
   // -------------------------------------------------------------------------
   // ÉTAPE C — course Drive payée par carte (metadata.type === "ride")
-  // Le webhook seul fait foi : il pose `online_paid_at`, exigé par
-  // complete_ride pour une course `card` (mig 0141/0143). Idempotent via la
-  // mise à jour conditionnelle (online_paid_at IS NULL).
+  // Le client paie AVANT que la demande soit diffusée : le webhook pose le
+  // SÉQUESTRE (`drive_card_paid`, mig 0145, idempotent), rembourse sur le
+  // wallet si la course a été annulée entre-temps, puis déclenche la
+  // diffusion aux chauffeurs (la course devient visible).
   // -------------------------------------------------------------------------
   if (type === "ride") {
     const rideId =
@@ -240,20 +241,30 @@ export async function POST(req: NextRequest) {
       );
     }
     if (event.type === "checkout.paid") {
-      const { error } = await admin
-        .from("rides")
-        .update({
-          online_paid_at: new Date().toISOString(),
-          chargily_checkout_id: event.data.id ?? null,
-        })
-        .eq("id", rideId)
-        .is("online_paid_at", null);
+      const rpc = admin.rpc.bind(admin) as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { data, error } = await rpc("drive_card_paid", {
+        p_ride_id: rideId,
+        p_amount_da: Math.round(event.data.amount),
+        p_checkout_id: event.data.id ?? null,
+      });
       if (error) {
         console.error("[chargily/webhook] ride paid failed:", error);
         return NextResponse.json(
           { ok: false, error: error.message },
           { status: 200 }
         );
+      }
+      const row = (Array.isArray(data) ? data[0] : data) as {
+        ok?: boolean;
+        refunded?: boolean;
+      };
+      // Paiement encaissé et course toujours ouverte → diffusion maintenant.
+      if (row?.ok && !row.refunded) {
+        const { notifyChauffeursNewRide } = await import("@/lib/fcm/triggers");
+        void notifyChauffeursNewRide({ rideId });
       }
     }
     return NextResponse.json({ ok: true });

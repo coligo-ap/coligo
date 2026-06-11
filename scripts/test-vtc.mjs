@@ -81,19 +81,16 @@ async function lifecycle(payment, offerPrice) {
   ).rows[0];
   ok("prix convenu = offre", agreed.agreed_price_da, offerPrice);
 
-  // Chauffeur : en route → arrivé → à bord → terminé
+  // Chauffeur : en route → arrivé → PIN du client → à bord → terminé.
+  // Mig 0145 : le CODE PIN (4 chiffres) valide le DÉMARRAGE des courses en
+  // ligne (séquestre) ; la complétion libère le séquestre sans code.
   await asChu();
   await c.query("SELECT ride_set_status($1,'arriving')", [ride]);
   await c.query("SELECT ride_set_status($1,'arrived')", [ride]);
-  await c.query("SELECT ride_set_status($1,'in_progress')", [ride]);
-  // Course prépayée (mig 0143) : le chauffeur saisit le code de fin du client.
-  const endCode = (
-    await c.query("SELECT end_code FROM rides WHERE id=$1", [ride])
-  ).rows[0].end_code;
-  const comp = await c.query("SELECT * FROM complete_ride($1,$2)", [
-    ride,
-    endCode,
-  ]);
+  const pin = (await c.query("SELECT end_code FROM rides WHERE id=$1", [ride]))
+    .rows[0].end_code;
+  await c.query("SELECT ride_set_status($1,'in_progress',$2)", [ride, pin]);
+  const comp = await c.query("SELECT * FROM complete_ride($1)", [ride]);
   ok("course terminée", comp.rows[0].ok, true);
 
   const F = offerPrice,

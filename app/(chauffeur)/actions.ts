@@ -598,12 +598,14 @@ export async function getChauffeurActiveRide(): Promise<ChauffeurActiveRide | nu
 
 export async function setRideStatus(
   rideId: string,
-  status: "arriving" | "arrived" | "in_progress"
+  status: "arriving" | "arrived" | "in_progress",
+  pin?: string | null
 ): Promise<{ ok: boolean; error?: string }> {
   const rpc = await rpcClient();
   const { data, error } = await rpc("ride_set_status", {
     p_ride_id: rideId,
     p_status: status,
+    p_pin: pin ?? null,
   });
   if (error) return { ok: false, error: error.message };
   const row = (Array.isArray(data) ? data[0] : data) as {
@@ -617,13 +619,11 @@ export async function setRideStatus(
 }
 
 export async function completeRideAction(
-  rideId: string,
-  endCode?: string | null
+  rideId: string
 ): Promise<{ ok: boolean; error?: string }> {
   const rpc = await rpcClient();
   const { data, error } = await rpc("complete_ride", {
     p_ride_id: rideId,
-    p_end_code: endCode ?? null,
   });
   if (error) return { ok: false, error: error.message };
   const row = (Array.isArray(data) ? data[0] : data) as {
@@ -1028,4 +1028,49 @@ export async function getChauffeurHistory(): Promise<ChauffeurHistoryRide[]> {
       cancelled_by: r.cancelled_by,
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// CONTACTS D'URGENCE (chauffeur) — même mécanique que côté client.
+// ---------------------------------------------------------------------------
+export type SosContact = { name: string; phone: string };
+
+export async function getChauffeurSosContacts(): Promise<SosContact[]> {
+  const ch = await getCurrentChauffeur();
+  if (!ch) return [];
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("chauffeurs")
+    .select("sos_contacts")
+    .eq("id", ch.id)
+    .maybeSingle();
+  const raw = (data?.sos_contacts ?? []) as SosContact[];
+  return Array.isArray(raw)
+    ? raw.filter((c) => c && c.name && c.phone).slice(0, 3)
+    : [];
+}
+
+export async function setChauffeurSosContacts(
+  contacts: SosContact[]
+): Promise<{ ok: boolean; error?: string }> {
+  const ch = await getCurrentChauffeur();
+  if (!ch) return { ok: false, error: "auth" };
+  const clean = (contacts ?? [])
+    .map((c) => ({
+      name: String(c.name ?? "")
+        .trim()
+        .slice(0, 40),
+      phone: String(c.phone ?? "")
+        .trim()
+        .slice(0, 20),
+    }))
+    .filter((c) => c.name && c.phone.length >= 9)
+    .slice(0, 3);
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("chauffeurs")
+    .update({ sos_contacts: clean })
+    .eq("id", ch.id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }

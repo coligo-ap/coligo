@@ -28,11 +28,13 @@ import {
   PrimaryBtn,
   ReportModal,
   ShareModal,
+  SosContactsSheet,
   SOSModal,
   GO,
   ROSE,
   RED,
   VIOLET,
+  type SosContact,
 } from "./drive-modals";
 import {
   acceptDriveOffer,
@@ -42,7 +44,9 @@ import {
   getDriveLastRide,
   getDriveOffers,
   rateDriveRide,
+  getSosContacts,
   reportDriveRide,
+  setSosContacts as saveSosContacts,
   toggleFavoriteChauffeur,
   type DriveActiveRide,
   type DriveContext,
@@ -76,6 +80,7 @@ export function DriveRide({
   const [cancelled, setCancelled] = useState<{
     reason: string | null;
     mine: boolean;
+    refunded: boolean;
   } | null>(null);
   const lastStatus = useRef<string | null>(active?.status ?? null);
 
@@ -89,7 +94,12 @@ export function DriveRide({
         const last = await getDriveLastRide();
         if (stop) return;
         if (last?.status === "completed") setDone(last);
-        else if (last) setCancelled({ reason: null, mine: false });
+        else if (last)
+          setCancelled({
+            reason: null,
+            mine: false,
+            refunded: last.payment_method !== "cash",
+          });
         lastStatus.current = null;
         return;
       }
@@ -110,6 +120,7 @@ export function DriveRide({
       <CancelledScreen
         reason={cancelled.reason}
         mine={cancelled.mine}
+        refunded={cancelled.refunded}
         onExit={onExit}
       />
     );
@@ -120,7 +131,13 @@ export function DriveRide({
         ride={active}
         offlineQueued={offlineQueued}
         refreshActive={refreshActive}
-        onCancelled={(reason) => setCancelled({ reason, mine: true })}
+        onCancelled={(reason) =>
+          setCancelled({
+            reason,
+            mine: true,
+            refunded: (active?.payment_method ?? "cash") !== "cash",
+          })
+        }
         onBackToPrice={onBackToPrice}
       />
     );
@@ -128,7 +145,13 @@ export function DriveRide({
     <EnrouteScreen
       ctx={ctx}
       ride={active}
-      onCancelled={(reason) => setCancelled({ reason, mine: true })}
+      onCancelled={(reason) =>
+        setCancelled({
+          reason,
+          mine: true,
+          refunded: (active?.payment_method ?? "cash") !== "cash",
+        })
+      }
     />
   );
 }
@@ -157,7 +180,12 @@ function SearchScreen({
   const [boosting, setBoosting] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cardBusy, setCardBusy] = useState(false);
+  const [cardErr, setCardErr] = useState<string | null>(null);
   const rideId = ride?.id ?? null;
+  // Carte : tant que le webhook n'a pas confirmé, la demande n'est pas diffusée.
+  const waitingCard =
+    !!ride && ride.payment_method === "card" && !ride.online_paid;
 
   useEffect(() => {
     if (!rideId) return;
@@ -251,10 +279,54 @@ function SearchScreen({
           )}
           {offlineQueued
             ? t("offlineTitle")
-            : offers.length > 0
-              ? t("responded", { count: offers.length })
-              : t("incoming")}
+            : waitingCard
+              ? t("waitingCard")
+              : offers.length > 0
+                ? t("responded", { count: offers.length })
+                : t("incoming")}
         </div>
+
+        {/* CARTE : payer AVANT diffusion — la demande ne part aux chauffeurs
+            qu'une fois le paiement Chargily confirmé (webhook, mig 0145). */}
+        {waitingCard && ride && (
+          <div
+            className="mb-3 rounded-[15px] border-[1.5px] border-dashed p-3"
+            style={{ borderColor: GO }}
+          >
+            <b className="block text-[13px]" style={{ color: GO }}>
+              {t("waitingCard")}
+            </b>
+            <span className="text-[11px] leading-snug text-[var(--d-muted)]">
+              {t("waitingCardSub")}
+            </span>
+            <button
+              type="button"
+              disabled={cardBusy}
+              onClick={async () => {
+                setCardBusy(true);
+                setCardErr(null);
+                const res = await createRideCardCheckout(ride.id);
+                setCardBusy(false);
+                if (res.ok && res.url) window.open(res.url, "_blank");
+                else setCardErr(res.error ?? "error");
+              }}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-[10px] px-3 py-2 text-xs font-bold text-white"
+              style={{ background: GO }}
+            >
+              {cardBusy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <CreditCard className="size-4" />
+              )}
+              {t("payNow")}
+            </button>
+            {cardErr && (
+              <span className="mt-1 block text-[11px]" style={{ color: RED }}>
+                {cardErr}
+              </span>
+            )}
+          </div>
+        )}
 
         {boosted && (
           <span
@@ -562,8 +634,14 @@ function EnrouteScreen({
   const [shareOpen, setShareOpen] = useState(false);
   const [sosOpen, setSosOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [cardBusy, setCardBusy] = useState(false);
-  const [cardErr, setCardErr] = useState<string | null>(null);
+  // Contacts d'urgence enregistrés (appel rapide, alerte, partage).
+  const [sosContacts, setSosContacts] = useState<SosContact[]>([]);
+  const [contactsOpen, setContactsOpen] = useState(false);
+  const [midReportOpen, setMidReportOpen] = useState(false);
+  const [midReported, setMidReported] = useState(false);
+  useEffect(() => {
+    void getSosContacts().then(setSosContacts);
+  }, []);
 
   const ch = ride.chauffeur;
   const chPos =
@@ -688,6 +766,28 @@ function EnrouteScreen({
               }}
             >
               SOS
+            </button>
+          </div>
+          <div className="mt-1.5 flex justify-center gap-4 text-[11.5px] font-bold">
+            <button
+              type="button"
+              style={{ color: RED }}
+              onClick={() => {
+                setDevAlert(false);
+                setMidReportOpen(true);
+              }}
+            >
+              {t("devReport")}
+            </button>
+            <button
+              type="button"
+              style={{ color: VIOLET }}
+              onClick={() => {
+                setDevAlert(false);
+                setSosOpen(true);
+              }}
+            >
+              {t("devSupport")}
             </button>
           </div>
         </div>
@@ -844,60 +944,43 @@ function EnrouteScreen({
           </span>
         </div>
 
-        {/* Prépayée : code de fin + paiement carte */}
+        {/* Prépayée (séquestre) : CODE PIN à communiquer à l'ARRIVÉE du
+            chauffeur — sa saisie DÉMARRE la course ; l'argent reste bloqué
+            et n'est libéré au chauffeur qu'à la fin (mig 0145). */}
         {prepaid && (
           <div
             className="mb-2.5 rounded-[13px] px-3 py-2.5 text-[12.5px] leading-relaxed font-bold"
             style={{ background: "rgba(22,179,100,.12)", color: GO }}
           >
-            {ride.payment_method === "card" && !ride.online_paid ? (
-              <>
-                {t("cardToPay")}
-                <button
-                  type="button"
-                  disabled={cardBusy}
-                  onClick={async () => {
-                    setCardBusy(true);
-                    setCardErr(null);
-                    const res = await createRideCardCheckout(ride.id);
-                    setCardBusy(false);
-                    if (res.ok && res.url) window.open(res.url, "_blank");
-                    else setCardErr(res.error ?? "error");
-                  }}
-                  className="mt-1.5 flex w-full items-center justify-center gap-2 rounded-[10px] px-3 py-2 text-xs font-bold text-white"
-                  style={{ background: GO }}
-                >
-                  {cardBusy ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <CreditCard className="size-4" />
-                  )}
-                  {t("cardPayNow")}
-                </button>
-                {cardErr && (
-                  <span
-                    className="mt-1 block text-[11px]"
-                    style={{ color: RED }}
-                  >
-                    {cardErr}
-                  </span>
-                )}
-              </>
+            {inProgress ? (
+              <>🔒 {t("prepaidOnboard")}</>
             ) : (
               <>
                 🔒 {t("prepaid")}{" "}
                 {ride.end_code && (
                   <>
-                    {t("endCode")}{" "}
-                    <b className="tracking-[3px]">
+                    {t("pinLabel")}{" "}
+                    <b className="text-[15px] tracking-[4px]">
                       {ride.end_code.split("").join(" ")}
                     </b>{" "}
-                    — {t("endCodeGive")}
+                    — {t("pinGive")}
                   </>
                 )}
+                <span className="mt-1 block text-[11px] font-semibold text-[var(--d-muted)]">
+                  {t("escrowNote")}
+                </span>
               </>
             )}
           </div>
+        )}
+
+        {midReported && (
+          <p
+            className="mb-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+            style={{ background: "rgba(22,179,100,.12)", color: GO }}
+          >
+            {t("devReported")}
+          </p>
         )}
 
         {/* Sécurité : partager + SOS */}
@@ -947,6 +1030,7 @@ function EnrouteScreen({
           }
           chCar={ch.vehicle}
           chPlate={ch.plate}
+          emergencyContacts={sosContacts}
         />
       )}
       <SOSModal
@@ -955,7 +1039,33 @@ function EnrouteScreen({
         rideId={ride.id}
         side="client"
         shareUrl={shareUrl}
-        position={pickupPos}
+        position={chPos ?? pickupPos}
+        contacts={sosContacts}
+        onManageContacts={() => {
+          setSosOpen(false);
+          setContactsOpen(true);
+        }}
+      />
+      <SosContactsSheet
+        open={contactsOpen}
+        onClose={() => setContactsOpen(false)}
+        contacts={sosContacts}
+        onSave={async (next) => {
+          const res = await saveSosContacts(next);
+          if (res.ok) setSosContacts(next);
+          return res;
+        }}
+      />
+      {/* Signalement EN COURS de course (alerte itinéraire anormal) */}
+      <ReportModal
+        open={midReportOpen}
+        onClose={() => setMidReportOpen(false)}
+        side="client"
+        onConfirm={async (reason) => {
+          setMidReportOpen(false);
+          await reportDriveRide(ride.id, reason);
+          setMidReported(true);
+        }}
       />
       <ChatModal
         open={chatOpen}
@@ -1149,10 +1259,12 @@ function Row({ k, v, muted }: { k: string; v: string; muted?: boolean }) {
 function CancelledScreen({
   reason,
   mine,
+  refunded,
   onExit,
 }: {
   reason: string | null;
   mine: boolean;
+  refunded?: boolean;
   onExit: () => void;
 }) {
   const t = useTranslations("drive.cancelledScreen");
@@ -1169,6 +1281,14 @@ function CancelledScreen({
         <p className="mt-1 max-w-[280px] text-[13px] text-[var(--d-muted)]">
           {mine ? t("byYou") : t("byOther")}
         </p>
+        {refunded && (
+          <p
+            className="mt-2 max-w-[300px] rounded-[12px] px-3 py-2 text-[12px] font-bold"
+            style={{ background: "rgba(22,179,100,.12)", color: GO }}
+          >
+            {t("refunded")}
+          </p>
+        )}
       </div>
       {reason && (
         <div className="mt-4 rounded-[18px] border border-[var(--d-line)] p-4">

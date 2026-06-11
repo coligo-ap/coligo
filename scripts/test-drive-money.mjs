@@ -113,7 +113,10 @@ async function runToComplete(chUid, ride) {
   await as(chUid);
   await c.query("SELECT ride_set_status($1,'arriving')", [ride]);
   await c.query("SELECT ride_set_status($1,'arrived')", [ride]);
-  await c.query("SELECT ride_set_status($1,'in_progress')", [ride]);
+  // Courses en ligne : le PIN du client (4 chiffres) démarre la course.
+  const pin = (await c.query("SELECT end_code FROM rides WHERE id=$1", [ride]))
+    .rows[0].end_code;
+  await c.query("SELECT ride_set_status($1,'in_progress',$2)", [ride, pin]);
   return (await c.query("SELECT * FROM complete_ride($1)", [ride])).rows[0];
 }
 
@@ -240,7 +243,11 @@ try {
     "female_only"
   );
   ok("conductrice acceptée", (await offer(CH_F, rF, 300)).ok, true);
-  await setOnline(chF, false); // plus aucune conductrice en ligne → repli
+  // Plus AUCUNE conductrice en ligne → repli (y compris les démos seedées).
+  await setOnline(chF, false);
+  await c.query(
+    "UPDATE chauffeur_presence p SET is_online=false FROM chauffeurs ch WHERE ch.id=p.chauffeur_id AND ch.is_female_verified"
+  );
   ok(
     "repli : homme accepté si aucune conductrice",
     (await offer(CH_M, rF, 310)).ok,
@@ -449,6 +456,175 @@ try {
       .reason,
     "not_a_verified_chauffeur"
   );
+  // Nettoyage pour la suite : dégel + annulation de la demande de cust2.
+  await c.query("UPDATE chauffeurs SET is_frozen=false WHERE id=$1", [chM]);
+  await as(CUST2_USER);
+  await c.query(
+    "SELECT cancel_ride(id) FROM rides WHERE customer_id=$1 AND status='searching'",
+    [cust2]
+  );
+
+  // ---------- 10. SÉQUESTRE Coligo Pay (mig 0145) ----------
+  console.log(
+    "\n=== 10. Coligo Pay : réservation, ajustement, PIN, libération ==="
+  );
+  const bal = async () =>
+    (await c.query("SELECT customer_topup_balance($1) v", [CUST])).rows[0].v;
+  await c.query(
+    "INSERT INTO customer_wallet_entries (customer_id,type,source,amount_da,note) VALUES ($1,'topup_credit','topup',1000,'seed séquestre')",
+    [CUST]
+  );
+  const b0 = await bal();
+
+  // Solde insuffisant → demande REFUSÉE avant validation (SAVEPOINT : l'
+  // exception attendue ne doit pas avorter la transaction de test).
+  let refused = false;
+  await c.query("SAVEPOINT sp_insuffisant");
+  try {
+    await requestRide(CUST_USER, { price: 5000, payment: "coligo_pay" });
+  } catch {
+    refused = true;
+    await c.query("ROLLBACK TO SAVEPOINT sp_insuffisant");
+  }
+  ok("solde insuffisant → demande refusée", refused, true);
+  ok("aucun débit sur refus", await bal(), b0);
+
+  // Réservation immédiate à la demande.
+  const r10 = await requestRide(CUST_USER, {
+    price: 300,
+    payment: "coligo_pay",
+  });
+  ok("réservation immédiate (−300)", b0 - (await bal()), 300);
+  ok(
+    "séquestre posé sur la course",
+    (await c.query("SELECT escrow_da FROM rides WHERE id=$1", [r10])).rows[0]
+      .escrow_da,
+    300
+  );
+
+  // Contre-offre 340 → l'acceptation ajuste la réservation (−40 de plus).
+  await offer(CH_M, r10, 340);
+  await acceptOffer(CUST_USER, r10, chM);
+  ok(
+    "ajustement réservation à l'acceptation (340 réservés)",
+    b0 - (await bal()),
+    340
+  );
+  const pinRow = (
+    await c.query("SELECT end_code, escrow_da FROM rides WHERE id=$1", [r10])
+  ).rows[0];
+  ok("PIN 4 chiffres généré", /^\d{4}$/.test(pinRow.end_code ?? ""), true);
+  ok("séquestre = prix convenu", pinRow.escrow_da, 340);
+
+  // Le DÉMARRAGE exige le PIN ; mauvais PIN refusé.
+  await as(CH_M);
+  await c.query("SELECT ride_set_status($1,'arriving')", [r10]);
+  await c.query("SELECT ride_set_status($1,'arrived')", [r10]);
+  const badPin = (
+    await c.query("SELECT * FROM ride_set_status($1,'in_progress','0000')", [
+      r10,
+    ])
+  ).rows[0];
+  ok(
+    "mauvais PIN → démarrage refusé",
+    badPin.ok === false &&
+      (badPin.reason === "bad_pin" || pinRow.end_code === "0000"),
+    true
+  );
+  await c.query("SELECT ride_set_status($1,'in_progress',$2)", [
+    r10,
+    pinRow.end_code,
+  ]);
+  // Complétion : AUCUN nouveau débit, le séquestre est libéré.
+  const comp10 = (await c.query("SELECT * FROM complete_ride($1)", [r10]))
+    .rows[0];
+  ok("complétion OK (libération séquestre)", comp10.ok, true);
+  ok(
+    "pas de double débit à la complétion",
+    b0 - (await bal()) >= 340 - 7 && b0 - (await bal()) <= 340,
+    true
+  );
+  const c10 = Math.round(340 * 0.08);
+  ok(
+    "payout chauffeur = 340 − commission",
+    await rl(r10, "chauffeur_payout"),
+    340 - c10
+  );
+  ok(
+    "séquestre soldé (escrow=0)",
+    (await c.query("SELECT escrow_da FROM rides WHERE id=$1", [r10])).rows[0]
+      .escrow_da,
+    0
+  );
+
+  // ---------- 11. ANNULATION → remboursement immédiat sur le wallet ----------
+  console.log("\n=== 11. Annulation : recrédit immédiat Coligo Pay ===");
+  const b1 = await bal();
+  const r11 = await requestRide(CUST_USER, {
+    price: 280,
+    payment: "coligo_pay",
+  });
+  ok("réservé (−280)", b1 - (await bal()), 280);
+  await as(CUST_USER);
+  await c.query("SELECT cancel_ride($1,'test remboursement')", [r11]);
+  ok("annulation → recrédit intégral immédiat", await bal(), b1);
+
+  // Expiration TTL → remboursement aussi.
+  const r11b = await requestRide(CUST_USER, {
+    price: 260,
+    payment: "coligo_pay",
+  });
+  await c.query(
+    "UPDATE rides SET expires_at = now() - interval '1 min' WHERE id=$1",
+    [r11b]
+  );
+  await c.query("SELECT * FROM drive_expire_stale()");
+  ok("expiration TTL → recrédit intégral", await bal(), b1);
+
+  // ---------- 12. CARTE : payer AVANT diffusion, prix fixe, remboursement ----------
+  console.log("\n=== 12. Carte (Chargily) : paiement avant diffusion ===");
+  const r12 = await requestRide(CUST_USER, { price: 300, payment: "card" });
+  ok(
+    "carte non payée → invisible aux chauffeurs",
+    (await offer(CH_M, r12, 300)).reason,
+    "ride_not_open"
+  );
+  // Webhook Chargily (simulé) : séquestre posé, diffusion ouverte.
+  await c.query("SELECT * FROM drive_card_paid($1,300,'chk_test')", [r12]);
+  ok(
+    "payée → contre-offre INTERDITE (prix fixe)",
+    (await offer(CH_M, r12, 340)).reason,
+    "prepaid_fixed_price"
+  );
+  ok(
+    "payée → acceptation au prix client OK",
+    (await offer(CH_M, r12, 300)).ok,
+    true
+  );
+  // Annulation après paiement carte → remboursement INTÉGRAL sur le wallet.
+  const b2 = await bal();
+  await as(CUST_USER);
+  await c.query("SELECT cancel_ride($1,'annulation carte')", [r12]);
+  ok(
+    "annulation carte → +300 sur le portefeuille Coligo Pay",
+    (await bal()) - b2,
+    300
+  );
+
+  // Webhook arrivant APRÈS annulation → remboursement direct (pas de course fantôme).
+  const r12b = await requestRide(CUST_USER, { price: 220, payment: "card" });
+  await as(CUST_USER);
+  await c.query("SELECT cancel_ride($1)", [r12b]);
+  const b3 = await bal();
+  const late = (
+    await c.query("SELECT * FROM drive_card_paid($1,220,'chk_late')", [r12b])
+  ).rows[0];
+  ok(
+    "paiement reçu après annulation → remboursé immédiatement",
+    late.refunded,
+    true
+  );
+  ok("recrédit +220 sur le wallet", (await bal()) - b3, 220);
 
   console.log(
     `\n${fail === 0 ? "🎉 DRIVE ARGENT + RÈGLES OK" : "⚠️ ÉCHECS"} — pass=${pass} fail=${fail}`

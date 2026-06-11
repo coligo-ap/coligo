@@ -821,7 +821,10 @@
       "ridesCount": "{rides} courses",
       "choose": "Choisir",
       "cancelSearch": "Annuler la recherche",
-      "driverBusy": "Ce chauffeur vient d'être pris — choisissez une autre offre."
+      "driverBusy": "Ce chauffeur vient d'être pris — choisissez une autre offre.",
+      "waitingCard": "En attente du paiement carte…",
+      "waitingCardSub": "Votre demande ne sera envoyée aux chauffeurs qu'une fois le paiement confirmé (CIB / Edahabia via Chargily Pay). Annulation = remboursement intégral sur Coligo Pay.",
+      "payNow": "Payer maintenant (CIB / Edahabia)"
     },
     "enroute": {
       "pillArriving": "{name} arrive · {min} min",
@@ -843,7 +846,14 @@
       "shareTrip": "Partager mon trajet",
       "cancelRide": "Annuler la course",
       "proxSendWa": "Envoyer le suivi · WhatsApp",
-      "proxSendSms": "Envoyer le suivi · SMS"
+      "proxSendSms": "Envoyer le suivi · SMS",
+      "pinLabel": "Code PIN :",
+      "pinGive": "communiquez-le au chauffeur À SON ARRIVÉE — sa saisie démarre la course.",
+      "escrowNote": "Montant bloqué en séquestre — libéré au chauffeur uniquement à la fin de la course. Annulation avant départ = remboursement intégral sur Coligo Pay.",
+      "prepaidOnboard": "Course prépayée · rien à payer à bord — le montant en séquestre sera versé au chauffeur à la fin.",
+      "devReport": "Signaler un problème",
+      "devSupport": "Contacter le support",
+      "devReported": "Signalement transmis — examen sous 24 h, la course est suivie par nos équipes."
     },
     "share": {
       "title": "Partager mon trajet",
@@ -851,7 +861,8 @@
       "livePosition": "position en direct",
       "message": "Je suis en course avec {name} (Coligo Drive). Suivez ma position en direct : {url}",
       "note": "Le lien contient : position du véhicule, plaque, photo et note du chauffeur, heure d'arrivée estimée.",
-      "close": "Fermer"
+      "close": "Fermer",
+      "toEmergency": "Envoyer au contact d'urgence ({name})"
     },
     "sos": {
       "title": "SOS · Urgence",
@@ -867,7 +878,9 @@
       "supportDone": "Support Coligo alerté · suivi prioritaire ✓",
       "noteClient": "La course est suivie en temps réel par nos équipes dès l'alerte.",
       "noteDriver": "Le client, la course et votre position sont joints à l'alerte.",
-      "close": "Fermer"
+      "close": "Fermer",
+      "callContact": "Appeler {name}",
+      "manageContacts": "Gérer mes contacts d'urgence"
     },
     "report": {
       "title": "Signaler un problème",
@@ -964,7 +977,8 @@
       "byYou": "Votre demande a été annulée. Aucun frais appliqué.",
       "byOther": "La course a été annulée. Aucun frais — le motif a été transmis.",
       "reason": "Motif",
-      "back": "Retour à Drive"
+      "back": "Retour à Drive",
+      "refunded": "Montant intégralement recrédité sur votre portefeuille Coligo Pay."
     },
     "histo": {
       "title": "Historique",
@@ -974,6 +988,17 @@
       "emptyFavs": "Aucun favori — touchez le ♥ sur un chauffeur lors d'une course.",
       "ridesCount": "{count} courses",
       "removeFav": "Retirer des favoris"
+    },
+    "sosContacts": {
+      "title": "Contacts d'urgence",
+      "sub": "Jusqu'à 3 contacts. Ils reçoivent votre position en cas de SOS et peuvent être appelés en un tap.",
+      "namePh": "Nom",
+      "phonePh": "Téléphone",
+      "empty": "Aucun contact d'urgence enregistré.",
+      "call": "Appeler",
+      "remove": "Retirer",
+      "error": "Enregistrement impossible — réessayez.",
+      "close": "Fermer"
     }
   }
 }

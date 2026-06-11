@@ -197,6 +197,8 @@ export function CancelModal({
 
 /* ─────────────── SOS (les deux côtés) ─────────────── */
 
+export type SosContact = { name: string; phone: string };
+
 export function SOSModal({
   open,
   onClose,
@@ -204,6 +206,8 @@ export function SOSModal({
   side,
   shareUrl,
   position,
+  contacts = [],
+  onManageContacts,
 }: {
   open: boolean;
   onClose: () => void;
@@ -211,6 +215,10 @@ export function SOSModal({
   side: "client" | "driver";
   shareUrl: string | null;
   position: { lat: number; lng: number } | null;
+  /** Contacts d'urgence enregistrés (appel rapide + alerte SMS). */
+  contacts?: SosContact[];
+  /** Ouvre l'écran de gestion des contacts d'urgence. */
+  onManageContacts?: () => void;
 }) {
   const t = useTranslations("drive.sos");
   const [done, setDone] = useState<string | null>(null);
@@ -227,10 +235,15 @@ export function SOSModal({
         lng: position?.lng ?? null,
       });
   };
+  // Position GPS jointe automatiquement (lien live + coordonnées brutes).
+  const gps = position
+    ? ` · GPS ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`
+    : "";
   const alertContacts = () => {
     log("contacts");
-    const txt = `${t("contactsMsg")} ${shareUrl ?? ""}`.trim();
-    window.open(`sms:?body=${encodeURIComponent(txt)}`, "_self");
+    const txt = `${t("contactsMsg")} ${shareUrl ?? ""}${gps}`.trim();
+    const nums = contacts.map((c) => c.phone.replace(/\s/g, "")).join(",");
+    window.open(`sms:${nums}?body=${encodeURIComponent(txt)}`, "_self");
     setDone(t("contactsDone"));
   };
 
@@ -284,10 +297,28 @@ export function SOSModal({
           window.open("tel:17", "_self");
         }}
       />
+      {/* Appel RAPIDE de chaque contact d'urgence enregistré. */}
+      {contacts.map((c) => (
+        <Item
+          key={c.phone}
+          red
+          icon={<Phone className="size-5" />}
+          title={t("callContact", { name: c.name })}
+          sub={c.phone}
+          onClick={() => {
+            log(`call_contact:${c.name}`);
+            window.open(`tel:${c.phone.replace(/\s/g, "")}`, "_self");
+          }}
+        />
+      ))}
       <Item
         icon={<Users className="size-5" />}
         title={t("contacts")}
-        sub={t("contactsSub")}
+        sub={
+          contacts.length > 0
+            ? contacts.map((c) => c.name).join(", ")
+            : t("contactsSub")
+        }
         onClick={alertContacts}
       />
       <Item
@@ -299,6 +330,16 @@ export function SOSModal({
           setDone(t("supportDone"));
         }}
       />
+      {onManageContacts && (
+        <button
+          type="button"
+          onClick={onManageContacts}
+          className="mb-1.5 block w-full text-center text-[12px] font-bold"
+          style={{ color: VIOLET }}
+        >
+          {t("manageContacts")}
+        </button>
+      )}
       {done ? (
         <p
           className="rounded-[13px] px-3 py-2.5 text-center text-xs font-bold"
@@ -326,6 +367,7 @@ export function ShareModal({
   chRating,
   chCar,
   chPlate,
+  emergencyContacts = [],
 }: {
   open: boolean;
   onClose: () => void;
@@ -334,6 +376,8 @@ export function ShareModal({
   chRating: string | null;
   chCar: string | null;
   chPlate: string | null;
+  /** Partage en un tap vers les contacts d'urgence enregistrés. */
+  emergencyContacts?: SosContact[];
 }) {
   const t = useTranslations("drive.share");
   const text = t("message", { name: chName, url: shareUrl });
@@ -387,6 +431,27 @@ export function ShareModal({
           <Smartphone className="size-4" /> SMS
         </button>
       </div>
+      {/* Partage direct au CONTACT D'URGENCE enregistré (un tap). */}
+      {emergencyContacts.length > 0 && (
+        <button
+          type="button"
+          className="drive-sora mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] text-[13.5px] font-bold"
+          style={{ borderColor: RED, color: RED }}
+          onClick={() =>
+            window.open(
+              `sms:${emergencyContacts
+                .map((c) => c.phone.replace(/\s/g, ""))
+                .join(",")}?body=${encodeURIComponent(text)}`,
+              "_self"
+            )
+          }
+        >
+          <Users className="size-4" />
+          {t("toEmergency", {
+            name: emergencyContacts.map((c) => c.name).join(", "),
+          })}
+        </button>
+      )}
       <p className="mt-2 text-center text-[11px] text-[var(--d-muted)]">
         {t("note")}
       </p>
@@ -665,4 +730,128 @@ export function ChatModal({
 
 export function ShareIcon() {
   return <Share2 className="size-4" />;
+}
+
+/* ─────────────── Contacts d'urgence : écran de gestion ─────────────── */
+
+export function SosContactsSheet({
+  open,
+  onClose,
+  contacts,
+  onSave,
+}: {
+  open: boolean;
+  onClose: () => void;
+  contacts: SosContact[];
+  /** Persistance (action serveur passée par le parent : client OU chauffeur). */
+  onSave: (contacts: SosContact[]) => Promise<{ ok: boolean; error?: string }>;
+}) {
+  const t = useTranslations("drive.sosContacts");
+  const [list, setList] = useState<SosContact[]>(contacts);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (open) {
+      setList(contacts);
+      setError(null);
+    }
+  }, [open, contacts]);
+
+  const persist = async (next: SosContact[]) => {
+    setSaving(true);
+    setError(null);
+    const res = await onSave(next);
+    if (!res.ok) setError(res.error ?? t("error"));
+    else setList(next);
+    setSaving(false);
+  };
+
+  return (
+    <Sheet open={open} onClose={onClose}>
+      <SheetTitle>{t("title")}</SheetTitle>
+      <p className="mb-2.5 text-[13px] text-[var(--d-muted)]">{t("sub")}</p>
+
+      {list.map((c) => (
+        <div
+          key={c.phone}
+          className="mb-2 flex items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3"
+        >
+          <span className="min-w-0 flex-1">
+            <b className="block text-[13.5px]">{c.name}</b>
+            <small className="text-[11px] text-[var(--d-muted)] tabular-nums">
+              {c.phone}
+            </small>
+          </span>
+          {/* Bouton RAPIDE d'appel */}
+          <a
+            href={`tel:${c.phone.replace(/\s/g, "")}`}
+            aria-label={t("call")}
+            className="grid size-9 shrink-0 place-items-center rounded-full text-white"
+            style={{ background: GO }}
+          >
+            <Phone className="size-4" />
+          </a>
+          <button
+            type="button"
+            aria-label={t("remove")}
+            onClick={() =>
+              void persist(list.filter((x) => x.phone !== c.phone))
+            }
+            disabled={saving}
+            className="grid size-9 shrink-0 place-items-center rounded-full border-[1.5px]"
+            style={{ borderColor: RED, color: RED }}
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+      {list.length === 0 && (
+        <p className="mb-2 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-center text-xs font-semibold text-[var(--d-muted)]">
+          {t("empty")}
+        </p>
+      )}
+
+      {list.length < 3 && (
+        <div className="mt-1 mb-1 flex gap-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t("namePh")}
+            className="h-11 min-w-0 flex-1 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-sm font-semibold outline-none"
+          />
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            inputMode="tel"
+            placeholder={t("phonePh")}
+            className="h-11 min-w-0 flex-1 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-sm font-semibold outline-none"
+          />
+          <button
+            type="button"
+            disabled={saving || !name.trim() || phone.trim().length < 9}
+            onClick={async () => {
+              await persist([
+                ...list,
+                { name: name.trim(), phone: phone.trim() },
+              ]);
+              setName("");
+              setPhone("");
+            }}
+            className="grid size-11 shrink-0 place-items-center rounded-[14px] text-xl font-bold text-white disabled:opacity-40"
+            style={{ background: VIOLET }}
+          >
+            +
+          </button>
+        </div>
+      )}
+      {error && (
+        <p className="text-center text-xs font-bold" style={{ color: RED }}>
+          {error}
+        </p>
+      )}
+      <GhostBtn onClick={onClose}>{t("close")}</GhostBtn>
+    </Sheet>
+  );
 }

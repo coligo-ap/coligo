@@ -1815,6 +1815,7 @@ export type Database = {
           id?: string;
           user_id?: string;
           full_name?: string;
+          [k: string]: unknown;
           phone?: string | null;
           email?: string | null;
           default_wilaya_code?: string | null;

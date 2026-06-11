@@ -568,7 +568,7 @@ export async function createRideCardCheckout(
   const { data: ride } = await admin
     .from("rides")
     .select(
-      "id, customer_id, status, payment_method, agreed_price_da, online_paid_at"
+      "id, customer_id, status, payment_method, agreed_price_da, proposed_price_da, boost_amount_da, online_paid_at"
     )
     .eq("id", rideId)
     .maybeSingle();
@@ -576,15 +576,19 @@ export async function createRideCardCheckout(
     return { ok: false, error: "not_your_ride" };
   if (ride.payment_method !== "card") return { ok: false, error: "not_card" };
   if (ride.online_paid_at) return { ok: false, error: "already_paid" };
-  if (!ride.agreed_price_da || ride.agreed_price_da <= 0)
-    return { ok: false, error: "no_agreed_price" };
+  // Paiement AVANT diffusion (mig 0145) : montant = prix proposé + boost
+  // (prix FIXE côté chauffeurs, pas de contre-offre sur une course carte).
+  const amount =
+    ride.agreed_price_da ??
+    (ride.proposed_price_da ?? 0) + (ride.boost_amount_da ?? 0);
+  if (!amount || amount <= 0) return { ok: false, error: "no_amount" };
 
   try {
     const { createCheckout } = await import("@/lib/payments/chargily");
     const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/+$/, "");
     if (!base) return { ok: false, error: "app_url_missing" };
     const checkout = await createCheckout({
-      amount: ride.agreed_price_da,
+      amount,
       successUrl: `${base}/drive?card=success`,
       failureUrl: `${base}/drive?card=failed`,
       webhookEndpoint: `${base}/api/chargily/webhook`,
@@ -787,6 +791,54 @@ export async function sendRideMessage(
   const { error } = await supabase
     .from("ride_messages")
     .insert({ ride_id: rideId, sender: "customer", body: text });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+/* ─────────────────── Contacts d'urgence (sécurité) ─────────────────── */
+
+export type SosContact = { name: string; phone: string };
+
+export async function getSosContacts(): Promise<SosContact[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data } = await supabase
+    .from("customers")
+    .select("sos_contacts")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const raw = (data?.sos_contacts ?? []) as SosContact[];
+  return Array.isArray(raw)
+    ? raw.filter((c) => c && c.name && c.phone).slice(0, 3)
+    : [];
+}
+
+export async function setSosContacts(
+  contacts: SosContact[]
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "auth" };
+  const clean = (contacts ?? [])
+    .map((c) => ({
+      name: String(c.name ?? "")
+        .trim()
+        .slice(0, 40),
+      phone: String(c.phone ?? "")
+        .trim()
+        .slice(0, 20),
+    }))
+    .filter((c) => c.name && c.phone.length >= 9)
+    .slice(0, 3);
+  const { error } = await supabase
+    .from("customers")
+    .update({ sos_contacts: clean })
+    .eq("user_id", user.id);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }

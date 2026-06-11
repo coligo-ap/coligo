@@ -38,6 +38,8 @@ import {
   queueRideRequest,
 } from "@/lib/drive/offline-db";
 import {
+  cancelDriveRide,
+  createRideCardCheckout,
   getDriveActiveRide,
   getDriveContext,
   getDriveQuotes,
@@ -256,11 +258,24 @@ export function DriveView() {
     }
     setSubmitting(true);
     const res = await requestDriveRide(payload);
-    setSubmitting(false);
     if (!res.ok) {
+      setSubmitting(false);
       setRequestError(res.error ?? t("requestFailed"));
       return;
     }
+    // CARTE : payer AVANT que la demande soit diffusée (Chargily Pay existant).
+    if (payMode === "card" && res.rideId) {
+      const checkout = await createRideCardCheckout(res.rideId);
+      if (checkout.ok && checkout.url) {
+        window.open(checkout.url, "_blank");
+      } else {
+        setSubmitting(false);
+        setRequestError(checkout.error ?? t("requestFailed"));
+        await cancelDriveRide(res.rideId, "Paiement carte indisponible");
+        return;
+      }
+    }
+    setSubmitting(false);
     await refreshActive();
     setScreen("ride");
   };
