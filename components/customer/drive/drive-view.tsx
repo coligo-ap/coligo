@@ -16,6 +16,7 @@ import {
   Route,
   Search,
   ShieldAlert,
+  Snowflake,
   User,
   Users,
   Zap,
@@ -509,7 +510,7 @@ export function DriveView() {
                 key={g}
                 type="button"
                 onClick={() => pickGamme(g)}
-                className="flex w-[108px] shrink-0 flex-col items-center rounded-[18px] border-[1.5px] px-2 pt-3 pb-2.5 text-center"
+                className="relative flex w-[108px] shrink-0 flex-col items-center rounded-[18px] border-[1.5px] px-2 pt-3 pb-2.5 text-center"
                 style={
                   gamme === g
                     ? {
@@ -520,6 +521,12 @@ export function DriveView() {
                     : { borderColor: "var(--d-line)", background: "#fff" }
                 }
               >
+                {g === "confort" && (
+                  /* Climatisation incluse dans la gamme Confort */
+                  <span className="absolute top-1.5 right-1.5 flex size-[22px] items-center justify-center rounded-full bg-[#E3F1FF]">
+                    <Snowflake className="size-3.5 text-[#1E88E5]" />
+                  </span>
+                )}
                 <Image
                   src={GAMME_IMG[g]}
                   alt={t(`gammes.${g}`)}
