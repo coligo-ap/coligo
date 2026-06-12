@@ -27,6 +27,7 @@
     "test:audit:cod": "node scripts/audit-cod-cashback.mjs",
     "test:audit:cancel": "node scripts/audit-cancel.mjs",
     "test:noshow:claim": "node scripts/test-noshow-claim.mjs",
+    "test:merchant:guard": "node scripts/test-merchant-order-guard.mjs",
     "test:vtc": "node scripts/test-vtc.mjs",
     "test:coligo:pay": "node scripts/test-coligo-pay.mjs",
     "android:assets": "node scripts/android-assets.mjs",
