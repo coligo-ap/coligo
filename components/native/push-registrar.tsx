@@ -16,6 +16,41 @@ import { isWebPushConfigured } from "@/lib/native/push-web";
 const DISMISS_KEY = "coligo_push_prompt_dismissed_at";
 const DISMISS_TTL_MS = 7 * 24 * 3600 * 1000;
 
+/** Ping télémétrie (IP/appareil, /api/telemetry/ping) : 1× / 6 h / appareil. */
+const PING_KEY = "coligo_telemetry_ping_at";
+const PING_TTL_MS = 6 * 3600 * 1000;
+
+function detectPlatform(): string {
+  const ua = navigator.userAgent;
+  if (/Android/i.test(ua)) return "android";
+  if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
+  if (/Windows/i.test(ua)) return "windows";
+  if (/Mac OS X/i.test(ua)) return "macos";
+  if (/Linux/i.test(ua)) return "linux";
+  return "other";
+}
+
+/** Trace appareil/IP côté serveur — fire-and-forget, throttlé localStorage. */
+function telemetryPing(role: PushRole) {
+  try {
+    const last = Number(localStorage.getItem(PING_KEY) ?? 0);
+    if (last && last > Date.now() - PING_TTL_MS) return;
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as unknown as { standalone?: boolean }).standalone === true ||
+      isPushAvailable(); // APK Capacitor
+    void fetch("/api/telemetry/ping", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role, platform: detectPlatform(), standalone }),
+    }).then((res) => {
+      if (res.ok) localStorage.setItem(PING_KEY, String(Date.now()));
+    });
+  } catch {
+    /* best-effort */
+  }
+}
+
 /**
  * Monté dans le shell de chaque rôle une fois l'utilisateur connu.
  * S'occupe en arrière-plan de :
@@ -37,6 +72,9 @@ export function PushRegistrar({ role }: { role: PushRole }) {
   const [enabling, setEnabling] = useState(false);
 
   useEffect(() => {
+    // Trace appareil/IP/localisation (super-admin /admin/devices, anti-fraude).
+    telemetryPing(role);
+
     // Enregistre le token push : natif (Capacitor Android) OU web (Firebase JS,
     // navigateur/PWA) — la bascule est gérée dans registerPushToken.
     void registerPushToken(role).then(() => {

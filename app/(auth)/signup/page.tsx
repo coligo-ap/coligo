@@ -10,7 +10,7 @@ import { signup, type AuthState } from "@/app/(merchant)/actions";
 import { MERCHANT_CATEGORIES } from "@/lib/config/categories";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Mail, Lock, Store, Tag, ArrowRight, UserRound } from "lucide-react";
-import { InstallButton } from "@/components/pwa/install-button";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
 import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
 
@@ -268,8 +268,11 @@ export default function SignupPage() {
                 </Link>
               </div>
 
-              <div className="mt-4 flex justify-center">
-                <InstallButton variant="inline" />
+              <div className="mt-4">
+                <InstallAppButton
+                  label="Installer l'application Commerçant"
+                  subtitle="Sur votre écran d'accueil, plein écran et notifications de commandes — comme une app native."
+                />
               </div>
 
               <div className="border-border text-muted mt-6 border-t pt-4 text-center text-xs">

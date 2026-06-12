@@ -46,7 +46,16 @@ function isIos(): boolean {
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
-export function InstallAppButton({ className }: { className?: string }) {
+export function InstallAppButton({
+  className,
+  label,
+  subtitle,
+}: {
+  className?: string;
+  /** Libellé spécifique (ex. « Installer l'application Livreur ») — défaut i18n. */
+  label?: string;
+  subtitle?: string;
+}) {
   const t = useTranslations("install");
   const [visible, setVisible] = useState(false);
   const [guide, setGuide] = useState<"ios" | "android" | null>(null);
@@ -87,8 +96,12 @@ export function InstallAppButton({ className }: { className?: string }) {
           <MonitorDown className="size-5" />
         </span>
         <span className="min-w-0">
-          <span className="block text-sm font-semibold">{t("cta")}</span>
-          <span className="text-muted block text-xs">{t("subtitle")}</span>
+          <span className="block text-sm font-semibold">
+            {label ?? t("cta")}
+          </span>
+          <span className="text-muted block text-xs">
+            {subtitle ?? t("subtitle")}
+          </span>
         </span>
       </button>
 

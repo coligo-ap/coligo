@@ -12,6 +12,7 @@ import { Logo } from "@/components/shared/logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { SocialAuth } from "@/components/customer/social-auth";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
 import {
   customerLogin,
@@ -219,6 +220,12 @@ function CustomerLoginInner() {
                     <Car className="size-3.5" />
                     {t("iAmDriver")}
                   </Link>
+                </div>
+
+                {/* Installer la PWA client — Android : prompt natif ;
+                    iPhone : guide Partager → Sur l'écran d'accueil. */}
+                <div className="mt-4">
+                  <InstallAppButton />
                 </div>
               </div>
             </div>

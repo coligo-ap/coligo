@@ -10,7 +10,7 @@ import { Logo } from "@/components/shared/logo";
 import { login, type AuthState } from "@/app/(merchant)/actions";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Mail, Lock, ArrowRight } from "lucide-react";
-import { InstallButton } from "@/components/pwa/install-button";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
 
 const initialState: AuthState = {};
@@ -190,10 +190,6 @@ function LoginContent() {
                 </Link>
               </div>
 
-              <div className="mt-4 flex justify-center">
-                <InstallButton variant="inline" />
-              </div>
-
               <div className="border-border text-muted mt-6 border-t pt-4 text-center text-xs">
                 Tu es livreur ?{" "}
                 <Link
@@ -210,6 +206,15 @@ function LoginContent() {
                   S&apos;inscrire
                 </Link>{" "}
                 en tant que livreur
+              </div>
+
+              {/* Installer la PWA commerçant (icône/nom dédiés) — détecte
+                  Android (prompt natif) vs iPhone (guide pas-à-pas). */}
+              <div className="mt-4">
+                <InstallAppButton
+                  label="Installer l'application Commerçant"
+                  subtitle="Sur votre écran d'accueil, plein écran et notifications de commandes — comme une app native."
+                />
               </div>
             </div>
           </div>
