@@ -319,6 +319,15 @@ const REQUIRED_DOC_KINDS = [
   "selfie",
 ] as const;
 
+const DOC_KIND_LABEL: Record<string, string> = {
+  permis_recto: "Permis (recto)",
+  permis_verso: "Permis (verso)",
+  carte_grise: "Carte grise",
+  plaque: "Photo de plaque",
+  assurance: "Assurance",
+  selfie: "Selfie",
+};
+
 /** Valide ou refuse UNE pièce (avec motif transmis au chauffeur). */
 export async function setChauffeurDocStatus(
   chauffeurId: string,
@@ -328,7 +337,7 @@ export async function setChauffeurDocStatus(
 ): Promise<{ error?: string }> {
   if (!(await isSuperAdmin())) return { error: "Accès refusé." };
   const admin = createAdminClient();
-  const { error } = await admin
+  const { data: doc, error } = await admin
     .from("chauffeur_documents")
     .update({
       status,
@@ -337,9 +346,49 @@ export async function setChauffeurDocStatus(
       reviewed_at: new Date().toISOString(),
     })
     .eq("id", docId)
-    .eq("chauffeur_id", chauffeurId);
+    .eq("chauffeur_id", chauffeurId)
+    .select("kind")
+    .maybeSingle();
   if (error) return { error: error.message };
   await audit(`doc_${status}`, chauffeurId);
+
+  // La décision (et la note) est communiquée au chauffeur par push — le
+  // statut/motif est aussi visible sur sa pièce dans /chauffeur/documents.
+  try {
+    const { data: ch } = await admin
+      .from("chauffeurs")
+      .select("user_id")
+      .eq("id", chauffeurId)
+      .maybeSingle();
+    if (ch?.user_id) {
+      const { data: tokens } = await admin
+        .from("device_tokens")
+        .select("token")
+        .eq("user_id", ch.user_id)
+        .eq("role", "chauffeur");
+      const list = (tokens ?? []).map((t) => t.token).filter(Boolean);
+      if (list.length > 0) {
+        const label = DOC_KIND_LABEL[doc?.kind ?? ""] ?? "Document";
+        const { sendFcm } = await import("@/lib/fcm/send");
+        await sendFcm(
+          list,
+          status === "approved"
+            ? {
+                title: `${label} validé ✓`,
+                body: note?.trim() || "Votre pièce a été vérifiée et acceptée.",
+              }
+            : {
+                title: `${label} refusé`,
+                body: `${note?.trim() || "Pièce non conforme."} — renvoyez-la depuis vos documents.`,
+              },
+          { route: "/chauffeur/documents", kind: "doc_review" }
+        );
+      }
+    }
+  } catch {
+    /* best-effort : la décision reste visible dans l'app */
+  }
+
   revalidatePath(`/admin/chauffeurs/${chauffeurId}`);
   return {};
 }

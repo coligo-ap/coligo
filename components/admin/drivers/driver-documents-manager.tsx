@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   Pencil,
   Paperclip,
-  FileImage,
   Check,
   X,
 } from "lucide-react";
@@ -22,6 +21,10 @@ import {
   deleteDriverDocument,
   setDriverDocumentStatus,
 } from "@/app/admin/drivers/actions";
+import {
+  AdminDocViewer,
+  DecisionNoteDialog,
+} from "@/components/admin/doc-viewer";
 import type { AdminFormState } from "@/app/admin/actions";
 
 export type DriverDocument = {
@@ -73,6 +76,11 @@ export function DriverDocumentsManager({
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<Editing>(null);
+  // Pièce en cours de refus (boîte de motif prédéfini/libre).
+  const [rejecting, setRejecting] = useState<{
+    docId: string;
+    label: string;
+  } | null>(null);
   const [delPending, startDel] = useTransition();
   const [state, formAction, pending] = useActionState<AdminFormState, FormData>(
     upsertDriverDocument.bind(null, driverId),
@@ -139,16 +147,31 @@ export function DriverDocumentsManager({
                 )}
               </p>
               {d.note && <p className="text-muted mt-0.5 text-xs">{d.note}</p>}
+              {d.review_note && (
+                <p className="text-danger-600 mt-0.5 text-xs">
+                  Note : {d.review_note}
+                </p>
+              )}
               {d.scanUrl && (
-                <a
-                  href={d.scanUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary-700 mt-1 inline-flex items-center gap-1 text-xs font-semibold"
-                >
-                  <FileImage className="size-3.5" />
-                  Voir le scan
-                </a>
+                <span className="mt-1 inline-flex">
+                  {/* Visualiseur : aperçu inline + Télécharger + décision */}
+                  <AdminDocViewer
+                    docTitle={docLabel(d.doc_type)}
+                    getUrl={async () => ({ url: d.scanUrl ?? undefined })}
+                    onDecide={async (status, note) => {
+                      const r = await setDriverDocumentStatus(
+                        driverId,
+                        d.id,
+                        status,
+                        note
+                      );
+                      if (!r.error) router.refresh();
+                      return r;
+                    }}
+                    triggerLabel="Voir le scan"
+                    triggerClassName="text-primary-700 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+                  />
+                </span>
               )}
             </div>
             <div className="flex shrink-0 items-start gap-1">
@@ -181,23 +204,12 @@ export function DriverDocumentsManager({
                     aria-label="Refuser la pièce"
                     className="text-danger-600 hover:bg-danger-50 rounded-[8px] p-1.5"
                     disabled={delPending}
-                    onClick={() => {
-                      const note =
-                        prompt("Motif du refus (optionnel) :") ?? null;
-                      startDel(async () => {
-                        const r = await setDriverDocumentStatus(
-                          driverId,
-                          d.id,
-                          "rejected",
-                          note
-                        );
-                        if (r.error) toast.error(r.error);
-                        else {
-                          toast.success("Pièce refusée");
-                          router.refresh();
-                        }
-                      });
-                    }}
+                    onClick={() =>
+                      setRejecting({
+                        docId: d.id,
+                        label: docLabel(d.doc_type),
+                      })
+                    }
                   >
                     <X className="size-4" />
                   </button>
@@ -346,6 +358,28 @@ export function DriverDocumentsManager({
           <Plus className="size-4" />
           Ajouter une pièce
         </Button>
+      )}
+
+      {/* Boîte de motif (refus inline) — motifs prédéfinis + texte libre */}
+      {rejecting && (
+        <DecisionNoteDialog
+          decision="rejected"
+          docTitle={rejecting.label}
+          onConfirm={async (note) => {
+            const r = await setDriverDocumentStatus(
+              driverId,
+              rejecting.docId,
+              "rejected",
+              note
+            );
+            if (!r.error) {
+              toast.success("Pièce refusée — motif transmis au livreur");
+              router.refresh();
+            }
+            return r;
+          }}
+          onClose={() => setRejecting(null)}
+        />
       )}
     </div>
   );

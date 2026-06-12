@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   BadgeCheck,
   Ban,
-  ExternalLink,
   Loader2,
   Save,
   ShieldCheck,
@@ -13,6 +12,10 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  AdminDocViewer,
+  DecisionNoteDialog,
+} from "@/components/admin/doc-viewer";
 import {
   approveChauffeurGated,
   freezeChauffeurWithReason,
@@ -63,31 +66,30 @@ export function ChauffeurDocReview({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Pièce en cours de refus via les boutons inline (boîte de motif).
+  const [rejecting, setRejecting] = useState<{
+    docId: string;
+    label: string;
+  } | null>(null);
 
   const byKind = new Map(docs.map((d) => [d.kind, d]));
   const kinds = Object.keys(DOC_META);
 
-  const openDoc = (path: string) =>
-    start(async () => {
-      const res = await getChauffeurDocUrl(path);
-      if (res.url) window.open(res.url, "_blank");
-      else setError(res.error ?? "Document introuvable");
-    });
+  const decide = async (
+    docId: string,
+    status: "approved" | "rejected",
+    note: string | null
+  ) => {
+    const res = await setChauffeurDocStatus(chauffeurId, docId, status, note);
+    if (!res.error) router.refresh();
+    return res;
+  };
 
-  const review = (docId: string, status: "approved" | "rejected") =>
+  const approveInline = (docId: string) =>
     start(async () => {
       setError(null);
-      let note: string | null = null;
-      if (status === "rejected") {
-        note = window.prompt(
-          "Motif du refus de cette pièce (transmis au chauffeur) :",
-          "Photo illisible — reprenez-la."
-        );
-        if (note == null) return;
-      }
-      const res = await setChauffeurDocStatus(chauffeurId, docId, status, note);
+      const res = await decide(docId, "approved", null);
       if (res.error) setError(res.error);
-      else router.refresh();
     });
 
   return (
@@ -151,19 +153,17 @@ export function ChauffeurDocReview({
                       ? "Refusé"
                       : "À vérifier"}
                 </span>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => openDoc(doc.url)}
-                  className="border-border hover:bg-surface-2 inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-xs font-semibold"
-                >
-                  Voir <ExternalLink className="size-3" />
-                </button>
+                {/* Visualiseur plein écran : aperçu + Télécharger + décision */}
+                <AdminDocViewer
+                  docTitle={meta.label}
+                  getUrl={() => getChauffeurDocUrl(doc.url)}
+                  onDecide={(status, note) => decide(doc.id, status, note)}
+                />
                 {doc.status !== "approved" && (
                   <button
                     type="button"
                     disabled={pending}
-                    onClick={() => review(doc.id, "approved")}
+                    onClick={() => approveInline(doc.id)}
                     className="bg-success-600 rounded-[8px] px-2 py-1 text-xs font-bold text-white disabled:opacity-50"
                   >
                     Valider
@@ -173,7 +173,9 @@ export function ChauffeurDocReview({
                   <button
                     type="button"
                     disabled={pending}
-                    onClick={() => review(doc.id, "rejected")}
+                    onClick={() =>
+                      setRejecting({ docId: doc.id, label: meta.label })
+                    }
                     className="bg-danger-600 rounded-[8px] px-2 py-1 text-xs font-bold text-white disabled:opacity-50"
                   >
                     Refuser
@@ -186,6 +188,16 @@ export function ChauffeurDocReview({
       })}
       {error && (
         <p className="text-danger-600 text-xs font-semibold">{error}</p>
+      )}
+
+      {/* Boîte de motif (refus inline) — motifs prédéfinis + texte libre */}
+      {rejecting && (
+        <DecisionNoteDialog
+          decision="rejected"
+          docTitle={rejecting.label}
+          onConfirm={(note) => decide(rejecting.docId, "rejected", note)}
+          onClose={() => setRejecting(null)}
+        />
       )}
     </div>
   );

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { BadgeCheck, ExternalLink, Loader2, X } from "lucide-react";
+import { BadgeCheck, Loader2, X } from "lucide-react";
+import { AdminDocViewer } from "@/components/admin/doc-viewer";
 import {
   approveChauffeurGated,
   getChauffeurDocUrl,
@@ -38,13 +39,6 @@ export function ChauffeurValidationCard({
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
-
-  const openDoc = (path: string) =>
-    start(async () => {
-      const res = await getChauffeurDocUrl(path);
-      if (res.url) window.open(res.url, "_blank");
-      else setError(res.error ?? "Document introuvable");
-    });
 
   if (done) {
     return (
@@ -92,15 +86,13 @@ export function ChauffeurValidationCard({
           <span className="text-muted text-xs">Aucun document reçu.</span>
         )}
         {docs.map((d) => (
-          <button
+          <AdminDocViewer
             key={d.kind}
-            type="button"
-            disabled={pending}
-            onClick={() => openDoc(d.url)}
-            className="border-border hover:bg-surface-2 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold"
-          >
-            {DOC_LABEL[d.kind] ?? d.kind} <ExternalLink className="size-3" />
-          </button>
+            docTitle={DOC_LABEL[d.kind] ?? d.kind}
+            getUrl={() => getChauffeurDocUrl(d.url)}
+            triggerLabel={DOC_LABEL[d.kind] ?? d.kind}
+            triggerClassName="border-border hover:bg-surface-2 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold"
+          />
         ))}
       </div>
 

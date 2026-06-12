@@ -320,6 +320,14 @@ export async function upsertDriverDocument(
   return { ok: true };
 }
 
+const DOC_TYPE_LABEL: Record<string, string> = {
+  cni: "Carte d'identité",
+  permis: "Permis de conduire",
+  carte_grise: "Carte grise",
+  passeport: "Passeport",
+  autre: "Document",
+};
+
 /** Valide ou refuse une pièce envoyée par le livreur (statut de vérification). */
 export async function setDriverDocumentStatus(
   driverId: string,
@@ -329,7 +337,7 @@ export async function setDriverDocumentStatus(
 ): Promise<{ error?: string }> {
   if (!(await isSuperAdmin())) return { error: "Accès refusé." };
   const admin = createAdminClient();
-  const { error } = await admin
+  const { data: doc, error } = await admin
     .from("driver_documents")
     .update({
       status,
@@ -337,13 +345,53 @@ export async function setDriverDocumentStatus(
       reviewed_by: await adminEmail(),
       reviewed_at: new Date().toISOString(),
     })
-    .eq("id", docId);
+    .eq("id", docId)
+    .select("doc_type")
+    .maybeSingle();
   if (error) return { error: error.message };
   await audit(
     status === "approved" ? "approve_document" : "reject_document",
     driverId,
     note ?? null
   );
+
+  // La décision (et la note) est communiquée au livreur par push — il voit
+  // aussi le statut/motif sur sa pièce dans /driver/parametres.
+  try {
+    const { data: driver } = await admin
+      .from("drivers")
+      .select("user_id")
+      .eq("id", driverId)
+      .maybeSingle();
+    if (driver?.user_id) {
+      const { data: tokens } = await admin
+        .from("device_tokens")
+        .select("token")
+        .eq("user_id", driver.user_id)
+        .eq("role", "courier");
+      const list = (tokens ?? []).map((t) => t.token).filter(Boolean);
+      if (list.length > 0) {
+        const label = DOC_TYPE_LABEL[doc?.doc_type ?? ""] ?? "Document";
+        const { sendFcm } = await import("@/lib/fcm/send");
+        await sendFcm(
+          list,
+          status === "approved"
+            ? {
+                title: `${label} validé ✓`,
+                body: note?.trim() || "Votre pièce a été vérifiée et acceptée.",
+              }
+            : {
+                title: `${label} refusé`,
+                body: `${note?.trim() || "Pièce non conforme."} — renvoyez-la depuis vos paramètres.`,
+              },
+          { route: "/driver/parametres", kind: "doc_review" }
+        );
+      }
+    }
+  } catch {
+    /* best-effort : la décision reste visible dans l'app */
+  }
+
   refreshDriver(driverId);
   return {};
 }
