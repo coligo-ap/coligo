@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Sora } from "next/font/google";
+import { pwaMetadata } from "@/lib/config/pwa";
 
 export const dynamic = "force-dynamic";
+
+// Titre propre à l'espace chauffeur + PWA dédiée (« Coligo Drive »).
+export const metadata: Metadata = {
+  title: "Coligo Drive — Espace chauffeur",
+  ...pwaMetadata("drive"),
+};
 
 // Polices de la maquette Drive (Sora titres/prix, Jakarta corps).
 const sora = Sora({

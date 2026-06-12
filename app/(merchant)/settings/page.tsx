@@ -18,6 +18,7 @@ import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badg
 import { AccountSection } from "@/components/merchant/settings/account-section";
 import { DeliverySettingsForm } from "@/components/merchant/settings/delivery-settings-form";
 import { NotificationsForm } from "@/components/merchant/settings/notifications-form";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { PayoutSettingsForm } from "@/components/merchant/settings/payout-settings-form";
 import { normalizeOpeningHours } from "@/lib/merchant/opening-hours";
 import { getPlatformSettings } from "@/lib/data/platform";
@@ -271,6 +272,9 @@ export default async function SettingsPage() {
             commissionRatePct={Math.round(merchant.commission_rate * 100)}
           />
         </SettingsSection>
+
+        {/* Installer la PWA commerçant (« Coligo Commerçant ») — masqué si installée/APK */}
+        <InstallAppButton />
       </div>
     </div>
   );

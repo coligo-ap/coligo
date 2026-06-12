@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { MerchantShell } from "@/components/merchant/merchant-shell";
 import { APP_CONFIG } from "@/lib/config/app-config";
+import { pwaMetadata } from "@/lib/config/pwa";
 
-// Titre propre à l'espace commerçant (le layout racine est neutre « Coligo »).
+// Titre propre à l'espace commerçant (le layout racine est neutre « Coligo »)
+// + PWA dédiée (manifest/icône/nom « Coligo Commerçant »).
 export const metadata: Metadata = {
   title: `${APP_CONFIG.name} — Espace commerçant`,
+  ...pwaMetadata("commercant"),
 };
 
 /**

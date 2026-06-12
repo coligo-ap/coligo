@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pwaMetadata } from "@/lib/config/pwa";
 import { Sora, Plus_Jakarta_Sans } from "next/font/google";
 import "./maquette.css";
 import { OfflineSyncIndicator } from "@/components/driver/offline-sync-indicator";
@@ -42,8 +43,10 @@ const fontJakarta = Plus_Jakarta_Sans({
 
 // Titre propre à l'espace livreur (le layout racine est neutre « Coligo ») —
 // sinon Tawk.to annonçait « Espace commerçant » pour un livreur.
+// + PWA dédiée (manifest/icône/nom « Coligo Livreur »).
 export const metadata: Metadata = {
   title: `${APP_CONFIG.name} — Espace livreur`,
+  ...pwaMetadata("livreur"),
 };
 
 export default async function DriverLayout({

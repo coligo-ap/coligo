@@ -16,6 +16,7 @@ import { getTranslations } from "next-intl/server";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { CustomerLogoutButton } from "@/components/customer/logout-button";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { CustomerSupportRow } from "@/components/support/customer-support-row";
 import {
   getMyCashbackBalance,
@@ -242,6 +243,11 @@ export default async function CustomerAccountPage({
             title={t("helpSupport")}
             subtitle={t("helpSupportDesc")}
           />
+        </div>
+
+        {/* Installer la PWA client (masqué si déjà installée / APK) */}
+        <div className="px-4 pt-3">
+          <InstallAppButton />
         </div>
 
         <div className="px-4">

@@ -1031,5 +1031,15 @@
     "enableBody": "Sois prévenu en temps réel : suivi de commande, livreur en route, promos…",
     "enableCta": "Activer",
     "dismiss": "Plus tard"
+  },
+  "install": {
+    "cta": "Installer l’application",
+    "subtitle": "Accès direct depuis ton écran d’accueil, notifications comprises.",
+    "iosTitle": "Installer sur iPhone",
+    "iosStep1": "Touche le bouton Partager",
+    "iosStep2": "Choisis « Sur l’écran d’accueil »",
+    "androidTitle": "Installer l’application",
+    "androidHint": "Dans le menu du navigateur (⋮), choisis « Installer l’application » ou « Ajouter à l’écran d’accueil ».",
+    "close": "Fermer"
   }
 }

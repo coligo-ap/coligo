@@ -3,6 +3,7 @@ import { getCurrentDriver } from "@/lib/auth/driver";
 import { createClient } from "@/lib/supabase/server";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { CompteView } from "@/components/driver/profile/compte-view";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 import {
   DriverInfoManager,
   type SelfDoc,
@@ -162,6 +163,10 @@ export default async function DriverProfilePage() {
           payouts={(payoutsRaw ?? []) as SelfPayout[]}
           requests={(reqRaw ?? []) as SelfRequest[]}
         />
+        {/* Installer la PWA livreur (« Coligo Livreur ») — masqué si installée/APK */}
+        <div className="mt-4">
+          <InstallAppButton />
+        </div>
       </CompteView>
     </DriverShell>
   );

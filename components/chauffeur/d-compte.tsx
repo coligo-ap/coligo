@@ -19,6 +19,7 @@ import {
 } from "@/components/customer/drive/drive-modals";
 import { ChAvatar } from "@/components/customer/drive/ch-avatar";
 import { DNav, PLAN_LABEL, fmtPct } from "./d-ui";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 import {
   chauffeurLogout,
   getChauffeurFinances,
@@ -171,6 +172,11 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
           </span>
           Se déconnecter
         </button>
+      </div>
+
+      {/* Installer la PWA chauffeur (« Coligo Drive ») — masqué si déjà installée */}
+      <div className="mt-4">
+        <InstallAppButton className="border-[var(--d-line)] bg-[var(--d-soft)] text-[var(--d-ink)] hover:bg-[var(--d-surface)]" />
       </div>
 
       <SosContactsSheet
