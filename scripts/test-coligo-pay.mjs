@@ -59,6 +59,17 @@ async function main() {
       "insert into customer_wallet_entries (customer_id, order_id, type, source, amount_da, note) values ($1,null,'topup_credit','topup',5000,'TEST')",
       [sender.id]
     );
+    // Le client choisi peut avoir un solde réel préexistant : on mesure le
+    // solde TOTAL (préexistant + 5000) pour que le scénario « insuffisant »
+    // demande toujours plus que le disponible, quel que soit le client.
+    const senderBal = Number(
+      (
+        await one(
+          "select coalesce(sum(amount_da),0) b from customer_wallet_entries where customer_id=$1",
+          [sender.id]
+        )
+      ).b
+    );
 
     await c.query("set local role authenticated");
 
@@ -222,7 +233,8 @@ async function main() {
       (
         await one("select coligo_pay_transfer($1,$2,$3,$4) r", [
           handle,
-          6000,
+          // Solde restant = total mesuré − 1000 (paiement) − 300 (transfert).
+          senderBal - 1300 + 100,
           "1234",
           "op-tr-insuf-1",
         ])

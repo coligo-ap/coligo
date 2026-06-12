@@ -76,6 +76,33 @@ export async function POST(req: NextRequest) {
     }
 
     if (event.type === "checkout.paid") {
+      // Défense en profondeur : le montant confirmé par Chargily doit être
+      // EXACTEMENT le total de la commande (tous nos checkouts commande sont
+      // créés côté serveur avec `orders.total_da`). Un écart = event croisé ou
+      // anormal → on NE marque PAS payé et on log pour investigation.
+      const { data: target } = await admin
+        .from("orders")
+        .select("total_da")
+        .eq("id", orderId)
+        .maybeSingle();
+      if (!target) {
+        console.error(
+          "[chargily/webhook] order paid: commande inconnue",
+          orderId
+        );
+        return NextResponse.json({ ok: true, unknown_order: true });
+      }
+      const paidAmount = Math.round(event.data.amount);
+      if (paidAmount !== target.total_da) {
+        console.error(
+          `[chargily/webhook] montant inattendu pour ${orderId}: payé=${paidAmount} attendu=${target.total_da}`
+        );
+        return NextResponse.json(
+          { ok: false, amount_mismatch: true },
+          { status: 200 }
+        );
+      }
+
       // Transition payment_status pending -> paid (idempotente via le .eq).
       // C'est SEULEMENT ICI que la commande online devient visible/effective
       // pour le commerçant (cf. RLS 0068) et reçoit son numéro (trigger 0068).
@@ -112,7 +139,12 @@ export async function POST(req: NextRequest) {
 
     if (
       event.type === "checkout.failed" ||
-      event.type === "checkout.canceled"
+      event.type === "checkout.canceled" ||
+      // Checkout jamais payé arrivé à expiration (client parti sans payer) :
+      // même traitement — sinon la commande resterait `pending` pour toujours
+      // (invisible commerçant via RLS 0068 mais occupant le créneau, et le
+      // cashback/Coligo Pay réservés ne seraient jamais re-crédités).
+      event.type === "checkout.expired"
     ) {
       const reason = extractFailureReason(event);
       // ON TRANCHE : la commande passe à `cancelled` (en plus de payment_status

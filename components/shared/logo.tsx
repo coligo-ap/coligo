@@ -19,7 +19,9 @@ const sizes = {
 };
 
 /**
- * Logo officiel Coligo (wordmark violet, blanc en dark mode).
+ * Logo officiel Coligo — version COMPLÈTE FR + AR par défaut (équivalent
+ * transparent de logo-coligo-FRAR-complet-Bg_blanc-Ecr_Violet_haute_quality),
+ * violet sur fond clair, blanc en dark mode.
  * `iconOnly` : « C » blanc sur tuile violette (lisible sur tout fond).
  */
 export function Logo({
@@ -54,18 +56,18 @@ export function Logo({
   return (
     <div className={cn("flex flex-col items-start", className)}>
       <Image
-        src="/brand/logo-fr.png"
+        src="/brand/logo-full.png"
         alt={APP_CONFIG.name}
-        width={800}
-        height={275}
+        width={1000}
+        height={401}
         className={cn("w-auto [.theme-dark_&]:hidden", s.mark)}
         priority
       />
       <Image
-        src="/brand/logo-fr-white.png"
+        src="/brand/logo-full-white.png"
         alt={APP_CONFIG.name}
-        width={800}
-        height={275}
+        width={1000}
+        height={401}
         className={cn("hidden w-auto [.theme-dark_&]:block", s.mark)}
         priority
       />

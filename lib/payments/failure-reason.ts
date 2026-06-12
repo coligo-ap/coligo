@@ -115,6 +115,7 @@ export function extractFailureReason(payload: unknown): string {
   // Cas 3 : on dérive du type d'event
   if (typeof p.type === "string") {
     if (p.type === "checkout.canceled") return "canceled";
+    if (p.type === "checkout.expired") return "expired";
     if (p.type === "checkout.failed") return "unknown";
   }
   return "unknown";
