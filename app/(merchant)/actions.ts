@@ -168,6 +168,22 @@ export async function login(
 }
 
 /**
+ * Slug URL unique à partir du nom de boutique. Les noms entièrement
+ * non-latins (arabe…) donnent une base générique — l'unicité est assurée
+ * par un suffixe aléatoire en cas de collision.
+ */
+function slugifyShopName(name: string): string {
+  const s = name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  return s || "boutique";
+}
+
+/**
  * Inscription d'un nouveau commerçant.
  */
 export async function signup(
@@ -253,33 +269,84 @@ export async function signup(
     };
   }
 
+  let userId = signUpData.user.id;
+  let hasSession = !!signUpData.session;
+
   if (signUpData.user.identities?.length === 0) {
-    return { error: "Un compte existe déjà avec cet email" };
+    // Email déjà enregistré. Cas fréquent : une inscription précédente a créé
+    // le compte auth mais la création de la boutique avait échoué. On tente de
+    // se connecter avec les identifiants fournis pour REPRENDRE l'inscription
+    // exactement là où elle s'était arrêtée (aucun compte orphelin).
+    const { data: signInData, error: signInError } =
+      await supabase.auth.signInWithPassword({ email, password });
+
+    if (signInError || !signInData.user) {
+      if (signInError?.message.toLowerCase().includes("not confirmed")) {
+        return {
+          error:
+            "Un compte existe déjà avec cet email mais il n'est pas encore confirmé. Cliquez le lien reçu par email, puis connectez-vous.",
+        };
+      }
+      return {
+        error:
+          "Un compte existe déjà avec cet email. Connectez-vous, ou utilisez « Mot de passe oublié » si vous ne vous souvenez plus du mot de passe.",
+      };
+    }
+
+    const { data: existingShop } = await supabase
+      .from("merchants")
+      .select("id")
+      .eq("user_id", signInData.user.id)
+      .maybeSingle();
+    if (existingShop) {
+      await supabase.auth.signOut();
+      return {
+        error: "Un compte existe déjà avec cet email — connectez-vous.",
+      };
+    }
+
+    userId = signInData.user.id;
+    hasSession = true;
   }
 
-  const { error: merchantError } = await supabase.from("merchants").insert({
-    user_id: signUpData.user.id,
-    name: merchantName,
-    manager_name: managerName,
-    latitude: lat,
-    longitude: lng,
-    address,
-    category,
-    wilaya_code: wilayaCode,
-    city,
-    // Pré-remplit le minimum de commande selon le panier moyen de la catégorie
-    // (étude pouvoir d'achat algérien). Le commerçant peut le monter dans ses
-    // réglages ; le plancher Coligo s'applique côté checkout.
-    min_order_da: suggestedMinOrderForCategory(category),
-  });
+  // Slug public unique (URL de la boutique). En cas de collision (même nom de
+  // commerce), on suffixe aléatoirement et on réessaie.
+  const slugBase = slugifyShopName(merchantName);
+  let slug = slugBase;
+  let merchantError: { code?: string; message: string } | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error } = await supabase.from("merchants").insert({
+      user_id: userId,
+      name: merchantName,
+      manager_name: managerName,
+      slug,
+      latitude: lat,
+      longitude: lng,
+      address,
+      category,
+      wilaya_code: wilayaCode,
+      city,
+      // Pré-remplit le minimum de commande selon le panier moyen de la catégorie
+      // (étude pouvoir d'achat algérien). Le commerçant peut le monter dans ses
+      // réglages ; le plancher Coligo s'applique côté checkout.
+      min_order_da: suggestedMinOrderForCategory(category),
+    });
+    merchantError = error;
+    if (!error) break;
+    if (error.code === "23505" && error.message.includes("slug")) {
+      slug = `${slugBase}-${Math.random().toString(36).slice(2, 6)}`;
+      continue;
+    }
+    break;
+  }
 
   if (merchantError) {
     return {
-      error: `Compte créé mais erreur création boutique : ${merchantError.message}`,
+      error: `Compte créé mais erreur création boutique : ${merchantError.message}. Réessayez avec les mêmes email et mot de passe — l'inscription reprendra où elle s'est arrêtée.`,
     };
   }
 
-  if (!signUpData.session) {
+  if (!hasSession) {
     return {
       success:
         "Compte créé ! Vérifiez votre email pour activer le compte, puis connectez-vous.",

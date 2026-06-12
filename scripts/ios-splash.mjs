@@ -19,8 +19,8 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "public", "ios-splash");
-const ICON_SRC = join(ROOT, "public", "icon-maskable-512.png");
-const BRAND = { r: 0x5c, g: 0x5c, b: 0xe0, alpha: 1 };
+const ICON_SRC = join(ROOT, "public", "brand", "logo-full-white.png");
+const BRAND = { r: 0x6c, g: 0x2b, b: 0xd9, alpha: 1 };
 
 // (deviceW, deviceH, ratio) → tailles physiques portrait (W×H) et landscape (H×W).
 const DEVICES = [
@@ -36,19 +36,20 @@ const DEVICES = [
 ];
 
 async function makeSplash(filePath, width, height) {
-  const innerSize = Math.round(Math.min(width, height) * 0.3);
+  const innerSize = Math.round(Math.min(width, height) * 0.55);
   const iconBuf = await sharp(ICON_SRC)
-    .resize(innerSize, innerSize, { fit: "contain" })
+    .resize(innerSize, innerSize, { fit: "inside" })
     .png()
     .toBuffer();
+  const meta = await sharp(iconBuf).metadata();
   await sharp({
     create: { width, height, channels: 4, background: BRAND },
   })
     .composite([
       {
         input: iconBuf,
-        top: Math.round((height - innerSize) / 2),
-        left: Math.round((width - innerSize) / 2),
+        top: Math.round((height - meta.height) / 2),
+        left: Math.round((width - meta.width) / 2),
       },
     ])
     .png()

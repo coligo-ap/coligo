@@ -68,8 +68,14 @@ export function DAuth({
         </div>
       </div>
       <div className="mb-4 text-center">
-        <h1 className="drive-sora text-[22px] font-extrabold tracking-[-0.5px]">
-          Coligo <span style={{ color: VIOLET }}>Drive</span>
+        <h1 className="drive-sora flex items-baseline justify-center gap-1.5 text-[22px] font-extrabold tracking-[-0.5px]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/logo-fr.png"
+            alt="Coligo"
+            className="h-[24px] w-auto"
+          />
+          <span style={{ color: VIOLET }}>Drive</span>
         </h1>
         <p className="mt-0.5 text-[13px] text-[var(--d-muted)]">
           Espace chauffeur

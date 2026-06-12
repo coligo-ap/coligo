@@ -68,6 +68,9 @@ const IOS_STARTUP_IMAGES = IOS_STARTUP_DEVICES.flatMap((d) => {
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://coligo-liart.vercel.app"
+  ),
   // Titre neutre par défaut (espace CLIENT / marketplace). Chaque autre espace
   // (commerçant, livreur) surcharge ce titre dans son propre layout — sinon
   // Tawk.to (qui reprend `document.title`) annonçait « Espace commerçant »
@@ -75,6 +78,22 @@ export const metadata: Metadata = {
   title: APP_CONFIG.name,
   description: APP_CONFIG.description,
   applicationName: APP_CONFIG.name,
+  openGraph: {
+    title: APP_CONFIG.name,
+    description: APP_CONFIG.tagline,
+    siteName: APP_CONFIG.name,
+    type: "website",
+    locale: "fr_DZ",
+    images: [
+      { url: "/og-image.png", width: 1200, height: 630, alt: APP_CONFIG.name },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: APP_CONFIG.name,
+    description: APP_CONFIG.tagline,
+    images: ["/og-image.png"],
+  },
   appleWebApp: {
     capable: true,
     title: APP_CONFIG.shortName,
@@ -90,6 +109,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
       { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],

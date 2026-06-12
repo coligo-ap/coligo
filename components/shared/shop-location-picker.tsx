@@ -248,6 +248,8 @@ export function ShopLocationPicker({
             height={240}
             gpsLabel="Ma position"
             autoLocate={requireConfirm && !coords}
+            searchEnabled
+            searchPlaceholder="Rechercher une adresse, un lieu, un quartier…"
           />
         </div>
 

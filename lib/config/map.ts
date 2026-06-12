@@ -10,13 +10,17 @@
 // le style d'arrière-plan ci-dessous change si on veut un jour migrer.
 //
 // Styles disponibles (https://openfreemap.org) :
-//   - positron : clair/épuré — RECOMMANDÉ (nos marqueurs violets ressortent)
-//   - liberty  : rues colorées détaillées
+//   - positron : clair/épuré, SANS commerces ni lieux publics
+//   - liberty  : rues détaillées + POI (commerces, mosquées, écoles, cafés…)
 //   - bright   : clair, plus contrasté
+//
+// On utilise `liberty` : les utilisateurs se repèrent grâce aux commerces et
+// lieux publics affichés (demande produit — retrouver une adresse est bien
+// plus facile avec les enseignes visibles qu'avec un fond épuré).
 //
 // Attribution : MapLibre ajoute automatiquement l'attribution
 // OpenFreeMap / OpenStreetMap via le style. NE PAS la masquer (requis par la
 // licence). On la garde en mode `compact` (discrète) sur chaque carte.
 // =============================================================================
 
-export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
+export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
