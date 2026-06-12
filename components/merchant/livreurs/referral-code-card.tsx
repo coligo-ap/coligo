@@ -113,8 +113,8 @@ export function ReferralCodeCard({
           <p className="font-medium">Un code actif existe.</p>
           <p className="text-muted mt-1 text-xs">
             Pour des raisons de sécurité, le code en clair n&apos;est PAS
-            réaffiché. Si tu l&apos;as perdu, régénère-en un nouveau (les
-            livreurs actifs devront re-soumettre).
+            réaffiché. Si tu l&apos;as perdu, régénère-en un nouveau — tes
+            livreurs actuels gardent leur accès.
           </p>
           {createdAt && (
             <p className="text-subtle mt-2 text-xs">
