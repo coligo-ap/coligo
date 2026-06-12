@@ -110,7 +110,16 @@ async function obtainFcmToken(): Promise<string | null> {
  * Fire-and-forget : silencieux côté UI, on log les erreurs sans bloquer.
  */
 export async function registerPushToken(role: PushRole): Promise<boolean> {
-  if (!isPushAvailable()) return false;
+  // Hors Capacitor (navigateur / PWA) : bascule sur le push web (Firebase JS).
+  if (!isPushAvailable()) {
+    try {
+      const { registerWebPush } = await import("./push-web");
+      return await registerWebPush(role);
+    } catch (err) {
+      console.warn("[push] web fallback failed:", err);
+      return false;
+    }
+  }
   try {
     const token = await obtainFcmToken();
     if (!token) return false;

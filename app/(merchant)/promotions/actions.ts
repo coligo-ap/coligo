@@ -8,6 +8,7 @@ import {
 } from "@/lib/validation/promotion";
 import type { Database } from "@/lib/supabase/database.types";
 import type { PromotionStatus } from "@/lib/types";
+import { notifyCustomersPromo } from "@/lib/fcm/triggers";
 
 export type PromotionFormState = {
   error?: string;
@@ -125,6 +126,10 @@ export async function createPromotion(
     }
   }
 
+  // Promo active → prévient les clients qui ont mis la boutique en favori
+  // (no-op si non active / pas de favoris / pas de tokens). Fire-and-forget.
+  void notifyCustomersPromo({ promotionId: created.id });
+
   revalidatePath("/promotions");
   return { ok: true };
 }
@@ -183,6 +188,9 @@ export async function togglePromotion(
     .update({ status: next })
     .eq("id", promotionId);
   if (error) return { error: error.message };
+
+  // Réactivation → on (re)prévient les clients favoris.
+  if (next === "active") void notifyCustomersPromo({ promotionId });
 
   revalidatePath("/promotions");
   return {};

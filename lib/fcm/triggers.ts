@@ -504,6 +504,74 @@ export async function notifyOfflineDriversExpressTeaser(input: {
 }
 
 /**
+ * Notifie les CLIENTS qui ont mis le commerçant en FAVORI qu'une nouvelle promo
+ * / un code promo est disponible. Audience opt-in (favoris) → pas de spam de
+ * masse. No-op si la promo n'est pas active. Reçu même app fermée / sur web.
+ * Fire-and-forget, appelé à la création/activation d'une promo.
+ */
+export async function notifyCustomersPromo(input: {
+  promotionId: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: promo } = await admin
+      .from("promotions")
+      .select("merchant_id, type, title_fr, code, status")
+      .eq("id", input.promotionId)
+      .maybeSingle();
+    if (!promo || promo.status !== "active") return;
+
+    const { data: merchant } = await admin
+      .from("merchants")
+      .select("name")
+      .eq("id", promo.merchant_id)
+      .maybeSingle();
+
+    const { data: favs } = await admin
+      .from("customer_favorites")
+      .select("customer_id")
+      .eq("merchant_id", promo.merchant_id);
+    const custIds = [
+      ...new Set(
+        (favs ?? []).map((f) => f.customer_id).filter((x): x is string => !!x)
+      ),
+    ];
+    if (custIds.length === 0) return;
+
+    const { data: customers } = await admin
+      .from("customers")
+      .select("user_id")
+      .in("id", custIds);
+    const userIds = [
+      ...new Set(
+        (customers ?? []).map((c) => c.user_id).filter((u): u is string => !!u)
+      ),
+    ];
+    if (userIds.length === 0) return;
+
+    const tokenLists = await Promise.all(
+      userIds.map((uid) => tokensFor(uid, "customer"))
+    );
+    const tokens = [...new Set(tokenLists.flat())];
+    if (tokens.length === 0) return;
+
+    const shop = merchant?.name ?? "Un commerçant favori";
+    const body =
+      promo.type === "promo_code" && promo.code
+        ? `${shop} : code ${promo.code} — ${promo.title_fr}`
+        : `${shop} : ${promo.title_fr}`;
+
+    await sendFcm(
+      tokens,
+      { title: "Nouvelle promo 🎉", body },
+      { route: "/favoris", kind: "customer_promo" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyCustomersPromo failed:", err);
+  }
+}
+
+/**
  * Notifie les livreurs ACTIFS inscrits chez le commerçant qu'une nouvelle
  * commande en TOURNÉE est arrivée (à livrer sur le créneau choisi). Contrairement
  * à l'Express, la tournée est réservée aux livreurs du commerçant (pas de réseau

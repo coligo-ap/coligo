@@ -22,14 +22,17 @@ export function PushRegistrar({ role }: { role: PushRole }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Enregistre le token push : natif (Capacitor Android) OU web (Firebase JS,
+    // navigateur/PWA) — la bascule est gérée dans registerPushToken.
+    void registerPushToken(role);
+
+    // La navigation au tap n'a de listener dédié qu'en natif ; sur web, le clic
+    // est géré par le service worker (notificationclick) / la notif locale.
     if (!isPushAvailable()) return;
     let cleanup: (() => void) | null = null;
-
-    void registerPushToken(role);
     void attachPushNavigation((path) => router.push(path)).then((c) => {
       cleanup = c;
     });
-
     return () => {
       cleanup?.();
     };
