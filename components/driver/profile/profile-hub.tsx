@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  CalendarDays,
   ChevronRight,
   HelpCircle,
   KeyRound,
@@ -125,6 +126,11 @@ export function ProfileHub({
           </div>
         )}
 
+        <MenuLink
+          href="/driver/tournees"
+          icon={<CalendarDays className="size-[15px]" />}
+          label="Mes tournées"
+        />
         <MenuLink
           href="/driver/codes"
           icon={<KeyRound className="size-[15px]" />}

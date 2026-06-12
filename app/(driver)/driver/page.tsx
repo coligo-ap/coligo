@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverDashboardLive } from "@/components/driver/driver-dashboard-live";
@@ -86,6 +88,15 @@ export default async function DriverHomePage() {
     .filter((m) => m.lat != null && m.lng != null)
     .map((m) => ({ id: m.mdId, name: m.name, lat: m.lat!, lng: m.lng! }));
 
+  // Accès « Tournées » : montré sur l'accueil UNIQUEMENT si le livreur a rejoint
+  // au moins un commerçant (sinon l'Express pur n'est pas pollué). Les demandes
+  // en attente / accès retirés sont gérés dans le hub /driver/tournees.
+  const joinedTourMerchants = links.filter(
+    (l) => l.status === "active" || l.status === "pending"
+  ).length;
+  const tourPending = merchants.reduce((s, m) => s + (m.pending ?? 0), 0);
+  const showToursEntry = joinedTourMerchants > 0;
+
   // ===== Stats du jour (données réelles) =====
   const since = startOfTodayAlgiers();
 
@@ -117,6 +128,25 @@ export default async function DriverHomePage() {
     <div className="mq-screen min-h-[100dvh]">
       {/* Refresh temps réel des compteurs + toast nouvelle course. */}
       <DriverDashboardLive />
+
+      {/* Accès rapide « Tournées » (pastille haut-centre) — uniquement si le
+          livreur a rejoint un commerçant et n'est pas gelé (évite tout
+          chevauchement avec le bandeau de gel). */}
+      {showToursEntry && !driver.is_frozen && (
+        <Link
+          href="/driver/tournees"
+          className="absolute left-1/2 z-[45] flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2 text-[13px] font-bold text-[#4b1fa6] shadow-[0_4px_16px_rgba(0,0,0,.12)]"
+          style={{ top: "max(58px, calc(env(safe-area-inset-top) + 14px))" }}
+        >
+          <CalendarDays className="size-4" />
+          Mes tournées
+          {tourPending > 0 && (
+            <span className="grid size-5 place-items-center rounded-full bg-[#4b1fa6] text-[11px] font-extrabold text-white">
+              {tourPending}
+            </span>
+          )}
+        </Link>
+      )}
 
       {/* Vraie carte (MapLibre) en fond — les maquettes la simulent en SVG. */}
       <DriverHomeMap merchants={pins} />
