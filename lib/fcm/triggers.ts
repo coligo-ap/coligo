@@ -390,10 +390,11 @@ export async function notifyDriversNewExpress(input: {
       return;
     }
 
-    // Destinataires = UNION de deux sources :
-    //  (a) RÉSEAU GLOBAL géolocalisé : livreurs présents (heartbeat récent) dans
-    //      le rayon du commerçant — peu importe l'inscription (mig 0130).
-    //  (b) les livreurs ACTIFS inscrits chez ce commerçant (toujours prévenus).
+    // Destinataires du push PAR COURSE = livreurs PRÉSENTS (heartbeat récent =
+    // EN LIGNE) dans le rayon du commerçant (mig 0130). Les livreurs HORS LIGNE
+    // ne reçoivent PAS de push par course (ils ont le teaser agrégé throttlé,
+    // cf. notifyOfflineDriversExpressTeaser). Règle produit : ne pas spammer un
+    // livreur déconnecté à chaque course.
     const userIdSet = new Set<string>();
 
     const { data: merchant } = await admin
@@ -417,22 +418,6 @@ export async function notifyDriversNewExpress(input: {
       }
     }
 
-    const { data: links } = await admin
-      .from("merchant_drivers")
-      .select("driver_id")
-      .eq("merchant_id", order.merchant_id)
-      .eq("status", "active");
-    const driverIds = (links ?? []).map((l) => l.driver_id).filter(Boolean);
-    if (driverIds.length > 0) {
-      const { data: drivers } = await admin
-        .from("drivers")
-        .select("user_id")
-        .in("id", driverIds);
-      for (const d of drivers ?? []) {
-        if (d.user_id) userIdSet.add(d.user_id);
-      }
-    }
-
     const userIds = [...userIdSet];
     if (userIds.length === 0) return;
 
@@ -452,6 +437,69 @@ export async function notifyDriversNewExpress(input: {
     );
   } catch (err) {
     console.warn("[fcm] notifyDriversNewExpress failed:", err);
+  }
+}
+
+/**
+ * Teaser Express pour les livreurs HORS LIGNE : « N livraisons express autour
+ * de toi, mets-toi en ligne, gagne de l'argent ». Throttlé par livreur (RPC
+ * express_teaser_targets, mig 0167 : cible la dernière position connue hors
+ * ligne, marque last_teaser_at). Reçu même app fermée (Android natif).
+ * Fire-and-forget. Appelé quand une nouvelle course express apparaît.
+ */
+export async function notifyOfflineDriversExpressTeaser(input: {
+  orderId: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("orders")
+      .select(
+        "merchant_id, fulfillment_type, delivery_mode, delivery_driver_id"
+      )
+      .eq("id", input.orderId)
+      .maybeSingle();
+    if (
+      !order ||
+      order.fulfillment_type !== "delivery" ||
+      order.delivery_mode !== "express" ||
+      order.delivery_driver_id != null
+    ) {
+      return;
+    }
+
+    const rpc = admin.rpc.bind(admin) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    const { data: rows } = await rpc("express_teaser_targets", {
+      p_merchant_id: order.merchant_id,
+    });
+    const targets =
+      (rows as { user_id: string; available_count: number }[] | null) ?? [];
+    if (targets.length === 0) return;
+
+    const count = targets[0]?.available_count ?? targets.length;
+    const userIds = [...new Set(targets.map((t) => t.user_id).filter(Boolean))];
+
+    const tokenLists = await Promise.all(
+      userIds.map((uid) => tokensFor(uid, "courier"))
+    );
+    const tokens = [...new Set(tokenLists.flat())];
+    if (tokens.length === 0) return;
+
+    const n =
+      count > 1 ? `${count} livraisons express` : "Une livraison express";
+    await sendFcm(
+      tokens,
+      {
+        title: "Des courses Express t'attendent ⚡",
+        body: `${n} ${count > 1 ? "sont disponibles" : "est disponible"} autour de toi. Mets-toi en ligne et gagne de l'argent !`,
+      },
+      { route: "/driver", kind: "driver_express_teaser" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyOfflineDriversExpressTeaser failed:", err);
   }
 }
 

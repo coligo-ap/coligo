@@ -10,6 +10,7 @@ import {
 import {
   notifyCustomerStatusChange,
   notifyDriversNewExpress,
+  notifyOfflineDriversExpressTeaser,
   notifyDriverOrderCancelled,
 } from "@/lib/fcm/triggers";
 
@@ -106,7 +107,11 @@ export async function updateOrderStatus(
   // que le plat se prépare). On ré-alerte à « prête » au cas où personne n'a
   // encore pris la course. Le helper revérifie mode/attribution (no-op sinon).
   if (to === "preparing" || to === "ready") {
+    // Livreurs EN LIGNE proches : push par course. Livreurs HORS LIGNE proches :
+    // teaser agrégé throttlé (« mets-toi en ligne… »). Les deux sont no-op si
+    // la commande n'est pas une express non attribuée.
     void notifyDriversNewExpress({ orderId });
+    void notifyOfflineDriversExpressTeaser({ orderId });
   }
 
   revalidatePath("/dashboard");
