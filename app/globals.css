@@ -493,6 +493,38 @@ body {
   border-color: #0b0c12;
 }
 
+/* ── Marketplace CLIENT : mode sombre (interrupteur du header) ──
+   Scopé à l'espace client ([data-space="client"] posé par CustomerShell sur
+   son wrapper ET miroité sur <body> pour les portails Radix) : les espaces
+   commerçant / livreur / admin restent clairs, ils n'ont pas l'interrupteur.
+   Les écrans Drive gardent leurs propres tokens --d-* (bloc ci-dessus). */
+.theme-dark [data-space="client"] {
+  --color-background: #0b0c12;
+  --color-surface: #161823;
+  --color-surface-2: #0e0f16;
+  --color-surface-3: #1f2230;
+  --color-foreground: #f4f5fa;
+  --color-muted: #9ca0b3;
+  --color-subtle: #80849a;
+  --color-border: #262838;
+  --color-border-strong: #343852;
+  color-scheme: dark;
+}
+/* Compat : surfaces « blanc dur » (cartes, feuilles) suivent la surface du
+   thème. Les variantes translucides (bg-white/95…) et text-white sur boutons
+   colorés ne sont pas concernées. */
+.theme-dark [data-space="client"] :where(.bg-white) {
+  background-color: var(--color-surface);
+}
+/* Teintes claires décoratives (chips violettes pâles) : assombries pour ne
+   pas éblouir sur fond sombre — texte violet éclairci pour rester lisible. */
+.theme-dark [data-space="client"] :where(.bg-primary-50, .bg-violet-50) {
+  background-color: rgba(138, 77, 255, 0.14);
+}
+.theme-dark [data-space="client"] :where(.text-primary-700, .text-primary-600) {
+  color: #b493f9;
+}
+
 /* ── Drive : responsive DESKTOP — cadre « téléphone » centré (430px) ──
    Le transform crée un containing block : les feuilles/modales/nav fixed
    internes restent CONTENUES dans le cadre (rendu type app mobile). */

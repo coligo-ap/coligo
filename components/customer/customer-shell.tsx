@@ -3,6 +3,7 @@ import { CustomerHeader } from "@/components/customer/customer-header";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { CustomerFooter } from "@/components/customer/customer-footer";
 import { CartMonoProvider } from "@/components/customer/cart-mono-provider";
+import { ClientThemeScope } from "@/components/customer/client-theme-scope";
 import { PushRegistrar } from "@/components/native/push-registrar";
 import { TawkChat } from "@/components/support/tawk-chat";
 
@@ -39,7 +40,8 @@ export async function CustomerShell({
   }
 
   return (
-    <div className="bg-surface-2 min-h-screen">
+    <div data-space="client" className="bg-surface-2 min-h-screen">
+      <ClientThemeScope />
       {!hideHeader && (
         <CustomerHeader isAuth={!!user} customerName={customerName} />
       )}
