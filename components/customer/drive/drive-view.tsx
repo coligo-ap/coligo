@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   Clock,
   History,
-  Gauge,
   Loader2,
   MapPin,
   Pencil,
@@ -579,9 +578,9 @@ export function DriveView() {
                   </span>
                 )}
                 {g === "moto" && (
-                  /* Moto : plus rapide dans la circulation */
+                  /* Moto : éclair = vitesse, gain de temps dans la circulation */
                   <span className="absolute top-1.5 right-1.5 flex size-[22px] items-center justify-center rounded-full bg-[#FFF0E0]">
-                    <Gauge className="size-3.5 text-[#F97316]" />
+                    <Zap className="size-3.5 fill-[#F97316] text-[#F97316]" />
                   </span>
                 )}
                 <Image
