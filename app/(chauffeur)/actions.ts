@@ -641,6 +641,8 @@ export type ChauffeurActiveRide = {
   boost_amount_da: number;
   payment_method: string;
   prepaid: boolean;
+  /** Complément à ENCAISSER EN ESPÈCES (Coligo Pay partiel, mig 0163). */
+  cash_due_da: number;
   gamme: string;
   proxy_name: string | null;
   customer_name: string;
@@ -657,7 +659,7 @@ export async function getChauffeurActiveRide(): Promise<ChauffeurActiveRide | nu
   const { data } = await admin
     .from("rides")
     .select(
-      "id, status, pickup_text, dest_text, pickup_lat, pickup_lng, dest_lat, dest_lng, distance_km, agreed_price_da, proposed_price_da, boost_amount_da, payment_method, gamme, proxy_name, customer_id, commission_da, chauffeur_net_da, share_token, customers(full_name)"
+      "id, status, pickup_text, dest_text, pickup_lat, pickup_lng, dest_lat, dest_lng, distance_km, agreed_price_da, proposed_price_da, boost_amount_da, payment_method, cash_due_da, gamme, proxy_name, customer_id, commission_da, chauffeur_net_da, share_token, customers(full_name)"
     )
     .eq("chauffeur_id", ch.id)
     .in("status", ["accepted", "arriving", "arrived", "in_progress"])
@@ -687,6 +689,8 @@ export async function getChauffeurActiveRide(): Promise<ChauffeurActiveRide | nu
     boost_amount_da: data.boost_amount_da ?? 0,
     payment_method: data.payment_method,
     prepaid: data.payment_method !== "cash",
+    cash_due_da:
+      data.payment_method === "coligo_pay" ? (data.cash_due_da ?? 0) : 0,
     gamme: data.gamme,
     proxy_name: data.proxy_name,
     customer_name:
@@ -763,6 +767,8 @@ export async function getChauffeurLastDone(sinceMin = 20): Promise<{
   net_da: number;
   commission_rate: number | null;
   payment_method: string;
+  /** Complément encaissé en espèces (Coligo Pay partiel, mig 0163). */
+  cash_due_da: number;
   my_rating: number | null;
 } | null> {
   const ch = await getCurrentChauffeur();
@@ -772,7 +778,7 @@ export async function getChauffeurLastDone(sinceMin = 20): Promise<{
   const { data } = await admin
     .from("rides")
     .select(
-      "id, pickup_text, dest_text, agreed_price_da, commission_da, chauffeur_net_da, commission_rate_applied, payment_method, client_rating, completed_at"
+      "id, pickup_text, dest_text, agreed_price_da, commission_da, chauffeur_net_da, commission_rate_applied, payment_method, cash_due_da, client_rating, completed_at"
     )
     .eq("chauffeur_id", ch.id)
     .eq("status", "completed")
@@ -793,6 +799,8 @@ export async function getChauffeurLastDone(sinceMin = 20): Promise<{
         ? null
         : Number(data.commission_rate_applied),
     payment_method: data.payment_method,
+    cash_due_da:
+      data.payment_method === "coligo_pay" ? (data.cash_due_da ?? 0) : 0,
     my_rating: data.client_rating ?? null,
   };
 }

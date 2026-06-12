@@ -476,18 +476,37 @@ try {
   );
   const b0 = await bal();
 
-  // Solde insuffisant → demande REFUSÉE avant validation (SAVEPOINT : l'
-  // exception attendue ne doit pas avorter la transaction de test).
+  // Solde PARTIEL (mig 0163) : demande ACCEPTÉE — séquestre = solde entier,
+  // le complément (cash_due_da) se règle en espèces au chauffeur.
+  const rPart = await requestRide(CUST_USER, {
+    price: 5000,
+    payment: "coligo_pay",
+  });
+  const partRow = (
+    await c.query("SELECT escrow_da, cash_due_da FROM rides WHERE id=$1", [
+      rPart,
+    ])
+  ).rows[0];
+  ok("solde partiel → séquestre = solde disponible", partRow.escrow_da, b0);
+  ok("complément espèces = reste du prix", partRow.cash_due_da, 5000 - b0);
+  ok("solde entièrement réservé", await bal(), 0);
+
+  // Solde VIDE → refus (autant payer en espèces). SAVEPOINT : l'exception
+  // attendue ne doit pas avorter la transaction de test.
   let refused = false;
-  await c.query("SAVEPOINT sp_insuffisant");
+  await c.query("SAVEPOINT sp_vide");
   try {
-    await requestRide(CUST_USER, { price: 5000, payment: "coligo_pay" });
+    await requestRide(CUST2_USER, { price: 200, payment: "coligo_pay" });
   } catch {
     refused = true;
-    await c.query("ROLLBACK TO SAVEPOINT sp_insuffisant");
+    await c.query("ROLLBACK TO SAVEPOINT sp_vide");
   }
-  ok("solde insuffisant → demande refusée", refused, true);
-  ok("aucun débit sur refus", await bal(), b0);
+  ok("solde vide → demande refusée", refused, true);
+
+  // Annulation de la demande partielle → recrédit intégral du séquestre.
+  await as(CUST_USER);
+  await c.query("SELECT cancel_ride($1,'test partiel')", [rPart]);
+  ok("annulation partielle → recrédit intégral", await bal(), b0);
 
   // Réservation immédiate à la demande.
   const r10 = await requestRide(CUST_USER, {
@@ -555,6 +574,70 @@ try {
     (await c.query("SELECT escrow_da FROM rides WHERE id=$1", [r10])).rows[0]
       .escrow_da,
     0
+  );
+
+  // ---------- 10b. Coligo Pay PARTIEL : règlement MIXTE (mig 0163) ----------
+  console.log(
+    "\n=== 10b. Coligo Pay partiel : séquestre + complément espèces ==="
+  );
+  const bm = await bal(); // solde restant après la section 10
+  const rMix = await requestRide(CUST_USER, {
+    price: bm + 200, // prix > solde → règlement mixte
+    payment: "coligo_pay",
+  });
+  // Le prix peut être relevé au plancher : on lit le prix réellement retenu.
+  const mixRow = (
+    await c.query(
+      "SELECT proposed_price_da, escrow_da, cash_due_da FROM rides WHERE id=$1",
+      [rMix]
+    )
+  ).rows[0];
+  const FM = mixRow.proposed_price_da;
+  ok("séquestre partiel = tout le solde", mixRow.escrow_da, bm);
+  ok("complément espèces = F − séquestre", mixRow.cash_due_da, FM - bm);
+  ok("solde réservé (0 restant)", await bal(), 0);
+
+  await offer(CH_M, rMix, FM);
+  await acceptOffer(CUST_USER, rMix, chM);
+  ok(
+    "acceptation sans solde → séquestre inchangé",
+    (await c.query("SELECT escrow_da FROM rides WHERE id=$1", [rMix])).rows[0]
+      .escrow_da,
+    bm
+  );
+  const compMix = await runToComplete(CH_M, rMix);
+  ok("complétion mixte OK", compMix.ok, true);
+  const cMix = Math.round(FM * 0.08);
+  ok(
+    "gain net = F − commission",
+    await rl(rMix, "chauffeur_payout"),
+    FM - cMix
+  );
+  ok(
+    "espèces encaissées = complément",
+    await rl(rMix, "chauffeur_cash_collected"),
+    FM - bm
+  );
+  ok(
+    "dette chauffeur = max(0, c − séquestre)",
+    await rl(rMix, "chauffeur_owes_platform"),
+    Math.max(0, cMix - bm)
+  );
+  ok(
+    "part en ligne due au chauffeur = max(0, séquestre − c)",
+    await rl(rMix, "adjustment"),
+    Math.max(0, bm - cMix)
+  );
+  ok(
+    "séquestre mixte soldé (escrow=0)",
+    (await c.query("SELECT escrow_da FROM rides WHERE id=$1", [rMix])).rows[0]
+      .escrow_da,
+    0
+  );
+  // Re-seed : le scénario mixte a consommé tout le solde (sections suivantes).
+  await c.query(
+    "INSERT INTO customer_wallet_entries (customer_id,type,source,amount_da,note) VALUES ($1,'topup_credit','topup',800,'seed sections 11-12')",
+    [CUST]
   );
 
   // ---------- 11. ANNULATION → remboursement immédiat sur le wallet ----------

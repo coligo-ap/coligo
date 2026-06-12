@@ -41,6 +41,8 @@ export type DriveContext = {
   femaleOnlineCount: number;
   deviationKm: number;
   deviationMin: number;
+  /** Solde Coligo Pay (DA) — affiché sur le moyen de paiement (mig 0163). */
+  walletBalance: number;
   recents: { text: string; lat: number; lng: number }[];
   lastRide: {
     dest_text: string | null;
@@ -74,6 +76,16 @@ export async function getDriveContext(): Promise<DriveContext> {
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+
+  // Solde Coligo Pay : montré sur le chip de paiement ; un solde partiel
+  // est accepté (séquestre partiel + complément espèces, mig 0163).
+  let walletBalance = 0;
+  if (cust?.id) {
+    const { data: bal } = await supabase.rpc("customer_topup_balance", {
+      p_customer_id: cust.id,
+    });
+    walletBalance = typeof bal === "number" ? bal : 0;
+  }
 
   // Conductrices en ligne (compteur affiché sur l'option rose).
   let femaleOnline = 0;
@@ -144,6 +156,7 @@ export async function getDriveContext(): Promise<DriveContext> {
     femaleOnlineCount: femaleOnline,
     deviationKm: Number(settings?.drive_deviation_km ?? 1.2),
     deviationMin: settings?.drive_deviation_min ?? 2,
+    walletBalance,
     recents,
     lastRide,
   };
@@ -389,6 +402,10 @@ export type DriveActiveRide = {
   share_token: string | null;
   end_code: string | null;
   online_paid: boolean;
+  /** Séquestre Coligo Pay réservé (DA) — mig 0163. */
+  escrow_da: number;
+  /** Complément à régler EN ESPÈCES au chauffeur (Coligo Pay partiel). */
+  cash_due_da: number;
   chauffeur: {
     id: string;
     name: string;
@@ -435,6 +452,8 @@ export async function getDriveActiveRide(): Promise<DriveActiveRide | null> {
     share_token: (r.share_token as string) ?? null,
     end_code: (r.end_code as string) ?? null,
     online_paid: r.online_paid_at != null,
+    escrow_da: (r.escrow_da as number) ?? 0,
+    cash_due_da: (r.cash_due_da as number) ?? 0,
     chauffeur: r.ch_name
       ? {
           id: r.chauffeur_id as string,
@@ -467,6 +486,8 @@ export type DriveLastRide = {
   dest_text: string | null;
   price_da: number;
   payment_method: string;
+  /** Complément réglé en espèces (Coligo Pay partiel, mig 0163). */
+  cash_due_da: number;
   commission_rate: number | null;
   cashback_da: number;
   my_rating: number | null;
@@ -497,7 +518,7 @@ export async function getDriveLastRide(sinceMin = 30): Promise<DriveLastRide> {
   const { data: r } = await admin
     .from("rides")
     .select(
-      "id, status, pickup_text, dest_text, agreed_price_da, proposed_price_da, boost_amount_da, payment_method, commission_rate_applied, cashback_da, chauffeur_rating, chauffeur_id, completed_at, cancelled_at, chauffeurs(first_name, full_name)"
+      "id, status, pickup_text, dest_text, agreed_price_da, proposed_price_da, boost_amount_da, payment_method, cash_due_da, commission_rate_applied, cashback_da, chauffeur_rating, chauffeur_id, completed_at, cancelled_at, chauffeurs(first_name, full_name)"
     )
     .eq("customer_id", cust.id)
     .in("status", ["completed", "cancelled"])
@@ -529,6 +550,7 @@ export async function getDriveLastRide(sinceMin = 30): Promise<DriveLastRide> {
       r.agreed_price_da ??
       (r.proposed_price_da ?? 0) + (r.boost_amount_da ?? 0),
     payment_method: r.payment_method,
+    cash_due_da: r.cash_due_da ?? 0,
     commission_rate:
       r.commission_rate_applied == null
         ? null
@@ -665,6 +687,42 @@ export async function createRideCardCheckout(
       error: err instanceof Error ? err.message : "chargily_error",
     };
   }
+}
+
+/**
+ * État du paiement carte d'une course (sondé pendant « En attente du paiement
+ * carte… ») : failed = checkout Chargily échoué/abandonné → la demande a été
+ * annulée automatiquement (webhook, mig 0163) et le client est ramené à
+ * l'écran de choix de gamme avec un message inline.
+ */
+export async function getRideCardState(rideId: string): Promise<{
+  paid: boolean;
+  failed: boolean;
+  cancelled: boolean;
+} | null> {
+  const supabase = await createClient();
+  const admin = createAdminClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: cust } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!cust) return null;
+  const { data: r } = await admin
+    .from("rides")
+    .select("customer_id, status, online_paid_at, card_failed_at")
+    .eq("id", rideId)
+    .maybeSingle();
+  if (!r || r.customer_id !== cust.id) return null;
+  return {
+    paid: r.online_paid_at != null,
+    failed: r.online_paid_at == null && r.card_failed_at != null,
+    cancelled: r.status === "cancelled",
+  };
 }
 
 /* ─────────────────────────── Favoris ─────────────────────────── */

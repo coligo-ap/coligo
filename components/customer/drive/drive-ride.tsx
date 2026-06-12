@@ -45,6 +45,7 @@ import {
   createRideCardCheckout,
   getDriveLastRide,
   getDriveOffers,
+  getRideCardState,
   rateDriveRide,
   getSosContacts,
   reportDriveRide,
@@ -70,6 +71,7 @@ export function DriveRide({
   refreshActive,
   onExit,
   onBackToPrice,
+  onCardFailed,
 }: {
   ctx: DriveContext;
   active: DriveActiveRide | null;
@@ -77,6 +79,8 @@ export function DriveRide({
   refreshActive: () => Promise<DriveActiveRide | null>;
   onExit: () => void;
   onBackToPrice: () => void;
+  /** Paiement carte échoué (webhook) : retour au choix de gamme, message inline. */
+  onCardFailed: () => void;
 }) {
   const [done, setDone] = useState<DriveLastRide>(null);
   const [cancelled, setCancelled] = useState<{
@@ -85,18 +89,44 @@ export function DriveRide({
     refunded: boolean;
   } | null>(null);
   const lastStatus = useRef<string | null>(active?.status ?? null);
+  // Carte en attente de paiement : id de la course à surveiller (échec
+  // Chargily → le webhook annule la demande, on revient au choix de gamme).
+  const waitingCardRef = useRef<string | null>(null);
+  if (active) {
+    // Conservée quand `active` devient null : l'annulation webhook fait
+    // disparaître la course AVANT que l'échec carte soit détecté ici.
+    waitingCardRef.current =
+      active.payment_method === "card" && !active.online_paid
+        ? active.id
+        : null;
+  }
 
   // Poll de la course active + détection de transition (terminée / annulée).
   useEffect(() => {
     let stop = false;
     const tick = async () => {
+      // Échec du paiement carte (webhook seul fait foi, mig 0163) : retour
+      // direct à l'écran de choix de gamme — PAS l'écran « course annulée ».
+      if (waitingCardRef.current) {
+        const st = await getRideCardState(waitingCardRef.current);
+        if (stop) return;
+        if (st?.failed) {
+          onCardFailed();
+          return;
+        }
+      }
       const ride = await refreshActive();
       if (stop) return;
       if (!ride && lastStatus.current && !cancelled) {
         const last = await getDriveLastRide();
         if (stop) return;
         if (last?.status === "completed") setDone(last);
-        else if (last)
+        else if (waitingCardRef.current) {
+          // Disparue pendant l'attente carte = annulée pour échec de
+          // paiement → choix de gamme, pas l'écran « course annulée ».
+          onCardFailed();
+          return;
+        } else if (last)
           setCancelled({
             reason: null,
             mine: false,
@@ -1056,6 +1086,12 @@ function EnrouteScreen({
                 </span>
               </>
             )}
+            {/* Coligo Pay partiel : le complément se règle en espèces. */}
+            {ride.payment_method === "coligo_pay" && ride.cash_due_da > 0 && (
+              <span className="mt-1.5 block border-t border-[rgba(22,179,100,.25)] pt-1.5 text-[12px]">
+                💵 {t("cashDue", { amount: ride.cash_due_da })}
+              </span>
+            )}
           </div>
         )}
 
@@ -1177,12 +1213,16 @@ function DoneScreen({
   const [reportOpen, setReportOpen] = useState(false);
   const [reported, setReported] = useState<string | null>(null);
 
+  // Coligo Pay partiel : séquestre + complément espèces (mig 0163).
+  const mixed = ride.payment_method === "coligo_pay" && ride.cash_due_da > 0;
   const payLabel =
     ride.payment_method === "cash"
       ? t("payCash")
       : ride.payment_method === "card"
         ? t("payCard")
-        : t("payCpay");
+        : mixed
+          ? t("payMixed")
+          : t("payCpay");
   const commissionPct =
     ride.commission_rate != null
       ? `${String(Math.round(ride.commission_rate * 1000) / 10).replace(".", ",")} %`
@@ -1226,6 +1266,14 @@ function DoneScreen({
           <span className="text-[var(--d-muted)]">{payLabel}</span>
           <span className="drive-sora text-lg">{formatDA(ride.price_da)}</span>
         </div>
+        {mixed && (
+          <p className="mt-1 text-[11.5px] font-semibold text-[var(--d-muted)]">
+            {t("payMixedDetail", {
+              wallet: ride.price_da - ride.cash_due_da,
+              cash: ride.cash_due_da,
+            })}
+          </p>
+        )}
       </div>
 
       {ride.cashback_da > 0 && (

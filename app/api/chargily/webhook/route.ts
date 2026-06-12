@@ -269,6 +269,22 @@ export async function POST(req: NextRequest) {
         void rpc("drive_demo_respond", { p_ride_id: rideId });
       }
     }
+    // Paiement échoué / abandonné : la demande (jamais diffusée, aucun débit)
+    // est annulée automatiquement — le client est ramené au choix de gamme
+    // avec un message, au lieu de devoir annuler lui-même (mig 0163).
+    if (
+      event.type === "checkout.failed" ||
+      event.type === "checkout.canceled" ||
+      event.type === "checkout.expired"
+    ) {
+      const rpc = admin.rpc.bind(admin) as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { error } = await rpc("drive_card_failed", { p_ride_id: rideId });
+      if (error)
+        console.error("[chargily/webhook] ride card failed:", error.message);
+    }
     return NextResponse.json({ ok: true });
   }
 

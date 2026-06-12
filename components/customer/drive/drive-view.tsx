@@ -130,17 +130,60 @@ export function DriveView() {
   /* ───────── Boot : contexte + course active + GPS ───────── */
   useEffect(() => {
     void (async () => {
+      // Retour Chargily (?card=failed / ?card=success) : l'URL n'est jamais
+      // crue seule — on vérifie l'état réel de la course (webhook fait foi).
+      const params = new URLSearchParams(window.location.search);
+      const cardReturn = params.get("card");
+      if (cardReturn) {
+        params.delete("card");
+        const qs = params.toString();
+        window.history.replaceState(
+          null,
+          "",
+          window.location.pathname + (qs ? `?${qs}` : "")
+        );
+      }
       const [c, ride] = await Promise.all([
         getDriveContext(),
         getDriveActiveRide(),
       ]);
       setCtx(c);
-      if (ride) {
+      // Paiement carte échoué : la demande (jamais diffusée) est annulée et
+      // le client revient à l'écran de CHOIX DE GAMME, trajet restauré,
+      // avec un message inline — pas d'annulation manuelle à faire.
+      if (
+        cardReturn === "failed" &&
+        ride &&
+        ride.payment_method === "card" &&
+        !ride.online_paid &&
+        ride.status === "searching"
+      ) {
+        await cancelDriveRide(ride.id, "Paiement carte échoué");
+        if (ride.pickup_lat != null && ride.dest_lat != null) {
+          setPickup({
+            lat: ride.pickup_lat,
+            lng: ride.pickup_lng!,
+            text: ride.pickup_text,
+            gps: false,
+          });
+          setDest({
+            lat: ride.dest_lat,
+            lng: ride.dest_lng!,
+            text: ride.dest_text,
+          });
+          setGamme((ride.gamme as Gamme) ?? "classic");
+          setPrice(ride.proposed_price_da);
+          setPayMode("card");
+          setRequestError(t("price.cardFailed"));
+          setScreen("price");
+        }
+      } else if (ride) {
         setActive(ride);
         setScreen("ride");
       }
       setBooted(true);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Départ = position actuelle (GPS) par défaut. Quasi instantané : un fix
@@ -420,6 +463,13 @@ export function DriveView() {
           setActive(null);
           setScreen("price");
         }}
+        onCardFailed={() => {
+          // Webhook Chargily : paiement échoué → demande déjà annulée côté
+          // serveur. Retour direct au choix de gamme, trajet conservé.
+          setActive(null);
+          setRequestError(t("price.cardFailed"));
+          setScreen("price");
+        }}
       />
     );
   }
@@ -549,7 +599,9 @@ export function DriveView() {
             ))}
           </div>
 
-          {/* Moyen de paiement — choisi ICI (maquette §2.2) */}
+          {/* Moyen de paiement — choisi ICI (maquette §2.2). Coligo Pay
+              affiche le SOLDE ; vide → désactivé ; partiel → accepté, le
+              complément se règle en espèces au chauffeur (mig 0163). */}
           <p className="mb-2 text-[13.5px] font-bold">{t("price.payTitle")}</p>
           <div className="mb-3 flex gap-2">
             {(
@@ -558,26 +610,62 @@ export function DriveView() {
                 ["card", t("pay.card")],
                 ["coligo_pay", "Coligo Pay"],
               ] as const
-            ).map(([m, label]) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setPayMode(m)}
-                className="flex-1 rounded-[12px] border-[1.5px] px-1.5 py-2.5 text-[12px] font-bold"
-                style={
-                  payMode === m
-                    ? {
-                        borderColor: VIOLET,
-                        background: "#EEEEFD",
-                        color: VIOLET,
-                      }
-                    : { borderColor: "var(--d-line)", color: "var(--d-muted)" }
-                }
-              >
-                {label}
-              </button>
-            ))}
+            ).map(([m, label]) => {
+              const cpayEmpty = m === "coligo_pay" && ctx.walletBalance <= 0;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  disabled={cpayEmpty}
+                  onClick={() => setPayMode(m)}
+                  className="flex-1 rounded-[12px] border-[1.5px] px-1.5 py-2.5 text-[12px] font-bold disabled:opacity-50"
+                  style={
+                    payMode === m
+                      ? {
+                          borderColor: VIOLET,
+                          background: "#EEEEFD",
+                          color: VIOLET,
+                        }
+                      : {
+                          borderColor: "var(--d-line)",
+                          color: "var(--d-muted)",
+                        }
+                  }
+                >
+                  {label}
+                  {m === "coligo_pay" && (
+                    <span
+                      className="block text-[10.5px] font-extrabold"
+                      style={cpayEmpty ? { color: "#E5484D" } : { color: GO }}
+                    >
+                      {formatDA(ctx.walletBalance)}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
+
+          {/* Solde Coligo Pay partiel : le complément ira en ESPÈCES au
+              chauffeur — ou recharger pour couvrir toute la course. */}
+          {payMode === "coligo_pay" && ctx.walletBalance < offerPrice && (
+            <div className="mb-3 rounded-[14px] border-[1.5px] border-dashed border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2.5">
+              <p className="text-[12px] leading-relaxed font-semibold">
+                {t("price.cpayPartial", {
+                  wallet: ctx.walletBalance,
+                  cash: Math.max(0, offerPrice - ctx.walletBalance),
+                })}
+              </p>
+              <button
+                type="button"
+                onClick={() => router.push("/coligo-pay")}
+                className="mt-1.5 text-[12px] font-extrabold underline underline-offset-2"
+                style={{ color: VIOLET }}
+              >
+                {t("price.cpayRecharge")}
+              </button>
+            </div>
+          )}
 
           {/* Votre offre (prix recommandé pré-rempli, ± pas de 20) */}
           <div className="mb-3 rounded-[18px] bg-[var(--d-soft)] p-4 text-center">

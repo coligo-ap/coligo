@@ -507,7 +507,9 @@ export function DCourse() {
           <span className="text-xs font-bold" style={{ color: VIOLET }}>
             {inProgress
               ? ride.prepaid
-                ? "Prépayée · rien à encaisser"
+                ? ride.cash_due_da > 0
+                  ? `À encaisser : ${formatDA(ride.cash_due_da)} en espèces`
+                  : "Prépayée · rien à encaisser"
                 : "À encaisser à l'arrivée"
               : "Prix convenu"}
           </span>
@@ -525,15 +527,33 @@ export function DCourse() {
             style={{ background: "rgba(22,179,100,.12)", color: GO }}
           >
             {inProgress ? (
-              <>
-                🔒 Course prépayée — montant en séquestre, versé sur votre solde
-                à la fin de la course. Rien à encaisser.
-              </>
+              ride.cash_due_da > 0 ? (
+                <>
+                  🔒 Course Coligo Pay partielle —{" "}
+                  {formatDA(ride.agreed_price_da - ride.cash_due_da)} en
+                  séquestre (versés sur votre solde à la fin) ·{" "}
+                  <b>encaissez {formatDA(ride.cash_due_da)} en espèces</b>{" "}
+                  auprès du client à l&apos;arrivée.
+                </>
+              ) : (
+                <>
+                  🔒 Course prépayée — montant en séquestre, versé sur votre
+                  solde à la fin de la course. Rien à encaisser.
+                </>
+              )
             ) : (
               <>
                 🔒 Course prépayée — à votre arrivée, demandez le{" "}
                 <b>code PIN (4 chiffres)</b> au client : sa saisie démarre la
-                course. Rien à encaisser.
+                course.{" "}
+                {ride.cash_due_da > 0 ? (
+                  <>
+                    Complément à encaisser en espèces :{" "}
+                    <b>{formatDA(ride.cash_due_da)}</b>.
+                  </>
+                ) : (
+                  <>Rien à encaisser.</>
+                )}
               </>
             )}
           </p>
@@ -859,7 +879,9 @@ function DoneScreen({
           <b className="block text-[13.5px]" style={{ color: GO }}>
             {done.payment_method === "cash"
               ? "Espèces encaissées auprès du client"
-              : "Prépayée · encaissée par Coligo, créditée sur votre solde"}
+              : done.cash_due_da > 0
+                ? `${formatDA(done.cash_due_da)} encaissés en espèces · ${formatDA(done.price_da - done.cash_due_da)} via Coligo Pay, crédités sur votre solde`
+                : "Prépayée · encaissée par Coligo, créditée sur votre solde"}
           </b>
           {done.commission_da > 0 && (
             <span className="text-[11px] text-[var(--d-muted)]">

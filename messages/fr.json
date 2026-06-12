@@ -788,7 +788,10 @@
       "tierFast": "Rapide",
       "tierMiniHint": "Prix très attractif — parfois moins de chauffeurs intéressés",
       "tierFastHint": "Un peu plus élevé — des propositions plus vite",
-      "propose": "Proposer {price} DA"
+      "propose": "Proposer {price} DA",
+      "cpayPartial": "Votre solde Coligo Pay couvre {wallet} DA. Le reste ({cash} DA) sera à régler en espèces au chauffeur — ou rechargez pour couvrir toute la course.",
+      "cpayRecharge": "Recharger mon Coligo Pay",
+      "cardFailed": "Le paiement par carte n'a pas abouti — rien n'a été débité et votre demande a été annulée automatiquement. Réessayez ou choisissez un autre moyen de paiement."
     },
     "pay": {
       "cash": "💵 Espèces",
@@ -868,6 +871,7 @@
       "pinGive": "communiquez-le au chauffeur À SON ARRIVÉE — sa saisie démarre la course.",
       "escrowNote": "Montant bloqué en séquestre — libéré au chauffeur uniquement à la fin de la course. Annulation avant départ = remboursement intégral sur Coligo Pay.",
       "prepaidOnboard": "Course prépayée · rien à payer à bord — le montant en séquestre sera versé au chauffeur à la fin.",
+      "cashDue": "{amount} DA à régler en espèces au chauffeur (le reste est couvert par votre solde Coligo Pay).",
       "devReport": "Signaler un problème",
       "devSupport": "Contacter le support",
       "devReported": "Signalement transmis — examen sous 24 h, la course est suivie par nos équipes."
@@ -982,6 +986,8 @@
       "payCash": "À payer en espèces au chauffeur",
       "payCard": "Payé par carte bancaire",
       "payCpay": "Payé via Coligo Pay",
+      "payMixed": "Coligo Pay + espèces",
+      "payMixedDetail": "{wallet} DA via votre solde Coligo Pay · {cash} DA en espèces au chauffeur",
       "cashback": "+{amount} DA de cashback",
       "cashbackSub": "Utilisable sur Drive ET vos livraisons Coligo",
       "rateTitle": "Notez le chauffeur",

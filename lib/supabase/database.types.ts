@@ -149,6 +149,10 @@ export type Database = {
           online_paid_at: string | null;
           chargily_checkout_id: string | null;
           end_code: string | null;
+          // Séquestre Coligo Pay (mig 0145/0163)
+          escrow_da: number;
+          cash_due_da: number;
+          card_failed_at: string | null;
         };
         Insert: {
           id?: string;
