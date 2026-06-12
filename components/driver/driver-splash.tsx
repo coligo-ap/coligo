@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { BRAND_ASSETS } from "@/lib/config/brand-assets";
 
 /**
  * Écran de LANCEMENT de l'espace livreur (façon ouverture d'app mobile).
@@ -66,27 +67,18 @@ export function DriverSplash() {
         className="relative flex flex-col items-center gap-4"
         style={{ animation: "driver-splash-rise .45s ease-out both" }}
       >
-        <div
-          className="grid size-[68px] place-items-center rounded-[20px] ring-1 ring-white/10"
-          style={{ background: "linear-gradient(135deg,#5b2eff,#6c2bd9)" }}
-        >
-          <Image
-            src="/icon-512.png"
-            alt=""
-            width={52}
-            height={52}
-            priority
-            className="rounded-[13px]"
-          />
-        </div>
-        <div className="text-center">
-          <p className="text-[22px] font-extrabold tracking-tight text-white">
-            Coligo
-          </p>
-          <p className="mt-1 text-[10px] font-semibold tracking-[3px] text-white/45 uppercase">
-            Livreur
-          </p>
-        </div>
+        {/* Logo Coligo COMPLET (FR + AR) en blanc — cf. lib/config/brand-assets. */}
+        <Image
+          src={BRAND_ASSETS.fullWhite}
+          alt="Coligo"
+          width={1000}
+          height={401}
+          priority
+          className="h-auto w-[200px]"
+        />
+        <p className="text-[10px] font-semibold tracking-[3px] text-white/45 uppercase">
+          Livreur
+        </p>
       </div>
 
       {/* Barre de chargement indéterminée (dégradé signature). */}

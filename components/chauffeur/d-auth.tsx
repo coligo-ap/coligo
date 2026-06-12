@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useActionState } from "react";
 import { ArrowLeft, LogOut, Loader2, Store, User } from "lucide-react";
 import { VIOLET } from "@/components/customer/drive/drive-modals";
+import { BRAND_ASSETS } from "@/lib/config/brand-assets";
 import {
   chauffeurLogin,
   chauffeurLogout,
@@ -70,11 +71,7 @@ export function DAuth({
       <div className="mb-4 text-center">
         <h1 className="drive-sora flex items-baseline justify-center gap-1.5 text-[22px] font-extrabold tracking-[-0.5px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/logo-fr.png"
-            alt="Coligo"
-            className="h-[24px] w-auto"
-          />
+          <img src={BRAND_ASSETS.fr} alt="Coligo" className="h-[24px] w-auto" />
           <span style={{ color: VIOLET }}>Drive</span>
         </h1>
         <p className="mt-0.5 text-[13px] text-[var(--d-muted)]">

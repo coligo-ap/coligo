@@ -231,6 +231,24 @@ body.${BODY_CLASS} > div#${MOUNT_ID} * {
   // sinon le body est en état « tout caché » sans le ticket visible.
   document.body.classList.add(BODY_CLASS);
 
+  // Attendre les images du ticket (logo de marque) avant d'imprimer — sinon le
+  // premier window.print() part avant leur décodage. Plafond 1,5 s : au-delà,
+  // on imprime quand même (le texte alt remplace l'image manquante).
+  const ticketImgs = Array.from(mount.querySelectorAll("img"));
+  await Promise.race([
+    Promise.all(
+      ticketImgs.map((img) =>
+        img.complete
+          ? Promise.resolve()
+          : new Promise<void>((res) => {
+              img.addEventListener("load", () => res(), { once: true });
+              img.addEventListener("error", () => res(), { once: true });
+            })
+      )
+    ),
+    new Promise<void>((res) => window.setTimeout(res, 1500)),
+  ]);
+
   await new Promise<void>((resolve) => {
     let done = false;
     const cleanup = () => {

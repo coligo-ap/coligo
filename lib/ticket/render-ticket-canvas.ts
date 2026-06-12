@@ -28,6 +28,7 @@
 
 import type { TicketOrder } from "@/lib/ticket/build-ticket-html";
 import type { PrintWidth } from "@/lib/types";
+import { BRAND_ASSETS } from "@/lib/config/brand-assets";
 import { qrMatrix } from "@/lib/ticket/qr-svg";
 import {
   deriveTicketMeta,
@@ -49,6 +50,24 @@ export type RenderTicketCanvasOptions = {
 /** Largeur imprimable en dots selon la laize (tête 8 dots/mm). */
 function dotsForWidth(width: PrintWidth): number {
   return width === 80 ? 576 : 384;
+}
+
+// Logo de marque (version NOIRE impression) — chargé une fois puis réutilisé.
+// Échec de chargement (offline, fichier absent) → on retombe sur le texte.
+let brandLogoPromise: Promise<HTMLImageElement | null> | null = null;
+function loadBrandLogo(): Promise<HTMLImageElement | null> {
+  if (!brandLogoPromise) {
+    brandLogoPromise = new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => {
+        brandLogoPromise = null; // retentera à la prochaine impression
+        resolve(null);
+      };
+      img.src = BRAND_ASSETS.print;
+    });
+  }
+  return brandLogoPromise;
 }
 
 /**
@@ -156,9 +175,19 @@ export async function renderTicketCanvasBase64(
     y += Math.round(20 * S);
   }
 
-  // === 1. EN-TÊTE ===
-  textAt(opts.appName ?? "Coligo", f(30, true), "center", y);
-  y += Math.round(34 * S);
+  // === 1. EN-TÊTE === logo image (cf. brand-assets) ; texte si indisponible.
+  const brandLogo = await loadBrandLogo();
+  if (brandLogo && brandLogo.naturalWidth > 0) {
+    const lh = Math.round(40 * S);
+    const lw = Math.round(
+      lh * (brandLogo.naturalWidth / brandLogo.naturalHeight)
+    );
+    ctx.drawImage(brandLogo, Math.round((W - lw) / 2), y, lw, lh);
+    y += lh + Math.round(8 * S);
+  } else {
+    textAt(opts.appName ?? "Coligo", f(30, true), "center", y);
+    y += Math.round(34 * S);
+  }
   textAt(order.merchant_name, f(20), "center", y);
   y += Math.round(28 * S);
 

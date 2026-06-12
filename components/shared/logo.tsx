@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { APP_CONFIG } from "@/lib/config/app-config";
+import { BRAND_ASSETS } from "@/lib/config/brand-assets";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
@@ -19,9 +20,9 @@ const sizes = {
 };
 
 /**
- * Logo officiel Coligo — version COMPLÈTE FR + AR par défaut (équivalent
- * transparent de logo-coligo-FRAR-complet-Bg_blanc-Ecr_Violet_haute_quality),
- * violet sur fond clair, blanc en dark mode.
+ * Logo officiel Coligo — version COMPLÈTE FR + AR par défaut, violet sur fond
+ * clair, blanc en dark mode. Chemins centralisés dans `lib/config/brand-assets`
+ * (changer de logo = relancer `scripts/brand-assets.mjs`, rien à toucher ici).
  * `iconOnly` : « C » blanc sur tuile violette (lisible sur tout fond).
  */
 export function Logo({
@@ -43,7 +44,7 @@ export function Logo({
         aria-label={APP_CONFIG.name}
       >
         <Image
-          src="/brand/icon-c-white.png"
+          src={BRAND_ASSETS.iconCWhite}
           alt={APP_CONFIG.name}
           width={325}
           height={603}
@@ -56,7 +57,7 @@ export function Logo({
   return (
     <div className={cn("flex flex-col items-start", className)}>
       <Image
-        src="/brand/logo-full.png"
+        src={BRAND_ASSETS.full}
         alt={APP_CONFIG.name}
         width={1000}
         height={401}
@@ -64,7 +65,7 @@ export function Logo({
         priority
       />
       <Image
-        src="/brand/logo-full-white.png"
+        src={BRAND_ASSETS.fullWhite}
         alt={APP_CONFIG.name}
         width={1000}
         height={401}

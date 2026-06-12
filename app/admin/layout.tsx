@@ -1,7 +1,7 @@
 import { LogOut, ShieldCheck } from "lucide-react";
 import { requireSuperAdmin } from "@/lib/auth/admin";
 import { logout } from "@/app/(merchant)/actions";
-import { APP_CONFIG } from "@/lib/config/app-config";
+import { Logo } from "@/components/shared/logo";
 import { getLateOrdersCountForAdmin } from "@/lib/data/platform";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 import { AdminShell } from "@/components/admin/admin-sidebar";
@@ -24,8 +24,9 @@ export default async function AdminLayout({
         <div className="flex min-w-0 items-center gap-3 lg:gap-4">
           <AdminMobileNav lateCount={lateCount} />
           <span className="flex shrink-0 items-center gap-2 font-semibold">
+            <Logo size="sm" className="hidden sm:flex" />
             <ShieldCheck className="text-primary-600 size-5" />
-            <span className="hidden sm:inline">{APP_CONFIG.name} Admin</span>
+            <span className="hidden sm:inline">Admin</span>
           </span>
         </div>
         <form action={logout} className="shrink-0">

@@ -50,6 +50,24 @@ async function whiten(buf) {
     .toBuffer();
 }
 
+/** Tous les pixels non transparents → noir (tickets thermiques, encre noire). */
+async function blacken(buf) {
+  const { data, info } = await sharp(buf)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = 0;
+    data[i + 1] = 0;
+    data[i + 2] = 0;
+  }
+  return sharp(data, {
+    raw: { width: info.width, height: info.height, channels: 4 },
+  })
+    .png()
+    .toBuffer();
+}
+
 async function trimmed(src) {
   return sharp(src).trim().toBuffer();
 }
@@ -142,6 +160,8 @@ async function main() {
   await save(await whiten(arT), "logo-ar-white.png", 800);
   await save(fullT, "logo-full.png", 1000);
   await save(await whiten(fullT), "logo-full-white.png", 1000);
+  // Version NOIRE pour l'impression des tickets (thermique = encre noire).
+  await save(await blacken(fullT), "logo-print.png", 600);
 
   // ── 2. Icône "C" (extraite du wordmark FR) ───────────────────────────
   const frMeta = await sharp(frT).metadata();

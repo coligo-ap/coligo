@@ -18,6 +18,7 @@
  */
 
 import type { FulfillmentType, PrintWidth } from "@/lib/types";
+import { BRAND_ASSETS } from "@/lib/config/brand-assets";
 import {
   deriveTicketMeta,
   formatDA,
@@ -221,8 +222,9 @@ export async function buildTicketHTML(
       letter-spacing: 2px; border: 1px solid #000; padding: 3px 0; margin-bottom: 6px;
     }
 
-    /* En-tête : logo Coligo (agrandi) + boutique */
+    /* En-tête : logo Coligo (image noire, texte alt en secours) + boutique */
     .tk .t-logo { text-align: center; font-size: 32px; font-weight: 900; letter-spacing: -.5px; }
+    .tk .t-logo img { height: 44px; width: auto; display: inline-block; }
     .tk .t-shop { text-align: center; font-size: 15px; font-weight: 600; margin: 3px 0 10px; }
 
     /* Bandeau inversé mode + paiement */
@@ -280,8 +282,10 @@ export async function buildTicketHTML(
 <div class="tk">
   ${copyBanner}
 
-  <!-- 1. Logo + boutique -->
-  <div class="t-logo">${escapeHtml(opts.appName ?? "Coligo")}</div>
+  <!-- 1. Logo + boutique (image de marque centralisée ; alt = secours texte) -->
+  <div class="t-logo"><img src="${BRAND_ASSETS.print}" alt="${escapeHtml(
+    opts.appName ?? "Coligo"
+  )}"></div>
   <div class="t-shop">${escapeHtml(order.merchant_name)}</div>
 
   <!-- 2. Bandeau inversé mode + paiement -->
