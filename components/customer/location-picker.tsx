@@ -40,6 +40,8 @@ type Detected = {
 
 export function LocationPicker({ onClose, initial }: Props) {
   const t = useTranslations("account");
+  // Placeholder de la recherche d'adresse sur carte (clé partagée checkout).
+  const tCheckout = useTranslations("checkout");
   const [wilaya, setWilaya] = useState(initial?.wilaya_code ?? "");
   const [commune, setCommune] = useState(initial?.commune ?? "");
   const [saving, setSaving] = useState(false);
@@ -255,6 +257,8 @@ export function LocationPicker({ onClose, initial }: Props) {
           onChange={(p) => setCoords(p)}
           gpsLabel={t("useMyPosition")}
           height={300}
+          searchEnabled
+          searchPlaceholder={tCheckout("searchAddressPlaceholder")}
         />
         <Button
           type="button"

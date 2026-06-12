@@ -108,6 +108,13 @@ export type CheckoutContext = {
   cashback_balance_da: number;
   /** Solde Coligo Pay (topup, argent réel) du client connecté. */
   topup_balance_da: number;
+  /**
+   * Taux de cashback RÉSOLUS (surcharge marchand ?? défaut plateforme) par
+   * mode de paiement — mêmes valeurs que le trigger 0118. Permet d'afficher
+   * au checkout la différence de gain entre en ligne et espèces.
+   */
+  cashback_rate_online: number;
+  cashback_rate_cash: number;
   /** Frais de service (DA) calculés serveur sur (subtotal - discount). */
   service_fee_da: number;
   /** Tiers actifs sur la plateforme — pour l'affichage du « Gratuit dès X DA ». */
@@ -135,17 +142,28 @@ export async function fetchCheckoutContext(
     .eq("id", input.merchant_id)
     .maybeSingle();
 
-  // Soldes du client + config plateforme (lectures rapides en parallèle).
-  const [cashbackBalance, topupBalance, settings] = await Promise.all([
-    getMyCashbackBalance(),
-    getMyTopupBalance(),
-    supabase
-      .from("platform_settings")
-      .select("service_fee_tiers")
-      .eq("id", true)
-      .maybeSingle(),
-  ]);
+  // Soldes du client + config plateforme + taux cashback (en parallèle).
+  const [cashbackBalance, topupBalance, settings, rateOnlineRes, rateCashRes] =
+    await Promise.all([
+      getMyCashbackBalance(),
+      getMyTopupBalance(),
+      supabase
+        .from("platform_settings")
+        .select("service_fee_tiers")
+        .eq("id", true)
+        .maybeSingle(),
+      supabase.rpc("resolve_rate", {
+        p_merchant_id: input.merchant_id,
+        p_key: "cashback_online",
+      }),
+      supabase.rpc("resolve_rate", {
+        p_merchant_id: input.merchant_id,
+        p_key: "cashback_cash",
+      }),
+    ]);
   const tiers = parseTiers(settings.data?.service_fee_tiers);
+  const cashbackRateOnline = Number(rateOnlineRes.data ?? 0.03);
+  const cashbackRateCash = Number(rateCashRes.data ?? 0);
 
   const fallback = {
     merchant: {
@@ -163,6 +181,8 @@ export async function fetchCheckoutContext(
     cart: { subtotalDa: 0, normalTotalDa: 0, totalDa: 0, savingsDa: 0 },
     cashback_balance_da: cashbackBalance,
     topup_balance_da: topupBalance,
+    cashback_rate_online: cashbackRateOnline,
+    cashback_rate_cash: cashbackRateCash,
     service_fee_da: 0,
     service_fee_tiers: tiers,
     service_fee_free_in_da: null,
@@ -451,6 +471,8 @@ export async function fetchCheckoutContext(
     },
     cashback_balance_da: cashbackBalance,
     topup_balance_da: topupBalance,
+    cashback_rate_online: cashbackRateOnline,
+    cashback_rate_cash: cashbackRateCash,
     service_fee_da: computeServiceFeeDa(settled.totalDa, tiers),
     service_fee_tiers: tiers,
     service_fee_free_in_da: daUntilFreeServiceFee(settled.totalDa, tiers),

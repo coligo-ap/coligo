@@ -195,6 +195,7 @@ export function AddressForm({
         defaultCenter={defaultCenter}
         autoLocate={!initial}
         searchEnabled
+        searchPlaceholder={t("searchAddressPlaceholder")}
         height={300}
         onChange={(p) => {
           setLat(p.lat);

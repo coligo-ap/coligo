@@ -83,6 +83,8 @@ export type MapPositionPickerProps = {
   onConfirm?: (pos: LatLng) => void;
   /** Affiche une barre de recherche d'adresse (forward geocoding). */
   searchEnabled?: boolean;
+  /** Placeholder traduit de la barre de recherche (défaut : FR). */
+  searchPlaceholder?: string;
   /** Statut de la géoloc auto : true = obtenue, false = refusée/indispo. */
   onLocate?: (ok: boolean) => void;
   /**
@@ -107,6 +109,7 @@ export function MapPositionPicker({
   focusTarget = null,
   onConfirm,
   searchEnabled = false,
+  searchPlaceholder = "Rechercher une adresse, un lieu…",
   onLocate,
   pulse = false,
   markerColorClass = "text-primary-700",
@@ -482,7 +485,7 @@ export function MapPositionPicker({
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
               onFocus={() => searchResults.length && setSearchOpen(true)}
-              placeholder="Rechercher une adresse, un lieu…"
+              placeholder={searchPlaceholder}
               className="placeholder:text-subtle min-w-0 flex-1 bg-transparent text-sm outline-none"
             />
             {searching ? (

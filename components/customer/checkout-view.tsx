@@ -451,6 +451,22 @@ export function CheckoutView({ customer }: Props) {
     : 0;
   const totalAfterWallets = Math.max(0, totalAfterCashback - topupApplied);
 
+  // Cashback GAGNÉ selon le mode de paiement — taux réels (marchand ??
+  // plateforme), même assiette que le trigger 0118 : panier produits NET,
+  // jamais les frais. En espèces, le plafond COD « moitié du panier »
+  // s'applique aussi (estimation prudente, le trigger reste juge).
+  const cashbackEarnOnline = Math.round(
+    ctx.cart.totalDa * ctx.cashback_rate_online
+  );
+  const cashbackEarnCash = Math.min(
+    Math.round(ctx.cart.totalDa * ctx.cashback_rate_cash),
+    Math.floor(ctx.cart.totalDa / 2)
+  );
+  const cashbackEarnSelected =
+    payment === "online" ? cashbackEarnOnline : cashbackEarnCash;
+  // Gain SUPPLÉMENTAIRE si le client passait en ligne (bannière comparative).
+  const onlineCashbackExtra = cashbackEarnOnline - cashbackEarnCash;
+
   const walletUsed = cashbackApplied > 0 || topupApplied > 0;
   // Cas « soldes couvrent tout » : 0 DA à régler en ligne → autorisé (le
   // serveur marque payé). On rassure le client au lieu de bloquer.
@@ -666,21 +682,27 @@ export function CheckoutView({ customer }: Props) {
           </Block>
         )}
 
-        {/* Paiement — UNE carte, options séparées par traits fins. */}
+        {/* Paiement — DEUX cartes côte à côte + badge cashback comparatif. */}
         <Block className="mt-3" delay={0.12}>
           <SectionTitle icon={CreditCard} className="px-4 pt-4">
             {t("payment")}
           </SectionTitle>
-          <div className="divide-border border-border mt-1 divide-y border-t">
-            <PayRow
+          <div className="grid grid-cols-2 gap-2.5 px-4 pt-3 pb-4">
+            <PayCard
               icon={Banknote}
               selected={payment === "cash"}
               onClick={() => setPayment("cash")}
               title={isDelivery ? t("cashOnDelivery") : t("cashOnPickup")}
               sub={isDelivery ? t("cashDeliverySub") : t("cashPickupSub")}
               disabled={!ctx.merchant.accepts_cash}
+              chip={
+                cashbackEarnCash > 0
+                  ? t("cashbackChip", { amount: formatDA(cashbackEarnCash) })
+                  : t("noCashbackChip")
+              }
+              chipTone={cashbackEarnCash > 0 ? "success" : "muted"}
             />
-            <PayRow
+            <PayCard
               icon={CreditCard}
               selected={payment === "online"}
               onClick={() => setPayment("online")}
@@ -688,31 +710,66 @@ export function CheckoutView({ customer }: Props) {
               bolt
               sub={t("onlineSub")}
               disabled={!ctx.merchant.accepts_online}
+              chip={
+                cashbackEarnOnline > 0
+                  ? t("cashbackChip", { amount: formatDA(cashbackEarnOnline) })
+                  : t("noCashbackChip")
+              }
+              chipTone={cashbackEarnOnline > 0 ? "success" : "muted"}
             />
-            {/* Soldes — DEUX switches séparés, cumulables (si solde > 0). */}
-            {ctx.topup_balance_da > 0 && (
-              <WalletRow
-                icon={Wallet}
-                title="Coligo Pay"
-                sub={t("balanceAmount", {
-                  amount: formatDA(ctx.topup_balance_da),
-                })}
-                checked={useTopup}
-                onToggle={() => toggleWallet("topup")}
-              />
-            )}
-            {ctx.cashback_balance_da > 0 && (
-              <WalletRow
-                icon={Gift}
-                title={t("myCashback")}
-                sub={t("availableAmount", {
-                  amount: formatDA(ctx.cashback_balance_da),
-                })}
-                checked={useCashback}
-                onToggle={() => toggleWallet("cashback")}
-              />
-            )}
           </div>
+
+          {/* Comparatif : en espèces, montre le gain MANQUÉ → tap = bascule. */}
+          {payment === "cash" &&
+            ctx.merchant.accepts_online &&
+            onlineCashbackExtra > 0 && (
+              <button
+                type="button"
+                onClick={() => setPayment("online")}
+                className="from-primary-50 mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-2.5 rounded-[13px] bg-gradient-to-r to-[#f4f2ff] px-3.5 py-3 text-start transition active:scale-[0.99]"
+              >
+                <span className="text-primary-600 grid size-8 shrink-0 place-items-center rounded-[9px] bg-white shadow-[0_3px_8px_-2px_rgba(91,91,230,0.4)]">
+                  <Gift className="size-4" />
+                </span>
+                <span className="text-primary-800 flex-1 text-[12.5px] leading-snug font-bold">
+                  {t.rich("cashbackOnlineExtra", {
+                    amount: formatDA(onlineCashbackExtra),
+                    strong: (chunks) => (
+                      <strong className="font-extrabold">{chunks}</strong>
+                    ),
+                  })}
+                </span>
+                <ChevronRight className="text-primary-600 size-4 shrink-0 rtl:rotate-180" />
+              </button>
+            )}
+
+          {/* Soldes — DEUX switches séparés, cumulables (si solde > 0). */}
+          {(ctx.topup_balance_da > 0 || ctx.cashback_balance_da > 0) && (
+            <div className="divide-border border-border divide-y border-t">
+              {ctx.topup_balance_da > 0 && (
+                <WalletRow
+                  icon={Wallet}
+                  title="Coligo Pay"
+                  sub={t("balanceAmount", {
+                    amount: formatDA(ctx.topup_balance_da),
+                  })}
+                  checked={useTopup}
+                  onToggle={() => toggleWallet("topup")}
+                />
+              )}
+              {ctx.cashback_balance_da > 0 && (
+                <WalletRow
+                  icon={Gift}
+                  title={t("myCashback")}
+                  sub={t("availableAmount", {
+                    amount: formatDA(ctx.cashback_balance_da),
+                  })}
+                  checked={useCashback}
+                  onToggle={() => toggleWallet("cashback")}
+                />
+              )}
+            </div>
+          )}
 
           {onlineTooLow && (
             <div className="border-danger-200 bg-danger-50 text-danger-800 mx-4 mt-3 mb-1 rounded-[10px] border px-3 py-2 text-xs">
@@ -947,15 +1004,16 @@ export function CheckoutView({ customer }: Props) {
           </div>
         </Block>
 
-        {/* Cashback GAGNÉ = gain futur (jamais un frais). Encadré vert séparé. */}
-        {payment === "online" && ctx.cart.totalDa > 0 && (
+        {/* Cashback GAGNÉ = gain futur (jamais un frais). Encadré vert séparé.
+            Montant RÉEL du mode sélectionné (taux marchand ?? plateforme). */}
+        {cashbackEarnSelected > 0 && ctx.cart.totalDa > 0 && (
           <div className="from-success-50 co-rise relative mt-3 flex items-center gap-3 overflow-hidden rounded-[16px] bg-gradient-to-r to-[#e8faf0] p-3.5 shadow-[0_6px_18px_-10px_rgba(21,145,90,0.4)]">
             <span className="text-success-700 z-[2] grid size-9 shrink-0 place-items-center rounded-[11px] bg-white shadow-[0_3px_8px_-2px_rgba(21,145,90,0.35)]">
               <Gift className="size-[18px]" />
             </span>
             <p className="z-[2] text-[12.5px] leading-snug font-bold text-[#0e6b43]">
               {t.rich("cashbackEarn", {
-                amount: formatDA(Math.round(ctx.cart.totalDa * 0.03)),
+                amount: formatDA(cashbackEarnSelected),
                 strong: (chunks) => (
                   <strong className="font-extrabold">{chunks}</strong>
                 ),
@@ -1059,13 +1117,19 @@ function SectionTitle({
   );
 }
 
-/** Option de paiement (radio) — ligne dans la carte paiement. */
-function PayRow({
+/**
+ * Option de paiement — CARTE sélectionnable (grille 2 colonnes) avec badge
+ * cashback comparatif : le client voit d'un coup d'œil ce que chaque mode
+ * lui rapporte (vert = gain, neutre = pas de cashback).
+ */
+function PayCard({
   icon: Icon,
   selected,
   onClick,
   title,
   sub,
+  chip,
+  chipTone,
   bolt,
   disabled,
 }: {
@@ -1074,6 +1138,8 @@ function PayRow({
   onClick: () => void;
   title: string;
   sub: string;
+  chip: string;
+  chipTone: "success" | "muted";
   bolt?: boolean;
   disabled?: boolean;
 }) {
@@ -1082,11 +1148,26 @@ function PayRow({
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-pressed={selected}
       className={cn(
-        "flex w-full items-center gap-3 px-4 py-3.5 text-start transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50",
-        selected && "from-primary-50 bg-gradient-to-r to-[#f4f2ff]"
+        "relative flex flex-col items-start gap-2.5 rounded-[16px] border-2 p-3.5 pt-4 text-start transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45",
+        selected
+          ? "border-primary-600 from-primary-50 bg-gradient-to-br to-[#f4f2ff] shadow-[0_10px_24px_-10px_rgba(108,43,217,0.45)]"
+          : "border-border bg-surface hover:border-primary-300"
       )}
     >
+      {/* Coche de sélection (coin) */}
+      <span
+        className={cn(
+          "absolute end-2.5 top-2.5 grid size-[20px] place-items-center rounded-full transition",
+          selected
+            ? "bg-primary-600 co-pop text-white"
+            : "border-border-strong border-2 bg-white"
+        )}
+      >
+        {selected && <Check className="size-3" strokeWidth={3.5} />}
+      </span>
+
       <span
         className={cn(
           "grid size-[38px] shrink-0 place-items-center rounded-[11px]",
@@ -1097,28 +1178,32 @@ function PayRow({
       >
         <Icon className="size-[18px]" />
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="text-foreground flex items-center gap-1.5 text-[14.5px] font-extrabold">
+
+      <span className="min-w-0">
+        <span className="text-foreground flex items-center gap-1.5 text-[13.5px] leading-tight font-extrabold">
           {title}
           {bolt && (
-            <span className="grid size-[18px] place-items-center rounded-[6px] bg-gradient-to-br from-[#ffb02e] to-[#c77a18] text-white shadow-[0_2px_5px_rgba(199,122,24,0.4)]">
-              <Zap className="size-3" fill="currentColor" />
+            <span className="grid size-[17px] shrink-0 place-items-center rounded-[6px] bg-gradient-to-br from-[#ffb02e] to-[#c77a18] text-white shadow-[0_2px_5px_rgba(199,122,24,0.4)]">
+              <Zap className="size-[10px]" fill="currentColor" />
             </span>
           )}
         </span>
-        <span className="text-muted mt-0.5 block text-[11.5px] font-semibold">
+        <span className="text-muted mt-1 block text-[11px] leading-snug font-semibold">
           {sub}
         </span>
       </span>
+
+      {/* Badge cashback — l'argument de comparaison entre les deux modes. */}
       <span
         className={cn(
-          "relative grid size-[21px] shrink-0 place-items-center rounded-full border-2",
-          selected ? "border-primary-600" : "border-border-strong"
+          "mt-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold tabular-nums",
+          chipTone === "success"
+            ? "bg-success-50 text-success-700"
+            : "bg-surface-2 text-subtle"
         )}
       >
-        {selected && (
-          <span className="bg-primary-600 co-pop size-[11px] rounded-full" />
-        )}
+        <Gift className="size-3 shrink-0" />
+        {chip}
       </span>
     </button>
   );
