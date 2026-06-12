@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { driverLogout } from "@/app/(driver)/actions";
 import { useDriverDark, toggleDriverDark } from "@/lib/driver/theme-store";
 import { openSupportChat } from "@/components/support/tawk-chat";
@@ -122,6 +123,33 @@ export function CompteView({
       {/* Sections « Mes informations » (véhicule / pièces / versement) */}
       {children}
 
+      {/* Tournées — rejoindre un commerçant + accès au démarrage. */}
+      <div className="acc-grp">Tournées</div>
+      <div className="menu">
+        <Mrow
+          label="Mes tournées"
+          chevron
+          href="/driver/tournees"
+          icon={
+            <>
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M3 10h18M8 2v4M16 2v4" />
+            </>
+          }
+        />
+        <Mrow
+          label="Rejoindre un commerçant"
+          chevron
+          href="/driver/codes"
+          icon={
+            <>
+              <circle cx="8" cy="15" r="4" />
+              <path d="M10.85 12.15 19 4M18 5l2 2M15 8l2 2" />
+            </>
+          }
+        />
+      </div>
+
       {/* Préférences */}
       <div className="acc-grp">Préférences</div>
       <div className="menu">
@@ -189,6 +217,7 @@ function Mrow({
   valueColor,
   chevron,
   onClick,
+  href,
   icon,
 }: {
   label: string;
@@ -196,6 +225,7 @@ function Mrow({
   valueColor?: string;
   chevron?: boolean;
   onClick?: () => void;
+  href?: string;
   icon: React.ReactNode;
 }) {
   const content = (
@@ -231,6 +261,13 @@ function Mrow({
       </span>
     </>
   );
+  if (href) {
+    return (
+      <Link href={href} className="mrow">
+        {content}
+      </Link>
+    );
+  }
   if (onClick) {
     return (
       <button type="button" className="mrow" onClick={onClick}>
