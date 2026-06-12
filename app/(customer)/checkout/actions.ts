@@ -799,12 +799,17 @@ export async function createOrder(
       if (!slot || slot.status !== "open") {
         return { ok: false, error: "Ce créneau n'est plus disponible." };
       }
-      const { count } = await supabase
-        .from("orders")
-        .select("id", { count: "exact", head: true })
-        .eq("delivery_slot_id", slot.id)
-        .neq("status", "cancelled");
-      if ((count ?? 0) >= slot.max_orders) {
+      // Compteur SECURITY DEFINER (0164) : un count direct tournerait sous RLS
+      // client et ne verrait que les commandes du client lui-même → la capacité
+      // ne serait jamais appliquée. Le trigger enforce_slot_capacity reste le
+      // garde-fou atomique à l'INSERT (anti race condition).
+      const { data: slotCount } = await (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>
+        ) => PromiseLike<{ data: unknown; error: { message: string } | null }>
+      ).call(supabase, "slot_orders_count", { p_slot_id: slot.id });
+      if (((slotCount as number | null) ?? 0) >= slot.max_orders) {
         return {
           ok: false,
           error: "Ce créneau est complet. Choisis-en un autre.",
@@ -925,6 +930,17 @@ export async function createOrder(
         .maybeSingle();
       if (dup)
         return { ok: true, order_id: dup.id, pickup_code: dup.pickup_code };
+    }
+    // Garde-fou capacité créneau (trigger 0164) : course perdue entre le
+    // pré-check et l'INSERT.
+    if (orderErr?.message?.includes("slot_full")) {
+      return {
+        ok: false,
+        error: "Ce créneau est complet. Choisis-en un autre.",
+      };
+    }
+    if (orderErr?.message?.includes("slot_not_open")) {
+      return { ok: false, error: "Ce créneau n'est plus disponible." };
     }
     return {
       ok: false,

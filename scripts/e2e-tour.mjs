@@ -179,30 +179,37 @@ try {
     return r.rows[0];
   }
 
-  // Réplique de startTour (server action TS) : crée la tournée + le stop + assigne.
-  async function startTourAndAssign(orderId, slotId) {
-    const tour = (
-      await c.query(
-        `INSERT INTO delivery_tours (merchant_id, driver_id, slot_id, status)
-       VALUES ($1,$2,$3,'planned') RETURNING id`,
-        [M, DRIVER, slotId]
-      )
-    ).rows[0];
+  // RPC RÉEL start_tour (0164) sous impersonation livreur — l'ancienne
+  // « réplique » SQL masquait le bug RLS (l'UPDATE orders de la server action
+  // était silencieusement filtré : commandes jamais attribuées en prod).
+  const MD = (
     await c.query(
-      `INSERT INTO tour_stops (tour_id, order_id, stop_order, status) VALUES ($1,$2,1,'pending')`,
-      [tour.id, orderId]
-    );
-    await c.query("UPDATE orders SET delivery_driver_id=$1 WHERE id=$2", [
-      DRIVER,
-      orderId,
-    ]);
-    return tour.id;
+      "SELECT id FROM merchant_drivers WHERE merchant_id=$1 AND driver_id=$2 AND status='active'",
+      [M, DRIVER]
+    )
+  ).rows[0].id;
+  async function startTourReal(slotId) {
+    await impersonateDriver();
+    const r = await c.query("SELECT * FROM start_tour($1,$2)", [MD, slotId]);
+    await impersonateNone();
+    return r.rows[0]; // { ok, reason, tour_id, stops_count }
   }
 
   // ===================== B) TOURNÉE CASH (e2e via RPC) =====================
   console.log("\n=== B) Tournée CASH — parcours RPC complet ===");
   const o1 = await insertTourOrder("cash", slot.id);
-  const tour1 = await startTourAndAssign(o1.id, slot.id);
+  const stB = await startTourReal(slot.id);
+  ok("start_tour ok", stB.ok, true);
+  const tour1 = stB.tour_id;
+  ok(
+    "commande ATTRIBUÉE par le RPC (delivery_driver_id)",
+    (
+      await c.query("SELECT delivery_driver_id FROM orders WHERE id=$1", [
+        o1.id,
+      ])
+    ).rows[0].delivery_driver_id,
+    DRIVER
+  );
   await impersonateDriver();
   const pick1 = await c.query("SELECT * FROM mark_tour_picked_up($1)", [tour1]);
   okTrue("mark_tour_picked_up OK", pick1.rowCount >= 0);
@@ -222,6 +229,12 @@ try {
     await c.query("SELECT status FROM tour_stops WHERE order_id=$1", [o1.id])
   ).rows[0].status;
   ok("tour_stop livré", ts1, "delivered");
+  ok(
+    "tournée auto-complétée (trigger 0164)",
+    (await c.query("SELECT status FROM delivery_tours WHERE id=$1", [tour1]))
+      .rows[0].status,
+    "completed"
+  );
   const commCash = Math.round(P * Number(rates.cc));
   ok("wallet commission", await wallet(o1.id, "commission"), -commCash);
   ok("wallet service_fee", await wallet(o1.id, "service_fee"), -S);
@@ -282,9 +295,12 @@ try {
   // ===================== C) TOURNÉE ONLINE (e2e via RPC) =====================
   console.log("\n=== C) Tournée ONLINE — parcours RPC complet ===");
   const o2 = await insertTourOrder("online", slot2.id);
-  const tour2 = await startTourAndAssign(o2.id, slot2.id);
-  // Paiement confirmé → déclenche les écritures wallet/plateforme.
+  // Paiement confirmé AVANT start_tour : le RPC exclut les online non payées
+  // (gating 0068 — une commande non encaissée ne part pas en tournée).
   await c.query("UPDATE orders SET payment_status='paid' WHERE id=$1", [o2.id]);
+  const stC = await startTourReal(slot2.id);
+  ok("start_tour online ok", stC.ok, true);
+  const tour2 = stC.tour_id;
   await impersonateDriver();
   await c.query("SELECT * FROM mark_tour_picked_up($1)", [tour2]);
   const val2 = await c.query("SELECT * FROM validate_delivery($1,$2,$3,$4)", [
@@ -351,6 +367,103 @@ try {
     )
   ).rows[0].n;
   ok("créneaux : 2 commandes comptées au total", usedTotal, 2);
+
+  // ============ D) Capacité créneau — garde-fou atomique à l'INSERT ============
+  console.log("\n=== D) Capacité créneau (trigger 0164) ===");
+  const slot3 = (
+    await c.query(
+      `INSERT INTO delivery_slots (merchant_id, slot_date, start_time, end_time, max_orders, status)
+     VALUES ($1, CURRENT_DATE, '17:00','18:00', 1, 'open') RETURNING id`,
+      [M]
+    )
+  ).rows[0];
+  await insertTourOrder("cash", slot3.id);
+  await c.query("SAVEPOINT cap");
+  let capBlocked = false;
+  try {
+    await insertTourOrder("cash", slot3.id);
+  } catch (e) {
+    capBlocked = e.message.includes("slot_full");
+    await c.query("ROLLBACK TO SAVEPOINT cap");
+  }
+  okTrue("2e commande sur slot max_orders=1 refusée (slot_full)", capBlocked);
+  const cnt3 = (await c.query("SELECT slot_orders_count($1) v", [slot3.id]))
+    .rows[0].v;
+  ok("slot_orders_count (SECURITY DEFINER)", cnt3, 1);
+
+  // ====== E) No-show TOURNÉE online payé — pas de double paiement course ======
+  console.log("\n=== E) No-show tournée online payé ===");
+  const slot4 = (
+    await c.query(
+      `INSERT INTO delivery_slots (merchant_id, slot_date, start_time, end_time, max_orders, status)
+     VALUES ($1, CURRENT_DATE, '19:00','20:00', 5, 'open') RETURNING id`,
+      [M]
+    )
+  ).rows[0];
+  const o3 = await insertTourOrder("online", slot4.id);
+  await c.query("UPDATE orders SET payment_status='paid' WHERE id=$1", [o3.id]);
+  const stE = await startTourReal(slot4.id);
+  ok("start_tour E ok", stE.ok, true);
+  await impersonateDriver();
+  await c.query("SELECT * FROM mark_tour_picked_up($1)", [stE.tour_id]);
+  await impersonateNone();
+  // Arrivée il y a 1 h → fenêtre no-show largement dépassée.
+  await c.query(
+    "UPDATE orders SET delivery_arrived_at = now() - interval '1 hour' WHERE id=$1",
+    [o3.id]
+  );
+  await impersonateDriver();
+  const ns = await c.query("SELECT * FROM driver_report_no_show($1,$2,$3)", [
+    o3.id,
+    "no_show",
+    "e2e-ns-tour",
+  ]);
+  await impersonateNone();
+  ok("no-show accepté", ns.rows[0].ok, true);
+  ok(
+    "commande annulée",
+    (await c.query("SELECT status FROM orders WHERE id=$1", [o3.id])).rows[0]
+      .status,
+    "cancelled"
+  );
+  ok(
+    "tour_stop marqué failed",
+    (await c.query("SELECT status FROM tour_stops WHERE order_id=$1", [o3.id]))
+      .rows[0].status,
+    "failed"
+  );
+  ok(
+    "tournée complétée après échec",
+    (
+      await c.query("SELECT status FROM delivery_tours WHERE id=$1", [
+        stE.tour_id,
+      ])
+    ).rows[0].status,
+    "completed"
+  );
+  // LE fix : la plateforme ne paie PAS la course au livreur tournée (il est
+  // payé par son commerçant, qui reçoit delivery_revenue).
+  ok(
+    "AUCUN driver_payout plateforme (tournée)",
+    await delLedgerCount(o3.id),
+    0
+  );
+  ok(
+    "commerçant crédité delivery_revenue (online payé, no-show)",
+    await wallet(o3.id, "delivery_revenue"),
+    D
+  );
+  ok("pas de cashback gagné sur no-show", await cashbackCredit(o3.id), 0);
+  ok(
+    "pas de snapshot driver_fee express sur la commande tournée",
+    (
+      await c.query(
+        "SELECT COALESCE(driver_fee_da,0) v FROM orders WHERE id=$1",
+        [o3.id]
+      )
+    ).rows[0].v,
+    0
+  );
 
   console.log(
     `\n${fail === 0 ? "🎉 E2E TOURNÉE COMPLET OK" : "⚠️ ÉCHECS"} — pass=${pass} fail=${fail}`
