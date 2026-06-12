@@ -24,10 +24,55 @@ export default async function DriverToursPage({
     .eq("id", mdId)
     .eq("driver_id", driver.id)
     .maybeSingle();
-  if (!link || link.status !== "active") notFound();
+  if (!link) notFound();
   const merchant = Array.isArray(link.merchants)
     ? link.merchants[0]
     : link.merchants;
+
+  // Tournées en cours de CE livreur chez CE commerçant (toujours récupérées,
+  // même si le lien n'est plus actif — pour pouvoir TERMINER une tournée déjà
+  // démarrée si le commerçant a régénéré le code / coupé l'accès entre-temps).
+  const { data: myTours } = await supabase
+    .from("delivery_tours")
+    .select("id, slot_id, status")
+    .eq("driver_id", driver.id)
+    .eq("merchant_id", link.merchant_id)
+    .in("status", ["planned", "in_progress"]);
+
+  // Lien non actif : on ne propose PLUS de nouveaux créneaux, mais on laisse
+  // finir une tournée déjà en cours (le RPC validate_delivery l'autorise déjà —
+  // ici on évite juste un cul-de-sac UI).
+  if (link.status !== "active") {
+    const ongoing = myTours?.[0];
+    return (
+      <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
+        <div className="space-y-4">
+          <Link
+            href="/driver"
+            className="inline-flex items-center gap-1 text-sm font-medium text-[#757575]"
+          >
+            <ArrowLeft className="size-4" /> Accueil
+          </Link>
+          <div className="rounded-[14px] border border-[#f5e0a1] bg-[#fff8e5] p-4 text-sm font-medium text-[#8b6500]">
+            {link.status === "pending"
+              ? `Ton accès chez ${merchant?.name} est en attente de validation.`
+              : `Ton accès chez ${merchant?.name} a été retiré.`}
+            {ongoing
+              ? " Tu peux quand même terminer la tournée déjà commencée."
+              : " Tu ne peux pas démarrer de nouvelle tournée pour l'instant."}
+          </div>
+          {ongoing && (
+            <Link
+              href={`/driver/m/${mdId}/tours/${ongoing.id}`}
+              className="flex items-center justify-center rounded-[14px] bg-[#0a0a0a] px-4 py-3 text-sm font-bold text-white active:scale-[0.99]"
+            >
+              Terminer ma tournée en cours
+            </Link>
+          )}
+        </div>
+      </DriverShell>
+    );
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   const { data: slots } = await supabase
@@ -57,12 +102,8 @@ export default async function DriverToursPage({
     }
   }
 
-  // Tournées DÉJÀ démarrées par ce livreur
-  const { data: myTours } = await supabase
-    .from("delivery_tours")
-    .select("id, slot_id, status")
-    .eq("driver_id", driver.id)
-    .in("status", ["planned", "in_progress"]);
+  // `myTours` (tournées en cours de ce livreur chez ce commerçant) est déjà
+  // chargé plus haut — réutilisé ici pour relier chaque créneau à sa tournée.
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>

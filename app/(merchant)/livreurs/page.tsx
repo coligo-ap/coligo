@@ -97,6 +97,7 @@ export default async function MerchantDriversPage() {
           hasActiveCode={!!activeCode}
           expiresAt={activeCode?.expires_at ?? null}
           createdAt={activeCode?.created_at ?? null}
+          activeDriverCount={active.length}
         />
 
         <DriversTabs pending={pending} active={active} blocked={blocked} />

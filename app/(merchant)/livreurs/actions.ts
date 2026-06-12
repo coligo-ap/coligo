@@ -59,9 +59,12 @@ async function logEvent(
  * (Re)génère le code de référence du commerçant :
  *  - Désactive l'éventuel code actif courant.
  *  - Insère un nouveau code (en clair retourné UNE fois).
- *  - Force la révocation des sessions livreur ACTIFS : tous les
- *    `merchant_drivers` avec status='active' du commerçant passent en
- *    `pending` (re-validation nécessaire) ET on touche `sessions_revoked_at`.
+ *
+ * IMPORTANT : régénérer le code n'affecte PLUS les livreurs déjà rattachés —
+ * ils conservent leur accès. Seul l'ancien code cesse de fonctionner pour les
+ * NOUVELLES demandes. Pour couper l'accès de tout le monde et forcer une
+ * re-validation (cas « le code a fuité »), utiliser `resetAllDriverAccess`,
+ * qui est désormais une action SÉPARÉE et explicite.
  *
  * Le code en clair n'est JAMAIS écrit en log, ni en colonne, ni renvoyé
  * autrement que dans ce seul retour de Server Action.
@@ -110,20 +113,57 @@ export async function regenerateReferralCode(
     });
   if (insertErr) return { error: `Échec : ${insertErr.message}` };
 
-  // 3) Force tous les actifs en pending + révoque leurs sessions.
-  await admin
-    .from("merchant_drivers")
-    .update({
-      status: "pending",
-      sessions_revoked_at: new Date().toISOString(),
-    })
-    .eq("merchant_id", ctx.id)
-    .eq("status", "active");
-
   await logEvent(ctx.id, ctx.ownerEmail, null, "code_regenerated");
 
   revalidatePath("/livreurs");
-  return { newCode: code, success: "Nouveau code généré." };
+  return {
+    newCode: code,
+    success: "Nouveau code généré. Tes livreurs actuels gardent leur accès.",
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Réinitialiser les accès de TOUS les livreurs (action séparée, sensible)
+// ---------------------------------------------------------------------------
+/**
+ * Repasse tous les livreurs ACTIFS du commerçant en `pending` et révoque leurs
+ * sessions (`sessions_revoked_at`). À utiliser quand on veut re-valider tout le
+ * monde (départ massif, code soupçonné fuité…). N'altère PAS le code de
+ * référence — c'est volontairement découplé de `regenerateReferralCode`.
+ */
+export async function resetAllDriverAccess(): Promise<DriverActionResult> {
+  const ctx = await requireOwnedMerchant();
+  if ("error" in ctx) return { error: ctx.error };
+
+  const admin = createAdminClient();
+  const { error, count } = await admin
+    .from("merchant_drivers")
+    .update(
+      {
+        status: "pending",
+        sessions_revoked_at: new Date().toISOString(),
+      },
+      { count: "exact" }
+    )
+    .eq("merchant_id", ctx.id)
+    .eq("status", "active");
+  if (error) return { error: `Échec : ${error.message}` };
+
+  await logEvent(
+    ctx.id,
+    ctx.ownerEmail,
+    null,
+    "all_access_reset",
+    `${count ?? 0} livreur(s) remis en attente`
+  );
+
+  revalidatePath("/livreurs");
+  return {
+    success:
+      (count ?? 0) > 0
+        ? `${count} livreur(s) remis en attente. Ils devront re-soumettre le code.`
+        : "Aucun livreur actif à réinitialiser.",
+  };
 }
 
 // ---------------------------------------------------------------------------

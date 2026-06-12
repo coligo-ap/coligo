@@ -2,13 +2,22 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, KeyRound, Link2, Loader2, RotateCw, Share2 } from "lucide-react";
+import {
+  Copy,
+  KeyRound,
+  Link2,
+  Loader2,
+  RotateCw,
+  Share2,
+  ShieldAlert,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
 import {
   regenerateReferralCode,
+  resetAllDriverAccess,
   setReferralCodeExpiration,
 } from "@/app/(merchant)/livreurs/actions";
 
@@ -16,11 +25,14 @@ export function ReferralCodeCard({
   hasActiveCode,
   expiresAt,
   createdAt,
+  activeDriverCount = 0,
 }: {
   merchantSlug: string;
   hasActiveCode: boolean;
   expiresAt: string | null;
   createdAt: string | null;
+  /** Nb de livreurs actuellement actifs — pour la zone « Réinitialiser les accès ». */
+  activeDriverCount?: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -33,7 +45,7 @@ export function ReferralCodeCard({
     startTransition(async () => {
       const ok = confirm(
         hasActiveCode
-          ? "Régénérer le code va désactiver l'ancien et déconnecter TOUS les livreurs actifs (ils devront re-soumettre le nouveau code). Continuer ?"
+          ? "Générer un nouveau code ? L'ancien cessera de fonctionner pour les NOUVELLES demandes. Tes livreurs actuels gardent leur accès."
           : "Générer un nouveau code de référence ?"
       );
       if (!ok) return;
@@ -48,6 +60,18 @@ export function ReferralCodeCard({
         setRevealedCode(res.newCode);
       }
       toast.success(res.success ?? "Code généré");
+      router.refresh();
+    });
+
+  const onResetAccess = () =>
+    startTransition(async () => {
+      const ok = confirm(
+        `Réinitialiser les accès de ${activeDriverCount} livreur(s) actif(s) ? Ils repasseront « en attente » et devront re-soumettre le code pour reprendre les tournées. À n'utiliser qu'en cas de départ massif ou de code soupçonné fuité.`
+      );
+      if (!ok) return;
+      const res = await resetAllDriverAccess();
+      if (res.error) toast.error(res.error);
+      else toast.success(res.success ?? "Accès réinitialisés");
       router.refresh();
     });
 
@@ -133,6 +157,43 @@ export function ReferralCodeCard({
             <RotateCw className="size-4" />
           )}
           {hasActiveCode ? "Régénérer" : "Générer"}
+        </Button>
+      </div>
+
+      {hasActiveCode && (
+        <p className="text-subtle text-xs">
+          Régénérer ne déconnecte personne : tes livreurs actuels gardent leur
+          accès, seul l&apos;ancien code cesse de fonctionner pour les nouvelles
+          demandes.
+        </p>
+      )}
+
+      {/* Zone sensible — séparée de la régénération du code. */}
+      <div className="border-danger-200 bg-danger-50 mt-1 space-y-2 rounded-[12px] border p-4">
+        <div className="text-danger-700 flex items-center gap-2">
+          <ShieldAlert className="size-4" />
+          <h3 className="text-sm font-semibold">Réinitialiser les accès</h3>
+        </div>
+        <p className="text-danger-800 text-xs">
+          Repasse <strong>tous</strong> tes livreurs ({activeDriverCount}{" "}
+          actif(s)) en « en attente » et les déconnecte. Ils devront
+          re-soumettre le code. À n&apos;utiliser qu&apos;en cas de départ
+          massif ou de code fuité — pour retirer un seul livreur, utilise «
+          Bloquer / Retirer » sur sa ligne.
+        </p>
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          onClick={onResetAccess}
+          disabled={pending || activeDriverCount === 0}
+        >
+          {pending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <ShieldAlert className="size-4" />
+          )}
+          Réinitialiser les accès
         </Button>
       </div>
     </section>
