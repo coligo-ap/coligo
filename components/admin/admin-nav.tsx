@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
+  BellRing,
   Bike,
   Car,
   Flag,
@@ -32,6 +33,7 @@ export const ADMIN_LINKS = [
   { href: "/admin/livraison", label: "Livraison", icon: Bike },
   { href: "/admin/orders", label: "Commandes", icon: Receipt },
   { href: "/admin/reports", label: "Signalements", icon: Flag },
+  { href: "/admin/notifications", label: "Notifications", icon: BellRing },
   { href: "/admin/settings", label: "Taux", icon: Percent },
   { href: "/admin/security", label: "Sécurité", icon: ShieldCheck },
 ] as const;

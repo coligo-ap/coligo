@@ -23,7 +23,10 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const email = url.searchParams.get("email")?.trim().toLowerCase();
-  const platform = url.searchParams.get("platform")?.trim() || null;
+  const rawPlatform = url.searchParams.get("platform")?.trim();
+  const platform = (["android", "ios", "web"] as const).find(
+    (p) => p === rawPlatform
+  );
   if (!email) {
     return NextResponse.json({ error: "email_required" }, { status: 400 });
   }
@@ -58,14 +61,6 @@ export async function GET(request: Request) {
     },
     { route: "/" }
   );
-
-  // Purge les tokens périmés signalés par FCM (même hygiène que les triggers).
-  if (result.invalidTokens.length) {
-    await admin
-      .from("device_tokens")
-      .delete()
-      .in("token", result.invalidTokens);
-  }
 
   return NextResponse.json({
     ok: true,
