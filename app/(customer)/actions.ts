@@ -53,6 +53,17 @@ export async function customerLogin(
   });
   if (!parsed.success) return { error: firstZodError(parsed.error) };
 
+  // Cloisonnement des métiers : les comptes livreur/chauffeur (emails
+  // synthétiques internes) ne se connectent JAMAIS ici. Chaque espace a sa
+  // propre inscription — un livreur qui veut commander crée un compte CLIENT.
+  const emailLc = parsed.data.email.toLowerCase();
+  if (
+    emailLc.endsWith("@drivers.coligo.local") ||
+    emailLc.endsWith("@chauffeurs.coligo.local")
+  ) {
+    return { error: "Email ou mot de passe incorrect" };
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
@@ -104,6 +115,12 @@ export async function customerSignup(
     password: formData.get("password"),
   });
   if (!parsed.success) return { error: firstZodError(parsed.error) };
+
+  // Les domaines internes livreur/chauffeur ne sont pas des emails de client.
+  const signupEmailLc = parsed.data.email.toLowerCase();
+  if (signupEmailLc.endsWith(".coligo.local")) {
+    return { error: "Adresse email invalide." };
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({

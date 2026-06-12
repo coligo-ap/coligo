@@ -107,6 +107,23 @@ export async function updateSession(request: NextRequest) {
   }
 
   // ===========================================================================
+  // RÉCIPROQUE : les espaces /driver et /chauffeur ne sont servis QU'AUX
+  // sessions du bon domaine. Une session client/commerçant (ou anonyme) qui
+  // tape /driver/... est renvoyée sur l'écran de connexion livreur — seules
+  // les pages publiques login/signup restent accessibles (pour changer de
+  // compte). Chaque métier a son inscription : pas de double identité.
+  // ===========================================================================
+  if (path === "/driver" || path.startsWith("/driver/")) {
+    const publicDriver = path === "/driver/login" || path === "/driver/signup";
+    if (!publicDriver) return redirectTo("/driver/login");
+  }
+  if (path === "/chauffeur" || path.startsWith("/chauffeur/")) {
+    const publicChauffeur =
+      path === "/chauffeur/login" || path === "/chauffeur/signup";
+    if (!publicChauffeur) return redirectTo("/chauffeur/login");
+  }
+
+  // ===========================================================================
   // NUMÉRO DE TÉLÉPHONE OBLIGATOIRE (client) — anti-fraude + contact livraison.
   // ---------------------------------------------------------------------------
   // Un client connecté (notamment via Google, qui ne fournit pas de numéro)
@@ -179,18 +196,118 @@ export async function updateSession(request: NextRequest) {
     return redirectTo(target);
   }
 
-  // Racine `/` : c'est le HOME CLIENT. On laisse passer les anons et les
-  // clients connectés. Un commerçant connecté est renvoyé sur son dashboard.
-  if (path === "/" && user) {
-    const { data: merchant } = await supabase
-      .from("merchants")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (merchant) return redirectTo("/dashboard");
+  // ===========================================================================
+  // CLOISONNEMENT COMMERÇANT ↔ CLIENT (sessions email « normales »).
+  // ---------------------------------------------------------------------------
+  // Chaque métier voit UNIQUEMENT son espace :
+  //   • une session COMMERÇANT qui tape une page client (/, /cashback,
+  //     /checkout, /compte, /drive, /m/..., etc.) est renvoyée sur /dashboard ;
+  //     pour agir en client, il doit se connecter avec un compte CLIENT.
+  //   • une session CLIENT qui tape une page commerçant (/dashboard, /orders,
+  //     /finances, etc.) est renvoyée sur l'accueil marketplace.
+  // Le rôle est résolu UNE fois puis mis en cache cookie (coligo_role) — pas
+  // de requête DB à chaque navigation. Le rôle ne change jamais (trigger
+  // assert_user_role_uniqueness : un user ne peut pas être les deux).
+  // ===========================================================================
+  if (user) {
+    const inMerchantSpace = MERCHANT_ROOTS.some(
+      (r) => path === r || path.startsWith(r + "/")
+    );
+    const neutral =
+      path.startsWith("/api") ||
+      path.startsWith("/auth") ||
+      path.startsWith("/admin") ||
+      path === "/portail" ||
+      path.startsWith("/portail/") ||
+      path.startsWith("/offline") ||
+      path === "/t" ||
+      path.startsWith("/t/") ||
+      isMerchantAuthRoute ||
+      isCustomerAuthRoute;
+    if (!neutral) {
+      const role = await resolveCachedRole(
+        request,
+        supabaseResponse,
+        supabase,
+        user.id
+      );
+      if (role === "merchant" && !inMerchantSpace) {
+        return redirectTo("/dashboard");
+      }
+      if (role !== "merchant" && inMerchantSpace) {
+        return redirectTo("/");
+      }
+    }
   }
 
   return supabaseResponse;
+}
+
+/** Racines de l'espace commerçant (tout le reste hors neutre = espace client). */
+const MERCHANT_ROOTS = [
+  "/dashboard",
+  "/orders",
+  "/catalog",
+  "/promotions",
+  "/finances",
+  "/livraison",
+  "/livreurs",
+  "/encaisser",
+  "/stats",
+  "/aide",
+  "/settings",
+];
+
+/**
+ * Rôle d'une session « email normal » : commerçant / client / aucun profil.
+ * Mis en cache dans le cookie `coligo_role` (préfixé par l'id user pour ne
+ * jamais réutiliser le rôle d'une session précédente). « none » est re-résolu
+ * rapidement (le profil peut être créé juste après l'inscription).
+ */
+async function resolveCachedRole(
+  request: NextRequest,
+  response: NextResponse,
+  supabase: ReturnType<typeof createServerClient<Database>>,
+  userId: string
+): Promise<"merchant" | "customer" | "none"> {
+  const prefix = userId.slice(0, 8);
+  const cached = request.cookies.get("coligo_role")?.value;
+  if (cached?.startsWith(prefix + ":")) {
+    const r = cached.slice(prefix.length + 1);
+    if (r === "m") return "merchant";
+    if (r === "c") return "customer";
+    // "n" → on re-résout (profil peut-être créé entre-temps).
+  }
+
+  let role: "merchant" | "customer" | "none" = "none";
+  const { data: merchant } = await supabase
+    .from("merchants")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (merchant) {
+    role = "merchant";
+  } else {
+    const { data: customer } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (customer) role = "customer";
+  }
+
+  response.cookies.set(
+    "coligo_role",
+    `${prefix}:${role === "merchant" ? "m" : role === "customer" ? "c" : "n"}`,
+    {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      // Un rôle résolu est immuable → cache long. « none » expire vite.
+      maxAge: role === "none" ? 60 : 60 * 60 * 24 * 7,
+    }
+  );
+  return role;
 }
 
 /**

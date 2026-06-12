@@ -138,6 +138,16 @@ export async function login(
 
   const { email, password } = parsed.data;
 
+  // Cloisonnement des métiers : les comptes livreur/chauffeur (emails
+  // synthétiques internes) ne se connectent jamais sur l'espace commerçant.
+  const emailLc = email.toLowerCase();
+  if (
+    emailLc.endsWith("@drivers.coligo.local") ||
+    emailLc.endsWith("@chauffeurs.coligo.local")
+  ) {
+    return { error: "Email ou mot de passe incorrect" };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -193,6 +203,11 @@ export async function signup(
     wilayaCode,
     city,
   } = parsed.data;
+
+  // Les domaines internes livreur/chauffeur ne sont pas des emails valides ici.
+  if (email.toLowerCase().endsWith(".coligo.local")) {
+    return { error: "Adresse email invalide." };
+  }
 
   // Position carte → nombres bornés (obligatoire, choisie sur la carte).
   const lat = Number(latitude);
