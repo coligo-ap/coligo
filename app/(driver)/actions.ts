@@ -468,9 +468,11 @@ export async function validateDelivery(input: {
 }
 
 // ---------------------------------------------------------------------------
-// No-show / refus (mig 0114) : le client est absent ou refuse la commande COD.
-// La commande est ANNULÉE (remboursement prépaiement auto), le livreur indemnisé
-// d'une course, le client perd le COD + porte une créance = frais de livraison.
+// No-show / refus (règle Yassir exacte, mig 0162) : la commande est ANNULÉE.
+// Espèces → réclamation d'avance (P − commission) validée par le support, la
+// course n'est PAS payée ; pénalité client (prélèvement D sur wallet).
+// Online payé → commerçant + course payés comme une complétion, client non
+// remboursé (« tant pis »), pas de pénalité supplémentaire.
 // ---------------------------------------------------------------------------
 export async function reportNoShow(input: {
   orderId: string;

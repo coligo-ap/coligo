@@ -125,7 +125,9 @@ export function DeliveryValidationDialog({
       submit(true);
   };
 
-  // No-show / refus : commande annulée, livreur indemnisé, prélèvement client.
+  // No-show / refus (règle Yassir, mig 0162) : commande annulée. Espèces →
+  // seule l'avance est remboursable (validation support), course non payée.
+  // Online payé → course payée normalement (le client a déjà tout réglé).
   const onNoShow = () => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       toast.error("Connexion requise pour signaler un client absent.");
@@ -136,12 +138,13 @@ export function DeliveryValidationDialog({
       !confirm(
         "Client absent ou commande refusée ?\n\n" +
           "Vérifie que tu as bien CONTACTÉ le client (message) et attendu sur place. " +
-          "La commande sera ANNULÉE ; tu es indemnisé d'une course." +
+          "La commande sera ANNULÉE." +
           (isOnline
-            ? ""
+            ? " Ta course est payée normalement (commande déjà payée en ligne)."
             : "\n\nTon avance au commerçant sera remboursée APRÈS validation du " +
-              "support. GARDE la commande avec toi : le support te dira quoi en " +
-              "faire (retour, garder ou donner). Suivi dans Relevé.")
+              "support — la course n'est pas payée (règle no-show). GARDE la " +
+              "commande avec toi : le support te dira quoi en faire (retour, " +
+              "garder ou donner). Suivi dans Relevé.")
       )
     )
       return;
@@ -153,7 +156,7 @@ export function DeliveryValidationDialog({
       }
       toast.success(
         isOnline
-          ? "Signalé — commande annulée, tu es indemnisé."
+          ? "Signalé — commande annulée, ta course est payée."
           : "Signalé — le support examine le remboursement de ton avance (voir Relevé)."
       );
       onSuccess();
