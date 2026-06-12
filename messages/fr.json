@@ -1025,5 +1025,11 @@
       "error": "Enregistrement impossible — réessayez.",
       "close": "Fermer"
     }
+  },
+  "push": {
+    "enableTitle": "Activer les notifications",
+    "enableBody": "Sois prévenu en temps réel : suivi de commande, livreur en route, promos…",
+    "enableCta": "Activer",
+    "dismiss": "Plus tard"
   }
 }

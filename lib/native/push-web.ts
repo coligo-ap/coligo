@@ -87,28 +87,22 @@ export async function registerWebPush(role: PushRole): Promise<boolean> {
       return false;
     }
 
-    // Push reçue ONGLET AU PREMIER PLAN (le SW ne fire pas) → notif locale +
-    // navigation au clic via la route du payload.
+    // Push reçue ONGLET AU PREMIER PLAN (le SW ne fire pas) → notif locale.
+    // Via le SW (`showNotification`) et non `new Notification()` : le
+    // constructeur n'existe pas sur iOS (PWA). Le clic est géré par le
+    // listener `notificationclick` du SW (navigation vers data.route).
     onMessage(messaging, (payload) => {
       const n = payload.notification;
       const data = (payload.data ?? {}) as { route?: string };
-      const title = n?.title ?? "Coligo";
-      const body = n?.body ?? "";
-      try {
-        const local = new Notification(title, {
-          body,
+      void swReg
+        .showNotification(n?.title ?? "Coligo", {
+          body: n?.body ?? "",
           icon: "/icon-192.png",
+          data: { route: data.route ?? "/" },
+        })
+        .catch(() => {
+          /* Notification indisponible : on ignore (la push système suffit). */
         });
-        local.onclick = () => {
-          window.focus();
-          if (data.route && data.route.startsWith("/")) {
-            window.location.assign(data.route);
-          }
-          local.close();
-        };
-      } catch {
-        /* Notification indisponible : on ignore (la push système suffit). */
-      }
     });
 
     return true;
