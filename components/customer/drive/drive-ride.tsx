@@ -187,13 +187,6 @@ export function DriveRide({
         ride={active}
         offlineQueued={offlineQueued}
         refreshActive={refreshActive}
-        onCancelled={(reason) =>
-          setCancelled({
-            reason,
-            mine: true,
-            refunded: (active?.payment_method ?? "cash") !== "cash",
-          })
-        }
         onBackToPrice={onBackToPrice}
       />
     );
@@ -219,14 +212,12 @@ function SearchScreen({
   ride,
   offlineQueued,
   refreshActive,
-  onCancelled,
   onBackToPrice,
 }: {
   ctx: DriveContext;
   ride: DriveActiveRide | null;
   offlineQueued: boolean;
   refreshActive: () => Promise<DriveActiveRide | null>;
-  onCancelled: (reason: string) => void;
   onBackToPrice: () => void;
 }) {
   const t = useTranslations("drive.search");
@@ -234,7 +225,6 @@ function SearchScreen({
   const [sort, setSort] = useState<"best" | "cheap" | "rated">("best");
   const [busy, setBusy] = useState(false);
   const [boosting, setBoosting] = useState(false);
-  const [cancelOpen, setCancelOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cardBusy, setCardBusy] = useState(false);
   const [cardErr, setCardErr] = useState<string | null>(null);
@@ -641,22 +631,22 @@ function SearchScreen({
           })}
         </div>
 
-        <GhostBtn onClick={() => setCancelOpen(true)}>
+        {/* Annulation AVANT choix du chauffeur : directe, sans motif demandé,
+            retour immédiat à l'écran prix (séquestre recrédité côté serveur).
+            La course n'apparaît pas dans l'historique (jamais attribuée). */}
+        <GhostBtn
+          onClick={async () => {
+            if (busy) return;
+            setBusy(true);
+            if (rideId) await cancelDriveRide(rideId, null);
+            else await clearPendingRide();
+            setBusy(false);
+            onBackToPrice();
+          }}
+        >
           {t("cancelSearch")}
         </GhostBtn>
       </div>
-
-      <CancelModal
-        open={cancelOpen}
-        ctx="client_search"
-        onClose={() => setCancelOpen(false)}
-        onConfirm={async (reason) => {
-          setCancelOpen(false);
-          if (rideId) await cancelDriveRide(rideId, reason);
-          else await clearPendingRide();
-          onCancelled(reason);
-        }}
-      />
       {/* Retour arrière vers l'écran prix tant qu'aucune offre */}
       {!ride && !offlineQueued && (
         <button

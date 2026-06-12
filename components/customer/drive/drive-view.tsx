@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   Clock,
   History,
+  Gauge,
   Loader2,
   MapPin,
   Pencil,
@@ -575,6 +576,12 @@ export function DriveView() {
                   /* Climatisation incluse dans la gamme Confort */
                   <span className="absolute top-1.5 right-1.5 flex size-[22px] items-center justify-center rounded-full bg-[#E3F1FF]">
                     <Snowflake className="size-3.5 text-[#1E88E5]" />
+                  </span>
+                )}
+                {g === "moto" && (
+                  /* Moto : plus rapide dans la circulation */
+                  <span className="absolute top-1.5 right-1.5 flex size-[22px] items-center justify-center rounded-full bg-[#FFF0E0]">
+                    <Gauge className="size-3.5 text-[#F97316]" />
                   </span>
                 )}
                 <Image

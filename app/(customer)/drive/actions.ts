@@ -128,7 +128,11 @@ export async function getDriveContext(): Promise<DriveContext> {
       recents.push({ text: r.dest_text, lat: r.dest_lat, lng: r.dest_lng! });
       if (recents.length >= 2) break;
     }
-    const last = (rides ?? [])[0];
+    // Raccourci « dernière course » : on ignore les demandes annulées sans
+    // chauffeur attribué (recherche abandonnée — pas une vraie course).
+    const last = (rides ?? []).find(
+      (r) => r.status === "completed" || r.chauffeurs != null
+    );
     if (last) {
       const ch = last.chauffeurs as unknown as {
         first_name: string | null;
@@ -806,7 +810,11 @@ export async function getDriveHistory(): Promise<DriveHistory> {
         "id, dest_text, created_at, status, agreed_price_da, proposed_price_da, chauffeurs(first_name, full_name)"
       )
       .eq("customer_id", cust.id)
-      .in("status", ["completed", "cancelled"])
+      // Annulée AVANT attribution (recherche abandonnée, carte échouée, TTL)
+      // = pas une vraie course → masquée pour ne pas encombrer l'historique.
+      .or(
+        "status.eq.completed,and(status.eq.cancelled,chauffeur_id.not.is.null)"
+      )
       .order("created_at", { ascending: false })
       .limit(30),
     admin
