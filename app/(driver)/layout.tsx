@@ -3,6 +3,7 @@ import { Sora, Plus_Jakarta_Sans } from "next/font/google";
 import "./maquette.css";
 import { OfflineSyncIndicator } from "@/components/driver/offline-sync-indicator";
 import { DriverDispatchMount } from "@/components/driver/driver-dispatch-mount";
+import { PushRegistrar } from "@/components/native/push-registrar";
 import { DriverSplash } from "@/components/driver/driver-splash";
 import { ActiveCourseBanner } from "@/components/driver/active-course-banner";
 import { DriverCancelWatch } from "@/components/driver/driver-cancel-watch";
@@ -67,6 +68,11 @@ export default async function DriverLayout({
   return (
     <DriverThemeRoot fontVars={`${fontSora.variable} ${fontJakarta.variable}`}>
       {children}
+      {/* Enregistre le token FCM du livreur (role=courier) → reçoit les push
+          Express ET Tournée même app fermée / hors ligne (Android natif).
+          No-op sur web/PWA (isPushAvailable=false). Manquait → les livreurs ne
+          recevaient AUCUN push alors que l'envoi côté serveur les ciblait. */}
+      {driver && <PushRegistrar role="courier" />}
       {/* Écran de lancement (une fois par session). */}
       <DriverSplash />
       {/* Réception Express globale (pilotée par l'intention « en ligne »). */}

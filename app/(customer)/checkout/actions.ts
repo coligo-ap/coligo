@@ -23,7 +23,7 @@ import {
   resolveMinOrderDa,
 } from "@/lib/config/payment-limits";
 import { computeServiceFeeDa, parseTiers } from "@/lib/finance/service-fee";
-import { notifyMerchantNewOrder } from "@/lib/fcm/triggers";
+import { notifyMerchantNewOrder, notifyDriversTour } from "@/lib/fcm/triggers";
 import {
   computeDeliveryFee,
   computeTourDeliveryFee,
@@ -1057,6 +1057,9 @@ export async function createOrder(
       customerName: customer.full_name,
       totalDa: totalAfterWallets,
     });
+    // Tournée : prévient les livreurs inscrits du commerçant (no-op si la
+    // commande n'est pas en tournée). Push reçu même app fermée / hors ligne.
+    void notifyDriversTour({ orderId: order.id });
   }
 
   revalidatePath("/commandes");

@@ -25,7 +25,7 @@ import {
 } from "@/lib/payments/chargily";
 import { extractFailureReason } from "@/lib/payments/failure-reason";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { notifyMerchantNewOrder } from "@/lib/fcm/triggers";
+import { notifyMerchantNewOrder, notifyDriversTour } from "@/lib/fcm/triggers";
 
 // Force le runtime Node (le helper utilise `node:crypto`) et évite tout cache.
 export const runtime = "nodejs";
@@ -130,6 +130,9 @@ export async function POST(req: NextRequest) {
           customerName: updated.customer_name,
           totalDa: updated.total_da,
         });
+        // Tournée online payée : prévient les livreurs du commerçant (no-op si
+        // ce n'est pas une tournée). Reçu même app fermée / hors ligne.
+        void notifyDriversTour({ orderId: updated.id });
       }
       return NextResponse.json({
         ok: true,

@@ -456,6 +456,70 @@ export async function notifyDriversNewExpress(input: {
 }
 
 /**
+ * Notifie les livreurs ACTIFS inscrits chez le commerçant qu'une nouvelle
+ * commande en TOURNÉE est arrivée (à livrer sur le créneau choisi). Contrairement
+ * à l'Express, la tournée est réservée aux livreurs du commerçant (pas de réseau
+ * global). No-op si la commande n'est pas une tournée. Fire-and-forget ; reçu
+ * même app fermée / hors ligne sur Android natif (push système).
+ */
+export async function notifyDriversTour(input: {
+  orderId: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("orders")
+      .select("merchant_id, fulfillment_type, delivery_mode, total_da")
+      .eq("id", input.orderId)
+      .maybeSingle();
+    if (
+      !order ||
+      order.fulfillment_type !== "delivery" ||
+      order.delivery_mode !== "tour"
+    ) {
+      return;
+    }
+
+    // Destinataires = livreurs ACTIFS inscrits chez ce commerçant.
+    const { data: links } = await admin
+      .from("merchant_drivers")
+      .select("driver_id")
+      .eq("merchant_id", order.merchant_id)
+      .eq("status", "active");
+    const driverIds = (links ?? []).map((l) => l.driver_id).filter(Boolean);
+    if (driverIds.length === 0) return;
+
+    const { data: drivers } = await admin
+      .from("drivers")
+      .select("user_id")
+      .in("id", driverIds);
+    const userIds = [
+      ...new Set(
+        (drivers ?? []).map((d) => d.user_id).filter((u): u is string => !!u)
+      ),
+    ];
+    if (userIds.length === 0) return;
+
+    const tokenLists = await Promise.all(
+      userIds.map((uid) => tokensFor(uid, "courier"))
+    );
+    const tokens = [...new Set(tokenLists.flat())];
+    if (tokens.length === 0) return;
+
+    await sendFcm(
+      tokens,
+      {
+        title: "Nouvelle commande en tournée 📅",
+        body: `Une commande de ${formatDA(order.total_da ?? 0)} à livrer sur ton créneau. Prépare ta tournée.`,
+      },
+      { route: "/driver/tournees", kind: "driver_new_tour" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyDriversTour failed:", err);
+  }
+}
+
+/**
  * Notifie le client que le LIVREUR a récupéré sa commande et est en route.
  * Déclenché quand le livreur valide le pickup (statut SQL inchangé, donc pas
  * couvert par notifyCustomerStatusChange). Fire-and-forget.
