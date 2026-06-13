@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { evaluateZone } from "./server";
+import { evaluateZone, resolveWilayaCommune } from "./server";
 import type { ServiceKind, ZoneEval, ZoneRole } from "./service-zones";
 
 const ALL: ServiceKind[] = ["express", "tour", "drive"];
@@ -22,12 +22,22 @@ export async function getZoneAvailability(input: {
   role?: ZoneRole;
 }): Promise<Partial<Record<ServiceKind, ZoneEval>>> {
   const services = input.services?.length ? input.services : ALL;
+  // Résout wilaya/commune si l'appelant ne les fournit pas → les règles de
+  // scope commune/wilaya sont prises en compte ici aussi (pas seulement le
+  // géométrique). Sans coordonnées, on garde ce qui est fourni.
+  let wilayaCode = input.wilayaCode ?? null;
+  let commune = input.commune ?? null;
+  if (!wilayaCode && !commune) {
+    const geo = await resolveWilayaCommune(input.lat, input.lng);
+    wilayaCode = geo.wilayaCode;
+    commune = geo.commune;
+  }
   const out: Partial<Record<ServiceKind, ZoneEval>> = {};
   await Promise.all(
     services.map(async (s) => {
       out[s] = await evaluateZone(s, input.lat, input.lng, {
-        wilayaCode: input.wilayaCode ?? null,
-        commune: input.commune ?? null,
+        wilayaCode,
+        commune,
         role: input.role ?? "any",
       });
     })
@@ -78,6 +88,16 @@ export async function joinZoneWaitlist(input: {
   contact?: string | null;
 }): Promise<{ ok: boolean }> {
   try {
+    // Trace la VRAIE zone (wilaya/commune) du point : sans ça, l'admin ne voit
+    // que « Point GPS (hors wilaya identifiée) » et ne peut pas regrouper la
+    // demande par zone pour décider où ouvrir le service. On résout si absent.
+    let wilayaCode = input.wilayaCode ?? null;
+    let commune = input.commune ?? null;
+    if (!wilayaCode && !commune) {
+      const geo = await resolveWilayaCommune(input.lat, input.lng);
+      wilayaCode = geo.wilayaCode;
+      commune = geo.commune;
+    }
     const supabase = await createClient();
     const rpc = supabase.rpc.bind(supabase) as unknown as (
       fn: string,
@@ -87,8 +107,8 @@ export async function joinZoneWaitlist(input: {
       p_service: input.service,
       p_lat: input.lat ?? null,
       p_lng: input.lng ?? null,
-      p_wilaya_code: input.wilayaCode ?? null,
-      p_commune: input.commune ?? null,
+      p_wilaya_code: wilayaCode,
+      p_commune: commune,
       p_contact: input.contact ?? null,
     });
     return { ok: !error };

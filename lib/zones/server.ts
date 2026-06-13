@@ -60,6 +60,30 @@ export async function evaluateZone(
 }
 
 /**
+ * Résout (wilaya_code, commune) d'un point GPS via reverse-geocode — pour que
+ * les règles de zone de scope wilaya/commune s'appliquent (Drive, waitlist…),
+ * exactement comme le checkout le fait pour orders.delivery_wilaya_code/commune.
+ * Course (timeout 2,5 s) : best-effort, ne bloque jamais l'appelant. Le cache
+ * Nominatim (revalidate 600 s) rend les appels répétés sur un même point gratuits.
+ */
+export async function resolveWilayaCommune(
+  lat: number | null | undefined,
+  lng: number | null | undefined
+): Promise<{ wilayaCode: string | null; commune: string | null }> {
+  if (lat == null || lng == null) return { wilayaCode: null, commune: null };
+  try {
+    const { reverseGeocode } = await import("@/app/(customer)/actions");
+    const r = (await Promise.race([
+      reverseGeocode({ latitude: lat, longitude: lng }),
+      new Promise((resolve) => setTimeout(() => resolve(null), 2500)),
+    ])) as { wilaya_code?: string | null; commune?: string | null } | null;
+    return { wilayaCode: r?.wilaya_code ?? null, commune: r?.commune ?? null };
+  } catch {
+    return { wilayaCode: null, commune: null };
+  }
+}
+
+/**
  * Journalise un refus RÉEL (commande/course bloquée hors zone) pour les stats
  * ops (mig 0170). Best-effort : ne jamais faire échouer le flux appelant. À
  * n'appeler QU'aux soumissions réellement bloquées (pas les prechecks UX).

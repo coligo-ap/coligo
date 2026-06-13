@@ -412,27 +412,45 @@ export function DriveView() {
     setScreen("ride");
   };
 
-  // Pré-check de couverture (écran prix) : départ + arrivée. Désactive la
-  // demande + message clair si non couvert, sans attendre le serveur.
+  // Pré-check de couverture (départ + arrivée) DÈS que les deux points sont
+  // connus — pas seulement sur l'écran prix : le client doit voir « zone
+  // indisponible » AVANT de choisir un prix, et le bouton « Continuer » est
+  // bloqué. L'enforcement réel reste dans request_ride (mig 0169/0174).
+  // Debounce 400 ms : le départ GPS s'affine plusieurs fois au démarrage.
   useEffect(() => {
-    if (screen !== "price" || !pickup || !dest) {
+    if (!pickup || !dest) {
       setZoneBlock(null);
       return;
     }
     let alive = true;
     setZoneJoined(false);
-    void precheckDriveRoute({
-      pickup_lat: pickup.lat,
-      pickup_lng: pickup.lng,
-      dest_lat: dest.lat,
-      dest_lng: dest.lng,
-    }).then((r) => {
-      if (alive) setZoneBlock(r.ok ? null : (r.error ?? null));
-    });
+    const id = setTimeout(() => {
+      void precheckDriveRoute({
+        pickup_lat: pickup.lat,
+        pickup_lng: pickup.lng,
+        dest_lat: dest.lat,
+        dest_lng: dest.lng,
+      }).then((r) => {
+        if (alive) setZoneBlock(r.ok ? null : (r.error ?? null));
+      });
+    }, 400);
     return () => {
       alive = false;
+      clearTimeout(id);
     };
-  }, [screen, pickup, dest]);
+  }, [pickup, dest]);
+
+  // Rejoindre la liste d'attente pour la zone visée (l'arrivée). Le serveur
+  // reverse-géocode wilaya/commune → l'admin voit la VRAIE zone, pas un point.
+  const joinDriveWaitlist = useCallback(async () => {
+    if (dest)
+      await joinZoneWaitlist({
+        service: "drive",
+        lat: dest.lat,
+        lng: dest.lng,
+      });
+    setZoneJoined(true);
+  }, [dest]);
 
   // Envoi auto de la demande en file (Dexie) dès le retour du réseau.
   useEffect(() => {
@@ -891,34 +909,12 @@ export function DriveView() {
             </p>
           )}
           {zoneBlock && (
-            <div className="mt-2 rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-center">
-              <p className="flex items-center justify-center gap-1.5 text-xs font-bold text-amber-800">
-                <AlertTriangle className="size-3.5" />
-                {zoneBlock}
-              </p>
-              {zoneJoined ? (
-                <p className="mt-1.5 text-[12px] font-bold text-emerald-700">
-                  On vous prévient dès l&apos;ouverture !
-                </p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (dest)
-                      await joinZoneWaitlist({
-                        service: "drive",
-                        lat: dest.lat,
-                        lng: dest.lng,
-                      });
-                    setZoneJoined(true);
-                  }}
-                  className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-amber-600 px-3 py-1.5 text-[12px] font-bold text-white"
-                >
-                  <BellRing className="size-3.5" />
-                  Prévenez-moi
-                </button>
-              )}
-            </div>
+            <ZoneBlockNotice
+              message={zoneBlock}
+              joined={zoneJoined}
+              onJoin={joinDriveWaitlist}
+              className="mt-2"
+            />
           )}
           {!zoneBlock && pickup && (
             <AvailabilityNotice
@@ -1092,9 +1088,19 @@ export function DriveView() {
           </button>
         </div>
 
+        {/* Zone indisponible (commune/wilaya/rayon bloqués) : message clair +
+            « Prévenez-moi » AVANT le choix du prix, et « Continuer » bloqué. */}
+        {pickup && dest && zoneBlock && (
+          <ZoneBlockNotice
+            message={zoneBlock}
+            joined={zoneJoined}
+            onJoin={joinDriveWaitlist}
+            className="mt-1 mb-1"
+          />
+        )}
         <PrimaryBtn
           onClick={() => setScreen("price")}
-          disabled={!pickup || !dest}
+          disabled={!pickup || !dest || !!zoneBlock}
           className="!mt-1"
         >
           {t("home.continue")}
@@ -1186,6 +1192,48 @@ export function DriveView() {
           return res;
         }}
       />
+    </div>
+  );
+}
+
+/* ─────────────── Notice « zone indisponible » + « Prévenez-moi » ─────────────── */
+
+function ZoneBlockNotice({
+  message,
+  joined,
+  onJoin,
+  className,
+}: {
+  message: string;
+  joined: boolean;
+  onJoin: () => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-center",
+        className
+      )}
+    >
+      <p className="flex items-center justify-center gap-1.5 text-xs font-bold text-amber-800">
+        <AlertTriangle className="size-3.5" />
+        {message}
+      </p>
+      {joined ? (
+        <p className="mt-1.5 text-[12px] font-bold text-emerald-700">
+          On vous prévient dès l&apos;ouverture !
+        </p>
+      ) : (
+        <button
+          type="button"
+          onClick={onJoin}
+          className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-amber-600 px-3 py-1.5 text-[12px] font-bold text-white"
+        >
+          <BellRing className="size-3.5" />
+          Prévenez-moi
+        </button>
+      )}
     </div>
   );
 }

@@ -4,7 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chauffeurAvatarUrls } from "@/lib/drive/avatar-server";
 import { notifyChauffeursNewRide } from "@/lib/fcm/triggers";
-import { evaluateZone, logZoneBlock } from "@/lib/zones/server";
+import {
+  evaluateZone,
+  logZoneBlock,
+  resolveWilayaCommune,
+} from "@/lib/zones/server";
 import { zoneMessageFr } from "@/lib/zones/service-zones";
 
 type Rpc = (
@@ -247,6 +251,12 @@ export async function requestDriveRide(input: {
   operation_id?: string | null;
 }): Promise<{ ok: boolean; rideId?: string; error?: string }> {
   const rpc = await rpcClient();
+  // Reverse-géocode départ + arrivée → wilaya/commune, pour que les règles de
+  // zone commune/wilaya s'appliquent (mig 0174). En parallèle, best-effort.
+  const [pickupGeo, destGeo] = await Promise.all([
+    resolveWilayaCommune(input.pickup_lat, input.pickup_lng),
+    resolveWilayaCommune(input.dest_lat, input.dest_lng),
+  ]);
   const { data, error } = await rpc("request_ride", {
     p_pickup_lat: input.pickup_lat,
     p_pickup_lng: input.pickup_lng,
@@ -263,6 +273,10 @@ export async function requestDriveRide(input: {
     p_proxy_name: input.proxy_name ?? null,
     p_proxy_phone: input.proxy_phone ?? null,
     p_operation_id: input.operation_id ?? null,
+    p_pickup_wilaya: pickupGeo.wilayaCode,
+    p_pickup_commune: pickupGeo.commune,
+    p_dest_wilaya: destGeo.wilayaCode,
+    p_dest_commune: destGeo.commune,
   });
   if (error) {
     // Refus de zone réel → journalisation ops (best-effort, mig 0170).
@@ -283,6 +297,8 @@ export async function requestDriveRide(input: {
         reason,
         lat: isOrigin ? input.pickup_lat : input.dest_lat,
         lng: isOrigin ? input.pickup_lng : input.dest_lng,
+        wilayaCode: isOrigin ? pickupGeo.wilayaCode : destGeo.wilayaCode,
+        commune: isOrigin ? pickupGeo.commune : destGeo.commune,
       });
     }
     return { ok: false, error: driveZoneError(error.message) };
@@ -349,13 +365,23 @@ export async function precheckDriveRoute(input: {
   dest_lat: number;
   dest_lng: number;
 }): Promise<{ ok: boolean; error?: string }> {
+  // Reverse-géocode départ + arrivée → wilaya/commune, sinon une commune
+  // bloquée (scope 'commune') ne serait jamais détectée ici (mig 0174).
+  const [pickupGeo, destGeo] = await Promise.all([
+    resolveWilayaCommune(input.pickup_lat, input.pickup_lng),
+    resolveWilayaCommune(input.dest_lat, input.dest_lng),
+  ]);
   const org = await evaluateZone("drive", input.pickup_lat, input.pickup_lng, {
     role: "origin",
+    wilayaCode: pickupGeo.wilayaCode,
+    commune: pickupGeo.commune,
   });
   if (!org.allowed)
     return { ok: false, error: zoneMessageFr(org, "origin", "drive") };
   const dst = await evaluateZone("drive", input.dest_lat, input.dest_lng, {
     role: "destination",
+    wilayaCode: destGeo.wilayaCode,
+    commune: destGeo.commune,
   });
   if (!dst.allowed)
     return { ok: false, error: zoneMessageFr(dst, "destination", "drive") };
