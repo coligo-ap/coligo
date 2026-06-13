@@ -17,9 +17,12 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ANDROID_RES = join(ROOT, "android", "app", "src", "main", "res");
 const VALUES = join(ANDROID_RES, "values");
 
-const ICON_SRC = join(ROOT, "public", "icon-maskable-512.png");
-const BRAND = { r: 0x5c, g: 0x5c, b: 0xe0 };
-const BRAND_HEX = "#5C5CE0";
+// Icône de l'APK = logo de l'app COMMERCE (bandeau « COMMERCE »), c'est
+// l'application des commerçants. Fond de marque violet #6C2BD9 (le logo a déjà
+// ce violet → l'icône adaptative se fond proprement).
+const ICON_SRC = join(ROOT, "public", "logo-coligo-commerce-app.png");
+const BRAND = { r: 0x6c, g: 0x2b, b: 0xd9 };
+const BRAND_HEX = "#6C2BD9";
 
 // Tailles standard Android — mipmap-* (lanceur classique).
 const LAUNCHER = {
@@ -123,7 +126,7 @@ async function main() {
     `<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="colorPrimary">${BRAND_HEX}</color>
-    <color name="colorPrimaryDark">#4A4ABF</color>
+    <color name="colorPrimaryDark">#4B1FA6</color>
     <color name="colorAccent">${BRAND_HEX}</color>
 </resources>
 `,
