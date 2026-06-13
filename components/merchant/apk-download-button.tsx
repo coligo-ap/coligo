@@ -53,22 +53,15 @@ export function ApkDownloadButton({
     );
   }
 
-  // Force le TÉLÉCHARGEMENT plutôt qu'une navigation. L'attribut `download`
-  // d'un <a> est IGNORÉ pour une URL cross-origin (l'APK est sur Supabase) →
-  // le navigateur naviguait dans l'onglet et « tournait » sans rien proposer.
-  // Le param `?download=` de Supabase Storage renvoie
-  // `Content-Disposition: attachment` → le navigateur télécharge le .apk.
-  // `target="_blank"` ouvre le téléchargement hors du contexte PWA/WebView
-  // (sinon certains WebView bloquent les téléchargements in-app).
-  const downloadHref =
-    url + (url.includes("?") ? "&" : "?") + "download=coligo-commercant.apk";
-
+  // On télécharge via une route MÊME-ORIGINE (`/telecharger/apk`) qui relaie
+  // le fichier Supabase en `Content-Disposition: attachment`. Un lien direct
+  // vers Supabase (cross-origin) voyait son attribut `download` ignoré et
+  // certains navigateurs/WebView bloquaient le téléchargement → page qui
+  // tournait. Même-origine + attachment = téléchargement fiable partout.
   return (
     <a
-      href={downloadHref}
+      href="/telecharger/apk"
       download="coligo-commercant.apk"
-      target="_blank"
-      rel="noopener noreferrer"
       className="focus-visible:ring-primary-300 group flex w-full items-center justify-center gap-3 rounded-[14px] bg-gradient-to-r from-[#5B2EFF] to-[#6C2BD9] px-6 py-4 text-base font-semibold text-white shadow-lg shadow-[#6C2BD9]/25 transition-all hover:to-[#5B23C4] hover:shadow-xl focus:outline-none focus-visible:ring-2"
     >
       <Download className="size-5 shrink-0 transition-transform group-hover:translate-y-0.5" />

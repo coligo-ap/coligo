@@ -97,6 +97,17 @@ export default function TelechargerPage() {
         <p className="text-muted mt-2 text-center text-xs">
           Fichier .apk officiel Coligo · Android uniquement
           {version ? ` · version ${version}` : ""}
+          {url && (
+            <>
+              {" · "}
+              <a
+                href="/telecharger/apk"
+                className="text-primary-600 underline underline-offset-2"
+              >
+                Le téléchargement ne démarre pas ?
+              </a>
+            </>
+          )}
         </p>
       </div>
 
