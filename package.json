@@ -36,7 +36,8 @@
     "cap:open": "cap open android",
     "prepare": "husky",
     "test:drive:money": "node scripts/test-drive-money.mjs",
-    "test:drive:demo": "node scripts/test-drive-demo-e2e.mjs"
+    "test:drive:demo": "node scripts/test-drive-demo-e2e.mjs",
+    "test:zones": "node scripts/test-zones.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
