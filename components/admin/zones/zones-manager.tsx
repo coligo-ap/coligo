@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Ban, CheckCircle2, Clock, Plus, Power, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InfoHint } from "@/components/ui/info-hint";
 import { toast } from "@/components/ui/toast";
 import { WILAYAS, getWilayaName } from "@/lib/config/wilayas";
 import { getCommunes } from "@/lib/config/communes";
@@ -163,8 +164,13 @@ function ServiceDefaultsPanel({ def }: { def: ServiceDefaultRow }) {
             className="mt-0.5 size-4"
           />
           <span>
-            <span className="text-foreground block text-sm font-bold">
+            <span className="text-foreground flex items-center gap-1 text-sm font-bold">
               Service actif
+              <InfoHint
+                title="Service actif"
+                text="Interrupteur global du service. Décoché, le service est coupé partout, quelles que soient les règles de zone."
+                example="Décocher « Drive » pendant une panne → plus aucune course possible, dans toute l'Algérie."
+              />
             </span>
             <span className="text-muted text-xs">
               Décocher coupe entièrement le service (kill-switch).
@@ -181,8 +187,13 @@ function ServiceDefaultsPanel({ def }: { def: ServiceDefaultRow }) {
             className="mt-0.5 size-4"
           />
           <span>
-            <span className="text-foreground block text-sm font-bold">
+            <span className="text-foreground flex items-center gap-1 text-sm font-bold">
               Autorisé par défaut
+              <InfoHint
+                title="Autorisé par défaut"
+                text="Comportement là où AUCUNE règle ne s'applique. Coché = ouvert partout sauf zones bloquées. Décoché = fermé partout sauf zones autorisées (mode liste blanche)."
+                example="Décoché + une seule règle « Autoriser Béjaïa » → le service ne marche QUE dans Béjaïa."
+              />
             </span>
             <span className="text-muted text-xs">
               Coché : partout sauf zones bloquées. Décoché : nulle part sauf
@@ -193,8 +204,13 @@ function ServiceDefaultsPanel({ def }: { def: ServiceDefaultRow }) {
 
         {/* Distance max */}
         <div>
-          <span className="text-foreground block text-sm font-bold">
+          <span className="text-foreground flex items-center gap-1 text-sm font-bold">
             Distance max (km)
+            <InfoHint
+              title="Distance max"
+              text="Longueur maximale d'un trajet (Drive) ou d'une livraison, à vol d'oiseau. Vide = aucune limite. Recalculée côté serveur (infalsifiable)."
+              example="30 → une course de 40 km est refusée avec « trajet trop long »."
+            />
           </span>
           <Input
             type="number"
@@ -300,6 +316,12 @@ function RuleRow({ rule }: { rule: ZoneRuleRow }) {
       {/* Priorité */}
       <label className="text-muted flex items-center gap-1 text-xs">
         Priorité
+        <InfoHint
+          title="Priorité"
+          text="Si plusieurs règles visent le même endroit, la priorité la plus haute gagne (à égalité, la plus précise l'emporte)."
+          example="Une règle « autoriser Akbou » en priorité 20 passe devant un « bloquer Béjaïa » en priorité 10."
+          align="end"
+        />
         <Input
           type="number"
           value={priority}
@@ -467,8 +489,13 @@ function CreateRuleModal({
 
           {/* Scope */}
           <div>
-            <label className="text-foreground mb-1 block text-xs font-bold">
+            <label className="text-foreground mb-1 flex items-center gap-1 text-xs font-bold">
               Périmètre
+              <InfoHint
+                title="Périmètre (forme visée)"
+                text="La zone géographique de la règle. Pays / wilaya / commune = ciblage par nom. Rayon = un disque autour d'un point. Périmètre = une forme dessinée sur la carte."
+                example="« Commune : Akbou » ne vise qu'Akbou ; « Rayon 5 km » vise tout ce qui est à moins de 5 km du centre choisi."
+              />
             </label>
             <div className="grid grid-cols-5 gap-1.5">
               {(
@@ -595,8 +622,13 @@ function CreateRuleModal({
           {/* Direction (Drive uniquement) */}
           {service === "drive" && (
             <div>
-              <label className="text-foreground mb-1 block text-xs font-bold">
+              <label className="text-foreground mb-1 flex items-center gap-1 text-xs font-bold">
                 S&apos;applique au
+                <InfoHint
+                  title="Sens du trajet (Drive)"
+                  text="À quelle extrémité de la course la règle s'applique : au départ, à l'arrivée, ou aux deux. Permet d'autoriser A→B sans autoriser B→A."
+                  example="« Arrivée » + bloquer Akbou → on peut PARTIR d'Akbou, mais pas s'y faire déposer."
+                />
               </label>
               <div className="grid grid-cols-3 gap-1.5">
                 {(["any", "origin", "destination"] as const).map((d) => (
@@ -621,8 +653,14 @@ function CreateRuleModal({
           {/* Priorité + coming soon */}
           <div className="grid grid-cols-2 items-end gap-3">
             <div>
-              <label className="text-foreground mb-1 block text-xs font-bold">
+              <label className="text-foreground mb-1 flex items-center gap-1 text-xs font-bold">
                 Priorité
+                <InfoHint
+                  title="Priorité"
+                  text="Quand plusieurs règles visent le même point, celle qui a la priorité la plus haute l'emporte. À priorité égale, la plus précise gagne (périmètre > rayon > commune > wilaya > pays)."
+                  example="Bloquer la wilaya Béjaïa (priorité 10) + autoriser la commune Akbou (priorité 20) → tout Béjaïa est bloqué SAUF Akbou."
+                  align="end"
+                />
               </label>
               <Input
                 type="number"
@@ -631,7 +669,7 @@ function CreateRuleModal({
               />
             </div>
             {mode === "block" && (
-              <label className="flex items-center gap-2 pb-2 text-sm">
+              <label className="flex items-center gap-1.5 pb-2 text-sm">
                 <input
                   type="checkbox"
                   checked={comingSoon}
@@ -639,6 +677,12 @@ function CreateRuleModal({
                   className="size-4"
                 />
                 « Bientôt disponible »
+                <InfoHint
+                  title="« Bientôt disponible »"
+                  text="Au lieu d'un simple refus, le client voit « Zone bientôt disponible » avec un bouton « Prévenez-moi ». Sert à mesurer la demande avant d'ouvrir une zone."
+                  example="Akbou bloquée + « Bientôt » coché → le client peut laisser son numéro ; vous voyez la demande dans les stats."
+                  align="end"
+                />
               </label>
             )}
           </div>

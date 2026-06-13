@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Loader2, Save } from "lucide-react";
+import { InfoHint } from "@/components/ui/info-hint";
 import { simulateMargins } from "@/lib/drive/margins";
 import { updateDriveConfig, type DriveConfig } from "@/app/admin/drive/actions";
 
@@ -76,6 +77,8 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
             step={0.01}
             value={cfg.night_coef}
             onChange={(v) => set("night_coef", v)}
+            hint="Majoration nocturne du prix recommandé (jamais montrée au client). 0,20 = +20 % la nuit."
+            example="0,15 → une course recommandée à 200 DA passe à ~230 DA pendant la nuit."
           />
           <Num
             label="Début nuit (h)"
@@ -92,6 +95,8 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
             step={0.05}
             value={cfg.floor_rate}
             onChange={(v) => set("floor_rate", v)}
+            hint="Prix minimum accepté, en fraction du prix recommandé de jour. Empêche des offres trop basses."
+            example="0,80 → si le recommandé est 200 DA, le client ne peut pas proposer moins de 160 DA."
           />
         </div>
       </Section>
@@ -103,28 +108,38 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
             label="Pas du prix (DA)"
             value={cfg.price_step_da}
             onChange={(v) => set("price_step_da", v)}
+            hint="Incrément des boutons + / − quand le client ajuste son offre de prix."
+            example="20 → le prix monte ou descend de 20 DA à chaque appui."
           />
           <Num
             label="Boost min (DA)"
             value={cfg.boost_min_da}
             onChange={(v) => set("boost_min_da", v)}
+            hint="Le boost est un supplément que le client ajoute pour attirer un chauffeur plus vite. Ceci en est le minimum."
+            example="10 → impossible d'ajouter un boost inférieur à 10 DA."
           />
           <Num
             label="Pas du boost (DA)"
             value={cfg.boost_step_da}
             onChange={(v) => set("boost_step_da", v)}
+            hint="Incrément des boutons + / − du boost."
+            example="5 → le boost s'ajuste par tranches de 5 DA."
           />
           <Num
             label="Boost défaut (× trajet)"
             step={0.01}
             value={cfg.boost_default_rate}
             onChange={(v) => set("boost_default_rate", v)}
+            hint="Boost proposé par défaut, en fraction du prix de la course."
+            example="0,10 → pour une course à 300 DA, le boost suggéré est 30 DA."
           />
           <Num
             label="Cashback (× prix, financé par la commission)"
             step={0.005}
             value={cfg.cashback_rate}
             onChange={(v) => set("cashback_rate", v)}
+            hint="Part du prix reversée au client en crédit Coligo Pay, prise SUR la commission plateforme (pas un coût en plus)."
+            example="0,02 → sur une course à 300 DA, le client gagne 6 DA de cashback."
           />
         </div>
         <label className="mt-2 flex items-center gap-2 text-sm font-semibold">
@@ -146,6 +161,8 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
             step={0.005}
             value={cfg.free_rate}
             onChange={(v) => set("free_rate", v)}
+            hint="Commission plateforme du plan gratuit, en fraction du prix (0,12 = 12 % prélevés sur chaque course). Idem pour Pro/Premium."
+            example="0,12 → sur une course à 300 DA, la plateforme prend 36 DA."
           />
           <Num
             label="Pro — DA/mois"
@@ -167,6 +184,8 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
             label="Jours de grâce (renouvellement)"
             value={cfg.sub_grace_days}
             onChange={(v) => set("sub_grace_days", v)}
+            hint="Délai toléré après l'échéance d'un abonnement avant de repasser le chauffeur au plan gratuit."
+            example="3 → un chauffeur Pro non renouvelé garde son tarif Pro encore 3 jours."
           />
         </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -199,23 +218,31 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
             label="Dette max (DA)"
             value={cfg.freeze_debt_da}
             onChange={(v) => set("freeze_debt_da", v)}
+            hint="Dette (commissions/avances dues) au-delà de laquelle le chauffeur ne peut plus prendre de course."
+            example="2000 → à 2000 DA de dette, le chauffeur est bloqué jusqu'au règlement."
           />
           <Num
             label="Taux annulation max"
             step={0.01}
             value={cfg.freeze_cancel_rate}
             onChange={(v) => set("freeze_cancel_rate", v)}
+            hint="Au-delà de ce taux d'annulations, le chauffeur est gelé automatiquement."
+            example="0,30 → plus de 30 % de courses annulées sur la fenêtre → gel."
           />
           <Num
             label="… sur N dernières courses"
             value={cfg.freeze_cancel_window}
             onChange={(v) => set("freeze_cancel_window", v)}
+            hint="Fenêtre de calcul du taux d'annulation ci-contre."
+            example="20 → on regarde les 20 dernières courses."
           />
           <Num
             label="Note minimale"
             step={0.1}
             value={cfg.freeze_min_rating}
             onChange={(v) => set("freeze_min_rating", v)}
+            hint="En dessous de cette note moyenne, le chauffeur est gelé."
+            example="3,5 → un chauffeur sous 3,5 / 5 est gelé."
           />
           <Num
             label="… sur N derniers avis"
@@ -232,22 +259,30 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
             label="« Je rentre chez moi » / jour"
             value={cfg.home_dir_max_per_day}
             onChange={(v) => set("home_dir_max_per_day", v)}
+            hint="Nombre de fois par jour où un chauffeur peut activer le mode « trajet retour » (il ne reçoit que les courses qui vont vers chez lui)."
+            example="2 → 2 trajets retour maximum par jour et par chauffeur."
           />
           <Num
             label="TTL demande (min)"
             value={cfg.request_ttl_min}
             onChange={(v) => set("request_ttl_min", v)}
+            hint="« TTL » = durée de vie. Temps avant qu'une demande de course expire si aucun chauffeur n'accepte."
+            example="10 → la recherche s'arrête automatiquement au bout de 10 min."
           />
           <Num
             label="TTL proposition (min)"
             value={cfg.offer_ttl_min}
             onChange={(v) => set("offer_ttl_min", v)}
+            hint="Durée pendant laquelle l'offre de prix d'un chauffeur reste valable côté client."
+            example="3 → une offre disparaît si le client ne répond pas en 3 min."
           />
           <Num
             label="Rayon back-to-back (km)"
             step={0.1}
             value={cfg.b2b_radius_km}
             onChange={(v) => set("b2b_radius_km", v)}
+            hint="« Back-to-back » = enchaîner deux courses. Distance max pour proposer la course suivante à un chauffeur juste avant qu'il termine."
+            example="2 → on enchaîne si la prochaine prise en charge est à moins de 2 km de l'arrivée."
           />
           <Num
             label="Attente client absent (min)"
@@ -259,6 +294,8 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
             step={0.1}
             value={cfg.deviation_km}
             onChange={(v) => set("deviation_km", v)}
+            hint="Sécurité : si la course s'écarte de l'itinéraire prévu de plus de cette distance (pendant la durée ci-contre), une alerte est déclenchée."
+            example="1,2 km pendant 2 min → alerte si le trajet dévie autant sans raison."
           />
           <Num
             label="… pendant (min)"
@@ -359,15 +396,24 @@ function Num({
   value,
   onChange,
   step = 1,
+  hint,
+  example,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   step?: number;
+  /** Aide « i » (explication courte) affichée à côté du libellé. */
+  hint?: string;
+  /** Exemple concret pour l'aide. */
+  example?: string;
 }) {
   return (
     <label className="block text-xs font-semibold">
-      <span className="text-muted mb-1 block">{label}</span>
+      <span className="text-muted mb-1 flex items-center gap-1">
+        {label}
+        {hint && <InfoHint title={label} text={hint} example={example} />}
+      </span>
       <input
         type="number"
         step={step}
