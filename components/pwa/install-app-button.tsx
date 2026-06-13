@@ -2,19 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { MonitorDown, Share, SquarePlus, X } from "lucide-react";
+import { MonitorDown } from "lucide-react";
 import { isNative } from "@/lib/native/context";
+import { isAndroid, isIos, isStandalone } from "@/lib/pwa/platform";
 import { cn } from "@/lib/utils";
+import { AndroidIcon, AndroidInstallSheet } from "./android-install-sheet";
+import { AppleIcon, IosInstallSheet } from "./ios-install-sheet";
 
 /**
  * Bouton « Installer l'application » (PWA) — un par espace (client, livreur,
  * chauffeur, commerçant), chacun installant SA déclinaison (manifest/icône/nom
  * du segment, cf. lib/config/pwa.ts).
  *
- * - Chrome Android/desktop : on capture `beforeinstallprompt` et le tap ouvre
- *   le prompt d'installation natif.
- * - iOS (aucun prompt programmable) : le tap ouvre un mini-guide
- *   « Partager → Sur l'écran d'accueil ».
+ * - Chrome/Edge/Brave Android + desktop : on capture `beforeinstallprompt` et
+ *   le tap ouvre DIRECTEMENT le prompt d'installation natif (zéro étape
+ *   manuelle, pas de « menu ⋮ »).
+ * - iPhone/iPad (aucun prompt programmable côté Apple) : le tap ouvre la fiche
+ *   guidée Safari « Partager → Sur l'écran d'accueil ».
+ * - Android sans prompt natif (Firefox, navigateurs in-app) : fiche guidée
+ *   « menu ⋮ → Installer ».
  * - Déjà installé (standalone) ou APK Capacitor : rien ne s'affiche.
  *
  * L'événement `beforeinstallprompt` peut partir AVANT le montage React → on le
@@ -32,19 +38,12 @@ if (typeof window !== "undefined") {
     e.preventDefault();
     deferredPrompt = e as BeforeInstallPromptEvent;
   });
+  window.addEventListener("appinstalled", () => {
+    deferredPrompt = null;
+  });
 }
 
-function isStandalone(): boolean {
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    // iOS expose `navigator.standalone` (hors spec).
-    (navigator as unknown as { standalone?: boolean }).standalone === true
-  );
-}
-
-function isIos(): boolean {
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
+type Platform = "ios" | "android" | "other";
 
 export function InstallAppButton({
   className,
@@ -58,16 +57,19 @@ export function InstallAppButton({
 }) {
   const t = useTranslations("install");
   const [visible, setVisible] = useState(false);
+  const [platform, setPlatform] = useState<Platform>("other");
   const [guide, setGuide] = useState<"ios" | "android" | null>(null);
 
   useEffect(() => {
     // Visible seulement sur web NON installé (ni APK, ni PWA déjà posée).
     setVisible(!isNative() && !isStandalone());
+    setPlatform(isIos() ? "ios" : isAndroid() ? "android" : "other");
   }, []);
 
   if (!visible) return null;
 
   const onInstall = async () => {
+    // Android/desktop Chrome : prompt natif direct, aucune étape manuelle.
     if (deferredPrompt) {
       const p = deferredPrompt;
       await p.prompt();
@@ -78,9 +80,22 @@ export function InstallAppButton({
       }
       return;
     }
-    // Pas de prompt programmable → guide manuel selon la plateforme.
-    setGuide(isIos() ? "ios" : "android");
+    // Pas de prompt programmable → fiche guidée selon la plateforme.
+    setGuide(platform === "ios" ? "ios" : "android");
   };
+
+  const Icon =
+    platform === "ios"
+      ? AppleIcon
+      : platform === "android"
+        ? AndroidIcon
+        : null;
+  const defaultLabel =
+    platform === "ios"
+      ? t("ctaIos")
+      : platform === "android"
+        ? t("ctaAndroid")
+        : t("cta");
 
   return (
     <>
@@ -93,11 +108,15 @@ export function InstallAppButton({
         )}
       >
         <span className="bg-primary-50 text-primary-600 flex size-10 shrink-0 items-center justify-center rounded-full">
-          <MonitorDown className="size-5" />
+          {Icon ? (
+            <Icon className="size-5" />
+          ) : (
+            <MonitorDown className="size-5" />
+          )}
         </span>
         <span className="min-w-0">
           <span className="block text-sm font-semibold">
-            {label ?? t("cta")}
+            {label ?? defaultLabel}
           </span>
           <span className="text-muted block text-xs">
             {subtitle ?? t("subtitle")}
@@ -105,54 +124,9 @@ export function InstallAppButton({
         </span>
       </button>
 
-      {guide && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-4 sm:items-center"
-          onClick={() => setGuide(null)}
-        >
-          <div
-            className="w-full max-w-sm rounded-[18px] bg-white p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-bold">
-                {t(guide === "ios" ? "iosTitle" : "androidTitle")}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setGuide(null)}
-                aria-label={t("close")}
-                className="text-muted hover:text-foreground -m-1 p-1"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-            {guide === "ios" ? (
-              <ol className="space-y-3 text-sm">
-                <li className="flex items-center gap-3">
-                  <span className="bg-primary-50 text-primary-600 flex size-8 shrink-0 items-center justify-center rounded-full">
-                    <Share className="size-4" />
-                  </span>
-                  <span>
-                    <span className="text-muted me-1.5 font-semibold">1.</span>
-                    {t("iosStep1")}
-                  </span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="bg-primary-50 text-primary-600 flex size-8 shrink-0 items-center justify-center rounded-full">
-                    <SquarePlus className="size-4" />
-                  </span>
-                  <span>
-                    <span className="text-muted me-1.5 font-semibold">2.</span>
-                    {t("iosStep2")}
-                  </span>
-                </li>
-              </ol>
-            ) : (
-              <p className="text-sm">{t("androidHint")}</p>
-            )}
-          </div>
-        </div>
+      {guide === "ios" && <IosInstallSheet onClose={() => setGuide(null)} />}
+      {guide === "android" && (
+        <AndroidInstallSheet onClose={() => setGuide(null)} />
       )}
     </>
   );

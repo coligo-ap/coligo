@@ -13,6 +13,11 @@ export function isIos(): boolean {
   return /iPhone|iPad|iPod/.test(ua) || iPadOS;
 }
 
+export function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android/i.test(navigator.userAgent || "");
+}
+
 export function isIosSafari(): boolean {
   if (!isIos()) return false;
   const ua = navigator.userAgent || "";

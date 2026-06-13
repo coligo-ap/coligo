@@ -1034,12 +1034,23 @@
   },
   "install": {
     "cta": "Installer l’application",
+    "ctaIos": "Installer sur iPhone",
+    "ctaAndroid": "Installer sur Android",
     "subtitle": "Accès direct depuis ton écran d’accueil, notifications comprises.",
-    "iosTitle": "Installer sur iPhone",
-    "iosStep1": "Touche le bouton Partager",
-    "iosStep2": "Choisis « Sur l’écran d’accueil »",
-    "androidTitle": "Installer l’application",
-    "androidHint": "Dans le menu du navigateur (⋮), choisis « Installer l’application » ou « Ajouter à l’écran d’accueil ».",
-    "close": "Fermer"
+    "close": "Fermer",
+    "done": "Compris",
+    "iosTitle": "Installez Coligo sur votre iPhone",
+    "iosIntro": "En 3 secondes : icône sur l’écran d’accueil, ouverture instantanée, alertes plus visibles. Comme une vraie app.",
+    "iosStep1": "Appuyez sur le bouton Partager en bas de Safari.",
+    "iosStep2": "Faites défiler et choisissez « Sur l’écran d’accueil ».",
+    "iosStep3": "Validez avec « Ajouter » en haut à droite.",
+    "iosBar": "Bouton Partager dans Safari",
+    "iosTip": "Astuce : une fois installée, lancez Coligo depuis l’icône — c’est requis par iOS pour recevoir les notifications.",
+    "androidTitle": "Installer Coligo sur Android",
+    "androidIntro": "Ajoutez Coligo à votre écran d’accueil pour un accès instantané et des notifications en temps réel.",
+    "androidStep1": "Ouvrez le menu du navigateur (⋮) en haut à droite.",
+    "androidStep2": "Choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».",
+    "androidStep3": "Confirmez avec « Installer ».",
+    "androidMenu": "Menu du navigateur"
   }
 }
