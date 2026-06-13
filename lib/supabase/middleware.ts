@@ -256,6 +256,7 @@ const MERCHANT_ROOTS = [
   "/stats",
   "/aide",
   "/settings",
+  "/telecharger",
 ];
 
 /**
