@@ -1,17 +1,33 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { X } from "lucide-react";
+import { Info, X } from "lucide-react";
+import { isIosSafari } from "@/lib/pwa/platform";
 
 /**
  * Fiche d'installation guidée pour iPhone (Safari). Apple ne propose pas de
  * prompt automatique — il faut accompagner l'utilisateur pas à pas.
+ *
+ * Deux cas :
+ * - Dans Safari : guide « Partager → Sur l'écran d'accueil » + note pour
+ *   retrouver l'option si elle n'est pas visible (il faut souvent scroller la
+ *   liste d'actions, voire l'activer via « Modifier les actions… »).
+ * - Hors Safari (Chrome iOS, Firefox iOS, navigateur intégré Facebook/Instagram
+ *   /Gmail…) : l'option « Sur l'écran d'accueil » N'EXISTE PAS → on demande
+ *   d'abord d'ouvrir le lien dans Safari.
  *
  * Réutilisée par `InstallBanner`, `InstallButton` et `InstallAppButton` pour
  * garantir un guide cohérent (et bilingue FR/AR) sur tous les points d'entrée.
  */
 export function IosInstallSheet({ onClose }: { onClose: () => void }) {
   const t = useTranslations("install");
+  // Détection après montage (évite tout écart d'hydratation).
+  const [safari, setSafari] = useState(true);
+  useEffect(() => setSafari(isIosSafari()), []);
+
+  if (!safari) return <OpenInSafariSheet onClose={onClose} />;
+
   return (
     <div
       role="dialog"
@@ -47,7 +63,7 @@ export function IosInstallSheet({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Étapes */}
-        <ol className="space-y-3 px-5 pb-5 text-sm">
+        <ol className="space-y-3 px-5 pb-3 text-sm">
           {[t("iosStep1"), t("iosStep2"), t("iosStep3")].map((step, i) => (
             <li key={i} className="flex items-start gap-3">
               <Step n={i + 1} />
@@ -55,6 +71,14 @@ export function IosInstallSheet({ onClose }: { onClose: () => void }) {
             </li>
           ))}
         </ol>
+
+        {/* « Je ne trouve pas l'option » : il faut souvent scroller la liste. */}
+        <div className="px-5 pb-5">
+          <div className="border-border bg-surface-2 text-muted flex items-start gap-2 rounded-[12px] border p-3 text-xs">
+            <Info className="text-primary-600 mt-0.5 size-4 shrink-0" />
+            <span>{t("iosNotFound")}</span>
+          </div>
+        </div>
 
         {/* Note honnête sur les notifs iOS */}
         <div className="border-border bg-primary-50/60 border-t px-5 py-3 text-xs">
@@ -72,6 +96,85 @@ export function IosInstallSheet({ onClose }: { onClose: () => void }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Variante affichée quand on n'est PAS dans Safari (Chrome iOS, navigateur
+ * intégré…) : l'option « Sur l'écran d'accueil » n'existe pas → on guide
+ * d'abord vers « Ouvrir dans Safari ».
+ */
+function OpenInSafariSheet({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("install");
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("iosSafariTitle")}
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/55 sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="border-border w-full max-w-md overflow-hidden rounded-t-[18px] border bg-white shadow-2xl sm:rounded-[18px]"
+      >
+        <div className="from-primary-600 to-primary-700 relative bg-gradient-to-br p-5 text-white">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t("close")}
+            className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white"
+          >
+            <X className="size-4" />
+          </button>
+          <div className="flex items-center gap-2">
+            <SafariIcon className="size-5" />
+            <h2 className="text-lg font-semibold">{t("iosSafariTitle")}</h2>
+          </div>
+          <p className="text-primary-100 mt-1 text-sm">{t("iosSafariBody")}</p>
+        </div>
+
+        <ol className="space-y-3 px-5 py-5 text-sm">
+          {[t("iosSafariStep1"), t("iosSafariStep2"), t("iosSafariStep3")].map(
+            (step, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <Step n={i + 1} />
+                <div className="flex-1 pt-0.5">{step}</div>
+              </li>
+            )
+          )}
+        </ol>
+
+        <div className="border-border border-t px-5 py-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-primary-600 hover:bg-primary-700 inline-flex h-10 w-full items-center justify-center rounded-[10px] px-5 text-sm font-medium text-white"
+          >
+            {t("done")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Boussole Safari stylisée — repère visuel « ouvrez dans Safari ». */
+function SafariIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+    </svg>
   );
 }
 
