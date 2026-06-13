@@ -65,6 +65,7 @@ import {
   type DriveQuote,
 } from "@/app/(customer)/drive/actions";
 import { joinZoneWaitlist } from "@/lib/zones/actions";
+import { AvailabilityNotice } from "@/components/zones/availability-notice";
 
 /**
  * Coligo Drive — parcours client conforme à MAQUETTE-vtc-coligo.html :
@@ -918,6 +919,14 @@ export function DriveView() {
                 </button>
               )}
             </div>
+          )}
+          {!zoneBlock && pickup && (
+            <AvailabilityNotice
+              service="drive"
+              lat={pickup.lat}
+              lng={pickup.lng}
+              className="mt-2"
+            />
           )}
           <PrimaryBtn
             onClick={submitRequest}

@@ -36,6 +36,36 @@ export async function getZoneAvailability(input: {
 }
 
 /**
+ * Compte des prestataires EN LIGNE près d'un point (mig 0171) — pour l'UX
+ * « peu de livreurs/chauffeurs disponibles » (SOFT, non-bloquant). Renvoie -1
+ * en cas d'erreur infra → l'UI n'affiche alors RIEN (pas de faux négatif).
+ */
+export async function getProvidersOnline(input: {
+  service: ServiceKind;
+  lat: number;
+  lng: number;
+  radiusKm?: number;
+}): Promise<{ count: number }> {
+  try {
+    const supabase = await createClient();
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    const { data, error } = await rpc("providers_online_near", {
+      p_service: input.service,
+      p_lat: input.lat,
+      p_lng: input.lng,
+      p_radius_km: input.radiusKm ?? 8,
+    });
+    if (error) return { count: -1 };
+    return { count: typeof data === "number" ? data : 0 };
+  } catch {
+    return { count: -1 };
+  }
+}
+
+/**
  * « Prévenez-moi quand ma zone sera couverte » (mig 0169). Best-effort :
  * n'échoue jamais l'UX. `contact` optionnel (le user_id est capté côté RPC).
  */

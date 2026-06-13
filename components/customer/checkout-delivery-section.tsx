@@ -16,6 +16,7 @@ import { cn, formatDA } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import { ZoneNotice } from "@/components/zones/zone-notice";
+import { AvailabilityNotice } from "@/components/zones/availability-notice";
 import {
   computeDeliveryFee,
   computeTourDeliveryFee,
@@ -477,6 +478,18 @@ function DeliveryMapCard({
           lng={lng ?? null}
           services={value.mode ? [value.mode] : ["express", "tour"]}
           role="destination"
+          className="mx-4 mt-1"
+        />
+      )}
+
+      {/* Disponibilité livreurs (Express seulement — la tournée est planifiée).
+          Soft : informe uniquement si AUCUN livreur en ligne dans le secteur. */}
+      {hasPoint && !outOfRange && value.mode === "express" && (
+        <AvailabilityNotice
+          service="express"
+          lat={lat ?? null}
+          lng={lng ?? null}
+          radiusKm={12}
           className="mx-4 mt-1"
         />
       )}
