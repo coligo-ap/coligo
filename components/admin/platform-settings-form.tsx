@@ -6,6 +6,7 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InfoHint } from "@/components/ui/info-hint";
 import { toast } from "@/components/ui/toast";
 import type { PlatformSettings } from "@/lib/types";
 import { rateToPct } from "@/lib/validation/platform";
@@ -20,15 +21,37 @@ const RATE_FIELDS: {
   name: keyof PlatformSettings;
   label: string;
   hint?: string;
+  example?: string;
 }[] = [
-  { name: "commission_cash", label: "Commission — Cash (%)" },
-  { name: "commission_online", label: "Commission — En ligne (%)" },
-  { name: "cashback_online", label: "Cashback — En ligne (%)" },
-  { name: "cashback_cash", label: "Cashback — Cash (%)" },
+  {
+    name: "commission_cash",
+    label: "Commission — Cash (%)",
+    hint: "Commission Coligo sur les PRODUITS d'une commande payée en espèces.",
+    example: "5 % → sur 1000 DA de produits, Coligo prend 50 DA.",
+  },
+  {
+    name: "commission_online",
+    label: "Commission — En ligne (%)",
+    hint: "Commission Coligo sur les produits d'une commande payée en ligne (carte / Coligo Pay).",
+    example: "8 % → sur 1000 DA de produits, Coligo prend 80 DA.",
+  },
+  {
+    name: "cashback_online",
+    label: "Cashback — En ligne (%)",
+    hint: "Crédit Coligo Pay reversé au client sur une commande payée en ligne. Pris sur la commission, pas un coût en plus.",
+    example: "2 % → sur 1000 DA, le client gagne 20 DA de cashback.",
+  },
+  {
+    name: "cashback_cash",
+    label: "Cashback — Cash (%)",
+    hint: "Idem cashback, mais pour les commandes payées en espèces.",
+    example: "1 % → sur 1000 DA, 10 DA de cashback client.",
+  },
   {
     name: "chargily_fee",
     label: "Frais Chargily (%)",
-    hint: "Coût Coligo (global, 0 % en formule Startup).",
+    hint: "Frais du prestataire de paiement carte (Chargily), à la charge de Coligo. 0 % en formule Startup.",
+    example: "1,5 % → sur un paiement carte de 1000 DA, 15 DA de frais.",
   },
 ];
 
@@ -71,7 +94,12 @@ export function PlatformSettingsForm({
       <div className="grid gap-4 sm:grid-cols-2">
         {RATE_FIELDS.map((f) => (
           <div key={f.name} className="space-y-1.5">
-            <Label>{f.label}</Label>
+            <Label className="flex items-center gap-1">
+              {f.label}
+              {f.hint && (
+                <InfoHint title={f.label} text={f.hint} example={f.example} />
+              )}
+            </Label>
             <Input
               type="number"
               name={f.name}
@@ -82,11 +110,17 @@ export function PlatformSettingsForm({
               required
               disabled={pending}
             />
-            {f.hint && <p className="text-subtle text-xs">{f.hint}</p>}
           </div>
         ))}
         <div className="space-y-1.5">
-          <Label>Seuil de dette (DA)</Label>
+          <Label className="flex items-center gap-1">
+            Seuil de dette (DA)
+            <InfoHint
+              title="Seuil de dette"
+              text="Dette max d'un commerçant (commissions dues à Coligo) avant blocage des nouvelles commandes."
+              example="5000 → au-delà de 5000 DA dus, le commerçant est bloqué jusqu'au règlement."
+            />
+          </Label>
           <Input
             type="number"
             name="max_debt_da"
@@ -113,7 +147,14 @@ export function PlatformSettingsForm({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label>Base (DA)</Label>
+            <Label className="flex items-center gap-1">
+              Base (DA)
+              <InfoHint
+                title="Base"
+                text="Montant fixe de départ de chaque livraison, avant d'ajouter le prix au km."
+                example="100 → toute livraison commence à 100 DA, puis on ajoute la distance."
+              />
+            </Label>
             <Input
               type="number"
               name="delivery_base_da"
@@ -125,7 +166,14 @@ export function PlatformSettingsForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Prix au km (DA)</Label>
+            <Label className="flex items-center gap-1">
+              Prix au km (DA)
+              <InfoHint
+                title="Prix au km"
+                text="Montant ajouté par kilomètre facturable (au-delà du seuil de km gratuits)."
+                example="25 → 4 km facturables ajoutent 100 DA à la base."
+              />
+            </Label>
             <Input
               type="number"
               name="delivery_per_km_da"
@@ -137,7 +185,14 @@ export function PlatformSettingsForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Seuil km gratuits (km)</Label>
+            <Label className="flex items-center gap-1">
+              Seuil km gratuits (km)
+              <InfoHint
+                title="Seuil km gratuits"
+                text="Nombre de km offerts avant de facturer le prix au km. Distance facturable = distance − ce seuil (jamais négatif)."
+                example="2 → les 2 premiers km ne sont pas facturés ; à 5 km on facture 3 km."
+              />
+            </Label>
             <Input
               type="number"
               name="delivery_free_km_threshold"
@@ -152,7 +207,14 @@ export function PlatformSettingsForm({
             </p>
           </div>
           <div className="space-y-1.5">
-            <Label>Rayon max (km)</Label>
+            <Label className="flex items-center gap-1">
+              Rayon max (km)
+              <InfoHint
+                title="Rayon max"
+                text="Distance de livraison maximale qu'un commerçant peut configurer pour sa boutique."
+                example="10 → un commerçant ne peut pas accepter de livraison au-delà de 10 km."
+              />
+            </Label>
             <Input
               type="number"
               name="delivery_max_radius_km"
@@ -164,7 +226,14 @@ export function PlatformSettingsForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Plancher (DA)</Label>
+            <Label className="flex items-center gap-1">
+              Plancher (DA)
+              <InfoHint
+                title="Plancher livraison"
+                text="Prix de livraison minimum, même pour une adresse très proche."
+                example="80 → une livraison n'est jamais facturée moins de 80 DA."
+              />
+            </Label>
             <Input
               type="number"
               name="delivery_min_da"
@@ -176,7 +245,14 @@ export function PlatformSettingsForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Plafond (DA)</Label>
+            <Label className="flex items-center gap-1">
+              Plafond (DA)
+              <InfoHint
+                title="Plafond livraison"
+                text="Prix de livraison maximum, même pour une adresse très éloignée."
+                example="400 → une livraison n'est jamais facturée plus de 400 DA."
+              />
+            </Label>
             <Input
               type="number"
               name="delivery_max_da"
@@ -188,7 +264,14 @@ export function PlatformSettingsForm({
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Commission tournée (%)</Label>
+            <Label className="flex items-center gap-1">
+              Commission tournée (%)
+              <InfoHint
+                title="Commission tournée"
+                text="Part prélevée par Coligo sur les FRAIS DE LIVRAISON des commandes en tournée (pas l'express, pas les produits)."
+                example="20 % → sur 200 DA de frais de livraison en tournée, Coligo prend 40 DA."
+              />
+            </Label>
             <Input
               type="number"
               name="tour_delivery_commission_rate"

@@ -10,6 +10,7 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSuperAdmin } from "@/lib/auth/admin";
 import { formatDA } from "@/lib/utils";
+import { InfoHint } from "@/components/ui/info-hint";
 
 export const dynamic = "force-dynamic";
 
@@ -129,15 +130,42 @@ export default async function AdminDeliveryFinancesPage() {
           Ledger livreurs (cumul)
         </h2>
         <dl className="grid grid-cols-2 gap-3 text-sm lg:grid-cols-6">
-          <LedgerCell label="Rémunérations livreurs" value={totalPayouts} />
-          <LedgerCell label="Cash encaissé livreurs" value={cashCollected} />
-          <LedgerCell label="Dû livreur → commerçant" value={owesMerchant} />
-          <LedgerCell label="Dû livreur → plateforme" value={owesPlatform} />
+          <LedgerCell
+            label="Rémunérations livreurs"
+            value={totalPayouts}
+            hint="Total dû/versé aux livreurs pour leurs courses. Dans le modèle MVP, 100 % des frais de livraison reviennent au livreur."
+            example="20 livraisons à 150 DA → 3000 DA de rémunérations."
+          />
+          <LedgerCell
+            label="Cash encaissé livreurs"
+            value={cashCollected}
+            hint="Argent liquide collecté par les livreurs auprès des clients (commandes payées à la livraison / COD)."
+            example="Le livreur encaisse 1200 DA en espèces → il en est le dépositaire jusqu'au reversement."
+          />
+          <LedgerCell
+            label="Dû livreur → commerçant"
+            value={owesMerchant}
+            hint="Ce que les livreurs doivent reverser aux commerçants : le cash encaissé qui correspond aux produits."
+            example="Cash COD 1200 DA dont 1000 DA de produits → 1000 DA dus au commerçant."
+          />
+          <LedgerCell
+            label="Dû livreur → plateforme"
+            value={owesPlatform}
+            hint="Ce que les livreurs doivent à Coligo (commissions, avances à régulariser)."
+            example="Commission/avances non encore réglées par le livreur."
+          />
           <LedgerCell
             label="Avances no-show remboursées"
             value={advanceRefunds}
+            hint="Avances rendues au livreur après validation par le support d'un « client absent » (no-show)."
+            example="Le client ne se présente pas → après validation, l'avance du livreur lui est remboursée."
           />
-          <LedgerCell label="Ajustements" value={adjustments} />
+          <LedgerCell
+            label="Ajustements"
+            value={adjustments}
+            hint="Corrections manuelles passées par un admin (type « adjustment ») pour rectifier le ledger."
+            example="+200 DA pour compenser une erreur de course."
+          />
         </dl>
         <p className="text-subtle mt-3 text-xs">
           Modèle MVP : 100 % des <code>delivery_fee_da</code> vont au livreur.
@@ -210,10 +238,23 @@ function Kpi({
   );
 }
 
-function LedgerCell({ label, value }: { label: string; value: number }) {
+function LedgerCell({
+  label,
+  value,
+  hint,
+  example,
+}: {
+  label: string;
+  value: number;
+  hint?: string;
+  example?: string;
+}) {
   return (
     <div>
-      <dt className="text-muted text-xs">{label}</dt>
+      <dt className="text-muted flex items-center gap-1 text-xs">
+        {label}
+        {hint && <InfoHint title={label} text={hint} example={example} />}
+      </dt>
       <dd className="text-base font-semibold tabular-nums">
         {formatDA(value)}
       </dd>
