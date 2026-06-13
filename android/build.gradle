@@ -24,17 +24,20 @@ allprojects {
     }
 }
 
-// Override : Capacitor 8 cible Java 21 par défaut, on ramène à 17 pour
-// que le build passe avec le JDK 17 installé (Eclipse Adoptium 17.0.8).
-// Sans ça, capacitor-android:compileDebugJavaWithJavac échoue avec
-// « invalid source release: 21 ».
+// Alignement Java/Kotlin sur 21 (cible par défaut de Capacitor 8). Le module
+// capacitor-geolocation force `kotlin { jvmToolchain(21) }` : laisser le Java
+// en 17 casse le build release avec « Inconsistent JVM-target compatibility
+// (Java 17 vs Kotlin 21) ». On harmonise donc TOUT en 21.
+// → Build avec un JDK 21. Le JBR fourni par Android Studio convient :
+//   JAVA_HOME="C:\Program Files\Android\Android Studio\jbr".
+//   Le JDK 17 seul ne suffit plus (geolocation exige un toolchain 21).
 subprojects {
     afterEvaluate {
         if (project.hasProperty("android")) {
             project.android {
                 compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_17
-                    targetCompatibility JavaVersion.VERSION_17
+                    sourceCompatibility JavaVersion.VERSION_21
+                    targetCompatibility JavaVersion.VERSION_21
                 }
             }
         }
