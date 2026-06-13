@@ -1,7 +1,7 @@
 {
   "id": "coligo-commercant",
-  "name": "Coligo Commerçant",
-  "short_name": "Commerçant",
+  "name": "Coligo COMMERCE",
+  "short_name": "COMMERCE",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",

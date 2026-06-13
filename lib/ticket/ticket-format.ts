@@ -190,3 +190,22 @@ export function deriveTicketMeta(order: TicketOrder): TicketMeta {
       : "Merci pour votre confiance !",
   };
 }
+
+/**
+ * Fidélité client : à partir du nombre TOTAL de commandes de ce client chez CE
+ * commerçant (commandes passées + la courante, déjà insérée). `null`/0 →
+ * inconnu (rien à imprimer, ex. client sans téléphone).
+ *   1   → première commande
+ *   ≥ 2 → client récurrent (le builder affiche des paniers / le rang).
+ */
+export function loyaltyInfo(
+  count?: number | null
+): { first: boolean; count: number } | null {
+  if (count == null || count < 1) return null;
+  return { first: count === 1, count };
+}
+
+/** Ordinal français court : 1 → « 1re », n → « ne » (2e, 3e…). */
+export function ordinalFr(n: number): string {
+  return n === 1 ? "1re" : `${n}e`;
+}

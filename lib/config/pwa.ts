@@ -38,10 +38,25 @@ export const PWA_APPS: Record<
     startUrl: "/chauffeur",
   },
   commercant: {
-    name: "Coligo Commerçant",
-    shortName: "Commerçant",
+    name: "Coligo COMMERCE",
+    shortName: "COMMERCE",
     manifest: "/manifest-commercant.webmanifest",
     startUrl: "/dashboard",
+  },
+};
+
+/**
+ * Favicon (onglet navigateur) par espace. L'espace commerçant porte le logo
+ * COMMERCE (bandeau) ; les autres gardent le logo Coligo neutre — le favicon
+ * étant servi globalement, on évite d'afficher « COMMERCE » côté client.
+ */
+const FAVICONS: Record<PwaSpace, { ico: string; png32: string }> = {
+  client: { ico: "/favicon.ico", png32: "/favicon-32.png" },
+  livreur: { ico: "/favicon.ico", png32: "/favicon-32.png" },
+  drive: { ico: "/favicon.ico", png32: "/favicon-32.png" },
+  commercant: {
+    ico: "/favicon-commerce.ico",
+    png32: "/favicon-commerce-32.png",
   },
 };
 
@@ -97,8 +112,8 @@ export function pwaMetadata(space: PwaSpace): Metadata {
     },
     icons: {
       icon: [
-        { url: "/favicon.ico", sizes: "48x48" },
-        { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+        { url: FAVICONS[space].ico, sizes: "48x48" },
+        { url: FAVICONS[space].png32, sizes: "32x32", type: "image/png" },
         { url: `/icons/${space}-192.png`, sizes: "192x192", type: "image/png" },
       ],
       apple: [

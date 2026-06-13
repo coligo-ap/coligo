@@ -6,6 +6,8 @@ export type OrderToTicketExtras = {
   merchantCity?: string | null;
   merchantWilayaCode?: string | null;
   isNewCustomer?: boolean;
+  /** Nombre total de commandes du client chez ce commerçant (fidélité). */
+  customerOrderCount?: number | null;
 };
 
 /**
@@ -44,6 +46,7 @@ export function orderToTicket(
     delivery_phone: order.delivery_phone ?? null,
     delivery_note: order.delivery_note ?? null,
     is_new_customer: extras.isNewCustomer ?? false,
+    customer_order_count: extras.customerOrderCount ?? null,
     items: order.order_items.map((it) => ({
       product_name: it.product_name,
       quantity: it.quantity,

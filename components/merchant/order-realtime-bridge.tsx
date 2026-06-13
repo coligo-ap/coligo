@@ -13,6 +13,7 @@ import { notify } from "@/lib/native";
 import { createClient } from "@/lib/supabase/client";
 import { printOrderTicket } from "@/lib/ticket/print-order";
 import { fetchCategoryMap } from "@/lib/ticket/category-map";
+import { fetchCustomerOrderCount } from "@/lib/ticket/customer-orders";
 import type { TicketOrder } from "@/lib/ticket/build-ticket-html";
 import type { PrintSettings } from "@/lib/types";
 import {
@@ -146,11 +147,17 @@ export function OrderRealtimeBridge({
       if (!data) return null;
       const names = (data.order_items ?? []).map((it) => it.product_name);
       const categoryMap = await fetchCategoryMap(supabase, merchantId, names);
+      const customerOrderCount = await fetchCustomerOrderCount(
+        supabase,
+        merchantId,
+        data.customer_phone
+      );
       return {
         id: data.id,
         merchant_name: merchantName,
         customer_name: data.customer_name,
         customer_phone: data.customer_phone,
+        customer_order_count: customerOrderCount,
         pickup_code: data.pickup_code,
         pickup_slot_at: data.pickup_slot_at,
         created_at: data.created_at,

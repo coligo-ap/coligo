@@ -26,7 +26,9 @@ import {
   formatTime,
   groupByCategory,
   groupCount,
+  loyaltyInfo,
   orderRef,
+  ordinalFr,
   totalUnits,
 } from "@/lib/ticket/ticket-format";
 import { qrSvg } from "@/lib/ticket/qr-svg";
@@ -62,6 +64,11 @@ export type TicketOrder = {
   items: TicketItem[];
   /** Si vrai, affiche un badge "NOUVEAU CLIENT". */
   is_new_customer?: boolean;
+  /**
+   * Nombre TOTAL de commandes de ce client chez ce commerçant (courante
+   * incluse). Imprimé sous le QR : 1 → « Première commande », sinon paniers.
+   */
+  customer_order_count?: number | null;
   /**
    * Mode de service. "delivery" → libellés LIVRAISON ; sinon (défaut)
    * "pickup" → RETRAIT.
@@ -99,6 +106,23 @@ function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+/**
+ * Bloc fidélité imprimé sous le QR. Première commande → message dédié ; sinon
+ * des paniers 🛒 (jusqu'à 3), au-delà « N× 🛒 », avec le rang en légende.
+ */
+function loyaltyHtml(order: TicketOrder): string {
+  const info = loyaltyInfo(order.customer_order_count);
+  if (!info) return "";
+  if (info.first) {
+    return `  <div class="t-loyalty"><div class="t-loyalty-first">Première commande</div></div>\n`;
+  }
+  const baskets =
+    info.count <= 3 ? "🛒".repeat(info.count) : `${info.count}× 🛒`;
+  return `  <div class="t-loyalty"><div class="t-loyalty-baskets">${baskets}</div><div class="t-loyalty-cap">${ordinalFr(
+    info.count
+  )} commande de ce client</div></div>\n`;
 }
 
 /** Une ligne récap label/valeur. */
@@ -273,7 +297,15 @@ export async function buildTicketHTML(
     .tk .t-qr { display: inline-block; width: 128px; }
     .tk .t-qr svg { width: 100%; height: auto; display: block; }
     .tk .t-qr-cap { font-size: 12px; font-weight: 700; margin-top: 3px; letter-spacing: .5px; }
-    /* Marge de découpe : 4 lignes vides en bas pour que la déchirure du ticket
+    /* Fidélité client (sous le QR) */
+    .tk .t-loyalty { text-align: center; margin-top: 10px; }
+    .tk .t-loyalty-first { font-size: 15px; font-weight: 800; letter-spacing: .3px; }
+    .tk .t-loyalty-baskets { font-size: 22px; line-height: 1.1; }
+    .tk .t-loyalty-cap { font-size: 12px; font-weight: 700; margin-top: 2px; }
+    /* Remerciement bas de ticket + espace au-dessus pour déchirer sans couper. */
+    .tk .t-thanks-pad { height: 2.4em; }
+    .tk .t-thanks { text-align: center; font-size: 15px; font-weight: 800; letter-spacing: .3px; }
+    /* Marge de découpe : lignes vides en bas pour que la déchirure du ticket
        n'abîme pas le contenu (demande commerçant). */
     .tk .t-foot-pad { height: 5.6em; }
   `;
@@ -333,8 +365,12 @@ export async function buildTicketHTML(
     <div class="t-qr">${qr}</div>
     <div class="t-qr-cap">N° ${escapeHtml(orderRef(order))}</div>
   </div>
+${loyaltyHtml(order)}
+  <!-- Remerciement, avec de l'espace au-dessus pour déchirer sans le couper -->
+  <div class="t-thanks-pad"></div>
+  <div class="t-thanks">Merci pour votre confiance</div>
 
-  <!-- Marge de découpe : 4 lignes vides en bas -->
+  <!-- Marge de découpe : lignes vides en bas -->
   <div class="t-foot-pad"></div>
 </div>
 <style>${styles}</style>

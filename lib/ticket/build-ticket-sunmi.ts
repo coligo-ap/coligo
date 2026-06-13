@@ -33,6 +33,7 @@ import {
   formatTime,
   groupByCategory,
   groupCount,
+  loyaltyInfo,
   orderRef,
   SUNMI_LINE_SPACING,
   SUNMI_SIZE as SZ,
@@ -302,8 +303,38 @@ export function buildTicketSunmiCommands(
   out.push({ type: "size", value: SZ.small });
   out.push({ type: "text", text: `N ${orderRef(order)}` });
 
+  // ===== 12. FIDÉLITÉ CLIENT (après le QR) =====
+  // Le firmware thermique n'imprime pas d'emoji → on rend le panier en ASCII
+  // (asciize stripperait 🛒). 1re commande = message ; sinon paniers (≤3) ou
+  // « N x [panier] ».
+  const loyalty = loyaltyInfo(order.customer_order_count);
+  if (loyalty) {
+    out.push({ type: "wrap", n: 1 });
+    out.push({ type: "align", value: "center" });
+    out.push({ type: "size", value: SZ.base });
+    if (loyalty.first) {
+      out.push({ type: "textBold", text: "Premiere commande" });
+    } else {
+      const basket = "[_]"; // mini-panier ASCII
+      const baskets =
+        loyalty.count <= 3
+          ? Array(loyalty.count).fill(basket).join(" ")
+          : `${loyalty.count} x ${basket}`;
+      out.push({ type: "textBold", text: `${loyalty.count}e commande` });
+      out.push({ type: "text", text: baskets });
+    }
+  }
+
+  // ===== 13. REMERCIEMENT, avec espace papier AU-DESSUS pour déchirer =====
+  // 2 lignes vides au-dessus de la phrase → la déchirure ne coupe jamais
+  // « Merci pour votre confiance » (demande commerçant).
+  out.push({ type: "wrap", n: 2 });
+  out.push({ type: "align", value: "center" });
+  out.push({ type: "size", value: SZ.base });
+  out.push({ type: "textBold", text: "Merci pour votre confiance" });
+
   // Marge de découpe : 4 lignes vides en bas pour que la déchirure du ticket
-  // n'abîme pas le QR / le contenu (demande commerçant).
+  // n'abîme pas le contenu (demande commerçant).
   out.push({ type: "wrap", n: 4 });
   out.push({ type: "align", value: "left" });
 

@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { buildTicketHTML } from "@/lib/ticket/build-ticket-html";
 import { orderToTicket } from "@/lib/ticket/order-to-ticket";
 import { fetchCategoryMap } from "@/lib/ticket/category-map";
+import { fetchCustomerOrderCount } from "@/lib/ticket/customer-orders";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import type { OrderWithItems, PrintWidth } from "@/lib/types";
 
@@ -96,6 +97,11 @@ export async function GET(
     order.merchant_id,
     order.order_items.map((it) => it.product_name)
   );
+  const customerOrderCount = await fetchCustomerOrderCount(
+    supabase,
+    order.merchant_id,
+    order.customer_phone
+  );
   const ticketOrder = orderToTicket(
     order,
     merchant?.name ?? APP_CONFIG.name,
@@ -103,6 +109,7 @@ export async function GET(
     {
       merchantCity: merchant?.city,
       merchantWilayaCode: merchant?.wilaya_code,
+      customerOrderCount,
     }
   );
 

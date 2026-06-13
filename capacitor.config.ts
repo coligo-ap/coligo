@@ -32,7 +32,7 @@ const serverUrl =
 
 const config: CapacitorConfig = {
   appId: "com.coligo.app",
-  appName: "Coligo",
+  appName: "Coligo COMMERCE",
   webDir: "capacitor-webroot",
   server: {
     url: serverUrl,

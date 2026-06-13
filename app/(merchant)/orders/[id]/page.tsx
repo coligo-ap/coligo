@@ -8,6 +8,7 @@ import { OrderStatusTimeline } from "@/components/merchant/order-status-timeline
 import { OrderActions } from "@/components/merchant/order-actions";
 import { PrintOrderButton } from "@/components/ticket/print-order-button";
 import { orderToTicket } from "@/lib/ticket/order-to-ticket";
+import { fetchCustomerOrderCount } from "@/lib/ticket/customer-orders";
 import { fetchCategoryMap } from "@/lib/ticket/category-map";
 import {
   ORDER_STATUS_META,
@@ -89,7 +90,19 @@ export default async function OrderDetailPage({
     o.merchant_id,
     o.order_items.map((it) => it.product_name)
   );
-  const ticketOrder = orderToTicket(o, merchant?.name ?? "Coligo", categoryMap);
+  const customerOrderCount = await fetchCustomerOrderCount(
+    supabase,
+    o.merchant_id,
+    o.customer_phone
+  );
+  const ticketOrder = orderToTicket(
+    o,
+    merchant?.name ?? "Coligo",
+    categoryMap,
+    {
+      customerOrderCount,
+    }
+  );
   const printWidth = (merchant?.print_width ?? 50) as PrintWidth;
   const printCopies = merchant?.print_copies ?? 1;
   const orderEvents = (events ?? []) as OrderEvent[];

@@ -31,6 +31,8 @@ export function buildFakeTicketOrder({
     payment_method: paid ? "online" : "cash",
     payment_status: paid ? "paid" : "pending",
     fulfillment_type: "pickup",
+    // Aperçu : client fidèle (3e commande) → montre les paniers + le rang.
+    customer_order_count: 3,
     items: [
       {
         product_name: "Baguette tradition",
