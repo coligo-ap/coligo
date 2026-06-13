@@ -32,3 +32,11 @@ export type ServiceDefaultRow = {
   service_active: boolean;
   max_distance_km: number | null;
 };
+
+export type ZoneStatRow = {
+  service: ServiceKind;
+  wilaya_code: string | null;
+  commune: string | null;
+  cnt: number;
+  last_at: string | null;
+};

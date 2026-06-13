@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chauffeurAvatarUrls } from "@/lib/drive/avatar-server";
 import { notifyChauffeursNewRide } from "@/lib/fcm/triggers";
-import { evaluateZone } from "@/lib/zones/server";
+import { evaluateZone, logZoneBlock } from "@/lib/zones/server";
 import { zoneMessageFr } from "@/lib/zones/service-zones";
 
 type Rpc = (
@@ -264,7 +264,29 @@ export async function requestDriveRide(input: {
     p_proxy_phone: input.proxy_phone ?? null,
     p_operation_id: input.operation_id ?? null,
   });
-  if (error) return { ok: false, error: driveZoneError(error.message) };
+  if (error) {
+    // Refus de zone réel → journalisation ops (best-effort, mig 0170).
+    if (error.message.includes("drive_zone")) {
+      const isMax = error.message.includes("drive_zone_maxdist");
+      const isOrigin = error.message.includes("drive_zone_origin");
+      const reason = isMax
+        ? "maxdist"
+        : error.message.includes("service_inactive")
+          ? "service_inactive"
+          : error.message.includes("no_coverage")
+            ? "no_coverage"
+            : "blocked";
+      void logZoneBlock({
+        service: "drive",
+        source: "drive",
+        role: isOrigin ? "origin" : "destination",
+        reason,
+        lat: isOrigin ? input.pickup_lat : input.dest_lat,
+        lng: isOrigin ? input.pickup_lng : input.dest_lng,
+      });
+    }
+    return { ok: false, error: driveZoneError(error.message) };
+  }
   const rideId = typeof data === "string" ? data : undefined;
   if (rideId) {
     void notifyChauffeursNewRide({ rideId });

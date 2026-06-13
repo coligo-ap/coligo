@@ -29,7 +29,7 @@ import {
   computeTourDeliveryFee,
 } from "@/lib/delivery/pricing";
 import { haversineKm } from "@/lib/delivery/distance";
-import { evaluateZone } from "@/lib/zones/server";
+import { evaluateZone, logZoneBlock } from "@/lib/zones/server";
 import { zoneMessageFr } from "@/lib/zones/service-zones";
 import { reverseGeocode } from "@/app/(customer)/actions";
 import type { OpeningHours, PaymentMethod } from "@/lib/types";
@@ -863,6 +863,16 @@ export async function createOrder(
       role: "destination",
     });
     if (!zone.allowed) {
+      void logZoneBlock({
+        service: input.delivery_mode,
+        source: "order",
+        role: "destination",
+        reason: zone.reason,
+        lat: addrLat,
+        lng: addrLng,
+        wilayaCode: deliveryWilaya,
+        commune: deliveryCommune,
+      });
       return {
         ok: false,
         error: zoneMessageFr(zone, "destination", input.delivery_mode),

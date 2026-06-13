@@ -58,3 +58,39 @@ export async function evaluateZone(
     return ZONE_OK;
   }
 }
+
+/**
+ * Journalise un refus RÉEL (commande/course bloquée hors zone) pour les stats
+ * ops (mig 0170). Best-effort : ne jamais faire échouer le flux appelant. À
+ * n'appeler QU'aux soumissions réellement bloquées (pas les prechecks UX).
+ */
+export async function logZoneBlock(input: {
+  service: ServiceKind;
+  source: "order" | "drive";
+  role?: ZoneRole | null;
+  reason?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  wilayaCode?: string | null;
+  commune?: string | null;
+}): Promise<void> {
+  try {
+    const supabase = await createClient();
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ error: { message: string } | null }>;
+    await rpc("log_zone_block", {
+      p_service: input.service,
+      p_source: input.source,
+      p_role: input.role ?? null,
+      p_reason: input.reason ?? null,
+      p_lat: input.lat ?? null,
+      p_lng: input.lng ?? null,
+      p_wilaya_code: input.wilayaCode ?? null,
+      p_commune: input.commune ?? null,
+    });
+  } catch {
+    /* best-effort : la journalisation ne bloque jamais */
+  }
+}
