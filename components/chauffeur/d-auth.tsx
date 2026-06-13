@@ -5,7 +5,7 @@ import { useState, useActionState } from "react";
 import { ArrowLeft, LogOut, Loader2, Store, User } from "lucide-react";
 import { VIOLET } from "@/components/customer/drive/drive-modals";
 import { BRAND_ASSETS } from "@/lib/config/brand-assets";
-import { InstallAppButton } from "@/components/pwa/install-app-button";
+import { InstallBanner } from "@/components/pwa/install-banner";
 import {
   chauffeurLogin,
   chauffeurLogout,
@@ -257,15 +257,8 @@ export function DAuth({
         </form>
       )}
 
-      {/* Installer la PWA chauffeur (« Coligo Drive ») — Android : prompt
-          natif ; iPhone : guide Partager → Sur l'écran d'accueil. */}
-      <div className="mt-5">
-        <InstallAppButton
-          label="Installer l'application Chauffeur"
-          subtitle="Sur ton écran d'accueil, plein écran et notifications de courses — comme une app native."
-          className="border-[var(--d-line)] bg-[var(--d-soft)] text-[var(--d-ink)] hover:bg-[var(--d-surface)]"
-        />
-      </div>
+      {/* Petit popup d'installation, persistant jusqu'à l'install (fermable). */}
+      <InstallBanner label="Installer l'application Chauffeur" />
     </div>
   );
 }

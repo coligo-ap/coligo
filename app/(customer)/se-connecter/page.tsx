@@ -12,7 +12,7 @@ import { Logo } from "@/components/shared/logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { SocialAuth } from "@/components/customer/social-auth";
-import { InstallAppButton } from "@/components/pwa/install-app-button";
+import { InstallBanner } from "@/components/pwa/install-banner";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
 import {
   customerLogin,
@@ -221,12 +221,6 @@ function CustomerLoginInner() {
                     {t("iAmDriver")}
                   </Link>
                 </div>
-
-                {/* Installer la PWA client — Android : prompt natif ;
-                    iPhone : guide Partager → Sur l'écran d'accueil. */}
-                <div className="mt-4">
-                  <InstallAppButton />
-                </div>
               </div>
             </div>
           </main>
@@ -234,6 +228,8 @@ function CustomerLoginInner() {
         <AuthFooter />
       </div>
       <CustomerBottomNav />
+      {/* Petit popup d'installation, relevé au-dessus de la nav (fermable). */}
+      <InstallBanner className="bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] lg:bottom-4" />
     </>
   );
 }

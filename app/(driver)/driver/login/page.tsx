@@ -5,7 +5,6 @@ import { Store, User as UserIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { DriverLoginForm } from "@/components/driver/login-form";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
-import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { Logo } from "@/components/shared/logo";
 
 export const dynamic = "force-dynamic";
@@ -56,13 +55,6 @@ export default async function DriverLoginPage() {
                 Créer un compte
               </Link>
             </div>
-
-            {/* Installer la PWA livreur (icône/nom dédiés) — Android : prompt
-                natif ; iPhone : guide Partager → Sur l'écran d'accueil. */}
-            <InstallAppButton
-              label="Installer l'application Livreur"
-              subtitle="Sur ton écran d'accueil, plein écran et notifications de courses — comme une app native."
-            />
 
             <div className="border-border mt-2 grid grid-cols-2 gap-2 border-t pt-4 text-xs">
               <Link

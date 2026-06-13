@@ -125,7 +125,10 @@ export async function MerchantShell({
       <MobileDrawer merchantName={merchant.name} email={user.email ?? ""} />
 
       {/* Bandeau install PWA — auto-caché si déjà installée ou refusée < 14j */}
-      <InstallBanner />
+      <InstallBanner
+        label="Installer l'application Commerçant"
+        className="bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] lg:bottom-4"
+      />
 
       {/* Pont Realtime + son + notif + overlay « Mode comptoir » — actif sur
           TOUTES les pages commerçant pour qu'aucune commande ne soit ratée,

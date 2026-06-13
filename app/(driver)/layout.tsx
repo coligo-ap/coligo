@@ -96,7 +96,10 @@ export default async function DriverLayout({
           Gelé: driver?.is_frozen,
         }}
       />
-      <InstallBanner />
+      <InstallBanner
+        label="Installer l'application Livreur"
+        className="bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] sm:bottom-4"
+      />
       <OfflineSyncIndicator />
     </DriverThemeRoot>
   );

@@ -1057,6 +1057,10 @@
     "androidStep1": "Ouvrez le menu du navigateur (⋮) en haut à droite.",
     "androidStep2": "Choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».",
     "androidStep3": "Confirmez avec « Installer ».",
-    "androidMenu": "Menu du navigateur"
+    "androidMenu": "Menu du navigateur",
+    "action": "Installer",
+    "bannerTitle": "Installer l’application",
+    "bannerText": "Plus rapide, avec notifications en temps réel.",
+    "bannerTextIos": "Ajoutez Coligo à votre écran d’accueil."
   }
 }

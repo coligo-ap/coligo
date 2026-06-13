@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/shared/logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
+import { InstallBanner } from "@/components/pwa/install-banner";
 import { SocialAuth } from "@/components/customer/social-auth";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
 import {
@@ -199,6 +200,8 @@ function CustomerSignupInner() {
         <AuthFooter />
       </div>
       <CustomerBottomNav />
+      {/* Petit popup d'installation, relevé au-dessus de la nav (fermable). */}
+      <InstallBanner className="bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] lg:bottom-4" />
     </>
   );
 }
