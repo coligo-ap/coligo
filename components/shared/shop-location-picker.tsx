@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { WILAYAS, getWilaya } from "@/lib/config/wilayas";
 import { getCommunes } from "@/lib/config/communes";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
+import { ZoneNotice } from "@/components/zones/zone-notice";
 import { geocodeCommune, reverseGeocode, type LatLng } from "@/lib/geo/geocode";
 
 const SELECT_CLASS =
@@ -252,6 +253,19 @@ export function ShopLocationPicker({
             searchPlaceholder="Rechercher une adresse, un lieu, un quartier…"
           />
         </div>
+
+        {/* Disponibilité des services de livraison sur ce point (temps réel). */}
+        {coords && (
+          <ZoneNotice
+            lat={coords.lat}
+            lng={coords.lng}
+            wilayaCode={wilayaCode || null}
+            commune={commune || null}
+            services={["express", "tour"]}
+            role="any"
+            className="mt-2"
+          />
+        )}
 
         {/* État + confirmation */}
         {confirmed && coords ? (

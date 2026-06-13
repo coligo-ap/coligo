@@ -5,7 +5,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
+  AlertTriangle,
   ArrowUpDown,
+  BellRing,
   Car,
   ChevronLeft,
   Clock,
@@ -55,12 +57,14 @@ import {
   getDriveContext,
   getDriveQuotes,
   getSosContacts,
+  precheckDriveRoute,
   requestDriveRide,
   setSosContacts as saveSosContacts,
   type DriveActiveRide,
   type DriveContext,
   type DriveQuote,
 } from "@/app/(customer)/drive/actions";
+import { joinZoneWaitlist } from "@/lib/zones/actions";
 
 /**
  * Coligo Drive — parcours client conforme à MAQUETTE-vtc-coligo.html :
@@ -116,6 +120,10 @@ export function DriveView() {
   const [submitting, setSubmitting] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [offlineQueued, setOfflineQueued] = useState(false);
+  // Couverture de zone (départ + arrivée) — pré-check UX avant la demande
+  // (l'enforcement réel reste dans request_ride, mig 0169).
+  const [zoneBlock, setZoneBlock] = useState<string | null>(null);
+  const [zoneJoined, setZoneJoined] = useState(false);
 
   // Modales
   const [depOpen, setDepOpen] = useState(false);
@@ -402,6 +410,28 @@ export function DriveView() {
     await refreshActive();
     setScreen("ride");
   };
+
+  // Pré-check de couverture (écran prix) : départ + arrivée. Désactive la
+  // demande + message clair si non couvert, sans attendre le serveur.
+  useEffect(() => {
+    if (screen !== "price" || !pickup || !dest) {
+      setZoneBlock(null);
+      return;
+    }
+    let alive = true;
+    setZoneJoined(false);
+    void precheckDriveRoute({
+      pickup_lat: pickup.lat,
+      pickup_lng: pickup.lng,
+      dest_lat: dest.lat,
+      dest_lng: dest.lng,
+    }).then((r) => {
+      if (alive) setZoneBlock(r.ok ? null : (r.error ?? null));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [screen, pickup, dest]);
 
   // Envoi auto de la demande en file (Dexie) dès le retour du réseau.
   useEffect(() => {
@@ -859,7 +889,40 @@ export function DriveView() {
               {requestError}
             </p>
           )}
-          <PrimaryBtn onClick={submitRequest} disabled={submitting || !quote}>
+          {zoneBlock && (
+            <div className="mt-2 rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-center">
+              <p className="flex items-center justify-center gap-1.5 text-xs font-bold text-amber-800">
+                <AlertTriangle className="size-3.5" />
+                {zoneBlock}
+              </p>
+              {zoneJoined ? (
+                <p className="mt-1.5 text-[12px] font-bold text-emerald-700">
+                  On vous prévient dès l&apos;ouverture !
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (dest)
+                      await joinZoneWaitlist({
+                        service: "drive",
+                        lat: dest.lat,
+                        lng: dest.lng,
+                      });
+                    setZoneJoined(true);
+                  }}
+                  className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-amber-600 px-3 py-1.5 text-[12px] font-bold text-white"
+                >
+                  <BellRing className="size-3.5" />
+                  Prévenez-moi
+                </button>
+              )}
+            </div>
+          )}
+          <PrimaryBtn
+            onClick={submitRequest}
+            disabled={submitting || !quote || !!zoneBlock}
+          >
             {submitting ? <Loader2 className="size-5 animate-spin" /> : null}
             {t("price.propose", { price: offerPrice })}
           </PrimaryBtn>

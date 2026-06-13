@@ -15,6 +15,7 @@ import {
 import { cn, formatDA } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
+import { ZoneNotice } from "@/components/zones/zone-notice";
 import {
   computeDeliveryFee,
   computeTourDeliveryFee,
@@ -467,6 +468,18 @@ function DeliveryMapCard({
           onConfirmed();
         }}
       />
+
+      {/* Couverture du service de livraison sur ce point (moteur de zones,
+          temps réel) — complète le contrôle de distance ci-dessous. */}
+      {hasPoint && !outOfRange && (
+        <ZoneNotice
+          lat={lat ?? null}
+          lng={lng ?? null}
+          services={value.mode ? [value.mode] : ["express", "tour"]}
+          role="destination"
+          className="mx-4 mt-1"
+        />
+      )}
 
       {/* Statut zone — UNE ligne, 3 états. */}
       {!hasPoint ? (
