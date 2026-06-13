@@ -29,6 +29,9 @@ import {
   computeTourDeliveryFee,
 } from "@/lib/delivery/pricing";
 import { haversineKm } from "@/lib/delivery/distance";
+import { evaluateZone } from "@/lib/zones/server";
+import { zoneMessageFr } from "@/lib/zones/service-zones";
+import { reverseGeocode } from "@/app/(customer)/actions";
 import type { OpeningHours, PaymentMethod } from "@/lib/types";
 
 export type CreateOrderInput = {
@@ -642,6 +645,8 @@ export async function createOrder(
     distance_km: number;
     mode: "express" | "tour";
     slot_id: string | null;
+    wilaya_code: string | null;
+    commune: string | null;
   } | null = null;
 
   if (isDelivery) {
@@ -834,6 +839,36 @@ export async function createOrder(
       };
     }
 
+    // MOTEUR DE ZONES (mig 0169) : la destination est-elle couverte pour ce
+    // mode (express/tour) ? On résout wilaya/commune en best-effort (reverse-
+    // geocode, borné dans le temps) pour appliquer aussi les règles
+    // administratives ; le check géométrique (rayon/polygone/pays) ne dépend que
+    // du lat/lng. Le trigger SQL (0169) reste le garde-fou bypass-proof.
+    let deliveryWilaya: string | null = null;
+    let deliveryCommune: string | null = null;
+    try {
+      const rg = (await Promise.race([
+        reverseGeocode({ latitude: addrLat, longitude: addrLng }),
+        new Promise((resolve) => setTimeout(() => resolve(null), 2500)),
+      ])) as { wilaya_code?: string | null; commune?: string | null } | null;
+      deliveryWilaya = rg?.wilaya_code ?? null;
+      deliveryCommune = rg?.commune ?? null;
+    } catch {
+      /* reverse-geocode best-effort : on continue avec le check géométrique */
+    }
+
+    const zone = await evaluateZone(input.delivery_mode, addrLat, addrLng, {
+      wilayaCode: deliveryWilaya,
+      commune: deliveryCommune,
+      role: "destination",
+    });
+    if (!zone.allowed) {
+      return {
+        ok: false,
+        error: zoneMessageFr(zone, "destination", input.delivery_mode),
+      };
+    }
+
     deliverySnapshot = {
       address_id: addrId,
       lat: addrLat,
@@ -846,6 +881,8 @@ export async function createOrder(
         input.delivery_mode === "tour"
           ? (input.delivery_slot_id ?? null)
           : null,
+      wilaya_code: deliveryWilaya,
+      commune: deliveryCommune,
     };
   }
 
@@ -905,6 +942,8 @@ export async function createOrder(
       delivery_address_text: deliverySnapshot?.text ?? null,
       delivery_lat: deliverySnapshot?.lat ?? null,
       delivery_lng: deliverySnapshot?.lng ?? null,
+      delivery_wilaya_code: deliverySnapshot?.wilaya_code ?? null,
+      delivery_commune: deliverySnapshot?.commune ?? null,
       delivery_phone: deliverySnapshot?.phone ?? null,
       delivery_recipient_name:
         isDelivery && input.delivery_recipient_name
@@ -941,6 +980,27 @@ export async function createOrder(
     }
     if (orderErr?.message?.includes("slot_not_open")) {
       return { ok: false, error: "Ce créneau n'est plus disponible." };
+    }
+    // Garde-fou ZONE (trigger 0169) : zone bloquée entre le pré-check et
+    // l'INSERT (ex. l'admin vient de restreindre la zone).
+    if (orderErr?.message?.includes("service_zone_blocked")) {
+      return {
+        ok: false,
+        error: deliverySnapshot
+          ? zoneMessageFr(
+              {
+                allowed: false,
+                reason: orderErr.message.includes("service_inactive")
+                  ? "service_inactive"
+                  : "blocked",
+                label: null,
+                coming_soon: false,
+              },
+              "destination",
+              deliverySnapshot.mode
+            )
+          : "Cette destination n'est pas encore couverte.",
+      };
     }
     return {
       ok: false,

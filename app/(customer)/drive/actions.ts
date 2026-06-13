@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chauffeurAvatarUrls } from "@/lib/drive/avatar-server";
 import { notifyChauffeursNewRide } from "@/lib/fcm/triggers";
+import { evaluateZone } from "@/lib/zones/server";
+import { zoneMessageFr } from "@/lib/zones/service-zones";
 
 type Rpc = (
   fn: string,
@@ -262,13 +264,80 @@ export async function requestDriveRide(input: {
     p_proxy_phone: input.proxy_phone ?? null,
     p_operation_id: input.operation_id ?? null,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: driveZoneError(error.message) };
   const rideId = typeof data === "string" ? data : undefined;
   if (rideId) {
     void notifyChauffeursNewRide({ rideId });
     void triggerDemoResponder(rideId);
   }
   return { ok: true, rideId };
+}
+
+/**
+ * Traduit les erreurs ZONE du RPC request_ride (mig 0169) en message client
+ * clair. Les codes : drive_zone_origin:<reason> / drive_zone_dest:<reason> /
+ * drive_zone_maxdist:<km>. Sinon on renvoie le message brut.
+ */
+function driveZoneError(msg: string): string {
+  if (msg.includes("drive_zone_maxdist")) {
+    const km = msg.split(":")[1]?.trim();
+    return km
+      ? `Trajet trop long (max ${km} km pour Coligo Drive).`
+      : "Ce trajet dépasse la distance maximale autorisée.";
+  }
+  if (msg.includes("drive_zone_origin")) {
+    return zoneMessageFr(
+      {
+        allowed: false,
+        reason: msg.includes("service_inactive")
+          ? "service_inactive"
+          : "blocked",
+        label: null,
+        coming_soon: false,
+      },
+      "origin",
+      "drive"
+    );
+  }
+  if (msg.includes("drive_zone_dest")) {
+    return zoneMessageFr(
+      {
+        allowed: false,
+        reason: msg.includes("service_inactive")
+          ? "service_inactive"
+          : "blocked",
+        label: null,
+        coming_soon: false,
+      },
+      "destination",
+      "drive"
+    );
+  }
+  return msg;
+}
+
+/**
+ * Pré-check de couverture d'un trajet Drive (départ + arrivée) — pour l'UX
+ * AVANT la demande (bouton désactivé + message inline). L'enforcement réel
+ * reste dans request_ride (bypass-proof). Renvoie le 1ᵉʳ point bloquant.
+ */
+export async function precheckDriveRoute(input: {
+  pickup_lat: number;
+  pickup_lng: number;
+  dest_lat: number;
+  dest_lng: number;
+}): Promise<{ ok: boolean; error?: string }> {
+  const org = await evaluateZone("drive", input.pickup_lat, input.pickup_lng, {
+    role: "origin",
+  });
+  if (!org.allowed)
+    return { ok: false, error: zoneMessageFr(org, "origin", "drive") };
+  const dst = await evaluateZone("drive", input.dest_lat, input.dest_lng, {
+    role: "destination",
+  });
+  if (!dst.allowed)
+    return { ok: false, error: zoneMessageFr(dst, "destination", "drive") };
+  return { ok: true };
 }
 
 export async function boostRide(
