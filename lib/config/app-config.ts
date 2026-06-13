@@ -51,6 +51,18 @@ export const APP_CONFIG = {
     // sous ce minimum (jamais 0 ni négatif). En DA.
     minPriceDa: Number(process.env.NEXT_PUBLIC_PROMO_MIN_PRICE_DA ?? "1"),
   },
+
+  // APK Android « Coligo Commerçant » distribué hors Play Store (sideload).
+  // L'URL est une variable d'environnement Vercel : on héberge le .apk où on
+  // veut (Supabase Storage, Vercel Blob, etc.) et on remplace juste le lien
+  // sans redéployer le code. Vide = bouton « bientôt disponible ».
+  // L'impression thermique Sunmi intégrée ne fonctionne QUE via cet APK.
+  merchantApk: {
+    url: process.env.NEXT_PUBLIC_MERCHANT_APK_URL ?? "",
+    version: process.env.NEXT_PUBLIC_MERCHANT_APK_VERSION ?? "",
+    // Taille affichée (ex. « 8 Mo ») — purement indicatif.
+    size: process.env.NEXT_PUBLIC_MERCHANT_APK_SIZE ?? "",
+  },
 } as const;
 
 /** Part commission Coligo (en DA, arrondie) pour un montant donné. */

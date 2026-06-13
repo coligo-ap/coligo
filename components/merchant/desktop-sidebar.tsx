@@ -14,6 +14,7 @@ import {
   Wallet,
   Settings,
   HelpCircle,
+  Smartphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/logo";
@@ -92,7 +93,19 @@ export function MerchantSidebar({ merchantName }: { merchantName: string }) {
         })}
       </nav>
 
-      <div className="border-border border-t px-3 py-4">
+      <div className="border-border space-y-0.5 border-t px-3 py-4">
+        <Link
+          href="/telecharger"
+          className={cn(
+            "flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors",
+            pathname.startsWith("/telecharger")
+              ? "bg-primary-50 text-primary-900 font-medium"
+              : "text-muted hover:bg-surface-2 hover:text-foreground"
+          )}
+        >
+          <Smartphone className="size-4 shrink-0" />
+          Télécharger l’app
+        </Link>
         <Link
           href="/aide"
           className="text-muted hover:bg-surface-2 hover:text-foreground flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors"

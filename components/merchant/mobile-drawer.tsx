@@ -12,6 +12,7 @@ import {
   LogOut,
   ScanLine,
   Settings,
+  Smartphone,
   Tag,
   Truck,
   Wallet,
@@ -181,6 +182,20 @@ export function MobileDrawer({
               </Link>
             );
           })}
+
+          <Link
+            href="/telecharger"
+            onClick={close}
+            className={cn(
+              "flex min-h-[44px] w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors",
+              pathname.startsWith("/telecharger")
+                ? "bg-primary-50 text-primary-900 font-medium"
+                : "text-muted hover:bg-surface-2 hover:text-foreground"
+            )}
+          >
+            <Smartphone className="size-5 shrink-0" />
+            <span className="flex-1 text-left">Télécharger l’app</span>
+          </Link>
 
           <Link
             href="/aide"

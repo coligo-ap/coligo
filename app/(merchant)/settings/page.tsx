@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  ChevronRight,
   Clock,
   Printer,
+  Smartphone,
   Store,
   Truck,
   User as UserIcon,
@@ -272,6 +275,25 @@ export default async function SettingsPage() {
             commissionRatePct={Math.round(merchant.commission_rate * 100)}
           />
         </SettingsSection>
+
+        {/* Télécharger l'APK Android (impression thermique Sunmi) */}
+        <Link
+          href="/telecharger"
+          className="border-border hover:bg-surface-2 flex w-full items-center gap-3 rounded-[14px] border bg-white p-4 text-start transition-colors"
+        >
+          <span className="bg-primary-50 text-primary-600 flex size-10 shrink-0 items-center justify-center rounded-full">
+            <Smartphone className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">
+              Télécharger l’application Android
+            </span>
+            <span className="text-muted block text-xs">
+              Requise pour imprimer les tickets sur l’imprimante intégrée.
+            </span>
+          </span>
+          <ChevronRight className="text-subtle size-5 shrink-0" />
+        </Link>
 
         {/* Installer la PWA commerçant (« Coligo Commerçant ») — masqué si installée/APK */}
         <InstallAppButton />
