@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { ZoneDispatch } from "@/components/driver/home/zone-dispatch";
 import { useDriverOnline } from "@/lib/driver/online-store";
+import { getWorkZone } from "@/lib/driver/work-zone";
 import { startBackgroundGeo } from "@/lib/native/background-geo";
 import { driverHeartbeat } from "@/app/(driver)/actions";
 
@@ -23,7 +24,11 @@ export function DriverDispatchMount() {
   useEffect(() => {
     if (!online) return;
     const handle = startBackgroundGeo((lat, lng) => {
-      void driverHeartbeat(lat, lng);
+      // Si une zone de travail est définie, on pousse SON centre (et non le GPS
+      // réel) pour que les push « nouvelle course » ciblent la zone choisie.
+      const zone = getWorkZone();
+      if (zone) void driverHeartbeat(zone.lat, zone.lng);
+      else void driverHeartbeat(lat, lng);
     });
     return () => handle.stop();
   }, [online]);

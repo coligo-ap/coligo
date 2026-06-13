@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { driverHeartbeat, pullNextExpressNearby } from "@/app/(driver)/actions";
+import { useWorkZone, LIVE_RADIUS_KM } from "@/lib/driver/work-zone";
 import { toast } from "@/components/ui/toast";
 
 /**
@@ -26,6 +27,11 @@ export function ZoneDispatch({ online }: { online: boolean }) {
   const router = useRouter();
   const coordsRef = useRef(coords);
   coordsRef.current = coords;
+  // Zone de travail choisie : si définie, le dispatch interroge son CENTRE +
+  // RAYON (où que soit le livreur, GPS facultatif) ; sinon on suit le GPS live.
+  const zone = useWorkZone();
+  const zoneRef = useRef(zone);
+  zoneRef.current = zone;
   const busy = useRef(false);
   const tickRef = useRef<() => void>(() => {});
 
@@ -34,14 +40,25 @@ export function ZoneDispatch({ online }: { online: boolean }) {
     let alive = true;
 
     const tick = async () => {
+      // Origine du dispatch : la zone choisie en priorité, sinon le GPS live.
+      const z = zoneRef.current;
       const c = coordsRef.current;
-      if (!alive || busy.current || !c) return;
+      const origin = z
+        ? { lat: z.lat, lng: z.lng, radiusKm: z.radiusKm }
+        : c
+          ? { lat: c.latitude, lng: c.longitude, radiusKm: LIVE_RADIUS_KM }
+          : null;
+      if (!alive || busy.current || !origin) return;
       busy.current = true;
-      // Heartbeat de présence (best-effort) : permet de notifier ce livreur si
-      // une course express apparaît près de lui (réseau global géolocalisé).
-      void driverHeartbeat(c.latitude, c.longitude);
+      // Heartbeat de présence (best-effort) : pousse l'origine (zone ou GPS)
+      // pour que les push « nouvelle course » ciblent ce périmètre (mig 0130).
+      void driverHeartbeat(origin.lat, origin.lng);
       try {
-        const r = await pullNextExpressNearby(c.latitude, c.longitude);
+        const r = await pullNextExpressNearby(
+          origin.lat,
+          origin.lng,
+          origin.radiusKm
+        );
         if (alive && r.orderId) {
           toast.success("Nouvelle course à proximité ⚡");
           router.push(`/driver/course/${r.orderId}`);
@@ -87,6 +104,12 @@ export function ZoneDispatch({ online }: { online: boolean }) {
       void supabase.removeChannel(channel);
     };
   }, [online, router]);
+
+  // Changement de zone (ou GPS dispo après coup) → tente un pull immédiat dans
+  // le nouveau périmètre, sans attendre le prochain cycle de polling.
+  useEffect(() => {
+    if (online) tickRef.current();
+  }, [online, zone, coords]);
 
   return null;
 }

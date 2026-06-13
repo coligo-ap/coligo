@@ -6,6 +6,7 @@ import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverDashboardLive } from "@/components/driver/driver-dashboard-live";
 import { DriverHomeMap } from "@/components/driver/home/driver-home-map";
 import { DriverHomeMaquette } from "@/components/driver/home/driver-home-maquette";
+import { WorkZoneControl } from "@/components/driver/home/work-zone-control";
 import { DriverBottomNav } from "@/components/driver/driver-bottom-nav";
 
 export const dynamic = "force-dynamic";
@@ -150,6 +151,10 @@ export default async function DriverHomePage() {
 
       {/* Vraie carte (MapLibre) en fond — les maquettes la simulent en SVG. */}
       <DriverHomeMap merchants={pins} />
+
+      {/* Sélecteur « Ma zone de travail » (dispatch par zone) — pilule d'état
+          en haut à droite, sous le bouton recentrer. Masqué si compte gelé. */}
+      {!driver.is_frozen && <WorkZoneControl />}
 
       {/* Chrome maquette (GO + radar + son + sheet + stats) en overlay. */}
       <DriverHomeMaquette

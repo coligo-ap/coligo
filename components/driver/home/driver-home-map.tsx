@@ -11,6 +11,7 @@ import {
   type DemandLevel,
   type DemandZone,
 } from "@/lib/delivery/zones";
+import { useWorkZone, zoneCircleGeoJSON } from "@/lib/driver/work-zone";
 
 /**
  * Carte plein écran de l'accueil livreur (style Uber Eats Driver). Centrée sur
@@ -29,6 +30,15 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
   const meMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
   const coords = useDriverPosition();
   const followedOnce = useRef(false);
+  // Zone de travail choisie par le livreur (dispatch par zone). Matérialisée
+  // par un disque violet sur la carte ; quand elle est définie, on cadre dessus
+  // au lieu de suivre le GPS.
+  const zone = useWorkZone();
+  const zoneRef = useRef(zone);
+  zoneRef.current = zone;
+  const zoneLayerReady = useRef(false);
+  const zoneCenterMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
+  const zoneFramedKey = useRef<string | null>(null);
   // Zones de forte demande (heatmap discret). `zonesRef` permet de réappliquer
   // les données dès que la couche est prête, sans dépendre de l'ordre des effets.
   const [zones, setZones] = useState<DemandZone[]>([]);
@@ -56,6 +66,42 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
 
       // Couche « zones de forte demande » — ajoutée au chargement du style.
       map.on("load", () => {
+        // Disque « ma zone de travail » (dispatch par zone) — couche propre,
+        // indépendante des zones de demande (sa mise en échec ne casse rien).
+        try {
+          if (!map.getSource("work-zone")) {
+            map.addSource("work-zone", {
+              type: "geojson",
+              data: zoneRef.current
+                ? (zoneCircleGeoJSON(zoneRef.current) as never)
+                : ({ type: "FeatureCollection", features: [] } as never),
+            });
+            map.addLayer({
+              id: "work-zone-fill",
+              type: "fill",
+              source: "work-zone",
+              paint: {
+                "fill-color": "#6c2bd9",
+                "fill-opacity": 0.1,
+              } as never,
+            });
+            map.addLayer({
+              id: "work-zone-line",
+              type: "line",
+              source: "work-zone",
+              paint: {
+                "line-color": "#6c2bd9",
+                "line-width": 2,
+                "line-dasharray": [2, 1.5],
+                "line-opacity": 0.7,
+              } as never,
+            });
+            zoneLayerReady.current = true;
+          }
+        } catch {
+          zoneLayerReady.current = false;
+        }
+
         try {
           if (map.getSource("demand-zones")) return;
           map.addSource("demand-zones", {
@@ -181,7 +227,9 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
       } else {
         meMarkerRef.current.setLngLat([coords.longitude, coords.latitude]);
       }
-      if (!followedOnce.current) {
+      // Auto-suivi du premier fix GPS — sauf si une zone de travail est définie
+      // (dans ce cas c'est elle qu'on cadre, cf. effet dédié).
+      if (!followedOnce.current && !zoneRef.current) {
         followedOnce.current = true;
         flyToMe(15);
       }
@@ -224,6 +272,72 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
       | undefined;
     src?.setData(zonesToGeoJSON(zones));
   }, [zones]);
+
+  // Disque « ma zone de travail » : met à jour la couche + le marqueur central,
+  // et cadre la carte sur la zone la 1ʳᵉ fois qu'elle est définie/modifiée.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (zoneLayerReady.current) {
+      const src = map.getSource("work-zone") as
+        | { setData: (d: unknown) => void }
+        | undefined;
+      src?.setData(
+        zone
+          ? zoneCircleGeoJSON(zone)
+          : { type: "FeatureCollection", features: [] }
+      );
+    }
+
+    void import("maplibre-gl").then(({ Marker }) => {
+      if (mapRef.current !== map) return;
+      if (zone) {
+        if (!zoneCenterMarkerRef.current) {
+          const el = document.createElement("div");
+          el.innerHTML = `<div style="width:14px;height:14px;border-radius:50%;background:#6c2bd9;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35)"></div>`;
+          zoneCenterMarkerRef.current = new Marker({
+            element: el,
+            anchor: "center",
+          })
+            .setLngLat([zone.lng, zone.lat])
+            .addTo(map);
+        } else {
+          zoneCenterMarkerRef.current.setLngLat([zone.lng, zone.lat]);
+        }
+        // Cadre sur la zone à chaque (re)définition (clé centre+rayon).
+        const key = `${zone.lat.toFixed(5)},${zone.lng.toFixed(5)},${zone.radiusKm}`;
+        if (zoneFramedKey.current !== key) {
+          zoneFramedKey.current = key;
+          const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+          // Zoom indicatif selon le rayon (plus le rayon est grand, plus on
+          // dézoome) pour que le disque tienne dans la zone visible.
+          const z =
+            zone.radiusKm <= 3
+              ? 13
+              : zone.radiusKm <= 5
+                ? 12
+                : zone.radiusKm <= 10
+                  ? 11
+                  : 10;
+          map.easeTo({
+            center: [zone.lng, zone.lat],
+            zoom: z,
+            duration: 700,
+            padding: {
+              top: 60,
+              left: 24,
+              right: 24,
+              bottom: Math.round(vh * 0.5),
+            },
+          });
+        }
+      } else {
+        zoneCenterMarkerRef.current?.remove();
+        zoneCenterMarkerRef.current = null;
+        zoneFramedKey.current = null;
+      }
+    });
+  }, [zone]);
 
   const hasZones = zones.length > 0;
 
