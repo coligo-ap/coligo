@@ -60,6 +60,9 @@ export function ExpressRun({
 }) {
   const [eta, setEta] = useState<{ min: number; km: number } | null>(null);
   const [showChat, setShowChat] = useState(false);
+  // Feuille basse RÉDUCTIBLE : repliée, elle ne garde que l'étape + le bouton
+  // d'action et dégage la carte (façon Uber). La poignée bascule l'état.
+  const [collapsed, setCollapsed] = useState(false);
   // Avance à remettre au commerçant au pickup (COD express, modèle Yassir) :
   // P − commission, calculée côté serveur (RPC mig 0161).
   const [advanceDa, setAdvanceDa] = useState<number | null>(null);
@@ -153,8 +156,17 @@ export function ExpressRun({
         </div>
       </div>
 
-      {/* Feuille basse : étape en cours. */}
-      <div className="navsheet">
+      {/* Feuille basse : étape en cours (réductible pour dégager la carte). */}
+      <div className={collapsed ? "navsheet collapsed" : "navsheet"}>
+        <button
+          type="button"
+          className="grab"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-label={collapsed ? "Agrandir la feuille" : "Réduire la feuille"}
+          aria-expanded={!collapsed}
+        >
+          <span className="bar" />
+        </button>
         <div className="step">
           <div className="dot">
             {pickedUp ? (
@@ -200,7 +212,7 @@ export function ExpressRun({
 
         {/* Avance commerçant au pickup (COD : le livreur paie P − commission
             en récupérant la commande, puis se rembourse chez le client). */}
-        {!pickedUp && advanceDa != null && (
+        {!collapsed && !pickedUp && advanceDa != null && (
           <div
             className="cash"
             style={{
@@ -219,28 +231,29 @@ export function ExpressRun({
         )}
 
         {/* Encaissement à la livraison. */}
-        {prepaid ? (
-          <div className="cash" style={{ marginTop: 0, marginBottom: 12 }}>
-            <div className="l">✅ Déjà payé en ligne</div>
-            <div className="am">0 DA</div>
-          </div>
-        ) : (
-          <div
-            className="cash"
-            style={{
-              marginTop: 0,
-              marginBottom: 12,
-              background: "rgba(243,156,18,.12)",
-            }}
-          >
-            <div className="l" style={{ color: "#8b6500" }}>
-              💵 À encaisser à la livraison
+        {!collapsed &&
+          (prepaid ? (
+            <div className="cash" style={{ marginTop: 0, marginBottom: 12 }}>
+              <div className="l">✅ Déjà payé en ligne</div>
+              <div className="am">0 DA</div>
             </div>
-            <div className="am" style={{ color: "#8b6500" }}>
-              {toCollect} DA
+          ) : (
+            <div
+              className="cash"
+              style={{
+                marginTop: 0,
+                marginBottom: 12,
+                background: "rgba(243,156,18,.12)",
+              }}
+            >
+              <div className="l" style={{ color: "#8b6500" }}>
+                💵 À encaisser à la livraison
+              </div>
+              <div className="am" style={{ color: "#8b6500" }}>
+                {toCollect} DA
+              </div>
             </div>
-          </div>
-        )}
+          ))}
 
         <button
           type="button"
@@ -252,48 +265,50 @@ export function ExpressRun({
           {pending ? "…" : cta.label}
         </button>
 
-        {/* Actions secondaires. */}
-        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-          {gmapsUrl && (
-            <a
-              href={gmapsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btnlink"
-              style={{
-                flex: 1,
-                marginTop: 0,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-              }}
-            >
-              Itinéraire <ArrowRight className="size-4" />
-            </a>
-          )}
-          {pickedUp && (
-            <button
-              type="button"
-              onClick={() => setShowChat(true)}
-              className="btnlink"
-              style={{ flex: 1, marginTop: 0 }}
-            >
-              <MessageCircle className="mr-1 inline size-4" />
-              Message
-            </button>
-          )}
-          {who.phone && (
-            <a
-              href={`tel:${who.phone}`}
-              className="btnlink"
-              style={{ flex: 1, marginTop: 0 }}
-            >
-              <Phone className="mr-1 inline size-4" />
-              Appeler
-            </a>
-          )}
-        </div>
+        {/* Actions secondaires (masquées en mode réduit). */}
+        {!collapsed && (
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            {gmapsUrl && (
+              <a
+                href={gmapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btnlink"
+                style={{
+                  flex: 1,
+                  marginTop: 0,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                Itinéraire <ArrowRight className="size-4" />
+              </a>
+            )}
+            {pickedUp && (
+              <button
+                type="button"
+                onClick={() => setShowChat(true)}
+                className="btnlink"
+                style={{ flex: 1, marginTop: 0 }}
+              >
+                <MessageCircle className="mr-1 inline size-4" />
+                Message
+              </button>
+            )}
+            {who.phone && (
+              <a
+                href={`tel:${who.phone}`}
+                className="btnlink"
+                style={{ flex: 1, marginTop: 0 }}
+              >
+                <Phone className="mr-1 inline size-4" />
+                Appeler
+              </a>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Modale chat avec le client (messages prédéfinis). */}

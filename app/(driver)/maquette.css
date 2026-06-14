@@ -1377,6 +1377,36 @@
   font-weight: 700;
   font-size: 14px;
 }
+/* poignée pour réduire/agrandir la feuille basse (dégage la carte) */
+[data-space="driver"] .navsheet .grab {
+  display: block;
+  width: 100%;
+  padding: 0 0 10px;
+  margin: -4px 0 2px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+[data-space="driver"] .navsheet .grab .bar {
+  display: block;
+  width: 42px;
+  height: 5px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background 0.15s ease;
+}
+[data-space="driver"] .navsheet .grab:hover .bar,
+[data-space="driver"] .navsheet .grab:active .bar {
+  background: var(--muted);
+}
+[data-space="driver"] .navsheet.collapsed {
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+}
+[data-space="driver"] .navsheet.collapsed .step {
+  margin-bottom: 12px;
+}
 
 /* bandeau course réduite (navigation maquette) */
 [data-space="driver"] .coursebar {
