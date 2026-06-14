@@ -76,6 +76,14 @@ export const APP_CONFIG = {
     version: process.env.NEXT_PUBLIC_DRIVE_APK_VERSION ?? "",
     size: process.env.NEXT_PUBLIC_DRIVE_APK_SIZE ?? "",
   },
+
+  // Mise à jour des APK installés : numéro de build de la DERNIÈRE version
+  // publiée. L'app lit son propre build (via @capacitor/app) et, s'il est
+  // inférieur, affiche un bandeau « mettre à jour ». On bump cette variable
+  // Vercel à chaque nouvel APK publié. 0 = pas de bandeau.
+  app: {
+    latestBuild: Number(process.env.NEXT_PUBLIC_APP_LATEST_BUILD ?? "0"),
+  },
 } as const;
 
 /** Part commission Coligo (en DA, arrondie) pour un montant donné. */
