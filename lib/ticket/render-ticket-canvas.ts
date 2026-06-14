@@ -37,6 +37,7 @@ import {
   formatTime,
   groupByCategory,
   groupCount,
+  loyaltyInfo,
   orderRef,
   totalUnits,
 } from "@/lib/ticket/ticket-format";
@@ -336,6 +337,74 @@ export async function renderTicketCanvasBase64(
     if (line) flush();
     return yy;
   };
+  // === 10b. FIDÉLITÉ CLIENT (sous le QR) ===
+  // Le compteur de commandes du client chez CE commerçant. Paniers dessinés en
+  // vecteur monochrome (net en thermique, contrairement à un emoji qui se
+  // binarise mal). 1re commande → message ; sinon rang + paniers (≤3) ou « Nx ».
+  const drawBasket = (cx: number, topY: number) => {
+    const u = S;
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = Math.max(1, Math.round(1.6 * S));
+    ctx.setLineDash([]);
+    const bw = 18 * u;
+    const bh = 13 * u;
+    const left = cx - bw / 2;
+    const top = topY + 5 * u;
+    ctx.beginPath(); // anse
+    ctx.arc(cx, top, 5 * u, Math.PI, 0);
+    ctx.stroke();
+    ctx.beginPath(); // corps (trapèze)
+    ctx.moveTo(left, top);
+    ctx.lineTo(left + bw, top);
+    ctx.lineTo(left + bw - 3 * u, top + bh);
+    ctx.lineTo(left + 3 * u, top + bh);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.beginPath(); // nervures
+    for (const dx of [-4, 0, 4]) {
+      ctx.moveTo(cx + dx * u, top);
+      ctx.lineTo(cx + dx * u, top + bh);
+    }
+    ctx.stroke();
+  };
+
+  const loyalty = loyaltyInfo(order.customer_order_count);
+  if (loyalty) {
+    y += Math.round(4 * S);
+    if (loyalty.first) {
+      y = wrapCenter("Premiere commande", f(22, true), y, Math.round(26 * S));
+    } else {
+      textAt(
+        `${loyalty.count}e commande de ce client`,
+        f(19, true),
+        "center",
+        y
+      );
+      y += Math.round(24 * S);
+      const showBaskets = Math.min(3, loyalty.count);
+      const overflow = loyalty.count > 3;
+      const bw = Math.round(24 * S);
+      ctx.font = f(20, true);
+      ctx.textBaseline = "top";
+      const prefix = overflow ? `${loyalty.count}x ` : "";
+      const prefixW = prefix ? ctx.measureText(prefix).width : 0;
+      const nBaskets = overflow ? 1 : showBaskets;
+      const totalW = prefixW + nBaskets * bw;
+      let bx = (W - totalW) / 2;
+      if (prefix) {
+        ctx.fillText(prefix, bx, y + Math.round(4 * S));
+        bx += prefixW;
+      }
+      for (let i = 0; i < nBaskets; i++) {
+        drawBasket(bx + bw / 2, y);
+        bx += bw;
+      }
+      y += Math.round(26 * S);
+    }
+  }
+
+  // Espace papier au-dessus de « Merci » → déchirure sans couper la phrase.
+  y += Math.round(12 * S);
   y = wrapCenter(
     "Merci pour votre confiance",
     f(20, true),
