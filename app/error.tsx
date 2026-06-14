@@ -42,6 +42,34 @@ export default function RootError({
 
   useEffect(() => {
     console.error("[RootError]", error);
+    // ChunkLoadError (chunks obsolètes après déploiement) : re-render ne sert à
+    // rien, le module n'existe plus. En ligne → recharger pour récupérer les
+    // chunks à jour, avec garde anti-boucle (12 s).
+    const msg = `${error?.name ?? ""}: ${error?.message ?? ""}`;
+    const isChunk =
+      /ChunkLoadError/i.test(msg) ||
+      /Loading (CSS )?chunk [\w-]+ failed/i.test(msg) ||
+      /dynamically imported module/i.test(msg);
+    if (isChunk && typeof navigator !== "undefined" && navigator.onLine) {
+      let last = 0;
+      try {
+        last =
+          parseInt(
+            sessionStorage.getItem("coligo_chunk_reload_at") ?? "0",
+            10
+          ) || 0;
+      } catch {
+        /* ignoré */
+      }
+      if (Date.now() - last >= 12_000) {
+        try {
+          sessionStorage.setItem("coligo_chunk_reload_at", String(Date.now()));
+        } catch {
+          /* ignoré */
+        }
+        window.location.reload();
+      }
+    }
   }, [error]);
 
   return (

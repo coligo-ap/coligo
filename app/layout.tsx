@@ -9,6 +9,7 @@ import { APP_CONFIG } from "@/lib/config/app-config";
 import { pwaMetadata } from "@/lib/config/pwa";
 import { Toaster } from "@/components/ui/toast";
 import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
+import { ChunkErrorReload } from "@/components/pwa/chunk-error-reload";
 import { CapacitorBootLog } from "@/components/pwa/capacitor-boot-log";
 import { AppUpdateBanner } from "@/components/pwa/app-update-banner";
 import { RouteProgressBar } from "@/components/shared/route-progress-bar";
@@ -193,6 +194,7 @@ export default async function RootLayout({
           </Suspense>
           {children}
           <Toaster />
+          <ChunkErrorReload />
           <RegisterServiceWorker />
           <CapacitorBootLog />
           {/* Bandeau « nouvelle version » — visible uniquement dans un APK
