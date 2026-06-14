@@ -23,8 +23,12 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * changement.
  */
 
-const DEFAULT_URL = "https://coligo-liart.vercel.app";
-const PROD_URL = "https://commercant.coligo.app";
+// URL de démarrage par défaut = app COMMERCE via la route d'indirection
+// dynamique `/api/start/commerce` (redirige côté serveur → on peut changer la
+// landing sans rebuild). Les variantes livreur/chauffeur écrivent leur propre
+// `server.url` (/api/start/driver | /api/start/drive) au moment du build.
+const DEFAULT_URL = "https://coligo-liart.vercel.app/api/start/commerce";
+const PROD_URL = "https://commercant.coligo.app/api/start/commerce";
 
 const serverUrl =
   process.env.CAPACITOR_SERVER_URL?.trim() ||
