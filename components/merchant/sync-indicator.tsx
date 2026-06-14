@@ -208,7 +208,7 @@ function SyncPanel({
 
   return (
     <div
-      className="border-border bg-surface absolute top-full right-0 z-50 mt-2 w-[320px] rounded-[14px] border p-3 shadow-xl"
+      className="border-border bg-surface fixed top-[calc(env(safe-area-inset-top)+3.5rem)] right-2 z-50 w-[min(18rem,calc(100vw-1rem))] rounded-[14px] border p-3 shadow-xl lg:absolute lg:top-full lg:right-0 lg:mt-2 lg:w-80"
       role="dialog"
     >
       <header className="mb-2 flex items-center justify-between">
