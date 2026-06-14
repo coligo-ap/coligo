@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { driverHeartbeat, pullNextExpressNearby } from "@/app/(driver)/actions";
 import { useWorkZone, LIVE_RADIUS_KM } from "@/lib/driver/work-zone";
+import { playNewOrder } from "@/lib/driver/sounds";
+import { vibrate } from "@/lib/hooks/use-alert-sound";
 import { toast } from "@/components/ui/toast";
 
 /**
@@ -60,6 +62,11 @@ export function ZoneDispatch({ online }: { online: boolean }) {
           origin.radiusKm
         );
         if (alive && r.orderId) {
+          // Réception GLOBALE (n'importe quelle page) : il faut SONNER, pas juste
+          // un toast — sinon le livreur, app en poche, rate la course. Son gaté
+          // par la préférence « Sons » ; vibration en complément.
+          void playNewOrder();
+          vibrate([0, 120, 60, 120]);
           toast.success("Nouvelle course à proximité ⚡");
           router.push(`/driver/course/${r.orderId}`);
         }

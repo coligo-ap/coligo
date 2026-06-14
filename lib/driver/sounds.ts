@@ -7,7 +7,13 @@
  * d'échec, repli sur la SYNTHÈSE Web Audio (portée À L'IDENTIQUE des fonctions
  * playGo()/playNewOrder() des maquettes). Tout est best-effort et silencieux en
  * cas d'erreur (autoplay bloqué, AudioContext indispo…).
+ *
+ * Tous les sons respectent la préférence livreur « Sons » (sound-store) : si le
+ * livreur a coupé le son, les `play*` sont des no-op (la vibration, canal
+ * séparé, reste gérée par l'appelant).
  */
+
+import { isDriverSoundOn } from "@/lib/driver/sound-store";
 
 function tryFile(src: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -176,17 +182,20 @@ function synthAlert() {
 }
 
 export async function playGo() {
+  if (!isDriverSoundOn()) return;
   if (await tryFile("/sounds/online.mp3")) return;
   synthGo();
 }
 
 /** Alerte (course annulée, incident) — fichier alert.mp3 sinon synthèse. */
 export async function playAlert() {
+  if (!isDriverSoundOn()) return;
   if (await tryFile("/sounds/alert.mp3")) return;
   synthAlert();
 }
 
 export async function playNewOrder() {
+  if (!isDriverSoundOn()) return;
   if (await tryFile("/sounds/new-order.mp3")) return;
   synthNewOrder();
 }

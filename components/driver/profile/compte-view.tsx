@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { driverLogout } from "@/app/(driver)/actions";
 import { useDriverDark, toggleDriverDark } from "@/lib/driver/theme-store";
+import { useDriverSound, toggleDriverSound } from "@/lib/driver/sound-store";
 import { openSupportChat } from "@/components/support/tawk-chat";
 
 /**
@@ -41,6 +42,7 @@ export function CompteView({
   children?: React.ReactNode;
 }) {
   const dark = useDriverDark();
+  const soundOn = useDriverSound();
   const pct = Math.min(
     100,
     Math.round((data.outstandingDa / Math.max(1, data.capDa)) * 100)
@@ -162,6 +164,24 @@ export function CompteView({
               <circle cx="12" cy="12" r="4" />
               <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" />
             </>
+          }
+        />
+        <Mrow
+          label="Sons"
+          value={soundOn ? "Activés" : "Coupés"}
+          onClick={() => toggleDriverSound()}
+          icon={
+            soundOn ? (
+              <>
+                <path d="M11 5 6 9H2v6h4l5 4z" />
+                <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14" />
+              </>
+            ) : (
+              <>
+                <path d="M11 5 6 9H2v6h4l5 4z" />
+                <path d="M22 9l-6 6M16 9l6 6" />
+              </>
+            )
           }
         />
         <Mrow

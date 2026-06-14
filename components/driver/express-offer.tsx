@@ -5,6 +5,7 @@ import { watchPosition, type Coords } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
 import { cashToCollectDa, isPrepaid } from "@/lib/delivery/cash";
 import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
+import { isDriverSoundOn } from "@/lib/driver/sound-store";
 import {
   computeDriverNet,
   DEFAULT_DRIVER_FEE_CONFIG,
@@ -67,10 +68,12 @@ export function ExpressOffer({
   onTimeoutRef.current = onTimeout;
   const { play, stop, unlock } = useAlertSound();
 
-  // Sonnerie + vibration tant que l'offre est affichée (cf. son maquette).
+  // Sonnerie + vibration tant que l'offre est affichée (cf. son maquette). La
+  // sonnerie respecte la préférence « Sons » du livreur ; la vibration reste.
   useEffect(() => {
     let active = true;
     void (async () => {
+      if (!isDriverSoundOn()) return;
       await unlock();
       if (active) await play({ repeat: true, intervalMs: 2500 });
     })();
