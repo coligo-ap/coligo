@@ -17,12 +17,21 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ANDROID_RES = join(ROOT, "android", "app", "src", "main", "res");
 const VALUES = join(ANDROID_RES, "values");
 
-// Icône de l'APK = logo de l'app COMMERCE (bandeau « COMMERCE »), c'est
-// l'application des commerçants. Fond de marque violet #6C2BD9 (le logo a déjà
-// ce violet → l'icône adaptative se fond proprement).
-const ICON_SRC = join(ROOT, "public", "logo-coligo-commerce-app.png");
-const BRAND = { r: 0x6c, g: 0x2b, b: 0xd9 };
-const BRAND_HEX = "#6C2BD9";
+// Icône de l'APK. Par défaut = logo COMMERCE (app commerçant). Paramétrable
+// par env pour générer les autres apps (livreur / chauffeur Drive) :
+//   COLIGO_ICON_LOGO=logo-coligo-livreur-app.png node scripts/android-assets.mjs
+// Tous les logos ont le fond violet #6C2BD9 → l'icône adaptative se fond bien.
+const ICON_SRC = join(
+  ROOT,
+  "public",
+  process.env.COLIGO_ICON_LOGO || "logo-coligo-commerce-app.png"
+);
+const BRAND_HEX = process.env.COLIGO_BRAND_HEX || "#6C2BD9";
+const BRAND = {
+  r: parseInt(BRAND_HEX.slice(1, 3), 16),
+  g: parseInt(BRAND_HEX.slice(3, 5), 16),
+  b: parseInt(BRAND_HEX.slice(5, 7), 16),
+};
 
 // Tailles standard Android — mipmap-* (lanceur classique).
 const LAUNCHER = {

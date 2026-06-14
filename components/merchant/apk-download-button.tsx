@@ -20,10 +20,16 @@ export function ApkDownloadButton({
   url,
   version,
   size,
+  apkHref = "/telecharger/apk",
+  fileName = "coligo-commercant.apk",
 }: {
   url: string;
   version?: string;
   size?: string;
+  /** Route MÊME-ORIGINE qui sert l'APK en pièce jointe. */
+  apkHref?: string;
+  /** Nom de fichier proposé au téléchargement. */
+  fileName?: string;
 }) {
   const [mounted, setMounted] = useState(false);
   const [native, setNative] = useState(false);
@@ -60,8 +66,8 @@ export function ApkDownloadButton({
   // tournait. Même-origine + attachment = téléchargement fiable partout.
   return (
     <a
-      href="/telecharger/apk"
-      download="coligo-commercant.apk"
+      href={apkHref}
+      download={fileName}
       className="focus-visible:ring-primary-300 group flex w-full items-center justify-center gap-3 rounded-[14px] bg-gradient-to-r from-[#5B2EFF] to-[#6C2BD9] px-6 py-4 text-base font-semibold text-white shadow-lg shadow-[#6C2BD9]/25 transition-all hover:to-[#5B23C4] hover:shadow-xl focus:outline-none focus-visible:ring-2"
     >
       <Download className="size-5 shrink-0 transition-transform group-hover:translate-y-0.5" />

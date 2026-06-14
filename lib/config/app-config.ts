@@ -63,6 +63,19 @@ export const APP_CONFIG = {
     // Taille affichée (ex. « 8 Mo ») — purement indicatif.
     size: process.env.NEXT_PUBLIC_MERCHANT_APK_SIZE ?? "",
   },
+
+  // APK « Coligo Livreur » (ouvre /driver) et « Coligo Drive » (ouvre
+  // /chauffeur). Même principe que merchantApk : URL = variable d'env Vercel.
+  driverApk: {
+    url: process.env.NEXT_PUBLIC_DRIVER_APK_URL ?? "",
+    version: process.env.NEXT_PUBLIC_DRIVER_APK_VERSION ?? "",
+    size: process.env.NEXT_PUBLIC_DRIVER_APK_SIZE ?? "",
+  },
+  driveApk: {
+    url: process.env.NEXT_PUBLIC_DRIVE_APK_URL ?? "",
+    version: process.env.NEXT_PUBLIC_DRIVE_APK_VERSION ?? "",
+    size: process.env.NEXT_PUBLIC_DRIVE_APK_SIZE ?? "",
+  },
 } as const;
 
 /** Part commission Coligo (en DA, arrondie) pour un montant donné. */

@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ChevronRight, Smartphone } from "lucide-react";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { createClient } from "@/lib/supabase/server";
 import { DriverShell } from "@/components/driver/driver-shell";
@@ -163,6 +165,24 @@ export default async function DriverProfilePage() {
           payouts={(payoutsRaw ?? []) as SelfPayout[]}
           requests={(reqRaw ?? []) as SelfRequest[]}
         />
+        {/* Télécharger l'app Android « Coligo Livreur » */}
+        <Link
+          href="/driver/telecharger"
+          className="border-border hover:bg-surface-2 mt-4 flex items-center gap-3 rounded-[14px] border bg-white p-4 transition-colors"
+        >
+          <span className="bg-primary-50 text-primary-600 flex size-10 shrink-0 items-center justify-center rounded-full">
+            <Smartphone className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">
+              Télécharger l’application Android
+            </span>
+            <span className="text-muted block text-xs">
+              Nouvelles courses, géoloc fiable et plein écran.
+            </span>
+          </span>
+          <ChevronRight className="text-subtle size-5 shrink-0" />
+        </Link>
         {/* Installer la PWA livreur (« Coligo Livreur ») — masqué si installée/APK */}
         <div className="mt-4">
           <InstallAppButton />

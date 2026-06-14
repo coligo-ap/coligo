@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Car,
+  ChevronRight,
   CreditCard,
   FileCheck,
   Globe,
@@ -11,6 +13,7 @@ import {
   LogOut,
   Pencil,
   ShieldAlert,
+  Smartphone,
 } from "lucide-react";
 import {
   SosContactsSheet,
@@ -173,6 +176,25 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
           Se déconnecter
         </button>
       </div>
+
+      {/* Télécharger l'app Android « Coligo Drive » */}
+      <Link
+        href="/chauffeur/telecharger"
+        className="mt-4 flex items-center gap-3 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] p-4 text-[var(--d-ink)] transition-colors hover:bg-[var(--d-surface)]"
+      >
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--d-surface)]">
+          <Smartphone className="size-5" style={{ color: VIOLET }} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">
+            Télécharger l’application Android
+          </span>
+          <span className="block text-xs opacity-70">
+            Notifications fiables et plein écran.
+          </span>
+        </span>
+        <ChevronRight className="size-5 shrink-0 opacity-50" />
+      </Link>
 
       {/* Installer la PWA chauffeur (« Coligo Drive ») — masqué si déjà installée */}
       <div className="mt-4">
