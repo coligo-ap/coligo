@@ -240,8 +240,10 @@ function Toggle({
     >
       <span
         className={cn(
-          "inline-block size-5 transform rounded-full bg-white shadow transition-transform",
-          on ? "translate-x-5" : "translate-x-0.5"
+          // `left` plutôt que `translate-x` : compatible avec le vieux WebView
+          // Sunmi (qui ignore la propriété `translate:` de Tailwind v4).
+          "absolute top-0.5 size-5 rounded-full bg-white shadow transition-all",
+          on ? "left-5.5" : "left-0.5"
         )}
       />
     </button>

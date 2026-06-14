@@ -70,7 +70,7 @@ export function AppDownloadPage({
         </Link>
       )}
       {/* Hero */}
-      <section className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#5B2EFF] to-[#6C2BD9] px-6 py-8 text-white shadow-lg lg:px-10 lg:py-10">
+      <section className="cg-brand-gradient relative overflow-hidden rounded-[20px] px-6 py-8 text-white shadow-lg lg:px-10 lg:py-10">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -top-16 -right-16 size-56 rounded-full bg-white/10 blur-2xl"

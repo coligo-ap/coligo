@@ -374,8 +374,11 @@ function Switch({
       >
         <span
           className={cn(
-            "inline-block size-5 transform rounded-full bg-white shadow transition-transform",
-            checked ? "translate-x-5" : "translate-x-0.5"
+            // Positionné via `left` (et non `translate-x`) : Tailwind v4 compile
+            // translate-x en propriété `translate:` que le vieux WebView Sunmi
+            // ignore → le point ne bougeait pas. `left` est compatible partout.
+            "absolute top-0.5 size-5 rounded-full bg-white shadow transition-all",
+            checked ? "left-5.5" : "left-0.5"
           )}
         />
       </span>

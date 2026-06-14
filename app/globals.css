@@ -561,3 +561,14 @@ body {
     left: 0;
   }
 }
+
+/* ── Dégradé de marque compatible vieux WebView (terminaux Sunmi) ──────────
+   Tailwind v4 génère `linear-gradient(in oklab, …)` que le Chromium ancien
+   des Sunmi ne parse pas → fond transparent. On fournit une version simple
+   en hex, valable partout. À utiliser à la place de
+   `bg-gradient-to-r from-[#5B2EFF] to-[#6C2BD9]` sur les surfaces violettes
+   visibles dans l'APK commerçant. */
+.cg-brand-gradient {
+  background-image: linear-gradient(90deg, #5b2eff, #6c2bd9);
+  background-color: #6c2bd9; /* repli ultime si même le gradient échoue */
+}

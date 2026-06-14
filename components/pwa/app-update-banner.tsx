@@ -32,6 +32,10 @@ export function AppUpdateBanner() {
 
   useEffect(() => {
     if (!isNative()) return;
+    // Pour l'instant : bandeau de MAJ UNIQUEMENT dans l'app commerçant
+    // (ni livreur /driver, ni chauffeur /chauffeur).
+    const p = window.location.pathname;
+    if (p.startsWith("/driver") || p.startsWith("/chauffeur")) return;
     if (sessionStorage.getItem("coligo_update_dismissed") === "1") return;
     let cancelled = false;
     (async () => {
@@ -60,7 +64,7 @@ export function AppUpdateBanner() {
 
   return (
     <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] z-[60] px-3 lg:bottom-4">
-      <div className="mx-auto flex max-w-md items-center gap-3 rounded-[14px] bg-gradient-to-r from-[#5B2EFF] to-[#6C2BD9] p-3 text-white shadow-xl">
+      <div className="cg-brand-gradient mx-auto flex max-w-md items-center gap-3 rounded-[14px] p-3 text-white shadow-xl">
         <ArrowUpCircle className="size-6 shrink-0" />
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold">

@@ -416,8 +416,9 @@ export async function renderTicketCanvasBase64(
     y += Math.round(2 * S);
     y = wrapCenter(meta.footerText, f(16), y, Math.round(20 * S));
   }
-  // Ligne vide en bas pour déchirer le ticket proprement (+ feed/cut natif).
-  y += Math.round(36 * S);
+  // 3 lignes vides imprimables APRÈS « Merci pour votre confiance » : un blanc
+  // où le commerçant déchire le papier sans couper la phrase (demande proprio).
+  y += Math.round(90 * S);
 
   // === Recadrage à la hauteur réelle + binarisation N&B ===
   const H = Math.min(4000, Math.ceil(y));
