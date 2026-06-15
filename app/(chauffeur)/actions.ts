@@ -647,6 +647,8 @@ export type ChauffeurActiveRide = {
   proxy_name: string | null;
   customer_name: string;
   customer_rating: number | null;
+  /** Téléphone à appeler : celui du proche (course pour un tiers) sinon client. */
+  customer_phone: string | null;
   commission_da: number | null;
   net_da: number | null;
   share_token: string | null;
@@ -659,7 +661,7 @@ export async function getChauffeurActiveRide(): Promise<ChauffeurActiveRide | nu
   const { data } = await admin
     .from("rides")
     .select(
-      "id, status, pickup_text, dest_text, pickup_lat, pickup_lng, dest_lat, dest_lng, distance_km, agreed_price_da, proposed_price_da, boost_amount_da, payment_method, cash_due_da, gamme, proxy_name, customer_id, commission_da, chauffeur_net_da, share_token, customers(full_name)"
+      "id, status, pickup_text, dest_text, pickup_lat, pickup_lng, dest_lat, dest_lng, distance_km, agreed_price_da, proposed_price_da, boost_amount_da, payment_method, cash_due_da, gamme, proxy_name, proxy_phone, customer_id, commission_da, chauffeur_net_da, share_token, customers(full_name, phone)"
     )
     .eq("chauffeur_id", ch.id)
     .in("status", ["accepted", "arriving", "arrived", "in_progress"])
@@ -667,7 +669,10 @@ export async function getChauffeurActiveRide(): Promise<ChauffeurActiveRide | nu
     .limit(1)
     .maybeSingle();
   if (!data) return null;
-  const cu = data.customers as unknown as { full_name: string } | null;
+  const cu = data.customers as unknown as {
+    full_name: string;
+    phone: string | null;
+  } | null;
   const { data: avg } = await admin
     .from("rides")
     .select("client_rating.avg()")
@@ -695,6 +700,7 @@ export async function getChauffeurActiveRide(): Promise<ChauffeurActiveRide | nu
     proxy_name: data.proxy_name,
     customer_name:
       data.proxy_name ?? (cu ? cu.full_name.split(" ")[0] : "Client"),
+    customer_phone: (data.proxy_phone as string | null) ?? cu?.phone ?? null,
     customer_rating:
       rating == null ? null : Math.round(Number(rating) * 10) / 10,
     commission_da: data.commission_da,

@@ -2,9 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Check, Home, Map as MapIcon, Zap } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  Check,
+  Home,
+  Loader2,
+  Map as MapIcon,
+  Zap,
+} from "lucide-react";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { createClient } from "@/lib/supabase/client";
+import { Place } from "@/lib/geo/place-name";
 import { DriveMap } from "@/components/customer/drive/drive-map";
 import {
   VIOLET,
@@ -47,6 +56,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const router = useRouter();
   const coords = useDriverPosition();
   const [reqs, setReqs] = useState<NearbyRide[]>([]);
+  const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<"near" | "pay">("near");
   const [myPrices, setMyPrices] = useState<Record<string, number>>({});
   const [sent, setSent] = useState<Record<string, number>>({});
@@ -99,12 +109,25 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
       return;
     }
     setReqs(list);
+    setLoading(false);
   }, [router]);
+  // 1er chargement quasi-immédiat : dès que la position est connue, on
+  // interroge sans attendre le tick. Poll de filet à 5 s (le temps réel
+  // ci-dessous gère l'instantané) + loader tant que rien n'est arrivé.
   useEffect(() => {
     void poll();
-    const id = setInterval(poll, 8000);
+    const id = setInterval(poll, 5000);
     return () => clearInterval(id);
   }, [poll]);
+  // Si la géoloc met du temps : déclencher le poll dès la 1re position connue
+  // (sans attendre le tick) — puis laisser l'intervalle + le temps réel gérer.
+  const gotFirstFix = useRef(false);
+  useEffect(() => {
+    if (coords && !gotFirstFix.current) {
+      gotFirstFix.current = true;
+      void poll();
+    }
+  }, [coords, poll]);
 
   // Temps réel (mig 0149) : nouvelles demandes instantanées + redirection
   // immédiate quand le client accepte UNE de mes offres.
@@ -262,7 +285,17 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
                 {mapReq.gamme === "confort" ? " · Confort" : ""}
               </b>
               <span className="block text-[12px] text-[var(--d-muted)]">
-                {mapReq.pickup_text ?? "—"} → {mapReq.dest_text ?? "—"}
+                <Place
+                  text={mapReq.pickup_text}
+                  lat={mapReq.pickup_lat}
+                  lng={mapReq.pickup_lng}
+                />{" "}
+                →{" "}
+                <Place
+                  text={mapReq.dest_text}
+                  lat={mapReq.dest_lat}
+                  lng={mapReq.dest_lng}
+                />
               </span>
             </span>
           </div>
@@ -355,7 +388,16 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
         </div>
       )}
 
-      {sorted.length === 0 && (
+      {loading && sorted.length === 0 && (
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <Loader2 className="size-7 animate-spin" style={{ color: VIOLET }} />
+          <p className="text-sm font-semibold text-[var(--d-muted)]">
+            Recherche des demandes autour de vous…
+          </p>
+        </div>
+      )}
+
+      {!loading && sorted.length === 0 && (
         <p className="py-10 text-center text-sm text-[var(--d-muted)]">
           {dirActive
             ? "Aucune course vers votre domicile pour le moment."
@@ -457,7 +499,12 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
               </span>
             </div>
             <p className="mb-2.5 truncate text-xs font-semibold">
-              {q.pickup_text ?? "—"} → {q.dest_text ?? "—"}
+              <Place
+                text={q.pickup_text}
+                lat={q.pickup_lat}
+                lng={q.pickup_lng}
+              />{" "}
+              → <Place text={q.dest_text} lat={q.dest_lat} lng={q.dest_lng} />
             </p>
             <button
               type="button"
@@ -478,85 +525,104 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
               </div>
             ) : (
               <>
-                {/* Aide à la décision : prix conseillé par l'algorithme,
-                    net estimé (après commission du plan) et rentabilité. */}
-                <p className="mb-2 text-center text-[11px] font-semibold text-[var(--d-muted)]">
-                  Conseillé :{" "}
-                  <b className="text-[var(--d-ink)]">
-                    {q.suggested_price_da} DA
-                  </b>{" "}
-                  · net estimé ≈{" "}
+                {/* Acceptation directe ENCOURAGÉE : bouton héro vert, pleine
+                    largeur — bien plus visible que la contre-offre. */}
+                <button
+                  type="button"
+                  onClick={() => void propose(q, cp)}
+                  className="drive-sora flex h-[54px] w-full items-center justify-center gap-2 rounded-[15px] text-[16px] font-extrabold text-white"
+                  style={{
+                    background: GO,
+                    boxShadow: `0 14px 26px -12px ${GO}`,
+                  }}
+                >
+                  <Check className="size-5" /> Accepter · {cp} DA
+                </button>
+                <p className="mt-1.5 text-center text-[11px] font-semibold text-[var(--d-muted)]">
+                  net estimé ≈{" "}
                   <b style={{ color: GO }}>
-                    {Math.round(myPrice * (1 - planRate))} DA
+                    {Math.round(cp * (1 - planRate))} DA
                   </b>{" "}
                   ·{" "}
                   {Math.round(
-                    myPrice / Math.max(0.5, q.distance_km + q.pickup_dist_km)
+                    cp / Math.max(0.5, q.distance_km + q.pickup_dist_km)
                   )}{" "}
                   DA/km
                 </p>
-                <div className="mb-2.5 flex items-center justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setMyPrices((p) => ({
-                        ...p,
-                        // Contre-offre libre : possible SOUS le prix client,
-                        // jamais sous le plancher (serveur = below_floor).
-                        [q.id]: Math.max(minCounter(q), myPrice - priceStep),
-                      }))
-                    }
-                    className="grid size-10 place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-xl font-bold"
-                    style={{ color: VIOLET }}
-                  >
-                    −
-                  </button>
-                  <span className="min-w-[130px] text-center text-[13px] font-semibold text-[var(--d-muted)]">
-                    votre prix{" "}
-                    <b className="drive-sora text-xl font-extrabold text-[var(--d-ink)]">
-                      {myPrice}
-                    </b>{" "}
-                    DA
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setMyPrices((p) => ({
-                        ...p,
-                        [q.id]: myPrice + priceStep,
-                      }))
-                    }
-                    className="grid size-10 place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-xl font-bold"
-                    style={{ color: VIOLET }}
-                  >
-                    +
-                  </button>
-                </div>
+
                 {errors[q.id] && (
                   <p
-                    className="mb-2 text-center text-xs font-bold"
+                    className="mt-2 text-center text-xs font-bold"
                     style={{ color: "#E5484D" }}
                   >
                     {errors[q.id]}
                   </p>
                 )}
-                <div className="flex gap-2">
+
+                {/* Contre-offre : volontairement SECONDAIRE (repliée). */}
+                <details className="group mt-2">
+                  <summary className="flex cursor-pointer list-none items-center justify-center gap-1.5 py-1 text-[12.5px] font-bold [&::-webkit-details-marker]:hidden">
+                    <span style={{ color: VIOLET }}>
+                      Proposer un autre prix
+                    </span>
+                    <ChevronDown
+                      className="size-3.5 transition-transform group-open:rotate-180"
+                      style={{ color: VIOLET }}
+                    />
+                  </summary>
+                  <p className="mt-1 text-center text-[11px] font-semibold text-[var(--d-muted)]">
+                    Conseillé :{" "}
+                    <b className="text-[var(--d-ink)]">
+                      {q.suggested_price_da} DA
+                    </b>
+                  </p>
+                  <div className="my-2.5 flex items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMyPrices((p) => ({
+                          ...p,
+                          // Contre-offre libre : possible SOUS le prix client,
+                          // jamais sous le plancher (serveur = below_floor).
+                          [q.id]: Math.max(minCounter(q), myPrice - priceStep),
+                        }))
+                      }
+                      className="grid size-10 place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-xl font-bold"
+                      style={{ color: VIOLET }}
+                    >
+                      −
+                    </button>
+                    <span className="min-w-[130px] text-center text-[13px] font-semibold text-[var(--d-muted)]">
+                      votre prix{" "}
+                      <b className="drive-sora text-xl font-extrabold text-[var(--d-ink)]">
+                        {myPrice}
+                      </b>{" "}
+                      DA
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMyPrices((p) => ({
+                          ...p,
+                          [q.id]: myPrice + priceStep,
+                        }))
+                      }
+                      className="grid size-10 place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-xl font-bold"
+                      style={{ color: VIOLET }}
+                    >
+                      +
+                    </button>
+                  </div>
                   <button
                     type="button"
                     onClick={() => void propose(q, myPrice)}
-                    className="drive-sora h-11 flex-1 rounded-[13px] text-[13.5px] font-bold text-white"
-                    style={{ background: VIOLET }}
+                    className="drive-sora h-11 w-full rounded-[13px] border-[1.5px] text-[13.5px] font-bold"
+                    style={{ borderColor: VIOLET, color: VIOLET }}
                   >
-                    Proposer {myPrice}
+                    Proposer {myPrice} DA
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => void propose(q, cp)}
-                    className="drive-sora h-11 flex-1 rounded-[13px] bg-[var(--d-soft)] text-[13.5px] font-bold"
-                  >
-                    Accepter {cp}
-                  </button>
-                </div>
+                </details>
+
                 <button
                   type="button"
                   onClick={() => void decline(q)}

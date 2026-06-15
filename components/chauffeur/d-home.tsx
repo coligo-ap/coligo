@@ -15,6 +15,7 @@ import { formatDA } from "@/lib/utils";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { getPosition } from "@/lib/native/geolocation";
 import { reverseGeocode } from "@/lib/geo/geocode";
+import { createClient } from "@/lib/supabase/client";
 import { PushRegistrar } from "@/components/native/push-registrar";
 import { DriveMap, type LatLng } from "@/components/customer/drive/drive-map";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
@@ -115,6 +116,23 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     return () => clearInterval(id);
   }, [tick]);
 
+  // Temps réel : une nouvelle demande proche met à jour le compteur
+  // instantanément (sans attendre le tick de 15 s) → diffusion plus rapide.
+  useEffect(() => {
+    const supabase = createClient();
+    const ch = supabase
+      .channel("home-nearby-rides")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "rides" },
+        () => void tick()
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [tick]);
+
   // Domicile : popup carte (recherche + repère) — plus de prompt texte.
   // Le changement d'adresse est LIMITÉ côté serveur (1×/semaine, anti-fraude).
   const [homeOpen, setHomeOpen] = useState(false);
@@ -179,6 +197,8 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   };
 
   const me = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
+  const reqCount = home?.requestsCount ?? 0;
+  const hasReqs = online && reqCount > 0;
 
   return (
     <div className="drive-jakarta drive-screen bg-[var(--d-page)]">
@@ -234,21 +254,45 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         <button
           type="button"
           onClick={() => setMini((m) => !m)}
-          className="drive-sora flex w-full items-center justify-between text-[21px] font-extrabold tracking-[-0.5px]"
+          className="drive-sora flex w-full items-center justify-between gap-2 text-[21px] font-extrabold tracking-[-0.5px]"
         >
-          {online
-            ? home
-              ? `${home.requestsCount} demandes proches`
-              : "Demandes proches…"
-            : "Vous êtes hors ligne"}
+          <span className="flex min-w-0 items-center gap-2">
+            {online ? (
+              home ? (
+                hasReqs ? (
+                  <>
+                    <span
+                      key={reqCount}
+                      className="drive-pop drive-badge grid min-w-[34px] shrink-0 place-items-center rounded-full px-2 py-0.5 text-[17px] text-white"
+                      style={{ background: GO }}
+                    >
+                      {reqCount}
+                    </span>
+                    <span className="truncate">
+                      demande{reqCount > 1 ? "s" : ""} proche
+                      {reqCount > 1 ? "s" : ""}
+                    </span>
+                  </>
+                ) : (
+                  "Aucune demande proche"
+                )
+              ) : (
+                "Demandes proches…"
+              )
+            ) : (
+              "Vous êtes hors ligne"
+            )}
+          </span>
           <ChevronUp
-            className="size-[18px] text-[var(--d-muted)] transition-transform duration-300"
+            className="size-[18px] shrink-0 text-[var(--d-muted)] transition-transform duration-300"
             style={{ transform: mini ? "rotate(180deg)" : undefined }}
           />
         </button>
         <p className="mb-3 text-[13px] text-[var(--d-muted)]">
           {online
-            ? "Plusieurs clients attendent un chauffeur autour de vous."
+            ? hasReqs
+              ? "Des clients attendent un chauffeur autour de vous — répondez vite !"
+              : "Restez en ligne, les demandes arrivent."
             : "Passez en ligne pour commencer à recevoir les courses."}
         </p>
 
@@ -362,10 +406,18 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           <>
             <PrimaryBtn
               onClick={() => router.push("/chauffeur/demandes")}
-              className="!mt-0"
+              className={hasReqs ? "drive-attn !mt-0" : "!mt-0"}
             >
-              Voir les demandes
-              {home && home.requestsCount > 0 ? ` (${home.requestsCount})` : ""}
+              {hasReqs ? (
+                <>
+                  Voir les {reqCount} demande{reqCount > 1 ? "s" : ""}
+                  <span className="drive-badge grid size-6 place-items-center rounded-full bg-white/25 text-sm">
+                    →
+                  </span>
+                </>
+              ) : (
+                "Voir les demandes"
+              )}
             </PrimaryBtn>
             <button
               type="button"

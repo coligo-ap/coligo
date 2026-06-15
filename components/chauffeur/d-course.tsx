@@ -9,6 +9,7 @@ import {
   Copy,
   Loader2,
   MessageSquare,
+  Phone,
   Send,
   Star,
   X,
@@ -17,6 +18,7 @@ import {
 import { formatDA } from "@/lib/utils";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { haversineKm } from "@/lib/delivery/distance";
+import { Place } from "@/lib/geo/place-name";
 import { DriveMap } from "@/components/customer/drive/drive-map";
 import {
   CancelModal,
@@ -294,7 +296,17 @@ export function DCourse() {
           </span>
         </div>
         <p className="mb-4 text-xs font-semibold">
-          {ride.pickup_text ?? "—"} → {ride.dest_text ?? "—"}
+          <Place
+            text={ride.pickup_text}
+            lat={ride.pickup_lat}
+            lng={ride.pickup_lng}
+          />{" "}
+          →{" "}
+          <Place
+            text={ride.dest_text}
+            lat={ride.dest_lat}
+            lng={ride.dest_lng}
+          />
         </p>
         <PrimaryBtn
           onClick={async () => {
@@ -477,9 +489,23 @@ export function DCourse() {
             </span>
           </div>
           <div className="mt-3 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-[12.5px] font-bold">
-            {inProgress
-              ? `${ride.dest_text ?? "Destination"}`
-              : `Vous attend · ${ride.pickup_text ?? "—"}`}
+            {inProgress ? (
+              <Place
+                text={ride.dest_text}
+                lat={ride.dest_lat}
+                lng={ride.dest_lng}
+                fallback="Destination"
+              />
+            ) : (
+              <>
+                Vous attend ·{" "}
+                <Place
+                  text={ride.pickup_text}
+                  lat={ride.pickup_lat}
+                  lng={ride.pickup_lng}
+                />
+              </>
+            )}
           </div>
           <div className="mt-3 flex gap-2">
             <button
@@ -489,14 +515,27 @@ export function DCourse() {
             >
               <MessageSquare className="size-4" /> Message
             </button>
-            <button
-              type="button"
-              onClick={() => setChatOpen(true)}
-              className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
-              style={{ background: VIOLET }}
-            >
-              <MessageSquare className="size-4" /> Contacter
-            </button>
+            {/* Appeler : ligne directe vers le client (numéro réel tant que
+                l'appel masqué Twilio n'est pas branché). Repli sur le chat si
+                le numéro est indisponible. */}
+            {ride.customer_phone ? (
+              <a
+                href={`tel:${ride.customer_phone}`}
+                className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
+                style={{ background: VIOLET }}
+              >
+                <Phone className="size-4" /> Appeler
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setChatOpen(true)}
+                className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
+                style={{ background: VIOLET }}
+              >
+                <MessageSquare className="size-4" /> Contacter
+              </button>
+            )}
           </div>
         </div>
 
