@@ -42,6 +42,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
     "@capacitor-community/background-geolocation": "^1.2.26",
+    "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor/android": "^8.3.4",
     "@capacitor/app": "^8.1.0",
     "@capacitor/core": "^8.3.4",

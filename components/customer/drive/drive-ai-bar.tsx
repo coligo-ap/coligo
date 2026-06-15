@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowUp,
   Car,
   Check,
   Loader2,
   MapPin,
+  Mic,
   Navigation,
   Sparkles,
   Snowflake,
+  Square,
   User,
   X,
 } from "lucide-react";
@@ -18,6 +20,12 @@ import {
   type DriveGamme,
   type DriveIntentDraft,
 } from "@/app/(customer)/drive/ai-actions";
+import {
+  speechSupported,
+  startSpeech,
+  type SpeechHandle,
+  type SpeechLang,
+} from "@/lib/native/speech";
 import { ROSE, VIOLET } from "./drive-modals";
 
 const GAMME_LABEL: Record<DriveGamme, string> = {
@@ -50,9 +58,51 @@ export function DriveAiBar({
   const [err, setErr] = useState<string | null>(null);
   const [draft, setDraft] = useState<DriveIntentDraft | null>(null);
 
+  // Dictée vocale (ar-DZ / fr-FR) — native APK ou Web Speech API.
+  const [lang, setLang] = useState<SpeechLang>("ar-DZ");
+  const [listening, setListening] = useState(false);
+  const [micOk, setMicOk] = useState(false);
+  const speechRef = useRef<SpeechHandle | null>(null);
+
   useEffect(() => {
     onConfirmingChange?.(!!draft);
   }, [draft, onConfirmingChange]);
+
+  useEffect(() => {
+    setMicOk(speechSupported());
+    return () => speechRef.current?.stop();
+  }, []);
+
+  const toggleMic = async () => {
+    if (listening) {
+      speechRef.current?.stop();
+      return;
+    }
+    setErr(null);
+    setDraft(null);
+    setListening(true);
+    try {
+      speechRef.current = await startSpeech({
+        lang,
+        onPartial: (txt) => setText(txt),
+        onFinal: (txt) => setText(txt),
+        onError: (kind) => {
+          setListening(false);
+          setErr(
+            kind === "denied"
+              ? "Autorise le micro pour dicter."
+              : kind === "unsupported"
+                ? "Dictée vocale indisponible sur cet appareil."
+                : "Je n'ai pas bien entendu, réessaie."
+          );
+        },
+        onEnd: () => setListening(false),
+      });
+    } catch {
+      setListening(false);
+      setErr("Dictée vocale indisponible.");
+    }
+  };
 
   const submit = async () => {
     const q = text.trim();
@@ -209,36 +259,81 @@ export function DriveAiBar({
   return (
     <div className="mb-3">
       <div
-        className="flex items-center gap-2 rounded-[15px] border px-3 py-2"
-        style={{ borderColor: VIOLET, background: "#F6F3FE" }}
+        className="flex items-center gap-1.5 rounded-[15px] border px-3 py-2 transition-colors"
+        style={{
+          borderColor: listening ? "#EF4444" : VIOLET,
+          background: listening ? "#FEF2F2" : "#F6F3FE",
+        }}
       >
-        <Sparkles className="size-4 shrink-0" style={{ color: VIOLET }} />
+        <Sparkles
+          className="size-4 shrink-0"
+          style={{ color: listening ? "#EF4444" : VIOLET }}
+        />
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") void submit();
           }}
-          disabled={busy}
+          disabled={busy || listening}
           enterKeyHint="go"
-          placeholder="Dis où tu veux aller…"
-          aria-label="Réserver une course en écrivant"
-          className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
+          placeholder={listening ? "Parle…" : "Dis où tu veux aller…"}
+          aria-label="Réserver une course"
+          className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)] disabled:opacity-100"
         />
-        <button
-          type="button"
-          onClick={() => void submit()}
-          disabled={busy || text.trim().length < 3}
-          aria-label="Envoyer"
-          className="grid size-8 shrink-0 place-items-center rounded-full text-white transition disabled:opacity-40"
-          style={{ background: VIOLET }}
-        >
-          {busy ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <ArrowUp className="size-4" />
-          )}
-        </button>
+
+        {listening ? (
+          <button
+            type="button"
+            onClick={toggleMic}
+            aria-label="Arrêter la dictée"
+            className="grid size-8 shrink-0 animate-pulse place-items-center rounded-full bg-red-500 text-white"
+          >
+            <Square className="size-3 fill-current" />
+          </button>
+        ) : (
+          <>
+            {micOk && (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setLang((l) => (l === "ar-DZ" ? "fr-FR" : "ar-DZ"))
+                  }
+                  aria-label="Langue de la dictée"
+                  title={lang === "ar-DZ" ? "Arabe / darija" : "Français"}
+                  className="shrink-0 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-2 py-[5px] text-[11px] font-extrabold"
+                  style={{ color: VIOLET }}
+                >
+                  {lang === "ar-DZ" ? "AR" : "FR"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void toggleMic()}
+                  aria-label="Dicter à voix haute"
+                  className="grid size-8 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)]"
+                  style={{ color: VIOLET }}
+                >
+                  <Mic className="size-4" />
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => void submit()}
+              disabled={busy || text.trim().length < 3}
+              aria-label="Envoyer"
+              className="grid size-8 shrink-0 place-items-center rounded-full text-white transition disabled:opacity-40"
+              style={{ background: VIOLET }}
+            >
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <ArrowUp className="size-4" />
+              )}
+            </button>
+          </>
+        )}
       </div>
       {err && (
         <p className="mt-1.5 px-1 text-[12.5px] font-semibold text-red-600">
