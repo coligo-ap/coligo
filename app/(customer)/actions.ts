@@ -747,28 +747,32 @@ async function searchGoogleFallback(
   if (qn.length < GOOGLE_MIN_QLEN) return [];
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return []; // payant → réservé aux clients connectés
     const rpc = supabase.rpc.bind(supabase) as unknown as (
       fn: string,
       args: Record<string, unknown>
     ) => Promise<{ data: unknown; error: unknown }>;
 
-    // 1) Cache 30 j (gratuit) — ne jamais re-payer la même recherche.
+    // 1) Cache 30 j (gratuit) — TOUJOURS servi, sans condition d'auth.
     const cached = (await rpc("geo_google_cache_get", { p_q: qn })).data;
     if (Array.isArray(cached)) return cached as GeoHit[];
 
-    // 2) Plafonds journaliers (par client, puis global) — hard stop.
-    const okUser =
-      (
-        await rpc("api_quota_take", {
-          p_name: `gp:${user.id}`,
-          p_cap: GOOGLE_DAILY_PER_USER,
-        })
-      ).data === true;
-    if (!okUser) return [];
+    // 2) Chemin PAYANT : plafonds. Par client si connecté (anti-abus), et
+    //    plafond GLOBAL toujours (filet dur). PAS de blocage si non connecté —
+    //    le cache + le plafond global bornent déjà le coût. (Auparavant un
+    //    getUser() null tuait le fallback : corrigé.)
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const okUser =
+        (
+          await rpc("api_quota_take", {
+            p_name: `gp:${user.id}`,
+            p_cap: GOOGLE_DAILY_PER_USER,
+          })
+        ).data === true;
+      if (!okUser) return [];
+    }
     const okGlobal =
       (
         await rpc("api_quota_take", {
