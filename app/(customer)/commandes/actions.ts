@@ -140,3 +140,146 @@ export async function confirmDeliveryReception(
     };
   }
 }
+
+// =============================================================================
+// « Commander à nouveau » (reorder) — recompose le panier client à partir d'une
+// commande passée. order_items ne stocke qu'un SNAPSHOT (nom/prix), pas de
+// product_id : on re-résout chaque nom vers le produit ACTUEL du commerçant
+// (vrai id + prix du jour + disponibilité). On ajoute ceux qui existent encore
+// et on signale les manquants. La lecture passe par le client RLS → le user ne
+// peut résoudre que SES commandes. Ne THROW jamais.
+// =============================================================================
+
+export type ReorderItem = {
+  product_id: string;
+  name: string;
+  unit_price_da: number;
+  image_url: string | null;
+  category_title: string | null;
+  quantity: number;
+};
+
+export type ReorderResult =
+  | {
+      ok: true;
+      merchant: {
+        id: string;
+        slug: string;
+        name: string;
+        logo_url: string | null;
+      };
+      items: ReorderItem[];
+      missing: string[];
+    }
+  | { ok: false; error: string };
+
+export async function resolveReorder(orderId: string): Promise<ReorderResult> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "Tu dois te reconnecter." };
+
+    const { data: order } = await supabase
+      .from("orders")
+      .select(
+        `merchant_id,
+         merchants ( name, slug, logo_url ),
+         order_items ( product_name, quantity )`
+      )
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (!order) return { ok: false, error: "Commande introuvable." };
+
+    const o = order as unknown as {
+      merchant_id: string;
+      merchants: {
+        name: string;
+        slug: string;
+        logo_url: string | null;
+      } | null;
+      order_items: { product_name: string; quantity: number }[];
+    };
+
+    const merchant = o.merchants;
+    const orderItems = o.order_items ?? [];
+    if (!merchant || orderItems.length === 0) {
+      return { ok: false, error: "Cette commande ne peut pas être répétée." };
+    }
+
+    // Produits ACTUELS du commerçant (lecture publique RLS) pour re-résoudre les
+    // noms snapshot → product_id + prix du jour + disponibilité.
+    const { data: products } = await supabase
+      .from("products")
+      .select("id, name_fr, price_da, image_url, category, is_available")
+      .eq("merchant_id", o.merchant_id);
+
+    const byName = new Map<
+      string,
+      {
+        id: string;
+        name_fr: string;
+        price_da: number;
+        image_url: string | null;
+        category: string | null;
+        is_available: boolean;
+      }
+    >();
+    for (const p of (products ?? []) as {
+      id: string;
+      name_fr: string;
+      price_da: number;
+      image_url: string | null;
+      category: string | null;
+      is_available: boolean;
+    }[]) {
+      byName.set(p.name_fr.trim().toLowerCase(), p);
+    }
+
+    const items: ReorderItem[] = [];
+    const missing: string[] = [];
+    for (const oi of orderItems) {
+      const key = (oi.product_name ?? "").trim().toLowerCase();
+      const p = byName.get(key);
+      if (p && p.is_available) {
+        items.push({
+          product_id: p.id,
+          name: p.name_fr,
+          unit_price_da: p.price_da,
+          image_url: p.image_url,
+          category_title: p.category,
+          quantity: Math.max(1, Number(oi.quantity) || 1),
+        });
+      } else {
+        missing.push(oi.product_name);
+      }
+    }
+
+    if (items.length === 0) {
+      return {
+        ok: false,
+        error: "Aucun article de cette commande n'est plus disponible.",
+      };
+    }
+
+    return {
+      ok: true,
+      merchant: {
+        id: o.merchant_id,
+        slug: merchant.slug,
+        name: merchant.name,
+        logo_url: merchant.logo_url,
+      },
+      items,
+      missing,
+    };
+  } catch (e) {
+    console.error("[resolveReorder] failed:", e);
+    return {
+      ok: false,
+      error: "Impossible de recomposer le panier pour le moment.",
+    };
+  }
+}

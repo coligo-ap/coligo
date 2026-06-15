@@ -1,0 +1,111 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { RotateCcw, ArrowRight, Loader2 } from "lucide-react";
+import { resolveReorder } from "@/app/(customer)/commandes/actions";
+import { addItem, clearAllCarts } from "@/lib/customer/cart-store";
+
+/**
+ * « Commander à nouveau » — recompose le panier à partir d'une commande passée.
+ * La résolution (noms snapshot → produits actuels) est faite côté serveur
+ * (resolveReorder). Ici on vide les paniers, on ré-ajoute les articles encore
+ * disponibles via le store panier, puis on propose d'aller au panier. Les
+ * messages sont INLINE (cf. règle produit) : succès vert + articles
+ * indisponibles éventuels, jamais de toast.
+ */
+export function ReorderButton({ orderId }: { orderId: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<{
+    slug: string;
+    count: number;
+    missing: string[];
+  } | null>(null);
+
+  function handleReorder() {
+    setError(null);
+    setDone(null);
+    start(async () => {
+      const res = await resolveReorder(orderId);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      // Panier mono-commerçant : on repart propre, puis on ré-ajoute.
+      clearAllCarts();
+      for (const it of res.items) {
+        addItem(
+          {
+            id: res.merchant.id,
+            slug: res.merchant.slug,
+            name: res.merchant.name,
+            logo_url: res.merchant.logo_url,
+          },
+          {
+            product_id: it.product_id,
+            name: it.name,
+            unit_price_da: it.unit_price_da,
+            image_url: it.image_url,
+            category_title: it.category_title,
+            quantity: it.quantity,
+          }
+        );
+      }
+      setDone({
+        slug: res.merchant.slug,
+        count: res.items.length,
+        missing: res.missing,
+      });
+    });
+  }
+
+  if (done) {
+    return (
+      <div className="border-success-100 bg-success-50 mt-2.5 rounded-[16px] border p-3.5">
+        <p className="text-success-800 text-[13px] font-bold">
+          ✓ {done.count} article{done.count > 1 ? "s" : ""} ajouté
+          {done.count > 1 ? "s" : ""} à votre panier
+        </p>
+        {done.missing.length > 0 && (
+          <p className="text-muted mt-1 text-[12px] font-medium">
+            Non disponible{done.missing.length > 1 ? "s" : ""} aujourd&apos;hui
+            : {done.missing.join(", ")}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => router.push(`/m/${done.slug}`)}
+          className="bg-primary-600 hover:bg-primary-700 mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[12px] px-4 text-sm font-bold text-white transition-colors"
+        >
+          Voir le panier
+          <ArrowRight className="size-4 rtl:-scale-x-100" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2.5">
+      <button
+        type="button"
+        onClick={handleReorder}
+        disabled={pending}
+        className="border-primary-200 text-primary-700 hover:bg-primary-50 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] bg-white px-4 text-sm font-bold transition-colors disabled:opacity-60"
+      >
+        {pending ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <RotateCcw className="size-4" />
+        )}
+        Commander à nouveau
+      </button>
+      {error && (
+        <p className="text-danger-600 mt-2 text-center text-[12.5px] font-semibold">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}

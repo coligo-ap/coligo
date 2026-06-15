@@ -8,6 +8,7 @@ import { type OrderStatus } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
 import { CustomerOrderLive } from "@/components/customer/customer-order-live";
 import { CancelOrderButton } from "@/components/customer/cancel-order-button";
+import { ReorderButton } from "@/components/customer/reorder-button";
 import { OrderTrack } from "@/components/customer/order-track";
 import { CustomerDeliveryMap } from "@/components/customer/customer-delivery-map";
 import { ConfirmReception } from "@/components/customer/confirm-reception";
@@ -451,6 +452,9 @@ export default async function CustomerOrderDetailPage({
               refundBlocked={onlineRefundBlocked}
             />
           )}
+
+          {/* « Commander à nouveau » — sur une commande terminée ou annulée. */}
+          {(isCompleted || isCancelled) && <ReorderButton orderId={order.id} />}
         </div>
 
         {/* ═══ CODE PIN + QR (payé en ligne : livraison ou retrait) ═══
