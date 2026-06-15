@@ -730,7 +730,8 @@ const SEARCH_GENERIC = new Set([
 ]);
 
 // Plafonds Google Places (anti-dérapage). Ajustables sans risque.
-const GOOGLE_MIN_QLEN = 4;
+// Longueur min : les requêtes courtes restent sur le gratuit (jamais payant).
+const GOOGLE_MIN_QLEN = 5;
 const GOOGLE_DAILY_GLOBAL = 500;
 const GOOGLE_DAILY_PER_USER = 25;
 
