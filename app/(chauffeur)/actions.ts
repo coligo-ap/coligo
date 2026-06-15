@@ -14,6 +14,7 @@ import { signSelfiePath } from "@/lib/drive/avatar-server";
 import {
   notifyFemaleDriverOnline,
   notifyRideCustomer,
+  notifyRideMessage,
 } from "@/lib/fcm/triggers";
 
 export type ChauffeurAuthState = { error?: string; ok?: boolean };
@@ -873,6 +874,8 @@ export async function sendChauffeurRideMessage(
     .from("ride_messages")
     .insert({ ride_id: rideId, sender: "chauffeur", body: text });
   if (error) return { ok: false, error: error.message };
+  // Push au client (fire-and-forget).
+  void notifyRideMessage({ rideId, senderRole: "chauffeur", body: text });
   return { ok: true };
 }
 

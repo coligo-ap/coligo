@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chauffeurAvatarUrls } from "@/lib/drive/avatar-server";
-import { notifyChauffeursNewRide } from "@/lib/fcm/triggers";
+import { notifyChauffeursNewRide, notifyRideMessage } from "@/lib/fcm/triggers";
 import {
   evaluateZone,
   logZoneBlock,
@@ -1044,6 +1044,8 @@ export async function sendRideMessage(
     .from("ride_messages")
     .insert({ ride_id: rideId, sender: "customer", body: text });
   if (error) return { ok: false, error: error.message };
+  // Push au chauffeur (fire-and-forget).
+  void notifyRideMessage({ rideId, senderRole: "customer", body: text });
   return { ok: true };
 }
 

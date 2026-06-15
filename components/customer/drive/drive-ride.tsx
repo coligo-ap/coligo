@@ -46,6 +46,7 @@ import {
   getDriveLastRide,
   getDriveOffers,
   getRideCardState,
+  getRideMessages,
   rateDriveRide,
   getSosContacts,
   reportDriveRide,
@@ -57,6 +58,7 @@ import {
   type DriveOffer,
 } from "@/app/(customer)/drive/actions";
 import { clearPendingRide } from "@/lib/drive/offline-db";
+import { useUnreadRideMessages } from "@/lib/drive/use-unread-messages";
 
 /**
  * Drive client — phase course : offres des chauffeurs (triables, favoris en
@@ -743,6 +745,40 @@ function EnrouteScreen({
     void getSosContacts().then(setSosContacts);
   }, []);
 
+  // Messages non lus du chauffeur (compteur + notification in-app).
+  const { unread, lastIncoming, markSeen } = useUnreadRideMessages(
+    ride.id,
+    "chauffeur",
+    getRideMessages,
+    true
+  );
+  const [msgBanner, setMsgBanner] = useState<string | null>(null);
+  const lastMsgId = lastIncoming?.id ?? null;
+  const lastMsgBody = lastIncoming?.body ?? null;
+  const notifiedRef = useRef<string | null>(null);
+  const seededRef = useRef(false);
+  useEffect(() => {
+    // 1re salve chargée : mémoriser sans notifier les messages déjà présents.
+    if (!seededRef.current && lastMsgId !== null) {
+      seededRef.current = true;
+      notifiedRef.current = lastMsgId;
+      return;
+    }
+    if (chatOpen) return;
+    if (lastMsgId && lastMsgId !== notifiedRef.current) {
+      notifiedRef.current = lastMsgId;
+      setMsgBanner(lastMsgBody);
+      const id = setTimeout(() => setMsgBanner(null), 6000);
+      return () => clearTimeout(id);
+    }
+  }, [lastMsgId, lastMsgBody, chatOpen]);
+  useEffect(() => {
+    if (chatOpen) {
+      markSeen();
+      setMsgBanner(null);
+    }
+  }, [chatOpen, markSeen]);
+
   const ch = ride.chauffeur;
   const chPos =
     ch?.lat != null && ch?.lng != null ? { lat: ch.lat, lng: ch.lng } : null;
@@ -837,6 +873,38 @@ function EnrouteScreen({
         />
         <span className="drive-sora">{pill}</span>
       </div>
+
+      {/* Notification in-app : nouveau message du chauffeur (chat fermé). */}
+      {msgBanner && (
+        <button
+          type="button"
+          onClick={() => {
+            setChatOpen(true);
+            setMsgBanner(null);
+          }}
+          className="drive-up absolute top-16 right-2.5 left-2.5 z-40 flex items-center gap-2.5 rounded-[16px] border-2 bg-[var(--d-surface)] px-3.5 py-3 text-left shadow-xl"
+          style={{ borderColor: VIOLET }}
+        >
+          <span
+            className="grid size-9 shrink-0 place-items-center rounded-full"
+            style={{ background: "#EEEEFD" }}
+          >
+            <MessageSquare className="size-4" style={{ color: VIOLET }} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <b className="block text-[13px]">{t("message")}</b>
+            <span className="block truncate text-[12px] text-[var(--d-muted)]">
+              {msgBanner}
+            </span>
+          </span>
+          <span
+            className="shrink-0 text-[11px] font-extrabold"
+            style={{ color: VIOLET }}
+          >
+            Voir
+          </span>
+        </button>
+      )}
 
       {/* Itinéraire anormal : « Tout va bien ? » */}
       {devAlert && (
@@ -1018,9 +1086,17 @@ function EnrouteScreen({
               <button
                 type="button"
                 onClick={() => setChatOpen(true)}
-                className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
+                className="relative flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
               >
                 <MessageSquare className="size-4" /> {t("message")}
+                {unread > 0 && (
+                  <span
+                    className="drive-badge absolute -top-1.5 -right-1.5 grid min-w-[20px] place-items-center rounded-full px-1.5 text-[11px] font-extrabold text-white"
+                    style={{ background: RED }}
+                  >
+                    {unread}
+                  </span>
+                )}
               </button>
               <a
                 href={ch.phone ? `tel:${ch.phone}` : undefined}
@@ -1180,7 +1256,10 @@ function EnrouteScreen({
       />
       <ChatModal
         open={chatOpen}
-        onClose={() => setChatOpen(false)}
+        onClose={() => {
+          setChatOpen(false);
+          markSeen();
+        }}
         rideId={ride.id}
         side="customer"
       />

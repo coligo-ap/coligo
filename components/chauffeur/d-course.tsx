@@ -9,6 +9,7 @@ import {
   Copy,
   Loader2,
   MessageSquare,
+  Navigation,
   Phone,
   Send,
   Star,
@@ -18,6 +19,16 @@ import {
 import { formatDA } from "@/lib/utils";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { haversineKm } from "@/lib/delivery/distance";
+import { reverseGeocode } from "@/app/(customer)/actions";
+import {
+  clearNavPref,
+  getNavPref,
+  NAV_APPS,
+  openNav,
+  setNavPref,
+  tryOpenNav,
+} from "@/lib/drive/nav";
+import { useUnreadRideMessages } from "@/lib/drive/use-unread-messages";
 import { DriveMap } from "@/components/customer/drive/drive-map";
 import {
   CancelModal,
@@ -87,6 +98,86 @@ export function DCourse() {
   const [askCode, setAskCode] = useState(false);
   // Lien public de suivi t/{token} — copiable pour le partager librement.
   const [linkCopied, setLinkCopied] = useState(false);
+
+  // Navigation GPS : sélecteur d'app (si aucune préférée mémorisée).
+  const [navSheet, setNavSheet] = useState<{
+    lat: number;
+    lng: number;
+    label: string;
+  } | null>(null);
+  // Lance la navigation vers (lat,lng) — app préférée directe, sinon sélecteur.
+  const goNav = (lat: number, lng: number, label: string) => {
+    if (!tryOpenNav(lat, lng)) setNavSheet({ lat, lng, label });
+  };
+
+  // Adresse lisible du point de départ client (le client envoie parfois
+  // « Ma position actuelle » : on résout les coordonnées en vraie adresse).
+  const [pickupAddr, setPickupAddr] = useState<string | null>(null);
+  const pickupLat = ride?.pickup_lat ?? null;
+  const pickupLng = ride?.pickup_lng ?? null;
+  const pickupText = ride?.pickup_text ?? null;
+  useEffect(() => {
+    const vague =
+      !pickupText ||
+      /^(ma position|my position|position gps|point gps|موقعي|موقع gps)/i.test(
+        pickupText.trim()
+      ) ||
+      /-?\d{1,3}[.,]\d{3,}\s*[,;]\s*-?\d{1,3}[.,]\d{3,}/.test(pickupText);
+    if (!vague) {
+      setPickupAddr(pickupText);
+      return;
+    }
+    if (pickupLat == null || pickupLng == null) {
+      setPickupAddr(null);
+      return;
+    }
+    let alive = true;
+    void reverseGeocode({
+      latitude: pickupLat,
+      longitude: pickupLng,
+      precise: true,
+    }).then((r) => {
+      if (alive) setPickupAddr(r.ok ? (r.display ?? null) : null);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [pickupText, pickupLat, pickupLng]);
+
+  // Messages non lus du client (compteur + bandeau in-app).
+  const { unread, lastIncoming, markSeen } = useUnreadRideMessages(
+    ride?.id ?? null,
+    "customer",
+    getChauffeurRideMessages,
+    !!ride && !done
+  );
+  const [msgBanner, setMsgBanner] = useState<string | null>(null);
+  const lastMsgId = lastIncoming?.id ?? null;
+  const lastMsgBody = lastIncoming?.body ?? null;
+  const notifiedRef = useRef<string | null>(null);
+  const seededRef = useRef(false);
+  useEffect(() => {
+    // 1re salve chargée : mémoriser sans notifier les messages déjà présents.
+    if (!seededRef.current && lastMsgId !== null) {
+      seededRef.current = true;
+      notifiedRef.current = lastMsgId;
+      return;
+    }
+    if (chatOpen) return;
+    if (lastMsgId && lastMsgId !== notifiedRef.current) {
+      notifiedRef.current = lastMsgId;
+      setMsgBanner(lastMsgBody);
+      const t = setTimeout(() => setMsgBanner(null), 6000);
+      return () => clearTimeout(t);
+    }
+  }, [lastMsgId, lastMsgBody, chatOpen]);
+  // Ouverture du chat = tout est lu.
+  useEffect(() => {
+    if (chatOpen) {
+      markSeen();
+      setMsgBanner(null);
+    }
+  }, [chatOpen, markSeen]);
 
   // Back-to-back
   const [nextOff, setNextOff] = useState<B2BNext | null>(null);
@@ -295,7 +386,7 @@ export function DCourse() {
           </span>
         </div>
         <p className="mb-4 text-xs font-semibold">
-          {ride.pickup_text ?? "—"} → {ride.dest_text ?? "—"}
+          {pickupAddr ?? "Point de départ du client"} → {ride.dest_text ?? "—"}
         </p>
         <PrimaryBtn
           onClick={async () => {
@@ -305,6 +396,17 @@ export function DCourse() {
         >
           Démarrer · aller au client
         </PrimaryBtn>
+        {/* Ouvre directement l'itinéraire vers le client dans l'app GPS. */}
+        {pickup && (
+          <button
+            type="button"
+            onClick={() => goNav(pickup.lat, pickup.lng, "le client")}
+            className="drive-sora mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[15px] border-[1.5px] text-[14px] font-bold"
+            style={{ borderColor: GO, color: GO }}
+          >
+            <Navigation className="size-4" /> Aller au point de départ · GPS
+          </button>
+        )}
         <GhostBtn onClick={() => setCancelCtx("driver_match")}>
           Annuler la course
         </GhostBtn>
@@ -318,6 +420,7 @@ export function DCourse() {
             router.replace("/chauffeur/demandes");
           }}
         />
+        <NavAppSheet target={navSheet} onClose={() => setNavSheet(null)} />
       </div>
     );
   }
@@ -352,6 +455,38 @@ export function DCourse() {
             : `Prise en charge · ${ride.customer_name}${pkMin != null ? ` à ${pkMin} min` : ""}`}
         </span>
       </div>
+
+      {/* Notification in-app : nouveau message du client (chat fermé). */}
+      {msgBanner && (
+        <button
+          type="button"
+          onClick={() => {
+            setChatOpen(true);
+            setMsgBanner(null);
+          }}
+          className="drive-up absolute top-16 right-2.5 left-2.5 z-40 flex items-center gap-2.5 rounded-[16px] border-2 bg-[var(--d-surface)] px-3.5 py-3 text-left shadow-xl"
+          style={{ borderColor: VIOLET }}
+        >
+          <span
+            className="grid size-9 shrink-0 place-items-center rounded-full"
+            style={{ background: "#EEEEFD" }}
+          >
+            <MessageSquare className="size-4" style={{ color: VIOLET }} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <b className="block text-[13px]">Nouveau message du client</b>
+            <span className="block truncate text-[12px] text-[var(--d-muted)]">
+              {msgBanner}
+            </span>
+          </span>
+          <span
+            className="shrink-0 text-[11px] font-extrabold"
+            style={{ color: VIOLET }}
+          >
+            Voir
+          </span>
+        </button>
+      )}
 
       {/* Back-to-back : course suivante près de la dépose (compteur 12 s) */}
       {inProgress && nextOff && (
@@ -477,18 +612,47 @@ export function DCourse() {
               </span>
             </span>
           </div>
-          <div className="mt-3 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-[12.5px] font-bold">
-            {inProgress
-              ? `${ride.dest_text ?? "Destination"}`
-              : `Vous attend · ${ride.pickup_text ?? "—"}`}
-          </div>
+          {/* Adresse du client (réelle, jamais « Ma position ») — cliquable :
+              ouvre l'itinéraire dans l'app GPS du chauffeur. */}
+          <button
+            type="button"
+            onClick={() => {
+              if (inProgress) {
+                if (dest) goNav(dest.lat, dest.lng, "la destination");
+              } else if (pickup) {
+                goNav(pickup.lat, pickup.lng, "le client");
+              }
+            }}
+            className="mt-3 flex w-full items-center gap-2 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-left text-[12.5px] font-bold"
+          >
+            <Navigation className="size-4 shrink-0" style={{ color: VIOLET }} />
+            <span className="min-w-0 flex-1 truncate">
+              {inProgress
+                ? (ride.dest_text ?? "Destination")
+                : `Vous attend · ${pickupAddr ?? "Point de départ du client"}`}
+            </span>
+            <span
+              className="shrink-0 text-[11px] font-extrabold"
+              style={{ color: VIOLET }}
+            >
+              Itinéraire ›
+            </span>
+          </button>
           <div className="mt-3 flex gap-2">
             <button
               type="button"
               onClick={() => setChatOpen(true)}
-              className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
+              className="relative flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
             >
               <MessageSquare className="size-4" /> Message
+              {unread > 0 && (
+                <span
+                  className="drive-badge absolute -top-1.5 -right-1.5 grid min-w-[20px] place-items-center rounded-full px-1.5 text-[11px] font-extrabold text-white"
+                  style={{ background: RED }}
+                >
+                  {unread}
+                </span>
+              )}
             </button>
             {/* Appeler : ligne directe vers le client (numéro réel tant que
                 l'appel masqué Twilio n'est pas branché). Repli sur le chat si
@@ -629,6 +793,20 @@ export function DCourse() {
                 <AlertTriangle className="size-4" /> SOS
               </button>
             </div>
+            {/* Navigation vers la destination finale du client (app GPS). */}
+            {dest && (
+              <button
+                type="button"
+                onClick={() => goNav(dest.lat, dest.lng, "la destination")}
+                className="drive-sora mb-2.5 flex h-[50px] w-full items-center justify-center gap-2 rounded-[15px] text-[15px] font-bold text-white"
+                style={{
+                  background: VIOLET,
+                  boxShadow: `0 12px 24px -12px ${VIOLET}`,
+                }}
+              >
+                <Navigation className="size-5" /> Ouvrir le trajet · GPS
+              </button>
+            )}
             <PrimaryBtn onClick={() => void complete()} disabled={busy}>
               {busy ? <Loader2 className="size-5 animate-spin" /> : null}
               Terminer la course
@@ -636,6 +814,20 @@ export function DCourse() {
           </>
         ) : (
           <>
+            {/* Navigation vers le point de départ du client (app GPS). */}
+            {pickup && (
+              <button
+                type="button"
+                onClick={() => goNav(pickup.lat, pickup.lng, "le client")}
+                className="drive-sora mb-2.5 flex h-[50px] w-full items-center justify-center gap-2 rounded-[15px] text-[15px] font-bold text-white"
+                style={{
+                  background: GO,
+                  boxShadow: `0 12px 24px -12px ${GO}`,
+                }}
+              >
+                <Navigation className="size-5" /> Aller au point de départ · GPS
+              </button>
+            )}
             {ride.status !== "arrived" ? (
               <PrimaryBtn
                 onClick={() => void transition("arrived")}
@@ -730,9 +922,80 @@ export function DCourse() {
         }}
       />
       {chatOpen && (
-        <DChat rideId={ride.id} onClose={() => setChatOpen(false)} />
+        <DChat
+          rideId={ride.id}
+          onClose={() => {
+            setChatOpen(false);
+            markSeen();
+          }}
+        />
       )}
+      <NavAppSheet target={navSheet} onClose={() => setNavSheet(null)} />
     </div>
+  );
+}
+
+/* ════════ Sélecteur d'application GPS (Google Maps / Waze / Plans) ════════ */
+
+function NavAppSheet({
+  target,
+  onClose,
+}: {
+  target: { lat: number; lng: number; label: string } | null;
+  onClose: () => void;
+}) {
+  const [remember, setRemember] = useState(true);
+  if (!target) return null;
+  const pref = getNavPref();
+  return (
+    <Sheet open onClose={onClose}>
+      <SheetTitle>Itinéraire vers {target.label}</SheetTitle>
+      <p className="mb-3 text-[13px] text-[var(--d-muted)]">
+        Choisissez votre application GPS — l&apos;itinéraire s&apos;ouvre
+        directement.
+      </p>
+      <div className="space-y-2">
+        {NAV_APPS.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            onClick={() => {
+              if (remember) setNavPref(a.id);
+              openNav(a.id, target.lat, target.lng);
+              onClose();
+            }}
+            className="flex h-[52px] w-full items-center gap-3 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] px-4 text-[14px] font-bold"
+          >
+            <span className="text-xl">{a.emoji}</span> {a.label}
+            <span className="ml-auto text-[var(--d-muted)]">›</span>
+          </button>
+        ))}
+      </div>
+      <label className="mt-3 flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold text-[var(--d-muted)]">
+        <input
+          type="checkbox"
+          checked={remember}
+          onChange={(e) => setRemember(e.target.checked)}
+          className="size-4"
+          style={{ accentColor: VIOLET }}
+        />
+        Se souvenir de mon choix
+      </label>
+      {pref && (
+        <button
+          type="button"
+          onClick={() => {
+            clearNavPref();
+            onClose();
+          }}
+          className="mt-1 block w-full text-center text-[12px] font-bold"
+          style={{ color: VIOLET }}
+        >
+          Réinitialiser l&apos;application par défaut
+        </button>
+      )}
+      <GhostBtn onClick={onClose}>Annuler</GhostBtn>
+    </Sheet>
   );
 }
 

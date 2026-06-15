@@ -827,6 +827,71 @@ export async function notifyRideCustomer(
 }
 
 /**
+ * Drive — notifie le DESTINATAIRE d'un message de chat de course (client ↔
+ * chauffeur). L'expéditeur vient d'envoyer `body` ; on pousse au camp opposé.
+ * Fire-and-forget (le poll/temps réel couvre le cas app ouverte).
+ */
+export async function notifyRideMessage(input: {
+  rideId: string;
+  senderRole: "customer" | "chauffeur";
+  body: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: ride } = await admin
+      .from("rides")
+      .select("customer_id, chauffeur_id, chauffeurs(first_name, full_name)")
+      .eq("id", input.rideId)
+      .maybeSingle();
+    if (!ride) return;
+    const body = input.body.trim().slice(0, 140);
+
+    if (input.senderRole === "chauffeur") {
+      // → notifie le CLIENT
+      if (!ride.customer_id) return;
+      const { data: cust } = await admin
+        .from("customers")
+        .select("user_id")
+        .eq("id", ride.customer_id)
+        .maybeSingle();
+      if (!cust?.user_id) return;
+      const tokens = await tokensFor(cust.user_id, "customer");
+      if (tokens.length === 0) return;
+      const ch = ride.chauffeurs as unknown as {
+        first_name: string | null;
+        full_name: string;
+      } | null;
+      const name = ch
+        ? (ch.first_name ?? ch.full_name.split(" ")[0])
+        : "Votre chauffeur";
+      await sendFcm(
+        tokens,
+        { title: `Message de ${name} 💬`, body },
+        { route: "/drive", kind: "drive_message" }
+      );
+    } else {
+      // → notifie le CHAUFFEUR
+      if (!ride.chauffeur_id) return;
+      const { data: ch } = await admin
+        .from("chauffeurs")
+        .select("user_id")
+        .eq("id", ride.chauffeur_id)
+        .maybeSingle();
+      if (!ch?.user_id) return;
+      const tokens = await tokensFor(ch.user_id, "chauffeur");
+      if (tokens.length === 0) return;
+      await sendFcm(
+        tokens,
+        { title: "Message du client 💬", body },
+        { route: "/chauffeur/course", kind: "drive_message" }
+      );
+    }
+  } catch (err) {
+    console.warn("[fcm] notifyRideMessage failed:", err);
+  }
+}
+
+/**
  * Drive — « Femme au volant » : une conductrice vient de se connecter →
  * prévient les clientes en repli (demandes female_only en recherche).
  * La RPC marque female_notified_at (une seule notification par demande).

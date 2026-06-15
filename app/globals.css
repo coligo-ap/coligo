@@ -502,6 +502,24 @@ body {
 .drive-pop {
   animation: drive-pop 0.35s ease both;
 }
+/* Bouton « Accepter » (vert) des propositions : léger halo pulsé pour pousser
+   à l'acceptation directe sans être agressif. */
+@keyframes drive-go-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 10px 20px -10px rgba(22, 179, 100, 0.7),
+      0 0 0 0 rgba(22, 179, 100, 0.45);
+  }
+  50% {
+    box-shadow:
+      0 10px 20px -10px rgba(22, 179, 100, 0.7),
+      0 0 0 7px rgba(22, 179, 100, 0);
+  }
+}
+.drive-go-pulse {
+  animation: drive-go-pulse 1.8s ease-in-out infinite;
+}
 
 /* ── Drive : thème clair/sombre (tokens maquette :root / body.dark) ──
    Les écrans Drive consomment ces variables ; le mode sombre suit le
