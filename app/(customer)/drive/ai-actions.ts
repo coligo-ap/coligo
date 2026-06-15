@@ -1,28 +1,24 @@
 "use server";
 
 /**
- * Assistant Drive en langage naturel (darija / arabe / français).
+ * Assistant Drive en langage naturel (darija / arabe / français) — SANS IA payante.
  *
- * Principe : l'IA NE FAIT QUE COMPRENDRE. Elle extrait l'intention de course
- * depuis la phrase du client (destination, gamme, femme au volant…). Tout le
- * reste — géocodage, distance, prix recommandé — est calculé par le code
- * déterministe existant, jamais par le modèle (anti-hallucination de prix/lieu).
+ * Pour réserver une course, le seul vrai travail est de TROUVER LE LIEU. Et ça,
+ * le gazetteer DZ ([[geo_places]] + Photon/Nominatim) le fait déjà, gratuitement
+ * et en tolérant les graphies darija. Donc ici : un parseur 100 % déterministe
+ * (mots-clés + nettoyage) extrait destination/gamme/départ, puis on délègue la
+ * résolution du lieu au gazetteer. Coût plateforme = 0, latence ≈ instantanée,
+ * aucune clé API. (L'IA payante reste pertinente pour le futur « panier
+ * courses » multi-produits, pas pour le Drive.)
  *
- * Le résultat est un BROUILLON : le client le confirme ensuite via l'écran prix
- * habituel (devis, paiement, bouton de demande). `request_ride` reste seul juge
- * de la création réelle de la course. L'IA ne déclenche aucune dépense.
+ * Le résultat est un BROUILLON : le client confirme via l'écran prix habituel
+ * (devis, paiement, demande). request_ride reste seul juge. Aucune dépense
+ * déclenchée.
  */
 
-import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { geocodeSearch } from "@/app/(customer)/actions";
 import { haversineKm } from "@/lib/delivery/distance";
-
-// Modèle volontairement léger : l'extraction est simple et le gazetteer local
-// fait le gros du travail de résolution des graphies darija. Rapide + peu cher
-// pour un endpoint très sollicité. Passer à "claude-sonnet-4-6" si la
-// compréhension du darija s'avère insuffisante en production.
-const AI_MODEL = "claude-haiku-4-5";
 
 export type DriveGamme = "classic" | "confort" | "moto";
 
@@ -43,92 +39,156 @@ export type DriveIntentResult =
   | { ok: true; draft: DriveIntentDraft }
   | {
       ok: false;
-      reason: "auth" | "input" | "config" | "parse" | "not_found" | "error";
+      reason: "auth" | "input" | "parse" | "not_found";
       message: string;
     };
 
-type RawIntent = {
-  understood: boolean;
-  destination_query: string;
-  pickup_query: string;
-  gamme: DriveGamme;
-  female_only: boolean;
-  urgent: boolean;
-  reply: string;
-};
+/* ───────────────────────── Parseur déterministe ───────────────────────── */
 
-// Schéma d'outil : force le modèle à renvoyer une structure validée (plus
-// robuste que de parser du texte libre — l'« input » revient déjà typé).
-const INTENT_TOOL = {
-  name: "reserver_course",
-  description:
-    "Enregistre l'intention de course VTC extraite de la phrase du client.",
-  input_schema: {
-    type: "object" as const,
-    additionalProperties: false,
-    properties: {
-      understood: {
-        type: "boolean",
-        description: "true si une destination de course a été comprise.",
-      },
-      destination_query: {
-        type: "string",
-        description:
-          "Lieu d'ARRIVÉE à géocoder, le plus précis possible (ex: 'Carrefour El Mohammadia Alger', 'gare routière Akbou'). Garder les noms de lieux tels quels, nettoyer le bruit. Chaîne vide si non compris.",
-      },
-      pickup_query: {
-        type: "string",
-        description:
-          "Lieu de DÉPART UNIQUEMENT si le client en nomme un explicitement différent de sa position actuelle ('depuis...', 'men...'). Chaîne vide sinon.",
-      },
-      gamme: {
-        type: "string",
-        enum: ["classic", "confort", "moto"],
-        description:
-          "classic par défaut ; 'confort' si voiture confort/premium ; 'moto' si moto/clando.",
-      },
-      female_only: {
-        type: "boolean",
-        description: "true si une femme au volant / chauffeure est demandée.",
-      },
-      urgent: {
-        type: "boolean",
-        description: "true si urgence (vite, maintenant, daghya, fissa).",
-      },
-      reply: {
-        type: "string",
-        description:
-          "Si understood=false : courte question en darija/français pour faire préciser la destination. Sinon chaîne vide.",
-      },
-    },
-    required: [
-      "understood",
-      "destination_query",
-      "pickup_query",
-      "gamme",
-      "female_only",
-      "urgent",
-      "reply",
-    ],
+// Normalise : minuscules, retire les accents latins (l'arabe est préservé),
+// espaces compactés. "À Béjaïa" → "a bejaia".
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^\p{L}\p{N}\s']/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Mots-clés gamme / femme / urgence (darija + ar + fr). Détectés puis retirés
+// pour ne pas polluer la recherche du lieu.
+const GAMME_RX: { rx: RegExp; g: DriveGamme }[] = [
+  { rx: /\b(moto|moteur|clando|kamikaz|kawa)\b/u, g: "moto" },
+  {
+    rx: /\b(confort|comfort|clim|climatis\w*|premium|vip|berline)\b/u,
+    g: "confort",
   },
-};
+];
+const FEMALE_RX =
+  /\b(femme|female|conductrice|chauffeuse|mra|imraa)\b|امرأة|سائقة/u;
+const URGENT_RX =
+  /\b(vite|rapide|urgent|maintenant|daba|tawa|fissa|daghya|degya)\b|بسرعة|دابا/u;
 
-const SYSTEM = `Tu es l'assistant de réservation de courses VTC de Coligo, en Algérie.
-Le client écrit en darija algérien, en arabe et/ou en français (souvent mélangés) pour réserver un trajet (transport de personnes, comme Yassir/Uber).
-Ta seule tâche : extraire l'intention de course, sans rien inventer.
-- destination_query : l'endroit où le client veut ALLER. Garde les noms de lieux tels qu'il les dit (un moteur de recherche local les résoudra) ; enlève seulement le bruit ("je veux aller vers", "khouya"…).
-- pickup_query : uniquement si le client nomme un point de DÉPART différent de sa position actuelle. Sinon, laisse vide.
-- N'ajoute JAMAIS une ville ou une wilaya que le client n'a pas mentionnée.
-- Si aucune destination claire, understood=false et pose une courte question dans reply.
-Appelle toujours l'outil reserver_course.`;
+// Bruit fréquent à retirer (verbes/politesse darija+fr). Volontairement court :
+// le gazetteer classe déjà les mots non pertinents en bas, pas besoin d'être
+// exhaustif. On ne touche JAMAIS aux articles "el/le/la" (souvent dans les noms
+// de lieux : "El Mohammadia", "La Casbah").
+const FILLER = new Set([
+  "je",
+  "veux",
+  "aller",
+  "voudrais",
+  "jaimerais",
+  "vais",
+  "jveux",
+  "jaime",
+  "amene",
+  "emmene",
+  "conduis",
+  "moi",
+  "emmenne",
+  "emmenez",
+  "stp",
+  "svp",
+  "please",
+  "yallah",
+  "yalla",
+  "khouya",
+  "khoya",
+  "sahbi",
+  "khoyy",
+  "akhi",
+  "rani",
+  "raki",
+  "rayah",
+  "rayeh",
+  "nroh",
+  "nrouh",
+  "nemchi",
+  "nemchiw",
+  "bghit",
+  "habit",
+  "bghite",
+  "rah",
+  "course",
+  "taxi",
+  "besoin",
+  "wesselni",
+  "wassalni",
+  "wesslni",
+  "dini",
+  "warredni",
+  "jibni",
+  // petites prépositions / marqueurs déjà traités par splitTrip
+  "a",
+  "l",
+  "ila",
+  "pour",
+  "direction",
+  "jusqua",
+  "jusqu",
+  "ndir",
+  // particules de liaison darija (avec/dans/sur/de) — jamais des noms de lieux
+  "b",
+  "f",
+  "fi",
+  "3la",
+  "ela",
+  "ntaa",
+  "nta3",
+  "taa",
+  "dial",
+  "d",
+]);
 
-const GAMMES: DriveGamme[] = ["classic", "confort", "moto"];
+// Sépare un éventuel point de départ ("depuis X" / "men X") de la destination
+// ("vers X" / "à X"). Gère "vers X depuis Y" comme "X / Y".
+function splitTrip(text: string): { dest: string; pickup: string } {
+  let t = ` ${text} `;
+  let pickup = "";
+
+  const fromRx = /\s(?:depuis|a partir de|men|mn|من)\s/u;
+  const m = t.match(fromRx);
+  if (m && m.index !== undefined) {
+    const after = t.slice(m.index + m[0].length);
+    const toIn = after.search(/\s(?:vers|jusqu'?a|direction|ila|الى|إلى|ل)\s/u);
+    if (toIn >= 0) {
+      pickup = after.slice(0, toIn).trim();
+      t = (t.slice(0, m.index) + " " + after.slice(toIn)).trim();
+    } else {
+      pickup = after.trim();
+      t = t.slice(0, m.index).trim();
+    }
+  }
+
+  // Marqueur de destination sur ce qu'il reste → ne garder que ce qui suit.
+  const toRx = /\s(?:vers|jusqu'?a|direction|ila|الى|إلى)\s/u;
+  const mt = ` ${t} `.match(toRx);
+  if (mt && mt.index !== undefined) {
+    t = ` ${t} `.slice(mt.index + mt[0].length).trim();
+  }
+  return { dest: t.trim(), pickup };
+}
+
+// Retire les mots de bruit, garde le reste pour le gazetteer.
+function clean(s: string): string {
+  return s
+    .split(/\s+/)
+    .filter((w) => w && !FILLER.has(w))
+    .join(" ")
+    .trim();
+}
+
+/* ──────────────────────────── Action ──────────────────────────── */
 
 export async function parseDriveIntent(input: {
   text: string;
   pickup: { lat: number; lng: number } | null;
 }): Promise<DriveIntentResult> {
-  // 1. Réservé aux clients connectés (anti-abus / coût du endpoint IA).
+  // Réservé aux clients connectés (évite de marteler le gazetteer/Nominatim
+  // gratuit avec du trafic anonyme).
   const supabase = await createClient();
   const {
     data: { user },
@@ -140,58 +200,48 @@ export async function parseDriveIntent(input: {
       message: "Connecte-toi pour utiliser l'assistant.",
     };
 
-  const text = (input.text ?? "").trim();
-  if (text.length < 3 || text.length > 500)
+  const raw = (input.text ?? "").trim();
+  if (raw.length < 3 || raw.length > 300)
     return {
       ok: false,
       reason: "input",
       message: "Dis en quelques mots où tu veux aller.",
     };
 
-  if (!process.env.ANTHROPIC_API_KEY)
-    return {
-      ok: false,
-      reason: "config",
-      message: "Assistant indisponible pour le moment.",
-    };
+  let norm = normalize(raw);
 
-  // 2. Compréhension du langage naturel (extraction pure, aucun calcul).
-  let intent: RawIntent;
-  try {
-    const anthropic = new Anthropic();
-    const resp = await anthropic.messages.create({
-      model: AI_MODEL,
-      max_tokens: 400,
-      system: SYSTEM,
-      tools: [INTENT_TOOL],
-      tool_choice: { type: "tool", name: "reserver_course" },
-      messages: [{ role: "user", content: text }],
-    });
-    const toolUse = resp.content.find((b) => b.type === "tool_use");
-    if (!toolUse || !("input" in toolUse)) throw new Error("no_tool_use");
-    intent = toolUse.input as RawIntent;
-  } catch {
-    return {
-      ok: false,
-      reason: "error",
-      message: "L'assistant n'a pas pu traiter ta demande, réessaie.",
-    };
+  // Détection + retrait des modificateurs.
+  const female_only = FEMALE_RX.test(norm);
+  const urgent = URGENT_RX.test(norm);
+  let gamme: DriveGamme = "classic";
+  for (const { rx, g } of GAMME_RX) {
+    if (rx.test(norm)) {
+      gamme = g;
+      norm = norm.replace(rx, " ");
+    }
   }
+  norm = norm
+    .replace(FEMALE_RX, " ")
+    .replace(URGENT_RX, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  const destQuery = (intent.destination_query ?? "").trim();
-  if (!intent.understood || !destQuery)
+  // Découpe départ/arrivée + nettoyage du bruit.
+  const split = splitTrip(norm);
+  const destQuery = clean(split.dest);
+  const pickupQuery = clean(split.pickup);
+
+  if (destQuery.length < 2)
     return {
       ok: false,
       reason: "parse",
-      message: intent.reply?.trim() || "Précise vers où tu veux aller.",
+      message:
+        "Dis-moi vers où tu veux aller (ex : « Carrefour El Mohammadia »).",
     };
 
-  const gamme: DriveGamme = GAMMES.includes(intent.gamme)
-    ? intent.gamme
-    : "classic";
   const bias = input.pickup ?? undefined;
 
-  // 3. Géocodage déterministe (gazetteer DZ darija + repli Photon/Nominatim).
+  // Résolution du lieu : gazetteer DZ darija + repli Photon/Nominatim (gratuit).
   const destRes = await geocodeSearch({
     q: destQuery,
     lat: bias?.lat,
@@ -209,8 +259,7 @@ export async function parseDriveIntent(input: {
   let pickup: DriveIntentDraft["pickup"] | null = input.pickup
     ? { lat: input.pickup.lat, lng: input.pickup.lng, text: null }
     : null;
-  const pickupQuery = (intent.pickup_query ?? "").trim();
-  if (pickupQuery) {
+  if (pickupQuery.length >= 2) {
     const pRes = await geocodeSearch({
       q: pickupQuery,
       lat: bias?.lat,
@@ -226,8 +275,7 @@ export async function parseDriveIntent(input: {
       message: "Active ta position ou indique d'où tu pars.",
     };
 
-  // 4. Distance (vol d'oiseau ×1,25 ≈ route, cohérent avec l'app) + prix
-  //    recommandé via la RPC existante. Calcul 100 % code, jamais l'IA.
+  // Distance (vol d'oiseau ×1,25 ≈ route, cohérent avec l'app) + prix recommandé.
   const distance_km = Number(
     (
       haversineKm(pickup, { lat: destHit.lat, lng: destHit.lng }) * 1.25
@@ -268,8 +316,8 @@ export async function parseDriveIntent(input: {
       ),
       distance_km,
       gamme,
-      female_only: !!intent.female_only,
-      urgent: !!intent.urgent,
+      female_only,
+      urgent,
       suggested_price_da: suggested,
     },
   };
