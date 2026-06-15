@@ -1336,7 +1336,13 @@ function MapPickScreen({
   // Recherche d'adresse SUR la carte (suggestions, debounce 450 ms).
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState<
-    { display: string; secondary?: string; lat: number; lng: number }[]
+    {
+      display: string;
+      secondary?: string;
+      lat: number;
+      lng: number;
+      kind?: "merchant";
+    }[]
   >([]);
   const [searching, setSearching] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -1473,6 +1479,15 @@ function MapPickScreen({
                       </small>
                     )}
                   </span>
+                  {/* Commerçant inscrit Coligo : badge automatique. */}
+                  {r.kind === "merchant" && (
+                    <span
+                      className="mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wide"
+                      style={{ background: "#EEEEFD", color: VIOLET }}
+                    >
+                      Coligo
+                    </span>
+                  )}
                 </button>
               </li>
             ))}

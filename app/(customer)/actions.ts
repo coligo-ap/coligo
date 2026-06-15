@@ -423,6 +423,8 @@ export type GeocodeSearchResult =
         secondary?: string;
         lat: number;
         lng: number;
+        /** "merchant" = commerçant inscrit sur Coligo (badge automatique). */
+        kind?: "merchant";
       }[];
     }
   | { ok: false; error: string };
@@ -432,6 +434,8 @@ type GeoHit = {
   secondary?: string;
   lat: number;
   lng: number;
+  /** "merchant" = commerçant inscrit sur Coligo (vs lieu / POI / Google). */
+  kind?: "merchant";
 };
 
 // Algérie entière (Photon n'a pas de filtre pays → bbox + countrycode).
@@ -550,6 +554,7 @@ async function searchMerchants(
         lat: d.lat,
         lng: d.lng,
         score: d.score,
+        kind: "merchant" as const,
       };
     });
   } catch {
@@ -879,6 +884,7 @@ export async function geocodeSearch(input: {
       secondary: r.secondary,
       lat: r.lat,
       lng: r.lng,
+      kind: r.kind,
     });
     if (results.length >= 8) break;
   }
@@ -942,6 +948,7 @@ export async function geocodeSearch(input: {
             secondary: r.secondary,
             lat: r.lat,
             lng: r.lng,
+            kind: r.kind,
           });
           if (merged.length >= 8) break;
         }
