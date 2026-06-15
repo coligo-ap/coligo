@@ -19,6 +19,7 @@ import {
   Search,
   ShieldAlert,
   Snowflake,
+  Star,
   User,
   Users,
   Zap,
@@ -28,9 +29,12 @@ import { getPosition, watchPosition } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
 import {
   geocodeSearch,
+  listFavoritePlaces,
   recordPlacePick,
   reverseGeocode,
   routeEstimate,
+  toggleFavoritePlace,
+  type FavPlace,
 } from "@/app/(customer)/actions";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { DriveMap, type LatLng } from "./drive-map";
@@ -1351,6 +1355,40 @@ function MapPickScreen({
     (LatLng & { zoom?: number }) | null
   >(null);
 
+  // Favoris « Tes lieux » : étoile pour sauvegarder, accès rapide quand vide.
+  const [favorites, setFavorites] = useState<FavPlace[]>([]);
+  const [favCells, setFavCells] = useState<Set<string>>(new Set());
+  const [favOpen, setFavOpen] = useState(false);
+  useEffect(() => {
+    void listFavoritePlaces().then((favs) => {
+      setFavorites(favs);
+      setFavCells(
+        new Set(favs.map((f) => `${f.lat.toFixed(4)},${f.lng.toFixed(4)}`))
+      );
+    });
+  }, []);
+  const favKey = (la: number, ln: number) =>
+    `${la.toFixed(4)},${ln.toFixed(4)}`;
+  const toggleFav = (r: { display: string; lat: number; lng: number }) => {
+    const k = favKey(r.lat, r.lng);
+    const on = !favCells.has(k);
+    setFavCells((s) => {
+      const n = new Set(s);
+      if (on) n.add(k);
+      else n.delete(k);
+      return n;
+    });
+    setFavorites((list) =>
+      on
+        ? [
+            { label: r.display, lat: r.lat, lng: r.lng },
+            ...list.filter((f) => favKey(f.lat, f.lng) !== k),
+          ]
+        : list.filter((f) => favKey(f.lat, f.lng) !== k)
+    );
+    void toggleFavoritePlace({ lat: r.lat, lng: r.lng, label: r.display, on });
+  };
+
   useEffect(() => {
     const q = searchQ.trim();
     if (q.length < 3) {
@@ -1382,6 +1420,7 @@ function MapPickScreen({
   // client peut ensuite affiner au doigt — moveend ré-émettra la position).
   const pickSuggestion = (r: { display: string; lat: number; lng: number }) => {
     setSearchOpen(false);
+    setFavOpen(false);
     setSearchQ(r.display);
     setAddr(r.display);
     setCenter({ lat: r.lat, lng: r.lng });
@@ -1439,8 +1478,16 @@ function MapPickScreen({
           <Search className="size-4 shrink-0 text-[var(--d-muted)]" />
           <input
             value={searchQ}
-            onChange={(e) => setSearchQ(e.target.value)}
-            onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
+            onChange={(e) => {
+              setSearchQ(e.target.value);
+              setFavOpen(false);
+            }}
+            onFocus={() => {
+              if (searchResults.length > 0) setSearchOpen(true);
+              if (searchQ.trim() === "" && favorites.length > 0)
+                setFavOpen(true);
+            }}
+            onBlur={() => window.setTimeout(() => setFavOpen(false), 150)}
             placeholder={t("searchPh")}
             className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
           />
@@ -1464,11 +1511,11 @@ function MapPickScreen({
         {searchOpen && searchResults.length > 0 && (
           <ul className="mt-1.5 max-h-60 overflow-auto rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
             {searchResults.map((r, i) => (
-              <li key={`${r.lat}-${r.lng}-${i}`}>
+              <li key={`${r.lat}-${r.lng}-${i}`} className="flex items-center">
                 <button
                   type="button"
                   onClick={() => pickSuggestion(r)}
-                  className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-[13px] font-semibold"
+                  className="flex min-w-0 flex-1 items-start gap-2 px-3 py-2.5 text-left text-[13px] font-semibold"
                 >
                   <MapPin
                     className="mt-0.5 size-4 shrink-0"
@@ -1491,6 +1538,67 @@ function MapPickScreen({
                       Coligo
                     </span>
                   )}
+                </button>
+                {/* Étoile : sauvegarder cette adresse dans « Tes lieux ». */}
+                <button
+                  type="button"
+                  aria-label="Favori"
+                  onClick={() => toggleFav(r)}
+                  className="shrink-0 px-2.5 py-2.5"
+                >
+                  <Star
+                    className="size-4"
+                    style={{ color: VIOLET }}
+                    fill={
+                      favCells.has(`${r.lat.toFixed(4)},${r.lng.toFixed(4)}`)
+                        ? VIOLET
+                        : "none"
+                    }
+                  />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {/* « Tes lieux » : favoris du client, accès rapide quand la barre est
+            vide (comme Uber). Sélection = recentrage immédiat. */}
+        {favOpen && searchQ.trim() === "" && favorites.length > 0 && (
+          <ul className="mt-1.5 max-h-60 overflow-auto rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
+            <li className="px-3 pt-1.5 pb-1 text-[10px] font-extrabold tracking-wide text-[var(--d-muted)] uppercase">
+              Tes lieux
+            </li>
+            {favorites.map((f, i) => (
+              <li
+                key={`fav-${f.lat}-${f.lng}-${i}`}
+                className="flex items-center"
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    pickSuggestion({
+                      display: f.label,
+                      lat: f.lat,
+                      lng: f.lng,
+                    })
+                  }
+                  className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left text-[13px] font-semibold"
+                >
+                  <Star
+                    className="size-4 shrink-0"
+                    style={{ color: VIOLET }}
+                    fill={VIOLET}
+                  />
+                  <span className="min-w-0 flex-1 truncate">{f.label}</span>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Retirer des favoris"
+                  onClick={() =>
+                    toggleFav({ display: f.label, lat: f.lat, lng: f.lng })
+                  }
+                  className="shrink-0 px-2.5 py-2.5 text-[var(--d-muted)]"
+                >
+                  ✕
                 </button>
               </li>
             ))}

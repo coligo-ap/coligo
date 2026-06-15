@@ -859,8 +859,66 @@ export async function recordPlacePick(input: {
       p_lng: input.lng,
       p_label: input.label,
     });
+    // Historique PERSONNEL (boost « Tes lieux ») — ignoré si non connecté.
+    await rpc("user_place_record", {
+      p_lat: input.lat,
+      p_lng: input.lng,
+      p_label: input.label,
+    });
   } catch {
     /* best effort — ne bloque jamais la sélection */
+  }
+}
+
+export type FavPlace = { label: string; lat: number; lng: number };
+
+/** (Dé)marque une adresse comme favorite pour le client connecté. */
+export async function toggleFavoritePlace(input: {
+  lat: number;
+  lng: number;
+  label: string;
+  on: boolean;
+}): Promise<void> {
+  try {
+    const supabase = await createClient();
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: unknown }>;
+    await rpc("user_place_fav", {
+      p_lat: input.lat,
+      p_lng: input.lng,
+      p_label: input.label,
+      p_on: input.on,
+    });
+  } catch {
+    /* best effort */
+  }
+}
+
+/** Adresses favorites du client connecté (accès rapide « Tes lieux »). */
+export async function listFavoritePlaces(): Promise<FavPlace[]> {
+  try {
+    const supabase = await createClient();
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: unknown }>;
+    const { data } = await rpc("user_place_mine", {});
+    return (
+      (data as
+        | {
+            label: string | null;
+            lat: number;
+            lng: number;
+            favorite: boolean;
+          }[]
+        | null) ?? []
+    )
+      .filter((r) => r.favorite && r.label)
+      .map((r) => ({ label: r.label as string, lat: r.lat, lng: r.lng }));
+  } catch {
+    return [];
   }
 }
 
@@ -873,6 +931,39 @@ export async function geocodeSearch(input: {
   if (q.length < 3) return { ok: true, results: [] };
   const lat = Number.isFinite(input.lat) ? input.lat : undefined;
   const lng = Number.isFinite(input.lng) ? input.lng : undefined;
+
+  // Boost PERSONNEL « Tes lieux » : les favoris et les lieux déjà choisis par CE
+  // client remontent en tête, POUR LUI. Tri stable (ordre d'origine préservé à
+  // rang égal). Non connecté / sans historique → liste inchangée.
+  const personalize = async (list: GeoHit[]): Promise<GeoHit[]> => {
+    try {
+      const sb = await createClient();
+      const {
+        data: { user },
+      } = await sb.auth.getUser();
+      if (!user) return list;
+      const prpc = sb.rpc.bind(sb) as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: unknown }>;
+      const mine =
+        ((await prpc("user_place_mine", {})).data as
+          | { cell: string; favorite: boolean; picks: number }[]
+          | null) ?? [];
+      if (!mine.length) return list;
+      const byCell = new Map(mine.map((x) => [x.cell, x]));
+      const rank = (r: GeoHit) => {
+        const s = byCell.get(`${r.lat.toFixed(4)},${r.lng.toFixed(4)}`);
+        return s ? (s.favorite ? 2 : 1) : 0;
+      };
+      return list
+        .map((r, i) => ({ r, i }))
+        .sort((a, b) => rank(b.r) - rank(a.r) || a.i - b.i)
+        .map((x) => x.r);
+    } catch {
+      return list;
+    }
+  };
 
   const [local, merchants, remote] = await Promise.all([
     searchLocalGazetteer(q, lat, lng),
@@ -978,7 +1069,7 @@ export async function geocodeSearch(input: {
           });
           if (merged.length >= 8) break;
         }
-        return { ok: true, results: merged };
+        return { ok: true, results: await personalize(merged) };
       }
     }
   }
@@ -1001,7 +1092,7 @@ export async function geocodeSearch(input: {
     }
   }
 
-  return { ok: true, results };
+  return { ok: true, results: await personalize(results) };
 }
 
 // Itinéraire routier réel (OSRM public) : distance ET durée fiables, au lieu
