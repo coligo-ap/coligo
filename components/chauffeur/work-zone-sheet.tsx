@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "next-intl";
 import { Crosshair, MapPin, X } from "lucide-react";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import {
@@ -23,6 +24,8 @@ export function ChauffeurWorkZoneSheet({
   open: boolean;
   onClose: () => void;
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const current = useWorkZone();
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(
     current ? { lat: current.lat, lng: current.lng } : null
@@ -58,7 +61,7 @@ export function ChauffeurWorkZoneSheet({
           <div className="flex items-center gap-2">
             <MapPin className="text-primary-700 size-[18px]" />
             <h2 className="drive-sora text-[16px] font-extrabold">
-              Ma zone de travail
+              {tr("Ma zone de travail", "منطقة عملي")}
             </h2>
           </div>
           <button
@@ -73,23 +76,28 @@ export function ChauffeurWorkZoneSheet({
 
         <div className="p-4">
           <p className="text-muted mb-3 text-[13px] leading-snug">
-            Choisissez le centre de votre zone et un rayon. Vous ne verrez que
-            les courses dont le départ est dans ce périmètre, où que vous soyez.
+            {tr(
+              "Choisissez le centre de votre zone et un rayon. Vous ne verrez que les courses dont le départ est dans ce périmètre, où que vous soyez.",
+              "اختر مركز منطقتك ونصف القطر. لن ترى سوى الطلبات التي تنطلق من هذا النطاق، أينما كنت."
+            )}
           </p>
 
           <MapPositionPicker
             initial={current ? { lat: current.lat, lng: current.lng } : null}
             autoLocate={!current}
             searchEnabled
-            searchPlaceholder="Rechercher un quartier, une ville…"
-            gpsLabel="Ma position"
+            searchPlaceholder={tr(
+              "Rechercher un quartier, une ville…",
+              "ابحث عن حي أو مدينة…"
+            )}
+            gpsLabel={tr("Ma position", "موقعي")}
             height={260}
             onChange={(pos) => setCenter(pos)}
           />
 
           <div className="mt-4">
             <div className="text-subtle mb-2 text-[12px] font-bold tracking-wide uppercase">
-              Rayon de la zone
+              {tr("Rayon de la zone", "نصف قطر المنطقة")}
             </div>
             <div className="grid grid-cols-4 gap-2">
               {ZONE_RADIUS_OPTIONS.map((r) => {
@@ -121,7 +129,7 @@ export function ChauffeurWorkZoneSheet({
               className="bg-primary-600 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-bold text-white shadow-lg disabled:opacity-50"
             >
               <MapPin className="size-[18px]" />
-              Activer cette zone
+              {tr("Activer cette zone", "تفعيل هذه المنطقة")}
             </button>
             <button
               type="button"
@@ -129,7 +137,7 @@ export function ChauffeurWorkZoneSheet({
               className="border-border text-foreground inline-flex h-[48px] w-full items-center justify-center gap-2 rounded-[14px] border text-[14px] font-semibold"
             >
               <Crosshair className="size-[16px]" />
-              Autour de moi (position GPS)
+              {tr("Autour de moi (position GPS)", "حولي (موقع GPS)")}
             </button>
           </div>
         </div>

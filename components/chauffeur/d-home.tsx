@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import {
   Car,
   ChevronUp,
@@ -29,7 +30,7 @@ import {
 import { DNav, PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
 import { ChauffeurWorkZoneSheet } from "./work-zone-sheet";
 import { useWorkZone } from "@/lib/chauffeur/work-zone";
-import { formatOnline, HOME_DIR_KEY } from "@/lib/drive/geo";
+import { HOME_DIR_KEY } from "@/lib/drive/geo";
 import {
   activateHomeDir,
   chauffeurHeartbeat,
@@ -62,6 +63,23 @@ const GAMME_RECEIVES: Record<string, string> = {
  */
 export function DHome({ gate }: { gate: ChauffeurGate }) {
   const router = useRouter();
+  // Espace chauffeur FR par défaut ; traduction AR de l'accueil (le HTML passe
+  // déjà en RTL via la locale racine). `tr(fr, ar)` = mini-helper local.
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  // Durée « en ligne » + libellé d'offre, traduits (évite « min en ligne » /
+  // « Gratuit » en dur quand l'app est en arabe).
+  const fmtOnline = (min: number) => {
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return h === 0
+      ? `${m} ${tr("min en ligne", "د متصل")}`
+      : `${h} ${tr("h", "س")} ${String(m).padStart(2, "0")} ${tr("en ligne", "متصل")}`;
+  };
+  const planLabel = (plan: "free" | "pro" | "premium") =>
+    isAr
+      ? { free: "مجاني", pro: "Pro", premium: "Premium" }[plan]
+      : PLAN_LABEL[plan];
   const coords = useDriverPosition();
   const [home, setHome] = useState<DriveHome | null>(null);
   const [mini, setMini] = useState(false);
@@ -231,7 +249,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           style={{ background: online ? GO : "#9CA3AF" }}
         />
         <span className="drive-sora">
-          {online ? "En ligne · Drive" : "Hors ligne"}
+          {online
+            ? tr("En ligne · Drive", "متصل · درايف")
+            : tr("Hors ligne", "غير متصل")}
         </span>
       </div>
       {/* Légende heatmap */}
@@ -242,7 +262,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             background: `radial-gradient(circle,${VIOLET},transparent 75%)`,
           }}
         />
-        Zones de forte demande
+        {tr("Zones de forte demande", "مناطق الطلب المرتفع")}
       </div>
       {/* Recentrer la carte sur ma position (curseur chauffeur) */}
       <button
@@ -272,7 +292,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         <button
           type="button"
           onClick={() => setMini((m) => !m)}
-          className="drive-sora flex w-full items-center justify-between gap-2 text-[21px] font-extrabold tracking-[-0.5px]"
+          className="drive-sora mb-3 flex w-full items-center justify-between gap-2 text-[21px] font-extrabold tracking-[-0.5px]"
         >
           <span className="flex min-w-0 items-center gap-2">
             {online ? (
@@ -287,18 +307,21 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
                       {reqCount}
                     </span>
                     <span className="truncate">
-                      demande{reqCount > 1 ? "s" : ""} proche
-                      {reqCount > 1 ? "s" : ""}
+                      {isAr
+                        ? reqCount > 1
+                          ? "طلبات قريبة"
+                          : "طلب قريب"
+                        : `demande${reqCount > 1 ? "s" : ""} proche${reqCount > 1 ? "s" : ""}`}
                     </span>
                   </>
                 ) : (
-                  "Aucune demande proche"
+                  tr("Aucune demande proche", "لا توجد طلبات قريبة")
                 )
               ) : (
-                "Demandes proches…"
+                tr("Demandes proches…", "الطلبات القريبة…")
               )
             ) : (
-              "Vous êtes hors ligne"
+              tr("Vous êtes hors ligne", "أنت غير متصل")
             )}
           </span>
           <ChevronUp
@@ -306,45 +329,52 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             style={{ transform: mini ? "rotate(180deg)" : undefined }}
           />
         </button>
-        <p className="mb-3 text-[13px] text-[var(--d-muted)]">
-          {online
-            ? hasReqs
-              ? "Des clients attendent un chauffeur autour de vous — répondez vite !"
-              : "Restez en ligne, les demandes arrivent."
-            : "Passez en ligne pour commencer à recevoir les courses."}
-        </p>
-
         {/* Gains du jour */}
         <div className="mb-3 rounded-[16px] bg-[var(--d-soft)] px-3.5 py-3">
           <div className="flex items-center justify-between text-xs font-semibold">
-            <span>Gains du jour</span>
+            <span>{tr("Gains du jour", "أرباح اليوم")}</span>
             <b className="drive-sora text-[17px]">
               {formatDA(home?.todayNet ?? 0)}
             </b>
           </div>
           <p className="mt-1.5 text-[10.5px] text-[var(--d-muted)]">
-            {home?.todayRides ?? 0} courses ·{" "}
-            {formatOnline(home?.todayOnlineMin ?? 0)}
+            {home?.todayRides ?? 0} {tr("courses", "رحلة")} ·{" "}
+            {fmtOnline(home?.todayOnlineMin ?? 0)}
             {home && home.todayRides > 0
-              ? ` · moy. ${formatDA(Math.round(home.todayNet / home.todayRides))}/course`
+              ? ` · ${tr("moy.", "متوسط")} ${formatDA(Math.round(home.todayNet / home.todayRides))}/${tr("course", "رحلة")}`
               : ""}
           </p>
         </div>
 
-        {/* Je rentre chez moi */}
-        <div
-          className="mb-3 flex items-center gap-2.5 rounded-[14px] px-3.5 py-3"
-          style={{ background: "#EEEEFD" }}
-        >
-          <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-surface)]">
-            <Home className="size-4" style={{ color: VIOLET }} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <b
-              className="flex items-center gap-1.5 text-[12.5px]"
-              style={{ color: VIOLET }}
+        {/* Préférences de réception — UN SEUL bloc compact (domicile · zone ·
+            gamme). Domicile + Zone côte à côte ; gamme en pied de carte fin.
+            RTL-safe (divide-x-reverse, insetInlineStart, text-start). */}
+        <div className="mb-3 overflow-hidden rounded-[16px] border border-[var(--d-line)]">
+          <div className="grid grid-cols-2 divide-x divide-[var(--d-line)] rtl:divide-x-reverse">
+            {/* Domicile : éditer (tap) + filtre direction (switch) */}
+            <div
+              className="flex flex-col gap-2 p-3"
+              style={{ background: "#F4F2FE" }}
             >
-              Je rentre chez moi · {homeAddr ?? "—"}
+              <div className="flex items-center justify-between gap-2">
+                <span className="grid size-7 shrink-0 place-items-center rounded-[9px] bg-[var(--d-surface)]">
+                  <Home className="size-3.5" style={{ color: VIOLET }} />
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={dirOn}
+                  aria-label={tr("Filtre domicile", "فلتر المنزل")}
+                  onClick={toggleDir}
+                  className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+                  style={{ background: dirOn ? VIOLET : "#E2E0EC" }}
+                >
+                  <span
+                    className="absolute top-[3px] size-[18px] rounded-full bg-white shadow transition-all"
+                    style={{ insetInlineStart: dirOn ? 23 : 3 }}
+                  />
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -352,80 +382,72 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
                   setHomePos(null);
                   setHomeOpen(true);
                 }}
-                aria-label="Modifier l'adresse"
+                className="min-w-0 text-start"
               >
-                <Pencil className="size-3" style={{ color: VIOLET }} />
+                <b
+                  className="block text-[12.5px] leading-tight"
+                  style={{ color: VIOLET }}
+                >
+                  {tr("Mon domicile", "منزلي")}
+                </b>
+                <span className="mt-0.5 flex items-center gap-1 truncate text-[10.5px] text-[var(--d-muted)]">
+                  <span className="truncate">
+                    {homeAddr ?? tr("Définir l'adresse", "تحديد العنوان")}
+                  </span>
+                  <Pencil className="size-2.5 shrink-0" />
+                </span>
               </button>
-            </b>
-            <span className="block truncate text-[10.5px] text-[var(--d-muted)]">
-              {dirMsg ??
-                (dirOn
-                  ? `Actif · seules les courses vers ${homeAddr ?? "chez vous"} sonneront`
-                  : "Ne recevoir que les courses dans cette direction")}
-            </span>
-          </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={dirOn}
-            onClick={toggleDir}
-            className="relative h-7 w-12 shrink-0 rounded-full transition-colors"
-            style={{ background: dirOn ? VIOLET : "#fff" }}
-          >
-            <span
-              className="absolute top-[3px] size-[22px] rounded-full bg-white shadow transition-all"
-              style={{
-                left: dirOn ? 23 : 3,
-                boxShadow: "0 2px 4px rgba(0,0,0,.2)",
-              }}
-            />
-          </button>
-        </div>
+            </div>
 
-        {/* Ma zone de travail (centre + rayon, ou « autour de moi ») */}
-        <button
-          type="button"
-          onClick={() => setZoneOpen(true)}
-          className="mb-3 flex w-full items-center gap-2.5 rounded-[14px] px-3.5 py-3 text-left"
-          style={{ background: "#EEEEFD" }}
-        >
-          <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-surface)]">
-            {workZone ? (
-              <MapPin className="size-4" style={{ color: VIOLET }} />
-            ) : (
-              <Crosshair className="size-4" style={{ color: VIOLET }} />
-            )}
-          </span>
-          <span className="min-w-0 flex-1">
-            <b className="block text-[12.5px]" style={{ color: VIOLET }}>
-              {workZone
-                ? `Ma zone · ${workZone.radiusKm} km`
-                : "Ma zone de travail"}
-            </b>
-            <span className="block truncate text-[10.5px] text-[var(--d-muted)]">
-              {workZone
-                ? "Seules les courses de cette zone vous sont proposées"
-                : "Autour de moi · appuyez pour définir une zone"}
-            </span>
-          </span>
-          <Pencil className="size-3.5 shrink-0" style={{ color: VIOLET }} />
-        </button>
+            {/* Zone de travail : ouvre le volet carte */}
+            <button
+              type="button"
+              onClick={() => setZoneOpen(true)}
+              className="flex flex-col gap-2 p-3 text-start"
+              style={{ background: "#F4F2FE" }}
+            >
+              <span className="grid size-7 shrink-0 place-items-center rounded-[9px] bg-[var(--d-surface)]">
+                {workZone ? (
+                  <MapPin className="size-3.5" style={{ color: VIOLET }} />
+                ) : (
+                  <Crosshair className="size-3.5" style={{ color: VIOLET }} />
+                )}
+              </span>
+              <span className="min-w-0">
+                <b
+                  className="block text-[12.5px] leading-tight"
+                  style={{ color: VIOLET }}
+                >
+                  {tr("Ma zone", "منطقتي")}
+                </b>
+                <span className="mt-0.5 block truncate text-[10.5px] text-[var(--d-muted)]">
+                  {workZone
+                    ? `${workZone.radiusKm} km`
+                    : tr("Autour de moi", "حولي")}
+                </span>
+              </span>
+            </button>
+          </div>
 
-        {/* Bandeau gamme */}
-        <div className="mb-3 flex items-center gap-2.5 rounded-[14px] bg-[var(--d-soft)] px-3.5 py-2.5 text-xs font-semibold text-[var(--d-muted)]">
-          <span
-            className="grid size-[30px] shrink-0 place-items-center rounded-[9px]"
-            style={{ background: "#EEEEFD" }}
-          >
-            <Car className="size-4" style={{ color: VIOLET }} />
-          </span>
-          <span>
-            Votre gamme :{" "}
-            <b className="text-[var(--d-ink)]">{GAMME_LABEL[gate.gamme]}</b> —
-            vous recevez les courses{" "}
-            <b className="text-[var(--d-ink)]">{GAMME_RECEIVES[gate.gamme]}</b>
-          </span>
+          {/* Gamme (info) — pied de carte fin */}
+          <div className="flex items-center gap-2 border-t border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2">
+            <Car className="size-3.5 shrink-0" style={{ color: VIOLET }} />
+            <span className="truncate text-[11px] font-semibold text-[var(--d-muted)]">
+              {tr("Gamme", "الفئة")}{" "}
+              <b className="text-[var(--d-ink)]">{GAMME_LABEL[gate.gamme]}</b>
+              <span>
+                {" · "}
+                {tr("reçoit", "يستقبل")} {GAMME_RECEIVES[gate.gamme]}
+              </span>
+            </span>
+          </div>
         </div>
+        {/* Retour d'activation du filtre domicile (compte d'activations). */}
+        {dirMsg && (
+          <p className="-mt-1 mb-3 px-1 text-[10.5px] text-[var(--d-muted)]">
+            {dirMsg}
+          </p>
+        )}
 
         {/* Carte abonnement */}
         <button
@@ -436,14 +458,20 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           <PlanIcon plan={home?.plan ?? "free"} />
           <span className="min-w-0 flex-1">
             <b className="block text-[13.5px]">
-              Abonnement : {PLAN_LABEL[home?.plan ?? "free"]}
+              {tr("Abonnement", "الاشتراك")} : {planLabel(home?.plan ?? "free")}
             </b>
             <span className="text-[11px] text-[var(--d-muted)]">
               {home?.plan === "premium"
-                ? "0 % de commission · priorité dispatch"
+                ? tr(
+                    "0 % de commission · priorité dispatch",
+                    "0٪ عمولة · أولوية في التوزيع"
+                  )
                 : home?.plan === "pro"
-                  ? `Commission ${fmtPct(home.planRate)} · 1 500 DA/mois`
-                  : "Commission 8 % · passez en Premium = 0 %"}
+                  ? `${tr("Commission", "عمولة")} ${fmtPct(home.planRate)} · 1 500 DA/${tr("mois", "شهر")}`
+                  : tr(
+                      "Commission 8 % · passez en Premium = 0 %",
+                      "عمولة 8٪ · انتقل إلى بريميوم = 0٪"
+                    )}
             </span>
           </span>
           <span className="text-[var(--d-muted)]">›</span>
@@ -457,13 +485,15 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             >
               {hasReqs ? (
                 <>
-                  Voir les {reqCount} demande{reqCount > 1 ? "s" : ""}
+                  {isAr
+                    ? `عرض ${reqCount} ${reqCount > 1 ? "طلبات" : "طلب"}`
+                    : `Voir les ${reqCount} demande${reqCount > 1 ? "s" : ""}`}
                   <span className="drive-badge grid size-6 place-items-center rounded-full bg-white/25 text-sm">
                     →
                   </span>
                 </>
               ) : (
-                "Voir les demandes"
+                tr("Voir les demandes", "عرض الطلبات")
               )}
             </PrimaryBtn>
             <button
@@ -478,7 +508,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               }}
             >
               {onlineBusy ? <Loader2 className="size-4 animate-spin" /> : null}
-              Se mettre hors ligne
+              {tr("Se mettre hors ligne", "قطع الاتصال")}
             </button>
           </>
         ) : (
@@ -489,7 +519,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             className="!mt-0"
           >
             {onlineBusy ? <Loader2 className="size-5 animate-spin" /> : null}
-            Passer en ligne · GO
+            {tr("Passer en ligne · GO", "اتصل · انطلق")}
           </PrimaryBtn>
         )}
       </div>
@@ -500,7 +530,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           <div className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
             <div className="mb-2 flex items-center justify-between">
               <b className="drive-sora text-[16px] font-extrabold">
-                Mon domicile
+                {tr("Mon domicile", "منزلي")}
               </b>
               <button
                 type="button"
@@ -512,8 +542,10 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               </button>
             </div>
             <p className="mb-2 text-[12px] text-[var(--d-muted)]">
-              Cherchez votre adresse ou déplacez la carte pour placer le repère
-              sur votre domicile.
+              {tr(
+                "Cherchez votre adresse ou déplacez la carte pour placer le repère sur votre domicile.",
+                "ابحث عن عنوانك أو حرّك الخريطة لوضع المؤشر على منزلك."
+              )}
             </p>
             <MapPositionPicker
               initial={null}
@@ -521,13 +553,14 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               autoLocate={!me}
               searchEnabled
               height={300}
-              gpsLabel="Ma position"
+              gpsLabel={tr("Ma position", "موقعي")}
               onChange={(p) => setHomePos(p)}
             />
             <p className="mt-2 text-[11px] text-[var(--d-muted)]">
-              ⚠️ Anti-fraude : l&apos;adresse domicile est modifiable{" "}
-              <b>1 fois par semaine</b> (correction libre pendant 15 min après
-              un changement).
+              {tr(
+                "⚠️ Anti-fraude : l'adresse domicile est modifiable 1 fois par semaine (correction libre pendant 15 min après un changement).",
+                "⚠️ لمكافحة الاحتيال: عنوان المنزل قابل للتعديل مرة واحدة في الأسبوع (تصحيح حر خلال 15 دقيقة بعد التغيير)."
+              )}
             </p>
             {homeErr && (
               <p
@@ -543,7 +576,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               className="!mt-3"
             >
               {homeSaving ? <Loader2 className="size-5 animate-spin" /> : null}
-              Enregistrer mon domicile
+              {tr("Enregistrer mon domicile", "حفظ منزلي")}
             </PrimaryBtn>
           </div>
         </div>

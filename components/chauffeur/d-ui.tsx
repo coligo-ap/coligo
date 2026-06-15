@@ -2,20 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLocale } from "next-intl";
 import { BarChart3, Car, Home, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VIOLET } from "@/components/customer/drive/drive-modals";
 
 /** Nav chauffeur (maquette) : Accueil · Drive · Gains · Compte. */
 const TABS = [
-  { href: "/chauffeur", label: "Accueil", icon: Home },
-  { href: "/chauffeur/demandes", label: "Drive", icon: Car },
-  { href: "/chauffeur/gains", label: "Gains", icon: BarChart3 },
-  { href: "/chauffeur/compte", label: "Compte", icon: User },
+  { href: "/chauffeur", label: "Accueil", ar: "الرئيسية", icon: Home },
+  { href: "/chauffeur/demandes", label: "Drive", ar: "درايف", icon: Car },
+  { href: "/chauffeur/gains", label: "Gains", ar: "الأرباح", icon: BarChart3 },
+  { href: "/chauffeur/compte", label: "Compte", ar: "الحساب", icon: User },
 ] as const;
 
 export function DNav() {
   const pathname = usePathname();
+  const isAr = useLocale() === "ar";
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 grid h-[66px] grid-cols-4 border-t border-[var(--d-line)] bg-[var(--d-surface)] pb-[max(env(safe-area-inset-bottom),9px)]">
       {TABS.map((tab) => {
@@ -32,7 +34,7 @@ export function DNav() {
             style={{ color: active ? VIOLET : "var(--d-muted)" }}
           >
             <Icon className="size-[21px]" />
-            {tab.label}
+            {isAr ? tab.ar : tab.label}
           </Link>
         );
       })}
