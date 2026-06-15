@@ -658,6 +658,111 @@ async function searchNominatim(q: string): Promise<GeoHit[]> {
     );
 }
 
+// Plafonds Google Places (anti-dérapage). Ajustables sans risque.
+const GOOGLE_MIN_QLEN = 4;
+const GOOGLE_DAILY_GLOBAL = 500;
+const GOOGLE_DAILY_PER_USER = 25;
+
+/**
+ * Fallback Google Places (New) — DERNIER RECOURS, payant donc verrouillé :
+ *   • réservé aux clients connectés, longueur de requête min ;
+ *   • cache 30 j (une recherche payée n'est jamais re-payée) ;
+ *   • plafonds journaliers par client puis global (hard stop).
+ * Sans clé `GOOGLE_MAPS_API_KEY` → no-op. Toute erreur → [] (jamais bloquant).
+ */
+async function searchGoogleFallback(
+  q: string,
+  lat?: number,
+  lng?: number
+): Promise<GeoHit[]> {
+  const key = process.env.GOOGLE_MAPS_API_KEY;
+  if (!key) return [];
+  const qn = q.trim().toLowerCase();
+  if (qn.length < GOOGLE_MIN_QLEN) return [];
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return []; // payant → réservé aux clients connectés
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: unknown }>;
+
+    // 1) Cache 30 j (gratuit) — ne jamais re-payer la même recherche.
+    const cached = (await rpc("geo_google_cache_get", { p_q: qn })).data;
+    if (Array.isArray(cached)) return cached as GeoHit[];
+
+    // 2) Plafonds journaliers (par client, puis global) — hard stop.
+    const okUser =
+      (
+        await rpc("api_quota_take", {
+          p_name: `gp:${user.id}`,
+          p_cap: GOOGLE_DAILY_PER_USER,
+        })
+      ).data === true;
+    if (!okUser) return [];
+    const okGlobal =
+      (
+        await rpc("api_quota_take", {
+          p_name: "gp_global",
+          p_cap: GOOGLE_DAILY_GLOBAL,
+        })
+      ).data === true;
+    if (!okGlobal) return [];
+
+    // 3) Places Text Search (New) — field mask minimal (nom + adresse + coord).
+    const body: Record<string, unknown> = {
+      textQuery: q,
+      regionCode: "DZ",
+      languageCode: "fr",
+      maxResultCount: 5,
+    };
+    if (lat !== undefined && lng !== undefined) {
+      body.locationBias = {
+        circle: { center: { latitude: lat, longitude: lng }, radius: 50000 },
+      };
+    }
+    const res = await fetch(
+      "https://places.googleapis.com/v1/places:searchText",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": key,
+          "X-Goog-FieldMask":
+            "places.displayName,places.formattedAddress,places.location",
+        },
+        body: JSON.stringify(body),
+      }
+    );
+    if (!res.ok) return [];
+    const json = (await res.json()) as {
+      places?: {
+        displayName?: { text?: string };
+        formattedAddress?: string;
+        location?: { latitude: number; longitude: number };
+      }[];
+    };
+    const hits: GeoHit[] = (json.places ?? [])
+      .filter((p) => p.location && p.displayName?.text)
+      .map((p) => ({
+        display: p.displayName!.text!,
+        secondary: p.formattedAddress ?? undefined,
+        lat: p.location!.latitude,
+        lng: p.location!.longitude,
+      }));
+
+    // 4) Cache 30 j si on a des résultats.
+    if (hits.length)
+      await rpc("geo_google_cache_put", { p_q: qn, p_results: hits });
+    return hits;
+  } catch {
+    return [];
+  }
+}
+
 export async function geocodeSearch(input: {
   q: string;
   lat?: number;
@@ -671,7 +776,7 @@ export async function geocodeSearch(input: {
   const [local, merchants, remote] = await Promise.all([
     searchLocalGazetteer(q, lat, lng),
     searchMerchants(q, lat, lng),
-    searchPhoton(q, lat, lng).catch(() => searchNominatim(q).catch(() => [])),
+    searchPhoton(q, lat, lng).catch(() => []),
   ]);
 
   // Fusion + classement intelligent :
@@ -706,6 +811,50 @@ export async function geocodeSearch(input: {
       lng: r.lng,
     });
     if (results.length >= 8) break;
+  }
+
+  // Dernier recours PAYANT : Google Places uniquement quand les sources
+  // gratuites sont clairement insuffisantes (aucun résultat fiable ET < 4 au
+  // total). Les verrous coût (cache + quotas) sont dans searchGoogleFallback.
+  const hasConfident = confMerch.length > 0 || confLocal.length > 0;
+  if (!hasConfident && results.length < 4) {
+    // 2a) Nominatim (OSM, GRATUIT) — tenté seulement ici (cas rare) pour
+    //     respecter sa politique d'usage, AVANT tout appel payant.
+    const nomi = await searchNominatim(q).catch(() => []);
+    for (const r of nomi) {
+      const k = geoDedupeKey(r);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      results.push({
+        display: r.display,
+        secondary: r.secondary,
+        lat: r.lat,
+        lng: r.lng,
+      });
+      if (results.length >= 8) break;
+    }
+
+    // 2b) Google Places en TOUT DERNIER recours, si toujours insuffisant.
+    if (results.length < 4) {
+      const g = await searchGoogleFallback(q, lat, lng);
+      if (g.length) {
+        const merged: GeoHit[] = [];
+        const gseen = new Set<string>();
+        for (const r of [...g, ...results]) {
+          const k = geoDedupeKey(r);
+          if (gseen.has(k)) continue;
+          gseen.add(k);
+          merged.push({
+            display: r.display,
+            secondary: r.secondary,
+            lat: r.lat,
+            lng: r.lng,
+          });
+          if (merged.length >= 8) break;
+        }
+        return { ok: true, results: merged };
+      }
+    }
   }
 
   if (results.length === 0) {
