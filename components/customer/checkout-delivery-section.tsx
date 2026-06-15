@@ -449,6 +449,7 @@ function DeliveryMapCard({
         autoLocate={value.customPosition == null}
         height={208}
         searchEnabled
+        favoritesEnabled
         searchPlaceholder={t("searchAddressPlaceholder")}
         pulse
         markerColorClass={markerColorClass}

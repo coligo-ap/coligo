@@ -258,6 +258,7 @@ export function LocationPicker({ onClose, initial }: Props) {
           gpsLabel={t("useMyPosition")}
           height={300}
           searchEnabled
+          favoritesEnabled
           searchPlaceholder={tCheckout("searchAddressPlaceholder")}
         />
         <Button

@@ -9,12 +9,19 @@ import {
   MapPin,
   Maximize2,
   Search,
+  Star,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPosition } from "@/lib/native/geolocation";
 import { toast } from "@/components/ui/toast";
-import { geocodeSearch } from "@/app/(customer)/actions";
+import {
+  geocodeSearch,
+  listFavoritePlaces,
+  recordPlacePick,
+  toggleFavoritePlace,
+  type FavPlace,
+} from "@/app/(customer)/actions";
 import { MAP_STYLE_URL } from "@/lib/config/map";
 
 /**
@@ -85,6 +92,11 @@ export type MapPositionPickerProps = {
   searchEnabled?: boolean;
   /** Placeholder traduit de la barre de recherche (défaut : FR). */
   searchPlaceholder?: string;
+  /**
+   * Active les favoris « Tes lieux » (étoile + accès rapide) — pertinent côté
+   * client (livraison), pas pour le commerçant. Défaut false.
+   */
+  favoritesEnabled?: boolean;
   /** Statut de la géoloc auto : true = obtenue, false = refusée/indispo. */
   onLocate?: (ok: boolean) => void;
   /**
@@ -110,6 +122,7 @@ export function MapPositionPicker({
   onConfirm,
   searchEnabled = false,
   searchPlaceholder = "Rechercher une adresse, un lieu…",
+  favoritesEnabled = false,
   onLocate,
   pulse = false,
   markerColorClass = "text-primary-700",
@@ -144,10 +157,51 @@ export function MapPositionPicker({
   // Barre de recherche d'adresse (forward geocoding).
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState<
-    { display: string; lat: number; lng: number }[]
+    {
+      display: string;
+      secondary?: string;
+      lat: number;
+      lng: number;
+      kind?: "merchant";
+    }[]
   >([]);
   const [searching, setSearching] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // Favoris « Tes lieux » (si activés) : étoile + accès rapide quand vide.
+  const [favorites, setFavorites] = useState<FavPlace[]>([]);
+  const [favCells, setFavCells] = useState<Set<string>>(new Set());
+  const [favOpen, setFavOpen] = useState(false);
+  useEffect(() => {
+    if (!favoritesEnabled) return;
+    void listFavoritePlaces().then((favs) => {
+      setFavorites(favs);
+      setFavCells(
+        new Set(favs.map((f) => `${f.lat.toFixed(4)},${f.lng.toFixed(4)}`))
+      );
+    });
+  }, [favoritesEnabled]);
+  const favKey = (la: number, ln: number) =>
+    `${la.toFixed(4)},${ln.toFixed(4)}`;
+  const toggleFav = (r: { display: string; lat: number; lng: number }) => {
+    const k = favKey(r.lat, r.lng);
+    const on = !favCells.has(k);
+    setFavCells((s) => {
+      const n = new Set(s);
+      if (on) n.add(k);
+      else n.delete(k);
+      return n;
+    });
+    setFavorites((list) =>
+      on
+        ? [
+            { label: r.display, lat: r.lat, lng: r.lng },
+            ...list.filter((f) => favKey(f.lat, f.lng) !== k),
+          ]
+        : list.filter((f) => favKey(f.lat, f.lng) !== k)
+    );
+    void toggleFavoritePlace({ lat: r.lat, lng: r.lng, label: r.display, on });
+  };
 
   const start = initial ?? defaultCenter ?? DEFAULT_CENTER;
 
@@ -404,8 +458,11 @@ export function MapPositionPicker({
     return () => clearTimeout(t);
   }, [searchQ, searchEnabled]);
 
-  const flyToResult = (r: { lat: number; lng: number }) => {
+  const flyToResult = (r: { display: string; lat: number; lng: number }) => {
     setSearchOpen(false);
+    setFavOpen(false);
+    // Apprentissage : ce choix fait remonter ce lieu pour les recherches futures.
+    void recordPlacePick({ lat: r.lat, lng: r.lng, label: r.display });
     const map = mapRef.current;
     if (map) {
       map.flyTo({ center: [r.lng, r.lat], zoom: 17, duration: 700 });
@@ -483,8 +540,20 @@ export function MapPositionPicker({
             <Search className="text-subtle size-4 shrink-0" />
             <input
               value={searchQ}
-              onChange={(e) => setSearchQ(e.target.value)}
-              onFocus={() => searchResults.length && setSearchOpen(true)}
+              onChange={(e) => {
+                setSearchQ(e.target.value);
+                setFavOpen(false);
+              }}
+              onFocus={() => {
+                if (searchResults.length) setSearchOpen(true);
+                if (
+                  favoritesEnabled &&
+                  searchQ.trim() === "" &&
+                  favorites.length
+                )
+                  setFavOpen(true);
+              }}
+              onBlur={() => window.setTimeout(() => setFavOpen(false), 150)}
               placeholder={searchPlaceholder}
               className="placeholder:text-subtle min-w-0 flex-1 bg-transparent text-sm outline-none"
             />
@@ -508,19 +577,96 @@ export function MapPositionPicker({
           {searchOpen && searchResults.length > 0 && (
             <ul className="bg-surface border-border mt-1.5 max-h-64 overflow-auto rounded-[14px] border py-1 shadow-xl">
               {searchResults.map((r, i) => (
-                <li key={i}>
+                <li key={i} className="flex items-center">
                   <button
                     type="button"
                     onClick={() => flyToResult(r)}
-                    className="hover:bg-surface-2 flex w-full items-start gap-2 px-3 py-2 text-left text-[13px]"
+                    className="hover:bg-surface-2 flex min-w-0 flex-1 items-start gap-2 px-3 py-2 text-left text-[13px]"
                   >
                     <MapPin className="text-primary-600 mt-0.5 size-4 shrink-0" />
-                    <span className="min-w-0 flex-1">{r.display}</span>
+                    <span className="min-w-0 flex-1">
+                      {r.display}
+                      {r.secondary && (
+                        <small className="text-subtle block text-[11px]">
+                          {r.secondary}
+                        </small>
+                      )}
+                    </span>
+                    {r.kind === "merchant" && (
+                      <span
+                        className="mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wide"
+                        style={{ background: "#EEEEFD", color: "#6C2BD9" }}
+                      >
+                        Coligo
+                      </span>
+                    )}
                   </button>
+                  {favoritesEnabled && (
+                    <button
+                      type="button"
+                      aria-label="Favori"
+                      onClick={() => toggleFav(r)}
+                      className="shrink-0 px-2.5 py-2"
+                      style={{ color: "#6C2BD9" }}
+                    >
+                      <Star
+                        className="size-4"
+                        fill={
+                          favCells.has(
+                            `${r.lat.toFixed(4)},${r.lng.toFixed(4)}`
+                          )
+                            ? "currentColor"
+                            : "none"
+                        }
+                      />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
           )}
+          {favoritesEnabled &&
+            favOpen &&
+            searchQ.trim() === "" &&
+            favorites.length > 0 && (
+              <ul className="bg-surface border-border mt-1.5 max-h-64 overflow-auto rounded-[14px] border py-1 shadow-xl">
+                <li className="text-subtle px-3 pt-1.5 pb-1 text-[10px] font-extrabold tracking-wide uppercase">
+                  Tes lieux
+                </li>
+                {favorites.map((f, i) => (
+                  <li key={`fav-${i}`} className="flex items-center">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        flyToResult({
+                          display: f.label,
+                          lat: f.lat,
+                          lng: f.lng,
+                        })
+                      }
+                      className="hover:bg-surface-2 flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-[13px]"
+                    >
+                      <Star
+                        className="size-4 shrink-0"
+                        style={{ color: "#6C2BD9" }}
+                        fill="currentColor"
+                      />
+                      <span className="min-w-0 flex-1 truncate">{f.label}</span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Retirer"
+                      onClick={() =>
+                        toggleFav({ display: f.label, lat: f.lat, lng: f.lng })
+                      }
+                      className="text-subtle shrink-0 px-2.5 py-2"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
         </div>
       )}
 
