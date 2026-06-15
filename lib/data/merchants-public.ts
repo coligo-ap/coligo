@@ -82,15 +82,25 @@ export async function listPublicMerchants(
   if (filters.category) {
     query = query.ilike("category", `%${filters.category}%`);
   }
+  // Recherche texte FLOUE : on passe par search_merchants (trigram f_unaccent
+  // bidirectionnel — tolère fautes/accents/« nom + ville ») pour des IDs classés
+  // par pertinence, puis on hydrate les vitrines. Repli ilike si la RPC ne
+  // renvoie rien (commerce sans coordonnées, ou match sur la description).
+  let rankedIds: string[] | null = null;
   if (filters.q && filters.q.trim()) {
-    const q = `%${filters.q.trim()}%`;
-    query = query.or(
-      [
-        `name.ilike.${q}`,
-        `description_fr.ilike.${q}`,
-        `category.ilike.${q}`,
-      ].join(",")
-    );
+    rankedIds = await rankedMerchantIds(supabase, filters.q.trim(), 40);
+    if (rankedIds.length) {
+      query = query.in("id", rankedIds);
+    } else {
+      const q = `%${filters.q.trim()}%`;
+      query = query.or(
+        [
+          `name.ilike.${q}`,
+          `description_fr.ilike.${q}`,
+          `category.ilike.${q}`,
+        ].join(",")
+      );
+    }
   }
   if (filters.delivery_enabled === true) {
     query = query.eq("delivery_enabled", true);
@@ -101,10 +111,41 @@ export async function listPublicMerchants(
   if (filters.delivery_mode === "tour") {
     query = query.eq("delivery_enabled", true).eq("tours_enabled", true);
   }
-  query = query.order(filters.sort === "min_order" ? "min_order_da" : "name");
+  // Tri : pertinence floue si recherche active, sinon nom / minimum de commande.
+  if (!rankedIds?.length) {
+    query = query.order(filters.sort === "min_order" ? "min_order_da" : "name");
+  }
 
   const { data } = await query;
-  return (data ?? []).map(toPublicMerchant);
+  let rows = (data ?? []).map(toPublicMerchant);
+  if (rankedIds?.length) {
+    const pos = new Map(rankedIds.map((id, i) => [id, i]));
+    rows = rows.sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9));
+  }
+  return rows;
+}
+
+/** IDs de commerces classés par pertinence floue (RPC search_merchants). */
+async function rankedMerchantIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  q: string,
+  limit: number
+): Promise<string[]> {
+  try {
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: unknown }>;
+    const { data } = await rpc("search_merchants", {
+      p_q: q,
+      p_lat: null,
+      p_lng: null,
+      p_limit: limit,
+    });
+    return ((data as { id: string }[] | null) ?? []).map((r) => r.id);
+  } catch {
+    return [];
+  }
 }
 
 /** Vitrines publiques pour une liste d'IDs (ordre non garanti). Sert à la page
