@@ -487,6 +487,76 @@ async function searchLocalGazetteer(
   }
 }
 
+// Libellé humain de la catégorie commerçant (pour le sous-titre du résultat).
+const MERCHANT_CAT_FR: Record<string, string> = {
+  restaurant: "Restaurant",
+  fastfood: "Fast-food",
+  pizzeria: "Pizzeria",
+  cafe: "Café",
+  coffee: "Café",
+  pharmacie: "Pharmacie",
+  pharmacy: "Pharmacie",
+  parapharmacie: "Parapharmacie",
+  boulangerie: "Boulangerie",
+  bakery: "Boulangerie",
+  patisserie: "Pâtisserie",
+  alimentation: "Alimentation",
+  grocery: "Alimentation",
+  superette: "Supérette",
+  boucherie: "Boucherie",
+  shop: "Commerce",
+  store: "Magasin",
+  vetements: "Vêtements",
+  electronique: "Électronique",
+};
+
+/** Commerces enregistrés : RPC search_merchants (échec silencieux → []). */
+async function searchMerchants(
+  q: string,
+  lat?: number,
+  lng?: number
+): Promise<(GeoHit & { score: number })[]> {
+  try {
+    const supabase = await createClient();
+    // ⚠️ Toujours .bind(supabase) — extraire rpc sans bind casse this.rest.
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: unknown }>;
+    const { data, error } = await rpc("search_merchants", {
+      p_q: q,
+      p_lat: lat ?? null,
+      p_lng: lng ?? null,
+      p_limit: 6,
+    });
+    if (error || !data) return [];
+    return (
+      data as {
+        id: string;
+        name: string;
+        category: string | null;
+        commune: string | null;
+        lat: number;
+        lng: number;
+        score: number;
+      }[]
+    ).map((d) => {
+      const cat = d.category
+        ? (MERCHANT_CAT_FR[d.category.toLowerCase()] ?? d.category)
+        : "Commerce";
+      return {
+        display: d.name,
+        secondary: [cat, d.commune].filter(Boolean).join(" · "),
+        lat: d.lat,
+        lng: d.lng,
+        score: d.score,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
 /** Photon (komoot) : recherche floue OSM, biaisée position. */
 async function searchPhoton(
   q: string,
@@ -598,18 +668,34 @@ export async function geocodeSearch(input: {
   const lat = Number.isFinite(input.lat) ? input.lat : undefined;
   const lng = Number.isFinite(input.lng) ? input.lng : undefined;
 
-  const [local, remote] = await Promise.all([
+  const [local, merchants, remote] = await Promise.all([
     searchLocalGazetteer(q, lat, lng),
+    searchMerchants(q, lat, lng),
     searchPhoton(q, lat, lng).catch(() => searchNominatim(q).catch(() => [])),
   ]);
 
-  // Fusion : gazetteer confiant (score ≥ 0.5) d'abord — c'est lui qui comprend
-  // les graphies locales — puis rues/POI Photon, puis le reste du gazetteer.
-  const confident = local.filter((r) => r.score >= 0.5);
-  const weak = local.filter((r) => r.score < 0.5);
+  // Fusion + classement intelligent :
+  //   1. commerces enregistrés fiables (le client tape souvent un nom d'enseigne)
+  //   2. lieux du gazetteer fiables (graphies locales)
+  //   3. rues / POI Photon-Nominatim
+  //   4. le reste (commerces puis lieux faibles)
+  // Les commerces sont triés par score : proximité + popularité (commandes,
+  // note) intégrées dans la RPC.
+  const byScore = (a: { score: number }, b: { score: number }) =>
+    b.score - a.score;
+  const confLocal = local.filter((r) => r.score >= 0.5);
+  const weakLocal = local.filter((r) => r.score < 0.5);
+  const confMerch = merchants.filter((r) => r.score >= 0.45).sort(byScore);
+  const weakMerch = merchants.filter((r) => r.score < 0.45).sort(byScore);
   const seen = new Set<string>();
   const results: GeoHit[] = [];
-  for (const r of [...confident, ...remote, ...weak]) {
+  for (const r of [
+    ...confMerch,
+    ...confLocal,
+    ...remote,
+    ...weakMerch,
+    ...weakLocal,
+  ]) {
     const k = geoDedupeKey(r);
     if (seen.has(k)) continue;
     seen.add(k);

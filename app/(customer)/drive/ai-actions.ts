@@ -48,13 +48,17 @@ export type DriveIntentResult =
 // Normalise : minuscules, retire les accents latins (l'arabe est préservé),
 // espaces compactés. "À Béjaïa" → "a bejaia".
 function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^\p{L}\p{N}\s']/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      // Apostrophe = élision (« d'alger », « l'arbaa ») → séparateur de mots.
+      .replace(/['’]/g, " ")
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }
 
 // Mots-clés gamme / femme / urgence (darija + ar + fr). Détectés puis retirés
@@ -141,35 +145,68 @@ const FILLER = new Set([
   "taa",
   "dial",
   "d",
+  // marqueurs de trajet (résidus éventuels après la découpe départ/arrivée)
+  "de",
+  "du",
+  "des",
+  "au",
+  "aux",
+  "en",
+  "vers",
+  "depuis",
+  "men",
+  "mn",
 ]);
 
-// Sépare un éventuel point de départ ("depuis X" / "men X") de la destination
-// ("vers X" / "à X"). Gère "vers X depuis Y" comme "X / Y".
-function splitTrip(text: string): { dest: string; pickup: string } {
-  let t = ` ${text} `;
-  let pickup = "";
+// Marqueurs de découpe « départ → arrivée ». Forts = découpe toujours ; faibles
+// (« de/d' », « à ») = seulement en présence d'un marqueur d'arrivée, pour ne
+// pas casser un nom de lieu (« rue de la liberté »).
+const STRONG_FROM = new Set(["depuis", "men", "mn", "من"]);
+const STRONG_TO = new Set(["vers", "direction", "ila", "الى", "إلى"]);
+const WEAK_FROM = new Set(["de", "du", "des", "d"]);
+const WEAK_TO = new Set(["a", "au", "aux"]);
 
-  const fromRx = /\s(?:depuis|a partir de|men|mn|من)\s/u;
-  const m = t.match(fromRx);
-  if (m && m.index !== undefined) {
-    const after = t.slice(m.index + m[0].length);
-    const toIn = after.search(/\s(?:vers|jusqu'?a|direction|ila|الى|إلى|ل)\s/u);
-    if (toIn >= 0) {
-      pickup = after.slice(0, toIn).trim();
-      t = (t.slice(0, m.index) + " " + after.slice(toIn)).trim();
-    } else {
-      pickup = after.trim();
-      t = t.slice(0, m.index).trim();
+// Sépare départ et arrivée par tokens. Gère les deux ordres :
+//   « (de) X vers Y »  → départ X, arrivée Y
+//   « vers Y depuis X » → arrivée Y, départ X
+//   « vers Y » / « à Y » → arrivée Y, départ = position actuelle
+//   « depuis X »        → départ X, arrivée = ce qui précède
+function splitTrip(text: string): { dest: string; pickup: string } {
+  const toks = text.split(/\s+/).filter(Boolean);
+  const join = (a: string[]) => a.join(" ").trim();
+
+  const strongFrom = toks.findIndex((w) => STRONG_FROM.has(w));
+  let toPos = toks.findIndex((w) => STRONG_TO.has(w));
+  if (toPos < 0) toPos = toks.findIndex((w) => WEAK_TO.has(w));
+
+  let fromPos = strongFrom;
+  if (fromPos < 0 && toPos > 0) {
+    for (let i = 0; i < toPos; i++) {
+      if (WEAK_FROM.has(toks[i])) {
+        fromPos = i;
+        break;
+      }
     }
   }
 
-  // Marqueur de destination sur ce qu'il reste → ne garder que ce qui suit.
-  const toRx = /\s(?:vers|jusqu'?a|direction|ila|الى|إلى)\s/u;
-  const mt = ` ${t} `.match(toRx);
-  if (mt && mt.index !== undefined) {
-    t = ` ${t} `.slice(mt.index + mt[0].length).trim();
+  if (fromPos >= 0 && toPos >= 0) {
+    return fromPos < toPos
+      ? {
+          pickup: join(toks.slice(fromPos + 1, toPos)),
+          dest: join(toks.slice(toPos + 1)),
+        }
+      : {
+          dest: join(toks.slice(toPos + 1, fromPos)),
+          pickup: join(toks.slice(fromPos + 1)),
+        };
   }
-  return { dest: t.trim(), pickup };
+  if (toPos >= 0) return { dest: join(toks.slice(toPos + 1)), pickup: "" };
+  if (strongFrom >= 0)
+    return {
+      pickup: join(toks.slice(strongFrom + 1)),
+      dest: join(toks.slice(0, strongFrom)),
+    };
+  return { dest: join(toks), pickup: "" };
 }
 
 // Retire les mots de bruit, garde le reste pour le gazetteer.
@@ -223,6 +260,9 @@ export async function parseDriveIntent(input: {
   norm = norm
     .replace(FEMALE_RX, " ")
     .replace(URGENT_RX, " ")
+    // Marqueurs multi-mots → mono-mot (la découpe travaille par tokens).
+    .replace(/\ba partir de\b/g, " depuis ")
+    .replace(/\bjusqu a\b/g, " vers ")
     .replace(/\s+/g, " ")
     .trim();
 
