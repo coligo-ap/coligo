@@ -838,6 +838,32 @@ async function searchGoogleFallback(
   }
 }
 
+/**
+ * Apprentissage : enregistre le CHOIX d'une adresse (best-effort). Les lieux
+ * souvent choisis par les clients remontent ensuite dans le classement du
+ * gazetteer (mig 0179, bonus geo_picks proportionnel au match de nom).
+ */
+export async function recordPlacePick(input: {
+  lat: number;
+  lng: number;
+  label: string;
+}): Promise<void> {
+  try {
+    const supabase = await createClient();
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: unknown }>;
+    await rpc("geo_pick_record", {
+      p_lat: input.lat,
+      p_lng: input.lng,
+      p_label: input.label,
+    });
+  } catch {
+    /* best effort — ne bloque jamais la sélection */
+  }
+}
+
 export async function geocodeSearch(input: {
   q: string;
   lat?: number;

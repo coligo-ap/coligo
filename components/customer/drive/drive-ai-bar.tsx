@@ -26,6 +26,7 @@ import {
   type SpeechHandle,
   type SpeechLang,
 } from "@/lib/native/speech";
+import { recordPlacePick } from "@/app/(customer)/actions";
 import { ROSE, VIOLET } from "./drive-modals";
 
 const GAMME_LABEL: Record<DriveGamme, string> = {
@@ -123,23 +124,40 @@ export function DriveAiBar({
   // Le client confirme explicitement → on pré-remplit l'écran prix.
   const confirm = () => {
     if (!draft) return;
+    // Apprentissage : la destination confirmée remonte pour les recherches futures.
+    void recordPlacePick({
+      lat: draft.destination.lat,
+      lng: draft.destination.lng,
+      label: draft.destination.text,
+    });
     onResolved(draft);
     setDraft(null);
     setText("");
   };
 
   // Pas le bon lieu ? Le client choisit un autre candidat du gazetteer.
-  const pickAlt = (alt: { lat: number; lng: number; display: string }) => {
+  const pickAlt = (alt: {
+    lat: number;
+    lng: number;
+    display: string;
+    kind?: "merchant";
+  }) => {
     setDraft((d) =>
       d
         ? {
             ...d,
-            destination: { lat: alt.lat, lng: alt.lng, text: alt.display },
+            destination: {
+              lat: alt.lat,
+              lng: alt.lng,
+              text: alt.display,
+              kind: alt.kind,
+            },
             alternatives: [
               {
                 lat: d.destination.lat,
                 lng: d.destination.lng,
                 display: d.destination.text,
+                kind: d.destination.kind,
               },
               ...d.alternatives.filter((a) => a.display !== alt.display),
             ].slice(0, 3),
@@ -183,6 +201,14 @@ export function DriveAiBar({
               {draft.destination.text}
             </span>
           </span>
+          {draft.destination.kind === "merchant" && (
+            <span
+              className="shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wide"
+              style={{ background: "#EEEEFD", color: VIOLET }}
+            >
+              Coligo
+            </span>
+          )}
         </div>
 
         {/* Autres lieux possibles (le gazetteer a pu se tromper) */}
@@ -200,6 +226,14 @@ export function DriveAiBar({
                   className="max-w-full truncate rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-2.5 py-1 text-[12px] font-semibold"
                 >
                   {a.display}
+                  {a.kind === "merchant" && (
+                    <span
+                      className="ml-1 font-extrabold"
+                      style={{ color: VIOLET }}
+                    >
+                      · Coligo
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

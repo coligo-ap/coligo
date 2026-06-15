@@ -28,6 +28,7 @@ import { getPosition, watchPosition } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
 import {
   geocodeSearch,
+  recordPlacePick,
   reverseGeocode,
   routeEstimate,
 } from "@/app/(customer)/actions";
@@ -1385,6 +1386,8 @@ function MapPickScreen({
     setAddr(r.display);
     setCenter({ lat: r.lat, lng: r.lng });
     setFocusTarget({ lat: r.lat, lng: r.lng, zoom: 17 });
+    // Apprentissage : ce choix fait remonter ce lieu pour les recherches futures.
+    void recordPlacePick({ lat: r.lat, lng: r.lng, label: r.display });
   };
 
   // Repli : si la rue est introuvable, on affiche les coordonnées GPS EXACTES

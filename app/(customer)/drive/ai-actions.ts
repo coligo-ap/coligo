@@ -25,9 +25,14 @@ export type DriveGamme = "classic" | "confort" | "moto";
 export type DriveIntentDraft = {
   /** Départ : position GPS actuelle (text null) sauf si le client en nomme un autre. */
   pickup: { lat: number; lng: number; text: string | null };
-  destination: { lat: number; lng: number; text: string };
+  destination: { lat: number; lng: number; text: string; kind?: "merchant" };
   /** Autres lieux candidats pour la destination (si ambiguë), à proposer au client. */
-  alternatives: { lat: number; lng: number; display: string }[];
+  alternatives: {
+    lat: number;
+    lng: number;
+    display: string;
+    kind?: "merchant";
+  }[];
   distance_km: number;
   gamme: DriveGamme;
   female_only: boolean;
@@ -346,12 +351,14 @@ export async function parseDriveIntent(input: {
         lat: destHit.lat,
         lng: destHit.lng,
         text: destHit.display,
+        kind: destHit.kind,
       },
       alternatives: (destRes.ok ? destRes.results.slice(1, 4) : []).map(
         (r) => ({
           lat: r.lat,
           lng: r.lng,
           display: r.display,
+          kind: r.kind,
         })
       ),
       distance_km,
