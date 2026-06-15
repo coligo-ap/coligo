@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CheckoutView } from "@/components/customer/checkout-view";
 import { createClient } from "@/lib/supabase/server";
+import { getFeatureFlags } from "@/lib/data/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -25,11 +26,14 @@ export default async function CheckoutPage() {
     .maybeSingle();
   if (merchant) redirect("/dashboard");
 
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("full_name, phone, latitude, longitude")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [{ data: customer }, flags] = await Promise.all([
+    supabase
+      .from("customers")
+      .select("full_name, phone, latitude, longitude")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    getFeatureFlags(),
+  ]);
 
   return (
     <CustomerShell>
@@ -40,6 +44,9 @@ export default async function CheckoutPage() {
           latitude: customer?.latitude ?? null,
           longitude: customer?.longitude ?? null,
         }}
+        onlinePaymentStatus={flags.online_payment.status}
+        coligoPayStatus={flags.coligo_pay.status}
+        cashbackStatus={flags.cashback.status}
       />
     </CustomerShell>
   );

@@ -15,16 +15,26 @@ const ITEMS = [
   { href: "/compte", key: "account", icon: User },
 ] as const;
 
-export function CustomerBottomNav() {
+/**
+ * `hiddenKeys` : onglets retirés (fonctionnalité masquée par le super-admin,
+ * ex. ["drive"], ["pay"]). La grille s'ajuste au nombre d'onglets restants.
+ */
+export function CustomerBottomNav({
+  hiddenKeys = [],
+}: {
+  hiddenKeys?: string[];
+}) {
   const pathname = usePathname();
   const t = useTranslations("nav");
+  const items = ITEMS.filter((i) => !hiddenKeys.includes(i.key));
 
   return (
     <nav
       aria-label="Navigation principale"
-      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[var(--d-line)] bg-[var(--d-surface)] pb-[max(env(safe-area-inset-bottom),0px)] lg:hidden"
+      style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      className="fixed inset-x-0 bottom-0 z-30 grid border-t border-[var(--d-line)] bg-[var(--d-surface)] pb-[max(env(safe-area-inset-bottom),0px)] lg:hidden"
     >
-      {ITEMS.map((item) => {
+      {items.map((item) => {
         const Icon = item.icon;
         const active =
           item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);

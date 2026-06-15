@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { saveDriverWorkZone } from "@/app/(driver)/actions";
 
 /**
  * « Zone de travail » du livreur (dispatch par ZONE) — source de vérité unique,
@@ -78,6 +79,8 @@ export function setWorkZone(next: WorkZone | null) {
   } catch {
     /* localStorage indispo → on garde l'état en mémoire */
   }
+  // Persiste côté serveur pour l'enforcement DB (best-effort, non bloquant).
+  void saveDriverWorkZone(zone);
   emit();
 }
 

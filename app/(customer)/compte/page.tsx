@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CustomerLogoutButton } from "@/components/customer/logout-button";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { CustomerSupportRow } from "@/components/support/customer-support-row";
+import { getFeatureFlags } from "@/lib/data/feature-flags";
 import {
   getMyCashbackBalance,
   getMyTopupBalance,
@@ -73,10 +74,20 @@ export default async function CustomerAccountPage({
     ongoingCount = count ?? 0;
   }
 
-  const [cashbackBalance, topupBalance] = await Promise.all([
+  const [cashbackBalance, topupBalance, flags] = await Promise.all([
     getMyCashbackBalance(),
     getMyTopupBalance(),
+    getFeatureFlags(),
   ]);
+  // Disponibilité des poches (super-admin). 'hidden' = carte retirée ;
+  // 'coming_soon'/'maintenance' = carte grisée non cliquable.
+  const cashbackVisible = flags.cashback.status !== "hidden";
+  const cashbackActive = flags.cashback.status === "active";
+  const payVisible = flags.coligo_pay.status !== "hidden";
+  const payActive = flags.coligo_pay.status === "active";
+  const visibleCount = (cashbackVisible ? 1 : 0) + (payVisible ? 1 : 0);
+  const disabledLabel = (s: string) =>
+    s === "coming_soon" ? "Bientôt" : "Indisponible";
 
   // « Compte vérifié » reflète l'état RÉEL : email confirmé côté auth.
   const verified = !!user.email_confirmed_at;
@@ -134,47 +145,82 @@ export default async function CustomerAccountPage({
           </div>
         </section>
 
-        {/* 2 cartes soldes qui CHEVAUCHENT le bas du hero, chacune cliquable. */}
-        <div className="relative z-10 -mt-11 grid grid-cols-2 gap-3 px-4">
-          <Link
-            href="/cashback"
-            className="rounded-[18px] bg-white p-3.5 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)] transition-transform active:scale-[.97]"
+        {/* Cartes soldes (cashback + Coligo Pay) qui CHEVAUCHENT le bas du hero.
+            Masquées si la fonctionnalité est retirée, grisées si bientôt/maintenance. */}
+        {visibleCount > 0 && (
+          <div
+            className={`relative z-10 -mt-11 grid gap-3 px-4 ${visibleCount === 2 ? "grid-cols-2" : "grid-cols-1"}`}
           >
-            <div className="flex items-center justify-between">
-              <span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600">
-                <Gift className="size-[18px]" />
-              </span>
-              <ChevronRight className="text-subtle size-4 rtl:-scale-x-100" />
-            </div>
-            <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
-              {t("cashbackTitle")}
-            </p>
-            <p
-              className={`mt-0.5 text-xl font-black tabular-nums ${cashbackBalance > 0 ? "text-foreground" : "text-subtle"}`}
-            >
-              {formatDA(cashbackBalance)}
-            </p>
-          </Link>
-          <Link
-            href="/coligo-pay"
-            className="rounded-[18px] bg-white p-3.5 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)] transition-transform active:scale-[.97]"
-          >
-            <div className="flex items-center justify-between">
-              <span className="bg-primary-50 text-primary-600 grid size-9 place-items-center rounded-xl">
-                <Wallet className="size-[18px]" />
-              </span>
-              <ChevronRight className="text-subtle size-4 rtl:-scale-x-100" />
-            </div>
-            <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
-              Coligo Pay
-            </p>
-            <p
-              className={`mt-0.5 text-xl font-black tabular-nums ${topupBalance > 0 ? "text-foreground" : "text-subtle"}`}
-            >
-              {formatDA(topupBalance)}
-            </p>
-          </Link>
-        </div>
+            {cashbackVisible &&
+              (cashbackActive ? (
+                <Link
+                  href="/cashback"
+                  className="rounded-[18px] bg-white p-3.5 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)] transition-transform active:scale-[.97]"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600">
+                      <Gift className="size-[18px]" />
+                    </span>
+                    <ChevronRight className="text-subtle size-4 rtl:-scale-x-100" />
+                  </div>
+                  <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
+                    {t("cashbackTitle")}
+                  </p>
+                  <p
+                    className={`mt-0.5 text-xl font-black tabular-nums ${cashbackBalance > 0 ? "text-foreground" : "text-subtle"}`}
+                  >
+                    {formatDA(cashbackBalance)}
+                  </p>
+                </Link>
+              ) : (
+                <div className="rounded-[18px] bg-white p-3.5 opacity-60 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)]">
+                  <span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600">
+                    <Gift className="size-[18px]" />
+                  </span>
+                  <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
+                    {t("cashbackTitle")}
+                  </p>
+                  <p className="text-subtle mt-0.5 text-sm font-bold">
+                    {disabledLabel(flags.cashback.status)}
+                  </p>
+                </div>
+              ))}
+            {payVisible &&
+              (payActive ? (
+                <Link
+                  href="/coligo-pay"
+                  className="rounded-[18px] bg-white p-3.5 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)] transition-transform active:scale-[.97]"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="bg-primary-50 text-primary-600 grid size-9 place-items-center rounded-xl">
+                      <Wallet className="size-[18px]" />
+                    </span>
+                    <ChevronRight className="text-subtle size-4 rtl:-scale-x-100" />
+                  </div>
+                  <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
+                    Coligo Pay
+                  </p>
+                  <p
+                    className={`mt-0.5 text-xl font-black tabular-nums ${topupBalance > 0 ? "text-foreground" : "text-subtle"}`}
+                  >
+                    {formatDA(topupBalance)}
+                  </p>
+                </Link>
+              ) : (
+                <div className="rounded-[18px] bg-white p-3.5 opacity-60 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)]">
+                  <span className="bg-primary-50 text-primary-600 grid size-9 place-items-center rounded-xl">
+                    <Wallet className="size-[18px]" />
+                  </span>
+                  <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
+                    Coligo Pay
+                  </p>
+                  <p className="text-subtle mt-0.5 text-sm font-bold">
+                    {disabledLabel(flags.coligo_pay.status)}
+                  </p>
+                </div>
+              ))}
+          </div>
+        )}
 
         {completePhone && !customer?.phone && (
           <Link

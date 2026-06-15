@@ -681,6 +681,31 @@ export async function pullNextExpressNearby(
   }
 }
 
+/**
+ * Persiste la ZONE DE TRAVAIL du livreur côté serveur (mig 0182) — ainsi
+ * l'enforcement est garanti en base : le livreur ne reçoit que les commandes
+ * de sa zone, où qu'il se trouve. `null` → retire la zone (repli rayon live).
+ * Best-effort : ne bloque jamais l'UI.
+ */
+export async function saveDriverWorkZone(
+  zone: { lat: number; lng: number; radiusKm: number } | null
+): Promise<void> {
+  try {
+    const supabase = await createClient();
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: unknown }>;
+    await rpc("set_driver_work_zone", {
+      p_lat: zone?.lat ?? null,
+      p_lng: zone?.lng ?? null,
+      p_radius_km: zone?.radiusKm ?? null,
+    });
+  } catch {
+    /* best effort — la zone locale reste la source pour l'UI */
+  }
+}
+
 // =============================================================================
 // SELF-SERVICE LIVREUR — véhicule / pièces / versements (mig 0110)
 // =============================================================================

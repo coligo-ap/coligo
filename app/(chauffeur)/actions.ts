@@ -541,6 +541,26 @@ export type NearbyRide = {
   created_at: string;
 };
 
+/**
+ * Persiste la ZONE DE TRAVAIL du chauffeur côté serveur (mig 0182) — il ne voit
+ * alors que les courses dont le DÉPART est dans sa zone. `null` → retire la zone
+ * (repli rayon configurable autour de la position live). Best-effort.
+ */
+export async function saveChauffeurWorkZone(
+  zone: { lat: number; lng: number; radiusKm: number } | null
+): Promise<void> {
+  try {
+    const rpc = await rpcClient();
+    await rpc("set_chauffeur_work_zone", {
+      p_lat: zone?.lat ?? null,
+      p_lng: zone?.lng ?? null,
+      p_radius_km: zone?.radiusKm ?? null,
+    });
+  } catch {
+    /* best effort */
+  }
+}
+
 export async function getNearbyRides(
   lat: number,
   lng: number

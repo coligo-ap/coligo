@@ -13,6 +13,100 @@ import {
 
 export type AdminFormState = { error?: string; ok?: boolean };
 
+const FEATURE_KEYS = ["drive", "online_payment", "coligo_pay", "cashback"];
+const FEATURE_STATUSES = ["active", "hidden", "coming_soon", "maintenance"];
+
+/**
+ * Disponibilité d'une fonctionnalité (kill-switch super-admin, mig 0182).
+ * États : active / hidden / coming_soon / maintenance + messages FR/AR.
+ * L'API est bloquée côté DB (triggers) ; ici on persiste l'état + le message.
+ */
+export async function updateFeatureFlag(
+  _prev: AdminFormState,
+  formData: FormData
+): Promise<AdminFormState> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+
+  const key = String(formData.get("key") ?? "");
+  const status = String(formData.get("status") ?? "");
+  if (!FEATURE_KEYS.includes(key)) return { error: "Fonctionnalité inconnue." };
+  if (!FEATURE_STATUSES.includes(status)) return { error: "État invalide." };
+
+  const clean = (v: FormDataEntryValue | null): string | null => {
+    const s = (v == null ? "" : String(v)).trim();
+    return s.length ? s.slice(0, 400) : null;
+  };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  // `feature_flags` (mig 0182) pas encore dans database.types.ts → cast local.
+  const from = supabase.from.bind(supabase) as unknown as (t: string) => {
+    update: (v: Record<string, unknown>) => {
+      eq: (
+        c: string,
+        val: string
+      ) => Promise<{ error: { message: string } | null }>;
+    };
+  };
+  const { error } = await from("feature_flags")
+    .update({
+      status,
+      title_fr: clean(formData.get("title_fr")),
+      title_ar: clean(formData.get("title_ar")),
+      message_fr: clean(formData.get("message_fr")),
+      message_ar: clean(formData.get("message_ar")),
+      updated_at: new Date().toISOString(),
+      updated_by: user?.id ?? null,
+    })
+    .eq("key", key);
+
+  if (error) return { error: `Échec : ${error.message}` };
+  revalidatePath("/admin/controle");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Rayons de dispatch (A) — express + drive — sur platform_settings. */
+export async function updateDispatchRadii(
+  _prev: AdminFormState,
+  formData: FormData
+): Promise<AdminFormState> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+
+  const express = Number(formData.get("express_dispatch_radius_km"));
+  const drive = Number(formData.get("drive_dispatch_radius_km"));
+  if (!Number.isFinite(express) || express <= 0 || express > 50) {
+    return { error: "Rayon express invalide (0–50 km)." };
+  }
+  if (!Number.isFinite(drive) || drive <= 0 || drive > 60) {
+    return { error: "Rayon drive invalide (0–60 km)." };
+  }
+
+  const supabase = await createClient();
+  // Colonnes express/drive_dispatch_radius_km (mig 0182) pas encore typées.
+  const from = supabase.from.bind(supabase) as unknown as (t: string) => {
+    update: (v: Record<string, unknown>) => {
+      eq: (
+        c: string,
+        val: boolean
+      ) => Promise<{ error: { message: string } | null }>;
+    };
+  };
+  const { error } = await from("platform_settings")
+    .update({
+      express_dispatch_radius_km: express,
+      drive_dispatch_radius_km: drive,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", true);
+
+  if (error) return { error: `Échec : ${error.message}` };
+  revalidatePath("/admin/controle");
+  return { ok: true };
+}
+
 export async function updatePlatformSettings(
   _prev: AdminFormState,
   formData: FormData

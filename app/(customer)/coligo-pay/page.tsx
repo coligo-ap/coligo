@@ -1,8 +1,14 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { ArrowLeft, ChevronRight, Gift, Wallet } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
+import { FeatureUnavailable } from "@/components/customer/feature-unavailable";
+import {
+  getFeatureFlag,
+  featureMessage,
+  featureTitle,
+} from "@/lib/data/feature-flags";
 import { WalletActions } from "@/components/customer/wallet-actions";
 import { MyPayTag } from "@/components/customer/my-pay-tag";
 import { WalletEntryList } from "@/components/customer/wallet/entry-list";
@@ -41,6 +47,24 @@ export default async function CustomerColigoPayPage() {
     .eq("user_id", user.id)
     .maybeSingle();
   if (merchant) redirect("/dashboard");
+
+  // Disponibilité Coligo Pay (super-admin).
+  const flag = await getFeatureFlag("coligo_pay");
+  if (flag.status === "hidden") redirect("/");
+  if (flag.status !== "active") {
+    const locale = await getLocale();
+    return (
+      <CustomerShell>
+        <div className="mx-auto max-w-2xl px-4 pt-6 pb-24 lg:px-6">
+          <FeatureUnavailable
+            status={flag.status}
+            title={featureTitle(flag, locale)}
+            message={featureMessage(flag, locale)}
+          />
+        </div>
+      </CustomerShell>
+    );
+  }
 
   const { data: customer } = await supabase
     .from("customers")

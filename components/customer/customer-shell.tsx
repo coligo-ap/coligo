@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getFeatureFlags } from "@/lib/data/feature-flags";
 import { CustomerHeader } from "@/components/customer/customer-header";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { CustomerFooter } from "@/components/customer/customer-footer";
@@ -27,6 +28,12 @@ export async function CustomerShell({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Onglets retirés de la nav si la fonctionnalité est « masquée » (super-admin).
+  const flags = await getFeatureFlags();
+  const hiddenKeys: string[] = [];
+  if (flags.drive.status === "hidden") hiddenKeys.push("drive");
+  if (flags.coligo_pay.status === "hidden") hiddenKeys.push("pay");
+
   let customerName: string | null = null;
   let customerPhone: string | null = null;
   if (user) {
@@ -49,7 +56,7 @@ export async function CustomerShell({
         <CartMonoProvider>{children}</CartMonoProvider>
       </main>
       <CustomerFooter />
-      <CustomerBottomNav />
+      <CustomerBottomNav hiddenKeys={hiddenKeys} />
 
       {/* Enregistrement du token FCM (no-op hors APK Capacitor, et n'agit
           que si l'utilisateur est connecté — sinon l'endpoint répondra 401

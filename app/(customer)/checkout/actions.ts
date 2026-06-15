@@ -14,6 +14,7 @@ import {
   getCashbackBalanceForCustomer,
   getTopupBalanceForCustomer,
 } from "@/lib/customer/cashback";
+import { getFeatureFlags } from "@/lib/data/feature-flags";
 import {
   createCheckout as createChargilyCheckout,
   buildCallbackUrls,
@@ -140,6 +141,22 @@ export async function createOrder(
         "Ajoute un numéro de téléphone algérien valide (0X XX XX XX XX) dans ton profil (Compte) avant de commander.",
     };
   }
+
+  // Disponibilité (super-admin) : refuse le paiement en ligne désactivé, et
+  // neutralise l'usage de cashback / Coligo Pay s'ils sont coupés. (La DB pose
+  // aussi un garde-fou bypass-proof sur les commandes online — mig 0182.)
+  const features = await getFeatureFlags();
+  if (
+    input.payment_method === "online" &&
+    features.online_payment.status !== "active"
+  ) {
+    return {
+      ok: false,
+      error: "Le paiement en ligne est momentanément indisponible.",
+    };
+  }
+  if (features.cashback.status !== "active") input.cashback_to_use_da = 0;
+  if (features.coligo_pay.status !== "active") input.topup_to_use_da = 0;
 
   // ---------------------------------------------------------------------------
   // 2. Idempotency — si on a déjà créé cette commande, on renvoie l'existante.

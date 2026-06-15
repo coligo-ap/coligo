@@ -44,6 +44,7 @@ import {
   previewPromoCode,
 } from "@/app/(customer)/checkout/actions";
 import { CHARGILY_MIN_AMOUNT_DA } from "@/lib/config/payment-limits";
+import type { FeatureStatus } from "@/lib/data/feature-flags";
 import type { PaymentMethod } from "@/lib/types";
 import {
   CheckoutDeliverySection,
@@ -57,9 +58,23 @@ type Props = {
     latitude?: number | null;
     longitude?: number | null;
   };
+  /** Disponibilité (super-admin) — gèle/masque paiement en ligne, Coligo Pay, cashback. */
+  onlinePaymentStatus?: FeatureStatus;
+  coligoPayStatus?: FeatureStatus;
+  cashbackStatus?: FeatureStatus;
 };
 
-export function CheckoutView({ customer }: Props) {
+export function CheckoutView({
+  customer,
+  onlinePaymentStatus = "active",
+  coligoPayStatus = "active",
+  cashbackStatus = "active",
+}: Props) {
+  // Raccourcis de disponibilité (super-admin).
+  const onlineVisible = onlinePaymentStatus !== "hidden";
+  const onlineUsable = onlinePaymentStatus === "active";
+  const coligoPayOn = coligoPayStatus === "active";
+  const cashbackOn = cashbackStatus === "active";
   const t = useTranslations("checkout");
   const tc = useTranslations("cart");
   const router = useRouter();
@@ -135,12 +150,23 @@ export function CheckoutView({ customer }: Props) {
     setPromoError(null);
   }, [itemsSig]);
 
-  // Force "cash" si l'online n'est pas accepté.
+  // Force "cash" si l'online n'est pas accepté OU désactivé par le super-admin.
   useEffect(() => {
-    if (ctx && !ctx.merchant.accepts_online && payment === "online") {
+    if (
+      payment === "online" &&
+      (!ctx?.merchant.accepts_online || !onlineUsable)
+    ) {
       setPayment("cash");
     }
-  }, [ctx, payment]);
+  }, [ctx, payment, onlineUsable]);
+
+  // Désactive l'usage des soldes si la fonctionnalité est coupée (super-admin).
+  useEffect(() => {
+    if (!cashbackOn) setUseCashback(false);
+  }, [cashbackOn]);
+  useEffect(() => {
+    if (!coligoPayOn) setUseTopup(false);
+  }, [coligoPayOn]);
 
   const savedPosition = useMemo(() => {
     const lat = savedLoc?.latitude ?? customer.latitude ?? null;
@@ -349,8 +375,8 @@ export function CheckoutView({ customer }: Props) {
           delivery.fulfillment === "delivery"
             ? delivery.deliveryNote.trim() || null
             : null,
-        cashback_to_use_da: useCashback ? cashbackApplied : 0,
-        topup_to_use_da: useTopup ? topupApplied : 0,
+        cashback_to_use_da: useCashback && cashbackOn ? cashbackApplied : 0,
+        topup_to_use_da: useTopup && coligoPayOn ? topupApplied : 0,
         promo_code: appliedPromo?.code ?? null,
       });
       if (!res.ok) {
@@ -687,7 +713,9 @@ export function CheckoutView({ customer }: Props) {
           <SectionTitle icon={CreditCard} className="px-4 pt-4">
             {t("payment")}
           </SectionTitle>
-          <div className="grid grid-cols-2 gap-2.5 px-4 pt-3 pb-4">
+          <div
+            className={`grid gap-2.5 px-4 pt-3 pb-4 ${onlineVisible ? "grid-cols-2" : "grid-cols-1"}`}
+          >
             <PayCard
               icon={Banknote}
               selected={payment === "cash"}
@@ -696,32 +724,42 @@ export function CheckoutView({ customer }: Props) {
               sub={isDelivery ? t("cashDeliverySub") : t("cashPickupSub")}
               disabled={!ctx.merchant.accepts_cash}
               chip={
-                cashbackEarnCash > 0
+                cashbackOn && cashbackEarnCash > 0
                   ? t("cashbackChip", { amount: formatDA(cashbackEarnCash) })
                   : t("noCashbackChip")
               }
-              chipTone={cashbackEarnCash > 0 ? "success" : "muted"}
-            />
-            <PayCard
-              icon={CreditCard}
-              selected={payment === "online"}
-              onClick={() => setPayment("online")}
-              title={t("online")}
-              bolt
-              sub={t("onlineSub")}
-              disabled={!ctx.merchant.accepts_online}
-              chip={
-                cashbackEarnOnline > 0
-                  ? t("cashbackChip", { amount: formatDA(cashbackEarnOnline) })
-                  : t("noCashbackChip")
+              chipTone={
+                cashbackOn && cashbackEarnCash > 0 ? "success" : "muted"
               }
-              chipTone={cashbackEarnOnline > 0 ? "success" : "muted"}
             />
+            {onlineVisible && (
+              <PayCard
+                icon={CreditCard}
+                selected={payment === "online"}
+                onClick={() => onlineUsable && setPayment("online")}
+                title={t("online")}
+                bolt
+                sub={onlineUsable ? t("onlineSub") : "Bientôt"}
+                disabled={!ctx.merchant.accepts_online || !onlineUsable}
+                chip={
+                  cashbackOn && cashbackEarnOnline > 0
+                    ? t("cashbackChip", {
+                        amount: formatDA(cashbackEarnOnline),
+                      })
+                    : t("noCashbackChip")
+                }
+                chipTone={
+                  cashbackOn && cashbackEarnOnline > 0 ? "success" : "muted"
+                }
+              />
+            )}
           </div>
 
           {/* Comparatif : en espèces, montre le gain MANQUÉ → tap = bascule. */}
           {payment === "cash" &&
             ctx.merchant.accepts_online &&
+            onlineUsable &&
+            cashbackOn &&
             onlineCashbackExtra > 0 && (
               <button
                 type="button"
@@ -743,10 +781,12 @@ export function CheckoutView({ customer }: Props) {
               </button>
             )}
 
-          {/* Soldes — DEUX switches séparés, cumulables (si solde > 0). */}
-          {(ctx.topup_balance_da > 0 || ctx.cashback_balance_da > 0) && (
+          {/* Soldes — DEUX switches séparés, cumulables (si solde > 0).
+              Masqués si la fonctionnalité correspondante est coupée (super-admin). */}
+          {((coligoPayOn && ctx.topup_balance_da > 0) ||
+            (cashbackOn && ctx.cashback_balance_da > 0)) && (
             <div className="divide-border border-border divide-y border-t">
-              {ctx.topup_balance_da > 0 && (
+              {coligoPayOn && ctx.topup_balance_da > 0 && (
                 <WalletRow
                   icon={Wallet}
                   title="Coligo Pay"
@@ -757,7 +797,7 @@ export function CheckoutView({ customer }: Props) {
                   onToggle={() => toggleWallet("topup")}
                 />
               )}
-              {ctx.cashback_balance_da > 0 && (
+              {cashbackOn && ctx.cashback_balance_da > 0 && (
                 <WalletRow
                   icon={Gift}
                   title={t("myCashback")}
@@ -1006,7 +1046,7 @@ export function CheckoutView({ customer }: Props) {
 
         {/* Cashback GAGNÉ = gain futur (jamais un frais). Encadré vert séparé.
             Montant RÉEL du mode sélectionné (taux marchand ?? plateforme). */}
-        {cashbackEarnSelected > 0 && ctx.cart.totalDa > 0 && (
+        {cashbackOn && cashbackEarnSelected > 0 && ctx.cart.totalDa > 0 && (
           <div className="from-success-50 co-rise relative mt-3 flex items-center gap-3 overflow-hidden rounded-[16px] bg-gradient-to-r to-[#e8faf0] p-3.5 shadow-[0_6px_18px_-10px_rgba(21,145,90,0.4)]">
             <span className="text-success-700 z-[2] grid size-9 shrink-0 place-items-center rounded-[11px] bg-white shadow-[0_3px_8px_-2px_rgba(21,145,90,0.35)]">
               <Gift className="size-[18px]" />
