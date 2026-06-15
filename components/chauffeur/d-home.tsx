@@ -8,6 +8,7 @@ import {
   Crosshair,
   Home,
   Loader2,
+  MapPin,
   Pencil,
   X,
 } from "lucide-react";
@@ -26,6 +27,8 @@ import {
   PrimaryBtn,
 } from "@/components/customer/drive/drive-modals";
 import { DNav, PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
+import { ChauffeurWorkZoneSheet } from "./work-zone-sheet";
+import { useWorkZone } from "@/lib/chauffeur/work-zone";
 import { formatOnline, HOME_DIR_KEY } from "@/lib/drive/geo";
 import {
   activateHomeDir,
@@ -68,6 +71,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   }, []);
   const [dirMsg, setDirMsg] = useState<string | null>(null);
   const [homeAddr, setHomeAddr] = useState(gate.homeAddr);
+  // Zone de travail (centre + rayon) — dispatch enforcé serveur si définie.
+  const [zoneOpen, setZoneOpen] = useState(false);
+  const workZone = useWorkZone();
   const coordsRef = useRef(coords);
   coordsRef.current = coords;
 
@@ -374,6 +380,35 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           </button>
         </div>
 
+        {/* Ma zone de travail (centre + rayon, ou « autour de moi ») */}
+        <button
+          type="button"
+          onClick={() => setZoneOpen(true)}
+          className="mb-3 flex w-full items-center gap-2.5 rounded-[14px] px-3.5 py-3 text-left"
+          style={{ background: "#EEEEFD" }}
+        >
+          <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-surface)]">
+            {workZone ? (
+              <MapPin className="size-4" style={{ color: VIOLET }} />
+            ) : (
+              <Crosshair className="size-4" style={{ color: VIOLET }} />
+            )}
+          </span>
+          <span className="min-w-0 flex-1">
+            <b className="block text-[12.5px]" style={{ color: VIOLET }}>
+              {workZone
+                ? `Ma zone · ${workZone.radiusKm} km`
+                : "Ma zone de travail"}
+            </b>
+            <span className="block truncate text-[10.5px] text-[var(--d-muted)]">
+              {workZone
+                ? "Seules les courses de cette zone vous sont proposées"
+                : "Autour de moi · appuyez pour définir une zone"}
+            </span>
+          </span>
+          <Pencil className="size-3.5 shrink-0" style={{ color: VIOLET }} />
+        </button>
+
         {/* Bandeau gamme */}
         <div className="mb-3 flex items-center gap-2.5 rounded-[14px] bg-[var(--d-soft)] px-3.5 py-2.5 text-xs font-semibold text-[var(--d-muted)]">
           <span
@@ -511,6 +546,11 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           </div>
         </div>
       )}
+
+      <ChauffeurWorkZoneSheet
+        open={zoneOpen}
+        onClose={() => setZoneOpen(false)}
+      />
 
       <DNav />
       <PushRegistrar role="chauffeur" />

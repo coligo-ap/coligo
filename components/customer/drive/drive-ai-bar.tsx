@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import {
   ArrowUp,
   Car,
@@ -59,8 +60,12 @@ export function DriveAiBar({
   const [err, setErr] = useState<string | null>(null);
   const [draft, setDraft] = useState<DriveIntentDraft | null>(null);
 
-  // Dictée vocale (ar-DZ / fr-FR) — native APK ou Web Speech API.
-  const [lang, setLang] = useState<SpeechLang>("ar-DZ");
+  // Dictée vocale — native APK ou Web Speech API. La langue est AUTOMATIQUE :
+  // elle suit la langue choisie pour l'app (arabe/darija → ar-DZ, français →
+  // fr-FR), plus de bouton manuel. Le parseur comprend de toute façon AR + FR +
+  // darija quelle que soit la langue dictée.
+  const locale = useLocale();
+  const lang: SpeechLang = locale === "fr" ? "fr-FR" : "ar-DZ";
   const [listening, setListening] = useState(false);
   const [micOk, setMicOk] = useState(false);
   const speechRef = useRef<SpeechHandle | null>(null);
@@ -328,29 +333,15 @@ export function DriveAiBar({
         ) : (
           <>
             {micOk && (
-              <>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setLang((l) => (l === "ar-DZ" ? "fr-FR" : "ar-DZ"))
-                  }
-                  aria-label="Langue de la dictée"
-                  title={lang === "ar-DZ" ? "Arabe / darija" : "Français"}
-                  className="shrink-0 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-2 py-[5px] text-[11px] font-extrabold"
-                  style={{ color: VIOLET }}
-                >
-                  {lang === "ar-DZ" ? "AR" : "FR"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void toggleMic()}
-                  aria-label="Dicter à voix haute"
-                  className="grid size-8 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)]"
-                  style={{ color: VIOLET }}
-                >
-                  <Mic className="size-4" />
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => void toggleMic()}
+                aria-label="Dicter à voix haute"
+                className="grid size-8 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)]"
+                style={{ color: VIOLET }}
+              >
+                <Mic className="size-4" />
+              </button>
             )}
             <button
               type="button"
