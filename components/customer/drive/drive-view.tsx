@@ -66,6 +66,8 @@ import {
 } from "@/app/(customer)/drive/actions";
 import { joinZoneWaitlist } from "@/lib/zones/actions";
 import { AvailabilityNotice } from "@/components/zones/availability-notice";
+import { DriveAiBar } from "./drive-ai-bar";
+import type { DriveIntentDraft } from "@/app/(customer)/drive/ai-actions";
 
 /**
  * Coligo Drive — parcours client conforme à MAQUETTE-vtc-coligo.html :
@@ -514,6 +516,33 @@ export function DriveView() {
     setPayMode("cash");
     setGamme("classic");
     setOfflineQueued(false);
+  }, []);
+
+  /* ───────── Assistant IA : brouillon de trajet → écran prix ─────────
+     L'IA renseigne départ/arrivée/gamme, le client confirme normalement
+     (devis, prix, paiement, demande). Aucune course créée par l'IA.
+     `female_only` n'est PAS appliqué auto (réservé aux clientes vérifiées —
+     le toggle reste à la main du client sur l'écran prix). */
+  const applyAiDraft = useCallback((d: DriveIntentDraft) => {
+    setPickup((cur) =>
+      d.pickup.text
+        ? { lat: d.pickup.lat, lng: d.pickup.lng, text: d.pickup.text }
+        : (cur ?? {
+            lat: d.pickup.lat,
+            lng: d.pickup.lng,
+            text: null,
+            gps: true,
+          })
+    );
+    setDest({
+      lat: d.destination.lat,
+      lng: d.destination.lng,
+      text: d.destination.text,
+    });
+    setGamme(d.gamme);
+    setPrice(0);
+    setRequestError(null);
+    setScreen("price");
   }, []);
 
   if (!booted || !ctx) {
@@ -1035,6 +1064,12 @@ export function DriveView() {
         <h1 className="drive-sora mb-2 text-[21px] font-extrabold tracking-[-0.5px]">
           {t("home.title")}
         </h1>
+
+        {/* Assistant IA : réserver en langage naturel (darija / ar / fr) */}
+        <DriveAiBar
+          pickup={pickup ? { lat: pickup.lat, lng: pickup.lng } : null}
+          onResolved={applyAiDraft}
+        />
 
         <div className="mb-2.5 flex items-center gap-2">
           <div className="min-w-0 flex-1">
