@@ -50,3 +50,5 @@ android/app/google-services.json
 
 
 playwright-shots/
+
+.vercel
