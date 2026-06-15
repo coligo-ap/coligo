@@ -18,7 +18,6 @@ import {
 import { formatDA } from "@/lib/utils";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { haversineKm } from "@/lib/delivery/distance";
-import { Place } from "@/lib/geo/place-name";
 import { DriveMap } from "@/components/customer/drive/drive-map";
 import {
   CancelModal,
@@ -296,17 +295,7 @@ export function DCourse() {
           </span>
         </div>
         <p className="mb-4 text-xs font-semibold">
-          <Place
-            text={ride.pickup_text}
-            lat={ride.pickup_lat}
-            lng={ride.pickup_lng}
-          />{" "}
-          →{" "}
-          <Place
-            text={ride.dest_text}
-            lat={ride.dest_lat}
-            lng={ride.dest_lng}
-          />
+          {ride.pickup_text ?? "—"} → {ride.dest_text ?? "—"}
         </p>
         <PrimaryBtn
           onClick={async () => {
@@ -489,23 +478,9 @@ export function DCourse() {
             </span>
           </div>
           <div className="mt-3 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-[12.5px] font-bold">
-            {inProgress ? (
-              <Place
-                text={ride.dest_text}
-                lat={ride.dest_lat}
-                lng={ride.dest_lng}
-                fallback="Destination"
-              />
-            ) : (
-              <>
-                Vous attend ·{" "}
-                <Place
-                  text={ride.pickup_text}
-                  lat={ride.pickup_lat}
-                  lng={ride.pickup_lng}
-                />
-              </>
-            )}
+            {inProgress
+              ? `${ride.dest_text ?? "Destination"}`
+              : `Vous attend · ${ride.pickup_text ?? "—"}`}
           </div>
           <div className="mt-3 flex gap-2">
             <button
