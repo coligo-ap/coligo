@@ -107,6 +107,32 @@ export async function updateSession(request: NextRequest) {
   }
 
   // ===========================================================================
+  // ISOLATION SUPER-ADMIN — confiné à /admin (comme livreur/chauffeur à leur
+  // espace). Un admin a un email « normal » sans row merchants/customers → il
+  // n'était cloisonné NULLE PART et pouvait naviguer toute la marketplace
+  // client (et atterrir dans l'espace client depuis /dashboard). On le ramène
+  // à /admin pour TOUTE page hors /admin et hors routes neutres (/api, /auth,
+  // /offline, /portail : login/déconnexion/refus). Pas de boucle : la cible
+  // /admin et /portail sont exemptés. Statut résolu une fois puis caché.
+  // ===========================================================================
+  if (user) {
+    const adminExempt =
+      path === "/admin" ||
+      path.startsWith("/admin/") ||
+      path.startsWith("/api") ||
+      path.startsWith("/auth") ||
+      path.startsWith("/offline") ||
+      path === "/portail" ||
+      path.startsWith("/portail/");
+    if (
+      !adminExempt &&
+      (await isAdminCached(request, supabaseResponse, supabase, user.id))
+    ) {
+      return redirectTo("/admin");
+    }
+  }
+
+  // ===========================================================================
   // RÉCIPROQUE : les espaces /driver et /chauffeur ne sont servis QU'AUX
   // sessions du bon domaine. Une session client/commerçant (ou anonyme) qui
   // tape /driver/... est renvoyée sur l'écran de connexion livreur — seules
@@ -309,6 +335,41 @@ async function resolveCachedRole(
     }
   );
   return role;
+}
+
+/**
+ * Session SUPER-ADMIN ? Résolu une fois via la RPC `is_super_admin` (la même que
+ * lib/auth/admin) puis mis en cache cookie `coligo_adm` (préfixé user-id, comme
+ * coligo_role). Évite une requête à chaque navigation. Le statut admin ne change
+ * quasiment jamais → cache long. Tout échec réseau = traité comme NON-admin
+ * (fail-closed côté confinement : on ne bloque pas un non-admin par erreur).
+ */
+async function isAdminCached(
+  request: NextRequest,
+  response: NextResponse,
+  supabase: ReturnType<typeof createServerClient<Database>>,
+  userId: string
+): Promise<boolean> {
+  const prefix = userId.slice(0, 8);
+  const cached = request.cookies.get("coligo_adm")?.value;
+  if (cached === `${prefix}:1`) return true;
+  if (cached === `${prefix}:0`) return false;
+
+  let isAdmin = false;
+  try {
+    const { data } = await supabase.rpc("is_super_admin");
+    isAdmin = data === true;
+  } catch {
+    isAdmin = false;
+  }
+
+  response.cookies.set("coligo_adm", `${prefix}:${isAdmin ? "1" : "0"}`, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+  return isAdmin;
 }
 
 /**
