@@ -658,6 +658,72 @@ async function searchNominatim(q: string): Promise<GeoHit[]> {
     );
 }
 
+// Mots génériques (catégories / types de voie) : présents dans beaucoup de
+// résultats, ils ne sont PAS distinctifs. Exclus du test de couverture — sinon
+// « restaurant bejaia » déclencherait un appel payant pour rien.
+const SEARCH_GENERIC = new Set([
+  "restaurant",
+  "resto",
+  "restau",
+  "cafe",
+  "cafeteria",
+  "pizzeria",
+  "pizza",
+  "fastfood",
+  "snack",
+  "glacier",
+  "patisserie",
+  "boulangerie",
+  "boucherie",
+  "alimentation",
+  "superette",
+  "supermarche",
+  "epicerie",
+  "pharmacie",
+  "parapharmacie",
+  "clinique",
+  "hopital",
+  "banque",
+  "agence",
+  "hotel",
+  "auberge",
+  "motel",
+  "ecole",
+  "lycee",
+  "college",
+  "universite",
+  "magasin",
+  "boutique",
+  "centre",
+  "commercial",
+  "station",
+  "essence",
+  "gare",
+  "mosquee",
+  "marche",
+  "souk",
+  "place",
+  "placette",
+  "rue",
+  "avenue",
+  "boulevard",
+  "chemin",
+  "cite",
+  "quartier",
+  "lotissement",
+  "residence",
+  "ville",
+  "wilaya",
+  "commune",
+  "daira",
+  "nouvelle",
+  "ancienne",
+  "grand",
+  "grande",
+  "petit",
+  "petite",
+]);
+
 // Plafonds Google Places (anti-dérapage). Ajustables sans risque.
 const GOOGLE_MIN_QLEN = 4;
 const GOOGLE_DAILY_GLOBAL = 500;
@@ -816,12 +882,28 @@ export async function geocodeSearch(input: {
   // Dernier recours PAYANT : Google Places uniquement quand les sources
   // gratuites sont clairement insuffisantes (aucun résultat fiable ET < 4 au
   // total). Les verrous coût (cache + quotas) sont dans searchGoogleFallback.
-  const hasConfident = confMerch.length > 0 || confLocal.length > 0;
-  if (!hasConfident && results.length < 4) {
-    // 2a) Nominatim (OSM, GRATUIT) — tenté seulement ici (cas rare) pour
-    //     respecter sa politique d'usage, AVANT tout appel payant.
-    const nomi = await searchNominatim(q).catch(() => []);
-    for (const r of nomi) {
+  // Un résultat gratuit "répond"-il VRAIMENT à la requête ? On exige que les
+  // mots DISTINCTIFS (hors génériques) soient TOUS présents dans un même
+  // résultat. Sinon, ce que cherche le client (souvent une enseigne précise,
+  // ex. « Il Capo Béjaïa ») est absent des sources gratuites → on élargit, même
+  // s'il y a déjà plein de résultats de la ville.
+  const fold = (s: string) =>
+    s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const qTokens = [
+    ...new Set(
+      fold(q)
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter((w) => w.length >= 3 && !SEARCH_GENERIC.has(w))
+    ),
+  ];
+  const matchesQuery = () =>
+    qTokens.length === 0 ||
+    results.some((r) => {
+      const h = fold(`${r.display} ${r.secondary ?? ""}`);
+      return qTokens.every((t) => h.includes(t));
+    });
+  const pushUnique = (arr: GeoHit[]) => {
+    for (const r of arr) {
       const k = geoDedupeKey(r);
       if (seen.has(k)) continue;
       seen.add(k);
@@ -833,11 +915,18 @@ export async function geocodeSearch(input: {
       });
       if (results.length >= 8) break;
     }
+  };
 
-    // 2b) Google Places en TOUT DERNIER recours, si toujours insuffisant.
-    if (results.length < 4) {
+  if (!matchesQuery()) {
+    // 2a) Nominatim (OSM, GRATUIT) d'abord.
+    pushUnique(await searchNominatim(q).catch(() => []));
+
+    // 2b) Google Places en dernier recours si toujours aucune correspondance
+    //     complète (l'enseigne cherchée est introuvable gratuitement).
+    if (!matchesQuery()) {
       const g = await searchGoogleFallback(q, lat, lng);
       if (g.length) {
+        // Google EN TÊTE (c'est lui qui a l'enseigne exacte), puis le reste.
         const merged: GeoHit[] = [];
         const gseen = new Set<string>();
         for (const r of [...g, ...results]) {
