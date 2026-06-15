@@ -197,6 +197,19 @@ export function rankMerchants(
   return scored.map((s) => s.m);
 }
 
+/**
+ * Découpe OUVERTS d'abord en PRÉSERVANT l'ordre d'entrée dans chaque groupe.
+ * Utilisé quand la liste est déjà classée par proximité (chemin nearby) : on
+ * veut juste remonter les ouverts sans casser le tri par distance.
+ */
+export function splitOpenFirst(merchants: PublicMerchant[]): PublicMerchant[] {
+  const now = nowInAlgiers();
+  return merchants
+    .map((m, i) => ({ m, i, open: isOpenNow(m.opening_hours, now) }))
+    .sort((a, b) => (a.open !== b.open ? (a.open ? -1 : 1) : a.i - b.i))
+    .map((s) => s.m);
+}
+
 // -----------------------------------------------------------------------------
 // Utilitaires
 // -----------------------------------------------------------------------------

@@ -7,7 +7,11 @@ import {
 import { getActiveBanners } from "@/lib/data/promo-banners";
 import { getMyFavoriteIds } from "@/lib/data/favorites";
 import { getMyReviewableOrders } from "@/lib/data/reviews";
-import { loadRankingContext, rankMerchants } from "@/lib/data/merchant-ranking";
+import {
+  loadRankingContext,
+  rankMerchants,
+  splitOpenFirst,
+} from "@/lib/data/merchant-ranking";
 import { createClient } from "@/lib/supabase/server";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
@@ -34,24 +38,12 @@ export const dynamic = "force-dynamic";
 
 export default async function CustomerHomePage() {
   const supabase = await createClient();
-  const [
-    fallback,
-    categories,
-    banners,
-    reviewableOrders,
-    favoriteIds,
-    { data: user },
-  ] = await Promise.all([
-    listPublicMerchants({ limit: 24 }),
-    listMerchantCategories(),
-    getActiveBanners(),
-    getMyReviewableOrders(1),
-    getMyFavoriteIds(),
-    supabase.auth.getUser(),
-  ]);
-  const isAuth = !!user?.user;
 
-  // Coords GPS du client connecté (pour la proximité dans le score de tri).
+  // Coords GPS du client connecté — critère géographique PRINCIPAL du SSR.
+  // (Les visiteurs anon n'ont pas de coords serveur : la grille refait la
+  // requête par proximité dès le montage avec la position du localStorage.)
+  const { data: user } = await supabase.auth.getUser();
+  const isAuth = !!user?.user;
   let customerCoords: {
     latitude: number | null;
     longitude: number | null;
@@ -66,6 +58,26 @@ export default async function CustomerHomePage() {
       ? { latitude: customer.latitude, longitude: customer.longitude }
       : null;
   }
+  const hasCoords =
+    customerCoords?.latitude != null && customerCoords?.longitude != null;
+
+  const [fallback, categories, banners, reviewableOrders, favoriteIds] =
+    await Promise.all([
+      // Avec coords → liste déjà filtrée par rayon et triée par proximité.
+      listPublicMerchants(
+        hasCoords
+          ? {
+              latitude: customerCoords!.latitude,
+              longitude: customerCoords!.longitude,
+              limit: 24,
+            }
+          : { limit: 24 }
+      ),
+      listMerchantCategories(),
+      getActiveBanners(),
+      getMyReviewableOrders(1),
+      getMyFavoriteIds(),
+    ]);
 
   // Contexte de classement (promoIds + orderCounts30d + poids + coords client).
   const rankingCtx = await loadRankingContext({
@@ -75,7 +87,11 @@ export default async function CustomerHomePage() {
   const promoIds = rankingCtx.promoIds;
 
   const promoLabels = await getPromoLabelsByMerchant(fallback.map((m) => m.id));
-  const rankedFallback = rankMerchants(fallback, rankingCtx);
+  // Avec coords : la liste est DÉJÀ classée par proximité → on remonte juste les
+  // ouverts. Sans coords : classement composite (qualité/popularité/promo).
+  const rankedFallback = hasCoords
+    ? splitOpenFirst(fallback)
+    : rankMerchants(fallback, rankingCtx);
 
   return (
     <CustomerShell>

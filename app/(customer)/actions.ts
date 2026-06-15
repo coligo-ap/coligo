@@ -189,6 +189,9 @@ export async function customerSignup(
 export async function fetchMerchantsForZone(input: {
   wilaya_code: string | null;
   commune: string | null;
+  /** Position COURANTE du client (GPS) → classement par proximité réelle. */
+  latitude?: number | null;
+  longitude?: number | null;
   q?: string | null;
   category?: string | null;
   sort?: "name" | "min_order" | null;
@@ -196,6 +199,8 @@ export async function fetchMerchantsForZone(input: {
   return listPublicMerchants({
     wilaya_code: input.wilaya_code,
     commune: input.commune,
+    latitude: input.latitude ?? null,
+    longitude: input.longitude ?? null,
     q: input.q,
     category: input.category,
     sort: input.sort === "min_order" ? "min_order" : "name",

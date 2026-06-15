@@ -106,6 +106,9 @@ export function MarketplaceGrid({
       const res = await fetchMerchantsForZone({
         wilaya_code: loc?.wilaya_code ?? null,
         commune: loc?.commune ?? null,
+        // Position COURANTE → classement par proximité réelle côté serveur.
+        latitude: loc?.latitude ?? null,
+        longitude: loc?.longitude ?? null,
         q: filters.q || null,
         category: filters.category || null,
         // Le tri "rating" est appliqué côté client (la note n'est pas un champ
@@ -155,24 +158,33 @@ export function MarketplaceGrid({
       base = base.filter((m) => m.delivery_enabled && m.tours_enabled);
     }
     const sorted = [...base];
+    const openRank = (m: PublicMerchant) =>
+      isOpenNow(m.opening_hours) ? 0 : 1;
     if (filters.sort === "rating") {
       // Mieux notés d'abord (note puis nombre d'avis), ouverts départagent.
       sorted.sort((a, b) => {
         if (b.rating_avg !== a.rating_avg) return b.rating_avg - a.rating_avg;
         if (b.rating_count !== a.rating_count)
           return b.rating_count - a.rating_count;
-        return (
-          (isOpenNow(a.opening_hours) ? 0 : 1) -
-          (isOpenNow(b.opening_hours) ? 0 : 1)
-        );
+        return openRank(a) - openRank(b);
       });
+    } else if (filters.sort === "min_order") {
+      // Prix minimum imposé par l'utilisateur : on respecte l'ordre serveur
+      // (min_order croissant), ouverts d'abord.
+      sorted.sort((a, b) => openRank(a) - openRank(b));
     } else {
-      // Par défaut : OUVERTS d'abord, fermés ensuite (cliquables, atténués).
-      sorted.sort(
-        (a, b) =>
-          (isOpenNow(a.opening_hours) ? 0 : 1) -
-          (isOpenNow(b.opening_hours) ? 0 : 1)
-      );
+      // PAR DÉFAUT : les plus PROCHES d'abord (critère géographique principal),
+      // ouverts avant fermés. Si la position n'est pas connue, on garde l'ordre
+      // serveur (déjà classé : proximité si GPS, sinon qualité/popularité).
+      sorted.sort((a, b) => {
+        if (openRank(a) !== openRank(b)) return openRank(a) - openRank(b);
+        const da = distanceFor(a);
+        const db = distanceFor(b);
+        if (da != null && db != null) return da - db;
+        if (da != null) return -1;
+        if (db != null) return 1;
+        return 0;
+      });
     }
     return sorted;
   }, [
@@ -183,6 +195,7 @@ export function MarketplaceGrid({
     filters.promoOnly,
     promos,
     items,
+    distanceFor,
   ]);
 
   const wilayaLabel = loc?.wilaya_code

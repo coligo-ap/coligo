@@ -58,6 +58,14 @@ type Filters = {
   /** Tri MVP : "name" (par défaut), "min_order" asc. */
   sort?: "name" | "min_order";
   limit?: number;
+  /**
+   * Position COURANTE du client (GPS). Si fournie (et pas de recherche texte ni
+   * tri prix), on bascule sur le chemin « proximité » : filtre par rayon réel
+   * autour du client, trié du plus proche au plus loin. C'est le critère
+   * géographique PRINCIPAL (cf. RPC merchants_nearby, mig 0181).
+   */
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 /**
@@ -68,6 +76,22 @@ export async function listPublicMerchants(
   filters: Filters = {}
 ): Promise<PublicMerchant[]> {
   const supabase = await createClient();
+
+  // Chemin PROXIMITÉ : position GPS connue, pas de recherche texte ni de tri
+  // explicite par prix → on classe par distance réelle (critère principal).
+  const hasGps =
+    typeof filters.latitude === "number" &&
+    typeof filters.longitude === "number" &&
+    Number.isFinite(filters.latitude) &&
+    Number.isFinite(filters.longitude);
+  if (
+    hasGps &&
+    !(filters.q && filters.q.trim()) &&
+    filters.sort !== "min_order"
+  ) {
+    return listNearbyMerchants(supabase, filters);
+  }
+
   let query = supabase
     .from("merchants_public")
     .select("*")
@@ -88,7 +112,13 @@ export async function listPublicMerchants(
   // renvoie rien (commerce sans coordonnées, ou match sur la description).
   let rankedIds: string[] | null = null;
   if (filters.q && filters.q.trim()) {
-    rankedIds = await rankedMerchantIds(supabase, filters.q.trim(), 40);
+    rankedIds = await rankedMerchantIds(
+      supabase,
+      filters.q.trim(),
+      40,
+      hasGps ? filters.latitude! : null,
+      hasGps ? filters.longitude! : null
+    );
     if (rankedIds.length) {
       query = query.in("id", rankedIds);
     } else {
@@ -129,7 +159,9 @@ export async function listPublicMerchants(
 async function rankedMerchantIds(
   supabase: Awaited<ReturnType<typeof createClient>>,
   q: string,
-  limit: number
+  limit: number,
+  lat: number | null = null,
+  lng: number | null = null
 ): Promise<string[]> {
   try {
     const rpc = supabase.rpc.bind(supabase) as unknown as (
@@ -138,11 +170,90 @@ async function rankedMerchantIds(
     ) => Promise<{ data: unknown; error: unknown }>;
     const { data } = await rpc("search_merchants", {
       p_q: q,
-      p_lat: null,
-      p_lng: null,
+      p_lat: lat,
+      p_lng: lng,
       p_limit: limit,
     });
     return ((data as { id: string }[] | null) ?? []).map((r) => r.id);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Chemin PROXIMITÉ : commerces dans le rayon GPS autour du client, du plus
+ * proche au plus loin (RPC merchants_nearby, mig 0181). On hydrate la vitrine
+ * via merchants_public puis on réordonne par distance. Les filtres
+ * catégorie/livraison restent appliqués ; la wilaya/commune est ignorée car le
+ * GPS est le critère géographique. Expansion auto si rien dans le rayon
+ * configuré → on ne montre JAMAIS une page vide quand des commerces existent.
+ */
+async function listNearbyMerchants(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  filters: Filters
+): Promise<PublicMerchant[]> {
+  const lat = filters.latitude as number;
+  const lng = filters.longitude as number;
+  const limit = filters.limit ?? 60;
+
+  let near = await nearbyMerchantIds(supabase, lat, lng, limit, null);
+  if (near.length === 0) {
+    // Rien dans le rayon configuré → on élargit (300 km ≈ toute la zone) pour
+    // toujours proposer le plus proche disponible, trié par distance.
+    near = await nearbyMerchantIds(supabase, lat, lng, limit, 300);
+  }
+  if (near.length === 0) return [];
+
+  const ids = near.map((n) => n.id);
+  const distById = new Map(near.map((n) => [n.id, n.distance_km]));
+
+  let query = supabase.from("merchants_public").select("*").in("id", ids);
+  if (filters.category) {
+    query = query.ilike("category", `%${filters.category}%`);
+  }
+  if (filters.delivery_enabled === true) {
+    query = query.eq("delivery_enabled", true);
+  }
+  if (filters.delivery_mode === "express") {
+    query = query.eq("delivery_enabled", true).eq("express_enabled", true);
+  }
+  if (filters.delivery_mode === "tour") {
+    query = query.eq("delivery_enabled", true).eq("tours_enabled", true);
+  }
+
+  const { data } = await query;
+  const rows = (data ?? []).map(toPublicMerchant);
+  // Réordonne par distance croissante (le .in() ne garantit pas l'ordre).
+  rows.sort(
+    (a, b) =>
+      (distById.get(a.id) ?? Infinity) - (distById.get(b.id) ?? Infinity)
+  );
+  return rows;
+}
+
+/** (id, distance_km) des commerces dans le rayon, du plus proche au plus loin. */
+async function nearbyMerchantIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  lat: number,
+  lng: number,
+  limit: number,
+  radiusOverride: number | null
+): Promise<{ id: string; distance_km: number }[]> {
+  try {
+    // ⚠️ Toujours .bind(supabase) — extraire rpc sans bind casse this.rest.
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: unknown }>;
+    const { data } = await rpc("merchants_nearby", {
+      p_lat: lat,
+      p_lng: lng,
+      p_limit: limit,
+      p_radius_override: radiusOverride,
+    });
+    return ((data as { id: string; distance_km: number }[] | null) ?? []).map(
+      (r) => ({ id: r.id, distance_km: Number(r.distance_km) })
+    );
   } catch {
     return [];
   }
