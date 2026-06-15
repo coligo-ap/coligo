@@ -338,38 +338,46 @@ export function DriveView() {
   };
 
   /* ───────── Demande (+ file hors-ligne, maquette offbanner) ───────── */
-  const buildPayload = useCallback(() => {
-    if (!pickup || !dest) return null;
-    return {
-      pickup_lat: pickup.lat,
-      pickup_lng: pickup.lng,
-      pickup_text: pickup.gps ? (pickup.text ?? t("myPosition")) : pickup.text,
-      dest_lat: dest.lat,
-      dest_lng: dest.lng,
-      dest_text: dest.text,
-      distance_km: distanceKm,
-      proposed_price_da: price,
-      payment_method: payMode,
+  const buildPayload = useCallback(
+    (pickupTextOverride?: string | null) => {
+      if (!pickup || !dest) return null;
+      // Le chauffeur doit voir la VRAIE adresse de départ — jamais « Ma position
+      // actuelle ». On privilégie l'adresse résolue (override ou texte du repère) ;
+      // repli neutre seulement si le géocodage est indisponible (hors ligne).
+      const pickupText = pickup.gps
+        ? (pickupTextOverride ?? pickup.text ?? "Point de départ (GPS)")
+        : pickup.text;
+      return {
+        pickup_lat: pickup.lat,
+        pickup_lng: pickup.lng,
+        pickup_text: pickupText,
+        dest_lat: dest.lat,
+        dest_lng: dest.lng,
+        dest_text: dest.text,
+        distance_km: distanceKm,
+        proposed_price_da: price,
+        payment_method: payMode,
+        gamme,
+        boost_da: boostOn ? boostAmt : 0,
+        female_only: femaleOnly,
+        proxy_name: prox?.name ?? null,
+        proxy_phone: prox?.phone ?? null,
+        operation_id: `drv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      };
+    },
+    [
+      pickup,
+      dest,
+      distanceKm,
+      price,
+      payMode,
       gamme,
-      boost_da: boostOn ? boostAmt : 0,
-      female_only: femaleOnly,
-      proxy_name: prox?.name ?? null,
-      proxy_phone: prox?.phone ?? null,
-      operation_id: `drv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    };
-  }, [
-    pickup,
-    dest,
-    distanceKm,
-    price,
-    payMode,
-    gamme,
-    boostOn,
-    boostAmt,
-    femaleOnly,
-    prox,
-    t,
-  ]);
+      boostOn,
+      boostAmt,
+      femaleOnly,
+      prox,
+    ]
+  );
 
   const refreshActive = useCallback(async () => {
     const ride = await getDriveActiveRide();
@@ -378,9 +386,26 @@ export function DriveView() {
   }, []);
 
   const submitRequest = async () => {
-    const payload = buildPayload();
-    if (!payload || submitting) return;
+    if (!pickup || !dest || submitting) return;
     setRequestError(null);
+    // Départ GPS sans adresse encore résolue : on géocode MAINTENANT pour que le
+    // chauffeur reçoive la vraie adresse (jamais « Ma position actuelle »).
+    let pickupText = pickup.text;
+    if (
+      pickup.gps &&
+      !pickupText &&
+      typeof navigator !== "undefined" &&
+      navigator.onLine
+    ) {
+      const r = await reverseGeocode({
+        latitude: pickup.lat,
+        longitude: pickup.lng,
+        precise: true,
+      }).catch(() => null);
+      if (r?.ok && r.display) pickupText = r.display;
+    }
+    const payload = buildPayload(pickupText);
+    if (!payload) return;
     // Hors connexion : demande en file Dexie, envoi auto au retour réseau (C8).
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       await queueRideRequest(payload.operation_id, payload);
