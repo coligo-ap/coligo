@@ -254,10 +254,12 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         <Crosshair className="size-5" style={{ color: VIOLET }} />
       </button>
 
-      {/* Feuille réductible */}
+      {/* Feuille réductible — SCROLLABLE : le contenu (jusqu'au bouton GO) peut
+          dépasser la hauteur sur petit écran, on défile à l'intérieur. La
+          hauteur s'adapte à l'écran pour ne jamais passer sous la nav du bas. */}
       <div
-        className="absolute right-0 bottom-[66px] left-0 z-10 overflow-hidden rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-2 pb-4 transition-[max-height] duration-300"
-        style={{ maxHeight: mini ? 96 : 540 }}
+        className="absolute right-0 bottom-[66px] left-0 z-10 overflow-y-auto overscroll-contain rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-2 pb-6 transition-[max-height] duration-300"
+        style={{ maxHeight: mini ? 96 : "min(560px, calc(100dvh - 140px))" }}
       >
         <button
           type="button"
