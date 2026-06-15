@@ -851,7 +851,7 @@ export async function getChauffeurRideMessages(rideId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("ride_messages")
-    .select("id, sender, body, created_at")
+    .select("id, sender, body, created_at, delivered_at, read_at")
     .eq("ride_id", rideId)
     .order("created_at", { ascending: true })
     .limit(80);
@@ -860,7 +860,26 @@ export async function getChauffeurRideMessages(rideId: string) {
     sender: "customer" | "chauffeur";
     body: string;
     created_at: string;
+    delivered_at: string | null;
+    read_at: string | null;
   }[];
+}
+
+/**
+ * Marque les messages du CLIENT comme reçus (p_read=false) ou lus (p_read=true).
+ * Le client verra alors « Reçu » / « Lu » sur ses messages. RPC SECURITY DEFINER
+ * (mig 0175) : ne touche que les horodatages, jamais le corps.
+ */
+export async function markChauffeurMessagesRead(
+  rideId: string,
+  read = true
+): Promise<void> {
+  try {
+    const rpc = await rpcClient();
+    await rpc("mark_ride_messages_read", { p_ride_id: rideId, p_read: read });
+  } catch {
+    /* best-effort */
+  }
 }
 
 export async function sendChauffeurRideMessage(

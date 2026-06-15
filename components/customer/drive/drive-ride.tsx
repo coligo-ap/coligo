@@ -47,6 +47,7 @@ import {
   getDriveOffers,
   getRideCardState,
   getRideMessages,
+  markRideMessagesRead,
   rateDriveRide,
   getSosContacts,
   reportDriveRide,
@@ -745,12 +746,13 @@ function EnrouteScreen({
     void getSosContacts().then(setSosContacts);
   }, []);
 
-  // Messages non lus du chauffeur (compteur + notification in-app).
+  // Messages non lus du chauffeur (compteur + notification in-app + « reçu »).
   const { unread, lastIncoming, markSeen } = useUnreadRideMessages(
     ride.id,
     "chauffeur",
     getRideMessages,
-    true
+    true,
+    markRideMessagesRead
   );
   const [msgBanner, setMsgBanner] = useState<string | null>(null);
   const lastMsgId = lastIncoming?.id ?? null;
@@ -776,8 +778,9 @@ function EnrouteScreen({
     if (chatOpen) {
       markSeen();
       setMsgBanner(null);
+      void markRideMessagesRead(ride.id, true);
     }
-  }, [chatOpen, markSeen]);
+  }, [chatOpen, markSeen, ride.id]);
 
   const ch = ride.chauffeur;
   const chPos =

@@ -1016,17 +1016,35 @@ export type RideMessage = {
   sender: "customer" | "chauffeur";
   body: string;
   created_at: string;
+  delivered_at: string | null;
+  read_at: string | null;
 };
 
 export async function getRideMessages(rideId: string): Promise<RideMessage[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("ride_messages")
-    .select("id, sender, body, created_at")
+    .select("id, sender, body, created_at, delivered_at, read_at")
     .eq("ride_id", rideId)
     .order("created_at", { ascending: true })
     .limit(80);
   return (data ?? []) as RideMessage[];
+}
+
+/**
+ * Marque les messages du CHAUFFEUR comme reçus (read=false) ou lus (read=true)
+ * → le chauffeur voit « Reçu » / « Lu » sur ses messages (mig 0175).
+ */
+export async function markRideMessagesRead(
+  rideId: string,
+  read = true
+): Promise<void> {
+  try {
+    const rpc = await rpcClient();
+    await rpc("mark_ride_messages_read", { p_ride_id: rideId, p_read: read });
+  } catch {
+    /* best-effort */
+  }
 }
 
 export async function sendRideMessage(

@@ -133,6 +133,16 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     };
   }, [tick]);
 
+  // Dès la 1re position GPS connue : recharger immédiatement le compteur de
+  // demandes proches (sans attendre le tick de 15 s).
+  const gotFirstFix = useRef(false);
+  useEffect(() => {
+    if (coords && !gotFirstFix.current) {
+      gotFirstFix.current = true;
+      void tick();
+    }
+  }, [coords, tick]);
+
   // Domicile : popup carte (recherche + repère) — plus de prompt texte.
   // Le changement d'adresse est LIMITÉ côté serveur (1×/semaine, anti-fraude).
   const [homeOpen, setHomeOpen] = useState(false);

@@ -26,7 +26,9 @@ export function useUnreadRideMessages(
   /** Camp dont les messages comptent comme « reçus » par l'utilisateur courant. */
   otherSender: "customer" | "chauffeur",
   fetcher: (rideId: string) => Promise<ChatMsg[]>,
-  active: boolean
+  active: boolean,
+  /** Marque les messages reçus (read=false) — appelé après chaque poll. */
+  markDelivered?: (rideId: string, read: boolean) => void
 ) {
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [seenTick, setSeenTick] = useState(0);
@@ -46,7 +48,10 @@ export function useUnreadRideMessages(
     if (!rideId) return;
     const m = await fetcher(rideId);
     setMsgs(m);
-  }, [rideId, fetcher]);
+    // Accusé « reçu » : un message du camp opposé existe et l'app est ouverte.
+    if (markDelivered && m.some((x) => x.sender === otherSender))
+      markDelivered(rideId, false);
+  }, [rideId, fetcher, markDelivered, otherSender]);
 
   useEffect(() => {
     if (!rideId || !active) return;

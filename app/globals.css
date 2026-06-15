@@ -520,6 +520,32 @@ body {
 .drive-go-pulse {
   animation: drive-go-pulse 1.8s ease-in-out infinite;
 }
+/* Reflet lumineux qui balaie le bouton « Accepter » (même effet que le bouton
+   « Confirmer la commande » du checkout) — élégant, régulier, non agressif. */
+.drive-shine {
+  position: relative;
+  overflow: hidden;
+}
+.drive-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 70%
+  );
+  transform: translateX(-130%);
+  animation: co-shine 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .drive-shine::after {
+    animation: none;
+    opacity: 0;
+  }
+}
 
 /* ── Drive : thème clair/sombre (tokens maquette :root / body.dark) ──
    Les écrans Drive consomment ces variables ; le mode sombre suit le

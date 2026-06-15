@@ -5,8 +5,10 @@ import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
   Check,
+  CheckCheck,
   Copy,
   Crosshair,
+  Loader2,
   MapPin,
   MessageCircle,
   Phone,
@@ -18,6 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   getRideMessages,
+  markRideMessagesRead,
   sendRideMessage,
   sosDriveRide,
   type RideMessage,
@@ -684,6 +687,7 @@ export function ChatModal({
   const [msgs, setMsgs] = useState<RideMessage[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -691,7 +695,10 @@ export function ChatModal({
     let stop = false;
     const poll = async () => {
       const m = await getRideMessages(rideId);
-      if (!stop) setMsgs(m);
+      if (stop) return;
+      setMsgs(m);
+      // Chat ouvert = je lis : marquer les messages reçus comme lus.
+      void markRideMessagesRead(rideId, true);
     };
     void poll();
     const id = setInterval(poll, 3500);
@@ -708,11 +715,13 @@ export function ChatModal({
   const send = async (body: string) => {
     if (sending || !body.trim()) return;
     setSending(true);
+    setPending(body);
     const res = await sendRideMessage(rideId, body);
     if (res.ok) {
       setText("");
       setMsgs(await getRideMessages(rideId));
     }
+    setPending(null);
     setSending(false);
   };
 
@@ -721,18 +730,39 @@ export function ChatModal({
       <SheetTitle>{t("title")}</SheetTitle>
       <p className="mb-2 text-[12px] text-[var(--d-muted)]">{t("sub")}</p>
       <div className="mb-2 max-h-[34vh] space-y-1.5 overflow-y-auto">
-        {msgs.map((m) => (
-          <div
-            key={m.id}
-            className={cn(
-              "max-w-[80%] rounded-[14px] px-3 py-2 text-[13px] font-medium",
-              m.sender === side ? "ml-auto text-white" : "bg-[var(--d-soft)]"
-            )}
-            style={m.sender === side ? { background: VIOLET } : undefined}
-          >
-            {m.body}
-          </div>
-        ))}
+        {msgs.map((m) => {
+          const mine = m.sender === side;
+          const read = !!m.read_at;
+          const delivered = !!m.delivered_at;
+          return (
+            <div key={m.id} className={mine ? "ml-auto w-fit max-w-[80%]" : ""}>
+              <div
+                className={cn(
+                  "max-w-full rounded-[14px] px-3 py-2 text-[13px] font-medium",
+                  mine ? "text-white" : "bg-[var(--d-soft)]"
+                )}
+                style={mine ? { background: VIOLET } : undefined}
+              >
+                {m.body}
+              </div>
+              {mine && (
+                <span
+                  className="mt-0.5 flex items-center justify-end gap-0.5 text-[9.5px] font-semibold"
+                  style={{
+                    color: read ? "#16B364" : "var(--d-muted)",
+                  }}
+                >
+                  {read ? t("read") : delivered ? t("delivered") : t("sent")}
+                  {delivered || read ? (
+                    <CheckCheck className="size-3" />
+                  ) : (
+                    <Check className="size-3" />
+                  )}
+                </span>
+              )}
+            </div>
+          );
+        })}
         <div ref={bottomRef} />
       </div>
       <div className="mb-2 flex flex-wrap gap-1.5">
@@ -740,9 +770,11 @@ export function ChatModal({
           <button
             key={q}
             type="button"
+            disabled={sending}
             onClick={() => void send(q)}
-            className="rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 text-xs font-bold"
+            className="flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 text-xs font-bold disabled:opacity-50"
           >
+            {pending === q && <Loader2 className="size-3 animate-spin" />}
             {q}
           </button>
         ))}
@@ -762,7 +794,11 @@ export function ChatModal({
           className="grid size-11 shrink-0 place-items-center rounded-[14px] text-white disabled:opacity-40"
           style={{ background: VIOLET }}
         >
-          <Send className="size-4" />
+          {sending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Send className="size-4" />
+          )}
         </button>
       </div>
       <GhostBtn onClick={onClose}>{t("close")}</GhostBtn>

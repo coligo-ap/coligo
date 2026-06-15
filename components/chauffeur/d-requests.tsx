@@ -571,23 +571,26 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
                   </p>
                 )}
                 <div className="flex gap-2">
-                  {/* Accepter = action principale : vert, plus large, halo
-                      pulsé → encourage l'acceptation directe du prix client. */}
-                  <button
-                    type="button"
-                    onClick={() => void propose(q, cp)}
-                    className="drive-go-pulse drive-sora flex h-11 flex-[1.5] items-center justify-center gap-1.5 rounded-[13px] text-[13.5px] font-extrabold text-white"
-                    style={{ background: GO }}
-                  >
-                    <Check className="size-4" /> Accepter {cp}
-                  </button>
-                  {/* Proposer (contre-offre) = secondaire : neutre, contour. */}
+                  {/* Proposer (contre-offre) = secondaire, à GAUCHE : neutre. */}
                   <button
                     type="button"
                     onClick={() => void propose(q, myPrice)}
                     className="drive-sora h-11 flex-1 rounded-[13px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-[13.5px] font-bold text-[var(--d-muted)]"
                   >
                     Proposer {myPrice}
+                  </button>
+                  {/* Accepter = action principale, à DROITE : vert, plus large,
+                      reflet lumineux balayant → encourage l'acceptation. */}
+                  <button
+                    type="button"
+                    onClick={() => void propose(q, cp)}
+                    className="drive-shine drive-sora flex h-11 flex-[1.5] items-center justify-center gap-1.5 rounded-[13px] text-[13.5px] font-extrabold text-white"
+                    style={{
+                      background: GO,
+                      boxShadow: `0 10px 20px -10px ${GO}`,
+                    }}
+                  >
+                    <Check className="size-4" /> Accepter {cp}
                   </button>
                 </div>
                 <button

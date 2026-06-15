@@ -931,7 +931,10 @@
       "sub": "Messages rapides · numéros masqués",
       "quick": ["Je suis en bas", "J'arrive", "Merci !", "Où êtes-vous ?"],
       "ph": "Écrire un message…",
-      "close": "Fermer"
+      "close": "Fermer",
+      "sent": "Envoyé",
+      "delivered": "Reçu",
+      "read": "Lu"
     },
     "cancel": {
       "confirm": "Confirmer l'annulation",

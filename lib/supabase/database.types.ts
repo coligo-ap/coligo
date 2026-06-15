@@ -376,6 +376,8 @@ export type Database = {
           sender: "customer" | "chauffeur";
           body: string;
           created_at: string;
+          delivered_at: string | null;
+          read_at: string | null;
         };
         Insert: {
           id?: string;
@@ -383,6 +385,8 @@ export type Database = {
           sender: string;
           body: string;
           created_at?: string;
+          delivered_at?: string | null;
+          read_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["ride_messages"]["Insert"]>;
         Relationships: [];
