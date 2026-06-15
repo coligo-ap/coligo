@@ -518,32 +518,39 @@ export function DriveView() {
     setOfflineQueued(false);
   }, []);
 
-  /* ───────── Assistant IA : brouillon de trajet → écran prix ─────────
-     L'IA renseigne départ/arrivée/gamme, le client confirme normalement
-     (devis, prix, paiement, demande). Aucune course créée par l'IA.
-     `female_only` n'est PAS appliqué auto (réservé aux clientes vérifiées —
-     le toggle reste à la main du client sur l'écran prix). */
-  const applyAiDraft = useCallback((d: DriveIntentDraft) => {
-    setPickup((cur) =>
-      d.pickup.text
-        ? { lat: d.pickup.lat, lng: d.pickup.lng, text: d.pickup.text }
-        : (cur ?? {
-            lat: d.pickup.lat,
-            lng: d.pickup.lng,
-            text: null,
-            gps: true,
-          })
-    );
-    setDest({
-      lat: d.destination.lat,
-      lng: d.destination.lng,
-      text: d.destination.text,
-    });
-    setGamme(d.gamme);
-    setPrice(0);
-    setRequestError(null);
-    setScreen("price");
-  }, []);
+  /* ───────── Assistant : trajet confirmé → écran prix ─────────
+     Le lieu a déjà été confirmé dans la barre (DriveAiBar). Ici on pré-remplit
+     le trajet + les options et on passe à l'écran prix, où le client choisit
+     prix/paiement et déclenche lui-même la demande (rien ne part au réseau
+     automatiquement). Gamme appliquée directement ; « femme au volant »
+     seulement si la cliente est éligible (sinon request_ride rejette). */
+  const applyAiDraft = useCallback(
+    (d: DriveIntentDraft) => {
+      setPickup((cur) =>
+        d.pickup.text
+          ? { lat: d.pickup.lat, lng: d.pickup.lng, text: d.pickup.text }
+          : (cur ?? {
+              lat: d.pickup.lat,
+              lng: d.pickup.lng,
+              text: null,
+              gps: true,
+            })
+      );
+      setDest({
+        lat: d.destination.lat,
+        lng: d.destination.lng,
+        text: d.destination.text,
+      });
+      setGamme(d.gamme);
+      setFemaleOnly(
+        d.female_only && !!ctx?.femaleFilterEnabled && !!ctx?.isFemaleVerified
+      );
+      setPrice(0);
+      setRequestError(null);
+      setScreen("price");
+    },
+    [ctx]
+  );
 
   if (!booted || !ctx) {
     return (
