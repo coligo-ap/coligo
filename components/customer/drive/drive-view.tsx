@@ -98,6 +98,8 @@ export function DriveView() {
   const [ctx, setCtx] = useState<DriveContext | null>(null);
   const [screen, setScreen] = useState<Screen>("home");
   const [booted, setBooted] = useState(false);
+  // Assistant : carte de confirmation affichée → on masque le reste du trajet.
+  const [aiConfirming, setAiConfirming] = useState(false);
 
   // Trajet
   const [pickup, setPickup] = useState<Pt | null>(null);
@@ -1033,7 +1035,7 @@ export function DriveView() {
       <button
         type="button"
         onClick={() => router.push("/drive/historique")}
-        className="absolute top-3 right-4 z-10 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
+        className="absolute top-3 right-4 z-30 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
       >
         <History className="size-3.5" /> {t("history")}
       </button>
@@ -1041,7 +1043,7 @@ export function DriveView() {
       <button
         type="button"
         onClick={() => router.push("/chauffeur")}
-        className="absolute top-3 left-4 z-20 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
+        className="absolute top-3 left-4 z-30 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
       >
         <Car className="size-3.5" style={{ color: VIOLET }} />{" "}
         {t("home.imDriver")}
@@ -1051,14 +1053,14 @@ export function DriveView() {
         type="button"
         onClick={() => setContactsOpen(true)}
         aria-label={t("sosContacts.title")}
-        className="absolute top-[54px] right-4 z-10 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
+        className="absolute top-[54px] right-4 z-30 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
         style={{ color: ROSE }}
       >
         <ShieldAlert className="size-3.5" /> {t("sosContacts.title")}
       </button>
 
       {/* Feuille « Votre trajet » */}
-      <div className="absolute right-0 bottom-[64px] left-0 z-10 rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-4 shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
+      <div className="absolute right-0 bottom-[64px] left-0 z-10 max-h-[72dvh] overflow-y-auto overscroll-contain rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-4 shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
         <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
         {/* Branding (ex-pill flottante : la carte est dégagée pour les
             boutons Chauffeur / Historique). */}
@@ -1076,144 +1078,151 @@ export function DriveView() {
         <DriveAiBar
           pickup={pickup ? { lat: pickup.lat, lng: pickup.lng } : null}
           onResolved={applyAiDraft}
+          onConfirmingChange={setAiConfirming}
         />
 
-        <div className="mb-2.5 flex items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <button
-              type="button"
-              onClick={() => setDepOpen(true)}
-              className="mb-2 flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
-            >
-              <span
-                className="size-3 shrink-0 rounded-full"
-                style={{ background: VIOLET }}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
-                  {t("departure")}
-                </span>
-                <span className="block truncate text-[14.5px] font-bold">
-                  {pickup?.gps
-                    ? t("myPosition")
-                    : (pickup?.text ?? t("home.locating"))}
-                </span>
-                {/* Nom du lieu résolu (reverse geocode) : le client voit que
+        {!aiConfirming && (
+          <>
+            <div className="mb-2.5 flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => setDepOpen(true)}
+                  className="mb-2 flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+                >
+                  <span
+                    className="size-3 shrink-0 rounded-full"
+                    style={{ background: VIOLET }}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+                      {t("departure")}
+                    </span>
+                    <span className="block truncate text-[14.5px] font-bold">
+                      {pickup?.gps
+                        ? t("myPosition")
+                        : (pickup?.text ?? t("home.locating"))}
+                    </span>
+                    {/* Nom du lieu résolu (reverse geocode) : le client voit que
                     le départ correspond bien à l'endroit où il se trouve. */}
-                {pickup?.gps && (
-                  <span className="block truncate text-[11.5px] font-medium text-[var(--d-muted)]">
-                    {pickup.text ?? t("home.locating")}
+                    {pickup?.gps && (
+                      <span className="block truncate text-[11.5px] font-medium text-[var(--d-muted)]">
+                        {pickup.text ?? t("home.locating")}
+                      </span>
+                    )}
                   </span>
-                )}
-              </span>
-              {pickup?.gps && (
-                <span
-                  className="flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-bold"
-                  style={{ background: "#EEEEFD", color: VIOLET }}
-                >
-                  GPS
-                </span>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setMapPickFor("dest");
-                setScreen("mappick");
-              }}
-              className="flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
-            >
-              <span className="size-3 shrink-0 rounded-[3px] bg-[var(--d-ink)]" />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
-                  {t("destination")}
-                </span>
-                <span
-                  className={cn(
-                    "block truncate text-[14.5px] font-bold",
-                    !dest && "font-semibold text-[var(--d-muted)]"
+                  {pickup?.gps && (
+                    <span
+                      className="flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-bold"
+                      style={{ background: "#EEEEFD", color: VIOLET }}
+                    >
+                      GPS
+                    </span>
                   )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMapPickFor("dest");
+                    setScreen("mappick");
+                  }}
+                  className="flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
                 >
-                  {dest?.text ?? t("home.whereTo")}
-                </span>
-              </span>
-              <Pencil className="size-4 shrink-0 text-[var(--d-muted)]" />
-            </button>
-          </div>
-          {/* Inverser départ ↔ arrivée */}
-          <button
-            type="button"
-            onClick={swapPoints}
-            disabled={!pickup && !dest}
-            aria-label={t("swap")}
-            title={t("swap")}
-            className="grid size-10 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-sm disabled:opacity-40"
-            style={{ color: VIOLET }}
-          >
-            <ArrowUpDown className="size-[18px]" />
-          </button>
-        </div>
-
-        {/* Zone indisponible (commune/wilaya/rayon bloqués) : message clair +
-            « Prévenez-moi » AVANT le choix du prix, et « Continuer » bloqué. */}
-        {pickup && dest && zoneBlock && (
-          <ZoneBlockNotice
-            message={zoneBlock}
-            joined={zoneJoined}
-            onJoin={joinDriveWaitlist}
-            className="mt-1 mb-1"
-          />
-        )}
-        <PrimaryBtn
-          onClick={() => setScreen("price")}
-          disabled={!pickup || !dest || !!zoneBlock}
-          className="!mt-1"
-        >
-          {t("home.continue")}
-        </PrimaryBtn>
-
-        {/* Destinations récentes */}
-        <div className="mt-1.5">
-          {ctx.recents.map((r) => (
-            <button
-              key={r.text}
-              type="button"
-              onClick={() => setDest({ lat: r.lat, lng: r.lng, text: r.text })}
-              className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-0.5 py-2.5 text-left text-[13.5px] font-semibold last:border-b-0"
-            >
-              <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-                <Clock className="size-4" />
-              </span>
-              <span className="min-w-0 flex-1 truncate">{r.text}</span>
-            </button>
-          ))}
-          {ctx.lastRide && (
-            <div className="flex w-full items-center gap-3 px-0.5 py-2.5 text-left text-[13.5px] font-semibold">
-              <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-                <Car className="size-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">
-                  {ctx.lastRide.dest_text ?? "—"}
-                </span>
-                <small className="block text-[11px] font-medium text-[var(--d-muted)]">
-                  {[
-                    ctx.lastRide.chauffeur_name,
-                    ctx.lastRide.price_da
-                      ? formatDA(ctx.lastRide.price_da)
-                      : null,
-                    ctx.lastRide.completed
-                      ? t("status.completed")
-                      : t("status.cancelled"),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </small>
-              </span>
+                  <span className="size-3 shrink-0 rounded-[3px] bg-[var(--d-ink)]" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+                      {t("destination")}
+                    </span>
+                    <span
+                      className={cn(
+                        "block truncate text-[14.5px] font-bold",
+                        !dest && "font-semibold text-[var(--d-muted)]"
+                      )}
+                    >
+                      {dest?.text ?? t("home.whereTo")}
+                    </span>
+                  </span>
+                  <Pencil className="size-4 shrink-0 text-[var(--d-muted)]" />
+                </button>
+              </div>
+              {/* Inverser départ ↔ arrivée */}
+              <button
+                type="button"
+                onClick={swapPoints}
+                disabled={!pickup && !dest}
+                aria-label={t("swap")}
+                title={t("swap")}
+                className="grid size-10 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-sm disabled:opacity-40"
+                style={{ color: VIOLET }}
+              >
+                <ArrowUpDown className="size-[18px]" />
+              </button>
             </div>
-          )}
-        </div>
+
+            {/* Zone indisponible (commune/wilaya/rayon bloqués) : message clair +
+            « Prévenez-moi » AVANT le choix du prix, et « Continuer » bloqué. */}
+            {pickup && dest && zoneBlock && (
+              <ZoneBlockNotice
+                message={zoneBlock}
+                joined={zoneJoined}
+                onJoin={joinDriveWaitlist}
+                className="mt-1 mb-1"
+              />
+            )}
+            <PrimaryBtn
+              onClick={() => setScreen("price")}
+              disabled={!pickup || !dest || !!zoneBlock}
+              className="!mt-1"
+            >
+              {t("home.continue")}
+            </PrimaryBtn>
+
+            {/* Destinations récentes */}
+            <div className="mt-1.5">
+              {ctx.recents.map((r) => (
+                <button
+                  key={r.text}
+                  type="button"
+                  onClick={() =>
+                    setDest({ lat: r.lat, lng: r.lng, text: r.text })
+                  }
+                  className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-0.5 py-2.5 text-left text-[13.5px] font-semibold last:border-b-0"
+                >
+                  <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+                    <Clock className="size-4" />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">{r.text}</span>
+                </button>
+              ))}
+              {ctx.lastRide && (
+                <div className="flex w-full items-center gap-3 px-0.5 py-2.5 text-left text-[13.5px] font-semibold">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+                    <Car className="size-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">
+                      {ctx.lastRide.dest_text ?? "—"}
+                    </span>
+                    <small className="block text-[11px] font-medium text-[var(--d-muted)]">
+                      {[
+                        ctx.lastRide.chauffeur_name,
+                        ctx.lastRide.price_da
+                          ? formatDA(ctx.lastRide.price_da)
+                          : null,
+                        ctx.lastRide.completed
+                          ? t("status.completed")
+                          : t("status.cancelled"),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </small>
+                  </span>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <CustomerBottomNav />

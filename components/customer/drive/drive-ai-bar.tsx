@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowUp,
   Car,
@@ -37,14 +37,22 @@ const GAMME_LABEL: Record<DriveGamme, string> = {
 export function DriveAiBar({
   pickup,
   onResolved,
+  onConfirmingChange,
 }: {
   pickup: { lat: number; lng: number } | null;
   onResolved: (draft: DriveIntentDraft) => void;
+  /** Notifie le parent quand la carte de confirmation est affichée (pour
+   *  masquer le reste du trajet et garder l'écran aéré). */
+  onConfirmingChange?: (confirming: boolean) => void;
 }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [draft, setDraft] = useState<DriveIntentDraft | null>(null);
+
+  useEffect(() => {
+    onConfirmingChange?.(!!draft);
+  }, [draft, onConfirmingChange]);
 
   const submit = async () => {
     const q = text.trim();
