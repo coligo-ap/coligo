@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
   const type = (meta && typeof meta.type === "string" ? meta.type : null) as
     | "order"
     | "topup"
+    | "op_topup"
     | "ride"
     | "drive_sub"
     | null;
@@ -256,6 +257,58 @@ export async function POST(req: NextRequest) {
 
     // checkout.failed / checkout.canceled sur un topup → on ne fait rien
     // (aucune écriture, le client n'a jamais été crédité).
+    return NextResponse.json({ ok: true });
+  }
+
+  // -------------------------------------------------------------------------
+  // ÉTAPE B' — recharge portefeuille OPÉRATEUR (metadata.type === "op_topup")
+  //
+  // Crédite le portefeuille opérateur (livreur/chauffeur/commerçant/partenaire)
+  // via la RPC idempotente `credit_operator_topup_chargily` (client_operation_id
+  // = "chargily:"+checkout_id → un même checkout ne crédite qu'une fois).
+  // -------------------------------------------------------------------------
+  if (type === "op_topup") {
+    const walletId =
+      meta && typeof meta.wallet_id === "string" ? meta.wallet_id : null;
+    if (!walletId) {
+      return NextResponse.json(
+        { error: "metadata.wallet_id manquant." },
+        { status: 400 }
+      );
+    }
+    const checkoutId = event.data.id;
+    if (!checkoutId) {
+      return NextResponse.json(
+        { error: "checkout id manquant." },
+        { status: 400 }
+      );
+    }
+    if (event.type === "checkout.paid") {
+      const amount = Math.round(event.data.amount);
+      if (amount <= 0) {
+        return NextResponse.json(
+          { error: "Montant invalide." },
+          { status: 400 }
+        );
+      }
+      const rpc = admin.rpc.bind(admin) as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { error } = await rpc("credit_operator_topup_chargily", {
+        p_wallet_id: walletId,
+        p_amount_da: amount,
+        p_checkout_id: checkoutId,
+      });
+      if (error) {
+        console.error("[chargily/webhook] op_topup failed:", error);
+        return NextResponse.json(
+          { ok: false, error: error.message },
+          { status: 200 }
+        );
+      }
+    }
+    // failed / canceled / expired sur une recharge → rien (jamais crédité).
     return NextResponse.json({ ok: true });
   }
 
