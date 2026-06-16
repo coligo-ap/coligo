@@ -221,10 +221,10 @@ export function ExpressRun({
               background: "rgba(108,43,217,.10)",
             }}
           >
-            <div className="l" style={{ color: "#4b1fa6" }}>
+            <div className="l" style={{ color: "var(--violet)" }}>
               💰 À avancer au commerçant
             </div>
-            <div className="am" style={{ color: "#4b1fa6" }}>
+            <div className="am" style={{ color: "var(--violet)" }}>
               {advanceDa} DA
             </div>
           </div>

@@ -61,11 +61,11 @@ export default async function DriverToursHubPage() {
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
       <div className="space-y-5">
-        <header className="space-y-1">
-          <h1 className="text-[18px] font-bold tracking-tight text-[#0a0a0a]">
+        <header className="space-y-1.5">
+          <h1 className="mq-sora text-[22px] font-extrabold tracking-[-0.5px] text-[var(--ink)]">
             Tournées
           </h1>
-          <p className="text-sm font-medium text-[#757575]">
+          <p className="text-sm font-medium text-[var(--muted)]">
             Rejoins un commerçant avec son code, puis démarre ses tournées. (Les
             courses Express, elles, arrivent toutes seules depuis l&apos;accueil
             quand tu es en ligne.)
@@ -75,26 +75,26 @@ export default async function DriverToursHubPage() {
         {/* Rejoindre un commerçant — toujours accessible */}
         <Link
           href="/driver/codes"
-          className="flex items-center gap-3 rounded-[14px] border-2 border-dashed border-[#d8d8f0] bg-[#f4f4fb] px-4 py-3.5 active:scale-[0.99]"
+          className="flex items-center gap-3 rounded-[14px] border-2 border-dashed border-[var(--violet-l)] bg-[var(--violet-soft)] px-4 py-3.5 transition-transform active:scale-[0.99]"
         >
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white text-[#4b1fa6]">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--surface)] text-[var(--violet)] shadow-sm">
             <KeyRound className="size-[18px]" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-bold text-[#4b1fa6]">
+            <span className="block text-sm font-bold text-[var(--violet-d)]">
               Rejoindre un commerçant
             </span>
-            <span className="block text-xs font-medium text-[#7a6aa8]">
+            <span className="block text-xs font-medium text-[var(--violet)]/80">
               Saisis le code que le commerçant t&apos;a partagé.
             </span>
           </span>
-          <ChevronRight className="size-[18px] text-[#9e9e9e]" />
+          <ChevronRight className="size-[18px] text-[var(--violet)]" />
         </Link>
 
         {/* Commerçants rejoints (actifs) */}
         {active.length > 0 && (
           <section className="space-y-2">
-            <p className="px-1 text-[11px] font-bold tracking-wide text-[#9e9e9e] uppercase">
+            <p className="px-1 text-[11px] font-bold tracking-wide text-[var(--muted)] uppercase">
               Mes commerçants
             </p>
             <ul className="space-y-2.5">
@@ -104,16 +104,16 @@ export default async function DriverToursHubPage() {
                   <li key={m.merchant_driver_id}>
                     <Link
                       href={`/driver/m/${m.merchant_driver_id}`}
-                      className="flex items-center gap-3 rounded-[12px] border border-[#eee] bg-white px-3.5 py-3 active:scale-[0.99]"
+                      className="flex items-center gap-3 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] px-3.5 py-3 shadow-[0_4px_16px_rgba(0,0,0,.04)] transition-transform active:scale-[0.99]"
                     >
-                      <span className="grid size-[38px] shrink-0 place-items-center rounded-full bg-[#f5f5f5] text-sm font-extrabold text-[#0a0a0a]">
+                      <span className="grid size-[38px] shrink-0 place-items-center rounded-full bg-[var(--soft)] text-sm font-extrabold text-[var(--ink)]">
                         {m.merchant_name.charAt(0).toUpperCase()}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-bold text-[#0a0a0a]">
+                        <span className="block truncate text-sm font-bold text-[var(--ink)]">
                           {m.merchant_name}
                         </span>
-                        <span className="text-xs font-medium text-[#757575]">
+                        <span className="text-xs font-medium text-[var(--muted)]">
                           {commune ? `${commune} · ` : ""}
                           {m.tour_pending > 0
                             ? `${m.tour_pending} commande${m.tour_pending > 1 ? "s" : ""} en tournée`
@@ -121,11 +121,11 @@ export default async function DriverToursHubPage() {
                         </span>
                       </span>
                       {m.tour_pending > 0 && (
-                        <span className="grid size-6 place-items-center rounded-full bg-[#0a0a0a] text-xs font-bold text-white">
+                        <span className="grid size-6 place-items-center rounded-full bg-[var(--violet)] text-xs font-bold text-white">
                           {m.tour_pending}
                         </span>
                       )}
-                      <ChevronRight className="size-[18px] text-[#9e9e9e]" />
+                      <ChevronRight className="size-[18px] text-[var(--muted)]" />
                     </Link>
                   </li>
                 );
@@ -140,7 +140,7 @@ export default async function DriverToursHubPage() {
             {pending.map((l) => (
               <div
                 key={l.id}
-                className="rounded-[12px] border border-[#F5E0A1] bg-[#FFF8E5] px-3.5 py-2.5 text-xs font-medium text-[#8B6500]"
+                className="rounded-[12px] border border-[rgba(245,158,11,0.3)] bg-[rgba(245,158,11,0.12)] px-3.5 py-2.5 text-xs font-medium text-[var(--amber)]"
               >
                 <b className="font-bold">{l.name}</b> · en attente de validation
                 du commerçant.
@@ -149,7 +149,7 @@ export default async function DriverToursHubPage() {
             {blocked.map((l) => (
               <div
                 key={l.id}
-                className="rounded-[12px] border border-[#f5c6c2] bg-[#FFF3F2] px-3.5 py-2.5 text-xs font-medium text-[#B22A1F]"
+                className="rounded-[12px] border border-[rgba(229,72,77,0.3)] bg-[var(--red-soft)] px-3.5 py-2.5 text-xs font-medium text-[var(--red)]"
               >
                 <b className="font-bold">{l.name}</b> · accès retiré. Resoumets
                 un code si tu en as un nouveau.
@@ -161,10 +161,15 @@ export default async function DriverToursHubPage() {
         {active.length === 0 &&
           pending.length === 0 &&
           blocked.length === 0 && (
-            <p className="px-1 text-sm font-medium text-[#9e9e9e]">
-              Tu n&apos;as encore rejoint aucun commerçant. Saisis un code
-              ci-dessus pour commencer à faire des tournées.
-            </p>
+            <div className="rounded-[16px] border border-[var(--line)] bg-[var(--soft)] px-4 py-8 text-center">
+              <span className="mx-auto mb-2 grid size-11 place-items-center rounded-full bg-[var(--surface)] text-[var(--violet)] shadow-sm">
+                <KeyRound className="size-5" />
+              </span>
+              <p className="text-sm font-medium text-[var(--muted)]">
+                Tu n&apos;as encore rejoint aucun commerçant. Saisis un code
+                ci-dessus pour commencer à faire des tournées.
+              </p>
+            </div>
           )}
       </div>
     </DriverShell>
