@@ -156,10 +156,10 @@ export function PartnerSheetButton({
                     id="partner-sheet-title"
                     className="text-foreground font-display text-lg font-bold"
                   >
-                    Rejoindre Coligo en tant que…
+                    Espaces partenaires
                   </h2>
                   <p className="text-muted mt-0.5 text-sm">
-                    Choisissez votre profil pour démarrer.
+                    Choisissez votre espace partenaire.
                   </p>
                 </div>
                 <button
