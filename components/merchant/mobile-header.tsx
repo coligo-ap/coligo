@@ -9,6 +9,7 @@ import {
 } from "@/components/merchant/use-mobile-drawer";
 import { SyncIndicator } from "@/components/merchant/sync-indicator";
 import { ShopStatusToggle } from "@/components/merchant/shop-status-toggle";
+import { MerchantBalancePill } from "@/components/merchant/balance-pill";
 import type { MerchantPauseInput } from "@/lib/merchant/pause-state";
 
 interface MerchantMobileHeaderProps {
@@ -29,6 +30,7 @@ export function MerchantMobileHeader({
       <Logo variant="amber" size="sm" subtitle={merchantName} />
 
       <div className="flex items-center gap-1.5">
+        <MerchantBalancePill compact />
         <ShopStatusToggle input={pauseInput} />
         {/* Indicateur résilience offline (mobile = simple pastille, panneau
             ancré sous l'icône). */}
