@@ -2,12 +2,27 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Car,
+  HandCoins,
   Lock,
   ShoppingCart,
   Store,
   Truck,
   User as UserIcon,
 } from "lucide-react";
+
+/** Lien « Je suis partenaire Coligo Pay » (point de recharge) — réutilisé
+ *  dans toutes les variantes du sélecteur de rôle. */
+function PartnerLink() {
+  return (
+    <Link
+      href="/partenaire/login"
+      className="border-border hover:bg-surface-2 hidden items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium sm:inline-flex lg:text-sm"
+    >
+      <HandCoins className="size-3.5" />
+      Je suis partenaire Coligo Pay
+    </Link>
+  );
+}
 import { Logo } from "@/components/shared/logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
@@ -54,6 +69,7 @@ export function AuthNavBar({
                 <Truck className="size-3.5" />
                 Livreur
               </Link>
+              <PartnerLink />
             </>
           )}
           {variant === "customer" && (
@@ -72,6 +88,7 @@ export function AuthNavBar({
                 <Car className="size-3.5" />
                 Je suis chauffeur
               </Link>
+              <PartnerLink />
             </>
           )}
           {variant === "driver" && (
@@ -90,6 +107,7 @@ export function AuthNavBar({
                 <UserIcon className="size-3.5" />
                 Je suis client
               </Link>
+              <PartnerLink />
             </>
           )}
           <Link
