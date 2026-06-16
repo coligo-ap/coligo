@@ -2421,6 +2421,46 @@ export type Database = {
         Args: { p_method: string; p_amount_da: number; p_proof_url: string };
         Returns: string;
       };
+      my_partner_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          balance_da: number;
+          total_topup_da: number;
+          total_sold_da: number;
+          total_bonus_da: number;
+          sales_count: number;
+        }[];
+      };
+      coligo_recharge_sell: {
+        Args: {
+          p_target_wallet_id: string;
+          p_amount_da: number;
+          p_pin: string;
+          p_op_id: string;
+        };
+        Returns: Record<string, unknown>;
+      };
+      find_operator_wallet_by_phone: {
+        Args: { p_phone: string };
+        Returns: {
+          wallet_id: string;
+          owner_type: string;
+          name: string | null;
+          status: string;
+        }[];
+      };
+      operator_set_pin: {
+        Args: { p_pin: string };
+        Returns: Record<string, unknown>;
+      };
+      operator_pin_status: {
+        Args: Record<string, never>;
+        Returns: Record<string, unknown>;
+      };
+      operator_verify_pin: {
+        Args: { p_pin: string };
+        Returns: Record<string, unknown>;
+      };
       generate_driver_statements: {
         Args: { p_period_start: string; p_period_end: string };
         Returns: { statements_created: number; drivers_total: number }[];

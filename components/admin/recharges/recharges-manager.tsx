@@ -298,6 +298,7 @@ function CreatePartnerForm({
     address: "",
     phone: "",
     hours: "",
+    loginPassword: "",
   });
 
   if (!open) {
@@ -441,6 +442,20 @@ function CreatePartnerForm({
             />
           </div>
           <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="pw">Mot de passe d&apos;accès au portail</Label>
+            <Input
+              id="pw"
+              type="text"
+              value={f.loginPassword}
+              onChange={(e) => setF({ ...f, loginPassword: e.target.value })}
+              placeholder="≥ 6 caractères — connexion par téléphone"
+            />
+            <p className="text-subtle text-xs">
+              Crée le compte du point (connexion sur /partenaire avec le
+              téléphone ci-dessus). Laisser vide = point passif sans connexion.
+            </p>
+          </div>
+          <div className="space-y-1 sm:col-span-2">
             <Label>Position sur la carte (recherche + clic)</Label>
             <div className="h-64 overflow-hidden rounded-[12px]">
               <MapPositionPicker
@@ -472,6 +487,7 @@ function CreatePartnerForm({
                       hours: f.hours || undefined,
                       lat: pos?.lat,
                       lng: pos?.lng,
+                      loginPassword: f.loginPassword || undefined,
                     }),
                   "Point créé — ajoutez ses documents ci-dessous"
                 )

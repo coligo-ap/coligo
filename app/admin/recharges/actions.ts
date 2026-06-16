@@ -84,7 +84,11 @@ export async function setOperatorGating(active: boolean): Promise<Res> {
 
 type CreateRes = { ok?: true; walletId?: string; error?: string };
 
-/** Créer un NOUVEAU point de recharge officiel (point autonome géolocalisé). */
+/**
+ * Créer un NOUVEAU point de recharge officiel (géolocalisé). Si un mot de passe
+ * est fourni, on crée AUSSI son compte de connexion (téléphone + mot de passe,
+ * email synthétique @partners.coligo.local) → il accède à son portail /partenaire.
+ */
 export async function createPartner(input: {
   displayName: string;
   ownerName?: string;
@@ -94,12 +98,41 @@ export async function createPartner(input: {
   hours?: string;
   lat?: number;
   lng?: number;
+  loginPassword?: string;
 }): Promise<CreateRes> {
   if (!(await isSuperAdmin())) return { error: "Accès refusé." };
   if (!input.displayName.trim()) return { error: "Nom du commerce requis." };
   if (input.lat == null || input.lng == null)
     return { error: "Position sur la carte requise." };
+
   const admin = createAdminClient();
+
+  // owner_id = id du compte auth si login demandé, sinon uuid (point passif).
+  let ownerId = crypto.randomUUID();
+  if (input.loginPassword?.trim()) {
+    const digits = (input.phone ?? "").replace(/\D/g, "");
+    if (digits.length < 6)
+      return { error: "Téléphone requis pour créer un accès." };
+    if (input.loginPassword.trim().length < 6)
+      return { error: "Mot de passe trop court (6 caractères min)." };
+    const email = `${digits}@partners.coligo.local`;
+    const { data: created, error: authErr } = await admin.auth.admin.createUser(
+      {
+        email,
+        password: input.loginPassword.trim(),
+        email_confirm: true,
+      }
+    );
+    if (authErr || !created?.user) {
+      return {
+        error: /registered|exists|duplicate/i.test(authErr?.message ?? "")
+          ? "Ce téléphone a déjà un accès partenaire."
+          : `Création du compte échouée : ${authErr?.message ?? "inconnu"}`,
+      };
+    }
+    ownerId = created.user.id;
+  }
+
   const from = (t: string) =>
     (
       admin.from as unknown as (t: string) => {
@@ -117,7 +150,7 @@ export async function createPartner(input: {
   const { data, error } = await from("operator_wallets")
     .insert({
       owner_type: "partner",
-      owner_id: crypto.randomUUID(),
+      owner_id: ownerId,
       is_partner: true,
       status: "active",
       display_name: input.displayName.trim(),

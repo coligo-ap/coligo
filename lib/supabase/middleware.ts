@@ -106,6 +106,22 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Isolation POINT DE RECHARGE partenaire — confiné à /partenaire.
+  const isPartnerSession =
+    !!user?.email && user.email.endsWith("@partners.coligo.local");
+  if (isPartnerSession) {
+    const allowed =
+      path === "/partenaire" ||
+      path.startsWith("/partenaire/") ||
+      path.startsWith("/api/") ||
+      path.startsWith("/auth") ||
+      path.startsWith("/offline");
+    if (!allowed) {
+      return redirectTo("/partenaire");
+    }
+    return supabaseResponse;
+  }
+
   // ===========================================================================
   // ISOLATION SUPER-ADMIN — confiné à /admin (comme livreur/chauffeur à leur
   // espace). Un admin a un email « normal » sans row merchants/customers → il
@@ -147,6 +163,10 @@ export async function updateSession(request: NextRequest) {
     const publicChauffeur =
       path === "/chauffeur/login" || path === "/chauffeur/signup";
     if (!publicChauffeur) return redirectTo("/chauffeur/login");
+  }
+  if (path === "/partenaire" || path.startsWith("/partenaire/")) {
+    const publicPartner = path === "/partenaire/login";
+    if (!publicPartner) return redirectTo("/partenaire/login");
   }
 
   // ===========================================================================

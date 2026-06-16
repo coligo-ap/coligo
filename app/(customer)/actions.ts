@@ -59,7 +59,8 @@ export async function customerLogin(
   const emailLc = parsed.data.email.toLowerCase();
   if (
     emailLc.endsWith("@drivers.coligo.local") ||
-    emailLc.endsWith("@chauffeurs.coligo.local")
+    emailLc.endsWith("@chauffeurs.coligo.local") ||
+    emailLc.endsWith("@partners.coligo.local")
   ) {
     return { error: "Email ou mot de passe incorrect" };
   }
