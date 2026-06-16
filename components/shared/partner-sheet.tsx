@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Car,
   ChevronRight,
@@ -34,7 +35,7 @@ const PARTNER_ROLES: PartnerRole[] = [
     title: "Commerçant",
     desc: "Vendez vos produits et recevez vos commandes en direct.",
     icon: Store,
-    gradient: "from-[#5B5BE6] to-[#8A4DFF]",
+    gradient: "from-[#5B2EFF] to-[#6C2BD9]",
     href: "/login",
   },
   {
@@ -62,8 +63,12 @@ const PARTNER_ROLES: PartnerRole[] = [
  */
 export function PartnerSheetButton() {
   const [open, setOpen] = useState(false);
+  // Le portail n'est dispo qu'après montage côté client (document.body).
+  const [mounted, setMounted] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setMounted(true), []);
 
   function close() {
     setOpen(false);
@@ -96,89 +101,96 @@ export function PartnerSheetButton() {
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#5B5BE6] px-3 py-1.5 text-xs font-medium text-[#5B5BE6] transition-colors hover:bg-[#5B5BE6]/10 lg:text-sm"
+        className="border-primary-600 text-primary-700 hover:bg-primary-600/10 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium transition-colors lg:text-sm"
       >
         <Users className="size-3.5" />
         Devenir partenaire
       </button>
 
-      {open && (
-        <div
-          className="partner-overlay-in fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) close();
-          }}
-          role="dialog"
-          aria-modal
-          aria-labelledby="partner-sheet-title"
-        >
+      {open &&
+        mounted &&
+        createPortal(
           <div
-            ref={panelRef}
-            tabIndex={-1}
-            className="partner-sheet-in bg-surface flex w-full max-w-md flex-col overflow-hidden rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl outline-none sm:rounded-[20px]"
+            className="partner-overlay-in fixed inset-0 z-[60] flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) close();
+            }}
+            role="dialog"
+            aria-modal
+            aria-labelledby="partner-sheet-title"
           >
-            {/* Poignée (mobile) */}
-            <div className="flex justify-center pt-3 sm:hidden" aria-hidden>
-              <span className="bg-border h-1 w-10 rounded-full" />
-            </div>
-
-            <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-1">
-              <div>
-                <h2
-                  id="partner-sheet-title"
-                  className="text-foreground font-display text-lg font-bold"
-                >
-                  Rejoindre Coligo en tant que…
-                </h2>
-                <p className="text-muted mt-0.5 text-sm">
-                  Choisissez votre profil pour démarrer.
-                </p>
+            <div
+              ref={panelRef}
+              tabIndex={-1}
+              className="partner-sheet-in bg-surface flex w-full max-w-md flex-col overflow-hidden rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl outline-none sm:rounded-[20px]"
+            >
+              {/* Poignée (mobile) */}
+              <div className="flex justify-center pt-3 sm:hidden" aria-hidden>
+                <span className="bg-border h-1 w-10 rounded-full" />
               </div>
-              <button
-                type="button"
-                onClick={close}
-                className="text-muted hover:bg-surface-2 -mr-1 flex size-9 shrink-0 items-center justify-center rounded-full transition-colors"
-                aria-label="Fermer"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
 
-            <ul className="flex flex-col gap-1 p-3">
-              {PARTNER_ROLES.map((role) => {
-                const Icon = role.icon;
-                return (
-                  <li key={role.key}>
-                    <Link
-                      href={role.href}
-                      onClick={close}
-                      className="group hover:bg-surface-2 focus-visible:bg-surface-2 flex items-center gap-3.5 rounded-[14px] p-3 transition-colors outline-none"
-                    >
-                      <span
-                        className={cn(
-                          "flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br text-white shadow-sm",
-                          role.gradient
-                        )}
+              <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-1">
+                <div>
+                  <h2
+                    id="partner-sheet-title"
+                    className="text-foreground font-display text-lg font-bold"
+                  >
+                    Rejoindre Coligo en tant que…
+                  </h2>
+                  <p className="text-muted mt-0.5 text-sm">
+                    Choisissez votre profil pour démarrer.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={close}
+                  className="text-muted hover:bg-surface-2 -mr-1 flex size-9 shrink-0 items-center justify-center rounded-full transition-colors"
+                  aria-label="Fermer"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+
+              <ul className="flex flex-col gap-1 p-3">
+                {PARTNER_ROLES.map((role) => {
+                  const Icon = role.icon;
+                  return (
+                    <li key={role.key}>
+                      <Link
+                        href={role.href}
+                        onClick={close}
+                        className="group hover:bg-surface-2 focus-visible:bg-surface-2 flex items-center gap-3.5 rounded-[14px] p-3 transition-colors outline-none"
                       >
-                        <Icon className="size-6" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="text-foreground font-display block text-sm font-bold">
-                          {role.title}
+                        <span
+                          className={cn(
+                            "flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br text-white shadow-sm",
+                            role.gradient
+                          )}
+                        >
+                          <Icon className="size-6" />
                         </span>
-                        <span className="text-muted mt-0.5 block text-xs leading-snug">
-                          {role.desc}
+                        <span className="min-w-0 flex-1">
+                          <span className="text-foreground font-display block text-sm font-bold">
+                            {role.title}
+                          </span>
+                          <span className="text-muted mt-0.5 block text-xs leading-snug">
+                            {role.desc}
+                          </span>
                         </span>
-                      </span>
-                      <ChevronRight className="text-subtle size-5 shrink-0 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" />
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </div>
-      )}
+                        <ChevronRight className="text-subtle size-5 shrink-0 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>,
+          // Sort du contexte d'empilement du header (sticky z-30) pour passer
+          // AU-DESSUS de la nav du bas (z-30) / l'InstallBanner (z-40). On vise
+          // le conteneur client s'il existe (conserve les tokens dark scopés
+          // [data-space="client"]), sinon document.body (pages d'auth en clair).
+          document.querySelector('[data-space="client"]') ?? document.body
+        )}
     </>
   );
 }
