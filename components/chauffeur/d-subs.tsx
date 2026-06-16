@@ -48,6 +48,7 @@ export function DSubs() {
   const [paying, setPaying] = useState<"pro" | "premium" | null>(null);
   const [upgrade, setUpgrade] = useState(false);
   const [step, setStep] = useState<"choice" | "ccp">("choice");
+  const [duration, setDuration] = useState<7 | 14 | 30>(30);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -105,7 +106,10 @@ export function DSubs() {
     if (!paying || busy) return;
     setBusy(true);
     setError(null);
-    const res = await subscribeDrivePlan(paying, "ccp", { upgrade });
+    const res = await subscribeDrivePlan(paying, "ccp", {
+      upgrade,
+      durationDays: duration,
+    });
     setBusy(false);
     if (!res.ok) {
       setError(res.error ?? "Échec");
@@ -123,7 +127,10 @@ export function DSubs() {
     if (!paying || busy) return;
     setBusy(true);
     setError(null);
-    const res = await subscribeDrivePlan(paying, "card", { upgrade });
+    const res = await subscribeDrivePlan(paying, "card", {
+      upgrade,
+      durationDays: duration,
+    });
     setBusy(false);
     if (!res.ok || !res.url) {
       setError(res.error ?? "Paiement carte indisponible.");
@@ -153,6 +160,20 @@ export function DSubs() {
         new Date(fin.planPeriodEnd).getTime() + 5 * 86400_000
       ).toISOString()
     : null;
+
+  // Tarif d'une durée = tarif mensuel du plan × facteur (1 mois = ×1).
+  const DUR_LABEL: Record<7 | 14 | 30, string> = {
+    7: "1 semaine",
+    14: "2 semaines",
+    30: "1 mois",
+  };
+  const priceFor = (p: "pro" | "premium", days: 7 | 14 | 30) => {
+    const monthly = p === "premium" ? fin.premiumFee : fin.proFee;
+    if (days === 7) return Math.max(100, Math.round(monthly * fin.weekFactor));
+    if (days === 14)
+      return Math.max(100, Math.round(monthly * fin.twoWeekFactor));
+    return monthly;
+  };
 
   return (
     <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
@@ -381,15 +402,43 @@ export function DSubs() {
           ) : (
             <>
               Payer l&apos;abonnement {paying ? PLAN_LABEL[paying] : ""} ·{" "}
-              {paying === "premium"
-                ? fin.premiumFee.toLocaleString("fr-FR")
-                : fin.proFee.toLocaleString("fr-FR")}{" "}
-              DA/mois
+              {paying ? priceFor(paying, duration).toLocaleString("fr-FR") : 0}{" "}
+              DA · {DUR_LABEL[duration]}
             </>
           )}
         </SheetTitle>
         {step === "choice" ? (
           <>
+            {/* Durée (pas pour un upgrade : prorata sur la période en cours) */}
+            {!upgrade && paying && (
+              <div className="mb-3 grid grid-cols-3 gap-2">
+                {([7, 14, 30] as const).map((d) => {
+                  const on = duration === d;
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDuration(d)}
+                      className="rounded-[13px] border-[1.5px] p-2.5 text-center transition-colors"
+                      style={{
+                        borderColor: on ? VIOLET : "var(--d-line)",
+                        background: on ? "#EEEEFD" : "transparent",
+                      }}
+                    >
+                      <span className="block text-[12px] font-bold">
+                        {DUR_LABEL[d]}
+                      </span>
+                      <span
+                        className="block text-[13px] font-extrabold"
+                        style={{ color: on ? VIOLET : "var(--d-ink)" }}
+                      >
+                        {priceFor(paying, d).toLocaleString("fr-FR")} DA
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             <p className="mb-2.5 text-[13px] text-[var(--d-muted)]">
               Choisissez votre moyen de paiement :
             </p>

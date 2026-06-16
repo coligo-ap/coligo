@@ -1166,6 +1166,8 @@ export type Database = {
           drive_plan_premium_fee_da: number;
           drive_plan_premium_rate: number;
           drive_sub_grace_days: number;
+          drive_sub_week_factor: number;
+          drive_sub_2week_factor: number;
           drive_ccp_number: string;
           drive_ccp_key: string;
           drive_ccp_name: string;

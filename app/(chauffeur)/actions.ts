@@ -976,6 +976,9 @@ export type ChauffeurFinances = {
   proFee: number;
   proRate: number;
   premiumFee: number;
+  /** Facteurs de tarif par durée (× tarif mensuel) : 1 sem / 2 sem. */
+  weekFactor: number;
+  twoWeekFactor: number;
   ccp: { number: string; key: string; name: string };
   pendingSub: { plan: string; amount: number; method: string } | null;
   /** Début de la période d'abonnement active (affichage « du X au Y »). */
@@ -995,7 +998,7 @@ export async function getChauffeurFinances(): Promise<ChauffeurFinances | null> 
       admin
         .from("platform_settings")
         .select(
-          "drive_plan_pro_fee_da, drive_plan_pro_rate, drive_plan_premium_fee_da, drive_ccp_number, drive_ccp_key, drive_ccp_name"
+          "drive_plan_pro_fee_da, drive_plan_pro_rate, drive_plan_premium_fee_da, drive_sub_week_factor, drive_sub_2week_factor, drive_ccp_number, drive_ccp_key, drive_ccp_name"
         )
         .eq("id", true)
         .maybeSingle(),
@@ -1037,9 +1040,11 @@ export async function getChauffeurFinances(): Promise<ChauffeurFinances | null> 
     planPeriodEnd: (f.plan_period_end as string) ?? null,
     rating: f.rating == null ? null : Number(f.rating),
     ridesTotal: Number(f.rides_total ?? 0),
-    proFee: s?.drive_plan_pro_fee_da ?? 1500,
+    proFee: s?.drive_plan_pro_fee_da ?? 2000,
     proRate: Number(s?.drive_plan_pro_rate ?? 0.035),
     premiumFee: s?.drive_plan_premium_fee_da ?? 3900,
+    weekFactor: Number(s?.drive_sub_week_factor ?? 0.35),
+    twoWeekFactor: Number(s?.drive_sub_2week_factor ?? 0.6),
     ccp: {
       number: s?.drive_ccp_number ?? "—",
       key: s?.drive_ccp_key ?? "—",
@@ -1104,14 +1109,19 @@ export async function cancelMyPendingSub(): Promise<{
 export async function subscribeDrivePlan(
   plan: "pro" | "premium",
   method: "ccp" | "card",
-  opts?: { upgrade?: boolean }
+  opts?: { upgrade?: boolean; durationDays?: 7 | 14 | 30 }
 ): Promise<{ ok: boolean; url?: string; error?: string }> {
   const rpc = await rpcClient();
   // Upgrade Pro → Premium : montant au prorata des jours restants (calculé
-  // côté SQL, source de vérité), même date de renouvellement.
+  // côté SQL, source de vérité), même date de renouvellement (la durée ne
+  // s'applique pas à un upgrade). Sinon : souscription à la durée choisie.
   const { data, error } = opts?.upgrade
     ? await rpc("drive_sub_upgrade", { p_method: method })
-    : await rpc("drive_subscribe", { p_plan: plan, p_method: method });
+    : await rpc("drive_subscribe", {
+        p_plan: plan,
+        p_method: method,
+        p_duration_days: opts?.durationDays ?? 30,
+      });
   if (error) return { ok: false, error: error.message };
   const row = (Array.isArray(data) ? data[0] : data) as {
     ok?: boolean;

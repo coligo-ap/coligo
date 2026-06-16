@@ -181,6 +181,22 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
             onChange={(v) => set("plan_premium_fee_da", v)}
           />
           <Num
+            label="Facteur 1 semaine"
+            step={0.05}
+            value={cfg.sub_week_factor}
+            onChange={(v) => set("sub_week_factor", v)}
+            hint="Tarif 1 semaine = tarif mensuel × ce facteur."
+            example="0,35 → Pro à 2000 DA/mois ⇒ 1 semaine = 700 DA."
+          />
+          <Num
+            label="Facteur 2 semaines"
+            step={0.05}
+            value={cfg.sub_2week_factor}
+            onChange={(v) => set("sub_2week_factor", v)}
+            hint="Tarif 2 semaines = tarif mensuel × ce facteur."
+            example="0,60 → Pro à 2000 DA/mois ⇒ 2 semaines = 1200 DA."
+          />
+          <Num
             label="Jours de grâce (renouvellement)"
             value={cfg.sub_grace_days}
             onChange={(v) => set("sub_grace_days", v)}

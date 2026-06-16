@@ -29,6 +29,9 @@ export type DriveConfig = {
   plan_pro_rate: number;
   plan_premium_fee_da: number;
   plan_premium_rate: number;
+  /** Facteurs de tarif par durée (× tarif mensuel) : 1 sem / 2 sem. */
+  sub_week_factor: number;
+  sub_2week_factor: number;
   free_rate: number; // = vtc_commission_rate
   sub_grace_days: number;
   ccp_number: string;
@@ -75,6 +78,8 @@ export async function getDriveConfig(): Promise<DriveConfig | null> {
     plan_pro_rate: Number(s.drive_plan_pro_rate),
     plan_premium_fee_da: s.drive_plan_premium_fee_da,
     plan_premium_rate: Number(s.drive_plan_premium_rate),
+    sub_week_factor: Number(s.drive_sub_week_factor ?? 0.35),
+    sub_2week_factor: Number(s.drive_sub_2week_factor ?? 0.6),
     free_rate: Number(s.vtc_commission_rate),
     sub_grace_days: s.drive_sub_grace_days,
     ccp_number: s.drive_ccp_number,
@@ -143,6 +148,8 @@ export async function updateDriveConfig(
       drive_plan_pro_rate: cfg.plan_pro_rate,
       drive_plan_premium_fee_da: cfg.plan_premium_fee_da,
       drive_plan_premium_rate: cfg.plan_premium_rate,
+      drive_sub_week_factor: cfg.sub_week_factor,
+      drive_sub_2week_factor: cfg.sub_2week_factor,
       vtc_commission_rate: cfg.free_rate,
       drive_sub_grace_days: cfg.sub_grace_days,
       drive_ccp_number: cfg.ccp_number,
