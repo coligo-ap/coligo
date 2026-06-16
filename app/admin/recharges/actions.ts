@@ -82,73 +82,177 @@ export async function setOperatorGating(active: boolean): Promise<Res> {
   return { ok: true };
 }
 
-/** Créer un point de recharge : promotion d'un opérateur (par tél) ou point autonome. */
+type CreateRes = { ok?: true; walletId?: string; error?: string };
+
+/** Créer un NOUVEAU point de recharge officiel (point autonome géolocalisé). */
 export async function createPartner(input: {
   displayName: string;
+  ownerName?: string;
+  registreCommerce?: string;
   address?: string;
   phone?: string;
   hours?: string;
   lat?: number;
   lng?: number;
-  promotePhone?: string;
-}): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
-  if (!input.displayName.trim()) return { error: "Nom requis." };
+}): Promise<CreateRes> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!input.displayName.trim()) return { error: "Nom du commerce requis." };
+  if (input.lat == null || input.lng == null)
+    return { error: "Position sur la carte requise." };
   const admin = createAdminClient();
-  const rpc = admin.rpc.bind(admin) as unknown as (
-    fn: string,
-    args: Record<string, unknown>
-  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const from = (t: string) =>
+    (
+      admin.from as unknown as (t: string) => {
+        insert: (v: Record<string, unknown>) => {
+          select: (c: string) => {
+            single: () => Promise<{
+              data: { id: string } | null;
+              error: { message: string } | null;
+            }>;
+          };
+        };
+      }
+    )(t);
+
+  const { data, error } = await from("operator_wallets")
+    .insert({
+      owner_type: "partner",
+      owner_id: crypto.randomUUID(),
+      is_partner: true,
+      status: "active",
+      display_name: input.displayName.trim(),
+      owner_name: input.ownerName?.trim() || null,
+      registre_commerce: input.registreCommerce?.trim() || null,
+      address: input.address?.trim() || null,
+      phone: input.phone?.trim() || null,
+      hours: input.hours?.trim() || null,
+      lat: input.lat,
+      lng: input.lng,
+    })
+    .select("id")
+    .single();
+  if (error) return { error: error.message };
+  revalidatePath("/admin/recharges");
+  return { ok: true, walletId: data?.id };
+}
+
+/** Promouvoir un COMMERÇANT existant en point de recharge (réutilise sa fiche). */
+export async function promoteMerchant(merchantId: string): Promise<CreateRes> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const q = (t: string) =>
+    (
+      admin.from as unknown as (t: string) => {
+        select: (c: string) => {
+          eq: (
+            c: string,
+            v: string
+          ) => {
+            maybeSingle: () => Promise<{
+              data: Record<string, unknown> | null;
+            }>;
+          };
+        };
+        update: (v: Record<string, unknown>) => {
+          eq: (
+            c: string,
+            v: string
+          ) => {
+            select: (c: string) => {
+              single: () => Promise<{
+                data: { id: string } | null;
+                error: { message: string } | null;
+              }>;
+            };
+          };
+        };
+      }
+    )(t);
+
+  const { data: m } = await q("merchants")
+    .select("name, address, latitude, longitude, phone_public")
+    .eq("id", merchantId)
+    .maybeSingle();
+  if (!m) return { error: "Commerçant introuvable." };
+  if (m.latitude == null || m.longitude == null)
+    return { error: "Ce commerçant n'a pas de position GPS." };
+
+  const { data, error } = await q("operator_wallets")
+    .update({
+      is_partner: true,
+      status: "active",
+      display_name: m.name as string,
+      address: (m.address as string) ?? null,
+      phone: (m.phone_public as string) ?? null,
+      lat: m.latitude as number,
+      lng: m.longitude as number,
+    })
+    .eq("owner_id", merchantId)
+    .select("id")
+    .single();
+  if (error) return { error: error.message };
+  revalidatePath("/admin/recharges");
+  return { ok: true, walletId: data?.id };
+}
+
+/** Téléverse une pièce justificative d'un point (registre commerce, identité…). */
+export async function uploadPartnerDoc(formData: FormData): Promise<Res> {
+  if (!(await isSuperAdmin())) return DENIED;
+  const walletId = String(formData.get("wallet_id") ?? "");
+  const kind = String(formData.get("kind") ?? "");
+  const label = String(formData.get("label") ?? "");
+  const file = formData.get("file");
+  if (
+    !walletId ||
+    !["registre_commerce", "piece_identite", "autre"].includes(kind)
+  )
+    return { error: "Paramètres invalides." };
+  if (!(file instanceof File) || file.size === 0)
+    return { error: "Fichier requis." };
+  if (file.size > 10 * 1024 * 1024)
+    return { error: "Fichier trop volumineux (10 Mo max)." };
+
+  const admin = createAdminClient();
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${walletId}/${crypto.randomUUID()}-${safe}`;
+  const { error: upErr } = await admin.storage
+    .from("partner-docs")
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (upErr) return { error: `Upload échoué : ${upErr.message}` };
+
   const from = (t: string) =>
     (
       admin.from as unknown as (t: string) => {
         insert: (
           v: Record<string, unknown>
         ) => Promise<{ error: { message: string } | null }>;
-        update: (v: Record<string, unknown>) => {
-          eq: (
-            c: string,
-            v: string
-          ) => Promise<{ error: { message: string } | null }>;
-        };
       }
     )(t);
-
-  const fields = {
-    is_partner: true,
-    status: "active",
-    display_name: input.displayName.trim(),
-    address: input.address?.trim() || null,
-    phone: input.phone?.trim() || null,
-    hours: input.hours?.trim() || null,
-    lat: input.lat ?? null,
-    lng: input.lng ?? null,
-  };
-
-  // Promotion d'un opérateur existant (livreur/chauffeur) par téléphone.
-  if (input.promotePhone?.trim()) {
-    const { data } = await rpc("find_operator_wallet_by_phone", {
-      p_phone: input.promotePhone.trim(),
-    });
-    const row = (Array.isArray(data) ? data[0] : null) as {
-      wallet_id: string;
-    } | null;
-    if (!row) return { error: "Aucun opérateur avec ce téléphone." };
-    const { error } = await from("operator_wallets")
-      .update(fields)
-      .eq("id", row.wallet_id);
-    if (error) return { error: error.message };
-  } else {
-    // Point autonome (apparaît sur la carte ; financé par l'admin).
-    const { error } = await from("operator_wallets").insert({
-      owner_type: "partner",
-      owner_id: crypto.randomUUID(),
-      ...fields,
-    });
-    if (error) return { error: error.message };
+  const { error } = await from("partner_documents").insert({
+    wallet_id: walletId,
+    kind,
+    url: path,
+    label: label.trim() || null,
+  });
+  if (error) {
+    await admin.storage.from("partner-docs").remove([path]);
+    return { error: error.message };
   }
   revalidatePath("/admin/recharges");
   return { ok: true };
+}
+
+/** URL signée d'une pièce justificative d'un point. */
+export async function signPartnerDocUrl(
+  path: string
+): Promise<{ url?: string; error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage
+    .from("partner-docs")
+    .createSignedUrl(path, 3600);
+  if (error) return { error: error.message };
+  return { url: data.signedUrl };
 }
 
 /** Activer / suspendre / désactiver un portefeuille. */

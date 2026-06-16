@@ -18,16 +18,20 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toast";
 import { AdminDocViewer } from "@/components/admin/doc-viewer";
+import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import { formatDA } from "@/lib/utils";
 import {
   approveTopup,
   createPartner,
   creditWallet,
+  promoteMerchant,
   rejectTopup,
   setOperatorGating,
   setWalletStatus,
+  signPartnerDocUrl,
   signWalletProofUrl,
   updateThresholds,
+  uploadPartnerDoc,
 } from "@/app/admin/recharges/actions";
 
 export type PendingTopup = {
@@ -40,14 +44,38 @@ export type PendingTopup = {
   createdAt: string;
 };
 
+export type PartnerDoc = {
+  id: string;
+  kind: string;
+  url: string;
+  label: string | null;
+};
+
 export type PartnerRow = {
   walletId: string;
   displayName: string;
+  ownerName: string | null;
+  registreCommerce: string | null;
   address: string | null;
   phone: string | null;
   hours: string | null;
+  lat: number | null;
+  lng: number | null;
   status: "active" | "suspended" | "disabled";
   balanceDa: number;
+  docs: PartnerDoc[];
+};
+
+export type MerchantOption = {
+  id: string;
+  name: string;
+  address: string | null;
+};
+
+const DOC_LABEL: Record<string, string> = {
+  registre_commerce: "Registre de commerce",
+  piece_identite: "Pièce d'identité",
+  autre: "Autre document",
 };
 
 const STATUS_TONE: Record<
@@ -92,6 +120,7 @@ export function RechargesManager({
   thresholds,
   pending,
   partners,
+  merchants,
 }: {
   gatingActive: boolean;
   thresholds: {
@@ -103,6 +132,7 @@ export function RechargesManager({
   };
   pending: PendingTopup[];
   partners: PartnerRow[];
+  merchants: MerchantOption[];
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
@@ -220,7 +250,7 @@ export function RechargesManager({
         title="Points de recharge"
         description="Partenaires visibles dans « Où recharger » des opérateurs."
       >
-        <CreatePartnerForm busy={busy} run={run} />
+        <CreatePartnerForm busy={busy} run={run} merchants={merchants} />
         {partners.length === 0 ? (
           <p className="text-muted mt-4 text-sm">Aucun point pour le moment.</p>
         ) : (
@@ -247,23 +277,29 @@ export function RechargesManager({
 function CreatePartnerForm({
   busy,
   run,
+  merchants,
 }: {
   busy: boolean;
   run: (
     fn: () => Promise<{ ok?: true; error?: string }>,
     okMsg: string
   ) => void;
+  merchants: MerchantOption[];
 }) {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"new" | "promote">("new");
+  const [merchantId, setMerchantId] = useState("");
+  const [merchQuery, setMerchQuery] = useState("");
+  const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
   const [f, setF] = useState({
     displayName: "",
+    ownerName: "",
+    registreCommerce: "",
     address: "",
     phone: "",
     hours: "",
-    lat: "",
-    lng: "",
-    promotePhone: "",
   });
+
   if (!open) {
     return (
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
@@ -271,98 +307,185 @@ function CreatePartnerForm({
       </Button>
     );
   }
+
+  const filtered = merchQuery.trim()
+    ? merchants.filter((m) =>
+        m.name.toLowerCase().includes(merchQuery.trim().toLowerCase())
+      )
+    : merchants;
+
   return (
-    <div className="border-border bg-surface-2 grid gap-3 rounded-[14px] border p-4 sm:grid-cols-2">
-      <div className="space-y-1 sm:col-span-2">
-        <Label htmlFor="dn">Nom du point</Label>
-        <Input
-          id="dn"
-          value={f.displayName}
-          onChange={(e) => setF({ ...f, displayName: e.target.value })}
-          placeholder="Superette El Baraka"
-        />
+    <div className="border-border bg-surface-2 space-y-3 rounded-[14px] border p-4">
+      {/* Choix du mode */}
+      <div className="bg-surface flex gap-1 rounded-[10px] p-1 text-sm">
+        {(["new", "promote"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={
+              mode === m
+                ? "bg-primary-600 flex-1 rounded-[8px] px-3 py-1.5 font-semibold text-white"
+                : "text-muted flex-1 rounded-[8px] px-3 py-1.5 font-medium"
+            }
+          >
+            {m === "new"
+              ? "Nouveau point officiel"
+              : "Promouvoir un commerçant"}
+          </button>
+        ))}
       </div>
-      <div className="space-y-1 sm:col-span-2">
-        <Label htmlFor="ad">Adresse</Label>
-        <Input
-          id="ad"
-          value={f.address}
-          onChange={(e) => setF({ ...f, address: e.target.value })}
-        />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="ph">Téléphone</Label>
-        <Input
-          id="ph"
-          value={f.phone}
-          onChange={(e) => setF({ ...f, phone: e.target.value })}
-        />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="hr">Horaires</Label>
-        <Input
-          id="hr"
-          value={f.hours}
-          onChange={(e) => setF({ ...f, hours: e.target.value })}
-          placeholder="8h-22h"
-        />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="la">Latitude</Label>
-        <Input
-          id="la"
-          value={f.lat}
-          onChange={(e) => setF({ ...f, lat: e.target.value })}
-          inputMode="decimal"
-        />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="ln">Longitude</Label>
-        <Input
-          id="ln"
-          value={f.lng}
-          onChange={(e) => setF({ ...f, lng: e.target.value })}
-          inputMode="decimal"
-        />
-      </div>
-      <div className="space-y-1 sm:col-span-2">
-        <Label htmlFor="pp">
-          Ou promouvoir un opérateur existant (téléphone livreur/chauffeur)
-        </Label>
-        <Input
-          id="pp"
-          value={f.promotePhone}
-          onChange={(e) => setF({ ...f, promotePhone: e.target.value })}
-          placeholder="+213…"
-        />
-      </div>
-      <div className="flex gap-2 sm:col-span-2">
-        <Button
-          size="sm"
-          disabled={busy}
-          onClick={() =>
-            run(
-              () =>
-                createPartner({
-                  displayName: f.displayName,
-                  address: f.address || undefined,
-                  phone: f.phone || undefined,
-                  hours: f.hours || undefined,
-                  lat: f.lat ? Number(f.lat) : undefined,
-                  lng: f.lng ? Number(f.lng) : undefined,
-                  promotePhone: f.promotePhone || undefined,
-                }),
-              "Point ajouté"
-            )
-          }
-        >
-          {busy && <Loader2 className="size-4 animate-spin" />}
-          Enregistrer
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
-          Annuler
-        </Button>
-      </div>
+
+      {mode === "promote" ? (
+        <div className="space-y-2">
+          <Label>Commerçant à promouvoir en point de recharge</Label>
+          <Input
+            value={merchQuery}
+            onChange={(e) => setMerchQuery(e.target.value)}
+            placeholder="Rechercher un commerçant…"
+          />
+          <div className="border-border divide-border max-h-48 divide-y overflow-y-auto rounded-[10px] border">
+            {filtered.length === 0 ? (
+              <p className="text-muted p-3 text-xs">
+                Aucun commerçant avec position GPS.
+              </p>
+            ) : (
+              filtered.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setMerchantId(m.id)}
+                  className={
+                    merchantId === m.id
+                      ? "bg-primary-50 flex w-full flex-col px-3 py-2 text-left"
+                      : "hover:bg-surface flex w-full flex-col px-3 py-2 text-left"
+                  }
+                >
+                  <span className="text-sm font-semibold">{m.name}</span>
+                  {m.address && (
+                    <span className="text-muted text-xs">{m.address}</span>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              disabled={busy || !merchantId}
+              onClick={() =>
+                run(
+                  () => promoteMerchant(merchantId),
+                  "Commerçant promu en point"
+                )
+              }
+            >
+              {busy && <Loader2 className="size-4 animate-spin" />}
+              Promouvoir
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+              Annuler
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="dn">Nom du commerce</Label>
+            <Input
+              id="dn"
+              value={f.displayName}
+              onChange={(e) => setF({ ...f, displayName: e.target.value })}
+              placeholder="Superette El Baraka"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="on">Gérant (prénom & nom)</Label>
+            <Input
+              id="on"
+              value={f.ownerName}
+              onChange={(e) => setF({ ...f, ownerName: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="rc">N° registre de commerce</Label>
+            <Input
+              id="rc"
+              value={f.registreCommerce}
+              onChange={(e) => setF({ ...f, registreCommerce: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="ph">Téléphone</Label>
+            <Input
+              id="ph"
+              value={f.phone}
+              onChange={(e) => setF({ ...f, phone: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="hr">Horaires</Label>
+            <Input
+              id="hr"
+              value={f.hours}
+              onChange={(e) => setF({ ...f, hours: e.target.value })}
+              placeholder="8h-22h"
+            />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="ad">Adresse</Label>
+            <Input
+              id="ad"
+              value={f.address}
+              onChange={(e) => setF({ ...f, address: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label>Position sur la carte (recherche + clic)</Label>
+            <div className="h-64 overflow-hidden rounded-[12px]">
+              <MapPositionPicker
+                searchEnabled
+                searchPlaceholder="Chercher une adresse, un lieu…"
+                initial={pos}
+                onChange={(p) => setPos({ lat: p.lat, lng: p.lng })}
+              />
+            </div>
+            <p className="text-subtle text-xs">
+              {pos
+                ? `Position : ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`
+                : "Aucune position sélectionnée."}
+            </p>
+          </div>
+          <div className="flex gap-2 sm:col-span-2">
+            <Button
+              size="sm"
+              disabled={busy}
+              onClick={() =>
+                run(
+                  () =>
+                    createPartner({
+                      displayName: f.displayName,
+                      ownerName: f.ownerName || undefined,
+                      registreCommerce: f.registreCommerce || undefined,
+                      address: f.address || undefined,
+                      phone: f.phone || undefined,
+                      hours: f.hours || undefined,
+                      lat: pos?.lat,
+                      lng: pos?.lng,
+                    }),
+                  "Point créé — ajoutez ses documents ci-dessous"
+                )
+              }
+            >
+              {busy && <Loader2 className="size-4 animate-spin" />}
+              Créer le point
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+              Annuler
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -385,6 +508,27 @@ function PartnerItem({
   const [type, setType] = useState<"topup_manual" | "bonus" | "adjustment">(
     "bonus"
   );
+  const [docsOpen, setDocsOpen] = useState(false);
+  const [docKind, setDocKind] = useState("registre_commerce");
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const router = useRouter();
+  const [uploading, startUpload] = useTransition();
+  const doUpload = () => {
+    if (!docFile) return;
+    const fd = new FormData();
+    fd.set("wallet_id", p.walletId);
+    fd.set("kind", docKind);
+    fd.set("file", docFile);
+    startUpload(async () => {
+      const res = await uploadPartnerDoc(fd);
+      if (res.error) toast.error(res.error);
+      else {
+        toast.success("Document ajouté");
+        setDocFile(null);
+        router.refresh();
+      }
+    });
+  };
   return (
     <li className="border-border rounded-[14px] border p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -394,10 +538,20 @@ function PartnerItem({
             <Badge tone={STATUS_TONE[p.status]}>{STATUS_LABEL[p.status]}</Badge>
           </p>
           {p.address && <p className="text-muted text-xs">{p.address}</p>}
+          {(p.ownerName || p.registreCommerce) && (
+            <p className="text-muted text-xs">
+              {p.ownerName ?? ""}
+              {p.ownerName && p.registreCommerce ? " · " : ""}
+              {p.registreCommerce ? `RC ${p.registreCommerce}` : ""}
+            </p>
+          )}
           <p className="text-subtle mt-0.5 text-xs">
             Solde :{" "}
             <span className="tabular-nums">{formatDA(p.balanceDa)}</span>
             {p.phone ? ` · ${p.phone}` : ""}
+            {p.lat != null && p.lng != null
+              ? ` · ${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}`
+              : ""}
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -437,11 +591,70 @@ function PartnerItem({
               Désactiver
             </Button>
           )}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setDocsOpen(!docsOpen)}
+          >
+            Documents{p.docs.length ? ` (${p.docs.length})` : ""}
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => setCredit(!credit)}>
             <Plus className="size-4" /> Créditer
           </Button>
         </div>
       </div>
+
+      {docsOpen && (
+        <div className="bg-surface-2 mt-3 space-y-2 rounded-[12px] p-3">
+          {p.docs.length === 0 ? (
+            <p className="text-muted text-xs">Aucune pièce justificative.</p>
+          ) : (
+            <ul className="space-y-1">
+              {p.docs.map((d) => (
+                <li
+                  key={d.id}
+                  className="flex items-center justify-between gap-2 text-sm"
+                >
+                  <span>
+                    {DOC_LABEL[d.kind] ?? d.kind}
+                    {d.label ? ` · ${d.label}` : ""}
+                  </span>
+                  <AdminDocViewer
+                    docTitle={DOC_LABEL[d.kind] ?? "Document"}
+                    triggerLabel="Voir"
+                    getUrl={() => signPartnerDocUrl(d.url)}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={docKind}
+              onChange={(e) => setDocKind(e.target.value)}
+              className="border-border bg-surface rounded-[10px] border px-2 py-1.5 text-sm"
+            >
+              <option value="registre_commerce">Registre de commerce</option>
+              <option value="piece_identite">Pièce d&apos;identité</option>
+              <option value="autre">Autre</option>
+            </select>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setDocFile(e.target.files?.[0] ?? null)}
+              className="text-xs"
+            />
+            <Button
+              size="sm"
+              disabled={uploading || !docFile}
+              onClick={doUpload}
+            >
+              {uploading && <Loader2 className="size-4 animate-spin" />}
+              Téléverser
+            </Button>
+          </div>
+        </div>
+      )}
       {credit && (
         <div className="bg-surface-2 mt-3 grid gap-2 rounded-[12px] p-3 sm:grid-cols-[1fr_1fr_auto]">
           <Input

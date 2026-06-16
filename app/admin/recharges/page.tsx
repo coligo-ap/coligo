@@ -35,7 +35,9 @@ export default async function AdminRechargesPage() {
       .select("id, wallet_id, method, amount_da, proof_url, created_at")
       .eq("status", "pending"),
     sel("operator_wallets")
-      .select("id, display_name, address, phone, hours, status, owner_type")
+      .select(
+        "id, display_name, owner_name, registre_commerce, address, phone, hours, lat, lng, status, owner_type"
+      )
       .eq("is_partner", true),
   ]);
 
@@ -78,21 +80,31 @@ export default async function AdminRechargesPage() {
       | {
           id: string;
           display_name: string | null;
+          owner_name: string | null;
+          registre_commerce: string | null;
           address: string | null;
           phone: string | null;
           hours: string | null;
+          lat: number | null;
+          lng: number | null;
           status: string;
           owner_type: string;
         }[]
       | null) ?? [];
 
-  // Soldes des points partenaires (somme du grand livre).
+  // Soldes des points partenaires (somme du grand livre) + leurs documents.
   const partnerIds = partnerRaw.map((p) => p.id);
   const balanceMap = new Map<string, number>();
+  const docsMap = new Map<string, PartnerRow["docs"]>();
   if (partnerIds.length > 0) {
-    const { data: entries } = await sel("operator_wallet_entries")
-      .select("wallet_id, amount_da")
-      .in("wallet_id", partnerIds);
+    const [{ data: entries }, { data: docs }] = await Promise.all([
+      sel("operator_wallet_entries")
+        .select("wallet_id, amount_da")
+        .in("wallet_id", partnerIds),
+      sel("partner_documents")
+        .select("id, wallet_id, kind, url, label")
+        .in("wallet_id", partnerIds),
+    ]);
     for (const e of (entries as
       | { wallet_id: string; amount_da: number }[]
       | null) ?? []) {
@@ -101,17 +113,53 @@ export default async function AdminRechargesPage() {
         (balanceMap.get(e.wallet_id) ?? 0) + e.amount_da
       );
     }
+    for (const d of (docs as
+      | {
+          id: string;
+          wallet_id: string;
+          kind: string;
+          url: string;
+          label: string | null;
+        }[]
+      | null) ?? []) {
+      const arr = docsMap.get(d.wallet_id) ?? [];
+      arr.push({ id: d.id, kind: d.kind, url: d.url, label: d.label });
+      docsMap.set(d.wallet_id, arr);
+    }
   }
 
   const partners: PartnerRow[] = partnerRaw.map((p) => ({
     walletId: p.id,
     displayName: p.display_name ?? "Point de recharge",
+    ownerName: p.owner_name,
+    registreCommerce: p.registre_commerce,
     address: p.address,
     phone: p.phone,
     hours: p.hours,
+    lat: p.lat,
+    lng: p.lng,
     status: p.status as PartnerRow["status"],
     balanceDa: balanceMap.get(p.id) ?? 0,
+    docs: docsMap.get(p.id) ?? [],
   }));
+
+  // Commerçants promouvables : ceux qui ont une position GPS (promotion idempotente).
+  const { data: merchRaw } = await sel("merchants")
+    .select("id, name, address, latitude, longitude")
+    .order("name", { ascending: true });
+  const promotableMerchants = (
+    (merchRaw as
+      | {
+          id: string;
+          name: string;
+          address: string | null;
+          latitude: number | null;
+          longitude: number | null;
+        }[]
+      | null) ?? []
+  )
+    .filter((m) => m.latitude != null && m.longitude != null)
+    .map((m) => ({ id: m.id, name: m.name, address: m.address }));
 
   // Libellé propriétaire des demandes en attente (nom si livreur/chauffeur/merchant).
   const ownerLabel = await resolveOwnerLabels(
@@ -144,6 +192,7 @@ export default async function AdminRechargesPage() {
         thresholds={thresholds}
         pending={pending}
         partners={partners}
+        merchants={promotableMerchants}
       />
     </div>
   );

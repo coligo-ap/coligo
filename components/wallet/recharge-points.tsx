@@ -165,6 +165,12 @@ export function RechargePoints() {
                   {p.hours && (
                     <p className="text-subtle mt-0.5 text-xs">🕒 {p.hours}</p>
                   )}
+                  <p className="text-subtle mt-0.5 text-xs tabular-nums">
+                    📍 {p.lat.toFixed(5)}, {p.lng.toFixed(5)}
+                  </p>
+                  {p.phone && (
+                    <p className="text-subtle text-xs">📞 {p.phone}</p>
+                  )}
                 </div>
               </div>
 
