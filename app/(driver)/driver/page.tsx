@@ -42,16 +42,46 @@ export default async function DriverHomePage() {
   // (is_frozen) est SOUPLE : le livreur garde l'accès à ses pages, on lui
   // affiche juste un bandeau et la mise en ligne est refusée (cf. GoButton).
 
-  // Compteurs de courses dispo par commerçant (RPC SECURITY DEFINER, déjà trié).
-  const { data: countsRaw } = await supabase.rpc("driver_delivery_counts");
+  // ===== Toutes les requêtes de l'accueil en PARALLÈLE =====
+  // Avant : 5 awaits séquentiels (≈ somme des latences) → plusieurs secondes
+  // sur mobile. Désormais : un seul Promise.all (≈ la plus lente). Aucune
+  // dépendance entre elles (toutes filtrées par driver.id / début de journée).
+  const since = startOfTodayAlgiers();
+  const [
+    { data: countsRaw },
+    { data: linksRaw },
+    { count: coursesToday },
+    { data: payouts },
+    { data: ratingRow },
+  ] = await Promise.all([
+    // Compteurs de courses dispo par commerçant (RPC SECURITY DEFINER, trié).
+    supabase.rpc("driver_delivery_counts"),
+    // Liens du livreur — coordonnées (pins carte), commune, statuts.
+    supabase
+      .from("merchant_drivers")
+      .select("id, status, merchants ( name, commune, latitude, longitude )")
+      .eq("driver_id", driver.id),
+    // Courses livrées aujourd'hui (compteur).
+    supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("delivery_driver_id", driver.id)
+      .gte("delivery_delivered_at", since),
+    // Gains du jour (payouts du grand livre).
+    supabase
+      .from("delivery_ledger")
+      .select("amount_da")
+      .eq("driver_id", driver.id)
+      .eq("type", "driver_payout")
+      .gte("created_at", since),
+    // Note réelle (avis clients, mig 0059).
+    supabase
+      .from("drivers")
+      .select("rating_avg")
+      .eq("id", driver.id)
+      .maybeSingle(),
+  ]);
   const counts = (countsRaw ?? []) as Counts[];
-
-  // Tous les liens du livreur — pour les coordonnées (pins carte), la commune,
-  // et les sections en attente / bloqué.
-  const { data: linksRaw } = await supabase
-    .from("merchant_drivers")
-    .select("id, status, merchants ( name, commune, latitude, longitude )")
-    .eq("driver_id", driver.id);
 
   type MerchantInfo = {
     name: string;
@@ -98,32 +128,11 @@ export default async function DriverHomePage() {
   const tourPending = merchants.reduce((s, m) => s + (m.pending ?? 0), 0);
   const showToursEntry = joinedTourMerchants > 0;
 
-  // ===== Stats du jour (données réelles) =====
-  const since = startOfTodayAlgiers();
-
-  const { count: coursesToday } = await supabase
-    .from("orders")
-    .select("id", { count: "exact", head: true })
-    .eq("delivery_driver_id", driver.id)
-    .gte("delivery_delivered_at", since);
-
-  const { data: payouts } = await supabase
-    .from("delivery_ledger")
-    .select("amount_da")
-    .eq("driver_id", driver.id)
-    .eq("type", "driver_payout")
-    .gte("created_at", since);
+  // Gains du jour (somme des payouts récupérés en parallèle ci-dessus).
   const earnedToday = (payouts ?? []).reduce(
     (s, r) => s + (r.amount_da ?? 0),
     0
   );
-
-  // Note réelle (avis clients, mig 0059).
-  const { data: ratingRow } = await supabase
-    .from("drivers")
-    .select("rating_avg")
-    .eq("id", driver.id)
-    .maybeSingle();
 
   return (
     <div className="mq-screen min-h-[100dvh]">

@@ -73,3 +73,41 @@ puis créer l'auth user s'il n'existe pas.
 - UI/code : français (commentaires, copy, labels).
 - Identifiants techniques : anglais (noms de fonctions, fichiers, tables).
 - Messages de commit : français accepté.
+
+## Performance & navigation (règles permanentes, tout le projet)
+
+Objectif : **transition entre pages ressentie < 100 ms**. Toute page s'affiche
+immédiatement ; le réseau ne bloque JAMAIS l'affichage.
+
+1. **Navigation toujours client-side** (App Router) : `<Link>` / `router.push`,
+   JAMAIS de `<a href>` interne ni de full reload entre pages d'un même espace.
+2. **Prefetch** des routes de navigation principale (barre du bas, onglets) —
+   `<Link>` prefetch par défaut ; pour que ce soit efficace sur les routes
+   dynamiques, fournir une **frontière de chargement** (`loading.tsx`).
+3. **Rendu d'abord, données ensuite** : jamais de fetch bloquant au montage.
+   Afficher la structure tout de suite (**skeleton via `loading.tsx`** au niveau
+   du segment, pas un splash plein écran qui masque tout à chaque nav) puis
+   streamer les données. Les requêtes serveur indépendantes d'une page se font
+   en **`Promise.all`** (jamais en `await` séquentiels).
+4. **Cache de données** côté client avec **TanStack Query** quand on lit des
+   données réaffichées souvent : `staleTime` raisonnable, `placeholderData` /
+   `keepPreviousData`, **pas de refetch systématique au montage** → les données
+   se réaffichent depuis le cache puis se rafraîchissent en silence.
+5. **Instances coûteuses persistantes** : la carte (MapLibre/OpenFreeMap) et
+   autres objets lourds ne sont **jamais recréés** à chaque navigation (état
+   hissé / composant monté une fois / keep-alive). Leur init ne bloque pas la
+   nav.
+6. **État global conservé entre pages** (Zustand) : statut en ligne / STOP,
+   position GPS, solde portefeuille ne se rechargent pas à chaque onglet.
+7. **Allègement du montage** : code-splitting / `dynamic(import)` des parties
+   lourdes, pas de gros travail synchrone au render, mémoïsation utile.
+8. **Dédup auth par requête** : les helpers de session (`getCurrentDriver`, …)
+   sont enveloppés dans React `cache()` (dédupe layout + page dans un même
+   rendu).
+
+**La rapidité ne réduit JAMAIS la sécurité.** Sur chaque page : auth (session
+Supabase) + RLS toujours vérifiées côté serveur ; **revalidation de session non
+bloquante** (ne pas montrer de contenu sensible depuis le cache si la session a
+expiré) ; **cache isolé par utilisateur** (clé de cache incluant l'`user.id`)
+pour qu'aucune donnée d'un autre compte n'apparaisse ; `client_operation_id` et
+contrôles existants conservés.
