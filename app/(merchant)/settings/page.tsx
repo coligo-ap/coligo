@@ -63,6 +63,9 @@ export default async function SettingsPage() {
 
   if (!m) redirect("/login?error=no_merchant");
 
+  // Existe-t-il des points de recharge actifs ? (masque l'entrée sinon)
+  const { data: hasRecharge } = await supabase.rpc("recharge_points_exist");
+
   const printSettings: PrintSettings = {
     auto_accept_orders: m.auto_accept_orders ?? false,
     auto_print: m.auto_print ?? "off",
@@ -275,6 +278,25 @@ export default async function SettingsPage() {
             commissionRatePct={Math.round(merchant.commission_rate * 100)}
           />
         </SettingsSection>
+
+        {/* Où recharger — masqué s'il n'existe aucun point de recharge actif */}
+        {hasRecharge && (
+          <Link
+            href="/recharger"
+            className="border-border hover:bg-surface-2 flex w-full items-center gap-3 rounded-[14px] border bg-white p-4 text-start transition-colors"
+          >
+            <span className="bg-primary-50 text-primary-600 flex size-10 shrink-0 items-center justify-center rounded-full">
+              <Wallet className="size-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">Où recharger</span>
+              <span className="text-muted block text-xs">
+                Points partenaires proches pour recharger en espèces.
+              </span>
+            </span>
+            <ChevronRight className="text-subtle size-5 shrink-0" />
+          </Link>
+        )}
 
         {/* Télécharger l'APK Android (impression thermique Sunmi) */}
         <Link

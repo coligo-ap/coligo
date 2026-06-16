@@ -2367,6 +2367,28 @@ export type Database = {
         Args: { p_driver_id: string };
         Returns: boolean;
       };
+      recharge_points_nearby: {
+        Args: {
+          p_lat: number;
+          p_lng: number;
+          p_limit?: number;
+          p_radius_override?: number | null;
+        };
+        Returns: {
+          wallet_id: string;
+          display_name: string | null;
+          address: string | null;
+          phone: string | null;
+          hours: string | null;
+          lat: number;
+          lng: number;
+          distance_km: number;
+        }[];
+      };
+      recharge_points_exist: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
       generate_driver_statements: {
         Args: { p_period_start: string; p_period_end: string };
         Returns: { statements_created: number; drivers_total: number }[];

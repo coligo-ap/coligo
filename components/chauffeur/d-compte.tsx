@@ -14,6 +14,7 @@ import {
   Pencil,
   ShieldAlert,
   Smartphone,
+  Wallet,
 } from "lucide-react";
 import {
   SosContactsSheet,
@@ -137,6 +138,12 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
           label="Documents"
           value={<span style={{ color: "#16B364" }}>À jour ✓</span>}
           onClick={() => router.push("/chauffeur/documents")}
+        />
+        <Row
+          icon={<Wallet className="size-4" />}
+          label="Où recharger"
+          value="Points proches"
+          onClick={() => router.push("/chauffeur/recharger")}
         />
         <Row
           icon={<CreditCard className="size-4" />}
