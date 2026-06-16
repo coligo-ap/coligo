@@ -75,7 +75,7 @@ export function ExpressRunMap({
           type: "line",
           source: "run-route",
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": "#0a0a0a", "line-width": 6 },
+          paint: { "line-color": "#4b1fa6", "line-width": 6 },
         });
         // Couche haute : trait violet fin par-dessus (l'effet néon).
         map.addLayer({
@@ -109,7 +109,7 @@ export function ExpressRunMap({
       const emoji = kind === "pickup" ? "🏪" : "🏠";
       if (!targetMarkerRef.current) {
         const el = document.createElement("div");
-        el.innerHTML = `<div style="width:36px;height:36px;border-radius:50% 50% 50% 0;background:#0a0a0a;transform:rotate(-45deg);display:grid;place-items:center;box-shadow:0 6px 14px rgba(0,0,0,.35)"><span style="transform:rotate(45deg);font-size:15px">${emoji}</span></div>`;
+        el.innerHTML = `<div style="width:36px;height:36px;border-radius:50% 50% 50% 0;background:#6c2bd9;transform:rotate(-45deg);display:grid;place-items:center;box-shadow:0 6px 14px rgba(0,0,0,.35)"><span style="transform:rotate(45deg);font-size:15px">${emoji}</span></div>`;
         targetMarkerRef.current = new Marker({ element: el, anchor: "bottom" })
           .setLngLat([target.lng, target.lat])
           .addTo(map);
@@ -212,7 +212,7 @@ export function ExpressRunMap({
         type="button"
         onClick={recenter}
         aria-label="Recentrer sur ma position"
-        className="absolute right-3.5 bottom-[calc(var(--run-sheet-h,300px)+16px)] z-[55] grid size-12 place-items-center rounded-full bg-white text-[#0a0a0a] shadow-[0_6px_16px_rgba(0,0,0,.15)] active:scale-95"
+        className="absolute right-3.5 bottom-[calc(var(--run-sheet-h,300px)+16px)] z-[55] grid size-12 place-items-center rounded-full bg-white text-[#6c2bd9] shadow-[0_6px_16px_rgba(0,0,0,.15)] active:scale-95"
       >
         <LocateFixed className="size-5" />
       </button>

@@ -11,11 +11,11 @@
  * ========================================================================== */
 
 [data-space="driver"] {
-  --violet: #5b5be6;
-  --violet-l: #7b7bf0;
-  --violet-d: #4646c9;
-  --violet-soft: #eeeefd;
-  --violet-glow: rgba(91, 91, 230, 0.45);
+  --violet: #6c2bd9;
+  --violet-l: #8a4dff;
+  --violet-d: #4b1fa6;
+  --violet-soft: #f3edfc;
+  --violet-glow: rgba(108, 43, 217, 0.45);
   --go: #16b364;
   --go-l: #28d27c;
   --go-d: #0e8c4d;

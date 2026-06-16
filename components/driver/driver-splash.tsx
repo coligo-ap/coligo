@@ -49,7 +49,7 @@ export function DriverSplash() {
   return (
     <div
       aria-hidden
-      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#0a0a0a] transition-opacity duration-300 ease-out"
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#4b1fa6] transition-opacity duration-300 ease-out"
       style={{
         opacity: phase === "fade" ? 0 : 1,
         pointerEvents: phase === "fade" ? "none" : "auto",
@@ -60,7 +60,7 @@ export function DriverSplash() {
         className="pointer-events-none absolute size-[280px] rounded-full"
         style={{
           background:
-            "radial-gradient(circle, rgba(108,43,217,.35) 0%, rgba(108,43,217,0) 70%)",
+            "radial-gradient(circle, rgba(138,77,255,.55) 0%, rgba(138,77,255,0) 70%)",
         }}
       />
       <div

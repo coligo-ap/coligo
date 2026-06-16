@@ -61,7 +61,7 @@ export function TourSlotsList({
           {s.myTourId ? (
             <Link
               href={`/driver/m/${merchantDriverId}/tours/${s.myTourId}`}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-[12px] bg-[#0a0a0a] px-4 py-3 text-sm font-extrabold text-white active:scale-[0.99]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-[12px] bg-[#6c2bd9] px-4 py-3 text-sm font-extrabold text-white active:scale-[0.99]"
             >
               Continuer la tournée →
             </Link>
