@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setGlobalAvailability } from "@/app/(driver)/actions";
 import { useDriverOnline, setDriverOnline } from "@/lib/driver/online-store";
+import { DriverBalancePill } from "@/components/driver/balance-pill";
 import { playGo } from "@/lib/driver/sounds";
 
 const ONLINE_SINCE_KEY = "coligo_driver_online_since";
@@ -248,6 +249,9 @@ export function DriverHomeMaquette({
           En ligne
         </div>
       )}
+
+      {/* Solde portefeuille en temps réel (haut-droite) → page de recharge. */}
+      <DriverBalancePill />
 
       {/* Feuille d'accueil (tête d'information), posée au-dessus de la tabbar.
           La classe `online` pilote le bouton (vert + radar), le statut de
