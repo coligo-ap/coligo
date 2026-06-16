@@ -28,6 +28,7 @@ import {
   PrimaryBtn,
 } from "@/components/customer/drive/drive-modals";
 import { DNav, PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
+import { ChauffeurBalancePill } from "./balance-pill";
 import { ChauffeurWorkZoneSheet } from "./work-zone-sheet";
 import { useWorkZone } from "@/lib/chauffeur/work-zone";
 import { HOME_DIR_KEY } from "@/lib/drive/geo";
@@ -254,6 +255,8 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             : tr("Hors ligne", "غير متصل")}
         </span>
       </div>
+      {/* Solde portefeuille en temps réel → page de recharge */}
+      <ChauffeurBalancePill />
       {/* Légende heatmap */}
       <div className="absolute top-[64px] left-4 z-10 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-2.5 py-1.5 text-[10.5px] font-bold text-[var(--d-muted)] shadow">
         <span
