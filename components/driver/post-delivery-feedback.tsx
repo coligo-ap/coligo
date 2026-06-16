@@ -62,7 +62,7 @@ export function PostDeliveryFeedback({
   return (
     <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 p-4 sm:items-center">
       <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[22px] bg-white p-5 text-[var(--ink)]">
-        <div className="mx-auto grid size-14 place-items-center rounded-full bg-[#ecfdf5] text-[#059669]">
+        <div className="mx-auto grid size-14 place-items-center rounded-full bg-[var(--go-soft)] text-[var(--go)]">
           <Check className="size-7" />
         </div>
         <h3 className="mt-3 text-center text-[18px] font-black">
@@ -109,14 +109,14 @@ export function PostDeliveryFeedback({
           <button
             type="button"
             onClick={() => setReporting(true)}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 text-[12.5px] font-bold text-[#e53935]"
+            className="mt-3 flex w-full items-center justify-center gap-1.5 text-[12.5px] font-bold text-[var(--red)]"
           >
             <Flag className="size-3.5" />
             Signaler un problème avec le client
           </button>
         ) : (
-          <div className="mt-3 rounded-[14px] border border-[#e53935]/30 bg-[#fff5f5] p-3">
-            <p className="mb-2 text-[12px] font-extrabold tracking-wide text-[#e53935] uppercase">
+          <div className="mt-3 rounded-[14px] border border-[var(--red)]/30 bg-[var(--red-soft)] p-3">
+            <p className="mb-2 text-[12px] font-extrabold tracking-wide text-[var(--red)] uppercase">
               Signalement
             </p>
             <div className="flex flex-col gap-1.5">
@@ -130,7 +130,7 @@ export function PostDeliveryFeedback({
                     className={
                       "flex items-center justify-between rounded-[10px] border px-3 py-2 text-left text-[13px] font-semibold " +
                       (active
-                        ? "border-[#e53935] bg-white text-[#e53935]"
+                        ? "border-[var(--red)] bg-white text-[var(--red)]"
                         : "border-[var(--line)] bg-white text-[var(--ink)]")
                     }
                   >

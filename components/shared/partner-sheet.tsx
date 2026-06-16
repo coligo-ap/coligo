@@ -74,10 +74,10 @@ const DEFAULT_TRIGGER_CLASS =
   "border-primary-600 text-primary-700 hover:bg-primary-600/10 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium transition-colors lg:text-sm";
 
 export function PartnerSheetButton({
-  label = "Devenir partenaire",
+  label = "Espaces partenaires",
   className,
 }: {
-  /** Libellé du bouton (défaut « Devenir partenaire »). */
+  /** Libellé du bouton (défaut « Espaces partenaires »). */
   label?: string;
   /** Classes du déclencheur — permet d'adapter le bouton à chaque thème
    *  (nav d'auth, header Drive…) sans changer la feuille. */
