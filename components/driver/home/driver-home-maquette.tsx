@@ -242,16 +242,19 @@ export function DriverHomeMaquette({
         </button>
       )}
 
-      {/* Chip discret « ● En ligne » (haut-gauche) — uniquement en ligne. */}
-      {online && !isFrozen && (
-        <div className="home-chip">
-          <span className="d" />
-          En ligne
-        </div>
-      )}
-
-      {/* Solde portefeuille en temps réel (haut-droite) → page de recharge. */}
-      <DriverBalancePill />
+      {/* Barre du haut alignée : statut « ● En ligne » (gauche, en ligne
+          seulement) ⟷ solde portefeuille (droite, → page de recharge). */}
+      <div className="home-topbar">
+        {online && !isFrozen ? (
+          <div className="home-chip">
+            <span className="d" />
+            En ligne
+          </div>
+        ) : (
+          <span aria-hidden />
+        )}
+        <DriverBalancePill />
+      </div>
 
       {/* Feuille d'accueil (tête d'information), posée au-dessus de la tabbar.
           La classe `online` pilote le bouton (vert + radar), le statut de
@@ -309,12 +312,10 @@ export function DriverHomeMaquette({
             <div className="mv">{coursesToday}</div>
             <div className="ml">Courses</div>
           </div>
-          <div className="sep" />
           <div className="m">
             <div className="mv">{onlineLabel}</div>
             <div className="ml">En ligne</div>
           </div>
-          <div className="sep" />
           <div className="m">
             <div className="mv">
               {ratingAvg ? ratingAvg.toFixed(1).replace(".", ",") : "—"}

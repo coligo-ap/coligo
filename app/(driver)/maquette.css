@@ -192,14 +192,36 @@
   background: var(--ink);
 }
 
-/* ---------- accueil PRO : chip « en ligne » (haut-gauche) ---------- */
-/* Carte épurée : seul le bouton recentrer (haut-droite, dans la carte React)
-   et, EN LIGNE, ce chip discret restent au-dessus de la carte. */
-[data-space="driver"] .home-chip {
+/* ---------- accueil PRO : barre du haut alignée ---------- */
+/* Top-bar flottante au-dessus de la carte : statut « en ligne » (gauche) et
+   solde (droite) parfaitement alignés sur une même ligne. pointer-events:none
+   sur le conteneur pour laisser glisser la carte entre les deux boutons. */
+[data-space="driver"] .home-topbar {
   position: absolute;
-  top: max(58px, calc(env(safe-area-inset-top) + 14px));
-  left: 16px;
-  z-index: 45;
+  top: max(14px, calc(env(safe-area-inset-top) + 10px));
+  left: 0;
+  right: 0;
+  z-index: 46;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 16px;
+  pointer-events: none;
+}
+[data-space="driver"] .home-topbar > * {
+  pointer-events: auto;
+}
+@media (min-width: 640px) {
+  [data-space="driver"] .home-topbar {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(calc(100% - 24px), 460px);
+    padding: 0;
+  }
+}
+[data-space="driver"] .home-chip {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -234,6 +256,19 @@
   padding: 46px 18px 16px;
   border-top: 1px solid var(--line);
   box-shadow: 0 -12px 30px -18px rgba(20, 22, 40, 0.22);
+}
+/* Grand écran : la feuille devient une carte flottante centrée et contrainte
+   (le bouton GO en dock reste centré dessus). */
+@media (min-width: 640px) {
+  [data-space="driver"] .mq-sheet {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(calc(100% - 24px), 460px);
+    bottom: max(88px, calc(env(safe-area-inset-bottom) + 88px));
+    border-radius: 24px;
+    border: 1px solid var(--line);
+  }
 }
 [data-space="driver"] .grab {
   width: 40px;
@@ -369,6 +404,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 14px;
 }
 [data-space="driver"] .home-head .lbl {
   font-size: 11.5px;
@@ -399,39 +438,41 @@
   stroke: var(--violet);
 }
 
-/* ---------- 3 métriques EN LIGNE FINE dans un seul bloc --soft ---------- */
+/* ---------- 3 métriques en CARDS-COLONNES (Courses · En ligne · Note) ---------- */
 [data-space="driver"] .metrics {
-  display: flex;
-  align-items: center;
-  margin-top: 13px;
-  background: var(--soft);
-  border-radius: 15px;
-  padding: 11px 4px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
 }
 [data-space="driver"] .metrics .m {
-  flex: 1;
   text-align: center;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 8px;
 }
 [data-space="driver"] .metrics .m .mv {
   font-family: var(--font-sora), "Sora", sans-serif;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 18px;
+  letter-spacing: -0.3px;
   color: var(--ink);
 }
 [data-space="driver"] .metrics .m .mv small {
-  font-size: 10px;
-  color: var(--muted);
-  font-weight: 600;
+  font-size: 11px;
+  color: var(--amber);
+  font-weight: 700;
 }
 [data-space="driver"] .metrics .m .ml {
-  font-size: 10px;
+  font-size: 10.5px;
   color: var(--muted);
-  margin-top: 2px;
+  font-weight: 600;
+  margin-top: 4px;
 }
+/* Séparateurs de l'ancienne disposition (plus utilisés). */
 [data-space="driver"] .metrics .sep {
-  width: 1px;
-  height: 28px;
-  background: var(--line);
+  display: none;
 }
 
 /* ---------- statut de recherche (en ligne) / invite (hors ligne) ---------- */

@@ -38,7 +38,7 @@ export function DriverBalancePill() {
       type="button"
       onClick={() => router.push("/driver/recharger")}
       aria-label="Mon solde — recharger"
-      className={`absolute top-3 right-3 z-20 flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[13px] font-bold shadow-lg ${negative ? "text-[var(--red)]" : "text-[var(--violet)]"}`}
+      className={`flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[13px] font-bold shadow-lg ${negative ? "text-[var(--red)]" : "text-[var(--violet)]"}`}
     >
       <Wallet className="size-4" />
       {bal == null ? "…" : formatDA(bal)}
