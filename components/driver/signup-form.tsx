@@ -80,7 +80,7 @@ export function DriverSignupForm() {
           required
           disabled={pending}
           defaultValue=""
-          className="h-12 w-full rounded-[12px] border border-[#e5e5e5] bg-white px-3 text-sm font-medium text-[#0a0a0a] outline-none focus:border-[#6c2bd9] disabled:opacity-50"
+          className="h-12 w-full rounded-[12px] border border-[var(--line)] bg-white px-3 text-sm font-medium text-[var(--ink)] outline-none focus:border-[#6c2bd9] disabled:opacity-50"
         >
           <option value="" disabled>
             Choisis ta wilaya

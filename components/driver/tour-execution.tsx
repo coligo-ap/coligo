@@ -142,7 +142,7 @@ export function TourExecution({
       <div className="rounded-[16px] bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,.06)]">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-[10.5px] font-semibold tracking-[0.4px] text-[#757575] uppercase">
+            <p className="text-[10.5px] font-semibold tracking-[0.4px] text-[var(--muted)] uppercase">
               Tes gains · tournée
             </p>
             <p className="mt-1 text-[22px] leading-none font-extrabold tracking-[-0.4px] text-[#6c2bd9]">
@@ -150,18 +150,18 @@ export function TourExecution({
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] font-bold tracking-[0.5px] text-[#757575] uppercase">
+            <p className="text-[11px] font-bold tracking-[0.5px] text-[var(--muted)] uppercase">
               À reverser au commerçant
             </p>
-            <p className="mt-1 text-[18px] font-extrabold text-[#0a0a0a]">
+            <p className="mt-1 text-[18px] font-extrabold text-[var(--ink)]">
               {formatDA(owedMerchant)}
             </p>
           </div>
         </div>
-        <p className="mt-3 flex items-center gap-1.5 border-t border-[#eee] pt-2.5 text-[11px] font-medium text-[#757575]">
+        <p className="mt-3 flex items-center gap-1.5 border-t border-[var(--line)] pt-2.5 text-[11px] font-medium text-[var(--muted)]">
           💵 Cash à encaisser :{" "}
-          <b className="text-[#0a0a0a]">{formatDA(cashToCollect)}</b>
-          <span className="ml-auto text-[#9e9e9e]">
+          <b className="text-[var(--ink)]">{formatDA(cashToCollect)}</b>
+          <span className="ml-auto text-[var(--muted)]">
             commandes en ligne déjà payées
           </span>
         </p>
@@ -218,14 +218,14 @@ export function TourExecution({
                 onClick={() => setExpandedId(expanded ? null : s.stop_id)}
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#f5f5f5] text-xs font-extrabold text-[#0a0a0a] tabular-nums">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--soft)] text-xs font-extrabold text-[var(--ink)] tabular-nums">
                     {s.stop_order}
                   </span>
                   <div>
-                    <p className="text-sm font-bold text-[#0a0a0a]">
+                    <p className="text-sm font-bold text-[var(--ink)]">
                       {s.customer_name ?? "Client"}
                     </p>
-                    <p className="text-xs font-medium text-[#757575]">
+                    <p className="text-xs font-medium text-[var(--muted)]">
                       {s.payment_method === "online" ? "Payé en ligne" : "Cash"}{" "}
                       · {s.total_da != null ? formatDA(s.total_da) : "—"}
                     </p>
@@ -236,7 +236,7 @@ export function TourExecution({
                     <Check className="size-3.5" /> Livré
                   </span>
                 ) : (
-                  <span className="text-xs text-[#9e9e9e]">
+                  <span className="text-xs text-[var(--muted)]">
                     {expanded ? "▼" : "▶"}
                   </span>
                 )}

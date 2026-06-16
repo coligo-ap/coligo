@@ -61,14 +61,14 @@ export function PostDeliveryFeedback({
 
   return (
     <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 p-4 sm:items-center">
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[22px] bg-white p-5 text-[#0a0a0a]">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[22px] bg-white p-5 text-[var(--ink)]">
         <div className="mx-auto grid size-14 place-items-center rounded-full bg-[#ecfdf5] text-[#059669]">
           <Check className="size-7" />
         </div>
         <h3 className="mt-3 text-center text-[18px] font-black">
           Livraison validée
         </h3>
-        <p className="mt-1 text-center text-[13px] font-medium text-[#757575]">
+        <p className="mt-1 text-center text-[13px] font-medium text-[var(--muted)]">
           Comment s&apos;est passée la course
           {customerName ? ` avec ${customerName}` : ""} ?
         </p>
@@ -100,7 +100,7 @@ export function PostDeliveryFeedback({
             onChange={(e) => setComment(e.target.value.slice(0, 500))}
             rows={2}
             placeholder="Un commentaire ? (facultatif)"
-            className="mt-3 w-full resize-none rounded-[12px] border border-black/10 bg-[#fafafa] px-3 py-2.5 text-[13px] outline-none"
+            className="mt-3 w-full resize-none rounded-[12px] border border-[var(--line)] bg-[var(--soft)] px-3 py-2.5 text-[13px] outline-none"
           />
         )}
 
@@ -131,7 +131,7 @@ export function PostDeliveryFeedback({
                       "flex items-center justify-between rounded-[10px] border px-3 py-2 text-left text-[13px] font-semibold " +
                       (active
                         ? "border-[#e53935] bg-white text-[#e53935]"
-                        : "border-black/10 bg-white text-[#0a0a0a]")
+                        : "border-[var(--line)] bg-white text-[var(--ink)]")
                     }
                   >
                     {r}
@@ -145,7 +145,7 @@ export function PostDeliveryFeedback({
               onChange={(e) => setDetails(e.target.value.slice(0, 1000))}
               rows={2}
               placeholder="Détails (facultatif)"
-              className="mt-2 w-full resize-none rounded-[10px] border border-black/10 bg-white px-3 py-2 text-[13px] outline-none"
+              className="mt-2 w-full resize-none rounded-[10px] border border-[var(--line)] bg-white px-3 py-2 text-[13px] outline-none"
             />
           </div>
         )}
@@ -164,7 +164,7 @@ export function PostDeliveryFeedback({
             type="button"
             onClick={onDone}
             disabled={pending}
-            className="h-11 w-full text-[14px] font-semibold text-[#757575] disabled:opacity-50"
+            className="h-11 w-full text-[14px] font-semibold text-[var(--muted)] disabled:opacity-50"
           >
             Passer
           </button>

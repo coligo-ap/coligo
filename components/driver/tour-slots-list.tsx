@@ -30,7 +30,7 @@ export function TourSlotsList({
 
   if (slots.length === 0) {
     return (
-      <p className="text-sm font-medium text-[#757575]">
+      <p className="text-sm font-medium text-[var(--muted)]">
         Aucun créneau ouvert.
       </p>
     );
@@ -44,7 +44,7 @@ export function TourSlotsList({
           className="space-y-3 rounded-[14px] bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,.06)]"
         >
           <div>
-            <p className="font-bold text-[#0a0a0a] tabular-nums">
+            <p className="font-bold text-[var(--ink)] tabular-nums">
               {new Date(s.slot_date).toLocaleDateString("fr-FR", {
                 weekday: "short",
                 day: "2-digit",
@@ -52,7 +52,7 @@ export function TourSlotsList({
               })}{" "}
               · {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
             </p>
-            <p className="text-xs font-medium text-[#757575] tabular-nums">
+            <p className="text-xs font-medium text-[var(--muted)] tabular-nums">
               {s.pendingCount} commande{s.pendingCount > 1 ? "s" : ""} à livrer
               {" · "}
               capacité {s.max_orders}

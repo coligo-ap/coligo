@@ -615,6 +615,38 @@ body {
   color: #b493f9;
 }
 
+/* ── Espace LIVREUR : mode sombre (toggle du compte livreur) ──
+   Même mécanisme que le client : on remappe les tokens globaux `--color-*`
+   sous [data-space="driver"].dark pour que TOUS les composants livreur qui
+   utilisent les classes Tailwind globales (bg-surface, bg-white, text-muted,
+   border-border…) s'adaptent au sombre SANS édition fichier par fichier. Les
+   valeurs sont alignées sur la palette sombre de la maquette livreur
+   (cf. (driver)/maquette.css : --page/--surface/--line/--soft). */
+[data-space="driver"].dark {
+  --color-background: #06070b;
+  --color-surface: #161823;
+  --color-surface-2: #1f2230;
+  --color-surface-3: #262838;
+  --color-foreground: #f4f5fa;
+  --color-muted: #9ca0b3;
+  --color-subtle: #80849a;
+  --color-border: #262838;
+  --color-border-strong: #343852;
+  color-scheme: dark;
+}
+/* Surfaces « blanc dur » → surface du thème (cartes/feuilles). Les variantes
+   translucides (bg-white/95…) et text-white sur boutons colorés sont exclues. */
+[data-space="driver"].dark :where(.bg-white) {
+  background-color: var(--color-surface);
+}
+/* Chips violettes pâles : assombries + texte violet éclairci pour rester lisible. */
+[data-space="driver"].dark :where(.bg-primary-50, .bg-violet-50) {
+  background-color: rgba(138, 77, 255, 0.14);
+}
+[data-space="driver"].dark :where(.text-primary-700, .text-primary-600) {
+  color: #b493f9;
+}
+
 /* ── Drive : responsive DESKTOP — cadre « téléphone » centré (430px) ──
    Le transform crée un containing block : les feuilles/modales/nav fixed
    internes restent CONTENUES dans le cadre (rendu type app mobile). */

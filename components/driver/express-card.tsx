@@ -238,18 +238,20 @@ export function ExpressCard({
 
       <section className="space-y-3 rounded-[14px] bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,.06)]">
         <header className="flex items-center gap-2">
-          <span className="grid size-8 place-items-center rounded-full bg-[#f5f5f5] text-sm">
+          <span className="grid size-8 place-items-center rounded-full bg-[var(--soft)] text-sm">
             ⚡
           </span>
-          <p className="text-sm font-bold text-[#0a0a0a]">Livraison Express</p>
+          <p className="text-sm font-bold text-[var(--ink)]">
+            Livraison Express
+          </p>
         </header>
 
         {currentOrder ? (
-          <p className="text-xs font-medium text-[#757575]">
+          <p className="text-xs font-medium text-[var(--muted)]">
             Course en cours — suis les étapes sur l&apos;écran plein.
           </p>
         ) : (
-          <p className="text-xs font-medium text-[#757575]">
+          <p className="text-xs font-medium text-[var(--muted)]">
             Aucune course Express ici. Passe en ligne depuis l&apos;accueil :
             les courses proches arrivent automatiquement, où que tu sois dans
             l&apos;app.
