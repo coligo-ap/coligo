@@ -161,7 +161,7 @@ export function RechargesManager({
           {[
             "Les opérateurs (livreur, chauffeur, commerçant) ont un portefeuille. Sous leur seuil, ils sont bloqués — si vous activez le blocage ci-dessous.",
             "Ils rechargent par carte, ou par virement/CCP : vous validez alors leur preuve dans la file ci-dessous.",
-            "Les points de recharge (partenaires) revendent du crédit en espèces. Vous les créez, activez et créditez (bonus = leur rémunération).",
+            "Les Agents Coligo Pay revendent du crédit en espèces. Vous les créez, activez et créditez (bonus = leur rémunération).",
             "Les seuils négatifs par rôle et le plafond de recharge se règlent en bas.",
           ].map((t, i) => (
             <div key={i} className="flex gap-2">
@@ -266,11 +266,11 @@ export function RechargesManager({
         )}
       </Section>
 
-      {/* 3. Points de recharge */}
+      {/* 3. Agents Coligo Pay */}
       <Section
         icon={<Store className="size-4" />}
-        title="Points de recharge"
-        description="Partenaires visibles dans « Où recharger » des opérateurs."
+        title="Agents Coligo Pay"
+        description="Agents Coligo Pay visibles dans « Où recharger » des opérateurs."
       >
         <CreatePartnerForm busy={busy} run={run} merchants={merchants} />
         {partners.length === 0 ? (
@@ -361,7 +361,7 @@ function CreatePartnerForm({
 
       {mode === "promote" ? (
         <div className="space-y-2">
-          <Label>Commerçant à promouvoir en point de recharge</Label>
+          <Label>Commerçant à promouvoir en Agent Coligo Pay</Label>
           <Input
             value={merchQuery}
             onChange={(e) => setMerchQuery(e.target.value)}
@@ -473,8 +473,9 @@ function CreatePartnerForm({
               placeholder="≥ 6 caractères — connexion par téléphone"
             />
             <p className="text-subtle text-xs">
-              Crée le compte du point (connexion sur /partenaire avec le
-              téléphone ci-dessus). Laisser vide = point passif sans connexion.
+              Crée le compte de l’Agent Coligo Pay (connexion sur /partenaire
+              avec le téléphone ci-dessus). Laisser vide = agent passif sans
+              connexion.
             </p>
           </div>
           <div className="space-y-1 sm:col-span-2">

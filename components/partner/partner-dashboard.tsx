@@ -96,7 +96,7 @@ export function PartnerDashboard({
                 {displayName}
               </p>
               <p className="text-xs text-white/70">
-                {address ?? "Point de recharge Coligo"}
+                {address ?? "Agent Coligo Pay"}
               </p>
             </div>
           </div>

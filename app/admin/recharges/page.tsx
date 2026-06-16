@@ -130,7 +130,7 @@ export default async function AdminRechargesPage() {
 
   const partners: PartnerRow[] = partnerRaw.map((p) => ({
     walletId: p.id,
-    displayName: p.display_name ?? "Point de recharge",
+    displayName: p.display_name ?? "Agent Coligo Pay",
     ownerName: p.owner_name,
     registreCommerce: p.registre_commerce,
     address: p.address,
@@ -228,7 +228,7 @@ async function resolveOwnerLabels(
   const byType: Record<string, { walletId: string; ownerId: string }[]> = {};
   for (const w of rows) {
     if (w.owner_type === "partner") {
-      out.set(w.id, w.display_name ?? "Partenaire");
+      out.set(w.id, w.display_name ?? "Agent Coligo Pay");
     } else {
       (byType[w.owner_type] ??= []).push({
         walletId: w.id,

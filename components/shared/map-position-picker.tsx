@@ -532,8 +532,14 @@ export function MapPositionPicker({
       {searchEnabled && mapReady && (
         <div
           className={cn(
-            "absolute right-2 left-2 z-30",
-            fullscreen ? "top-[max(12px,env(safe-area-inset-top))]" : "top-2"
+            "absolute right-2 left-2",
+            // En mode normal, la barre doit rester SOUS le header sticky
+            // (z-30) au scroll : on plafonne à z-10. En plein écran, le
+            // conteneur est en z-[120] (contexte d'empilement isolé) → z-30
+            // sans risque pour passer au-dessus du marqueur/contrôles.
+            fullscreen
+              ? "top-[max(12px,env(safe-area-inset-top))] z-30"
+              : "top-2 z-10"
           )}
         >
           <div className="bg-surface border-border flex items-center gap-2 rounded-full border px-3 py-2 shadow-lg">

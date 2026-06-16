@@ -59,7 +59,7 @@ export function RechargePoints() {
       p_lng: coords.longitude,
       p_limit: 30,
     });
-    if (error) setErr("Impossible de charger les points de recharge.");
+    if (error) setErr("Impossible de charger les Agents Coligo Pay.");
     else setPoints((data ?? []) as Point[]);
     setLoading(false);
   }, [coords]);
@@ -75,7 +75,7 @@ export function RechargePoints() {
       <header className="mb-3">
         <h1 className="text-foreground text-lg font-bold">Où recharger</h1>
         <p className="text-muted text-sm">
-          Points partenaires près de vous pour recharger votre portefeuille en
+          Agents Coligo Pay près de vous pour recharger votre portefeuille en
           espèces.
         </p>
       </header>
@@ -126,12 +126,11 @@ export function RechargePoints() {
         <div className="border-border bg-surface rounded-[16px] border p-6 text-center">
           <Store className="text-subtle mx-auto mb-2 size-6" />
           <p className="text-foreground text-sm font-medium">
-            Aucun point à proximité
+            Aucun Agent Coligo Pay à proximité
           </p>
           <p className="text-muted mt-1 text-xs">
-            Aucun point de recharge n’est disponible près de vous pour le
-            moment. Vous pouvez aussi recharger par carte (Chargily) ou
-            virement.
+            Aucun Agent Coligo Pay n’est disponible près de vous pour le moment.
+            Vous pouvez aussi recharger par carte (Chargily) ou virement.
           </p>
         </div>
       )}
@@ -151,7 +150,7 @@ export function RechargePoints() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-foreground truncate text-sm font-semibold">
-                      {p.display_name ?? "Point de recharge"}
+                      {p.display_name ?? "Agent Coligo Pay"}
                     </p>
                     <span className="bg-primary-50 text-primary-700 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold">
                       {fmtDistance(p.distance_km)}

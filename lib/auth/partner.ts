@@ -77,7 +77,7 @@ export async function getCurrentPartner(): Promise<CurrentPartner | null> {
   return {
     walletId: data.id,
     ownerId: data.owner_id,
-    displayName: data.display_name ?? "Point de recharge",
+    displayName: data.display_name ?? "Agent Coligo Pay",
     status: data.status as CurrentPartner["status"],
     address: data.address ?? null,
     phone: data.phone ?? null,

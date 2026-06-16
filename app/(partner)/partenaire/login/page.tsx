@@ -16,9 +16,7 @@ export default async function PartnerLoginPage() {
         <span className="bg-primary-600 mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl text-white">
           <Store className="size-6" />
         </span>
-        <h1 className="text-foreground text-xl font-bold">
-          Point de recharge Coligo
-        </h1>
+        <h1 className="text-foreground text-xl font-bold">Agent Coligo Pay</h1>
         <p className="text-muted mt-1 text-sm">
           Connectez-vous pour gérer votre solde et vos ventes de crédit.
         </p>
