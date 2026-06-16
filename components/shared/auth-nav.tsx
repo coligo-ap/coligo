@@ -1,27 +1,5 @@
 import Link from "next/link";
-import {
-  ArrowLeft,
-  HandCoins,
-  Lock,
-  ShoppingCart,
-  Store,
-  Truck,
-  User as UserIcon,
-} from "lucide-react";
-
-/** Lien « Je suis partenaire Coligo Pay » (point de recharge) — réutilisé
- *  dans toutes les variantes du sélecteur de rôle. */
-function PartnerLink() {
-  return (
-    <Link
-      href="/partenaire/login"
-      className="border-border hover:bg-surface-2 hidden items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium sm:inline-flex lg:text-sm"
-    >
-      <HandCoins className="size-3.5" />
-      Je suis partenaire Coligo Pay
-    </Link>
-  );
-}
+import { ArrowLeft, Lock, ShoppingCart, User as UserIcon } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { PartnerSheetButton } from "@/components/shared/partner-sheet";
@@ -53,50 +31,20 @@ export function AuthNavBar({
             <ArrowLeft className="size-4" />
             Marketplace
           </Link>
-          {variant === "merchant" && (
-            <>
-              <Link
-                href="/se-connecter"
-                className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium lg:text-sm"
-              >
-                <UserIcon className="size-3.5" />
-                Je suis client
-              </Link>
-              <Link
-                href="/driver/login"
-                className="border-border hover:bg-surface-2 hidden items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium sm:inline-flex lg:text-sm"
-              >
-                <Truck className="size-3.5" />
-                Livreur
-              </Link>
-              <PartnerLink />
-            </>
+          {/* Switch de rôle unifié sur tous les portails : on ne garde QUE
+              « Je suis client » (sauf sur le portail client lui-même) ; tous
+              les autres profils (commerçant, chauffeur, livreur, Agent Coligo
+              Pay) sont regroupés dans la feuille « Devenir partenaire ». */}
+          {variant !== "customer" && (
+            <Link
+              href="/se-connecter"
+              className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium lg:text-sm"
+            >
+              <UserIcon className="size-3.5" />
+              Je suis client
+            </Link>
           )}
-          {variant === "customer" && (
-            <>
-              <PartnerSheetButton />
-              <PartnerLink />
-            </>
-          )}
-          {variant === "driver" && (
-            <>
-              <Link
-                href="/login"
-                className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium lg:text-sm"
-              >
-                <Store className="size-3.5" />
-                Je suis commerçant
-              </Link>
-              <Link
-                href="/se-connecter"
-                className="border-border hover:bg-surface-2 hidden items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium sm:inline-flex lg:text-sm"
-              >
-                <UserIcon className="size-3.5" />
-                Je suis client
-              </Link>
-              <PartnerLink />
-            </>
-          )}
+          <PartnerSheetButton />
           <Link
             href="/cart"
             className="hover:bg-surface-2 hidden rounded-full p-2 lg:inline-flex"

@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import {
   Car,
   ChevronRight,
+  HandCoins,
   Store,
   Truck,
   Users,
@@ -54,6 +55,14 @@ const PARTNER_ROLES: PartnerRole[] = [
     gradient: "from-[#EC4899] to-[#FF2D7A]",
     href: "/driver/login",
   },
+  {
+    key: "coligo-pay-agent",
+    title: "Agent Coligo Pay",
+    desc: "Point de recharge : vendez du crédit et gérez votre solde.",
+    icon: HandCoins,
+    gradient: "from-[#F4B740] to-[#E0922F]",
+    href: "/partenaire/login",
+  },
 ];
 
 /**
@@ -61,7 +70,19 @@ const PARTNER_ROLES: PartnerRole[] = [
  * + bottom sheet de sélection du profil partenaire. Remplace les anciens
  * boutons « Je suis commerçant / Je suis chauffeur » du bandeau d'auth.
  */
-export function PartnerSheetButton() {
+const DEFAULT_TRIGGER_CLASS =
+  "border-primary-600 text-primary-700 hover:bg-primary-600/10 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium transition-colors lg:text-sm";
+
+export function PartnerSheetButton({
+  label = "Devenir partenaire",
+  className,
+}: {
+  /** Libellé du bouton (défaut « Devenir partenaire »). */
+  label?: string;
+  /** Classes du déclencheur — permet d'adapter le bouton à chaque thème
+   *  (nav d'auth, header Drive…) sans changer la feuille. */
+  className?: string;
+} = {}) {
   const [open, setOpen] = useState(false);
   // Le portail n'est dispo qu'après montage côté client (document.body).
   const [mounted, setMounted] = useState(false);
@@ -101,10 +122,10 @@ export function PartnerSheetButton() {
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="border-primary-600 text-primary-700 hover:bg-primary-600/10 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium transition-colors lg:text-sm"
+        className={className ?? DEFAULT_TRIGGER_CLASS}
       >
         <Users className="size-3.5" />
-        Devenir partenaire
+        {label}
       </button>
 
       {open &&
@@ -144,7 +165,7 @@ export function PartnerSheetButton() {
                 <button
                   type="button"
                   onClick={close}
-                  className="text-muted hover:bg-surface-2 -mr-1 flex size-9 shrink-0 items-center justify-center rounded-full transition-colors"
+                  className="text-muted hover:bg-surface-2 -me-1 flex size-9 shrink-0 items-center justify-center rounded-full transition-colors"
                   aria-label="Fermer"
                 >
                   <X className="size-5" />

@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useState, useActionState } from "react";
-import { ArrowLeft, LogOut, Loader2, Store, User } from "lucide-react";
+import { ArrowLeft, LogOut, Loader2, User } from "lucide-react";
 import { VIOLET } from "@/components/customer/drive/drive-modals";
 import { BRAND_ASSETS } from "@/lib/config/brand-assets";
+import { PartnerSheetButton } from "@/components/shared/partner-sheet";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import {
   chauffeurLogin,
@@ -61,12 +62,9 @@ export function DAuth({
           >
             <User className="size-3.5" /> Client
           </Link>
-          <Link
-            href="/login"
-            className="flex items-center gap-1.5 rounded-full border border-[var(--d-line)] px-3 py-2 text-[11px] font-bold text-[var(--d-muted)]"
-          >
-            <Store className="size-3.5" /> Commerçant
-          </Link>
+          {/* Même feuille « Devenir partenaire » que les autres portails, mais
+              déclencheur habillé en pill Drive (violet plateforme). */}
+          <PartnerSheetButton className="flex items-center gap-1.5 rounded-full border border-[#6C2BD9] px-3 py-2 text-[11px] font-bold whitespace-nowrap text-[#6C2BD9]" />
         </div>
       </div>
       <div className="mb-4 text-center">

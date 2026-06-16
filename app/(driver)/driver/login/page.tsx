@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Store, User as UserIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { DriverLoginForm } from "@/components/driver/login-form";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
@@ -53,23 +52,6 @@ export default async function DriverLoginPage() {
                 className="text-primary-700 font-medium hover:underline"
               >
                 Créer un compte
-              </Link>
-            </div>
-
-            <div className="border-border mt-2 grid grid-cols-2 gap-2 border-t pt-4 text-xs">
-              <Link
-                href="/login"
-                className="border-border hover:bg-surface-2 inline-flex items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2 font-medium"
-              >
-                <Store className="size-3.5" />
-                Espace commerçant
-              </Link>
-              <Link
-                href="/se-connecter"
-                className="border-border hover:bg-surface-2 inline-flex items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2 font-medium"
-              >
-                <UserIcon className="size-3.5" />
-                Je suis client
               </Link>
             </div>
           </div>

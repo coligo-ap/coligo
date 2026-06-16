@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ArrowRight, Car, Lock, Mail } from "lucide-react";
+import { ArrowRight, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -204,21 +204,6 @@ function CustomerLoginInner() {
                 <div className="mt-6 text-center text-xs">
                   <Link href="/" className="text-muted hover:text-foreground">
                     {t("backToHome")}
-                  </Link>
-                  <span className="text-muted mx-2">·</span>
-                  <Link
-                    href="/login"
-                    className="text-muted hover:text-foreground"
-                  >
-                    {t("iAmMerchant")}
-                  </Link>
-                  <span className="text-muted mx-2">·</span>
-                  <Link
-                    href="/chauffeur"
-                    className="text-muted hover:text-foreground inline-flex items-center gap-1"
-                  >
-                    <Car className="size-3.5" />
-                    {t("iAmDriver")}
                   </Link>
                 </div>
               </div>

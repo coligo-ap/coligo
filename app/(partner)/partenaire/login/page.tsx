@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Store } from "lucide-react";
+import { Store, User as UserIcon } from "lucide-react";
 import { getCurrentPartner } from "@/lib/auth/partner";
 import { PartnerLoginForm } from "@/components/partner/login-form";
+import { PartnerSheetButton } from "@/components/shared/partner-sheet";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,18 @@ export default async function PartnerLoginPage() {
       </div>
       <div className="border-border bg-surface rounded-[16px] border p-5 shadow-sm">
         <PartnerLoginForm />
+      </div>
+
+      {/* Switch de rôle cohérent avec les autres portails. */}
+      <div className="mt-5 flex items-center justify-center gap-2">
+        <Link
+          href="/se-connecter"
+          className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium"
+        >
+          <UserIcon className="size-3.5" />
+          Je suis client
+        </Link>
+        <PartnerSheetButton />
       </div>
     </div>
   );

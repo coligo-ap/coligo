@@ -189,24 +189,6 @@ function LoginContent() {
                   Créer un compte commerçant
                 </Link>
               </div>
-
-              <div className="border-border text-muted mt-6 border-t pt-4 text-center text-xs">
-                Tu es livreur ?{" "}
-                <Link
-                  href="/driver/login"
-                  className="text-primary-700 font-medium hover:underline"
-                >
-                  Se connecter
-                </Link>{" "}
-                ·{" "}
-                <Link
-                  href="/driver/signup"
-                  className="text-primary-700 font-medium hover:underline"
-                >
-                  S&apos;inscrire
-                </Link>{" "}
-                en tant que livreur
-              </div>
             </div>
           </div>
         </main>
