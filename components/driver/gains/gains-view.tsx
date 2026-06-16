@@ -64,7 +64,7 @@ function startOfMonth(d: Date) {
 }
 
 export function GainsView({ entries }: { entries: Entry[] }) {
-  const [period, setPeriod] = useState<Period>("week");
+  const [period, setPeriod] = useState<Period>("day");
 
   const { total, count, avg, cashCollected, deltaPct, bars } = useMemo(() => {
     const now = new Date();
