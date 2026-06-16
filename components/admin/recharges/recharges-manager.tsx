@@ -152,6 +152,28 @@ export function RechargesManager({
 
   return (
     <div className="space-y-4">
+      {/* Bandeau explicatif du flux */}
+      <div className="border-primary-200 bg-primary-50 rounded-[16px] border p-4">
+        <p className="text-primary-800 mb-2 text-sm font-bold">
+          Comment fonctionne ce module
+        </p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {[
+            "Les opérateurs (livreur, chauffeur, commerçant) ont un portefeuille. Sous leur seuil, ils sont bloqués — si vous activez le blocage ci-dessous.",
+            "Ils rechargent par carte, ou par virement/CCP : vous validez alors leur preuve dans la file ci-dessous.",
+            "Les points de recharge (partenaires) revendent du crédit en espèces. Vous les créez, activez et créditez (bonus = leur rémunération).",
+            "Les seuils négatifs par rôle et le plafond de recharge se règlent en bas.",
+          ].map((t, i) => (
+            <div key={i} className="flex gap-2">
+              <span className="bg-primary-600 flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white">
+                {i + 1}
+              </span>
+              <p className="text-primary-900 text-xs">{t}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* 1. Enforcement */}
       <Section
         icon={<Power className="size-4" />}

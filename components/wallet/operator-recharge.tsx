@@ -40,7 +40,13 @@ const ENTRY_LABEL: Record<string, string> = {
  * partenaire) : solde, recharge par carte (Chargily) ou virement/CCP avec
  * preuve, et historique. Réutilisable dans les 3 espaces.
  */
-export function OperatorRecharge() {
+export function OperatorRecharge({
+  hideBalance = false,
+  title = "Recharger mon portefeuille",
+}: {
+  hideBalance?: boolean;
+  title?: string;
+} = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
@@ -178,32 +184,34 @@ export function OperatorRecharge() {
   return (
     <section className="mx-auto mb-6 w-full max-w-md">
       {/* Solde */}
-      <div className="border-border bg-surface rounded-[16px] border p-4 shadow-sm">
-        <div className="flex items-center gap-2">
-          <span className="bg-primary-50 text-primary-600 flex size-9 items-center justify-center rounded-full">
-            <Wallet className="size-5" />
-          </span>
-          <div>
-            <p className="text-muted text-xs">Solde du portefeuille</p>
-            <p
-              className={`text-xl font-bold tabular-nums ${eff < 0 ? "text-danger-700" : "text-foreground"}`}
-            >
-              {formatDA(eff)}
-            </p>
+      {!hideBalance && (
+        <div className="border-border bg-surface rounded-[16px] border p-4 shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="bg-primary-50 text-primary-600 flex size-9 items-center justify-center rounded-full">
+              <Wallet className="size-5" />
+            </span>
+            <div>
+              <p className="text-muted text-xs">Solde du portefeuille</p>
+              <p
+                className={`text-xl font-bold tabular-nums ${eff < 0 ? "text-danger-700" : "text-foreground"}`}
+              >
+                {formatDA(eff)}
+              </p>
+            </div>
           </div>
+          {state.debtDa > 0 && (
+            <p className="text-muted mt-2 text-xs">
+              Dont {formatDA(state.debtDa)} dûs à la plateforme.
+            </p>
+          )}
+          {!state.canOperate && (
+            <p className="text-danger-700 bg-danger-100 mt-2 flex items-start gap-2 rounded-[12px] p-2.5 text-xs">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              Solde insuffisant : rechargez pour continuer à travailler.
+            </p>
+          )}
         </div>
-        {state.debtDa > 0 && (
-          <p className="text-muted mt-2 text-xs">
-            Dont {formatDA(state.debtDa)} dûs à la plateforme.
-          </p>
-        )}
-        {!state.canOperate && (
-          <p className="text-danger-700 bg-danger-100 mt-2 flex items-start gap-2 rounded-[12px] p-2.5 text-xs">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            Solde insuffisant : rechargez pour continuer à travailler.
-          </p>
-        )}
-      </div>
+      )}
 
       {/* Retour Chargily */}
       {topupReturn === "checking" && (
@@ -224,10 +232,10 @@ export function OperatorRecharge() {
       )}
 
       {/* Recharger */}
-      <div className="border-border bg-surface mt-3 rounded-[16px] border p-4 shadow-sm">
-        <h2 className="text-foreground mb-3 text-sm font-bold">
-          Recharger mon portefeuille
-        </h2>
+      <div
+        className={`border-border bg-surface rounded-[16px] border p-4 shadow-sm ${hideBalance ? "" : "mt-3"}`}
+      >
+        <h2 className="text-foreground mb-3 text-sm font-bold">{title}</h2>
 
         <div className="bg-surface-2 mb-3 flex gap-1 rounded-[10px] p-1 text-sm">
           {(["card", "manual"] as const).map((t) => (

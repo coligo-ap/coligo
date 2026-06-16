@@ -2,9 +2,11 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import {
-  ArrowUpRight,
-  Banknote,
+  ArrowDownToLine,
+  CheckCircle2,
   Gift,
+  HandCoins,
+  Info,
   Loader2,
   LogOut,
   Search,
@@ -30,6 +32,8 @@ import {
   setPin as setPinAction,
   type PartnerStats,
 } from "@/app/(partner)/actions";
+
+const BRAND = "linear-gradient(135deg,#5B2EFF 0%,#6C2BD9 100%)";
 
 const ENTRY_LABEL: Record<string, string> = {
   topup_chargily: "Recharge carte",
@@ -58,6 +62,7 @@ export function PartnerDashboard({
     hasPin: false,
     locked: false,
   });
+  const [showHelp, setShowHelp] = useState(false);
 
   const refresh = useCallback(async () => {
     const [s, e, p] = await Promise.all([
@@ -75,83 +80,128 @@ export function PartnerDashboard({
   }, [refresh]);
 
   return (
-    <div className="mx-auto max-w-md space-y-4 p-4">
-      {/* En-tête */}
-      <header className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="bg-primary-600 flex size-10 items-center justify-center rounded-2xl text-white">
-            <Store className="size-5" />
-          </span>
-          <div>
-            <h1 className="text-foreground text-base leading-tight font-bold">
-              {displayName}
-            </h1>
-            <p className="text-muted text-xs">
-              {address ?? "Point de recharge"}
-            </p>
+    <div className="mx-auto max-w-2xl space-y-4 p-4">
+      {/* ===== HERO ===== */}
+      <div
+        className="relative overflow-hidden rounded-[20px] p-5 text-white shadow-lg"
+        style={{ background: BRAND }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex size-10 items-center justify-center rounded-2xl bg-white/20">
+              <Store className="size-5" />
+            </span>
+            <div>
+              <p className="text-[15px] leading-tight font-bold">
+                {displayName}
+              </p>
+              <p className="text-xs text-white/70">
+                {address ?? "Point de recharge Coligo"}
+              </p>
+            </div>
           </div>
+          <form action={partnerLogout}>
+            <button
+              type="submit"
+              className="flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium hover:bg-white/25"
+            >
+              <LogOut className="size-3.5" /> Quitter
+            </button>
+          </form>
         </div>
-        <form action={partnerLogout}>
-          <button
-            type="submit"
-            className="text-muted hover:text-foreground flex items-center gap-1 text-xs"
-          >
-            <LogOut className="size-4" /> Quitter
-          </button>
-        </form>
-      </header>
 
-      {status !== "active" && (
-        <div className="text-danger-700 bg-danger-100 rounded-[12px] p-3 text-sm font-medium">
-          Compte {status === "suspended" ? "suspendu" : "désactivé"} — contactez
-          Coligo.
+        <p className="mt-4 text-xs text-white/70">Solde disponible</p>
+        <p className="text-3xl font-extrabold tabular-nums">
+          {stats ? formatDA(stats.balanceDa) : "…"}
+        </p>
+
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <HeroChip
+            icon={<Gift className="size-3.5" />}
+            label="Bonus reçus"
+            value={stats ? formatDA(stats.totalBonusDa) : "…"}
+          />
+          <HeroChip
+            icon={<Send className="size-3.5" />}
+            label="Revendu"
+            value={stats ? formatDA(stats.totalSoldDa) : "…"}
+          />
+          <HeroChip
+            icon={<HandCoins className="size-3.5" />}
+            label="Ventes"
+            value={stats ? String(stats.salesCount) : "…"}
+          />
         </div>
-      )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard
-          icon={<Banknote className="size-4" />}
-          label="Solde disponible"
-          value={stats ? formatDA(stats.balanceDa) : "…"}
-          highlight
-        />
-        <StatCard
-          icon={<Gift className="size-4" />}
-          label="Bonus reçus"
-          value={stats ? formatDA(stats.totalBonusDa) : "…"}
-        />
-        <StatCard
-          icon={<Send className="size-4" />}
-          label="Total revendu"
-          value={stats ? formatDA(stats.totalSoldDa) : "…"}
-        />
-        <StatCard
-          icon={<ArrowUpRight className="size-4" />}
-          label="Ventes"
-          value={stats ? String(stats.salesCount) : "…"}
-        />
+        {status !== "active" && (
+          <div className="mt-3 rounded-[12px] bg-white/15 p-2.5 text-xs font-semibold">
+            ⚠️ Compte {status === "suspended" ? "suspendu" : "désactivé"} —
+            contactez Coligo pour le réactiver.
+          </div>
+        )}
       </div>
 
-      {/* PIN requis pour vendre */}
+      {/* ===== COMMENT ÇA MARCHE ===== */}
+      <div className="border-border bg-surface rounded-[16px] border">
+        <button
+          type="button"
+          onClick={() => setShowHelp((v) => !v)}
+          className="flex w-full items-center gap-2 p-4 text-left"
+        >
+          <Info className="text-primary-600 size-4 shrink-0" />
+          <span className="text-foreground flex-1 text-sm font-semibold">
+            Comment ça marche ?
+          </span>
+          <span className="text-muted text-xs">
+            {showHelp ? "Masquer" : "Voir"}
+          </span>
+        </button>
+        {showHelp && (
+          <div className="space-y-3 px-4 pb-4">
+            <Step
+              n={1}
+              icon={<ArrowDownToLine className="size-4" />}
+              title="Rechargez votre crédit"
+              desc="Approvisionnez votre solde par carte (Chargily) ou par virement/CCP avec preuve."
+            />
+            <Step
+              n={2}
+              icon={<Send className="size-4" />}
+              title="Revendez aux livreurs & chauffeurs"
+              desc="Ils vous paient en espèces, vous leur envoyez le crédit depuis votre solde (avec votre PIN)."
+            />
+            <Step
+              n={3}
+              icon={<Gift className="size-4" />}
+              title="Coligo vous récompense"
+              desc="Vous recevez des bonus selon votre volume. Tout est tracé dans l'historique."
+            />
+          </div>
+        )}
+      </div>
+
+      {/* PIN requis */}
       {!pin.hasPin && <PinSetup onDone={refresh} />}
 
-      {/* Vendre du crédit */}
+      {/* ===== VENDRE ===== */}
       <SellCredit
         canSell={pin.hasPin && status === "active"}
         onSold={refresh}
       />
 
-      {/* Recharger mon solde (carte / virement-CCP) */}
+      {/* ===== RECHARGER (sans double carte de solde) ===== */}
       <Suspense fallback={null}>
-        <OperatorRecharge />
+        <OperatorRecharge
+          hideBalance
+          title="Recharger mon crédit (carte ou virement)"
+        />
       </Suspense>
 
-      {/* Historique */}
+      {/* ===== HISTORIQUE ===== */}
       <div className="border-border bg-surface rounded-[16px] border p-4 shadow-sm">
         <h2 className="text-foreground mb-2 text-sm font-bold">Historique</h2>
         {entries.length === 0 ? (
-          <p className="text-muted text-sm">Aucune opération.</p>
+          <p className="text-muted text-sm">Aucune opération pour le moment.</p>
         ) : (
           <ul className="divide-border divide-y">
             {entries.map((e, i) => (
@@ -178,35 +228,56 @@ export function PartnerDashboard({
       </div>
 
       {phone && (
-        <p className="text-subtle text-center text-xs">Compte : {phone}</p>
+        <p className="text-subtle text-center text-xs">
+          Connecté · {phone.replace(/(\d{4})(\d+)(\d{2})/, "$1•••$3")}
+        </p>
       )}
     </div>
   );
 }
 
-function StatCard({
+function HeroChip({
   icon,
   label,
   value,
-  highlight,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
-  highlight?: boolean;
 }) {
   return (
-    <div
-      className={`rounded-[16px] border p-3 ${highlight ? "border-primary-200 bg-primary-50" : "border-border bg-surface"}`}
-    >
-      <span
-        className={`flex items-center gap-1 text-xs ${highlight ? "text-primary-700" : "text-muted"}`}
-      >
+    <div className="rounded-[12px] bg-white/15 p-2">
+      <span className="flex items-center gap-1 text-[10px] text-white/70">
         {icon} {label}
       </span>
-      <p className="text-foreground mt-1 text-lg font-bold tabular-nums">
-        {value}
-      </p>
+      <p className="mt-0.5 text-sm font-bold tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+function Step({
+  n,
+  icon,
+  title,
+  desc,
+}: {
+  n: number;
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="flex gap-3">
+      <span className="bg-primary-50 text-primary-600 relative flex size-9 shrink-0 items-center justify-center rounded-full">
+        {icon}
+        <span className="bg-primary-600 absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full text-[9px] font-bold text-white">
+          {n}
+        </span>
+      </span>
+      <div>
+        <p className="text-foreground text-sm font-semibold">{title}</p>
+        <p className="text-muted text-xs">{desc}</p>
+      </div>
     </div>
   );
 }
@@ -217,11 +288,12 @@ function PinSetup({ onDone }: { onDone: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   return (
     <div className="border-warning-200 bg-warning-100 rounded-[16px] border p-4">
-      <p className="text-warning-700 mb-2 flex items-center gap-2 text-sm font-semibold">
+      <p className="text-warning-700 mb-1 flex items-center gap-2 text-sm font-semibold">
         <ShieldCheck className="size-4" /> Définissez votre code PIN
       </p>
       <p className="text-warning-700 mb-2 text-xs">
-        Un PIN à 4 chiffres est requis pour vendre du crédit en toute sécurité.
+        Un PIN à 4 chiffres protège chaque vente de crédit. Indispensable avant
+        de vendre.
       </p>
       <div className="flex gap-2">
         <Input
@@ -230,8 +302,9 @@ function PinSetup({ onDone }: { onDone: () => void }) {
             setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
           }
           inputMode="numeric"
+          type="password"
           placeholder="••••"
-          className="bg-surface"
+          className="bg-surface max-w-[140px] text-center text-lg tracking-[0.4em]"
         />
         <Button
           disabled={busy || pin.length !== 4}
@@ -247,7 +320,7 @@ function PinSetup({ onDone }: { onDone: () => void }) {
           }}
         >
           {busy && <Loader2 className="size-4 animate-spin" />}
-          Valider
+          Enregistrer
         </Button>
       </div>
       {err && <p className="text-danger-700 mt-2 text-xs">{err}</p>}
@@ -275,6 +348,13 @@ function SellCredit({
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  const reset = () => {
+    setBuyer(null);
+    setPhone("");
+    setAmount("");
+    setPin("");
+  };
+
   const search = async () => {
     setSearching(true);
     setErr(null);
@@ -282,7 +362,7 @@ function SellCredit({
     setBuyer(null);
     const b = await findBuyer(phone);
     setSearching(false);
-    if (!b) setErr("Aucun livreur/chauffeur avec ce numéro.");
+    if (!b) setErr("Aucun livreur / chauffeur trouvé avec ce numéro.");
     else
       setBuyer({ walletId: b.walletId, name: b.name, ownerType: b.ownerType });
   };
@@ -303,84 +383,138 @@ function SellCredit({
       setErr(res.error ?? "Échec.");
       return;
     }
-    setMsg(`Crédit envoyé à ${buyer.name ?? "l'opérateur"} ✓`);
-    setAmount("");
-    setPin("");
-    setBuyer(null);
-    setPhone("");
+    setMsg(
+      `${formatDA(Number(amount))} envoyés à ${buyer.name ?? "l'opérateur"} ✓`
+    );
+    reset();
     onSold();
   };
 
   return (
     <div className="border-border bg-surface rounded-[16px] border p-4 shadow-sm">
-      <h2 className="text-foreground mb-3 flex items-center gap-2 text-sm font-bold">
-        <Send className="size-4" /> Vendre du crédit
+      <h2 className="text-foreground flex items-center gap-2 text-sm font-bold">
+        <span className="bg-primary-600 flex size-7 items-center justify-center rounded-full text-white">
+          <Send className="size-4" />
+        </span>
+        Vendre du crédit
       </h2>
-      {!canSell && (
-        <p className="text-muted mb-2 text-xs">
-          Définissez votre PIN et assurez-vous que votre compte est actif pour
-          vendre.
-        </p>
-      )}
-      <div className="flex gap-2">
-        <Input
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="Téléphone du bénéficiaire"
-          inputMode="tel"
-          disabled={!canSell}
-        />
-        <Button
-          variant="outline"
-          disabled={!canSell || searching || !phone.trim()}
-          onClick={() => void search()}
-        >
-          {searching ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Search className="size-4" />
-          )}
-        </Button>
-      </div>
+      <p className="text-muted mt-1 mb-3 text-xs">
+        Le client vous paie en espèces, vous lui envoyez le crédit sur son
+        compte Coligo.
+      </p>
 
-      {buyer && (
-        <div className="mt-3 space-y-2">
-          <div className="bg-surface-2 rounded-[12px] p-3 text-sm">
-            <span className="text-foreground font-semibold">
-              {buyer.name ?? "Opérateur"}
-            </span>
-            <Badge tone="neutral" className="ml-2">
-              {buyer.ownerType === "driver" ? "Livreur" : "Chauffeur"}
-            </Badge>
+      {!canSell ? (
+        <p className="text-warning-700 bg-warning-100 rounded-[12px] p-2.5 text-xs">
+          Définissez d&apos;abord votre PIN (ci-dessus) et assurez-vous que
+          votre compte est actif.
+        </p>
+      ) : (
+        <>
+          {/* Étape 1 — trouver le bénéficiaire */}
+          <p className="text-subtle mb-1 text-[11px] font-semibold uppercase">
+            1 · Bénéficiaire
+          </p>
+          <div className="flex gap-2">
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Téléphone du livreur / chauffeur"
+              inputMode="tel"
+              disabled={!!buyer}
+            />
+            {buyer ? (
+              <Button variant="outline" onClick={reset}>
+                Changer
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                disabled={searching || !phone.trim()}
+                onClick={() => void search()}
+              >
+                {searching ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Search className="size-4" />
+                )}
+              </Button>
+            )}
           </div>
-          <Input
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            inputMode="numeric"
-            placeholder="Montant à envoyer (DA)"
-          />
-          <Input
-            value={pin}
-            onChange={(e) =>
-              setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
-            }
-            inputMode="numeric"
-            type="password"
-            placeholder="Votre PIN"
-          />
-          <Button
-            className="w-full"
-            disabled={busy || !amount || pin.length !== 4}
-            onClick={() => void sell()}
-          >
-            {busy && <Loader2 className="size-4 animate-spin" />}
-            Envoyer le crédit
-          </Button>
-        </div>
+
+          {buyer && (
+            <div className="mt-3 space-y-3">
+              <div className="bg-success-100 flex items-center gap-2 rounded-[12px] p-3">
+                <CheckCircle2 className="text-success-700 size-4 shrink-0" />
+                <span className="text-foreground text-sm font-semibold">
+                  {buyer.name ?? "Opérateur"}
+                </span>
+                <Badge tone="neutral">
+                  {buyer.ownerType === "driver" ? "Livreur" : "Chauffeur"}
+                </Badge>
+              </div>
+
+              {/* Étape 2 — montant */}
+              <div>
+                <p className="text-subtle mb-1 text-[11px] font-semibold uppercase">
+                  2 · Montant payé en espèces
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {[500, 1000, 2000, 5000].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setAmount(String(v))}
+                      className={
+                        Number(amount) === v
+                          ? "border-primary-600 text-primary-700 bg-primary-50 rounded-full border px-3 py-1 text-sm font-semibold"
+                          : "border-border text-foreground rounded-full border px-3 py-1 text-sm"
+                      }
+                    >
+                      {formatDA(v)}
+                    </button>
+                  ))}
+                </div>
+                <Input
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="Autre montant (DA)"
+                  className="mt-2"
+                />
+              </div>
+
+              {/* Étape 3 — PIN + envoyer */}
+              <div>
+                <p className="text-subtle mb-1 text-[11px] font-semibold uppercase">
+                  3 · Confirmez avec votre PIN
+                </p>
+                <Input
+                  value={pin}
+                  onChange={(e) =>
+                    setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+                  }
+                  inputMode="numeric"
+                  type="password"
+                  placeholder="••••"
+                  className="max-w-[140px] text-center text-lg tracking-[0.4em]"
+                />
+              </div>
+
+              <Button
+                className="w-full"
+                disabled={busy || !amount || pin.length !== 4}
+                onClick={() => void sell()}
+              >
+                {busy && <Loader2 className="size-4 animate-spin" />}
+                Envoyer {amount ? formatDA(Number(amount)) : "le crédit"}
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       {msg && (
-        <p className="text-success-700 mt-2 text-sm font-medium">{msg}</p>
+        <p className="text-success-700 mt-2 text-sm font-semibold">{msg}</p>
       )}
       {err && <p className="text-danger-700 mt-2 text-sm font-medium">{err}</p>}
     </div>
