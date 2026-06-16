@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   ArrowLeft,
-  Car,
   HandCoins,
   Lock,
   ShoppingCart,
@@ -25,6 +24,7 @@ function PartnerLink() {
 }
 import { Logo } from "@/components/shared/logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
+import { PartnerSheetButton } from "@/components/shared/partner-sheet";
 
 /**
  * Bandeau de navigation MINIMAL pour les pages d'auth (commerçant, client,
@@ -74,20 +74,7 @@ export function AuthNavBar({
           )}
           {variant === "customer" && (
             <>
-              <Link
-                href="/login"
-                className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium lg:text-sm"
-              >
-                <Store className="size-3.5" />
-                Je suis commerçant
-              </Link>
-              <Link
-                href="/chauffeur"
-                className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium lg:text-sm"
-              >
-                <Car className="size-3.5" />
-                Je suis chauffeur
-              </Link>
+              <PartnerSheetButton />
               <PartnerLink />
             </>
           )}

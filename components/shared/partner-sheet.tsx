@@ -1,0 +1,184 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import {
+  Car,
+  ChevronRight,
+  Store,
+  Truck,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+/**
+ * Rôles partenaires listés dans la bottom sheet « Rejoindre Coligo ».
+ * 100 % piloté par ce tableau : ajouter un futur profil = UNE ligne ici,
+ * zéro JSX à dupliquer.
+ */
+type PartnerRole = {
+  key: string;
+  title: string;
+  desc: string;
+  icon: LucideIcon;
+  /** Dégradé de la pastille (classes Tailwind from/to, couleurs de marque). */
+  gradient: string;
+  href: string;
+};
+
+const PARTNER_ROLES: PartnerRole[] = [
+  {
+    key: "merchant",
+    title: "Commerçant",
+    desc: "Vendez vos produits et recevez vos commandes en direct.",
+    icon: Store,
+    gradient: "from-[#5B5BE6] to-[#8A4DFF]",
+    href: "/login",
+  },
+  {
+    key: "chauffeur",
+    title: "Chauffeur",
+    desc: "Transportez des passagers avec Coligo Drive.",
+    icon: Car,
+    gradient: "from-[#16B364] to-[#0E9F6E]",
+    href: "/chauffeur/login",
+  },
+  {
+    key: "driver",
+    title: "Livreur",
+    desc: "Livrez les commandes et gérez vos tournées.",
+    icon: Truck,
+    gradient: "from-[#EC4899] to-[#FF2D7A]",
+    href: "/driver/login",
+  },
+];
+
+/**
+ * Bouton « Devenir partenaire » (bordure violette de marque, icône 2 personnes)
+ * + bottom sheet de sélection du profil partenaire. Remplace les anciens
+ * boutons « Je suis commerçant / Je suis chauffeur » du bandeau d'auth.
+ */
+export function PartnerSheetButton() {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  function close() {
+    setOpen(false);
+    // Restitue le focus au déclencheur (accessibilité).
+    triggerRef.current?.focus();
+  }
+
+  // Ouverture : verrou du scroll arrière-plan + Échap pour fermer + focus
+  // déplacé dans la feuille.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") close();
+    }
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    panelRef.current?.focus();
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open]);
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#5B5BE6] px-3 py-1.5 text-xs font-medium text-[#5B5BE6] transition-colors hover:bg-[#5B5BE6]/10 lg:text-sm"
+      >
+        <Users className="size-3.5" />
+        Devenir partenaire
+      </button>
+
+      {open && (
+        <div
+          className="partner-overlay-in fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) close();
+          }}
+          role="dialog"
+          aria-modal
+          aria-labelledby="partner-sheet-title"
+        >
+          <div
+            ref={panelRef}
+            tabIndex={-1}
+            className="partner-sheet-in bg-surface flex w-full max-w-md flex-col overflow-hidden rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl outline-none sm:rounded-[20px]"
+          >
+            {/* Poignée (mobile) */}
+            <div className="flex justify-center pt-3 sm:hidden" aria-hidden>
+              <span className="bg-border h-1 w-10 rounded-full" />
+            </div>
+
+            <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-1">
+              <div>
+                <h2
+                  id="partner-sheet-title"
+                  className="text-foreground font-display text-lg font-bold"
+                >
+                  Rejoindre Coligo en tant que…
+                </h2>
+                <p className="text-muted mt-0.5 text-sm">
+                  Choisissez votre profil pour démarrer.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={close}
+                className="text-muted hover:bg-surface-2 -mr-1 flex size-9 shrink-0 items-center justify-center rounded-full transition-colors"
+                aria-label="Fermer"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <ul className="flex flex-col gap-1 p-3">
+              {PARTNER_ROLES.map((role) => {
+                const Icon = role.icon;
+                return (
+                  <li key={role.key}>
+                    <Link
+                      href={role.href}
+                      onClick={close}
+                      className="group hover:bg-surface-2 focus-visible:bg-surface-2 flex items-center gap-3.5 rounded-[14px] p-3 transition-colors outline-none"
+                    >
+                      <span
+                        className={cn(
+                          "flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br text-white shadow-sm",
+                          role.gradient
+                        )}
+                      >
+                        <Icon className="size-6" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="text-foreground font-display block text-sm font-bold">
+                          {role.title}
+                        </span>
+                        <span className="text-muted mt-0.5 block text-xs leading-snug">
+                          {role.desc}
+                        </span>
+                      </span>
+                      <ChevronRight className="text-subtle size-5 shrink-0 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
