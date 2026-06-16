@@ -47,7 +47,7 @@ export function DriverHomeMaquette({
   freezeReason?: string | null;
 }) {
   const online = useDriverOnline();
-  const [busy, start] = useTransition();
+  const [, start] = useTransition();
   const router = useRouter();
   const [onlineLabel, setOnlineLabel] = useState("0h00");
   // Affiche le message « compte gelé » si le serveur refuse la mise en ligne.
@@ -85,32 +85,32 @@ export function DriverHomeMaquette({
 
   const toggle = () => {
     const next = !online;
-    // AUCUN toast de statut : le bouton vert + le chip suffisent (cf. prompt).
-    if (next) {
-      // Compte gelé : on refuse immédiatement la mise en ligne + message.
-      if (isFrozen) {
+    // Compte gelé : refus immédiat de la mise en ligne (le passage HORS LIGNE
+    // reste toujours permis).
+    if (next && isFrozen) {
+      setFrozenMsg(true);
+      return;
+    }
+    // Bascule OPTIMISTE et INSTANTANÉE dans les deux sens : le store est la
+    // source de vérité du bouton (et du dispatch). La synchro serveur
+    // (lente : boucle sur chaque paire commerçant) part en arrière-plan et NE
+    // bloque PAS le bouton — qui n'est donc jamais désactivé. Plus de
+    // router.refresh() bloquant : passer hors ligne est aussi rapide que
+    // passer en ligne.
+    setDriverOnline(next);
+    if (next) void playGo();
+    start(async () => {
+      const r = await setGlobalAvailability(next ? "available" : "offline");
+      // Le serveur a refusé la mise en ligne (gelé entre-temps) → on annule.
+      if (next && r?.error === "FROZEN") {
+        setDriverOnline(false);
         setFrozenMsg(true);
         return;
       }
-      // Passage en ligne : optimiste, mais le serveur peut refuser (gelé).
-      setDriverOnline(true);
-      start(async () => {
-        const r = await setGlobalAvailability("available");
-        if (r?.error === "FROZEN") {
-          setDriverOnline(false); // on annule la mise en ligne
-          setFrozenMsg(true); // et on réaffiche le message de blocage
-          return;
-        }
-        void playGo();
-        router.refresh();
-      });
-    } else {
-      setDriverOnline(false);
-      start(async () => {
-        await setGlobalAvailability("offline");
-        router.refresh();
-      });
-    }
+      // Rafraîchit les données serveur (compteurs…) seulement à la mise en
+      // ligne, en arrière-plan — inutile et coûteux au passage hors ligne.
+      if (next) router.refresh();
+    });
   };
 
   return (
@@ -273,7 +273,6 @@ export function DriverHomeMaquette({
             type="button"
             className="go-btn"
             onClick={toggle}
-            disabled={busy}
             aria-label={online ? "Se déconnecter" : "Passer en ligne"}
           >
             <span className="go-off">GO</span>
