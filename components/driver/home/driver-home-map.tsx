@@ -377,7 +377,7 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
         type="button"
         onClick={() => flyToMe(16)}
         aria-label="Recentrer sur ma position"
-        className="absolute top-[max(56px,calc(env(safe-area-inset-top)+14px))] right-4 z-[55] grid size-[42px] place-items-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] shadow-[var(--pill-shadow)] active:scale-95"
+        className="home-fab-right absolute top-[max(56px,calc(env(safe-area-inset-top)+14px))] z-[55] grid size-[42px] place-items-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] shadow-[var(--pill-shadow)] active:scale-95"
       >
         <LocateFixed className="size-5" />
       </button>

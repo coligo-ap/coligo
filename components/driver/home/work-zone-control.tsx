@@ -18,7 +18,7 @@ export function WorkZoneControl() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="absolute right-4 z-[55] inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-[12.5px] font-bold text-[#4b1fa6] shadow-[0_4px_16px_rgba(0,0,0,.14)] active:scale-95"
+        className="home-fab-right absolute z-[55] inline-flex items-center gap-1.5 rounded-full bg-[var(--surface)] px-3.5 py-2 text-[12.5px] font-bold text-[var(--violet)] shadow-[0_4px_16px_rgba(0,0,0,.14)] active:scale-95"
         style={{
           top: "max(106px, calc(env(safe-area-inset-top) + 64px))",
         }}
@@ -32,7 +32,7 @@ export function WorkZoneControl() {
         ) : (
           <>
             <Crosshair className="size-4" />
-            Autour de moi
+            Zone de travail
           </>
         )}
       </button>

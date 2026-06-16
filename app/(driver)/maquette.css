@@ -221,6 +221,12 @@
     padding: 0;
   }
 }
+/* FABs flottants de droite (recentrer, zone de travail) : alignés sur la même
+   colonne centrée (max 460px) que le top-bar et la feuille. Sur mobile, la
+   formule vaut 16px (= bord droit), sur grand écran ils suivent la colonne. */
+[data-space="driver"] .home-fab-right {
+  right: max(16px, calc((100% - 460px) / 2 + 16px));
+}
 [data-space="driver"] .home-chip {
   display: inline-flex;
   align-items: center;
