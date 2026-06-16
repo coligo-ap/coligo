@@ -141,8 +141,8 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         />
         <Row
           icon={<Wallet className="size-4" />}
-          label="Où recharger"
-          value="Points proches"
+          label="Portefeuille & recharge"
+          value="Solde · recharger"
           onClick={() => router.push("/chauffeur/recharger")}
         />
         <Row

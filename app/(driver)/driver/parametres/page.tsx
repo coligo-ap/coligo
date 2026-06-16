@@ -89,16 +89,14 @@ export default async function DriverProfilePage() {
     .not("delivery_delivered_at", "is", null);
 
   // Encours (float) + plafond pour la jauge.
-  const [{ data: outstanding }, { data: settings }, { data: hasRecharge }] =
-    await Promise.all([
-      supabase.rpc("driver_outstanding", { p_driver_id: driver.id }),
-      supabase
-        .from("platform_settings")
-        .select("driver_float_cap_da")
-        .eq("id", true)
-        .single(),
-      supabase.rpc("recharge_points_exist"),
-    ]);
+  const [{ data: outstanding }, { data: settings }] = await Promise.all([
+    supabase.rpc("driver_outstanding", { p_driver_id: driver.id }),
+    supabase
+      .from("platform_settings")
+      .select("driver_float_cap_da")
+      .eq("id", true)
+      .single(),
+  ]);
 
   const p = (prof ?? {}) as {
     rating_avg?: number;
@@ -167,24 +165,24 @@ export default async function DriverProfilePage() {
           payouts={(payoutsRaw ?? []) as SelfPayout[]}
           requests={(reqRaw ?? []) as SelfRequest[]}
         />
-        {/* Où recharger — masqué s'il n'existe aucun point de recharge actif */}
-        {hasRecharge && (
-          <Link
-            href="/driver/recharger"
-            className="border-border hover:bg-surface-2 mt-4 flex items-center gap-3 rounded-[14px] border bg-white p-4 transition-colors"
-          >
-            <span className="bg-primary-50 text-primary-600 flex size-10 shrink-0 items-center justify-center rounded-full">
-              <Wallet className="size-5" />
+        {/* Portefeuille & recharge (solde, carte/CCP, points proches) */}
+        <Link
+          href="/driver/recharger"
+          className="border-border hover:bg-surface-2 mt-4 flex items-center gap-3 rounded-[14px] border bg-white p-4 transition-colors"
+        >
+          <span className="bg-primary-50 text-primary-600 flex size-10 shrink-0 items-center justify-center rounded-full">
+            <Wallet className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">
+              Portefeuille & recharge
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold">Où recharger</span>
-              <span className="text-muted block text-xs">
-                Points partenaires proches pour recharger en espèces.
-              </span>
+            <span className="text-muted block text-xs">
+              Solde, recharge par carte/CCP et points proches.
             </span>
-            <ChevronRight className="text-subtle size-5 shrink-0" />
-          </Link>
-        )}
+          </span>
+          <ChevronRight className="text-subtle size-5 shrink-0" />
+        </Link>
         {/* Télécharger l'app Android « Coligo Livreur » */}
         <Link
           href="/driver/telecharger"

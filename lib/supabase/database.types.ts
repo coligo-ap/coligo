@@ -2391,6 +2391,36 @@ export type Database = {
         Args: Record<string, never>;
         Returns: boolean;
       };
+      my_operator_wallet: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      my_operator_wallet_state: {
+        Args: Record<string, never>;
+        Returns: {
+          wallet_id: string;
+          status: string;
+          balance_da: number;
+          debt_da: number;
+          effective_balance_da: number;
+          neg_threshold_da: number;
+          can_operate: boolean;
+          is_partner: boolean;
+        }[];
+      };
+      my_operator_wallet_entries: {
+        Args: { p_limit?: number };
+        Returns: {
+          type: string;
+          amount_da: number;
+          note: string | null;
+          created_at: string;
+        }[];
+      };
+      request_operator_topup: {
+        Args: { p_method: string; p_amount_da: number; p_proof_url: string };
+        Returns: string;
+      };
       generate_driver_statements: {
         Args: { p_period_start: string; p_period_end: string };
         Returns: { statements_created: number; drivers_total: number }[];
