@@ -998,6 +998,37 @@ export async function proposePayoutChange(
 //  submitDriverDocument — statut `pending` sur la pièce, verrouillée après envoi.)
 
 // ---------------------------------------------------------------------------
+// Compteurs de TOURNÉES par commerçant (pour le dispatch tournée temps réel
+// côté livreur : détection d'une NOUVELLE commande en tournée → bandeau in-app).
+// RPC SECURITY DEFINER déjà existante (driver_delivery_counts) ; auth requise.
+// ---------------------------------------------------------------------------
+export type DriverTourCount = {
+  mdId: string;
+  merchantName: string;
+  tourPending: number;
+};
+
+export async function fetchDriverTourCounts(): Promise<DriverTourCount[]> {
+  const supabase = await createClient();
+  const driver = await getCurrentDriver();
+  if (!driver) return [];
+  const { data } = await supabase.rpc("driver_delivery_counts");
+  type Row = {
+    merchant_driver_id: string;
+    merchant_name: string;
+    tours_enabled: boolean;
+    tour_pending: number;
+  };
+  return ((data ?? []) as Row[])
+    .filter((c) => c.tours_enabled)
+    .map((c) => ({
+      mdId: c.merchant_driver_id,
+      merchantName: c.merchant_name,
+      tourPending: c.tour_pending ?? 0,
+    }));
+}
+
+// ---------------------------------------------------------------------------
 // Lecture des GAINS (grand livre) — pour TanStack Query côté client.
 // Auth + RLS appliqués à chaque appel (jamais de données d'un autre livreur).
 // ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@ import { Sora, Plus_Jakarta_Sans } from "next/font/google";
 import "./maquette.css";
 import { OfflineSyncIndicator } from "@/components/driver/offline-sync-indicator";
 import { DriverDispatchMount } from "@/components/driver/driver-dispatch-mount";
+import { TourDispatchMount } from "@/components/driver/tour-dispatch-mount";
 import { PushRegistrar } from "@/components/native/push-registrar";
 import { DriverSplash } from "@/components/driver/driver-splash";
 import { ActiveCourseBanner } from "@/components/driver/active-course-banner";
@@ -121,6 +122,9 @@ export default async function DriverLayout({
       <DriverSplash />
       {/* Réception Express globale (pilotée par l'intention « en ligne »). */}
       <DriverDispatchMount />
+      {/* Notification TOURNÉE temps réel (bandeau in-app) chez les commerçants
+          où le livreur est inscrit — distinct de l'Express. */}
+      {driver && <TourDispatchMount />}
       {/* Bandeau « Course en cours » réductible, épinglé sur tous les onglets. */}
       <ActiveCourseBanner />
       {/* STOP temps réel : pop-up si la course active est annulée (commerçant/admin). */}
