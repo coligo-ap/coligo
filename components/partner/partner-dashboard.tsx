@@ -221,7 +221,7 @@ export function PartnerDashboard({
           {/* ===== RECHARGER (sans double carte de solde) ===== */}
           <Suspense fallback={null}>
             <OperatorRecharge
-              hideBalance
+              compact
               title="Recharger mon crédit (carte ou virement)"
             />
           </Suspense>

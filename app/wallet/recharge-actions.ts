@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type MyWalletState = {
   walletId: string;
+  ownerType: "driver" | "chauffeur" | "merchant" | "partner" | string;
   status: string;
   balanceDa: number;
   debtDa: number;
@@ -11,6 +12,14 @@ export type MyWalletState = {
   negThresholdDa: number;
   canOperate: boolean;
   isPartner: boolean;
+};
+
+export type TopupConfig = {
+  ccpNumber: string | null;
+  ccpKey: string | null;
+  ccpName: string | null;
+  presets: number[];
+  maxDa: number;
 };
 
 export type MyWalletEntry = {
@@ -28,6 +37,7 @@ export async function getMyWalletState(): Promise<MyWalletState | null> {
   if (!r) return null;
   return {
     walletId: r.wallet_id,
+    ownerType: r.owner_type,
     status: r.status,
     balanceDa: r.balance_da,
     debtDa: r.debt_da,
@@ -35,6 +45,26 @@ export async function getMyWalletState(): Promise<MyWalletState | null> {
     negThresholdDa: r.neg_threshold_da,
     canOperate: r.can_operate,
     isPartner: r.is_partner,
+  };
+}
+
+/**
+ * Config de recharge : CCP de la plateforme (réutilise le compte Drive),
+ * montants suggérés et plafond — tout en config admin, jamais en dur.
+ */
+export async function getMyTopupConfig(): Promise<TopupConfig> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("operator_topup_config");
+  const r = Array.isArray(data) ? data[0] : null;
+  return {
+    ccpNumber: r?.ccp_number ?? null,
+    ccpKey: r?.ccp_key ?? null,
+    ccpName: r?.ccp_name ?? null,
+    presets:
+      r?.presets_da && r.presets_da.length > 0
+        ? r.presets_da
+        : [500, 1000, 2000, 5000],
+    maxDa: r?.max_da ?? 100000,
   };
 }
 

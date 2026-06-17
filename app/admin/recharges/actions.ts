@@ -348,6 +348,7 @@ export async function updateThresholds(input: {
   merchant: number;
   newDays: number;
   topupMax: number;
+  presets?: number[];
 }): Promise<Res> {
   if (!(await isSuperAdmin())) return DENIED;
   const admin = createAdminClient();
@@ -369,6 +370,14 @@ export async function updateThresholds(input: {
       neg_threshold_merchant_da: Math.max(0, Math.round(input.merchant)),
       neg_threshold_new_days: Math.max(0, Math.round(input.newDays)),
       operator_topup_max_da: Math.max(0, Math.round(input.topupMax)),
+      ...(input.presets
+        ? {
+            operator_topup_presets_da: input.presets
+              .map((n) => Math.max(1, Math.round(n)))
+              .filter((n) => Number.isFinite(n))
+              .slice(0, 6),
+          }
+        : {}),
     })
     .eq("id", true);
   if (error) return { error: error.message };

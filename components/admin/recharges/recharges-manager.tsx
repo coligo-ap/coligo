@@ -129,6 +129,7 @@ export function RechargesManager({
     merchant: number;
     newDays: number;
     topupMax: number;
+    presets: number[];
   };
   pending: PendingTopup[];
   partners: PartnerRow[];
@@ -760,9 +761,12 @@ function ThresholdsForm({
     merchant: number;
     newDays: number;
     topupMax: number;
+    presets: number[];
   };
 }) {
-  const [v, setV] = useState(initial);
+  const { presets: initialPresets, ...initialNums } = initial;
+  const [v, setV] = useState(initialNums);
+  const [presetsStr, setPresetsStr] = useState(initialPresets.join(", "));
   const num = (k: keyof typeof v) => ({
     value: String(v[k]),
     onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -791,6 +795,17 @@ function ThresholdsForm({
         <Label htmlFor="t5">Plafond de recharge (DA)</Label>
         <Input id="t5" {...num("topupMax")} />
       </div>
+      <div className="space-y-1 sm:col-span-2">
+        <Label htmlFor="t6">
+          Montants suggérés (chips, séparés par virgule)
+        </Label>
+        <Input
+          id="t6"
+          value={presetsStr}
+          onChange={(e) => setPresetsStr(e.target.value)}
+          placeholder="500, 1000, 2000, 5000"
+        />
+      </div>
       <div className="flex items-end">
         <Button
           size="sm"
@@ -804,6 +819,10 @@ function ThresholdsForm({
                   merchant: v.merchant,
                   newDays: v.newDays,
                   topupMax: v.topupMax,
+                  presets: presetsStr
+                    .split(/[,\s]+/)
+                    .map((s) => Number(s.trim()))
+                    .filter((n) => Number.isFinite(n) && n > 0),
                 }),
               "Seuils enregistrés"
             )

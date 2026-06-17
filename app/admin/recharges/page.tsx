@@ -28,7 +28,7 @@ export default async function AdminRechargesPage() {
     sel("feature_flags").select("status").eq("key", "operator_gating"),
     sel("platform_settings")
       .select(
-        "neg_threshold_driver_da, neg_threshold_chauffeur_da, neg_threshold_merchant_da, neg_threshold_new_days, operator_topup_max_da"
+        "neg_threshold_driver_da, neg_threshold_chauffeur_da, neg_threshold_merchant_da, neg_threshold_new_days, operator_topup_max_da, operator_topup_presets_da"
       )
       .eq("id", true),
     sel("wallet_topup_requests")
@@ -52,6 +52,7 @@ export default async function AdminRechargesPage() {
           neg_threshold_merchant_da: number;
           neg_threshold_new_days: number;
           operator_topup_max_da: number;
+          operator_topup_presets_da: number[] | null;
         }[]
       | null
   )?.[0];
@@ -61,6 +62,7 @@ export default async function AdminRechargesPage() {
     merchant: s?.neg_threshold_merchant_da ?? 2000,
     newDays: s?.neg_threshold_new_days ?? 30,
     topupMax: s?.operator_topup_max_da ?? 100000,
+    presets: s?.operator_topup_presets_da ?? [500, 1000, 2000, 5000],
   };
 
   const pendRaw =

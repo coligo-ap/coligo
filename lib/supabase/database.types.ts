@@ -2395,10 +2395,21 @@ export type Database = {
         Args: Record<string, never>;
         Returns: string | null;
       };
+      operator_topup_config: {
+        Args: Record<string, never>;
+        Returns: {
+          ccp_number: string | null;
+          ccp_key: string | null;
+          ccp_name: string | null;
+          presets_da: number[];
+          max_da: number;
+        }[];
+      };
       my_operator_wallet_state: {
         Args: Record<string, never>;
         Returns: {
           wallet_id: string;
+          owner_type: string;
           status: string;
           balance_da: number;
           debt_da: number;

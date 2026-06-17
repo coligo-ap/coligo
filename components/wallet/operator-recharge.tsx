@@ -2,71 +2,523 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  CreditCard,
-  Loader2,
-  Receipt,
-  Wallet,
-} from "lucide-react";
+import { useLocale } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
-import { formatDA } from "@/lib/utils";
+import { getPosition } from "@/lib/native/geolocation";
+import { geocodeCommune } from "@/lib/geo/geocode";
+import {
+  NAV_APPS,
+  getNavPref,
+  openNav,
+  setNavPref,
+  type NavApp,
+} from "@/lib/drive/nav";
+import {
+  RechargePointsMap,
+  type MapPoint,
+} from "@/components/wallet/recharge-points-map";
 import {
   createOperatorTopupCheckout,
+  getMyTopupConfig,
   getMyWalletEntries,
   getMyWalletState,
   requestOperatorManualTopup,
   type MyWalletEntry,
   type MyWalletState,
+  type TopupConfig,
 } from "@/app/wallet/recharge-actions";
+import { RECHARGE_STYLE } from "@/components/wallet/operator-recharge.style";
 
-const PRESETS = [500, 1000, 2000, 5000];
+/* ───────────────────────── i18n local (FR / AR) ─────────────────────────
+   Dictionnaire autonome : les espaces partenaires (livreur / chauffeur /
+   commerçant) ne montent pas les messages next-intl. On suit néanmoins la
+   langue de l'app (useLocale) et on bascule RTL en arabe « comme le reste ». */
+type Lang = "fr" | "ar";
+type Owner = "driver" | "chauffeur" | "merchant" | "partner";
 
-const ENTRY_LABEL: Record<string, string> = {
-  topup_chargily: "Recharge carte",
-  topup_manual: "Recharge validée",
-  topup_partner: "Recharge chez un point",
-  recharge_sale: "Revente de crédit",
-  bonus: "Bonus",
-  fee_debit: "Frais",
-  service_fee: "Frais de service",
-  cod_settle: "Régularisation",
-  adjustment: "Ajustement",
+const OWNER_BADGE: Record<Lang, Record<Owner, string>> = {
+  fr: {
+    driver: "Livreur",
+    chauffeur: "Chauffeur",
+    merchant: "Commerçant",
+    partner: "Agent Coligo Pay",
+  },
+  ar: {
+    driver: "موصِّل",
+    chauffeur: "سائق",
+    merchant: "تاجر",
+    partner: "وكيل Coligo Pay",
+  },
+};
+
+const OWNER_CTX: Record<Lang, Record<Owner, string>> = {
+  fr: {
+    driver:
+      "Un solde est nécessaire pour accepter des livraisons. La commission Coligo est prélevée sur votre solde à chaque livraison terminée.",
+    chauffeur:
+      "Un solde est nécessaire pour accepter des courses. La commission Coligo est prélevée sur votre solde à chaque course terminée.",
+    merchant:
+      "Un solde est nécessaire pour recevoir des commandes. La commission Coligo est prélevée sur votre solde à chaque commande terminée.",
+    partner:
+      "Un solde est nécessaire pour vendre des recharges. La commission Coligo est prélevée sur votre solde à chaque opération.",
+  },
+  ar: {
+    driver:
+      "يلزم وجود رصيد لقبول عمليات التوصيل. تُقتطع عمولة Coligo من رصيدك عند كل عملية توصيل منتهية.",
+    chauffeur:
+      "يلزم وجود رصيد لقبول الرحلات. تُقتطع عمولة Coligo من رصيدك عند كل رحلة منتهية.",
+    merchant:
+      "يلزم وجود رصيد لاستقبال الطلبات. تُقتطع عمولة Coligo من رصيدك عند كل طلب منتهٍ.",
+    partner:
+      "يلزم وجود رصيد لبيع التعبئات. تُقتطع عمولة Coligo من رصيدك عند كل عملية.",
+  },
+};
+
+const ENTRY_LABEL: Record<Lang, Record<string, string>> = {
+  fr: {
+    topup_chargily: "Recharge carte",
+    topup_manual: "Recharge validée",
+    topup_partner: "Recharge chez un agent",
+    recharge_sale: "Revente de crédit",
+    bonus: "Bonus",
+    fee_debit: "Commission",
+    service_fee: "Frais de service",
+    cod_settle: "Régularisation",
+    adjustment: "Ajustement",
+  },
+  ar: {
+    topup_chargily: "شحن بالبطاقة",
+    topup_manual: "شحن مُصادق عليه",
+    topup_partner: "شحن لدى وكيل",
+    recharge_sale: "بيع رصيد",
+    bonus: "مكافأة",
+    fee_debit: "عمولة",
+    service_fee: "رسوم الخدمة",
+    cod_settle: "تسوية",
+    adjustment: "تعديل",
+  },
+};
+
+const STR = {
+  fr: {
+    title: "Mon portefeuille",
+    balanceLabel: "Solde du portefeuille",
+    rechargeTitle: "Recharger mon solde",
+    mCard: "Carte",
+    mCardDelay: "Instantané",
+    fast: "Rapide",
+    mCcp: "Virement",
+    mCcpDelay: "CCP · 24h",
+    mCash: "Espèces",
+    mCashDelay: "Chez un agent",
+    amountLabel: "Montant à recharger",
+    otherAmount: "Autre montant en DA (min. 100)",
+    payCard: "Payer par carte",
+    cardNote:
+      "Paiement Edahabia / CIB via Chargily Pay. Solde crédité instantanément après confirmation.",
+    checking: "Confirmation du paiement en cours…",
+    confirmed: "Recharge confirmée !",
+    failed: "Paiement non abouti — réessayez.",
+    step1: "Virez le montant vers le CCP de Coligo (ci-dessous)",
+    step2: "Saisissez le montant exact envoyé",
+    step3: "Joignez la preuve (reçu ou confirmation de virement)",
+    step4: "L'équipe Coligo vérifie et crédite votre solde",
+    ccpRef: "Référence : votre numéro de téléphone",
+    ccpUnset: "CCP non configuré — contactez le support",
+    copied: "Copié",
+    amountSent: "Montant envoyé en DA",
+    addProof: "Ajouter la preuve de virement",
+    proofHint: "Reçu CCP / BaridiMob · capture d'écran ou photo",
+    proofAdded: "Preuve ajoutée ✓",
+    proofReplace: "· touchez pour remplacer",
+    sendRequest: "Envoyer la demande",
+    ccpNote:
+      "Vérifiée par l'équipe Coligo sous 24 h. Votre solde est crédité après validation du montant reçu.",
+    sentMsg:
+      "Demande envoyée · en vérification (24 h). Votre solde sera crédité après validation.",
+    cashTitle: "Recharger en espèces chez un agent Coligo Pay",
+    cityPlaceholder: "Ville ou commune",
+    useMyPos: "Utiliser ma position",
+    list: "Liste",
+    map: "Carte",
+    locating: "Localisation…",
+    searching: "Recherche…",
+    search: "Chercher",
+    around: "Autour de vous",
+    itinerary: "Itinéraire",
+    openNow: "Ouvert",
+    closedNow: "Fermé",
+    tapPoint: "Touchez un point sur la carte pour voir ses informations.",
+    emptyTitle: "Aucun agent à proximité",
+    emptySub: "Cherchez une autre ville, ou rechargez par carte / virement.",
+    cityNotFound: "Ville introuvable. Vérifiez l'orthographe.",
+    cashNote:
+      "Remettez l'espèce à l'agent : votre solde est crédité immédiatement.",
+    opsTitle: "Dernières opérations",
+    minAmount: "Montant minimum : 100 DA.",
+    payUnavailable: "Paiement carte indisponible.",
+    uploadFail: "Téléversement échoué",
+    requestFail: "Échec de la demande.",
+    genericErr: "Une erreur est survenue.",
+    openWith: "Ouvrir l'itinéraire avec",
+    openWithSub: "Votre choix sera mémorisé pour la prochaine fois.",
+    cancel: "Annuler",
+    chargily: "Chargily",
+  },
+  ar: {
+    title: "محفظتي",
+    balanceLabel: "رصيد المحفظة",
+    rechargeTitle: "إعادة شحن رصيدي",
+    mCard: "بطاقة",
+    mCardDelay: "فوري",
+    fast: "سريع",
+    mCcp: "تحويل",
+    mCcpDelay: "CCP · 24س",
+    mCash: "نقدًا",
+    mCashDelay: "لدى وكيل",
+    amountLabel: "المبلغ المراد شحنه",
+    otherAmount: "مبلغ آخر بالدينار (100 كحد أدنى)",
+    payCard: "الدفع بالبطاقة",
+    cardNote:
+      "الدفع عبر الذهبية / CIB بواسطة Chargily Pay. يُضاف الرصيد فورًا بعد التأكيد.",
+    checking: "جارٍ تأكيد الدفع…",
+    confirmed: "تم تأكيد الشحن!",
+    failed: "لم يتم الدفع — حاول مجددًا.",
+    step1: "حوّل المبلغ إلى حساب CCP الخاص بـ Coligo (أدناه)",
+    step2: "أدخل المبلغ المُرسل بالضبط",
+    step3: "أرفق الإثبات (وصل أو تأكيد التحويل)",
+    step4: "يتحقق فريق Coligo ويشحن رصيدك",
+    ccpRef: "المرجع: رقم هاتفك",
+    ccpUnset: "حساب CCP غير مُعدّ — تواصل مع الدعم",
+    copied: "تم النسخ",
+    amountSent: "المبلغ المُرسل بالدينار",
+    addProof: "أضف إثبات التحويل",
+    proofHint: "وصل CCP / BaridiMob · لقطة شاشة أو صورة",
+    proofAdded: "تمت إضافة الإثبات ✓",
+    proofReplace: "· المس للاستبدال",
+    sendRequest: "إرسال الطلب",
+    ccpNote:
+      "يتحقق فريق Coligo خلال 24 ساعة. يُضاف رصيدك بعد التأكد من المبلغ المُستلَم.",
+    sentMsg:
+      "تم إرسال الطلب · قيد التحقق (24 ساعة). سيُضاف رصيدك بعد المصادقة.",
+    cashTitle: "اشحن نقدًا لدى وكيل Coligo Pay",
+    cityPlaceholder: "مدينة أو بلدية",
+    useMyPos: "استخدم موقعي",
+    list: "قائمة",
+    map: "خريطة",
+    locating: "تحديد الموقع…",
+    searching: "بحث…",
+    search: "بحث",
+    around: "حولك",
+    itinerary: "المسار",
+    openNow: "مفتوح",
+    closedNow: "مغلق",
+    tapPoint: "المس نقطة على الخريطة لعرض معلوماتها.",
+    emptyTitle: "لا يوجد وكيل قريب",
+    emptySub: "ابحث عن مدينة أخرى، أو اشحن بالبطاقة / التحويل.",
+    cityNotFound: "المدينة غير موجودة. تحقق من الكتابة.",
+    cashNote: "سلّم النقود للوكيل: يُضاف رصيدك فورًا.",
+    opsTitle: "آخر العمليات",
+    minAmount: "الحد الأدنى للمبلغ: 100 دج.",
+    payUnavailable: "الدفع بالبطاقة غير متاح.",
+    uploadFail: "فشل الرفع",
+    requestFail: "فشل الطلب.",
+    genericErr: "حدث خطأ.",
+    openWith: "افتح المسار باستخدام",
+    openWithSub: "سيُحفظ اختيارك للمرة القادمة.",
+    cancel: "إلغاء",
+    chargily: "Chargily",
+  },
+} as const;
+
+/** Groupement des milliers manuel (cohérent SSR/CSR, cf. formatDA). */
+function groupNum(n: number): string {
+  return Math.abs(Math.round(n))
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
+function fmtDistance(km: number): string {
+  if (!Number.isFinite(km)) return "";
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  return `${km.toFixed(1).replace(".", ",")} km`;
+}
+
+/** Ouvert/fermé best-effort à partir d'un champ horaires en texte libre. */
+function openStatus(hours: string | null): boolean | null {
+  if (!hours) return null;
+  const tokens = [...hours.matchAll(/(\d{1,2})\s*(?:[h:]\s*(\d{2}))?/g)]
+    .map((m) => {
+      const h = Number(m[1]);
+      const min = m[2] ? Number(m[2]) : 0;
+      return Number.isFinite(h) && h <= 24 ? h + min / 60 : null;
+    })
+    .filter((v): v is number => v != null);
+  if (tokens.length < 2) return null;
+  const open = tokens[0];
+  const close = tokens[1];
+  const d = new Date();
+  const now = ((d.getUTCHours() + 1) % 24) + d.getUTCMinutes() / 60; // Alger UTC+1
+  if (close > open) return now >= open && now < close;
+  return now >= open || now < close;
+}
+
+type Method = "card" | "ccp" | "cash";
+
+/* ─────────────────────────── icônes (SVG maquette) ─────────────────────── */
+const Ico = {
+  wallet: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="5" width="20" height="14" rx="3" />
+      <path d="M2 10h20M16 14h3" />
+    </svg>
+  ),
+  card: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="5" width="20" height="14" rx="3" />
+      <path d="M2 10h20" />
+    </svg>
+  ),
+  bank: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6" />
+    </svg>
+  ),
+  cash: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 9l2-5h14l2 5M3 9h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 13h6" />
+    </svg>
+  ),
+  info: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4M12 8h.01" />
+    </svg>
+  ),
+  check: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  ),
+  clock: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  ),
+  copy: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+    </svg>
+  ),
+  image: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <path d="M3 15l5-5 4 4 3-3 6 6" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+    </svg>
+  ),
+  send: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M22 2 11 13M22 2l-7 20-4-9-9-4z" />
+    </svg>
+  ),
+  pin: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
+  ),
+  search: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  ),
+  liste: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+    </svg>
+  ),
+  mapIco: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 6 3 4v14l6 2 6-2 6 2V6l-6-2-6 2zM9 4v14M15 6v14" />
+    </svg>
+  ),
+  store: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 9l2-5h14l2 5M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M9 20v-6h6v6" />
+    </svg>
+  ),
+  spinner: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      className="cgw-spin"
+    >
+      <path d="M21 12a9 9 0 1 1-6.2-8.5" />
+    </svg>
+  ),
+  up: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 5v14M5 12l7 7 7-7" />
+    </svg>
+  ),
+  down: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  ),
 };
 
 /**
- * Recharge du portefeuille opérateur (livreur / chauffeur / commerçant /
- * partenaire) : solde, recharge par carte (Chargily) ou virement/CCP avec
- * preuve, et historique. Réutilisable dans les 3 espaces.
+ * Page « Mon portefeuille » — recharge du portefeuille opérateur (livreur /
+ * chauffeur / commerçant / partenaire), reproduction fidèle de la maquette.
+ * Solde (HERO), recharge Carte (Chargily) / Virement CCP (preuve) / Espèces
+ * (agents Coligo Pay), et dernières opérations. Réutilisable dans tous les
+ * espaces (la barre de navigation du bas reste celle du shell hôte).
  */
 export function OperatorRecharge({
-  hideBalance = false,
-  title = "Recharger mon portefeuille",
+  compact = false,
+  title,
 }: {
-  hideBalance?: boolean;
+  /** Mode encart (portail partenaire) : masque le HERO, le titre de page et
+   *  l'historique — le portail affiche déjà son propre solde et historique. */
+  compact?: boolean;
+  /** Titre de section personnalisé (sinon « Recharger mon solde »). */
   title?: string;
 } = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
+  const locale = useLocale();
+  const lang: Lang = locale === "ar" ? "ar" : "fr";
+  const t = STR[lang];
+  const dir = lang === "ar" ? "rtl" : "ltr";
+
   const [state, setState] = useState<MyWalletState | null>(null);
   const [entries, setEntries] = useState<MyWalletEntry[]>([]);
+  const [config, setConfig] = useState<TopupConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"card" | "manual">("card");
-  const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<"ccp" | "virement">("ccp");
-  const [file, setFile] = useState<File | null>(null);
+
+  const [method, setMethod] = useState<Method>("card");
+  const [amount, setAmount] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
   const [topupReturn, setTopupReturn] = useState<
     "checking" | "confirmed" | "failed" | null
   >(null);
+
+  const fileRef = useRef<HTMLInputElement | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Verrou SYNCHRONE anti double-tap : `busy` (state React) ne se met à jour
-  // qu'au prochain rendu, donc deux clics dans le même tick lisent tous deux
-  // `busy=false` et passeraient. Un ref se règle immédiatement → 2e clic bloqué.
   const submittingRef = useRef(false);
 
   const refresh = useCallback(async () => {
@@ -82,14 +534,12 @@ export function OperatorRecharge({
 
   useEffect(() => {
     void refresh();
+    void getMyTopupConfig().then(setConfig);
   }, [refresh]);
 
-  // Retour Chargily : on NE croit JAMAIS la redirection `?topup=success` (le
-  // client peut la forger). La SEULE preuve de paiement est l'écriture
-  // `topup_chargily` posée par le webhook (signature HMAC vérifiée + idempotente).
-  // On attend donc qu'une telle écriture apparaisse, créée APRÈS le clic « Payer »
-  // (horodatage mémorisé en localStorage, partagé entre onglets). Robuste au
-  // webhook rapide (crédit déjà posé au retour) comme lent (jusqu'à ~60 s).
+  // Retour Chargily : on NE croit JAMAIS la redirection ?topup=success (forgeable).
+  // La SEULE preuve est l'écriture topup_chargily posée par le webhook (HMAC,
+  // idempotente). On attend qu'elle apparaisse après le clic « Payer ».
   useEffect(() => {
     const flag = search.get("topup");
     if (!flag) return;
@@ -100,7 +550,7 @@ export function OperatorRecharge({
       startedAt = raw ? Number(raw) : 0;
       window.localStorage.removeItem("coligo_op_topup_started");
     } catch {
-      /* localStorage indisponible : on se rabat sur une fenêtre récente */
+      /* localStorage indisponible */
     }
     if (flag === "failed") {
       setTopupReturn("failed");
@@ -108,8 +558,6 @@ export function OperatorRecharge({
     }
     if (flag !== "success") return;
     setTopupReturn("checking");
-    // Marge de 90 s sous l'horodatage du clic pour absorber un léger écart
-    // d'horloge client/serveur ; à défaut d'horodatage, fenêtre de 10 min.
     const since = startedAt > 0 ? startedAt - 90_000 : Date.now() - 600_000;
     const credited = (en: MyWalletEntry[]) =>
       en.some(
@@ -129,7 +577,7 @@ export function OperatorRecharge({
         setTopupReturn(null);
       }
     };
-    void tick(); // 1re vérification immédiate (cas webhook déjà passé)
+    void tick();
     pollRef.current = setInterval(() => void tick(), 3000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
@@ -149,22 +597,17 @@ export function OperatorRecharge({
     try {
       const res = await createOperatorTopupCheckout(amt, pathname);
       if (!res.ok || !res.url) {
-        setErr(res.error ?? "Paiement indisponible.");
+        setErr(res.error ?? t.payUnavailable);
         return;
       }
-      // Horodatage du clic → sert de borne à la détection du crédit au retour.
       try {
         window.localStorage.setItem(
           "coligo_op_topup_started",
           String(Date.now())
         );
       } catch {
-        /* localStorage indisponible : la détection se rabattra sur une fenêtre récente */
+        /* localStorage indisponible */
       }
-      // MÊME onglet (et non `_blank`) : le retour `?topup=success` atterrit alors
-      // sur CETTE page (fiable sur l'APK Capacitor comme sur le web), où le
-      // polling affiche la confirmation. `_blank` ouvrait le navigateur système
-      // et l'onglet d'origine restait bloqué sur « en cours ».
       window.location.href = res.url;
     } finally {
       submittingRef.current = false;
@@ -186,241 +629,616 @@ export function OperatorRecharge({
         .from("wallet-proofs")
         .upload(path, file, { contentType: file.type, upsert: false });
       if (upErr) {
-        setErr(`Téléversement échoué : ${upErr.message}`);
+        setErr(`${t.uploadFail} : ${upErr.message}`);
         return;
       }
       const res = await requestOperatorManualTopup({
-        method,
+        method: "virement",
         amountDa: amt,
         proofPath: path,
       });
       if (!res.ok) {
-        setErr(res.error ?? "Échec de la demande.");
+        setErr(res.error ?? t.requestFail);
         return;
       }
       setFile(null);
       setAmount("");
-      setMsg(
-        "Preuve envoyée — votre recharge sera créditée après validation par Coligo."
-      );
+      setMsg(t.sentMsg);
       void refresh();
     } catch {
-      setErr("Une erreur est survenue.");
+      setErr(t.genericErr);
     } finally {
       submittingRef.current = false;
       setBusy(false);
     }
   };
 
+  const copyCcp = async () => {
+    if (!config?.ccpNumber) return;
+    try {
+      await navigator.clipboard.writeText(
+        `${config.ccpNumber}${config.ccpKey ? ` clé ${config.ccpKey}` : ""}`
+      );
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard indisponible */
+    }
+  };
+
+  const owner: Owner = ((): Owner => {
+    const o = state?.ownerType;
+    return o === "chauffeur" || o === "merchant" || o === "partner"
+      ? o
+      : "driver";
+  })();
+  const presets = config?.presets ?? [500, 1000, 2000, 5000];
+
   if (loading) {
     return (
-      <div className="text-muted flex items-center justify-center gap-2 py-8 text-sm">
-        <Loader2 className="size-4 animate-spin" /> Chargement…
-      </div>
+      <section className="cgw" dir={dir}>
+        <style>{RECHARGE_STYLE}</style>
+        <div className="cgw-load">
+          <span className="cgw-load-ic">{Ico.spinner}</span>
+        </div>
+      </section>
     );
   }
-
-  if (!state) return null; // pas d'opérateur (ex. session non reconnue)
-
-  const eff = state.effectiveBalanceDa;
+  if (!state) return null;
 
   return (
-    <section className="mx-auto mb-6 w-full max-w-md">
-      {/* Solde */}
-      {!hideBalance && (
-        <div className="border-border bg-surface rounded-[16px] border p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <span className="bg-primary-50 text-primary-600 flex size-9 items-center justify-center rounded-full">
-              <Wallet className="size-5" />
-            </span>
+    <section className="cgw" dir={dir}>
+      <style>{RECHARGE_STYLE}</style>
+
+      {!compact && <div className="ph1">{t.title}</div>}
+
+      {/* HERO solde */}
+      {!compact && (
+        <div className="hero">
+          <div className="top">
+            <div className="wic">{Ico.wallet}</div>
             <div>
-              <p className="text-muted text-xs">Solde du portefeuille</p>
-              <p
-                className={`text-xl font-bold tabular-nums ${eff < 0 ? "text-danger-700" : "text-foreground"}`}
+              <div className="lbl">{t.balanceLabel}</div>
+            </div>
+            <div className="ptag">
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                {formatDA(eff)}
-              </p>
+                <path d="M5 11l2-6h10l2 6M5 11h14v6H5z" />
+              </svg>
+              {OWNER_BADGE[lang][owner]}
             </div>
           </div>
-          {state.debtDa > 0 && (
-            <p className="text-muted mt-2 text-xs">
-              Dont {formatDA(state.debtDa)} dûs à la plateforme.
-            </p>
-          )}
-          {!state.canOperate && (
-            <p className="text-danger-700 bg-danger-100 mt-2 flex items-start gap-2 rounded-[12px] p-2.5 text-xs">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-              Solde insuffisant : rechargez pour continuer à travailler.
-            </p>
-          )}
+          <div className="amt">
+            {groupNum(state.effectiveBalanceDa)} <small>DA</small>
+          </div>
+          <div className="ctx">
+            {Ico.info}
+            <span>{OWNER_CTX[lang][owner]}</span>
+          </div>
         </div>
       )}
 
-      {/* Retour Chargily */}
+      {/* Retour Chargily (inline) */}
       {topupReturn === "checking" && (
-        <p className="text-muted bg-surface-2 mt-3 flex items-center gap-2 rounded-[12px] px-3 py-2.5 text-xs font-medium">
-          <Loader2 className="size-4 shrink-0 animate-spin" /> Confirmation du
-          paiement en cours…
-        </p>
+        <div className="cgw-ret">
+          <span className="cgw-ret-ic">{Ico.spinner}</span>
+          {t.checking}
+        </div>
       )}
       {topupReturn === "confirmed" && (
-        <p className="text-success-700 bg-success-100 mt-3 flex items-center gap-2 rounded-[12px] px-3 py-2.5 text-xs font-semibold">
-          <CheckCircle2 className="size-4 shrink-0" /> Recharge confirmée !
-        </p>
-      )}
-      {topupReturn === "failed" && (
-        <p className="text-danger-700 bg-danger-100 mt-3 rounded-[12px] px-3 py-2.5 text-xs font-semibold">
-          Paiement non abouti — réessayez.
-        </p>
-      )}
-
-      {/* Recharger */}
-      <div
-        className={`border-border bg-surface rounded-[16px] border p-4 shadow-sm ${hideBalance ? "" : "mt-3"}`}
-      >
-        <h2 className="text-foreground mb-3 text-sm font-bold">{title}</h2>
-
-        <div className="bg-surface-2 mb-3 flex gap-1 rounded-[10px] p-1 text-sm">
-          {(["card", "manual"] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTab(t)}
-              className={
-                tab === t
-                  ? "bg-primary-600 flex-1 rounded-[8px] px-3 py-1.5 font-semibold text-white"
-                  : "text-muted flex-1 rounded-[8px] px-3 py-1.5 font-medium"
-              }
-            >
-              {t === "card" ? "Carte (Chargily)" : "Virement / CCP"}
-            </button>
-          ))}
+        <div className="cgw-ret ok">
+          {Ico.check} {t.confirmed}
         </div>
+      )}
+      {topupReturn === "failed" && <div className="cgw-ret ko">{t.failed}</div>}
 
-        {/* Montant */}
-        <div className="mb-2 flex flex-wrap gap-2">
-          {PRESETS.map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setAmount(String(v))}
-              className={
-                Number(amount) === v
-                  ? "border-primary-600 text-primary-700 bg-primary-50 rounded-full border px-3 py-1 text-sm font-semibold"
-                  : "border-border text-foreground rounded-full border px-3 py-1 text-sm"
-              }
-            >
-              {formatDA(v)}
-            </button>
-          ))}
+      {/* Sélecteur de méthode */}
+      <div className="secT">{title ?? t.rechargeTitle}</div>
+      <div className="methods">
+        <div
+          className={`m${method === "card" ? "on" : ""}`}
+          onClick={() => setMethod("card")}
+        >
+          <div className="mi">{Ico.card}</div>
+          <b>{t.mCard}</b>
+          <span>{t.mCardDelay}</span>
+          <span className="badge-i">{t.fast}</span>
         </div>
-        <input
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          inputMode="numeric"
-          placeholder="Montant en DA (min. 100)"
-          className="border-border bg-surface mb-3 w-full rounded-[12px] border px-3 py-2 text-sm"
-        />
+        <div
+          className={`m${method === "ccp" ? "on" : ""}`}
+          onClick={() => setMethod("ccp")}
+        >
+          <div className="mi">{Ico.bank}</div>
+          <b>{t.mCcp}</b>
+          <span>{t.mCcpDelay}</span>
+        </div>
+        <div
+          className={`m${method === "cash" ? "on" : ""}`}
+          onClick={() => setMethod("cash")}
+        >
+          <div className="mi">{Ico.cash}</div>
+          <b>{t.mCash}</b>
+          <span>{t.mCashDelay}</span>
+        </div>
+      </div>
 
-        {tab === "card" ? (
+      {/* PANNEAU CARTE */}
+      {method === "card" && (
+        <div className="panel">
+          <div className="plab">{t.amountLabel}</div>
+          <div className="chips">
+            {presets.map((v) => (
+              <div
+                key={v}
+                className={`chip${Number(amount) === v ? "on" : ""}`}
+                onClick={() => setAmount(String(v))}
+              >
+                {groupNum(v)} DA
+              </div>
+            ))}
+          </div>
+          <input
+            className="inp"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ""))}
+            inputMode="numeric"
+            placeholder={t.otherAmount}
+          />
           <button
+            className="btn"
             type="button"
             disabled={!amtValid || busy}
             onClick={() => void payCard()}
-            className="bg-primary-600 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {busy ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <CreditCard className="size-4" />
-            )}
-            Payer par carte
+            {busy ? Ico.spinner : Ico.card}
+            {t.payCard}
           </button>
-        ) : (
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              {(["ccp", "virement"] as const).map((mth) => (
-                <button
-                  key={mth}
-                  type="button"
-                  onClick={() => setMethod(mth)}
-                  className={
-                    method === mth
-                      ? "border-primary-600 text-primary-700 bg-primary-50 flex-1 rounded-[10px] border px-3 py-1.5 text-sm font-semibold"
-                      : "border-border text-foreground flex-1 rounded-[10px] border px-3 py-1.5 text-sm"
-                  }
-                >
-                  {mth === "ccp" ? "CCP / BaridiMob" : "Virement bancaire"}
-                </button>
-              ))}
-            </div>
-            <input
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="text-muted block w-full text-xs"
-            />
-            <p className="text-subtle text-xs">
-              Téléversez la preuve du virement / reçu CCP. Crédité après
-              validation Coligo.
-            </p>
-            <button
-              type="button"
-              disabled={!amtValid || !file || busy}
-              onClick={() => void submitManual()}
-              className="bg-primary-600 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-            >
-              {busy ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Receipt className="size-4" />
-              )}
-              Envoyer la preuve
-            </button>
+          <div className="note go">
+            {Ico.check}
+            {t.cardNote}
           </div>
-        )}
+          {err && <div className="cgw-err">{err}</div>}
+        </div>
+      )}
 
-        {msg && (
-          <p className="text-success-700 mt-2 text-center text-xs font-medium">
-            {msg}
-          </p>
-        )}
-        {err && (
-          <p className="text-danger-700 mt-2 text-center text-xs font-medium">
-            {err}
-          </p>
-        )}
-      </div>
+      {/* PANNEAU VIREMENT / CCP */}
+      {method === "ccp" && (
+        <div className="panel">
+          <div className="steps">
+            <div className="st">
+              <div className="l">
+                <div className="n">1</div>
+                <div className="bar" />
+              </div>
+              <div className="tx">{t.step1}</div>
+            </div>
+            <div className="st">
+              <div className="l">
+                <div className="n">2</div>
+                <div className="bar" />
+              </div>
+              <div className="tx">{t.step2}</div>
+            </div>
+            <div className="st">
+              <div className="l">
+                <div className="n">3</div>
+                <div className="bar" />
+              </div>
+              <div className="tx">{t.step3}</div>
+            </div>
+            <div className="st">
+              <div className="l">
+                <div className="n">4</div>
+              </div>
+              <div className="tx">{t.step4}</div>
+            </div>
+          </div>
 
-      {/* Historique */}
-      {entries.length > 0 && (
-        <div className="border-border bg-surface mt-3 rounded-[16px] border p-4 shadow-sm">
-          <h3 className="text-foreground mb-2 text-sm font-bold">
-            Dernières opérations
-          </h3>
-          <ul className="divide-border divide-y">
-            {entries.map((e, i) => (
-              <li
-                key={i}
-                className="flex items-center justify-between gap-2 py-2"
-              >
-                <span className="text-foreground text-xs">
-                  {ENTRY_LABEL[e.type] ?? e.type}
-                  <span className="text-subtle block">
-                    {new Date(e.createdAt).toLocaleDateString("fr-DZ")}
+          <div className="ccpbox">
+            <div className="cc">
+              <div className="ck">{config?.ccpName || "Coligo"}</div>
+              <div className="cv">
+                {config?.ccpNumber
+                  ? `${config.ccpNumber}${config.ccpKey ? ` · clé ${config.ccpKey}` : ""}`
+                  : t.ccpUnset}
+              </div>
+              <div className="cs">{t.ccpRef}</div>
+            </div>
+            {config?.ccpNumber && (
+              <div className="copy" onClick={() => void copyCcp()}>
+                {copied ? Ico.check : Ico.copy}
+              </div>
+            )}
+          </div>
+
+          <input
+            className="inp"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ""))}
+            inputMode="numeric"
+            placeholder={t.amountSent}
+            style={{ marginBottom: 11 }}
+          />
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,application/pdf"
+            hidden
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          />
+          <div
+            className={`drop${file ? "done" : ""}`}
+            onClick={() => fileRef.current?.click()}
+          >
+            <div className="di">{file ? Ico.check : Ico.image}</div>
+            <b>{file ? t.proofAdded : t.addProof}</b>
+            <span>{file ? `${file.name} ${t.proofReplace}` : t.proofHint}</span>
+          </div>
+
+          <button
+            className="btn green"
+            type="button"
+            disabled={!amtValid || !file || busy}
+            onClick={() => void submitManual()}
+          >
+            {busy ? Ico.spinner : Ico.send}
+            {t.sendRequest}
+          </button>
+          <div className="note">
+            {Ico.clock}
+            {t.ccpNote}
+          </div>
+          {msg && <div className="cgw-ok">{msg}</div>}
+          {err && <div className="cgw-err">{err}</div>}
+        </div>
+      )}
+
+      {/* PANNEAU ESPÈCES */}
+      {method === "cash" && (
+        <div className="panel">
+          <div className="plab">{t.cashTitle}</div>
+          <CashFinder t={t} />
+          <div className="note">
+            {Ico.info}
+            {t.cashNote}
+          </div>
+        </div>
+      )}
+
+      {/* DERNIÈRES OPÉRATIONS */}
+      {!compact && entries.length > 0 && (
+        <div className="panel" style={{ marginTop: 16 }}>
+          <div className="plab plab-sora">{t.opsTitle}</div>
+          {entries.map((e, i) => {
+            const credit = e.amountDa >= 0;
+            return (
+              <div className="op" key={i}>
+                <div className={`oi ${credit ? "cr" : "db"}`}>
+                  {credit ? Ico.up : Ico.down}
+                </div>
+                <div className="om">
+                  <b>{ENTRY_LABEL[lang][e.type] ?? e.type}</b>
+                  <span>
+                    {new Date(e.createdAt).toLocaleDateString(
+                      lang === "ar" ? "ar-DZ" : "fr-DZ"
+                    )}
                   </span>
-                </span>
-                <span
-                  className={`text-sm font-semibold tabular-nums ${e.amountDa < 0 ? "text-danger-700" : "text-success-700"}`}
-                >
-                  {e.amountDa > 0 ? "+" : ""}
-                  {formatDA(e.amountDa)}
-                </span>
-              </li>
-            ))}
-          </ul>
+                </div>
+                <div className={`ov ${credit ? "cr" : "db"}`}>
+                  {credit ? "+" : "−"}
+                  {groupNum(e.amountDa)} DA
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </section>
+  );
+}
+
+/* ────────────────────── Panneau Espèces : annuaire agents ──────────────── */
+type Point = {
+  wallet_id: string;
+  display_name: string | null;
+  address: string | null;
+  phone: string | null;
+  hours: string | null;
+  lat: number;
+  lng: number;
+  distance_km: number;
+};
+type Origin = { lat: number; lng: number; label: string };
+
+function CashFinder({ t }: { t: (typeof STR)[Lang] }) {
+  const [origin, setOrigin] = useState<Origin | null>(null);
+  const [phase, setPhase] = useState<"locating" | "manual" | "ready">(
+    "locating"
+  );
+  const [points, setPoints] = useState<Point[] | null>(null);
+  const [loadingPoints, setLoadingPoints] = useState(false);
+  const [view, setView] = useState<"list" | "map">("list");
+  const [mapFailed, setMapFailed] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [cityQ, setCityQ] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const [citySearching, setCitySearching] = useState(false);
+  const [cityErr, setCityErr] = useState<string | null>(null);
+  const [navFor, setNavFor] = useState<Point | null>(null);
+
+  const locate = useCallback(async () => {
+    setPhase("locating");
+    setCityErr(null);
+    const timeout = new Promise<null>((res) =>
+      setTimeout(() => res(null), 9000)
+    );
+    try {
+      const pos = await Promise.race([getPosition(), timeout]);
+      if (pos) {
+        setOrigin({ lat: pos.latitude, lng: pos.longitude, label: t.around });
+        setPhase("ready");
+      } else {
+        setPhase("manual");
+        setShowSearch(true);
+      }
+    } catch {
+      setPhase("manual");
+      setShowSearch(true);
+    }
+  }, [t.around]);
+
+  useEffect(() => {
+    void locate();
+  }, [locate]);
+
+  const load = useCallback(async (o: Origin) => {
+    setLoadingPoints(true);
+    setSelectedId(null);
+    const supabase = createClient();
+    const { data } = await supabase.rpc("recharge_points_nearby", {
+      p_lat: o.lat,
+      p_lng: o.lng,
+      p_limit: 50,
+      ...(o.label === t.around ? {} : { p_radius_override: 50 }),
+    });
+    setPoints((data ?? []) as Point[]);
+    setLoadingPoints(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (origin) void load(origin);
+  }, [origin, load]);
+
+  const searchCity = useCallback(async () => {
+    const q = cityQ.trim();
+    if (q.length < 2) return;
+    setCitySearching(true);
+    setCityErr(null);
+    const hit = await geocodeCommune(q, "");
+    setCitySearching(false);
+    if (!hit) {
+      setCityErr(t.cityNotFound);
+      return;
+    }
+    setShowSearch(false);
+    setOrigin({ lat: hit.lat, lng: hit.lng, label: q });
+    setPhase("ready");
+  }, [cityQ, t.cityNotFound]);
+
+  const goItinerary = (p: Point) => {
+    const pref = getNavPref();
+    if (pref) openNav(pref, p.lat, p.lng);
+    else setNavFor(p);
+  };
+
+  const mapPoints: MapPoint[] = (points ?? []).map((p) => ({
+    wallet_id: p.wallet_id,
+    display_name: p.display_name,
+    lat: p.lat,
+    lng: p.lng,
+    distance_km: p.distance_km,
+  }));
+  const selected = points?.find((p) => p.wallet_id === selectedId) ?? null;
+  const showMap =
+    view === "map" && !mapFailed && origin && (points?.length ?? 0) > 0;
+
+  return (
+    <div className="cash">
+      {/* Barre recherche + bascule Liste/Carte */}
+      <div className="findrow">
+        <div className="loc" onClick={() => setShowSearch((v) => !v)}>
+          {Ico.pin}
+          <span className="loc-lbl">{origin?.label ?? t.cityPlaceholder}</span>
+          <span className="mag">{Ico.search}</span>
+        </div>
+        <div className="vl">
+          <button
+            className={view === "list" ? "on" : ""}
+            onClick={() => setView("list")}
+          >
+            {Ico.liste}
+            {t.list}
+          </button>
+          <button
+            className={view === "map" ? "on" : ""}
+            onClick={() => setView("map")}
+          >
+            {Ico.mapIco}
+            {t.map}
+          </button>
+        </div>
+      </div>
+
+      {showSearch && (
+        <div className="citybox">
+          <input
+            className="inp"
+            value={cityQ}
+            onChange={(e) => setCityQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void searchCity();
+            }}
+            placeholder={t.cityPlaceholder}
+          />
+          <button
+            className="citybtn"
+            type="button"
+            disabled={citySearching || cityQ.trim().length < 2}
+            onClick={() => void searchCity()}
+          >
+            {citySearching ? Ico.spinner : t.search}
+          </button>
+        </div>
+      )}
+      {cityErr && <div className="cgw-err">{cityErr}</div>}
+
+      <div className="useloc" onClick={() => void locate()}>
+        {Ico.send}
+        {t.useMyPos}
+      </div>
+
+      {(phase === "locating" || loadingPoints) && (
+        <div className="cgw-mini-load">
+          <span className="cgw-ret-ic">{Ico.spinner}</span>
+          {phase === "locating" ? t.locating : t.searching}
+        </div>
+      )}
+
+      {/* Carte */}
+      {!loadingPoints && showMap && origin && (
+        <div style={{ position: "relative" }}>
+          <RechargePointsMap
+            origin={origin}
+            points={mapPoints}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onMapError={() => {
+              setMapFailed(true);
+              setView("list");
+            }}
+            height={300}
+          />
+          {selected && (
+            <div style={{ marginTop: 10 }}>
+              <AgentCard
+                p={selected}
+                t={t}
+                onItinerary={() => goItinerary(selected)}
+              />
+            </div>
+          )}
+          {!selected && <p className="cgw-hint">{t.tapPoint}</p>}
+        </div>
+      )}
+
+      {/* Liste */}
+      {!loadingPoints &&
+        phase === "ready" &&
+        (view === "list" || mapFailed || !showMap) &&
+        points &&
+        points.length > 0 &&
+        points.map((p) => (
+          <AgentCard
+            key={p.wallet_id}
+            p={p}
+            t={t}
+            onItinerary={() => goItinerary(p)}
+          />
+        ))}
+
+      {/* Vide */}
+      {!loadingPoints && phase === "ready" && points && points.length === 0 && (
+        <div className="empty">
+          <div className="ei">{Ico.store}</div>
+          <b>{t.emptyTitle}</b>
+          <span>{t.emptySub}</span>
+        </div>
+      )}
+
+      {navFor && (
+        <NavPicker
+          t={t}
+          onPick={(app) => {
+            setNavPref(app);
+            openNav(app, navFor.lat, navFor.lng);
+            setNavFor(null);
+          }}
+          onClose={() => setNavFor(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function AgentCard({
+  p,
+  t,
+  onItinerary,
+}: {
+  p: Point;
+  t: (typeof STR)[Lang];
+  onItinerary: () => void;
+}) {
+  const open = openStatus(p.hours);
+  const sub = [p.address, p.hours].filter(Boolean).join(" · ");
+  return (
+    <div className="agent">
+      <div className="ai">{Ico.store}</div>
+      <div className="am">
+        <b>{p.display_name ?? "Agent Coligo Pay"}</b>
+        <span>
+          {sub}
+          {open !== null && ` · ${open ? t.openNow : t.closedNow}`}
+        </span>
+        <button className="miniroute" type="button" onClick={onItinerary}>
+          {Ico.send}
+          {t.itinerary}
+        </button>
+      </div>
+      <div className="dist">{fmtDistance(p.distance_km)}</div>
+    </div>
+  );
+}
+
+function NavPicker({
+  t,
+  onPick,
+  onClose,
+}: {
+  t: (typeof STR)[Lang];
+  onPick: (app: NavApp) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="cgw-sheet" onClick={onClose}>
+      <div className="cgw-sheet-card" onClick={(e) => e.stopPropagation()}>
+        <h2 className="cgw-sheet-t">{t.openWith}</h2>
+        <p className="cgw-sheet-s">{t.openWithSub}</p>
+        {NAV_APPS.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            className="cgw-sheet-row"
+            onClick={() => onPick(a.id)}
+          >
+            <span style={{ fontSize: 18 }}>{a.emoji}</span>
+            {a.label}
+          </button>
+        ))}
+        <button type="button" className="cgw-sheet-cancel" onClick={onClose}>
+          {t.cancel}
+        </button>
+      </div>
+    </div>
   );
 }
