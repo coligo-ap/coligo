@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth/driver";
 import { hashReferralCode } from "@/lib/drivers/referral-code";
 import type { GainsEntry } from "@/components/driver/gains/gains-view";
+import type { CompteData } from "@/components/driver/profile/compte-view";
 import { isWilaya } from "@/lib/dz/wilayas";
 import {
   notifyMerchantNewDriverRequest,
@@ -1014,4 +1015,83 @@ export async function fetchDriverGains(): Promise<{
     .order("created_at", { ascending: false })
     .limit(200);
   return { ok: true, entries: (data ?? []) as GainsEntry[] };
+}
+
+// ---------------------------------------------------------------------------
+// Résumé du COMPTE (hero + stats + jauge encours) — pour TanStack Query.
+// Léger (pas d'URLs signées) : les pièces/formulaires sont streamés à part.
+// Auth + RLS appliqués à chaque appel.
+// ---------------------------------------------------------------------------
+function driverInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+export async function fetchDriverCompteSummary(): Promise<CompteData | null> {
+  const supabase = await createClient();
+  const driver = await getCurrentDriver();
+  if (!driver) return null;
+
+  const [
+    { data: prof },
+    { count: courses },
+    { data: outstanding },
+    { data: settings },
+  ] = await Promise.all([
+    supabase
+      .from("drivers")
+      .select(
+        "rating_avg, rating_count, vehicle_label, vehicle_plate, payout_method, payout_details, joined_year, created_at"
+      )
+      .eq("id", driver.id)
+      .maybeSingle(),
+    supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("delivery_driver_id", driver.id)
+      .not("delivery_delivered_at", "is", null),
+    supabase.rpc("driver_outstanding", { p_driver_id: driver.id }),
+    supabase
+      .from("platform_settings")
+      .select("driver_float_cap_da")
+      .eq("id", true)
+      .single(),
+  ]);
+
+  const p = (prof ?? {}) as {
+    rating_avg?: number;
+    rating_count?: number;
+    vehicle_label?: string | null;
+    vehicle_plate?: string | null;
+    payout_method?: string | null;
+    payout_details?: string | null;
+    joined_year?: number | null;
+    created_at?: string;
+  };
+  const joinedYear =
+    p.joined_year ??
+    (p.created_at ? new Date(p.created_at).getFullYear() : null);
+
+  return {
+    initials: driverInitials(driver.full_name),
+    avatarUrl: driver.avatar_url,
+    fullName: driver.full_name,
+    ratingAvg: Number(p.rating_avg ?? 0),
+    ratingCount: p.rating_count ?? 0,
+    coursesCount: courses ?? 0,
+    joinedYear,
+    verified: driver.is_verified,
+    frozen: driver.is_frozen,
+    vehicleLabel: p.vehicle_label ?? null,
+    vehiclePlate: p.vehicle_plate ?? null,
+    payoutMethod: p.payout_method ?? null,
+    payoutDetails: p.payout_details ?? null,
+    outstandingDa: Number(outstanding ?? 0),
+    capDa: Number(
+      (settings as { driver_float_cap_da?: number } | null)
+        ?.driver_float_cap_da ?? 8000
+    ),
+  };
 }
