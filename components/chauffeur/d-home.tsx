@@ -31,6 +31,10 @@ import { DNav, PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
 import { ChauffeurBalancePill } from "./balance-pill";
 import { ChauffeurWorkZoneSheet } from "./work-zone-sheet";
 import { useWorkZone } from "@/lib/chauffeur/work-zone";
+import {
+  setChauffeurOnlineLocal,
+  useChauffeurOnline,
+} from "@/lib/chauffeur/online-store";
 import { HOME_DIR_KEY } from "@/lib/drive/geo";
 import {
   activateHomeDir,
@@ -42,9 +46,6 @@ import {
   type ChauffeurGate,
   type DriveHome,
 } from "@/app/(chauffeur)/actions";
-
-/** Dernier choix en ligne / hors ligne (persisté en local). */
-const ONLINE_KEY = "coligo-drive-online";
 
 const GAMME_LABEL: Record<string, string> = {
   classic: "Classic",
@@ -96,24 +97,19 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const coordsRef = useRef(coords);
   coordsRef.current = coords;
 
-  // En ligne / hors ligne : le chauffeur choisit (bouton GO), choix persisté.
-  const [online, setOnline] = useState(false);
+  // En ligne / hors ligne : intention partagée (store, clé coligo-drive-online),
+  // lue À L'IDENTIQUE par la page Demandes → elle ne poll/écoute QUE si en ligne.
+  const online = useChauffeurOnline();
   const onlineRef = useRef(online);
   onlineRef.current = online;
   const [onlineBusy, setOnlineBusy] = useState(false);
-  useEffect(() => {
-    const saved = localStorage.getItem(ONLINE_KEY) === "1";
-    setOnline(saved);
-    onlineRef.current = saved;
-  }, []);
 
   const toggleOnline = async () => {
     if (onlineBusy) return;
     const next = !onlineRef.current;
     setOnlineBusy(true);
-    setOnline(next);
+    setChauffeurOnlineLocal(next);
     onlineRef.current = next;
-    localStorage.setItem(ONLINE_KEY, next ? "1" : "0");
     // Bascule serveur immédiate (le heartbeat suivant entretient l'état).
     await setChauffeurOnline(next);
     const c = coordsRef.current;
@@ -143,7 +139,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
 
   // Temps réel : une nouvelle demande proche met à jour le compteur
   // instantanément (sans attendre le tick de 15 s) → diffusion plus rapide.
+  // GATÉ sur l'état en ligne : hors ligne, on ne s'abonne pas (pas d'écoute).
   useEffect(() => {
+    if (!online) return;
     const supabase = createClient();
     const ch = supabase
       .channel("home-nearby-rides")
@@ -156,7 +154,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     return () => {
       void supabase.removeChannel(ch);
     };
-  }, [tick]);
+  }, [tick, online]);
 
   // Dès la 1re position GPS connue : recharger immédiatement le compteur de
   // demandes proches (sans attendre le tick de 15 s).

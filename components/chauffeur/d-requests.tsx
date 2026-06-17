@@ -8,6 +8,7 @@ import {
   Home,
   Loader2,
   Map as MapIcon,
+  Power,
   Zap,
 } from "lucide-react";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
@@ -22,6 +23,10 @@ import {
 } from "@/components/customer/drive/drive-modals";
 import { DNav } from "./d-ui";
 import {
+  setChauffeurOnlineLocal,
+  useChauffeurOnline,
+} from "@/lib/chauffeur/online-store";
+import {
   chauffeurHeartbeat,
   declineRide,
   getChauffeurActiveRide,
@@ -29,6 +34,7 @@ import {
   getChauffeurPlanRate,
   getNearbyRides,
   offerRide,
+  setChauffeurOnline,
   type NearbyRide,
 } from "@/app/(chauffeur)/actions";
 import { HOME_DIR_KEY, isTowardsHome } from "@/lib/drive/geo";
@@ -53,6 +59,9 @@ const ago = (iso: string) => {
 export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const router = useRouter();
   const coords = useDriverPosition();
+  // À L'ÉCOUTE seulement si EN LIGNE (intention partagée avec l'accueil).
+  const online = useChauffeurOnline();
+  const [goingOnline, setGoingOnline] = useState(false);
   const [reqs, setReqs] = useState<NearbyRide[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<"near" | "pay">("near");
@@ -97,6 +106,8 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const poll = useCallback(async () => {
     const c = coordsRef.current;
     if (!c) return;
+    // Heartbeat « en ligne » UNIQUEMENT quand on poll (donc en ligne) → hors
+    // ligne, la présence reste à false et le chauffeur n'est pas dispatché.
     void chauffeurHeartbeat(c.latitude, c.longitude, true);
     const [list, active] = await Promise.all([
       getNearbyRides(c.latitude, c.longitude),
@@ -112,24 +123,28 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   // 1er chargement quasi-immédiat : dès que la position est connue, on
   // interroge sans attendre le tick. Poll de filet à 5 s (le temps réel
   // ci-dessous gère l'instantané) + loader tant que rien n'est arrivé.
+  // GATÉ sur l'état en ligne : hors ligne, AUCUN poll (pas d'écoute).
   useEffect(() => {
+    if (!online) return;
     void poll();
     const id = setInterval(poll, 5000);
     return () => clearInterval(id);
-  }, [poll]);
+  }, [poll, online]);
   // Si la géoloc met du temps : déclencher le poll dès la 1re position connue
   // (sans attendre le tick) — puis laisser l'intervalle + le temps réel gérer.
   const gotFirstFix = useRef(false);
   useEffect(() => {
-    if (coords && !gotFirstFix.current) {
+    if (online && coords && !gotFirstFix.current) {
       gotFirstFix.current = true;
       void poll();
     }
-  }, [coords, poll]);
+  }, [coords, poll, online]);
 
   // Temps réel (mig 0149) : nouvelles demandes instantanées + redirection
   // immédiate quand le client accepte UNE de mes offres.
+  // GATÉ sur l'état en ligne : hors ligne, aucun abonnement.
   useEffect(() => {
+    if (!online) return;
     const supabase = createClient();
     const chans = [
       supabase
@@ -166,7 +181,64 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     return () => {
       for (const c of chans) void supabase.removeChannel(c);
     };
-  }, [poll, chId, router]);
+  }, [poll, chId, router, online]);
+
+  // GO depuis la page Demandes : passe en ligne (intention + présence serveur).
+  const goOnline = async () => {
+    if (goingOnline) return;
+    setGoingOnline(true);
+    setChauffeurOnlineLocal(true);
+    await setChauffeurOnline(true);
+    setGoingOnline(false);
+  };
+
+  // Hors ligne : AUCUNE écoute. On invite explicitement à passer en ligne.
+  if (!online) {
+    return (
+      <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-[18px] pt-3.5 pb-24">
+        <div className="mb-3 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/chauffeur")}
+            className="grid size-[42px] shrink-0 place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
+          >
+            <ChevronLeft className="size-5" />
+          </button>
+          <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
+            Demandes de courses
+          </h1>
+        </div>
+        <div className="flex flex-col items-center gap-4 py-16 text-center">
+          <span
+            className="grid size-16 place-items-center rounded-full"
+            style={{ background: "rgba(156,163,175,.15)" }}
+          >
+            <Power className="size-8" style={{ color: "#9CA3AF" }} />
+          </span>
+          <div className="max-w-xs">
+            <h2 className="drive-sora text-[18px] font-extrabold">
+              Vous êtes hors ligne
+            </h2>
+            <p className="mt-1 text-[13px] text-[var(--d-muted)]">
+              Passez en ligne pour être à l&apos;écoute et recevoir les demandes
+              de course autour de vous.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void goOnline()}
+            disabled={goingOnline}
+            className="drive-sora flex h-[52px] w-full max-w-xs items-center justify-center gap-2 rounded-[16px] text-base font-extrabold text-white disabled:opacity-60"
+            style={{ background: GO, boxShadow: `0 12px 24px -10px ${GO}` }}
+          >
+            {goingOnline ? <Loader2 className="size-5 animate-spin" /> : null}
+            Passer en ligne · GO
+          </button>
+        </div>
+        <DNav />
+      </div>
+    );
+  }
 
   const total = (q: NearbyRide) => q.proposed_price_da + q.boost_amount_da;
   // Filtre directionnel « je rentre chez moi » : ne garder que les demandes
