@@ -238,6 +238,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         markers={me ? [{ id: "me", pos: me, kind: "me" }] : []}
         heatZones={home?.heatZones ?? []}
         focusTarget={focusMe}
+        follow
         padding={{ top: 110, bottom: 460, left: 60, right: 60 }}
       />
       {/* Pill état en ligne / hors ligne */}

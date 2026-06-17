@@ -41,6 +41,7 @@ export function DriveMap({
   interactive = false,
   onMove,
   focusTarget = null,
+  follow = false,
   className,
   padding = { top: 120, bottom: 340, left: 40, right: 40 },
 }: {
@@ -61,12 +62,21 @@ export function DriveMap({
    * retrouve EXACTEMENT dessus, `moveend` émet la position.
    */
   focusTarget?: (LatLng & { zoom?: number }) | null;
+  /**
+   * Suivi de position (accueil chauffeur/livreur) : quand un SEUL marqueur est
+   * affiché (« moi »), la carte se centre dessus au 1er fix puis SUIT la
+   * position en douceur (`easeTo`) en conservant le zoom choisi — au lieu de
+   * « sauter » (flyTo + reset zoom) à chaque relevé GPS.
+   */
+  follow?: boolean;
   className?: string;
   padding?: { top: number; bottom: number; left: number; right: number };
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerObjs = useRef<Map<string, maplibregl.Marker>>(new Map());
+  // Vrai une fois la carte centrée sur la position pour la 1re fois (mode suivi).
+  const didInitialCenter = useRef(false);
   const [ready, setReady] = useState(false);
   const onMoveRef = useRef(onMove);
   useEffect(() => {
@@ -338,7 +348,19 @@ export function DriveMap({
     ];
     if (pts.length === 0) return;
     if (pts.length === 1) {
-      map.flyTo({ center: [pts[0].lng, pts[0].lat], zoom: 15, duration: 600 });
+      const only = pts[0];
+      // Mode suivi : après le 1er centrage, on PANNE doucement vers la nouvelle
+      // position sans toucher au zoom (la carte « colle » au chauffeur).
+      if (follow && didInitialCenter.current) {
+        map.easeTo({ center: [only.lng, only.lat], duration: 600 });
+      } else {
+        map.flyTo({
+          center: [only.lng, only.lat],
+          zoom: follow ? 15.5 : 15,
+          duration: 600,
+        });
+        didInitialCenter.current = true;
+      }
       return;
     }
     const lats = pts.map((p) => p.lat);
