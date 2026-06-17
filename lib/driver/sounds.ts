@@ -15,7 +15,14 @@
 
 import { isDriverSoundOn } from "@/lib/driver/sound-store";
 
+// Aucun fichier mp3 n'est livré pour l'instant (public/sounds/ absent) : on va
+// DIRECTEMENT à la synthèse Web Audio. Tenter de charger les .mp3 inexistants
+// générait des 404 répétés en console. Repasser à `true` le jour où des fichiers
+// audio sont ajoutés dans public/sounds/.
+const USE_SOUND_FILES = false;
+
 function tryFile(src: string): Promise<boolean> {
+  if (!USE_SOUND_FILES) return Promise.resolve(false);
   return new Promise((resolve) => {
     try {
       const a = new Audio(src);
