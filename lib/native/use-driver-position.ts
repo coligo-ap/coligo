@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import {
   watchPosition,
+  getPosition,
   type Coords,
   type WatchHandle,
 } from "@/lib/native/geolocation";
@@ -26,10 +27,57 @@ const STALE_MS = 15_000; // un fix devient « périmé » après 15 s.
 
 let current: Coords | null = null;
 let handle: WatchHandle | null = null;
+let seeded = false;
 const listeners = new Set<() => void>();
 
 function emit() {
   for (const l of listeners) l();
+}
+
+/**
+ * Fix one-shot IMMÉDIAT au démarrage : le `watchPosition` (haute précision,
+ * sans cache) peut mettre 15-30 s à livrer son 1er relevé → la position
+ * tarderait à s'afficher. On déclenche en parallèle un getPosition rapide qui
+ * accepte un fix récent en cache, pour peindre le point tout de suite.
+ */
+function seed() {
+  if (seeded) return;
+  seeded = true;
+  getPosition({ enableHighAccuracy: true, timeout: 8_000, maximumAge: 30_000 })
+    .then(accept)
+    .catch(() => {
+      // Repli tolérant : basse précision + cache plus large (réseau/Wi-Fi).
+      getPosition({
+        enableHighAccuracy: false,
+        timeout: 12_000,
+        maximumAge: 120_000,
+      })
+        .then(accept)
+        .catch(() => {
+          /* géoloc refusée/indispo : le watch tentera quand même */
+        });
+    });
+}
+
+/**
+ * Rafraîchissement FORCÉ (bouton « centrer sur ma position ») : on récupère un
+ * fix frais et on l'impose au store SANS le filtre anti-jitter, pour que le
+ * repère ET la caméra collent à la position réelle même après une longue
+ * immobilité. Retourne le fix (ou la dernière position connue si échec).
+ */
+export async function refreshDriverPosition(): Promise<Coords | null> {
+  try {
+    const c = await getPosition({
+      enableHighAccuracy: true,
+      timeout: 8_000,
+      maximumAge: 0,
+    });
+    current = c;
+    emit();
+    return c;
+  } catch {
+    return current;
+  }
 }
 
 /** Applique le filtrage et notifie les abonnés si le point retenu change. */
@@ -59,9 +107,11 @@ function accept(next: Coords) {
 
 function start() {
   if (handle) return;
+  // Fix rapide immédiat (cache toléré) EN PLUS du watch continu.
+  seed();
   handle = watchPosition(accept, () => {}, {
     enableHighAccuracy: true,
-    maximumAge: 0,
+    maximumAge: 5_000,
     timeout: 15_000,
   });
 }
@@ -69,6 +119,9 @@ function start() {
 function stop() {
   handle?.stop();
   handle = null;
+  // Autorise un nouveau fix one-shot au prochain montage (utile si le seed
+  // précédent avait échoué — permission accordée entre-temps, GPS revenu…).
+  seeded = false;
 }
 
 export function useDriverPosition(): Coords | null {

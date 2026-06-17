@@ -13,8 +13,10 @@ import {
   X,
 } from "lucide-react";
 import { formatDA } from "@/lib/utils";
-import { useDriverPosition } from "@/lib/native/use-driver-position";
-import { getPosition } from "@/lib/native/geolocation";
+import {
+  useDriverPosition,
+  refreshDriverPosition,
+} from "@/lib/native/use-driver-position";
 import { reverseGeocode } from "@/lib/geo/geocode";
 import { createClient } from "@/lib/supabase/client";
 import { PushRegistrar } from "@/components/native/push-registrar";
@@ -194,18 +196,19 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const [focusMe, setFocusMe] = useState<(LatLng & { zoom?: number }) | null>(
     null
   );
+  const [locating, setLocating] = useState(false);
   const recenter = async () => {
-    const c = coordsRef.current;
-    if (c) {
-      setFocusMe({ lat: c.latitude, lng: c.longitude, zoom: 16 });
-      return;
-    }
-    try {
-      const p = await getPosition({ enableHighAccuracy: true, timeout: 8000 });
-      setFocusMe({ lat: p.latitude, lng: p.longitude, zoom: 16 });
-    } catch {
-      /* géoloc refusée */
-    }
+    // 1) Recentrage INSTANTANÉ sur la dernière position connue (si on en a une).
+    const known = coordsRef.current;
+    if (known)
+      setFocusMe({ lat: known.latitude, lng: known.longitude, zoom: 16.5 });
+    // 2) Puis on force un fix frais (alimente AUSSI le store → le repère « moi »
+    //    apparaît même si le watch n'avait encore rien livré) et on s'y cale.
+    setLocating(true);
+    const fresh = await refreshDriverPosition();
+    setLocating(false);
+    if (fresh)
+      setFocusMe({ lat: fresh.latitude, lng: fresh.longitude, zoom: 16.5 });
   };
 
   const toggleDir = async () => {
@@ -269,10 +272,15 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
       <button
         type="button"
         onClick={() => void recenter()}
+        disabled={locating}
         aria-label="Centrer sur ma position"
         className="absolute top-[64px] right-4 z-10 grid size-[42px] place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
       >
-        <Crosshair className="size-5" style={{ color: VIOLET }} />
+        {locating ? (
+          <Loader2 className="size-5 animate-spin" style={{ color: VIOLET }} />
+        ) : (
+          <Crosshair className="size-5" style={{ color: VIOLET }} />
+        )}
       </button>
 
       {/* Feuille réductible — SCROLLABLE : le contenu (jusqu'au bouton GO) peut

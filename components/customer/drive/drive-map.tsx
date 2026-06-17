@@ -356,7 +356,7 @@ export function DriveMap({
       } else {
         map.flyTo({
           center: [only.lng, only.lat],
-          zoom: follow ? 15.5 : 15,
+          zoom: follow ? 16 : 15,
           duration: 600,
         });
         didInitialCenter.current = true;
