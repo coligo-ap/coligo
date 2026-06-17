@@ -125,6 +125,8 @@ const STR = {
     step4: "L'équipe Coligo vérifie et crédite votre solde",
     ccpRef: "Référence : votre numéro de téléphone",
     ccpUnset: "CCP non configuré — contactez le support",
+    bankLabel: "Compte bancaire (virement)",
+    bankRibRef: "RIB · référence : votre numéro de téléphone",
     copied: "Copié",
     amountSent: "Montant envoyé en DA",
     addProof: "Ajouter la preuve de virement",
@@ -190,6 +192,8 @@ const STR = {
     step4: "يتحقق فريق Coligo ويشحن رصيدك",
     ccpRef: "المرجع: رقم هاتفك",
     ccpUnset: "حساب CCP غير مُعدّ — تواصل مع الدعم",
+    bankLabel: "حساب بنكي (تحويل)",
+    bankRibRef: "RIB · المرجع: رقم هاتفك",
     copied: "تم النسخ",
     amountSent: "المبلغ المُرسل بالدينار",
     addProof: "أضف إثبات التحويل",
@@ -511,7 +515,7 @@ export function OperatorRecharge({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"ccp" | "rib" | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [topupReturn, setTopupReturn] = useState<
     "checking" | "confirmed" | "failed" | null
@@ -653,14 +657,12 @@ export function OperatorRecharge({
     }
   };
 
-  const copyCcp = async () => {
-    if (!config?.ccpNumber) return;
+  const copyVal = async (key: "ccp" | "rib", text: string) => {
+    if (!text) return;
     try {
-      await navigator.clipboard.writeText(
-        `${config.ccpNumber}${config.ccpKey ? ` clé ${config.ccpKey}` : ""}`
-      );
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      await navigator.clipboard.writeText(text);
+      setCopied(key);
+      setTimeout(() => setCopied(null), 1800);
     } catch {
       /* clipboard indisponible */
     }
@@ -853,11 +855,39 @@ export function OperatorRecharge({
               <div className="cs">{t.ccpRef}</div>
             </div>
             {config?.ccpNumber && (
-              <div className="copy" onClick={() => void copyCcp()}>
-                {copied ? Ico.check : Ico.copy}
+              <div
+                className="copy"
+                onClick={() =>
+                  void copyVal(
+                    "ccp",
+                    `${config.ccpNumber}${config.ccpKey ? ` clé ${config.ccpKey}` : ""}`
+                  )
+                }
+              >
+                {copied === "ccp" ? Ico.check : Ico.copy}
               </div>
             )}
           </div>
+
+          {/* Compte bancaire (optionnel, selon le module) */}
+          {config?.bankRib && (
+            <div className="ccpbox">
+              <div className="cc">
+                <div className="ck">
+                  {t.bankLabel}
+                  {config.bankName ? ` · ${config.bankName}` : ""}
+                </div>
+                <div className="cv">{config.bankRib}</div>
+                <div className="cs">{t.bankRibRef}</div>
+              </div>
+              <div
+                className="copy"
+                onClick={() => void copyVal("rib", config.bankRib ?? "")}
+              >
+                {copied === "rib" ? Ico.check : Ico.copy}
+              </div>
+            </div>
+          )}
 
           <input
             className="inp"

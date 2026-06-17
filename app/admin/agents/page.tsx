@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight, Store, UserRound } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AgentStatusBadge } from "@/components/admin/agents/agent-status-badge";
+import { ModulePaymentAccount } from "@/components/admin/module-payment-account";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +95,8 @@ export default async function AdminAgentsPage() {
           </ul>
         )}
       </section>
+
+      <ModulePaymentAccount scope="partner" />
     </div>
   );
 }

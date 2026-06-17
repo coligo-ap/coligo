@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isSuperAdmin } from "@/lib/auth/admin";
 import { DriverFreezeButton } from "@/components/admin/driver-freeze-button";
 import { DriverStatusBadge } from "@/components/admin/drivers/driver-status-badge";
+import { ModulePaymentAccount } from "@/components/admin/module-payment-account";
 
 export const dynamic = "force-dynamic";
 
@@ -144,6 +145,10 @@ export default async function AdminDriversPage() {
           )}
         </tbody>
       </table>
+
+      <div className="mt-4">
+        <ModulePaymentAccount scope="driver" />
+      </div>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   SubPaymentActions,
 } from "@/components/admin/chauffeur-validation";
 import { formatDA } from "@/lib/utils";
+import { ModulePaymentAccount } from "@/components/admin/module-payment-account";
 
 export const dynamic = "force-dynamic";
 
@@ -245,6 +246,10 @@ export default async function AdminChauffeursPage() {
           </table>
         </div>
       )}
+
+      <div className="mt-6">
+        <ModulePaymentAccount scope="chauffeur" />
+      </div>
     </div>
   );
 }

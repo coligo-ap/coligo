@@ -2401,6 +2401,8 @@ export type Database = {
           ccp_number: string | null;
           ccp_key: string | null;
           ccp_name: string | null;
+          bank_name: string | null;
+          bank_rib: string | null;
           presets_da: number[];
           max_da: number;
         }[];

@@ -384,3 +384,94 @@ export async function updateThresholds(input: {
   revalidatePath("/admin/recharges");
   return { ok: true };
 }
+
+// ───────────────── Comptes de versement de la plateforme (par module) ────────
+export type PaymentScope = "driver" | "chauffeur" | "merchant" | "partner";
+
+export type PaymentAccount = {
+  scope: PaymentScope;
+  ccpNumber: string;
+  ccpKey: string;
+  ccpHolder: string;
+  bankName: string;
+  bankRib: string;
+};
+
+const SCOPE_ORDER: PaymentScope[] = [
+  "driver",
+  "chauffeur",
+  "merchant",
+  "partner",
+];
+
+/** Les 4 comptes de versement (CCP + banque) par module. Super-admin only. */
+export async function getPaymentAccounts(): Promise<PaymentAccount[]> {
+  if (!(await isSuperAdmin())) return [];
+  const admin = createAdminClient();
+  const { data } = await (
+    admin.from as unknown as (t: string) => {
+      select: (c: string) => Promise<{
+        data:
+          | {
+              scope: PaymentScope;
+              ccp_number: string;
+              ccp_key: string;
+              ccp_holder: string;
+              bank_name: string;
+              bank_rib: string;
+            }[]
+          | null;
+      }>;
+    }
+  )("platform_payment_accounts").select(
+    "scope, ccp_number, ccp_key, ccp_holder, bank_name, bank_rib"
+  );
+  const byScope = new Map((data ?? []).map((r) => [r.scope, r]));
+  return SCOPE_ORDER.map((scope) => {
+    const r = byScope.get(scope);
+    return {
+      scope,
+      ccpNumber: r?.ccp_number ?? "",
+      ccpKey: r?.ccp_key ?? "",
+      ccpHolder: r?.ccp_holder ?? "Coligo SPA",
+      bankName: r?.bank_name ?? "",
+      bankRib: r?.bank_rib ?? "",
+    };
+  });
+}
+
+/** Enregistrer le compte de versement d'un module (CCP + banque). Tracé. */
+export async function updatePaymentAccount(
+  input: PaymentAccount
+): Promise<Res> {
+  if (!(await isSuperAdmin())) return DENIED;
+  if (!SCOPE_ORDER.includes(input.scope)) return { error: "Module invalide." };
+  const supabase = await createClient(); // session admin → updated_by = auth.uid()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const trim = (v: string, n: number) => (v ?? "").trim().slice(0, n);
+  const { error } = await (
+    supabase.from as unknown as (t: string) => {
+      upsert: (
+        v: Record<string, unknown>,
+        o: { onConflict: string }
+      ) => Promise<{ error: { message: string } | null }>;
+    }
+  )("platform_payment_accounts").upsert(
+    {
+      scope: input.scope,
+      ccp_number: trim(input.ccpNumber, 30),
+      ccp_key: trim(input.ccpKey, 5),
+      ccp_holder: trim(input.ccpHolder, 80) || "Coligo SPA",
+      bank_name: trim(input.bankName, 80),
+      bank_rib: trim(input.bankRib, 40),
+      updated_at: new Date().toISOString(),
+      updated_by: user?.id ?? null,
+    },
+    { onConflict: "scope" }
+  );
+  if (error) return { error: error.message };
+  revalidatePath("/admin/recharges");
+  return { ok: true };
+}

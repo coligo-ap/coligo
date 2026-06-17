@@ -4,6 +4,8 @@ import {
   type PartnerRow,
   type PendingTopup,
 } from "@/components/admin/recharges/recharges-manager";
+import { PaymentAccountsEditor } from "@/components/admin/payment-accounts-editor";
+import { getPaymentAccounts } from "@/app/admin/recharges/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -178,6 +180,8 @@ export default async function AdminRechargesPage() {
     createdAt: r.created_at,
   }));
 
+  const paymentAccounts = await getPaymentAccounts();
+
   return (
     <div className="mx-auto max-w-[1100px] p-4 lg:p-6 lg:px-8">
       <header className="mb-5">
@@ -196,6 +200,20 @@ export default async function AdminRechargesPage() {
         partners={partners}
         merchants={promotableMerchants}
       />
+
+      <section className="border-border bg-surface mt-4 rounded-[16px] border p-5">
+        <div className="mb-4">
+          <h2 className="text-foreground text-base font-bold">
+            Comptes de versement de la plateforme (par module)
+          </h2>
+          <p className="text-muted text-sm">
+            CCP et compte bancaire affichés à chaque type d&apos;utilisateur
+            dans sa page de recharge (virement). Un compte par service /
+            domaine.
+          </p>
+        </div>
+        <PaymentAccountsEditor accounts={paymentAccounts} />
+      </section>
     </div>
   );
 }

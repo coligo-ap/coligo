@@ -3,6 +3,7 @@ import {
   getPlatformSettings,
 } from "@/lib/data/platform";
 import { AdminMerchantsView } from "@/components/admin/admin-merchants-view";
+import { ModulePaymentAccount } from "@/components/admin/module-payment-account";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,10 @@ export default async function AdminMerchantsPage() {
         </p>
       </header>
       <AdminMerchantsView merchants={merchants} settings={settings} />
+
+      <div className="mt-6">
+        <ModulePaymentAccount scope="merchant" />
+      </div>
     </div>
   );
 }

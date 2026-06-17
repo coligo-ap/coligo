@@ -18,6 +18,8 @@ export type TopupConfig = {
   ccpNumber: string | null;
   ccpKey: string | null;
   ccpName: string | null;
+  bankName: string | null;
+  bankRib: string | null;
   presets: number[];
   maxDa: number;
 };
@@ -60,6 +62,8 @@ export async function getMyTopupConfig(): Promise<TopupConfig> {
     ccpNumber: r?.ccp_number ?? null,
     ccpKey: r?.ccp_key ?? null,
     ccpName: r?.ccp_name ?? null,
+    bankName: r?.bank_name ?? null,
+    bankRib: r?.bank_rib ?? null,
     presets:
       r?.presets_da && r.presets_da.length > 0
         ? r.presets_da
