@@ -9,8 +9,11 @@ export default async function PartnerHomePage() {
   if (!partner) redirect("/partenaire/login");
   return (
     <PartnerDashboard
+      walletId={partner.walletId}
       displayName={partner.displayName}
       status={partner.status}
+      isVerified={partner.isVerified}
+      rejectedReason={partner.rejectedReason}
       address={partner.address}
       phone={partner.phone}
     />

@@ -18,7 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatDA } from "@/lib/utils";
+import { BadgeCheck } from "lucide-react";
 import { OperatorRecharge } from "@/components/wallet/operator-recharge";
+import { DossierSection } from "@/components/partner/dossier-section";
 import {
   getMyWalletEntries,
   type MyWalletEntry,
@@ -46,16 +48,23 @@ const ENTRY_LABEL: Record<string, string> = {
 };
 
 export function PartnerDashboard({
+  walletId,
   displayName,
   status,
+  isVerified,
+  rejectedReason,
   address,
   phone,
 }: {
+  walletId: string;
   displayName: string;
-  status: "active" | "suspended" | "disabled";
+  status: "active" | "suspended" | "disabled" | "pending" | "rejected";
+  isVerified: boolean;
+  rejectedReason: string | null;
   address: string | null;
   phone: string | null;
 }) {
+  const isActive = status === "active";
   const [stats, setStats] = useState<PartnerStats | null>(null);
   const [entries, setEntries] = useState<MyWalletEntry[]>([]);
   const [pin, setPinState] = useState<{ hasPin: boolean; locked: boolean }>({
@@ -92,8 +101,14 @@ export function PartnerDashboard({
               <Store className="size-5" />
             </span>
             <div>
-              <p className="text-[15px] leading-tight font-bold">
+              <p className="flex items-center gap-1.5 text-[15px] leading-tight font-bold">
                 {displayName}
+                {isVerified && (
+                  <BadgeCheck
+                    className="size-4 text-white/90"
+                    aria-label="Vérifié"
+                  />
+                )}
               </p>
               <p className="text-xs text-white/70">
                 {address ?? "Agent Coligo Pay"}
@@ -133,13 +148,28 @@ export function PartnerDashboard({
           />
         </div>
 
-        {status !== "active" && (
+        {status === "pending" && (
+          <div className="mt-3 rounded-[12px] bg-white/15 p-2.5 text-xs font-semibold">
+            ⏳ Demande en cours d&apos;examen. Complétez votre dossier
+            ci-dessous — Coligo l&apos;active dès validation.
+          </div>
+        )}
+        {status === "rejected" && (
+          <div className="mt-3 rounded-[12px] bg-white/15 p-2.5 text-xs font-semibold">
+            ❌ Dossier refusé{rejectedReason ? ` : ${rejectedReason}` : ""}.
+            Corrigez vos pièces ci-dessous puis renvoyez.
+          </div>
+        )}
+        {(status === "suspended" || status === "disabled") && (
           <div className="mt-3 rounded-[12px] bg-white/15 p-2.5 text-xs font-semibold">
             ⚠️ Compte {status === "suspended" ? "suspendu" : "désactivé"} —
             contactez Coligo pour le réactiver.
           </div>
         )}
       </div>
+
+      {/* Dossier (pièces) — prioritaire tant que le compte n'est pas actif. */}
+      {!isActive && <DossierSection walletId={walletId} />}
 
       {/* ===== COMMENT ÇA MARCHE ===== */}
       <div className="border-border bg-surface rounded-[16px] border">
@@ -180,52 +210,60 @@ export function PartnerDashboard({
         )}
       </div>
 
-      {/* PIN requis */}
-      {!pin.hasPin && <PinSetup onDone={refresh} />}
+      {isActive && (
+        <>
+          {/* PIN requis */}
+          {!pin.hasPin && <PinSetup onDone={refresh} />}
 
-      {/* ===== VENDRE ===== */}
-      <SellCredit
-        canSell={pin.hasPin && status === "active"}
-        onSold={refresh}
-      />
+          {/* ===== VENDRE ===== */}
+          <SellCredit canSell={pin.hasPin} onSold={refresh} />
 
-      {/* ===== RECHARGER (sans double carte de solde) ===== */}
-      <Suspense fallback={null}>
-        <OperatorRecharge
-          hideBalance
-          title="Recharger mon crédit (carte ou virement)"
-        />
-      </Suspense>
+          {/* ===== RECHARGER (sans double carte de solde) ===== */}
+          <Suspense fallback={null}>
+            <OperatorRecharge
+              hideBalance
+              title="Recharger mon crédit (carte ou virement)"
+            />
+          </Suspense>
 
-      {/* ===== HISTORIQUE ===== */}
-      <div className="border-border bg-surface rounded-[16px] border p-4 shadow-sm">
-        <h2 className="text-foreground mb-2 text-sm font-bold">Historique</h2>
-        {entries.length === 0 ? (
-          <p className="text-muted text-sm">Aucune opération pour le moment.</p>
-        ) : (
-          <ul className="divide-border divide-y">
-            {entries.map((e, i) => (
-              <li
-                key={i}
-                className="flex items-center justify-between gap-2 py-2"
-              >
-                <span className="text-foreground text-xs">
-                  {ENTRY_LABEL[e.type] ?? e.type}
-                  <span className="text-subtle block">
-                    {new Date(e.createdAt).toLocaleDateString("fr-DZ")}
-                  </span>
-                </span>
-                <span
-                  className={`text-sm font-semibold tabular-nums ${e.amountDa < 0 ? "text-danger-700" : "text-success-700"}`}
-                >
-                  {e.amountDa > 0 ? "+" : ""}
-                  {formatDA(e.amountDa)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+          {/* ===== HISTORIQUE ===== */}
+          <div className="border-border bg-surface rounded-[16px] border p-4 shadow-sm">
+            <h2 className="text-foreground mb-2 text-sm font-bold">
+              Historique
+            </h2>
+            {entries.length === 0 ? (
+              <p className="text-muted text-sm">
+                Aucune opération pour le moment.
+              </p>
+            ) : (
+              <ul className="divide-border divide-y">
+                {entries.map((e, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center justify-between gap-2 py-2"
+                  >
+                    <span className="text-foreground text-xs">
+                      {ENTRY_LABEL[e.type] ?? e.type}
+                      <span className="text-subtle block">
+                        {new Date(e.createdAt).toLocaleDateString("fr-DZ")}
+                      </span>
+                    </span>
+                    <span
+                      className={`text-sm font-semibold tabular-nums ${e.amountDa < 0 ? "text-danger-700" : "text-success-700"}`}
+                    >
+                      {e.amountDa > 0 ? "+" : ""}
+                      {formatDA(e.amountDa)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Mon dossier — gestion / remplacement des pièces (agent actif). */}
+          <DossierSection walletId={walletId} />
+        </>
+      )}
 
       {phone && (
         <p className="text-subtle text-center text-xs">

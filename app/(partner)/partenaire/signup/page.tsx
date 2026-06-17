@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentPartner } from "@/lib/auth/partner";
-import { PartnerLoginForm } from "@/components/partner/login-form";
+import { PartnerSignupForm } from "@/components/partner/signup-form";
 import { AuthScreen } from "@/components/shared/auth-screen";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 const HERO_IMG =
   "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1400&q=80";
 
-export default async function PartnerLoginPage() {
+export default async function PartnerSignupPage() {
+  // Déjà connecté en agent ? → direct à l'espace.
   const partner = await getCurrentPartner();
   if (partner) redirect("/partenaire");
 
@@ -20,34 +21,35 @@ export default async function PartnerLoginPage() {
       hero={{
         title: (
           <>
-            Vendez du crédit <br />
+            Devenez Agent <br />
             Coligo Pay.
           </>
         ),
-        subtitle: "L'espace des Agents Coligo Pay (points de recharge).",
+        subtitle:
+          "Rejoignez le réseau des points de recharge Coligo et vendez du crédit.",
         features: [
-          "Rechargez les portefeuilles de vos clients",
-          "Suivez votre solde et vos ventes",
-          "Encaissez vos commissions simplement",
-          "Un support dédié aux partenaires",
+          "Vendez du crédit à vos clients",
+          "Gagnez sur chaque recharge",
+          "Apparaissez sur la carte des points",
+          "Un dossier validé par Coligo",
         ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Bonjour"
-      cardSubtitle="Connectez-vous pour gérer votre solde et vos ventes de crédit."
+      cardTitle="Demande de partenariat"
+      cardSubtitle="Renseignez les informations de votre point de recharge. Coligo examinera votre dossier avant activation."
       footer={
         <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
-          Pas encore Agent Coligo Pay ?{" "}
+          Déjà partenaire ?{" "}
           <Link
-            href="/partenaire/signup"
+            href="/partenaire/login"
             className="text-primary-700 font-medium hover:underline"
           >
-            Devenir partenaire
+            Se connecter
           </Link>
         </div>
       }
     >
-      <PartnerLoginForm />
+      <PartnerSignupForm />
     </AuthScreen>
   );
 }

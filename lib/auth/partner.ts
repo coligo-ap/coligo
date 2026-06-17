@@ -27,7 +27,9 @@ export type CurrentPartner = {
   walletId: string;
   ownerId: string;
   displayName: string;
-  status: "active" | "suspended" | "disabled";
+  status: "active" | "suspended" | "disabled" | "pending" | "rejected";
+  isVerified: boolean;
+  rejectedReason: string | null;
   address: string | null;
   phone: string | null;
   balanceDa: number;
@@ -47,6 +49,8 @@ export async function getCurrentPartner(): Promise<CurrentPartner | null> {
     owner_id: string;
     display_name: string | null;
     status: string;
+    is_verified: boolean | null;
+    rejected_reason: string | null;
     address: string | null;
     phone: string | null;
   };
@@ -65,7 +69,9 @@ export async function getCurrentPartner(): Promise<CurrentPartner | null> {
       };
     }
   )("operator_wallets")
-    .select("id, owner_id, display_name, status, address, phone")
+    .select(
+      "id, owner_id, display_name, status, is_verified, rejected_reason, address, phone"
+    )
     .eq("owner_type", "partner")
     .eq("owner_id", user.id)
     .maybeSingle();
@@ -79,6 +85,8 @@ export async function getCurrentPartner(): Promise<CurrentPartner | null> {
     ownerId: data.owner_id,
     displayName: data.display_name ?? "Agent Coligo Pay",
     status: data.status as CurrentPartner["status"],
+    isVerified: !!data.is_verified,
+    rejectedReason: data.rejected_reason ?? null,
     address: data.address ?? null,
     phone: data.phone ?? null,
     balanceDa: state?.balance_da ?? 0,

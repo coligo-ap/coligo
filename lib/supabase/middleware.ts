@@ -165,7 +165,8 @@ export async function updateSession(request: NextRequest) {
     if (!publicChauffeur) return redirectTo("/chauffeur/login");
   }
   if (path === "/partenaire" || path.startsWith("/partenaire/")) {
-    const publicPartner = path === "/partenaire/login";
+    const publicPartner =
+      path === "/partenaire/login" || path === "/partenaire/signup";
     if (!publicPartner) return redirectTo("/partenaire/login");
   }
 
