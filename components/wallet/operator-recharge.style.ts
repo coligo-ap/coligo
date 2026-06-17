@@ -18,7 +18,7 @@ export const RECHARGE_STYLE = `
   --sora:var(--font-display),'Sora',system-ui,sans-serif;
   --jakarta:var(--font-sans-body),'Plus Jakarta Sans',system-ui,sans-serif;
   font-family:var(--jakarta);color:var(--ink);
-  display:block;width:100%;max-width:430px;margin:0 auto;
+  display:block;width:100%;max-width:360px;margin:0 auto;
   -webkit-tap-highlight-color:transparent;
 }
 :where(.theme-dark) .cgw,:where(.dark) .cgw{
