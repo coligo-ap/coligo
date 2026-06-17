@@ -24,7 +24,15 @@ import { useWorkZone, zoneCircleGeoJSON } from "@/lib/driver/work-zone";
 
 type MerchantPin = { id: string; name: string; lat: number; lng: number };
 
-export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
+export function DriverHomeMap({
+  merchants,
+  active = true,
+}: {
+  merchants: MerchantPin[];
+  /** false quand la carte est cachée (autre onglet) : on évite les recadrages
+   *  et on redimensionne dès qu'elle redevient visible (conteneur 0×0 sinon). */
+  active?: boolean;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const meMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
@@ -338,6 +346,17 @@ export function DriverHomeMap({ merchants }: { merchants: MerchantPin[] }) {
       }
     });
   }, [zone]);
+
+  // Redimensionne la carte quand elle (re)devient visible : son conteneur était
+  // à 0×0 en display:none (carte persistante hissée dans le layout) → sans ça,
+  // MapLibre afficherait une carte tronquée au retour sur l'Accueil.
+  useEffect(() => {
+    if (!active) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const ts = [60, 240, 500].map((t) => setTimeout(() => map.resize(), t));
+    return () => ts.forEach(clearTimeout);
+  }, [active]);
 
   const hasZones = zones.length > 0;
 

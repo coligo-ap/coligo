@@ -9,6 +9,8 @@ import { DriverSplash } from "@/components/driver/driver-splash";
 import { ActiveCourseBanner } from "@/components/driver/active-course-banner";
 import { DriverCancelWatch } from "@/components/driver/driver-cancel-watch";
 import { DriverThemeRoot } from "@/components/driver/driver-theme-root";
+import { PersistentDriverMap } from "@/components/driver/home/persistent-driver-map";
+import { createClient } from "@/lib/supabase/server";
 import { TawkChat } from "@/components/support/tawk-chat";
 import { DriverBlockedScreen } from "@/components/driver/driver-blocked-screen";
 import { InstallBanner } from "@/components/pwa/install-banner";
@@ -68,8 +70,47 @@ export default async function DriverLayout({
     );
   }
 
+  // Pins commerçants (coordonnées) pour la carte PERSISTANTE de l'accueil.
+  // Requête UNE fois par session : le layout ne se re-rend pas entre onglets,
+  // donc la carte (montée ici) n'est jamais recréée à chaque navigation.
+  let mapPins: { id: string; name: string; lat: number; lng: number }[] = [];
+  if (driver) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("merchant_drivers")
+      .select("id, status, merchants ( name, latitude, longitude )")
+      .eq("driver_id", driver.id)
+      .eq("status", "active");
+    type M = {
+      name: string;
+      latitude: number | null;
+      longitude: number | null;
+    };
+    const one = (v: M | M[] | null): M | null =>
+      Array.isArray(v) ? (v[0] ?? null) : v;
+    mapPins = (data ?? [])
+      .map((l) => {
+        const m = one(l.merchants as M | M[] | null);
+        return m && m.latitude != null && m.longitude != null
+          ? {
+              id: l.id as string,
+              name: m.name,
+              lat: m.latitude,
+              lng: m.longitude,
+            }
+          : null;
+      })
+      .filter(
+        (p): p is { id: string; name: string; lat: number; lng: number } =>
+          p !== null
+      );
+  }
+
   return (
     <DriverThemeRoot fontVars={`${fontSora.variable} ${fontJakarta.variable}`}>
+      {/* Carte de l'accueil montée UNE fois (persiste entre onglets) ; en fond,
+          affichée seulement sur /driver (cf. PersistentDriverMap). */}
+      {driver && <PersistentDriverMap pins={mapPins} />}
       {children}
       {/* Enregistre le token FCM du livreur (role=courier) → reçoit les push
           Express ET Tournée même app fermée / hors ligne (Android natif).

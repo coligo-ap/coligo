@@ -4,7 +4,6 @@ import { CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverDashboardLive } from "@/components/driver/driver-dashboard-live";
-import { DriverHomeMap } from "@/components/driver/home/driver-home-map";
 import { DriverHomeMaquette } from "@/components/driver/home/driver-home-maquette";
 import { WorkZoneControl } from "@/components/driver/home/work-zone-control";
 import { DriverBottomNav } from "@/components/driver/driver-bottom-nav";
@@ -108,10 +107,6 @@ export default async function DriverHomePage() {
     };
   });
 
-  const pins = merchants
-    .filter((m) => m.lat != null && m.lng != null)
-    .map((m) => ({ id: m.mdId, name: m.name, lat: m.lat!, lng: m.lng! }));
-
   // Accès « Tournées » : montré sur l'accueil UNIQUEMENT si le livreur a rejoint
   // au moins un commerçant (sinon l'Express pur n'est pas pollué). Les demandes
   // en attente / accès retirés sont gérés dans le hub /driver/tournees.
@@ -128,7 +123,10 @@ export default async function DriverHomePage() {
   );
 
   return (
-    <div className="mq-screen min-h-[100dvh]">
+    // Pas de conteneur plein écran : la carte (persistante, montée dans le
+    // layout) occupe le fond, et les contrôles flottent en îlots positionnés
+    // au-dessus → la carte reste tactile dans les zones libres.
+    <>
       {/* Refresh temps réel des compteurs + toast nouvelle course. */}
       <DriverDashboardLive />
 
@@ -151,8 +149,8 @@ export default async function DriverHomePage() {
         </Link>
       )}
 
-      {/* Vraie carte (MapLibre) en fond — les maquettes la simulent en SVG. */}
-      <DriverHomeMap merchants={pins} />
+      {/* La carte (MapLibre) est désormais montée dans le layout (persistante) :
+          plus de re-création à chaque retour sur l'Accueil. */}
 
       {/* Sélecteur « Ma zone de travail » (dispatch par zone) — pilule d'état
           en haut à droite, sous le bouton recentrer. Masqué si compte gelé. */}
@@ -171,6 +169,6 @@ export default async function DriverHomePage() {
 
       {/* Nav basse persistante — onglet « Accueil » actif. */}
       <DriverBottomNav />
-    </div>
+    </>
   );
 }
