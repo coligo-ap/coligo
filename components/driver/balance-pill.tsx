@@ -1,35 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Wallet } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { getMyWalletState } from "@/app/wallet/recharge-actions";
 
 /**
- * Pastille de solde du portefeuille livreur — en haut de l'accueil, à côté de
- * l'état en ligne. Rafraîchie ~20 s + au focus. Cliquable → page de recharge.
+ * Pastille de solde du portefeuille livreur — en haut de l'accueil. Lue via
+ * TanStack Query (clé par livreur) : le solde se réaffiche INSTANTANÉMENT depuis
+ * le cache au retour sur l'accueil, et se rafraîchit ~20 s + au focus. Cliquable
+ * → page de recharge. (Auth + RLS appliqués par getMyWalletState.)
  */
-export function DriverBalancePill() {
+export function DriverBalancePill({ driverId }: { driverId: string }) {
   const router = useRouter();
-  const [bal, setBal] = useState<number | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      const s = await getMyWalletState();
-      if (active) setBal(s?.effectiveBalanceDa ?? 0);
-    };
-    void load();
-    const id = setInterval(load, 20000);
-    const onFocus = () => void load();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      active = false;
-      clearInterval(id);
-      window.removeEventListener("focus", onFocus);
-    };
-  }, []);
+  const { data: bal } = useQuery({
+    queryKey: ["driver-wallet", driverId],
+    queryFn: async () => (await getMyWalletState())?.effectiveBalanceDa ?? 0,
+    refetchInterval: 20_000,
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
+  });
 
   const negative = bal != null && bal < 0;
 

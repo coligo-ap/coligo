@@ -158,6 +158,7 @@ export default async function DriverHomePage() {
 
       {/* Chrome maquette (GO + radar + son + sheet + stats) en overlay. */}
       <DriverHomeMaquette
+        driverId={driver.id}
         earnedToday={earnedToday}
         coursesToday={coursesToday ?? 0}
         isFrozen={driver.is_frozen}

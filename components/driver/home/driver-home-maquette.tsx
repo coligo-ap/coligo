@@ -32,11 +32,13 @@ function grp(n: number) {
  * persistante en dessous.
  */
 export function DriverHomeMaquette({
+  driverId,
   earnedToday,
   coursesToday,
   isFrozen = false,
   freezeReason = null,
 }: {
+  driverId: string;
   earnedToday: number;
   coursesToday: number;
   isFrozen?: boolean;
@@ -218,7 +220,7 @@ export function DriverHomeMaquette({
         ) : (
           <span aria-hidden />
         )}
-        <DriverBalancePill />
+        <DriverBalancePill driverId={driverId} />
       </div>
 
       {/* Feuille d'accueil (tête d'information), posée au-dessus de la tabbar.
