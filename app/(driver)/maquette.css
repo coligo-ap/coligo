@@ -252,7 +252,13 @@
 /* Posée AU-DESSUS de la barre d'onglets (bottom = hauteur tabbar). Padding-haut
    suffisant pour que l'en-tête ne passe pas sous le bouton GO en dock. */
 [data-space="driver"] .mq-sheet {
-  position: absolute;
+  /* `fixed` (et non `absolute`) : l'accueil ne pose aucun ancêtre positionné
+     (fragment, pas de .mq-screen), donc en `absolute` la feuille s'ancre au
+     DOCUMENT — après un scroll sur une autre page (Compte), elle se décalait
+     vers le haut en laissant un vide au-dessus de la tabbar. En `fixed`, elle
+     reste collée au viewport exactement comme la .mq-tabbar (toutes deux à
+     bottom fixe) → plus jamais de décalage quel que soit le scroll. */
+  position: fixed;
   left: 0;
   right: 0;
   bottom: 74px;

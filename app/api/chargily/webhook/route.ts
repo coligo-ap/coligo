@@ -302,9 +302,14 @@ export async function POST(req: NextRequest) {
       });
       if (error) {
         console.error("[chargily/webhook] op_topup failed:", error);
+        // 500 (et non 200) : on a vérifié la signature et le paiement est
+        // « paid », donc une erreur ici est forcément transitoire (incident
+        // BDD). Répondre 5xx pousse Chargily à RÉESSAYER — sinon le crédit
+        // serait perdu à jamais. La RPC étant idempotente (client_operation_id
+        // = "chargily:"+checkout_id), un réessai ne peut pas double-créditer.
         return NextResponse.json(
           { ok: false, error: error.message },
-          { status: 200 }
+          { status: 500 }
         );
       }
     }

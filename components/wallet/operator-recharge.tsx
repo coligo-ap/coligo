@@ -64,6 +64,10 @@ export function OperatorRecharge({
     "checking" | "confirmed" | "failed" | null
   >(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Verrou SYNCHRONE anti double-tap : `busy` (state React) ne se met à jour
+  // qu'au prochain rendu, donc deux clics dans le même tick lisent tous deux
+  // `busy=false` et passeraient. Un ref se règle immédiatement → 2e clic bloqué.
+  const submittingRef = useRef(false);
 
   const refresh = useCallback(async () => {
     const [st, en] = await Promise.all([
@@ -73,37 +77,60 @@ export function OperatorRecharge({
     setState(st);
     setEntries(en);
     setLoading(false);
-    return st;
+    return { st, en };
   }, []);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  // Retour Chargily : on NE croit PAS la redirection, on attend le webhook.
+  // Retour Chargily : on NE croit JAMAIS la redirection `?topup=success` (le
+  // client peut la forger). La SEULE preuve de paiement est l'écriture
+  // `topup_chargily` posée par le webhook (signature HMAC vérifiée + idempotente).
+  // On attend donc qu'une telle écriture apparaisse, créée APRÈS le clic « Payer »
+  // (horodatage mémorisé en localStorage, partagé entre onglets). Robuste au
+  // webhook rapide (crédit déjà posé au retour) comme lent (jusqu'à ~60 s).
   useEffect(() => {
     const flag = search.get("topup");
     if (!flag) return;
     router.replace(pathname);
+    let startedAt = 0;
+    try {
+      const raw = window.localStorage.getItem("coligo_op_topup_started");
+      startedAt = raw ? Number(raw) : 0;
+      window.localStorage.removeItem("coligo_op_topup_started");
+    } catch {
+      /* localStorage indisponible : on se rabat sur une fenêtre récente */
+    }
     if (flag === "failed") {
       setTopupReturn("failed");
       return;
     }
     if (flag !== "success") return;
     setTopupReturn("checking");
-    const before = state?.balanceDa ?? null;
+    // Marge de 90 s sous l'horodatage du clic pour absorber un léger écart
+    // d'horloge client/serveur ; à défaut d'horodatage, fenêtre de 10 min.
+    const since = startedAt > 0 ? startedAt - 90_000 : Date.now() - 600_000;
+    const credited = (en: MyWalletEntry[]) =>
+      en.some(
+        (e) =>
+          e.type === "topup_chargily" &&
+          new Date(e.createdAt).getTime() >= since
+      );
     let tries = 0;
-    pollRef.current = setInterval(async () => {
+    const tick = async () => {
       tries += 1;
-      const st = await refresh();
-      if (st && before != null && st.balanceDa > before) {
+      const { en } = await refresh();
+      if (credited(en)) {
         setTopupReturn("confirmed");
         if (pollRef.current) clearInterval(pollRef.current);
-      } else if (tries >= 15) {
+      } else if (tries >= 20) {
         if (pollRef.current) clearInterval(pollRef.current);
         setTopupReturn(null);
       }
-    }, 3000);
+    };
+    void tick(); // 1re vérification immédiate (cas webhook déjà passé)
+    pollRef.current = setInterval(() => void tick(), 3000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
@@ -114,24 +141,40 @@ export function OperatorRecharge({
   const amtValid = Number.isFinite(amt) && amt >= 100;
 
   const payCard = async () => {
-    if (!amtValid || busy) return;
+    if (!amtValid || busy || submittingRef.current) return;
+    submittingRef.current = true;
     setBusy(true);
     setErr(null);
     setMsg(null);
-    const res = await createOperatorTopupCheckout(amt, pathname);
-    setBusy(false);
-    if (!res.ok || !res.url) {
-      setErr(res.error ?? "Paiement indisponible.");
-      return;
+    try {
+      const res = await createOperatorTopupCheckout(amt, pathname);
+      if (!res.ok || !res.url) {
+        setErr(res.error ?? "Paiement indisponible.");
+        return;
+      }
+      // Horodatage du clic → sert de borne à la détection du crédit au retour.
+      try {
+        window.localStorage.setItem(
+          "coligo_op_topup_started",
+          String(Date.now())
+        );
+      } catch {
+        /* localStorage indisponible : la détection se rabattra sur une fenêtre récente */
+      }
+      // MÊME onglet (et non `_blank`) : le retour `?topup=success` atterrit alors
+      // sur CETTE page (fiable sur l'APK Capacitor comme sur le web), où le
+      // polling affiche la confirmation. `_blank` ouvrait le navigateur système
+      // et l'onglet d'origine restait bloqué sur « en cours ».
+      window.location.href = res.url;
+    } finally {
+      submittingRef.current = false;
+      setBusy(false);
     }
-    window.open(res.url, "_blank");
-    setMsg(
-      "Paiement carte en cours — le solde se met à jour dès la confirmation bancaire."
-    );
   };
 
   const submitManual = async () => {
-    if (!amtValid || !file || !state || busy) return;
+    if (!amtValid || !file || !state || busy || submittingRef.current) return;
+    submittingRef.current = true;
     setBusy(true);
     setErr(null);
     setMsg(null);
@@ -144,7 +187,6 @@ export function OperatorRecharge({
         .upload(path, file, { contentType: file.type, upsert: false });
       if (upErr) {
         setErr(`Téléversement échoué : ${upErr.message}`);
-        setBusy(false);
         return;
       }
       const res = await requestOperatorManualTopup({
@@ -152,7 +194,6 @@ export function OperatorRecharge({
         amountDa: amt,
         proofPath: path,
       });
-      setBusy(false);
       if (!res.ok) {
         setErr(res.error ?? "Échec de la demande.");
         return;
@@ -164,8 +205,10 @@ export function OperatorRecharge({
       );
       void refresh();
     } catch {
-      setBusy(false);
       setErr("Une erreur est survenue.");
+    } finally {
+      submittingRef.current = false;
+      setBusy(false);
     }
   };
 
