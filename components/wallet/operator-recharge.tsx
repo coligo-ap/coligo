@@ -744,7 +744,7 @@ export function OperatorRecharge({
       <div className="secT">{title ?? t.rechargeTitle}</div>
       <div className="methods">
         <div
-          className={`m${method === "card" ? "on" : ""}`}
+          className={method === "card" ? "m on" : "m"}
           onClick={() => setMethod("card")}
         >
           <div className="mi">{Ico.card}</div>
@@ -753,7 +753,7 @@ export function OperatorRecharge({
           <span className="badge-i">{t.fast}</span>
         </div>
         <div
-          className={`m${method === "ccp" ? "on" : ""}`}
+          className={method === "ccp" ? "m on" : "m"}
           onClick={() => setMethod("ccp")}
         >
           <div className="mi">{Ico.bank}</div>
@@ -761,7 +761,7 @@ export function OperatorRecharge({
           <span>{t.mCcpDelay}</span>
         </div>
         <div
-          className={`m${method === "cash" ? "on" : ""}`}
+          className={method === "cash" ? "m on" : "m"}
           onClick={() => setMethod("cash")}
         >
           <div className="mi">{Ico.cash}</div>
@@ -778,7 +778,7 @@ export function OperatorRecharge({
             {presets.map((v) => (
               <div
                 key={v}
-                className={`chip${Number(amount) === v ? "on" : ""}`}
+                className={Number(amount) === v ? "chip on" : "chip"}
                 onClick={() => setAmount(String(v))}
               >
                 {groupNum(v)} DA
@@ -876,7 +876,7 @@ export function OperatorRecharge({
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
           <div
-            className={`drop${file ? "done" : ""}`}
+            className={file ? "drop done" : "drop"}
             onClick={() => fileRef.current?.click()}
           >
             <div className="di">{file ? Ico.check : Ico.image}</div>
