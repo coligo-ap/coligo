@@ -2,20 +2,19 @@
 
 import { useState } from "react";
 import { useLocale } from "next-intl";
-import { Crosshair, MapPin, X } from "lucide-react";
-import { MapPositionPicker } from "@/components/shared/map-position-picker";
+import { Crosshair, X } from "lucide-react";
 import {
-  useWorkZone,
-  setWorkZone,
-  ZONE_RADIUS_OPTIONS,
-  DEFAULT_ZONE_RADIUS_KM,
+  useSearchRadius,
+  setSearchRadius,
+  SEARCH_RADIUS_OPTIONS,
 } from "@/lib/chauffeur/work-zone";
 
 /**
- * Modale « Ma zone de travail » du CHAUFFEUR (pendant de la zone livreur). Le
- * chauffeur choisit un CENTRE sur la carte + un RAYON : il ne voit alors que
- * les courses dont le DÉPART est dans ce périmètre, où qu'il se trouve.
- * « Autour de moi » efface la zone → dispatch suivant le GPS live.
+ * Modale « Ma zone » du CHAUFFEUR. Le dispatch est TOUJOURS centré sur la
+ * position GPS actuelle du chauffeur (mig 0201) ; cette modale ne règle que le
+ * RAYON autour de lui (3 km par défaut, jusqu'à 20 km). Si peu de demandes dans
+ * ce rayon, le système élargit automatiquement aux courses les plus proches
+ * au-delà — libre au chauffeur de les accepter ou non.
  */
 export function ChauffeurWorkZoneSheet({
   open,
@@ -26,24 +25,13 @@ export function ChauffeurWorkZoneSheet({
 }) {
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
-  const current = useWorkZone();
-  const [center, setCenter] = useState<{ lat: number; lng: number } | null>(
-    current ? { lat: current.lat, lng: current.lng } : null
-  );
-  const [radius, setRadius] = useState<number>(
-    current?.radiusKm ?? DEFAULT_ZONE_RADIUS_KM
-  );
+  const current = useSearchRadius();
+  const [radius, setRadius] = useState<number>(current);
 
   if (!open) return null;
 
-  const activate = () => {
-    if (!center) return;
-    setWorkZone({ lat: center.lat, lng: center.lng, radiusKm: radius });
-    onClose();
-  };
-
-  const useAroundMe = () => {
-    setWorkZone(null);
+  const save = () => {
+    setSearchRadius(radius);
     onClose();
   };
 
@@ -59,9 +47,9 @@ export function ChauffeurWorkZoneSheet({
       >
         <div className="border-border flex items-center justify-between border-b px-4 py-3.5">
           <div className="flex items-center gap-2">
-            <MapPin className="text-primary-700 size-[18px]" />
+            <Crosshair className="text-primary-700 size-[18px]" />
             <h2 className="drive-sora text-[16px] font-extrabold">
-              {tr("Ma zone de travail", "منطقة عملي")}
+              {tr("Ma zone", "منطقتي")}
             </h2>
           </div>
           <button
@@ -75,71 +63,45 @@ export function ChauffeurWorkZoneSheet({
         </div>
 
         <div className="p-4">
-          <p className="text-muted mb-3 text-[13px] leading-snug">
+          <p className="text-muted mb-4 text-[13px] leading-snug">
             {tr(
-              "Choisissez le centre de votre zone et un rayon. Vous ne verrez que les courses dont le départ est dans ce périmètre, où que vous soyez.",
-              "اختر مركز منطقتك ونصف القطر. لن ترى سوى الطلبات التي تنطلق من هذا النطاق، أينما كنت."
+              "Vous recevez les courses autour de votre position actuelle, où que vous soyez. Choisissez la distance maximale. Si peu de demandes sont proches, on vous proposera aussi les plus proches au-delà.",
+              "تستقبل الطلبات حول موقعك الحالي أينما كنت. اختر المسافة القصوى. وإذا قلّت الطلبات القريبة، سنقترح عليك أيضًا الأقرب خارج هذا النطاق."
             )}
           </p>
 
-          <MapPositionPicker
-            initial={current ? { lat: current.lat, lng: current.lng } : null}
-            autoLocate={!current}
-            searchEnabled
-            searchPlaceholder={tr(
-              "Rechercher un quartier, une ville…",
-              "ابحث عن حي أو مدينة…"
-            )}
-            gpsLabel={tr("Ma position", "موقعي")}
-            height={260}
-            onChange={(pos) => setCenter(pos)}
-          />
-
-          <div className="mt-4">
-            <div className="text-subtle mb-2 text-[12px] font-bold tracking-wide uppercase">
-              {tr("Rayon de la zone", "نصف قطر المنطقة")}
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {ZONE_RADIUS_OPTIONS.map((r) => {
-                const active = r === radius;
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRadius(r)}
-                    className={
-                      "h-11 rounded-[12px] border text-[14px] font-bold transition " +
-                      (active
-                        ? "border-primary-600 bg-primary-600 text-white"
-                        : "border-border bg-surface-2 text-foreground")
-                    }
-                  >
-                    {r} km
-                  </button>
-                );
-              })}
-            </div>
+          <div className="text-subtle mb-2 text-[12px] font-bold tracking-wide uppercase">
+            {tr("Rayon autour de moi", "نصف القطر حولي")}
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {SEARCH_RADIUS_OPTIONS.map((r) => {
+              const active = r === radius;
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRadius(r)}
+                  className={
+                    "h-11 rounded-[12px] border text-[14px] font-bold transition " +
+                    (active
+                      ? "border-primary-600 bg-primary-600 text-white"
+                      : "border-border bg-surface-2 text-foreground")
+                  }
+                >
+                  {r} km
+                </button>
+              );
+            })}
           </div>
 
-          <div className="mt-5 flex flex-col gap-2.5">
-            <button
-              type="button"
-              onClick={activate}
-              disabled={!center}
-              className="bg-primary-600 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-bold text-white shadow-lg disabled:opacity-50"
-            >
-              <MapPin className="size-[18px]" />
-              {tr("Activer cette zone", "تفعيل هذه المنطقة")}
-            </button>
-            <button
-              type="button"
-              onClick={useAroundMe}
-              className="border-border text-foreground inline-flex h-[48px] w-full items-center justify-center gap-2 rounded-[14px] border text-[14px] font-semibold"
-            >
-              <Crosshair className="size-[16px]" />
-              {tr("Autour de moi (position GPS)", "حولي (موقع GPS)")}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={save}
+            className="bg-primary-600 mt-5 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-bold text-white shadow-lg"
+          >
+            <Crosshair className="size-[18px]" />
+            {tr("Enregistrer", "حفظ")}
+          </button>
         </div>
       </div>
     </div>

@@ -1,87 +1,76 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { saveChauffeurWorkZone } from "@/app/(chauffeur)/actions";
+import { saveChauffeurSearchRadius } from "@/app/(chauffeur)/actions";
 
 /**
- * « Zone de travail » du CHAUFFEUR (dispatch VTC par ZONE) — pendant de la zone
- * livreur (lib/driver/work-zone.ts). Persistée en localStorage ET côté serveur
- * (chauffeurs.work_zone_*, mig 0182) pour l'enforcement DB.
+ * « Ma zone » du CHAUFFEUR (dispatch VTC). Le dispatch est TOUJOURS centré sur
+ * la position GPS live du chauffeur (mig 0201) : il se déplace, son rayon le
+ * suit, partout en Algérie. « Ma zone » ne choisit donc qu'un RAYON autour de
+ * soi (3 km par défaut, jusqu'à 20 km). Si peu de demandes dans ce rayon, le
+ * serveur complète avec les courses les plus proches au-delà (expansion auto).
  *
- * Par défaut (zone = null) le chauffeur travaille « autour de lui » : le
- * dispatch suit sa position GPS live avec le rayon configurable plateforme.
- * Quand il définit une zone (point + rayon), il ne voit plus que les courses
- * dont le DÉPART est dans ce périmètre, où qu'il soit (enforcé par
- * chauffeur_nearby_rides).
+ * Le rayon est persisté en localStorage (réactif immédiat) ET côté serveur
+ * (chauffeurs.work_zone_radius_km, source de vérité du dispatch).
  */
 
-export type WorkZone = { lat: number; lng: number; radiusKm: number };
+const KEY = "coligo_chauffeur_search_radius";
 
-const KEY = "coligo_chauffeur_work_zone";
+/** Rayons proposés dans le sélecteur (km). */
+export const SEARCH_RADIUS_OPTIONS = [3, 5, 10, 20] as const;
+export const DEFAULT_SEARCH_RADIUS_KM = 3;
+export const MAX_SEARCH_RADIUS_KM = 20;
 
-/** Rayons proposés dans le sélecteur (km) — VTC : plus larges que l'Express. */
-export const ZONE_RADIUS_OPTIONS = [5, 8, 12, 20] as const;
-export const DEFAULT_ZONE_RADIUS_KM = 8;
-/** Rayon « autour de moi » par défaut (cf. drive_dispatch_radius_km). */
-export const LIVE_RADIUS_KM = 8;
-
-let zone: WorkZone | null | undefined = undefined;
+let radius: number | undefined = undefined;
 const listeners = new Set<() => void>();
 
-function sanitize(v: unknown): WorkZone | null {
-  if (!v || typeof v !== "object") return null;
-  const o = v as Record<string, unknown>;
-  const lat = Number(o.lat);
-  const lng = Number(o.lng);
-  const r = Number(o.radiusKm);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(r))
-    return null;
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
-  return { lat, lng, radiusKm: Math.min(60, Math.max(0.5, r)) };
+function clamp(v: unknown): number {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return DEFAULT_SEARCH_RADIUS_KM;
+  return Math.min(MAX_SEARCH_RADIUS_KM, Math.max(3, Math.round(n)));
 }
 
-function read(): WorkZone | null {
-  if (typeof window === "undefined") return null;
-  if (zone === undefined) {
+function read(): number {
+  if (typeof window === "undefined") return DEFAULT_SEARCH_RADIUS_KM;
+  if (radius === undefined) {
     try {
       const raw = localStorage.getItem(KEY);
-      zone = raw ? sanitize(JSON.parse(raw)) : null;
+      radius = raw ? clamp(raw) : DEFAULT_SEARCH_RADIUS_KM;
     } catch {
-      zone = null;
+      radius = DEFAULT_SEARCH_RADIUS_KM;
     }
   }
-  return zone;
+  return radius;
 }
 
 function emit() {
   for (const l of listeners) l();
 }
 
-export function getWorkZone(): WorkZone | null {
+export function getSearchRadius(): number {
   return read();
 }
 
-export function setWorkZone(next: WorkZone | null) {
+export function setSearchRadius(next: number) {
   if (typeof window === "undefined") return;
-  zone = next ? sanitize(next) : null;
+  radius = clamp(next);
   try {
-    if (zone) localStorage.setItem(KEY, JSON.stringify(zone));
-    else localStorage.removeItem(KEY);
+    localStorage.setItem(KEY, String(radius));
   } catch {
     /* localStorage indispo → on garde l'état en mémoire */
   }
   // Persiste côté serveur pour l'enforcement DB (best-effort, non bloquant).
-  void saveChauffeurWorkZone(zone);
+  void saveChauffeurSearchRadius(radius);
   emit();
 }
 
-export function useWorkZone(): WorkZone | null {
+export function useSearchRadius(): number {
   return useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
     () => read(),
-    () => null
+    () => DEFAULT_SEARCH_RADIUS_KM
   );
 }

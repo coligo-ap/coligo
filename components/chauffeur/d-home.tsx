@@ -9,7 +9,6 @@ import {
   Crosshair,
   Home,
   Loader2,
-  MapPin,
   Pencil,
   X,
 } from "lucide-react";
@@ -30,7 +29,7 @@ import {
 import { DNav, PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
 import { ChauffeurBalancePill } from "./balance-pill";
 import { ChauffeurWorkZoneSheet } from "./work-zone-sheet";
-import { useWorkZone } from "@/lib/chauffeur/work-zone";
+import { useSearchRadius } from "@/lib/chauffeur/work-zone";
 import {
   setChauffeurOnlineLocal,
   useChauffeurOnline,
@@ -91,9 +90,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   }, []);
   const [dirMsg, setDirMsg] = useState<string | null>(null);
   const [homeAddr, setHomeAddr] = useState(gate.homeAddr);
-  // Zone de travail (centre + rayon) — dispatch enforcé serveur si définie.
+  // Rayon « autour de moi » — dispatch toujours centré sur la position live.
   const [zoneOpen, setZoneOpen] = useState(false);
-  const workZone = useWorkZone();
+  const searchRadius = useSearchRadius();
   const coordsRef = useRef(coords);
   coordsRef.current = coords;
 
@@ -408,11 +407,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               style={{ background: "#F4F2FE" }}
             >
               <span className="grid size-7 shrink-0 place-items-center rounded-[9px] bg-[var(--d-surface)]">
-                {workZone ? (
-                  <MapPin className="size-3.5" style={{ color: VIOLET }} />
-                ) : (
-                  <Crosshair className="size-3.5" style={{ color: VIOLET }} />
-                )}
+                <Crosshair className="size-3.5" style={{ color: VIOLET }} />
               </span>
               <span className="min-w-0">
                 <b
@@ -422,9 +417,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
                   {tr("Ma zone", "منطقتي")}
                 </b>
                 <span className="mt-0.5 block truncate text-[10.5px] text-[var(--d-muted)]">
-                  {workZone
-                    ? `${workZone.radiusKm} km`
-                    : tr("Autour de moi", "حولي")}
+                  {`${searchRadius} km · ${tr("autour de moi", "حولي")}`}
                 </span>
               </span>
             </button>

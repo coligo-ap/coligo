@@ -542,20 +542,16 @@ export type NearbyRide = {
 };
 
 /**
- * Persiste la ZONE DE TRAVAIL du chauffeur côté serveur (mig 0182) — il ne voit
- * alors que les courses dont le DÉPART est dans sa zone. `null` → retire la zone
- * (repli rayon configurable autour de la position live). Best-effort.
+ * Persiste le RAYON de recherche du chauffeur côté serveur (mig 0201). Le
+ * dispatch reste toujours centré sur la position GPS live ; ce rayon (3..20 km)
+ * borne ce qu'il reçoit autour de lui. Best-effort, non bloquant.
  */
-export async function saveChauffeurWorkZone(
-  zone: { lat: number; lng: number; radiusKm: number } | null
+export async function saveChauffeurSearchRadius(
+  radiusKm: number
 ): Promise<void> {
   try {
     const rpc = await rpcClient();
-    await rpc("set_chauffeur_work_zone", {
-      p_lat: zone?.lat ?? null,
-      p_lng: zone?.lng ?? null,
-      p_radius_km: zone?.radiusKm ?? null,
-    });
+    await rpc("set_chauffeur_search_radius", { p_radius_km: radiusKm });
   } catch {
     /* best effort */
   }
@@ -563,14 +559,15 @@ export async function saveChauffeurWorkZone(
 
 export async function getNearbyRides(
   lat: number,
-  lng: number
+  lng: number,
+  radiusKm = 3
 ): Promise<NearbyRide[]> {
   try {
     const rpc = await rpcClient();
     const { data } = await rpc("chauffeur_nearby_rides", {
       p_lat: lat,
       p_lng: lng,
-      p_radius_km: 8,
+      p_radius_km: radiusKm,
     });
     return ((data as Record<string, unknown>[] | null) ?? []).map((r) => ({
       id: r.id as string,

@@ -26,6 +26,7 @@ import {
   setChauffeurOnlineLocal,
   useChauffeurOnline,
 } from "@/lib/chauffeur/online-store";
+import { useSearchRadius } from "@/lib/chauffeur/work-zone";
 import {
   chauffeurHeartbeat,
   declineRide,
@@ -74,6 +75,10 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const [chId, setChId] = useState<string | null>(null);
   const coordsRef = useRef(coords);
   coordsRef.current = coords;
+  // Rayon choisi par le chauffeur (dispatch centré sur sa position live).
+  const searchRadius = useSearchRadius();
+  const radiusRef = useRef(searchRadius);
+  radiusRef.current = searchRadius;
   useEffect(() => {
     void getChauffeurPlanRate().then(setPlanRate);
   }, []);
@@ -110,7 +115,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     // ligne, la présence reste à false et le chauffeur n'est pas dispatché.
     void chauffeurHeartbeat(c.latitude, c.longitude, true);
     const [list, active] = await Promise.all([
-      getNearbyRides(c.latitude, c.longitude),
+      getNearbyRides(c.latitude, c.longitude, radiusRef.current),
       getChauffeurActiveRide(),
     ]);
     if (active) {
