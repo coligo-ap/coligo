@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setGlobalAvailability } from "@/app/(driver)/actions";
 import { useDriverOnline, setDriverOnline } from "@/lib/driver/online-store";
 import { DriverBalancePill } from "@/components/driver/balance-pill";
 import { playGo } from "@/lib/driver/sounds";
-
-const ONLINE_SINCE_KEY = "coligo_driver_online_since";
 
 export const FROZEN_MESSAGE =
   "Votre compte est gelé/bloqué. Merci de prendre contact avec le support pour résoudre le problème.";
@@ -36,52 +34,19 @@ function grp(n: number) {
 export function DriverHomeMaquette({
   earnedToday,
   coursesToday,
-  ratingAvg,
   isFrozen = false,
   freezeReason = null,
 }: {
   earnedToday: number;
   coursesToday: number;
-  ratingAvg: number;
   isFrozen?: boolean;
   freezeReason?: string | null;
 }) {
   const online = useDriverOnline();
   const [, start] = useTransition();
   const router = useRouter();
-  const [onlineLabel, setOnlineLabel] = useState("0h00");
   // Affiche le message « compte gelé » si le serveur refuse la mise en ligne.
   const [frozenMsg, setFrozenMsg] = useState(false);
-
-  // Session « en ligne » (localStorage) → durée affichée dans les stats.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (online) {
-      if (!localStorage.getItem(ONLINE_SINCE_KEY))
-        localStorage.setItem(ONLINE_SINCE_KEY, String(Date.now()));
-    } else {
-      localStorage.removeItem(ONLINE_SINCE_KEY);
-    }
-  }, [online]);
-  useEffect(() => {
-    const tick = () => {
-      const raw =
-        typeof window !== "undefined"
-          ? localStorage.getItem(ONLINE_SINCE_KEY)
-          : null;
-      if (!online || !raw) {
-        setOnlineLabel("0h00");
-        return;
-      }
-      const mins = Math.max(0, Math.floor((Date.now() - Number(raw)) / 60000));
-      setOnlineLabel(
-        `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, "0")}`
-      );
-    };
-    tick();
-    const i = setInterval(tick, 30_000);
-    return () => clearInterval(i);
-  }, [online]);
 
   const toggle = () => {
     const next = !online;
@@ -283,15 +248,21 @@ export function DriverHomeMaquette({
           </button>
         </div>
 
-        {/* Ligne 1 — « Aujourd'hui » + montant du jour (raccourci vers Gains). */}
+        {/* Hero du jour : gains + nombre de courses (raccourci vers Gains).
+            La note et le temps en ligne ne sont PLUS sur l'accueil (la note est
+            réservée au profil). */}
         <Link
           href="/driver/gains"
           className="home-head"
           aria-label="Voir mes gains"
         >
-          <div>
+          <div className="hh-main">
             <div className="lbl">Aujourd&apos;hui</div>
             <div className="v">{grp(earnedToday)} DA</div>
+          </div>
+          <div className="hh-stat">
+            <div className="hh-num">{coursesToday}</div>
+            <div className="lbl">course{coursesToday > 1 ? "s" : ""}</div>
           </div>
           <div className="gchev">
             <svg
@@ -305,25 +276,6 @@ export function DriverHomeMaquette({
             </svg>
           </div>
         </Link>
-
-        {/* Ligne 2 — 3 métriques EN LIGNE FINE dans un seul bloc --soft. */}
-        <div className="metrics">
-          <div className="m">
-            <div className="mv">{coursesToday}</div>
-            <div className="ml">Courses</div>
-          </div>
-          <div className="m">
-            <div className="mv">{onlineLabel}</div>
-            <div className="ml">En ligne</div>
-          </div>
-          <div className="m">
-            <div className="mv">
-              {ratingAvg ? ratingAvg.toFixed(1).replace(".", ",") : "—"}
-              <small> ★</small>
-            </div>
-            <div className="ml">Note</div>
-          </div>
-        </div>
 
         {/* En ligne : statut de recherche (libellé + barre de balayage). */}
         <div className="statusline">

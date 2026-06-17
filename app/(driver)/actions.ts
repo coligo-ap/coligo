@@ -11,6 +11,7 @@ import {
   phoneToEmail,
 } from "@/lib/auth/driver";
 import { hashReferralCode } from "@/lib/drivers/referral-code";
+import type { GainsEntry } from "@/components/driver/gains/gains-view";
 import { isWilaya } from "@/lib/dz/wilayas";
 import {
   notifyMerchantNewDriverRequest,
@@ -994,3 +995,23 @@ export async function proposePayoutChange(
 
 // (proposeDocumentChange retiré : les pièces passent désormais par
 //  submitDriverDocument — statut `pending` sur la pièce, verrouillée après envoi.)
+
+// ---------------------------------------------------------------------------
+// Lecture des GAINS (grand livre) — pour TanStack Query côté client.
+// Auth + RLS appliqués à chaque appel (jamais de données d'un autre livreur).
+// ---------------------------------------------------------------------------
+export async function fetchDriverGains(): Promise<{
+  ok: boolean;
+  entries: GainsEntry[];
+}> {
+  const supabase = await createClient();
+  const driver = await getCurrentDriver();
+  if (!driver) return { ok: false, entries: [] };
+  const { data } = await supabase
+    .from("delivery_ledger")
+    .select("id, type, amount_da, note, created_at, merchant_id")
+    .eq("driver_id", driver.id)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  return { ok: true, entries: (data ?? []) as GainsEntry[] };
+}

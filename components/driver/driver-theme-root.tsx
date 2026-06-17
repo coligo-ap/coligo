@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useDriverDark } from "@/lib/driver/theme-store";
+import { DriverQueryProvider } from "@/components/driver/driver-query-provider";
 
 /**
  * Racine de l'espace livreur : pose `data-space="driver"` + les variables de
@@ -27,7 +28,7 @@ export function DriverThemeRoot({
       data-space="driver"
       className={[fontVars, isDark ? "dark" : ""].filter(Boolean).join(" ")}
     >
-      {children}
+      <DriverQueryProvider>{children}</DriverQueryProvider>
     </div>
   );
 }

@@ -52,7 +52,6 @@ export default async function DriverHomePage() {
     { data: linksRaw },
     { count: coursesToday },
     { data: payouts },
-    { data: ratingRow },
   ] = await Promise.all([
     // Compteurs de courses dispo par commerçant (RPC SECURITY DEFINER, trié).
     supabase.rpc("driver_delivery_counts"),
@@ -74,12 +73,6 @@ export default async function DriverHomePage() {
       .eq("driver_id", driver.id)
       .eq("type", "driver_payout")
       .gte("created_at", since),
-    // Note réelle (avis clients, mig 0059).
-    supabase
-      .from("drivers")
-      .select("rating_avg")
-      .eq("id", driver.id)
-      .maybeSingle(),
   ]);
   const counts = (countsRaw ?? []) as Counts[];
 
@@ -169,7 +162,6 @@ export default async function DriverHomePage() {
       <DriverHomeMaquette
         earnedToday={earnedToday}
         coursesToday={coursesToday ?? 0}
-        ratingAvg={Number(ratingRow?.rating_avg ?? 0)}
         isFrozen={driver.is_frozen}
         freezeReason={driver.freeze_reason}
       />

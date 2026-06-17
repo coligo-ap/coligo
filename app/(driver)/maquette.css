@@ -409,11 +409,28 @@
 [data-space="driver"] .home-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 14px;
   background: var(--soft);
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 12px 14px;
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+[data-space="driver"] .home-head .hh-main {
+  flex: 1;
+  min-width: 0;
+}
+[data-space="driver"] .home-head .hh-stat {
+  text-align: center;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
+[data-space="driver"] .home-head .hh-num {
+  font-family: var(--font-sora), "Sora", sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: -0.5px;
+  color: var(--ink);
 }
 [data-space="driver"] .home-head .lbl {
   font-size: 11.5px;

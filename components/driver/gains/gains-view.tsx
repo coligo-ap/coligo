@@ -13,7 +13,7 @@ import Link from "next/link";
  * (anti-hydratation #418).
  */
 
-type Entry = {
+export type GainsEntry = {
   id: string;
   type:
     | "driver_payout"
@@ -63,7 +63,7 @@ function startOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
-export function GainsView({ entries }: { entries: Entry[] }) {
+export function GainsView({ entries }: { entries: GainsEntry[] }) {
   const [period, setPeriod] = useState<Period>("day");
 
   const { total, count, avg, cashCollected, deltaPct, bars } = useMemo(() => {
@@ -89,7 +89,8 @@ export function GainsView({ entries }: { entries: Entry[] }) {
           new Date(e.created_at) >= from &&
           new Date(e.created_at) < to
       );
-    const sum = (rows: Entry[]) => rows.reduce((s, e) => s + e.amount_da, 0);
+    const sum = (rows: GainsEntry[]) =>
+      rows.reduce((s, e) => s + e.amount_da, 0);
 
     const cur = payoutsBetween(curFrom, now);
     const prev = payoutsBetween(prevFrom, curFrom);
