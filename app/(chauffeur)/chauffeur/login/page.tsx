@@ -29,8 +29,8 @@ export default function ChauffeurLoginPage() {
         ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Bonjour"
-      cardSubtitle="Connectez-vous à votre espace chauffeur."
+      cardTitle="Espace chauffeur"
+      cardSubtitle="Connectez-vous pour recevoir des courses."
       footer={
         <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
           Nouveau chauffeur ?{" "}

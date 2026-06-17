@@ -107,10 +107,10 @@ function LoginContent() {
             <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
               <div className="mb-6">
                 <h2 className="text-foreground mb-2 text-2xl font-bold lg:text-3xl">
-                  Bonjour
+                  Espace commerçant
                 </h2>
                 <p className="text-muted text-sm lg:text-base">
-                  Connectez-vous à votre espace commerçant.
+                  Connectez-vous pour gérer vos commandes.
                 </p>
               </div>
 

@@ -33,7 +33,7 @@ export default async function PartnerLoginPage() {
         ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Bonjour"
+      cardTitle="Espace Agent Coligo Pay"
       cardSubtitle="Connectez-vous pour gérer votre solde et vos ventes de crédit."
       footer={
         <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">

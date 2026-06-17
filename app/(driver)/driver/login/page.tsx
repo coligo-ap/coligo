@@ -43,8 +43,8 @@ export default async function DriverLoginPage() {
         ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Bonjour"
-      cardSubtitle="Connectez-vous à votre espace livreur."
+      cardTitle="Espace livreur"
+      cardSubtitle="Connectez-vous pour accéder à vos livraisons."
       footer={
         <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
           Nouveau livreur ?{" "}
