@@ -10,11 +10,20 @@ import { PartnerSheetButton } from "@/components/shared/partner-sheet";
  * statique pour que l'utilisateur puisse revenir sur la marketplace ou
  * switcher d'espace.
  */
+/** Espace d'auth courant. Tous sauf "customer" affichent le raccourci « Je
+ *  suis client » ; le rendu visuel du bandeau est IDENTIQUE pour tous. */
+export type AuthVariant =
+  | "merchant"
+  | "customer"
+  | "driver"
+  | "chauffeur"
+  | "partner";
+
 export function AuthNavBar({
   variant,
 }: {
-  /** Espace courant : "merchant" = /login,/signup ; "customer" = /se-connecter,/inscription ; "driver" = /driver/login,/driver/signup. */
-  variant: "merchant" | "customer" | "driver";
+  /** Espace courant : "merchant" = /login,/signup ; "customer" = /se-connecter,/inscription ; "driver" = /driver/login,/driver/signup ; "chauffeur" = /chauffeur/* ; "partner" = /partenaire/*. */
+  variant: AuthVariant;
 }) {
   return (
     <header className="border-border sticky top-0 z-30 border-b bg-white pt-[env(safe-area-inset-top)]">

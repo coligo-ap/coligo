@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { DriverLoginForm } from "@/components/driver/login-form";
-import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
-import { Logo } from "@/components/shared/logo";
+import { AuthScreen } from "@/components/shared/auth-screen";
 
 export const dynamic = "force-dynamic";
+
+const HERO_IMG =
+  "https://images.unsplash.com/photo-1571068316344-75bc76f77890?auto=format&fit=crop&w=1400&q=80";
 
 export default async function DriverLoginPage() {
   const supabase = await createClient();
@@ -23,41 +25,41 @@ export default async function DriverLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <AuthNavBar variant="driver" />
-      <main className="bg-surface-2 flex flex-1 items-start justify-center p-4 py-10">
-        <div className="w-full max-w-md space-y-6">
-          <div className="flex justify-center">
-            <Logo variant="amber" size="lg" />
-          </div>
-
-          <div className="border-border space-y-6 rounded-[14px] border bg-white p-6 shadow-sm">
-            <header className="space-y-1">
-              <h1 className="text-xl font-bold tracking-tight">
-                Espace livreur
-              </h1>
-              <p className="text-muted text-sm">
-                Connecte-toi avec ton téléphone pour accéder à tes livraisons.
-              </p>
-            </header>
-
-            <Suspense fallback={null}>
-              <DriverLoginForm />
-            </Suspense>
-
-            <div className="border-border text-muted border-t pt-4 text-center text-sm">
-              Nouveau livreur ?{" "}
-              <Link
-                href="/driver/signup"
-                className="text-primary-700 font-medium hover:underline"
-              >
-                Créer un compte
-              </Link>
-            </div>
-          </div>
+    <AuthScreen
+      navVariant="driver"
+      installLabel="Installer l'application Livreur"
+      hero={{
+        title: (
+          <>
+            Livrez et gagnez, <br />à votre rythme.
+          </>
+        ),
+        subtitle: "L'application des livreurs partenaires de Coligo.",
+        features: [
+          "Recevez des courses près de vous",
+          "Suivez vos gains en temps réel",
+          "Choisissez votre zone de travail",
+          "Des versements rapides et transparents",
+        ],
+        imageUrl: HERO_IMG,
+      }}
+      cardTitle="Bonjour"
+      cardSubtitle="Connectez-vous à votre espace livreur."
+      footer={
+        <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
+          Nouveau livreur ?{" "}
+          <Link
+            href="/driver/signup"
+            className="text-primary-700 font-medium hover:underline"
+          >
+            Créer un compte
+          </Link>
         </div>
-      </main>
-      <AuthFooter />
-    </div>
+      }
+    >
+      <Suspense fallback={null}>
+        <DriverLoginForm />
+      </Suspense>
+    </AuthScreen>
   );
 }
