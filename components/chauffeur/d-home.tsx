@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import {
   Car,
-  ChevronUp,
+  ChevronRight,
   Crosshair,
   Home,
   Loader2,
   Pencil,
+  Power,
+  Radio,
+  Wallet,
   X,
 } from "lucide-react";
 import { formatDA } from "@/lib/utils";
@@ -29,7 +32,7 @@ import {
   PrimaryBtn,
 } from "@/components/customer/drive/drive-modals";
 import { DNav, PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
-import { ChauffeurBalancePill } from "./balance-pill";
+import { DIncoming } from "./d-incoming";
 import { ChauffeurWorkZoneSheet } from "./work-zone-sheet";
 import { useSearchRadius } from "@/lib/chauffeur/work-zone";
 import {
@@ -37,15 +40,20 @@ import {
   useChauffeurOnline,
 } from "@/lib/chauffeur/online-store";
 import { HOME_DIR_KEY } from "@/lib/drive/geo";
+import { getMyWalletState } from "@/app/wallet/recharge-actions";
 import {
   activateHomeDir,
   chauffeurHeartbeat,
+  declineRide,
   getChauffeurActiveRide,
   getDriveHome,
+  getNearbyRides,
+  offerRide,
   setChauffeurHome,
   setChauffeurOnline,
   type ChauffeurGate,
   type DriveHome,
+  type NearbyRide,
 } from "@/app/(chauffeur)/actions";
 
 const GAMME_LABEL: Record<string, string> = {
@@ -60,9 +68,10 @@ const GAMME_RECEIVES: Record<string, string> = {
 };
 
 /**
- * Accueil chauffeur (maquette s-dhome) : heatmap des zones de demande,
- * feuille réductible, gains du jour, « je rentre chez moi » (adresse
- * modifiable, 2 activations/jour), bandeau gamme, carte abonnement.
+ * Accueil chauffeur (maquette v13 « accueil chauffeur ») : carte + heatmap,
+ * bouton GO animé (mise en ligne), finance bar (gains du jour + solde), prefs
+ * (domicile / zone), abonnement, et RÉCEPTION DES COURSES en ligne via une
+ * carte de notification entrante (DIncoming) qui apparaît en haut de l'écran.
  */
 export function DHome({ gate }: { gate: ChauffeurGate }) {
   const router = useRouter();
@@ -94,9 +103,36 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const [homeAddr, setHomeAddr] = useState(gate.homeAddr);
   // Rayon « autour de moi » — dispatch toujours centré sur la position live.
   const [zoneOpen, setZoneOpen] = useState(false);
+  // Domicile : popup carte (recherche + repère) — déclaré tôt car le sélecteur
+  // de course entrante (plus bas) s'en sert comme garde (pas de popup si ouvert).
+  const [homeOpen, setHomeOpen] = useState(false);
+  const [homePos, setHomePos] = useState<LatLng | null>(null);
+  const [homeSaving, setHomeSaving] = useState(false);
+  const [homeErr, setHomeErr] = useState<string | null>(null);
   const searchRadius = useSearchRadius();
+  const radiusRef = useRef(searchRadius);
+  radiusRef.current = searchRadius;
   const coordsRef = useRef(coords);
   coordsRef.current = coords;
+
+  // Solde portefeuille opérateur (finance bar) — rafraîchi périodiquement.
+  const [balance, setBalance] = useState<number | null>(null);
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      const s = await getMyWalletState();
+      if (active) setBalance(s?.effectiveBalanceDa ?? 0);
+    };
+    void load();
+    const id = setInterval(load, 20_000);
+    const onFocus = () => void load();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      active = false;
+      clearInterval(id);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, []);
 
   // En ligne / hors ligne : intention partagée (store, clé coligo-drive-online),
   // lue À L'IDENTIQUE par la page Demandes → elle ne poll/écoute QUE si en ligne.
@@ -111,6 +147,11 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     setOnlineBusy(true);
     setChauffeurOnlineLocal(next);
     onlineRef.current = next;
+    if (!next) {
+      // Hors ligne : on coupe la réception (popup + file).
+      setNearby([]);
+      setCurrent(null);
+    }
     // Bascule serveur immédiate (le heartbeat suivant entretient l'état).
     await setChauffeurOnline(next);
     const c = coordsRef.current;
@@ -118,19 +159,33 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     setOnlineBusy(false);
   };
 
-  // Présence (en ligne) + rafraîchissement accueil + détection course active.
+  // ── Réception des courses (popup entrant) ──────────────────────────────
+  const [nearby, setNearby] = useState<NearbyRide[]>([]);
+  const [current, setCurrent] = useState<NearbyRide | null>(null);
+  const [incBusy, setIncBusy] = useState(false);
+  // Demandes déjà vues dans le popup (refus / accept / fermeture / expiration) :
+  // ne re-poppent plus, mais restent disponibles dans l'écran Drive.
+  const seenRef = useRef<Set<string>>(new Set());
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Présence (en ligne) + rafraîchissement accueil + détection course active +
+  // récupération des demandes proches (pour le popup + le compteur).
   const tick = useCallback(async () => {
     const c = coordsRef.current;
     if (c) void chauffeurHeartbeat(c.latitude, c.longitude, onlineRef.current);
-    const [h, active] = await Promise.all([
+    const [h, active, list] = await Promise.all([
       getDriveHome(c?.latitude ?? null, c?.longitude ?? null),
       getChauffeurActiveRide(),
+      onlineRef.current && c
+        ? getNearbyRides(c.latitude, c.longitude, radiusRef.current)
+        : Promise.resolve([] as NearbyRide[]),
     ]);
     if (active) {
       router.replace("/chauffeur/course");
       return;
     }
     setHome(h);
+    setNearby(onlineRef.current ? list : []);
   }, [router]);
   useEffect(() => {
     void tick();
@@ -138,27 +193,44 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     return () => clearInterval(id);
   }, [tick]);
 
-  // Temps réel : une nouvelle demande proche met à jour le compteur
-  // instantanément (sans attendre le tick de 15 s) → diffusion plus rapide.
-  // GATÉ sur l'état en ligne : hors ligne, on ne s'abonne pas (pas d'écoute).
+  // Temps réel : une nouvelle demande proche met à jour le popup + le compteur
+  // instantanément (sans attendre le tick de 15 s). + redirection immédiate
+  // quand le client accepte UNE de mes offres. GATÉ sur l'état en ligne.
   useEffect(() => {
     if (!online) return;
     const supabase = createClient();
-    const ch = supabase
-      .channel("home-nearby-rides")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "rides" },
-        () => void tick()
-      )
-      .subscribe();
+    const chans = [
+      supabase
+        .channel("home-nearby-rides")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "rides" },
+          () => void tick()
+        )
+        .subscribe(),
+      supabase
+        .channel(`home-my-offers-${gate.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "ride_offers",
+            filter: `chauffeur_id=eq.${gate.id}`,
+          },
+          (payload) => {
+            if ((payload.new as { status?: string }).status === "accepted")
+              router.replace("/chauffeur/course");
+          }
+        )
+        .subscribe(),
+    ];
     return () => {
-      void supabase.removeChannel(ch);
+      for (const c of chans) void supabase.removeChannel(c);
     };
-  }, [tick, online]);
+  }, [tick, online, gate.id, router]);
 
-  // Dès la 1re position GPS connue : recharger immédiatement le compteur de
-  // demandes proches (sans attendre le tick de 15 s).
+  // Dès la 1re position GPS connue : recharger immédiatement (sans attendre 15 s).
   const gotFirstFix = useRef(false);
   useEffect(() => {
     if (coords && !gotFirstFix.current) {
@@ -167,13 +239,69 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     }
   }, [coords, tick]);
 
-  // Domicile : popup carte (recherche + repère) — plus de prompt texte.
-  // Le changement d'adresse est LIMITÉ côté serveur (1×/semaine, anti-fraude).
-  const [homeOpen, setHomeOpen] = useState(false);
-  const [homePos, setHomePos] = useState<LatLng | null>(null);
-  const [homeSaving, setHomeSaving] = useState(false);
-  const [homeErr, setHomeErr] = useState<string | null>(null);
+  // Sélection de la prochaine course à présenter dans le popup : la plus proche
+  // non encore vue (et non déjà proposée par moi). Pas de popup si un volet est
+  // ouvert (domicile / zone) ni hors ligne.
+  useEffect(() => {
+    if (current || !online || homeOpen || zoneOpen) return;
+    const cand = nearby
+      .filter((r) => !seenRef.current.has(r.id) && r.my_offer_da == null)
+      .sort((a, b) => a.pickup_dist_km - b.pickup_dist_km);
+    if (cand.length) setCurrent(cand[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, online, nearby, zoneOpen]);
 
+  // Auto-masquage du popup après 12 s : la course reste disponible dans Drive.
+  useEffect(() => {
+    if (!current) return;
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => {
+      seenRef.current.add(current.id);
+      setCurrent(null);
+    }, 12_000);
+    return () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    };
+  }, [current]);
+
+  const closeInc = () => {
+    if (current) seenRef.current.add(current.id);
+    setCurrent(null);
+  };
+  const refuseInc = async () => {
+    if (!current || incBusy) return;
+    const r = current;
+    setIncBusy(true);
+    seenRef.current.add(r.id);
+    setNearby((l) => l.filter((x) => x.id !== r.id));
+    setCurrent(null);
+    await declineRide(r.id);
+    setIncBusy(false);
+  };
+  const acceptInc = async () => {
+    if (!current || incBusy) return;
+    const r = current;
+    const price = r.proposed_price_da + r.boost_amount_da;
+    setIncBusy(true);
+    seenRef.current.add(r.id);
+    const res = await offerRide(r.id, price);
+    // Offre envoyée : la course passe en « proposition » (visible dans Drive).
+    // La redirection vers /course se fait quand le client accepte (temps réel).
+    setNearby((l) =>
+      l.map((x) => (x.id === r.id ? { ...x, my_offer_da: price } : x))
+    );
+    setCurrent(null);
+    setIncBusy(false);
+    if (!res.ok) setNearby((l) => l.filter((x) => x.id !== r.id));
+  };
+  const seeAllInc = () => {
+    if (current) seenRef.current.add(current.id);
+    setCurrent(null);
+    router.push("/chauffeur/demandes");
+  };
+
+  // Domicile : enregistrement (le changement d'adresse est LIMITÉ côté serveur
+  // — 1×/semaine, anti-fraude). États déclarés plus haut (garde du popup).
   const saveHome = async () => {
     if (!homePos || homeSaving) return;
     setHomeSaving(true);
@@ -232,8 +360,13 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   };
 
   const me = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
-  const reqCount = home?.requestsCount ?? 0;
-  const hasReqs = online && reqCount > 0;
+  const reqCount = nearby.length || (online ? (home?.requestsCount ?? 0) : 0);
+  const queueCount = Math.max(
+    0,
+    nearby.filter((r) => !seenRef.current.has(r.id) && r.my_offer_da == null)
+      .length - 1
+  );
+  const lowBalance = balance != null && balance < 0;
 
   return (
     <div className="drive-jakarta drive-screen bg-[var(--d-page)]">
@@ -244,30 +377,40 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         follow
         padding={{ top: 110, bottom: 460, left: 60, right: 60 }}
       />
-      {/* Pill état en ligne / hors ligne */}
-      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold shadow-lg">
-        <span
-          className={`size-2 rounded-full ${online ? "animate-pulse" : ""}`}
-          style={{ background: online ? GO : "#9CA3AF" }}
-        />
-        <span className="drive-sora">
-          {online
-            ? tr("En ligne · Drive", "متصل · درايف")
-            : tr("Hors ligne", "غير متصل")}
-        </span>
-      </div>
-      {/* Solde portefeuille en temps réel → page de recharge */}
-      <ChauffeurBalancePill />
-      {/* Légende heatmap */}
-      <div className="absolute top-[64px] left-4 z-10 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-2.5 py-1.5 text-[10.5px] font-bold text-[var(--d-muted)] shadow">
-        <span
-          className="size-2.5 rounded-full"
-          style={{
-            background: `radial-gradient(circle,${VIOLET},transparent 75%)`,
-          }}
-        />
-        {tr("Zones de forte demande", "مناطق الطلب المرتفع")}
-      </div>
+
+      {/* Pastille « demande proche » (en ligne) → ouvre Drive ; sinon légende. */}
+      {online ? (
+        <button
+          type="button"
+          onClick={() => router.push("/chauffeur/demandes")}
+          className="absolute top-[64px] left-4 z-10 flex items-center gap-1.5 rounded-full bg-[var(--d-surface)] px-3 py-2 text-[11.5px] font-bold shadow-lg"
+        >
+          <span
+            className="size-2 animate-pulse rounded-full"
+            style={{ background: GO }}
+          />
+          <span
+            className="drive-sora text-[14px] font-extrabold"
+            style={{ color: VIOLET }}
+          >
+            {reqCount}
+          </span>
+          <span className="text-[var(--d-muted)]">
+            {isAr ? "رحلة" : reqCount > 1 ? "courses" : "course"}
+          </span>
+        </button>
+      ) : (
+        <div className="absolute top-[64px] left-4 z-10 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-2.5 py-1.5 text-[10.5px] font-bold text-[var(--d-muted)] shadow">
+          <span
+            className="size-2.5 rounded-full"
+            style={{
+              background: `radial-gradient(circle,${VIOLET},transparent 75%)`,
+            }}
+          />
+          {tr("Zones de forte demande", "مناطق الطلب المرتفع")}
+        </div>
+      )}
+
       {/* Recentrer la carte sur ma position (curseur chauffeur) */}
       <button
         type="button"
@@ -283,12 +426,25 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         )}
       </button>
 
-      {/* Feuille réductible — SCROLLABLE : le contenu (jusqu'au bouton GO) peut
-          dépasser la hauteur sur petit écran, on défile à l'intérieur. La
-          hauteur s'adapte à l'écran pour ne jamais passer sous la nav du bas. */}
+      {/* RÉCEPTION : carte de course entrante (en ligne, accueil, hors volet). */}
+      {current && online && (
+        <DIncoming
+          ride={current}
+          queueCount={queueCount}
+          pendingCount={reqCount}
+          busy={incBusy}
+          isAr={isAr}
+          onAccept={() => void acceptInc()}
+          onRefuse={() => void refuseInc()}
+          onSeeAll={seeAllInc}
+          onClose={closeInc}
+        />
+      )}
+
+      {/* Feuille réductible — SCROLLABLE. */}
       <div
         className="absolute right-0 bottom-[66px] left-0 z-10 overflow-y-auto overscroll-contain rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-2 pb-6 transition-[max-height] duration-300"
-        style={{ maxHeight: mini ? 96 : "min(560px, calc(100dvh - 140px))" }}
+        style={{ maxHeight: mini ? 118 : "min(580px, calc(100dvh - 140px))" }}
       >
         <button
           type="button"
@@ -298,156 +454,213 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         >
           <span className="block h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
         </button>
+
+        {/* ── Bouton GO / En ligne (mise en ligne) ── */}
         <button
           type="button"
-          onClick={() => setMini((m) => !m)}
-          className="drive-sora mb-3 flex w-full items-center justify-between gap-2 text-[21px] font-extrabold tracking-[-0.5px]"
+          onClick={() => void toggleOnline()}
+          disabled={onlineBusy}
+          className="dh-shimmer relative mt-1 flex h-[52px] w-full items-center gap-3 overflow-hidden rounded-[20px] px-4 text-white transition-[background,box-shadow] duration-500 disabled:opacity-70"
+          style={{
+            background: online
+              ? `linear-gradient(135deg,#7B7BF0,${VIOLET} 55%,#4646C8)`
+              : `linear-gradient(135deg,#1FCB74,${GO} 55%,#0E8C4E)`,
+            boxShadow: online
+              ? "0 14px 34px -10px rgba(108,43,217,.45)"
+              : "0 14px 34px -10px rgba(22,179,100,.5)",
+          }}
         >
-          <span className="flex min-w-0 items-center gap-2">
-            {online ? (
-              home ? (
-                hasReqs ? (
-                  <>
-                    <span
-                      key={reqCount}
-                      className="drive-pop drive-badge grid min-w-[34px] shrink-0 place-items-center rounded-full px-2 py-0.5 text-[17px] text-white"
-                      style={{ background: GO }}
-                    >
-                      {reqCount}
-                    </span>
-                    <span className="truncate">
-                      {isAr
-                        ? reqCount > 1
-                          ? "طلبات قريبة"
-                          : "طلب قريب"
-                        : `demande${reqCount > 1 ? "s" : ""} proche${reqCount > 1 ? "s" : ""}`}
-                    </span>
-                  </>
-                ) : (
-                  tr("Aucune demande proche", "لا توجد طلبات قريبة")
-                )
-              ) : (
-                tr("Demandes proches…", "الطلبات القريبة…")
-              )
+          <span className="relative z-[1] grid size-[30px] shrink-0 place-items-center rounded-full bg-white/20">
+            {onlineBusy ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : online ? (
+              <Radio className="size-4" />
             ) : (
-              tr("Vous êtes hors ligne", "أنت غير متصل")
+              <Power className="size-4" />
             )}
           </span>
-          <ChevronUp
-            className="size-[18px] shrink-0 text-[var(--d-muted)] transition-transform duration-300"
-            style={{ transform: mini ? "rotate(180deg)" : undefined }}
-          />
+          <span className="relative z-[1] flex flex-1 flex-col items-start leading-tight">
+            <span className="drive-sora text-[13.5px] font-extrabold tracking-[-0.2px]">
+              {online ? tr("En ligne", "متصل") : tr("Passer en ligne", "اتصل")}
+            </span>
+            {online && (
+              <span className="drive-sora text-[11px] font-semibold opacity-85">
+                {tr("Recherche des courses…", "البحث عن الرحلات…")}
+              </span>
+            )}
+          </span>
+          {online && (
+            <span
+              className="relative z-[1] flex h-3.5 items-end gap-[2px]"
+              aria-hidden
+            >
+              {[4, 8, 12, 6, 10].map((h, i) => (
+                <span
+                  key={i}
+                  className="dh-wave w-[2.5px] rounded-[2px] bg-white"
+                  style={{ height: h, animationDelay: `${i * 0.12}s` }}
+                />
+              ))}
+            </span>
+          )}
+          <span className="drive-sora relative z-[1] flex h-6 shrink-0 items-center gap-1 rounded-[12px] bg-white/20 px-2.5 text-[9.5px] font-bold">
+            {online ? tr("Déconnecter", "قطع") : "GO →"}
+          </span>
         </button>
-        {/* Gains du jour */}
-        <div className="mb-3 rounded-[16px] bg-[var(--d-soft)] px-3.5 py-3">
-          <div className="flex items-center justify-between text-xs font-semibold">
-            <span>{tr("Gains du jour", "أرباح اليوم")}</span>
-            <b className="drive-sora text-[17px]">
-              {formatDA(home?.todayNet ?? 0)}
-            </b>
-          </div>
-          <p className="mt-1.5 text-[10.5px] text-[var(--d-muted)]">
-            {home?.todayRides ?? 0} {tr("courses", "رحلة")} ·{" "}
-            {fmtOnline(home?.todayOnlineMin ?? 0)}
-            {home && home.todayRides > 0
-              ? ` · ${tr("moy.", "متوسط")} ${formatDA(Math.round(home.todayNet / home.todayRides))}/${tr("course", "رحلة")}`
-              : ""}
-          </p>
+
+        {/* ── Finance bar : gains du jour + solde ── */}
+        <div className="mt-2 flex gap-1.5">
+          <button
+            type="button"
+            onClick={() => router.push("/chauffeur/gains")}
+            className="relative flex flex-1 items-center gap-2.5 overflow-hidden rounded-[14px] px-3 py-2.5 text-left text-white"
+            style={{
+              background: `linear-gradient(135deg,#7B7BF0,${VIOLET} 48%,#4646C8)`,
+              boxShadow: "0 10px 24px -10px rgba(108,43,217,.45)",
+            }}
+          >
+            <span className="relative z-[1] min-w-0">
+              <span className="block text-[9.5px] font-semibold opacity-80">
+                {tr("Gains du jour", "أرباح اليوم")}
+              </span>
+              <span className="drive-sora block text-[17px] leading-tight font-extrabold tracking-[-0.5px]">
+                {formatDA(home?.todayNet ?? 0)}
+              </span>
+              <span className="block text-[9px] opacity-75">
+                {home?.todayRides ?? 0} {tr("courses", "رحلة")} ·{" "}
+                {fmtOnline(home?.todayOnlineMin ?? 0)}
+              </span>
+            </span>
+            <span className="relative z-[1] ml-auto grid size-[22px] shrink-0 place-items-center rounded-full bg-white/20">
+              <ChevronRight className="size-3.5" />
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => router.push("/chauffeur/recharger")}
+            className="flex min-w-[94px] flex-col items-center justify-center gap-0.5 rounded-[14px] px-2.5 py-2"
+            style={
+              lowBalance
+                ? {
+                    background: "rgba(255,45,122,.07)",
+                    border: "1px solid rgba(255,45,122,.18)",
+                  }
+                : {
+                    background: "var(--d-soft)",
+                    border: "1px solid var(--d-line)",
+                  }
+            }
+          >
+            <Wallet
+              className="size-3.5"
+              style={{ color: lowBalance ? "#FF2D7A" : VIOLET }}
+            />
+            <span className="text-[8.5px] font-semibold text-[var(--d-muted)]">
+              {tr("Solde", "الرصيد")}
+            </span>
+            <span
+              className="drive-sora text-[12.5px] font-extrabold"
+              style={{ color: lowBalance ? "#FF2D7A" : "var(--d-ink)" }}
+            >
+              {balance == null ? "…" : formatDA(balance)}
+            </span>
+            {lowBalance && (
+              <span
+                className="mt-0.5 rounded-[7px] px-2 py-0.5 text-[9px] font-bold text-white"
+                style={{ background: "#FF2D7A" }}
+              >
+                {tr("Recharger", "اشحن")}
+              </span>
+            )}
+          </button>
         </div>
 
-        {/* Préférences de réception — UN SEUL bloc compact (domicile · zone ·
-            gamme). Domicile + Zone côte à côte ; gamme en pied de carte fin.
-            RTL-safe (divide-x-reverse, insetInlineStart, text-start). */}
-        <div className="mb-3 overflow-hidden rounded-[16px] border border-[var(--d-line)]">
-          <div className="grid grid-cols-2 divide-x divide-[var(--d-line)] rtl:divide-x-reverse">
-            {/* Domicile : éditer (tap) + filtre direction (switch) */}
-            <div
-              className="flex flex-col gap-2 p-3"
-              style={{ background: "#F4F2FE" }}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="grid size-7 shrink-0 place-items-center rounded-[9px] bg-[var(--d-surface)]">
-                  <Home className="size-3.5" style={{ color: VIOLET }} />
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={dirOn}
-                  aria-label={tr("Filtre domicile", "فلتر المنزل")}
-                  onClick={toggleDir}
-                  className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-                  style={{ background: dirOn ? VIOLET : "#E2E0EC" }}
-                >
-                  <span
-                    className="absolute top-[3px] size-[18px] rounded-full bg-white shadow transition-all"
-                    style={{ insetInlineStart: dirOn ? 23 : 3 }}
-                  />
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setHomeErr(null);
-                  setHomePos(null);
-                  setHomeOpen(true);
-                }}
-                className="min-w-0 text-start"
-              >
-                <b
-                  className="block text-[12.5px] leading-tight"
-                  style={{ color: VIOLET }}
-                >
-                  {tr("Mon domicile", "منزلي")}
-                </b>
-                <span className="mt-0.5 flex items-center gap-1 truncate text-[10.5px] text-[var(--d-muted)]">
-                  <span className="truncate">
-                    {homeAddr ?? tr("Définir l'adresse", "تحديد العنوان")}
-                  </span>
-                  <Pencil className="size-2.5 shrink-0" />
-                </span>
-              </button>
-            </div>
-
-            {/* Zone de travail : ouvre le volet carte */}
+        {/* ── Préférences : domicile (+ filtre direction) · zone ── */}
+        <div className="mt-2 flex gap-1.5">
+          {/* Domicile : éditer (tap) + filtre direction (switch) */}
+          <div
+            className="flex flex-1 items-center gap-2 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)] px-2.5 py-2"
+            style={{ background: "#F4F2FE" }}
+          >
+            <span className="grid size-6 shrink-0 place-items-center rounded-[7px] bg-[var(--d-surface)]">
+              <Home className="size-3" style={{ color: VIOLET }} />
+            </span>
             <button
               type="button"
-              onClick={() => setZoneOpen(true)}
-              className="flex flex-col gap-2 p-3 text-start"
-              style={{ background: "#F4F2FE" }}
+              onClick={() => {
+                setHomeErr(null);
+                setHomePos(null);
+                setHomeOpen(true);
+              }}
+              className="min-w-0 flex-1 text-start"
             >
-              <span className="grid size-7 shrink-0 place-items-center rounded-[9px] bg-[var(--d-surface)]">
-                <Crosshair className="size-3.5" style={{ color: VIOLET }} />
-              </span>
-              <span className="min-w-0">
-                <b
-                  className="block text-[12.5px] leading-tight"
-                  style={{ color: VIOLET }}
-                >
-                  {tr("Ma zone", "منطقتي")}
-                </b>
-                <span className="mt-0.5 block truncate text-[10.5px] text-[var(--d-muted)]">
-                  {`${searchRadius} km · ${tr("autour de moi", "حولي")}`}
+              <b
+                className="block truncate text-[10px] leading-tight"
+                style={{ color: VIOLET }}
+              >
+                {tr("Rentrer chez moi", "العودة للمنزل")}
+              </b>
+              <span className="flex items-center gap-1 truncate text-[8.5px] text-[var(--d-muted)]">
+                <span className="truncate">
+                  {homeAddr ?? tr("Définir l'adresse", "تحديد العنوان")}
                 </span>
+                <Pencil className="size-2 shrink-0" />
               </span>
+            </button>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={dirOn}
+              aria-label={tr("Filtre domicile", "فلتر المنزل")}
+              onClick={toggleDir}
+              className="relative h-[19px] w-8 shrink-0 rounded-full transition-colors"
+              style={{ background: dirOn ? VIOLET : "#E2E0EC" }}
+            >
+              <span
+                className="absolute top-[2px] size-[15px] rounded-full bg-white shadow transition-all"
+                style={{ insetInlineStart: dirOn ? 15 : 2 }}
+              />
             </button>
           </div>
 
-          {/* Gamme (info) — pied de carte fin */}
-          <div className="flex items-center gap-2 border-t border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2">
-            <Car className="size-3.5 shrink-0" style={{ color: VIOLET }} />
-            <span className="truncate text-[11px] font-semibold text-[var(--d-muted)]">
-              {tr("Gamme", "الفئة")}{" "}
-              <b className="text-[var(--d-ink)]">{GAMME_LABEL[gate.gamme]}</b>
-              <span>
-                {" · "}
-                {tr("reçoit", "يستقبل")} {GAMME_RECEIVES[gate.gamme]}
+          {/* Zone de travail : ouvre le volet carte */}
+          <button
+            type="button"
+            onClick={() => setZoneOpen(true)}
+            className="flex flex-1 items-center gap-2 rounded-[12px] border border-[var(--d-line)] px-2.5 py-2 text-start"
+          >
+            <span className="grid size-6 shrink-0 place-items-center rounded-[7px] bg-[#F1E9FC]">
+              <Crosshair className="size-3" style={{ color: VIOLET }} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <b className="block text-[10px] leading-tight">
+                {tr("Ma zone", "منطقتي")} · {searchRadius} km
+              </b>
+              <span className="block truncate text-[8.5px] text-[var(--d-muted)]">
+                {tr("Autour de moi", "حولي")}
               </span>
             </span>
-          </div>
+            <ChevronRight className="size-3 shrink-0 text-[var(--d-muted)]" />
+          </button>
         </div>
+
+        {/* Gamme (info) — ligne fine */}
+        <div className="mt-2 flex items-center gap-2 rounded-[12px] bg-[var(--d-soft)] px-3 py-2">
+          <Car className="size-3.5 shrink-0" style={{ color: VIOLET }} />
+          <span className="truncate text-[11px] font-semibold text-[var(--d-muted)]">
+            {tr("Gamme", "الفئة")}{" "}
+            <b className="text-[var(--d-ink)]">{GAMME_LABEL[gate.gamme]}</b>
+            <span>
+              {" · "}
+              {tr("reçoit", "يستقبل")} {GAMME_RECEIVES[gate.gamme]}
+            </span>
+          </span>
+        </div>
+
         {/* Retour d'activation du filtre domicile (compte d'activations). */}
         {dirMsg && (
-          <p className="-mt-1 mb-3 px-1 text-[10.5px] text-[var(--d-muted)]">
+          <p className="mt-2 px-1 text-[10.5px] text-[var(--d-muted)]">
             {dirMsg}
           </p>
         )}
@@ -456,7 +669,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         <button
           type="button"
           onClick={() => router.push("/chauffeur/abonnement")}
-          className="mb-3 flex w-full items-center gap-2.5 rounded-[15px] border border-[var(--d-line)] p-3 text-left"
+          className="mt-2 flex w-full items-center gap-2.5 rounded-[15px] border border-[var(--d-line)] p-3 text-left"
         >
           <PlanIcon plan={home?.plan ?? "free"} />
           <span className="min-w-0 flex-1">
@@ -477,52 +690,20 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
                     )}
             </span>
           </span>
-          <span className="text-[var(--d-muted)]">›</span>
+          <ChevronRight className="size-4 shrink-0 text-[var(--d-muted)]" />
         </button>
 
-        {online ? (
-          <>
-            <PrimaryBtn
-              onClick={() => router.push("/chauffeur/demandes")}
-              className={hasReqs ? "drive-attn !mt-0" : "!mt-0"}
-            >
-              {hasReqs ? (
-                <>
-                  {isAr
-                    ? `عرض ${reqCount} ${reqCount > 1 ? "طلبات" : "طلب"}`
-                    : `Voir les ${reqCount} demande${reqCount > 1 ? "s" : ""}`}
-                  <span className="drive-badge grid size-6 place-items-center rounded-full bg-white/25 text-sm">
-                    →
-                  </span>
-                </>
-              ) : (
-                tr("Voir les demandes", "عرض الطلبات")
-              )}
-            </PrimaryBtn>
-            <button
-              type="button"
-              disabled={onlineBusy}
-              onClick={() => void toggleOnline()}
-              className="drive-sora mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-[14px] border text-[13.5px] font-bold disabled:opacity-50"
-              style={{
-                borderColor: "rgba(229,72,77,.35)",
-                color: RED,
-                background: "rgba(229,72,77,.06)",
-              }}
-            >
-              {onlineBusy ? <Loader2 className="size-4 animate-spin" /> : null}
-              {tr("Se mettre hors ligne", "قطع الاتصال")}
-            </button>
-          </>
-        ) : (
+        {/* Voir les demandes (raccourci quand en ligne) */}
+        {online && (
           <PrimaryBtn
-            onClick={() => void toggleOnline()}
-            disabled={onlineBusy}
-            color={GO}
-            className="!mt-0"
+            onClick={() => router.push("/chauffeur/demandes")}
+            className={reqCount > 0 ? "drive-attn" : ""}
           >
-            {onlineBusy ? <Loader2 className="size-5 animate-spin" /> : null}
-            {tr("Passer en ligne · GO", "اتصل · انطلق")}
+            {reqCount > 0
+              ? isAr
+                ? `عرض ${reqCount} ${reqCount > 1 ? "طلبات" : "طلب"}`
+                : `Voir les ${reqCount} demande${reqCount > 1 ? "s" : ""}`
+              : tr("Voir les demandes", "عرض الطلبات")}
           </PrimaryBtn>
         )}
       </div>
