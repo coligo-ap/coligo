@@ -19,7 +19,11 @@ import {
   createCheckout as createChargilyCheckout,
   buildCallbackUrls,
 } from "@/lib/payments/chargily";
-import { getTopupCreditedLast30dForCustomer } from "@/lib/customer/cashback";
+import {
+  getTopupCreditedLast30dForCustomer,
+  getMyCashbackHistory,
+  type CustomerWalletEntry,
+} from "@/lib/customer/cashback";
 import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { MIN_TOPUP_DA } from "@/lib/config/payment-limits";
@@ -27,6 +31,16 @@ import { MIN_TOPUP_DA } from "@/lib/config/payment-limits";
 export type CreateTopupResult =
   | { ok: true; checkout_url: string }
   | { ok: false; error: string; code?: "limit_reached" | "below_min" };
+
+/**
+ * Historique cashback du client connecté, pour le loader client TanStack
+ * (pattern OrdersLoader / ColigoPayLoader). Le solde, lui, vient du cache
+ * partagé `wallet-balances` (WalletBalanceValue). Ré-authentifié côté serveur
+ * (RLS) ; seules les écritures source='cashback' du client sont renvoyées.
+ */
+export async function fetchCashbackHistory(): Promise<CustomerWalletEntry[]> {
+  return getMyCashbackHistory(100);
+}
 
 export async function createTopup(
   amountDa: number
