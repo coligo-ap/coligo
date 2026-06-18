@@ -14,8 +14,12 @@
 // =============================================================================
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCustomer } from "@/lib/auth/customer";
 import { notifyMerchantOrderCancelled } from "@/lib/fcm/triggers";
+import type { OrderStatus } from "@/lib/types";
+import type { CustomerOrderRow } from "@/components/customer/customer-orders-tabs";
 
 export type CancelResult =
   | { ok: true; refundedToColigoPay: number }
@@ -282,4 +286,68 @@ export async function resolveReorder(orderId: string): Promise<ReorderResult> {
       error: "Impossible de recomposer le panier pour le moment.",
     };
   }
+}
+
+/**
+ * Liste des commandes du client connecté (loader TanStack `/commandes`).
+ * Réplique EXACTE de la requête SSR d'origine (mêmes colonnes, même filtre UX,
+ * même règle « déjà noté » par commerçant). Ré-authentifie + RLS à chaque appel.
+ *
+ * ⚠️ FILTRE UX : on EXCLUT les commandes online jamais confirmées (pending /
+ * failed) — tant que Chargily n'a pas confirmé le paiement, la commande n'existe
+ * pas du point de vue du client.
+ */
+export async function fetchMyOrders(): Promise<CustomerOrderRow[]> {
+  const customer = await getCurrentCustomer();
+  if (!customer) return [];
+
+  const t = await getTranslations("orders");
+  const supabase = await createClient();
+
+  const [{ data: orders }, { data: myReviews }] = await Promise.all([
+    supabase
+      .from("orders")
+      .select(
+        `id, status, payment_method, payment_status, total_da, pickup_code, order_number,
+         pickup_slot_at, created_at, merchant_id, fulfillment_type,
+         merchants ( name, slug, logo_url )`
+      )
+      .eq("customer_id", customer.id)
+      .or(
+        "payment_method.eq.cash,and(payment_method.eq.online,payment_status.eq.paid)"
+      )
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("reviews")
+      .select("merchant_id")
+      .eq("customer_id", customer.id),
+  ]);
+
+  const reviewedMerchantIds = new Set(
+    (myReviews ?? []).map((r) => r.merchant_id as string)
+  );
+
+  return (orders ?? []).map((o) => {
+    const merchant = (
+      o as unknown as {
+        merchants: { name: string; logo_url: string | null } | null;
+      }
+    ).merchants;
+    return {
+      id: o.id,
+      status: o.status as OrderStatus,
+      payment_method: o.payment_method,
+      payment_status: o.payment_status,
+      total_da: o.total_da,
+      pickup_code: o.pickup_code,
+      order_number: o.order_number ?? null,
+      created_at: o.created_at,
+      fulfillment_type:
+        (o.fulfillment_type as "pickup" | "delivery") ?? "pickup",
+      merchant_name: merchant?.name ?? t("merchantFallback"),
+      merchant_logo: merchant?.logo_url ?? null,
+      reviewed: reviewedMerchantIds.has(o.merchant_id),
+    };
+  });
 }
