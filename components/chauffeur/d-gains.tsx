@@ -29,13 +29,22 @@ const MONTHS = [
   "décembre",
 ];
 
+// Cache module (SWR) : au RETOUR sur Gains / Historique, on réaffiche la
+// dernière donnée INSTANTANÉMENT (plus de spinner plein écran), le refetch se
+// fait en arrière-plan. Évite de re-bloquer la page à chaque navigation.
+let lastFinCache: ChauffeurFinances | null = null;
+let lastHistoCache: ChauffeurHistoryRide[] | null = null;
+
 /** Gains (maquette s-dgains) : aujourd'hui + « Ce mois » + « À reverser ». */
 export function DGains() {
   const router = useRouter();
-  const [fin, setFin] = useState<ChauffeurFinances | null>(null);
+  const [fin, setFin] = useState<ChauffeurFinances | null>(lastFinCache);
 
   useEffect(() => {
-    void getChauffeurFinances().then(setFin);
+    void getChauffeurFinances().then((f) => {
+      lastFinCache = f;
+      setFin(f);
+    });
   }, []);
 
   if (!fin) {
@@ -163,10 +172,15 @@ function Line({ k, v, tone }: { k: string; v: string; tone?: string }) {
 /** Historique des courses chauffeur (maquette s-dhisto). */
 export function DHisto() {
   const router = useRouter();
-  const [rides, setRides] = useState<ChauffeurHistoryRide[] | null>(null);
+  const [rides, setRides] = useState<ChauffeurHistoryRide[] | null>(
+    lastHistoCache
+  );
 
   useEffect(() => {
-    void getChauffeurHistory().then(setRides);
+    void getChauffeurHistory().then((r) => {
+      lastHistoCache = r;
+      setRides(r);
+    });
   }, []);
 
   return (
