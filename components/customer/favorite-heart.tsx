@@ -20,6 +20,8 @@ import { toggleFavorite } from "@/app/(customer)/actions";
  *  - "hero" : rond translucide sur la grande cover de la page commerce.
  * `refreshOnToggle` : rafraîchit la route après toggle (utile sur /favoris pour
  * faire disparaître une carte qu'on vient de retirer).
+ * `onToggled` : callback après toggle réussi (ex. invalider la liste TanStack
+ * des favoris sans recharger la route).
  */
 export function FavoriteHeart({
   merchantId,
@@ -27,6 +29,7 @@ export function FavoriteHeart({
   isAuth = false,
   variant = "card",
   refreshOnToggle = false,
+  onToggled,
   className,
 }: {
   merchantId: string;
@@ -34,6 +37,7 @@ export function FavoriteHeart({
   isAuth?: boolean;
   variant?: "card" | "hero";
   refreshOnToggle?: boolean;
+  onToggled?: (favorite: boolean) => void;
   className?: string;
 }) {
   const [fav, setFav] = useState(initialFavorite);
@@ -66,6 +70,7 @@ export function FavoriteHeart({
         return;
       }
       setFav(res.favorite);
+      onToggled?.(res.favorite);
       if (refreshOnToggle) router.refresh();
     });
   }

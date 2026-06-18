@@ -3,27 +3,23 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { ArrowLeft, Heart } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
-import { createClient } from "@/lib/supabase/server";
-import { getFavoriteMerchants } from "@/lib/data/favorites";
-import { MerchantCardCompact } from "@/components/customer/merchant-card-compact";
+import { getCurrentCustomer } from "@/lib/auth/customer";
+import { FavoritesLoader } from "@/components/customer/favorites-loader";
 
 export const dynamic = "force-dynamic";
 
 // =============================================================================
 // « Mes favoris » — page dédiée listant les commerces mis en favori (cœur).
-// Nécessite d'être connecté (le favori est rattaché au compte). Vide → encart
-// d'invitation, jamais de bloc vide trompeur.
+// Nécessite d'être connecté (le favori est rattaché au compte). La liste est
+// chargée par TanStack Query (cache persistant + refetch en fond) ; retirer un
+// favori invalide la requête → la carte disparaît sans recharger la route.
 // =============================================================================
 
 export default async function CustomerFavoritesPage() {
   const t = await getTranslations("account");
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/se-connecter?next=/favoris");
-
-  const merchants = await getFavoriteMerchants();
+  // Session mémoïsée (partagée avec CustomerShell → pas de double auth).
+  const customer = await getCurrentCustomer();
+  if (!customer) redirect("/se-connecter?next=/favoris");
 
   return (
     <CustomerShell>
@@ -41,33 +37,7 @@ export default async function CustomerFavoritesPage() {
           {t("myFavorites")}
         </h1>
 
-        {merchants.length === 0 ? (
-          <div className="border-border bg-surface text-muted rounded-[18px] border px-6 py-14 text-center">
-            <Heart className="text-subtle mx-auto mb-3 size-8" />
-            <p className="text-foreground font-semibold">
-              {t("noFavoritesYet")}
-            </p>
-            <p className="mt-1 text-sm">{t("noFavoritesHint")}</p>
-            <Link
-              href="/"
-              className="bg-primary-600 hover:bg-primary-700 mt-5 inline-flex items-center rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-            >
-              {t("discoverMerchants")}
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {merchants.map((m) => (
-              <MerchantCardCompact
-                key={m.id}
-                merchant={m}
-                initialFavorite
-                isAuth
-                refreshOnToggle
-              />
-            ))}
-          </div>
-        )}
+        <FavoritesLoader customerId={customer.id} />
       </div>
     </CustomerShell>
   );

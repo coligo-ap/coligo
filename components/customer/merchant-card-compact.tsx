@@ -19,6 +19,7 @@ type Props = {
   initialFavorite?: boolean;
   isAuth?: boolean;
   refreshOnToggle?: boolean;
+  onFavoriteToggled?: (favorite: boolean) => void;
 };
 
 // =============================================================================
@@ -40,6 +41,7 @@ export function MerchantCardCompact({
   initialFavorite = false,
   isAuth = false,
   refreshOnToggle = false,
+  onFavoriteToggled,
 }: Props) {
   const t = useTranslations("listing");
   const showPromo =
@@ -115,6 +117,7 @@ export function MerchantCardCompact({
           initialFavorite={initialFavorite}
           isAuth={isAuth}
           refreshOnToggle={refreshOnToggle}
+          onToggled={onFavoriteToggled}
           className="absolute top-1.5 right-1.5 z-10 scale-90"
         />
       </div>
