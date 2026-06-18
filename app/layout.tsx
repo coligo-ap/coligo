@@ -175,6 +175,15 @@ export default async function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: KILL_EXTENSION_ATTRS }} />
+        {/* Connexion chaude au fournisseur de tuiles (OpenFreeMap) AVANT que la
+            carte n'en ait besoin → style + tuiles arrivent plus vite au 1er
+            montage de DriveMap (Drive client, accueil chauffeur). */}
+        <link
+          rel="preconnect"
+          href="https://tiles.openfreemap.org"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://tiles.openfreemap.org" />
         {/* CSS MapLibre — chargée via CDN parce que l'import
             `import "maplibre-gl/dist/maplibre-gl.css"` à l'intérieur d'un
             client component avec dynamic-import du JS n'était pas inclus

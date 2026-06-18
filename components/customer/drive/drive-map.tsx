@@ -29,6 +29,26 @@ function ensureRtlPlugin(maplibre: typeof import("maplibre-gl")) {
   }
 }
 
+// Cache module du STYLE carte (JSON OpenFreeMap) : récupéré et parsé UNE seule
+// fois par variante (clair/sombre) pour toute la session → les cartes suivantes
+// (re)démarrent sans refetch ni reparse, ce qui réduit nettement le temps avant
+// affichage à chaque (re)montage de DriveMap. Chaque instance reçoit un CLONE
+// (MapLibre mute le style en interne). Repli silencieux sur l'URL si l'échec.
+const styleCache: Record<string, Promise<unknown | null>> = {};
+function cloneStyle(o: unknown): unknown {
+  return typeof structuredClone === "function"
+    ? structuredClone(o)
+    : JSON.parse(JSON.stringify(o));
+}
+function loadMapStyle(url: string): Promise<unknown | null> {
+  if (!styleCache[url]) {
+    styleCache[url] = fetch(url)
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+  }
+  return styleCache[url].then((s) => (s ? cloneStyle(s) : null));
+}
+
 export type LatLng = { lat: number; lng: number };
 
 type Marker = { id: string; pos: LatLng; kind: "me" | "car" | "pin" };
@@ -98,7 +118,7 @@ export function DriveMap({
     if (!containerRef.current) return;
     let disposed = false;
     const timers: ReturnType<typeof setTimeout>[] = [];
-    void import("maplibre-gl").then((maplibre) => {
+    void import("maplibre-gl").then(async (maplibre) => {
       const { Map } = maplibre;
       ensureRtlPlugin(maplibre);
       if (disposed || !containerRef.current) return;
@@ -112,10 +132,13 @@ export function DriveMap({
       const styleUrl = prefersDark
         ? `${MAP_STYLE_URL.slice(0, MAP_STYLE_URL.lastIndexOf("/styles/"))}/styles/dark`
         : MAP_STYLE_URL;
+      // Style depuis le cache module (clone) ; repli sur l'URL si indisponible.
+      const cachedStyle = await loadMapStyle(styleUrl);
+      if (disposed || !containerRef.current) return;
       try {
         map = new Map({
           container: containerRef.current,
-          style: styleUrl as never,
+          style: (cachedStyle ?? styleUrl) as never,
           center: [first.lng, first.lat],
           zoom: 14,
           attributionControl: { compact: true },
