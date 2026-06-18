@@ -1,15 +1,48 @@
+import { getAuthUser } from "@/lib/auth/session";
+import { getCurrentCustomerFull } from "@/lib/auth/customer";
+import { getFeatureFlags } from "@/lib/data/feature-flags";
 import { CustomerQueryProvider } from "@/components/customer/customer-query-provider";
+import { CustomerChrome } from "@/components/customer/customer-chrome";
 
 /**
- * Layout de groupe CLIENT — hôte PERSISTANT du cache TanStack Query (il ne se
- * re-monte pas en naviguant entre pages client, donc le QueryClient survit). Ne
- * touche pas au chrome (chaque page garde son CustomerShell), n'ajoute qu'un
- * provider de contexte invisible.
+ * Layout de groupe CLIENT — hôte PERSISTANT du cache TanStack Query ET du chrome
+ * (header / bottom-nav / footer / providers). Les layouts Next ne se re-rendent
+ * pas en naviguant entre pages d'un même groupe → la coque ne se RE-MONTE plus
+ * à chaque navigation (fin du « rechargement complet ») et l'auth + le profil +
+ * les feature flags sont résolus UNE FOIS par entrée dans l'espace (au lieu de
+ * par page). Les pages n'ont plus qu'à rendre leur contenu.
+ *
+ * Dédup : ces helpers sont `cache()` → quand une page lit aussi l'auth/profil
+ * dans le MÊME rendu, c'est partagé (pas de requête en double).
  */
-export default function CustomerGroupLayout({
+export default async function CustomerGroupLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <CustomerQueryProvider>{children}</CustomerQueryProvider>;
+  const [user, customer, flags] = await Promise.all([
+    getAuthUser(),
+    getCurrentCustomerFull(),
+    getFeatureFlags(),
+  ]);
+
+  // Onglets retirés de la nav si la fonctionnalité est « masquée » (super-admin).
+  const hiddenKeys: string[] = [];
+  if (flags.drive.status === "hidden") hiddenKeys.push("drive");
+  if (flags.coligo_pay.status === "hidden") hiddenKeys.push("pay");
+
+  return (
+    <CustomerQueryProvider>
+      <CustomerChrome
+        isAuth={!!user}
+        customerName={customer?.full_name ?? null}
+        customerPhone={customer?.phone ?? null}
+        userEmail={user?.email ?? null}
+        userId={user?.id ?? null}
+        hiddenKeys={hiddenKeys}
+      >
+        {children}
+      </CustomerChrome>
+    </CustomerQueryProvider>
+  );
 }
