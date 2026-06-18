@@ -51,6 +51,12 @@ export function DNav() {
           <Link
             key={tab.href}
             href={tab.href}
+            // prefetch complet : les routes chauffeur sont dynamiques (gate dans
+            // la coque) ; sans ce flag, `<Link>` ne préfetcherait que la coque,
+            // pas le contenu → chaque tap attendrait un aller-retour serveur
+            // (serveur US, latence depuis l'Algérie). Avec prefetch={true} le
+            // RSC de l'onglet est mis en cache à l'avance → bascule instantanée.
+            prefetch
             className="flex flex-col items-center justify-center gap-[3px] text-[9.5px] font-semibold"
             style={{ color: active ? VIOLET : "var(--d-muted)" }}
           >
