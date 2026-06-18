@@ -21,7 +21,8 @@ import { chauffeurLogout } from "@/app/(chauffeur)/actions";
 /** Dossier envoyé — en attente de validation par les SUPER ADMINS (s-dwait). */
 export function DWait() {
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-10 pb-8">
+    // Overlay plein écran : recouvre la nav persistante de la coque `(app)`.
+    <div className="drive-jakarta drive-page fixed inset-0 z-[70] overflow-y-auto bg-[var(--d-surface)] px-5 pt-10 pb-8">
       <div className="text-center">
         <span
           className="mx-auto mb-3 grid size-16 place-items-center rounded-full"
@@ -131,7 +132,8 @@ export function DFrozen({ reason }: { reason: string | null }) {
     },
   ];
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-10 pb-8">
+    // Overlay plein écran : recouvre la nav persistante de la coque `(app)`.
+    <div className="drive-jakarta drive-page fixed inset-0 z-[70] overflow-y-auto bg-[var(--d-surface)] px-5 pt-10 pb-8">
       <div className="text-center">
         <span
           className="mx-auto mb-3 grid size-16 place-items-center rounded-full"
@@ -183,7 +185,8 @@ export function DFrozen({ reason }: { reason: string | null }) {
 /** Compte bloqué (suspension dure). */
 export function DBlocked() {
   return (
-    <div className="drive-jakarta drive-page grid min-h-screen place-items-center bg-[var(--d-surface)] px-5">
+    // Overlay plein écran : recouvre la nav persistante de la coque `(app)`.
+    <div className="drive-jakarta drive-page fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-[var(--d-surface)] px-5">
       <div className="text-center">
         <span
           className="mx-auto mb-3 grid size-16 place-items-center rounded-full"

@@ -20,7 +20,7 @@ import {
   Sheet,
   SheetTitle,
 } from "@/components/customer/drive/drive-modals";
-import { DNav, PLAN_LABEL } from "./d-ui";
+import { PLAN_LABEL } from "./d-ui";
 import {
   cancelMyPendingSub,
   getChauffeurFinances,
@@ -565,8 +565,6 @@ export function DSubs() {
           </div>
         </div>
       )}
-
-      <DNav />
     </div>
   );
 }

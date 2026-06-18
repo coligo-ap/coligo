@@ -33,7 +33,7 @@ import {
   RED,
   PrimaryBtn,
 } from "@/components/customer/drive/drive-modals";
-import { DNav, PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
+import { PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
 import { DIncoming } from "./d-incoming";
 import { ChauffeurWorkZoneSheet } from "./work-zone-sheet";
 import { useSearchRadius } from "@/lib/chauffeur/work-zone";
@@ -815,7 +815,6 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         onClose={() => setZoneOpen(false)}
       />
 
-      <DNav />
       <PushRegistrar role="chauffeur" />
     </div>
   );

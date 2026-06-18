@@ -24,7 +24,6 @@ import {
   RED,
   PrimaryBtn,
 } from "@/components/customer/drive/drive-modals";
-import { DNav } from "./d-ui";
 import {
   setChauffeurOnlineLocal,
   useChauffeurOnline,
@@ -312,7 +311,6 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
             Passer en ligne · GO
           </button>
         </div>
-        <DNav />
       </div>
     );
   }
@@ -882,8 +880,6 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
           );
         })}
       </div>
-
-      <DNav />
     </div>
   );
 }

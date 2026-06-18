@@ -1,9 +1,11 @@
-import { DNav } from "./d-ui";
-
 /**
  * Squelettes de chargement chauffeur (frontières `loading.tsx`). Objectif perf :
- * la nav apparaît INSTANTANÉMENT au tap (barre du bas conservée), le contenu
- * réel se streame derrière. Aucune donnée ici → rendu immédiat, jamais bloquant.
+ * le contenu réel se streame derrière un squelette qui apparaît INSTANTANÉMENT.
+ * La barre de nav (`DNav`) n'est PLUS rendue ici : elle est montée une seule
+ * fois dans la coque persistante `(app)/layout.tsx` et reste à l'écran pendant
+ * le chargement → ces squelettes ne décrivent QUE le contenu (plus de « loading
+ * global » qui redessinait nav + fond à chaque navigation). Aucune donnée ici →
+ * rendu immédiat, jamais bloquant.
  */
 function Bar({ className = "" }: { className?: string }) {
   return (
@@ -57,7 +59,6 @@ export function DriveSkeleton() {
         <RideCardSkeleton />
         <RideCardSkeleton />
       </div>
-      <DNav />
     </div>
   );
 }
@@ -86,7 +87,6 @@ export function HomeSkeleton() {
         <span className="mx-auto mb-2 block h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
         <Bar className="h-[58px] w-full !rounded-[16px]" />
       </div>
-      <DNav />
     </div>
   );
 }
@@ -100,7 +100,6 @@ export function PageSkeleton() {
       <Bar className="mt-4 h-28 w-full !rounded-[16px]" />
       <Bar className="mt-3 h-20 w-full !rounded-[16px]" />
       <Bar className="mt-3 h-20 w-full !rounded-[16px]" />
-      <DNav />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Car, ChevronLeft, History, Loader2, Zap } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { VIOLET, GO, RED } from "@/components/customer/drive/drive-modals";
-import { DNav, PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
+import { PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
 import { formatOnline } from "@/lib/drive/geo";
 import {
   getChauffeurFinances,
@@ -152,8 +152,6 @@ export function DGains() {
         </span>
         <span className="text-[var(--d-muted)]">›</span>
       </button>
-
-      <DNav />
     </div>
   );
 }
@@ -261,8 +259,6 @@ export function DHisto() {
           </div>
         ))
       )}
-
-      <DNav />
     </div>
   );
 }

@@ -34,7 +34,7 @@ import {
   type SosContact,
 } from "@/components/customer/drive/drive-modals";
 import { ChAvatar } from "@/components/customer/drive/ch-avatar";
-import { DNav, PLAN_LABEL, fmtPct } from "./d-ui";
+import { PLAN_LABEL, fmtPct } from "./d-ui";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import {
   chauffeurLogout,
@@ -387,8 +387,6 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
           className="w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-[14px] outline-none focus:border-[color:var(--d-muted)]"
         />
       </FormModal>
-
-      <DNav />
     </div>
   );
 }
