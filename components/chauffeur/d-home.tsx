@@ -10,6 +10,7 @@ import {
   Crosshair,
   Home,
   Loader2,
+  LocateFixed,
   Pencil,
   Power,
   Radio,
@@ -406,71 +407,68 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         padding={{ top: 96, bottom: mini ? 220 : 520, left: 56, right: 56 }}
       />
 
-      {/* Rangée haute (même bandeau) : Gains du jour · Courses dispo · GPS. */}
-      <div className="absolute inset-x-3 top-3 z-10 flex items-stretch gap-2">
-        {/* Gains du jour — violet fort, texte blanc — visible en mode compact
-            (feuille réduite) ; à l'ouverture de la feuille, les gains
-            réapparaissent dans la finance bar et on retire cette carte. */}
-        {mini && (
-          <button
-            type="button"
-            onClick={() => router.push("/chauffeur/gains")}
-            className="flex flex-col justify-center rounded-[16px] px-3.5 py-2 text-left text-white shadow-lg"
-            style={{ background: "#6C2BD9" }}
-          >
-            <span className="drive-sora text-[21px] leading-none font-extrabold tracking-[-0.5px]">
-              {formatDA(home?.todayNet ?? 0)}
-            </span>
-            <span className="mt-1 text-[9.5px] font-medium whitespace-nowrap opacity-85">
-              {tr("Revenu du jour", "دخل اليوم")} · {home?.todayRides ?? 0}{" "}
-              {tr("courses", "رحلة")}
-            </span>
-          </button>
-        )}
-
-        {/* Courses disponibles (en ligne) → ouvre Drive */}
-        {online && (
-          <button
-            type="button"
-            onClick={() => router.push("/chauffeur/demandes")}
-            className="flex flex-col justify-center rounded-[16px] bg-[var(--d-surface)] px-3 py-2 text-left shadow-lg"
-          >
-            <span
-              className="drive-sora text-[21px] leading-none font-extrabold"
-              style={{ color: VIOLET }}
+      {/* Bandeau haut (3 zones) : courses dispo (GAUCHE) · revenus (CENTRE) ·
+          GPS (DROITE). Le centre reste centré quelles que soient les présences. */}
+      <div className="absolute inset-x-3 top-3 z-10 grid grid-cols-3 items-start gap-2">
+        {/* GAUCHE — courses disponibles (en ligne) → ouvre Drive */}
+        <div className="flex justify-start">
+          {online && (
+            <button
+              type="button"
+              onClick={() => router.push("/chauffeur/demandes")}
+              className="flex flex-col items-center rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 shadow-lg"
             >
-              {reqCount}
-            </span>
-            <span className="mt-1 text-[9.5px] font-medium whitespace-nowrap text-[var(--d-muted)]">
-              {isAr
-                ? "متوفرة"
-                : reqCount > 1
-                  ? "courses dispo"
-                  : "course dispo"}
-            </span>
-          </button>
-        )}
-
-        {/* Pousse le GPS à droite */}
-        <div className="flex-1" />
-
-        {/* GPS — recentrer sur ma position (même bandeau) */}
-        <button
-          type="button"
-          onClick={() => void recenter()}
-          disabled={locating}
-          aria-label="Centrer sur ma position"
-          className="grid w-[46px] shrink-0 place-items-center rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
-        >
-          {locating ? (
-            <Loader2
-              className="size-5 animate-spin"
-              style={{ color: VIOLET }}
-            />
-          ) : (
-            <Crosshair className="size-5" style={{ color: VIOLET }} />
+              <span
+                className="drive-sora text-[19px] leading-none font-extrabold"
+                style={{ color: VIOLET }}
+              >
+                {reqCount}
+              </span>
+              <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap text-[var(--d-muted)]">
+                {isAr ? "متوفرة" : reqCount > 1 ? "dispo." : "dispo."}
+              </span>
+            </button>
           )}
-        </button>
+        </div>
+
+        {/* CENTRE — revenu du jour (mode compact) — carte violette arrondie */}
+        <div className="flex justify-center">
+          {mini && (
+            <button
+              type="button"
+              onClick={() => router.push("/chauffeur/gains")}
+              className="flex flex-col items-center rounded-[16px] border px-3.5 py-2 text-white shadow-lg"
+              style={{ background: "#6C2BD9", borderColor: "#5A21B5" }}
+            >
+              <span className="drive-sora text-[19px] leading-none font-extrabold tracking-[-0.5px]">
+                {formatDA(home?.todayNet ?? 0)}
+              </span>
+              <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap opacity-85">
+                {tr("Revenu du jour", "دخل اليوم")}
+              </span>
+            </button>
+          )}
+        </div>
+
+        {/* DROITE — GPS (recentrer) — meilleur icône « ma position » */}
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => void recenter()}
+            disabled={locating}
+            aria-label="Centrer sur ma position"
+            className="grid size-[44px] place-items-center rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+          >
+            {locating ? (
+              <Loader2
+                className="size-5 animate-spin"
+                style={{ color: VIOLET }}
+              />
+            ) : (
+              <LocateFixed className="size-5" style={{ color: VIOLET }} />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* RÉCEPTION : carte de course entrante (en ligne, accueil, hors volet). */}
@@ -493,29 +491,20 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         className="absolute right-0 bottom-[66px] left-0 z-10 overflow-y-auto overscroll-contain rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-2 pb-6 transition-[max-height] duration-300"
         style={{ maxHeight: mini ? 118 : "min(580px, calc(100dvh - 140px))" }}
       >
-        {/* Poignée (centre) + flèche d'ouverture/fermeture (droite) — affordance
-            claire : repliée → ▲ « ouvrir pour voir les options », dépliée → ▼. */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setMini((m) => !m)}
-            className="mx-auto block cursor-pointer px-10 py-1.5"
-            aria-label={mini ? tr("Ouvrir", "فتح") : tr("Fermer", "إغلاق")}
-          >
-            <span className="block h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setMini((m) => !m)}
-            aria-label={mini ? tr("Ouvrir", "فتح") : tr("Fermer", "إغلاق")}
-            className="absolute end-0 top-1/2 grid size-[30px] -translate-y-1/2 place-items-center rounded-full bg-[var(--d-soft)] transition-colors"
-          >
-            <ChevronUp
-              className="size-[17px] text-[var(--d-muted)] transition-transform duration-300"
-              style={{ transform: mini ? undefined : "rotate(180deg)" }}
-            />
-          </button>
-        </div>
+        {/* Poignée + flèche INTÉGRÉE (dans le flux, centrée) — repliée ▲ « ouvrir »,
+            dépliée ▼ « fermer ». Plus de pastille flottante qui déborde. */}
+        <button
+          type="button"
+          onClick={() => setMini((m) => !m)}
+          aria-label={mini ? tr("Ouvrir", "فتح") : tr("Fermer", "إغلاق")}
+          className="mx-auto flex w-full flex-col items-center gap-1 py-1"
+        >
+          <span className="block h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
+          <ChevronUp
+            className="size-4 text-[var(--d-muted)] transition-transform duration-300"
+            style={{ transform: mini ? undefined : "rotate(180deg)" }}
+          />
+        </button>
 
         {/* ── Toggle « En ligne » — épuré (style Anthropic) ── */}
         <button
