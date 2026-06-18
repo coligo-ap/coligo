@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { usePrompt } from "@/components/ui/confirm";
 import {
   AlertTriangle,
   Ban,
@@ -131,6 +132,7 @@ function LateOrderCard({
   late: number | null;
 }) {
   const router = useRouter();
+  const prompt = usePrompt();
   const [pending, start] = useTransition();
   const ref = o.order_number ?? o.id.slice(0, 6).toUpperCase();
   const isDelivery = o.fulfillment_type === "delivery";
@@ -148,11 +150,13 @@ function LateOrderCard({
       }
     });
 
-  function onCancel() {
-    const reason = window.prompt(
-      `Annuler la commande #${ref} ?\n\nMotif (visible dans le suivi) :`,
-      ""
-    );
+  async function onCancel() {
+    const reason = await prompt({
+      title: `Annuler la commande #${ref} ?`,
+      message: "Motif (visible dans le suivi du client).",
+      placeholder: "Motif de l'annulation",
+      multiline: true,
+    });
     if (reason === null) return;
     run(
       () => adminCancelOrder(o.id, reason.trim() || "Annulée par le support"),

@@ -12,6 +12,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/components/ui/confirm";
 import {
   createBanner,
   updateBanner,
@@ -337,6 +338,7 @@ function BannerForm({
 
 export function BannersManager({ banners }: { banners: AdminBanner[] }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState<string | null>(null); // id | "new" | null
   const [error, setError] = useState<string | null>(null);
@@ -471,14 +473,14 @@ export function BannersManager({ banners }: { banners: AdminBanner[] }) {
                   type="button"
                   title="Supprimer"
                   disabled={pending && busyId === b.id}
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Supprimer la bannière « ${b.title} » ? Cette action est définitive.`
-                      )
-                    ) {
-                      run(() => deleteBanner(b.id), { id: b.id });
-                    }
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: "Supprimer la bannière",
+                      message: `Supprimer la bannière « ${b.title} » ? Cette action est définitive.`,
+                      confirmLabel: "Supprimer",
+                      danger: true,
+                    });
+                    if (ok) run(() => deleteBanner(b.id), { id: b.id });
                   }}
                   className="text-danger-600 hover:bg-danger-50 grid size-9 place-items-center rounded-[9px]"
                 >

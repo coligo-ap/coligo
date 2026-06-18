@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { BadgeCheck, Snowflake, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePrompt } from "@/components/ui/confirm";
 import {
   setChauffeurVerified,
   setChauffeurFrozen,
@@ -25,6 +26,7 @@ export function ChauffeurActions({
   isFrozen: boolean;
   isBlocked: boolean;
 }) {
+  const prompt = usePrompt();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -59,13 +61,16 @@ export function ChauffeurActions({
         <button
           type="button"
           disabled={pending}
-          onClick={() => {
+          onClick={async () => {
             // Gel AVEC MOTIF (affiché à l'écran « Compte gelé » du chauffeur).
             if (!isFrozen) {
-              const motif = window.prompt(
-                "Motif du gel (affiché au chauffeur) :",
-                "Comportement signalé / non-respect des conditions"
-              );
+              const motif = await prompt({
+                title: "Geler ce compte",
+                message: "Motif du gel (affiché au chauffeur).",
+                initialValue:
+                  "Comportement signalé / non-respect des conditions",
+                multiline: true,
+              });
               if (motif == null) return;
               run(() => freezeChauffeurWithReason(chauffeurId, motif));
             } else {

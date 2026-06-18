@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePrompt } from "@/components/ui/confirm";
 import {
   AdminDocViewer,
   DecisionNoteDialog,
@@ -373,6 +374,7 @@ export function ChauffeurAccountActions({
   isBlocked: boolean;
 }) {
   const router = useRouter();
+  const prompt = usePrompt();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok?: string; error?: string }>({});
 
@@ -406,11 +408,13 @@ export function ChauffeurAccountActions({
           <button
             type="button"
             disabled={pending}
-            onClick={() => {
-              const motif = window.prompt(
-                "Motif du refus du dossier (transmis au chauffeur) :",
-                "Documents incomplets — complétez puis renvoyez."
-              );
+            onClick={async () => {
+              const motif = await prompt({
+                title: "Refuser le dossier",
+                message: "Motif du refus (transmis au chauffeur).",
+                initialValue: "Documents incomplets — complétez puis renvoyez.",
+                multiline: true,
+              });
               if (!motif) return;
               run(
                 () => rejectChauffeur(chauffeurId, motif),
@@ -426,23 +430,26 @@ export function ChauffeurAccountActions({
           <button
             type="button"
             disabled={pending}
-            onClick={() => {
+            onClick={async () => {
               if (isFrozen) {
                 run(
                   () => setChauffeurFrozen(chauffeurId, false),
                   "Compte dégelé ✓"
                 );
-              } else {
-                const motif = window.prompt(
-                  "Motif du gel (affiché au chauffeur) :",
-                  "Comportement signalé / non-respect des conditions"
-                );
-                if (motif == null) return;
-                run(
-                  () => freezeChauffeurWithReason(chauffeurId, motif),
-                  "Compte gelé."
-                );
+                return;
               }
+              const motif = await prompt({
+                title: "Geler ce compte",
+                message: "Motif du gel (affiché au chauffeur).",
+                initialValue:
+                  "Comportement signalé / non-respect des conditions",
+                multiline: true,
+              });
+              if (motif == null) return;
+              run(
+                () => freezeChauffeurWithReason(chauffeurId, motif),
+                "Compte gelé."
+              );
             }}
             className={cn(
               "inline-flex h-9 items-center gap-1.5 rounded-[10px] px-4 text-xs font-bold disabled:opacity-50",

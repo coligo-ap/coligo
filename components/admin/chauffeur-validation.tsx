@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { BadgeCheck, Loader2, X } from "lucide-react";
+import { usePrompt } from "@/components/ui/confirm";
 import { AdminDocViewer } from "@/components/admin/doc-viewer";
 import {
   approveChauffeurGated,
@@ -36,6 +37,7 @@ export function ChauffeurValidationCard({
   };
   docs: { kind: string; url: string }[];
 }) {
+  const prompt = usePrompt();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -130,10 +132,12 @@ export function ChauffeurValidationCard({
           disabled={pending}
           onClick={() =>
             start(async () => {
-              const motif = window.prompt(
-                "Motif du refus (affiché au chauffeur) :",
-                "Documents illisibles — reprenez les photos."
-              );
+              const motif = await prompt({
+                title: "Refuser le dossier",
+                message: "Motif du refus (affiché au chauffeur).",
+                initialValue: "Documents illisibles — reprenez les photos.",
+                multiline: true,
+              });
               if (!motif) return;
               const res = await rejectChauffeur(chauffeur.id, motif);
               if (res.error) setError(res.error);
@@ -154,6 +158,7 @@ export function ChauffeurValidationCard({
 
 /** Vérification d'un paiement d'abonnement CCP (24 h). */
 export function SubPaymentActions({ paymentId }: { paymentId: string }) {
+  const prompt = usePrompt();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -183,10 +188,11 @@ export function SubPaymentActions({ paymentId }: { paymentId: string }) {
         disabled={pending}
         onClick={() =>
           start(async () => {
-            const note = window.prompt(
-              "Motif du rejet :",
-              "Virement introuvable"
-            );
+            const note = await prompt({
+              title: "Rejeter ce paiement",
+              message: "Motif du rejet.",
+              initialValue: "Virement introuvable",
+            });
             if (note == null) return;
             const res = await rejectSubPayment(paymentId, note);
             if (res.error) setError(res.error);
