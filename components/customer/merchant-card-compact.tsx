@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Bike, Clock, MapPin, Percent, Star, Tag } from "lucide-react";
@@ -33,7 +34,7 @@ type Props = {
 //   - cœur favori en haut-droite de la vignette ;
 //   - 2 variantes : avec promo (ligne promo rose) / sans promo (modes).
 // =============================================================================
-export function MerchantCardCompact({
+function MerchantCardCompactImpl({
   merchant,
   hasPromo,
   promo,
@@ -212,3 +213,8 @@ export function MerchantCardCompact({
 function Dot() {
   return <span className="bg-subtle size-[3px] rounded-full" aria-hidden />;
 }
+
+// Mémoïsé : dans les grilles (jusqu'à 60 cartes), une frappe dans la recherche
+// ou un changement de filtre re-rend le parent — les cartes dont les props
+// n'ont pas changé NE se re-rendent plus (props stables, pas de callback inline).
+export const MerchantCardCompact = memo(MerchantCardCompactImpl);

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Bike, Clock, MapPin, Star, Tag, Zap } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
@@ -34,7 +34,7 @@ type Props = {
  * distance / ville) et tags de mode. Refonte visuelle — on garde les mêmes
  * données (`PublicMerchant`) et la même navigation (`/m/[slug]`).
  */
-export function MerchantCard({
+function MerchantCardImpl({
   merchant,
   hasPromo,
   promo,
@@ -241,3 +241,8 @@ function Mode({
     </span>
   );
 }
+
+// Mémoïsé : dans la grille d'accueil (jusqu'à 60 cartes), la frappe dans la
+// recherche / les filtres re-rend le parent — les cartes inchangées NE se
+// re-rendent plus (props stables, aucun callback inline).
+export const MerchantCard = memo(MerchantCardImpl);

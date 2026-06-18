@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import Link from "next/link";
 import {
   keepPreviousData,
@@ -29,6 +30,12 @@ export function FavoritesLoader({ customerId }: { customerId: string }) {
     placeholderData: keepPreviousData,
     staleTime: 0,
   });
+  // Callback stable → la mémoïsation (memo) des cartes reste efficace.
+  const onFavoriteToggled = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: ["customer-favorites", customerId],
+    });
+  }, [queryClient, customerId]);
 
   if (isPending && !data) {
     return (
@@ -67,7 +74,7 @@ export function FavoritesLoader({ customerId }: { customerId: string }) {
           merchant={m}
           initialFavorite
           isAuth
-          onFavoriteToggled={() => queryClient.invalidateQueries({ queryKey })}
+          onFavoriteToggled={onFavoriteToggled}
         />
       ))}
     </div>
