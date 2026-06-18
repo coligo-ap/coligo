@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowRight, Loader2, MapPin } from "lucide-react";
 import { useCustomerLocation } from "@/lib/customer/location-store";
@@ -61,10 +62,6 @@ export function MarketplaceGrid({
   const t = useTranslations("browse");
   const locale = useLocale();
   const loc = useCustomerLocation();
-  const [promos, setPromos] = useState<Record<string, PromoLabel>>(
-    promoLabels ?? {}
-  );
-
   const filters = useMemo<Filters>(
     () => ({
       q: params.get("q") ?? "",
@@ -88,21 +85,33 @@ export function MarketplaceGrid({
     [params]
   );
 
-  const [items, setItems] = useState<PublicMerchant[]>(fallback);
-  const [emptyZone, setEmptyZone] = useState(false);
-  const [pending, startTransition] = useTransition();
+  // Un filtre SERVEUR (catégorie/recherche) impose un fetch même sans zone.
+  const hasServerFilter = !!filters.q || !!filters.category;
+  // Sans zone résolue ET sans filtre serveur : on garde le fallback rangé côté
+  // serveur (AUCUNE requête) → l'accueil par défaut s'affiche sans re-fetch.
+  const shouldFetch = loc !== null || hasServerFilter;
+  // Le tri "rating" est appliqué côté client (la note n'est pas un champ de tri
+  // serveur) → on demande l'ordre par défaut au serveur.
+  const serverSort = filters.sort === "min_order" ? "min_order" : "name";
 
-  useEffect(() => {
-    // Un filtre SERVEUR (catégorie/recherche) impose un refetch même sans zone.
-    const hasServerFilter = !!filters.q || !!filters.category;
-    // Sans zone résolue ET sans filtre serveur : on garde le fallback rangé
-    // côté serveur (et on y revient quand on efface un filtre).
-    if (loc === null && !hasServerFilter) {
-      setItems(fallback);
-      setEmptyZone(false);
-      return;
-    }
-    startTransition(async () => {
+  // Grille commerces via TanStack Query : la clé = zone + filtres serveur. Tant
+  // qu'elle ne change pas, le résultat est RÉUTILISÉ entre navigations
+  // (staleTime 60 s) → fini le double-fetch (RSC + client) à chaque retour sur
+  // l'accueil. `keepPreviousData` garde l'ancienne liste visible pendant qu'un
+  // nouveau filtre charge (pas de flash vide). Le fallback SSR sert tant qu'on
+  // n'a ni zone ni filtre (aucune requête réseau).
+  const zoneQuery = useQuery({
+    queryKey: [
+      "home-merchants",
+      loc?.wilaya_code ?? null,
+      loc?.commune ?? null,
+      loc?.latitude ?? null,
+      loc?.longitude ?? null,
+      filters.q || null,
+      filters.category || null,
+      serverSort,
+    ],
+    queryFn: async () => {
       const res = await fetchMerchantsForZone({
         wilaya_code: loc?.wilaya_code ?? null,
         commune: loc?.commune ?? null,
@@ -111,23 +120,35 @@ export function MarketplaceGrid({
         longitude: loc?.longitude ?? null,
         q: filters.q || null,
         category: filters.category || null,
-        // Le tri "rating" est appliqué côté client (la note n'est pas un champ
-        // de tri serveur) → on demande l'ordre par défaut au serveur.
-        sort: filters.sort === "min_order" ? "min_order" : "name",
+        sort: serverSort,
       });
-      // Zone choisie mais vide ET pas de filtre serveur → on propose le reste
-      // de l'Algérie. Avec un filtre actif, on respecte le résultat (même vide).
+      // Zone choisie mais vide ET pas de filtre serveur → on bascule sur le reste
+      // de l'Algérie (fallback, lu au rendu). Avec un filtre, on respecte le vide.
       if (res.length === 0 && loc?.wilaya_code && !hasServerFilter) {
-        setItems(fallback);
-        setEmptyZone(true);
-      } else {
-        setItems(res);
-        setEmptyZone(false);
-        const labels = await fetchPromoLabels(res.map((m) => m.id));
-        setPromos((prev) => ({ ...prev, ...labels }));
+        return {
+          items: [] as PublicMerchant[],
+          emptyZone: true,
+          promos: {} as Record<string, PromoLabel>,
+        };
       }
-    });
-  }, [loc, filters.q, filters.category, filters.sort, fallback]);
+      const promos = await fetchPromoLabels(res.map((m) => m.id));
+      return { items: res, emptyZone: false, promos };
+    },
+    enabled: shouldFetch,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });
+
+  // État dérivé du cache (aucun re-fetch au montage si la clé est encore fraîche).
+  const emptyZone = shouldFetch ? (zoneQuery.data?.emptyZone ?? false) : false;
+  const items =
+    !shouldFetch || emptyZone ? fallback : (zoneQuery.data?.items ?? fallback);
+  const pending = shouldFetch && zoneQuery.isFetching;
+  // Promos : celles du SSR + celles ramenées par le fetch de zone.
+  const promos = useMemo<Record<string, PromoLabel>>(
+    () => ({ ...(promoLabels ?? {}), ...(zoneQuery.data?.promos ?? {}) }),
+    [promoLabels, zoneQuery.data]
+  );
 
   // Distance client → commerce (km) si on connaît la position du client.
   const distanceFor = useMemo(() => {

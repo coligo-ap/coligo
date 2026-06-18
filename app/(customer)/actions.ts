@@ -21,6 +21,10 @@ import {
   searchProductsInZone,
   type ProductSearchOutcome,
 } from "@/lib/data/product-search";
+import {
+  getMyCashbackBalance,
+  getMyTopupBalance,
+} from "@/lib/customer/cashback";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { getCommunes } from "@/lib/config/communes";
 
@@ -220,6 +224,24 @@ export async function fetchPromoLabels(
 ): Promise<Record<string, PromoLabel>> {
   if (merchantIds.length === 0) return {};
   return getPromoLabelsByMerchant(merchantIds);
+}
+
+/**
+ * Soldes des deux poches du client (cashback + Coligo Pay) en un seul appel.
+ * Utilisé côté client par `WalletBalanceValue` (TanStack Query) pour afficher
+ * INSTANTANÉMENT la valeur SSR puis la rafraîchir en silence, et la réutiliser
+ * entre /compte ↔ /coligo-pay sans re-fetch (clé partagée). Ré-authentifié
+ * côté serveur (RLS) à chaque appel → aucune fuite entre comptes.
+ */
+export async function fetchMyWalletBalances(): Promise<{
+  cashback: number;
+  topup: number;
+}> {
+  const [cashback, topup] = await Promise.all([
+    getMyCashbackBalance(),
+    getMyTopupBalance(),
+  ]);
+  return { cashback, topup };
 }
 
 /**

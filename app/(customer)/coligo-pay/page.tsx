@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentMerchant } from "@/lib/auth/merchant";
 import { getCurrentCustomer } from "@/lib/auth/customer";
-import { formatDA } from "@/lib/utils";
+import { WalletBalanceValue } from "@/components/customer/wallet/balance-value";
 import {
   getMyTopupBalance,
   getMyTopupHistory,
@@ -117,7 +117,11 @@ export default async function CustomerColigoPayPage() {
             {t("coligoPayBalance")}
           </p>
           <p className="mt-0.5 text-[42px] leading-none font-black tracking-tight tabular-nums">
-            {formatDA(balance)}
+            <WalletBalanceValue
+              kind="topup"
+              userId={user.id}
+              initial={balance}
+            />
           </p>
 
           {/* Identifiant (tag) à partager pour recevoir — intégré au hero. */}

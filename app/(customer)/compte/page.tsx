@@ -21,13 +21,13 @@ import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { CustomerLogoutButton } from "@/components/customer/logout-button";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { CustomerSupportRow } from "@/components/support/customer-support-row";
+import { WalletBalanceValue } from "@/components/customer/wallet/balance-value";
 import { getFeatureFlags } from "@/lib/data/feature-flags";
 import {
   getMyCashbackBalance,
   getMyTopupBalance,
 } from "@/lib/customer/cashback";
 import { WILAYAS } from "@/lib/config/wilayas";
-import { formatDA } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -161,7 +161,11 @@ export default async function CustomerAccountPage({
                   <p
                     className={`mt-0.5 text-xl font-black tabular-nums ${cashbackBalance > 0 ? "text-foreground" : "text-subtle"}`}
                   >
-                    {formatDA(cashbackBalance)}
+                    <WalletBalanceValue
+                      kind="cashback"
+                      userId={user.id}
+                      initial={cashbackBalance}
+                    />
                   </p>
                 </Link>
               ) : (
@@ -195,7 +199,11 @@ export default async function CustomerAccountPage({
                   <p
                     className={`mt-0.5 text-xl font-black tabular-nums ${topupBalance > 0 ? "text-foreground" : "text-subtle"}`}
                   >
-                    {formatDA(topupBalance)}
+                    <WalletBalanceValue
+                      kind="topup"
+                      userId={user.id}
+                      initial={topupBalance}
+                    />
                   </p>
                 </Link>
               ) : (
