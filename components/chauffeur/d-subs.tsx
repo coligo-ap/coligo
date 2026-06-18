@@ -179,7 +179,8 @@ export function DSubs() {
     <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
       <button
         type="button"
-        onClick={() => router.push("/chauffeur")}
+        onClick={() => router.back()}
+        aria-label="Retour"
         className="mb-3 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
       >
         <ChevronLeft className="size-5" />

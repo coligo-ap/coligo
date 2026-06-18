@@ -174,7 +174,8 @@ export function DHisto() {
       <div className="mb-3 flex items-center gap-3">
         <button
           type="button"
-          onClick={() => router.push("/chauffeur/gains")}
+          onClick={() => router.back()}
+          aria-label="Retour"
           className="grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
         >
           <ChevronLeft className="size-5" />

@@ -1,10 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { BarChart3, Car, Home, User } from "lucide-react";
+import { BarChart3, Car, ChevronLeft, Home, User } from "lucide-react";
 import { VIOLET } from "@/components/customer/drive/drive-modals";
+
+/**
+ * Bouton « Retour » standard de l'espace chauffeur : revient À L'ÉCRAN
+ * PRÉCÉDENT (router.back) au lieu de forcer une destination — sinon, depuis le
+ * Compte, on retombait sur l'accueil/connexion au lieu de revenir au Compte.
+ */
+export function DBack({ className }: { className?: string }) {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      onClick={() => router.back()}
+      aria-label="Retour"
+      className={
+        className ??
+        "grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
+      }
+    >
+      <ChevronLeft className="size-5" />
+    </button>
+  );
+}
 
 /** Nav chauffeur (maquette) : Accueil · Drive · Gains · Compte. */
 const TABS = [

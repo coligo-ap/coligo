@@ -159,7 +159,8 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
       <div className="mb-2 flex items-center gap-3">
         <button
           type="button"
-          onClick={() => router.push("/chauffeur/login")}
+          onClick={() => router.back()}
+          aria-label="Retour"
           className="grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
         >
           <ChevronLeft className="size-5" />

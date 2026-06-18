@@ -244,9 +244,13 @@ function Row({
         {icon}
       </span>
       <span className="flex-1">{label}</span>
-      <span className="max-w-[55%] text-right text-xs font-medium text-[var(--d-muted)]">
+      <span className="max-w-[50%] truncate text-right text-xs font-medium text-[var(--d-muted)]">
         {value}
       </span>
+      {/* Flèche « aller à la page / voir plus » sur les lignes cliquables. */}
+      {onClick && (
+        <ChevronRight className="size-4 shrink-0 text-[var(--d-muted)] opacity-70" />
+      )}
     </Tag>
   );
 }
