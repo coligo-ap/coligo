@@ -1,18 +1,22 @@
+import { Suspense } from "react";
 import { DNav } from "@/components/chauffeur/d-ui";
+import { ChauffeurGateGuard } from "@/components/chauffeur/gate-guard";
+import { HomeSkeleton } from "@/components/chauffeur/d-skeleton";
 
 /**
- * Coque PERSISTANTE des pages chauffeur authentifiées (Accueil, Drive, Gains,
- * Compte, Historique, Abonnement, Recharger). La barre `DNav` est montée UNE
- * fois ici → elle reste à l'écran pendant que le segment enfant se (re)streame,
- * et les `loading.tsx` n'affichent plus QUE le squelette du contenu (plus de
- * « loading global » qui redessinait nav + fond à chaque navigation).
+ * Coque PERSISTANTE des pages chauffeur authentifiées. Deux propriétés clés :
  *
- * `DNav` est en `position: fixed` : sa place dans le DOM n'a pas d'importance,
- * on la rend après `{children}`. Les écrans hors coque (course, documents,
- * login, signup, telecharger) sont volontairement EN DEHORS de ce groupe et
- * n'ont donc pas de barre. Le gating (pending/gel/blocage) reste géré par
- * chaque page : ses états plein écran (`DWait`/`DFrozen`/`DBlocked`) recouvrent
- * la nav (overlays `fixed inset-0`).
+ *  1. `DNav` est montée UNE fois (hors Suspense) → la barre du bas s'affiche
+ *     INSTANTANÉMENT et reste à l'écran pendant tout chargement.
+ *  2. Le gate (auth + statut) est résolu dans `ChauffeurGateGuard`, sous un
+ *     `<Suspense>` : seul le CONTENU montre un squelette le temps de la 1ʳᵉ
+ *     résolution. Comme un layout partagé ne se re-render pas entre ses enfants,
+ *     la garde — et `getChauffeurGate()` — ne tourne QU'À la première entrée :
+ *     les changements d'onglet n'ont plus d'aller-retour serveur → fin du
+ *     « loading complet de chaque page ». Les pages lisent le gate via contexte.
+ *
+ * Écrans hors coque (course, documents, login, signup, telecharger) : hors de
+ * ce groupe `(app)`, donc sans barre de nav.
  */
 export default function ChauffeurAppLayout({
   children,
@@ -21,7 +25,9 @@ export default function ChauffeurAppLayout({
 }) {
   return (
     <>
-      {children}
+      <Suspense fallback={<HomeSkeleton />}>
+        <ChauffeurGateGuard>{children}</ChauffeurGateGuard>
+      </Suspense>
       <DNav />
     </>
   );

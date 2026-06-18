@@ -1,14 +1,9 @@
-import { redirect } from "next/navigation";
-import { getChauffeurGate } from "@/app/(chauffeur)/actions";
+"use client";
+
+import { useChauffeurGate } from "@/components/chauffeur/gate-context";
 import { DCompte } from "@/components/chauffeur/d-compte";
-import { DBlocked, DFrozen } from "@/components/chauffeur/d-gate";
 
-export const dynamic = "force-dynamic";
-
-export default async function ChauffeurComptePage() {
-  const gate = await getChauffeurGate();
-  if (!gate) redirect("/chauffeur/login");
-  if (gate.isBlocked) return <DBlocked />;
-  if (gate.isFrozen) return <DFrozen reason={gate.frozenReason} />;
+export default function ChauffeurComptePage() {
+  const gate = useChauffeurGate();
   return <DCompte gate={gate} />;
 }
