@@ -49,6 +49,12 @@ function loadMapStyle(url: string): Promise<unknown | null> {
   return styleCache[url].then((s) => (s ? cloneStyle(s) : null));
 }
 
+// Caméra persistante (mode SUIVI = accueil chauffeur/livreur) : on mémorise le
+// dernier centre + zoom pour ROUVRIR la carte exactement à cette vue après une
+// navigation, SANS rejouer l'animation de zoom à chaque changement de page.
+// Scopé à `follow` pour ne pas affecter les cartes route/sélection (client).
+let lastFollowCam: { lng: number; lat: number; zoom: number } | null = null;
+
 export type LatLng = { lat: number; lng: number };
 
 type Marker = { id: string; pos: LatLng; kind: "me" | "car" | "pin" };
@@ -95,8 +101,10 @@ export function DriveMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerObjs = useRef<Map<string, maplibregl.Marker>>(new Map());
-  // Vrai une fois la carte centrée sur la position pour la 1re fois (mode suivi).
-  const didInitialCenter = useRef(false);
+  // Vrai une fois la carte centrée pour la 1re fois (mode suivi). Si une caméra
+  // de suivi est déjà mémorisée, on considère le centrage « déjà fait » → on
+  // PANNE doucement vers la position sans rejouer l'animation de zoom.
+  const didInitialCenter = useRef(follow && lastFollowCam != null);
   const [ready, setReady] = useState(false);
   const onMoveRef = useRef(onMove);
   useEffect(() => {
@@ -127,6 +135,13 @@ export function DriveMap({
       ensureRtlPlugin(maplibre);
       if (disposed || !containerRef.current) return;
       const first = markers[0]?.pos ?? { lat: 36.7538, lng: 3.0588 };
+      // Vue initiale : caméra de suivi mémorisée (pas de re-zoom au retour) ou
+      // 1er marqueur à un zoom par défaut.
+      const restore = follow ? lastFollowCam : null;
+      const initCenter: [number, number] = restore
+        ? [restore.lng, restore.lat]
+        : [first.lng, first.lat];
+      const initZoom = restore ? restore.zoom : 14;
       let map: maplibregl.Map;
       // Thème sombre = choix utilisateur (classe `theme-dark` posée sur
       // <html> par le layout racine) — plus de suivi du réglage système.
@@ -143,8 +158,8 @@ export function DriveMap({
         map = new Map({
           container: containerRef.current,
           style: (cachedStyle ?? styleUrl) as never,
-          center: [first.lng, first.lat],
-          zoom: 14,
+          center: initCenter,
+          zoom: initZoom,
           attributionControl: { compact: true },
         });
       } catch {
@@ -168,6 +183,11 @@ export function DriveMap({
       }
       map.on("moveend", () => {
         const c = map.getCenter();
+        // Mémorise la vue de SUIVI (centre + zoom) pour la restaurer sans
+        // re-zoom à la prochaine navigation.
+        if (follow) {
+          lastFollowCam = { lng: c.lng, lat: c.lat, zoom: map.getZoom() };
+        }
         onMoveRef.current?.({ lat: c.lat, lng: c.lng });
       });
       const reveal = () => {

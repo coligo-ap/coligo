@@ -416,17 +416,20 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             <button
               type="button"
               onClick={() => router.push("/chauffeur/demandes")}
-              className="flex flex-col items-center rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 shadow-lg"
+              className="flex items-center gap-1.5 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-1.5 pr-2 pl-3 shadow-lg"
             >
-              <span
-                className="drive-sora text-[19px] leading-none font-extrabold"
-                style={{ color: VIOLET }}
-              >
-                {reqCount}
+              <span className="flex flex-col items-start leading-none">
+                <span
+                  className="drive-sora text-[18px] font-extrabold"
+                  style={{ color: VIOLET }}
+                >
+                  {reqCount}
+                </span>
+                <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap text-[var(--d-muted)]">
+                  {isAr ? "متوفرة" : "dispo."}
+                </span>
               </span>
-              <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap text-[var(--d-muted)]">
-                {isAr ? "متوفرة" : reqCount > 1 ? "dispo." : "dispo."}
-              </span>
+              <ChevronRight className="size-3.5 shrink-0 text-[var(--d-muted)]" />
             </button>
           )}
         </div>
@@ -437,15 +440,18 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             <button
               type="button"
               onClick={() => router.push("/chauffeur/gains")}
-              className="flex flex-col items-center rounded-[16px] border px-3.5 py-2 text-white shadow-lg"
+              className="flex items-center gap-1.5 rounded-[16px] border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
               style={{ background: "#6C2BD9", borderColor: "#5A21B5" }}
             >
-              <span className="drive-sora text-[19px] leading-none font-extrabold tracking-[-0.5px]">
-                {formatDA(home?.todayNet ?? 0)}
+              <span className="flex flex-col items-start leading-none">
+                <span className="drive-sora text-[18px] font-extrabold tracking-[-0.5px]">
+                  {formatDA(home?.todayNet ?? 0)}
+                </span>
+                <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap opacity-85">
+                  {tr("Revenu du jour", "دخل اليوم")}
+                </span>
               </span>
-              <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap opacity-85">
-                {tr("Revenu du jour", "دخل اليوم")}
-              </span>
+              <ChevronRight className="size-3.5 shrink-0 text-white/80" />
             </button>
           )}
         </div>
