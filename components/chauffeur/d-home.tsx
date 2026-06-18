@@ -335,6 +335,12 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     null
   );
   const [locating, setLocating] = useState(false);
+  // Quand on réduit/agrandit la feuille, la zone visible change → on re-centre
+  // le point « moi » avec le nouveau padding (sinon il resterait décalé).
+  useEffect(() => {
+    const c = coordsRef.current;
+    if (c) setFocusMe({ lat: c.latitude, lng: c.longitude, zoom: 16.5 });
+  }, [mini]);
   const recenter = async () => {
     // 1) Recentrage INSTANTANÉ sur la dernière position connue (si on en a une).
     const known = coordsRef.current;
@@ -385,7 +391,10 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         heatZones={home?.heatZones ?? []}
         focusTarget={focusMe}
         follow
-        padding={{ top: 110, bottom: 460, left: 60, right: 60 }}
+        // Réserve la zone basse occupée par la feuille → le point « moi » est
+        // centré dans la partie VISIBLE de la carte (au-dessus de la feuille),
+        // et s'ajuste quand on réduit/agrandit la feuille.
+        padding={{ top: 96, bottom: mini ? 220 : 520, left: 56, right: 56 }}
       />
 
       {/* Pastille « demande proche » (en ligne) → ouvre Drive ; sinon légende. */}

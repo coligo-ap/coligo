@@ -103,15 +103,19 @@ export function DriveMap({
     onMoveRef.current = onMove;
   }, [onMove]);
 
-  // Vol vers la cible de recherche (l'épingle suit le centre de la carte).
+  // Vol vers la cible de recherche / recentrage. `padding` décale le centre
+  // visuel pour que le point ne soit PAS caché par la feuille du bas (sinon il
+  // tombe au centre géométrique de l'écran, sous la carte/feuille).
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready || !focusTarget) return;
     map.flyTo({
       center: [focusTarget.lng, focusTarget.lat],
       zoom: focusTarget.zoom ?? 17,
+      padding,
       duration: 700,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusTarget, ready]);
 
   useEffect(() => {
@@ -372,14 +376,18 @@ export function DriveMap({
     if (pts.length === 0) return;
     if (pts.length === 1) {
       const only = pts[0];
+      // `padding` décale le centre visuel : le point « moi » remonte dans la
+      // zone visible AU-DESSUS de la feuille du bas (sinon il est masqué par
+      // elle, au centre géométrique de l'écran).
       // Mode suivi : après le 1er centrage, on PANNE doucement vers la nouvelle
       // position sans toucher au zoom (la carte « colle » au chauffeur).
       if (follow && didInitialCenter.current) {
-        map.easeTo({ center: [only.lng, only.lat], duration: 600 });
+        map.easeTo({ center: [only.lng, only.lat], padding, duration: 600 });
       } else {
         map.flyTo({
           center: [only.lng, only.lat],
-          zoom: follow ? 16 : 15,
+          zoom: follow ? 16.5 : 15,
+          padding,
           duration: 600,
         });
         didInitialCenter.current = true;
