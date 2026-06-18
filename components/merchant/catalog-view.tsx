@@ -87,12 +87,19 @@ export function CatalogView({
   products,
   categories,
   lowStockThreshold,
+  onMutated,
 }: {
   products: ProductWithCategory[];
   categories: Category[];
   lowStockThreshold: number;
+  /** Après une mutation (suppression, réordonnancement…) : recharge la source.
+   *  Fourni par CatalogLoader (invalide la requête TanStack) ; à défaut, repli
+   *  sur router.refresh(). */
+  onMutated?: () => void;
 }) {
   const router = useRouter();
+  // Porte unique de rafraîchissement après mutation (TanStack ou RSC).
+  const refresh = onMutated ?? (() => router.refresh());
 
   // Copies locales (réordonnancement optimiste).
   const [cats, setCats] = useState(categories);
@@ -283,7 +290,7 @@ export function CatalogView({
         `${ids.length} produit${ids.length > 1 ? "s" : ""} supprimé${ids.length > 1 ? "s" : ""}`
       );
       clearSelection();
-      router.refresh();
+      refresh();
     });
   }
   function deleteSelectedCategories() {
@@ -304,7 +311,7 @@ export function CatalogView({
         `${ids.length} catégorie${ids.length > 1 ? "s" : ""} supprimée${ids.length > 1 ? "s" : ""}`
       );
       clearSelection();
-      router.refresh();
+      refresh();
     });
   }
   function bulk(
@@ -319,7 +326,7 @@ export function CatalogView({
       }
       toast.success(successMsg);
       clearSelection();
-      router.refresh();
+      refresh();
     });
   }
 
@@ -548,7 +555,7 @@ export function CatalogView({
                             selectMode={selectMode}
                             selected={selProducts}
                             onToggleSelect={toggleSelProduct}
-                            onDeleted={() => router.refresh()}
+                            onDeleted={refresh}
                           />
                         )}
                       </CategorySection>
@@ -568,7 +575,7 @@ export function CatalogView({
           selectMode={selectMode}
           selected={selProducts}
           onToggleSelect={toggleSelProduct}
-          onDeleted={() => router.refresh()}
+          onDeleted={refresh}
         />
       )}
 

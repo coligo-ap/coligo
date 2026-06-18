@@ -4,11 +4,48 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMerchantId } from "@/lib/auth/merchant";
 import { productSchema, firstZodError } from "@/lib/validation/product";
+import type { Category, ProductWithCategory } from "@/lib/types";
 
 export type ProductFormState = {
   error?: string;
   ok?: boolean;
 };
+
+/**
+ * Catalogue du commerçant connecté (loader TanStack `/catalog`). Réplique EXACTE
+ * de la requête SSR d'origine (mêmes colonnes, mêmes tris). La RLS scope déjà
+ * sur le commerçant connecté → ré-auth implicite à chaque appel.
+ */
+export async function fetchCatalog(): Promise<{
+  products: ProductWithCategory[];
+  categories: Category[];
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const [{ data: products, error }, { data: categories }] = await Promise.all([
+    supabase
+      .from("products")
+      .select(
+        `id, merchant_id, name_fr, name_ar, description_fr, description_ar,
+         price_da, unit, category, category_id, stock_qty, position, image_url,
+         is_available, created_at, updated_at,
+         categories ( id, title )`
+      )
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("categories")
+      .select(
+        "id, merchant_id, title, description, image_url, position, created_at, updated_at"
+      )
+      .order("position", { ascending: true }),
+  ]);
+  return {
+    products: (products ?? []) as ProductWithCategory[],
+    categories: (categories ?? []) as Category[],
+    error: error?.message ?? null,
+  };
+}
 
 function parseForm(formData: FormData) {
   return productSchema.safeParse({

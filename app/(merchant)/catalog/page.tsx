@@ -1,47 +1,18 @@
-import { createClient } from "@/lib/supabase/server";
-import { CatalogView } from "@/components/merchant/catalog-view";
+import { CatalogLoader } from "@/components/merchant/catalog-loader";
+import { getCurrentMerchantId } from "@/lib/auth/merchant";
 import { APP_CONFIG } from "@/lib/config/app-config";
-import type { Category, ProductWithCategory } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+// La liste est chargée par TanStack Query (CatalogLoader) : cache persistant
+// entre sections (provider dans MerchantShell), refetch en fond, et mise à jour
+// immédiate après chaque mutation via invalidation (onMutated). La page ne fait
+// plus de fetch bloquant — juste résoudre l'id commerçant pour la clé de cache.
 export default async function CatalogPage() {
-  const supabase = await createClient();
-
-  // La RLS filtre déjà sur le commerçant connecté.
-  const [{ data: products, error }, { data: categories }] = await Promise.all([
-    supabase
-      .from("products")
-      .select(
-        `id, merchant_id, name_fr, name_ar, description_fr, description_ar,
-         price_da, unit, category, category_id, stock_qty, position, image_url,
-         is_available, created_at, updated_at,
-         categories ( id, title )`
-      )
-      .order("position", { ascending: true })
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("categories")
-      .select(
-        "id, merchant_id, title, description, image_url, position, created_at, updated_at"
-      )
-      .order("position", { ascending: true }),
-  ]);
-
-  if (error) {
-    return (
-      <div className="p-4 lg:p-6">
-        <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          Erreur de chargement du catalogue : {error.message}
-        </div>
-      </div>
-    );
-  }
-
+  const merchantId = await getCurrentMerchantId();
   return (
-    <CatalogView
-      products={(products ?? []) as ProductWithCategory[]}
-      categories={(categories ?? []) as Category[]}
+    <CatalogLoader
+      merchantId={merchantId ?? ""}
       lowStockThreshold={APP_CONFIG.catalog.lowStockThreshold}
     />
   );
