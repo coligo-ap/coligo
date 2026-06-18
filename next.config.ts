@@ -14,6 +14,19 @@ const nextConfig: NextConfig = {
       // la limite par défaut (1 Mo) rejetait TOUTES les photos réelles.
       bodySizeLimit: "10mb",
     },
+    // ── Router Cache (client) : fluidité du « retour arrière » ──────────────
+    // Par défaut sur Next 15, `dynamic = 0` → revenir sur une page déjà visitée
+    // RE-REND le Server Component depuis zéro (re-fetch réseau + flash du
+    // loading.tsx + perte de l'état UI). On garde les segments dynamiques en
+    // cache client 30 s : A → B → A réutilise le rendu déjà monté (instantané,
+    // scroll + état préservés, AUCUN aller-retour serveur). Les mutations
+    // (revalidatePath / router.refresh) invalident ce cache → pas de données
+    // périmées après une écriture. La fraîcheur « live » reste assurée par le
+    // polling / Realtime / TanStack Query des composants concernés.
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
   },
   images: {
     remotePatterns: [

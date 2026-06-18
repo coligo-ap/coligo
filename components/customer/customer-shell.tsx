@@ -1,6 +1,7 @@
 import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { getFeatureFlags } from "@/lib/data/feature-flags";
+import { RouteRefreshOnFocus } from "@/components/shared/route-refresh-on-focus";
 import { CustomerHeader } from "@/components/customer/customer-header";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { CustomerFooter } from "@/components/customer/customer-footer";
@@ -45,6 +46,9 @@ export async function CustomerShell({
   return (
     <div data-space="client" className="bg-surface-2 min-h-screen">
       <ClientThemeScope />
+      {/* Refresh doux des données au retour au premier plan (complément du
+          Router Cache : retour instantané puis maj asynchrone du RSC). */}
+      <RouteRefreshOnFocus />
       {!hideHeader && (
         <CustomerHeader isAuth={!!user} customerName={customerName} />
       )}

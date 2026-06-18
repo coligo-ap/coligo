@@ -118,6 +118,20 @@ immédiatement ; le réseau ne bloque JAMAIS l'affichage.
     (ex. accueil chauffeur ⇄ Drive) : `<Link>` prefetché (barre du bas) +
     `loading.tsx` + rendu d'abord. Si une transition « rame », c'est un BUG à
     corriger, pas un état acceptable.
+11. **Retour arrière SANS rechargement complet** (A → B → A). Le Router Cache
+    client est réglé via `experimental.staleTimes` (next.config.ts :
+    `dynamic: 30`) → revenir sur une page récemment visitée RÉUTILISE le segment
+    déjà rendu (instantané, état/scroll préservés, pas de re-fetch serveur ni de
+    flash `loading.tsx`). NE PAS remettre `dynamic` à 0. Pour la fraîcheur des
+    données : (a) les mutations invalident via `revalidatePath` / `router.refresh`
+    (donc pas de données périmées après écriture) ; (b) le « stale-while-
+    revalidate » au RETOUR au premier plan est assuré par `RouteRefreshOnFocus`
+    (monté dans les coques : CustomerShell, layout chauffeur, MerchantShell) qui
+    fait un `router.refresh()` SOUPLE (re-streame le RSC sans démonter la page) ;
+    (c) le live continu reste géré par polling / Realtime / **TanStack Query**
+    (déjà en place côté livreur : `driver-query-provider`, `staleTime` +
+    `placeholderData`). Étendre TanStack Query aux listes lourdes réaffichées
+    souvent plutôt que de re-fetcher en RSC à chaque montage.
 
 **La rapidité ne réduit JAMAIS la sécurité.** Sur chaque page : auth (session
 Supabase) + RLS toujours vérifiées côté serveur ; **revalidation de session non

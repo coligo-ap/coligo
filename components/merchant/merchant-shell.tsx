@@ -6,6 +6,7 @@ import { MerchantMobileHeader } from "@/components/merchant/mobile-header";
 import { MerchantMobileBottomNav } from "@/components/merchant/mobile-bottom-nav";
 import { MobileDrawer } from "@/components/merchant/mobile-drawer";
 import { InstallBanner } from "@/components/pwa/install-banner";
+import { RouteRefreshOnFocus } from "@/components/shared/route-refresh-on-focus";
 import { OrderRealtimeBridge } from "@/components/merchant/order-realtime-bridge";
 import { PushRegistrar } from "@/components/native/push-registrar";
 import { TawkChat } from "@/components/support/tawk-chat";
@@ -96,6 +97,9 @@ export async function MerchantShell({
 
   return (
     <div className="bg-surface-2 min-h-screen">
+      {/* Refresh doux des données au retour au premier plan (complément du
+          Router Cache : retour instantané puis maj asynchrone du RSC). */}
+      <RouteRefreshOnFocus />
       {/* Desktop sidebar */}
       <MerchantSidebar merchantName={merchant.name} />
 

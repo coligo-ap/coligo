@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Sora } from "next/font/google";
 import { pwaMetadata } from "@/lib/config/pwa";
+import { RouteRefreshOnFocus } from "@/components/shared/route-refresh-on-focus";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,9 @@ export default function ChauffeurLayout({
     <div
       className={`${sora.variable} ${jakarta.variable} drive-jakarta min-h-screen bg-[var(--d-surface)]`}
     >
+      {/* Refresh doux des données au retour au premier plan (complément du
+          Router Cache : retour instantané puis maj asynchrone du RSC). */}
+      <RouteRefreshOnFocus />
       {children}
     </div>
   );
