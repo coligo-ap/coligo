@@ -104,6 +104,20 @@ immédiatement ; le réseau ne bloque JAMAIS l'affichage.
 8. **Dédup auth par requête** : les helpers de session (`getCurrentDriver`, …)
    sont enveloppés dans React `cache()` (dédupe layout + page dans un même
    rendu).
+9. **`loading.tsx` OBLIGATOIRE sur toute route qui `await` côté serveur**
+   (notamment toutes les pages `force-dynamic` : chauffeur, livreur, commerçant,
+   client, admin). Un Server Component qui fait `await getXxxGate()` /
+   `await` data AVANT de rendre **bloque la navigation** tant que le serveur n'a
+   pas répondu → transition lente. La frontière `loading.tsx` (squelette au
+   niveau du segment, barre de nav conservée, PAS un splash plein écran) fait
+   apparaître l'écran **instantanément** au tap, puis le contenu se streame.
+   C'est ce qui rend le `<Link>`/`router.push` prefetché réellement instantané :
+   sans `loading.tsx`, le prefetch d'une route dynamique ne sert à rien. Régle
+   non négociable — **chaque nouvelle page = son `loading.tsx`**.
+10. **Toute navigation doit être ressentie instantanée**, dans les DEUX sens
+    (ex. accueil chauffeur ⇄ Drive) : `<Link>` prefetché (barre du bas) +
+    `loading.tsx` + rendu d'abord. Si une transition « rame », c'est un BUG à
+    corriger, pas un état acceptable.
 
 **La rapidité ne réduit JAMAIS la sécurité.** Sur chaque page : auth (session
 Supabase) + RLS toujours vérifiées côté serveur ; **revalidation de session non
