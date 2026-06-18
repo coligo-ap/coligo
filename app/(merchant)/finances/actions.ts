@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentMerchant } from "@/lib/auth/merchant";
 import { payoutSchema } from "@/lib/validation/payout";
 import { availableBalance } from "@/lib/finances/balance";
 import { formatDA } from "@/lib/utils";
@@ -11,25 +12,6 @@ export type PayoutFormState = {
   error?: string;
   ok?: boolean;
 };
-
-async function getCurrentMerchant(): Promise<{
-  id: string;
-  is_frozen: boolean;
-} | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select("id, is_frozen")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  return merchant ?? null;
-}
 
 /**
  * Demande de versement. NE crée AUCUNE écriture au ledger (le `payout` n'est

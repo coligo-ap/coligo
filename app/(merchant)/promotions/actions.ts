@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentMerchantId } from "@/lib/auth/merchant";
 import {
   parsePromotionForm,
   type PromotionInput,
@@ -16,22 +17,6 @@ export type PromotionFormState = {
 };
 
 type PromotionInsert = Database["public"]["Tables"]["promotions"]["Insert"];
-
-async function getCurrentMerchantId(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  return merchant?.id ?? null;
-}
 
 /** Construit la ligne `promotions` + la liste des produits liés selon le type. */
 function buildRow(data: PromotionInput): {

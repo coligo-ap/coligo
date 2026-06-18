@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { requireCustomer } from "@/lib/auth/customer";
 
 export type AddressActionState = { error?: string; ok?: boolean };
 
@@ -14,21 +15,6 @@ const addressSchema = z.object({
   phone_override: z.string().max(40).optional().or(z.literal("")),
   is_default: z.string().optional(),
 });
-
-async function requireCustomer(): Promise<{ id: string } | { error: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Session expirée." };
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!customer) return { error: "Profil client introuvable." };
-  return customer;
-}
 
 export async function addAddress(
   _prev: AddressActionState,

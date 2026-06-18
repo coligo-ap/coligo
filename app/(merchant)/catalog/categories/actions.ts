@@ -2,28 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentMerchantId } from "@/lib/auth/merchant";
 import { categorySchema, firstZodError } from "@/lib/validation/product";
 
 export type CategoryFormState = {
   error?: string;
   ok?: boolean;
 };
-
-async function getCurrentMerchantId(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  return merchant?.id ?? null;
-}
 
 function parseForm(formData: FormData) {
   return categorySchema.safeParse({

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireMerchant } from "@/lib/auth/merchant";
 import {
   orderRulesSchema,
   parseOpeningHoursFromForm,
@@ -46,23 +47,6 @@ const SettingsSchema = z.object({
 
 export type SettingsResult = { error?: string; success?: string; ok?: boolean };
 export type SettingsFormState = SettingsResult;
-
-async function requireMerchant(): Promise<
-  { id: string; name: string; slug: string } | { error: string }
-> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Session expirée." };
-  const { data: m } = await supabase
-    .from("merchants")
-    .select("id, name, slug")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!m) return { error: "Boutique introuvable." };
-  return m;
-}
 
 /**
  * Réglages de VERSEMENT : cadence automatique (none/weekly/monthly) + méthode

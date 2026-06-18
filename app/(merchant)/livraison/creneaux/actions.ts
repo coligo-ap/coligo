@@ -3,23 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { requireMerchant } from "@/lib/auth/merchant";
 
 export type SlotActionState = { error?: string; ok?: boolean };
-
-async function requireMerchant() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Session expirée." } as const;
-  const { data: m } = await supabase
-    .from("merchants")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!m) return { error: "Boutique introuvable." } as const;
-  return { id: m.id } as const;
-}
 
 const slotSchema = z.object({
   slot_date: z.string().min(10),

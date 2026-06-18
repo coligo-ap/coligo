@@ -2,32 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentMerchantId } from "@/lib/auth/merchant";
 import { productSchema, firstZodError } from "@/lib/validation/product";
 
 export type ProductFormState = {
   error?: string;
   ok?: boolean;
 };
-
-/**
- * Récupère le merchant_id du commerçant connecté, ou null.
- * (La RLS protège déjà les écritures, mais on en a besoin pour l'insert.)
- */
-async function getCurrentMerchantId(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  return merchant?.id ?? null;
-}
 
 function parseForm(formData: FormData) {
   return productSchema.safeParse({
