@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm";
 import {
   ArrowLeft,
   ImagePlus,
@@ -377,10 +378,19 @@ export function ProductForm({
 
 function DeleteProduct({ productId }: { productId: string }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
 
-  function onDelete() {
-    if (!window.confirm("Supprimer définitivement ce produit ?")) return;
+  async function onDelete() {
+    if (
+      !(await confirm({
+        title: "Supprimer ce produit ?",
+        message: "Cette action est définitive.",
+        confirmLabel: "Supprimer",
+        danger: true,
+      }))
+    )
+      return;
     startTransition(async () => {
       const res = await deleteProducts([productId]);
       if (res?.error) {

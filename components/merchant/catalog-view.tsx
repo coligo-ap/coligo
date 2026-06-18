@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/components/ui/confirm";
 import {
   DndContext,
   closestCenter,
@@ -98,6 +99,7 @@ export function CatalogView({
   onMutated?: () => void;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   // Porte unique de rafraîchissement après mutation (TanStack ou RSC).
   const refresh = onMutated ?? (() => router.refresh());
 
@@ -272,12 +274,15 @@ export function CatalogView({
     });
   }
 
-  function deleteSelectedProducts() {
+  async function deleteSelectedProducts() {
     const ids = Array.from(selProducts);
     if (
-      !window.confirm(
-        `Supprimer ${ids.length} produit${ids.length > 1 ? "s" : ""} ? Action irréversible.`
-      )
+      !(await confirm({
+        title: `Supprimer ${ids.length} produit${ids.length > 1 ? "s" : ""} ?`,
+        message: "Action irréversible.",
+        confirmLabel: "Supprimer",
+        danger: true,
+      }))
     )
       return;
     startTransition(async () => {
@@ -293,12 +298,15 @@ export function CatalogView({
       refresh();
     });
   }
-  function deleteSelectedCategories() {
+  async function deleteSelectedCategories() {
     const ids = Array.from(selCats);
     if (
-      !window.confirm(
-        `Supprimer ${ids.length} catégorie${ids.length > 1 ? "s" : ""} ? Les produits liés deviendront « sans catégorie ».`
-      )
+      !(await confirm({
+        title: `Supprimer ${ids.length} catégorie${ids.length > 1 ? "s" : ""} ?`,
+        message: "Les produits liés deviendront « sans catégorie ».",
+        confirmLabel: "Supprimer",
+        danger: true,
+      }))
     )
       return;
     startTransition(async () => {
@@ -511,11 +519,15 @@ export function CatalogView({
                         onToggleSelect={() => toggleSelCat(g.key)}
                         onDelete={
                           g.key !== NONE
-                            ? () => {
+                            ? async () => {
                                 if (
-                                  window.confirm(
-                                    "Supprimer cette catégorie ? Les produits liés deviendront « sans catégorie »."
-                                  )
+                                  await confirm({
+                                    title: "Supprimer cette catégorie ?",
+                                    message:
+                                      "Les produits liés deviendront « sans catégorie ».",
+                                    confirmLabel: "Supprimer",
+                                    danger: true,
+                                  })
                                 )
                                   bulk(
                                     () => deleteCategories([g.key]),
@@ -1044,6 +1056,7 @@ function ProductCard({
   dragHandle: DragHandle;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [available, setAvailable] = useState(product.is_available);
   const [pending, startTransition] = useTransition();
   const [dupPending, startDup] = useTransition();
@@ -1075,9 +1088,14 @@ function ProductCard({
       router.push(`/catalog/${res.id}`);
     });
   }
-  function onDelete() {
+  async function onDelete() {
     if (
-      !window.confirm(`Supprimer « ${product.name_fr} » ? Action irréversible.`)
+      !(await confirm({
+        title: `Supprimer « ${product.name_fr} » ?`,
+        message: "Action irréversible.",
+        confirmLabel: "Supprimer",
+        danger: true,
+      }))
     )
       return;
     startDel(async () => {

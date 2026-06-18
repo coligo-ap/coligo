@@ -10,6 +10,7 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/components/ui/confirm";
 import {
   ArrowLeft,
   ArrowRight,
@@ -235,13 +236,17 @@ export function CategoryForm({
 
 function DeleteCategory({ categoryId }: { categoryId: string }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
 
-  function onDelete() {
+  async function onDelete() {
     if (
-      !window.confirm(
-        "Supprimer cette catégorie ? Les produits liés deviendront « sans catégorie »."
-      )
+      !(await confirm({
+        title: "Supprimer cette catégorie ?",
+        message: "Les produits liés deviendront « sans catégorie ».",
+        confirmLabel: "Supprimer",
+        danger: true,
+      }))
     )
       return;
     startTransition(async () => {

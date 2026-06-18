@@ -8,6 +8,7 @@ import { MobileDrawer } from "@/components/merchant/mobile-drawer";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import { RouteRefreshOnFocus } from "@/components/shared/route-refresh-on-focus";
 import { MerchantQueryProvider } from "@/components/merchant/merchant-query-provider";
+import { ConfirmProvider } from "@/components/ui/confirm";
 import { OrderRealtimeBridge } from "@/components/merchant/order-realtime-bridge";
 import { PushRegistrar } from "@/components/native/push-registrar";
 import { TawkChat } from "@/components/support/tawk-chat";
@@ -98,70 +99,72 @@ export async function MerchantShell({
 
   return (
     <MerchantQueryProvider>
-      <div className="bg-surface-2 min-h-screen">
-        {/* Refresh doux des données au retour au premier plan (complément du
+      <ConfirmProvider>
+        <div className="bg-surface-2 min-h-screen">
+          {/* Refresh doux des données au retour au premier plan (complément du
           Router Cache : retour instantané puis maj asynchrone du RSC). */}
-        <RouteRefreshOnFocus />
-        {/* Desktop sidebar */}
-        <MerchantSidebar merchantName={merchant.name} />
+          <RouteRefreshOnFocus />
+          {/* Desktop sidebar */}
+          <MerchantSidebar merchantName={merchant.name} />
 
-        {/* Mobile header */}
-        <MerchantMobileHeader
-          merchantName={merchant.name}
-          pendingCount={pendingCount ?? 0}
-          pauseInput={pauseInput}
-        />
-
-        {/* Main */}
-        <div className="flex min-h-screen flex-col lg:pl-60">
-          {/* Desktop topbar */}
-          <MerchantTopbar
-            userEmail={user.email ?? ""}
+          {/* Mobile header */}
+          <MerchantMobileHeader
             merchantName={merchant.name}
             pendingCount={pendingCount ?? 0}
             pauseInput={pauseInput}
           />
 
-          {/* Content */}
-          <main className="flex-1 pb-20 lg:pb-0">{children}</main>
-        </div>
+          {/* Main */}
+          <div className="flex min-h-screen flex-col lg:pl-60">
+            {/* Desktop topbar */}
+            <MerchantTopbar
+              userEmail={user.email ?? ""}
+              merchantName={merchant.name}
+              pendingCount={pendingCount ?? 0}
+              pauseInput={pauseInput}
+            />
 
-        {/* Mobile bottom nav + drawer (le hamburger du header ouvre le drawer) */}
-        <MerchantMobileBottomNav />
-        <MobileDrawer merchantName={merchant.name} email={user.email ?? ""} />
+            {/* Content */}
+            <main className="flex-1 pb-20 lg:pb-0">{children}</main>
+          </div>
 
-        {/* Bandeau install PWA — auto-caché si déjà installée ou refusée < 14j */}
-        <InstallBanner
-          label="Installer l'application Commerçant"
-          className="bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] lg:bottom-4"
-        />
+          {/* Mobile bottom nav + drawer (le hamburger du header ouvre le drawer) */}
+          <MerchantMobileBottomNav />
+          <MobileDrawer merchantName={merchant.name} email={user.email ?? ""} />
 
-        {/* Pont Realtime + son + notif + overlay « Mode comptoir » — actif sur
+          {/* Bandeau install PWA — auto-caché si déjà installée ou refusée < 14j */}
+          <InstallBanner
+            label="Installer l'application Commerçant"
+            className="bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] lg:bottom-4"
+          />
+
+          {/* Pont Realtime + son + notif + overlay « Mode comptoir » — actif sur
           TOUTES les pages commerçant pour qu'aucune commande ne soit ratée,
           même si le commerçant est sur /orders, /catalog, /settings, etc.
           Le panneau de toggles « Alertes » est rendu en flottant sur les
           pages où il est pertinent (cf. la prop `usePathname` du bridge). */}
-        <OrderRealtimeBridge
-          merchantId={merchant.id}
-          merchantName={merchant.name}
-          printSettings={printSettings}
-        />
+          <OrderRealtimeBridge
+            merchantId={merchant.id}
+            merchantName={merchant.name}
+            printSettings={printSettings}
+          />
 
-        {/* Enregistrement du token FCM (no-op hors APK Capacitor). */}
-        <PushRegistrar role="merchant" />
+          {/* Enregistrement du token FCM (no-op hors APK Capacitor). */}
+          <PushRegistrar role="merchant" />
 
-        {/* Live chat support (Tawk.to) — lanceur masqué, ouvert via « Centre
+          {/* Live chat support (Tawk.to) — lanceur masqué, ouvert via « Centre
           d'aide » (sidebar/drawer). Contexte max pour l'agent. */}
-        <TawkChat
-          role="commercant"
-          name={merchant.name}
-          email={user.email ?? null}
-          attributes={{
-            Boutique: merchant.name,
-            "ID commerçant": merchant.id,
-          }}
-        />
-      </div>
+          <TawkChat
+            role="commercant"
+            name={merchant.name}
+            email={user.email ?? null}
+            attributes={{
+              Boutique: merchant.name,
+              "ID commerçant": merchant.id,
+            }}
+          />
+        </div>
+      </ConfirmProvider>
     </MerchantQueryProvider>
   );
 }

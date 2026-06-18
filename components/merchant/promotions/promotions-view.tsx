@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/components/ui/confirm";
 import {
   BadgePercent,
   Gift,
@@ -154,6 +155,7 @@ export function PromotionsView({ items }: { items: PromotionListItem[] }) {
 
 function PromotionCard({ promo }: { promo: PromotionListItem }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
   const Icon = TYPE_ICON[promo.type];
   const statusMeta = PROMOTION_STATUS_META[promo.effectiveStatus];
@@ -170,8 +172,15 @@ function PromotionCard({ promo }: { promo: PromotionListItem }) {
     });
   }
 
-  function onDelete() {
-    if (!window.confirm(`Supprimer la promotion « ${promo.title_fr} » ?`))
+  async function onDelete() {
+    if (
+      !(await confirm({
+        title: "Supprimer cette promotion ?",
+        message: `« ${promo.title_fr} » sera retirée.`,
+        confirmLabel: "Supprimer",
+        danger: true,
+      }))
+    )
       return;
     startTransition(async () => {
       const res = await deletePromotion(promo.id);
