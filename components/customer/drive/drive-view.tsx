@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -27,6 +28,7 @@ import {
 import { cn, formatDA } from "@/lib/utils";
 import { getPosition, watchPosition } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
+import { readStoredLocation } from "@/lib/customer/location-store";
 import {
   geocodeSearch,
   listFavoritePlaces,
@@ -100,9 +102,16 @@ const rnd5 = (v: number) => Math.round(v / 5) * 5;
 export function DriveView() {
   const t = useTranslations("drive");
   const router = useRouter();
-  const [ctx, setCtx] = useState<DriveContext | null>(null);
+  // Contexte Drive (solde, récents, dernière course, options) CACHÉ via TanStack
+  // dans le QueryClient persistant du groupe client : au retour sur /drive le
+  // contexte est DÉJÀ là (re-affichage instantané, comme /commandes) au lieu
+  // d'être re-fetché à chaque montage → plus de « rechargement » de l'écran.
+  const { data: ctx = null } = useQuery({
+    queryKey: ["drive-context"],
+    queryFn: getDriveContext,
+    staleTime: 60_000,
+  });
   const [screen, setScreen] = useState<Screen>("home");
-  const [booted, setBooted] = useState(false);
   // Assistant : carte de confirmation affichée → on masque le reste du trajet.
   const [aiConfirming, setAiConfirming] = useState(false);
 
@@ -161,11 +170,9 @@ export function DriveView() {
           window.location.pathname + (qs ? `?${qs}` : "")
         );
       }
-      const [c, ride] = await Promise.all([
-        getDriveContext(),
-        getDriveActiveRide(),
-      ]);
-      setCtx(c);
+      // Le contexte vient du cache TanStack (ci-dessus). Ici on ne vérifie que
+      // la course active (pour restaurer l'écran course / le retour Chargily).
+      const ride = await getDriveActiveRide();
       // Paiement carte échoué : la demande (jamais diffusée) est annulée et
       // le client revient à l'écran de CHOIX DE GAMME, trajet restauré,
       // avec un message inline — pas d'annulation manuelle à faire.
@@ -199,7 +206,6 @@ export function DriveView() {
         setActive(ride);
         setScreen("ride");
       }
-      setBooted(true);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -211,6 +217,22 @@ export function DriveView() {
     let cancelled = false;
     let bestAcc = Infinity;
     let lastRev: { lat: number; lng: number } | null = null;
+    // Amorçage INSTANTANÉ du départ depuis la dernière position connue
+    // (localStorage, partagée avec la marketplace) → au re-montage, le départ
+    // s'affiche tout de suite au lieu de « Localisation… », puis le GPS affine.
+    const stored = readStoredLocation();
+    if (stored?.latitude != null && stored?.longitude != null) {
+      setPickup((prev) =>
+        prev
+          ? prev
+          : {
+              lat: stored.latitude!,
+              lng: stored.longitude!,
+              text: stored.address,
+              gps: true,
+            }
+      );
+    }
     const apply = (lat: number, lng: number, accuracy: number) => {
       if (cancelled || accuracy >= bestAcc) return;
       bestAcc = accuracy;
@@ -559,7 +581,10 @@ export function DriveView() {
     [ctx]
   );
 
-  if (!booted || !ctx) {
+  // On n'attend QUE le contexte (cache TanStack → instantané au retour). La
+  // course active est vérifiée en arrière-plan : l'écran d'accueil s'affiche
+  // tout de suite et bascule sur la course si une est en cours.
+  if (!ctx) {
     return (
       <div className="grid min-h-[70vh] place-items-center bg-[var(--d-page)]">
         <Loader2 className="size-6 animate-spin" style={{ color: VIOLET }} />
