@@ -31,6 +31,24 @@ import { WILAYAS } from "@/lib/config/wilayas";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Nombre de commandes EN COURS (tout sauf récupérée/annulée), en ne comptant
+ * que les commandes visibles (cash, ou online payée — cf. /commandes). Isolé en
+ * helper pour être lancé EN PARALLÈLE des soldes/flags dans le RSC.
+ */
+async function countOngoingOrders(customerId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("customer_id", customerId)
+    .not("status", "in", "(completed,cancelled)")
+    .or(
+      "payment_method.eq.cash,and(payment_method.eq.online,payment_status.eq.paid)"
+    );
+  return count ?? 0;
+}
+
 export default async function CustomerAccountPage({
   searchParams,
 }: {
@@ -38,39 +56,30 @@ export default async function CustomerAccountPage({
 }) {
   const completePhone = (await searchParams).complete === "phone";
   const t = await getTranslations("account");
-  // Session + profil mémoïsés (partagés avec CustomerShell → pas de double auth).
+  // Session + profil mémoïsés (partagés avec le layout → pas de double auth).
   const user = await getAuthUser();
   if (!user) redirect("/se-connecter");
-  // Si c'est un commerçant connecté qui tape /compte par erreur → /dashboard.
-  if (await getCurrentMerchant()) redirect("/dashboard");
 
   const customer = await getCurrentCustomerFull();
-  const supabase = await createClient();
+
+  // RSC ALLÉGÉ : garde commerçant, flags, soldes ET compteur de commandes en
+  // cours sont résolus EN PARALLÈLE (un seul lot) au lieu d'une cascade
+  // séquentielle (auth → merchant → customer → count → soldes) → /compte
+  // s'ouvre nettement plus vite et ne « recharge » plus à chaque navigation.
+  const [merchant, flags, cashbackBalance, topupBalance, ongoingCount] =
+    await Promise.all([
+      getCurrentMerchant(),
+      getFeatureFlags(),
+      getMyCashbackBalance(),
+      getMyTopupBalance(),
+      customer ? countOngoingOrders(customer.id) : Promise.resolve(0),
+    ]);
+  // Si c'est un commerçant connecté qui tape /compte par erreur → /dashboard.
+  if (merchant) redirect("/dashboard");
 
   const wilayaName = customer?.default_wilaya_code
     ? WILAYAS.find((w) => w.code === customer.default_wilaya_code)?.name
     : null;
-
-  // Nombre de commandes EN COURS (tout sauf récupérée/annulée), en ne comptant
-  // que les commandes visibles (cash, ou online payée — cf. /commandes).
-  let ongoingCount = 0;
-  if (customer) {
-    const { count } = await supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .eq("customer_id", customer.id)
-      .not("status", "in", "(completed,cancelled)")
-      .or(
-        "payment_method.eq.cash,and(payment_method.eq.online,payment_status.eq.paid)"
-      );
-    ongoingCount = count ?? 0;
-  }
-
-  const [cashbackBalance, topupBalance, flags] = await Promise.all([
-    getMyCashbackBalance(),
-    getMyTopupBalance(),
-    getFeatureFlags(),
-  ]);
   // Disponibilité des poches (super-admin). 'hidden' = carte retirée ;
   // 'coming_soon'/'maintenance' = carte grisée non cliquable.
   const cashbackVisible = flags.cashback.status !== "hidden";

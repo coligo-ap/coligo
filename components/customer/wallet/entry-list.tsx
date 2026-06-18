@@ -1,5 +1,7 @@
+"use client";
+
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import { ArrowDownLeft, ArrowUpRight, Gift } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import type { CustomerWalletEntry } from "@/lib/customer/cashback";
@@ -16,8 +18,8 @@ type Props = {
   emptyHint: string;
 };
 
-export async function WalletEntryList({ entries, emptyHint }: Props) {
-  const t = await getTranslations("wallet");
+export function WalletEntryList({ entries, emptyHint }: Props) {
+  const t = useTranslations("wallet");
   if (entries.length === 0) {
     return (
       <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-12 text-center text-sm">

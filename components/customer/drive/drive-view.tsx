@@ -1031,160 +1031,156 @@ export function DriveView() {
 
   /* ════════════════ ACCUEIL DRIVE (trajet) ════════════════ */
   return (
-    <div className="drive-jakarta drive-screen z-40 bg-[var(--d-page)]">
-      <DriveMap
-        markers={pickup ? [{ id: "me", pos: pickup, kind: "me" }] : []}
-        padding={{ top: 100, bottom: 420, left: 60, right: 60 }}
-      />
-      {/* Historique */}
-      <button
-        type="button"
-        onClick={() => router.push("/drive/historique")}
-        className="absolute top-3 right-4 z-30 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
-      >
-        <History className="size-3.5" /> {t("history")}
-      </button>
-      {/* Espace chauffeur (en face de l'historique) */}
-      <button
-        type="button"
-        onClick={() => router.push("/chauffeur")}
-        className="absolute top-3 left-4 z-30 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
-      >
-        <Car className="size-3.5" style={{ color: VIOLET }} />{" "}
-        {t("home.imDriver")}
-      </button>
-      {/* Contacts d'urgence (gestion : ajouter / appeler / retirer) */}
-      <button
-        type="button"
-        onClick={() => setContactsOpen(true)}
-        aria-label={t("sosContacts.title")}
-        className="absolute top-[54px] right-4 z-30 flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow-lg"
-        style={{ color: ROSE }}
-      >
-        <ShieldAlert className="size-3.5" /> {t("sosContacts.title")}
-      </button>
+    <div className="drive-jakarta drive-screen z-40 flex min-h-[100dvh] flex-col bg-[var(--d-page)]">
+      {/* En-tête Coligo Drive — barre propre (PLUS DE CARTE EN FOND : l'écran
+          s'ouvre instantanément, MapLibre n'est initialisé que sur les écrans
+          choix-sur-carte / prix / course). */}
+      <header className="px-5 pt-[calc(env(safe-area-inset-top)+1rem)] pb-1">
+        <div className="flex items-center justify-between gap-2">
+          <p
+            className="drive-sora flex items-center gap-1.5 text-[13.5px] font-extrabold tracking-[0.5px] uppercase"
+            style={{ color: VIOLET }}
+          >
+            <Car className="size-[18px]" /> Coligo Drive
+          </p>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => router.push("/drive/historique")}
+              className="flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 text-xs font-bold"
+            >
+              <History className="size-3.5" /> {t("history")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setContactsOpen(true)}
+              aria-label={t("sosContacts.title")}
+              className="grid size-8 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)]"
+              style={{ color: ROSE }}
+            >
+              <ShieldAlert className="size-4" />
+            </button>
+          </div>
+        </div>
+      </header>
 
-      {/* Feuille « Votre trajet » */}
-      <div className="absolute right-0 bottom-[64px] left-0 z-10 max-h-[72dvh] overflow-y-auto overscroll-contain rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-4 shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
-        <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
-        {/* Branding (ex-pill flottante : la carte est dégagée pour les
-            boutons Chauffeur / Historique). */}
-        <p
-          className="drive-sora flex items-center gap-1.5 text-[11px] font-extrabold tracking-[0.5px] uppercase"
-          style={{ color: VIOLET }}
-        >
-          <Car className="size-3.5" /> Coligo Drive
-        </p>
-        <h1 className="drive-sora mb-2 text-[21px] font-extrabold tracking-[-0.5px]">
+      {/* Contenu — design uniforme Coligo, sans carte derrière le formulaire. */}
+      <main className="flex-1 overflow-y-auto px-5 pb-24">
+        <h1 className="drive-sora mt-3 text-[27px] leading-tight font-extrabold tracking-[-0.6px]">
           {t("home.title")}
         </h1>
 
         {/* Assistant IA : réserver en langage naturel (darija / ar / fr) */}
-        <DriveAiBar
-          pickup={pickup ? { lat: pickup.lat, lng: pickup.lng } : null}
-          onResolved={applyAiDraft}
-          onConfirmingChange={setAiConfirming}
-        />
+        <div className="mt-4">
+          <DriveAiBar
+            pickup={pickup ? { lat: pickup.lat, lng: pickup.lng } : null}
+            onResolved={applyAiDraft}
+            onConfirmingChange={setAiConfirming}
+          />
+        </div>
 
         {!aiConfirming && (
           <>
-            <div className="mb-2.5 flex items-center gap-2">
-              <div className="min-w-0 flex-1">
-                <button
-                  type="button"
-                  onClick={() => setDepOpen(true)}
-                  className="mb-2 flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
-                >
-                  <span
-                    className="size-3 shrink-0 rounded-full"
-                    style={{ background: VIOLET }}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
-                      {t("departure")}
-                    </span>
-                    <span className="block truncate text-[14.5px] font-bold">
-                      {pickup?.gps
-                        ? t("myPosition")
-                        : (pickup?.text ?? t("home.locating"))}
-                    </span>
-                    {/* Nom du lieu résolu (reverse geocode) : le client voit que
+            {/* Carte formulaire de trajet (départ / arrivée). */}
+            <div className="mt-3 rounded-[24px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_18px_44px_-30px_rgba(20,22,40,.5)]">
+              <div className="mb-2.5 flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    onClick={() => setDepOpen(true)}
+                    className="mb-2 flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+                  >
+                    <span
+                      className="size-3 shrink-0 rounded-full"
+                      style={{ background: VIOLET }}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+                        {t("departure")}
+                      </span>
+                      <span className="block truncate text-[14.5px] font-bold">
+                        {pickup?.gps
+                          ? t("myPosition")
+                          : (pickup?.text ?? t("home.locating"))}
+                      </span>
+                      {/* Nom du lieu résolu (reverse geocode) : le client voit que
                     le départ correspond bien à l'endroit où il se trouve. */}
+                      {pickup?.gps && (
+                        <span className="block truncate text-[11.5px] font-medium text-[var(--d-muted)]">
+                          {pickup.text ?? t("home.locating")}
+                        </span>
+                      )}
+                    </span>
                     {pickup?.gps && (
-                      <span className="block truncate text-[11.5px] font-medium text-[var(--d-muted)]">
-                        {pickup.text ?? t("home.locating")}
+                      <span
+                        className="flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-bold"
+                        style={{ background: "#EEEEFD", color: VIOLET }}
+                      >
+                        GPS
                       </span>
                     )}
-                  </span>
-                  {pickup?.gps && (
-                    <span
-                      className="flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-bold"
-                      style={{ background: "#EEEEFD", color: VIOLET }}
-                    >
-                      GPS
-                    </span>
-                  )}
-                </button>
+                  </button>
 
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMapPickFor("dest");
+                      setScreen("mappick");
+                    }}
+                    className="flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+                  >
+                    <span className="size-3 shrink-0 rounded-[3px] bg-[var(--d-ink)]" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+                        {t("destination")}
+                      </span>
+                      <span
+                        className={cn(
+                          "block truncate text-[14.5px] font-bold",
+                          !dest && "font-semibold text-[var(--d-muted)]"
+                        )}
+                      >
+                        {dest?.text ?? t("home.whereTo")}
+                      </span>
+                    </span>
+                    <Pencil className="size-4 shrink-0 text-[var(--d-muted)]" />
+                  </button>
+                </div>
+                {/* Inverser départ ↔ arrivée */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setMapPickFor("dest");
-                    setScreen("mappick");
-                  }}
-                  className="flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+                  onClick={swapPoints}
+                  disabled={!pickup && !dest}
+                  aria-label={t("swap")}
+                  title={t("swap")}
+                  className="grid size-10 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-sm disabled:opacity-40"
+                  style={{ color: VIOLET }}
                 >
-                  <span className="size-3 shrink-0 rounded-[3px] bg-[var(--d-ink)]" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
-                      {t("destination")}
-                    </span>
-                    <span
-                      className={cn(
-                        "block truncate text-[14.5px] font-bold",
-                        !dest && "font-semibold text-[var(--d-muted)]"
-                      )}
-                    >
-                      {dest?.text ?? t("home.whereTo")}
-                    </span>
-                  </span>
-                  <Pencil className="size-4 shrink-0 text-[var(--d-muted)]" />
+                  <ArrowUpDown className="size-[18px]" />
                 </button>
               </div>
-              {/* Inverser départ ↔ arrivée */}
-              <button
-                type="button"
-                onClick={swapPoints}
-                disabled={!pickup && !dest}
-                aria-label={t("swap")}
-                title={t("swap")}
-                className="grid size-10 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-sm disabled:opacity-40"
-                style={{ color: VIOLET }}
+
+              {/* Zone indisponible (commune/wilaya/rayon bloqués) : message clair +
+            « Prévenez-moi » AVANT le choix du prix, et « Continuer » bloqué. */}
+              {pickup && dest && zoneBlock && (
+                <ZoneBlockNotice
+                  message={zoneBlock}
+                  joined={zoneJoined}
+                  onJoin={joinDriveWaitlist}
+                  className="mt-1 mb-1"
+                />
+              )}
+              <PrimaryBtn
+                onClick={() => setScreen("price")}
+                disabled={!pickup || !dest || !!zoneBlock}
+                className="!mt-1"
               >
-                <ArrowUpDown className="size-[18px]" />
-              </button>
+                {t("home.continue")}
+              </PrimaryBtn>
             </div>
 
-            {/* Zone indisponible (commune/wilaya/rayon bloqués) : message clair +
-            « Prévenez-moi » AVANT le choix du prix, et « Continuer » bloqué. */}
-            {pickup && dest && zoneBlock && (
-              <ZoneBlockNotice
-                message={zoneBlock}
-                joined={zoneJoined}
-                onJoin={joinDriveWaitlist}
-                className="mt-1 mb-1"
-              />
-            )}
-            <PrimaryBtn
-              onClick={() => setScreen("price")}
-              disabled={!pickup || !dest || !!zoneBlock}
-              className="!mt-1"
-            >
-              {t("home.continue")}
-            </PrimaryBtn>
-
             {/* Destinations récentes */}
-            <div className="mt-1.5">
+            <div className="mt-3">
               {ctx.recents.map((r) => (
                 <button
                   key={r.text}
@@ -1226,9 +1222,19 @@ export function DriveView() {
                 </div>
               )}
             </div>
+
+            {/* Espace chauffeur — entrée discrète, sans carte. */}
+            <button
+              type="button"
+              onClick={() => router.push("/chauffeur")}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-3 text-[13.5px] font-bold"
+            >
+              <Car className="size-4" style={{ color: VIOLET }} />
+              {t("home.imDriver")}
+            </button>
           </>
         )}
-      </div>
+      </main>
 
       <CustomerBottomNav />
       <DepModal
