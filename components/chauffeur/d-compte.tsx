@@ -34,6 +34,8 @@ import {
   type SosContact,
 } from "@/components/customer/drive/drive-modals";
 import { ChAvatar } from "@/components/customer/drive/ch-avatar";
+import { DriverBadgePill } from "@/components/drive/driver-badge";
+import { getDriverBadge } from "@/lib/drive/driver-badge";
 import { PLAN_LABEL, fmtPct } from "./d-ui";
 import { Portal } from "@/components/ui/portal";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
@@ -76,6 +78,10 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
 
   const since = new Date(gate.memberSince).getFullYear();
   const plan = fin?.plan ?? "free";
+  const badge = getDriverBadge({
+    ridesCount: gate.ridesCount,
+    rating: gate.rating,
+  });
 
   const openHome = () => {
     setHomePos(null);
@@ -140,14 +146,21 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         Compte
       </h1>
 
-      {/* Profil */}
+      {/* Profil — l'avatar porte l'anneau de couleur du badge (toujours visible). */}
       <div className="mb-3 flex items-center gap-3">
-        <ChAvatar
-          name={gate.firstName}
-          url={gate.avatarUrl}
-          size={56}
-          textClassName="text-[21px]"
-        />
+        <span
+          className="inline-block shrink-0 rounded-full p-[2.5px]"
+          style={{ background: badge.gradient }}
+        >
+          <span className="block rounded-full border-2 border-[var(--d-surface)]">
+            <ChAvatar
+              name={gate.firstName}
+              url={gate.avatarUrl}
+              size={56}
+              textClassName="text-[21px]"
+            />
+          </span>
+        </span>
         <span className="min-w-0">
           <span className="drive-sora flex items-center gap-2 text-[17px] font-bold">
             {gate.firstName}{" "}
@@ -157,6 +170,9 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
                 👑 Premium
               </span>
             )}
+          </span>
+          <span className="mt-1 mb-1 block">
+            <DriverBadgePill badge={badge} size="md" withTitle />
           </span>
           <span className="text-[13px] text-[var(--d-muted)]">
             {gate.rating != null && (

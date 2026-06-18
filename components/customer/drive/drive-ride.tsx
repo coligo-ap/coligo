@@ -23,6 +23,8 @@ import { haversineKm } from "@/lib/delivery/distance";
 import { routeEstimate } from "@/app/(customer)/actions";
 import { DriveMap, type LatLng } from "./drive-map";
 import { ChAvatar } from "./ch-avatar";
+import { DriverBadgePill } from "@/components/drive/driver-badge";
+import { getDriverBadge } from "@/lib/drive/driver-badge";
 import {
   CancelModal,
   ChatModal,
@@ -590,6 +592,12 @@ function SearchScreen({
                         👑 Premium
                       </span>
                     )}
+                    <DriverBadgePill
+                      badge={getDriverBadge({
+                        ridesCount: o.rides_count,
+                        rating: o.rating,
+                      })}
+                    />
                     {tag}
                     {o.is_female && (
                       <Tag color={ROSE} soft="rgba(236,72,153,.13)">
