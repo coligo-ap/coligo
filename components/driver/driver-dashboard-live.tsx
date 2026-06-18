@@ -9,9 +9,13 @@ import { toast } from "@/components/ui/toast";
  * Alerte temps réel du tableau de bord livreur : quand une nouvelle livraison
  * (Express ou Tournée) arrive chez l'un de ses commerçants, on rafraîchit les
  * compteurs et on affiche un toast. La RLS limite déjà les commandes reçues
- * aux commerçants du livreur, donc on s'abonne largement sans filtre fragile.
+ * aux commerçants du livreur ; on ajoute en plus un filtre serveur
+ * `fulfillment_type=eq.delivery` pour réduire le fan-out (les commandes en
+ * retrait sur place n'intéressent pas le livreur) et ne pas re-streamer le RSC
+ * pour des events inutiles.
  *
- * Filet de sécurité : refresh toutes les 20 s si le Realtime ne passe pas.
+ * Filet de sécurité : refresh toutes les 30 s si le Realtime ne passe pas (le
+ * Realtime couvre déjà le besoin, l'intervalle n'est qu'un secours).
  */
 export function DriverDashboardLive() {
   const router = useRouter();
@@ -38,39 +42,44 @@ export function DriverDashboardLive() {
       .channel("driver-dashboard-deliveries")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "orders" },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "orders",
+          filter: "fulfillment_type=eq.delivery",
+        },
         (p) => {
-          const r = p.new as {
-            fulfillment_type?: string;
-            delivery_mode?: string;
-          };
-          if (r.fulfillment_type === "delivery")
-            onDeliveryChange(r.delivery_mode ?? null);
+          const r = p.new as { delivery_mode?: string };
+          onDeliveryChange(r.delivery_mode ?? null);
         }
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "orders" },
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
+          filter: "fulfillment_type=eq.delivery",
+        },
         (p) => {
           const r = p.new as {
-            fulfillment_type?: string;
             delivery_mode?: string;
             status?: string;
             delivery_driver_id?: string | null;
           };
-          // On alerte surtout quand une course devient dispo (prête + sans
-          // livreur). Les autres updates rafraîchissent juste les compteurs.
-          if (r.fulfillment_type !== "delivery") return;
+          // On ne re-streame le RSC que sur les transitions utiles au livreur :
+          // une course devient disponible (prête + sans livreur) → alerte +
+          // refresh. Les autres updates de commande (statuts intermédiaires,
+          // édition commerçant) n'affectent pas son tableau de bord → on ignore
+          // pour éviter un refresh à chaque event.
           if (r.status === "ready" && r.delivery_driver_id == null) {
             onDeliveryChange(r.delivery_mode ?? null);
-          } else {
-            router.refresh();
           }
         }
       )
       .subscribe();
 
-    const interval = setInterval(() => router.refresh(), 20_000);
+    const interval = setInterval(() => router.refresh(), 30_000);
 
     return () => {
       clearInterval(interval);
