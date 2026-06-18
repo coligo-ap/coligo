@@ -106,6 +106,7 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<DocKind | null>(null);
 
   const refresh = useCallback(async () => {
     const list = await getChauffeurDocs();
@@ -130,8 +131,10 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
     setBusy(null);
   };
 
-  const remove = async (kind: DocKind) => {
-    if (!window.confirm("Supprimer cette photo ?")) return;
+  // Suppression confirmée par un MODAL designé (plus de window.confirm).
+  const remove = (kind: DocKind) => setConfirmDelete(kind);
+  const doRemove = async (kind: DocKind) => {
+    setConfirmDelete(null);
     setBusy(kind);
     setError(null);
     const res = await deleteChauffeurDoc(kind);
@@ -284,6 +287,43 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
             await upload("selfie", file);
           }}
         />
+      )}
+
+      {/* Confirmation designée (remplace window.confirm) */}
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-[140] flex flex-col justify-end bg-black/45"
+          onClick={() => setConfirmDelete(null)}
+        >
+          <div
+            className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[max(16px,env(safe-area-inset-bottom))]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <b className="drive-sora block text-[16px] font-extrabold">
+              Supprimer cette photo ?
+            </b>
+            <p className="mt-1 mb-3 text-[13px] text-[var(--d-muted)]">
+              Vous devrez la reprendre pour valider votre dossier.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(null)}
+                className="drive-sora h-12 flex-1 rounded-[14px] border border-[var(--d-line)] text-sm font-bold"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => void doRemove(confirmDelete)}
+                className="drive-sora h-12 flex-1 rounded-[14px] text-sm font-bold text-white"
+                style={{ background: RED }}
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

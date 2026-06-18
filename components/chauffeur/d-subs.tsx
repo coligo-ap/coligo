@@ -52,6 +52,15 @@ export function DSubs() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDowngrade, setConfirmDowngrade] = useState(false);
+
+  // Engage la souscription Pro (après confirmation si remplacement d'un Premium).
+  const proceedPro = () => {
+    setConfirmDowngrade(false);
+    setUpgrade(false);
+    setPaying("pro");
+    setStep("choice");
+  };
   // Retour Chargily : "checking" tant que le webhook n'a pas confirmé.
   const [cardReturn, setCardReturn] = useState<
     "checking" | "confirmed" | "failed" | null
@@ -333,17 +342,12 @@ export function DSubs() {
         cta="Choisir Pro"
         secondary
         onClick={() => {
-          // Garde-fou : un Premium actif serait REMPLACÉ immédiatement.
-          if (
-            fin.plan === "premium" &&
-            !window.confirm(
-              "Votre Premium est encore actif : souscrire Pro le remplacera immédiatement, sans remboursement des jours restants. À l'échéance, le retour au plan Gratuit est automatique. Continuer quand même ?"
-            )
-          )
+          // Garde-fou designé : un Premium actif serait REMPLACÉ immédiatement.
+          if (fin.plan === "premium") {
+            setConfirmDowngrade(true);
             return;
-          setUpgrade(false);
-          setPaying("pro");
-          setStep("choice");
+          }
+          proceedPro();
         }}
       />
       {/* Premium */}
@@ -522,6 +526,45 @@ export function DSubs() {
           Annuler
         </GhostBtn>
       </Sheet>
+
+      {/* Confirmation designée — remplacement immédiat d'un Premium actif. */}
+      {confirmDowngrade && (
+        <div
+          className="fixed inset-0 z-[140] flex flex-col justify-end bg-black/45"
+          onClick={() => setConfirmDowngrade(false)}
+        >
+          <div
+            className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[max(16px,env(safe-area-inset-bottom))]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <b className="drive-sora block text-[16px] font-extrabold">
+              Passer en Pro maintenant ?
+            </b>
+            <p className="mt-1 mb-3 text-[13px] text-[var(--d-muted)]">
+              Votre Premium est encore actif : souscrire Pro le remplacera
+              immédiatement, sans remboursement des jours restants. À
+              l’échéance, retour automatique au plan Gratuit.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDowngrade(false)}
+                className="drive-sora h-12 flex-1 rounded-[14px] border border-[var(--d-line)] text-sm font-bold"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={proceedPro}
+                className="drive-sora h-12 flex-1 rounded-[14px] text-sm font-bold text-white"
+                style={{ background: RED }}
+              >
+                Continuer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <DNav />
     </div>
