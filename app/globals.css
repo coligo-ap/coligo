@@ -546,32 +546,9 @@ body {
   }
 }
 
-/* ── Coligo Drive : accueil chauffeur v13 (mise en ligne + réception) ──
-   Reflet balayant du bouton GO, égaliseur « recherche », popup de course
-   entrante (apparition, anneau, barre de temps, cloche). */
-@keyframes dh-shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  55%,
-  100% {
-    transform: translateX(100%);
-  }
-}
-.dh-shimmer::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 40%,
-    rgba(255, 255, 255, 0.18) 50%,
-    transparent 60%
-  );
-  transform: translateX(-100%);
-  animation: dh-shimmer 3.5s ease-in-out infinite;
-  pointer-events: none;
-}
+/* ── Coligo Drive : accueil chauffeur — réception des courses ──
+   Égaliseur « recherche » + popup de course entrante (apparition, anneau,
+   barre de temps, cloche). Utilisés par d-incoming. */
 @keyframes dh-wave {
   0%,
   100% {
@@ -651,7 +628,6 @@ body {
   animation: dh-bell 1.1s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .dh-shimmer::before,
   .dh-wave,
   .dh-ic-pop,
   .dh-ic-progress,

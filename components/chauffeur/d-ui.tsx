@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLocale } from "next-intl";
 import { BarChart3, Car, Home, User } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { VIOLET } from "@/components/customer/drive/drive-modals";
 
 /** Nav chauffeur (maquette) : Accueil · Drive · Gains · Compte. */
@@ -59,5 +58,3 @@ export const PLAN_LABEL: Record<string, string> = {
 export function fmtPct(rate: number): string {
   return `${String(Math.round(rate * 1000) / 10).replace(".", ",")} %`;
 }
-
-export const cls = cn;

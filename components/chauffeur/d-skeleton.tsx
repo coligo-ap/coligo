@@ -62,25 +62,29 @@ export function DriveSkeleton() {
   );
 }
 
-/** Accueil chauffeur — carte + feuille (GO, finance, préférences). */
+/** Accueil chauffeur COMPACT — carte + bandeau haut (3 zones) + feuille réduite
+ *  (poignée + toggle). Reflète la mise en page RÉELLE actuelle → pas de flash de
+ *  l'ancien design au rafraîchissement. */
 export function HomeSkeleton() {
   return (
     <div className="drive-jakarta drive-screen bg-[var(--d-page)]">
       <div className="absolute inset-0 bg-[var(--d-page)]" />
-      <div className="absolute top-[64px] left-4 h-9 w-28 animate-pulse rounded-full bg-[var(--d-surface)] shadow" />
-      <div className="absolute top-[64px] right-4 size-[42px] animate-pulse rounded-full bg-[var(--d-surface)] shadow" />
-      <div className="absolute right-0 bottom-[66px] left-0 z-10 rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3 pb-6">
-        <span className="mx-auto mb-3 block h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
-        <Bar className="h-[52px] w-full !rounded-[20px]" />
-        <div className="mt-2 flex gap-1.5">
-          <Bar className="h-[62px] flex-1 !rounded-[14px]" />
-          <Bar className="h-[62px] w-[94px] !rounded-[14px]" />
+      {/* Bandeau haut : courses dispo · revenu · GPS */}
+      <div className="absolute inset-x-3 top-3 z-10 grid grid-cols-3 items-start gap-2">
+        <div className="flex justify-start">
+          <div className="h-[44px] w-[86px] animate-pulse rounded-[16px] bg-[var(--d-surface)] shadow-lg" />
         </div>
-        <div className="mt-2 flex gap-1.5">
-          <Bar className="h-[46px] flex-1 !rounded-[12px]" />
-          <Bar className="h-[46px] flex-1 !rounded-[12px]" />
+        <div className="flex justify-center">
+          <div className="h-[44px] w-[118px] animate-pulse rounded-[16px] bg-[var(--d-surface)] shadow-lg" />
         </div>
-        <Bar className="mt-2 h-[58px] w-full !rounded-[15px]" />
+        <div className="flex justify-end">
+          <div className="size-[44px] animate-pulse rounded-[16px] bg-[var(--d-surface)] shadow-lg" />
+        </div>
+      </div>
+      {/* Feuille RÉDUITE : poignée + toggle « En ligne » */}
+      <div className="absolute right-0 bottom-[66px] left-0 z-10 rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-1.5 pb-5">
+        <span className="mx-auto mb-2 block h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
+        <Bar className="h-[58px] w-full !rounded-[16px]" />
       </div>
       <DNav />
     </div>

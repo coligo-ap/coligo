@@ -148,24 +148,25 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const online = useChauffeurOnline();
   const onlineRef = useRef(online);
   onlineRef.current = online;
-  const [onlineBusy, setOnlineBusy] = useState(false);
 
-  const toggleOnline = async () => {
-    if (onlineBusy) return;
+  // Bascule OPTIMISTE et NON BLOQUANTE : le switch reflète l'intention
+  // INSTANTANÉMENT (store local réactif), et la synchro serveur part en
+  // arrière-plan (le heartbeat entretient l'état). Avant, on `await` la Server
+  // Action — sérialisée par Next et parfois lente → le bouton « restait » en
+  // attente longtemps alors que l'état avait déjà changé.
+  const toggleOnline = () => {
     const next = !onlineRef.current;
-    setOnlineBusy(true);
-    setChauffeurOnlineLocal(next);
+    setChauffeurOnlineLocal(next); // UI instantanée
     onlineRef.current = next;
     if (!next) {
       // Hors ligne : on coupe la réception (popup + file).
       setNearby([]);
       setCurrent(null);
     }
-    // Bascule serveur immédiate (le heartbeat suivant entretient l'état).
-    await setChauffeurOnline(next);
+    // Synchro serveur en tâche de fond (best-effort).
+    void setChauffeurOnline(next).catch(() => {});
     const c = coordsRef.current;
     if (c) void chauffeurHeartbeat(c.latitude, c.longitude, next);
-    setOnlineBusy(false);
   };
 
   // ── Réception des courses (popup entrant) ──────────────────────────────
@@ -441,7 +442,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               type="button"
               onClick={() => router.push("/chauffeur/gains")}
               className="flex items-center gap-1.5 rounded-[16px] border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
-              style={{ background: "#6C2BD9", borderColor: "#5A21B5" }}
+              style={{ background: "#6315E8", borderColor: "#5009C9" }}
             >
               <span className="flex flex-col items-start leading-none">
                 <span className="drive-sora text-[18px] font-extrabold tracking-[-0.5px]">
@@ -518,9 +519,8 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           role="switch"
           aria-checked={online}
           aria-label={tr("Disponibilité", "التوفر")}
-          onClick={() => void toggleOnline()}
-          disabled={onlineBusy}
-          className="mt-1 flex w-full items-center gap-3 rounded-[16px] border px-4 py-3 text-start transition-colors disabled:opacity-60"
+          onClick={() => toggleOnline()}
+          className="mt-1 flex w-full items-center gap-3 rounded-[16px] border px-4 py-3 text-start transition-colors"
           style={{
             borderColor: online ? "rgba(22,179,100,.35)" : "var(--d-line)",
             background: online ? "rgba(22,179,100,.06)" : "var(--d-surface)",
@@ -532,12 +532,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               background: online ? "rgba(22,179,100,.14)" : "var(--d-soft)",
             }}
           >
-            {onlineBusy ? (
-              <Loader2
-                className="size-[18px] animate-spin"
-                style={{ color: online ? GO : "var(--d-muted)" }}
-              />
-            ) : online ? (
+            {online ? (
               <Radio className="size-[18px]" style={{ color: GO }} />
             ) : (
               <Power
