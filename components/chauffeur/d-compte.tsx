@@ -24,6 +24,9 @@ import {
 } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { setTheme } from "@/lib/theme/actions";
+import { reverseGeocode } from "@/lib/geo/geocode";
+import { MapPositionPicker } from "@/components/shared/map-position-picker";
+import type { LatLng } from "@/components/customer/drive/drive-map";
 import {
   SosContactsSheet,
   GO,
@@ -54,8 +57,9 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
   const [contactsOpen, setContactsOpen] = useState(false);
 
   // Modals « collecte d'info » — designés (plus de window.prompt/alert).
+  // Domicile : sélection sur CARTE + recherche d'adresse (repère exact).
   const [homeOpen, setHomeOpen] = useState(false);
-  const [homeInput, setHomeInput] = useState("");
+  const [homePos, setHomePos] = useState<LatLng | null>(null);
   const [homeErr, setHomeErr] = useState<string | null>(null);
   const [homeSaving, setHomeSaving] = useState(false);
   const [ccpOpen, setCcpOpen] = useState(false);
@@ -73,22 +77,25 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
   const plan = fin?.plan ?? "free";
 
   const openHome = () => {
-    setHomeInput(homeAddr ?? "");
+    setHomePos(null);
     setHomeErr(null);
     setHomeOpen(true);
   };
   const saveHome = async () => {
-    const v = homeInput.trim();
-    if (!v) {
-      setHomeErr("Saisissez une adresse.");
+    if (!homePos) {
+      setHomeErr("Placez le repère sur votre domicile.");
       return;
     }
     setHomeSaving(true);
     setHomeErr(null);
-    const res = await setChauffeurHome(v);
+    // Adresse lisible du repère (échec silencieux → libellé générique).
+    const text =
+      (await reverseGeocode(homePos.lat, homePos.lng).catch(() => null)) ??
+      "Domicile (repère carte)";
+    const res = await setChauffeurHome(text, homePos);
     setHomeSaving(false);
     if (res.ok) {
-      setHomeAddr(v);
+      setHomeAddr(text);
       setHomeOpen(false);
     } else {
       setHomeErr(res.error ?? "Enregistrement impossible.");
@@ -340,13 +347,16 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         error={homeErr}
       >
         <p className="mb-2 text-[12px] text-[var(--d-muted)]">
-          Adresse modifiable 1 fois par semaine (anti-fraude).
+          Cherchez votre adresse ou déplacez la carte pour placer le repère
+          exactement sur votre domicile. Modifiable 1×/semaine (anti-fraude).
         </p>
-        <input
-          value={homeInput}
-          onChange={(e) => setHomeInput(e.target.value)}
-          placeholder="Ex : Cité 200 logements, Sétif"
-          className="w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-[14px] outline-none focus:border-[color:var(--d-muted)]"
+        <MapPositionPicker
+          initial={null}
+          autoLocate
+          searchEnabled
+          height={300}
+          gpsLabel="Ma position"
+          onChange={(p) => setHomePos(p)}
         />
       </FormModal>
 
