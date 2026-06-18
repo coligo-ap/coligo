@@ -6,6 +6,7 @@ import { useLocale } from "next-intl";
 import {
   Car,
   ChevronRight,
+  ChevronUp,
   Crosshair,
   Home,
   Loader2,
@@ -491,14 +492,29 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         className="absolute right-0 bottom-[66px] left-0 z-10 overflow-y-auto overscroll-contain rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-2 pb-6 transition-[max-height] duration-300"
         style={{ maxHeight: mini ? 118 : "min(580px, calc(100dvh - 140px))" }}
       >
-        <button
-          type="button"
-          onClick={() => setMini((m) => !m)}
-          className="mx-auto block cursor-pointer px-10 py-1.5"
-          aria-label="Réduire / agrandir"
-        >
-          <span className="block h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
-        </button>
+        {/* Poignée (centre) + flèche d'ouverture/fermeture (droite) — affordance
+            claire : repliée → ▲ « ouvrir pour voir les options », dépliée → ▼. */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setMini((m) => !m)}
+            className="mx-auto block cursor-pointer px-10 py-1.5"
+            aria-label={mini ? tr("Ouvrir", "فتح") : tr("Fermer", "إغلاق")}
+          >
+            <span className="block h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setMini((m) => !m)}
+            aria-label={mini ? tr("Ouvrir", "فتح") : tr("Fermer", "إغلاق")}
+            className="absolute end-0 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-sm"
+          >
+            <ChevronUp
+              className="size-[18px] text-[var(--d-muted)] transition-transform duration-300"
+              style={{ transform: mini ? undefined : "rotate(180deg)" }}
+            />
+          </button>
+        </div>
 
         {/* ── Toggle « En ligne » — épuré (style Anthropic) ── */}
         <button
