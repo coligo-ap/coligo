@@ -34,6 +34,7 @@ import {
   PrimaryBtn,
 } from "@/components/customer/drive/drive-modals";
 import { PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
+import { Portal } from "@/components/ui/portal";
 import { DIncoming } from "./d-incoming";
 import { ChauffeurWorkZoneSheet } from "./work-zone-sheet";
 import { useSearchRadius } from "@/lib/chauffeur/work-zone";
@@ -754,60 +755,64 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
 
       {/* Popup domicile : recherche d'adresse + repère sur la carte. */}
       {homeOpen && (
-        <div className="fixed inset-0 z-[130] flex flex-col justify-end bg-black/45">
-          <div className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
-            <div className="mb-2 flex items-center justify-between">
-              <b className="drive-sora text-[16px] font-extrabold">
-                {tr("Mon domicile", "منزلي")}
-              </b>
-              <button
-                type="button"
-                onClick={() => setHomeOpen(false)}
-                aria-label="Fermer"
-                className="grid size-9 place-items-center rounded-full bg-[var(--d-soft)]"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-            <p className="mb-2 text-[12px] text-[var(--d-muted)]">
-              {tr(
-                "Cherchez votre adresse ou déplacez la carte pour placer le repère sur votre domicile.",
-                "ابحث عن عنوانك أو حرّك الخريطة لوضع المؤشر على منزلك."
-              )}
-            </p>
-            <MapPositionPicker
-              initial={null}
-              defaultCenter={me ?? undefined}
-              autoLocate={!me}
-              searchEnabled
-              height={300}
-              gpsLabel={tr("Ma position", "موقعي")}
-              onChange={(p) => setHomePos(p)}
-            />
-            <p className="mt-2 text-[11px] text-[var(--d-muted)]">
-              {tr(
-                "⚠️ Anti-fraude : l'adresse domicile est modifiable 1 fois par semaine (correction libre pendant 15 min après un changement).",
-                "⚠️ لمكافحة الاحتيال: عنوان المنزل قابل للتعديل مرة واحدة في الأسبوع (تصحيح حر خلال 15 دقيقة بعد التغيير)."
-              )}
-            </p>
-            {homeErr && (
-              <p
-                className="mt-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
-                style={{ background: "rgba(229,72,77,.1)", color: RED }}
-              >
-                {homeErr}
+        <Portal>
+          <div className="fixed inset-0 z-[130] flex flex-col justify-end bg-black/45">
+            <div className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+              <div className="mb-2 flex items-center justify-between">
+                <b className="drive-sora text-[16px] font-extrabold">
+                  {tr("Mon domicile", "منزلي")}
+                </b>
+                <button
+                  type="button"
+                  onClick={() => setHomeOpen(false)}
+                  aria-label="Fermer"
+                  className="grid size-9 place-items-center rounded-full bg-[var(--d-soft)]"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+              <p className="mb-2 text-[12px] text-[var(--d-muted)]">
+                {tr(
+                  "Cherchez votre adresse ou déplacez la carte pour placer le repère sur votre domicile.",
+                  "ابحث عن عنوانك أو حرّك الخريطة لوضع المؤشر على منزلك."
+                )}
               </p>
-            )}
-            <PrimaryBtn
-              onClick={() => void saveHome()}
-              disabled={homeSaving || !homePos}
-              className="!mt-3"
-            >
-              {homeSaving ? <Loader2 className="size-5 animate-spin" /> : null}
-              {tr("Enregistrer mon domicile", "حفظ منزلي")}
-            </PrimaryBtn>
+              <MapPositionPicker
+                initial={null}
+                defaultCenter={me ?? undefined}
+                autoLocate={!me}
+                searchEnabled
+                height={300}
+                gpsLabel={tr("Ma position", "موقعي")}
+                onChange={(p) => setHomePos(p)}
+              />
+              <p className="mt-2 text-[11px] text-[var(--d-muted)]">
+                {tr(
+                  "⚠️ Anti-fraude : l'adresse domicile est modifiable 1 fois par semaine (correction libre pendant 15 min après un changement).",
+                  "⚠️ لمكافحة الاحتيال: عنوان المنزل قابل للتعديل مرة واحدة في الأسبوع (تصحيح حر خلال 15 دقيقة بعد التغيير)."
+                )}
+              </p>
+              {homeErr && (
+                <p
+                  className="mt-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+                  style={{ background: "rgba(229,72,77,.1)", color: RED }}
+                >
+                  {homeErr}
+                </p>
+              )}
+              <PrimaryBtn
+                onClick={() => void saveHome()}
+                disabled={homeSaving || !homePos}
+                className="!mt-3"
+              >
+                {homeSaving ? (
+                  <Loader2 className="size-5 animate-spin" />
+                ) : null}
+                {tr("Enregistrer mon domicile", "حفظ منزلي")}
+              </PrimaryBtn>
+            </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       <ChauffeurWorkZoneSheet

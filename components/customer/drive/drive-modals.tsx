@@ -18,6 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Portal } from "@/components/ui/portal";
 import {
   getRideMessages,
   markRideMessagesRead,
@@ -67,17 +68,19 @@ export function Sheet({
 }) {
   if (!open) return null;
   return (
-    <div
-      className="fixed inset-0 z-[130] flex items-end bg-[rgba(8,9,15,.45)]"
-      onClick={onClose}
-    >
+    <Portal>
       <div
-        className="drive-up w-full rounded-t-[26px] bg-[var(--d-surface)] px-5 pt-[18px] pb-6"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-[130] flex items-end bg-[rgba(8,9,15,.45)]"
+        onClick={onClose}
       >
-        {children}
+        <div
+          className="drive-up w-full rounded-t-[26px] bg-[var(--d-surface)] px-5 pt-[18px] pb-6"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {children}
+        </div>
       </div>
-    </div>
+    </Portal>
   );
 }
 

@@ -35,6 +35,7 @@ import {
 } from "@/components/customer/drive/drive-modals";
 import { ChAvatar } from "@/components/customer/drive/ch-avatar";
 import { PLAN_LABEL, fmtPct } from "./d-ui";
+import { Portal } from "@/components/ui/portal";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import {
   chauffeurLogout,
@@ -431,46 +432,48 @@ function FormModal({
 }) {
   if (!open) return null;
   return (
-    <div
-      className="fixed inset-0 z-[130] flex flex-col justify-end bg-black/45"
-      onClick={onClose}
-    >
+    <Portal>
       <div
-        className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[max(16px,env(safe-area-inset-bottom))]"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-[130] flex flex-col justify-end bg-black/45"
+        onClick={onClose}
       >
-        <div className="mb-3 flex items-center justify-between">
-          <b className="drive-sora text-[16px] font-extrabold">{title}</b>
+        <div
+          className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[max(16px,env(safe-area-inset-bottom))]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="mb-3 flex items-center justify-between">
+            <b className="drive-sora text-[16px] font-extrabold">{title}</b>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fermer"
+              className="grid size-9 place-items-center rounded-full bg-[var(--d-soft)]"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+          {children}
+          {error && (
+            <p
+              className="mt-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+              style={{ background: "rgba(229,72,77,.1)", color: "#E5484D" }}
+            >
+              {error}
+            </p>
+          )}
           <button
             type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="grid size-9 place-items-center rounded-full bg-[var(--d-soft)]"
+            onClick={onSave}
+            disabled={saving}
+            className="drive-sora mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-60"
+            style={{ background: VIOLET }}
           >
-            <X className="size-4" />
+            {saving ? <Loader2 className="size-5 animate-spin" /> : null}
+            Enregistrer
           </button>
         </div>
-        {children}
-        {error && (
-          <p
-            className="mt-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
-            style={{ background: "rgba(229,72,77,.1)", color: "#E5484D" }}
-          >
-            {error}
-          </p>
-        )}
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving}
-          className="drive-sora mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-60"
-          style={{ background: VIOLET }}
-        >
-          {saving ? <Loader2 className="size-5 animate-spin" /> : null}
-          Enregistrer
-        </button>
       </div>
-    </div>
+    </Portal>
   );
 }
 

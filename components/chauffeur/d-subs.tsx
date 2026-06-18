@@ -21,6 +21,7 @@ import {
   SheetTitle,
 } from "@/components/customer/drive/drive-modals";
 import { PLAN_LABEL } from "./d-ui";
+import { Portal } from "@/components/ui/portal";
 import {
   cancelMyPendingSub,
   getChauffeurFinances,
@@ -529,41 +530,43 @@ export function DSubs() {
 
       {/* Confirmation designée — remplacement immédiat d'un Premium actif. */}
       {confirmDowngrade && (
-        <div
-          className="fixed inset-0 z-[140] flex flex-col justify-end bg-black/45"
-          onClick={() => setConfirmDowngrade(false)}
-        >
+        <Portal>
           <div
-            className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[max(16px,env(safe-area-inset-bottom))]"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[140] flex flex-col justify-end bg-black/45"
+            onClick={() => setConfirmDowngrade(false)}
           >
-            <b className="drive-sora block text-[16px] font-extrabold">
-              Passer en Pro maintenant ?
-            </b>
-            <p className="mt-1 mb-3 text-[13px] text-[var(--d-muted)]">
-              Votre Premium est encore actif : souscrire Pro le remplacera
-              immédiatement, sans remboursement des jours restants. À
-              l’échéance, retour automatique au plan Gratuit.
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmDowngrade(false)}
-                className="drive-sora h-12 flex-1 rounded-[14px] border border-[var(--d-line)] text-sm font-bold"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={proceedPro}
-                className="drive-sora h-12 flex-1 rounded-[14px] text-sm font-bold text-white"
-                style={{ background: RED }}
-              >
-                Continuer
-              </button>
+            <div
+              className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[max(16px,env(safe-area-inset-bottom))]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <b className="drive-sora block text-[16px] font-extrabold">
+                Passer en Pro maintenant ?
+              </b>
+              <p className="mt-1 mb-3 text-[13px] text-[var(--d-muted)]">
+                Votre Premium est encore actif : souscrire Pro le remplacera
+                immédiatement, sans remboursement des jours restants. À
+                l’échéance, retour automatique au plan Gratuit.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDowngrade(false)}
+                  className="drive-sora h-12 flex-1 rounded-[14px] border border-[var(--d-line)] text-sm font-bold"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={proceedPro}
+                  className="drive-sora h-12 flex-1 rounded-[14px] text-sm font-bold text-white"
+                  style={{ background: RED }}
+                >
+                  Continuer
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </div>
   );
