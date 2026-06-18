@@ -100,7 +100,8 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const coords = useDriverPosition();
   // Initialisé depuis le cache module → affichage instantané au retour (SWR).
   const [home, setHome] = useState<DriveHome | null>(lastDriveHomeCache);
-  const [mini, setMini] = useState(false);
+  // Accueil COMPACT : feuille réduite par défaut (le chauffeur l'ouvre au choix).
+  const [mini, setMini] = useState(true);
   const [dirOn, setDirOn] = useState(false);
   useEffect(() => {
     setDirOn(localStorage.getItem(HOME_DIR_KEY) === "1");
@@ -404,6 +405,24 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         padding={{ top: 96, bottom: mini ? 220 : 520, left: 56, right: 56 }}
       />
 
+      {/* Gains du jour (haut-centre) — visible UNIQUEMENT en mode compact
+          (feuille réduite) ; à l'ouverture de la feuille, ils réapparaissent
+          dans la finance bar et on retire cette pastille pour ne pas encombrer. */}
+      {mini && (
+        <button
+          type="button"
+          onClick={() => router.push("/chauffeur/gains")}
+          className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-3.5 py-2 shadow-lg"
+        >
+          <span className="text-[10px] font-semibold text-[var(--d-muted)]">
+            {tr("Gains du jour", "أرباح اليوم")}
+          </span>
+          <span className="drive-sora text-[14px] font-extrabold tracking-[-0.3px]">
+            {formatDA(home?.todayNet ?? 0)}
+          </span>
+        </button>
+      )}
+
       {/* Pastille « demande proche » (en ligne) → ouvre Drive ; sinon légende. */}
       {online ? (
         <button
@@ -481,56 +500,62 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           <span className="block h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
         </button>
 
-        {/* ── Bouton GO / En ligne (mise en ligne) ── */}
+        {/* ── Toggle « En ligne » — épuré (style Anthropic) ── */}
         <button
           type="button"
+          role="switch"
+          aria-checked={online}
+          aria-label={tr("Disponibilité", "التوفر")}
           onClick={() => void toggleOnline()}
           disabled={onlineBusy}
-          className="dh-shimmer relative mt-1 flex h-[52px] w-full items-center gap-3 overflow-hidden rounded-[20px] px-4 text-white transition-[background,box-shadow] duration-500 disabled:opacity-70"
+          className="mt-1 flex w-full items-center gap-3 rounded-[16px] border px-4 py-3 text-start transition-colors disabled:opacity-60"
           style={{
-            background: online
-              ? `linear-gradient(135deg,#7B7BF0,${VIOLET} 55%,#4646C8)`
-              : `linear-gradient(135deg,#1FCB74,${GO} 55%,#0E8C4E)`,
-            boxShadow: online
-              ? "0 14px 34px -10px rgba(108,43,217,.45)"
-              : "0 14px 34px -10px rgba(22,179,100,.5)",
+            borderColor: online ? "rgba(22,179,100,.35)" : "var(--d-line)",
+            background: online ? "rgba(22,179,100,.06)" : "var(--d-surface)",
           }}
         >
-          <span className="relative z-[1] grid size-[30px] shrink-0 place-items-center rounded-full bg-white/20">
+          <span
+            className="grid size-9 shrink-0 place-items-center rounded-full transition-colors"
+            style={{
+              background: online ? "rgba(22,179,100,.14)" : "var(--d-soft)",
+            }}
+          >
             {onlineBusy ? (
-              <Loader2 className="size-4 animate-spin" />
+              <Loader2
+                className="size-[18px] animate-spin"
+                style={{ color: online ? GO : "var(--d-muted)" }}
+              />
             ) : online ? (
-              <Radio className="size-4" />
+              <Radio className="size-[18px]" style={{ color: GO }} />
             ) : (
-              <Power className="size-4" />
+              <Power
+                className="size-[18px]"
+                style={{ color: "var(--d-muted)" }}
+              />
             )}
           </span>
-          <span className="relative z-[1] flex flex-1 flex-col items-start leading-tight">
-            <span className="drive-sora text-[13.5px] font-extrabold tracking-[-0.2px]">
-              {online ? tr("En ligne", "متصل") : tr("Passer en ligne", "اتصل")}
+          <span className="min-w-0 flex-1">
+            <span className="drive-sora block text-[14px] font-bold tracking-[-0.2px]">
+              {online ? tr("En ligne", "متصل") : tr("Hors ligne", "غير متصل")}
             </span>
-            {online && (
-              <span className="drive-sora text-[11px] font-semibold opacity-85">
-                {tr("Recherche des courses…", "البحث عن الرحلات…")}
-              </span>
-            )}
+            <span className="block truncate text-[11.5px] text-[var(--d-muted)]">
+              {online
+                ? tr("En recherche des courses…", "البحث عن الطلبات…")
+                : tr(
+                    "Activez pour recevoir les courses",
+                    "فعّل لاستقبال الطلبات"
+                  )}
+            </span>
           </span>
-          {online && (
+          {/* Switch iOS-like (RTL-safe) */}
+          <span
+            className="relative h-[28px] w-[48px] shrink-0 rounded-full transition-colors"
+            style={{ background: online ? GO : "#D6D9E2" }}
+          >
             <span
-              className="relative z-[1] flex h-3.5 items-end gap-[2px]"
-              aria-hidden
-            >
-              {[4, 8, 12, 6, 10].map((h, i) => (
-                <span
-                  key={i}
-                  className="dh-wave w-[2.5px] rounded-[2px] bg-white"
-                  style={{ height: h, animationDelay: `${i * 0.12}s` }}
-                />
-              ))}
-            </span>
-          )}
-          <span className="drive-sora relative z-[1] flex h-6 shrink-0 items-center gap-1 rounded-[12px] bg-white/20 px-2.5 text-[9.5px] font-bold">
-            {online ? tr("Déconnecter", "قطع") : "GO →"}
+              className="absolute top-[3px] size-[22px] rounded-full bg-white shadow-sm transition-all"
+              style={{ insetInlineStart: online ? 23 : 3 }}
+            />
           </span>
         </button>
 
