@@ -20,6 +20,8 @@ import {
   buildCallbackUrls,
 } from "@/lib/payments/chargily";
 import { getTopupCreditedLast30dForCustomer } from "@/lib/customer/cashback";
+import { getAuthUser } from "@/lib/auth/session";
+import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { MIN_TOPUP_DA } from "@/lib/config/payment-limits";
 
 export type CreateTopupResult =
@@ -31,16 +33,10 @@ export async function createTopup(
 ): Promise<CreateTopupResult> {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Tu dois te reconnecter." };
-
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("id, full_name, phone")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // Session + profil mémoïsés (helpers partagés cache()).
+  if (!(await getAuthUser()))
+    return { ok: false, error: "Tu dois te reconnecter." };
+  const customer = await getCurrentCustomerFull();
   if (!customer) {
     return {
       ok: false,

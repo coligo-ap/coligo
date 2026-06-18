@@ -14,6 +14,9 @@ import { MyPayTag } from "@/components/customer/my-pay-tag";
 import { WalletEntryList } from "@/components/customer/wallet/entry-list";
 import { getMyPayHandle } from "@/app/(customer)/coligo-pay/qr/actions";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/session";
+import { getCurrentMerchant } from "@/lib/auth/merchant";
+import { getCurrentCustomer } from "@/lib/auth/customer";
 import { formatDA } from "@/lib/utils";
 import {
   getMyTopupBalance,
@@ -35,18 +38,11 @@ export const dynamic = "force-dynamic";
 // getMyTopupHistory) — aucune ligne cashback ne polluera cette page.
 // =============================================================================
 export default async function CustomerColigoPayPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Session + commerçant mémoïsés (partagés avec CustomerShell → pas de double
+  // auth ni de requête `merchants`/`customers` redondante).
+  const user = await getAuthUser();
   if (!user) redirect("/se-connecter?next=/coligo-pay");
-
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (merchant) redirect("/dashboard");
+  if (await getCurrentMerchant()) redirect("/dashboard");
 
   // Disponibilité Coligo Pay (super-admin).
   const flag = await getFeatureFlag("coligo_pay");
@@ -66,12 +62,9 @@ export default async function CustomerColigoPayPage() {
     );
   }
 
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const customer = await getCurrentCustomer();
 
+  const supabase = await createClient();
   const { data: settings } = await supabase
     .from("platform_settings")
     .select("max_topup_da_per_30d")

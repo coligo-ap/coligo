@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { CustomerShell } from "@/components/customer/customer-shell";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/session";
+import { getCurrentMerchant } from "@/lib/auth/merchant";
+import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { getMyTopupBalance } from "@/lib/customer/cashback";
 import { EnvoyerAmiView } from "@/components/customer/envoyer-ami-view";
 import {
@@ -17,24 +19,11 @@ export const dynamic = "force-dynamic";
 // double-entrée). Header de sous-page + nav bas (CustomerShell hideHeader).
 // =============================================================================
 export default async function EnvoyerAmiPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/se-connecter?next=/coligo-pay/envoyer");
+  if (await getCurrentMerchant()) redirect("/dashboard");
 
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (merchant) redirect("/dashboard");
-
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("full_name")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const customer = await getCurrentCustomerFull();
 
   const [balance, recents, pin] = await Promise.all([
     getMyTopupBalance(),

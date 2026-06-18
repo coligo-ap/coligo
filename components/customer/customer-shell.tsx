@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/session";
+import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { getFeatureFlags } from "@/lib/data/feature-flags";
 import { CustomerHeader } from "@/components/customer/customer-header";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
@@ -23,32 +24,23 @@ export async function CustomerShell({
   children: React.ReactNode;
   hideHeader?: boolean;
 }) {
-  const supabase = await createClient();
-  // PERF : l'auth et les feature flags sont indépendants → en parallèle (ce
-  // shell est rendu par CHAQUE page client, pas de layout partagé).
-  const [
-    {
-      data: { user },
-    },
-    flags,
-  ] = await Promise.all([supabase.auth.getUser(), getFeatureFlags()]);
+  // PERF : auth + profil client + feature flags MÉMOÏSÉS et partagés avec la
+  // page hôte (cette coque est rendue par CHAQUE page client, pas de layout
+  // partagé) → un seul `auth.getUser` + une seule requête `customers` par rendu
+  // au lieu de deux (coque + page). Tout est lancé en parallèle.
+  const [user, customer, flags] = await Promise.all([
+    getAuthUser(),
+    getCurrentCustomerFull(),
+    getFeatureFlags(),
+  ]);
 
   // Onglets retirés de la nav si la fonctionnalité est « masquée » (super-admin).
   const hiddenKeys: string[] = [];
   if (flags.drive.status === "hidden") hiddenKeys.push("drive");
   if (flags.coligo_pay.status === "hidden") hiddenKeys.push("pay");
 
-  let customerName: string | null = null;
-  let customerPhone: string | null = null;
-  if (user) {
-    const { data: customer } = await supabase
-      .from("customers")
-      .select("full_name, phone")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    customerName = customer?.full_name ?? null;
-    customerPhone = customer?.phone ?? null;
-  }
+  const customerName = customer?.full_name ?? null;
+  const customerPhone = customer?.phone ?? null;
 
   return (
     <div data-space="client" className="bg-surface-2 min-h-screen">

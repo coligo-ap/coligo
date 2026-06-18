@@ -10,6 +10,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/session";
+import { getCurrentCustomer } from "@/lib/auth/customer";
 
 export type ReviewResult = { ok: true } | { ok: false; error: string };
 
@@ -21,10 +23,8 @@ export async function submitReview(input: {
   comment?: string | null;
 }): Promise<ReviewResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Tu dois te reconnecter." };
+  if (!(await getAuthUser()))
+    return { ok: false, error: "Tu dois te reconnecter." };
 
   if (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5) {
     return { ok: false, error: "Note invalide (1 à 5)." };
@@ -33,11 +33,7 @@ export async function submitReview(input: {
 
   // Récupère customer + merchant_id côté serveur — interdit toute injection
   // par l'utilisateur de couples (order, customer, merchant) incohérents.
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const customer = await getCurrentCustomer();
   if (!customer) return { ok: false, error: "Profil client introuvable." };
 
   const { data: order } = await supabase
@@ -101,21 +97,15 @@ export async function submitDriverReview(input: {
   comment?: string | null;
 }): Promise<ReviewResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Tu dois te reconnecter." };
+  if (!(await getAuthUser()))
+    return { ok: false, error: "Tu dois te reconnecter." };
 
   if (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5) {
     return { ok: false, error: "Note invalide (1 à 5)." };
   }
   const comment = (input.comment ?? "").trim().slice(0, MAX_COMMENT) || null;
 
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const customer = await getCurrentCustomer();
   if (!customer) return { ok: false, error: "Profil client introuvable." };
 
   const { data: order } = await supabase
@@ -161,10 +151,8 @@ export async function updateReview(input: {
   comment?: string | null;
 }): Promise<ReviewResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Tu dois te reconnecter." };
+  if (!(await getAuthUser()))
+    return { ok: false, error: "Tu dois te reconnecter." };
 
   if (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5) {
     return { ok: false, error: "Note invalide (1 à 5)." };
@@ -196,10 +184,8 @@ export async function reportDriver(input: {
   details?: string | null;
 }): Promise<ReviewResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Tu dois te reconnecter." };
+  if (!(await getAuthUser()))
+    return { ok: false, error: "Tu dois te reconnecter." };
 
   const reason = (input.reason ?? "").trim().slice(0, 60);
   if (!reason) return { ok: false, error: "Choisis un motif." };

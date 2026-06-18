@@ -12,7 +12,8 @@ import {
   rankMerchants,
   splitOpenFirst,
 } from "@/lib/data/merchant-ranking";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/session";
+import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
 import { HomeFilterPills } from "@/components/customer/home-filter-pills";
@@ -37,27 +38,21 @@ export const dynamic = "force-dynamic";
 // =============================================================================
 
 export default async function CustomerHomePage() {
-  const supabase = await createClient();
-
   // Coords GPS du client connecté — critère géographique PRINCIPAL du SSR.
   // (Les visiteurs anon n'ont pas de coords serveur : la grille refait la
   // requête par proximité dès le montage avec la position du localStorage.)
-  const { data: user } = await supabase.auth.getUser();
-  const isAuth = !!user?.user;
-  let customerCoords: {
+  // Session + profil mémoïsés (partagés avec CustomerShell → pas de double auth).
+  const [authUser, customer] = await Promise.all([
+    getAuthUser(),
+    getCurrentCustomerFull(),
+  ]);
+  const isAuth = !!authUser;
+  const customerCoords: {
     latitude: number | null;
     longitude: number | null;
-  } | null = null;
-  if (user?.user) {
-    const { data: customer } = await supabase
-      .from("customers")
-      .select("latitude, longitude")
-      .eq("user_id", user.user.id)
-      .maybeSingle();
-    customerCoords = customer
-      ? { latitude: customer.latitude, longitude: customer.longitude }
-      : null;
-  }
+  } | null = customer
+    ? { latitude: customer.latitude, longitude: customer.longitude }
+    : null;
   const hasCoords =
     customerCoords?.latitude != null && customerCoords?.longitude != null;
 

@@ -1,37 +1,22 @@
 import { redirect } from "next/navigation";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CheckoutView } from "@/components/customer/checkout-view";
-import { createClient } from "@/lib/supabase/server";
 import { getFeatureFlags } from "@/lib/data/feature-flags";
+import { getAuthUser } from "@/lib/auth/session";
+import { getCurrentMerchant } from "@/lib/auth/merchant";
+import { getCurrentCustomerFull } from "@/lib/auth/customer";
 
 export const dynamic = "force-dynamic";
 
 export default async function CheckoutPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Auth obligatoire au checkout (PARTIE A) — sinon redirige vers /se-connecter
-  // avec un retour vers /checkout après login.
-  if (!user) {
-    redirect("/se-connecter?next=/checkout");
-  }
-
+  // Auth obligatoire au checkout (PARTIE A). Session + profil mémoïsés
+  // (partagés avec CustomerShell → pas de double auth ni requête redondante).
+  if (!(await getAuthUser())) redirect("/se-connecter?next=/checkout");
   // Si l'utilisateur connecté est un MARCHAND, pas un client → on l'arrête.
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (merchant) redirect("/dashboard");
+  if (await getCurrentMerchant()) redirect("/dashboard");
 
-  const [{ data: customer }, flags] = await Promise.all([
-    supabase
-      .from("customers")
-      .select("full_name, phone, latitude, longitude")
-      .eq("user_id", user.id)
-      .maybeSingle(),
+  const [customer, flags] = await Promise.all([
+    getCurrentCustomerFull(),
     getFeatureFlags(),
   ]);
 

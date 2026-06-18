@@ -15,6 +15,9 @@ import {
 import { getTranslations } from "next-intl/server";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/session";
+import { getCurrentMerchant } from "@/lib/auth/merchant";
+import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { CustomerLogoutButton } from "@/components/customer/logout-button";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { CustomerSupportRow } from "@/components/support/customer-support-row";
@@ -35,25 +38,14 @@ export default async function CustomerAccountPage({
 }) {
   const completePhone = (await searchParams).complete === "phone";
   const t = await getTranslations("account");
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Session + profil mémoïsés (partagés avec CustomerShell → pas de double auth).
+  const user = await getAuthUser();
   if (!user) redirect("/se-connecter");
-
   // Si c'est un commerçant connecté qui tape /compte par erreur → /dashboard.
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (merchant) redirect("/dashboard");
+  if (await getCurrentMerchant()) redirect("/dashboard");
 
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("id, full_name, phone, email, default_wilaya_code, default_commune")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const customer = await getCurrentCustomerFull();
+  const supabase = await createClient();
 
   const wilayaName = customer?.default_wilaya_code
     ? WILAYAS.find((w) => w.code === customer.default_wilaya_code)?.name

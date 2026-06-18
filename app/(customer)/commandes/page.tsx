@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { ClipboardList } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCustomer } from "@/lib/auth/customer";
 import type { OrderStatus } from "@/lib/types";
 import {
   CustomerOrdersTabs,
@@ -14,18 +15,11 @@ export const dynamic = "force-dynamic";
 
 export default async function CustomerOrdersListPage() {
   const t = await getTranslations("orders");
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/se-connecter?next=/commandes");
+  // Session mémoïsée (partagée avec CustomerShell → pas de double auth).
+  const customer = await getCurrentCustomer();
+  if (!customer) redirect("/se-connecter?next=/commandes");
 
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!customer) redirect("/se-connecter");
+  const supabase = await createClient();
 
   // RLS filtre déjà sur customer_id (policy orders_select_own_customer).
   // On joint le merchant pour afficher le nom.

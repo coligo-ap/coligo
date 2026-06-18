@@ -12,6 +12,7 @@
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/session";
 
 export type CurrentMerchant = {
   id: string;
@@ -23,11 +24,9 @@ export type CurrentMerchant = {
 /** Le commerçant lié au user courant ; null si pas un commerçant. */
 export const getCurrentMerchant = cache(
   async function getCurrentMerchant(): Promise<CurrentMerchant | null> {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getAuthUser();
     if (!user) return null;
+    const supabase = await createClient();
     const { data } = await supabase
       .from("merchants")
       .select("id, name, slug, is_frozen")

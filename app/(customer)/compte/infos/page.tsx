@@ -2,7 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { getTranslations } from "next-intl/server";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/session";
+import { getCurrentMerchant } from "@/lib/auth/merchant";
+import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { AccountInfoForm } from "@/components/customer/account-info-form";
 
 export const dynamic = "force-dynamic";
@@ -16,24 +18,11 @@ export const dynamic = "force-dynamic";
 // =============================================================================
 export default async function CustomerAccountInfoPage() {
   const t = await getTranslations("account");
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Session + profil mémoïsés (partagés dans le rendu → pas de double auth).
+  const user = await getAuthUser();
   if (!user) redirect("/se-connecter?next=/compte/infos");
-
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (merchant) redirect("/dashboard");
-
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("full_name, phone, email")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  if (await getCurrentMerchant()) redirect("/dashboard");
+  const customer = await getCurrentCustomerFull();
 
   return (
     <div className="bg-surface-2 min-h-screen">

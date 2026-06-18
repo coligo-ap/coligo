@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/session";
+import { getCurrentCustomer } from "@/lib/auth/customer";
 import {
   customerLoginSchema,
   customerSignupSchema,
@@ -1186,11 +1188,9 @@ export async function updateCustomerLocation(input: {
   latitude: number | null;
   longitude: number | null;
 }): Promise<{ error?: string; ok?: boolean }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return { ok: true };
+  const supabase = await createClient();
   const { error } = await supabase
     .from("customers")
     .update({
@@ -1213,19 +1213,10 @@ export async function updateCustomerLocation(input: {
 export async function toggleFavorite(
   merchantId: string
 ): Promise<{ favorite: boolean; error?: "auth" | "other" }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { favorite: false, error: "auth" };
-
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const customer = await getCurrentCustomer();
   if (!customer) return { favorite: false, error: "auth" };
 
+  const supabase = await createClient();
   const { data: existing } = await supabase
     .from("customer_favorites")
     .select("id")

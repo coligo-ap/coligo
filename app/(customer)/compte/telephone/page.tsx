@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/session";
+import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { isValidContactPhone } from "@/lib/dz/phone";
 import { PhoneGateForm } from "@/components/customer/phone-gate-form";
 
@@ -22,17 +23,10 @@ export default async function PhoneGatePage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const next = safeNext((await searchParams).next);
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/se-connecter");
 
-  const { data: cust } = await supabase
-    .from("customers")
-    .select("full_name, email, phone")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const cust = await getCurrentCustomerFull();
   // Pas un client (commerçant) → vers son espace.
   if (!cust) redirect("/dashboard");
   // Numéro déjà valide → rien à faire ici.

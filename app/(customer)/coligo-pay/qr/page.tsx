@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/session";
+import { getCurrentMerchant } from "@/lib/auth/merchant";
+import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { WalletQrView } from "@/components/customer/wallet-qr-view";
 import {
   getMyPayHandle,
@@ -18,25 +20,10 @@ export default async function ColigoPayQrPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const tab = (await searchParams).tab === "recv" ? "recv" : "pay";
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/se-connecter?next=/coligo-pay/qr");
+  if (!(await getAuthUser())) redirect("/se-connecter?next=/coligo-pay/qr");
+  if (await getCurrentMerchant()) redirect("/dashboard");
 
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (merchant) redirect("/dashboard");
-
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("full_name")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
+  const customer = await getCurrentCustomerFull();
   const name = customer?.full_name ?? "Coligo";
 
   // Handle de réception STABLE (code unique, généré au 1er appel) encodé dans le

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCustomer } from "@/lib/auth/customer";
 import { computeCart, type EnginePromotion } from "@/lib/promotions/engine";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import {
@@ -297,15 +298,7 @@ export async function fetchCheckoutContext(
       .eq("id", true)
       .maybeSingle(),
     (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return { data: [] };
-      const { data: customer } = await supabase
-        .from("customers")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const customer = await getCurrentCustomer();
       if (!customer) return { data: [] };
       return supabase
         .from("customer_addresses")

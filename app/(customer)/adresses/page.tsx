@@ -4,25 +4,18 @@ import { getTranslations } from "next-intl/server";
 import { ArrowLeft } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCustomer } from "@/lib/auth/customer";
 import { AddressesPanel } from "@/components/customer/addresses-panel";
 
 export const dynamic = "force-dynamic";
 
 export default async function AddressesPage() {
   const t = await getTranslations("account");
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/se-connecter");
-
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // Session mémoïsée (partagée avec CustomerShell → pas de double auth).
+  const customer = await getCurrentCustomer();
   if (!customer) redirect("/se-connecter");
 
+  const supabase = await createClient();
   const { data: addresses } = await supabase
     .from("customer_addresses")
     .select("id, label, lat, lng, address_text, phone_override, is_default")
