@@ -508,10 +508,10 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             type="button"
             onClick={() => setMini((m) => !m)}
             aria-label={mini ? tr("Ouvrir", "فتح") : tr("Fermer", "إغلاق")}
-            className="absolute end-0 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-sm"
+            className="absolute end-0 top-1/2 grid size-[30px] -translate-y-1/2 place-items-center rounded-full bg-[var(--d-soft)] transition-colors"
           >
             <ChevronUp
-              className="size-[18px] text-[var(--d-muted)] transition-transform duration-300"
+              className="size-[17px] text-[var(--d-muted)] transition-transform duration-300"
               style={{ transform: mini ? undefined : "rotate(180deg)" }}
             />
           </button>
@@ -576,83 +576,66 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           </span>
         </button>
 
-        {/* ── Finance bar : gains du jour + solde ── */}
-        <div className="mt-2 flex gap-1.5">
+        {/* ── Finance : gains du jour + solde (2 cartes épurées) ── */}
+        <div className="mt-2.5 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => router.push("/chauffeur/gains")}
-            className="relative flex flex-1 items-center gap-2.5 overflow-hidden rounded-[14px] px-3 py-2.5 text-left text-white"
-            style={{
-              background: `linear-gradient(135deg,#7B7BF0,${VIOLET} 48%,#4646C8)`,
-              boxShadow: "0 10px 24px -10px rgba(108,43,217,.45)",
-            }}
+            className="flex flex-col gap-0.5 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3 text-left"
           >
-            <span className="relative z-[1] min-w-0">
-              <span className="block text-[9.5px] font-semibold opacity-80">
-                {tr("Gains du jour", "أرباح اليوم")}
-              </span>
-              <span className="drive-sora block text-[17px] leading-tight font-extrabold tracking-[-0.5px]">
-                {formatDA(home?.todayNet ?? 0)}
-              </span>
-              <span className="block text-[9px] opacity-75">
-                {home?.todayRides ?? 0} {tr("courses", "رحلة")} ·{" "}
-                {fmtOnline(home?.todayOnlineMin ?? 0)}
-              </span>
+            <span className="text-[11px] font-medium text-[var(--d-muted)]">
+              {tr("Gains du jour", "أرباح اليوم")}
             </span>
-            <span className="relative z-[1] ml-auto grid size-[22px] shrink-0 place-items-center rounded-full bg-white/20">
-              <ChevronRight className="size-3.5" />
+            <span className="drive-sora text-[18px] leading-none font-extrabold tracking-[-0.5px]">
+              {formatDA(home?.todayNet ?? 0)}
+            </span>
+            <span className="mt-0.5 text-[10px] text-[var(--d-muted)]">
+              {home?.todayRides ?? 0} {tr("courses", "رحلة")} ·{" "}
+              {fmtOnline(home?.todayOnlineMin ?? 0)}
             </span>
           </button>
 
           <button
             type="button"
             onClick={() => router.push("/chauffeur/recharger")}
-            className="flex min-w-[94px] flex-col items-center justify-center gap-0.5 rounded-[14px] px-2.5 py-2"
-            style={
-              lowBalance
-                ? {
-                    background: "rgba(255,45,122,.07)",
-                    border: "1px solid rgba(255,45,122,.18)",
-                  }
-                : {
-                    background: "var(--d-soft)",
-                    border: "1px solid var(--d-line)",
-                  }
-            }
+            className="flex flex-col gap-0.5 rounded-[14px] border p-3 text-left"
+            style={{
+              borderColor: lowBalance ? "rgba(229,72,77,.25)" : "var(--d-line)",
+              background: lowBalance
+                ? "rgba(229,72,77,.05)"
+                : "var(--d-surface)",
+            }}
           >
-            <Wallet
-              className="size-3.5"
-              style={{ color: lowBalance ? "#FF2D7A" : VIOLET }}
-            />
-            <span className="text-[8.5px] font-semibold text-[var(--d-muted)]">
+            <span
+              className="flex items-center gap-1.5 text-[11px] font-medium"
+              style={{ color: lowBalance ? RED : "var(--d-muted)" }}
+            >
+              <Wallet className="size-3.5" />
               {tr("Solde", "الرصيد")}
             </span>
             <span
-              className="drive-sora text-[12.5px] font-extrabold"
-              style={{ color: lowBalance ? "#FF2D7A" : "var(--d-ink)" }}
+              className="drive-sora text-[18px] leading-none font-extrabold tracking-[-0.5px]"
+              style={{ color: lowBalance ? RED : "var(--d-ink)" }}
             >
               {balance == null ? "…" : formatDA(balance)}
             </span>
-            {lowBalance && (
-              <span
-                className="mt-0.5 rounded-[7px] px-2 py-0.5 text-[9px] font-bold text-white"
-                style={{ background: "#FF2D7A" }}
-              >
-                {tr("Recharger", "اشحن")}
-              </span>
-            )}
+            <span
+              className="mt-0.5 text-[10px]"
+              style={{ color: lowBalance ? RED : "var(--d-muted)" }}
+            >
+              {lowBalance
+                ? tr("Recharger le portefeuille", "اشحن المحفظة")
+                : tr("Portefeuille opérateur", "محفظة المشغّل")}
+            </span>
           </button>
         </div>
 
-        {/* ── Préférences : domicile (+ filtre direction) · zone ── */}
-        <div className="mt-2 flex gap-1.5">
-          {/* Domicile : éditer (tap) + filtre direction (switch) */}
-          <div
-            className="flex flex-1 items-center gap-2 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)] px-2.5 py-2"
-            style={{ background: "#F4F2FE" }}
-          >
-            <span className="grid size-6 shrink-0 place-items-center rounded-[7px] bg-[var(--d-surface)]">
-              <Home className="size-3" style={{ color: VIOLET }} />
+        {/* ── Options — liste épurée (icône · libellé · valeur) ── */}
+        <div className="mt-2.5 overflow-hidden rounded-[14px] border border-[var(--d-line)]">
+          {/* Rentrer chez moi (+ filtre direction) */}
+          <div className="flex items-center gap-3 px-3.5 py-2.5">
+            <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+              <Home className="size-4" style={{ color: VIOLET }} />
             </span>
             <button
               type="button"
@@ -663,17 +646,14 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               }}
               className="min-w-0 flex-1 text-start"
             >
-              <b
-                className="block truncate text-[10px] leading-tight"
-                style={{ color: VIOLET }}
-              >
+              <b className="block text-[13px] font-semibold">
                 {tr("Rentrer chez moi", "العودة للمنزل")}
               </b>
-              <span className="flex items-center gap-1 truncate text-[8.5px] text-[var(--d-muted)]">
+              <span className="flex items-center gap-1 truncate text-[11px] text-[var(--d-muted)]">
                 <span className="truncate">
                   {homeAddr ?? tr("Définir l'adresse", "تحديد العنوان")}
                 </span>
-                <Pencil className="size-2 shrink-0" />
+                <Pencil className="size-2.5 shrink-0" />
               </span>
             </button>
             <button
@@ -682,84 +662,90 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               aria-checked={dirOn}
               aria-label={tr("Filtre domicile", "فلتر المنزل")}
               onClick={toggleDir}
-              className="relative h-[19px] w-8 shrink-0 rounded-full transition-colors"
-              style={{ background: dirOn ? VIOLET : "#E2E0EC" }}
+              className="relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors"
+              style={{ background: dirOn ? VIOLET : "#D6D9E2" }}
             >
               <span
-                className="absolute top-[2px] size-[15px] rounded-full bg-white shadow transition-all"
-                style={{ insetInlineStart: dirOn ? 15 : 2 }}
+                className="absolute top-[2px] size-[18px] rounded-full bg-white shadow transition-all"
+                style={{ insetInlineStart: dirOn ? 18 : 2 }}
               />
             </button>
           </div>
 
-          {/* Zone de travail : ouvre le volet carte */}
+          <div className="mx-3.5 h-px bg-[var(--d-line)]" />
+
+          {/* Ma zone */}
           <button
             type="button"
             onClick={() => setZoneOpen(true)}
-            className="flex flex-1 items-center gap-2 rounded-[12px] border border-[var(--d-line)] px-2.5 py-2 text-start"
+            className="flex w-full items-center gap-3 px-3.5 py-2.5 text-start"
           >
-            <span className="grid size-6 shrink-0 place-items-center rounded-[7px] bg-[#F1E9FC]">
-              <Crosshair className="size-3" style={{ color: VIOLET }} />
+            <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+              <Crosshair className="size-4" style={{ color: VIOLET }} />
             </span>
             <span className="min-w-0 flex-1">
-              <b className="block text-[10px] leading-tight">
-                {tr("Ma zone", "منطقتي")} · {searchRadius} km
+              <b className="block text-[13px] font-semibold">
+                {tr("Ma zone", "منطقتي")}
               </b>
-              <span className="block truncate text-[8.5px] text-[var(--d-muted)]">
-                {tr("Autour de moi", "حولي")}
+              <span className="block truncate text-[11px] text-[var(--d-muted)]">
+                {searchRadius} km · {tr("autour de moi", "حولي")}
               </span>
             </span>
-            <ChevronRight className="size-3 shrink-0 text-[var(--d-muted)]" />
+            <ChevronRight className="size-4 shrink-0 text-[var(--d-muted)]" />
           </button>
-        </div>
 
-        {/* Gamme (info) — ligne fine */}
-        <div className="mt-2 flex items-center gap-2 rounded-[12px] bg-[var(--d-soft)] px-3 py-2">
-          <Car className="size-3.5 shrink-0" style={{ color: VIOLET }} />
-          <span className="truncate text-[11px] font-semibold text-[var(--d-muted)]">
-            {tr("Gamme", "الفئة")}{" "}
-            <b className="text-[var(--d-ink)]">{GAMME_LABEL[gate.gamme]}</b>
-            <span>
-              {" · "}
+          <div className="mx-3.5 h-px bg-[var(--d-line)]" />
+
+          {/* Abonnement */}
+          <button
+            type="button"
+            onClick={() => router.push("/chauffeur/abonnement")}
+            className="flex w-full items-center gap-3 px-3.5 py-2.5 text-start"
+          >
+            <PlanIcon plan={home?.plan ?? "free"} />
+            <span className="min-w-0 flex-1">
+              <b className="block text-[13px] font-semibold">
+                {tr("Abonnement", "الاشتراك")} ·{" "}
+                {planLabel(home?.plan ?? "free")}
+              </b>
+              <span className="block truncate text-[11px] text-[var(--d-muted)]">
+                {home?.plan === "premium"
+                  ? tr(
+                      "0 % de commission · priorité dispatch",
+                      "0٪ عمولة · أولوية في التوزيع"
+                    )
+                  : home?.plan === "pro"
+                    ? `${tr("Commission", "عمولة")} ${fmtPct(home.planRate)} · 1 500 DA/${tr("mois", "شهر")}`
+                    : tr(
+                        "Commission 8 % · passez en Premium = 0 %",
+                        "عمولة 8٪ · انتقل إلى بريميوم = 0٪"
+                      )}
+              </span>
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-[var(--d-muted)]" />
+          </button>
+
+          <div className="mx-3.5 h-px bg-[var(--d-line)]" />
+
+          {/* Gamme (info, non cliquable) */}
+          <div className="flex items-center gap-3 px-3.5 py-2.5">
+            <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+              <Car className="size-4" style={{ color: VIOLET }} />
+            </span>
+            <span className="min-w-0 flex-1 text-[11.5px] text-[var(--d-muted)]">
+              {tr("Gamme", "الفئة")}{" "}
+              <b className="text-[var(--d-ink)]">{GAMME_LABEL[gate.gamme]}</b> ·{" "}
               {tr("reçoit", "يستقبل")} {GAMME_RECEIVES[gate.gamme]}
             </span>
-          </span>
+          </div>
         </div>
 
         {/* Retour d'activation du filtre domicile (compte d'activations). */}
         {dirMsg && (
-          <p className="mt-2 px-1 text-[10.5px] text-[var(--d-muted)]">
+          <p className="mt-2 px-1 text-[11px] text-[var(--d-muted)]">
             {dirMsg}
           </p>
         )}
-
-        {/* Carte abonnement */}
-        <button
-          type="button"
-          onClick={() => router.push("/chauffeur/abonnement")}
-          className="mt-2 flex w-full items-center gap-2.5 rounded-[15px] border border-[var(--d-line)] p-3 text-left"
-        >
-          <PlanIcon plan={home?.plan ?? "free"} />
-          <span className="min-w-0 flex-1">
-            <b className="block text-[13.5px]">
-              {tr("Abonnement", "الاشتراك")} : {planLabel(home?.plan ?? "free")}
-            </b>
-            <span className="text-[11px] text-[var(--d-muted)]">
-              {home?.plan === "premium"
-                ? tr(
-                    "0 % de commission · priorité dispatch",
-                    "0٪ عمولة · أولوية في التوزيع"
-                  )
-                : home?.plan === "pro"
-                  ? `${tr("Commission", "عمولة")} ${fmtPct(home.planRate)} · 1 500 DA/${tr("mois", "شهر")}`
-                  : tr(
-                      "Commission 8 % · passez en Premium = 0 %",
-                      "عمولة 8٪ · انتقل إلى بريميوم = 0٪"
-                    )}
-            </span>
-          </span>
-          <ChevronRight className="size-4 shrink-0 text-[var(--d-muted)]" />
-        </button>
 
         {/* Voir les demandes (raccourci quand en ligne) */}
         {online && (
