@@ -45,6 +45,13 @@ import { HOME_DIR_KEY, isTowardsHome } from "@/lib/drive/geo";
 
 const AMBER = "#F59E0B";
 
+// Cache module (SWR) : dernière liste de demandes connue. Au RETOUR sur l'écran
+// Drive, on l'affiche INSTANTANÉMENT (pas de loader, pas d'écran « vide ») ; le
+// poll/temps réel rafraîchit en ARRIÈRE-PLAN. Le shell statique (titre, filtres,
+// onglets) n'attend jamais. Survit aux navigations (niveau module), vidé à la
+// fermeture de l'onglet.
+let lastNearbyCache: NearbyRide[] = [];
+
 const fmtkm = (v: number) =>
   `${(Math.round(v * 10) / 10).toString().replace(".", ",")} km`;
 const ago = (iso: string) => {
@@ -127,8 +134,9 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   // À L'ÉCOUTE seulement si EN LIGNE (intention partagée avec l'accueil).
   const online = useChauffeurOnline();
   const [goingOnline, setGoingOnline] = useState(false);
-  const [reqs, setReqs] = useState<NearbyRide[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Initialisé depuis le cache module → affichage instantané au retour (SWR).
+  const [reqs, setReqs] = useState<NearbyRide[]>(lastNearbyCache);
+  const [loading, setLoading] = useState(lastNearbyCache.length === 0);
   const [tab, setTab] = useState<"demandes" | "proposed">("demandes");
   const [sort, setSort] = useState<"near" | "pay" | "recent">("near");
   const [compact, setCompact] = useState(false);
@@ -195,6 +203,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
         router.replace("/chauffeur/course");
         return;
       }
+      lastNearbyCache = list; // alimente le cache SWR
       setReqs(list);
       setLoading(false);
     } finally {

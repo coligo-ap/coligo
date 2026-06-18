@@ -67,6 +67,11 @@ const GAMME_RECEIVES: Record<string, string> = {
   moto: "Moto",
 };
 
+// Cache module (SWR) : dernières données d'accueil (gains, heatmap, plan…). Au
+// RETOUR sur l'accueil, elles s'affichent INSTANTANÉMENT (plus d'attente du
+// tick) ; le rafraîchissement se fait en arrière-plan.
+let lastDriveHomeCache: DriveHome | null = null;
+
 /**
  * Accueil chauffeur (maquette v13 « accueil chauffeur ») : carte + heatmap,
  * bouton GO animé (mise en ligne), finance bar (gains du jour + solde), prefs
@@ -93,7 +98,8 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
       ? { free: "مجاني", pro: "Pro", premium: "Premium" }[plan]
       : PLAN_LABEL[plan];
   const coords = useDriverPosition();
-  const [home, setHome] = useState<DriveHome | null>(null);
+  // Initialisé depuis le cache module → affichage instantané au retour (SWR).
+  const [home, setHome] = useState<DriveHome | null>(lastDriveHomeCache);
   const [mini, setMini] = useState(false);
   const [dirOn, setDirOn] = useState(false);
   useEffect(() => {
@@ -191,6 +197,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         router.replace("/chauffeur/course");
         return;
       }
+      lastDriveHomeCache = h; // alimente le cache SWR
       setHome(h);
       setNearby(onlineRef.current ? list : []);
     } finally {
