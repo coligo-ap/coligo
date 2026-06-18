@@ -145,6 +145,10 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const searchRadius = useSearchRadius();
   const radiusRef = useRef(searchRadius);
   radiusRef.current = searchRadius;
+  // Anti-chevauchement : on ne lance PAS un nouveau poll si le précédent n'est
+  // pas terminé. Sans cette garde, sous contention DB les Server Actions
+  // (sérialisées par Next) s'empilent → file engorgée → écrans très lents.
+  const pollBusy = useRef(false);
   useEffect(() => {
     void getChauffeurPlanRate().then(setPlanRate);
   }, []);
@@ -175,27 +179,35 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   }, []);
 
   const poll = useCallback(async () => {
+    if (pollBusy.current) return; // le précédent tourne encore → on saute
     const c = coordsRef.current;
     if (!c) return;
-    // Heartbeat « en ligne » UNIQUEMENT quand on poll (donc en ligne) → hors
-    // ligne, la présence reste à false et le chauffeur n'est pas dispatché.
-    void chauffeurHeartbeat(c.latitude, c.longitude, true);
-    const [list, active] = await Promise.all([
-      getNearbyRides(c.latitude, c.longitude, radiusRef.current),
-      getChauffeurActiveRide(),
-    ]);
-    if (active) {
-      router.replace("/chauffeur/course");
-      return;
+    pollBusy.current = true;
+    try {
+      // Heartbeat « en ligne » UNIQUEMENT quand on poll (donc en ligne) → hors
+      // ligne, la présence reste à false et le chauffeur n'est pas dispatché.
+      void chauffeurHeartbeat(c.latitude, c.longitude, true);
+      const [list, active] = await Promise.all([
+        getNearbyRides(c.latitude, c.longitude, radiusRef.current),
+        getChauffeurActiveRide(),
+      ]);
+      if (active) {
+        router.replace("/chauffeur/course");
+        return;
+      }
+      setReqs(list);
+      setLoading(false);
+    } finally {
+      pollBusy.current = false;
     }
-    setReqs(list);
-    setLoading(false);
   }, [router]);
-  // GATÉ sur l'état en ligne : hors ligne, AUCUN poll (pas d'écoute).
+  // GATÉ sur l'état en ligne : hors ligne, AUCUN poll (pas d'écoute). Filet à
+  // 12 s — le temps réel (canal ci-dessous) assure l'instantané des nouvelles
+  // demandes ; inutile de marteler la base toutes les 5 s.
   useEffect(() => {
     if (!online) return;
     void poll();
-    const id = setInterval(poll, 5000);
+    const id = setInterval(poll, 12000);
     return () => clearInterval(id);
   }, [poll, online]);
   const gotFirstFix = useRef(false);

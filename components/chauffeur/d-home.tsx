@@ -167,25 +167,35 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   // ne re-poppent plus, mais restent disponibles dans l'écran Drive.
   const seenRef = useRef<Set<string>>(new Set());
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Anti-chevauchement : pas de nouveau tick si le précédent n'est pas fini
+  // (sinon, sous contention, les Server Actions sérialisées s'empilent → lag).
+  const tickBusy = useRef(false);
 
   // Présence (en ligne) + rafraîchissement accueil + détection course active +
   // récupération des demandes proches (pour le popup + le compteur).
   const tick = useCallback(async () => {
+    if (tickBusy.current) return;
     const c = coordsRef.current;
-    if (c) void chauffeurHeartbeat(c.latitude, c.longitude, onlineRef.current);
-    const [h, active, list] = await Promise.all([
-      getDriveHome(c?.latitude ?? null, c?.longitude ?? null),
-      getChauffeurActiveRide(),
-      onlineRef.current && c
-        ? getNearbyRides(c.latitude, c.longitude, radiusRef.current)
-        : Promise.resolve([] as NearbyRide[]),
-    ]);
-    if (active) {
-      router.replace("/chauffeur/course");
-      return;
+    tickBusy.current = true;
+    try {
+      if (c)
+        void chauffeurHeartbeat(c.latitude, c.longitude, onlineRef.current);
+      const [h, active, list] = await Promise.all([
+        getDriveHome(c?.latitude ?? null, c?.longitude ?? null),
+        getChauffeurActiveRide(),
+        onlineRef.current && c
+          ? getNearbyRides(c.latitude, c.longitude, radiusRef.current)
+          : Promise.resolve([] as NearbyRide[]),
+      ]);
+      if (active) {
+        router.replace("/chauffeur/course");
+        return;
+      }
+      setHome(h);
+      setNearby(onlineRef.current ? list : []);
+    } finally {
+      tickBusy.current = false;
     }
-    setHome(h);
-    setNearby(onlineRef.current ? list : []);
   }, [router]);
   useEffect(() => {
     void tick();
