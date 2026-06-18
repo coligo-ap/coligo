@@ -1247,9 +1247,19 @@ export type ChauffeurHistoryRide = {
   cancelled_by: string | null;
 };
 
-export async function getChauffeurHistory(): Promise<ChauffeurHistoryRide[]> {
+/**
+ * Historique paginé des courses (terminées + annulées), trié du plus récent au
+ * plus ancien. Pagination par PLAGE (offset/limit) pour charger les mois plus
+ * anciens à la demande côté UI (accordéon par mois). `limit` borné à 100.
+ */
+export async function getChauffeurHistory(
+  offset = 0,
+  limit = 60
+): Promise<ChauffeurHistoryRide[]> {
   const ch = await getCurrentChauffeur();
   if (!ch) return [];
+  const from = Math.max(0, offset);
+  const to = from + Math.min(100, Math.max(1, limit)) - 1;
   const admin = createAdminClient();
   const { data } = await admin
     .from("rides")
@@ -1259,7 +1269,7 @@ export async function getChauffeurHistory(): Promise<ChauffeurHistoryRide[]> {
     .eq("chauffeur_id", ch.id)
     .in("status", ["completed", "cancelled"])
     .order("created_at", { ascending: false })
-    .limit(40);
+    .range(from, to);
   return (data ?? []).map((r) => {
     const cu = r.customers as unknown as { full_name: string } | null;
     return {
