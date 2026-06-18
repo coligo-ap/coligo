@@ -1203,7 +1203,7 @@ export async function setChauffeurHome(
     return {
       ok: false,
       nextAllowed: row.next_allowed,
-      error: `Adresse modifiable 1 fois par semaine (anti-fraude)${when ? ` — prochain changement possible le ${when}` : ""}.`,
+      error: `Adresse modifiable 3 fois par semaine (anti-fraude)${when ? ` — prochain changement possible le ${when}` : ""}.`,
     };
   }
   return { ok: false, error: row?.reason ?? "Échec." };

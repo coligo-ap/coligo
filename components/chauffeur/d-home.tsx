@@ -788,8 +788,8 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               />
               <p className="mt-2 text-[11px] text-[var(--d-muted)]">
                 {tr(
-                  "⚠️ Anti-fraude : l'adresse domicile est modifiable 1 fois par semaine (correction libre pendant 15 min après un changement).",
-                  "⚠️ لمكافحة الاحتيال: عنوان المنزل قابل للتعديل مرة واحدة في الأسبوع (تصحيح حر خلال 15 دقيقة بعد التغيير)."
+                  "⚠️ Anti-fraude : l'adresse domicile est modifiable 3 fois par semaine (correction libre pendant 15 min après un changement).",
+                  "⚠️ لمكافحة الاحتيال: عنوان المنزل قابل للتعديل 3 مرات في الأسبوع (تصحيح حر خلال 15 دقيقة بعد التغيير)."
                 )}
               </p>
               {homeErr && (

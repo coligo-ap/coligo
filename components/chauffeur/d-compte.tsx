@@ -189,22 +189,6 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         </StatusChip>
       </div>
 
-      {/* Stats en haut (déjà chargées → aucun coût serveur en plus). Tap = détail. */}
-      <div className="mb-4 grid grid-cols-2 gap-2">
-        <StatCard
-          label="Aujourd'hui"
-          value={fin ? formatDA(fin.todayNet) : "…"}
-          sub={`${fin?.todayRides ?? 0} courses`}
-          onClick={() => router.push("/chauffeur/gains")}
-        />
-        <StatCard
-          label="Ce mois"
-          value={fin ? formatDA(fin.monthNet) : "…"}
-          sub={`${fin?.monthRides ?? 0} courses`}
-          onClick={() => router.push("/chauffeur/gains")}
-        />
-      </div>
-
       {/* ── Catégorie : Véhicule & documents ── */}
       <Section title="Véhicule & documents">
         <Row
@@ -500,35 +484,6 @@ function StatusChip({
       {icon}
       {children}
     </span>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  sub,
-  onClick,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex flex-col rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3 text-left"
-    >
-      <span className="flex items-center justify-between text-[11px] font-medium text-[var(--d-muted)]">
-        {label}
-        <ChevronRight className="size-3.5 opacity-60" />
-      </span>
-      <span className="drive-sora mt-0.5 text-[18px] leading-none font-extrabold tracking-[-0.5px]">
-        {value}
-      </span>
-      <span className="mt-0.5 text-[10px] text-[var(--d-muted)]">{sub}</span>
-    </button>
   );
 }
 

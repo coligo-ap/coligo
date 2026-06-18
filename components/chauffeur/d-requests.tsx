@@ -137,7 +137,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const [reqs, setReqs] = useState<NearbyRide[]>(lastNearbyCache);
   const [loading, setLoading] = useState(lastNearbyCache.length === 0);
   const [tab, setTab] = useState<"demandes" | "proposed">("demandes");
-  const [sort, setSort] = useState<"near" | "pay" | "recent">("near");
+  const [sort, setSort] = useState<"near" | "pay">("near");
   const [compact, setCompact] = useState(false);
   const [myPrices, setMyPrices] = useState<Record<string, number>>({});
   const [sent, setSent] = useState<Record<string, number>>({});
@@ -344,11 +344,6 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const demandes = reqs.filter((q) => !isProposed(q) && inDirection(q));
   const proposed = reqs.filter((q) => isProposed(q));
   if (sort === "pay") demandes.sort((a, b) => total(b) - total(a));
-  else if (sort === "recent")
-    demandes.sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
   else demandes.sort((a, b) => a.pickup_dist_km - b.pickup_dist_km);
   demandes.sort(
     (a, b) => Number(b.boost_amount_da > 0) - Number(a.boost_amount_da > 0)
@@ -486,8 +481,8 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   /* ── Liste des demandes / propositions ── */
   return (
     <div className="drive-jakarta drive-page flex min-h-screen flex-col bg-[var(--d-surface)] pb-24">
-      {/* En-tête */}
-      <div className="px-[18px] pt-[52px]">
+      {/* En-tête (remonté pour gagner de la place en bas) */}
+      <div className="px-[18px] pt-[28px]">
         <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
           Demandes de courses
         </h1>
@@ -497,13 +492,12 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
           {demandes.length > 1 ? "s" : ""}
         </p>
 
-        {/* Filtres */}
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        {/* Filtres — compacts, sur une seule ligne */}
+        <div className="mt-2 flex items-center gap-1.5">
           {(
             [
               ["near", "Plus proches"],
               ["pay", "Mieux payées"],
-              ["recent", "Récentes"],
             ] as const
           ).map(([k, label]) => (
             <button
