@@ -1,10 +1,15 @@
+"use client";
+
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import { Logo } from "@/components/shared/logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
-export async function CustomerFooter() {
-  const t = await getTranslations("footer");
+// Client Component : rendu par CustomerChrome (client) → useTranslations, JAMAIS
+// getTranslations (réservé aux Server Components — sinon « not supported in
+// Client Components » → 500 sur toutes les pages client).
+export function CustomerFooter() {
+  const t = useTranslations("footer");
   return (
     <footer className="border-border mt-12 hidden border-t bg-white lg:block">
       <div className="mx-auto grid max-w-[1400px] gap-10 px-6 py-10 lg:grid-cols-5">
