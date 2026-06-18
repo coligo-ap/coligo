@@ -403,6 +403,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         heatZones={home?.heatZones ?? []}
         focusTarget={focusMe}
         follow
+        // Conserve l'instance MapLibre entre les visites de l'accueil : pas de
+        // recréation du contexte WebGL → retour sur l'accueil immédiat.
+        keepAlive
         // Réserve la zone basse occupée par la feuille → le point « moi » est
         // centré dans la partie VISIBLE de la carte (au-dessus de la feuille),
         // et s'ajuste quand on réduit/agrandit la feuille.

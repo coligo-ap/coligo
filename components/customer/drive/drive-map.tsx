@@ -55,6 +55,22 @@ function loadMapStyle(url: string): Promise<unknown | null> {
 // Scopé à `follow` pour ne pas affecter les cartes route/sélection (client).
 let lastFollowCam: { lng: number; lat: number; zoom: number } | null = null;
 
+// Keep-alive (accueil chauffeur) : on CONSERVE l'instance MapLibre + son canvas
+// WebGL d'une visite à l'autre, dans un conteneur détachable réattaché au
+// montage. Évite de détruire/recréer le contexte WebGL (coûteux ~0,5-1 s) à
+// chaque retour sur l'accueil. Scopé aux cartes `keepAlive` (une seule à la fois
+// par session : l'accueil chauffeur), donc sans effet sur les cartes client.
+let keptMap: maplibregl.Map | null = null;
+let keptContainer: HTMLDivElement | null = null;
+// Callback `onMove` courant pour la carte conservée (le handler `moveend` est
+// lié une seule fois → on passe par cette réf mutable pour ne pas appeler un
+// callback périmé après un remontage).
+const keptOnMove: {
+  current: ((c: { lat: number; lng: number }) => void) | undefined;
+} = {
+  current: undefined,
+};
+
 export type LatLng = { lat: number; lng: number };
 
 type Marker = { id: string; pos: LatLng; kind: "me" | "car" | "pin" };
@@ -70,6 +86,7 @@ export function DriveMap({
   follow = false,
   className,
   padding = { top: 120, bottom: 340, left: 40, right: 40 },
+  keepAlive = false,
 }: {
   markers: Marker[];
   /** Tracé course (violet plein) : liste de points [départ → arrivée]. */
@@ -97,6 +114,11 @@ export function DriveMap({
   follow?: boolean;
   className?: string;
   padding?: { top: number; bottom: number; left: number; right: number };
+  /**
+   * Conserve l'instance MapLibre entre les montages (accueil chauffeur) : le
+   * canvas WebGL n'est pas recréé au retour sur la page → affichage immédiat.
+   */
+  keepAlive?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -126,14 +148,52 @@ export function DriveMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusTarget, ready]);
 
+  // Garde `keptOnMove` à jour pour la carte conservée (accueil chauffeur).
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (keepAlive) keptOnMove.current = onMove;
+  }, [keepAlive, onMove]);
+
+  useEffect(() => {
+    const wrapper = containerRef.current;
+    if (!wrapper) return;
     let disposed = false;
     const timers: ReturnType<typeof setTimeout>[] = [];
+
+    // ── Réutilisation keep-alive : on ré-attache l'instance conservée ──────
+    if (keepAlive && keptMap && keptContainer) {
+      wrapper.appendChild(keptContainer);
+      mapRef.current = keptMap;
+      setReady(true);
+      timers.push(setTimeout(() => keptMap?.resize(), 60));
+      timers.push(setTimeout(() => keptMap?.resize(), 300));
+      return () => {
+        disposed = true;
+        timers.forEach(clearTimeout);
+        markerObjs.current.forEach((m) => m.remove());
+        markerObjs.current.clear();
+        // Détache SANS détruire (la carte survit pour la prochaine visite).
+        if (keptContainer && keptContainer.parentNode === wrapper) {
+          wrapper.removeChild(keptContainer);
+        }
+        mapRef.current = null;
+      };
+    }
+
     void import("maplibre-gl").then(async (maplibre) => {
       const { Map } = maplibre;
       ensureRtlPlugin(maplibre);
       if (disposed || !containerRef.current) return;
+      // Conteneur de la carte : pour le keep-alive on crée un enfant DÉTACHABLE
+      // (conservé entre les visites) ; sinon on utilise directement le wrapper.
+      let target: HTMLElement = containerRef.current;
+      if (keepAlive) {
+        const el = document.createElement("div");
+        el.style.height = "100%";
+        el.style.width = "100%";
+        containerRef.current.appendChild(el);
+        target = el;
+        keptContainer = el;
+      }
       const first = markers[0]?.pos ?? { lat: 36.7538, lng: 3.0588 };
       // Vue initiale : caméra de suivi mémorisée (pas de re-zoom au retour) ou
       // 1er marqueur à un zoom par défaut.
@@ -156,7 +216,7 @@ export function DriveMap({
       if (disposed || !containerRef.current) return;
       try {
         map = new Map({
-          container: containerRef.current,
+          container: target,
           style: (cachedStyle ?? styleUrl) as never,
           center: initCenter,
           zoom: initZoom,
@@ -166,6 +226,7 @@ export function DriveMap({
         return;
       }
       mapRef.current = map;
+      if (keepAlive) keptMap = map;
       if (!interactive) {
         map.dragPan.disable();
         map.scrollZoom.disable();
@@ -188,7 +249,12 @@ export function DriveMap({
         if (follow) {
           lastFollowCam = { lng: c.lng, lat: c.lat, zoom: map.getZoom() };
         }
-        onMoveRef.current?.({ lat: c.lat, lng: c.lng });
+        // Carte conservée : passer par la réf mutable (le handler est lié une
+        // seule fois mais le composant se remonte avec un nouveau `onMove`).
+        (keepAlive ? keptOnMove.current : onMoveRef.current)?.({
+          lat: c.lat,
+          lng: c.lng,
+        });
       });
       const reveal = () => {
         if (disposed) return;
@@ -210,8 +276,17 @@ export function DriveMap({
       timers.forEach(clearTimeout);
       markerObjs.current.forEach((m) => m.remove());
       markerObjs.current.clear();
-      mapRef.current?.remove();
-      mapRef.current = null;
+      if (keepAlive) {
+        // Détache le conteneur conservé sans détruire la carte (réutilisée à la
+        // prochaine visite). Si la création n'a pas encore eu lieu, rien à faire.
+        if (keptContainer && keptContainer.parentNode) {
+          keptContainer.parentNode.removeChild(keptContainer);
+        }
+        mapRef.current = null;
+      } else {
+        mapRef.current?.remove();
+        mapRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
