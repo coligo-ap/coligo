@@ -24,12 +24,16 @@ export async function CustomerShell({
   hideHeader?: boolean;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // PERF : l'auth et les feature flags sont indépendants → en parallèle (ce
+  // shell est rendu par CHAQUE page client, pas de layout partagé).
+  const [
+    {
+      data: { user },
+    },
+    flags,
+  ] = await Promise.all([supabase.auth.getUser(), getFeatureFlags()]);
 
   // Onglets retirés de la nav si la fonctionnalité est « masquée » (super-admin).
-  const flags = await getFeatureFlags();
   const hiddenKeys: string[] = [];
   if (flags.drive.status === "hidden") hiddenKeys.push("drive");
   if (flags.coligo_pay.status === "hidden") hiddenKeys.push("pay");

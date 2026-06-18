@@ -327,15 +327,16 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
   const ch = await getCurrentChauffeur();
   if (!ch) return null;
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("chauffeurs")
-    .select(
-      "id, full_name, first_name, phone, gamme, is_verified, is_frozen, is_blocked, frozen_reason, submitted_at, rejected_reason, home_addr_text, home_lat, home_lng, created_at, is_female_verified, vehicle_make, vehicle_model, vehicle_color, vehicle_plate, selfie_url"
-    )
-    .eq("id", ch.id)
-    .maybeSingle();
-  if (!data) return null;
-  const [{ data: avg }, { count }] = await Promise.all([
+  // PERF : 4 allers-retours indépendants (profil, note moyenne, nb courses,
+  // réglage tolérance) lancés EN PARALLÈLE au lieu d'une cascade séquentielle.
+  const [{ data }, { data: avg }, { count }, { data: st }] = await Promise.all([
+    admin
+      .from("chauffeurs")
+      .select(
+        "id, full_name, first_name, phone, gamme, is_verified, is_frozen, is_blocked, frozen_reason, submitted_at, rejected_reason, home_addr_text, home_lat, home_lng, created_at, is_female_verified, vehicle_make, vehicle_model, vehicle_color, vehicle_plate, selfie_url"
+      )
+      .eq("id", ch.id)
+      .maybeSingle(),
     admin
       .from("rides")
       .select("chauffeur_rating.avg()")
@@ -347,14 +348,17 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
       .select("id", { count: "exact", head: true })
       .eq("chauffeur_id", ch.id)
       .eq("status", "completed"),
+    admin
+      .from("platform_settings")
+      .select("drive_home_dir_tolerance_deg")
+      .eq("id", true)
+      .maybeSingle(),
   ]);
+  if (!data) return null;
   const rating = (avg as { avg?: number } | null)?.avg;
-  const { data: st } = await admin
-    .from("platform_settings")
-    .select("drive_home_dir_tolerance_deg")
-    .eq("id", true)
-    .maybeSingle();
   const tolerance = st?.drive_home_dir_tolerance_deg ?? 45;
+  // Signature de l'avatar (dépend de data.selfie_url → après le batch).
+  const avatarUrl = await signSelfiePath(data.selfie_url);
   return {
     id: data.id,
     firstName: data.first_name ?? data.full_name.split(" ")[0],
@@ -383,7 +387,7 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
         .filter(Boolean)
         .join(" · ") || null,
     plate: data.vehicle_plate,
-    avatarUrl: await signSelfiePath(data.selfie_url),
+    avatarUrl,
   };
 }
 
