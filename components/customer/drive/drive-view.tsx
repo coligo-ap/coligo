@@ -68,7 +68,6 @@ import {
   requestDriveRide,
   setSosContacts as saveSosContacts,
   type DriveActiveRide,
-  type DriveContext,
   type DriveQuote,
 } from "@/app/(customer)/drive/actions";
 import { joinZoneWaitlist } from "@/lib/zones/actions";
