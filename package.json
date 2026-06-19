@@ -40,7 +40,8 @@
     "test:drive:demo": "node scripts/test-drive-demo-e2e.mjs",
     "test:zones": "node scripts/test-zones.mjs",
     "test:slot:expiry": "node scripts/test-slot-expiry.mjs",
-    "test:pickup:expiry": "node --experimental-strip-types scripts/test-pickup-slot-expiry.mjs"
+    "test:pickup:expiry": "node --experimental-strip-types scripts/test-pickup-slot-expiry.mjs",
+    "test:slots": "npm run test:slot:expiry && npm run test:pickup:expiry"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
