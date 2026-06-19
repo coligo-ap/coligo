@@ -74,6 +74,7 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
       <WalletActions
         remaining30d={data?.remaining30d ?? 0}
         maxPerRecharge={data?.maxPerRecharge ?? 50000}
+        p2pEnabled={data?.p2pEnabled ?? false}
       />
 
       {/* Lien cashback épuré. */}

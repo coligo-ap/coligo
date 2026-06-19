@@ -1196,6 +1196,13 @@ export type Database = {
           vtc_per_km_da: number;
           vtc_min_da: number;
           vtc_commission_rate: number;
+          // SPEC-COLIGO-PAY (mig 0205)
+          tour_discount_rate: number;
+          cashback_consumption_estimate: number;
+          sub_priority_monthly_da: number;
+          sub_priority_first_month_da: number;
+          withdrawal_fee_tiers: Json;
+          p2p_enabled: boolean;
           updated_at: string;
         };
         Insert: {

@@ -14,6 +14,7 @@ export type ColigoPayData = {
   balance: number;
   remaining30d: number;
   maxPerRecharge: number;
+  p2pEnabled: boolean;
   history: CustomerWalletEntry[];
   payTag: MyPayHandle;
 };
@@ -32,10 +33,12 @@ export async function fetchColigoPayData(): Promise<ColigoPayData> {
   const supabase = await createClient();
   const { data: settings } = await supabase
     .from("platform_settings")
-    .select("max_topup_da_per_30d")
+    .select("max_topup_da_per_30d, p2p_enabled")
     .eq("id", true)
     .maybeSingle();
   const maxPerRecharge = settings?.max_topup_da_per_30d ?? 50000;
+  // ch.0.10 — P2P désactivé au lancement (réglementation Banque d'Algérie).
+  const p2pEnabled = settings?.p2p_enabled ?? false;
 
   const [balance, credited30d, history, payTag] = await Promise.all([
     getMyTopupBalance(),
@@ -50,6 +53,7 @@ export async function fetchColigoPayData(): Promise<ColigoPayData> {
     balance,
     remaining30d: Math.max(0, maxPerRecharge - credited30d),
     maxPerRecharge,
+    p2pEnabled,
     history,
     payTag,
   };

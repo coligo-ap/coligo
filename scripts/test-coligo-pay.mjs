@@ -52,6 +52,13 @@ async function main() {
   try {
     await c.query("BEGIN");
 
+    // ch.0.10 — En prod le P2P est désactivé (p2p_enabled=false). On l'active
+    // LOCALEMENT dans cette transaction (annulé au ROLLBACK) pour conserver la
+    // couverture e2e des transferts en vue d'une réactivation future.
+    await c.query(
+      "update platform_settings set p2p_enabled = true where id = true"
+    );
+
     // Solde déterministe : on crédite le sender de 5000 DA EN TANT QUE
     // PROPRIÉTAIRE (avant de passer en rôle authenticated, sinon la RLS
     // append-only bloque l'INSERT). Rollback à la fin → rien persisté.

@@ -22,9 +22,14 @@ import { TopupModal } from "@/components/customer/coligo-pay-card";
 export function WalletActions({
   remaining30d,
   maxPerRecharge,
+  p2pEnabled = false,
 }: {
   remaining30d: number;
   maxPerRecharge: number;
+  // ch.0.10 SPEC-COLIGO-PAY — P2P désactivé au lancement : Envoyer/Recevoir
+  // grisés (« Bientôt disponible ») tant que p2pEnabled est faux. Le paiement
+  // marchand (Payer) et la recharge restent actifs.
+  p2pEnabled?: boolean;
 }) {
   const t = useTranslations("wallet");
   const [open, setOpen] = useState(false);
@@ -42,12 +47,16 @@ export function WalletActions({
           primary
         />
         <Action
-          href="/coligo-pay/envoyer"
+          href={p2pEnabled ? "/coligo-pay/envoyer" : undefined}
+          disabled={!p2pEnabled}
+          soon={!p2pEnabled}
           icon={<Send className="size-[21px]" />}
           label={t("actionSend")}
         />
         <Action
-          href="/coligo-pay/qr?tab=recv"
+          href={p2pEnabled ? "/coligo-pay/qr?tab=recv" : undefined}
+          disabled={!p2pEnabled}
+          soon={!p2pEnabled}
           icon={<Plus className="size-[21px]" />}
           label={t("actionReceive")}
         />
@@ -80,6 +89,7 @@ function Action({
   href,
   onClick,
   disabled,
+  soon,
   icon,
   label,
   primary,
@@ -87,10 +97,12 @@ function Action({
   href?: string;
   onClick?: () => void;
   disabled?: boolean;
+  soon?: boolean;
   icon: React.ReactNode;
   label: string;
   primary?: boolean;
 }) {
+  const t = useTranslations("wallet");
   const inner = (
     <span className="flex flex-col items-center gap-1.5 rounded-[16px] py-2.5 transition active:scale-95">
       <span
@@ -105,9 +117,14 @@ function Action({
       <span className="text-foreground text-[11.5px] font-extrabold">
         {label}
       </span>
+      {soon && (
+        <span className="text-muted-foreground text-[9px] font-semibold">
+          {t("comingSoon")}
+        </span>
+      )}
     </span>
   );
-  if (href) {
+  if (href && !disabled) {
     return (
       <Link href={href} className="hover:bg-surface-2 rounded-[16px]">
         {inner}

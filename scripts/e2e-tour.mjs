@@ -313,7 +313,8 @@ try {
   await impersonateNone();
 
   const commOnline = Math.round(P * Number(rates.co));
-  const cb = Math.round(P * Number(rates.cbo));
+  // ch.4.2 — assiette cashback = produits NETS + frais de LIVRAISON (online : pas de plafond COD).
+  const cb = Math.round((P + D) * Number(rates.cbo));
   const chgRate = Number(
     (await c.query("SELECT chargily_fee FROM platform_settings WHERE id=true"))
       .rows[0].chargily_fee

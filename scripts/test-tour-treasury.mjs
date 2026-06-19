@@ -94,7 +94,8 @@ try {
   await c.query("UPDATE orders SET status='completed' WHERE id=$1", [o1]);
   const comm = Math.round(P * 0.08),
     tour = Math.round(D * 0.08),
-    cb = Math.round(P * 0.03);
+    // ch.4.2 — assiette cashback = produits NETS + frais de LIVRAISON (online : pas de plafond COD).
+    cb = Math.round((P + D) * 0.03);
   // Frais Chargily (coût plateforme sur les commandes online) = round(total × taux).
   const settingsRow = (
     await c.query(
@@ -103,7 +104,12 @@ try {
   ).rows[0];
   const chg = Math.round((P + S + D) * Number(settingsRow.chargily_fee));
   // Cashback CASH (provisionné en charge sur les commandes cash hors-COD).
-  const cashCb = Math.round(P * Number(settingsRow.cashback_cash));
+  // ch.4.2 assiette = produits + livraison ; ch.4.4 plafond COD (tournée → commission outil).
+  const cashCb = Math.min(
+    Math.round((P + D) * Number(settingsRow.cashback_cash)),
+    Math.floor(P / 2),
+    comm + S + tour
+  );
   check("wallet sale", await walletSum(c, o1, "sale"), P);
   check("wallet commission", await walletSum(c, o1, "commission"), -comm);
   check(
