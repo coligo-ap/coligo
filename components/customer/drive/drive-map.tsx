@@ -49,6 +49,20 @@ function loadMapStyle(url: string): Promise<unknown | null> {
   return styleCache[url].then((s) => (s ? cloneStyle(s) : null));
 }
 
+// Thème courant (classe `theme-dark` posée sur <html> par le theme-switcher) +
+// URL du style carte correspondant (clair / sombre OpenFreeMap).
+function isDarkTheme(): boolean {
+  return (
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("theme-dark")
+  );
+}
+function mapStyleUrl(dark: boolean): string {
+  return dark
+    ? `${MAP_STYLE_URL.slice(0, MAP_STYLE_URL.lastIndexOf("/styles/"))}/styles/dark`
+    : MAP_STYLE_URL;
+}
+
 // Caméra persistante (mode SUIVI = accueil chauffeur/livreur) : on mémorise le
 // dernier centre + zoom pour ROUVRIR la carte exactement à cette vue après une
 // navigation, SANS rejouer l'animation de zoom à chaque changement de page.
@@ -62,6 +76,9 @@ let lastFollowCam: { lng: number; lat: number; zoom: number } | null = null;
 // par session : l'accueil chauffeur), donc sans effet sur les cartes client.
 let keptMap: maplibregl.Map | null = null;
 let keptContainer: HTMLDivElement | null = null;
+// Thème (clair/sombre) du style actuellement chargé dans la carte conservée :
+// permet de re-styler au retour sur l'accueil si le thème a changé entre-temps.
+let keptDark = false;
 // Callback `onMove` courant pour la carte conservée (le handler `moveend` est
 // lié une seule fois → on passe par cette réf mutable pour ne pas appeler un
 // callback périmé après un remontage).
@@ -128,6 +145,9 @@ export function DriveMap({
   // PANNE doucement vers la position sans rejouer l'animation de zoom.
   const didInitialCenter = useRef(follow && lastFollowCam != null);
   const [ready, setReady] = useState(false);
+  // Incrémenté après un changement de style (bascule de thème) → force la
+  // re-création des couches (route/approche) qu'un setStyle efface.
+  const [styleVersion, setStyleVersion] = useState(0);
   const onMoveRef = useRef(onMove);
   useEffect(() => {
     onMoveRef.current = onMove;
@@ -153,6 +173,36 @@ export function DriveMap({
     if (keepAlive) keptOnMove.current = onMove;
   }, [keepAlive, onMove]);
 
+  // Bascule LIVE clair ↔ sombre : observe la classe `theme-dark` de <html> et
+  // recharge le style (clair/sombre) de la carte sans la recréer. Les couches
+  // route/approche (effacées par setStyle) sont re-créées via `styleVersion`.
+  useEffect(() => {
+    if (typeof MutationObserver === "undefined") return;
+    let curDark = isDarkTheme();
+    const obs = new MutationObserver(() => {
+      const d = isDarkTheme();
+      if (d === curDark) return;
+      curDark = d;
+      const m = mapRef.current;
+      if (!m) return;
+      void loadMapStyle(mapStyleUrl(d)).then((s) => {
+        if (!mapRef.current) return;
+        try {
+          m.setStyle((s ?? mapStyleUrl(d)) as never);
+        } catch {
+          return;
+        }
+        if (keepAlive) keptDark = d;
+        m.once("styledata", () => setStyleVersion((v) => v + 1));
+      });
+    });
+    obs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => obs.disconnect();
+  }, [keepAlive]);
+
   useEffect(() => {
     const wrapper = containerRef.current;
     if (!wrapper) return;
@@ -166,6 +216,21 @@ export function DriveMap({
       setReady(true);
       timers.push(setTimeout(() => keptMap?.resize(), 60));
       timers.push(setTimeout(() => keptMap?.resize(), 300));
+      // Le thème a-t-il changé pendant qu'on était ailleurs ? Re-style si besoin.
+      if (isDarkTheme() !== keptDark) {
+        const d = isDarkTheme();
+        void loadMapStyle(mapStyleUrl(d)).then((s) => {
+          const m = mapRef.current ?? keptMap;
+          if (!m) return;
+          try {
+            m.setStyle((s ?? mapStyleUrl(d)) as never);
+            keptDark = d;
+            m.once("styledata", () => setStyleVersion((v) => v + 1));
+          } catch {
+            /* style indispo */
+          }
+        });
+      }
       return () => {
         disposed = true;
         timers.forEach(clearTimeout);
@@ -203,14 +268,9 @@ export function DriveMap({
         : [first.lng, first.lat];
       const initZoom = restore ? restore.zoom : 14;
       let map: maplibregl.Map;
-      // Thème sombre = choix utilisateur (classe `theme-dark` posée sur
-      // <html> par le layout racine) — plus de suivi du réglage système.
-      const prefersDark =
-        typeof document !== "undefined" &&
-        document.documentElement.classList.contains("theme-dark");
-      const styleUrl = prefersDark
-        ? `${MAP_STYLE_URL.slice(0, MAP_STYLE_URL.lastIndexOf("/styles/"))}/styles/dark`
-        : MAP_STYLE_URL;
+      // Thème sombre = choix utilisateur (classe `theme-dark` sur <html>).
+      const dark = isDarkTheme();
+      const styleUrl = mapStyleUrl(dark);
       // Style depuis le cache module (clone) ; repli sur l'URL si indisponible.
       const cachedStyle = await loadMapStyle(styleUrl);
       if (disposed || !containerRef.current) return;
@@ -226,7 +286,10 @@ export function DriveMap({
         return;
       }
       mapRef.current = map;
-      if (keepAlive) keptMap = map;
+      if (keepAlive) {
+        keptMap = map;
+        keptDark = dark;
+      }
       if (!interactive) {
         map.dragPan.disable();
         map.scrollZoom.disable();
@@ -409,7 +472,8 @@ export function DriveMap({
       "line-width": 5,
       "line-dasharray": [2, 1.6],
     });
-  }, [route, approach, ready]);
+    // `styleVersion` : re-crée les couches après un setStyle (bascule de thème).
+  }, [route, approach, ready, styleVersion]);
 
   // Animation du tracé : on fait défiler la séquence de pointillés d'un cran
   // à intervalle fixe (technique MapLibre standard) → le rose file de D vers A.
