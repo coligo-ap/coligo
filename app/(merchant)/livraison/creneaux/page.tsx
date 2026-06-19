@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { algiersDateAndTime, isSlotExpired } from "@/lib/delivery/slots";
 import { SlotsManager } from "@/components/merchant/livraison/slots-manager";
 
 export const dynamic = "force-dynamic";
@@ -19,14 +20,18 @@ export default async function MerchantSlotsPage() {
     .maybeSingle();
   if (!merchant) redirect("/login?error=no_merchant");
 
-  const today = new Date().toISOString().slice(0, 10);
-  const { data: slots } = await supabase
+  const algiersNow = algiersDateAndTime();
+  const { data: slotsRaw } = await supabase
     .from("delivery_slots")
     .select("id, slot_date, start_time, end_time, max_orders, status")
     .eq("merchant_id", merchant.id)
-    .gte("slot_date", today)
+    .gte("slot_date", algiersNow.date)
     .order("slot_date", { ascending: true })
     .order("start_time", { ascending: true });
+
+  // Masque les créneaux déjà écoulés aujourd'hui (heure de fin dépassée) — le
+  // filtre SQL ne porte que sur la date.
+  const slots = (slotsRaw ?? []).filter((s) => !isSlotExpired(s, algiersNow));
 
   // Compte des commandes par créneau (pour affichage X/Y).
   const slotIds = (slots ?? []).map((s) => s.id);

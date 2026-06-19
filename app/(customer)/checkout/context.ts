@@ -20,6 +20,7 @@ import {
   type TourBand,
 } from "@/lib/delivery/pricing";
 import { haversineKm } from "@/lib/delivery/distance";
+import { algiersDateAndTime, isSlotExpired } from "@/lib/delivery/slots";
 import type { Json } from "@/lib/supabase/database.types";
 
 export type CheckoutContextInput = {
@@ -311,7 +312,7 @@ export async function fetchCheckoutContext(
       .select("id, slot_date, start_time, end_time, max_orders")
       .eq("merchant_id", merchant.id)
       .eq("status", "open")
-      .gte("slot_date", new Date().toISOString().slice(0, 10))
+      .gte("slot_date", algiersDateAndTime().date)
       .order("slot_date", { ascending: true })
       .order("start_time", { ascending: true })
       .limit(30),
@@ -325,7 +326,12 @@ export async function fetchCheckoutContext(
   const merchDelivery = merchDeliveryRes.data;
   const deliverySettings = deliverySettingsRes.data;
   const rawAddresses = addressesRes.data ?? [];
-  const rawSlots = slotsRes.data ?? [];
+  // Masque les créneaux déjà écoulés aujourd'hui (le filtre SQL ne porte que
+  // sur la date — un créneau du matin resterait visible l'après-midi).
+  const algiersNow = algiersDateAndTime();
+  const rawSlots = (slotsRes.data ?? []).filter(
+    (s) => !isSlotExpired(s, algiersNow)
+  );
   const tourBands: TourBand[] = (zonesRes.data ?? []).map((z) => ({
     band_index: z.band_index,
     max_km: Number(z.max_km),
