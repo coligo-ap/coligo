@@ -58,8 +58,13 @@ function isDarkTheme(): boolean {
   );
 }
 function mapStyleUrl(dark: boolean): string {
+  // OpenFreeMap n'a PAS de style « dark » (un fond noir rendrait routes et
+  // trajets illisibles, et `/styles/dark` n'existe pas → carte noire). En mode
+  // sombre on bascule donc sur `positron` : fond GRIS CLAIR épuré où routes et
+  // trajets restent parfaitement visibles (on ne se perd pas). En clair :
+  // `liberty` (POI/commerces).
   return dark
-    ? `${MAP_STYLE_URL.slice(0, MAP_STYLE_URL.lastIndexOf("/styles/"))}/styles/dark`
+    ? `${MAP_STYLE_URL.slice(0, MAP_STYLE_URL.lastIndexOf("/styles/"))}/styles/positron`
     : MAP_STYLE_URL;
 }
 

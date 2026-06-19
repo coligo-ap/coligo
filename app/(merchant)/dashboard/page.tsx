@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import Link from "next/link";
-import { QrCode, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { OrdersCacheSync } from "@/components/merchant/orders-cache-sync";
 import { OrderBoard } from "@/components/merchant/order-board";
+import { MerchantBalancePill } from "@/components/merchant/balance-pill";
 import { formatDA } from "@/lib/utils";
 import { type OrderWithItems } from "@/lib/types";
 
@@ -122,14 +122,9 @@ export default async function DashboardPage() {
             </p>
           </div>
         </div>
-        <Link
-          href="/orders/validate"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur hover:bg-white/25"
-        >
-          <QrCode className="size-4" />
-          <span className="hidden sm:inline">Valider un retrait</span>
-          <span className="sm:hidden">Valider</span>
-        </Link>
+        {/* Wallet Coligo Pay (remplace l'ancien bouton du header) → solde +
+            recharge. */}
+        <MerchantBalancePill variant="banner" />
       </section>
 
       {/* ─── Board opérationnel live ─── */}

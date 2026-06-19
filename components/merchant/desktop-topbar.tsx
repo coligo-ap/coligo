@@ -7,7 +7,6 @@ import { useFormStatus } from "react-dom";
 import { logout } from "@/app/(merchant)/actions";
 import { SyncIndicator } from "@/components/merchant/sync-indicator";
 import { ShopStatusToggle } from "@/components/merchant/shop-status-toggle";
-import { MerchantBalancePill } from "@/components/merchant/balance-pill";
 import type { MerchantPauseInput } from "@/lib/merchant/pause-state";
 
 interface MerchantTopbarProps {
@@ -58,8 +57,7 @@ export function MerchantTopbar({
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        {/* Solde portefeuille (temps réel) → recharge. */}
-        <MerchantBalancePill />
+        {/* Wallet Coligo Pay déplacé vers le bandeau du dashboard. */}
 
         {/* Ouvrir / Mettre en pause / Fermer la réception de commandes. */}
         <ShopStatusToggle input={pauseInput} />
