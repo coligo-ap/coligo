@@ -110,6 +110,12 @@ body {
   -webkit-font-smoothing: antialiased;
   color: var(--color-foreground);
   background: var(--color-background);
+  /* Force le schéma CLAIR par défaut : sans ça, un téléphone réglé en mode
+     sombre système teinte automatiquement les contrôles natifs (inputs, listes,
+     scrollbars) en sombre sur nos pages CLAIRES → rendu « moitié sombre ». Les
+     espaces avec vrai mode sombre (client, chauffeur, livreur) repassent en
+     `color-scheme: dark` via leur scope `.theme-dark` / `.dark`. */
+  color-scheme: light;
 }
 /* Mode arabe (RTL) : Plus Jakarta / Sora ne couvrent pas l'arabe → on bascule
    sur Noto Sans Arabic (variable exposée par next/font dans le layout). */
@@ -679,7 +685,7 @@ body {
    son wrapper ET miroité sur <body> pour les portails Radix) : les espaces
    commerçant / livreur / admin restent clairs, ils n'ont pas l'interrupteur.
    Les écrans Drive gardent leurs propres tokens --d-* (bloc ci-dessus). */
-.theme-dark [data-space="client"] {
+.theme-dark :is([data-space="client"], .drive-jakarta) {
   --color-background: #0b0c12;
   --color-surface: #161823;
   --color-surface-2: #0e0f16;
@@ -694,15 +700,19 @@ body {
 /* Compat : surfaces « blanc dur » (cartes, feuilles) suivent la surface du
    thème. Les variantes translucides (bg-white/95…) et text-white sur boutons
    colorés ne sont pas concernées. */
-.theme-dark [data-space="client"] :where(.bg-white) {
+.theme-dark :is([data-space="client"], .drive-jakarta) :where(.bg-white) {
   background-color: var(--color-surface);
 }
 /* Teintes claires décoratives (chips violettes pâles) : assombries pour ne
    pas éblouir sur fond sombre — texte violet éclairci pour rester lisible. */
-.theme-dark [data-space="client"] :where(.bg-primary-50, .bg-violet-50) {
+.theme-dark
+  :is([data-space="client"], .drive-jakarta)
+  :where(.bg-primary-50, .bg-violet-50) {
   background-color: rgba(138, 77, 255, 0.14);
 }
-.theme-dark [data-space="client"] :where(.text-primary-700, .text-primary-600) {
+.theme-dark
+  :is([data-space="client"], .drive-jakarta)
+  :where(.text-primary-700, .text-primary-600) {
   color: #b493f9;
 }
 
@@ -717,10 +727,12 @@ body {
 
 /* Cartes/chips d'alerte « pâles » (warning/success/danger) : fond translucide +
    bordure + texte éclairci pour rester lisibles et discrets sur fond sombre. */
-.theme-dark [data-space="client"] :where(.bg-warning-50, .bg-amber-50) {
+.theme-dark
+  :is([data-space="client"], .drive-jakarta)
+  :where(.bg-warning-50, .bg-amber-50) {
   background-color: rgba(245, 158, 11, 0.13);
 }
-.theme-dark [data-space="client"] :where(.bg-success-50) {
+.theme-dark :is([data-space="client"], .drive-jakarta) :where(.bg-success-50) {
   background-color: rgba(22, 179, 100, 0.13);
 }
 .theme-dark
@@ -738,16 +750,24 @@ body {
   :where(.border-success-100, .border-success-200) {
   border-color: rgba(22, 179, 100, 0.3);
 }
-.theme-dark [data-space="client"] :where(.border-danger-200) {
+.theme-dark
+  :is([data-space="client"], .drive-jakarta)
+  :where(.border-danger-200) {
   border-color: rgba(229, 72, 77, 0.3);
 }
-.theme-dark [data-space="client"] :where(.text-warning-800, .text-warning-700) {
+.theme-dark
+  :is([data-space="client"], .drive-jakarta)
+  :where(.text-warning-800, .text-warning-700) {
   color: #fcd34d;
 }
-.theme-dark [data-space="client"] :where(.text-success-800, .text-success-700) {
+.theme-dark
+  :is([data-space="client"], .drive-jakarta)
+  :where(.text-success-800, .text-success-700) {
   color: #4ade80;
 }
-.theme-dark [data-space="client"] :where(.text-danger-800, .text-danger-700) {
+.theme-dark
+  :is([data-space="client"], .drive-jakarta)
+  :where(.text-danger-800, .text-danger-700) {
   color: #fca5a5;
 }
 
