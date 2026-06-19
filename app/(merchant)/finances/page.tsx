@@ -3,6 +3,7 @@ import {
   getWalletEntriesPage,
   getWalletSummary,
 } from "@/lib/data/wallet";
+import { getMyWalletState } from "@/app/wallet/recharge-actions";
 import { getInvoiceMonths } from "@/lib/data/invoices";
 import { reservedAmount } from "@/lib/finances/balance";
 import { FinancesView } from "@/components/merchant/finances/finances-view";
@@ -44,6 +45,7 @@ export default async function FinancesPage({
     deliveryRows,
     ordersDelivery,
     invoiceMonths,
+    coligoPay,
   ] = await Promise.all([
     getWalletSummary(),
     getWalletEntriesPage(page, PAGE_SIZE),
@@ -65,6 +67,7 @@ export default async function FinancesPage({
           .eq("fulfillment_type", "delivery")
       : Promise.resolve({ data: [] }),
     getInvoiceMonths(),
+    getMyWalletState(),
   ]);
 
   type DeliveryRow = { type: string; amount_da: number };
@@ -123,6 +126,7 @@ export default async function FinancesPage({
       page={page}
       pageCount={pageCount}
       total={pageData.total}
+      coligoPayBalance={coligoPay?.effectiveBalanceDa ?? balance}
     />
   );
 }

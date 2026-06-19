@@ -59,6 +59,7 @@ export function FinancesView({
   page,
   pageCount,
   total,
+  coligoPayBalance,
 }: {
   entries: WalletEntryRow[];
   requests: PayoutRequest[];
@@ -68,6 +69,7 @@ export function FinancesView({
   page: number;
   pageCount: number;
   total: number;
+  coligoPayBalance: number;
 }) {
   const [showDetails, setShowDetails] = useState(page > 1);
 
@@ -78,10 +80,14 @@ export function FinancesView({
           Mon argent
         </h1>
         <p className="text-muted mt-1 text-sm">
-          En un coup d&apos;œil : ce que vous gagnez et ce qu&apos;il reste à
-          régler. Pas de calcul à faire, on s&apos;en occupe.
+          Tout est réuni dans votre <strong>Coligo Pay</strong> : les paiements
+          en ligne et cashback y arrivent automatiquement (commission déduite),
+          et la commission des commandes en espèces y est prélevée.
         </p>
       </header>
+
+      {/* ── SOLDE COLIGO PAY : le solde unique (revenus − commissions + recharge) ── */}
+      <ColigoPayCard balance={coligoPayBalance} available={summary.available} />
 
       {/* ── LE VERDICT : la seule chose vraiment importante ── */}
       <Verdict summary={summary} />
@@ -123,6 +129,55 @@ export function FinancesView({
         </div>
       )}
     </div>
+  );
+}
+
+/* ─────────────────────────── COLIGO PAY ─────────────────────────── */
+
+/** Solde UNIQUE de la Coligo Pay commerçant (revenus en ligne/cashback nets +
+ *  recharges − commissions). C'est l'unique porte-monnaie : tout y converge. */
+function ColigoPayCard({
+  balance,
+  available,
+}: {
+  balance: number;
+  available: number;
+}) {
+  const negative = balance < 0;
+  return (
+    <section
+      className={cn(
+        "mb-3 rounded-[20px] p-6 text-white shadow-sm",
+        negative
+          ? "from-warning-500 to-warning-600 bg-gradient-to-br"
+          : "from-primary-600 to-primary-800 bg-gradient-to-br"
+      )}
+    >
+      <div className="flex items-center gap-2 text-sm font-medium text-white/85">
+        <Wallet className="size-5" />
+        Solde Coligo Pay
+      </div>
+      <p className="mt-2 text-[2.6rem] leading-none font-extrabold tracking-tight tabular-nums">
+        {formatDA(balance)}
+      </p>
+      <p className="mt-3 text-sm text-white/90">
+        {negative ? (
+          <>À régulariser — rechargez pour repasser au vert.</>
+        ) : available > 0 ? (
+          <>
+            <strong>{formatDA(available)}</strong> disponibles à retirer
+          </>
+        ) : (
+          <>Votre porte-monnaie unique : paiements, commissions et recharges.</>
+        )}
+      </p>
+      <Link
+        href="/recharger"
+        className="text-primary-700 mt-4 inline-flex h-10 items-center gap-2 rounded-[12px] bg-white px-4 text-sm font-bold"
+      >
+        <Wallet className="size-4" /> Recharger
+      </Link>
+    </section>
   );
 }
 
