@@ -43,6 +43,7 @@ export function MerchantBalancePill({
     return (
       <Link
         href="/recharger"
+        prefetch
         aria-label="Coligo Pay — solde & recharge"
         title="Coligo Pay — solde & recharge"
         className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/25"

@@ -99,6 +99,31 @@ const ENTRY_LABEL: Record<Lang, Record<string, string>> = {
   },
 };
 
+// Libellés des opérations FINANCE reflétées dans la Coligo Pay commerçant
+// (écritures `finance_mirror` : le `note` porte le type finance sous-jacent).
+const FINANCE_LABEL: Record<Lang, Record<string, string>> = {
+  fr: {
+    sale: "Vente (commande)",
+    commission: "Commission Coligo",
+    service_fee: "Frais de service",
+    tour_delivery_commission: "Commission livraison",
+    payout: "Versement",
+    adjustment: "Ajustement",
+    wallet_redemption: "Paiement par cashback",
+    cashback: "Cashback",
+  },
+  ar: {
+    sale: "بيع (طلب)",
+    commission: "عمولة Coligo",
+    service_fee: "رسوم الخدمة",
+    tour_delivery_commission: "عمولة التوصيل",
+    payout: "تحويل",
+    adjustment: "تعديل",
+    wallet_redemption: "دفع عبر الكاش باك",
+    cashback: "كاش باك",
+  },
+};
+
 const STR = {
   fr: {
     title: "Mon portefeuille",
@@ -950,13 +975,19 @@ export function OperatorRecharge({
           <div className="plab plab-sora">{t.opsTitle}</div>
           {entries.map((e, i) => {
             const credit = e.amountDa >= 0;
+            // Opérations finance (commande/commission/versement…) : le libellé
+            // vient du `note` ; les recharges/opérations wallet : du `type`.
+            const label =
+              e.type === "finance_mirror"
+                ? (FINANCE_LABEL[lang][e.note ?? ""] ?? e.note ?? e.type)
+                : (ENTRY_LABEL[lang][e.type] ?? e.type);
             return (
               <div className="op" key={i}>
                 <div className={`oi ${credit ? "cr" : "db"}`}>
                   {credit ? Ico.up : Ico.down}
                 </div>
                 <div className="om">
-                  <b>{ENTRY_LABEL[lang][e.type] ?? e.type}</b>
+                  <b>{label}</b>
                   <span>
                     {new Date(e.createdAt).toLocaleDateString(
                       lang === "ar" ? "ar-DZ" : "fr-DZ"
