@@ -2,7 +2,10 @@ import { redirect } from "next/navigation";
 import { Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { algiersDateAndTime, isSlotExpired } from "@/lib/delivery/slots";
-import { SlotsManager } from "@/components/merchant/livraison/slots-manager";
+import {
+  TourScheduleEditor,
+  type ScheduleRange,
+} from "@/components/merchant/livraison/tour-schedule-editor";
 
 export const dynamic = "force-dynamic";
 
@@ -15,34 +18,44 @@ export default async function MerchantSlotsPage() {
 
   const { data: merchant } = await supabase
     .from("merchants")
-    .select("id, tours_enabled, delivery_enabled")
+    .select("id, tours_enabled, delivery_enabled, max_days_ahead")
     .eq("user_id", user.id)
     .maybeSingle();
   if (!merchant) redirect("/login?error=no_merchant");
 
+  // Re-synchronise les créneaux datés depuis le planning (création/nettoyage)
+  // avant d'afficher l'aperçu des prochaines sorties.
+  await supabase.rpc("ensure_tour_slots", { p_merchant_id: merchant.id });
+
   const algiersNow = algiersDateAndTime();
-  const { data: slotsRaw } = await supabase
-    .from("delivery_slots")
-    .select("id, slot_date, start_time, end_time, max_orders, status")
-    .eq("merchant_id", merchant.id)
-    .gte("slot_date", algiersNow.date)
-    .order("slot_date", { ascending: true })
-    .order("start_time", { ascending: true });
+  const [scheduleRes, slotsRes] = await Promise.all([
+    supabase
+      .from("merchant_tour_schedule")
+      .select("weekday, start_time, end_time, max_orders")
+      .eq("merchant_id", merchant.id),
+    supabase
+      .from("delivery_slots")
+      .select("id, slot_date, start_time, end_time, max_orders, status")
+      .eq("merchant_id", merchant.id)
+      .eq("status", "open")
+      .gte("slot_date", algiersNow.date)
+      .order("slot_date", { ascending: true })
+      .order("start_time", { ascending: true }),
+  ]);
 
-  // Masque les créneaux déjà écoulés aujourd'hui (heure de fin dépassée) — le
-  // filtre SQL ne porte que sur la date.
-  const slots = (slotsRaw ?? []).filter((s) => !isSlotExpired(s, algiersNow));
+  const schedule = (scheduleRes.data ?? []) as ScheduleRange[];
 
-  // Compte des commandes par créneau (pour affichage X/Y).
-  const slotIds = (slots ?? []).map((s) => s.id);
+  const upcoming = (slotsRes.data ?? []).filter(
+    (s) => !isSlotExpired(s, algiersNow)
+  );
+  const slotIds = upcoming.map((s) => s.id);
   const { data: ordersInSlots } = slotIds.length
     ? await supabase
         .from("orders")
-        .select("delivery_slot_id, status")
+        .select("delivery_slot_id")
         .in("delivery_slot_id", slotIds)
         .neq("status", "cancelled")
     : { data: [] };
-
   const counts = new Map<string, number>();
   for (const o of ordersInSlots ?? []) {
     if (o.delivery_slot_id) {
@@ -56,10 +69,12 @@ export default async function MerchantSlotsPage() {
         <Calendar className="size-6" />
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Créneaux de tournée
+            Planning de tournée
           </h1>
           <p className="text-muted mt-1 text-sm">
-            Définis les horaires de sortie de tes tournées.
+            Définis tes sorties par jour de la semaine. Les clients peuvent
+            réserver jusqu&apos;à {merchant.max_days_ahead ?? 7} jour
+            {(merchant.max_days_ahead ?? 7) > 1 ? "s" : ""} à l&apos;avance.
           </p>
         </div>
       </header>
@@ -74,12 +89,53 @@ export default async function MerchantSlotsPage() {
         </div>
       )}
 
-      <SlotsManager
-        slots={(slots ?? []).map((s) => ({
-          ...s,
-          used: counts.get(s.id) ?? 0,
-        }))}
+      <TourScheduleEditor
+        initial={schedule}
+        disabled={!merchant.tours_enabled}
       />
+
+      {/* Aperçu des prochaines sorties générées (lecture seule). */}
+      <section className="mt-8">
+        <h2 className="mb-2 text-sm font-semibold">
+          Prochaines sorties générées
+        </h2>
+        {upcoming.length === 0 ? (
+          <p className="text-muted text-sm">
+            Aucune sortie à venir — ajoute des plages dans le planning
+            ci-dessus.
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {upcoming.map((s) => {
+              const used = counts.get(s.id) ?? 0;
+              const full = used >= s.max_orders;
+              return (
+                <li
+                  key={s.id}
+                  className={
+                    "flex items-center justify-between rounded-[10px] border px-3 py-2 text-sm " +
+                    (full
+                      ? "border-warning-200 bg-warning-50"
+                      : "border-border bg-surface")
+                  }
+                >
+                  <span className="font-medium tabular-nums">
+                    {new Date(s.slot_date).toLocaleDateString("fr-FR", {
+                      weekday: "short",
+                      day: "2-digit",
+                      month: "short",
+                    })}{" "}
+                    · {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
+                  </span>
+                  <span className="text-muted text-xs tabular-nums">
+                    {used}/{s.max_orders} commandes
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

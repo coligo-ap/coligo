@@ -307,15 +307,20 @@ export async function fetchCheckoutContext(
         .eq("customer_id", customer.id)
         .order("is_default", { ascending: false });
     })(),
-    supabase
-      .from("delivery_slots")
-      .select("id, slot_date, start_time, end_time, max_orders")
-      .eq("merchant_id", merchant.id)
-      .eq("status", "open")
-      .gte("slot_date", algiersDateAndTime().date)
-      .order("slot_date", { ascending: true })
-      .order("start_time", { ascending: true })
-      .limit(30),
+    (async () => {
+      // Matérialise les créneaux datés à venir depuis le planning hebdomadaire
+      // du commerçant (SECURITY DEFINER), puis lit les occurrences ouvertes.
+      await supabase.rpc("ensure_tour_slots", { p_merchant_id: merchant.id });
+      return supabase
+        .from("delivery_slots")
+        .select("id, slot_date, start_time, end_time, max_orders")
+        .eq("merchant_id", merchant.id)
+        .eq("status", "open")
+        .gte("slot_date", algiersDateAndTime().date)
+        .order("slot_date", { ascending: true })
+        .order("start_time", { ascending: true })
+        .limit(30);
+    })(),
     supabase
       .from("merchant_delivery_zones")
       .select("band_index, max_km, price_da")

@@ -1971,6 +1971,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      merchant_tour_schedule: {
+        Row: {
+          id: string;
+          merchant_id: string;
+          weekday: number;
+          start_time: string;
+          end_time: string;
+          max_orders: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          merchant_id: string;
+          weekday: number;
+          start_time: string;
+          end_time: string;
+          max_orders: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          merchant_id?: string;
+          weekday?: number;
+          start_time?: string;
+          end_time?: string;
+          max_orders?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       merchant_delivery_zones: {
         Row: {
           id: string;
@@ -2350,6 +2380,10 @@ export type Database = {
         Returns: number;
       };
       ensure_merchant_delivery_zones: {
+        Args: { p_merchant_id: string };
+        Returns: undefined;
+      };
+      ensure_tour_slots: {
         Args: { p_merchant_id: string };
         Returns: undefined;
       };
