@@ -38,7 +38,8 @@
     "prepare": "husky",
     "test:drive:money": "node scripts/test-drive-money.mjs",
     "test:drive:demo": "node scripts/test-drive-demo-e2e.mjs",
-    "test:zones": "node scripts/test-zones.mjs"
+    "test:zones": "node scripts/test-zones.mjs",
+    "test:slot:expiry": "node scripts/test-slot-expiry.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
