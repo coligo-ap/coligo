@@ -7,6 +7,7 @@ import { DriverShell } from "@/components/driver/driver-shell";
 import { CompteLoader } from "@/components/driver/profile/compte-loader";
 import { DriverInfoSection } from "@/components/driver/profile/driver-info-section";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
+import { PriorityCard } from "@/components/partner/priority-card";
 import type { CompteData } from "@/components/driver/profile/compte-view";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +62,11 @@ export default async function DriverProfilePage() {
             verified={driver.is_verified}
           />
         </Suspense>
+
+        {/* Abonnement Prioritaire (priorité dispatch + badge) */}
+        <div className="mt-4">
+          <PriorityCard />
+        </div>
 
         {/* Portefeuille & recharge (solde, carte/CCP, points proches) */}
         <Link

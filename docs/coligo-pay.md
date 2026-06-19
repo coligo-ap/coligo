@@ -129,13 +129,36 @@ Le **paiement marchand** (`coligo_pay_create_request`/`coligo_pay_execute`,
 qui exigent un `merchant_id`) reste actif. Ne réactiver qu'avec licence Banque
 d'Algérie + KYC/AML.
 
-## 8. Abonnements (ch.7)
+## 8. Éditeur de config générique (`/admin/config`, mig 0209)
 
-Au lancement : Gratuit / **Prioritaire** (`sub_priority_monthly_da` = 300 DA,
-1er mois `sub_priority_first_month_da` = 100), 0 % commission, avantages
-zones/heures de forte demande + priorité dispatch (accélère, ne bloque jamais)
+Page super-admin pilotée par le registre `platform_config_registry` (métadonnées :
+type `rate`/`number`/`da`/`json`/`bool`, libellés FR/AR, aide, bornes). Les
+**valeurs** restent dans `platform_settings` ; l'**historique** vient de
+`platform_settings_history` (archivage auto). Couvre les clés qui n'avaient pas
+d'UI : `driver_fee_rate`, `tour_discount_rate`, `service_fee_tiers`,
+`max_topup_da_per_30d`, `withdrawal_fee_tiers`, `partner_recharge_rate`,
+`cashback_consumption_estimate` + nouvelles clés `withdrawal_daily_cap_da`,
+`withdrawal_sliding_cap_da`/`_days`, `dispatch_priority_delay_sec`, et les prix
+d'abo. **Exclus** (volontaire) : `p2p_enabled` (changement délibéré séparé) et la
+règle de base du cashback (figée). Les pages `/admin/settings`, `/admin/drive`,
+`/admin/recharges`, `/admin/controle` restent inchangées.
 
-- badge. La grille étendue Drive Pro/Premium (`drive_plan_*`) reste en config
-  pour la phase 2. _NB : la table d'abonnement Prioritaire commune
-  chauffeur+livreur et le câblage dispatch/badge restent à construire ; seule la
-  config est posée (mig 0205)._
+## 9. Abonnement Prioritaire (ch.7, mig 0210-0211)
+
+Un seul abo optionnel **commun livreur + chauffeur** (`priority_subscriptions`),
+**0 % commission dans tous les plans** : l'abo achète la visibilité, jamais une
+remise (aucune colonne de taux). Prix `sub_priority_monthly_da` (300), 1er mois
+`sub_priority_first_month_da` (100), payé du portefeuille (instantané) / CCP /
+carte (webhook = source de vérité). 2 avantages **livrés** :
+
+1. **Priorité dispatch** — fenêtre déterministe (`now() − created_at <
+dispatch_priority_delay_sec`) : pendant le délai, l'offre est réservée aux
+   Prioritaires (`chauffeur_offer_ride` pour Drive ; `trg_gate_driver_assign`
+   express pour livreur, tournée exclue). **Garde-fou : passé le délai, l'offre
+   s'ouvre à TOUS** — la priorité accélère, ne bloque jamais. Prouvé par
+   `npm run test:priority` (11/11).
+2. **Badge** « ⚡ Prioritaire » montré au client (`my_ride_offers.is_priority`).
+
+L'avantage « zones/heures à forte demande » est **différé** (pas de données de
+demande réelles au lancement ; non annoncé dans l'UI tant que non livré). La
+grille Drive Pro/Premium (`drive_plan_*`) reste en config phase 2, orthogonale.

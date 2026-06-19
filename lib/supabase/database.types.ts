@@ -1203,6 +1203,10 @@ export type Database = {
           sub_priority_first_month_da: number;
           withdrawal_fee_tiers: Json;
           p2p_enabled: boolean;
+          withdrawal_daily_cap_da: number;
+          withdrawal_sliding_cap_da: number;
+          withdrawal_sliding_days: number;
+          dispatch_priority_delay_sec: number;
           updated_at: string;
         };
         Insert: {
@@ -1259,6 +1263,40 @@ export type Database = {
           updated_at?: string;
           [k: string]: unknown;
         };
+        Relationships: [];
+      };
+      platform_config_registry: {
+        Row: {
+          key: string;
+          value_type: "rate" | "number" | "da" | "json" | "bool";
+          group_key: string;
+          label_fr: string;
+          label_ar: string;
+          help_fr: string | null;
+          help_ar: string | null;
+          sort_order: number;
+          min_num: number | null;
+          max_num: number | null;
+          step_num: number | null;
+          json_shape: Json | null;
+          is_active: boolean;
+          updated_at: string;
+        };
+        Insert: { key: string; value_type: string; group_key: string; label_fr: string; label_ar: string; [k: string]: unknown };
+        Update: { [k: string]: unknown };
+        Relationships: [];
+      };
+      platform_settings_history: {
+        Row: {
+          id: string;
+          changed_at: string;
+          changed_by: string | null;
+          changed_by_email: string | null;
+          before_data: Json | null;
+          after_data: Json | null;
+        };
+        Insert: { [k: string]: unknown };
+        Update: { [k: string]: unknown };
         Relationships: [];
       };
       drivers: {
@@ -2562,6 +2600,9 @@ export type Database = {
         };
         Returns: void;
       };
+      my_priority_state: { Args: Record<string, never>; Returns: Json };
+      priority_subscribe: { Args: { p_payment_method: string }; Returns: Json };
+      priority_sub_cancel: { Args: Record<string, never>; Returns: Json };
       pull_next_express: {
         Args: { p_merchant_driver_id: string };
         Returns: { order_id: string }[];

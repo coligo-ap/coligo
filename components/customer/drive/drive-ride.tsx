@@ -592,6 +592,11 @@ function SearchScreen({
                         👑 Premium
                       </span>
                     )}
+                    {o.is_priority && (
+                      <span className="rounded-full bg-gradient-to-r from-[#5B2EFF] to-[#6C2BD9] px-2 py-0.5 text-[9.5px] font-extrabold text-white">
+                        ⚡ Prioritaire
+                      </span>
+                    )}
                     <DriverBadgePill
                       badge={getDriverBadge({
                         ridesCount: o.rides_count,

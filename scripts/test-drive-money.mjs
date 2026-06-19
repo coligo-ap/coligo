@@ -33,6 +33,10 @@ const ok = (l, g, w) => {
 const c = new pg.Client({ connectionString: getDbUrl() });
 await c.connect();
 await c.query("BEGIN");
+// Priorité dispatch neutralisée pour ce test (ROLLBACK) — on ne teste pas la priorité.
+await c.query(
+  "UPDATE platform_settings SET dispatch_priority_delay_sec = 0 WHERE id = true"
+);
 
 const as = (uid) =>
   c.query(

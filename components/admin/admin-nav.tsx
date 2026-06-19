@@ -17,6 +17,7 @@ import {
   PiggyBank,
   Power,
   Receipt,
+  Settings2,
   ShieldCheck,
   Store,
   Truck,
@@ -47,6 +48,7 @@ export const ADMIN_LINKS = [
   { href: "/admin/notifications", label: "Notifications", icon: BellRing },
   { href: "/admin/devices", label: "Appareils", icon: MonitorSmartphone },
   { href: "/admin/settings", label: "Taux", icon: Percent },
+  { href: "/admin/config", label: "Configuration", icon: Settings2 },
   { href: "/admin/security", label: "Sécurité", icon: ShieldCheck },
 ] as const;
 

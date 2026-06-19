@@ -12,6 +12,10 @@ const CUST = "60eec155-fb82-4a8b-9223-8ac2dd24d922";
 const c = new pg.Client({ connectionString: getDbUrl() });
 await c.connect();
 await c.query("BEGIN");
+// Priorité dispatch neutralisée pour ce test (ROLLBACK) — on ne teste pas la priorité.
+await c.query(
+  "UPDATE platform_settings SET dispatch_priority_delay_sec = 0 WHERE id = true"
+);
 
 async function dl(orderId, type) {
   const r = await c.query(
