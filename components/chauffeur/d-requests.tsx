@@ -138,7 +138,25 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const [loading, setLoading] = useState(lastNearbyCache.length === 0);
   const [tab, setTab] = useState<"demandes" | "proposed">("demandes");
   const [sort, setSort] = useState<"near" | "pay">("near");
+  // Mode compact : PERSISTÉ en localStorage → le chauffeur le règle une fois et
+  // le retrouve à chaque ouverture (chargé après montage pour éviter tout
+  // décalage d'hydratation).
   const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("coligo_chauffeur_compact") === "1")
+        setCompact(true);
+    } catch {
+      /* localStorage indispo */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem("coligo_chauffeur_compact", compact ? "1" : "0");
+    } catch {
+      /* localStorage indispo */
+    }
+  }, [compact]);
   const [myPrices, setMyPrices] = useState<Record<string, number>>({});
   const [sent, setSent] = useState<Record<string, number>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});

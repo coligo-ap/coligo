@@ -32,7 +32,7 @@ export function CustomerBottomNav({
     <nav
       aria-label="Navigation principale"
       style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
-      className="fixed inset-x-0 bottom-0 z-30 grid border-t border-[var(--d-line)] bg-[var(--d-surface)] pb-[max(env(safe-area-inset-bottom),0px)] lg:hidden"
+      className="border-border bg-surface fixed inset-x-0 bottom-0 z-30 grid border-t pb-[max(env(safe-area-inset-bottom),0px)] lg:hidden"
     >
       {items.map((item) => {
         const Icon = item.icon;
