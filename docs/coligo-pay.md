@@ -31,6 +31,26 @@ Clés ajoutées par la spec (mig 0205) :
 (planchers de float, signés) ; `delivery_price_cap_per_km` → barème
 `delivery_per_km_da` + `delivery_max_da`.
 
+### Valeurs de lancement retenues (ch.8, mig 0207)
+
+| Clé                               | Lancement | Phase 2 (config) | Note                                 |
+| --------------------------------- | --------- | ---------------- | ------------------------------------ |
+| `commission_cash` / `_online`     | 0.08      | 0.08             | Vraie marge produits (inchangé)      |
+| `driver_fee_rate` (express)       | 0.08      | 0.08             | Commission livraison livreur         |
+| `cashback_online` / `_cash`       | 0.03      | 0.03             | Cashback marketplace UNIQUE à 3 %    |
+| `tour_delivery_commission_rate`   | 0.04      | 0.04             | Outil tournée seul (pas le dispatch) |
+| `vtc_commission_rate` (Drive)     | 0.00      | 0.05 (Gratuit)   | Acquisition chauffeurs               |
+| `drive_cashback_rate`             | 0.00      | 0.02             | Cashback Drive (avec frais service)  |
+| frais de service Drive            | 0.00      | 0.03             | Pas de clé : client paie en direct   |
+| `service_fee_tiers` (marketplace) | 40/30/20  | 40/30/20         | ACTIF (frais service livraison)      |
+| `drive_plan_pro_fee_da`           | 1500      | 1500             | Abo Pro (3,5 %)                      |
+
+Règle ch.8 : **frais de service et cashback s'activent ENSEMBLE**. Au lancement
+Drive = 0 commission / 0 frais service / 0 cashback (gratuit, acquisition pure).
+Les 3 exemples chiffrés de la spec sont vérifiés au dinar près par
+`node scripts/verify-spec-examples.mjs` (express 1350 → cashback 39 ; tournée
+1180 → Coligo 87, cashback 35 ; Drive 350 → Coligo 0, chauffeur garde 350).
+
 ## 2. Double solde (client)
 
 Le wallet client a deux poches **strictement séparées** dans

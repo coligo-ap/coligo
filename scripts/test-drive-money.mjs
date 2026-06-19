@@ -53,6 +53,35 @@ const platSum = async (type) =>
     )
   ).rows[0].s;
 
+// Taux de lancement lus depuis la config (ch.8) — le test s'auto-aligne.
+const _cfg = (
+  await c.query(
+    "SELECT vtc_commission_rate, drive_cashback_rate, drive_plan_pro_rate FROM platform_settings WHERE id=true"
+  )
+).rows[0];
+const VTC_FREE = Number(_cfg.vtc_commission_rate); // Drive gratuit = 0 au lancement
+const CB_DRIVE = Number(_cfg.drive_cashback_rate); // cashback Drive = 0 au lancement
+const PRO_RATE = Number(_cfg.drive_plan_pro_rate); // 3,5 %
+
+// Crédite le float opérateur d'un acteur pour passer le garde de solde (0186).
+// ROLLBACK en fin de test → rien n'est persisté en prod.
+async function fundOperator(ownerType, ownerId, amount = 500000) {
+  await c.query("SELECT ensure_operator_wallet($1,$2,now())", [
+    ownerType,
+    ownerId,
+  ]);
+  const wid = (
+    await c.query(
+      "SELECT id FROM operator_wallets WHERE owner_type=$1 AND owner_id=$2",
+      [ownerType, ownerId]
+    )
+  ).rows[0].id;
+  await c.query(
+    "INSERT INTO operator_wallet_entries (wallet_id, type, amount_da, note) VALUES ($1,'topup_manual',$2,'test')",
+    [wid, amount]
+  );
+}
+
 async function mkChauffeur(uid, name, plate, gamme, female) {
   const r = await c.query(
     `INSERT INTO chauffeurs (user_id, full_name, first_name, phone, is_verified, vehicle_plate,
@@ -68,6 +97,7 @@ async function mkChauffeur(uid, name, plate, gamme, female) {
       female,
     ]
   );
+  await fundOperator("chauffeur", r.rows[0].id);
   return r.rows[0].id;
 }
 const setOnline = (chId, on = true) =>
@@ -310,8 +340,8 @@ try {
   const F = 330,
     boost = 30,
     base = 300;
-  const com = Math.round(base * 0.08); // 24 — PAS de commission sur le boost
-  const cb = Math.min(Math.round(F * 0.02), com); // 7 — financé par la commission
+  const com = Math.round(base * VTC_FREE); // Gratuit au lancement = 0
+  const cb = Math.min(Math.round(F * CB_DRIVE), com); // cashback Drive = 0 au lancement
   const row5 = (
     await c.query(
       "SELECT commission_da, chauffeur_net_da, cashback_da FROM rides WHERE id=$1",
@@ -388,9 +418,14 @@ try {
       [r6]
     )
   ).rows[0];
-  ok("commission Pro = 400×3,5 % = 14", row6.commission_da, 14);
-  ok("net Pro = 386", row6.chauffeur_net_da, 386);
-  ok("cashback plafonné par la commission (min(8,14)=8)", row6.cashback_da, 8);
+  const comPro = Math.round(400 * PRO_RATE);
+  ok("commission Pro = 400×taux", row6.commission_da, comPro);
+  ok("net Pro = 400 − commission", row6.chauffeur_net_da, 400 - comPro);
+  ok(
+    "cashback Drive plafonné par la commission (= 0 au lancement)",
+    row6.cashback_da,
+    Math.min(Math.round(400 * CB_DRIVE), comPro)
+  );
 
   // ---------- 7. Premium (0 %) : net intégral, cashback 0 ----------
   console.log("\n=== 7. Abonnement Premium (0 %) ===");
@@ -563,7 +598,7 @@ try {
     b0 - (await bal()) >= 340 - 7 && b0 - (await bal()) <= 340,
     true
   );
-  const c10 = Math.round(340 * 0.08);
+  const c10 = Math.round(340 * VTC_FREE);
   ok(
     "payout chauffeur = 340 − commission",
     await rl(r10, "chauffeur_payout"),
@@ -607,7 +642,7 @@ try {
   );
   const compMix = await runToComplete(CH_M, rMix);
   ok("complétion mixte OK", compMix.ok, true);
-  const cMix = Math.round(FM * 0.08);
+  const cMix = Math.round(FM * VTC_FREE);
   ok(
     "gain net = F − commission",
     await rl(rMix, "chauffeur_payout"),

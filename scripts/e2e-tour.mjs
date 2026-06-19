@@ -37,6 +37,29 @@ const c = new pg.Client({ connectionString: getDbUrl() });
 await c.connect();
 await c.query("BEGIN");
 
+// Crédite le float opérateur d'un acteur pour passer le garde de solde (0186).
+// Les complétions enchaînées du test débitent ce float ; sans crédit, l'acteur
+// « neuf » (seuil 0) passe négatif et le scénario suivant est bloqué. ROLLBACK
+// en fin de test → rien n'est persisté en prod.
+async function fundOperator(ownerType, ownerId, amount = 500000) {
+  await c.query("SELECT ensure_operator_wallet($1,$2,now())", [
+    ownerType,
+    ownerId,
+  ]);
+  const wid = (
+    await c.query(
+      "SELECT id FROM operator_wallets WHERE owner_type=$1 AND owner_id=$2",
+      [ownerType, ownerId]
+    )
+  ).rows[0].id;
+  await c.query(
+    "INSERT INTO operator_wallet_entries (wallet_id, type, amount_da, note) VALUES ($1,'topup_manual',$2,'test')",
+    [wid, amount]
+  );
+}
+await fundOperator("merchant", M);
+await fundOperator("driver", DRIVER);
+
 async function wallet(id, t) {
   const r = await c.query(
     `SELECT COALESCE(SUM(amount_da),0)::int s FROM wallet_entries WHERE order_id=$1${t ? " AND type=$2" : ""}`,
@@ -254,15 +277,15 @@ try {
     await wallet(o1.id),
     -(commCash + S + tourComm)
   );
-  const cashCb = Math.round(
-    P *
-      Number(
-        (
-          await c.query(
-            "SELECT cashback_cash FROM platform_settings WHERE id=true"
-          )
-        ).rows[0].cashback_cash
-      )
+  // ch.4.2 assiette = produits + livraison ; ch.4.4 plafond COD (tournée → commission outil).
+  const _cbCashRate = Number(
+    (await c.query("SELECT cashback_cash FROM platform_settings WHERE id=true"))
+      .rows[0].cashback_cash
+  );
+  const cashCb = Math.min(
+    Math.round((P + D) * _cbCashRate),
+    Math.floor(P / 2),
+    commCash + S + tourComm
   );
   ok(
     "platform income = comm+S+tourComm−cashback",

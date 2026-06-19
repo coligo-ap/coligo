@@ -92,16 +92,16 @@ try {
   });
   await c.query("UPDATE orders SET payment_status='paid' WHERE id=$1", [o1]);
   await c.query("UPDATE orders SET status='completed' WHERE id=$1", [o1]);
-  const comm = Math.round(P * 0.08),
-    tour = Math.round(D * 0.08),
-    // ch.4.2 — assiette cashback = produits NETS + frais de LIVRAISON (online : pas de plafond COD).
-    cb = Math.round((P + D) * 0.03);
-  // Frais Chargily (coût plateforme sur les commandes online) = round(total × taux).
+  // Taux lus depuis la config (le test s'auto-aligne sur les valeurs de lancement ch.8).
   const settingsRow = (
     await c.query(
-      "SELECT chargily_fee, cashback_cash FROM platform_settings WHERE id=true"
+      "SELECT chargily_fee, cashback_cash, tour_delivery_commission_rate FROM platform_settings WHERE id=true"
     )
   ).rows[0];
+  const comm = Math.round(P * 0.08),
+    tour = Math.round(D * Number(settingsRow.tour_delivery_commission_rate)),
+    // ch.4.2 — assiette cashback = produits NETS + frais de LIVRAISON (online : pas de plafond COD).
+    cb = Math.round((P + D) * 0.03);
   const chg = Math.round((P + S + D) * Number(settingsRow.chargily_fee));
   // Cashback CASH (provisionné en charge sur les commandes cash hors-COD).
   // ch.4.2 assiette = produits + livraison ; ch.4.4 plafond COD (tournée → commission outil).
