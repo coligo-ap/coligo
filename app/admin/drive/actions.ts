@@ -179,3 +179,46 @@ export async function updateDriveConfig(
   revalidatePath("/admin/drive");
   return { ok: true };
 }
+
+/* ───────────── Monitoring auto-calibrage (coefs appris) ───────────── */
+
+export type LearningRow = {
+  zone: string;
+  band: number;
+  coef: number;
+  signal: number;
+  n_obs: number;
+  updated_at: string;
+};
+
+export async function getDriveLearning(): Promise<LearningRow[]> {
+  if (!(await isSuperAdmin())) return [];
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("drive_price_learning")
+    .select("zone, band, coef, signal, n_obs, updated_at")
+    .order("zone", { ascending: true })
+    .order("band", { ascending: true });
+  return (data ?? []).map((r) => ({
+    zone: r.zone,
+    band: r.band,
+    coef: Number(r.coef),
+    signal: Number(r.signal),
+    n_obs: r.n_obs,
+    updated_at: r.updated_at,
+  }));
+}
+
+/** Recalcule l'apprentissage à la demande (bouton admin). */
+export async function recomputeDriveLearning(): Promise<{
+  ok: boolean;
+  bands?: number;
+  error?: string;
+}> {
+  if (!(await isSuperAdmin())) return { ok: false, error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("drive_recompute_learning");
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/drive");
+  return { ok: true, bands: typeof data === "number" ? data : 0 };
+}

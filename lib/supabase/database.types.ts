@@ -1802,6 +1802,33 @@ export type Database = {
         Update: { email?: string; created_at?: string };
         Relationships: [];
       };
+      drive_price_learning: {
+        Row: {
+          zone: string;
+          band: number;
+          coef: number;
+          signal: number;
+          n_obs: number;
+          updated_at: string;
+        };
+        Insert: {
+          zone: string;
+          band: number;
+          coef?: number;
+          signal?: number;
+          n_obs?: number;
+          updated_at?: string;
+        };
+        Update: {
+          zone?: string;
+          band?: number;
+          coef?: number;
+          signal?: number;
+          n_obs?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       reviews: {
         Row: {
           id: string;
@@ -2452,6 +2479,10 @@ export type Database = {
       driver_can_accept: {
         Args: { p_driver_id: string };
         Returns: boolean;
+      };
+      drive_recompute_learning: {
+        Args: Record<string, never>;
+        Returns: number;
       };
       recharge_points_nearby: {
         Args: {
