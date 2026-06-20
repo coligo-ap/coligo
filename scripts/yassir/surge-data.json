@@ -1,1 +1,104 @@
-[]
+[
+  {
+    "ts": "2026-06-20T12:15:24.838Z",
+    "algH": 13,
+    "dow": 6,
+    "band": "base",
+    "from": "alg_kouba",
+    "to": "alg_el_harrach",
+    "km": 7.1391,
+    "classique": {
+      "low": 314,
+      "high": 391
+    },
+    "confort": {
+      "low": 460,
+      "high": 574
+    }
+  },
+  {
+    "ts": "2026-06-20T12:15:24.838Z",
+    "algH": 13,
+    "dow": 6,
+    "band": "base",
+    "from": "centre",
+    "to": "tichy",
+    "km": 18.4617,
+    "classique": {
+      "low": 485,
+      "high": 605
+    },
+    "confort": {
+      "low": 715,
+      "high": 865
+    }
+  },
+  {
+    "ts": "2026-06-20T12:15:24.838Z",
+    "algH": 13,
+    "dow": 6,
+    "band": "base",
+    "from": "centre",
+    "to": "gare",
+    "km": 3.8076999999999996,
+    "classique": {
+      "low": 216,
+      "high": 270
+    },
+    "confort": {
+      "low": 305,
+      "high": 381
+    }
+  },
+  {
+    "ts": "2026-06-20T12:15:24.838Z",
+    "algH": 13,
+    "dow": 6,
+    "band": "base",
+    "from": "oran_centre",
+    "to": "oran_aeroport",
+    "km": 17.2328,
+    "classique": {
+      "low": 635,
+      "high": 785
+    },
+    "confort": {
+      "low": 934,
+      "high": 1084
+    }
+  },
+  {
+    "ts": "2026-06-20T12:15:24.838Z",
+    "algH": 13,
+    "dow": 6,
+    "band": "base",
+    "from": "cst_centre",
+    "to": "cst_ali_mendjeli",
+    "km": 17.3835,
+    "classique": {
+      "low": 435,
+      "high": 542
+    },
+    "confort": {
+      "low": 625,
+      "high": 775
+    }
+  },
+  {
+    "ts": "2026-06-20T12:15:24.838Z",
+    "algH": 13,
+    "dow": 6,
+    "band": "base",
+    "from": "stf_centre",
+    "to": "stf_univ",
+    "km": 5.7764,
+    "classique": {
+      "low": 229,
+      "high": 286
+    },
+    "confort": {
+      "low": 330,
+      "high": 411
+    }
+  }
+]
