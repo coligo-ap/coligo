@@ -1,0 +1,23 @@
+[
+  {
+    "from": "centre",
+    "to": "aamriw",
+    "km": 3.1699,
+    "promo": null,
+    "normal": null
+  },
+  {
+    "from": "brise_mer",
+    "to": "gare",
+    "km": 4.5301,
+    "promo": null,
+    "normal": null
+  },
+  {
+    "from": "centre",
+    "to": "gare",
+    "km": 3.8076999999999996,
+    "promo": null,
+    "normal": null
+  }
+]

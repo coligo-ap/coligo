@@ -1,0 +1,12 @@
+-- ============================================================================
+-- 0232 — Ancre Béjaïa recalée sur le marché NORMAL (pas la promo Yassir)
+-- ----------------------------------------------------------------------------
+-- Découverte (proprio) : Yassir affiche en permanence une PROMO fixe −100 DA.
+-- Ma calibration de juin s'était ancrée sur ce prix PROMO (le bas) → barème
+-- ~100 DA trop bas sur les courts trajets. La bonne cible = juste sous inDrive
+-- (le concurrent normal), pas sous la promo Yassir.
+-- Béjaïa : base 162 → 200. brise→gare 4,5km : 240 → ~295 (juste sous inDrive 310,
+-- −13% vs Yassir normal 340). Les autres villes ont le même biais (à recaler
+-- avec des prix live + via la boucle d'auto-calibrage).
+-- ============================================================================
+UPDATE public.drive_zone_anchor SET base_da = 200, updated_at = now() WHERE id = 'bejaia';
