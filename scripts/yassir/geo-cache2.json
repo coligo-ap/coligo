@@ -1,0 +1,477 @@
+{
+  "centre": {
+    "place_id": "ChIJ9f-1ZZnM8hIRQsyfSEUYeoE",
+    "lat": 36.7525297,
+    "lng": 5.085491999999999,
+    "addr": "Place du 1er Novembre 1954, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Place Gueydon, Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "ville"
+  },
+  "port": {
+    "place_id": "ChIJa2_rhpnM8hIRq8clf8zPpJs",
+    "lat": 36.7523274,
+    "lng": 5.0905903,
+    "addr": "Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Port de Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "ville"
+  },
+  "gare": {
+    "place_id": "ChIJWwrFQsrM8hIRKfC15VYwhEo",
+    "lat": 36.737427,
+    "lng": 5.0634472,
+    "addr": "Gare Routière de Béjaia, Béjaïa 06000, Algeria",
+    "cat": "centre",
+    "q": "Gare routière de Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "ville"
+  },
+  "aeroport": {
+    "place_id": "ChIJmfR9xijN8hIRC5Y1GXOjzT8",
+    "lat": 36.7156191,
+    "lng": 5.0710866,
+    "addr": "P38C+6CW Bejaia International Airport Abane Ramdane (BJA), Béjaïa 06000, Algeria",
+    "cat": "centre",
+    "q": "Aéroport Soummam Abane Ramdane Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "ville"
+  },
+  "universite": {
+    "place_id": "ChIJc5SQ3WczjRIREM7AOjSJo7U",
+    "lat": 36.75026709999999,
+    "lng": 5.0407496,
+    "addr": "Targa ouzemour, Q22R+475, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Université de Béjaïa Targa Ouzemmour, Algérie",
+    "region": "bejaia",
+    "role": "ville"
+  },
+  "chu": {
+    "place_id": "ChIJp_GUl1AzjRIRKOPsyagJ6TU",
+    "lat": 36.754365,
+    "lng": 5.0499622,
+    "addr": "Q24W+3CF, Rte de l'Hôpital, Béjaïa 06000, Algeria",
+    "cat": "centre",
+    "q": "CHU Khellil Amrane Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "ville"
+  },
+  "brise_mer": {
+    "place_id": "ChIJEeYGQYPM8hIRvHsiXD2Fz7s",
+    "lat": 36.7552778,
+    "lng": 5.092499999999999,
+    "addr": "Q34V+426, Brise de mer, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Brise de Mer, Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "ville"
+  },
+  "aamriw": {
+    "place_id": "ChIJgfiTPVIzjRIRwhC2U3lwl6Y",
+    "lat": 36.75143,
+    "lng": 5.0557368,
+    "addr": "Rond-Point Aamriw, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Aamriw, Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "ville"
+  },
+  "ihaddaden": {
+    "place_id": "ChIJEdM-DwAzjRIRB61yOgeKjJ4",
+    "lat": 36.7433557,
+    "lng": 5.043642699999999,
+    "addr": "Cité 1000 Logts, Bt A5, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Ihaddaden, Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "ville"
+  },
+  "sidi_ahmed": {
+    "place_id": "ChIJH1dcMlbL8hIRpRDd_2Vyp9M",
+    "lat": 36.7640331,
+    "lng": 5.0598608,
+    "addr": "Sidi Ahmed, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Sidi Ahmed, Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "ville"
+  },
+  "naceria": {
+    "place_id": "ChIJYdRFPwAzjRIR5wyoD4Rla6c",
+    "lat": 36.73490230000001,
+    "lng": 5.040033999999999,
+    "addr": "P2MR+W4R, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Quartier Naceria, Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "ville"
+  },
+  "edimco": {
+    "place_id": "ChIJN6_H3UUzjRIRHFl-GPaVuEI",
+    "lat": 36.7452917,
+    "lng": 5.048321899999999,
+    "addr": "Cité Edimco, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Edimco, Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "ville"
+  },
+  "tichy": {
+    "place_id": "ChIJeRO6yQzR8hIRKBTPdQe0cl4",
+    "lat": 36.66818,
+    "lng": 5.1595353,
+    "addr": "Tichy, Algeria",
+    "cat": "alentours",
+    "q": "Tichy, Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "alentours"
+  },
+  "oued_ghir": {
+    "place_id": "ChIJK-k0vS4yjRIRvZhSvNrF4Fs",
+    "lat": 36.710133,
+    "lng": 4.9888849,
+    "addr": "Oued Ghir, Algeria",
+    "cat": "alentours",
+    "q": "Oued Ghir, Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "alentours"
+  },
+  "boukhelifa": {
+    "place_id": "ChIJD6TFbd3S8hIRth4UFUKxHvA",
+    "lat": 36.6706324,
+    "lng": 5.0883825,
+    "addr": "Boukhelifa, Algeria",
+    "cat": "alentours",
+    "q": "Boukhelifa, Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "alentours"
+  },
+  "tala_hamza": {
+    "place_id": "ChIJ_wJSkX4yjRIRXRXSbGjbc4c",
+    "lat": 36.7029819,
+    "lng": 5.0394898,
+    "addr": "Tala Hamza, Algeria",
+    "cat": "alentours",
+    "q": "Tala Hamza, Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "alentours"
+  },
+  "el_kseur": {
+    "place_id": "ChIJOQJxYwU7jRIR6I7XISa7b_o",
+    "lat": 36.7057182,
+    "lng": 4.8313257,
+    "addr": "El-Kseur, Algeria",
+    "cat": "alentours",
+    "q": "El Kseur, Algérie",
+    "region": "bejaia",
+    "role": "alentours"
+  },
+  "amizour": {
+    "place_id": "ChIJz9mp71MujRIRVNy9pZcYo24",
+    "lat": 36.643932,
+    "lng": 4.903658399999999,
+    "addr": "Amizour, Algeria",
+    "cat": "alentours",
+    "q": "Amizour, Algérie",
+    "region": "bejaia",
+    "role": "alentours"
+  },
+  "aokas": {
+    "place_id": "ChIJQxUhbGPa8hIRTZWcigqJeEY",
+    "lat": 36.6354827,
+    "lng": 5.2429275,
+    "addr": "Aokas, Algeria",
+    "cat": "long",
+    "q": "Aokas, Algérie",
+    "region": "bejaia",
+    "role": "long"
+  },
+  "souk_tenine": {
+    "place_id": "ChIJ7Vfs1Xjc8hIRbyn1jxv3-p4",
+    "lat": 36.6279368,
+    "lng": 5.3351785,
+    "addr": "Souk El-Thenine, Algeria",
+    "cat": "long",
+    "q": "Souk El Tenine, Béjaïa, Algérie",
+    "region": "bejaia",
+    "role": "long"
+  },
+  "sidi_aich": {
+    "place_id": "ChIJazNilNcYjRIRvDUSrspIYLA",
+    "lat": 36.6122701,
+    "lng": 4.6893418,
+    "addr": "Sidi Aïch, Algeria",
+    "cat": "long",
+    "q": "Sidi Aïch, Algérie",
+    "region": "bejaia",
+    "role": "long"
+  },
+  "akbou": {
+    "place_id": "ChIJISD0Eez8jBIRxQzFP-cUDS8",
+    "lat": 36.4556403,
+    "lng": 4.5365087,
+    "addr": "Akbou, Algeria",
+    "cat": "long",
+    "q": "Akbou, Algérie",
+    "region": "bejaia",
+    "role": "long"
+  },
+  "kherrata": {
+    "place_id": "ChIJZa8f43gn8xIR3eQolso2qRs",
+    "lat": 36.4936399,
+    "lng": 5.2770714,
+    "addr": "Kherrata, Algeria",
+    "cat": "long",
+    "q": "Kherrata, Algérie",
+    "region": "bejaia",
+    "role": "long"
+  },
+  "tazmalt": {
+    "place_id": "ChIJxepwxXb4jBIRwVN4THXyuV4",
+    "lat": 36.3903818,
+    "lng": 4.3954971,
+    "addr": "Tazmalt, Algeria",
+    "cat": "long",
+    "q": "Tazmalt, Algérie",
+    "region": "bejaia",
+    "role": "long"
+  },
+  "seddouk": {
+    "place_id": "ChIJ11xxh00ejRIRhhu6l0QlXUg",
+    "lat": 36.5467873,
+    "lng": 4.6867022,
+    "addr": "Seddouk, Algeria",
+    "cat": "long",
+    "q": "Seddouk, Algérie",
+    "region": "bejaia",
+    "role": "long"
+  },
+  "bj_barbacha": {
+    "place_id": "ChIJmY2NLm0pjRIRFPAxHSJmSHc",
+    "lat": 36.570766,
+    "lng": 4.9735173,
+    "addr": "Barbacha, Algeria",
+    "region": "bejaia",
+    "role": "commune",
+    "q": "Barbacha, Béjaïa, Algérie"
+  },
+  "bj_darguina": {
+    "place_id": "ChIJa3IjPa7e8hIRVEmoGSp9OxE",
+    "lat": 36.56424990000001,
+    "lng": 5.304757899999999,
+    "addr": "Darguina, Algeria",
+    "region": "bejaia",
+    "role": "commune",
+    "q": "Darguina, Béjaïa, Algérie"
+  },
+  "bj_melbou": {
+    "place_id": "ChIJWf7udXnd8hIRhOeNIVw2rnY",
+    "lat": 36.6403319,
+    "lng": 5.3625393,
+    "addr": "Melbou, Algeria",
+    "region": "bejaia",
+    "role": "commune",
+    "q": "Melbou, Béjaïa, Algérie"
+  },
+  "bj_ouzellaguen": {
+    "place_id": "ChIJWQXseD4djRIRcFlJavUimis",
+    "lat": 36.5400379,
+    "lng": 4.6118685,
+    "addr": "Ouzellaguen, Algeria",
+    "region": "bejaia",
+    "role": "commune",
+    "q": "Ouzellaguen, Béjaïa, Algérie"
+  },
+  "bj_timezrit": {
+    "place_id": "ChIJnW0_Z0oijRIRRIS-F5VLST0",
+    "lat": 36.620123,
+    "lng": 4.7684786,
+    "addr": "Timezrit, Algeria",
+    "region": "bejaia",
+    "role": "commune",
+    "q": "Timezrit, Béjaïa, Algérie"
+  },
+  "alg_centre": {
+    "place_id": "ChIJ_W95d_iyjxIRynn_75Q3rGI",
+    "lat": 36.7712246,
+    "lng": 3.0612244,
+    "addr": "Alger Centre, Algeria",
+    "region": "alger",
+    "role": "hub",
+    "q": "Alger Centre, Algérie"
+  },
+  "alg_bab_ezzouar": {
+    "place_id": "ChIJpdsFooxRjhIRpv8F-FqREgY",
+    "lat": 36.7220644,
+    "lng": 3.1857301,
+    "addr": "Bab Ezzouar, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Bab Ezzouar, Alger, Algérie"
+  },
+  "alg_el_harrach": {
+    "place_id": "ChIJ-6Mmx0FSjhIRc2fkwadFzFE",
+    "lat": 36.7209669,
+    "lng": 3.1376625,
+    "addr": "El Harrach, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "El Harrach, Alger, Algérie"
+  },
+  "alg_kouba": {
+    "place_id": "ChIJtSiLxEGtjxIR_lV99q0uzoU",
+    "lat": 36.7299275,
+    "lng": 3.0840132,
+    "addr": "Kouba, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Kouba, Alger, Algérie"
+  },
+  "alg_draria": {
+    "place_id": "ChIJi-8JQkKujxIRs6sk6lR1yVc",
+    "lat": 36.7199801,
+    "lng": 2.9951425,
+    "addr": "Draria, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Draria, Alger, Algérie"
+  },
+  "alg_hydra": {
+    "place_id": "ChIJK-DPkgqyjxIRk5OLIT74F1Q",
+    "lat": 36.7451862,
+    "lng": 3.0289051,
+    "addr": "Hydra, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Hydra, Alger, Algérie"
+  },
+  "alg_bmr": {
+    "place_id": "ChIJKcqCPoKtjxIRwmraI2Fu1iA",
+    "lat": 36.7345312,
+    "lng": 3.0489683,
+    "addr": "Bir Mourad Raïs, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Bir Mourad Raïs, Alger, Algérie"
+  },
+  "alg_aeroport": {
+    "place_id": "ChIJUa7FOj9RjhIRYQh337b-BB8",
+    "lat": 36.70020270000001,
+    "lng": 3.2092021,
+    "addr": "P625+3MP, Chem. de l'Aeroport, Dar El Beïda, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Aéroport Houari Boumediene, Dar El Beïda, Algérie"
+  },
+  "alg_bab_el_oued": {
+    "place_id": "ChIJw79VwquzjxIRzVPL_pl0FqU",
+    "lat": 36.7943835,
+    "lng": 3.0523634,
+    "addr": "Bab El Oued, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Bab El Oued, Alger, Algérie"
+  },
+  "alg_hussein_dey": {
+    "place_id": "ChIJhUHNiqmyjxIRplXssRyiq_k",
+    "lat": 36.7406881,
+    "lng": 3.096321,
+    "addr": "Hussein Dey, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Hussein Dey, Alger, Algérie"
+  },
+  "alg_cheraga": {
+    "place_id": "ChIJ-WQhkz6wjxIRagdphczxYLc",
+    "lat": 36.7668544,
+    "lng": 2.9602011,
+    "addr": "Chéraga, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Chéraga, Alger, Algérie"
+  },
+  "alg_zeralda": {
+    "place_id": "ChIJw-nGdnOjjxIR0Rb6FuRI_f4",
+    "lat": 36.7137456,
+    "lng": 2.8449957,
+    "addr": "Zeralda, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Zéralda, Alger, Algérie"
+  },
+  "alg_rouiba": {
+    "place_id": "ChIJexsAPTRFjhIR6lhq8Xeykes",
+    "lat": 36.7364411,
+    "lng": 3.2826664,
+    "addr": "Rouiba, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Rouïba, Alger, Algérie"
+  },
+  "alg_reghaia": {
+    "place_id": "ChIJ85vS51VDjhIRlKfrSDHDRuw",
+    "lat": 36.7386643,
+    "lng": 3.34255,
+    "addr": "Réghaïa, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Réghaïa, Alger, Algérie"
+  },
+  "alg_baraki": {
+    "place_id": "ChIJiaT8hk1TjhIR698CgXuE0X4",
+    "lat": 36.6685704,
+    "lng": 3.1025581,
+    "addr": "Baraki, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Baraki, Alger, Algérie"
+  },
+  "alg_ain_benian": {
+    "place_id": "ChIJO0U1g0K6jxIRHKPJe0oc0DE",
+    "lat": 36.800402,
+    "lng": 2.9181427,
+    "addr": "Aïn Bénian, Algeria",
+    "region": "alger",
+    "role": "commune",
+    "q": "Aïn Benian, Alger, Algérie"
+  },
+  "tizi_ouzou": {
+    "place_id": "ChIJCwn9v9_HjRIRBAgg3CCazSc",
+    "lat": 36.713548,
+    "lng": 4.0473075,
+    "addr": "Tizi Ouzou, Algeria",
+    "region": "tizi",
+    "role": "hub",
+    "q": "Tizi Ouzou, Algérie"
+  },
+  "bouira_ville": {
+    "place_id": "ChIJt2pFkIovjBIRFPv_vOh6F-Q",
+    "lat": 36.3737098,
+    "lng": 3.8980159,
+    "addr": "Bouira, Algeria",
+    "region": "bouira",
+    "role": "hub",
+    "q": "Bouira, Algérie"
+  },
+  "br_chorfa": {
+    "place_id": "ChIJSSF1Y1ZXjBIRs3R7WZckk3I",
+    "lat": 36.3605515,
+    "lng": 4.329033799999999,
+    "addr": "Chorfa, Algeria",
+    "region": "bouira",
+    "role": "frontiere",
+    "q": "Chorfa, Bouira, Algérie"
+  },
+  "br_mchedallah": {
+    "place_id": "ChIJGyKVHnxQjBIRKtmRIMAiWLc",
+    "lat": 36.364496,
+    "lng": 4.2696806,
+    "addr": "M'Chedallah, Algeria",
+    "region": "bouira",
+    "role": "frontiere",
+    "q": "M'Chedallah, Bouira, Algérie"
+  }
+}

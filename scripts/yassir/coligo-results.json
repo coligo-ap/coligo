@@ -1,0 +1,5948 @@
+[
+  {
+    "i": 0,
+    "from": "naceria",
+    "to": "ihaddaden",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 1.4472,
+      "min": 3.3983333333333334
+    },
+    "yassir": {
+      "Classique": {
+        "low": 216,
+        "high": 270
+      },
+      "Confort": {
+        "low": 305,
+        "high": 381
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 200,
+        "floor": 200,
+        "mini": 200,
+        "fast": 190,
+        "low": 240,
+        "high": 240
+      },
+      "confort": {
+        "reco": 290,
+        "floor": 290,
+        "mini": 290,
+        "fast": 275,
+        "low": 260,
+        "high": 320
+      }
+    }
+  },
+  {
+    "i": 1,
+    "from": "sidi_ahmed",
+    "to": "ihaddaden",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 4.1275,
+      "min": 6.0600000000000005
+    },
+    "yassir": {
+      "Classique": {
+        "low": 226,
+        "high": 282
+      },
+      "Confort": {
+        "low": 325,
+        "high": 405
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 235,
+        "floor": 200,
+        "mini": 205,
+        "fast": 245,
+        "low": 220,
+        "high": 385
+      },
+      "confort": {
+        "reco": 340,
+        "floor": 290,
+        "mini": 300,
+        "fast": 355,
+        "low": 220,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 2,
+    "from": "brise_mer",
+    "to": "port",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 0.4071,
+      "min": 1.24
+    },
+    "yassir": {
+      "Classique": {
+        "low": 216,
+        "high": 270
+      },
+      "Confort": {
+        "low": 305,
+        "high": 381
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 200,
+        "floor": 200,
+        "mini": 200,
+        "fast": 190,
+        "low": 180,
+        "high": 220
+      },
+      "confort": {
+        "reco": 290,
+        "floor": 290,
+        "mini": 290,
+        "fast": 275,
+        "low": 260,
+        "high": 320
+      }
+    }
+  },
+  {
+    "i": 3,
+    "from": "centre",
+    "to": "gare",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 3.8076999999999996,
+      "min": 4.408333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 216,
+        "high": 270
+      },
+      "Confort": {
+        "low": 305,
+        "high": 381
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 230,
+        "floor": 200,
+        "mini": 200,
+        "fast": 240,
+        "low": 215,
+        "high": 385
+      },
+      "confort": {
+        "reco": 330,
+        "floor": 290,
+        "mini": 290,
+        "fast": 345,
+        "low": 220,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 4,
+    "from": "aeroport",
+    "to": "edimco",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 5.1667,
+      "min": 9.004999999999999
+    },
+    "yassir": {
+      "Classique": {
+        "low": 255,
+        "high": 319
+      },
+      "Confort": {
+        "low": 368,
+        "high": 459
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 255,
+        "floor": 200,
+        "mini": 225,
+        "fast": 270,
+        "low": 235,
+        "high": 310
+      },
+      "confort": {
+        "reco": 370,
+        "floor": 290,
+        "mini": 325,
+        "fast": 390,
+        "low": 235,
+        "high": 310
+      }
+    }
+  },
+  {
+    "i": 5,
+    "from": "universite",
+    "to": "aeroport",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 6.660699999999999,
+      "min": 13.525
+    },
+    "yassir": {
+      "Classique": {
+        "low": 284,
+        "high": 355
+      },
+      "Confort": {
+        "low": 410,
+        "high": 512
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 290,
+        "floor": 200,
+        "mini": 255,
+        "fast": 300,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 415,
+        "floor": 290,
+        "mini": 365,
+        "fast": 435,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 6,
+    "from": "port",
+    "to": "naceria",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 6.5553,
+      "min": 9.551666666666668
+    },
+    "yassir": {
+      "Classique": {
+        "low": 280,
+        "high": 350
+      },
+      "Confort": {
+        "low": 405,
+        "high": 505
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 290,
+        "floor": 200,
+        "mini": 255,
+        "fast": 300,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 410,
+        "floor": 290,
+        "mini": 360,
+        "fast": 430,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 7,
+    "from": "chu",
+    "to": "aeroport",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 7.3092,
+      "min": 11.946666666666665
+    },
+    "yassir": {
+      "Classique": {
+        "low": 279,
+        "high": 349
+      },
+      "Confort": {
+        "low": 402,
+        "high": 502
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 300,
+        "floor": 200,
+        "mini": 265,
+        "fast": 315,
+        "low": 310,
+        "high": 350
+      },
+      "confort": {
+        "reco": 435,
+        "floor": 290,
+        "mini": 385,
+        "fast": 455,
+        "low": 310,
+        "high": 350
+      }
+    }
+  },
+  {
+    "i": 8,
+    "from": "naceria",
+    "to": "centre",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 5.8789,
+      "min": 7.908333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 277,
+        "high": 346
+      },
+      "Confort": {
+        "low": 399,
+        "high": 498
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 270,
+        "floor": 200,
+        "mini": 240,
+        "fast": 280,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 395,
+        "floor": 290,
+        "mini": 350,
+        "fast": 410,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 9,
+    "from": "sidi_ahmed",
+    "to": "edimco",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 3.3444000000000003,
+      "min": 4.85
+    },
+    "yassir": {
+      "Classique": {
+        "low": 216,
+        "high": 270
+      },
+      "Confort": {
+        "low": 305,
+        "high": 381
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 220,
+        "floor": 200,
+        "mini": 200,
+        "fast": 230,
+        "low": 215,
+        "high": 385
+      },
+      "confort": {
+        "reco": 315,
+        "floor": 290,
+        "mini": 290,
+        "fast": 330,
+        "low": 220,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 10,
+    "from": "sidi_ahmed",
+    "to": "port",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 5.1695,
+      "min": 7.0183333333333335
+    },
+    "yassir": {
+      "Classique": {
+        "low": 228,
+        "high": 285
+      },
+      "Confort": {
+        "low": 329,
+        "high": 410
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 255,
+        "floor": 200,
+        "mini": 225,
+        "fast": 270,
+        "low": 235,
+        "high": 310
+      },
+      "confort": {
+        "reco": 370,
+        "floor": 290,
+        "mini": 325,
+        "fast": 390,
+        "low": 235,
+        "high": 310
+      }
+    }
+  },
+  {
+    "i": 11,
+    "from": "universite",
+    "to": "aamriw",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 1.7507000000000001,
+      "min": 4.08
+    },
+    "yassir": {
+      "Classique": {
+        "low": 216,
+        "high": 270
+      },
+      "Confort": {
+        "low": 305,
+        "high": 381
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 200,
+        "floor": 200,
+        "mini": 200,
+        "fast": 190,
+        "low": 240,
+        "high": 240
+      },
+      "confort": {
+        "reco": 290,
+        "floor": 290,
+        "mini": 290,
+        "fast": 275,
+        "low": 260,
+        "high": 320
+      }
+    }
+  },
+  {
+    "i": 12,
+    "from": "centre",
+    "to": "aeroport",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 6.7199,
+      "min": 9.31
+    },
+    "yassir": {
+      "Classique": {
+        "low": 258,
+        "high": 322
+      },
+      "Confort": {
+        "low": 371,
+        "high": 463
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 290,
+        "floor": 200,
+        "mini": 255,
+        "fast": 300,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 415,
+        "floor": 290,
+        "mini": 365,
+        "fast": 435,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 13,
+    "from": "brise_mer",
+    "to": "sidi_ahmed",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 5.5213,
+      "min": 8.305
+    },
+    "yassir": {
+      "Classique": {
+        "low": 248,
+        "high": 310
+      },
+      "Confort": {
+        "low": 357,
+        "high": 446
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 265,
+        "floor": 200,
+        "mini": 235,
+        "fast": 275,
+        "low": 235,
+        "high": 350
+      },
+      "confort": {
+        "reco": 380,
+        "floor": 290,
+        "mini": 335,
+        "fast": 395,
+        "low": 240,
+        "high": 350
+      }
+    }
+  },
+  {
+    "i": 14,
+    "from": "aeroport",
+    "to": "brise_mer",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 6.5791,
+      "min": 9.764999999999999
+    },
+    "yassir": {
+      "Classique": {
+        "low": 255,
+        "high": 319
+      },
+      "Confort": {
+        "low": 367,
+        "high": 458
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 290,
+        "floor": 200,
+        "mini": 255,
+        "fast": 300,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 410,
+        "floor": 290,
+        "mini": 360,
+        "fast": 430,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 15,
+    "from": "centre",
+    "to": "brise_mer",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 0.8375,
+      "min": 1.8883333333333332
+    },
+    "yassir": {
+      "Classique": {
+        "low": 216,
+        "high": 270
+      },
+      "Confort": {
+        "low": 305,
+        "high": 381
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 200,
+        "floor": 200,
+        "mini": 200,
+        "fast": 190,
+        "low": 220,
+        "high": 260
+      },
+      "confort": {
+        "reco": 290,
+        "floor": 290,
+        "mini": 290,
+        "fast": 275,
+        "low": 260,
+        "high": 320
+      }
+    }
+  },
+  {
+    "i": 16,
+    "from": "brise_mer",
+    "to": "aamriw",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 4.0148,
+      "min": 5.413333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 242,
+        "high": 302
+      },
+      "Confort": {
+        "low": 348,
+        "high": 434
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 235,
+        "floor": 200,
+        "mini": 205,
+        "fast": 245,
+        "low": 220,
+        "high": 385
+      },
+      "confort": {
+        "reco": 335,
+        "floor": 290,
+        "mini": 295,
+        "fast": 350,
+        "low": 220,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 17,
+    "from": "ihaddaden",
+    "to": "naceria",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 1.3552,
+      "min": 3.4699999999999998
+    },
+    "yassir": {
+      "Classique": {
+        "low": 216,
+        "high": 270
+      },
+      "Confort": {
+        "low": 305,
+        "high": 381
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 200,
+        "floor": 200,
+        "mini": 200,
+        "fast": 190,
+        "low": 250,
+        "high": 270
+      },
+      "confort": {
+        "reco": 290,
+        "floor": 290,
+        "mini": 290,
+        "fast": 275,
+        "low": 260,
+        "high": 320
+      }
+    }
+  },
+  {
+    "i": 18,
+    "from": "sidi_ahmed",
+    "to": "gare",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 4.3633999999999995,
+      "min": 8.04
+    },
+    "yassir": {
+      "Classique": {
+        "low": 244,
+        "high": 305
+      },
+      "Confort": {
+        "low": 351,
+        "high": 438
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 240,
+        "floor": 200,
+        "mini": 210,
+        "fast": 250,
+        "low": 235,
+        "high": 275
+      },
+      "confort": {
+        "reco": 350,
+        "floor": 290,
+        "mini": 310,
+        "fast": 365,
+        "low": 235,
+        "high": 275
+      }
+    }
+  },
+  {
+    "i": 19,
+    "from": "naceria",
+    "to": "chu",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 3.5335,
+      "min": 5.88
+    },
+    "yassir": {
+      "Classique": {
+        "low": 216,
+        "high": 270
+      },
+      "Confort": {
+        "low": 305,
+        "high": 381
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 225,
+        "floor": 200,
+        "mini": 200,
+        "fast": 235,
+        "low": 215,
+        "high": 385
+      },
+      "confort": {
+        "reco": 320,
+        "floor": 290,
+        "mini": 290,
+        "fast": 335,
+        "low": 220,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 20,
+    "from": "edimco",
+    "to": "port",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 4.8125,
+      "min": 6.126666666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 244,
+        "high": 305
+      },
+      "Confort": {
+        "low": 351,
+        "high": 437
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 250,
+        "floor": 200,
+        "mini": 220,
+        "fast": 265,
+        "low": 235,
+        "high": 310
+      },
+      "confort": {
+        "reco": 360,
+        "floor": 290,
+        "mini": 315,
+        "fast": 380,
+        "low": 235,
+        "high": 310
+      }
+    }
+  },
+  {
+    "i": 21,
+    "from": "naceria",
+    "to": "aeroport",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 6.2513000000000005,
+      "min": 12.058333333333334
+    },
+    "yassir": {
+      "Classique": {
+        "low": 276,
+        "high": 345
+      },
+      "Confort": {
+        "low": 398,
+        "high": 496
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 280,
+        "floor": 200,
+        "mini": 245,
+        "fast": 290,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 405,
+        "floor": 290,
+        "mini": 355,
+        "fast": 420,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 22,
+    "from": "centre",
+    "to": "chu",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 3.7586999999999997,
+      "min": 4.753333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 216,
+        "high": 270
+      },
+      "Confort": {
+        "low": 305,
+        "high": 381
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 230,
+        "floor": 200,
+        "mini": 200,
+        "fast": 240,
+        "low": 215,
+        "high": 385
+      },
+      "confort": {
+        "reco": 330,
+        "floor": 290,
+        "mini": 290,
+        "fast": 345,
+        "low": 220,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 23,
+    "from": "centre",
+    "to": "port",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 0.604,
+      "min": 1.2766666666666666
+    },
+    "yassir": {},
+    "ok": false,
+    "coligo": {
+      "classic": {
+        "reco": 200,
+        "floor": 200,
+        "mini": 200,
+        "fast": 190,
+        "low": 240,
+        "high": 260
+      },
+      "confort": {
+        "reco": 290,
+        "floor": 290,
+        "mini": 290,
+        "fast": 275,
+        "low": 260,
+        "high": 320
+      }
+    }
+  },
+  {
+    "i": 24,
+    "from": "edimco",
+    "to": "gare",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 2.3604000000000003,
+      "min": 4.493333333333334
+    },
+    "yassir": {},
+    "ok": false,
+    "coligo": {
+      "classic": {
+        "reco": 200,
+        "floor": 200,
+        "mini": 200,
+        "fast": 205,
+        "low": 200,
+        "high": 385
+      },
+      "confort": {
+        "reco": 290,
+        "floor": 290,
+        "mini": 290,
+        "fast": 295,
+        "low": 200,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 25,
+    "from": "aeroport",
+    "to": "aamriw",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 5.4553,
+      "min": 8.626666666666667
+    },
+    "yassir": {},
+    "ok": false,
+    "coligo": {
+      "classic": {
+        "reco": 260,
+        "floor": 200,
+        "mini": 230,
+        "fast": 275,
+        "low": 235,
+        "high": 350
+      },
+      "confort": {
+        "reco": 380,
+        "floor": 290,
+        "mini": 335,
+        "fast": 395,
+        "low": 240,
+        "high": 350
+      }
+    }
+  },
+  {
+    "i": 26,
+    "from": "ihaddaden",
+    "to": "aamriw",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 1.8673,
+      "min": 2.3766666666666665
+    },
+    "yassir": {},
+    "ok": false,
+    "coligo": {
+      "classic": {
+        "reco": 200,
+        "floor": 200,
+        "mini": 200,
+        "fast": 195,
+        "low": 240,
+        "high": 240
+      },
+      "confort": {
+        "reco": 290,
+        "floor": 290,
+        "mini": 290,
+        "fast": 280,
+        "low": 260,
+        "high": 320
+      }
+    }
+  },
+  {
+    "i": 27,
+    "from": "sidi_ahmed",
+    "to": "aamriw",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 2.354,
+      "min": 3.6483333333333334
+    },
+    "yassir": {},
+    "ok": false,
+    "coligo": {
+      "classic": {
+        "reco": 200,
+        "floor": 200,
+        "mini": 200,
+        "fast": 205,
+        "low": 200,
+        "high": 385
+      },
+      "confort": {
+        "reco": 290,
+        "floor": 290,
+        "mini": 290,
+        "fast": 295,
+        "low": 200,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 28,
+    "from": "aamriw",
+    "to": "port",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 3.6458000000000004,
+      "min": 4.625
+    },
+    "yassir": {},
+    "ok": false,
+    "coligo": {
+      "classic": {
+        "reco": 225,
+        "floor": 200,
+        "mini": 200,
+        "fast": 235,
+        "low": 215,
+        "high": 385
+      },
+      "confort": {
+        "reco": 325,
+        "floor": 290,
+        "mini": 290,
+        "fast": 340,
+        "low": 220,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 29,
+    "from": "aeroport",
+    "to": "centre",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 5.864199999999999,
+      "min": 8.016666666666667
+    },
+    "yassir": {},
+    "ok": false,
+    "coligo": {
+      "classic": {
+        "reco": 270,
+        "floor": 200,
+        "mini": 240,
+        "fast": 280,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 395,
+        "floor": 290,
+        "mini": 350,
+        "fast": 410,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 30,
+    "from": "naceria",
+    "to": "edimco",
+    "cat_from": "centre",
+    "cat_to": "centre",
+    "osrm": {
+      "km": 2.0646999999999998,
+      "min": 4.71
+    },
+    "yassir": {},
+    "ok": false,
+    "coligo": {
+      "classic": {
+        "reco": 200,
+        "floor": 200,
+        "mini": 200,
+        "fast": 200,
+        "low": 240,
+        "high": 240
+      },
+      "confort": {
+        "reco": 290,
+        "floor": 290,
+        "mini": 290,
+        "fast": 285,
+        "low": 260,
+        "high": 320
+      }
+    }
+  },
+  {
+    "i": 0,
+    "from": "naceria",
+    "to": "akbou",
+    "cat_from": "centre",
+    "cat_to": "long",
+    "osrm": {
+      "km": 66.7247,
+      "min": 55.81666666666667
+    },
+    "yassir": {},
+    "ok": false,
+    "coligo": {
+      "classic": {
+        "reco": 1550,
+        "floor": 1200,
+        "mini": 1365,
+        "fast": 1620,
+        "low": 1540,
+        "high": 1880
+      },
+      "confort": {
+        "reco": 2240,
+        "floor": 1745,
+        "mini": 1970,
+        "fast": 2340,
+        "low": 2245,
+        "high": 2745
+      }
+    }
+  },
+  {
+    "i": 0,
+    "from": "centre",
+    "to": "tichy",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 18.4617,
+      "min": 14.405
+    },
+    "yassir": {
+      "Classique": {
+        "low": 505,
+        "high": 605
+      },
+      "Confort": {
+        "low": 765,
+        "high": 865
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 535,
+        "floor": 385,
+        "mini": 470,
+        "fast": 560,
+        "low": 500,
+        "high": 610
+      },
+      "confort": {
+        "reco": 775,
+        "floor": 565,
+        "mini": 680,
+        "fast": 810,
+        "low": 725,
+        "high": 885
+      }
+    }
+  },
+  {
+    "i": 2,
+    "from": "aamriw",
+    "to": "oued_ghir",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 11.066600000000001,
+      "min": 12.115
+    },
+    "yassir": {
+      "Classique": {
+        "low": 371,
+        "high": 463
+      },
+      "Confort": {
+        "low": 561,
+        "high": 661
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 380,
+        "floor": 265,
+        "mini": 335,
+        "fast": 395,
+        "low": 340,
+        "high": 415
+      },
+      "confort": {
+        "reco": 550,
+        "floor": 385,
+        "mini": 485,
+        "fast": 575,
+        "low": 490,
+        "high": 600
+      }
+    }
+  },
+  {
+    "i": 4,
+    "from": "centre",
+    "to": "boukhelifa",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 16.862099999999998,
+      "min": 19.506666666666668
+    },
+    "yassir": {
+      "Classique": {
+        "low": 482,
+        "high": 582
+      },
+      "Confort": {
+        "low": 733,
+        "high": 833
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 505,
+        "floor": 360,
+        "mini": 445,
+        "fast": 525,
+        "low": 465,
+        "high": 565
+      },
+      "confort": {
+        "reco": 725,
+        "floor": 525,
+        "mini": 640,
+        "fast": 755,
+        "low": 675,
+        "high": 825
+      }
+    }
+  },
+  {
+    "i": 5,
+    "from": "gare",
+    "to": "tala_hamza",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 5.3805,
+      "min": 5.79
+    },
+    "yassir": {
+      "Classique": {
+        "low": 232,
+        "high": 290
+      },
+      "Confort": {
+        "low": 334,
+        "high": 416
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 260,
+        "floor": 200,
+        "mini": 230,
+        "fast": 275,
+        "low": 235,
+        "high": 310
+      },
+      "confort": {
+        "reco": 375,
+        "floor": 290,
+        "mini": 330,
+        "fast": 390,
+        "low": 235,
+        "high": 310
+      }
+    }
+  },
+  {
+    "i": 13,
+    "from": "centre",
+    "to": "amizour",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 24.3666,
+      "min": 22.346666666666668
+    },
+    "yassir": {
+      "Classique": {
+        "low": 773,
+        "high": 873
+      },
+      "Confort": {
+        "low": 1149,
+        "high": 1249
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 660,
+        "floor": 485,
+        "mini": 580,
+        "fast": 690,
+        "low": 625,
+        "high": 765
+      },
+      "confort": {
+        "reco": 950,
+        "floor": 710,
+        "mini": 835,
+        "fast": 995,
+        "low": 915,
+        "high": 1115
+      }
+    }
+  },
+  {
+    "i": 1,
+    "from": "centre",
+    "to": "oued_ghir",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 11.987200000000001,
+      "min": 12.573333333333332
+    },
+    "yassir": {
+      "Classique": {
+        "low": 370,
+        "high": 462
+      },
+      "Confort": {
+        "low": 561,
+        "high": 661
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 405,
+        "floor": 280,
+        "mini": 355,
+        "fast": 420,
+        "low": 360,
+        "high": 440
+      },
+      "confort": {
+        "reco": 575,
+        "floor": 405,
+        "mini": 505,
+        "fast": 605,
+        "low": 520,
+        "high": 640
+      }
+    }
+  },
+  {
+    "i": 3,
+    "from": "universite",
+    "to": "oued_ghir",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 11.5148,
+      "min": 15.121666666666666
+    },
+    "yassir": {
+      "Classique": {
+        "low": 397,
+        "high": 495
+      },
+      "Confort": {
+        "low": 609,
+        "high": 709
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 390,
+        "floor": 270,
+        "mini": 345,
+        "fast": 405,
+        "low": 345,
+        "high": 425
+      },
+      "confort": {
+        "reco": 565,
+        "floor": 395,
+        "mini": 495,
+        "fast": 590,
+        "low": 510,
+        "high": 620
+      }
+    }
+  },
+  {
+    "i": 6,
+    "from": "brise_mer",
+    "to": "tichy",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 19.184099999999997,
+      "min": 16.153333333333332
+    },
+    "yassir": {
+      "Classique": {
+        "low": 545,
+        "high": 645
+      },
+      "Confort": {
+        "low": 824,
+        "high": 924
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 555,
+        "floor": 400,
+        "mini": 490,
+        "fast": 580,
+        "low": 515,
+        "high": 625
+      },
+      "confort": {
+        "reco": 795,
+        "floor": 580,
+        "mini": 700,
+        "fast": 830,
+        "low": 745,
+        "high": 915
+      }
+    }
+  },
+  {
+    "i": 7,
+    "from": "port",
+    "to": "tichy",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 18.9505,
+      "min": 15.566666666666666
+    },
+    "yassir": {
+      "Classique": {
+        "low": 491,
+        "high": 591
+      },
+      "Confort": {
+        "low": 745,
+        "high": 845
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 550,
+        "floor": 395,
+        "mini": 485,
+        "fast": 575,
+        "low": 510,
+        "high": 620
+      },
+      "confort": {
+        "reco": 785,
+        "floor": 575,
+        "mini": 690,
+        "fast": 825,
+        "low": 745,
+        "high": 910
+      }
+    }
+  },
+  {
+    "i": 8,
+    "from": "aeroport",
+    "to": "tichy",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 15.945200000000002,
+      "min": 13.620000000000001
+    },
+    "yassir": {
+      "Classique": {
+        "low": 445,
+        "high": 545
+      },
+      "Confort": {
+        "low": 679,
+        "high": 779
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 485,
+        "floor": 345,
+        "mini": 425,
+        "fast": 505,
+        "low": 445,
+        "high": 545
+      },
+      "confort": {
+        "reco": 695,
+        "floor": 505,
+        "mini": 610,
+        "fast": 725,
+        "low": 650,
+        "high": 790
+      }
+    }
+  },
+  {
+    "i": 9,
+    "from": "aamriw",
+    "to": "tichy",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 17.9754,
+      "min": 14.898333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 509,
+        "high": 609
+      },
+      "Confort": {
+        "low": 772,
+        "high": 872
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 525,
+        "floor": 380,
+        "mini": 460,
+        "fast": 550,
+        "low": 485,
+        "high": 595
+      },
+      "confort": {
+        "reco": 760,
+        "floor": 550,
+        "mini": 670,
+        "fast": 795,
+        "low": 710,
+        "high": 870
+      }
+    }
+  },
+  {
+    "i": 10,
+    "from": "gare",
+    "to": "el_kseur",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 31.7286,
+      "min": 35.195
+    },
+    "yassir": {
+      "Classique": {
+        "low": 707,
+        "high": 807
+      },
+      "Confort": {
+        "low": 1055,
+        "high": 1155
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 815,
+        "floor": 610,
+        "mini": 715,
+        "fast": 850,
+        "low": 785,
+        "high": 955
+      },
+      "confort": {
+        "reco": 1175,
+        "floor": 890,
+        "mini": 1035,
+        "fast": 1230,
+        "low": 1145,
+        "high": 1395
+      }
+    }
+  },
+  {
+    "i": 11,
+    "from": "centre",
+    "to": "el_kseur",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 34.9634,
+      "min": 37.18333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 800,
+        "high": 900
+      },
+      "Confort": {
+        "low": 1190,
+        "high": 1290
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 885,
+        "floor": 665,
+        "mini": 780,
+        "fast": 925,
+        "low": 855,
+        "high": 1045
+      },
+      "confort": {
+        "reco": 1270,
+        "floor": 970,
+        "mini": 1120,
+        "fast": 1330,
+        "low": 1245,
+        "high": 1525
+      }
+    }
+  },
+  {
+    "i": 12,
+    "from": "aeroport",
+    "to": "el_kseur",
+    "cat_from": "centre",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 33.9078,
+      "min": 38.17833333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 782,
+        "high": 882
+      },
+      "Confort": {
+        "low": 1164,
+        "high": 1264
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 860,
+        "floor": 645,
+        "mini": 755,
+        "fast": 900,
+        "low": 835,
+        "high": 1020
+      },
+      "confort": {
+        "reco": 1240,
+        "floor": 945,
+        "mini": 1090,
+        "fast": 1295,
+        "low": 1210,
+        "high": 1480
+      }
+    }
+  },
+  {
+    "i": 14,
+    "from": "centre",
+    "to": "aokas",
+    "cat_from": "centre",
+    "cat_to": "long",
+    "osrm": {
+      "km": 27.612099999999998,
+      "min": 21.311666666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 732,
+        "high": 832
+      },
+      "Confort": {
+        "low": 1092,
+        "high": 1192
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 730,
+        "floor": 540,
+        "mini": 640,
+        "fast": 760,
+        "low": 700,
+        "high": 855
+      },
+      "confort": {
+        "reco": 1050,
+        "floor": 790,
+        "mini": 925,
+        "fast": 1100,
+        "low": 1015,
+        "high": 1240
+      }
+    }
+  },
+  {
+    "i": 15,
+    "from": "tichy",
+    "to": "aokas",
+    "cat_from": "alentours",
+    "cat_to": "long",
+    "osrm": {
+      "km": 9.1505,
+      "min": 6.906666666666666
+    },
+    "yassir": {
+      "Classique": {
+        "low": 303,
+        "high": 378
+      },
+      "Confort": {
+        "low": 438,
+        "high": 538
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 340,
+        "floor": 230,
+        "mini": 300,
+        "fast": 355,
+        "low": 350,
+        "high": 350
+      },
+      "confort": {
+        "reco": 490,
+        "floor": 335,
+        "mini": 430,
+        "fast": 510,
+        "low": 350,
+        "high": 350
+      }
+    }
+  },
+  {
+    "i": 16,
+    "from": "gare",
+    "to": "aokas",
+    "cat_from": "centre",
+    "cat_to": "long",
+    "osrm": {
+      "km": 24.2268,
+      "min": 18.571666666666665
+    },
+    "yassir": {
+      "Classique": {
+        "low": 637,
+        "high": 737
+      },
+      "Confort": {
+        "low": 955,
+        "high": 1055
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 660,
+        "floor": 485,
+        "mini": 580,
+        "fast": 690,
+        "low": 620,
+        "high": 760
+      },
+      "confort": {
+        "reco": 945,
+        "floor": 705,
+        "mini": 830,
+        "fast": 990,
+        "low": 910,
+        "high": 1110
+      }
+    }
+  },
+  {
+    "i": 17,
+    "from": "centre",
+    "to": "souk_tenine",
+    "cat_from": "centre",
+    "cat_to": "long",
+    "osrm": {
+      "km": 35.7625,
+      "min": 26.959999999999997
+    },
+    "yassir": {
+      "Classique": {
+        "low": 914,
+        "high": 1014
+      },
+      "Confort": {
+        "low": 1352,
+        "high": 1452
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 900,
+        "floor": 680,
+        "mini": 790,
+        "fast": 940,
+        "low": 875,
+        "high": 1065
+      },
+      "confort": {
+        "reco": 1300,
+        "floor": 990,
+        "mini": 1145,
+        "fast": 1360,
+        "low": 1270,
+        "high": 1550
+      }
+    }
+  },
+  {
+    "i": 18,
+    "from": "centre",
+    "to": "sidi_aich",
+    "cat_from": "centre",
+    "cat_to": "long",
+    "osrm": {
+      "km": 45.242599999999996,
+      "min": 43.291666666666664
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1132,
+        "high": 1232
+      },
+      "Confort": {
+        "low": 1665,
+        "high": 1765
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1105,
+        "floor": 835,
+        "mini": 970,
+        "fast": 1155,
+        "low": 1075,
+        "high": 1315
+      },
+      "confort": {
+        "reco": 1585,
+        "floor": 1220,
+        "mini": 1395,
+        "fast": 1655,
+        "low": 1570,
+        "high": 1920
+      }
+    }
+  },
+  {
+    "i": 19,
+    "from": "el_kseur",
+    "to": "amizour",
+    "cat_from": "alentours",
+    "cat_to": "alentours",
+    "osrm": {
+      "km": 13.617700000000001,
+      "min": 17.071666666666665
+    },
+    "yassir": {
+      "Classique": {
+        "low": 436,
+        "high": 536
+      },
+      "Confort": {
+        "low": 669,
+        "high": 769
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 435,
+        "floor": 305,
+        "mini": 385,
+        "fast": 455,
+        "low": 390,
+        "high": 480
+      },
+      "confort": {
+        "reco": 625,
+        "floor": 445,
+        "mini": 550,
+        "fast": 655,
+        "low": 570,
+        "high": 700
+      }
+    }
+  },
+  {
+    "i": 20,
+    "from": "centre",
+    "to": "kherrata",
+    "cat_from": "centre",
+    "cat_to": "long",
+    "osrm": {
+      "km": 59.0734,
+      "min": 49.23833333333334
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1543,
+        "high": 1643
+      },
+      "Confort": {
+        "low": 2261,
+        "high": 2361
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1390,
+        "floor": 1070,
+        "mini": 1225,
+        "fast": 1455,
+        "low": 1375,
+        "high": 1685
+      },
+      "confort": {
+        "reco": 2005,
+        "floor": 1560,
+        "mini": 1765,
+        "fast": 2095,
+        "low": 2005,
+        "high": 2455
+      }
+    }
+  },
+  {
+    "i": 21,
+    "from": "centre",
+    "to": "seddouk",
+    "cat_from": "centre",
+    "cat_to": "long",
+    "osrm": {
+      "km": 58.555800000000005,
+      "min": 57.498333333333335
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1879,
+        "high": 1979
+      },
+      "Confort": {
+        "low": 2732,
+        "high": 2832
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1380,
+        "floor": 1060,
+        "mini": 1215,
+        "fast": 1445,
+        "low": 1365,
+        "high": 1665
+      },
+      "confort": {
+        "reco": 1990,
+        "floor": 1545,
+        "mini": 1750,
+        "fast": 2080,
+        "low": 1990,
+        "high": 2430
+      }
+    }
+  },
+  {
+    "i": 60,
+    "from": "centre",
+    "to": "tazmalt",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 85.9559,
+      "min": 69.39333333333335
+    },
+    "yassir": {
+      "Classique": {
+        "low": 2035,
+        "high": 2135
+      },
+      "Confort": {
+        "low": 2958,
+        "high": 3058
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1960,
+        "floor": 1520,
+        "mini": 1725,
+        "fast": 2050,
+        "low": 1960,
+        "high": 2395
+      },
+      "confort": {
+        "reco": 2820,
+        "floor": 2220,
+        "mini": 2480,
+        "fast": 2945,
+        "low": 2855,
+        "high": 3485
+      }
+    }
+  },
+  {
+    "i": 46,
+    "from": "centre",
+    "to": "akbou",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 68.3637,
+      "min": 54.75333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1649,
+        "high": 1749
+      },
+      "Confort": {
+        "low": 2404,
+        "high": 2504
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1590,
+        "floor": 1225,
+        "mini": 1400,
+        "fast": 1660,
+        "low": 1575,
+        "high": 1925
+      },
+      "confort": {
+        "reco": 2285,
+        "floor": 1785,
+        "mini": 2010,
+        "fast": 2385,
+        "low": 2300,
+        "high": 2810
+      }
+    }
+  },
+  {
+    "i": 0,
+    "from": "akbou",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 68.69839999999999,
+      "min": 54.61833333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1664,
+        "high": 1764
+      },
+      "Confort": {
+        "low": 2426,
+        "high": 2526
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1590,
+        "floor": 1230,
+        "mini": 1400,
+        "fast": 1665,
+        "low": 1585,
+        "high": 1935
+      },
+      "confort": {
+        "reco": 2295,
+        "floor": 1795,
+        "mini": 2020,
+        "fast": 2400,
+        "low": 2310,
+        "high": 2820
+      }
+    }
+  },
+  {
+    "i": 1,
+    "from": "br_chorfa",
+    "to": "tazmalt",
+    "pair_cat": "frontiere",
+    "region_from": "bouira",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 8.9284,
+      "min": 9.906666666666666
+    },
+    "yassir": {
+      "Classique": {
+        "low": 346,
+        "high": 431
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 335,
+        "floor": 225,
+        "mini": 295,
+        "fast": 350,
+        "low": 350,
+        "high": 350
+      },
+      "confort": {
+        "reco": 485,
+        "floor": 330,
+        "mini": 425,
+        "fast": 505,
+        "low": 350,
+        "high": 350
+      }
+    }
+  },
+  {
+    "i": 2,
+    "from": "alg_centre",
+    "to": "alg_bab_ezzouar",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 14.812100000000001,
+      "min": 16.835
+    },
+    "yassir": {
+      "Classique": {
+        "low": 485,
+        "high": 585
+      },
+      "Confort": {
+        "low": 680,
+        "high": 780
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 510,
+        "floor": 325,
+        "mini": 450,
+        "fast": 530,
+        "low": 420,
+        "high": 510
+      },
+      "confort": {
+        "reco": 730,
+        "floor": 475,
+        "mini": 640,
+        "fast": 765,
+        "low": 610,
+        "high": 750
+      }
+    }
+  },
+  {
+    "i": 3,
+    "from": "centre",
+    "to": "tizi_ouzou",
+    "pair_cat": "interwilaya",
+    "region_from": "bejaia",
+    "region_to": "tizi",
+    "osrm": {
+      "km": 121.5142,
+      "min": 123.37166666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 3777,
+        "high": 3877
+      },
+      "Confort": {
+        "low": 5305,
+        "high": 5405
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 2705,
+        "floor": 2120,
+        "mini": 2380,
+        "fast": 2825,
+        "low": 2725,
+        "high": 3330
+      },
+      "confort": {
+        "reco": 3900,
+        "floor": 3090,
+        "mini": 3430,
+        "fast": 4075,
+        "low": 3975,
+        "high": 4855
+      }
+    }
+  },
+  {
+    "i": 4,
+    "from": "tazmalt",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 85.3034,
+      "min": 67.57666666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 2018,
+        "high": 2118
+      },
+      "Confort": {
+        "low": 2933,
+        "high": 3033
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1945,
+        "floor": 1510,
+        "mini": 1710,
+        "fast": 2035,
+        "low": 1940,
+        "high": 2370
+      },
+      "confort": {
+        "reco": 2800,
+        "floor": 2200,
+        "mini": 2465,
+        "fast": 2930,
+        "low": 2830,
+        "high": 3460
+      }
+    }
+  },
+  {
+    "i": 5,
+    "from": "br_mchedallah",
+    "to": "akbou",
+    "pair_cat": "frontiere",
+    "region_from": "bouira",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 31.1644,
+      "min": 29.08
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1419,
+        "high": 1519
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 805,
+        "floor": 600,
+        "mini": 710,
+        "fast": 840,
+        "low": 775,
+        "high": 945
+      },
+      "confort": {
+        "reco": 1160,
+        "floor": 875,
+        "mini": 1020,
+        "fast": 1210,
+        "low": 1125,
+        "high": 1375
+      }
+    }
+  },
+  {
+    "i": 6,
+    "from": "alg_centre",
+    "to": "alg_aeroport",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 19.3244,
+      "min": 21.725
+    },
+    "yassir": {
+      "Classique": {
+        "low": 590,
+        "high": 690
+      },
+      "Confort": {
+        "low": 819,
+        "high": 919
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 605,
+        "floor": 400,
+        "mini": 530,
+        "fast": 630,
+        "low": 520,
+        "high": 635
+      },
+      "confort": {
+        "reco": 870,
+        "floor": 585,
+        "mini": 765,
+        "fast": 910,
+        "low": 750,
+        "high": 920
+      }
+    }
+  },
+  {
+    "i": 7,
+    "from": "centre",
+    "to": "alg_centre",
+    "pair_cat": "interwilaya",
+    "region_from": "bejaia",
+    "region_to": "alger",
+    "osrm": {
+      "km": 241.98760000000001,
+      "min": 181.44666666666666
+    },
+    "yassir": {
+      "Classique": {
+        "low": 6679,
+        "high": 6779
+      },
+      "Confort": {
+        "low": 9343,
+        "high": 9443
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 5245,
+        "floor": 4140,
+        "mini": 4615,
+        "fast": 5480,
+        "low": 5330,
+        "high": 6510
+      },
+      "confort": {
+        "reco": 7550,
+        "floor": 6040,
+        "mini": 6645,
+        "fast": 7895,
+        "low": 7765,
+        "high": 9495
+      }
+    }
+  },
+  {
+    "i": 8,
+    "from": "sidi_aich",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 45.119800000000005,
+      "min": 42.401666666666664
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1185,
+        "high": 1285
+      },
+      "Confort": {
+        "low": 1740,
+        "high": 1840
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1100,
+        "floor": 835,
+        "mini": 970,
+        "fast": 1150,
+        "low": 1075,
+        "high": 1315
+      },
+      "confort": {
+        "reco": 1585,
+        "floor": 1215,
+        "mini": 1395,
+        "fast": 1655,
+        "low": 1565,
+        "high": 1915
+      }
+    }
+  },
+  {
+    "i": 9,
+    "from": "br_chorfa",
+    "to": "akbou",
+    "pair_cat": "frontiere",
+    "region_from": "bouira",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 23.0825,
+      "min": 21.576666666666664
+    },
+    "yassir": {
+      "Classique": {
+        "low": 891,
+        "high": 991
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 635,
+        "floor": 465,
+        "mini": 560,
+        "fast": 665,
+        "low": 600,
+        "high": 730
+      },
+      "confort": {
+        "reco": 915,
+        "floor": 680,
+        "mini": 805,
+        "fast": 955,
+        "low": 875,
+        "high": 1065
+      }
+    }
+  },
+  {
+    "i": 10,
+    "from": "alg_centre",
+    "to": "alg_zeralda",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 24.0743,
+      "min": 25.84333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 697,
+        "high": 797
+      },
+      "Confort": {
+        "low": 862,
+        "high": 962
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 700,
+        "floor": 480,
+        "mini": 615,
+        "fast": 730,
+        "low": 620,
+        "high": 760
+      },
+      "confort": {
+        "reco": 1010,
+        "floor": 700,
+        "mini": 890,
+        "fast": 1055,
+        "low": 905,
+        "high": 1105
+      }
+    }
+  },
+  {
+    "i": 11,
+    "from": "centre",
+    "to": "bouira_ville",
+    "pair_cat": "interwilaya",
+    "region_from": "bejaia",
+    "region_to": "bouira",
+    "osrm": {
+      "km": 139.97629999999998,
+      "min": 103.96499999999999
+    },
+    "yassir": {
+      "Classique": {
+        "low": 3864,
+        "high": 3964
+      },
+      "Confort": {
+        "low": 5422,
+        "high": 5522
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 3095,
+        "floor": 2430,
+        "mini": 2725,
+        "fast": 3235,
+        "low": 3125,
+        "high": 3815
+      },
+      "confort": {
+        "reco": 4455,
+        "floor": 3540,
+        "mini": 3920,
+        "fast": 4660,
+        "low": 4555,
+        "high": 5565
+      }
+    }
+  },
+  {
+    "i": 12,
+    "from": "kherrata",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 58.3934,
+      "min": 48.92666666666666
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1515,
+        "high": 1615
+      },
+      "Confort": {
+        "low": 2221,
+        "high": 2321
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1375,
+        "floor": 1060,
+        "mini": 1210,
+        "fast": 1440,
+        "low": 1360,
+        "high": 1660
+      },
+      "confort": {
+        "reco": 1980,
+        "floor": 1545,
+        "mini": 1740,
+        "fast": 2070,
+        "low": 1985,
+        "high": 2425
+      }
+    }
+  },
+  {
+    "i": 13,
+    "from": "bouira_ville",
+    "to": "tazmalt",
+    "pair_cat": "frontiere",
+    "region_from": "bouira",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 55.844,
+      "min": 50.35333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1651,
+        "high": 1751
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1325,
+        "floor": 1015,
+        "mini": 1165,
+        "fast": 1385,
+        "low": 1305,
+        "high": 1595
+      },
+      "confort": {
+        "reco": 1935,
+        "floor": 1480,
+        "mini": 1705,
+        "fast": 2025,
+        "low": 1905,
+        "high": 2325
+      }
+    }
+  },
+  {
+    "i": 14,
+    "from": "alg_centre",
+    "to": "alg_bab_el_oued",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 3.4065,
+      "min": 6.525
+    },
+    "yassir": {
+      "Classique": {
+        "low": 225,
+        "high": 281
+      },
+      "Confort": {
+        "low": 316,
+        "high": 394
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 275,
+        "floor": 200,
+        "mini": 240,
+        "fast": 285,
+        "low": 215,
+        "high": 385
+      },
+      "confort": {
+        "reco": 395,
+        "floor": 290,
+        "mini": 350,
+        "fast": 410,
+        "low": 220,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 15,
+    "from": "akbou",
+    "to": "bouira_ville",
+    "pair_cat": "interwilaya",
+    "region_from": "bejaia",
+    "region_to": "bouira",
+    "osrm": {
+      "km": 69.39089999999999,
+      "min": 61.14833333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 2460,
+        "high": 2560
+      },
+      "Confort": {
+        "low": 3467,
+        "high": 3567
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1610,
+        "floor": 1245,
+        "mini": 1415,
+        "fast": 1685,
+        "low": 1600,
+        "high": 1955
+      },
+      "confort": {
+        "reco": 2315,
+        "floor": 1810,
+        "mini": 2035,
+        "fast": 2420,
+        "low": 2330,
+        "high": 2850
+      }
+    }
+  },
+  {
+    "i": 16,
+    "from": "aokas",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 27.054,
+      "min": 21.278333333333332
+    },
+    "yassir": {
+      "Classique": {
+        "low": 705,
+        "high": 805
+      },
+      "Confort": {
+        "low": 1052,
+        "high": 1152
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 720,
+        "floor": 530,
+        "mini": 635,
+        "fast": 750,
+        "low": 685,
+        "high": 835
+      },
+      "confort": {
+        "reco": 1035,
+        "floor": 775,
+        "mini": 910,
+        "fast": 1080,
+        "low": 995,
+        "high": 1215
+      }
+    }
+  },
+  {
+    "i": 17,
+    "from": "br_mchedallah",
+    "to": "tazmalt",
+    "pair_cat": "frontiere",
+    "region_from": "bouira",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 17.0103,
+      "min": 17.41
+    },
+    "yassir": {
+      "Classique": {
+        "low": 567,
+        "high": 667
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 510,
+        "floor": 365,
+        "mini": 450,
+        "fast": 530,
+        "low": 470,
+        "high": 570
+      },
+      "confort": {
+        "reco": 730,
+        "floor": 530,
+        "mini": 640,
+        "fast": 760,
+        "low": 680,
+        "high": 830
+      }
+    }
+  },
+  {
+    "i": 19,
+    "from": "sidi_aich",
+    "to": "tizi_ouzou",
+    "pair_cat": "interwilaya",
+    "region_from": "bejaia",
+    "region_to": "tizi",
+    "osrm": {
+      "km": 88.0512,
+      "min": 95.53333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 2693,
+        "high": 2793
+      },
+      "Confort": {
+        "low": 3794,
+        "high": 3894
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 2000,
+        "floor": 1555,
+        "mini": 1760,
+        "fast": 2090,
+        "low": 2005,
+        "high": 2450
+      },
+      "confort": {
+        "reco": 2885,
+        "floor": 2270,
+        "mini": 2540,
+        "fast": 3015,
+        "low": 2915,
+        "high": 3565
+      }
+    }
+  },
+  {
+    "i": 20,
+    "from": "el_kseur",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 34.7534,
+      "min": 35.13166666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 855,
+        "high": 955
+      },
+      "Confort": {
+        "low": 1270,
+        "high": 1370
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 880,
+        "floor": 660,
+        "mini": 775,
+        "fast": 920,
+        "low": 850,
+        "high": 1040
+      },
+      "confort": {
+        "reco": 1270,
+        "floor": 965,
+        "mini": 1120,
+        "fast": 1325,
+        "low": 1240,
+        "high": 1515
+      }
+    }
+  },
+  {
+    "i": 21,
+    "from": "alg_centre",
+    "to": "alg_rouiba",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 23.3549,
+      "min": 26.048333333333336
+    },
+    "yassir": {
+      "Classique": {
+        "low": 741,
+        "high": 841
+      },
+      "Confort": {
+        "low": 925,
+        "high": 1025
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 685,
+        "floor": 470,
+        "mini": 605,
+        "fast": 720,
+        "low": 605,
+        "high": 735
+      },
+      "confort": {
+        "reco": 990,
+        "floor": 685,
+        "mini": 870,
+        "fast": 1035,
+        "low": 880,
+        "high": 1075
+      }
+    }
+  },
+  {
+    "i": 23,
+    "from": "amizour",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 23.762,
+      "min": 22.09
+    },
+    "yassir": {
+      "Classique": {
+        "low": 781,
+        "high": 881
+      },
+      "Confort": {
+        "low": 1160,
+        "high": 1260
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 650,
+        "floor": 475,
+        "mini": 570,
+        "fast": 680,
+        "low": 610,
+        "high": 750
+      },
+      "confort": {
+        "reco": 935,
+        "floor": 695,
+        "mini": 825,
+        "fast": 975,
+        "low": 890,
+        "high": 1090
+      }
+    }
+  },
+  {
+    "i": 24,
+    "from": "alg_centre",
+    "to": "alg_kouba",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 7.0001999999999995,
+      "min": 9.685
+    },
+    "yassir": {
+      "Classique": {
+        "low": 322,
+        "high": 401
+      },
+      "Confort": {
+        "low": 488,
+        "high": 588
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 350,
+        "floor": 200,
+        "mini": 310,
+        "fast": 365,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 500,
+        "floor": 290,
+        "mini": 440,
+        "fast": 520,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 26,
+    "from": "bj_barbacha",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 41.769,
+      "min": 38.73833333333334
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1113,
+        "high": 1213
+      },
+      "Confort": {
+        "low": 1643,
+        "high": 1743
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1030,
+        "floor": 780,
+        "mini": 905,
+        "fast": 1075,
+        "low": 1000,
+        "high": 1220
+      },
+      "confort": {
+        "reco": 1480,
+        "floor": 1135,
+        "mini": 1300,
+        "fast": 1545,
+        "low": 1460,
+        "high": 1780
+      }
+    }
+  },
+  {
+    "i": 27,
+    "from": "alg_centre",
+    "to": "alg_cheraga",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 11.242,
+      "min": 14.671666666666665
+    },
+    "yassir": {
+      "Classique": {
+        "low": 471,
+        "high": 571
+      },
+      "Confort": {
+        "low": 658,
+        "high": 758
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 435,
+        "floor": 265,
+        "mini": 385,
+        "fast": 455,
+        "low": 340,
+        "high": 420
+      },
+      "confort": {
+        "reco": 625,
+        "floor": 385,
+        "mini": 550,
+        "fast": 655,
+        "low": 500,
+        "high": 610
+      }
+    }
+  },
+  {
+    "i": 29,
+    "from": "bj_darguina",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 47.159,
+      "min": 38.955000000000005
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1255,
+        "high": 1355
+      },
+      "Confort": {
+        "low": 1845,
+        "high": 1945
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1140,
+        "floor": 870,
+        "mini": 1005,
+        "fast": 1190,
+        "low": 1115,
+        "high": 1365
+      },
+      "confort": {
+        "reco": 1645,
+        "floor": 1265,
+        "mini": 1450,
+        "fast": 1715,
+        "low": 1630,
+        "high": 1990
+      }
+    }
+  },
+  {
+    "i": 30,
+    "from": "alg_centre",
+    "to": "alg_hydra",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 5.347300000000001,
+      "min": 7.42
+    },
+    "yassir": {
+      "Classique": {
+        "low": 259,
+        "high": 324
+      },
+      "Confort": {
+        "low": 382,
+        "high": 477
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 315,
+        "floor": 200,
+        "mini": 275,
+        "fast": 330,
+        "low": 235,
+        "high": 310
+      },
+      "confort": {
+        "reco": 455,
+        "floor": 290,
+        "mini": 400,
+        "fast": 475,
+        "low": 235,
+        "high": 310
+      }
+    }
+  },
+  {
+    "i": 32,
+    "from": "bj_timezrit",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 37.5661,
+      "min": 33.809999999999995
+    },
+    "yassir": {
+      "Classique": {
+        "low": 988,
+        "high": 1088
+      },
+      "Confort": {
+        "low": 1457,
+        "high": 1557
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 940,
+        "floor": 710,
+        "mini": 825,
+        "fast": 980,
+        "low": 910,
+        "high": 1110
+      },
+      "confort": {
+        "reco": 1350,
+        "floor": 1030,
+        "mini": 1190,
+        "fast": 1410,
+        "low": 1330,
+        "high": 1625
+      }
+    }
+  },
+  {
+    "i": 33,
+    "from": "alg_centre",
+    "to": "alg_draria",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 12.7445,
+      "min": 16.131666666666668
+    },
+    "yassir": {
+      "Classique": {
+        "low": 497,
+        "high": 597
+      },
+      "Confort": {
+        "low": 690,
+        "high": 790
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 465,
+        "floor": 290,
+        "mini": 410,
+        "fast": 490,
+        "low": 375,
+        "high": 455
+      },
+      "confort": {
+        "reco": 675,
+        "floor": 425,
+        "mini": 595,
+        "fast": 705,
+        "low": 545,
+        "high": 665
+      }
+    }
+  },
+  {
+    "i": 35,
+    "from": "bj_melbou",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 37.935199999999995,
+      "min": 29.445
+    },
+    "yassir": {
+      "Classique": {
+        "low": 956,
+        "high": 1056
+      },
+      "Confort": {
+        "low": 1413,
+        "high": 1513
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 945,
+        "floor": 715,
+        "mini": 830,
+        "fast": 990,
+        "low": 920,
+        "high": 1120
+      },
+      "confort": {
+        "reco": 1365,
+        "floor": 1040,
+        "mini": 1200,
+        "fast": 1425,
+        "low": 1340,
+        "high": 1640
+      }
+    }
+  },
+  {
+    "i": 36,
+    "from": "bj_ouzellaguen",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 56.442800000000005,
+      "min": 54.769999999999996
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1439,
+        "high": 1539
+      },
+      "Confort": {
+        "low": 2107,
+        "high": 2207
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1335,
+        "floor": 1025,
+        "mini": 1175,
+        "fast": 1395,
+        "low": 1320,
+        "high": 1610
+      },
+      "confort": {
+        "reco": 1925,
+        "floor": 1495,
+        "mini": 1695,
+        "fast": 2015,
+        "low": 1920,
+        "high": 2350
+      }
+    }
+  },
+  {
+    "i": 37,
+    "from": "alg_centre",
+    "to": "alg_bmr",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 5.9009,
+      "min": 8.235000000000001
+    },
+    "yassir": {
+      "Classique": {
+        "low": 375,
+        "high": 468
+      },
+      "Confort": {
+        "low": 552,
+        "high": 652
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 325,
+        "floor": 200,
+        "mini": 285,
+        "fast": 340,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 465,
+        "floor": 290,
+        "mini": 410,
+        "fast": 490,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 18,
+    "from": "alg_kouba",
+    "to": "alg_el_harrach",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 7.1391,
+      "min": 8.758333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 320,
+        "high": 399
+      },
+      "Confort": {
+        "low": 485,
+        "high": 585
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 350,
+        "floor": 200,
+        "mini": 310,
+        "fast": 370,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 505,
+        "floor": 290,
+        "mini": 445,
+        "fast": 525,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 22,
+    "from": "alg_hydra",
+    "to": "alg_bmr",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 3.0299,
+      "min": 3.6633333333333336
+    },
+    "yassir": {
+      "Classique": {
+        "low": 218,
+        "high": 272
+      },
+      "Confort": {
+        "low": 306,
+        "high": 382
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 265,
+        "floor": 200,
+        "mini": 235,
+        "fast": 275,
+        "low": 200,
+        "high": 385
+      },
+      "confort": {
+        "reco": 385,
+        "floor": 290,
+        "mini": 340,
+        "fast": 400,
+        "low": 200,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 25,
+    "from": "alg_draria",
+    "to": "alg_reghaia",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 37.6894,
+      "min": 37.66833333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1011,
+        "high": 1111
+      },
+      "Confort": {
+        "low": 1512,
+        "high": 1612
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 985,
+        "floor": 710,
+        "mini": 865,
+        "fast": 1030,
+        "low": 915,
+        "high": 1115
+      },
+      "confort": {
+        "reco": 1415,
+        "floor": 1035,
+        "mini": 1245,
+        "fast": 1480,
+        "low": 1330,
+        "high": 1630
+      }
+    }
+  },
+  {
+    "i": 28,
+    "from": "alg_cheraga",
+    "to": "alg_baraki",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 24.383200000000002,
+      "min": 25.93
+    },
+    "yassir": {
+      "Classique": {
+        "low": 737,
+        "high": 837
+      },
+      "Confort": {
+        "low": 917,
+        "high": 1017
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 710,
+        "floor": 485,
+        "mini": 625,
+        "fast": 740,
+        "low": 625,
+        "high": 765
+      },
+      "confort": {
+        "reco": 1020,
+        "floor": 710,
+        "mini": 900,
+        "fast": 1065,
+        "low": 915,
+        "high": 1115
+      }
+    }
+  },
+  {
+    "i": 31,
+    "from": "alg_el_harrach",
+    "to": "alg_hussein_dey",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 5.2885,
+      "min": 7.408333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 270,
+        "high": 338
+      },
+      "Confort": {
+        "low": 398,
+        "high": 497
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 310,
+        "floor": 200,
+        "mini": 275,
+        "fast": 325,
+        "low": 235,
+        "high": 310
+      },
+      "confort": {
+        "reco": 450,
+        "floor": 290,
+        "mini": 395,
+        "fast": 470,
+        "low": 235,
+        "high": 310
+      }
+    }
+  },
+  {
+    "i": 34,
+    "from": "alg_ain_benian",
+    "to": "alg_baraki",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 30.4503,
+      "min": 32.99333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 821,
+        "high": 921
+      },
+      "Confort": {
+        "low": 1247,
+        "high": 1347
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 835,
+        "floor": 590,
+        "mini": 735,
+        "fast": 870,
+        "low": 755,
+        "high": 925
+      },
+      "confort": {
+        "reco": 1200,
+        "floor": 860,
+        "mini": 1055,
+        "fast": 1255,
+        "low": 1105,
+        "high": 1350
+      }
+    }
+  },
+  {
+    "i": 38,
+    "from": "alg_bab_ezzouar",
+    "to": "alg_aeroport",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 5.252800000000001,
+      "min": 7.451666666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 295,
+        "high": 369
+      },
+      "Confort": {
+        "low": 417,
+        "high": 517
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 310,
+        "floor": 200,
+        "mini": 275,
+        "fast": 325,
+        "low": 235,
+        "high": 310
+      },
+      "confort": {
+        "reco": 450,
+        "floor": 290,
+        "mini": 395,
+        "fast": 470,
+        "low": 235,
+        "high": 310
+      }
+    }
+  },
+  {
+    "i": 39,
+    "from": "alg_draria",
+    "to": "alg_zeralda",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 22.2044,
+      "min": 18.576666666666664
+    },
+    "yassir": {
+      "Classique": {
+        "low": 607,
+        "high": 707
+      },
+      "Confort": {
+        "low": 841,
+        "high": 941
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 665,
+        "floor": 450,
+        "mini": 585,
+        "fast": 695,
+        "low": 580,
+        "high": 710
+      },
+      "confort": {
+        "reco": 950,
+        "floor": 655,
+        "mini": 835,
+        "fast": 995,
+        "low": 840,
+        "high": 1030
+      }
+    }
+  },
+  {
+    "i": 40,
+    "from": "alg_kouba",
+    "to": "alg_bab_el_oued",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 10.159600000000001,
+      "min": 14.473333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 401,
+        "high": 500
+      },
+      "Confort": {
+        "low": 597,
+        "high": 697
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 410,
+        "floor": 250,
+        "mini": 360,
+        "fast": 430,
+        "low": 320,
+        "high": 390
+      },
+      "confort": {
+        "reco": 595,
+        "floor": 360,
+        "mini": 525,
+        "fast": 620,
+        "low": 465,
+        "high": 565
+      }
+    }
+  },
+  {
+    "i": 41,
+    "from": "alg_hydra",
+    "to": "alg_cheraga",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 8.8512,
+      "min": 9.608333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 358,
+        "high": 447
+      },
+      "Confort": {
+        "low": 522,
+        "high": 622
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 385,
+        "floor": 225,
+        "mini": 340,
+        "fast": 400,
+        "low": 350,
+        "high": 350
+      },
+      "confort": {
+        "reco": 560,
+        "floor": 330,
+        "mini": 495,
+        "fast": 585,
+        "low": 350,
+        "high": 350
+      }
+    }
+  },
+  {
+    "i": 42,
+    "from": "alg_centre",
+    "to": "alg_baraki",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 16.5272,
+      "min": 20.625
+    },
+    "yassir": {
+      "Classique": {
+        "low": 613,
+        "high": 713
+      },
+      "Confort": {
+        "low": 850,
+        "high": 950
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 545,
+        "floor": 355,
+        "mini": 480,
+        "fast": 570,
+        "low": 455,
+        "high": 555
+      },
+      "confort": {
+        "reco": 785,
+        "floor": 515,
+        "mini": 690,
+        "fast": 825,
+        "low": 665,
+        "high": 815
+      }
+    }
+  },
+  {
+    "i": 43,
+    "from": "tizi_ouzou",
+    "to": "alg_centre",
+    "pair_cat": "interwilaya",
+    "region_from": "tizi",
+    "region_to": "alger",
+    "osrm": {
+      "km": 100.3549,
+      "min": 92.65833333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 2886,
+        "high": 2986
+      },
+      "Confort": {
+        "low": 4059,
+        "high": 4159
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 2260,
+        "floor": 1765,
+        "mini": 1990,
+        "fast": 2365,
+        "low": 2270,
+        "high": 2770
+      },
+      "confort": {
+        "reco": 3255,
+        "floor": 2570,
+        "mini": 2865,
+        "fast": 3400,
+        "low": 3305,
+        "high": 4035
+      }
+    }
+  },
+  {
+    "i": 44,
+    "from": "bouira_ville",
+    "to": "alg_centre",
+    "pair_cat": "interwilaya",
+    "region_from": "bouira",
+    "region_to": "alger",
+    "osrm": {
+      "km": 103.48039999999999,
+      "min": 83.90333333333334
+    },
+    "yassir": {
+      "Classique": {
+        "low": 2824,
+        "high": 2924
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 2375,
+        "floor": 1815,
+        "mini": 2090,
+        "fast": 2485,
+        "low": 2335,
+        "high": 2855
+      },
+      "confort": {
+        "reco": 3460,
+        "floor": 2645,
+        "mini": 3045,
+        "fast": 3615,
+        "low": 3400,
+        "high": 4160
+      }
+    }
+  },
+  {
+    "i": 45,
+    "from": "akbou",
+    "to": "tizi_ouzou",
+    "pair_cat": "interwilaya",
+    "region_from": "bejaia",
+    "region_to": "tizi",
+    "osrm": {
+      "km": 80.4327,
+      "min": 79.42833333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 2579,
+        "high": 2679
+      },
+      "Confort": {
+        "low": 3634,
+        "high": 3734
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1840,
+        "floor": 1430,
+        "mini": 1620,
+        "fast": 1925,
+        "low": 1835,
+        "high": 2245
+      },
+      "confort": {
+        "reco": 2650,
+        "floor": 2085,
+        "mini": 2330,
+        "fast": 2770,
+        "low": 2680,
+        "high": 3275
+      }
+    }
+  },
+  {
+    "i": 47,
+    "from": "br_chorfa",
+    "to": "bouira_ville",
+    "pair_cat": "frontiere",
+    "region_from": "bouira",
+    "region_to": "bouira",
+    "osrm": {
+      "km": 46.3514,
+      "min": 39.901666666666664
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1146,
+        "high": 1246
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1125,
+        "floor": 855,
+        "mini": 990,
+        "fast": 1175,
+        "low": 1100,
+        "high": 1340
+      },
+      "confort": {
+        "reco": 1620,
+        "floor": 1250,
+        "mini": 1425,
+        "fast": 1695,
+        "low": 1600,
+        "high": 1960
+      }
+    }
+  },
+  {
+    "i": 48,
+    "from": "alg_bab_ezzouar",
+    "to": "alg_kouba",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 13.1232,
+      "min": 13.958333333333334
+    },
+    "yassir": {
+      "Classique": {
+        "low": 501,
+        "high": 601
+      },
+      "Confort": {
+        "low": 662,
+        "high": 762
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 475,
+        "floor": 295,
+        "mini": 420,
+        "fast": 500,
+        "low": 385,
+        "high": 470
+      },
+      "confort": {
+        "reco": 680,
+        "floor": 435,
+        "mini": 600,
+        "fast": 715,
+        "low": 560,
+        "high": 680
+      }
+    }
+  },
+  {
+    "i": 49,
+    "from": "alg_el_harrach",
+    "to": "alg_centre",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 9.863100000000001,
+      "min": 12.321666666666665
+    },
+    "yassir": {
+      "Classique": {
+        "low": 361,
+        "high": 451
+      },
+      "Confort": {
+        "low": 529,
+        "high": 629
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 405,
+        "floor": 245,
+        "mini": 355,
+        "fast": 425,
+        "low": 350,
+        "high": 350
+      },
+      "confort": {
+        "reco": 585,
+        "floor": 355,
+        "mini": 515,
+        "fast": 610,
+        "low": 350,
+        "high": 350
+      }
+    }
+  },
+  {
+    "i": 50,
+    "from": "alg_zeralda",
+    "to": "alg_cheraga",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 14.2858,
+      "min": 15.278333333333334
+    },
+    "yassir": {
+      "Classique": {
+        "low": 558,
+        "high": 658
+      },
+      "Confort": {
+        "low": 735,
+        "high": 835
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 500,
+        "floor": 315,
+        "mini": 440,
+        "fast": 520,
+        "low": 410,
+        "high": 500
+      },
+      "confort": {
+        "reco": 720,
+        "floor": 460,
+        "mini": 635,
+        "fast": 750,
+        "low": 595,
+        "high": 725
+      }
+    }
+  },
+  {
+    "i": 51,
+    "from": "alg_rouiba",
+    "to": "alg_bab_ezzouar",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 11.1776,
+      "min": 14.386666666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 642,
+        "high": 742
+      },
+      "Confort": {
+        "low": 841,
+        "high": 941
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 435,
+        "floor": 265,
+        "mini": 385,
+        "fast": 455,
+        "low": 340,
+        "high": 420
+      },
+      "confort": {
+        "reco": 625,
+        "floor": 385,
+        "mini": 550,
+        "fast": 655,
+        "low": 495,
+        "high": 605
+      }
+    }
+  },
+  {
+    "i": 52,
+    "from": "alg_baraki",
+    "to": "alg_hydra",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 15.2674,
+      "min": 17.298333333333336
+    },
+    "yassir": {
+      "Classique": {
+        "low": 513,
+        "high": 613
+      },
+      "Confort": {
+        "low": 716,
+        "high": 816
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 515,
+        "floor": 335,
+        "mini": 455,
+        "fast": 540,
+        "low": 430,
+        "high": 525
+      },
+      "confort": {
+        "reco": 745,
+        "floor": 485,
+        "mini": 655,
+        "fast": 780,
+        "low": 625,
+        "high": 765
+      }
+    }
+  },
+  {
+    "i": 53,
+    "from": "alg_aeroport",
+    "to": "alg_centre",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 18.7378,
+      "min": 20.278333333333332
+    },
+    "yassir": {
+      "Classique": {
+        "low": 557,
+        "high": 657
+      },
+      "Confort": {
+        "low": 775,
+        "high": 875
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 590,
+        "floor": 390,
+        "mini": 520,
+        "fast": 615,
+        "low": 505,
+        "high": 615
+      },
+      "confort": {
+        "reco": 850,
+        "floor": 570,
+        "mini": 750,
+        "fast": 890,
+        "low": 735,
+        "high": 895
+      }
+    }
+  },
+  {
+    "i": 54,
+    "from": "alg_reghaia",
+    "to": "alg_centre",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 29.9388,
+      "min": 29.566666666666666
+    },
+    "yassir": {
+      "Classique": {
+        "low": 851,
+        "high": 951
+      },
+      "Confort": {
+        "low": 1079,
+        "high": 1179
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 825,
+        "floor": 580,
+        "mini": 725,
+        "fast": 860,
+        "low": 745,
+        "high": 915
+      },
+      "confort": {
+        "reco": 1185,
+        "floor": 845,
+        "mini": 1045,
+        "fast": 1240,
+        "low": 1090,
+        "high": 1330
+      }
+    }
+  },
+  {
+    "i": 55,
+    "from": "alg_ain_benian",
+    "to": "alg_cheraga",
+    "pair_cat": "alger",
+    "region_from": "alger",
+    "region_to": "alger",
+    "osrm": {
+      "km": 7.4319,
+      "min": 8.29
+    },
+    "yassir": {
+      "Classique": {
+        "low": 307,
+        "high": 383
+      },
+      "Confort": {
+        "low": 460,
+        "high": 560
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 355,
+        "floor": 200,
+        "mini": 310,
+        "fast": 375,
+        "low": 310,
+        "high": 350
+      },
+      "confort": {
+        "reco": 515,
+        "floor": 295,
+        "mini": 455,
+        "fast": 535,
+        "low": 310,
+        "high": 350
+      }
+    }
+  },
+  {
+    "i": 56,
+    "from": "souk_tenine",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 35.142900000000004,
+      "min": 26.811666666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 887,
+        "high": 987
+      },
+      "Confort": {
+        "low": 1314,
+        "high": 1414
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 890,
+        "floor": 665,
+        "mini": 785,
+        "fast": 930,
+        "low": 860,
+        "high": 1050
+      },
+      "confort": {
+        "reco": 1275,
+        "floor": 975,
+        "mini": 1120,
+        "fast": 1335,
+        "low": 1250,
+        "high": 1530
+      }
+    }
+  },
+  {
+    "i": 57,
+    "from": "oued_ghir",
+    "to": "centre",
+    "pair_cat": "bj_commune_ville",
+    "region_from": "bejaia",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 14.078,
+      "min": 15.395000000000001
+    },
+    "yassir": {
+      "Classique": {
+        "low": 444,
+        "high": 544
+      },
+      "Confort": {
+        "low": 678,
+        "high": 778
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 445,
+        "floor": 315,
+        "mini": 390,
+        "fast": 465,
+        "low": 405,
+        "high": 495
+      },
+      "confort": {
+        "reco": 640,
+        "floor": 455,
+        "mini": 565,
+        "fast": 670,
+        "low": 590,
+        "high": 720
+      }
+    }
+  },
+  {
+    "i": 61,
+    "from": "tizi_ouzou",
+    "to": "centre",
+    "pair_cat": "interwilaya",
+    "region_from": "tizi",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 125.8508,
+      "min": 121.11
+    },
+    "yassir": {
+      "Classique": {
+        "low": 3739,
+        "high": 3839
+      },
+      "Confort": {
+        "low": 5251,
+        "high": 5351
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 2795,
+        "floor": 2190,
+        "mini": 2460,
+        "fast": 2925,
+        "low": 2815,
+        "high": 3445
+      },
+      "confort": {
+        "reco": 4025,
+        "floor": 3195,
+        "mini": 3540,
+        "fast": 4210,
+        "low": 4110,
+        "high": 5020
+      }
+    }
+  },
+  {
+    "i": 62,
+    "from": "akbou",
+    "to": "alg_centre",
+    "pair_cat": "interwilaya",
+    "region_from": "bejaia",
+    "region_to": "alger",
+    "osrm": {
+      "km": 171.40210000000002,
+      "min": 138.63
+    },
+    "yassir": {
+      "Classique": {
+        "low": 5240,
+        "high": 5340
+      },
+      "Confort": {
+        "low": 7338,
+        "high": 7438
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 3755,
+        "floor": 2955,
+        "mini": 3305,
+        "fast": 3930,
+        "low": 3805,
+        "high": 4650
+      },
+      "confort": {
+        "reco": 5410,
+        "floor": 4310,
+        "mini": 4760,
+        "fast": 5655,
+        "low": 5545,
+        "high": 6775
+      }
+    }
+  },
+  {
+    "i": 63,
+    "from": "sidi_aich",
+    "to": "alg_centre",
+    "pair_cat": "interwilaya",
+    "region_from": "bejaia",
+    "region_to": "alger",
+    "osrm": {
+      "km": 201.5881,
+      "min": 161.5366666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 6022,
+        "high": 6122
+      },
+      "Confort": {
+        "low": 8426,
+        "high": 8526
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 4395,
+        "floor": 3465,
+        "mini": 3870,
+        "fast": 4595,
+        "low": 4455,
+        "high": 5445
+      },
+      "confort": {
+        "reco": 6325,
+        "floor": 5050,
+        "mini": 5565,
+        "fast": 6610,
+        "low": 6495,
+        "high": 7935
+      }
+    }
+  },
+  {
+    "i": 64,
+    "from": "kherrata",
+    "to": "bouira_ville",
+    "pair_cat": "interwilaya",
+    "region_from": "bejaia",
+    "region_to": "bouira",
+    "osrm": {
+      "km": 186.5371,
+      "min": 142.72166666666666
+    },
+    "yassir": {
+      "Classique": {
+        "low": 5243,
+        "high": 5343
+      },
+      "Confort": {
+        "low": 7343,
+        "high": 7443
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 4075,
+        "floor": 3210,
+        "mini": 3585,
+        "fast": 4260,
+        "low": 4125,
+        "high": 5045
+      },
+      "confort": {
+        "reco": 5865,
+        "floor": 4680,
+        "mini": 5160,
+        "fast": 6135,
+        "low": 6020,
+        "high": 7360
+      }
+    }
+  },
+  {
+    "i": 65,
+    "from": "br_chorfa",
+    "to": "sidi_aich",
+    "pair_cat": "frontiere",
+    "region_from": "bouira",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 50.148,
+      "min": 44.71333333333334
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1800,
+        "high": 1900
+      },
+      "Confort": {
+        "low": 3140,
+        "high": 3240
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1205,
+        "floor": 920,
+        "mini": 1060,
+        "fast": 1260,
+        "low": 1185,
+        "high": 1445
+      },
+      "confort": {
+        "reco": 1735,
+        "floor": 1340,
+        "mini": 1525,
+        "fast": 1815,
+        "low": 1725,
+        "high": 2105
+      }
+    }
+  },
+  {
+    "i": 66,
+    "from": "bouira_ville",
+    "to": "akbou",
+    "pair_cat": "frontiere",
+    "region_from": "bouira",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 69.99810000000001,
+      "min": 62.02333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 2313,
+        "high": 2413
+      },
+      "Confort": {
+        "low": 3930,
+        "high": 4030
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1640,
+        "floor": 1255,
+        "mini": 1445,
+        "fast": 1715,
+        "low": 1610,
+        "high": 1970
+      },
+      "confort": {
+        "reco": 2390,
+        "floor": 1825,
+        "mini": 2105,
+        "fast": 2495,
+        "low": 2350,
+        "high": 2870
+      }
+    }
+  },
+  {
+    "i": 67,
+    "from": "br_mchedallah",
+    "to": "bouira_ville",
+    "pair_cat": "frontiere",
+    "region_from": "bouira",
+    "region_to": "bouira",
+    "osrm": {
+      "km": 42.941,
+      "min": 36.73833333333334
+    },
+    "yassir": {
+      "Classique": {
+        "low": 1048,
+        "high": 1148
+      },
+      "Confort": {
+        "low": 2232,
+        "high": 2332
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 1050,
+        "floor": 800,
+        "mini": 925,
+        "fast": 1100,
+        "low": 1025,
+        "high": 1255
+      },
+      "confort": {
+        "reco": 1515,
+        "floor": 1165,
+        "mini": 1335,
+        "fast": 1585,
+        "low": 1500,
+        "high": 1830
+      }
+    }
+  },
+  {
+    "i": 68,
+    "from": "br_chorfa",
+    "to": "centre",
+    "pair_cat": "frontiere",
+    "region_from": "bouira",
+    "region_to": "bejaia",
+    "osrm": {
+      "km": 91.5455,
+      "min": 72.11
+    },
+    "yassir": {
+      "Classique": {
+        "low": 2822,
+        "high": 2922
+      },
+      "Confort": {
+        "low": 4803,
+        "high": 4903
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 2080,
+        "floor": 1615,
+        "mini": 1830,
+        "fast": 2170,
+        "low": 2075,
+        "high": 2535
+      },
+      "confort": {
+        "reco": 2990,
+        "floor": 2355,
+        "mini": 2630,
+        "fast": 3125,
+        "low": 3030,
+        "high": 3700
+      }
+    }
+  },
+  {
+    "i": 0,
+    "from": "oran_centre",
+    "to": "oran_aeroport",
+    "pair_cat": "frequent",
+    "region_from": "oran",
+    "region_to": "oran",
+    "osrm": {
+      "km": 17.2328,
+      "min": 29.055
+    },
+    "yassir": {
+      "Classique": {
+        "low": 663,
+        "high": 763
+      },
+      "Confort": {
+        "low": 952,
+        "high": 1052
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 615,
+        "floor": 365,
+        "mini": 540,
+        "fast": 640,
+        "low": 475,
+        "high": 580
+      },
+      "confort": {
+        "reco": 885,
+        "floor": 535,
+        "mini": 780,
+        "fast": 925,
+        "low": 690,
+        "high": 840
+      }
+    }
+  },
+  {
+    "i": 1,
+    "from": "cst_centre",
+    "to": "cst_ali_mendjeli",
+    "pair_cat": "frequent",
+    "region_from": "constantine",
+    "region_to": "constantine",
+    "osrm": {
+      "km": 17.3835,
+      "min": 19.40666666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 485,
+        "high": 585
+      },
+      "Confort": {
+        "low": 738,
+        "high": 838
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 515,
+        "floor": 370,
+        "mini": 455,
+        "fast": 535,
+        "low": 475,
+        "high": 580
+      },
+      "confort": {
+        "reco": 735,
+        "floor": 540,
+        "mini": 645,
+        "fast": 770,
+        "low": 695,
+        "high": 845
+      }
+    }
+  },
+  {
+    "i": 2,
+    "from": "anb_centre",
+    "to": "anb_univ",
+    "pair_cat": "frequent",
+    "region_from": "annaba",
+    "region_to": "annaba",
+    "osrm": {
+      "km": 5.4467,
+      "min": 6.498333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 197,
+        "high": 246
+      },
+      "Confort": {
+        "low": 277,
+        "high": 346
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 205,
+        "floor": 200,
+        "mini": 200,
+        "fast": 215,
+        "low": 235,
+        "high": 350
+      },
+      "confort": {
+        "reco": 295,
+        "floor": 290,
+        "mini": 290,
+        "fast": 310,
+        "low": 240,
+        "high": 350
+      }
+    }
+  },
+  {
+    "i": 3,
+    "from": "stf_centre",
+    "to": "stf_univ",
+    "pair_cat": "frequent",
+    "region_from": "setif",
+    "region_to": "setif",
+    "osrm": {
+      "km": 5.7764,
+      "min": 11.286666666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 230,
+        "high": 287
+      },
+      "Confort": {
+        "low": 330,
+        "high": 412
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 240,
+        "floor": 200,
+        "mini": 210,
+        "fast": 250,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 345,
+        "floor": 290,
+        "mini": 305,
+        "fast": 360,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 4,
+    "from": "bld_centre",
+    "to": "bld_univ",
+    "pair_cat": "frequent",
+    "region_from": "blida",
+    "region_to": "blida",
+    "osrm": {
+      "km": 5.7094,
+      "min": 10.315
+    },
+    "yassir": {
+      "Classique": {
+        "low": 334,
+        "high": 416
+      },
+      "Confort": {
+        "low": 484,
+        "high": 584
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 265,
+        "floor": 200,
+        "mini": 235,
+        "fast": 275,
+        "low": 235,
+        "high": 350
+      },
+      "confort": {
+        "reco": 385,
+        "floor": 290,
+        "mini": 340,
+        "fast": 400,
+        "low": 240,
+        "high": 350
+      }
+    }
+  },
+  {
+    "i": 5,
+    "from": "btn_centre",
+    "to": "btn_univ",
+    "pair_cat": "frequent",
+    "region_from": "batna",
+    "region_to": "batna",
+    "osrm": {
+      "km": 0.4609,
+      "min": 0.77
+    },
+    "yassir": {
+      "Classique": {
+        "low": 144,
+        "high": 180
+      },
+      "Confort": {
+        "low": 202,
+        "high": 252
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 200,
+        "floor": 200,
+        "mini": 200,
+        "fast": 190,
+        "low": 180,
+        "high": 220
+      },
+      "confort": {
+        "reco": 290,
+        "floor": 290,
+        "mini": 290,
+        "fast": 275,
+        "low": 260,
+        "high": 320
+      }
+    }
+  },
+  {
+    "i": 6,
+    "from": "tlm_centre",
+    "to": "tlm_univ",
+    "pair_cat": "frequent",
+    "region_from": "tlemcen",
+    "region_to": "tlemcen",
+    "osrm": {
+      "km": 6.1671000000000005,
+      "min": 8.781666666666666
+    },
+    "yassir": {
+      "Classique": {
+        "low": 269,
+        "high": 336
+      },
+      "Confort": {
+        "low": 381,
+        "high": 476
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 245,
+        "floor": 200,
+        "mini": 215,
+        "fast": 260,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 350,
+        "floor": 290,
+        "mini": 310,
+        "fast": 370,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 7,
+    "from": "tizi_ouzou",
+    "to": "tizi_univ",
+    "pair_cat": "frequent",
+    "region_from": "tizi",
+    "region_to": "tizi",
+    "osrm": {
+      "km": 2.662,
+      "min": 4.333333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 216,
+        "high": 270
+      },
+      "Confort": {
+        "low": 305,
+        "high": 381
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 205,
+        "floor": 200,
+        "mini": 200,
+        "fast": 215,
+        "low": 200,
+        "high": 385
+      },
+      "confort": {
+        "reco": 295,
+        "floor": 290,
+        "mini": 290,
+        "fast": 305,
+        "low": 200,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 8,
+    "from": "oran_centre",
+    "to": "oran_univ",
+    "pair_cat": "frequent",
+    "region_from": "oran",
+    "region_to": "oran",
+    "osrm": {
+      "km": 2.3698,
+      "min": 3.731666666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 215,
+        "high": 269
+      },
+      "Confort": {
+        "low": 297,
+        "high": 371
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 230,
+        "floor": 200,
+        "mini": 200,
+        "fast": 240,
+        "low": 200,
+        "high": 385
+      },
+      "confort": {
+        "reco": 325,
+        "floor": 290,
+        "mini": 290,
+        "fast": 340,
+        "low": 200,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 9,
+    "from": "cst_centre",
+    "to": "cst_univ",
+    "pair_cat": "frequent",
+    "region_from": "constantine",
+    "region_to": "constantine",
+    "osrm": {
+      "km": 5.075699999999999,
+      "min": 8.231666666666666
+    },
+    "yassir": {
+      "Classique": {
+        "low": 200,
+        "high": 250
+      },
+      "Confort": {
+        "low": 285,
+        "high": 356
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 205,
+        "floor": 200,
+        "mini": 200,
+        "fast": 215,
+        "low": 235,
+        "high": 310
+      },
+      "confort": {
+        "reco": 295,
+        "floor": 290,
+        "mini": 290,
+        "fast": 310,
+        "low": 235,
+        "high": 310
+      }
+    }
+  },
+  {
+    "i": 10,
+    "from": "anb_centre",
+    "to": "anb_aeroport",
+    "pair_cat": "frequent",
+    "region_from": "annaba",
+    "region_to": "annaba",
+    "osrm": {
+      "km": 14.2334,
+      "min": 13.93
+    },
+    "yassir": {
+      "Classique": {
+        "low": 326,
+        "high": 406
+      },
+      "Confort": {
+        "low": 470,
+        "high": 570
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 340,
+        "floor": 315,
+        "mini": 315,
+        "fast": 355,
+        "low": 405,
+        "high": 495
+      },
+      "confort": {
+        "reco": 490,
+        "floor": 460,
+        "mini": 460,
+        "fast": 510,
+        "low": 595,
+        "high": 725
+      }
+    }
+  },
+  {
+    "i": 11,
+    "from": "stf_centre",
+    "to": "stf_el_eulma",
+    "pair_cat": "frequent",
+    "region_from": "setif",
+    "region_to": "setif",
+    "osrm": {
+      "km": 29.3609,
+      "min": 26.316666666666666
+    },
+    "yassir": {
+      "Classique": {
+        "low": 663,
+        "high": 763
+      },
+      "Confort": {
+        "low": 988,
+        "high": 1088
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 625,
+        "floor": 570,
+        "mini": 570,
+        "fast": 655,
+        "low": 735,
+        "high": 895
+      },
+      "confort": {
+        "reco": 900,
+        "floor": 830,
+        "mini": 830,
+        "fast": 940,
+        "low": 1070,
+        "high": 1310
+      }
+    }
+  },
+  {
+    "i": 12,
+    "from": "bld_centre",
+    "to": "bld_boufarik",
+    "pair_cat": "frequent",
+    "region_from": "blida",
+    "region_to": "blida",
+    "osrm": {
+      "km": 15.6418,
+      "min": 18.546666666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 458,
+        "high": 558
+      },
+      "Confort": {
+        "low": 684,
+        "high": 784
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 410,
+        "floor": 340,
+        "mini": 360,
+        "fast": 430,
+        "low": 435,
+        "high": 535
+      },
+      "confort": {
+        "reco": 595,
+        "floor": 495,
+        "mini": 525,
+        "fast": 620,
+        "low": 635,
+        "high": 775
+      }
+    }
+  },
+  {
+    "i": 13,
+    "from": "tlm_centre",
+    "to": "tlm_mansourah",
+    "pair_cat": "frequent",
+    "region_from": "tlemcen",
+    "region_to": "tlemcen",
+    "osrm": {
+      "km": 3.3991,
+      "min": 5.989999999999999
+    },
+    "yassir": {
+      "Classique": {
+        "low": 174,
+        "high": 218
+      },
+      "Confort": {
+        "low": 245,
+        "high": 306
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 200,
+        "floor": 200,
+        "mini": 200,
+        "fast": 190,
+        "low": 215,
+        "high": 385
+      },
+      "confort": {
+        "reco": 290,
+        "floor": 290,
+        "mini": 290,
+        "fast": 275,
+        "low": 220,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 14,
+    "from": "tizi_nv",
+    "to": "tizi_ouzou",
+    "pair_cat": "frequent",
+    "region_from": "tizi",
+    "region_to": "tizi",
+    "osrm": {
+      "km": 2.7523,
+      "min": 4.878333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 216,
+        "high": 270
+      },
+      "Confort": {
+        "low": 305,
+        "high": 381
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 205,
+        "floor": 200,
+        "mini": 200,
+        "fast": 215,
+        "low": 200,
+        "high": 385
+      },
+      "confort": {
+        "reco": 295,
+        "floor": 290,
+        "mini": 290,
+        "fast": 310,
+        "low": 200,
+        "high": 385
+      }
+    }
+  },
+  {
+    "i": 15,
+    "from": "oran_centre",
+    "to": "oran_bir_djir",
+    "pair_cat": "frequent",
+    "region_from": "oran",
+    "region_to": "oran",
+    "osrm": {
+      "km": 9.384,
+      "min": 11.466666666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 480,
+        "high": 580
+      },
+      "Confort": {
+        "low": 702,
+        "high": 802
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 405,
+        "floor": 235,
+        "mini": 355,
+        "fast": 425,
+        "low": 350,
+        "high": 350
+      },
+      "confort": {
+        "reco": 590,
+        "floor": 340,
+        "mini": 520,
+        "fast": 615,
+        "low": 350,
+        "high": 350
+      }
+    }
+  },
+  {
+    "i": 16,
+    "from": "cst_centre",
+    "to": "cst_aeroport",
+    "pair_cat": "frequent",
+    "region_from": "constantine",
+    "region_to": "constantine",
+    "osrm": {
+      "km": 11.0861,
+      "min": 15.358333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 328,
+        "high": 409
+      },
+      "Confort": {
+        "low": 484,
+        "high": 584
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 355,
+        "floor": 265,
+        "mini": 310,
+        "fast": 375,
+        "low": 340,
+        "high": 415
+      },
+      "confort": {
+        "reco": 515,
+        "floor": 385,
+        "mini": 455,
+        "fast": 535,
+        "low": 495,
+        "high": 605
+      }
+    }
+  },
+  {
+    "i": 17,
+    "from": "oran_usto",
+    "to": "oran_centre",
+    "pair_cat": "frequent",
+    "region_from": "oran",
+    "region_to": "oran",
+    "osrm": {
+      "km": 8.623899999999999,
+      "min": 11.248333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 338,
+        "high": 421
+      },
+      "Confort": {
+        "low": 483,
+        "high": 583
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 390,
+        "floor": 220,
+        "mini": 345,
+        "fast": 405,
+        "low": 350,
+        "high": 350
+      },
+      "confort": {
+        "reco": 565,
+        "floor": 325,
+        "mini": 495,
+        "fast": 590,
+        "low": 350,
+        "high": 350
+      }
+    }
+  },
+  {
+    "i": 18,
+    "from": "cst_ali_mendjeli",
+    "to": "cst_univ",
+    "pair_cat": "frequent",
+    "region_from": "constantine",
+    "region_to": "constantine",
+    "osrm": {
+      "km": 12.8015,
+      "min": 14.604999999999999
+    },
+    "yassir": {
+      "Classique": {
+        "low": 422,
+        "high": 522
+      },
+      "Confort": {
+        "low": 647,
+        "high": 747
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 400,
+        "floor": 290,
+        "mini": 350,
+        "fast": 415,
+        "low": 375,
+        "high": 455
+      },
+      "confort": {
+        "reco": 570,
+        "floor": 425,
+        "mini": 500,
+        "fast": 600,
+        "low": 550,
+        "high": 670
+      }
+    }
+  },
+  {
+    "i": 19,
+    "from": "stf_univ",
+    "to": "stf_centre",
+    "pair_cat": "frequent",
+    "region_from": "setif",
+    "region_to": "setif",
+    "osrm": {
+      "km": 6.508100000000001,
+      "min": 11.311666666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 244,
+        "high": 305
+      },
+      "Confort": {
+        "low": 352,
+        "high": 439
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 250,
+        "floor": 200,
+        "mini": 220,
+        "fast": 265,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 360,
+        "floor": 290,
+        "mini": 315,
+        "fast": 380,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 20,
+    "from": "oran_centre",
+    "to": "oran_usto",
+    "pair_cat": "frequent",
+    "region_from": "oran",
+    "region_to": "oran",
+    "osrm": {
+      "km": 8.8087,
+      "min": 12.555
+    },
+    "yassir": {
+      "Classique": {
+        "low": 362,
+        "high": 452
+      },
+      "Confort": {
+        "low": 523,
+        "high": 623
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 395,
+        "floor": 225,
+        "mini": 350,
+        "fast": 410,
+        "low": 350,
+        "high": 350
+      },
+      "confort": {
+        "reco": 565,
+        "floor": 330,
+        "mini": 495,
+        "fast": 595,
+        "low": 350,
+        "high": 350
+      }
+    }
+  },
+  {
+    "i": 21,
+    "from": "anb_univ",
+    "to": "anb_centre",
+    "pair_cat": "frequent",
+    "region_from": "annaba",
+    "region_to": "annaba",
+    "osrm": {
+      "km": 6.1595,
+      "min": 7.448333333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 211,
+        "high": 264
+      },
+      "Confort": {
+        "low": 298,
+        "high": 373
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 215,
+        "floor": 200,
+        "mini": 200,
+        "fast": 225,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 310,
+        "floor": 290,
+        "mini": 290,
+        "fast": 325,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 22,
+    "from": "cst_ali_mendjeli",
+    "to": "cst_centre",
+    "pair_cat": "frequent",
+    "region_from": "constantine",
+    "region_to": "constantine",
+    "osrm": {
+      "km": 17.0512,
+      "min": 18.976666666666667
+    },
+    "yassir": {
+      "Classique": {
+        "low": 523,
+        "high": 623
+      },
+      "Confort": {
+        "low": 794,
+        "high": 894
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 505,
+        "floor": 365,
+        "mini": 445,
+        "fast": 525,
+        "low": 470,
+        "high": 570
+      },
+      "confort": {
+        "reco": 730,
+        "floor": 530,
+        "mini": 640,
+        "fast": 760,
+        "low": 680,
+        "high": 830
+      }
+    }
+  },
+  {
+    "i": 23,
+    "from": "tlm_univ",
+    "to": "tlm_centre",
+    "pair_cat": "frequent",
+    "region_from": "tlemcen",
+    "region_to": "tlemcen",
+    "osrm": {
+      "km": 6.2373,
+      "min": 9.354999999999999
+    },
+    "yassir": {
+      "Classique": {
+        "low": 234,
+        "high": 292
+      },
+      "Confort": {
+        "low": 331,
+        "high": 413
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 245,
+        "floor": 200,
+        "mini": 215,
+        "fast": 260,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 355,
+        "floor": 290,
+        "mini": 310,
+        "fast": 375,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 24,
+    "from": "bld_univ",
+    "to": "bld_centre",
+    "pair_cat": "frequent",
+    "region_from": "blida",
+    "region_to": "blida",
+    "osrm": {
+      "km": 6.3838,
+      "min": 9.555
+    },
+    "yassir": {
+      "Classique": {
+        "low": 308,
+        "high": 384
+      },
+      "Confort": {
+        "low": 438,
+        "high": 538
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 275,
+        "floor": 200,
+        "mini": 240,
+        "fast": 285,
+        "low": 275,
+        "high": 320
+      },
+      "confort": {
+        "reco": 400,
+        "floor": 290,
+        "mini": 350,
+        "fast": 415,
+        "low": 275,
+        "high": 330
+      }
+    }
+  },
+  {
+    "i": 25,
+    "from": "btn_univ",
+    "to": "btn_centre",
+    "pair_cat": "frequent",
+    "region_from": "batna",
+    "region_to": "batna",
+    "osrm": {
+      "km": 0.5297000000000001,
+      "min": 0.9049999999999999
+    },
+    "yassir": {
+      "Classique": {
+        "low": 144,
+        "high": 180
+      },
+      "Confort": {
+        "low": 202,
+        "high": 252
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 200,
+        "floor": 200,
+        "mini": 200,
+        "fast": 190,
+        "low": 180,
+        "high": 220
+      },
+      "confort": {
+        "reco": 290,
+        "floor": 290,
+        "mini": 290,
+        "fast": 275,
+        "low": 260,
+        "high": 320
+      }
+    }
+  },
+  {
+    "i": 26,
+    "from": "oran_bir_djir",
+    "to": "oran_aeroport",
+    "pair_cat": "frequent",
+    "region_from": "oran",
+    "region_to": "oran",
+    "osrm": {
+      "km": 18.4361,
+      "min": 28.01833333333333
+    },
+    "yassir": {
+      "Classique": {
+        "low": 610,
+        "high": 710
+      },
+      "Confort": {
+        "low": 883,
+        "high": 983
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 645,
+        "floor": 385,
+        "mini": 570,
+        "fast": 675,
+        "low": 495,
+        "high": 605
+      },
+      "confort": {
+        "reco": 930,
+        "floor": 565,
+        "mini": 820,
+        "fast": 970,
+        "low": 725,
+        "high": 885
+      }
+    }
+  },
+  {
+    "i": 27,
+    "from": "stf_el_eulma",
+    "to": "stf_centre",
+    "pair_cat": "frequent",
+    "region_from": "setif",
+    "region_to": "setif",
+    "osrm": {
+      "km": 29.554599999999997,
+      "min": 26.548333333333336
+    },
+    "yassir": {
+      "Classique": {
+        "low": 607,
+        "high": 707
+      },
+      "Confort": {
+        "low": 911,
+        "high": 1011
+      }
+    },
+    "ok": true,
+    "coligo": {
+      "classic": {
+        "reco": 630,
+        "floor": 575,
+        "mini": 575,
+        "fast": 660,
+        "low": 740,
+        "high": 900
+      },
+      "confort": {
+        "reco": 905,
+        "floor": 835,
+        "mini": 835,
+        "fast": 945,
+        "low": 1075,
+        "high": 1315
+      }
+    }
+  }
+]

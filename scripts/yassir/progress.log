@@ -1,0 +1,34 @@
+START 2026-06-20T08:40:26.779Z — 100 routes
+  1/100  naceria→ihaddaden  1.4km/3min  Classique 216-270
+  2/100  sidi_ahmed→ihaddaden  4.1km/6min  Classique 226-282
+  3/100  brise_mer→port  0.4km/1min  Classique 216-270
+  4/100  centre→gare  3.8km/4min  Classique 216-270
+  5/100  aeroport→edimco  5.2km/9min  Classique 255-319
+  6/100  universite→aeroport  6.7km/14min  Classique 284-355
+  7/100  port→naceria  6.6km/10min  Classique 280-350
+  8/100  chu→aeroport  7.3km/12min  Classique 279-349
+  9/100  naceria→centre  5.9km/8min  Classique 277-346
+ 10/100  sidi_ahmed→edimco  3.3km/5min  Classique 216-270
+ 11/100  sidi_ahmed→port  5.2km/7min  Classique 228-285
+ 12/100  universite→aamriw  1.8km/4min  Classique 216-270
+ 13/100  centre→aeroport  6.7km/9min  Classique 258-322
+ 14/100  brise_mer→sidi_ahmed  5.5km/8min  Classique 248-310
+ 15/100  aeroport→brise_mer  6.6km/10min  Classique 255-319
+ 16/100  centre→brise_mer  0.8km/2min  Classique 216-270
+ 17/100  brise_mer→aamriw  4.0km/5min  Classique 242-302
+ 18/100  ihaddaden→naceria  1.4km/3min  Classique 216-270
+ 19/100  sidi_ahmed→gare  4.4km/8min  Classique 244-305
+ 20/100  naceria→chu  3.5km/6min  Classique 216-270
+ 21/100  edimco→port  4.8km/6min  Classique 244-305
+ 22/100  naceria→aeroport  6.3km/12min  Classique 276-345
+ 23/100  centre→chu  3.8km/5min  Classique 216-270
+ 24/100  centre→port  0.6km/1min  —
+ 25/100  edimco→gare  2.4km/4min  —
+ 26/100  aeroport→aamriw  5.5km/9min  —
+ 27/100  ihaddaden→aamriw  1.9km/2min  —
+ 28/100  sidi_ahmed→aamriw  2.4km/4min  —
+ 29/100  aamriw→port  3.6km/5min  —
+ 30/100  aeroport→centre  5.9km/8min  —
+ 31/100  naceria→edimco  2.1km/5min  —
+ABORT consecFail=8 captcha=false
+DONE 2026-06-20T08:45:38.762Z — ok=23/31

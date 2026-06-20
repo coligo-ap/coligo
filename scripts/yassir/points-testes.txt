@@ -1,0 +1,25 @@
+N | DÉPART (lat,lng) — adresse | ARRIVÉE (lat,lng) — adresse | km | Yassir Classique | Coligo classic
+---|---|---|---|---|---
+1 | 36.75528,5.09250 — Q34V+426, Brise de mer, Béjaïa, Algeria | 36.75233,5.09059 — Béjaïa, Algeria | 0.4 | 216–270 DA (méd 243) | 200 DA
+2 | 36.75253,5.08549 — Place du 1er Novembre 1954, Béjaïa, Algeria | 36.75528,5.09250 — Q34V+426, Brise de mer, Béjaïa, Algeria | 0.8 | 216–270 DA (méd 243) | 200 DA
+3 | 36.74336,5.04364 — Cité 1000 Logts, Bt A5, Béjaïa, Algeria | 36.73490,5.04003 — P2MR+W4R, Béjaïa, Algeria | 1.4 | 216–270 DA (méd 243) | 200 DA
+4 | 36.73490,5.04003 — P2MR+W4R, Béjaïa, Algeria | 36.74336,5.04364 — Cité 1000 Logts, Bt A5, Béjaïa, Algeria | 1.4 | 216–270 DA (méd 243) | 200 DA
+5 | 36.75027,5.04075 — Targa ouzemour, Q22R+475, Béjaïa, Algeria | 36.75143,5.05574 — Rond-Point Aamriw, Béjaïa, Algeria | 1.8 | 216–270 DA (méd 243) | 200 DA
+6 | 36.76403,5.05986 — Sidi Ahmed, Béjaïa, Algeria | 36.74529,5.04832 — Cité Edimco, Béjaïa, Algeria | 3.3 | 216–270 DA (méd 243) | 205 DA
+7 | 36.73490,5.04003 — P2MR+W4R, Béjaïa, Algeria | 36.75436,5.04996 — Q24W+3CF, Rte de l'Hôpital, Béjaïa 06000, Algeria | 3.5 | 216–270 DA (méd 243) | 215 DA
+8 | 36.75253,5.08549 — Place du 1er Novembre 1954, Béjaïa, Algeria | 36.75436,5.04996 — Q24W+3CF, Rte de l'Hôpital, Béjaïa 06000, Algeria | 3.8 | 216–270 DA (méd 243) | 220 DA
+9 | 36.75253,5.08549 — Place du 1er Novembre 1954, Béjaïa, Algeria | 36.73743,5.06345 — Gare Routière de Béjaia, Béjaïa 06000, Algeria | 3.8 | 216–270 DA (méd 243) | 225 DA
+10 | 36.75528,5.09250 — Q34V+426, Brise de mer, Béjaïa, Algeria | 36.75143,5.05574 — Rond-Point Aamriw, Béjaïa, Algeria | 4.0 | 242–302 DA (méd 272) | 230 DA
+11 | 36.76403,5.05986 — Sidi Ahmed, Béjaïa, Algeria | 36.74336,5.04364 — Cité 1000 Logts, Bt A5, Béjaïa, Algeria | 4.1 | 226–282 DA (méd 254) | 235 DA
+12 | 36.76403,5.05986 — Sidi Ahmed, Béjaïa, Algeria | 36.73743,5.06345 — Gare Routière de Béjaia, Béjaïa 06000, Algeria | 4.4 | 244–305 DA (méd 275) | 245 DA
+13 | 36.74529,5.04832 — Cité Edimco, Béjaïa, Algeria | 36.75233,5.09059 — Béjaïa, Algeria | 4.8 | 244–305 DA (méd 275) | 260 DA
+14 | 36.71562,5.07109 — P38C+6CW Bejaia International Airport Abane Ramdane (BJA), Béjaïa 06000, Algeria | 36.74529,5.04832 — Cité Edimco, Béjaïa, Algeria | 5.2 | 255–319 DA (méd 287) | 270 DA
+15 | 36.76403,5.05986 — Sidi Ahmed, Béjaïa, Algeria | 36.75233,5.09059 — Béjaïa, Algeria | 5.2 | 228–285 DA (méd 257) | 270 DA
+16 | 36.75528,5.09250 — Q34V+426, Brise de mer, Béjaïa, Algeria | 36.76403,5.05986 — Sidi Ahmed, Béjaïa, Algeria | 5.5 | 248–310 DA (méd 279) | 280 DA
+17 | 36.73490,5.04003 — P2MR+W4R, Béjaïa, Algeria | 36.75253,5.08549 — Place du 1er Novembre 1954, Béjaïa, Algeria | 5.9 | 277–346 DA (méd 312) | 290 DA
+18 | 36.73490,5.04003 — P2MR+W4R, Béjaïa, Algeria | 36.71562,5.07109 — P38C+6CW Bejaia International Airport Abane Ramdane (BJA), Béjaïa 06000, Algeria | 6.3 | 276–345 DA (méd 311) | 305 DA
+19 | 36.75233,5.09059 — Béjaïa, Algeria | 36.73490,5.04003 — P2MR+W4R, Béjaïa, Algeria | 6.6 | 280–350 DA (méd 315) | 315 DA
+20 | 36.71562,5.07109 — P38C+6CW Bejaia International Airport Abane Ramdane (BJA), Béjaïa 06000, Algeria | 36.75528,5.09250 — Q34V+426, Brise de mer, Béjaïa, Algeria | 6.6 | 255–319 DA (méd 287) | 315 DA
+21 | 36.75027,5.04075 — Targa ouzemour, Q22R+475, Béjaïa, Algeria | 36.71562,5.07109 — P38C+6CW Bejaia International Airport Abane Ramdane (BJA), Béjaïa 06000, Algeria | 6.7 | 284–355 DA (méd 320) | 320 DA
+22 | 36.75253,5.08549 — Place du 1er Novembre 1954, Béjaïa, Algeria | 36.71562,5.07109 — P38C+6CW Bejaia International Airport Abane Ramdane (BJA), Béjaïa 06000, Algeria | 6.7 | 258–322 DA (méd 290) | 320 DA
+23 | 36.75436,5.04996 — Q24W+3CF, Rte de l'Hôpital, Béjaïa 06000, Algeria | 36.71562,5.07109 — P38C+6CW Bejaia International Airport Abane Ramdane (BJA), Béjaïa 06000, Algeria | 7.3 | 279–349 DA (méd 314) | 340 DA

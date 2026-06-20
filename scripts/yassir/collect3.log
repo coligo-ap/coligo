@@ -1,0 +1,107 @@
+
+COLLECT3 2026-06-20T09:42:12.821Z — 38 paires
+ 1/38 [bj_commune_ville] akbou→centre 69km THROTTLE
+ 2/38 [frontiere] br_chorfa→tazmalt 9km THROTTLE
+
+COLLECT3 2026-06-20T10:04:15.762Z — 38 paires
+ 1/38 [bj_commune_ville] akbou→centre 69km C 1664-1764
+ 2/38 [frontiere] br_chorfa→tazmalt 9km C 346-431
+ 3/38 [alger] alg_centre→alg_bab_ezzouar 15km C 485-585
+ 4/38 [interwilaya] centre→tizi_ouzou 122km C 3777-3877
+ 5/38 [bj_commune_ville] tazmalt→centre 85km C 2018-2118
+ 6/38 [frontiere] br_mchedallah→akbou 31km C 1419-1519
+ 7/38 [alger] alg_centre→alg_aeroport 19km C 590-690
+ 8/38 [interwilaya] centre→alg_centre 242km C 6679-6779
+ 9/38 [bj_commune_ville] sidi_aich→centre 45km C 1185-1285
+10/38 [frontiere] br_chorfa→akbou 23km C 891-991
+11/38 [alger] alg_centre→alg_zeralda 24km C 697-797
+12/38 [interwilaya] centre→bouira_ville 140km C 3864-3964
+13/38 [bj_commune_ville] kherrata→centre 58km C 1515-1615
+14/38 [frontiere] bouira_ville→tazmalt 56km C 1651-1751
+15/38 [alger] alg_centre→alg_bab_el_oued 3km C 225-281
+16/38 [interwilaya] akbou→bouira_ville 69km C 2460-2560
+17/38 [bj_commune_ville] aokas→centre 27km C 705-805
+18/38 [frontiere] br_mchedallah→tazmalt 17km C 567-667
+skip kouba>alg_el_harrach (lieu manquant)
+20/38 [interwilaya] sidi_aich→tizi_ouzou 88km C 2693-2793
+21/38 [bj_commune_ville] el_kseur→centre 35km C 855-955
+22/38 [alger] alg_centre→alg_rouiba 23km C 741-841
+skip hydra>alg_bmr (lieu manquant)
+24/38 [bj_commune_ville] amizour→centre 24km C 781-881
+25/38 [alger] alg_centre→alg_kouba 7km C 322-401
+skip draria>alg_reghaia (lieu manquant)
+27/38 [bj_commune_ville] bj_barbacha→centre 42km C 1113-1213
+28/38 [alger] alg_centre→alg_cheraga 11km C 471-571
+skip cheraga>alg_baraki (lieu manquant)
+30/38 [bj_commune_ville] bj_darguina→centre 47km NO_SERVICE
+31/38 [alger] alg_centre→alg_hydra 5km NO_SERVICE
+skip el_harrach>hussein_dey (lieu manquant)
+33/38 [bj_commune_ville] bj_timezrit→centre 38km NO_SERVICE
+34/38 [alger] alg_centre→alg_draria 13km NO_SERVICE
+skip ain_benian>alg_baraki (lieu manquant)
+36/38 [bj_commune_ville] bj_melbou→centre 38km NO_SERVICE
+37/38 [bj_commune_ville] bj_ouzellaguen→centre 56km NO_SERVICE
+38/38 [alger] alg_centre→alg_bmr 6km NO_SERVICE
+done got 25, no_service 7
+
+COLLECT3 2026-06-20T10:29:50.717Z — 48 paires
+19/48 [alger] alg_kouba→alg_el_harrach 7km C 320-399
+23/48 [alger] alg_hydra→alg_bmr 3km C 218-272
+26/48 [alger] alg_draria→alg_reghaia 38km C 1011-1111
+29/48 [alger] alg_cheraga→alg_baraki 24km C 737-837
+30/48 [bj_commune_ville] bj_darguina→centre 47km C 1255-1355
+31/48 [alger] alg_centre→alg_hydra 5km C 259-324
+32/48 [alger] alg_el_harrach→alg_hussein_dey 5km C 270-338
+33/48 [bj_commune_ville] bj_timezrit→centre 38km C 988-1088
+34/48 [alger] alg_centre→alg_draria 13km C 497-597
+35/48 [alger] alg_ain_benian→alg_baraki 30km C 821-921
+36/48 [bj_commune_ville] bj_melbou→centre 38km C 956-1056
+37/48 [bj_commune_ville] bj_ouzellaguen→centre 56km C 1439-1539
+38/48 [alger] alg_centre→alg_bmr 6km C 375-468
+39/48 [alger] alg_bab_ezzouar→alg_aeroport 5km C 295-369
+40/48 [alger] alg_draria→alg_zeralda 22km C 607-707
+41/48 [alger] alg_kouba→alg_bab_el_oued 10km C 401-500
+42/48 [alger] alg_hydra→alg_cheraga 9km C 358-447
+43/48 [alger] alg_centre→alg_baraki 17km C 613-713
+44/48 [interwilaya] tizi_ouzou→alg_centre 100km C 2886-2986
+45/48 [interwilaya] bouira_ville→alg_centre 103km C 2824-2924
+46/48 [interwilaya] akbou→tizi_ouzou 80km C 2579-2679
+47/48 [bj_commune_ville] centre→akbou 68km C 1649-1749
+48/48 [frontiere] br_chorfa→bouira_ville 46km C 1146-1246
+done got 23, no_service 0
+
+COLLECT3 2026-06-20T10:40:00.881Z — 69 paires
+49/69 [alger] alg_bab_ezzouar→alg_kouba 13km NO_SERVICE
+50/69 [alger] alg_el_harrach→alg_centre 10km NO_SERVICE
+51/69 [alger] alg_zeralda→alg_cheraga 14km NO_SERVICE
+52/69 [alger] alg_rouiba→alg_bab_ezzouar 11km NO_SERVICE
+53/69 [alger] alg_baraki→alg_hydra 15km NO_SERVICE
+54/69 [alger] alg_aeroport→alg_centre 19km NO_SERVICE
+55/69 [alger] alg_reghaia→alg_centre 30km NO_SERVICE
+56/69 [alger] alg_ain_benian→alg_cheraga 7km NO_SERVICE
+57/69 [bj_commune_ville] souk_tenine→centre 35km THROTTLE
+58/69 [bj_commune_ville] oued_ghir→centre 14km THROTTLE
+61/69 [bj_commune_ville] centre→tazmalt 86km THROTTLE
+COOLDOWN 1 (360s) — throttle
+
+COLLECT3 2026-06-20T10:57:38.014Z — 69 paires
+49/69 [alger] alg_bab_ezzouar→alg_kouba 13km C 501-601
+50/69 [alger] alg_el_harrach→alg_centre 10km C 361-451
+51/69 [alger] alg_zeralda→alg_cheraga 14km C 558-658
+52/69 [alger] alg_rouiba→alg_bab_ezzouar 11km C 642-742
+53/69 [alger] alg_baraki→alg_hydra 15km C 513-613
+54/69 [alger] alg_aeroport→alg_centre 19km C 557-657
+55/69 [alger] alg_reghaia→alg_centre 30km C 851-951
+56/69 [alger] alg_ain_benian→alg_cheraga 7km C 307-383
+57/69 [bj_commune_ville] souk_tenine→centre 35km C 887-987
+58/69 [bj_commune_ville] oued_ghir→centre 14km C 444-544
+61/69 [bj_commune_ville] centre→tazmalt 86km C 2035-2135
+62/69 [interwilaya] tizi_ouzou→centre 126km C 3739-3839
+63/69 [interwilaya] akbou→alg_centre 171km C 5240-5340
+64/69 [interwilaya] sidi_aich→alg_centre 202km C 6022-6122
+65/69 [interwilaya] kherrata→bouira_ville 187km C 5243-5343
+66/69 [frontiere] br_chorfa→sidi_aich 50km C 1800-1900
+67/69 [frontiere] bouira_ville→akbou 70km C 2313-2413
+68/69 [frontiere] br_mchedallah→bouira_ville 43km C 1048-1148
+69/69 [frontiere] br_chorfa→centre 92km C 2822-2922
+done got 19, no_service 0

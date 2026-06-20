@@ -1,0 +1,202 @@
+{
+  "centre": {
+    "place_id": "ChIJ9f-1ZZnM8hIRQsyfSEUYeoE",
+    "lat": 36.7525297,
+    "lng": 5.085491999999999,
+    "addr": "Place du 1er Novembre 1954, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Place Gueydon, Béjaïa, Algérie"
+  },
+  "port": {
+    "place_id": "ChIJa2_rhpnM8hIRq8clf8zPpJs",
+    "lat": 36.7523274,
+    "lng": 5.0905903,
+    "addr": "Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Port de Béjaïa, Algérie"
+  },
+  "gare": {
+    "place_id": "ChIJWwrFQsrM8hIRKfC15VYwhEo",
+    "lat": 36.737427,
+    "lng": 5.0634472,
+    "addr": "Gare Routière de Béjaia, Béjaïa 06000, Algeria",
+    "cat": "centre",
+    "q": "Gare routière de Béjaïa, Algérie"
+  },
+  "aeroport": {
+    "place_id": "ChIJmfR9xijN8hIRC5Y1GXOjzT8",
+    "lat": 36.7156191,
+    "lng": 5.0710866,
+    "addr": "P38C+6CW Bejaia International Airport Abane Ramdane (BJA), Béjaïa 06000, Algeria",
+    "cat": "centre",
+    "q": "Aéroport Soummam Abane Ramdane Béjaïa, Algérie"
+  },
+  "universite": {
+    "place_id": "ChIJc5SQ3WczjRIREM7AOjSJo7U",
+    "lat": 36.75026709999999,
+    "lng": 5.0407496,
+    "addr": "Targa ouzemour, Q22R+475, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Université de Béjaïa Targa Ouzemmour, Algérie"
+  },
+  "chu": {
+    "place_id": "ChIJp_GUl1AzjRIRKOPsyagJ6TU",
+    "lat": 36.754365,
+    "lng": 5.0499622,
+    "addr": "Q24W+3CF, Rte de l'Hôpital, Béjaïa 06000, Algeria",
+    "cat": "centre",
+    "q": "CHU Khellil Amrane Béjaïa, Algérie"
+  },
+  "brise_mer": {
+    "place_id": "ChIJEeYGQYPM8hIRvHsiXD2Fz7s",
+    "lat": 36.7552778,
+    "lng": 5.092499999999999,
+    "addr": "Q34V+426, Brise de mer, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Brise de Mer, Béjaïa, Algérie"
+  },
+  "aamriw": {
+    "place_id": "ChIJgfiTPVIzjRIRwhC2U3lwl6Y",
+    "lat": 36.75143,
+    "lng": 5.0557368,
+    "addr": "Rond-Point Aamriw, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Aamriw, Béjaïa, Algérie"
+  },
+  "ihaddaden": {
+    "place_id": "ChIJEdM-DwAzjRIRB61yOgeKjJ4",
+    "lat": 36.7433557,
+    "lng": 5.043642699999999,
+    "addr": "Cité 1000 Logts, Bt A5, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Ihaddaden, Béjaïa, Algérie"
+  },
+  "sidi_ahmed": {
+    "place_id": "ChIJH1dcMlbL8hIRpRDd_2Vyp9M",
+    "lat": 36.7640331,
+    "lng": 5.0598608,
+    "addr": "Sidi Ahmed, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Sidi Ahmed, Béjaïa, Algérie"
+  },
+  "naceria": {
+    "place_id": "ChIJYdRFPwAzjRIR5wyoD4Rla6c",
+    "lat": 36.73490230000001,
+    "lng": 5.040033999999999,
+    "addr": "P2MR+W4R, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Quartier Naceria, Béjaïa, Algérie"
+  },
+  "edimco": {
+    "place_id": "ChIJN6_H3UUzjRIRHFl-GPaVuEI",
+    "lat": 36.7452917,
+    "lng": 5.048321899999999,
+    "addr": "Cité Edimco, Béjaïa, Algeria",
+    "cat": "centre",
+    "q": "Edimco, Béjaïa, Algérie"
+  },
+  "tichy": {
+    "place_id": "ChIJeRO6yQzR8hIRKBTPdQe0cl4",
+    "lat": 36.66818,
+    "lng": 5.1595353,
+    "addr": "Tichy, Algeria",
+    "cat": "alentours",
+    "q": "Tichy, Béjaïa, Algérie"
+  },
+  "oued_ghir": {
+    "place_id": "ChIJK-k0vS4yjRIRvZhSvNrF4Fs",
+    "lat": 36.710133,
+    "lng": 4.9888849,
+    "addr": "Oued Ghir, Algeria",
+    "cat": "alentours",
+    "q": "Oued Ghir, Béjaïa, Algérie"
+  },
+  "boukhelifa": {
+    "place_id": "ChIJD6TFbd3S8hIRth4UFUKxHvA",
+    "lat": 36.6706324,
+    "lng": 5.0883825,
+    "addr": "Boukhelifa, Algeria",
+    "cat": "alentours",
+    "q": "Boukhelifa, Béjaïa, Algérie"
+  },
+  "tala_hamza": {
+    "place_id": "ChIJ_wJSkX4yjRIRXRXSbGjbc4c",
+    "lat": 36.7029819,
+    "lng": 5.0394898,
+    "addr": "Tala Hamza, Algeria",
+    "cat": "alentours",
+    "q": "Tala Hamza, Béjaïa, Algérie"
+  },
+  "el_kseur": {
+    "place_id": "ChIJOQJxYwU7jRIR6I7XISa7b_o",
+    "lat": 36.7057182,
+    "lng": 4.8313257,
+    "addr": "El-Kseur, Algeria",
+    "cat": "alentours",
+    "q": "El Kseur, Algérie"
+  },
+  "amizour": {
+    "place_id": "ChIJz9mp71MujRIRVNy9pZcYo24",
+    "lat": 36.643932,
+    "lng": 4.903658399999999,
+    "addr": "Amizour, Algeria",
+    "cat": "alentours",
+    "q": "Amizour, Algérie"
+  },
+  "aokas": {
+    "place_id": "ChIJQxUhbGPa8hIRTZWcigqJeEY",
+    "lat": 36.6354827,
+    "lng": 5.2429275,
+    "addr": "Aokas, Algeria",
+    "cat": "long",
+    "q": "Aokas, Algérie"
+  },
+  "souk_tenine": {
+    "place_id": "ChIJ7Vfs1Xjc8hIRbyn1jxv3-p4",
+    "lat": 36.6279368,
+    "lng": 5.3351785,
+    "addr": "Souk El-Thenine, Algeria",
+    "cat": "long",
+    "q": "Souk El Tenine, Béjaïa, Algérie"
+  },
+  "sidi_aich": {
+    "place_id": "ChIJazNilNcYjRIRvDUSrspIYLA",
+    "lat": 36.6122701,
+    "lng": 4.6893418,
+    "addr": "Sidi Aïch, Algeria",
+    "cat": "long",
+    "q": "Sidi Aïch, Algérie"
+  },
+  "akbou": {
+    "place_id": "ChIJISD0Eez8jBIRxQzFP-cUDS8",
+    "lat": 36.4556403,
+    "lng": 4.5365087,
+    "addr": "Akbou, Algeria",
+    "cat": "long",
+    "q": "Akbou, Algérie"
+  },
+  "kherrata": {
+    "place_id": "ChIJZa8f43gn8xIR3eQolso2qRs",
+    "lat": 36.4936399,
+    "lng": 5.2770714,
+    "addr": "Kherrata, Algeria",
+    "cat": "long",
+    "q": "Kherrata, Algérie"
+  },
+  "tazmalt": {
+    "place_id": "ChIJxepwxXb4jBIRwVN4THXyuV4",
+    "lat": 36.3903818,
+    "lng": 4.3954971,
+    "addr": "Tazmalt, Algeria",
+    "cat": "long",
+    "q": "Tazmalt, Algérie"
+  },
+  "seddouk": {
+    "place_id": "ChIJ11xxh00ejRIRhhu6l0QlXUg",
+    "lat": 36.5467873,
+    "lng": 4.6867022,
+    "addr": "Seddouk, Algeria",
+    "cat": "long",
+    "q": "Seddouk, Algérie"
+  }
+}

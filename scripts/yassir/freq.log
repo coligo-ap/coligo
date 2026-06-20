@@ -1,0 +1,43 @@
+
+FREQ 2026-06-20T11:05:54.568Z — 28 paires
+ 1/28 [oran] oran_centre→oran_aeroport 17km C 663-763
+ 2/28 [constantine] cst_centre→cst_ali_mendjeli 17km C 485-585
+ 3/28 [annaba] anb_centre→anb_univ 5km C 197-246
+ 4/28 [setif] stf_centre→stf_univ 6km C 230-287
+ 5/28 [blida] bld_centre→bld_univ 6km C 334-416
+ 6/28 [batna] btn_centre→btn_univ 0km NO_SERVICE
+ 7/28 [tlemcen] tlm_centre→tlm_univ 6km NO_SERVICE
+ 8/28 [tizi] tizi_ouzou→tizi_univ 3km NO_SERVICE
+ 9/28 [oran] oran_centre→oran_univ 2km NO_SERVICE
+10/28 [constantine] cst_centre→cst_univ 5km NO_SERVICE
+11/28 [annaba] anb_centre→anb_aeroport 14km NO_SERVICE
+12/28 [setif] stf_centre→stf_el_eulma 29km NO_SERVICE
+13/28 [blida] bld_centre→bld_boufarik 16km NO_SERVICE
+14/28 [tlemcen] tlm_centre→tlm_mansourah 3km THROTTLE
+15/28 [tizi] tizi_nv→tizi_ouzou 3km THROTTLE
+
+FREQ 2026-06-20T11:25:06.117Z — 28 paires
+ 6/28 [batna] btn_centre→btn_univ 0km C 144-180
+ 7/28 [tlemcen] tlm_centre→tlm_univ 6km C 269-336
+ 8/28 [tizi] tizi_ouzou→tizi_univ 3km C 216-270
+ 9/28 [oran] oran_centre→oran_univ 2km C 215-269
+10/28 [constantine] cst_centre→cst_univ 5km C 200-250
+11/28 [annaba] anb_centre→anb_aeroport 14km C 326-406
+12/28 [setif] stf_centre→stf_el_eulma 29km C 663-763
+13/28 [blida] bld_centre→bld_boufarik 16km C 458-558
+14/28 [tlemcen] tlm_centre→tlm_mansourah 3km C 174-218
+15/28 [tizi] tizi_nv→tizi_ouzou 3km C 216-270
+16/28 [oran] oran_centre→oran_bir_djir 9km C 480-580
+17/28 [constantine] cst_centre→cst_aeroport 11km C 328-409
+18/28 [oran] oran_usto→oran_centre 9km C 338-421
+19/28 [constantine] cst_ali_mendjeli→cst_univ 13km C 422-522
+20/28 [setif] stf_univ→stf_centre 7km C 244-305
+21/28 [oran] oran_centre→oran_usto 9km C 362-452
+22/28 [annaba] anb_univ→anb_centre 6km C 211-264
+23/28 [constantine] cst_ali_mendjeli→cst_centre 17km C 523-623
+24/28 [tlemcen] tlm_univ→tlm_centre 6km C 234-292
+25/28 [blida] bld_univ→bld_centre 6km C 308-384
+26/28 [batna] btn_univ→btn_centre 1km C 144-180
+27/28 [oran] oran_bir_djir→oran_aeroport 18km C 610-710
+28/28 [setif] stf_el_eulma→stf_centre 30km C 607-707
+done got 23
