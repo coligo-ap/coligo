@@ -65,11 +65,12 @@ async function updateOrderStatus(client, orderId, to, opId) {
   }
 }
 
-/** Réplique de validatePickupCode (mise à jour : idempotency prioritaire). */
+/** Réplique de validatePickupCode (miroir de app/(merchant)/orders/actions.ts :
+ *  PIN à 4 chiffres, tolère 4–6 pour le legacy ; idempotency prioritaire). */
 async function validatePickupCode(client, code, opId) {
   const normalized = code.replace(/\D/g, "");
-  if (normalized.length !== 6)
-    return { error: "Le code doit comporter 6 chiffres." };
+  if (normalized.length < 4 || normalized.length > 6)
+    return { error: "Le code doit comporter 4 chiffres." };
 
   if (opId) {
     const ex = await client.query(
@@ -394,13 +395,14 @@ async function main() {
     }
 
     // ----------------------------------------------------------------------
-    // Scénario 8 : « code mal formé » (4 chiffres) — geré côté client mais
-    // testons que isConflictError catch quand même au cas où.
+    // Scénario 8 : « code mal formé » (trop court : 2 chiffres) — geré côté
+    // client mais testons que isConflictError catch quand même au cas où.
+    // (Le PIN valide fait 4 à 6 chiffres ; 2 chiffres = format invalide.)
     // ----------------------------------------------------------------------
-    header("Scénario 8 — Code mal formé (4 chiffres) → erreur format");
+    header("Scénario 8 — Code mal formé (2 chiffres) → erreur format");
     const opShort = randomUUID();
     created_op_ids.push(opShort);
-    const rShort = await validatePickupCode(client, "1234", opShort);
+    const rShort = await validatePickupCode(client, "12", opShort);
     if (rShort.error && /doit comporter/i.test(rShort.error))
       pass(`Refusé : « ${rShort.error} »`);
     else fail_(`Réponse inattendue : ${JSON.stringify(rShort)}`);
