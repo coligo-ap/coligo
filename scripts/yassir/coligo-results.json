@@ -33,7 +33,7 @@
         "reco": 305,
         "floor": 305,
         "mini": 305,
-        "fast": 295,
+        "fast": 300,
         "low": 275,
         "high": 335
       }
@@ -62,15 +62,15 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 230,
+        "reco": 235,
         "floor": 210,
         "mini": 210,
-        "fast": 245,
+        "fast": 250,
         "low": 220,
         "high": 385
       },
       "confort": {
-        "reco": 335,
+        "reco": 340,
         "floor": 305,
         "mini": 305,
         "fast": 360,
@@ -113,7 +113,7 @@
         "reco": 305,
         "floor": 305,
         "mini": 305,
-        "fast": 295,
+        "fast": 300,
         "low": 275,
         "high": 335
       }
@@ -142,15 +142,15 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 225,
+        "reco": 230,
         "floor": 210,
         "mini": 210,
-        "fast": 240,
+        "fast": 245,
         "low": 215,
         "high": 385
       },
       "confort": {
-        "reco": 325,
+        "reco": 330,
         "floor": 305,
         "mini": 305,
         "fast": 350,
@@ -185,7 +185,7 @@
         "reco": 255,
         "floor": 210,
         "mini": 225,
-        "fast": 270,
+        "fast": 275,
         "low": 235,
         "high": 310
       },
@@ -193,7 +193,7 @@
         "reco": 370,
         "floor": 305,
         "mini": 325,
-        "fast": 390,
+        "fast": 395,
         "low": 235,
         "high": 310
       }
@@ -222,10 +222,10 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 285,
+        "reco": 290,
         "floor": 220,
-        "mini": 250,
-        "fast": 305,
+        "mini": 255,
+        "fast": 310,
         "low": 275,
         "high": 320
       },
@@ -233,7 +233,7 @@
         "reco": 415,
         "floor": 320,
         "mini": 365,
-        "fast": 440,
+        "fast": 445,
         "low": 275,
         "high": 330
       }
@@ -262,10 +262,10 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 285,
+        "reco": 290,
         "floor": 220,
-        "mini": 250,
-        "fast": 305,
+        "mini": 255,
+        "fast": 310,
         "low": 275,
         "high": 320
       },
@@ -273,7 +273,7 @@
         "reco": 410,
         "floor": 315,
         "mini": 360,
-        "fast": 435,
+        "fast": 440,
         "low": 275,
         "high": 330
       }
@@ -305,15 +305,15 @@
         "reco": 300,
         "floor": 230,
         "mini": 265,
-        "fast": 320,
+        "fast": 325,
         "low": 310,
         "high": 350
       },
       "confort": {
-        "reco": 430,
+        "reco": 435,
         "floor": 335,
-        "mini": 380,
-        "fast": 460,
+        "mini": 385,
+        "fast": 465,
         "low": 310,
         "high": 350
       }
@@ -345,15 +345,15 @@
         "reco": 270,
         "floor": 210,
         "mini": 240,
-        "fast": 285,
+        "fast": 290,
         "low": 275,
         "high": 320
       },
       "confort": {
-        "reco": 390,
+        "reco": 395,
         "floor": 305,
-        "mini": 345,
-        "fast": 415,
+        "mini": 350,
+        "fast": 420,
         "low": 275,
         "high": 330
       }
@@ -425,7 +425,7 @@
         "reco": 255,
         "floor": 210,
         "mini": 225,
-        "fast": 270,
+        "fast": 275,
         "low": 235,
         "high": 310
       },
@@ -433,7 +433,7 @@
         "reco": 370,
         "floor": 305,
         "mini": 325,
-        "fast": 390,
+        "fast": 395,
         "low": 235,
         "high": 310
       }
@@ -473,7 +473,7 @@
         "reco": 305,
         "floor": 305,
         "mini": 305,
-        "fast": 295,
+        "fast": 300,
         "low": 275,
         "high": 335
       }
@@ -502,10 +502,10 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 285,
+        "reco": 290,
         "floor": 220,
-        "mini": 250,
-        "fast": 305,
+        "mini": 255,
+        "fast": 310,
         "low": 275,
         "high": 320
       },
@@ -513,7 +513,7 @@
         "reco": 415,
         "floor": 320,
         "mini": 365,
-        "fast": 440,
+        "fast": 445,
         "low": 275,
         "high": 330
       }
@@ -545,15 +545,15 @@
         "reco": 265,
         "floor": 210,
         "mini": 235,
-        "fast": 280,
+        "fast": 285,
         "low": 235,
         "high": 350
       },
       "confort": {
-        "reco": 375,
+        "reco": 380,
         "floor": 305,
-        "mini": 330,
-        "fast": 400,
+        "mini": 335,
+        "fast": 405,
         "low": 240,
         "high": 350
       }
@@ -582,10 +582,10 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 285,
+        "reco": 290,
         "floor": 220,
-        "mini": 250,
-        "fast": 305,
+        "mini": 255,
+        "fast": 310,
         "low": 275,
         "high": 320
       },
@@ -593,7 +593,7 @@
         "reco": 410,
         "floor": 315,
         "mini": 360,
-        "fast": 435,
+        "fast": 440,
         "low": 275,
         "high": 330
       }
@@ -633,7 +633,7 @@
         "reco": 305,
         "floor": 305,
         "mini": 305,
-        "fast": 295,
+        "fast": 300,
         "low": 275,
         "high": 335
       }
@@ -662,15 +662,15 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 230,
+        "reco": 235,
         "floor": 210,
         "mini": 210,
-        "fast": 245,
+        "fast": 250,
         "low": 220,
         "high": 385
       },
       "confort": {
-        "reco": 330,
+        "reco": 335,
         "floor": 305,
         "mini": 305,
         "fast": 355,
@@ -713,7 +713,7 @@
         "reco": 305,
         "floor": 305,
         "mini": 305,
-        "fast": 295,
+        "fast": 300,
         "low": 275,
         "high": 335
       }
@@ -742,17 +742,17 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 235,
+        "reco": 240,
         "floor": 210,
         "mini": 210,
-        "fast": 250,
+        "fast": 255,
         "low": 235,
         "high": 275
       },
       "confort": {
-        "reco": 345,
+        "reco": 350,
         "floor": 305,
-        "mini": 305,
+        "mini": 310,
         "fast": 370,
         "low": 235,
         "high": 275
@@ -782,10 +782,10 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 220,
+        "reco": 225,
         "floor": 210,
         "mini": 210,
-        "fast": 235,
+        "fast": 240,
         "low": 215,
         "high": 385
       },
@@ -825,7 +825,7 @@
         "reco": 250,
         "floor": 210,
         "mini": 220,
-        "fast": 265,
+        "fast": 270,
         "low": 235,
         "high": 310
       },
@@ -862,18 +862,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 275,
+        "reco": 280,
         "floor": 215,
-        "mini": 240,
-        "fast": 295,
+        "mini": 245,
+        "fast": 300,
         "low": 275,
         "high": 320
       },
       "confort": {
-        "reco": 400,
+        "reco": 405,
         "floor": 310,
-        "mini": 350,
-        "fast": 425,
+        "mini": 355,
+        "fast": 430,
         "low": 275,
         "high": 330
       }
@@ -902,15 +902,15 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 225,
+        "reco": 230,
         "floor": 210,
         "mini": 210,
-        "fast": 240,
+        "fast": 245,
         "low": 215,
         "high": 385
       },
       "confort": {
-        "reco": 325,
+        "reco": 330,
         "floor": 305,
         "mini": 305,
         "fast": 350,
@@ -944,7 +944,7 @@
         "reco": 305,
         "floor": 305,
         "mini": 305,
-        "fast": 295,
+        "fast": 300,
         "low": 275,
         "high": 335
       }
@@ -975,7 +975,7 @@
         "reco": 305,
         "floor": 305,
         "mini": 305,
-        "fast": 300,
+        "fast": 305,
         "low": 200,
         "high": 385
       }
@@ -998,15 +998,15 @@
         "reco": 260,
         "floor": 210,
         "mini": 230,
-        "fast": 275,
+        "fast": 280,
         "low": 235,
         "high": 350
       },
       "confort": {
-        "reco": 375,
+        "reco": 380,
         "floor": 305,
-        "mini": 330,
-        "fast": 400,
+        "mini": 335,
+        "fast": 405,
         "low": 240,
         "high": 350
       }
@@ -1037,7 +1037,7 @@
         "reco": 305,
         "floor": 305,
         "mini": 305,
-        "fast": 295,
+        "fast": 300,
         "low": 275,
         "high": 335
       }
@@ -1068,7 +1068,7 @@
         "reco": 305,
         "floor": 305,
         "mini": 305,
-        "fast": 300,
+        "fast": 305,
         "low": 200,
         "high": 385
       }
@@ -1088,15 +1088,15 @@
     "ok": false,
     "coligo": {
       "classic": {
-        "reco": 220,
+        "reco": 225,
         "floor": 210,
         "mini": 210,
-        "fast": 235,
+        "fast": 240,
         "low": 215,
         "high": 385
       },
       "confort": {
-        "reco": 320,
+        "reco": 325,
         "floor": 305,
         "mini": 305,
         "fast": 345,
@@ -1122,15 +1122,15 @@
         "reco": 270,
         "floor": 210,
         "mini": 240,
-        "fast": 285,
+        "fast": 290,
         "low": 275,
         "high": 320
       },
       "confort": {
-        "reco": 390,
+        "reco": 395,
         "floor": 305,
-        "mini": 345,
-        "fast": 415,
+        "mini": 350,
+        "fast": 420,
         "low": 275,
         "high": 330
       }
@@ -1161,7 +1161,7 @@
         "reco": 305,
         "floor": 305,
         "mini": 305,
-        "fast": 295,
+        "fast": 300,
         "low": 275,
         "high": 335
       }
@@ -1181,18 +1181,18 @@
     "ok": false,
     "coligo": {
       "classic": {
-        "reco": 1575,
+        "reco": 1590,
         "floor": 1215,
-        "mini": 1385,
-        "fast": 1680,
+        "mini": 1400,
+        "fast": 1695,
         "low": 1570,
         "high": 1920
       },
       "confort": {
-        "reco": 2270,
+        "reco": 2290,
         "floor": 1750,
-        "mini": 2000,
-        "fast": 2425,
+        "mini": 2015,
+        "fast": 2445,
         "low": 2210,
         "high": 2700
       }
@@ -1221,18 +1221,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 530,
+        "reco": 535,
         "floor": 410,
-        "mini": 465,
-        "fast": 565,
+        "mini": 470,
+        "fast": 570,
         "low": 500,
         "high": 610
       },
       "confort": {
-        "reco": 765,
+        "reco": 775,
         "floor": 590,
-        "mini": 675,
-        "fast": 820,
+        "mini": 680,
+        "fast": 825,
         "low": 725,
         "high": 885
       }
@@ -1261,18 +1261,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 375,
+        "reco": 380,
         "floor": 290,
-        "mini": 330,
-        "fast": 400,
+        "mini": 335,
+        "fast": 405,
         "low": 340,
         "high": 415
       },
       "confort": {
-        "reco": 545,
+        "reco": 550,
         "floor": 420,
-        "mini": 480,
-        "fast": 580,
+        "mini": 485,
+        "fast": 585,
         "low": 490,
         "high": 600
       }
@@ -1301,18 +1301,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 500,
+        "reco": 505,
         "floor": 385,
-        "mini": 440,
-        "fast": 535,
+        "mini": 445,
+        "fast": 540,
         "low": 465,
         "high": 565
       },
       "confort": {
-        "reco": 715,
+        "reco": 725,
         "floor": 555,
-        "mini": 630,
-        "fast": 765,
+        "mini": 640,
+        "fast": 775,
         "low": 675,
         "high": 825
       }
@@ -1344,15 +1344,15 @@
         "reco": 260,
         "floor": 210,
         "mini": 230,
-        "fast": 275,
+        "fast": 280,
         "low": 235,
         "high": 310
       },
       "confort": {
-        "reco": 370,
+        "reco": 375,
         "floor": 305,
-        "mini": 325,
-        "fast": 395,
+        "mini": 330,
+        "fast": 400,
         "low": 235,
         "high": 310
       }
@@ -1381,18 +1381,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 655,
+        "reco": 660,
         "floor": 505,
-        "mini": 575,
-        "fast": 700,
+        "mini": 580,
+        "fast": 705,
         "low": 625,
         "high": 765
       },
       "confort": {
-        "reco": 945,
+        "reco": 955,
         "floor": 730,
-        "mini": 830,
-        "fast": 1010,
+        "mini": 840,
+        "fast": 1015,
         "low": 915,
         "high": 1115
       }
@@ -1421,18 +1421,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 400,
+        "reco": 405,
         "floor": 310,
-        "mini": 350,
-        "fast": 425,
+        "mini": 355,
+        "fast": 430,
         "low": 360,
         "high": 440
       },
       "confort": {
-        "reco": 570,
+        "reco": 575,
         "floor": 440,
-        "mini": 500,
-        "fast": 610,
+        "mini": 505,
+        "fast": 615,
         "low": 520,
         "high": 640
       }
@@ -1461,18 +1461,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 385,
+        "reco": 390,
         "floor": 300,
-        "mini": 340,
-        "fast": 410,
+        "mini": 345,
+        "fast": 415,
         "low": 345,
         "high": 425
       },
       "confort": {
-        "reco": 560,
+        "reco": 565,
         "floor": 430,
         "mini": 495,
-        "fast": 595,
+        "fast": 600,
         "low": 510,
         "high": 620
       }
@@ -1501,18 +1501,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 550,
+        "reco": 555,
         "floor": 425,
-        "mini": 485,
-        "fast": 585,
+        "mini": 490,
+        "fast": 590,
         "low": 515,
         "high": 625
       },
       "confort": {
-        "reco": 790,
+        "reco": 795,
         "floor": 610,
-        "mini": 695,
-        "fast": 845,
+        "mini": 700,
+        "fast": 850,
         "low": 745,
         "high": 915
       }
@@ -1541,18 +1541,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 545,
+        "reco": 550,
         "floor": 420,
-        "mini": 480,
-        "fast": 580,
+        "mini": 485,
+        "fast": 585,
         "low": 510,
         "high": 620
       },
       "confort": {
-        "reco": 780,
+        "reco": 790,
         "floor": 600,
-        "mini": 685,
-        "fast": 835,
+        "mini": 695,
+        "fast": 840,
         "low": 745,
         "high": 910
       }
@@ -1581,18 +1581,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 480,
+        "reco": 485,
         "floor": 370,
-        "mini": 420,
-        "fast": 515,
+        "mini": 425,
+        "fast": 520,
         "low": 445,
         "high": 545
       },
       "confort": {
-        "reco": 690,
+        "reco": 695,
         "floor": 530,
-        "mini": 605,
-        "fast": 735,
+        "mini": 610,
+        "fast": 745,
         "low": 650,
         "high": 790
       }
@@ -1621,18 +1621,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 520,
+        "reco": 525,
         "floor": 405,
         "mini": 460,
-        "fast": 555,
+        "fast": 560,
         "low": 485,
         "high": 595
       },
       "confort": {
-        "reco": 755,
+        "reco": 760,
         "floor": 580,
-        "mini": 665,
-        "fast": 805,
+        "mini": 670,
+        "fast": 810,
         "low": 710,
         "high": 870
       }
@@ -1661,18 +1661,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 810,
+        "reco": 815,
         "floor": 625,
         "mini": 715,
-        "fast": 860,
+        "fast": 870,
         "low": 785,
         "high": 955
       },
       "confort": {
-        "reco": 1165,
+        "reco": 1180,
         "floor": 900,
-        "mini": 1025,
-        "fast": 1245,
+        "mini": 1040,
+        "fast": 1255,
         "low": 1145,
         "high": 1395
       }
@@ -1701,18 +1701,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 875,
+        "reco": 885,
         "floor": 675,
-        "mini": 770,
-        "fast": 935,
+        "mini": 780,
+        "fast": 945,
         "low": 855,
         "high": 1045
       },
       "confort": {
-        "reco": 1260,
+        "reco": 1275,
         "floor": 975,
-        "mini": 1110,
-        "fast": 1345,
+        "mini": 1120,
+        "fast": 1360,
         "low": 1245,
         "high": 1525
       }
@@ -1741,18 +1741,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 855,
+        "reco": 860,
         "floor": 660,
-        "mini": 750,
-        "fast": 910,
+        "mini": 755,
+        "fast": 920,
         "low": 835,
         "high": 1020
       },
       "confort": {
-        "reco": 1230,
+        "reco": 1240,
         "floor": 950,
-        "mini": 1080,
-        "fast": 1315,
+        "mini": 1090,
+        "fast": 1325,
         "low": 1210,
         "high": 1480
       }
@@ -1781,18 +1781,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 720,
+        "reco": 730,
         "floor": 555,
-        "mini": 635,
-        "fast": 770,
+        "mini": 640,
+        "fast": 780,
         "low": 700,
         "high": 855
       },
       "confort": {
-        "reco": 1045,
+        "reco": 1055,
         "floor": 805,
-        "mini": 920,
-        "fast": 1115,
+        "mini": 930,
+        "fast": 1125,
         "low": 1015,
         "high": 1240
       }
@@ -1821,18 +1821,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 335,
+        "reco": 340,
         "floor": 260,
-        "mini": 295,
+        "mini": 300,
         "fast": 360,
         "low": 350,
         "high": 350
       },
       "confort": {
-        "reco": 485,
+        "reco": 490,
         "floor": 375,
-        "mini": 425,
-        "fast": 520,
+        "mini": 430,
+        "fast": 525,
         "low": 350,
         "high": 350
       }
@@ -1861,18 +1861,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 655,
+        "reco": 660,
         "floor": 505,
-        "mini": 575,
-        "fast": 700,
+        "mini": 580,
+        "fast": 705,
         "low": 620,
         "high": 760
       },
       "confort": {
-        "reco": 940,
+        "reco": 950,
         "floor": 725,
-        "mini": 825,
-        "fast": 1005,
+        "mini": 835,
+        "fast": 1010,
         "low": 910,
         "high": 1110
       }
@@ -1901,18 +1901,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 895,
+        "reco": 905,
         "floor": 690,
-        "mini": 790,
-        "fast": 955,
+        "mini": 795,
+        "fast": 965,
         "low": 875,
         "high": 1065
       },
       "confort": {
-        "reco": 1290,
+        "reco": 1300,
         "floor": 995,
-        "mini": 1135,
-        "fast": 1375,
+        "mini": 1145,
+        "fast": 1390,
         "low": 1270,
         "high": 1550
       }
@@ -1941,18 +1941,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1095,
+        "reco": 1105,
         "floor": 845,
-        "mini": 965,
-        "fast": 1170,
+        "mini": 970,
+        "fast": 1180,
         "low": 1075,
         "high": 1315
       },
       "confort": {
-        "reco": 1570,
+        "reco": 1585,
         "floor": 1220,
-        "mini": 1380,
-        "fast": 1675,
+        "mini": 1395,
+        "fast": 1690,
         "low": 1570,
         "high": 1920
       }
@@ -1981,18 +1981,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 430,
+        "reco": 435,
         "floor": 335,
-        "mini": 380,
-        "fast": 460,
+        "mini": 385,
+        "fast": 465,
         "low": 390,
         "high": 480
       },
       "confort": {
-        "reco": 620,
+        "reco": 630,
         "floor": 480,
-        "mini": 545,
-        "fast": 665,
+        "mini": 555,
+        "fast": 670,
         "low": 570,
         "high": 700
       }
@@ -2021,18 +2021,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1380,
+        "reco": 1395,
         "floor": 1070,
-        "mini": 1215,
-        "fast": 1475,
+        "mini": 1230,
+        "fast": 1485,
         "low": 1375,
         "high": 1685
       },
       "confort": {
-        "reco": 1990,
+        "reco": 2005,
         "floor": 1560,
-        "mini": 1750,
-        "fast": 2120,
+        "mini": 1765,
+        "fast": 2140,
         "low": 2005,
         "high": 2455
       }
@@ -2061,18 +2061,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1370,
+        "reco": 1385,
         "floor": 1060,
-        "mini": 1205,
-        "fast": 1465,
+        "mini": 1220,
+        "fast": 1475,
         "low": 1365,
         "high": 1665
       },
       "confort": {
-        "reco": 1975,
+        "reco": 1995,
         "floor": 1545,
-        "mini": 1740,
-        "fast": 2110,
+        "mini": 1755,
+        "fast": 2130,
         "low": 1990,
         "high": 2430
       }
@@ -2102,18 +2102,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 2085,
+        "reco": 2105,
         "floor": 1605,
-        "mini": 1835,
-        "fast": 2225,
+        "mini": 1850,
+        "fast": 2245,
         "low": 2075,
         "high": 2535
       },
       "confort": {
-        "reco": 3000,
+        "reco": 3030,
         "floor": 2315,
-        "mini": 2640,
-        "fast": 3205,
+        "mini": 2665,
+        "fast": 3235,
         "low": 2715,
         "high": 3315
       }
@@ -2143,18 +2143,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1620,
+        "reco": 1635,
         "floor": 1250,
-        "mini": 1425,
-        "fast": 1730,
+        "mini": 1440,
+        "fast": 1745,
         "low": 1615,
         "high": 1975
       },
       "confort": {
-        "reco": 2335,
+        "reco": 2355,
         "floor": 1800,
-        "mini": 2055,
-        "fast": 2490,
+        "mini": 2070,
+        "fast": 2515,
         "low": 2255,
         "high": 2755
       }
@@ -2184,18 +2184,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1630,
+        "reco": 1645,
         "floor": 1255,
-        "mini": 1435,
-        "fast": 1740,
+        "mini": 1450,
+        "fast": 1755,
         "low": 1620,
         "high": 1980
       },
       "confort": {
-        "reco": 2345,
+        "reco": 2370,
         "floor": 1810,
-        "mini": 2065,
-        "fast": 2505,
+        "mini": 2085,
+        "fast": 2530,
         "low": 2260,
         "high": 2760
       }
@@ -2221,18 +2221,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 330,
+        "reco": 335,
         "floor": 255,
-        "mini": 290,
+        "mini": 295,
         "fast": 355,
         "low": 350,
         "high": 350
       },
       "confort": {
-        "reco": 480,
+        "reco": 485,
         "floor": 370,
-        "mini": 420,
-        "fast": 515,
+        "mini": 425,
+        "fast": 520,
         "low": 350,
         "high": 350
       }
@@ -2303,18 +2303,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 3020,
+        "reco": 3045,
         "floor": 2330,
-        "mini": 2660,
-        "fast": 3220,
+        "mini": 2680,
+        "fast": 3255,
         "low": 3000,
         "high": 3670
       },
       "confort": {
-        "reco": 4350,
+        "reco": 4390,
         "floor": 3355,
-        "mini": 3830,
-        "fast": 4640,
+        "mini": 3865,
+        "fast": 4685,
         "low": 3640,
         "high": 4450
       }
@@ -2344,18 +2344,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 2065,
+        "reco": 2085,
         "floor": 1595,
-        "mini": 1815,
-        "fast": 2205,
+        "mini": 1835,
+        "fast": 2225,
         "low": 2055,
         "high": 2515
       },
       "confort": {
-        "reco": 2975,
+        "reco": 3000,
         "floor": 2295,
-        "mini": 2620,
-        "fast": 3175,
+        "mini": 2640,
+        "fast": 3205,
         "low": 2695,
         "high": 3295
       }
@@ -2381,18 +2381,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 800,
+        "reco": 805,
         "floor": 615,
-        "mini": 705,
-        "fast": 855,
+        "mini": 710,
+        "fast": 860,
         "low": 775,
         "high": 945
       },
       "confort": {
-        "reco": 1150,
+        "reco": 1160,
         "floor": 885,
-        "mini": 1010,
-        "fast": 1225,
+        "mini": 1020,
+        "fast": 1235,
         "low": 1125,
         "high": 1375
       }
@@ -2463,18 +2463,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 6190,
+        "reco": 6250,
         "floor": 4775,
-        "mini": 5445,
-        "fast": 6610,
+        "mini": 5500,
+        "fast": 6670,
         "low": 6145,
         "high": 7515
       },
       "confort": {
-        "reco": 8915,
+        "reco": 9000,
         "floor": 6875,
-        "mini": 7845,
-        "fast": 9515,
+        "mini": 7920,
+        "fast": 9605,
         "low": 6785,
         "high": 8295
       }
@@ -2504,18 +2504,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1090,
+        "reco": 1100,
         "floor": 840,
-        "mini": 960,
-        "fast": 1165,
+        "mini": 970,
+        "fast": 1175,
         "low": 1075,
         "high": 1315
       },
       "confort": {
-        "reco": 1570,
+        "reco": 1585,
         "floor": 1215,
-        "mini": 1380,
-        "fast": 1675,
+        "mini": 1395,
+        "fast": 1690,
         "low": 1565,
         "high": 1915
       }
@@ -2541,18 +2541,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 630,
+        "reco": 635,
         "floor": 485,
-        "mini": 555,
-        "fast": 675,
+        "mini": 560,
+        "fast": 680,
         "low": 600,
         "high": 730
       },
       "confort": {
-        "reco": 910,
+        "reco": 915,
         "floor": 700,
-        "mini": 800,
-        "fast": 970,
+        "mini": 805,
+        "fast": 980,
         "low": 875,
         "high": 1065
       }
@@ -2623,18 +2623,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 3505,
+        "reco": 3535,
         "floor": 2700,
-        "mini": 3085,
-        "fast": 3740,
+        "mini": 3110,
+        "fast": 3775,
         "low": 3485,
         "high": 4255
       },
       "confort": {
-        "reco": 5045,
+        "reco": 5095,
         "floor": 3890,
-        "mini": 4440,
-        "fast": 5390,
+        "mini": 4485,
+        "fast": 5440,
         "low": 4120,
         "high": 5040
       }
@@ -2664,18 +2664,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1365,
+        "reco": 1380,
         "floor": 1060,
-        "mini": 1200,
-        "fast": 1460,
+        "mini": 1215,
+        "fast": 1470,
         "low": 1360,
         "high": 1660
       },
       "confort": {
-        "reco": 1965,
+        "reco": 1985,
         "floor": 1545,
-        "mini": 1730,
-        "fast": 2100,
+        "mini": 1745,
+        "fast": 2120,
         "low": 1985,
         "high": 2425
       }
@@ -2783,18 +2783,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1650,
+        "reco": 1665,
         "floor": 1270,
-        "mini": 1450,
-        "fast": 1760,
+        "mini": 1465,
+        "fast": 1775,
         "low": 1640,
         "high": 2000
       },
       "confort": {
-        "reco": 2375,
+        "reco": 2395,
         "floor": 1830,
-        "mini": 2090,
-        "fast": 2535,
+        "mini": 2110,
+        "fast": 2560,
         "low": 2275,
         "high": 2785
       }
@@ -2824,18 +2824,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 715,
+        "reco": 720,
         "floor": 550,
-        "mini": 630,
-        "fast": 760,
+        "mini": 635,
+        "fast": 770,
         "low": 685,
         "high": 835
       },
       "confort": {
-        "reco": 1025,
+        "reco": 1035,
         "floor": 790,
-        "mini": 900,
-        "fast": 1095,
+        "mini": 910,
+        "fast": 1105,
         "low": 995,
         "high": 1215
       }
@@ -2861,18 +2861,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 505,
+        "reco": 510,
         "floor": 390,
-        "mini": 445,
-        "fast": 540,
+        "mini": 450,
+        "fast": 545,
         "low": 470,
         "high": 570
       },
       "confort": {
-        "reco": 720,
+        "reco": 730,
         "floor": 555,
-        "mini": 635,
-        "fast": 770,
+        "mini": 640,
+        "fast": 780,
         "low": 680,
         "high": 830
       }
@@ -2902,18 +2902,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 2140,
+        "reco": 2160,
         "floor": 1650,
-        "mini": 1885,
-        "fast": 2280,
+        "mini": 1900,
+        "fast": 2305,
         "low": 2130,
         "high": 2600
       },
       "confort": {
-        "reco": 3075,
+        "reco": 3105,
         "floor": 2375,
-        "mini": 2705,
-        "fast": 3285,
+        "mini": 2730,
+        "fast": 3315,
         "low": 2770,
         "high": 3385
       }
@@ -2943,18 +2943,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 870,
+        "reco": 880,
         "floor": 670,
-        "mini": 765,
-        "fast": 930,
+        "mini": 775,
+        "fast": 940,
         "low": 850,
         "high": 1040
       },
       "confort": {
-        "reco": 1255,
+        "reco": 1270,
         "floor": 970,
-        "mini": 1105,
-        "fast": 1340,
+        "mini": 1120,
+        "fast": 1355,
         "low": 1240,
         "high": 1515
       }
@@ -3025,18 +3025,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 645,
+        "reco": 650,
         "floor": 495,
         "mini": 570,
-        "fast": 690,
+        "fast": 695,
         "low": 610,
         "high": 750
       },
       "confort": {
-        "reco": 925,
+        "reco": 935,
         "floor": 715,
-        "mini": 815,
-        "fast": 990,
+        "mini": 825,
+        "fast": 1000,
         "low": 890,
         "high": 1090
       }
@@ -3107,18 +3107,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1020,
+        "reco": 1030,
         "floor": 790,
-        "mini": 900,
-        "fast": 1090,
+        "mini": 905,
+        "fast": 1100,
         "low": 1000,
         "high": 1220
       },
       "confort": {
-        "reco": 1465,
+        "reco": 1480,
         "floor": 1135,
-        "mini": 1290,
-        "fast": 1565,
+        "mini": 1300,
+        "fast": 1580,
         "low": 1460,
         "high": 1780
       }
@@ -3189,18 +3189,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1130,
+        "reco": 1140,
         "floor": 870,
-        "mini": 995,
-        "fast": 1205,
+        "mini": 1005,
+        "fast": 1220,
         "low": 1115,
         "high": 1365
       },
       "confort": {
-        "reco": 1630,
+        "reco": 1645,
         "floor": 1265,
-        "mini": 1435,
-        "fast": 1740,
+        "mini": 1450,
+        "fast": 1755,
         "low": 1630,
         "high": 1990
       }
@@ -3271,18 +3271,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 930,
+        "reco": 940,
         "floor": 720,
-        "mini": 820,
-        "fast": 995,
+        "mini": 825,
+        "fast": 1005,
         "low": 910,
         "high": 1110
       },
       "confort": {
-        "reco": 1340,
+        "reco": 1350,
         "floor": 1035,
-        "mini": 1180,
-        "fast": 1430,
+        "mini": 1190,
+        "fast": 1445,
         "low": 1330,
         "high": 1625
       }
@@ -3353,18 +3353,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 940,
+        "reco": 950,
         "floor": 725,
-        "mini": 825,
-        "fast": 1005,
+        "mini": 835,
+        "fast": 1010,
         "low": 920,
         "high": 1120
       },
       "confort": {
-        "reco": 1355,
+        "reco": 1365,
         "floor": 1045,
-        "mini": 1190,
-        "fast": 1445,
+        "mini": 1200,
+        "fast": 1460,
         "low": 1340,
         "high": 1640
       }
@@ -3394,18 +3394,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1325,
+        "reco": 1340,
         "floor": 1025,
-        "mini": 1165,
-        "fast": 1415,
+        "mini": 1180,
+        "fast": 1430,
         "low": 1320,
         "high": 1610
       },
       "confort": {
-        "reco": 1910,
+        "reco": 1930,
         "floor": 1495,
-        "mini": 1680,
-        "fast": 2040,
+        "mini": 1700,
+        "fast": 2060,
         "low": 1920,
         "high": 2350
       }
@@ -3927,18 +3927,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 2460,
+        "reco": 2485,
         "floor": 1895,
-        "mini": 2165,
-        "fast": 2625,
+        "mini": 2185,
+        "fast": 2650,
         "low": 2450,
         "high": 2990
       },
       "confort": {
-        "reco": 3545,
+        "reco": 3580,
         "floor": 2735,
-        "mini": 3120,
-        "fast": 3785,
+        "mini": 3150,
+        "fast": 3820,
         "low": 3085,
         "high": 3775
       }
@@ -4005,18 +4005,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1940,
+        "reco": 1955,
         "floor": 1495,
-        "mini": 1705,
-        "fast": 2070,
+        "mini": 1720,
+        "fast": 2090,
         "low": 1930,
         "high": 2360
       },
       "confort": {
-        "reco": 2790,
+        "reco": 2820,
         "floor": 2155,
-        "mini": 2455,
-        "fast": 2980,
+        "mini": 2480,
+        "fast": 3010,
         "low": 2570,
         "high": 3140
       }
@@ -4042,18 +4042,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1115,
+        "reco": 1125,
         "floor": 860,
-        "mini": 980,
-        "fast": 1190,
+        "mini": 990,
+        "fast": 1205,
         "low": 1100,
         "high": 1340
       },
       "confort": {
-        "reco": 1605,
+        "reco": 1620,
         "floor": 1250,
-        "mini": 1410,
-        "fast": 1715,
+        "mini": 1425,
+        "fast": 1730,
         "low": 1600,
         "high": 1960
       }
@@ -4411,18 +4411,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 880,
+        "reco": 890,
         "floor": 680,
-        "mini": 775,
-        "fast": 940,
+        "mini": 785,
+        "fast": 950,
         "low": 860,
         "high": 1050
       },
       "confort": {
-        "reco": 1265,
+        "reco": 1280,
         "floor": 975,
-        "mini": 1115,
-        "fast": 1350,
+        "mini": 1125,
+        "fast": 1365,
         "low": 1250,
         "high": 1530
       }
@@ -4452,18 +4452,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 440,
+        "reco": 445,
         "floor": 340,
-        "mini": 385,
-        "fast": 470,
+        "mini": 390,
+        "fast": 475,
         "low": 405,
         "high": 495
       },
       "confort": {
-        "reco": 635,
+        "reco": 640,
         "floor": 490,
-        "mini": 560,
-        "fast": 680,
+        "mini": 565,
+        "fast": 685,
         "low": 590,
         "high": 720
       }
@@ -4493,18 +4493,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 3130,
+        "reco": 3160,
         "floor": 2415,
-        "mini": 2755,
-        "fast": 3345,
+        "mini": 2780,
+        "fast": 3375,
         "low": 3115,
         "high": 3805
       },
       "confort": {
-        "reco": 4510,
+        "reco": 4555,
         "floor": 3480,
-        "mini": 3970,
-        "fast": 4815,
+        "mini": 4010,
+        "fast": 4860,
         "low": 3755,
         "high": 4585
       }
@@ -4534,18 +4534,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 4335,
+        "reco": 4375,
         "floor": 3345,
-        "mini": 3815,
-        "fast": 4625,
+        "mini": 3850,
+        "fast": 4670,
         "low": 4300,
         "high": 5260
       },
       "confort": {
-        "reco": 6240,
+        "reco": 6300,
         "floor": 4815,
-        "mini": 5490,
-        "fast": 6660,
+        "mini": 5545,
+        "fast": 6725,
         "low": 4940,
         "high": 6040
       }
@@ -4575,18 +4575,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 5130,
+        "reco": 5180,
         "floor": 3955,
-        "mini": 4515,
-        "fast": 5475,
+        "mini": 4560,
+        "fast": 5525,
         "low": 5090,
         "high": 6220
       },
       "confort": {
-        "reco": 7385,
+        "reco": 7455,
         "floor": 5695,
-        "mini": 6500,
-        "fast": 7885,
+        "mini": 6560,
+        "fast": 7960,
         "low": 5730,
         "high": 7000
       }
@@ -4616,18 +4616,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 4730,
+        "reco": 4775,
         "floor": 3645,
-        "mini": 4160,
-        "fast": 5050,
+        "mini": 4200,
+        "fast": 5095,
         "low": 4700,
         "high": 5740
       },
       "confort": {
-        "reco": 6815,
+        "reco": 6880,
         "floor": 5255,
-        "mini": 5995,
-        "fast": 7270,
+        "mini": 6055,
+        "fast": 7340,
         "low": 5335,
         "high": 6525
       }
@@ -4657,18 +4657,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1195,
+        "reco": 1205,
         "floor": 920,
-        "mini": 1050,
-        "fast": 1275,
+        "mini": 1060,
+        "fast": 1285,
         "low": 1185,
         "high": 1445
       },
       "confort": {
-        "reco": 1720,
+        "reco": 1735,
         "floor": 1340,
-        "mini": 1515,
-        "fast": 1835,
+        "mini": 1525,
+        "fast": 1855,
         "low": 1725,
         "high": 2105
       }
@@ -4739,18 +4739,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 1045,
+        "reco": 1055,
         "floor": 805,
-        "mini": 920,
-        "fast": 1115,
+        "mini": 930,
+        "fast": 1125,
         "low": 1025,
         "high": 1255
       },
       "confort": {
-        "reco": 1500,
+        "reco": 1515,
         "floor": 1165,
-        "mini": 1320,
-        "fast": 1605,
+        "mini": 1335,
+        "fast": 1620,
         "low": 1500,
         "high": 1830
       }
@@ -4780,18 +4780,18 @@
     "ok": true,
     "coligo": {
       "classic": {
-        "reco": 2230,
+        "reco": 2250,
         "floor": 1720,
-        "mini": 1960,
-        "fast": 2380,
+        "mini": 1980,
+        "fast": 2400,
         "low": 2220,
         "high": 2710
       },
       "confort": {
-        "reco": 3215,
+        "reco": 3245,
         "floor": 2480,
-        "mini": 2830,
-        "fast": 3430,
+        "mini": 2855,
+        "fast": 3465,
         "low": 2860,
         "high": 3495
       }
@@ -5119,7 +5119,7 @@
         "reco": 305,
         "floor": 305,
         "mini": 305,
-        "fast": 310,
+        "fast": 315,
         "low": 200,
         "high": 385
       }
@@ -5406,7 +5406,7 @@
         "reco": 305,
         "floor": 305,
         "mini": 305,
-        "fast": 315,
+        "fast": 320,
         "low": 200,
         "high": 385
       }

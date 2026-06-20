@@ -95,6 +95,11 @@ export async function GET(request: Request) {
     }
   }
 
+  // 5. Auto-calibrage du prix : recalcule le coef appris par zone × créneau
+  //    depuis les signaux réels (expirations, boosts, prix acceptés).
+  const { data: learned } = await rpc("drive_recompute_learning", {});
+  const learnedCount = typeof learned === "number" ? learned : 0;
+
   return NextResponse.json({
     ok: true,
     subs_expired: expiredRows.length,
@@ -102,5 +107,6 @@ export async function GET(request: Request) {
     stale_rides: staleRow?.expired_rides ?? 0,
     stale_offers: staleRow?.expired_offers ?? 0,
     scheduled_activated: activatedRows.length,
+    learning_bands: learnedCount,
   });
 }
