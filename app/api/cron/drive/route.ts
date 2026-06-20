@@ -82,11 +82,25 @@ export async function GET(request: Request) {
     | { expired_rides?: number; expired_offers?: number }
     | undefined;
 
+  // 4. Filet de sécurité : courses programmées dues → diffusion (l'activation
+  //    principale est déclenchée par le poll chauffeur, ceci est un backstop).
+  const { data: activated } = await rpc("drive_activate_due_scheduled", {});
+  const activatedRows = (activated as { ride_id: string }[] | null) ?? [];
+  for (const row of activatedRows) {
+    try {
+      const { notifyChauffeursNewRide } = await import("@/lib/fcm/triggers");
+      await notifyChauffeursNewRide({ rideId: row.ride_id });
+    } catch {
+      /* best-effort */
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     subs_expired: expiredRows.length,
     frozen: frozenRows.length,
     stale_rides: staleRow?.expired_rides ?? 0,
     stale_offers: staleRow?.expired_offers ?? 0,
+    scheduled_activated: activatedRows.length,
   });
 }

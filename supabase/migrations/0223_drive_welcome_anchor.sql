@@ -13,6 +13,8 @@
 
 UPDATE public.platform_settings SET drive_newcustomer_rate = 0.30 WHERE id = true; -- remise de bienvenue affichée
 
+-- Le type de retour change (0222 → 0223) : DROP obligatoire avant CREATE.
+DROP FUNCTION IF EXISTS public.drive_first_ride_offer(INTEGER);
 CREATE OR REPLACE FUNCTION public.drive_first_ride_offer(p_reco_da INTEGER)
 RETURNS TABLE(is_new BOOLEAN, anchor_da INTEGER, pay_da INTEGER, save_da INTEGER, code TEXT)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp

@@ -173,6 +173,15 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
             />
           </div>
         )}
+        <label className="mt-2 flex items-center gap-2 text-sm font-semibold">
+          <input
+            type="checkbox"
+            checked={cfg.scheduled_enabled}
+            onChange={(e) => set("scheduled_enabled", e.target.checked)}
+            className="size-4"
+          />
+          Réservation programmée activée (masquée côté client tant que décochée)
+        </label>
       </Section>
 
       {/* Plans */}

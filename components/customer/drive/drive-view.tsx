@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   ArrowUpDown,
   BellRing,
+  CalendarClock,
   Car,
   ChevronLeft,
   Clock,
@@ -67,6 +68,7 @@ import {
   getSosContacts,
   precheckDriveRoute,
   requestDriveRide,
+  requestScheduledRide,
   setSosContacts as saveSosContacts,
   type DriveActiveRide,
   type DriveQuote,
@@ -359,6 +361,43 @@ export function DriveView() {
       }
     })();
   }, [screen, quote?.recommended]);
+
+  /* Réservation programmée (gated super-admin — masquée si désactivée). */
+  const [schedOpen, setSchedOpen] = useState(false);
+  const [schedAt, setSchedAt] = useState("");
+  const [schedBusy, setSchedBusy] = useState(false);
+  const [schedMsg, setSchedMsg] = useState<string | null>(null);
+  const [schedDone, setSchedDone] = useState(false);
+  const submitSchedule = useCallback(async () => {
+    if (!pickup || !dest || !schedAt) return;
+    setSchedBusy(true);
+    setSchedMsg(null);
+    try {
+      const res = await requestScheduledRide({
+        pickup_lat: pickup.lat,
+        pickup_lng: pickup.lng,
+        pickup_text: pickup.text ?? null,
+        dest_lat: dest.lat,
+        dest_lng: dest.lng,
+        dest_text: dest.text ?? null,
+        distance_km: distanceKm,
+        gamme,
+        scheduled_at: new Date(schedAt).toISOString(),
+        operation_id: `sched-${Date.now()}`,
+      });
+      if (res.ok) {
+        setSchedDone(true);
+        setTimeout(() => setSchedOpen(false), 1800);
+      } else {
+        setSchedMsg(t("price.schedError"));
+      }
+    } catch {
+      setSchedMsg(t("price.schedError"));
+    } finally {
+      setSchedBusy(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickup, dest, schedAt, distanceKm, gamme]);
   const defBoost = useCallback(
     (forPrice: number) =>
       Math.max(
@@ -722,6 +761,77 @@ export function DriveView() {
                   → <b>{formatDA(welcome.pay)}</b> ·{" "}
                   {t("price.welcomeSave", { save: formatDA(welcome.save) })}
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Réservation programmée — masquée tant que le super-admin ne l'a pas
+              activée (drive_scheduled_enabled). */}
+          {ctx.scheduledEnabled && (
+            <button
+              type="button"
+              onClick={() => {
+                setSchedDone(false);
+                setSchedMsg(null);
+                setSchedOpen(true);
+              }}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-[var(--d-line)] py-2.5 text-[13px] font-bold"
+              style={{ color: VIOLET }}
+            >
+              <CalendarClock className="size-4" />
+              {t("price.scheduleCta")}
+            </button>
+          )}
+          {schedOpen && (
+            <div
+              className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+              onClick={() => !schedBusy && setSchedOpen(false)}
+            >
+              <div
+                className="w-full max-w-md rounded-t-[24px] bg-[var(--d-surface)] p-5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <p className="mb-1 text-[15px] font-extrabold">
+                  {t("price.scheduleTitle")}
+                </p>
+                <p className="mb-3 text-[12px] text-[var(--d-muted)]">
+                  {t("price.scheduleHint")}
+                </p>
+                {schedDone ? (
+                  <p className="py-4 text-center text-[14px] font-bold text-[var(--d-go,#16A34A)]">
+                    {t("price.scheduleOk")}
+                  </p>
+                ) : (
+                  <>
+                    <input
+                      type="datetime-local"
+                      value={schedAt}
+                      min={new Date(
+                        Date.now() +
+                          (ctx.scheduledLeadMin + 1) * 60_000 -
+                          new Date().getTimezoneOffset() * 60_000
+                      )
+                        .toISOString()
+                        .slice(0, 16)}
+                      onChange={(e) => setSchedAt(e.target.value)}
+                      className="w-full rounded-[12px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2.5 text-[14px] font-semibold"
+                    />
+                    {schedMsg && (
+                      <p className="mt-2 text-[12px] font-semibold text-[#E5484D]">
+                        {schedMsg}
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      disabled={!schedAt || schedBusy}
+                      onClick={submitSchedule}
+                      className="mt-3 w-full rounded-[14px] py-3 text-[14px] font-extrabold text-white disabled:opacity-50"
+                      style={{ background: VIOLET }}
+                    >
+                      {schedBusy ? "…" : t("price.scheduleConfirm")}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}

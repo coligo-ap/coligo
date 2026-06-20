@@ -1158,6 +1158,9 @@ export type Database = {
           drive_female_filter_enabled: boolean;
           drive_newcustomer_enabled: boolean;
           drive_newcustomer_rate: number;
+          drive_scheduled_enabled: boolean;
+          drive_scheduled_lead_min: number;
+          drive_scheduled_max_days: number;
           drive_freeze_debt_da: number;
           drive_freeze_cancel_rate: number;
           drive_freeze_cancel_window: number;

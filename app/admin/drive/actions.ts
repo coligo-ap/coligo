@@ -23,6 +23,8 @@ export type DriveConfig = {
   /** Remise « bienvenue » nouveau client (ancrage cosmétique, coût plateforme 0). */
   newcustomer_enabled: boolean;
   newcustomer_rate: number;
+  /** Réservation programmée (OFF + masquée par défaut). */
+  scheduled_enabled: boolean;
   freeze_debt_da: number;
   freeze_cancel_rate: number;
   freeze_cancel_window: number;
@@ -74,6 +76,7 @@ export async function getDriveConfig(): Promise<DriveConfig | null> {
     female_filter_enabled: s.drive_female_filter_enabled,
     newcustomer_enabled: s.drive_newcustomer_enabled ?? true,
     newcustomer_rate: Number(s.drive_newcustomer_rate ?? 0.3),
+    scheduled_enabled: s.drive_scheduled_enabled ?? false,
     freeze_debt_da: s.drive_freeze_debt_da,
     freeze_cancel_rate: Number(s.drive_freeze_cancel_rate),
     freeze_cancel_window: s.drive_freeze_cancel_window,
@@ -146,6 +149,7 @@ export async function updateDriveConfig(
       drive_female_filter_enabled: cfg.female_filter_enabled,
       drive_newcustomer_enabled: cfg.newcustomer_enabled,
       drive_newcustomer_rate: cfg.newcustomer_rate,
+      drive_scheduled_enabled: cfg.scheduled_enabled,
       drive_freeze_debt_da: cfg.freeze_debt_da,
       drive_freeze_cancel_rate: cfg.freeze_cancel_rate,
       drive_freeze_cancel_window: cfg.freeze_cancel_window,

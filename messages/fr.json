@@ -778,6 +778,12 @@
     "price": {
       "welcomeTitle": "Bienvenue ! Code {code} appliqué",
       "welcomeSave": "tu économises {save} sur ta 1ʳᵉ course",
+      "scheduleCta": "Programmer pour plus tard",
+      "scheduleTitle": "Réserver une course",
+      "scheduleHint": "Choisis la date et l'heure. Prix garanti, sans majoration. Paiement en espèces.",
+      "scheduleConfirm": "Confirmer la réservation",
+      "scheduleOk": "Course programmée ✓",
+      "schedError": "Réservation impossible. Vérifie la date.",
       "payTitle": "Moyen de paiement",
       "offerLabel": "Votre offre · prix recommandé pré-rempli",
       "recommended": "recommandé",

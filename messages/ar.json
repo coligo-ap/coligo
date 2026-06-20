@@ -778,6 +778,12 @@
     "price": {
       "welcomeTitle": "مرحبًا! تم تطبيق الرمز {code}",
       "welcomeSave": "توفّر {save} في رحلتك الأولى",
+      "scheduleCta": "احجز لوقت لاحق",
+      "scheduleTitle": "حجز رحلة",
+      "scheduleHint": "اختر التاريخ والوقت. سعر مضمون بدون زيادة. الدفع نقدًا.",
+      "scheduleConfirm": "تأكيد الحجز",
+      "scheduleOk": "تم حجز الرحلة ✓",
+      "schedError": "تعذّر الحجز. تحقق من التاريخ.",
       "payTitle": "وسيلة الدفع",
       "offerLabel": "عرضك · السعر المُوصى به معبأ مسبقًا",
       "recommended": "مُوصى به",

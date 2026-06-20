@@ -47,6 +47,10 @@ export type DriveContext = {
   femaleOnlineCount: number;
   deviationKm: number;
   deviationMin: number;
+  /** Réservation programmée (masquée si false) + horizon/lead. */
+  scheduledEnabled: boolean;
+  scheduledMaxDays: number;
+  scheduledLeadMin: number;
   /** Solde Coligo Pay (DA) — affiché sur le moyen de paiement (mig 0163). */
   walletBalance: number;
   recents: { text: string; lat: number; lng: number }[];
@@ -70,7 +74,7 @@ export async function getDriveContext(): Promise<DriveContext> {
     admin
       .from("platform_settings")
       .select(
-        "drive_price_step_da, drive_boost_min_da, drive_boost_step_da, drive_boost_default_rate, drive_female_filter_enabled, drive_deviation_km, drive_deviation_min"
+        "drive_price_step_da, drive_boost_min_da, drive_boost_step_da, drive_boost_default_rate, drive_female_filter_enabled, drive_deviation_km, drive_deviation_min, drive_scheduled_enabled, drive_scheduled_max_days, drive_scheduled_lead_min"
       )
       .eq("id", true)
       .maybeSingle(),
@@ -166,6 +170,9 @@ export async function getDriveContext(): Promise<DriveContext> {
     femaleOnlineCount: femaleOnline,
     deviationKm: Number(settings?.drive_deviation_km ?? 1.2),
     deviationMin: settings?.drive_deviation_min ?? 2,
+    scheduledEnabled: settings?.drive_scheduled_enabled ?? false,
+    scheduledMaxDays: settings?.drive_scheduled_max_days ?? 7,
+    scheduledLeadMin: settings?.drive_scheduled_lead_min ?? 15,
     walletBalance,
     recents,
     lastRide,
@@ -261,6 +268,44 @@ export async function getFirstRideOffer(recoDa: number): Promise<{
     save: r?.save_da ?? 0,
     code: r?.code ?? null,
   };
+}
+
+/**
+ * Réserver une course PROGRAMMÉE (espèces, prix figé au devis stable). Gated
+ * super-admin (échoue si la feature est désactivée).
+ */
+export async function requestScheduledRide(input: {
+  pickup_lat: number;
+  pickup_lng: number;
+  pickup_text?: string | null;
+  dest_lat: number;
+  dest_lng: number;
+  dest_text?: string | null;
+  distance_km: number;
+  gamme: "classic" | "confort" | "moto";
+  scheduled_at: string;
+  proxy_name?: string | null;
+  proxy_phone?: string | null;
+  operation_id?: string | null;
+}): Promise<{ ok: boolean; rideId?: string; error?: string }> {
+  const rpc = await rpcClient();
+  const { data, error } = await rpc("request_scheduled_ride", {
+    p_pickup_lat: input.pickup_lat,
+    p_pickup_lng: input.pickup_lng,
+    p_pickup_text: input.pickup_text ?? null,
+    p_dest_lat: input.dest_lat,
+    p_dest_lng: input.dest_lng,
+    p_dest_text: input.dest_text ?? null,
+    p_distance_km: input.distance_km,
+    p_gamme: input.gamme,
+    p_scheduled_at: input.scheduled_at,
+    p_proxy_name: input.proxy_name ?? null,
+    p_proxy_phone: input.proxy_phone ?? null,
+    p_operation_id: input.operation_id ?? null,
+  });
+  if (error) return { ok: false, error: error.message };
+  const rideId = typeof data === "string" ? data : undefined;
+  return { ok: true, rideId };
 }
 
 /* ─────────────────────────── Demande de course ─────────────────────────── */

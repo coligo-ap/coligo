@@ -568,6 +568,9 @@ export async function getNearbyRides(
 ): Promise<NearbyRide[]> {
   try {
     const rpc = await rpcClient();
+    // Active les courses programmées dont l'heure approche (pas de cron fréquent :
+    // le poll chauffeur sert de déclencheur, cf. archi Express). Best-effort.
+    await rpc("drive_activate_due_scheduled", {}).catch(() => undefined);
     const { data } = await rpc("chauffeur_nearby_rides", {
       p_lat: lat,
       p_lng: lng,
