@@ -342,10 +342,12 @@ export function DriveView() {
     setQuoteId(null);
     let cancelled = false;
     void (async () => {
-      // Devis intelligent : le départ permet l'ajustement demande/offre locale.
+      // Devis intelligent : départ (demande/offre locale) + durée RÉELLE de
+      // navigation (supplément trafic ; trajet fluide = prix inchangé, mig 0235).
       const q = await getDriveQuotes(
         distanceKm,
-        pickup ? { lat: pickup.lat, lng: pickup.lng } : null
+        pickup ? { lat: pickup.lat, lng: pickup.lng } : null,
+        etaMin
       );
       if (cancelled) return; // une réponse en retard ne doit pas écraser la neuve
       setQuotes(q);

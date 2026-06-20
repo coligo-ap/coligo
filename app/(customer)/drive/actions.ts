@@ -15,6 +15,7 @@ import {
   verifyPriceQuote,
   quoteRejectionMessage,
 } from "@/lib/data/geo-quote";
+import { roadRoute } from "@/lib/drive/routing";
 
 type Rpc = (
   fn: string,
@@ -204,7 +205,9 @@ export type DriveQuote = {
  */
 export async function getDriveQuotes(
   distanceKm: number,
-  pickup?: { lat: number; lng: number } | null
+  pickup?: { lat: number; lng: number } | null,
+  /** Durée RÉELLE de navigation (OSRM, min) → supplément trafic (mig 0235). */
+  durationMin?: number | null
 ): Promise<Record<"classic" | "confort" | "moto", DriveQuote>> {
   const rpc = await rpcClient();
   const gammes = ["classic", "confort", "moto"] as const;
@@ -217,6 +220,7 @@ export async function getDriveQuotes(
           p_gamme: g,
           p_pickup_lat: pickup?.lat ?? null,
           p_pickup_lng: pickup?.lng ?? null,
+          p_duration_min: durationMin ?? null,
         }),
         rpc("drive_similar_range", { p_distance_km: distanceKm, p_gamme: g }),
       ]);
@@ -387,12 +391,23 @@ export async function requestDriveRide(input: {
     }
   }
 
-  // Reverse-géocode départ + arrivée → wilaya/commune, pour que les règles de
-  // zone commune/wilaya s'appliquent (mig 0174). En parallèle, best-effort.
-  const [pickupGeo, destGeo] = await Promise.all([
+  // Reverse-géocode départ + arrivée (zones, mig 0174) + distance routière
+  // AUTORITAIRE recalculée serveur (A) : on ne fait JAMAIS confiance au km du
+  // client pour le plancher de prix (un km falsifié = plancher trop bas). OSRM
+  // réel, sinon ligne droite × détour appris (mig 0235).
+  const [pickupGeo, destGeo, road] = await Promise.all([
     resolveWilayaCommune(input.pickup_lat, input.pickup_lng),
     resolveWilayaCommune(input.dest_lat, input.dest_lng),
+    roadRoute(
+      { lat: input.pickup_lat, lng: input.pickup_lng },
+      { lat: input.dest_lat, lng: input.dest_lng }
+    ),
   ]);
+  // Le serveur impose sa distance (≥ celle du client pour ne jamais sous-coter).
+  const authoritativeKm = Math.max(
+    road.km,
+    Math.max(0, input.distance_km || 0)
+  );
   const { data, error } = await rpc("request_ride", {
     p_pickup_lat: input.pickup_lat,
     p_pickup_lng: input.pickup_lng,
@@ -400,7 +415,7 @@ export async function requestDriveRide(input: {
     p_dest_lat: input.dest_lat,
     p_dest_lng: input.dest_lng,
     p_dest_text: input.dest_text ?? null,
-    p_distance_km: input.distance_km,
+    p_distance_km: authoritativeKm,
     p_proposed_price: Math.max(0, Math.floor(input.proposed_price_da)),
     p_payment_method: input.payment_method,
     p_gamme: input.gamme,
