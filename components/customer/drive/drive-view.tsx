@@ -332,6 +332,11 @@ export function DriveView() {
   const distanceKm =
     route?.km ?? (crowKm > 0 ? Number((crowKm * 1.25).toFixed(2)) : 0);
   const etaMin = route?.min ?? Math.max(2, Math.round((distanceKm / 26) * 60));
+  // L'itinéraire routier RÉEL (OSRM) n'est pas encore arrivé → on n'affiche pas
+  // l'estimation à vol d'oiseau (fausse), on montre un loader sur la distance/
+  // durée tant que la vraie valeur n'est pas prête.
+  const routeResolving = pickup != null && dest != null && route == null;
+  const distanceLabel = distanceKm.toFixed(1).replace(".", ",");
 
   /* ───────── Devis par gamme à l'arrivée sur l'écran prix ───────── */
   useEffect(() => {
@@ -889,10 +894,19 @@ export function DriveView() {
           <div className="mt-1 mb-3.5 flex gap-2">
             <span className="flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[12.5px] font-bold">
               <Route className="size-3.5" />{" "}
-              {String(distanceKm).replace(".", ",")} km
+              {routeResolving ? (
+                <Loader2 className="size-3.5 animate-spin opacity-60" />
+              ) : (
+                <>{distanceLabel} km</>
+              )}
             </span>
             <span className="flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[12.5px] font-bold">
-              <Clock className="size-3.5" /> ~{etaMin} min
+              <Clock className="size-3.5" />{" "}
+              {routeResolving ? (
+                <Loader2 className="size-3.5 animate-spin opacity-60" />
+              ) : (
+                <>~{etaMin} min</>
+              )}
             </span>
           </div>
 
