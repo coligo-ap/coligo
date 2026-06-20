@@ -19,6 +19,15 @@ const c = new pg.Client({ connectionString: getDbUrl() });
 await c.connect();
 await c.query("BEGIN");
 
+// Commission VTC lue depuis la config (ch.8 : 0 % au lancement, chauffeur libre).
+const VTC_RATE = Number(
+  (
+    await c.query(
+      "SELECT vtc_commission_rate r FROM platform_settings WHERE id=true"
+    )
+  ).rows[0].r
+);
+
 const asCust = () =>
   c.query(
     `SELECT set_config('request.jwt.claims', json_build_object('sub','${CUST_USER}','role','authenticated')::text, true)`
@@ -94,7 +103,7 @@ async function lifecycle(payment, offerPrice) {
   ok("course terminée", comp.rows[0].ok, true);
 
   const F = offerPrice,
-    c8 = Math.round(F * 0.08),
+    c8 = Math.round(F * VTC_RATE),
     net = F - c8;
   if (payment === "cash") {
     ok("cash_collected = F", await rl(ride, "chauffeur_cash_collected"), F);
@@ -120,6 +129,10 @@ try {
     [CHU_USER]
   );
 
+  // Baseline : vtc_commission_income (order_id NULL) n'est PAS scopé à l'order →
+  // on mesure le DELTA de la transaction, pas un total global (qui inclut la prod).
+  const platBefore = await plat();
+
   // --- Course ESPÈCES : suggéré 250 (base100+5×30), chauffeur contre à 300 ---
   await lifecycle("cash", 300);
 
@@ -141,7 +154,11 @@ try {
     await rl(ride, "chauffeur_payout"),
     net
   );
-  ok("platform_ledger vtc_commission_income = commission", await plat(), c8);
+  ok(
+    "platform_ledger vtc_commission_income = commission (delta)",
+    (await plat()) - platBefore,
+    c8
+  );
   // Réconciliation globale : −F (client) + net (chauffeur) + c (plateforme) = 0
   ok(
     "CONSERVATION Coligo Pay (−F + net + c = 0)",

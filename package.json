@@ -40,6 +40,7 @@
     "test:drive:demo": "node scripts/test-drive-demo-e2e.mjs",
     "verify:spec": "node scripts/verify-spec-examples.mjs",
     "test:priority": "node scripts/test-priority.mjs",
+    "test:config": "node scripts/test-config-registry.mjs",
     "test:zones": "node scripts/test-zones.mjs",
     "test:slot:expiry": "node scripts/test-slot-expiry.mjs",
     "test:pickup:expiry": "node --experimental-strip-types scripts/test-pickup-slot-expiry.mjs",
