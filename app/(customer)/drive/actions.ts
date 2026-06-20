@@ -231,6 +231,38 @@ export async function getDriveQuotes(
   return out;
 }
 
+/**
+ * Offre « Bienvenue » 1ʳᵉ course (ancrage cosmétique, coût plateforme 0) :
+ * pour un nouveau client, renvoie un prix gonflé barré (anchor) que le code
+ * BIENVENUE ramène au prix réel (pay = reco). Le chauffeur touche le réel.
+ */
+export async function getFirstRideOffer(recoDa: number): Promise<{
+  isNew: boolean;
+  anchor: number;
+  pay: number;
+  save: number;
+  code: string | null;
+}> {
+  const rpc = await rpcClient();
+  const { data } = await rpc("drive_first_ride_offer", {
+    p_reco_da: Math.max(0, Math.floor(recoDa)),
+  });
+  const r = (Array.isArray(data) ? data[0] : null) as {
+    is_new: boolean;
+    anchor_da: number;
+    pay_da: number;
+    save_da: number;
+    code: string | null;
+  } | null;
+  return {
+    isNew: Boolean(r?.is_new),
+    anchor: r?.anchor_da ?? recoDa,
+    pay: r?.pay_da ?? recoDa,
+    save: r?.save_da ?? 0,
+    code: r?.code ?? null,
+  };
+}
+
 /* ─────────────────────────── Demande de course ─────────────────────────── */
 
 export async function requestDriveRide(input: {

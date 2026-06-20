@@ -63,6 +63,7 @@ import {
   getDriveActiveRide,
   getDriveContext,
   getDriveQuotes,
+  getFirstRideOffer,
   getSosContacts,
   precheckDriveRoute,
   requestDriveRide,
@@ -339,6 +340,25 @@ export function DriveView() {
   }, [screen, distanceKm]);
 
   const quote = quotes?.[gamme] ?? null;
+
+  /* Offre « Bienvenue » 1ʳᵉ course (ancrage cosmétique, coût plateforme 0). */
+  const [welcome, setWelcome] = useState<{
+    isNew: boolean;
+    anchor: number;
+    pay: number;
+    save: number;
+    code: string | null;
+  } | null>(null);
+  useEffect(() => {
+    if (screen !== "price" || !quote || quote.recommended <= 0) return;
+    void (async () => {
+      try {
+        setWelcome(await getFirstRideOffer(quote.recommended));
+      } catch {
+        setWelcome(null);
+      }
+    })();
+  }, [screen, quote?.recommended]);
   const defBoost = useCallback(
     (forPrice: number) =>
       Math.max(
@@ -684,6 +704,27 @@ export function DriveView() {
             start
           />
           <Leg label={t("destination")} value={dest.text ?? "—"} />
+
+          {/* Offre « Bienvenue » 1ʳᵉ course : ancre barrée + code appliqué.
+              Ancrage cosmétique (le client paie le prix réel = ce que touche
+              le chauffeur ; coût plateforme nul). Désactivable côté super-admin. */}
+          {welcome?.isNew && welcome.save > 0 && (
+            <div className="mt-3 flex items-center gap-3 rounded-[16px] border-[1.5px] border-[#FF2D7A]/30 bg-[#FFF0F6] px-3.5 py-2.5">
+              <span className="text-[20px]">🎁</span>
+              <div className="flex-1">
+                <p className="text-[12.5px] font-extrabold text-[#FF2D7A]">
+                  {t("price.welcomeTitle", { code: welcome.code ?? "" })}
+                </p>
+                <p className="text-[11px] font-semibold text-[var(--d-muted)]">
+                  <span className="line-through">
+                    {formatDA(welcome.anchor)}
+                  </span>{" "}
+                  → <b>{formatDA(welcome.pay)}</b> ·{" "}
+                  {t("price.welcomeSave", { save: formatDA(welcome.save) })}
+                </p>
+              </div>
+            </div>
+          )}
           <div className="mt-1 mb-3.5 flex gap-2">
             <span className="flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[12.5px] font-bold">
               <Route className="size-3.5" />{" "}

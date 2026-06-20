@@ -776,6 +776,8 @@
       "close": "إغلاق"
     },
     "price": {
+      "welcomeTitle": "مرحبًا! تم تطبيق الرمز {code}",
+      "welcomeSave": "توفّر {save} في رحلتك الأولى",
       "payTitle": "وسيلة الدفع",
       "offerLabel": "عرضك · السعر المُوصى به معبأ مسبقًا",
       "recommended": "مُوصى به",

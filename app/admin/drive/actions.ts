@@ -20,6 +20,9 @@ export type DriveConfig = {
   boost_default_rate: number;
   cashback_rate: number;
   female_filter_enabled: boolean;
+  /** Remise « bienvenue » nouveau client (ancrage cosmétique, coût plateforme 0). */
+  newcustomer_enabled: boolean;
+  newcustomer_rate: number;
   freeze_debt_da: number;
   freeze_cancel_rate: number;
   freeze_cancel_window: number;
@@ -69,6 +72,8 @@ export async function getDriveConfig(): Promise<DriveConfig | null> {
     boost_default_rate: Number(s.drive_boost_default_rate),
     cashback_rate: Number(s.drive_cashback_rate),
     female_filter_enabled: s.drive_female_filter_enabled,
+    newcustomer_enabled: s.drive_newcustomer_enabled ?? true,
+    newcustomer_rate: Number(s.drive_newcustomer_rate ?? 0.3),
     freeze_debt_da: s.drive_freeze_debt_da,
     freeze_cancel_rate: Number(s.drive_freeze_cancel_rate),
     freeze_cancel_window: s.drive_freeze_cancel_window,
@@ -139,6 +144,8 @@ export async function updateDriveConfig(
       drive_boost_default_rate: cfg.boost_default_rate,
       drive_cashback_rate: cfg.cashback_rate,
       drive_female_filter_enabled: cfg.female_filter_enabled,
+      drive_newcustomer_enabled: cfg.newcustomer_enabled,
+      drive_newcustomer_rate: cfg.newcustomer_rate,
       drive_freeze_debt_da: cfg.freeze_debt_da,
       drive_freeze_cancel_rate: cfg.freeze_cancel_rate,
       drive_freeze_cancel_window: cfg.freeze_cancel_window,

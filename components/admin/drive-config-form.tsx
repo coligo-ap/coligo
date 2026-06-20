@@ -151,6 +151,28 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
           />
           Filtre « Femme au volant » activé (flag FEMALE_DRIVER_FILTER)
         </label>
+        <label className="mt-2 flex items-center gap-2 text-sm font-semibold">
+          <input
+            type="checkbox"
+            checked={cfg.newcustomer_enabled}
+            onChange={(e) => set("newcustomer_enabled", e.target.checked)}
+            className="size-4"
+          />
+          Remise « Bienvenue » 1ʳᵉ course (ancrage — décocher = prix normal,
+          sans prix gonflé)
+        </label>
+        {cfg.newcustomer_enabled && (
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <Num
+              label="Bienvenue — remise affichée (×)"
+              step={0.05}
+              value={cfg.newcustomer_rate}
+              onChange={(v) => set("newcustomer_rate", v)}
+              hint="Remise COSMÉTIQUE : on affiche un prix gonflé barré et le code BIENVENUE le ramène au prix réel. Le chauffeur touche le prix réel, coût plateforme = 0."
+              example="0,30 → prix réel 500 affiché comme 715 barré → « −30 % » → payé 500."
+            />
+          </div>
+        )}
       </Section>
 
       {/* Plans */}

@@ -1156,6 +1156,8 @@ export type Database = {
           drive_boost_default_rate: number;
           drive_cashback_rate: number;
           drive_female_filter_enabled: boolean;
+          drive_newcustomer_enabled: boolean;
+          drive_newcustomer_rate: number;
           drive_freeze_debt_da: number;
           drive_freeze_cancel_rate: number;
           drive_freeze_cancel_window: number;

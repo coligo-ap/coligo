@@ -776,6 +776,8 @@
       "close": "Fermer"
     },
     "price": {
+      "welcomeTitle": "Bienvenue ! Code {code} appliqué",
+      "welcomeSave": "tu économises {save} sur ta 1ʳᵉ course",
       "payTitle": "Moyen de paiement",
       "offerLabel": "Votre offre · prix recommandé pré-rempli",
       "recommended": "recommandé",
