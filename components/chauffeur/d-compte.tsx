@@ -49,6 +49,7 @@ import {
   type ChauffeurFinances,
   type ChauffeurGate,
 } from "@/app/(chauffeur)/actions";
+import { setChauffeurOnlineLocal } from "@/lib/chauffeur/online-store";
 
 /** Compte chauffeur : statuts + stats en haut (sans aller en sous-page),
  *  informations groupées en catégories, et bascule clair/sombre. */
@@ -294,7 +295,12 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
       {/* Déconnexion */}
       <button
         type="button"
-        onClick={() => void chauffeurLogout()}
+        onClick={() => {
+          // Déconnexion = hors ligne : on efface l'intention locale (le serveur
+          // met déjà chauffeur_presence.is_online=false) → re-login hors ligne.
+          setChauffeurOnlineLocal(false);
+          void chauffeurLogout();
+        }}
         className="mt-3 flex w-full items-center gap-3 rounded-[16px] border border-[var(--d-line)] px-3.5 py-3.5 text-left text-[13.5px] font-semibold"
         style={{ color: "#E5484D" }}
       >

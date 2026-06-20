@@ -126,6 +126,21 @@ export async function chauffeurLogin(
 
 export async function chauffeurLogout(): Promise<void> {
   const supabase = await createClient();
+  // Se déconnecter ⇒ passer HORS LIGNE automatiquement (sinon le chauffeur reste
+  // « en ligne » côté serveur après logout → dispatch/push fantômes). On le fait
+  // AVANT signOut, tant que la session est encore valide.
+  try {
+    const ch = await getCurrentChauffeur();
+    if (ch) {
+      const admin = createAdminClient();
+      await admin
+        .from("chauffeur_presence")
+        .update({ is_online: false, updated_at: new Date().toISOString() })
+        .eq("chauffeur_id", ch.id);
+    }
+  } catch {
+    /* best-effort — ne jamais empêcher la déconnexion */
+  }
   await supabase.auth.signOut();
   redirect("/chauffeur/login");
 }

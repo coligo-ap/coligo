@@ -136,6 +136,24 @@ function readSafeNext(raw: FormDataEntryValue | null): string | null {
 
 export async function driverLogout(): Promise<void> {
   const supabase = await createClient();
+  // Se déconnecter ⇒ passer HORS LIGNE automatiquement. La présence livreur =
+  // dernier heartbeat (driver_presence) ; on supprime la ligne pour qu'il ne
+  // soit plus « présent » pour le dispatch Express dès la déconnexion (AVANT
+  // signOut, tant que la session vaut encore).
+  try {
+    const drv = await getCurrentDriver();
+    if (drv) {
+      const admin = createAdminClient();
+      // driver_presence absente de database.types.ts généré (Docker requis) →
+      // cast localisé du from().
+      const from = admin.from.bind(admin) as unknown as (t: string) => {
+        delete: () => { eq: (c: string, v: string) => PromiseLike<unknown> };
+      };
+      await from("driver_presence").delete().eq("driver_id", drv.id);
+    }
+  } catch {
+    /* best-effort — ne jamais empêcher la déconnexion */
+  }
   await supabase.auth.signOut();
   redirect("/driver/login");
 }
