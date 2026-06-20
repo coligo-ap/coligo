@@ -11,13 +11,20 @@ import { useCart, totalUnits } from "@/lib/customer/cart-store";
 import { LocationPicker } from "@/components/customer/location-picker";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ThemeSwitcher } from "@/components/shared/theme-switcher";
+import { CustomerDrawer } from "@/components/customer/customer-drawer";
 
 type Props = {
   isAuth: boolean;
   customerName?: string | null;
+  /** Onglets masqués par le super-admin (drive/pay) — repris dans le drawer. */
+  hiddenKeys?: string[];
 };
 
-export function CustomerHeader({ isAuth, customerName }: Props) {
+export function CustomerHeader({
+  isAuth,
+  customerName,
+  hiddenKeys = [],
+}: Props) {
   const t = useTranslations("header");
   const loc = useCustomerLocation();
   const cart = useCart();
@@ -38,7 +45,10 @@ export function CustomerHeader({ isAuth, customerName }: Props) {
     <>
       <header className="border-border sticky top-0 z-30 border-b bg-white pt-[env(safe-area-inset-top)]">
         {/* Desktop */}
-        <div className="mx-auto hidden h-16 max-w-[1400px] items-center gap-6 px-6 lg:flex">
+        <div className="mx-auto hidden h-16 max-w-[1400px] items-center gap-4 px-6 lg:flex">
+          {/* Drawer de navigation (desktop : remplace la bottom-nav absente). */}
+          <CustomerDrawer hiddenKeys={hiddenKeys} />
+
           <Link href="/" className="shrink-0">
             <Logo variant="amber" size="md" />
           </Link>

@@ -76,7 +76,11 @@ export function CustomerChrome({
       <RouteRefreshOnFocus />
 
       {!noHeader && (
-        <CustomerHeader isAuth={isAuth} customerName={customerName} />
+        <CustomerHeader
+          isAuth={isAuth}
+          customerName={customerName}
+          hiddenKeys={hiddenKeys}
+        />
       )}
 
       {bare ? (

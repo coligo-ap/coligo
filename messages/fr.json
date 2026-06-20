@@ -1,5 +1,11 @@
 {
   "nav": {
+    "menu": "Menu",
+    "navigation": "Navigation",
+    "services": "Services",
+    "favorites": "Favoris",
+    "cashback": "Cashback",
+    "addresses": "Mes adresses",
     "home": "Accueil",
     "cart": "Panier",
     "orders": "Commandes",

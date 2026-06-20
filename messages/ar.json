@@ -1,5 +1,11 @@
 {
   "nav": {
+    "menu": "القائمة",
+    "navigation": "التنقّل",
+    "services": "الخدمات",
+    "favorites": "المفضّلة",
+    "cashback": "الكاش باك",
+    "addresses": "عناويني",
     "home": "الرئيسية",
     "cart": "السلة",
     "orders": "الطلبات",
