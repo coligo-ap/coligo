@@ -528,10 +528,8 @@ function DeliveryMapCard({
             ) : (
               <>
                 <span className="text-foreground font-extrabold">
-                  {addr ??
-                    (value.customPosition
-                      ? `${value.customPosition.lat.toFixed(4)}, ${value.customPosition.lng.toFixed(4)}`
-                      : "")}
+                  {/* Partie B : jamais de GPS brut — repli neutre lisible. */}
+                  {addr ?? (value.customPosition ? t("mapPoint") : "")}
                 </span>{" "}
                 · {t("inZone")}
               </>

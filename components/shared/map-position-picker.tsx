@@ -23,6 +23,7 @@ import {
   type FavPlace,
 } from "@/app/(customer)/actions";
 import { MAP_STYLE_URL } from "@/lib/config/map";
+import { useGeoClientConfig } from "@/lib/geo/use-geo-client-config";
 
 /**
  * Sélecteur de position sur carte — réutilisable client + commerçant.
@@ -155,6 +156,7 @@ export function MapPositionPicker({
   }, [onLocate]);
 
   // Barre de recherche d'adresse (forward geocoding).
+  const geoCfg = useGeoClientConfig();
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState<
     {
@@ -454,9 +456,9 @@ export function MapPositionPicker({
       } finally {
         setSearching(false);
       }
-    }, 450);
+    }, geoCfg.addressSearchDebounceMs);
     return () => clearTimeout(t);
-  }, [searchQ, searchEnabled]);
+  }, [searchQ, searchEnabled, geoCfg.addressSearchDebounceMs]);
 
   const flyToResult = (r: { display: string; lat: number; lng: number }) => {
     setSearchOpen(false);

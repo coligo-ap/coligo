@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Loader2, MapPin, Plus, Star, Trash2 } from "lucide-react";
+import { MapPin, Plus, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
@@ -123,11 +123,11 @@ function AddressRow({ addr }: { addr: Addr }) {
             </span>
           )}
         </p>
-        {addr.address_text && (
-          <p className="text-muted mt-0.5 text-xs">{addr.address_text}</p>
-        )}
-        <p className="text-subtle mt-0.5 text-xs tabular-nums">
-          {addr.lat.toFixed(5)}, {addr.lng.toFixed(5)}
+        {/* Partie B : on n'affiche JAMAIS le GPS brut — l'adresse lisible suffit
+            (repli neutre si aucune adresse résolue). Le téléphone alternatif
+            reste utile pour le livreur. */}
+        <p className="text-muted mt-0.5 text-xs">
+          {addr.address_text || t("mapPoint")}
           {addr.phone_override ? ` · ${addr.phone_override}` : ""}
         </p>
       </div>

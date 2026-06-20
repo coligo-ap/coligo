@@ -75,6 +75,7 @@ import {
   type DriveQuote,
 } from "@/app/(customer)/drive/actions";
 import { joinZoneWaitlist } from "@/lib/zones/actions";
+import { useGeoClientConfig } from "@/lib/geo/use-geo-client-config";
 import { AvailabilityNotice } from "@/components/zones/availability-notice";
 import { DriveAiBar } from "./drive-ai-bar";
 import type { DriveIntentDraft } from "@/app/(customer)/drive/ai-actions";
@@ -1566,12 +1567,15 @@ function MapPickScreen({
   onConfirm: (p: { lat: number; lng: number; text: string | null }) => void;
 }) {
   const t = useTranslations("drive.mappick");
+  // Debounces pilotés par /admin/config (reverse_geocode/address_search) —
+  // RÈGLE 2 : aucune valeur en dur. Défauts tant que la config n'est pas chargée.
+  const geoCfg = useGeoClientConfig();
   const [center, setCenter] = useState<LatLng | null>(initial ?? null);
   const [addr, setAddr] = useState<string | null>(initial?.text ?? null);
   const [resolving, setResolving] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Recherche d'adresse SUR la carte (suggestions, debounce 450 ms).
+  // Recherche d'adresse SUR la carte (suggestions, debounce configurable).
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState<
     {
@@ -1645,9 +1649,10 @@ function MapPickScreen({
       } finally {
         setSearching(false);
       }
-    }, 450);
+    }, geoCfg.addressSearchDebounceMs);
     return () => clearTimeout(id);
-  }, [searchQ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQ, geoCfg.addressSearchDebounceMs]);
 
   // Suggestion choisie → l'épingle se recale EXACTEMENT sur ce lieu (le
   // client peut ensuite affiner au doigt — moveend ré-émettra la position).
@@ -1666,25 +1671,28 @@ function MapPickScreen({
   // du point sélectionné (et on les garde comme libellé du point).
   const gpsLabel = (c: LatLng) => `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`;
 
-  const onMove = useCallback((c: LatLng) => {
-    setCenter(c);
-    setResolving(true);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const r = await reverseGeocode({
-          latitude: c.lat,
-          longitude: c.lng,
-          precise: true,
-        });
-        setAddr(r?.display ?? null);
-      } catch {
-        setAddr(null);
-      } finally {
-        setResolving(false);
-      }
-    }, 450);
-  }, []);
+  const onMove = useCallback(
+    (c: LatLng) => {
+      setCenter(c);
+      setResolving(true);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(async () => {
+        try {
+          const r = await reverseGeocode({
+            latitude: c.lat,
+            longitude: c.lng,
+            precise: true,
+          });
+          setAddr(r?.display ?? null);
+        } catch {
+          setAddr(null);
+        } finally {
+          setResolving(false);
+        }
+      }, geoCfg.reverseGeocodeDebounceMs);
+    },
+    [geoCfg.reverseGeocodeDebounceMs]
+  );
 
   return (
     <div className="drive-jakarta drive-screen z-50 bg-[var(--d-page)]">
