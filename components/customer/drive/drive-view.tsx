@@ -66,6 +66,7 @@ import {
   getDriveQuotes,
   getFirstRideOffer,
   getSosContacts,
+  issueDriveQuote,
   precheckDriveRoute,
   requestDriveRide,
   requestScheduledRide,
@@ -126,6 +127,11 @@ export function DriveView() {
   const [quotes, setQuotes] = useState<Record<Gamme, DriveQuote> | null>(null);
   const [gamme, setGamme] = useState<Gamme>("classic");
   const [price, setPrice] = useState(0);
+  // Anti-prix-périmé (Partie D) : `pricing` = un recalcul est en cours après un
+  // changement d'adresse → on désactive « Demander » tant qu'il n'est pas fini.
+  // `quoteId` = devis signé serveur lié aux adresses courantes (anti-rejeu/TTL).
+  const [pricing, setPricing] = useState(false);
+  const [quoteId, setQuoteId] = useState<string | null>(null);
   const [payMode, setPayMode] = useState<"cash" | "card" | "coligo_pay">(
     "cash"
   );
@@ -329,15 +335,28 @@ export function DriveView() {
   /* ───────── Devis par gamme à l'arrivée sur l'écran prix ───────── */
   useEffect(() => {
     if (screen !== "price" || distanceKm <= 0) return;
+    // Le trajet a changé (distance recalculée) → l'ancien prix est PÉRIMÉ : on
+    // l'efface et on bloque « Demander » le temps du recalcul (Partie D).
+    setPricing(true);
+    setQuoteId(null);
+    let cancelled = false;
     void (async () => {
       // Devis intelligent : le départ permet l'ajustement demande/offre locale.
       const q = await getDriveQuotes(
         distanceKm,
         pickup ? { lat: pickup.lat, lng: pickup.lng } : null
       );
+      if (cancelled) return; // une réponse en retard ne doit pas écraser la neuve
       setQuotes(q);
-      setPrice((p) => (p > 0 ? p : q.classic.recommended));
+      // Nouveau trajet → on REPART du recommandé (jamais un prix d'un autre trajet).
+      const reco = q[gamme]?.recommended ?? q.classic.recommended;
+      setPrice(reco);
+      if (boostOn) setBoostAmt(defBoost(reco));
+      setPricing(false);
     })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, distanceKm]);
 
@@ -361,6 +380,33 @@ export function DriveView() {
       }
     })();
   }, [screen, quote?.recommended]);
+
+  /* Devis SIGNÉ serveur lié aux adresses courantes (Partie D). Émis quand le
+     prix est stabilisé (départ + arrivée connus, recalcul fini). Repassé à
+     requestRide, qui le vérifie+consomme → réservation impossible sur un prix
+     périmé / des adresses changées. Re-émis à chaque changement d'adresse. */
+  useEffect(() => {
+    if (screen !== "price" || pricing || !pickup || !dest || price <= 0) return;
+    let cancelled = false;
+    void (async () => {
+      const q = await issueDriveQuote({
+        pickup_lat: pickup.lat,
+        pickup_lng: pickup.lng,
+        pickup_text: pickup.text ?? null,
+        dest_lat: dest.lat,
+        dest_lng: dest.lng,
+        dest_text: dest.text ?? null,
+        price_da: price,
+        gamme,
+      });
+      if (!cancelled) setQuoteId(q?.quoteId ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Re-émission liée aux ADRESSES + gamme (le prix n'est pas figé : enchère).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, pricing, pickup?.lat, pickup?.lng, dest?.lat, dest?.lng, gamme]);
 
   /* Réservation programmée (gated super-admin — masquée si désactivée). */
   const [schedOpen, setSchedOpen] = useState(false);
@@ -452,6 +498,7 @@ export function DriveView() {
         proxy_name: prox?.name ?? null,
         proxy_phone: prox?.phone ?? null,
         operation_id: `drv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        quote_id: quoteId,
       };
     },
     [
@@ -465,6 +512,7 @@ export function DriveView() {
       boostAmt,
       femaleOnly,
       prox,
+      quoteId,
     ]
   );
 
@@ -1169,10 +1217,14 @@ export function DriveView() {
           )}
           <PrimaryBtn
             onClick={submitRequest}
-            disabled={submitting || !quote || !!zoneBlock}
+            disabled={submitting || pricing || !quote || !!zoneBlock}
           >
-            {submitting ? <Loader2 className="size-5 animate-spin" /> : null}
-            {t("price.propose", { price: offerPrice })}
+            {submitting || pricing ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : null}
+            {pricing
+              ? t("price.recalculating")
+              : t("price.propose", { price: offerPrice })}
           </PrimaryBtn>
         </div>
 

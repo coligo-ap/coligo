@@ -10,6 +10,11 @@ import {
   resolveWilayaCommune,
 } from "@/lib/zones/server";
 import { zoneMessageFr } from "@/lib/zones/service-zones";
+import {
+  issuePriceQuote,
+  verifyPriceQuote,
+  quoteRejectionMessage,
+} from "@/lib/data/geo-quote";
 
 type Rpc = (
   fn: string,
@@ -239,6 +244,41 @@ export async function getDriveQuotes(
 }
 
 /**
+ * Émet un DEVIS SIGNÉ pour le prix Drive affiché (Partie D). Le client appelle
+ * ceci dès qu'il a un prix estimé (départ + arrivée connus) et garde le
+ * `quoteId` retourné ; il le repasse à `requestRide`. Le serveur le vérifie et
+ * le consomme → impossible de réserver sur un prix périmé/incohérent. Distance
+ * recalculée serveur dans la RPC. Best-effort : null si échec (non bloquant).
+ */
+export async function issueDriveQuote(input: {
+  pickup_lat: number;
+  pickup_lng: number;
+  pickup_text?: string | null;
+  dest_lat: number;
+  dest_lng: number;
+  dest_text?: string | null;
+  price_da: number;
+  gamme: "classic" | "confort" | "moto";
+}): Promise<{ quoteId: string; expiresAt: string } | null> {
+  const q = await issuePriceQuote({
+    context: "drive",
+    pickup: {
+      lat: input.pickup_lat,
+      lng: input.pickup_lng,
+      text: input.pickup_text ?? null,
+    },
+    dest: {
+      lat: input.dest_lat,
+      lng: input.dest_lng,
+      text: input.dest_text ?? null,
+    },
+    priceDa: input.price_da,
+    meta: { gamme: input.gamme },
+  });
+  return q ? { quoteId: q.quoteId, expiresAt: q.expiresAt } : null;
+}
+
+/**
  * Offre « Bienvenue » 1ʳᵉ course (ancrage cosmétique, coût plateforme 0) :
  * pour un nouveau client, renvoie un prix gonflé barré (anchor) que le code
  * BIENVENUE ramène au prix réel (pay = reco). Le chauffeur touche le réel.
@@ -326,8 +366,27 @@ export async function requestDriveRide(input: {
   proxy_name?: string | null;
   proxy_phone?: string | null;
   operation_id?: string | null;
+  /** Devis signé émis par issueDriveQuote — anti-prix-périmé (Partie D). */
+  quote_id?: string | null;
 }): Promise<{ ok: boolean; rideId?: string; error?: string }> {
   const rpc = await rpcClient();
+
+  // Anti-prix-périmé (Partie D) : si un devis a été émis, on le VÉRIFIE et le
+  // CONSOMME pour le trajet courant AVANT d'engager le prix. Adresse changée /
+  // devis expiré / déjà utilisé → refus net (le client re-demande un prix).
+  if (input.quote_id) {
+    const chk = await verifyPriceQuote({
+      quoteId: input.quote_id,
+      context: "drive",
+      pickup: { lat: input.pickup_lat, lng: input.pickup_lng },
+      dest: { lat: input.dest_lat, lng: input.dest_lng },
+      consume: true,
+    });
+    if (!chk.ok) {
+      return { ok: false, error: quoteRejectionMessage(chk.reason) };
+    }
+  }
+
   // Reverse-géocode départ + arrivée → wilaya/commune, pour que les règles de
   // zone commune/wilaya s'appliquent (mig 0174). En parallèle, best-effort.
   const [pickupGeo, destGeo] = await Promise.all([

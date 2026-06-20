@@ -31,6 +31,11 @@ import {
 } from "@/lib/delivery/pricing";
 import { haversineKm } from "@/lib/delivery/distance";
 import { evaluateZone, logZoneBlock } from "@/lib/zones/server";
+import {
+  issuePriceQuote,
+  verifyPriceQuote,
+  quoteRejectionMessage,
+} from "@/lib/data/geo-quote";
 import { zoneMessageFr } from "@/lib/zones/service-zones";
 import { reverseGeocode } from "@/app/(customer)/actions";
 import type { OpeningHours, PaymentMethod } from "@/lib/types";
@@ -80,6 +85,14 @@ export type CreateOrderInput = {
   delivery_custom_address_text?: string | null;
   /** Note du client → livreur/commerçant (max 300 chars). */
   delivery_note?: string | null;
+  /**
+   * Devis signé (Partie D) émis par `issueDeliveryQuote` pour l'adresse de
+   * livraison affichée. Vérifié+consommé ici : si l'adresse a CHANGÉ depuis
+   * l'estimation, la commande est refusée (le client re-confirme). Le tarif
+   * reste recalculé serveur de façon autoritaire — le devis ne fait que lier
+   * la commande à l'adresse vue par le client.
+   */
+  delivery_quote_id?: string | null;
 };
 
 export type CreateOrderResult =
@@ -95,6 +108,34 @@ export type CreateOrderResult =
       checkout_url?: string;
     }
   | { ok: false; error: string };
+
+/**
+ * Émet un DEVIS SIGNÉ pour l'adresse de livraison affichée (Partie D). Le
+ * checkout l'appelle quand le client choisit/pose son adresse ; le `quoteId`
+ * est repassé à `createOrder`, qui refuse la commande si l'adresse a changé
+ * depuis. Best-effort : null si échec (non bloquant). Le tarif affiché (meta)
+ * est informatif — le serveur recalcule toujours le prix autoritaire.
+ */
+export async function issueDeliveryQuote(input: {
+  lat: number;
+  lng: number;
+  address_text?: string | null;
+  fee_da: number;
+  mode: "express" | "tour";
+}): Promise<{ quoteId: string } | null> {
+  const q = await issuePriceQuote({
+    context: "delivery",
+    pickup: {
+      lat: input.lat,
+      lng: input.lng,
+      text: input.address_text ?? null,
+    },
+    dest: null,
+    priceDa: input.fee_da,
+    meta: { mode: input.mode },
+  });
+  return q ? { quoteId: q.quoteId } : null;
+}
 
 export async function createOrder(
   input: CreateOrderInput
@@ -751,6 +792,22 @@ export async function createOrder(
         error:
           "Position de livraison requise. Choisis une adresse ou pointe ta position sur la carte.",
       };
+    }
+
+    // Anti-prix-périmé (Partie D) : si un devis a été émis pour l'adresse
+    // affichée, on vérifie qu'elle n'a pas changé depuis. On NE bloque QUE sur
+    // « adresse changée » (vraie incohérence) ; expiré/introuvable n'empêche pas
+    // la commande car le tarif est recalculé serveur juste après (autoritaire).
+    if (input.delivery_quote_id) {
+      const chk = await verifyPriceQuote({
+        quoteId: input.delivery_quote_id,
+        context: "delivery",
+        pickup: { lat: addrLat, lng: addrLng },
+        consume: true,
+      });
+      if (!chk.ok && chk.reason === "addr_changed") {
+        return { ok: false, error: quoteRejectionMessage(chk.reason) };
+      }
     }
 
     // Barème global + rayon commerçant.

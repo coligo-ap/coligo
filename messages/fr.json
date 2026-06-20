@@ -798,6 +798,7 @@
       "tierMiniHint": "Prix très attractif — parfois moins de chauffeurs intéressés",
       "tierFastHint": "Un peu plus élevé — des propositions plus vite",
       "propose": "Proposer {price} DA",
+      "recalculating": "Mise à jour du prix…",
       "cpayPartial": "Votre solde Coligo Pay couvre {wallet} DA. Le reste ({cash} DA) sera à régler en espèces au chauffeur — ou rechargez pour couvrir toute la course.",
       "cpayRecharge": "Recharger mon Coligo Pay",
       "cardFailed": "Le paiement par carte n'a pas abouti — rien n'a été débité et votre demande a été annulée automatiquement. Réessayez ou choisissez un autre moyen de paiement."

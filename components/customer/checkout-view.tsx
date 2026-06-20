@@ -41,6 +41,7 @@ import {
 } from "@/app/(customer)/checkout/context";
 import {
   createOrder,
+  issueDeliveryQuote,
   previewPromoCode,
 } from "@/app/(customer)/checkout/actions";
 import { CHARGILY_MIN_AMOUNT_DA } from "@/lib/config/payment-limits";
@@ -330,6 +331,27 @@ export function CheckoutView({
     const clientOpId = crypto.randomUUID();
 
     startSubmit(async () => {
+      // Devis signé (Partie D) lié à l'adresse de livraison affichée. Émis ici
+      // puis vérifié+consommé par createOrder → la commande est liée à l'adresse
+      // vue par le client (usage unique). Best-effort, jamais bloquant.
+      let deliveryQuoteId: string | null = null;
+      if (delivery.fulfillment === "delivery" && delivery.mode) {
+        const dLat = delivery.customPosition?.lat ?? selectedDeliveryAddr?.lat;
+        const dLng = delivery.customPosition?.lng ?? selectedDeliveryAddr?.lng;
+        if (dLat != null && dLng != null) {
+          const q = await issueDeliveryQuote({
+            lat: dLat,
+            lng: dLng,
+            address_text:
+              delivery.customAddressText?.trim() ||
+              selectedDeliveryAddr?.address_text ||
+              null,
+            fee_da: deliveryFeeDa,
+            mode: delivery.mode,
+          });
+          deliveryQuoteId = q?.quoteId ?? null;
+        }
+      }
       const res = await createOrder({
         merchant_id: cart.merchant_id!,
         client_operation_id: clientOpId,
@@ -375,6 +397,7 @@ export function CheckoutView({
           delivery.fulfillment === "delivery"
             ? delivery.deliveryNote.trim() || null
             : null,
+        delivery_quote_id: deliveryQuoteId,
         cashback_to_use_da: useCashback && cashbackOn ? cashbackApplied : 0,
         topup_to_use_da: useTopup && coligoPayOn ? topupApplied : 0,
         promo_code: appliedPromo?.code ?? null,
