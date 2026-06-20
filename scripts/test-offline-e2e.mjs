@@ -316,17 +316,36 @@ async function main() {
     }
 
     // ------------------------------------------------------------------
-    header("Test 5 — /manifest.webmanifest");
+    header("Test 5 — Manifests PWA par espace (mig PWA : 4 manifests)");
     {
       const ctx = await browser.newContext();
       const page = await ctx.newPage();
-      const r = await page.request.get(`${BASE}/manifest.webmanifest`);
-      if (r.status() === 200) pass(`HTTP 200`);
-      else fail_(`HTTP ${r.status()}`);
-      const json = await r.json().catch(() => null);
-      if (json && json.start_url === "/dashboard")
-        pass(`start_url = /dashboard`);
-      else fail_(`manifest JSON invalide ou inattendu`);
+      // Le manifest unique a été remplacé par un manifest par espace
+      // (public/manifest-*.webmanifest, ids distincts pour Android).
+      const manifests = [
+        "manifest-client.webmanifest",
+        "manifest-livreur.webmanifest",
+        "manifest-drive.webmanifest",
+        "manifest-commercant.webmanifest",
+      ];
+      for (const m of manifests) {
+        const r = await page.request.get(`${BASE}/${m}`);
+        const json = await r.json().catch(() => null);
+        if (r.status() === 200 && json && json.start_url)
+          pass(`/${m} (start_url=${json.start_url})`);
+        else
+          fail_(
+            `/${m} → HTTP ${r.status()} / JSON ${json ? "ok" : "invalide"}`
+          );
+      }
+      // L'espace commerçant démarre sur /dashboard.
+      const rc = await page.request.get(
+        `${BASE}/manifest-commercant.webmanifest`
+      );
+      const jc = await rc.json().catch(() => null);
+      if (jc && jc.start_url === "/dashboard")
+        pass("commerçant start_url = /dashboard");
+      else fail_("commerçant start_url inattendu");
       await ctx.close();
     }
 
