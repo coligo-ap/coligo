@@ -25,6 +25,7 @@ import {
   getMyCashbackBalance,
   getMyTopupBalance,
 } from "@/lib/customer/cashback";
+import { getGeoConfig, type GeoConfig } from "@/lib/data/geo-config";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { getCommunes } from "@/lib/config/communes";
 
@@ -759,11 +760,9 @@ const SEARCH_GENERIC = new Set([
   "petite",
 ]);
 
-// Plafonds Google Places (anti-dérapage). Ajustables sans risque.
-// Longueur min : les requêtes courtes restent sur le gratuit (jamais payant).
-const GOOGLE_MIN_QLEN = 5;
-const GOOGLE_DAILY_GLOBAL = 500;
-const GOOGLE_DAILY_PER_USER = 25;
+// Plafonds Google Places (anti-dérapage) — désormais pilotés par /admin/config
+// (clés geo : google_min_qlen, google_daily_global, google_daily_per_user,
+// geocode_google_enabled). Lus via getGeoConfig() puis passés en paramètre.
 
 /**
  * Fallback Google Places (New) — DERNIER RECOURS, payant donc verrouillé :
@@ -774,13 +773,21 @@ const GOOGLE_DAILY_PER_USER = 25;
  */
 async function searchGoogleFallback(
   q: string,
+  cfg: Pick<
+    GeoConfig,
+    | "geocodeGoogleEnabled"
+    | "googleMinQlen"
+    | "googleDailyGlobal"
+    | "googleDailyPerUser"
+  >,
   lat?: number,
   lng?: number
 ): Promise<GeoHit[]> {
   const key = process.env.GOOGLE_MAPS_API_KEY;
-  if (!key) return [];
+  // Kill-switch coût (geocode_google_enabled) + clé requise.
+  if (!key || !cfg.geocodeGoogleEnabled) return [];
   const qn = q.trim().toLowerCase();
-  if (qn.length < GOOGLE_MIN_QLEN) return [];
+  if (qn.length < cfg.googleMinQlen) return [];
   try {
     const supabase = await createClient();
     const rpc = supabase.rpc.bind(supabase) as unknown as (
@@ -804,7 +811,7 @@ async function searchGoogleFallback(
         (
           await rpc("api_quota_take", {
             p_name: `gp:${user.id}`,
-            p_cap: GOOGLE_DAILY_PER_USER,
+            p_cap: cfg.googleDailyPerUser,
           })
         ).data === true;
       if (!okUser) return [];
@@ -813,7 +820,7 @@ async function searchGoogleFallback(
       (
         await rpc("api_quota_take", {
           p_name: "gp_global",
-          p_cap: GOOGLE_DAILY_GLOBAL,
+          p_cap: cfg.googleDailyGlobal,
         })
       ).data === true;
     if (!okGlobal) return [];
@@ -963,6 +970,12 @@ export async function geocodeSearch(input: {
   const lat = Number.isFinite(input.lat) ? input.lat : undefined;
   const lng = Number.isFinite(input.lng) ? input.lng : undefined;
 
+  // Config géo (nb de suggestions, plafonds/kill-switch Google) — RÈGLE 2 :
+  // aucune valeur en dur. Surchargeable par ville (non câblé ici : la recherche
+  // d'adresse est nationale ; le scope ville s'appliquera aux devis/prix).
+  const cfg = await getGeoConfig();
+  const maxN = cfg.addressSuggestionsMax;
+
   // Boost PERSONNEL « Tes lieux » : les favoris et les lieux déjà choisis par CE
   // client remontent en tête, POUR LUI. Tri stable (ordre d'origine préservé à
   // rang égal). Non connecté / sans historique → liste inchangée.
@@ -1034,7 +1047,7 @@ export async function geocodeSearch(input: {
       lng: r.lng,
       kind: r.kind,
     });
-    if (results.length >= 8) break;
+    if (results.length >= maxN) break;
   }
 
   // Dernier recours PAYANT : Google Places uniquement quand les sources
@@ -1071,7 +1084,7 @@ export async function geocodeSearch(input: {
         lat: r.lat,
         lng: r.lng,
       });
-      if (results.length >= 8) break;
+      if (results.length >= maxN) break;
     }
   };
 
@@ -1082,7 +1095,7 @@ export async function geocodeSearch(input: {
     // 2b) Google Places en dernier recours si toujours aucune correspondance
     //     complète (l'enseigne cherchée est introuvable gratuitement).
     if (!matchesQuery()) {
-      const g = await searchGoogleFallback(q, lat, lng);
+      const g = await searchGoogleFallback(q, cfg, lat, lng);
       if (g.length) {
         // Google EN TÊTE (c'est lui qui a l'enseigne exacte), puis le reste.
         const merged: GeoHit[] = [];
@@ -1098,7 +1111,7 @@ export async function geocodeSearch(input: {
             lng: r.lng,
             kind: r.kind,
           });
-          if (merged.length >= 8) break;
+          if (merged.length >= maxN) break;
         }
         return { ok: true, results: await personalize(merged) };
       }
