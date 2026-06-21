@@ -744,6 +744,7 @@ export function DriveView() {
     return (
       <MapPickScreen
         forWhat={mapPickFor}
+        recents={ctx.recents}
         initial={
           mapPickFor === "dep"
             ? (pickup ?? undefined)
@@ -1593,14 +1594,21 @@ function ZoneBlockNotice({
 
 /* ─────────────── Écran : choix sur la carte (épingle centrale fixe) ─────────────── */
 
+// Cache module des favoris : chargés une fois, réaffichés INSTANTANÉMENT aux
+// ouvertures suivantes de la recherche (pas de round-trip à chaque ouverture).
+let FAV_CACHE: FavPlace[] | null = null;
+
 function MapPickScreen({
   forWhat,
   initial,
+  recents = [],
   onBack,
   onConfirm,
 }: {
   forWhat: "dep" | "dest";
   initial?: Pt;
+  /** Destinations récentes du client (instantané, via le contexte Drive). */
+  recents?: { text: string; lat: number; lng: number }[];
   onBack: () => void;
   onConfirm: (p: { lat: number; lng: number; text: string | null }) => void;
 }) {
@@ -1636,11 +1644,16 @@ function MapPickScreen({
   >(null);
 
   // Favoris « Tes lieux » : étoile pour sauvegarder, accès rapide quand vide.
-  const [favorites, setFavorites] = useState<FavPlace[]>([]);
-  const [favCells, setFavCells] = useState<Set<string>>(new Set());
-  const [favOpen, setFavOpen] = useState(false);
+  // Initialisés depuis le cache module → AFFICHAGE INSTANTANÉ (pas d'attente).
+  const [favorites, setFavorites] = useState<FavPlace[]>(FAV_CACHE ?? []);
+  const [favCells, setFavCells] = useState<Set<string>>(
+    new Set(
+      (FAV_CACHE ?? []).map((f) => `${f.lat.toFixed(4)},${f.lng.toFixed(4)}`)
+    )
+  );
   useEffect(() => {
     void listFavoritePlaces().then((favs) => {
+      FAV_CACHE = favs;
       setFavorites(favs);
       setFavCells(
         new Set(favs.map((f) => `${f.lat.toFixed(4)},${f.lng.toFixed(4)}`))
@@ -1710,7 +1723,6 @@ function MapPickScreen({
     pickedRef.current = true; // saute la recherche déclenchée par setSearchQ
     setSearchOpen(false);
     setSearchResults([]); // la liste disparaît et ne se rouvre pas au focus
-    setFavOpen(false);
     setSearchQ(r.display);
     setAddr(r.display);
     setCenter({ lat: r.lat, lng: r.lng });
@@ -1771,16 +1783,10 @@ function MapPickScreen({
           <Search className="size-4 shrink-0 text-[var(--d-muted)]" />
           <input
             value={searchQ}
-            onChange={(e) => {
-              setSearchQ(e.target.value);
-              setFavOpen(false);
-            }}
+            onChange={(e) => setSearchQ(e.target.value)}
             onFocus={() => {
               if (searchResults.length > 0) setSearchOpen(true);
-              if (searchQ.trim() === "" && favorites.length > 0)
-                setFavOpen(true);
             }}
-            onBlur={() => window.setTimeout(() => setFavOpen(false), 150)}
             placeholder={t("searchPh")}
             className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
           />
@@ -1855,48 +1861,100 @@ function MapPickScreen({
         )}
         {/* « Tes lieux » : favoris du client, accès rapide quand la barre est
             vide (comme Uber). Sélection = recentrage immédiat. */}
-        {favOpen && searchQ.trim() === "" && favorites.length > 0 && (
-          <ul className="mt-1.5 max-h-60 overflow-auto rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
-            <li className="px-3 pt-1.5 pb-1 text-[10px] font-extrabold tracking-wide text-[var(--d-muted)] uppercase">
-              Tes lieux
-            </li>
-            {favorites.map((f, i) => (
-              <li
-                key={`fav-${f.lat}-${f.lng}-${i}`}
-                className="flex items-center"
-              >
-                <button
-                  type="button"
-                  onClick={() =>
-                    pickSuggestion({
-                      display: f.label,
-                      lat: f.lat,
-                      lng: f.lng,
-                    })
-                  }
-                  className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left text-[13px] font-semibold"
+        {/* Accès rapide DIRECT quand la barre est vide : favoris (« Tes lieux »)
+            + destinations récentes. Affiché d'emblée (pas besoin de focus) →
+            le client retrouve ses lieux sans retaper. Instantané (favoris en
+            cache + récents passés par le contexte). */}
+        {searchQ.trim() === "" &&
+          (favorites.length > 0 || recents.length > 0) && (
+            <ul className="mt-1.5 max-h-72 overflow-auto rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
+              {favorites.length > 0 && (
+                <li className="px-3 pt-1.5 pb-1 text-[10px] font-extrabold tracking-wide text-[var(--d-muted)] uppercase">
+                  {t("savedPlaces")}
+                </li>
+              )}
+              {favorites.map((f, i) => (
+                <li
+                  key={`fav-${f.lat}-${f.lng}-${i}`}
+                  className="flex items-center"
                 >
-                  <Star
-                    className="size-4 shrink-0"
-                    style={{ color: VIOLET }}
-                    fill={VIOLET}
-                  />
-                  <span className="min-w-0 flex-1 truncate">{f.label}</span>
-                </button>
-                <button
-                  type="button"
-                  aria-label="Retirer des favoris"
-                  onClick={() =>
-                    toggleFav({ display: f.label, lat: f.lat, lng: f.lng })
-                  }
-                  className="shrink-0 px-2.5 py-2.5 text-[var(--d-muted)]"
-                >
-                  ✕
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      pickSuggestion({
+                        display: f.label,
+                        lat: f.lat,
+                        lng: f.lng,
+                      })
+                    }
+                    className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left text-[13px] font-semibold"
+                  >
+                    <Star
+                      className="size-4 shrink-0"
+                      style={{ color: VIOLET }}
+                      fill={VIOLET}
+                    />
+                    <span className="min-w-0 flex-1 truncate">{f.label}</span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Retirer des favoris"
+                    onClick={() =>
+                      toggleFav({ display: f.label, lat: f.lat, lng: f.lng })
+                    }
+                    className="shrink-0 px-2.5 py-2.5 text-[var(--d-muted)]"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+              {recents.length > 0 && (
+                <li className="px-3 pt-2 pb-1 text-[10px] font-extrabold tracking-wide text-[var(--d-muted)] uppercase">
+                  {t("recents")}
+                </li>
+              )}
+              {recents
+                .filter(
+                  (r) =>
+                    !favCells.has(`${r.lat.toFixed(4)},${r.lng.toFixed(4)}`)
+                )
+                .map((r, i) => (
+                  <li
+                    key={`rec-${r.lat}-${r.lng}-${i}`}
+                    className="flex items-center"
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        pickSuggestion({
+                          display: r.text,
+                          lat: r.lat,
+                          lng: r.lng,
+                        })
+                      }
+                      className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left text-[13px] font-semibold"
+                    >
+                      <Clock className="size-4 shrink-0 text-[var(--d-muted)]" />
+                      <span className="min-w-0 flex-1 truncate">{r.text}</span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Favori"
+                      onClick={() =>
+                        toggleFav({ display: r.text, lat: r.lat, lng: r.lng })
+                      }
+                      className="shrink-0 px-2.5 py-2.5"
+                    >
+                      <Star
+                        className="size-4"
+                        style={{ color: VIOLET }}
+                        fill="none"
+                      />
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          )}
         {searchOpen &&
           !searching &&
           searchResults.length === 0 &&

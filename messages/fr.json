@@ -772,7 +772,9 @@
       "back": "Retour",
       "gpsPoint": "Position GPS ({coords})",
       "searchPh": "Rechercher une adresse, un lieu…",
-      "noResults": "Aucune adresse trouvée — déplacez la carte ou affinez la recherche."
+      "noResults": "Aucune adresse trouvée — déplacez la carte ou affinez la recherche.",
+      "savedPlaces": "Tes lieux",
+      "recents": "Récents"
     },
     "dep": {
       "title": "Point de départ",
