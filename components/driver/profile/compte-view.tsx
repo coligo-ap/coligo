@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { driverLogout } from "@/app/(driver)/actions";
 import { useDriverDark, toggleDriverDark } from "@/lib/driver/theme-store";
 import { useDriverSound, toggleDriverSound } from "@/lib/driver/sound-store";
@@ -41,6 +42,8 @@ export function CompteView({
   data: CompteData;
   children?: React.ReactNode;
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const dark = useDriverDark();
   const soundOn = useDriverSound();
   const pct = Math.min(
@@ -49,15 +52,18 @@ export function CompteView({
   );
   const overCap = data.outstandingDa >= data.capDa;
   const status = data.frozen
-    ? { cls: "red", label: "Compte gelé" }
+    ? { cls: "red", label: tr("Compte gelé", "حساب مجمّد") }
     : data.verified
-      ? { cls: "ok", label: "Vérifié ✓" }
-      : { cls: "warn", label: "En cours de vérification" };
+      ? { cls: "ok", label: tr("Vérifié ✓", "موثّق ✓") }
+      : {
+          cls: "warn",
+          label: tr("En cours de vérification", "قيد التحقق"),
+        };
 
   return (
     <>
       <div className="head">
-        <h1>Mon compte</h1>
+        <h1>{tr("Mon compte", "حسابي")}</h1>
       </div>
 
       {/* Hero */}
@@ -65,7 +71,10 @@ export function CompteView({
         <div className="av">
           {data.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={data.avatarUrl} alt="Photo de profil" />
+            <img
+              src={data.avatarUrl}
+              alt={tr("Photo de profil", "صورة الملف")}
+            />
           ) : (
             data.initials
           )}
@@ -74,7 +83,11 @@ export function CompteView({
           <div className="nm">{data.fullName}</div>
           <span className={"acc-chip " + status.cls}>{status.label}</span>
           {data.joinedYear && (
-            <div className="sub">Livreur Coligo depuis {data.joinedYear}</div>
+            <div className="sub">
+              {isAr
+                ? `سائق كوليغو منذ ${data.joinedYear}`
+                : `Livreur Coligo depuis ${data.joinedYear}`}
+            </div>
           )}
         </div>
       </div>
@@ -86,23 +99,25 @@ export function CompteView({
             {data.ratingAvg ? data.ratingAvg.toFixed(1) : "—"}
             <small> ★</small>
           </div>
-          <div className="l">Note</div>
+          <div className="l">{tr("Note", "التقييم")}</div>
         </div>
         <div className="acc-stat">
           <div className="v">{data.coursesCount}</div>
-          <div className="l">Courses</div>
+          <div className="l">{tr("Courses", "التوصيلات")}</div>
         </div>
         <div className="acc-stat">
           <div className="v">{data.joinedYear ?? "—"}</div>
-          <div className="l">Membre depuis</div>
+          <div className="l">{tr("Membre depuis", "عضو منذ")}</div>
         </div>
       </div>
 
       {/* Encours */}
-      <div className="acc-grp">Encours & versement</div>
+      <div className="acc-grp">
+        {tr("Encours & versement", "المستحقّات والتسديد")}
+      </div>
       <div className="floatc">
         <div className="top">
-          <span>Encours à reverser</span>
+          <span>{tr("Encours à reverser", "مستحقّات للتسديد")}</span>
           <b style={overCap ? { color: "var(--red)" } : undefined}>
             {grp(data.outstandingDa)} / {grp(data.capDa)} DA
           </b>
@@ -117,8 +132,14 @@ export function CompteView({
         </div>
         <div className="note">
           {overCap
-            ? "Plafond atteint : l'acceptation de nouvelles courses est suspendue jusqu'au versement."
-            : "Au-delà du plafond, l'acceptation de nouvelles courses est suspendue jusqu'au versement."}
+            ? tr(
+                "Plafond atteint : l'acceptation de nouvelles courses est suspendue jusqu'au versement.",
+                "بلغت الحد الأقصى: يُعلَّق قبول توصيلات جديدة حتى التسديد."
+              )
+            : tr(
+                "Au-delà du plafond, l'acceptation de nouvelles courses est suspendue jusqu'au versement.",
+                "عند تجاوز الحد، يُعلَّق قبول توصيلات جديدة حتى التسديد."
+              )}
         </div>
       </div>
 
@@ -126,10 +147,10 @@ export function CompteView({
       {children}
 
       {/* Tournées — rejoindre un commerçant + accès au démarrage. */}
-      <div className="acc-grp">Tournées</div>
+      <div className="acc-grp">{tr("Tournées", "الجولات")}</div>
       <div className="menu">
         <Mrow
-          label="Mes tournées"
+          label={tr("Mes tournées", "جولاتي")}
           chevron
           href="/driver/tournees"
           icon={
@@ -140,7 +161,7 @@ export function CompteView({
           }
         />
         <Mrow
-          label="Rejoindre un commerçant"
+          label={tr("Rejoindre un commerçant", "الانضمام إلى تاجر")}
           chevron
           href="/driver/codes"
           icon={
@@ -153,11 +174,11 @@ export function CompteView({
       </div>
 
       {/* Préférences */}
-      <div className="acc-grp">Préférences</div>
+      <div className="acc-grp">{tr("Préférences", "التفضيلات")}</div>
       <div className="menu">
         <Mrow
-          label="Apparence"
-          value={dark ? "Sombre" : "Clair"}
+          label={tr("Apparence", "المظهر")}
+          value={dark ? tr("Sombre", "داكن") : tr("Clair", "فاتح")}
           onClick={() => toggleDriverDark()}
           icon={
             <>
@@ -167,8 +188,8 @@ export function CompteView({
           }
         />
         <Mrow
-          label="Sons"
-          value={soundOn ? "Activés" : "Coupés"}
+          label={tr("Sons", "الأصوات")}
+          value={soundOn ? tr("Activés", "مفعّلة") : tr("Coupés", "مكتومة")}
           onClick={() => toggleDriverSound()}
           icon={
             soundOn ? (
@@ -185,7 +206,7 @@ export function CompteView({
           }
         />
         <Mrow
-          label="Langue"
+          label={tr("Langue", "اللغة")}
           value="Français · العربية"
           icon={
             <>
@@ -197,10 +218,10 @@ export function CompteView({
       </div>
 
       {/* Support & compte */}
-      <div className="acc-grp">Support & compte</div>
+      <div className="acc-grp">{tr("Support & compte", "الدعم والحساب")}</div>
       <div className="menu">
         <Mrow
-          label="Aide & support"
+          label={tr("Aide & support", "المساعدة والدعم")}
           chevron
           onClick={() => openSupportChat()}
           icon={
@@ -223,7 +244,7 @@ export function CompteView({
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
               </svg>
             </span>
-            Se déconnecter
+            {tr("Se déconnecter", "تسجيل الخروج")}
           </button>
         </form>
       </div>
