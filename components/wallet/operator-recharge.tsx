@@ -28,6 +28,10 @@ import {
   type TopupConfig,
 } from "@/app/wallet/recharge-actions";
 import { RECHARGE_STYLE } from "@/components/wallet/operator-recharge.style";
+import {
+  isSupportConfigured,
+  openSupportChat,
+} from "@/components/support/tawk-chat";
 
 /* ───────────────────────── i18n local (FR / AR) ─────────────────────────
    Dictionnaire autonome : les espaces partenaires (livreur / chauffeur /
@@ -191,6 +195,7 @@ const STR = {
     openWithSub: "Votre choix sera mémorisé pour la prochaine fois.",
     cancel: "Annuler",
     chargily: "Chargily",
+    support: "Un souci de recharge ou de paiement ? Contacter le support",
   },
   ar: {
     title: "محفظتي",
@@ -257,6 +262,7 @@ const STR = {
     openWithSub: "سيُحفظ اختيارك للمرة القادمة.",
     cancel: "إلغاء",
     chargily: "Chargily",
+    support: "مشكلة في الشحن أو الدفع؟ تواصل مع الدعم",
   },
 } as const;
 
@@ -1002,6 +1008,26 @@ export function OperatorRecharge({
             );
           })}
         </div>
+      )}
+
+      {/* Contacter le support — disponible sur la page Coligo Pay (chat Tawk
+          si actif, sinon repli e-mail). Masqué si aucun canal n'est configuré. */}
+      {isSupportConfigured() && (
+        <button
+          type="button"
+          className="cgw-support"
+          onClick={() =>
+            openSupportChat({
+              attributes: {
+                sujet: "Coligo Pay",
+                espace: OWNER_BADGE.fr[owner],
+              },
+            })
+          }
+        >
+          {Ico.info}
+          {t.support}
+        </button>
       )}
     </section>
   );

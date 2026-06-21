@@ -133,6 +133,8 @@ export const RECHARGE_STYLE = `
 .cgw .cgw-err{margin-top:10px;font-size:12px;font-weight:600;color:var(--red);text-align:center}
 .cgw .cgw-ok{margin-top:10px;font-size:12px;font-weight:600;color:var(--go);text-align:center}
 .cgw .cgw-hint{color:var(--muted);font-size:11.5px;text-align:center;margin-top:8px}
+.cgw .cgw-support{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:18px;padding:11px 12px;border:1px solid var(--line,#ECEEF4);border-radius:13px;background:transparent;color:var(--muted);font-weight:600;font-size:12.5px;cursor:pointer;font-family:inherit}
+.cgw .cgw-support svg{width:15px;height:15px;stroke:var(--muted);flex:none}
 
 /* feuille sélecteur GPS */
 .cgw-sheet{position:fixed;inset:0;z-index:120;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.5);padding:16px}
