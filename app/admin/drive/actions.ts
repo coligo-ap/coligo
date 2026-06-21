@@ -38,6 +38,9 @@ export type DriveConfig = {
   sub_week_factor: number;
   sub_2week_factor: number;
   free_rate: number; // = vtc_commission_rate
+  /** Abonnements payants Pro/Premium proposés au chauffeur (OFF au lancement :
+   *  seul le plan Gratuit 0 % est visible). L'abonnement Prioritaire reste à part. */
+  paid_plans_enabled: boolean;
   sub_grace_days: number;
   ccp_number: string;
   ccp_key: string;
@@ -89,6 +92,7 @@ export async function getDriveConfig(): Promise<DriveConfig | null> {
     sub_week_factor: Number(s.drive_sub_week_factor ?? 0.35),
     sub_2week_factor: Number(s.drive_sub_2week_factor ?? 0.6),
     free_rate: Number(s.vtc_commission_rate),
+    paid_plans_enabled: s.drive_paid_plans_enabled ?? false,
     sub_grace_days: s.drive_sub_grace_days,
     ccp_number: s.drive_ccp_number,
     ccp_key: s.drive_ccp_key,
@@ -162,6 +166,7 @@ export async function updateDriveConfig(
       drive_sub_week_factor: cfg.sub_week_factor,
       drive_sub_2week_factor: cfg.sub_2week_factor,
       vtc_commission_rate: cfg.free_rate,
+      drive_paid_plans_enabled: cfg.paid_plans_enabled,
       drive_sub_grace_days: cfg.sub_grace_days,
       drive_ccp_number: cfg.ccp_number,
       drive_ccp_key: cfg.ccp_key,

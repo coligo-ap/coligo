@@ -992,6 +992,10 @@ export type ChauffeurFinances = {
   planPeriodEnd: string | null;
   rating: number | null;
   ridesTotal: number;
+  /** Commission du plan Gratuit (= vtc_commission_rate) — 0 au lancement. */
+  freeRate: number;
+  /** Abonnements payants Pro/Premium proposés (false au lancement → masqués). */
+  paidPlansEnabled: boolean;
   proFee: number;
   proRate: number;
   premiumFee: number;
@@ -1017,7 +1021,7 @@ export async function getChauffeurFinances(): Promise<ChauffeurFinances | null> 
       admin
         .from("platform_settings")
         .select(
-          "drive_plan_pro_fee_da, drive_plan_pro_rate, drive_plan_premium_fee_da, drive_sub_week_factor, drive_sub_2week_factor, drive_ccp_number, drive_ccp_key, drive_ccp_name"
+          "drive_plan_pro_fee_da, drive_plan_pro_rate, drive_plan_premium_fee_da, drive_sub_week_factor, drive_sub_2week_factor, drive_ccp_number, drive_ccp_key, drive_ccp_name, vtc_commission_rate, drive_paid_plans_enabled"
         )
         .eq("id", true)
         .maybeSingle(),
@@ -1059,6 +1063,8 @@ export async function getChauffeurFinances(): Promise<ChauffeurFinances | null> 
     planPeriodEnd: (f.plan_period_end as string) ?? null,
     rating: f.rating == null ? null : Number(f.rating),
     ridesTotal: Number(f.rides_total ?? 0),
+    freeRate: Number(s?.vtc_commission_rate ?? 0),
+    paidPlansEnabled: s?.drive_paid_plans_enabled ?? false,
     proFee: s?.drive_plan_pro_fee_da ?? 2000,
     proRate: Number(s?.drive_plan_pro_rate ?? 0.035),
     premiumFee: s?.drive_plan_premium_fee_da ?? 3900,

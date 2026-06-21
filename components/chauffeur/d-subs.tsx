@@ -112,6 +112,12 @@ export function DSubs() {
     );
   }
 
+  // Traduit le motif d'échec serveur (garde lancement mig 0238 incluse).
+  const subErr = (reason?: string) =>
+    reason === "paid_plans_disabled"
+      ? "Les abonnements payants ne sont pas encore disponibles."
+      : (reason ?? "Échec");
+
   const payCcpDone = async () => {
     if (!paying || busy) return;
     setBusy(true);
@@ -122,7 +128,7 @@ export function DSubs() {
     });
     setBusy(false);
     if (!res.ok) {
-      setError(res.error ?? "Échec");
+      setError(subErr(res.error));
       return;
     }
     setPaying(null);
@@ -143,7 +149,7 @@ export function DSubs() {
     });
     setBusy(false);
     if (!res.ok || !res.url) {
-      setError(res.error ?? "Paiement carte indisponible.");
+      setError(subErr(res.error) ?? "Paiement carte indisponible.");
       return;
     }
     window.open(res.url, "_blank");
@@ -164,6 +170,12 @@ export function DSubs() {
     else setMsg("Tentative de paiement annulée — aucun montant n'est dû.");
     load();
   };
+
+  // Commission RÉELLE du plan Gratuit (= vtc_commission_rate, 0 au lancement) —
+  // jamais en dur : reflète la config plateforme.
+  const freePct = (fin.freeRate * 100).toLocaleString("fr-FR", {
+    maximumFractionDigits: 1,
+  });
 
   const renewBefore = fin.planPeriodEnd
     ? new Date(
@@ -199,7 +211,11 @@ export function DSubs() {
         Mon abonnement
       </h1>
       <p className="mb-3 text-[13px] text-[var(--d-muted)]">
-        Gardez plus sur chaque course. Changez quand vous voulez.
+        {fin.paidPlansEnabled
+          ? "Gardez plus sur chaque course. Changez quand vous voulez."
+          : fin.freeRate <= 0
+            ? "Au lancement, Coligo Drive est gratuit : 0 % de commission, tout est à vous."
+            : "Au lancement, un seul plan : profitez de la commission réduite."}
       </p>
 
       {/* Retour Chargily : confirmation RÉELLE (webhook) ou échec. */}
@@ -315,80 +331,94 @@ export function DSubs() {
         name="Gratuit"
         price="0 DA"
         desc={
-          <>
-            Commission <b>8 %</b> par course · vous reversez les commissions du
-            mois
-          </>
+          fin.freeRate <= 0 ? (
+            <>
+              <b>0 % de commission</b> — tout est à vous au lancement 🎉
+            </>
+          ) : (
+            <>
+              Commission <b>{freePct} %</b> par course · vous reversez les
+              commissions du mois
+            </>
+          )
         }
         cta="Choisir Gratuit"
         secondary
         onClick={() =>
           setMsg(
-            "Le plan Gratuit redevient actif automatiquement à l'échéance de votre abonnement."
+            fin.paidPlansEnabled
+              ? "Le plan Gratuit redevient actif automatiquement à l'échéance de votre abonnement."
+              : "Vous êtes sur le plan Gratuit — aucune commission au lancement."
           )
         }
       />
-      {/* Pro */}
-      <Plan
-        current={fin.plan === "pro"}
-        name="💼 Pro"
-        price={`${fin.proFee.toLocaleString("fr-FR").replace(/ | /g, " ")} DA`}
-        per="/mois"
-        desc={
-          <>
-            Commission réduite à <b>3,5 %</b> · abonnement + commissions
-            réduites
-          </>
-        }
-        cta="Choisir Pro"
-        secondary
-        onClick={() => {
-          // Garde-fou designé : un Premium actif serait REMPLACÉ immédiatement.
-          if (fin.plan === "premium") {
-            setConfirmDowngrade(true);
-            return;
-          }
-          proceedPro();
-        }}
-      />
-      {/* Premium */}
-      <Plan
-        current={fin.plan === "premium"}
-        premium
-        name="👑 Premium"
-        price={`${fin.premiumFee.toLocaleString("fr-FR").replace(/ | /g, " ")} DA`}
-        per="/mois"
-        desc={
-          <>
-            <b>0 % de commission</b> + priorité dispatch + badge Premium · vous
-            ne devez que l&apos;abonnement
-            {/* Upgrade prorata (façon Claude) : on ne paie que la différence
+      {/* Pro / Premium — MASQUÉS au lancement (drive_paid_plans_enabled).
+          Le garde serveur (mig 0238) refuse aussi toute souscription forgée. */}
+      {fin.paidPlansEnabled && (
+        <>
+          {/* Pro */}
+          <Plan
+            current={fin.plan === "pro"}
+            name="💼 Pro"
+            price={`${fin.proFee.toLocaleString("fr-FR").replace(/ | /g, " ")} DA`}
+            per="/mois"
+            desc={
+              <>
+                Commission réduite à <b>3,5 %</b> · abonnement + commissions
+                réduites
+              </>
+            }
+            cta="Choisir Pro"
+            secondary
+            onClick={() => {
+              // Garde-fou designé : un Premium actif serait REMPLACÉ immédiatement.
+              if (fin.plan === "premium") {
+                setConfirmDowngrade(true);
+                return;
+              }
+              proceedPro();
+            }}
+          />
+          {/* Premium */}
+          <Plan
+            current={fin.plan === "premium"}
+            premium
+            name="👑 Premium"
+            price={`${fin.premiumFee.toLocaleString("fr-FR").replace(/ | /g, " ")} DA`}
+            per="/mois"
+            desc={
+              <>
+                <b>0 % de commission</b> + priorité dispatch + badge Premium ·
+                vous ne devez que l&apos;abonnement
+                {/* Upgrade prorata (façon Claude) : on ne paie que la différence
                 pour les jours restants, même date de renouvellement. */}
-            {fin.plan === "pro" && fin.upgradeQuote && (
-              <span
-                className="mt-1.5 flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 font-bold"
-                style={{ background: "var(--d-accent)", color: VIOLET }}
-              >
-                <Zap className="size-3.5 shrink-0" />
-                Passage immédiat : payez seulement la différence —{" "}
-                {fin.upgradeQuote.amountDa.toLocaleString("fr-FR")} DA pour vos{" "}
-                {fin.upgradeQuote.daysLeft} jours restants, même date de
-                renouvellement.
-              </span>
-            )}
-          </>
-        }
-        cta={
-          fin.plan === "pro" && fin.upgradeQuote
-            ? `Passer à Premium · ${fin.upgradeQuote.amountDa.toLocaleString("fr-FR")} DA`
-            : "Choisir Premium"
-        }
-        onClick={() => {
-          setUpgrade(fin.plan === "pro" && !!fin.upgradeQuote);
-          setPaying("premium");
-          setStep("choice");
-        }}
-      />
+                {fin.plan === "pro" && fin.upgradeQuote && (
+                  <span
+                    className="mt-1.5 flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 font-bold"
+                    style={{ background: "var(--d-accent)", color: VIOLET }}
+                  >
+                    <Zap className="size-3.5 shrink-0" />
+                    Passage immédiat : payez seulement la différence —{" "}
+                    {fin.upgradeQuote.amountDa.toLocaleString("fr-FR")} DA pour
+                    vos {fin.upgradeQuote.daysLeft} jours restants, même date de
+                    renouvellement.
+                  </span>
+                )}
+              </>
+            }
+            cta={
+              fin.plan === "pro" && fin.upgradeQuote
+                ? `Passer à Premium · ${fin.upgradeQuote.amountDa.toLocaleString("fr-FR")} DA`
+                : "Choisir Premium"
+            }
+            onClick={() => {
+              setUpgrade(fin.plan === "pro" && !!fin.upgradeQuote);
+              setPaying("premium");
+              setStep("choice");
+            }}
+          />
+        </>
+      )}
 
       {/* Modale paiement abonnement (maquette paySubOv) */}
       <Sheet

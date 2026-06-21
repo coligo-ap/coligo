@@ -186,6 +186,23 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
 
       {/* Plans */}
       <Section title="Abonnements chauffeur (commission par plan)">
+        <label className="mb-3 flex items-start gap-2 text-sm font-semibold">
+          <input
+            type="checkbox"
+            checked={cfg.paid_plans_enabled}
+            onChange={(e) => set("paid_plans_enabled", e.target.checked)}
+            className="mt-0.5 size-4"
+          />
+          <span>
+            Abonnements payants Pro / Premium proposés aux chauffeurs
+            <span className="text-muted block text-xs font-normal">
+              Décoché au lancement : le chauffeur ne voit que le plan Gratuit (0
+              % de commission). L&apos;abonnement Prioritaire (visibilité) reste
+              disponible. Garde serveur : tant que c&apos;est décoché, toute
+              souscription Pro/Premium est refusée même via un appel forgé.
+            </span>
+          </span>
+        </label>
         <div className="grid gap-3 sm:grid-cols-5">
           <Num
             label="Gratuit — commission"
