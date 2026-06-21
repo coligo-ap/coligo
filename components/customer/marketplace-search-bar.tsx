@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Search, X } from "lucide-react";
+import {
+  useFilterParams,
+  applyFilters,
+} from "@/lib/customer/marketplace-filters";
 
 // =============================================================================
 // MarketplaceSearchBar — barre de recherche pleine largeur (style Uber Eats),
@@ -15,22 +18,20 @@ import { Search, X } from "lucide-react";
 // =============================================================================
 
 export function MarketplaceSearchBar() {
-  const router = useRouter();
-  const params = useSearchParams();
+  const params = useFilterParams();
   const t = useTranslations("home");
 
   const q = useMemo(() => params.get("q") ?? "", [params]);
 
-  // Buffer local pour l'input — debounce → URL.
+  // Buffer local pour l'input — debounce → URL (sans round-trip serveur).
   const [qBuffer, setQBuffer] = useState(q);
   useEffect(() => setQBuffer(q), [q]);
 
   function pushQuery(value: string) {
-    const sp = new URLSearchParams(params.toString());
-    if (value) sp.set("q", value);
-    else sp.delete("q");
-    const qs = sp.toString();
-    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+    applyFilters((sp) => {
+      if (value) sp.set("q", value);
+      else sp.delete("q");
+    });
   }
 
   // Debounce 350 ms sur le champ texte.

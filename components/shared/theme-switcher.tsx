@@ -1,20 +1,21 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { setTheme } from "@/lib/theme/actions";
-import { cn } from "@/lib/utils";
 
 /**
  * Bascule clair / sombre (header, à côté du sélecteur de langue). Le sombre
  * ne suit PLUS le réglage système : c'est un choix explicite, persisté en
- * cookie. La classe `theme-dark` est togglée immédiatement sur <html> pour
- * un retour visuel instantané, puis la route est rafraîchie (SSR cohérent).
+ * cookie.
+ *
+ * PERF : la bascule est INSTANTANÉE — on toggle la classe `theme-dark` sur
+ * <html> (le thème est piloté 100 % par CSS) et on persiste le cookie en
+ * arrière-plan (fire-and-forget). PLUS de `router.refresh()` : le rafraîchissement
+ * RSC complet rendait le bouton lent/grisé pour rien (le visuel est déjà à jour ;
+ * le cookie suffit pour que le prochain chargement SSR soit cohérent).
  */
 export function ThemeSwitcher() {
-  const router = useRouter();
-  const [pending, start] = useTransition();
   // Lu depuis le DOM (classe posée par le layout racine) — évite tout
   // décalage SSR/client : on n'affiche l'état qu'après montage.
   const [dark, setDark] = useState<boolean | null>(null);
@@ -23,14 +24,12 @@ export function ThemeSwitcher() {
   }, []);
 
   const toggle = () => {
-    if (pending || dark === null) return;
+    if (dark === null) return;
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("theme-dark", next);
-    start(async () => {
-      await setTheme(next ? "dark" : "light");
-      router.refresh();
-    });
+    // Persistance cookie en arrière-plan — ne bloque jamais l'UI.
+    void setTheme(next ? "dark" : "light");
   };
 
   return (
@@ -39,10 +38,7 @@ export function ThemeSwitcher() {
       onClick={toggle}
       aria-label={dark ? "Mode clair" : "Mode sombre"}
       aria-pressed={dark === true}
-      className={cn(
-        "border-border bg-surface text-muted hover:text-foreground inline-flex size-8 shrink-0 items-center justify-center rounded-full border",
-        pending && "opacity-60"
-      )}
+      className="border-border bg-surface text-muted hover:text-foreground inline-flex size-8 shrink-0 items-center justify-center rounded-full border"
     >
       {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
     </button>

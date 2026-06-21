@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useFilterParams } from "@/lib/customer/marketplace-filters";
 import { ArrowRight, Check, Loader2, Plus, Search, Star } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
@@ -34,7 +34,7 @@ type EnrichedGroup = ProductSearchGroup & {
 
 export function ProductSearchResults() {
   const t = useTranslations("productSearch");
-  const params = useSearchParams();
+  const params = useFilterParams();
   const loc = useCustomerLocation();
   const q = (params.get("q") ?? "").trim();
 

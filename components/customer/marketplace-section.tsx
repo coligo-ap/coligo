@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useFilterParams } from "@/lib/customer/marketplace-filters";
 import { MarketplaceGrid } from "@/components/customer/marketplace-grid";
 import { ProductSearchResults } from "@/components/customer/product-search-results";
 import type { PublicMerchant, PromoLabel } from "@/lib/data/merchants-public";
@@ -20,7 +20,7 @@ type Props = {
 };
 
 export function MarketplaceSection(props: Props) {
-  const q = (useSearchParams().get("q") ?? "").trim();
+  const q = (useFilterParams().get("q") ?? "").trim();
   if (q.length >= 2) return <ProductSearchResults />;
   return <MarketplaceGrid {...props} />;
 }

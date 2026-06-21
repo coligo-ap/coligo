@@ -1,10 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Bike, Percent, Star, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  useFilterParams,
+  applyFilters,
+} from "@/lib/customer/marketplace-filters";
 
 // =============================================================================
 // HomeFilterPills — la rangée de pilules de filtres de l'accueil (style Uber
@@ -20,8 +23,7 @@ import { cn } from "@/lib/utils";
 // =============================================================================
 
 export function HomeFilterPills() {
-  const router = useRouter();
-  const params = useSearchParams();
+  const params = useFilterParams();
   const t = useTranslations("home");
 
   const state = useMemo(() => {
@@ -42,12 +44,7 @@ export function HomeFilterPills() {
     };
   }, [params]);
 
-  function apply(mut: (sp: URLSearchParams) => void) {
-    const sp = new URLSearchParams(params.toString());
-    mut(sp);
-    const qs = sp.toString();
-    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
-  }
+  const apply = applyFilters;
 
   const reset = () =>
     apply((sp) => {

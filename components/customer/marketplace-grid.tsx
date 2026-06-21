@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useFilterParams } from "@/lib/customer/marketplace-filters";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowRight, Loader2, MapPin } from "lucide-react";
@@ -57,7 +58,7 @@ export function MarketplaceGrid({
   favoriteIds,
   isAuth = false,
 }: Props) {
-  const params = useSearchParams();
+  const params = useFilterParams();
   const router = useRouter();
   const t = useTranslations("browse");
   const locale = useLocale();

@@ -1,9 +1,12 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { getCategory, getCategoryLabel } from "@/lib/config/categories";
+import {
+  useFilterParams,
+  applyFilters,
+} from "@/lib/customer/marketplace-filters";
 
 // =============================================================================
 // CategoryStrip — catégories rondes en scroll horizontal (mécanique Uber Eats).
@@ -24,18 +27,16 @@ export function CategoryStrip({
 }: {
   categories: { name: string; count: number }[];
 }) {
-  const router = useRouter();
-  const params = useSearchParams();
+  const params = useFilterParams();
   const active = params.get("category");
   const t = useTranslations("browse");
   const locale = useLocale();
 
   function go(category: string | null) {
-    const sp = new URLSearchParams(params.toString());
-    if (category) sp.set("category", category);
-    else sp.delete("category");
-    const qs = sp.toString();
-    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+    applyFilters((sp) => {
+      if (category) sp.set("category", category);
+      else sp.delete("category");
+    });
   }
 
   return (
