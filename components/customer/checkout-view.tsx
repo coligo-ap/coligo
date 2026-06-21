@@ -787,7 +787,7 @@ export function CheckoutView({
               <button
                 type="button"
                 onClick={() => setPayment("online")}
-                className="from-primary-50 mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-2.5 rounded-[13px] bg-gradient-to-r to-[#f4f2ff] px-3.5 py-3 text-start transition active:scale-[0.99]"
+                className="bg-primary-50 mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-2.5 rounded-[13px] px-3.5 py-3 text-start transition active:scale-[0.99]"
               >
                 <span className="text-primary-600 grid size-8 shrink-0 place-items-center rounded-[9px] bg-white shadow-[0_3px_8px_-2px_rgba(91,91,230,0.4)]">
                   <Gift className="size-4" />
@@ -958,7 +958,7 @@ export function CheckoutView({
               {t("recap")}
             </SectionTitle>
             {ctx.service_fee_da > 0 && ctx.service_fee_free_in_da != null && (
-              <div className="from-primary-50 text-primary-700 relative mb-3.5 flex items-center gap-2.5 overflow-hidden rounded-[13px] bg-gradient-to-r to-[#f3f0ff] px-3.5 py-3 text-[12.5px] font-bold">
+              <div className="bg-primary-50 text-primary-700 relative mb-3.5 flex items-center gap-2.5 overflow-hidden rounded-[13px] px-3.5 py-3 text-[12.5px] font-bold">
                 <span className="text-primary-600 grid size-7 shrink-0 place-items-center rounded-[8px] bg-white shadow-[0_2px_6px_-1px_rgba(91,91,230,0.4)]">
                   <Zap className="size-3.5" />
                 </span>
@@ -1070,7 +1070,7 @@ export function CheckoutView({
         {/* Cashback GAGNÉ = gain futur (jamais un frais). Encadré vert séparé.
             Montant RÉEL du mode sélectionné (taux marchand ?? plateforme). */}
         {cashbackOn && cashbackEarnSelected > 0 && ctx.cart.totalDa > 0 && (
-          <div className="from-success-50 co-rise relative mt-3 flex items-center gap-3 overflow-hidden rounded-[16px] bg-gradient-to-r to-[#e8faf0] p-3.5 shadow-[0_6px_18px_-10px_rgba(21,145,90,0.4)]">
+          <div className="bg-success-50 co-rise relative mt-3 flex items-center gap-3 overflow-hidden rounded-[16px] p-3.5 shadow-[0_6px_18px_-10px_rgba(21,145,90,0.4)]">
             <span className="text-success-700 z-[2] grid size-9 shrink-0 place-items-center rounded-[11px] bg-white shadow-[0_3px_8px_-2px_rgba(21,145,90,0.35)]">
               <Gift className="size-[18px]" />
             </span>
@@ -1215,7 +1215,7 @@ function PayCard({
       className={cn(
         "relative flex flex-col items-start gap-2.5 rounded-[16px] border-2 p-3.5 pt-4 text-start transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45",
         selected
-          ? "border-primary-600 from-primary-50 bg-gradient-to-br to-[#f4f2ff] shadow-[0_10px_24px_-10px_rgba(108,43,217,0.45)]"
+          ? "border-primary-600 bg-primary-50 shadow-[0_10px_24px_-10px_rgba(108,43,217,0.45)]"
           : "border-border bg-surface hover:border-primary-300"
       )}
     >
@@ -1383,7 +1383,7 @@ function SlotRadio({
       disabled={disabled}
       className={cn(
         "flex w-full items-center gap-3 px-4 py-3.5 text-start transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50",
-        checked && "from-primary-50 bg-gradient-to-r to-[#f4f2ff]"
+        checked && "bg-primary-50"
       )}
     >
       <span

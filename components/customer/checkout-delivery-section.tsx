@@ -190,7 +190,7 @@ export function CheckoutDeliverySection({
               onClick={() => setEditing(true)}
               className="border-border bg-surface co-rise flex w-full items-center gap-3 rounded-[20px] border p-3.5 text-start shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]"
             >
-              <span className="from-primary-100 relative grid size-[50px] shrink-0 place-items-center overflow-hidden rounded-[13px] bg-gradient-to-br to-[#dfdfea]">
+              <span className="bg-primary-50 relative grid size-[50px] shrink-0 place-items-center overflow-hidden rounded-[13px]">
                 <MapPin
                   className="text-primary-600 size-5"
                   fill="currentColor"
@@ -553,7 +553,7 @@ function DeliveryMapCard({
             update({ positionConfirmed: true });
             onConfirmed();
           }}
-          className="from-primary-50 mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-3 rounded-[13px] bg-gradient-to-r to-[#f4f2ff] p-3.5 text-start active:scale-[0.99]"
+          className="bg-primary-50 mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-3 rounded-[13px] p-3.5 text-start active:scale-[0.99]"
         >
           <span
             className={cn(
