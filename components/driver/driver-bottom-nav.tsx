@@ -2,6 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLocale } from "next-intl";
+
+const LABELS_AR: Record<string, string> = {
+  Accueil: "الرئيسية",
+  Gains: "الأرباح",
+  Historique: "السجل",
+  Compte: "الحساب",
+};
 
 /**
  * Barre d'onglets persistante (Accueil · Gains · Historique · Compte) reproduite
@@ -39,9 +47,13 @@ const ITEMS = [
 
 export function DriverBottomNav() {
   const pathname = usePathname();
+  const isAr = useLocale() === "ar";
 
   return (
-    <nav className="mq-tabbar" aria-label="Navigation livreur">
+    <nav
+      className="mq-tabbar"
+      aria-label={isAr ? "تنقّل السائق" : "Navigation livreur"}
+    >
       {ITEMS.map((item) => {
         const active = item.exact
           ? pathname === item.href
@@ -72,7 +84,7 @@ export function DriverBottomNav() {
                 <path d={item.path} />
               )}
             </svg>
-            {item.label}
+            {isAr ? LABELS_AR[item.label] : item.label}
           </Link>
         );
       })}
