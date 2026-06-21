@@ -1,23 +1,46 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { Globe } from "lucide-react";
+import { Check, ChevronDown, Globe } from "lucide-react";
 import { setLocale } from "@/i18n/actions";
-import { LOCALES, type Locale } from "@/i18n/locale";
+import { LOCALES, LOCALE_LABELS, type Locale } from "@/i18n/locale";
 import { cn } from "@/lib/utils";
 
 /**
- * Bascule de langue FR / ع. Pose le cookie `NEXT_LOCALE` via l'action serveur
+ * Sélecteur de langue — liste déroulante SANS CADRE : un simple déclencheur
+ * (globe + langue courante + chevron) qui se déplie VERS LE BAS au clic et
+ * affiche toutes les langues. Pose le cookie `NEXT_LOCALE` via l'action serveur
  * puis rafraîchit la route → re-rendu avec la nouvelle locale + direction RTL.
  */
 export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
   const active = useLocale() as Locale;
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  // Fermeture au clic en dehors / touche Échap.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   const choose = (next: Locale) => {
+    setOpen(false);
     if (next === active || pending) return;
     start(async () => {
       await setLocale(next);
@@ -25,34 +48,58 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
     });
   };
 
-  const labels: Record<Locale, string> = { fr: "FR", ar: "ع" };
+  // Code court pour le déclencheur (compact) : FR / ع.
+  const shortLabel: Record<Locale, string> = { fr: "FR", ar: "ع" };
 
   return (
-    <div
-      className={cn(
-        "border-border bg-surface inline-flex shrink-0 items-center rounded-full border p-0.5",
-        pending && "opacity-60"
-      )}
-      role="group"
-      aria-label="Langue"
-    >
-      {!compact && <Globe className="text-muted mx-1.5 size-3.5" />}
-      {LOCALES.map((loc) => (
-        <button
-          key={loc}
-          type="button"
-          onClick={() => choose(loc)}
-          aria-pressed={active === loc}
-          className={cn(
-            "min-w-[28px] rounded-full px-2 py-1 text-[12px] font-bold transition-colors",
-            active === loc
-              ? "bg-foreground text-white"
-              : "text-muted hover:text-foreground"
-          )}
+    <div ref={ref} className="relative inline-block shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="Langue"
+        className={cn(
+          // SANS cadre : pas de bordure ni de fond, juste le texte + chevron.
+          "text-muted hover:text-foreground inline-flex items-center gap-1.5 bg-transparent px-1 py-1 text-[13px] font-semibold transition-colors",
+          pending && "opacity-60"
+        )}
+      >
+        <Globe className="size-4" />
+        <span>{compact ? shortLabel[active] : LOCALE_LABELS[active]}</span>
+        <ChevronDown
+          className={cn("size-3.5 transition-transform", open && "rotate-180")}
+        />
+      </button>
+
+      {open && (
+        <ul
+          role="listbox"
+          className="border-border bg-surface absolute end-0 top-full z-50 mt-1 min-w-[150px] overflow-hidden rounded-xl border py-1 shadow-lg"
         >
-          {labels[loc]}
-        </button>
-      ))}
+          {LOCALES.map((loc) => (
+            <li key={loc}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={active === loc}
+                onClick={() => choose(loc)}
+                className={cn(
+                  "flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-[13px] transition-colors",
+                  active === loc
+                    ? "text-foreground font-bold"
+                    : "text-muted hover:text-foreground hover:bg-surface-2"
+                )}
+              >
+                {LOCALE_LABELS[loc]}
+                {active === loc && (
+                  <Check className="text-primary-600 size-4" />
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
