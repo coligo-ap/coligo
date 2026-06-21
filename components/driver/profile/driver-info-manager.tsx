@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { toast } from "@/components/ui/toast";
 import {
   saveDriverVehicleSelf,
@@ -61,28 +62,32 @@ export type SelfRequest = {
   created_at: string;
 };
 
+// [clé (valeur serveur), libellé FR, libellé AR]
 const DOC_TYPES = [
-  ["cni", "Carte d'identité"],
-  ["permis", "Permis de conduire"],
-  ["carte_grise", "Carte grise"],
-  ["passeport", "Passeport"],
-  ["autre", "Autre"],
+  ["cni", "Carte d'identité", "بطاقة التعريف"],
+  ["permis", "Permis de conduire", "رخصة السياقة"],
+  ["carte_grise", "Carte grise", "البطاقة الرمادية"],
+  ["passeport", "Passeport", "جواز السفر"],
+  ["autre", "Autre", "أخرى"],
 ] as const;
 const VEHICLE_TYPES = [
-  ["moto", "Moto"],
-  ["scooter", "Scooter"],
-  ["velo", "Vélo"],
-  ["voiture", "Voiture"],
-  ["camionnette", "Camionnette"],
+  ["moto", "Moto", "دراجة نارية"],
+  ["scooter", "Scooter", "سكوتر"],
+  ["velo", "Vélo", "دراجة"],
+  ["voiture", "Voiture", "سيارة"],
+  ["camionnette", "Camionnette", "شاحنة صغيرة"],
 ] as const;
 const METHODS = [
-  ["especes", "Espèces"],
-  ["ccp", "CCP"],
-  ["baridimob", "BaridiMob"],
-  ["virement", "Virement"],
+  ["especes", "Espèces", "نقداً"],
+  ["ccp", "CCP", "CCP"],
+  ["baridimob", "BaridiMob", "BaridiMob"],
+  ["virement", "Virement", "تحويل"],
 ] as const;
-const lbl = (arr: ReadonlyArray<readonly [string, string]>, v: string | null) =>
-  arr.find(([k]) => k === v)?.[1] ?? v ?? "—";
+const lbl = (
+  arr: ReadonlyArray<readonly [string, string, string]>,
+  v: string | null,
+  isAr = false
+) => arr.find(([k]) => k === v)?.[isAr ? 2 : 1] ?? v ?? "—";
 
 const inp: CSSProperties = {
   width: "100%",
@@ -167,21 +172,25 @@ function StatusPill({
   verified: boolean;
   pending: boolean;
 }) {
+  const isAr = useLocale() === "ar";
+  const checking = isAr ? "⏳ قيد التحقق…" : "⏳ En cours de vérification…";
   if (pending) {
     return (
       <span style={pillStyle("var(--amber)", "rgba(245,158,11,.14)")}>
-        ⏳ En cours de vérification…
+        {checking}
       </span>
     );
   }
   if (verified) {
     return (
-      <span style={pillStyle("var(--go)", "var(--go-soft)")}>✓ Vérifié</span>
+      <span style={pillStyle("var(--go)", "var(--go-soft)")}>
+        {isAr ? "✓ موثّق" : "✓ Vérifié"}
+      </span>
     );
   }
   return (
     <span style={pillStyle("var(--amber)", "rgba(245,158,11,.14)")}>
-      ⏳ En cours de vérification…
+      {checking}
     </span>
   );
 }
@@ -278,6 +287,7 @@ function KV({ k, v }: { k: string; v: string | null }) {
 }
 
 function PendingBanner() {
+  const isAr = useLocale() === "ar";
   return (
     <div
       style={{
@@ -290,8 +300,9 @@ function PendingBanner() {
         marginBottom: 10,
       }}
     >
-      ⏳ Modification en cours de vérification — elle sera prise en compte après
-      validation par Coligo.
+      {isAr
+        ? "⏳ التعديل قيد التحقق — سيُؤخذ بعين الاعتبار بعد موافقة كوليغو."
+        : "⏳ Modification en cours de vérification — elle sera prise en compte après validation par Coligo."}
     </div>
   );
 }
@@ -309,24 +320,26 @@ export function DriverInfoManager({
   payouts: SelfPayout[];
   requests: SelfRequest[];
 }) {
+  const isAr = useLocale() === "ar";
   const pendingKinds = new Set(
     requests.filter((r) => r.status === "pending").map((r) => r.kind)
   );
   return (
     <>
-      <div className="acc-grp">Mes informations</div>
+      <div className="acc-grp">{isAr ? "معلوماتي" : "Mes informations"}</div>
 
       {!verified && (
         <div
           className="card"
           style={{ borderColor: "var(--violet)", marginBottom: 14 }}
         >
-          <b style={{ color: "var(--violet)" }}>Complétez votre profil</b>
+          <b style={{ color: "var(--violet)" }}>
+            {isAr ? "أكمل ملفك الشخصي" : "Complétez votre profil"}
+          </b>
           <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 4 }}>
-            Renseignez votre véhicule, vos pièces et votre versement. Tout est «
-            en cours de vérification » jusqu&apos;à validation par Coligo. Une
-            fois vérifié, chaque nouvelle modification repassera par une
-            demande.
+            {isAr
+              ? "أدخل بيانات مركبتك ووثائقك وطريقة التسديد. كل شيء يبقى «قيد التحقق» حتى موافقة كوليغو. بعد التوثيق، كل تعديل جديد يمرّ عبر طلب."
+              : "Renseignez votre véhicule, vos pièces et votre versement. Tout est « en cours de vérification » jusqu'à validation par Coligo. Une fois vérifié, chaque nouvelle modification repassera par une demande."}
           </p>
         </div>
       )}
@@ -359,6 +372,8 @@ function VehicleSection({
   pending: boolean;
 }) {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [v, setV] = useState(vehicle);
   const set =
     (k: keyof SelfVehicle) =>
@@ -374,7 +389,12 @@ function VehicleSection({
     if (state.ok) {
       setOk(true);
       toast.success(
-        verified ? "Demande envoyée — en cours de vérification" : "Enregistré"
+        verified
+          ? tr(
+              "Demande envoyée — en cours de vérification",
+              "تم إرسال الطلب — قيد التحقق"
+            )
+          : tr("Enregistré", "تم الحفظ")
       );
       router.refresh();
       const t = setTimeout(() => setOk(false), 2500);
@@ -386,9 +406,10 @@ function VehicleSection({
   const badge = <StatusPill verified={verified} pending={pending} />;
 
   // Vérifié + une demande déjà en attente → lecture seule + bandeau.
+  const sectionTitle = tr("Véhicule & identité", "المركبة والهوية");
   if (verified && pending) {
     return (
-      <Section title="Véhicule & identité" badge={badge}>
+      <Section title={sectionTitle} badge={badge}>
         <PendingBanner />
         <VehicleReadonly v={v} />
       </Section>
@@ -396,15 +417,18 @@ function VehicleSection({
   }
 
   return (
-    <Section title="Véhicule & identité" badge={badge} defaultOpen={!verified}>
+    <Section title={sectionTitle} badge={badge} defaultOpen={!verified}>
       {verified && (
         <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>
-          Modifiez puis envoyez : la demande sera appliquée après validation.
+          {tr(
+            "Modifiez puis envoyez : la demande sera appliquée après validation.",
+            "عدّل ثم أرسل: يُطبَّق الطلب بعد الموافقة."
+          )}
         </p>
       )}
       <form action={action} style={{ display: "grid", gap: 10 }}>
         <div>
-          <label style={lab}>Type de véhicule</label>
+          <label style={lab}>{tr("Type de véhicule", "نوع المركبة")}</label>
           <select
             name="vehicle_type"
             value={v.vehicle_type ?? ""}
@@ -412,9 +436,9 @@ function VehicleSection({
             style={inp}
           >
             <option value="">—</option>
-            {VEHICLE_TYPES.map(([val, l]) => (
+            {VEHICLE_TYPES.map(([val, l, lar]) => (
               <option key={val} value={val}>
-                {l}
+                {isAr ? lar : l}
               </option>
             ))}
           </select>
@@ -422,13 +446,13 @@ function VehicleSection({
         <Row>
           <CField
             name="vehicle_brand"
-            label="Marque"
+            label={tr("Marque", "العلامة")}
             value={v.vehicle_brand}
             onChange={set("vehicle_brand")}
           />
           <CField
             name="vehicle_model"
-            label="Modèle"
+            label={tr("Modèle", "الطراز")}
             value={v.vehicle_model}
             onChange={set("vehicle_model")}
           />
@@ -436,13 +460,13 @@ function VehicleSection({
         <Row>
           <CField
             name="vehicle_plate"
-            label="Immatriculation"
+            label={tr("Immatriculation", "رقم التسجيل")}
             value={v.vehicle_plate}
             onChange={set("vehicle_plate")}
           />
           <CField
             name="vehicle_color"
-            label="Couleur"
+            label={tr("Couleur", "اللون")}
             value={v.vehicle_color}
             onChange={set("vehicle_color")}
           />
@@ -450,14 +474,14 @@ function VehicleSection({
         <Row>
           <CField
             name="vehicle_year"
-            label="Année"
+            label={tr("Année", "السنة")}
             type="number"
             value={v.vehicle_year ? String(v.vehicle_year) : ""}
             onChange={set("vehicle_year")}
           />
           <CField
             name="wilaya"
-            label="Wilaya"
+            label={tr("Wilaya", "الولاية")}
             value={v.wilaya}
             onChange={set("wilaya")}
           />
@@ -465,47 +489,64 @@ function VehicleSection({
         <Row>
           <CField
             name="id_card_number"
-            label="N° carte d'identité"
+            label={tr("N° carte d'identité", "رقم بطاقة التعريف")}
             value={v.id_card_number}
             onChange={set("id_card_number")}
           />
           <CField
             name="national_id_number"
-            label="N° national"
+            label={tr("N° national", "الرقم الوطني")}
             value={v.national_id_number}
             onChange={set("national_id_number")}
           />
         </Row>
         <CField
           name="address"
-          label="Adresse"
+          label={tr("Adresse", "العنوان")}
           value={v.address}
           onChange={set("address")}
         />
         <SubmitBtn
-          idle={verified ? "Envoyer la demande" : "Enregistrer"}
+          idle={
+            verified
+              ? tr("Envoyer la demande", "إرسال الطلب")
+              : tr("Enregistrer", "حفظ")
+          }
           success={ok}
-          successLabel={verified ? "Envoyée" : "Enregistré"}
+          successLabel={
+            verified ? tr("Envoyée", "أُرسلت") : tr("Enregistré", "تم الحفظ")
+          }
         />
       </form>
     </Section>
   );
 }
 function VehicleReadonly({ v }: { v: SelfVehicle }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   return (
     <>
-      <KV k="Type" v={lbl(VEHICLE_TYPES, v.vehicle_type)} />
       <KV
-        k="Véhicule"
+        k={tr("Type", "النوع")}
+        v={lbl(VEHICLE_TYPES, v.vehicle_type, isAr)}
+      />
+      <KV
+        k={tr("Véhicule", "المركبة")}
         v={[v.vehicle_brand, v.vehicle_model].filter(Boolean).join(" ") || null}
       />
-      <KV k="Immatriculation" v={v.vehicle_plate} />
-      <KV k="Couleur" v={v.vehicle_color} />
-      <KV k="Année" v={v.vehicle_year ? String(v.vehicle_year) : null} />
-      <KV k="N° carte d'identité" v={v.id_card_number} />
-      <KV k="N° national" v={v.national_id_number} />
-      <KV k="Wilaya" v={v.wilaya} />
-      <KV k="Adresse" v={v.address} />
+      <KV k={tr("Immatriculation", "رقم التسجيل")} v={v.vehicle_plate} />
+      <KV k={tr("Couleur", "اللون")} v={v.vehicle_color} />
+      <KV
+        k={tr("Année", "السنة")}
+        v={v.vehicle_year ? String(v.vehicle_year) : null}
+      />
+      <KV
+        k={tr("N° carte d'identité", "رقم بطاقة التعريف")}
+        v={v.id_card_number}
+      />
+      <KV k={tr("N° national", "الرقم الوطني")} v={v.national_id_number} />
+      <KV k={tr("Wilaya", "الولاية")} v={v.wilaya} />
+      <KV k={tr("Adresse", "العنوان")} v={v.address} />
     </>
   );
 }
@@ -561,13 +602,21 @@ function Field({
 }
 
 // ---------------- Documents ----------------
-function docBadge(s: string) {
+function docBadge(s: string, isAr: boolean) {
   if (s === "approved")
-    return { t: "✓ Vérifiée", c: "var(--go)", bg: "var(--go-soft)" };
+    return {
+      t: isAr ? "✓ موثّقة" : "✓ Vérifiée",
+      c: "var(--go)",
+      bg: "var(--go-soft)",
+    };
   if (s === "rejected")
-    return { t: "Refusée", c: "var(--red)", bg: "var(--red-soft)" };
+    return {
+      t: isAr ? "مرفوضة" : "Refusée",
+      c: "var(--red)",
+      bg: "var(--red-soft)",
+    };
   return {
-    t: "⏳ En vérification",
+    t: isAr ? "⏳ قيد التحقق" : "⏳ En vérification",
     c: "var(--amber)",
     bg: "rgba(245,158,11,.14)",
   };
@@ -575,6 +624,8 @@ function docBadge(s: string) {
 
 function DocsSection({ documents }: { documents: SelfDoc[] }) {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [adding, setAdding] = useState(false);
   const [ok, setOk] = useState(false);
   const [state, action] = useActionState<ActionState, FormData>(
@@ -611,7 +662,12 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
     if (state.ok) {
       setOk(true);
       clearPreview();
-      toast.success("Pièce envoyée — en cours de vérification");
+      toast.success(
+        tr(
+          "Pièce envoyée — en cours de vérification",
+          "تم إرسال الوثيقة — قيد التحقق"
+        )
+      );
       router.refresh();
       const t = setTimeout(() => {
         setOk(false);
@@ -628,24 +684,30 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
     documents.length > 0 && documents.every((d) => d.status === "approved");
   const headBadge = hasPending ? (
     <span style={pillStyle("var(--amber)", "rgba(245,158,11,.14)")}>
-      ⏳ En vérification…
+      {tr("⏳ En vérification…", "⏳ قيد التحقق…")}
     </span>
   ) : allApproved ? (
-    <span style={pillStyle("var(--go)", "var(--go-soft)")}>✓ Vérifiées</span>
+    <span style={pillStyle("var(--go)", "var(--go-soft)")}>
+      {tr("✓ Vérifiées", "✓ موثّقة")}
+    </span>
   ) : undefined;
 
   return (
     <Section
-      title={`Pièces d'identité (${documents.length})`}
+      title={
+        isAr
+          ? `وثائق الهوية (${documents.length})`
+          : `Pièces d'identité (${documents.length})`
+      }
       badge={headBadge}
     >
       {documents.length === 0 && (
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
-          Aucune pièce envoyée.
+          {tr("Aucune pièce envoyée.", "لم تُرسل أي وثيقة.")}
         </p>
       )}
       {documents.map((d) => {
-        const b = docBadge(d.status);
+        const b = docBadge(d.status, isAr);
         return (
           <div
             key={d.id}
@@ -662,7 +724,7 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
                 gap: 8,
               }}
             >
-              <b>{lbl(DOC_TYPES, d.doc_type)}</b>
+              <b>{lbl(DOC_TYPES, d.doc_type, isAr)}</b>
               <span
                 style={{
                   color: b.c,
@@ -678,12 +740,12 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
               </span>
             </div>
             <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 2 }}>
-              {d.number ?? "N° —"}
-              {d.expires_at ? ` · exp. ${d.expires_at}` : ""}
+              {d.number ?? tr("N° —", "الرقم —")}
+              {d.expires_at ? ` · ${tr("exp.", "تنتهي")} ${d.expires_at}` : ""}
             </div>
             {d.status === "rejected" && d.review_note && (
               <div style={{ color: "var(--red)", fontSize: 12, marginTop: 2 }}>
-                Motif : {d.review_note}
+                {tr("Motif :", "السبب:")} {d.review_note}
               </div>
             )}
             {d.scanUrl && (
@@ -697,7 +759,7 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
                   fontWeight: 700,
                 }}
               >
-                Revoir le document
+                {tr("Revoir le document", "إعادة عرض الوثيقة")}
               </a>
             )}
           </div>
@@ -710,24 +772,37 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
           style={{ display: "grid", gap: 10, marginTop: 12 }}
         >
           <div>
-            <label style={lab}>Type *</label>
+            <label style={lab}>{tr("Type *", "النوع *")}</label>
             <select name="doc_type" required style={inp} defaultValue="cni">
-              {DOC_TYPES.map(([val, l]) => (
+              {DOC_TYPES.map(([val, l, lar]) => (
                 <option key={val} value={val}>
-                  {l}
+                  {isAr ? lar : l}
                 </option>
               ))}
             </select>
           </div>
-          <Field name="number" label="Numéro" />
+          <Field name="number" label={tr("Numéro", "الرقم")} />
           <Row>
-            <Field name="issued_at" label="Émission" type="date" />
-            <Field name="expires_at" label="Expiration" type="date" />
+            <Field
+              name="issued_at"
+              label={tr("Émission", "تاريخ الإصدار")}
+              type="date"
+            />
+            <Field
+              name="expires_at"
+              label={tr("Expiration", "تاريخ الانتهاء")}
+              type="date"
+            />
           </Row>
 
           {/* Sélection + APERÇU avant envoi */}
           <div>
-            <label style={lab}>Scan / photo * (JPG, PNG, WEBP ou PDF)</label>
+            <label style={lab}>
+              {tr(
+                "Scan / photo * (JPG, PNG, WEBP ou PDF)",
+                "مسح / صورة * (JPG, PNG, WEBP أو PDF)"
+              )}
+            </label>
             <input
               id="doc-file"
               name="file"
@@ -757,7 +832,7 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={preview.url}
-                    alt="Aperçu"
+                    alt={tr("Aperçu", "معاينة")}
                     style={{
                       width: 56,
                       height: 56,
@@ -807,7 +882,7 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
                         cursor: "pointer",
                       }}
                     >
-                      Remplacer
+                      {tr("Remplacer", "استبدال")}
                     </label>
                     <button
                       type="button"
@@ -826,7 +901,7 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
                         border: 0,
                       }}
                     >
-                      Retirer
+                      {tr("Retirer", "إزالة")}
                     </button>
                   </div>
                 </div>
@@ -835,11 +910,17 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
           </div>
 
           <p style={{ fontSize: 11.5, color: "var(--muted)" }}>
-            Une fois envoyée, la pièce passe « en vérification » et ne peut plus
-            être modifiée ni supprimée.
+            {tr(
+              "Une fois envoyée, la pièce passe « en vérification » et ne peut plus être modifiée ni supprimée.",
+              "بمجرد الإرسال، تصبح الوثيقة «قيد التحقق» ولا يمكن تعديلها أو حذفها."
+            )}
           </p>
           <div style={{ display: "flex", gap: 8 }}>
-            <SubmitBtn idle="Envoyer" success={ok} successLabel="Envoyée" />
+            <SubmitBtn
+              idle={tr("Envoyer", "إرسال")}
+              success={ok}
+              successLabel={tr("Envoyée", "أُرسلت")}
+            />
             <button
               type="button"
               className="btnlink"
@@ -848,7 +929,7 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
                 setAdding(false);
               }}
             >
-              Annuler
+              {tr("Annuler", "إلغاء")}
             </button>
           </div>
         </form>
@@ -859,7 +940,7 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
           style={{ textAlign: "left", marginTop: 10 }}
           onClick={() => setAdding(true)}
         >
-          + Envoyer une pièce
+          {tr("+ Envoyer une pièce", "+ إرسال وثيقة")}
         </button>
       )}
     </Section>
@@ -877,6 +958,8 @@ function PayoutsSection({
   pending: boolean;
 }) {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [adding, setAdding] = useState(false);
   const [del, startDel] = useTransition();
   const [ok, setOk] = useState(false);
@@ -888,7 +971,12 @@ function PayoutsSection({
     if (state.ok) {
       setOk(true);
       toast.success(
-        verified ? "Demande envoyée — en cours de vérification" : "Moyen ajouté"
+        verified
+          ? tr(
+              "Demande envoyée — en cours de vérification",
+              "تم إرسال الطلب — قيد التحقق"
+            )
+          : tr("Moyen ajouté", "تمت إضافة الطريقة")
       );
       router.refresh();
       const t = setTimeout(() => {
@@ -902,13 +990,15 @@ function PayoutsSection({
 
   return (
     <Section
-      title={`Versement (${payouts.length})`}
+      title={
+        isAr ? `التسديد (${payouts.length})` : `Versement (${payouts.length})`
+      }
       badge={<StatusPill verified={verified} pending={pending} />}
     >
       {verified && pending && <PendingBanner />}
       {payouts.length === 0 && (
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
-          Aucun moyen de versement.
+          {tr("Aucun moyen de versement.", "لا توجد طريقة تسديد.")}
         </p>
       )}
       {payouts.map((p) => (
@@ -925,8 +1015,8 @@ function PayoutsSection({
         >
           <div>
             <b>
-              {lbl(METHODS, p.method)}
-              {p.is_default ? " · défaut" : ""}
+              {lbl(METHODS, p.method, isAr)}
+              {p.is_default ? tr(" · défaut", " · افتراضي") : ""}
             </b>
             <div style={{ color: "var(--muted)", fontSize: 12 }}>
               {p.account_number ?? "—"}
@@ -937,12 +1027,13 @@ function PayoutsSection({
             <button
               type="button"
               onClick={() => {
-                if (!confirm("Supprimer ce moyen ?")) return;
+                if (!confirm(tr("Supprimer ce moyen ?", "حذف هذه الطريقة؟")))
+                  return;
                 startDel(async () => {
                   const r = await deleteDriverPayoutSelf(p.id);
                   if (r.error) toast.error(r.error);
                   else {
-                    toast.success("Supprimé");
+                    toast.success(tr("Supprimé", "تم الحذف"));
                     router.refresh();
                   }
                 });
@@ -956,7 +1047,7 @@ function PayoutsSection({
                 fontSize: 12,
               }}
             >
-              Supprimer
+              {tr("Supprimer", "حذف")}
             </button>
           )}
         </div>
@@ -968,18 +1059,21 @@ function PayoutsSection({
           style={{ display: "grid", gap: 10, marginTop: 12 }}
         >
           <div>
-            <label style={lab}>Moyen *</label>
+            <label style={lab}>{tr("Moyen *", "الطريقة *")}</label>
             <select name="method" required style={inp} defaultValue="ccp">
-              {METHODS.map(([val, l]) => (
+              {METHODS.map(([val, l, lar]) => (
                 <option key={val} value={val}>
-                  {l}
+                  {isAr ? lar : l}
                 </option>
               ))}
             </select>
           </div>
-          <Field name="label" label="Libellé" />
-          <Field name="account_number" label="N° de compte / CCP / RIP" />
-          <Field name="account_name" label="Titulaire" />
+          <Field name="label" label={tr("Libellé", "التسمية")} />
+          <Field
+            name="account_number"
+            label={tr("N° de compte / CCP / RIP", "رقم الحساب / CCP / RIP")}
+          />
+          <Field name="account_name" label={tr("Titulaire", "صاحب الحساب")} />
           <label
             style={{
               display: "flex",
@@ -988,20 +1082,27 @@ function PayoutsSection({
               alignItems: "center",
             }}
           >
-            <input type="checkbox" name="is_default" /> Par défaut
+            <input type="checkbox" name="is_default" />{" "}
+            {tr("Par défaut", "افتراضي")}
           </label>
           <div style={{ display: "flex", gap: 8 }}>
             <SubmitBtn
-              idle={verified ? "Envoyer la demande" : "Ajouter"}
+              idle={
+                verified
+                  ? tr("Envoyer la demande", "إرسال الطلب")
+                  : tr("Ajouter", "إضافة")
+              }
               success={ok}
-              successLabel={verified ? "Envoyée" : "Ajouté"}
+              successLabel={
+                verified ? tr("Envoyée", "أُرسلت") : tr("Ajouté", "أُضيف")
+              }
             />
             <button
               type="button"
               className="btnlink"
               onClick={() => setAdding(false)}
             >
-              Annuler
+              {tr("Annuler", "إلغاء")}
             </button>
           </div>
         </form>
@@ -1012,7 +1113,9 @@ function PayoutsSection({
           style={{ textAlign: "left", marginTop: 10 }}
           onClick={() => setAdding(true)}
         >
-          {verified ? "+ Proposer un moyen" : "+ Ajouter un moyen"}
+          {verified
+            ? tr("+ Proposer un moyen", "+ اقتراح طريقة")
+            : tr("+ Ajouter un moyen", "+ إضافة طريقة")}
         </button>
       )}
     </Section>
@@ -1021,18 +1124,24 @@ function PayoutsSection({
 
 // ---------------- Historique des demandes ----------------
 function RequestHistory({ requests }: { requests: SelfRequest[] }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const badge = (s: string) =>
     s === "approved"
-      ? { t: "Approuvée ✓", c: "var(--go)", bg: "var(--go-soft)" }
+      ? {
+          t: tr("Approuvée ✓", "مقبولة ✓"),
+          c: "var(--go)",
+          bg: "var(--go-soft)",
+        }
       : s === "rejected"
-        ? { t: "Refusée", c: "var(--red)", bg: "var(--red-soft)" }
+        ? { t: tr("Refusée", "مرفوضة"), c: "var(--red)", bg: "var(--red-soft)" }
         : {
-            t: "En cours de vérification…",
+            t: tr("En cours de vérification…", "قيد التحقق…"),
             c: "var(--amber)",
             bg: "rgba(245,158,11,.14)",
           };
   return (
-    <Section title="Mes demandes" defaultOpen={false}>
+    <Section title={tr("Mes demandes", "طلباتي")} defaultOpen={false}>
       {requests.map((r) => {
         const b = badge(r.status);
         return (
@@ -1069,7 +1178,7 @@ function RequestHistory({ requests }: { requests: SelfRequest[] }) {
             <div style={{ color: "var(--muted)" }}>{r.note}</div>
             {r.review_note && (
               <div style={{ color: "var(--muted)", fontSize: 12 }}>
-                Réponse : {r.review_note}
+                {tr("Réponse :", "الرد:")} {r.review_note}
               </div>
             )}
           </div>
