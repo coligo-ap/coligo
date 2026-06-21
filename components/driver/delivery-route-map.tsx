@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Clock, ExternalLink, MapPin } from "lucide-react";
 import { haversineKm } from "@/lib/delivery/distance";
@@ -36,6 +37,7 @@ export function DeliveryRouteMap({
   const driverMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
   const coords = useDriverPosition();
   const [mapReady, setMapReady] = useState(false);
+  const isAr = useLocale() === "ar";
   const [mapError, setMapError] = useState<string | null>(null);
 
   const from = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
@@ -104,7 +106,7 @@ export function DeliveryRouteMap({
       .catch((err) => {
         if (!disposed) {
           setMapError(
-            "Carte indisponible : " +
+            (isAr ? "الخريطة غير متاحة: " : "Carte indisponible : ") +
               (err instanceof Error ? err.message : String(err))
           );
         }
