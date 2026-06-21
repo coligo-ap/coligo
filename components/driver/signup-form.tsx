@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,8 @@ const initial: DriverAuthState = {};
 export function DriverSignupForm() {
   const sp = useSearchParams();
   const next = sp.get("next") ?? "";
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [state, action, pending] = useActionState(driverSignup, initial);
   return (
     <form action={action} className="space-y-3">
@@ -21,7 +24,7 @@ export function DriverSignupForm() {
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
-          <Label htmlFor="first_name">Prénom</Label>
+          <Label htmlFor="first_name">{tr("Prénom", "الاسم")}</Label>
           <Input
             id="first_name"
             name="first_name"
@@ -32,7 +35,7 @@ export function DriverSignupForm() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="last_name">Nom</Label>
+          <Label htmlFor="last_name">{tr("Nom", "اللقب")}</Label>
           <Input
             id="last_name"
             name="last_name"
@@ -45,7 +48,7 @@ export function DriverSignupForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="phone">Téléphone</Label>
+        <Label htmlFor="phone">{tr("Téléphone", "الهاتف")}</Label>
         <Input
           id="phone"
           name="phone"
@@ -59,7 +62,7 @@ export function DriverSignupForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{tr("Email", "البريد الإلكتروني")}</Label>
         <Input
           id="email"
           name="email"
@@ -73,7 +76,7 @@ export function DriverSignupForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="wilaya">Wilaya</Label>
+        <Label htmlFor="wilaya">{tr("Wilaya", "الولاية")}</Label>
         <select
           id="wilaya"
           name="wilaya"
@@ -83,7 +86,7 @@ export function DriverSignupForm() {
           className="h-12 w-full rounded-[12px] border border-[var(--line)] bg-white px-3 text-sm font-medium text-[var(--ink)] outline-none focus:border-[#6c2bd9] disabled:opacity-50"
         >
           <option value="" disabled>
-            Choisis ta wilaya
+            {tr("Choisis ta wilaya", "اختر ولايتك")}
           </option>
           {WILAYAS.map((w, i) => (
             <option key={w} value={w}>
@@ -94,7 +97,7 @@ export function DriverSignupForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="password">Mot de passe</Label>
+        <Label htmlFor="password">{tr("Mot de passe", "كلمة المرور")}</Label>
         <Input
           id="password"
           name="password"
@@ -109,7 +112,7 @@ export function DriverSignupForm() {
       {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
       <Button type="submit" className="w-full" disabled={pending}>
         {pending && <Loader2 className="size-4 animate-spin" />}
-        Créer mon compte
+        {tr("Créer mon compte", "إنشاء حسابي")}
       </Button>
     </form>
   );

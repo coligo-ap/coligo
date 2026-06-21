@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "next-intl";
 import { Crosshair, MapPin } from "lucide-react";
 import { useWorkZone } from "@/lib/driver/work-zone";
 import { WorkZoneSheet } from "./work-zone-sheet";
@@ -11,6 +12,8 @@ import { WorkZoneSheet } from "./work-zone-sheet";
  */
 export function WorkZoneControl() {
   const zone = useWorkZone();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [open, setOpen] = useState(false);
 
   return (
@@ -22,17 +25,17 @@ export function WorkZoneControl() {
         style={{
           top: "max(106px, calc(env(safe-area-inset-top) + 64px))",
         }}
-        aria-label="Définir ma zone de travail"
+        aria-label={tr("Définir ma zone de travail", "تحديد منطقة عملي")}
       >
         {zone ? (
           <>
             <MapPin className="size-4" />
-            Zone · {zone.radiusKm} km
+            {tr("Zone", "منطقة")} · {zone.radiusKm} km
           </>
         ) : (
           <>
             <Crosshair className="size-4" />
-            Zone de travail
+            {tr("Zone de travail", "منطقة العمل")}
           </>
         )}
       </button>

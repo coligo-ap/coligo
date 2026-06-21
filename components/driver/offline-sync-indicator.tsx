@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { CloudOff, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import {
@@ -24,6 +25,7 @@ import { validateDelivery } from "@/app/(driver)/actions";
  */
 export function OfflineSyncIndicator() {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
   const [online, setOnline] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
@@ -79,8 +81,12 @@ export function OfflineSyncIndicator() {
       ) : (
         <RefreshCw className="size-3.5" />
       )}
-      {!online && "Hors ligne"}
-      {pendingCount > 0 && <span>{pendingCount} à synchroniser</span>}
+      {!online && (isAr ? "غير متصل" : "Hors ligne")}
+      {pendingCount > 0 && (
+        <span>
+          {pendingCount} {isAr ? "بانتظار المزامنة" : "à synchroniser"}
+        </span>
+      )}
     </div>
   );
 }
@@ -95,9 +101,12 @@ async function processOne(
     code: action.code ?? undefined,
     skipCode: action.skip_code,
   });
+  const ar =
+    typeof document !== "undefined" &&
+    document.documentElement.getAttribute("dir") === "rtl";
   if (r.ok) {
     await removePending(action.id);
-    toast.success("Livraison synchronisée");
+    toast.success(ar ? "تمت مزامنة التوصيلة" : "Livraison synchronisée");
     router.refresh();
   } else if (
     r.reason === "bad_code" ||
@@ -107,7 +116,7 @@ async function processOne(
   ) {
     // Refus définitif du serveur — on retire l'action et signale.
     await removePending(action.id);
-    toast.error(`Validation refusée : ${r.reason}`);
+    toast.error((ar ? "رُفض التأكيد: " : "Validation refusée : ") + r.reason);
   } else {
     // Erreur transitoire — on garde, on incrémente.
     await markPendingError(action.id, r.reason ?? "unknown");
