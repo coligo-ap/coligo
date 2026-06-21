@@ -795,6 +795,36 @@ body {
   ) {
   color: #fca5a5;
 }
+/* Fonds tintés des cartes/pastilles « success/danger/warning » (`bg-*-50/100`).
+   Le texte est déjà remappé en clair ci-dessus ; sans remapper AUSSI le fond,
+   ces cartes restaient en vert/rouge TRÈS pâle (`#ecfdf5`…) en mode sombre →
+   texte clair sur fond clair = illisible (ex. bandeau cashback du checkout).
+   On bascule le fond vers une teinte sombre translucide : texte clair sur fond
+   sombre teinté = bon contraste, sans toucher les pastilles pleines (`-500`). */
+.theme-dark :is([data-space="client"], .drive-jakarta) :where(.bg-success-50) {
+  background-color: rgba(74, 222, 128, 0.1);
+}
+.theme-dark
+  :is([data-space="client"], .drive-jakarta)
+  :where(.bg-success-100, .hover\:bg-success-100:hover) {
+  background-color: rgba(74, 222, 128, 0.18);
+}
+.theme-dark :is([data-space="client"], .drive-jakarta) :where(.bg-danger-50) {
+  background-color: rgba(252, 165, 165, 0.1);
+}
+.theme-dark
+  :is([data-space="client"], .drive-jakarta)
+  :where(.bg-danger-100, .hover\:bg-danger-100:hover) {
+  background-color: rgba(252, 165, 165, 0.18);
+}
+.theme-dark :is([data-space="client"], .drive-jakarta) :where(.bg-warning-50) {
+  background-color: rgba(252, 211, 77, 0.1);
+}
+.theme-dark
+  :is([data-space="client"], .drive-jakarta)
+  :where(.bg-warning-100, .hover\:bg-warning-100:hover) {
+  background-color: rgba(252, 211, 77, 0.18);
+}
 
 /* ── Espace LIVREUR : mode sombre (toggle du compte livreur) ──
    Même mécanisme que le client : on remappe les tokens globaux `--color-*`
