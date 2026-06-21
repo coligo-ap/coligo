@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { useFilterParams } from "@/lib/customer/marketplace-filters";
+import {
+  useFilterParams,
+  applyFilters,
+} from "@/lib/customer/marketplace-filters";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowRight, Loader2, MapPin } from "lucide-react";
@@ -59,7 +61,6 @@ export function MarketplaceGrid({
   isAuth = false,
 }: Props) {
   const params = useFilterParams();
-  const router = useRouter();
   const t = useTranslations("browse");
   const locale = useLocale();
   const loc = useCustomerLocation();
@@ -244,7 +245,12 @@ export function MarketplaceGrid({
           : t("merchantsNearYou");
 
   function resetFilters() {
-    router.replace("/", { scroll: false });
+    // Efface TOUS les filtres via le store (history.replaceState) — sinon
+    // router.replace("/") est un no-op : Next croit être déjà sur "/" car le
+    // store a changé l'URL hors de son routeur.
+    applyFilters((sp) => {
+      for (const k of [...sp.keys()]) sp.delete(k);
+    });
   }
 
   return (

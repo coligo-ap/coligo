@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { setGlobalAvailability } from "@/app/(driver)/actions";
 import { useDriverOnline, setDriverOnline } from "@/lib/driver/online-store";
 import { DriverBalancePill } from "@/components/driver/balance-pill";
+import { DriverDarkPill } from "@/components/driver/driver-dark-pill";
 import { playGo } from "@/lib/driver/sounds";
 
 export const FROZEN_MESSAGE =
@@ -220,7 +221,10 @@ export function DriverHomeMaquette({
         ) : (
           <span aria-hidden />
         )}
-        <DriverBalancePill driverId={driverId} />
+        <div className="flex items-center gap-2">
+          <DriverDarkPill />
+          <DriverBalancePill driverId={driverId} />
+        </div>
       </div>
 
       {/* Feuille d'accueil (tête d'information), posée au-dessus de la tabbar.
