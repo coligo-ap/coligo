@@ -27,6 +27,7 @@ import { createClient } from "@/lib/supabase/client";
 import { PushRegistrar } from "@/components/native/push-registrar";
 import { DriveMap, type LatLng } from "@/components/customer/drive/drive-map";
 import { ChauffeurDarkPill } from "@/components/chauffeur/chauffeur-dark-pill";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import {
   VIOLET,
@@ -462,8 +463,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           )}
         </div>
 
-        {/* DROITE — bascule thème + GPS (recentrer) */}
+        {/* DROITE — langue + thème + GPS (recentrer) */}
         <div className="flex flex-col items-end gap-2">
+          <LanguageSwitcher compact />
           <ChauffeurDarkPill />
           <button
             type="button"
