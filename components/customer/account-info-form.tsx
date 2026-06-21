@@ -73,17 +73,17 @@ export function AccountInfoForm({
             invalid={phoneShowError}
             trailing={
               phoneValid ? (
-                <CheckCircle2 className="size-4 shrink-0 text-[#16b364]" />
+                <CheckCircle2 className="text-success-600 size-4 shrink-0" />
               ) : undefined
             }
             footer={
               phoneShowError ? (
-                <span className="text-[#e5484d]">
+                <span className="text-danger-600">
                   Numéro invalide — mobile algérien (0X XX XX XX XX) ou
                   international (+…).
                 </span>
               ) : phoneValid ? (
-                <span className="text-[#16b364]">Numéro valide ✓</span>
+                <span className="text-success-600">Numéro valide ✓</span>
               ) : (
                 <span className="text-muted">
                   Numéro obligatoire (ex. 06 12 34 56 78).
@@ -115,7 +115,7 @@ export function AccountInfoForm({
             <p
               className={
                 "mb-2 text-center text-[12.5px] font-semibold " +
-                (saveMsg.ok ? "text-[#16b364]" : "text-[#e5484d]")
+                (saveMsg.ok ? "text-success-600" : "text-danger-600")
               }
             >
               {saveMsg.text}
@@ -170,7 +170,7 @@ function Field({
         className={
           "bg-surface-2 flex items-center gap-2.5 rounded-[13px] border px-3.5 py-3.5 transition focus-within:ring-2 " +
           (invalid
-            ? "border-[#e5484d] focus-within:border-[#e5484d] focus-within:ring-[#e5484d]/15"
+            ? "border-danger-500 focus-within:border-danger-500 focus-within:ring-danger-500/15"
             : "border-border focus-within:border-primary-400 focus-within:ring-primary-100")
         }
       >
@@ -223,7 +223,7 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
             </button>
           </div>
           {okMsg ? (
-            <p className="mt-2 px-0.5 text-[11.5px] font-semibold text-[#16b364]">
+            <p className="text-success-600 mt-2 px-0.5 text-[11.5px] font-semibold">
               {okMsg}
             </p>
           ) : (
@@ -252,7 +252,7 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
           </div>
           {/* Erreur EN LIGNE (email déjà utilisé, etc.) */}
           {err ? (
-            <p className="px-0.5 text-[11.5px] font-semibold text-[#e5484d]">
+            <p className="text-danger-600 px-0.5 text-[11.5px] font-semibold">
               {err}
             </p>
           ) : (
@@ -316,13 +316,13 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
             className={
               "bg-surface-2 w-full rounded-[13px] border px-3.5 py-3.5 text-center text-lg font-bold tracking-[0.3em] tabular-nums outline-none " +
               (err
-                ? "border-[#e5484d]"
+                ? "border-danger-500"
                 : "border-border focus:border-primary-400")
             }
           />
           {/* Erreur EN LIGNE sous le champ code (essais restants, blocage…) */}
           {err && (
-            <p className="px-0.5 text-[11.5px] font-semibold text-[#e5484d]">
+            <p className="text-danger-600 px-0.5 text-[11.5px] font-semibold">
               {err}
             </p>
           )}

@@ -110,13 +110,13 @@ export function PhoneGateForm({
                 {/* Téléphone : indicatif pays (Algérie par défaut) + numéro */}
                 <div className="space-y-1.5">
                   <label className="text-foreground text-sm font-medium">
-                    Téléphone <span className="text-[#e5484d]">*</span>
+                    Téléphone <span className="text-danger-600">*</span>
                   </label>
                   <div
                     className={
                       "bg-surface-2 flex items-center gap-1.5 rounded-[12px] border pr-3.5 transition focus-within:ring-2 " +
                       (showError
-                        ? "border-[#e5484d] focus-within:border-[#e5484d] focus-within:ring-[#e5484d]/15"
+                        ? "border-danger-500 focus-within:border-danger-500 focus-within:ring-danger-500/15"
                         : "border-border focus-within:border-primary-400 focus-within:ring-primary-100")
                     }
                   >
@@ -150,18 +150,18 @@ export function PhoneGateForm({
                       }}
                     />
                     {composed !== null && (
-                      <CheckCircle2 className="size-4 shrink-0 text-[#16b364]" />
+                      <CheckCircle2 className="text-success-600 size-4 shrink-0" />
                     )}
                   </div>
                   <p className="px-0.5 text-[11.5px] font-medium">
                     {showError ? (
-                      <span className="text-[#e5484d]">
+                      <span className="text-danger-600">
                         {dial === "+213"
                           ? "Mobile algérien invalide — ex. 06 12 34 56 78."
                           : "Numéro invalide."}
                       </span>
                     ) : composed !== null ? (
-                      <span className="text-[#16b364]">Numéro valide ✓</span>
+                      <span className="text-success-600">Numéro valide ✓</span>
                     ) : (
                       <span className="text-muted">
                         {dial === "+213"
@@ -174,7 +174,7 @@ export function PhoneGateForm({
 
                 {/* Erreur EN LIGNE (ex. email déjà associé) — pas de toast. */}
                 {err && (
-                  <p className="text-center text-[12.5px] font-semibold text-[#e5484d]">
+                  <p className="text-danger-600 text-center text-[12.5px] font-semibold">
                     {err}
                   </p>
                 )}

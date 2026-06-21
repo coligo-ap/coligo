@@ -1074,7 +1074,7 @@ export function CheckoutView({
             <span className="text-success-700 z-[2] grid size-9 shrink-0 place-items-center rounded-[11px] bg-white shadow-[0_3px_8px_-2px_rgba(21,145,90,0.35)]">
               <Gift className="size-[18px]" />
             </span>
-            <p className="z-[2] text-[12.5px] leading-snug font-bold text-[#0e6b43]">
+            <p className="text-success-700 z-[2] text-[12.5px] leading-snug font-bold">
               {t.rich("cashbackEarn", {
                 amount: formatDA(cashbackEarnSelected),
                 strong: (chunks) => (

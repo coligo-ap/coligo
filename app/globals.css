@@ -777,12 +777,22 @@ body {
 }
 .theme-dark
   :is([data-space="client"], .drive-jakarta)
-  :where(.text-success-800, .text-success-700) {
+  :where(
+    .text-success-800,
+    .text-success-700,
+    .text-success-600,
+    .text-success-500
+  ) {
   color: #4ade80;
 }
 .theme-dark
   :is([data-space="client"], .drive-jakarta)
-  :where(.text-danger-800, .text-danger-700) {
+  :where(
+    .text-danger-800,
+    .text-danger-700,
+    .text-danger-600,
+    .text-danger-500
+  ) {
   color: #fca5a5;
 }
 
