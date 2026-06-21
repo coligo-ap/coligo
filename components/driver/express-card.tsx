@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { toast } from "@/components/ui/toast";
 import {
   declineExpress,
@@ -66,6 +67,8 @@ export function ExpressCard({
   driverFeeConfig?: DriverFeeConfig;
 }) {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [pending, start] = useTransition();
   const [showValidate, setShowValidate] = useState(false);
   // Retour post-livraison (noter + signaler le client) une fois validée.
@@ -103,7 +106,9 @@ export function ExpressCard({
       /* localStorage indispo → on accepte quand même en mémoire */
     }
     setAccepted(true);
-    toast.success("Course acceptée — en route");
+    toast.success(
+      tr("Course acceptée — en route", "تم قبول التوصيلة — في الطريق")
+    );
   };
 
   const refuseOffer = () => {
@@ -113,14 +118,25 @@ export function ExpressCard({
       if (!r.ok) {
         toast.error(
           r.reason === "already_picked_up"
-            ? "Trop tard : commande déjà récupérée."
-            : "Impossible de refuser cette course."
+            ? tr(
+                "Trop tard : commande déjà récupérée.",
+                "فات الأوان: الطلب تم استلامه."
+              )
+            : tr(
+                "Impossible de refuser cette course.",
+                "تعذّر رفض هذه التوصيلة."
+              )
         );
         return;
       }
       // La course repart automatiquement vers un autre livreur en ligne.
       clearActiveCourse();
-      toast.success("Course refusée — proposée à un autre livreur");
+      toast.success(
+        tr(
+          "Course refusée — proposée à un autre livreur",
+          "تم رفض التوصيلة — عُرضت على سائق آخر"
+        )
+      );
       router.push("/driver");
     });
   };
@@ -151,10 +167,15 @@ export function ExpressCard({
     start(async () => {
       const r = await markOrderPickedUp(currentOrder.id);
       if (!r.ok) {
-        toast.error(r.reason ?? "Erreur");
+        toast.error(r.reason ?? tr("Erreur", "خطأ"));
         return;
       }
-      toast.success("Commande récupérée — en route vers le client");
+      toast.success(
+        tr(
+          "Commande récupérée — en route vers le client",
+          "تم استلام الطلب — في الطريق إلى الزبون"
+        )
+      );
       router.refresh();
     });
   };
@@ -164,10 +185,10 @@ export function ExpressCard({
     start(async () => {
       const r = await markDeliveryArrived(currentOrder.id);
       if (!r.ok) {
-        toast.error(r.reason ?? "Erreur");
+        toast.error(r.reason ?? tr("Erreur", "خطأ"));
         return;
       }
-      toast.success("Arrivée signalée au client");
+      toast.success(tr("Arrivée signalée au client", "تم إشعار الزبون بوصولك"));
       router.refresh();
     });
   };
@@ -214,7 +235,7 @@ export function ExpressCard({
             className="fixed top-[max(14px,calc(env(safe-area-inset-top)+10px))] right-3 z-[95] inline-flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-[12px] font-semibold text-white backdrop-blur"
           >
             <ChevronDown className="size-4" />
-            Réduire
+            {tr("Réduire", "تصغير")}
           </button>
           {/* Support en cours de course (Tawk.to) — n° commande injecté. */}
           <button
@@ -231,7 +252,7 @@ export function ExpressCard({
             className="fixed top-[max(14px,calc(env(safe-area-inset-top)+10px))] left-3 z-[95] inline-flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-[12px] font-semibold text-white backdrop-blur"
           >
             <LifeBuoy className="size-4" />
-            Aide
+            {tr("Aide", "مساعدة")}
           </button>
         </>
       )}
@@ -242,19 +263,23 @@ export function ExpressCard({
             ⚡
           </span>
           <p className="text-sm font-bold text-[var(--ink)]">
-            Livraison Express
+            {tr("Livraison Express", "توصيل سريع")}
           </p>
         </header>
 
         {currentOrder ? (
           <p className="text-xs font-medium text-[var(--muted)]">
-            Course en cours — suis les étapes sur l&apos;écran plein.
+            {tr(
+              "Course en cours — suis les étapes sur l'écran plein.",
+              "توصيلة جارية — اتبع الخطوات على الشاشة الكاملة."
+            )}
           </p>
         ) : (
           <p className="text-xs font-medium text-[var(--muted)]">
-            Aucune course Express ici. Passe en ligne depuis l&apos;accueil :
-            les courses proches arrivent automatiquement, où que tu sois dans
-            l&apos;app.
+            {tr(
+              "Aucune course Express ici. Passe en ligne depuis l'accueil : les courses proches arrivent automatiquement, où que tu sois dans l'app.",
+              "لا توجد توصيلة سريعة هنا. اتصل من الصفحة الرئيسية: تصلك التوصيلات القريبة تلقائياً أينما كنت في التطبيق."
+            )}
           </p>
         )}
 

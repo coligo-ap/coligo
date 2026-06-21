@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { useActiveCourse } from "@/lib/driver/active-course-store";
 
 /**
@@ -14,6 +15,8 @@ export function ActiveCourseBanner() {
   const course = useActiveCourse();
   const pathname = usePathname();
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   if (!course) return null;
   if (
@@ -29,7 +32,10 @@ export function ActiveCourseBanner() {
       <button
         type="button"
         onClick={() => router.push(`/driver/course/${course.orderId}`)}
-        aria-label="Revenir à la course en cours"
+        aria-label={tr(
+          "Revenir à la course en cours",
+          "العودة إلى التوصيلة الجارية"
+        )}
         className="coursebar"
         style={{ width: "100%" }}
       >
@@ -45,10 +51,18 @@ export function ActiveCourseBanner() {
           </svg>
         </span>
         <span className="t">
-          <b>Course en cours · {course.merchantName}</b>
+          <b>
+            {tr("Course en cours", "توصيلة جارية")} · {course.merchantName}
+          </b>
           <span>
-            {course.step === "pickup" ? "Retrait" : "Livraison"} · touchez pour
-            revenir à la navigation
+            {course.step === "pickup"
+              ? tr("Retrait", "الاستلام")
+              : tr("Livraison", "التسليم")}{" "}
+            ·{" "}
+            {tr(
+              "touchez pour revenir à la navigation",
+              "اضغط للعودة إلى التنقّل"
+            )}
           </span>
         </span>
         <svg
