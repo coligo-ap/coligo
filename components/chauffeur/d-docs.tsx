@@ -212,7 +212,7 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
               : {
                   borderColor: VIOLET,
                   borderStyle: "dashed",
-                  background: "#EEEEFD",
+                  background: "var(--d-accent)",
                 }
           }
         >
@@ -341,7 +341,7 @@ function StatusChip({
       ? { background: "rgba(22,179,100,.12)", color: GO }
       : info.status === "rejected"
         ? { background: "rgba(229,72,77,.12)", color: RED }
-        : { background: "#EEEEFD", color: VIOLET };
+        : { background: "var(--d-accent)", color: VIOLET };
   const label =
     info.status === "approved"
       ? "✓ Validé"
@@ -502,7 +502,11 @@ function ActionBtn({
       className="flex flex-1 items-center justify-center gap-1.5 rounded-[11px] border-[1.5px] px-2 py-2 text-[11px] font-bold disabled:opacity-50"
       style={
         primary
-          ? { borderColor: VIOLET, background: "#EEEEFD", color: VIOLET }
+          ? {
+              borderColor: VIOLET,
+              background: "var(--d-accent)",
+              color: VIOLET,
+            }
           : danger
             ? { borderColor: "var(--d-line)", color: RED }
             : { borderColor: "var(--d-line)", color: "var(--d-muted)" }

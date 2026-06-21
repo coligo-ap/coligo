@@ -74,7 +74,7 @@ export function Sheet({
         onClick={onClose}
       >
         <div
-          className="drive-up w-full rounded-t-[26px] bg-[var(--d-surface)] px-5 pt-[18px] pb-6"
+          className="drive-up w-full rounded-t-[26px] bg-[var(--d-surface)] px-5 pt-[18px] pb-6 text-[var(--d-ink)]"
           onClick={(e) => e.stopPropagation()}
         >
           {children}
@@ -298,7 +298,7 @@ export function SOSModal({
       <span
         className="grid size-[38px] shrink-0 place-items-center rounded-[12px]"
         style={{
-          background: red ? "rgba(229,72,77,.12)" : "#EEEEFD",
+          background: red ? "rgba(229,72,77,.12)" : "var(--d-accent)",
           color: red ? RED : VIOLET,
         }}
       >
@@ -638,7 +638,7 @@ export function DepModal({
         className="mb-2 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-left text-[13.5px] font-bold"
       >
         <span
-          className="grid size-[38px] shrink-0 place-items-center rounded-[12px] bg-[#EEEEFD]"
+          className="grid size-[38px] shrink-0 place-items-center rounded-[12px] bg-[var(--d-accent)]"
           style={{ color: VIOLET }}
         >
           <Crosshair className="size-5" />
@@ -656,7 +656,7 @@ export function DepModal({
         className="mb-1 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-left text-[13.5px] font-bold"
       >
         <span
-          className="grid size-[38px] shrink-0 place-items-center rounded-[12px] bg-[#EEEEFD]"
+          className="grid size-[38px] shrink-0 place-items-center rounded-[12px] bg-[var(--d-accent)]"
           style={{ color: VIOLET }}
         >
           <MapPin className="size-5" />

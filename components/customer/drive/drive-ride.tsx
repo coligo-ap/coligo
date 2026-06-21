@@ -350,7 +350,7 @@ function SearchScreen({
         >
           {!offlineQueued && (
             <span
-              className="size-3.5 animate-spin rounded-full border-2 border-[#EEEEFD]"
+              className="size-3.5 animate-spin rounded-full border-2 border-[var(--d-accent)]"
               style={{ borderTopColor: VIOLET }}
             />
           )}
@@ -482,7 +482,7 @@ function SearchScreen({
                 sort === k
                   ? {
                       borderColor: VIOLET,
-                      background: "#EEEEFD",
+                      background: "var(--d-accent)",
                       color: VIOLET,
                     }
                   : { borderColor: "var(--d-line)", color: "var(--d-muted)" }
@@ -529,7 +529,7 @@ function SearchScreen({
             let tag: React.ReactNode = null;
             if (o.is_favorite)
               tag = (
-                <Tag color={VIOLET} soft="#EEEEFD">
+                <Tag color={VIOLET} soft="var(--d-accent)">
                   ♥ {t("tagFav")}
                 </Tag>
               );
@@ -917,7 +917,7 @@ function EnrouteScreen({
         >
           <span
             className="grid size-9 shrink-0 place-items-center rounded-full"
-            style={{ background: "#EEEEFD" }}
+            style={{ background: "var(--d-accent)" }}
           >
             <MessageSquare className="size-4" style={{ color: VIOLET }} />
           </span>
@@ -1142,7 +1142,7 @@ function EnrouteScreen({
         {/* Prix convenu */}
         <div
           className="mb-2.5 flex items-center justify-between rounded-[14px] px-4 py-3"
-          style={{ background: "#EEEEFD" }}
+          style={{ background: "var(--d-accent)" }}
         >
           <span className="text-xs font-bold" style={{ color: VIOLET }}>
             {t("agreedPrice")}

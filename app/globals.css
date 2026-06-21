@@ -653,6 +653,11 @@ body {
   --d-muted: #6b7280;
   --d-line: #eef0f4;
   --d-soft: #f4f5f9;
+  /* Accents violets pâles (badges/tuiles « Coligo », champs de saisie Drive).
+     Tokenisés pour basculer en sombre — avant, ces tons étaient écrits en dur
+     (#EEEEFD / #F6F3FE) en style inline, donc figés clairs en mode sombre. */
+  --d-accent: #eeeefd;
+  --d-field: #f6f3fe;
 }
 .drive-jakarta {
   --d-page: #e9ebf1;
@@ -661,17 +666,27 @@ body {
   --d-muted: #6b7280;
   --d-line: #eef0f4;
   --d-soft: #f4f5f9;
+  --d-accent: #eeeefd;
+  --d-field: #f6f3fe;
   color: var(--d-ink);
 }
 /* Mode sombre = CHOIX utilisateur (interrupteur du header, cookie
-   coligo_theme) — plus de suivi du réglage système : clair par défaut. */
-.theme-dark .drive-jakarta {
+   coligo_theme) — plus de suivi du réglage système : clair par défaut.
+   On applique AUSSI les tokens sombres au <body> : les feuilles/modales Drive
+   passent par un <Portal> monté sur document.body, HORS de `.drive-jakarta`.
+   Sans ça, `--d-surface` / `--d-ink` y retombaient sur les valeurs CLAIRES de
+   `:root` → surface blanche + texte clair = libellés invisibles (bug « Point de
+   départ »). Le scope reste sûr : ces tokens ne sont consommés que par les
+   écrans Drive/chauffeur, et `.theme-dark` n'est posé que dans ces espaces. */
+.theme-dark :is(.drive-jakarta, body) {
   --d-page: #06070b;
   --d-surface: #161823;
   --d-ink: #fff;
   --d-muted: #9ca0b3;
   --d-line: #262838;
   --d-soft: #1f2230;
+  --d-accent: rgba(138, 77, 255, 0.16);
+  --d-field: rgba(138, 77, 255, 0.12);
 }
 /* Plaque d'immatriculation : fixe (blanc/noir) dans LES DEUX thèmes (maquette .plate). */
 .drive-plate {

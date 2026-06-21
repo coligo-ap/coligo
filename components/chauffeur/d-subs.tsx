@@ -240,7 +240,7 @@ export function DSubs() {
         <div className="mb-3 flex items-center gap-2.5 rounded-[14px] bg-[var(--d-soft)] px-3.5 py-2.5 text-xs font-semibold text-[var(--d-muted)]">
           <span
             className="grid size-[30px] shrink-0 place-items-center rounded-[9px]"
-            style={{ background: "#EEEEFD" }}
+            style={{ background: "var(--d-accent)" }}
           >
             <Calendar className="size-4" style={{ color: VIOLET }} />
           </span>
@@ -367,7 +367,7 @@ export function DSubs() {
             {fin.plan === "pro" && fin.upgradeQuote && (
               <span
                 className="mt-1.5 flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 font-bold"
-                style={{ background: "#EEEEFD", color: VIOLET }}
+                style={{ background: "var(--d-accent)", color: VIOLET }}
               >
                 <Zap className="size-3.5 shrink-0" />
                 Passage immédiat : payez seulement la différence —{" "}
@@ -428,7 +428,7 @@ export function DSubs() {
                       className="rounded-[13px] border-[1.5px] p-2.5 text-center transition-colors"
                       style={{
                         borderColor: on ? VIOLET : "var(--d-line)",
-                        background: on ? "#EEEEFD" : "transparent",
+                        background: on ? "var(--d-accent)" : "transparent",
                       }}
                     >
                       <span className="block text-[12px] font-bold">
@@ -455,7 +455,7 @@ export function DSubs() {
             >
               <span
                 className="grid size-[38px] shrink-0 place-items-center rounded-[12px]"
-                style={{ background: "#EEEEFD", color: VIOLET }}
+                style={{ background: "var(--d-accent)", color: VIOLET }}
               >
                 <Wallet className="size-5" />
               </span>
@@ -473,7 +473,7 @@ export function DSubs() {
             >
               <span
                 className="grid size-[38px] shrink-0 place-items-center rounded-[12px]"
-                style={{ background: "#EEEEFD", color: VIOLET }}
+                style={{ background: "var(--d-accent)", color: VIOLET }}
               >
                 <CreditCard className="size-5" />
               </span>
@@ -598,7 +598,7 @@ function Plan({
       className="mb-2.5 rounded-[18px] border-[1.5px] p-3.5"
       style={{
         borderColor: current ? VIOLET : premium ? "#E8B53C" : "var(--d-line)",
-        background: current ? "#EEEEFD" : undefined,
+        background: current ? "var(--d-accent)" : undefined,
       }}
     >
       <div className="flex items-center justify-between">

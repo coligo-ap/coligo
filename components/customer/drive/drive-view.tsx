@@ -943,7 +943,7 @@ export function DriveView() {
                   gamme === g
                     ? {
                         borderColor: VIOLET,
-                        background: "#EEEEFD",
+                        background: "var(--d-accent)",
                         boxShadow: "0 8px 20px -10px rgba(91,91,230,.42)",
                       }
                     : { borderColor: "var(--d-line)", background: "#fff" }
@@ -1007,7 +1007,7 @@ export function DriveView() {
                     payMode === m
                       ? {
                           borderColor: VIOLET,
-                          background: "#EEEEFD",
+                          background: "var(--d-accent)",
                           color: VIOLET,
                         }
                       : {
@@ -1395,7 +1395,10 @@ export function DriveView() {
                         {pickup?.gps && (
                           <span
                             className="flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-bold"
-                            style={{ background: "#EEEEFD", color: VIOLET }}
+                            style={{
+                              background: "var(--d-accent)",
+                              color: VIOLET,
+                            }}
                           >
                             GPS
                           </span>
@@ -1884,7 +1887,7 @@ function MapPickScreen({
                   {r.kind === "merchant" && (
                     <span
                       className="mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wide"
-                      style={{ background: "#EEEEFD", color: VIOLET }}
+                      style={{ background: "var(--d-accent)", color: VIOLET }}
                     >
                       Coligo
                     </span>

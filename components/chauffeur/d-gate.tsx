@@ -26,7 +26,7 @@ export function DWait() {
       <div className="text-center">
         <span
           className="mx-auto mb-3 grid size-16 place-items-center rounded-full"
-          style={{ background: "#EEEEFD" }}
+          style={{ background: "var(--d-accent)" }}
         >
           <Clock className="size-7" style={{ color: VIOLET }} />
         </span>
@@ -84,7 +84,7 @@ function Step({
               ? { background: GO, color: "#fff" }
               : state === "cur"
                 ? {
-                    background: "#EEEEFD",
+                    background: "var(--d-accent)",
                     color: VIOLET,
                     border: `2px solid ${VIOLET}`,
                   }

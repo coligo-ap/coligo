@@ -52,7 +52,11 @@ export function DriveHistoryView({ history }: { history: DriveHistory }) {
             className="flex-1 rounded-[12px] border-[1.5px] px-1.5 py-2.5 text-xs font-bold"
             style={
               tab === k
-                ? { borderColor: VIOLET, background: "#EEEEFD", color: VIOLET }
+                ? {
+                    borderColor: VIOLET,
+                    background: "var(--d-accent)",
+                    color: VIOLET,
+                  }
                 : { borderColor: "var(--d-line)", color: "var(--d-muted)" }
             }
           >

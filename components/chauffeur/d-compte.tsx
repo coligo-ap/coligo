@@ -497,7 +497,7 @@ function StatusChip({
       ? { background: "rgba(22,179,100,.12)", color: GO }
       : tone === "rejected"
         ? { background: "rgba(229,72,77,.12)", color: "#E5484D" }
-        : { background: "#EEEEFD", color: VIOLET };
+        : { background: "var(--d-accent)", color: VIOLET };
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-bold"

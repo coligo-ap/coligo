@@ -209,7 +209,7 @@ export function DriveAiBar({
           {draft.destination.kind === "merchant" && (
             <span
               className="shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wide"
-              style={{ background: "#EEEEFD", color: VIOLET }}
+              style={{ background: "var(--d-accent)", color: VIOLET }}
             >
               Coligo
             </span>
@@ -251,7 +251,7 @@ export function DriveAiBar({
             {draft.gamme !== "classic" && (
               <span
                 className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-bold"
-                style={{ background: "#EEEEFD", color: VIOLET }}
+                style={{ background: "var(--d-accent)", color: VIOLET }}
               >
                 {draft.gamme === "confort" ? (
                   <Snowflake className="size-3.5" />
@@ -301,7 +301,9 @@ export function DriveAiBar({
         className="flex items-center gap-1.5 rounded-[15px] border px-3 py-2 transition-colors"
         style={{
           borderColor: listening ? "#EF4444" : VIOLET,
-          background: listening ? "#FEF2F2" : "#F6F3FE",
+          // Fond tokenisé (--d-field) : bascule en sombre. Avant, ce violet pâle
+          // était figé clair → texte (--d-ink, blanc en sombre) invisible dessus.
+          background: listening ? "rgba(229, 72, 77, 0.12)" : "var(--d-field)",
         }}
       >
         <Sparkles

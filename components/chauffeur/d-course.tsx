@@ -487,7 +487,7 @@ export function DCourse() {
         >
           <span
             className="grid size-9 shrink-0 place-items-center rounded-full"
-            style={{ background: "#EEEEFD" }}
+            style={{ background: "var(--d-accent)" }}
           >
             <MessageSquare className="size-4" style={{ color: VIOLET }} />
           </span>
@@ -586,7 +586,7 @@ export function DCourse() {
         {queued && (
           <div
             className="mb-2.5 flex items-center gap-2 rounded-[13px] px-3 py-2.5 text-[12.5px] font-bold"
-            style={{ background: "#EEEEFD", color: VIOLET }}
+            style={{ background: "var(--d-accent)", color: VIOLET }}
           >
             <Check className="size-4 shrink-0" />
             Course suivante : {queued.customer_name} ·{" "}
@@ -698,7 +698,7 @@ export function DCourse() {
 
         <div
           className="mb-2.5 flex items-center justify-between rounded-[14px] px-4 py-3"
-          style={{ background: "#EEEEFD" }}
+          style={{ background: "var(--d-accent)" }}
         >
           <span className="text-xs font-bold" style={{ color: VIOLET }}>
             {inProgress
@@ -1235,7 +1235,7 @@ function DoneScreen({
       {queued && (
         <div
           className="mb-3 flex items-center gap-3 rounded-[16px] p-3"
-          style={{ background: "#EEEEFD" }}
+          style={{ background: "var(--d-accent)" }}
         >
           <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-surface)]">
             <Zap className="size-4.5" style={{ color: VIOLET }} />
