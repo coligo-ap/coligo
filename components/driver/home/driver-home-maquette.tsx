@@ -134,7 +134,7 @@ export function DriverHomeMaquette({
               className="mq-sora"
               style={{ fontSize: 19, fontWeight: 800, marginBottom: 8 }}
             >
-              Compte gelé
+              {tr("Compte gelé", "حساب مجمّد")}
             </h2>
             <p
               style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.5 }}
@@ -149,7 +149,7 @@ export function DriverHomeMaquette({
                   marginTop: 8,
                 }}
               >
-                Motif : {freezeReason}
+                {tr("Motif :", "السبب:")} {freezeReason}
               </p>
             )}
             <button
@@ -168,7 +168,7 @@ export function DriverHomeMaquette({
                 fontSize: 15,
               }}
             >
-              J&apos;ai compris
+              {tr("J'ai compris", "فهمت")}
             </button>
           </div>
         </div>

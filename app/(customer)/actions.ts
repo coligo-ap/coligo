@@ -27,6 +27,7 @@ import {
 } from "@/lib/customer/cashback";
 import { getGeoConfig, type GeoConfig } from "@/lib/data/geo-config";
 import { roadRoute } from "@/lib/drive/routing";
+import { haversineKm } from "@/lib/delivery/distance";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { getCommunes } from "@/lib/config/communes";
 
@@ -474,13 +475,32 @@ type GeoHit = {
 const DZ_BBOX = "-8.7,18.9,12.1,37.3";
 
 /** Clé de dédup : nom replié (minuscules sans accents/ponctuation) + ~1 km. */
-function geoDedupeKey(r: GeoHit): string {
-  const norm = r.display
+function geoNorm(s: string): string {
+  return s
     .toLowerCase()
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .replace(/[^\p{L}\p{N}]/gu, "");
-  return `${norm}|${r.lat.toFixed(2)}|${r.lng.toFixed(2)}`;
+}
+
+/**
+ * Doublon d'adresse ? On considère deux suggestions identiques si elles
+ * pointent quasiment le MÊME POINT (~40 m) OU si elles portent le MÊME NOM à
+ * moins de ~600 m — cas typique du même lieu renvoyé par plusieurs fournisseurs
+ * (gazetteer + Photon + Nominatim + Google) avec un libellé/des coordonnées
+ * légèrement différents. Évite d'afficher deux fois la même adresse.
+ */
+function geoIsDuplicate(r: GeoHit, accepted: GeoHit[]): boolean {
+  const n = geoNorm(r.display);
+  for (const a of accepted) {
+    const km = haversineKm(
+      { lat: a.lat, lng: a.lng },
+      { lat: r.lat, lng: r.lng }
+    );
+    if (km < 0.04) return true;
+    if (km < 0.6 && geoNorm(a.display) === n) return true;
+  }
+  return false;
 }
 
 /** Gazetteer local : RPC search_geo_places (échec silencieux → []). */
@@ -1029,7 +1049,6 @@ export async function geocodeSearch(input: {
   const weakLocal = local.filter((r) => r.score < 0.5);
   const confMerch = merchants.filter((r) => r.score >= 0.45).sort(byScore);
   const weakMerch = merchants.filter((r) => r.score < 0.45).sort(byScore);
-  const seen = new Set<string>();
   const results: GeoHit[] = [];
   for (const r of [
     ...confMerch,
@@ -1038,9 +1057,7 @@ export async function geocodeSearch(input: {
     ...weakMerch,
     ...weakLocal,
   ]) {
-    const k = geoDedupeKey(r);
-    if (seen.has(k)) continue;
-    seen.add(k);
+    if (geoIsDuplicate(r, results)) continue;
     results.push({
       display: r.display,
       secondary: r.secondary,
@@ -1076,9 +1093,7 @@ export async function geocodeSearch(input: {
     });
   const pushUnique = (arr: GeoHit[]) => {
     for (const r of arr) {
-      const k = geoDedupeKey(r);
-      if (seen.has(k)) continue;
-      seen.add(k);
+      if (geoIsDuplicate(r, results)) continue;
       results.push({
         display: r.display,
         secondary: r.secondary,
@@ -1100,11 +1115,8 @@ export async function geocodeSearch(input: {
       if (g.length) {
         // Google EN TÊTE (c'est lui qui a l'enseigne exacte), puis le reste.
         const merged: GeoHit[] = [];
-        const gseen = new Set<string>();
         for (const r of [...g, ...results]) {
-          const k = geoDedupeKey(r);
-          if (gseen.has(k)) continue;
-          gseen.add(k);
+          if (geoIsDuplicate(r, merged)) continue;
           merged.push({
             display: r.display,
             secondary: r.secondary,
