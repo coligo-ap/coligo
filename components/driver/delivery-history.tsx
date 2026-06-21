@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useLocale } from "next-intl";
 import { LifeBuoy } from "lucide-react";
 import { openSupportChat } from "@/components/support/tawk-chat";
 
@@ -41,12 +42,12 @@ function dayKey(d: Date) {
   // Clé jour stable (Alger) → pas de mismatch d'hydratation (#418).
   return d.toLocaleDateString("fr-CA", { timeZone: TZ }); // YYYY-MM-DD
 }
-function dayLabel(d: Date) {
+function dayLabel(d: Date, isAr: boolean) {
   const today = new Date();
   const yest = new Date(today.getTime() - 86_400_000);
-  if (dayKey(d) === dayKey(today)) return "Aujourd'hui";
-  if (dayKey(d) === dayKey(yest)) return "Hier";
-  return d.toLocaleDateString("fr-FR", {
+  if (dayKey(d) === dayKey(today)) return isAr ? "اليوم" : "Aujourd'hui";
+  if (dayKey(d) === dayKey(yest)) return isAr ? "أمس" : "Hier";
+  return d.toLocaleDateString(isAr ? "ar-DZ" : "fr-FR", {
     day: "2-digit",
     month: "long",
     timeZone: TZ,
@@ -67,10 +68,12 @@ export function DeliveryHistory({
   rows: Row[];
   merchants: Merchant[];
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const merchantNameOf = useMemo(() => {
     const map = new Map(merchants.map((m) => [m.id, m.name]));
-    return (id: string) => map.get(id) ?? "Commerçant";
-  }, [merchants]);
+    return (id: string) => map.get(id) ?? (isAr ? "تاجر" : "Commerçant");
+  }, [merchants, isAr]);
 
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -104,17 +107,17 @@ export function DeliveryHistory({
       const k = dayKey(d);
       if (!idx.has(k)) {
         idx.set(k, out.length);
-        out.push({ key: k, label: dayLabel(d), items: [] });
+        out.push({ key: k, label: dayLabel(d, isAr), items: [] });
       }
       out[idx.get(k)!].items.push(r);
     }
     return out;
-  }, [filtered]);
+  }, [filtered, isAr]);
 
   return (
     <>
       <div className="head">
-        <h1>Historique</h1>
+        <h1>{tr("Historique", "السجل")}</h1>
         <div className="ic">
           <svg
             viewBox="0 0 24 24"
@@ -134,27 +137,27 @@ export function DeliveryHistory({
           className={"pill" + (filter === "all" ? " on" : "")}
           onClick={() => setFilter("all")}
         >
-          Toutes · {counts.all}
+          {tr("Toutes", "الكل")} · {counts.all}
         </button>
         <button
           type="button"
           className={"pill" + (filter === "delivered" ? " on" : "")}
           onClick={() => setFilter("delivered")}
         >
-          Livrées · {counts.delivered}
+          {tr("Livrées", "مُسلَّمة")} · {counts.delivered}
         </button>
         <button
           type="button"
           className={"pill" + (filter === "cancelled" ? " on" : "")}
           onClick={() => setFilter("cancelled")}
         >
-          Annulées · {counts.cancelled}
+          {tr("Annulées", "مُلغاة")} · {counts.cancelled}
         </button>
       </div>
 
       {groups.length === 0 ? (
         <p style={{ color: "var(--muted)", fontSize: 13, padding: "0 2px" }}>
-          Aucune course pour ce filtre.
+          {tr("Aucune course pour ce filtre.", "لا توجد توصيلات لهذا التصفية.")}
         </p>
       ) : (
         groups.map((g) => (
@@ -175,12 +178,15 @@ export function DeliveryHistory({
                   <div className="mid">
                     <div className="nm">{merchantNameOf(r.merchant_id)}</div>
                     <div className="nm">
-                      {r.delivery_address_text ?? "Adresse client"}
+                      {r.delivery_address_text ??
+                        tr("Adresse client", "عنوان الزبون")}
                     </div>
                     <div className="meta">
                       <span>{hhmm(date)}</span>·
                       <span className="tg">
-                        {r.payment_method === "cash" ? "Espèces" : "Prépayé"}
+                        {r.payment_method === "cash"
+                          ? tr("Espèces", "نقداً")
+                          : tr("Prépayé", "مدفوع مسبقاً")}
                       </span>
                       ·
                       <button
@@ -207,7 +213,7 @@ export function DeliveryHistory({
                         }}
                       >
                         <LifeBuoy style={{ width: 12, height: 12 }} />
-                        Aide
+                        {tr("Aide", "مساعدة")}
                       </button>
                     </div>
                   </div>
@@ -232,10 +238,10 @@ export function DeliveryHistory({
                       }
                     >
                       {delivered
-                        ? "Livrée"
+                        ? tr("Livrée", "مُسلَّمة")
                         : cancelled
-                          ? "Annulée"
-                          : "En cours"}
+                          ? tr("Annulée", "مُلغاة")
+                          : tr("En cours", "جارية")}
                     </span>
                   </div>
                 </div>
