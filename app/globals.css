@@ -795,35 +795,28 @@ body {
   ) {
   color: #fca5a5;
 }
-/* Fonds tintés des cartes/pastilles « success/danger/warning » (`bg-*-50/100`).
-   Le texte est déjà remappé en clair ci-dessus ; sans remapper AUSSI le fond,
-   ces cartes restaient en vert/rouge TRÈS pâle (`#ecfdf5`…) en mode sombre →
-   texte clair sur fond clair = illisible (ex. bandeau cashback du checkout).
-   On bascule le fond vers une teinte sombre translucide : texte clair sur fond
-   sombre teinté = bon contraste, sans toucher les pastilles pleines (`-500`). */
-.theme-dark :is([data-space="client"], .drive-jakarta) :where(.bg-success-50) {
-  background-color: rgba(74, 222, 128, 0.1);
-}
+/* Fonds tintés des cartes/pastilles « success/danger/warning » variantes `-100`.
+   Les variantes `-50` sont déjà remappées plus haut ; seules les `-100` (et leur
+   état `hover`) manquaient → sans remapper le fond, ces cartes restaient en
+   vert/rouge TRÈS pâle (`#dcfce7`…) en mode sombre → texte clair sur fond clair
+   = illisible (ex. bandeau cashback du checkout). On bascule le fond vers une
+   teinte sombre translucide : texte clair sur fond sombre teinté = bon
+   contraste, sans toucher les pastilles pleines (`-500`). Les teintes reprennent
+   la même famille que les fonds `-50` ci-dessus, en plus appuyé. */
 .theme-dark
   :is([data-space="client"], .drive-jakarta)
   :where(.bg-success-100, .hover\:bg-success-100:hover) {
-  background-color: rgba(74, 222, 128, 0.18);
-}
-.theme-dark :is([data-space="client"], .drive-jakarta) :where(.bg-danger-50) {
-  background-color: rgba(252, 165, 165, 0.1);
+  background-color: rgba(22, 179, 100, 0.2);
 }
 .theme-dark
   :is([data-space="client"], .drive-jakarta)
   :where(.bg-danger-100, .hover\:bg-danger-100:hover) {
-  background-color: rgba(252, 165, 165, 0.18);
-}
-.theme-dark :is([data-space="client"], .drive-jakarta) :where(.bg-warning-50) {
-  background-color: rgba(252, 211, 77, 0.1);
+  background-color: rgba(229, 72, 77, 0.2);
 }
 .theme-dark
   :is([data-space="client"], .drive-jakarta)
   :where(.bg-warning-100, .hover\:bg-warning-100:hover) {
-  background-color: rgba(252, 211, 77, 0.18);
+  background-color: rgba(245, 158, 11, 0.2);
 }
 
 /* ── Espace LIVREUR : mode sombre (toggle du compte livreur) ──
