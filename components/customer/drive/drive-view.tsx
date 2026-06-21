@@ -137,6 +137,17 @@ export function DriveView() {
   // PLUS au trajet (le client a modifié départ/arrivée puis revient à l'écran
   // prix), le prix est PÉRIMÉ → on affiche un loader, jamais l'ancien prix.
   const [quotedKm, setQuotedKm] = useState<number | null>(null);
+  // Desktop (≥ lg) : on affiche une CARTE à côté du formulaire pour visualiser
+  // le trajet. La carte n'est MONTÉE qu'en desktop (pas d'init MapLibre sur
+  // mobile → accueil instantané conservé).
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setIsDesktop(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   const [payMode, setPayMode] = useState<"cash" | "card" | "coligo_pay">(
     "cash"
   );
@@ -1331,176 +1342,217 @@ export function DriveView() {
         </div>
       </header>
 
-      {/* Contenu — design uniforme Coligo, sans carte derrière le formulaire. */}
+      {/* Contenu — mobile : 1 colonne ; desktop : formulaire À GAUCHE + carte de
+          visualisation À DROITE (trajet A→B). */}
       <main className="flex-1 overflow-y-auto px-5 pb-24">
-        <h1 className="drive-sora mt-3 text-[27px] leading-tight font-extrabold tracking-[-0.6px]">
-          {t("home.title")}
-        </h1>
+        <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[minmax(0,480px)_1fr]">
+          <div className="min-w-0">
+            <h1 className="drive-sora mt-3 text-[27px] leading-tight font-extrabold tracking-[-0.6px]">
+              {t("home.title")}
+            </h1>
 
-        {/* Assistant IA : réserver en langage naturel (darija / ar / fr) */}
-        <div className="mt-4">
-          <DriveAiBar
-            pickup={pickup ? { lat: pickup.lat, lng: pickup.lng } : null}
-            onResolved={applyAiDraft}
-            onConfirmingChange={setAiConfirming}
-          />
-        </div>
+            {/* Assistant IA : réserver en langage naturel (darija / ar / fr) */}
+            <div className="mt-4">
+              <DriveAiBar
+                pickup={pickup ? { lat: pickup.lat, lng: pickup.lng } : null}
+                onResolved={applyAiDraft}
+                onConfirmingChange={setAiConfirming}
+              />
+            </div>
 
-        {!aiConfirming && (
-          <>
-            {/* Carte formulaire de trajet (départ / arrivée). */}
-            <div className="mt-3 rounded-[24px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_18px_44px_-30px_rgba(20,22,40,.5)]">
-              <div className="mb-2.5 flex items-center gap-2">
-                <div className="min-w-0 flex-1">
-                  <button
-                    type="button"
-                    onClick={() => setDepOpen(true)}
-                    className="mb-2 flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
-                  >
-                    <span
-                      className="size-3 shrink-0 rounded-full"
-                      style={{ background: VIOLET }}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
-                        {t("departure")}
-                      </span>
-                      <span className="block truncate text-[14.5px] font-bold">
-                        {pickup?.gps
-                          ? t("myPosition")
-                          : (pickup?.text ?? t("home.locating"))}
-                      </span>
-                      {/* Nom du lieu résolu (reverse geocode) : le client voit que
+            {!aiConfirming && (
+              <>
+                {/* Carte formulaire de trajet (départ / arrivée). */}
+                <div className="mt-3 rounded-[24px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_18px_44px_-30px_rgba(20,22,40,.5)]">
+                  <div className="mb-2.5 flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <button
+                        type="button"
+                        onClick={() => setDepOpen(true)}
+                        className="mb-2 flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+                      >
+                        <span
+                          className="size-3 shrink-0 rounded-full"
+                          style={{ background: VIOLET }}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+                            {t("departure")}
+                          </span>
+                          <span className="block truncate text-[14.5px] font-bold">
+                            {pickup?.gps
+                              ? t("myPosition")
+                              : (pickup?.text ?? t("home.locating"))}
+                          </span>
+                          {/* Nom du lieu résolu (reverse geocode) : le client voit que
                     le départ correspond bien à l'endroit où il se trouve. */}
-                      {pickup?.gps && (
-                        <span className="block truncate text-[11.5px] font-medium text-[var(--d-muted)]">
-                          {pickup.text ?? t("home.locating")}
+                          {pickup?.gps && (
+                            <span className="block truncate text-[11.5px] font-medium text-[var(--d-muted)]">
+                              {pickup.text ?? t("home.locating")}
+                            </span>
+                          )}
                         </span>
-                      )}
-                    </span>
-                    {pickup?.gps && (
-                      <span
-                        className="flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-bold"
-                        style={{ background: "#EEEEFD", color: VIOLET }}
-                      >
-                        GPS
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMapPickFor("dest");
-                      setScreen("mappick");
-                    }}
-                    className="flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
-                  >
-                    <span className="size-3 shrink-0 rounded-[3px] bg-[var(--d-ink)]" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
-                        {t("destination")}
-                      </span>
-                      <span
-                        className={cn(
-                          "block truncate text-[14.5px] font-bold",
-                          !dest && "font-semibold text-[var(--d-muted)]"
+                        {pickup?.gps && (
+                          <span
+                            className="flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-bold"
+                            style={{ background: "#EEEEFD", color: VIOLET }}
+                          >
+                            GPS
+                          </span>
                         )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMapPickFor("dest");
+                          setScreen("mappick");
+                        }}
+                        className="flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
                       >
-                        {dest?.text ?? t("home.whereTo")}
-                      </span>
-                    </span>
-                    <Pencil className="size-4 shrink-0 text-[var(--d-muted)]" />
-                  </button>
-                </div>
-                {/* Inverser départ ↔ arrivée */}
-                <button
-                  type="button"
-                  onClick={swapPoints}
-                  disabled={!pickup && !dest}
-                  aria-label={t("swap")}
-                  title={t("swap")}
-                  className="grid size-10 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-sm disabled:opacity-40"
-                  style={{ color: VIOLET }}
-                >
-                  <ArrowUpDown className="size-[18px]" />
-                </button>
-              </div>
+                        <span className="size-3 shrink-0 rounded-[3px] bg-[var(--d-ink)]" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+                            {t("destination")}
+                          </span>
+                          <span
+                            className={cn(
+                              "block truncate text-[14.5px] font-bold",
+                              !dest && "font-semibold text-[var(--d-muted)]"
+                            )}
+                          >
+                            {dest?.text ?? t("home.whereTo")}
+                          </span>
+                        </span>
+                        <Pencil className="size-4 shrink-0 text-[var(--d-muted)]" />
+                      </button>
+                    </div>
+                    {/* Inverser départ ↔ arrivée */}
+                    <button
+                      type="button"
+                      onClick={swapPoints}
+                      disabled={!pickup && !dest}
+                      aria-label={t("swap")}
+                      title={t("swap")}
+                      className="grid size-10 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-sm disabled:opacity-40"
+                      style={{ color: VIOLET }}
+                    >
+                      <ArrowUpDown className="size-[18px]" />
+                    </button>
+                  </div>
 
-              {/* Zone indisponible (commune/wilaya/rayon bloqués) : message clair +
+                  {/* Zone indisponible (commune/wilaya/rayon bloqués) : message clair +
             « Prévenez-moi » AVANT le choix du prix, et « Continuer » bloqué. */}
-              {pickup && dest && zoneBlock && (
-                <ZoneBlockNotice
-                  message={zoneBlock}
-                  joined={zoneJoined}
-                  onJoin={joinDriveWaitlist}
-                  className="mt-1 mb-1"
-                />
-              )}
-              <PrimaryBtn
-                onClick={() => setScreen("price")}
-                disabled={!pickup || !dest || !!zoneBlock}
-                className="!mt-1"
-              >
-                {t("home.continue")}
-              </PrimaryBtn>
-            </div>
-
-            {/* Destinations récentes */}
-            <div className="mt-3">
-              {ctx.recents.map((r) => (
-                <button
-                  key={r.text}
-                  type="button"
-                  onClick={() =>
-                    setDest({ lat: r.lat, lng: r.lng, text: r.text })
-                  }
-                  className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-0.5 py-2.5 text-left text-[13.5px] font-semibold last:border-b-0"
-                >
-                  <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-                    <Clock className="size-4" />
-                  </span>
-                  <span className="min-w-0 flex-1 truncate">{r.text}</span>
-                </button>
-              ))}
-              {ctx.lastRide && (
-                <div className="flex w-full items-center gap-3 px-0.5 py-2.5 text-left text-[13.5px] font-semibold">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-                    <Car className="size-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate">
-                      {ctx.lastRide.dest_text ?? "—"}
-                    </span>
-                    <small className="block text-[11px] font-medium text-[var(--d-muted)]">
-                      {[
-                        ctx.lastRide.chauffeur_name,
-                        ctx.lastRide.price_da
-                          ? formatDA(ctx.lastRide.price_da)
-                          : null,
-                        ctx.lastRide.completed
-                          ? t("status.completed")
-                          : t("status.cancelled"),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </small>
-                  </span>
+                  {pickup && dest && zoneBlock && (
+                    <ZoneBlockNotice
+                      message={zoneBlock}
+                      joined={zoneJoined}
+                      onJoin={joinDriveWaitlist}
+                      className="mt-1 mb-1"
+                    />
+                  )}
+                  <PrimaryBtn
+                    onClick={() => setScreen("price")}
+                    disabled={!pickup || !dest || !!zoneBlock}
+                    className="!mt-1"
+                  >
+                    {t("home.continue")}
+                  </PrimaryBtn>
                 </div>
-              )}
-            </div>
 
-            {/* Espace chauffeur — entrée discrète, sans carte. */}
-            <button
-              type="button"
-              onClick={() => router.push("/chauffeur")}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-3 text-[13.5px] font-bold"
-            >
-              <Car className="size-4" style={{ color: VIOLET }} />
-              {t("home.imDriver")}
-            </button>
-          </>
-        )}
+                {/* Destinations récentes */}
+                <div className="mt-3">
+                  {ctx.recents.map((r) => (
+                    <button
+                      key={r.text}
+                      type="button"
+                      onClick={() =>
+                        setDest({ lat: r.lat, lng: r.lng, text: r.text })
+                      }
+                      className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-0.5 py-2.5 text-left text-[13.5px] font-semibold last:border-b-0"
+                    >
+                      <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+                        <Clock className="size-4" />
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">{r.text}</span>
+                    </button>
+                  ))}
+                  {ctx.lastRide && (
+                    <div className="flex w-full items-center gap-3 px-0.5 py-2.5 text-left text-[13.5px] font-semibold">
+                      <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+                        <Car className="size-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">
+                          {ctx.lastRide.dest_text ?? "—"}
+                        </span>
+                        <small className="block text-[11px] font-medium text-[var(--d-muted)]">
+                          {[
+                            ctx.lastRide.chauffeur_name,
+                            ctx.lastRide.price_da
+                              ? formatDA(ctx.lastRide.price_da)
+                              : null,
+                            ctx.lastRide.completed
+                              ? t("status.completed")
+                              : t("status.cancelled"),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </small>
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Espace chauffeur — entrée discrète, sans carte. */}
+                <button
+                  type="button"
+                  onClick={() => router.push("/chauffeur")}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-3 text-[13.5px] font-bold"
+                >
+                  <Car className="size-4" style={{ color: VIOLET }} />
+                  {t("home.imDriver")}
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Colonne carte (desktop uniquement) — visualisation du trajet A→B,
+              se met à jour dès qu'un départ/arrivée est choisi. */}
+          {isDesktop && (
+            <div className="hidden lg:block">
+              <div className="sticky top-4 h-[calc(100dvh-150px)] overflow-hidden rounded-[24px] border border-[var(--d-line)]">
+                <DriveMap
+                  markers={[
+                    ...(pickup
+                      ? [
+                          {
+                            id: "me",
+                            pos: pickup,
+                            kind: "me" as const,
+                            label: "A" as const,
+                          },
+                        ]
+                      : []),
+                    ...(dest
+                      ? [
+                          {
+                            id: "dest",
+                            pos: dest,
+                            kind: "pin" as const,
+                            label: "B" as const,
+                          },
+                        ]
+                      : []),
+                  ]}
+                  route={pickup && dest ? [pickup, dest] : null}
+                  padding={{ top: 60, bottom: 60, left: 60, right: 60 }}
+                  className="absolute inset-0"
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </main>
 
       <CustomerBottomNav />
