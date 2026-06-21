@@ -100,6 +100,23 @@ export async function GET(request: Request) {
   const { data: learned } = await rpc("drive_recompute_learning", {});
   const learnedCount = typeof learned === "number" ? learned : 0;
 
+  // 6. Purge des courses FANTÔMES : annulées AVANT toute attribution (recherche
+  //    abandonnée, TTL, carte échouée) → aucun chauffeur, aucun argent (escrow
+  //    0/null, donc aucune écriture au grand livre). Elles sont déjà MASQUÉES de
+  //    l'historique client ; on les supprime définitivement après 2 j pour ne
+  //    pas encombrer la base. Les vraies courses (terminées / annulées AVEC
+  //    chauffeur) sont conservées. CASCADE nettoie events/offers (simples logs).
+  const twoDaysAgo = new Date(Date.now() - 2 * 86_400_000).toISOString();
+  const { data: purged } = await admin
+    .from("rides")
+    .delete()
+    .eq("status", "cancelled")
+    .is("chauffeur_id", null)
+    .or("escrow_da.eq.0,escrow_da.is.null")
+    .lt("created_at", twoDaysAgo)
+    .select("id");
+  const phantomPurged = purged?.length ?? 0;
+
   return NextResponse.json({
     ok: true,
     subs_expired: expiredRows.length,
@@ -108,5 +125,6 @@ export async function GET(request: Request) {
     stale_offers: staleRow?.expired_offers ?? 0,
     scheduled_activated: activatedRows.length,
     learning_bands: learnedCount,
+    phantom_purged: phantomPurged,
   });
 }
