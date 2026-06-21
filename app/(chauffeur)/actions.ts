@@ -124,13 +124,31 @@ export async function chauffeurLogin(
   redirect("/chauffeur");
 }
 
-export async function chauffeurLogout(): Promise<void> {
+export async function chauffeurLogout(): Promise<{ error: string } | void> {
   const supabase = await createClient();
+  const ch = await getCurrentChauffeur();
+
+  // GARDE : pas de déconnexion avec une course en cours — le chauffeur doit
+  // d'abord la terminer. Vérif serveur (source de vérité) : course qui lui est
+  // attribuée et encore active (acceptée → en cours).
+  if (ch) {
+    const admin = createAdminClient();
+    const { count } = await admin
+      .from("rides")
+      .select("id", { count: "exact", head: true })
+      .eq("chauffeur_id", ch.id)
+      .in("status", ["accepted", "arriving", "arrived", "in_progress"]);
+    if ((count ?? 0) > 0) {
+      return {
+        error: "Terminez votre course en cours avant de vous déconnecter.",
+      };
+    }
+  }
+
   // Se déconnecter ⇒ passer HORS LIGNE automatiquement (sinon le chauffeur reste
   // « en ligne » côté serveur après logout → dispatch/push fantômes). On le fait
   // AVANT signOut, tant que la session est encore valide.
   try {
-    const ch = await getCurrentChauffeur();
     if (ch) {
       const admin = createAdminClient();
       await admin

@@ -134,14 +134,35 @@ function readSafeNext(raw: FormDataEntryValue | null): string | null {
   return v;
 }
 
-export async function driverLogout(): Promise<void> {
+export async function driverLogout(): Promise<{ error: string } | void> {
   const supabase = await createClient();
+  const drv = await getCurrentDriver();
+
+  // GARDE : on ne se déconnecte PAS avec une course Express en cours — le
+  // livreur doit d'abord la terminer (il en est responsable jusqu'à livraison).
+  // Vérif côté serveur (source de vérité) : commande qui lui est attribuée,
+  // mode express, pas encore livrée ni terminée/annulée.
+  if (drv) {
+    const admin = createAdminClient();
+    const { count } = await admin
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("delivery_driver_id", drv.id)
+      .eq("delivery_mode", "express")
+      .is("delivery_delivered_at", null)
+      .not("status", "in", "(completed,cancelled)");
+    if ((count ?? 0) > 0) {
+      return {
+        error: "Terminez votre course en cours avant de vous déconnecter.",
+      };
+    }
+  }
+
   // Se déconnecter ⇒ passer HORS LIGNE automatiquement. La présence livreur =
   // dernier heartbeat (driver_presence) ; on supprime la ligne pour qu'il ne
   // soit plus « présent » pour le dispatch Express dès la déconnexion (AVANT
   // signOut, tant que la session vaut encore).
   try {
-    const drv = await getCurrentDriver();
     if (drv) {
       const admin = createAdminClient();
       // driver_presence absente de database.types.ts généré (Docker requis) →

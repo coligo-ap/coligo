@@ -45,7 +45,11 @@ export function ChauffeurSignupForm({
             Vous êtes déjà connecté en tant que <b>{connectedPhone}</b>. Pour
             inscrire un autre chauffeur, déconnectez-vous d&apos;abord.
           </p>
-          <form action={chauffeurLogout}>
+          <form
+            action={async () => {
+              await chauffeurLogout();
+            }}
+          >
             <Button
               type="submit"
               variant="outline"

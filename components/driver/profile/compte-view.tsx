@@ -6,6 +6,9 @@ import { driverLogout } from "@/app/(driver)/actions";
 import { useDriverDark, toggleDriverDark } from "@/lib/driver/theme-store";
 import { useDriverSound, toggleDriverSound } from "@/lib/driver/sound-store";
 import { openSupportChat } from "@/components/support/tawk-chat";
+import { toast } from "@/components/ui/toast";
+import { setDriverOnline } from "@/lib/driver/online-store";
+import { getActiveCourse } from "@/lib/driver/active-course-store";
 
 /**
  * Écran COMPTE livreur — refonte « pro » : hero violet (avatar + nom + statut
@@ -231,22 +234,40 @@ export function CompteView({
             </>
           }
         />
-        <form action={driverLogout}>
-          <button type="submit" className="mrow danger">
-            <span className="ic">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-              </svg>
-            </span>
-            {tr("Se déconnecter", "تسجيل الخروج")}
-          </button>
-        </form>
+        <button
+          type="button"
+          className="mrow danger"
+          onClick={() => {
+            // Course en cours → déconnexion bloquée (terminer d'abord). Le
+            // serveur revérifie ; ici pré-contrôle client immédiat.
+            if (getActiveCourse()) {
+              toast.error(
+                tr(
+                  "Terminez votre course en cours avant de vous déconnecter.",
+                  "أنهِ توصيلتك الجارية قبل تسجيل الخروج."
+                )
+              );
+              return;
+            }
+            setDriverOnline(false);
+            void driverLogout().then((res) => {
+              if (res?.error) toast.error(res.error);
+            });
+          }}
+        >
+          <span className="ic">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+            </svg>
+          </span>
+          {tr("Se déconnecter", "تسجيل الخروج")}
+        </button>
       </div>
     </>
   );

@@ -38,6 +38,7 @@ import { DriverBadgePill } from "@/components/drive/driver-badge";
 import { getDriverBadge } from "@/lib/drive/driver-badge";
 import { PLAN_LABEL, fmtPct } from "./d-ui";
 import { Portal } from "@/components/ui/portal";
+import { toast } from "@/components/ui/toast";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import {
   chauffeurLogout,
@@ -296,10 +297,16 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
       <button
         type="button"
         onClick={() => {
-          // Déconnexion = hors ligne : on efface l'intention locale (le serveur
-          // met déjà chauffeur_presence.is_online=false) → re-login hors ligne.
-          setChauffeurOnlineLocal(false);
-          void chauffeurLogout();
+          // Course en cours → déconnexion bloquée par le serveur (terminer
+          // d'abord). Sinon : hors ligne (intention locale ; le serveur met
+          // déjà chauffeur_presence.is_online=false) → re-login hors ligne.
+          void chauffeurLogout().then((res) => {
+            if (res?.error) {
+              toast.error(res.error);
+              return;
+            }
+            setChauffeurOnlineLocal(false);
+          });
         }}
         className="mt-3 flex w-full items-center gap-3 rounded-[16px] border border-[var(--d-line)] px-3.5 py-3.5 text-left text-[13.5px] font-semibold"
         style={{ color: "#E5484D" }}
