@@ -3,10 +3,13 @@
  * MAQUETTE-recharge-portefeuille.html, scopé sous `.cgw` pour cohabiter avec
  * les thèmes des espaces hôtes (livreur / chauffeur / commerçant).
  *
- * Mode sombre : suit l'ancêtre `.theme-dark` (chauffeur / commerçant / client,
- * cookie coligo_theme) OU `.dark` (espace livreur, store dédié) — aucune
- * détection JS, la cascade CSS s'en charge. Polices via les variables globales
- * --font-display (Sora) et --font-sans-body (Plus Jakarta Sans).
+ * Mode sombre : aligné EXACTEMENT sur les espaces qui basculent réellement en
+ * sombre (cf. globals.css) — livreur (`[data-space="driver"].dark`) et
+ * chauffeur/Drive + client (`.theme-dark` sur `.drive-jakarta` / client). Les
+ * espaces commerçant et PARTENAIRE (agent Coligo Pay) sont clair-uniquement :
+ * `.cgw` y reste donc clair, même si le cookie global `coligo_theme=dark` est
+ * posé (sinon : bloc portefeuille sombre dans une page claire — incohérence
+ * vécue côté agent). Aucune détection JS, la cascade CSS s'en charge.
  */
 export const RECHARGE_STYLE = `
 .cgw{
@@ -21,7 +24,8 @@ export const RECHARGE_STYLE = `
   display:block;width:100%;max-width:360px;margin:0 auto;
   -webkit-tap-highlight-color:transparent;
 }
-:where(.theme-dark) .cgw,:where(.dark) .cgw{
+[data-space="driver"].dark .cgw,
+.theme-dark :is([data-space="client"], .drive-jakarta) .cgw{
   --surface:#14161f;--ink:#fff;--muted:#979BB0;--line:#23263a;--soft:#1b1e2b;--violet-soft:#2a1c44;
   --sh-s:0 8px 22px -10px rgba(0,0,0,.6);--sh-m:0 18px 44px -16px rgba(0,0,0,.7);
 }

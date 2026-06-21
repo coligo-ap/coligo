@@ -8,6 +8,7 @@ const LABELS_AR: Record<string, string> = {
   Accueil: "الرئيسية",
   Gains: "الأرباح",
   Historique: "السجل",
+  "Coligo Pay": "كوليغو باي",
   Compte: "الحساب",
 };
 
@@ -35,6 +36,13 @@ const ITEMS = [
     exact: false,
     path: "",
     clock: true,
+  },
+  {
+    href: "/driver/recharger",
+    label: "Coligo Pay",
+    exact: false,
+    path: "",
+    wallet: true,
   },
   {
     href: "/driver/parametres",
@@ -79,6 +87,11 @@ export function DriverBottomNav() {
                 <>
                   <circle cx="12" cy="8" r="4" />
                   <path d="M4 21a8 8 0 0 1 16 0" />
+                </>
+              ) : "wallet" in item && item.wallet ? (
+                <>
+                  <rect x="3" y="6" width="18" height="13" rx="2" />
+                  <path d="M3 10h18M16 14h2" />
                 </>
               ) : (
                 <path d={item.path} />

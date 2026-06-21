@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { BarChart3, Car, ChevronLeft, Home, User } from "lucide-react";
+import { BarChart3, Car, ChevronLeft, Home, User, Wallet } from "lucide-react";
 import { VIOLET } from "@/components/customer/drive/drive-modals";
 
 /**
@@ -28,11 +28,17 @@ export function DBack({ className }: { className?: string }) {
   );
 }
 
-/** Nav chauffeur (maquette) : Accueil · Drive · Gains · Compte. */
+/** Nav chauffeur (maquette) : Accueil · Drive · Gains · Coligo Pay · Compte. */
 const TABS = [
   { href: "/chauffeur", label: "Accueil", ar: "الرئيسية", icon: Home },
   { href: "/chauffeur/demandes", label: "Drive", ar: "درايف", icon: Car },
   { href: "/chauffeur/gains", label: "Gains", ar: "الأرباح", icon: BarChart3 },
+  {
+    href: "/chauffeur/recharger",
+    label: "Coligo Pay",
+    ar: "كوليغو باي",
+    icon: Wallet,
+  },
   { href: "/chauffeur/compte", label: "Compte", ar: "الحساب", icon: User },
 ] as const;
 
@@ -40,7 +46,7 @@ export function DNav() {
   const pathname = usePathname();
   const isAr = useLocale() === "ar";
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 grid h-[66px] grid-cols-4 border-t border-[var(--d-line)] bg-[var(--d-surface)] pb-[max(env(safe-area-inset-bottom),9px)]">
+    <nav className="fixed inset-x-0 bottom-0 z-30 grid h-[66px] grid-cols-5 border-t border-[var(--d-line)] bg-[var(--d-surface)] pb-[max(env(safe-area-inset-bottom),9px)]">
       {TABS.map((tab) => {
         const Icon = tab.icon;
         const active =
@@ -57,7 +63,7 @@ export function DNav() {
             // (serveur US, latence depuis l'Algérie). Avec prefetch={true} le
             // RSC de l'onglet est mis en cache à l'avance → bascule instantanée.
             prefetch
-            className="flex flex-col items-center justify-center gap-[3px] text-[9.5px] font-semibold"
+            className="flex flex-col items-center justify-center gap-[3px] text-[9.5px] font-semibold whitespace-nowrap"
             style={{ color: active ? VIOLET : "var(--d-muted)" }}
           >
             <Icon className="size-[21px]" />
