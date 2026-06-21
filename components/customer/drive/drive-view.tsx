@@ -133,6 +133,10 @@ export function DriveView() {
   // `quoteId` = devis signé serveur lié aux adresses courantes (anti-rejeu/TTL).
   const [pricing, setPricing] = useState(false);
   const [quoteId, setQuoteId] = useState<string | null>(null);
+  // Distance pour laquelle le prix courant a été calculé. Si elle ne correspond
+  // PLUS au trajet (le client a modifié départ/arrivée puis revient à l'écran
+  // prix), le prix est PÉRIMÉ → on affiche un loader, jamais l'ancien prix.
+  const [quotedKm, setQuotedKm] = useState<number | null>(null);
   const [payMode, setPayMode] = useState<"cash" | "card" | "coligo_pay">(
     "cash"
   );
@@ -360,6 +364,7 @@ export function DriveView() {
       const reco = q[gamme]?.recommended ?? q.classic.recommended;
       setPrice(reco);
       if (boostOn) setBoostAmt(defBoost(reco));
+      setQuotedKm(distanceKm); // le prix correspond désormais à CE trajet
       setPricing(false);
     })();
     return () => {
@@ -461,6 +466,10 @@ export function DriveView() {
     [ctx]
   );
   const offerPrice = price + (boostOn ? boostAmt : 0);
+  // Prix PÉRIMÉ : recalcul en cours OU les quotes ne correspondent plus au
+  // trajet courant (adresse modifiée puis retour à l'écran prix) → on n'affiche
+  // jamais l'ancien prix, on montre un loader.
+  const priceStale = pricing || quotedKm !== distanceKm;
 
   const pickGamme = (g: Gamme) => {
     setGamme(g);
@@ -1082,22 +1091,35 @@ export function DriveView() {
               <button
                 type="button"
                 onClick={() => stepPrice(-1)}
-                className="grid size-[46px] place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-2xl font-bold"
+                disabled={priceStale}
+                className="grid size-[46px] place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-2xl font-bold disabled:opacity-40"
                 style={{ color: VIOLET }}
               >
                 −
               </button>
               <div
-                className="drive-sora min-w-[140px] text-[38px] font-extrabold tracking-[-1.5px]"
+                className="drive-sora flex min-w-[140px] items-center justify-center text-[38px] font-extrabold tracking-[-1.5px]"
                 style={boostOn ? { color: GO } : undefined}
               >
-                {offerPrice}{" "}
-                <small className="text-[17px] text-[var(--d-muted)]">DA</small>
+                {/* Anti-prix-périmé : pendant le recalcul (adresse changée), on
+                    EFFACE l'ancien prix et on montre un loader — jamais un prix
+                    qui ne correspond plus au trajet courant. */}
+                {priceStale ? (
+                  <Loader2 className="size-7 animate-spin text-[var(--d-muted)]" />
+                ) : (
+                  <>
+                    {offerPrice}{" "}
+                    <small className="text-[17px] text-[var(--d-muted)]">
+                      DA
+                    </small>
+                  </>
+                )}
               </div>
               <button
                 type="button"
                 onClick={() => stepPrice(1)}
-                className="grid size-[46px] place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-2xl font-bold"
+                disabled={priceStale}
+                className="grid size-[46px] place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-2xl font-bold disabled:opacity-40"
                 style={{ color: VIOLET }}
               >
                 +
@@ -1234,12 +1256,12 @@ export function DriveView() {
           )}
           <PrimaryBtn
             onClick={submitRequest}
-            disabled={submitting || pricing || !quote || !!zoneBlock}
+            disabled={submitting || priceStale || !quote || !!zoneBlock}
           >
-            {submitting || pricing ? (
+            {submitting || priceStale ? (
               <Loader2 className="size-5 animate-spin" />
             ) : null}
-            {pricing
+            {priceStale
               ? t("price.recalculating")
               : t("price.propose", { price: offerPrice })}
           </PrimaryBtn>
@@ -1590,6 +1612,11 @@ function MapPickScreen({
   const [addr, setAddr] = useState<string | null>(initial?.text ?? null);
   const [resolving, setResolving] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Quand le client CHOISIT une suggestion, on remet son libellé dans l'input —
+  // ce qui retriggerait la recherche et RÉOUVRIRAIT la liste. Ce drapeau saute
+  // la recherche UNE fois après un choix → la liste ne se réaffiche pas tant que
+  // le client ne MODIFIE pas son texte.
+  const pickedRef = useRef(false);
 
   // Recherche d'adresse SUR la carte (suggestions, debounce configurable).
   const [searchQ, setSearchQ] = useState("");
@@ -1643,6 +1670,13 @@ function MapPickScreen({
   };
 
   useEffect(() => {
+    // Le client vient de CHOISIR une adresse → on ne relance pas la recherche
+    // (sinon la liste se rouvre). Réinitialise le drapeau pour la frappe suivante.
+    if (pickedRef.current) {
+      pickedRef.current = false;
+      setSearching(false);
+      return;
+    }
     const q = searchQ.trim();
     if (q.length < 3) {
       setSearchResults([]);
@@ -1673,7 +1707,9 @@ function MapPickScreen({
   // Suggestion choisie → l'épingle se recale EXACTEMENT sur ce lieu (le
   // client peut ensuite affiner au doigt — moveend ré-émettra la position).
   const pickSuggestion = (r: { display: string; lat: number; lng: number }) => {
+    pickedRef.current = true; // saute la recherche déclenchée par setSearchQ
     setSearchOpen(false);
+    setSearchResults([]); // la liste disparaît et ne se rouvre pas au focus
     setFavOpen(false);
     setSearchQ(r.display);
     setAddr(r.display);
