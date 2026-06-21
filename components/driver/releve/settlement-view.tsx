@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "next-intl";
 import Link from "next/link";
 
 /**
@@ -38,15 +39,25 @@ function grp(n: number) {
 }
 
 export function SettlementView({ data }: { data: SettlementData }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [showInstructions, setShowInstructions] = useState(false);
   const isReverse = data.direction === "reverse";
   const isReceive = data.direction === "receive";
-  const methodLabel = data.method ? METHOD_LABEL[data.method] : null;
+  const methodLabel = data.method
+    ? data.method === "bank"
+      ? tr("Virement bancaire", "تحويل بنكي")
+      : METHOD_LABEL[data.method]
+    : null;
 
   return (
     <>
       <div className="backh">
-        <Link href="/driver/gains" className="b" aria-label="Retour">
+        <Link
+          href="/driver/gains"
+          className="b"
+          aria-label={tr("Retour", "رجوع")}
+        >
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -57,16 +68,18 @@ export function SettlementView({ data }: { data: SettlementData }) {
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </Link>
-        <h1>Relevé · {data.periodLabel}</h1>
+        <h1>
+          {tr("Relevé", "كشف الحساب")} · {data.periodLabel}
+        </h1>
       </div>
 
       <div className="net-card">
         <div className="lbl">
           {isReverse
-            ? "À reverser à Coligo"
+            ? tr("À reverser à Coligo", "للتسديد إلى كوليغو")
             : isReceive
-              ? "À recevoir de Coligo"
-              : "Compte soldé"}
+              ? tr("À recevoir de Coligo", "لاستلامه من كوليغو")
+              : tr("Compte soldé", "الحساب مُسوّى")}
         </div>
         <div className="v">{grp(data.netDa)} DA</div>
         {data.dueLabel && <div className="due">{data.dueLabel}</div>}
@@ -92,36 +105,46 @@ export function SettlementView({ data }: { data: SettlementData }) {
 
       <div className="brk">
         <div className="r gain">
-          <span className="k">Tes gains nets (à toi)</span>
+          <span className="k">
+            {tr("Tes gains nets (à toi)", "أرباحك الصافية (لك)")}
+          </span>
           <span className="vv">+{grp(data.grossDriverDa)} DA</span>
         </div>
         <div className="r">
-          <span className="k">Commissions commerçants</span>
+          <span className="k">
+            {tr("Commissions commerçants", "عمولات التجّار")}
+          </span>
           <span className="vv">{grp(data.commissionDa)} DA</span>
         </div>
         <div className="r">
-          <span className="k">Frais de service</span>
+          <span className="k">{tr("Frais de service", "رسوم الخدمة")}</span>
           <span className="vv">{grp(data.serviceFeeDa)} DA</span>
         </div>
         <div className="r">
           <span className="k">
-            Part Coligo livraison ({data.driverFeeRatePct}%)
+            {tr("Part Coligo livraison", "حصة كوليغو للتوصيل")} (
+            {data.driverFeeRatePct}%)
           </span>
           <span className="vv">{grp(data.driverFeeDa)} DA</span>
         </div>
         {data.toReceiveDa > 0 && (
           <div className="r gain">
-            <span className="k">Livraisons prépayées (dues par Coligo)</span>
+            <span className="k">
+              {tr(
+                "Livraisons prépayées (dues par Coligo)",
+                "توصيلات مدفوعة مسبقاً (مستحقة من كوليغو)"
+              )}
+            </span>
             <span className="vv">+{grp(data.toReceiveDa)} DA</span>
           </div>
         )}
         <div className="r total">
           <span className="k">
             {isReverse
-              ? "Solde à reverser"
+              ? tr("Solde à reverser", "الرصيد المطلوب تسديده")
               : isReceive
-                ? "Solde à recevoir"
-                : "Solde"}
+                ? tr("Solde à recevoir", "الرصيد المطلوب استلامه")
+                : tr("Solde", "الرصيد")}
           </span>
           <span className="vv">{grp(data.netDa)} DA</span>
         </div>
@@ -134,8 +157,12 @@ export function SettlementView({ data }: { data: SettlementData }) {
           onClick={() => setShowInstructions((s) => !s)}
         >
           {isReverse
-            ? `Reverser ${grp(data.netDa)} DA`
-            : `Recevoir ${grp(data.netDa)} DA`}
+            ? isAr
+              ? `تسديد ${grp(data.netDa)} دج`
+              : `Reverser ${grp(data.netDa)} DA`
+            : isAr
+              ? `استلام ${grp(data.netDa)} دج`
+              : `Recevoir ${grp(data.netDa)} DA`}
         </button>
       )}
 
@@ -145,12 +172,25 @@ export function SettlementView({ data }: { data: SettlementData }) {
           style={{ marginTop: 12, fontSize: 13, lineHeight: 1.6 }}
         >
           {isReverse ? (
+            isAr ? (
+              <>
+                <b>كيف تسدّد؟</b> قم بتحويل <b>{grp(data.netDa)} دج</b> إلى حساب
+                كوليغو {methodLabel ? `(${methodLabel})` : "(CCP / BaridiMob)"}،
+                أو سلّم المبلغ نقداً في نقطة تجميع. يُحدَّث الرصيد بعد التأكيد.
+              </>
+            ) : (
+              <>
+                <b>Comment reverser&nbsp;?</b> Effectue un versement de{" "}
+                <b>{grp(data.netDa)} DA</b> vers le compte Coligo{" "}
+                {methodLabel ? `(${methodLabel})` : "(CCP / BaridiMob)"}, ou
+                remets l&apos;espèce à un point de collecte. Le solde se met à
+                jour après confirmation.
+              </>
+            )
+          ) : isAr ? (
             <>
-              <b>Comment reverser&nbsp;?</b> Effectue un versement de{" "}
-              <b>{grp(data.netDa)} DA</b> vers le compte Coligo{" "}
-              {methodLabel ? `(${methodLabel})` : "(CCP / BaridiMob)"}, ou
-              remets l&apos;espèce à un point de collecte. Le solde se met à
-              jour après confirmation.
+              <b>تسديد قادم.</b> ستحوّل لك كوليغو <b>{grp(data.netDa)} دج</b>{" "}
+              إلى {methodLabel ?? "طريقة التسديد الخاصة بك"} في الدورة القادمة.
             </>
           ) : (
             <>
@@ -163,7 +203,7 @@ export function SettlementView({ data }: { data: SettlementData }) {
       )}
 
       <button type="button" className="btnlink" onClick={() => window.print()}>
-        Télécharger le relevé (PDF)
+        {tr("Télécharger le relevé (PDF)", "تحميل كشف الحساب (PDF)")}
       </button>
     </>
   );

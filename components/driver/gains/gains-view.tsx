@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 
 /**
  * Écran GAINS reproduit À L'IDENTIQUE de MAQUETTE-livreur-pages (section Gains) :
@@ -30,20 +31,20 @@ export type GainsEntry = {
 
 type Period = "day" | "week" | "month";
 
-const PERIODS: { key: Period; label: string }[] = [
-  { key: "day", label: "Jour" },
-  { key: "week", label: "Semaine" },
-  { key: "month", label: "Mois" },
+const PERIODS: { key: Period; label: string; labelAr: string }[] = [
+  { key: "day", label: "Jour", labelAr: "يوم" },
+  { key: "week", label: "Semaine", labelAr: "أسبوع" },
+  { key: "month", label: "Mois", labelAr: "شهر" },
 ];
-const PERIOD_TITLE: Record<Period, string> = {
-  day: "Aujourd'hui",
-  week: "Cette semaine",
-  month: "Ce mois-ci",
+const PERIOD_TITLE: Record<Period, [string, string]> = {
+  day: ["Aujourd'hui", "اليوم"],
+  week: ["Cette semaine", "هذا الأسبوع"],
+  month: ["Ce mois-ci", "هذا الشهر"],
 };
-const PERIOD_PREV: Record<Period, string> = {
-  day: "hier",
-  week: "semaine dernière",
-  month: "mois dernier",
+const PERIOD_PREV: Record<Period, [string, string]> = {
+  day: ["hier", "أمس"],
+  week: ["semaine dernière", "الأسبوع الماضي"],
+  month: ["mois dernier", "الشهر الماضي"],
 };
 const DAY_LETTERS = ["L", "M", "M", "J", "V", "S", "D"];
 
@@ -64,6 +65,8 @@ function startOfMonth(d: Date) {
 }
 
 export function GainsView({ entries }: { entries: GainsEntry[] }) {
+  const isAr = useLocale() === "ar";
+  const L = isAr ? 1 : 0;
   const [period, setPeriod] = useState<Period>("day");
 
   const { total, count, avg, cashCollected, deltaPct, bars } = useMemo(() => {
@@ -134,7 +137,7 @@ export function GainsView({ entries }: { entries: GainsEntry[] }) {
   return (
     <>
       <div className="head">
-        <h1>Gains</h1>
+        <h1>{isAr ? "الأرباح" : "Gains"}</h1>
         <div className="ic">
           <svg
             viewBox="0 0 24 24"
@@ -156,7 +159,7 @@ export function GainsView({ entries }: { entries: GainsEntry[] }) {
             className={period === p.key ? "on" : ""}
             onClick={() => setPeriod(p.key)}
           >
-            {p.label}
+            {isAr ? p.labelAr : p.label}
           </button>
         ))}
       </div>
@@ -166,7 +169,8 @@ export function GainsView({ entries }: { entries: GainsEntry[] }) {
           style={{ fontSize: "12.5px", fontWeight: 600 }}
           className="text-[var(--muted)]"
         >
-          {PERIOD_TITLE[period]} · {count} course{count > 1 ? "s" : ""}
+          {PERIOD_TITLE[period][L]} · {count}{" "}
+          {isAr ? "توصيلة" : "course" + (count > 1 ? "s" : "")}
         </div>
         <div className="big-amt" style={{ marginTop: 8 }}>
           {grp(total)} <small>DA</small>
@@ -186,7 +190,7 @@ export function GainsView({ entries }: { entries: GainsEntry[] }) {
               <path d="M7 17L17 7M17 7H8M17 7v9" />
             </svg>
             {deltaPct >= 0 ? "+" : ""}
-            {deltaPct}% vs {PERIOD_PREV[period]}
+            {deltaPct}% {isAr ? "مقابل" : "vs"} {PERIOD_PREV[period][L]}
           </span>
         )}
         <div className="chart">
@@ -202,11 +206,13 @@ export function GainsView({ entries }: { entries: GainsEntry[] }) {
       <div className="tiles">
         <div className="tile">
           <div className="v">{grp(avg)} DA</div>
-          <div className="l">Gain moyen / course</div>
+          <div className="l">
+            {isAr ? "متوسط الربح / توصيلة" : "Gain moyen / course"}
+          </div>
         </div>
         <div className="tile">
           <div className="v">{grp(cashCollected)} DA</div>
-          <div className="l">Cash encaissé</div>
+          <div className="l">{isAr ? "النقد المحصّل" : "Cash encaissé"}</div>
         </div>
       </div>
 
@@ -224,8 +230,12 @@ export function GainsView({ entries }: { entries: GainsEntry[] }) {
           </svg>
         </div>
         <div className="t">
-          <b>Relevé &amp; versement</b>
-          <span>Solde à reverser / à recevoir · CCP · BaridiMob</span>
+          <b>{isAr ? "كشف الحساب والتسديد" : "Relevé & versement"}</b>
+          <span>
+            {isAr
+              ? "الرصيد المستحق له/عليه · CCP · BaridiMob"
+              : "Solde à reverser / à recevoir · CCP · BaridiMob"}
+          </span>
         </div>
         <svg
           className="chev"
