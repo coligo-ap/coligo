@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -512,22 +512,18 @@ function StatusChip({
 /** Bascule clair / sombre (cookie coligo_theme + classe theme-dark) — l'espace
  *  chauffeur consomme `.theme-dark .drive-jakarta`, donc le sombre s'applique. */
 function DarkModeRow() {
-  const router = useRouter();
-  const [pending, start] = useTransition();
   const [dark, setDark] = useState<boolean | null>(null);
   useEffect(() => {
     setDark(document.documentElement.classList.contains("theme-dark"));
   }, []);
 
   const toggle = () => {
-    if (pending || dark === null) return;
+    if (dark === null) return;
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("theme-dark", next);
-    start(async () => {
-      await setTheme(next ? "dark" : "light");
-      router.refresh();
-    });
+    // Instantané : cookie persisté en arrière-plan, PAS de router.refresh().
+    void setTheme(next ? "dark" : "light");
   };
 
   return (
