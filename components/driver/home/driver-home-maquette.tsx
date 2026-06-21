@@ -3,10 +3,12 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { setGlobalAvailability } from "@/app/(driver)/actions";
 import { useDriverOnline, setDriverOnline } from "@/lib/driver/online-store";
 import { DriverBalancePill } from "@/components/driver/balance-pill";
 import { DriverDarkPill } from "@/components/driver/driver-dark-pill";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { playGo } from "@/lib/driver/sounds";
 
 export const FROZEN_MESSAGE =
@@ -48,6 +50,9 @@ export function DriverHomeMaquette({
   const online = useDriverOnline();
   const [, start] = useTransition();
   const router = useRouter();
+  // Bilingue FR/ع (suit la locale racine, comme l'espace chauffeur).
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   // Affiche le message « compte gelé » si le serveur refuse la mise en ligne.
   const [frozenMsg, setFrozenMsg] = useState(false);
 
@@ -206,7 +211,10 @@ export function DriverHomeMaquette({
             <circle cx="12" cy="12" r="9" />
             <path d="M12 8v4M12 16h.01" />
           </svg>
-          Compte gelé · activité suspendue — appuyez pour en savoir plus
+          {tr(
+            "Compte gelé · activité suspendue — appuyez pour en savoir plus",
+            "الحساب مجمّد · النشاط موقوف — اضغط لمعرفة المزيد"
+          )}
         </button>
       )}
 
@@ -216,12 +224,13 @@ export function DriverHomeMaquette({
         {online && !isFrozen ? (
           <div className="home-chip">
             <span className="d" />
-            En ligne
+            {tr("En ligne", "متصل")}
           </div>
         ) : (
           <span aria-hidden />
         )}
         <div className="flex items-center gap-2">
+          <LanguageSwitcher compact />
           <DriverDarkPill />
           <DriverBalancePill driverId={driverId} />
         </div>
@@ -234,8 +243,8 @@ export function DriverHomeMaquette({
         {/* Bouton GO en dock (à cheval sur le bord supérieur de la feuille). */}
         <div className="go-cap">
           {online
-            ? "Appuyez pour vous déconnecter"
-            : "Appuyez pour passer en ligne"}
+            ? tr("Appuyez pour vous déconnecter", "اضغط لقطع الاتصال")
+            : tr("Appuyez pour passer en ligne", "اضغط للاتصال")}
         </div>
         <div className="go-dock">
           <div className="radar">
@@ -247,10 +256,14 @@ export function DriverHomeMaquette({
             type="button"
             className="go-btn"
             onClick={toggle}
-            aria-label={online ? "Se déconnecter" : "Passer en ligne"}
+            aria-label={
+              online
+                ? tr("Se déconnecter", "قطع الاتصال")
+                : tr("Passer en ligne", "الاتصال")
+            }
           >
             <span className="go-off">GO</span>
-            <span className="go-on">EN LIGNE</span>
+            <span className="go-on">{tr("EN LIGNE", "متصل")}</span>
           </button>
         </div>
 
@@ -260,15 +273,19 @@ export function DriverHomeMaquette({
         <Link
           href="/driver/gains"
           className="home-head"
-          aria-label="Voir mes gains"
+          aria-label={tr("Voir mes gains", "عرض أرباحي")}
         >
           <div className="hh-main">
-            <div className="lbl">Aujourd&apos;hui</div>
-            <div className="v">{grp(earnedToday)} DA</div>
+            <div className="lbl">{tr("Aujourd'hui", "اليوم")}</div>
+            <div className="v">
+              {grp(earnedToday)} {tr("DA", "دج")}
+            </div>
           </div>
           <div className="hh-stat">
             <div className="hh-num">{coursesToday}</div>
-            <div className="lbl">course{coursesToday > 1 ? "s" : ""}</div>
+            <div className="lbl">
+              {isAr ? "توصيلة" : "course" + (coursesToday > 1 ? "s" : "")}
+            </div>
           </div>
           <div className="gchev">
             <svg
@@ -287,14 +304,17 @@ export function DriverHomeMaquette({
         <div className="statusline">
           <div className="lbl">
             <span className="sp" />
-            Recherche d&apos;une commande à livrer…
+            {tr("Recherche d'une commande à livrer…", "البحث عن طلب للتوصيل…")}
           </div>
           <div className="track" />
         </div>
 
         {/* Hors ligne : simple ligne d'invite. */}
         <div className="offhint">
-          Passez en ligne pour recevoir des commandes
+          {tr(
+            "Passez en ligne pour recevoir des commandes",
+            "اتصل لاستقبال الطلبات"
+          )}
         </div>
       </div>
     </>
