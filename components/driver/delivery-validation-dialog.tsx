@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useLocale } from "next-intl";
 import { toast } from "@/components/ui/toast";
 import { QrScanner } from "@/components/scanner/qr-scanner";
 import { enqueueValidation } from "@/lib/driver-offline/db";
@@ -39,6 +40,8 @@ export function DeliveryValidationDialog({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [code, setCode] = useState("");
   const [pending, start] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -73,7 +76,12 @@ export function DeliveryValidationDialog({
           code: code || null,
           skipCode: skip,
         });
-        toast.success("Validation enregistrée — sera synchronisée");
+        toast.success(
+          tr(
+            "Validation enregistrée — sera synchronisée",
+            "تم حفظ التأكيد — ستتم المزامنة"
+          )
+        );
         onSuccess();
         return;
       }
@@ -94,7 +102,7 @@ export function DeliveryValidationDialog({
             "already_delivered",
           ].includes(r.reason)
         ) {
-          toast.error(reasonLabel(r.reason));
+          toast.error(reasonLabel(r.reason, isAr));
           return;
         }
         await enqueueValidation({
@@ -102,11 +110,16 @@ export function DeliveryValidationDialog({
           code: code || null,
           skipCode: skip,
         });
-        toast.success("Validation en attente — synchro auto");
+        toast.success(
+          tr(
+            "Validation en attente — synchro auto",
+            "التأكيد قيد الانتظار — مزامنة تلقائية"
+          )
+        );
         onSuccess();
         return;
       }
-      toast.success("Livraison validée ✓");
+      toast.success(tr("Livraison validée ✓", "تم تأكيد التسليم ✓"));
       onSuccess();
     });
 
@@ -114,14 +127,21 @@ export function DeliveryValidationDialog({
     const digits = text.match(/\d{4,6}/)?.[0];
     if (digits) {
       setCode(digits.slice(0, 4));
-      toast.success("Code détecté");
+      toast.success(tr("Code détecté", "تم اكتشاف الرمز"));
     }
   };
 
   const onValidateClick = () => {
     if (isOnline) return submit(false);
     if (code.length >= 4) return submit(false);
-    if (confirm("Confirmer la remise au client (paiement cash) ?"))
+    if (
+      confirm(
+        tr(
+          "Confirmer la remise au client (paiement cash) ?",
+          "تأكيد التسليم للزبون (الدفع نقداً)؟"
+        )
+      )
+    )
       submit(true);
   };
 
@@ -130,34 +150,47 @@ export function DeliveryValidationDialog({
   // Online payé → course payée normalement (le client a déjà tout réglé).
   const onNoShow = () => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      toast.error("Connexion requise pour signaler un client absent.");
+      toast.error(
+        tr(
+          "Connexion requise pour signaler un client absent.",
+          "يلزم اتصال بالإنترنت للإبلاغ عن غياب الزبون."
+        )
+      );
       return;
     }
     if (!noShowReady) return; // bouton déjà désactivé, garde-fou
-    if (
-      !confirm(
-        "Client absent ou commande refusée ?\n\n" +
-          "Vérifie que tu as bien CONTACTÉ le client (message) et attendu sur place. " +
-          "La commande sera ANNULÉE." +
-          (isOnline
-            ? " Ta course est payée normalement (commande déjà payée en ligne)."
-            : "\n\nTon avance au commerçant sera remboursée APRÈS validation du " +
-              "support — la course n'est pas payée (règle no-show). GARDE la " +
-              "commande avec toi : le support te dira quoi en faire (retour, " +
-              "garder ou donner). Suivi dans Relevé.")
-      )
-    )
-      return;
+    const confirmMsg = isAr
+      ? "الزبون غائب أو الطلب مرفوض؟\n\n" +
+        "تأكّد أنك تواصلت مع الزبون (رسالة) وانتظرت في المكان. سيتم إلغاء الطلب." +
+        (isOnline
+          ? " توصيلتك مدفوعة عادياً (الطلب مدفوع مسبقاً عبر الإنترنت)."
+          : "\n\nسيُعاد لك ما دفعته للتاجر بعد موافقة الدعم — التوصيلة غير مدفوعة (قاعدة الغياب). احتفظ بالطلب معك: الدعم سيخبرك بما تفعله (إرجاع، احتفاظ أو منح). المتابعة في كشف الحساب.")
+      : "Client absent ou commande refusée ?\n\n" +
+        "Vérifie que tu as bien CONTACTÉ le client (message) et attendu sur place. " +
+        "La commande sera ANNULÉE." +
+        (isOnline
+          ? " Ta course est payée normalement (commande déjà payée en ligne)."
+          : "\n\nTon avance au commerçant sera remboursée APRÈS validation du " +
+            "support — la course n'est pas payée (règle no-show). GARDE la " +
+            "commande avec toi : le support te dira quoi en faire (retour, " +
+            "garder ou donner). Suivi dans Relevé.");
+    if (!confirm(confirmMsg)) return;
     start(async () => {
       const r = await reportNoShow({ orderId, reason: "no_show" });
       if (!r.ok) {
-        toast.error(reasonLabel(r.reason));
+        toast.error(reasonLabel(r.reason, isAr));
         return;
       }
       toast.success(
         isOnline
-          ? "Signalé — commande annulée, ta course est payée."
-          : "Signalé — le support examine le remboursement de ton avance (voir Relevé)."
+          ? tr(
+              "Signalé — commande annulée, ta course est payée.",
+              "تم الإبلاغ — أُلغي الطلب، وتوصيلتك مدفوعة."
+            )
+          : tr(
+              "Signalé — le support examine le remboursement de ton avance (voir Relevé).",
+              "تم الإبلاغ — يراجع الدعم استرجاع ما دفعته (انظر كشف الحساب)."
+            )
       );
       onSuccess();
     });
@@ -175,7 +208,7 @@ export function DeliveryValidationDialog({
             type="button"
             className="b"
             onClick={onClose}
-            aria-label="Retour"
+            aria-label={tr("Retour", "رجوع")}
           >
             <svg
               viewBox="0 0 24 24"
@@ -189,8 +222,13 @@ export function DeliveryValidationDialog({
           </button>
         </div>
 
-        <h2>Confirmer la remise</h2>
-        <p>Scannez le QR du client ou saisissez son code.</p>
+        <h2>{tr("Confirmer la remise", "تأكيد التسليم")}</h2>
+        <p>
+          {tr(
+            "Scannez le QR du client ou saisissez son code.",
+            "امسح رمز QR الخاص بالزبون أو أدخل رمزه."
+          )}
+        </p>
 
         <div className="qr" style={{ overflow: "hidden" }}>
           <QrScanner
@@ -200,14 +238,14 @@ export function DeliveryValidationDialog({
           />
         </div>
 
-        <div className="or">— ou —</div>
+        <div className="or">{tr("— ou —", "— أو —")}</div>
 
         <button
           type="button"
           onClick={() => inputRef.current?.focus()}
           className="pinrow"
           style={{ position: "relative", width: "100%" }}
-          aria-label="Saisir le code"
+          aria-label={tr("Saisir le code", "إدخال الرمز")}
         >
           {boxes.map((d, i) => {
             const filled = d !== "";
@@ -247,7 +285,9 @@ export function DeliveryValidationDialog({
               <rect x="2" y="6" width="20" height="12" rx="2" />
               <circle cx="12" cy="12" r="2.5" />
             </svg>
-            {isOnline ? "Déjà payé en ligne" : "Espèces à encaisser"}
+            {isOnline
+              ? tr("Déjà payé en ligne", "مدفوع مسبقاً عبر الإنترنت")
+              : tr("Espèces à encaisser", "نقد للتحصيل")}
           </div>
           <div className="am">{isOnline ? "0" : collect} DA</div>
         </div>
@@ -259,7 +299,9 @@ export function DeliveryValidationDialog({
           disabled={ctaDisabled}
           style={ctaDisabled ? { opacity: 0.5 } : undefined}
         >
-          {pending ? "Validation…" : "Valider la livraison"}
+          {pending
+            ? tr("Validation…", "جارٍ التأكيد…")
+            : tr("Valider la livraison", "تأكيد التسليم")}
         </button>
 
         {/* Client absent / refus — minuteur 8 min depuis l'arrivée avant
@@ -282,7 +324,10 @@ export function DeliveryValidationDialog({
               opacity: pending ? 0.5 : 1,
             }}
           >
-            Client absent / commande refusée
+            {tr(
+              "Client absent / commande refusée",
+              "الزبون غائب / الطلب مرفوض"
+            )}
           </button>
         ) : (
           <div
@@ -301,14 +346,26 @@ export function DeliveryValidationDialog({
             }}
           >
             {arrivedMs == null ? (
-              <>Signale ton arrivée pour démarrer le minuteur d&apos;attente.</>
+              <>
+                {tr(
+                  "Signale ton arrivée pour démarrer le minuteur d'attente.",
+                  "أبلغ عن وصولك لبدء عدّاد الانتظار."
+                )}
+              </>
             ) : (
               <>
-                « Client absent » disponible dans{" "}
+                {tr(
+                  "« Client absent » disponible dans",
+                  "«الزبون غائب» متاح بعد"
+                )}{" "}
                 <strong style={{ color: "#b42318" }}>
                   {mmss(noShowRemainingMs ?? 0)}
                 </strong>
-                . Contacte le client via la messagerie en attendant.
+                .{" "}
+                {tr(
+                  "Contacte le client via la messagerie en attendant.",
+                  "تواصل مع الزبون عبر الرسائل في انتظار ذلك."
+                )}
               </>
             )}
           </div>
@@ -318,31 +375,42 @@ export function DeliveryValidationDialog({
   );
 }
 
-function reasonLabel(reason?: string): string {
-  switch (reason) {
-    case "online_requires_code":
-      return "Code requis pour les commandes payées en ligne.";
-    case "code_required":
-      return "Code obligatoire : commande prépayée. Le client doit te communiquer son code.";
-    case "bad_code":
-      return "Code incorrect.";
-    case "not_attributed_to_you":
-      return "Cette commande ne t'est pas attribuée.";
-    case "not_a_delivery":
-      return "Ce n'est pas une commande livraison.";
-    case "order_not_found":
-      return "Commande introuvable.";
-    case "already_delivered":
-      return "Déjà validée.";
-    case "already_closed":
-      return "Commande déjà clôturée.";
-    case "not_picked_up":
-      return "Récupère d'abord la commande chez le commerçant.";
-    case "not_arrived":
-      return "Signale ton arrivée avant de déclarer un client absent.";
-    case "too_early":
-      return "Patiente encore : contacte le client, le délai d'attente n'est pas écoulé.";
-    default:
-      return reason ?? "Erreur";
-  }
+function reasonLabel(reason: string | undefined, isAr: boolean): string {
+  const M: Record<string, [string, string]> = {
+    online_requires_code: [
+      "Code requis pour les commandes payées en ligne.",
+      "الرمز مطلوب للطلبات المدفوعة عبر الإنترنت.",
+    ],
+    code_required: [
+      "Code obligatoire : commande prépayée. Le client doit te communiquer son code.",
+      "الرمز إلزامي: طلب مدفوع مسبقاً. على الزبون أن يعطيك رمزه.",
+    ],
+    bad_code: ["Code incorrect.", "الرمز غير صحيح."],
+    not_attributed_to_you: [
+      "Cette commande ne t'est pas attribuée.",
+      "هذا الطلب غير مُسند إليك.",
+    ],
+    not_a_delivery: [
+      "Ce n'est pas une commande livraison.",
+      "هذا ليس طلب توصيل.",
+    ],
+    order_not_found: ["Commande introuvable.", "الطلب غير موجود."],
+    already_delivered: ["Déjà validée.", "تم التأكيد مسبقاً."],
+    already_closed: ["Commande déjà clôturée.", "الطلب مُغلق مسبقاً."],
+    not_picked_up: [
+      "Récupère d'abord la commande chez le commerçant.",
+      "استلم الطلب أولاً من التاجر.",
+    ],
+    not_arrived: [
+      "Signale ton arrivée avant de déclarer un client absent.",
+      "أبلغ عن وصولك قبل الإبلاغ عن غياب الزبون.",
+    ],
+    too_early: [
+      "Patiente encore : contacte le client, le délai d'attente n'est pas écoulé.",
+      "انتظر قليلاً: تواصل مع الزبون، لم تنتهِ مدة الانتظار بعد.",
+    ],
+  };
+  const pair = reason ? M[reason] : undefined;
+  if (!pair) return reason ?? (isAr ? "خطأ" : "Erreur");
+  return isAr ? pair[1] : pair[0];
 }

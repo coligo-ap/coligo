@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import {
   Check,
   Loader2,
@@ -53,6 +54,8 @@ export function TourExecution({
   tourId: string;
 }) {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [validateFor, setValidateFor] = useState<Stop | null>(null);
   const [pending, start] = useTransition();
   const [expandedId, setExpandedId] = useState<string | null>(
@@ -86,13 +89,15 @@ export function TourExecution({
     start(async () => {
       const r = await markTourPickedUp(tourId);
       if (!r.ok) {
-        toast.error(r.error ?? "Erreur");
+        toast.error(r.error ?? tr("Erreur", "خطأ"));
         return;
       }
       toast.success(
-        `${r.count} commande${(r.count ?? 0) > 1 ? "s" : ""} récupérée${
-          (r.count ?? 0) > 1 ? "s" : ""
-        } — bonne tournée !`
+        isAr
+          ? `تم استلام ${r.count} طلب — جولة موفّقة!`
+          : `${r.count} commande${(r.count ?? 0) > 1 ? "s" : ""} récupérée${
+              (r.count ?? 0) > 1 ? "s" : ""
+            } — bonne tournée !`
       );
       router.refresh();
     });
@@ -101,10 +106,10 @@ export function TourExecution({
     start(async () => {
       const r = await markDeliveryArrived(orderId);
       if (!r.ok) {
-        toast.error(r.reason ?? "Erreur");
+        toast.error(r.reason ?? tr("Erreur", "خطأ"));
         return;
       }
-      toast.success("Arrivée signalée au client");
+      toast.success(tr("Arrivée signalée au client", "تم إشعار الزبون بوصولك"));
       router.refresh();
     });
 
@@ -118,16 +123,23 @@ export function TourExecution({
           pos.longitude
         );
         if (!r.ok) {
-          toast.error(r.error ?? "Erreur");
+          toast.error(r.error ?? tr("Erreur", "خطأ"));
           return;
         }
-        toast.success(`Itinéraire ré-optimisé (${r.reordered ?? 0} arrêts)`);
+        toast.success(
+          isAr
+            ? `أُعيد ترتيب المسار (${r.reordered ?? 0} محطات)`
+            : `Itinéraire ré-optimisé (${r.reordered ?? 0} arrêts)`
+        );
         router.refresh();
       } catch (err) {
         toast.error(
           err instanceof Error
             ? err.message
-            : "Position GPS indisponible pour ré-optimiser"
+            : tr(
+                "Position GPS indisponible pour ré-optimiser",
+                "موقع GPS غير متاح لإعادة الترتيب"
+              )
         );
       }
     });
@@ -143,7 +155,7 @@ export function TourExecution({
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-[10.5px] font-semibold tracking-[0.4px] text-[var(--muted)] uppercase">
-              Tes gains · tournée
+              {tr("Tes gains · tournée", "أرباحك · الجولة")}
             </p>
             <p className="mt-1 text-[22px] leading-none font-extrabold tracking-[-0.4px] text-[#6c2bd9]">
               {formatDA(earnings)}
@@ -151,7 +163,7 @@ export function TourExecution({
           </div>
           <div className="text-right">
             <p className="text-[11px] font-bold tracking-[0.5px] text-[var(--muted)] uppercase">
-              À reverser au commerçant
+              {tr("À reverser au commerçant", "للتسديد للتاجر")}
             </p>
             <p className="mt-1 text-[18px] font-extrabold text-[var(--ink)]">
               {formatDA(owedMerchant)}
@@ -159,10 +171,13 @@ export function TourExecution({
           </div>
         </div>
         <p className="mt-3 flex items-center gap-1.5 border-t border-[var(--line)] pt-2.5 text-[11px] font-medium text-[var(--muted)]">
-          💵 Cash à encaisser :{" "}
+          💵 {tr("Cash à encaisser :", "نقد للتحصيل:")}{" "}
           <b className="text-[var(--ink)]">{formatDA(cashToCollect)}</b>
           <span className="ml-auto text-[var(--muted)]">
-            commandes en ligne déjà payées
+            {tr(
+              "commandes en ligne déjà payées",
+              "الطلبات عبر الإنترنت مدفوعة"
+            )}
           </span>
         </p>
       </div>
@@ -180,7 +195,7 @@ export function TourExecution({
             ) : (
               <Package className="size-4" />
             )}
-            J&apos;ai chargé toutes les commandes
+            {tr("J'ai chargé toutes les commandes", "حمّلت كل الطلبات")}
           </Button>
         ) : (
           <Button
@@ -196,7 +211,7 @@ export function TourExecution({
             ) : (
               <Route className="size-4" />
             )}
-            Re-optimiser depuis ma position
+            {tr("Re-optimiser depuis ma position", "إعادة الترتيب من موقعي")}
           </Button>
         )}
       </div>
@@ -269,7 +284,10 @@ export function TourExecution({
                   {s.delivery_lat != null && s.delivery_lng != null && (
                     <DeliveryRouteMap
                       target={{ lat: s.delivery_lat, lng: s.delivery_lng }}
-                      label="Vers le client (livraison)"
+                      label={tr(
+                        "Vers le client (livraison)",
+                        "نحو الزبون (التسليم)"
+                      )}
                       height={180}
                     />
                   )}
@@ -280,7 +298,11 @@ export function TourExecution({
                       orderId={s.order_id}
                       role="courier"
                       phone={s.delivery_phone ?? s.customer_phone}
-                      phoneLabel={`Appeler ${s.customer_name ?? "le client"}`}
+                      phoneLabel={
+                        isAr
+                          ? `الاتصال بـ ${s.customer_name ?? "الزبون"}`
+                          : `Appeler ${s.customer_name ?? "le client"}`
+                      }
                     />
                   )}
 
@@ -299,7 +321,7 @@ export function TourExecution({
                         ) : (
                           <MapPin className="size-4" />
                         )}
-                        Je suis arrivé chez le client
+                        {tr("Je suis arrivé chez le client", "وصلت إلى الزبون")}
                       </Button>
                     )}
 
@@ -310,7 +332,7 @@ export function TourExecution({
                       className="w-full"
                       onClick={() => setValidateFor(s)}
                     >
-                      Marquer livré ✓
+                      {tr("Marquer livré ✓", "وسم كمُسلَّم ✓")}
                     </Button>
                   )}
                 </div>
