@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ActionButton } from "@/components/ui/action-button";
@@ -13,6 +14,8 @@ const initial: DriverAuthState = {};
 export function DriverSubmitCodeForm() {
   const router = useRouter();
   const sp = useSearchParams();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [state, action, pending] = useActionState(driverSubmitCode, initial);
   const btnState = useFormActionFeedback({
     pending,
@@ -33,7 +36,7 @@ export function DriverSubmitCodeForm() {
   return (
     <form action={action} className="space-y-3">
       <div className="space-y-1.5">
-        <Label htmlFor="code">Code de référence</Label>
+        <Label htmlFor="code">{tr("Code de référence", "رمز المرجع")}</Label>
         <Input
           id="code"
           name="code"
@@ -48,7 +51,11 @@ export function DriverSubmitCodeForm() {
         />
         {sp.get("code") && (
           <p className="text-success-700 text-xs">
-            ✓ Code pré-rempli depuis le lien partagé par le commerçant.
+            ✓{" "}
+            {tr(
+              "Code pré-rempli depuis le lien partagé par le commerçant.",
+              "تم ملء الرمز تلقائياً من رابط التاجر."
+            )}
           </p>
         )}
       </div>
@@ -60,10 +67,10 @@ export function DriverSubmitCodeForm() {
         className="w-full"
         state={btnState}
         labels={{
-          idle: "Envoyer",
-          pending: "Envoi en cours…",
-          success: "Demande envoyée ✓",
-          error: "Erreur, réessaie",
+          idle: tr("Envoyer", "إرسال"),
+          pending: tr("Envoi en cours…", "جارٍ الإرسال…"),
+          success: tr("Demande envoyée ✓", "تم إرسال الطلب ✓"),
+          error: tr("Erreur, réessaie", "خطأ، أعد المحاولة"),
         }}
       />
     </form>

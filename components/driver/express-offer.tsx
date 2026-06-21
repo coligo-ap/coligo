@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import { watchPosition, type Coords } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
 import { cashToCollectDa, isPrepaid } from "@/lib/delivery/cash";
@@ -61,6 +62,8 @@ export function ExpressOffer({
   refusing: boolean;
   driverFeeConfig?: DriverFeeConfig;
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [left, setLeft] = useState(OFFER_SECONDS);
   const firedTimeout = useRef(false);
@@ -168,7 +171,7 @@ export function ExpressOffer({
                 >
                   <path d="M13 2 4 14h7l-1 8 9-12h-7z" />
                 </svg>
-                Express
+                {tr("Express", "سريع")}
               </span>
             </div>
             <button
@@ -176,7 +179,7 @@ export function ExpressOffer({
               className="oc-x"
               onClick={onRefuse}
               disabled={refusing}
-              aria-label="Refuser"
+              aria-label={tr("Refuser", "رفض")}
             >
               <svg
                 viewBox="0 0 24 24"
@@ -192,7 +195,12 @@ export function ExpressOffer({
           <div className="oc-pay">
             {driverNet} <small>DA</small>
           </div>
-          <div className="oc-sub">Gain net estimé pour la course</div>
+          <div className="oc-sub">
+            {tr(
+              "Gain net estimé pour la course",
+              "الربح الصافي المقدّر للتوصيلة"
+            )}
+          </div>
 
           <div className="oc-line">
             <svg
@@ -206,8 +214,10 @@ export function ExpressOffer({
               <path d="M12 7v5l3 2" />
             </svg>
             {totalMin != null
-              ? `${totalMin} min · ${fmtKm(totalKm)} km au total`
-              : "Calcul de l'itinéraire…"}
+              ? isAr
+                ? `${totalMin} د · ${fmtKm(totalKm)} كم إجمالاً`
+                : `${totalMin} min · ${fmtKm(totalKm)} km au total`
+              : tr("Calcul de l'itinéraire…", "حساب المسار…")}
           </div>
 
           <div className="oc-stops">
@@ -218,7 +228,7 @@ export function ExpressOffer({
               </div>
               <div className="nm">
                 {merchantName}
-                <small>Retrait · commerçant</small>
+                <small>{tr("Retrait · commerçant", "الاستلام · التاجر")}</small>
               </div>
             </div>
             <div className="stop">
@@ -226,12 +236,15 @@ export function ExpressOffer({
                 <span className="d e" />
               </div>
               <div className="nm">
-                {order.delivery_address_text ?? "Adresse client"}
+                {order.delivery_address_text ??
+                  tr("Adresse client", "عنوان الزبون")}
                 <small>
-                  Livraison ·{" "}
+                  {tr("Livraison", "التسليم")} ·{" "}
                   {prepaid
-                    ? "déjà payé en ligne"
-                    : `à encaisser ${toCollect} DA espèces`}
+                    ? tr("déjà payé en ligne", "مدفوع مسبقاً عبر الإنترنت")
+                    : isAr
+                      ? `تحصيل ${toCollect} دج نقداً`
+                      : `à encaisser ${toCollect} DA espèces`}
                 </small>
               </div>
             </div>
@@ -243,7 +256,7 @@ export function ExpressOffer({
             onClick={onAccept}
             disabled={refusing}
           >
-            Accepter{" "}
+            {tr("Accepter", "قبول")}{" "}
             <span className="t">
               {mm}:{ss}
             </span>

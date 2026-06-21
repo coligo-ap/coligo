@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { ArrowRight, MessageCircle, Phone, X } from "lucide-react";
 import { ExpressRunMap } from "./express-run-map";
 import { OrderChat } from "@/components/chat/order-chat";
@@ -62,6 +63,8 @@ export function ExpressRun({
   const [showChat, setShowChat] = useState(false);
   // Feuille basse RÉDUCTIBLE : repliée, elle ne garde que l'étape + le bouton
   // d'action et dégage la carte (façon Uber). La poignée bascule l'état.
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [collapsed, setCollapsed] = useState(false);
   // Avance à remettre au commerçant au pickup (COD express, modèle Yassir) :
   // P − commission, calculée côté serveur (RPC mig 0161).
@@ -86,17 +89,24 @@ export function ExpressRun({
 
   const who = pickedUp
     ? {
-        name: order.delivery_recipient_name ?? order.customer_name ?? "Client",
+        name:
+          order.delivery_recipient_name ??
+          order.customer_name ??
+          tr("Client", "الزبون"),
         phone: order.delivery_phone ?? order.customer_phone,
       }
     : { name: merchantName, phone: null as string | null };
 
   const address = pickedUp
-    ? (order.delivery_address_text ?? "Adresse client")
+    ? (order.delivery_address_text ?? tr("Adresse client", "عنوان الزبون"))
     : merchantName;
   const stepTitle = pickedUp
-    ? `Livrer à ${who.name}`
-    : `Récupérer chez ${merchantName}`;
+    ? isAr
+      ? `التسليم إلى ${who.name}`
+      : `Livrer à ${who.name}`
+    : isAr
+      ? `الاستلام من ${merchantName}`
+      : `Récupérer chez ${merchantName}`;
 
   const prepaid = isPrepaid(order);
   const toCollect = cashToCollectDa(order);
@@ -107,9 +117,18 @@ export function ExpressRun({
 
   const cta = pickedUp
     ? arrived
-      ? { label: "Scanner / Saisir le code", onClick: onValidate }
-      : { label: "Je suis arrivé chez le client", onClick: onArrived }
-    : { label: "J'ai récupéré la commande", onClick: onPickup };
+      ? {
+          label: tr("Scanner / Saisir le code", "مسح / إدخال الرمز"),
+          onClick: onValidate,
+        }
+      : {
+          label: tr("Je suis arrivé chez le client", "وصلت إلى الزبون"),
+          onClick: onArrived,
+        }
+    : {
+        label: tr("J'ai récupéré la commande", "استلمت الطلب"),
+        onClick: onPickup,
+      };
 
   return (
     <div className="mq-screen fixed inset-0 z-[80]">
@@ -162,7 +181,11 @@ export function ExpressRun({
           type="button"
           className="grab"
           onClick={() => setCollapsed((c) => !c)}
-          aria-label={collapsed ? "Agrandir la feuille" : "Réduire la feuille"}
+          aria-label={
+            collapsed
+              ? tr("Agrandir la feuille", "تكبير اللوحة")
+              : tr("Réduire la feuille", "تصغير اللوحة")
+          }
           aria-expanded={!collapsed}
         >
           <span className="bar" />
@@ -247,7 +270,7 @@ export function ExpressRun({
               }}
             >
               <div className="l" style={{ color: "#8b6500" }}>
-                💵 À encaisser à la livraison
+                💵 {tr("À encaisser à la livraison", "للتحصيل عند التسليم")}
               </div>
               <div className="am" style={{ color: "#8b6500" }}>
                 {toCollect} DA
@@ -263,6 +286,7 @@ export function ExpressRun({
           disabled={pending}
         >
           {pending ? "…" : cta.label}
+          {/* libellé bilingue via tr() ci-dessus */}
         </button>
 
         {/* Actions secondaires (masquées en mode réduit). */}
@@ -294,7 +318,7 @@ export function ExpressRun({
                 style={{ flex: 1, marginTop: 0 }}
               >
                 <MessageCircle className="mr-1 inline size-4" />
-                Message
+                {tr("Message", "رسالة")}
               </button>
             )}
             {who.phone && (
@@ -304,7 +328,7 @@ export function ExpressRun({
                 style={{ flex: 1, marginTop: 0 }}
               >
                 <Phone className="mr-1 inline size-4" />
-                Appeler
+                {tr("Appeler", "اتصال")}
               </a>
             )}
           </div>
@@ -324,12 +348,12 @@ export function ExpressRun({
           >
             <div className="mb-2 flex items-center justify-between px-1">
               <b className="text-sm font-bold text-[var(--ink)]">
-                Discuter avec {who.name}
+                {tr("Discuter avec", "محادثة مع")} {who.name}
               </b>
               <button
                 type="button"
                 onClick={() => setShowChat(false)}
-                aria-label="Fermer"
+                aria-label={tr("Fermer", "إغلاق")}
                 className="grid size-8 place-items-center rounded-full bg-[var(--soft)]"
               >
                 <X className="size-4" />
@@ -339,7 +363,9 @@ export function ExpressRun({
               orderId={order.id}
               role="courier"
               phone={who.phone}
-              phoneLabel={`Appeler ${who.name}`}
+              phoneLabel={
+                isAr ? `الاتصال بـ ${who.name}` : `Appeler ${who.name}`
+              }
             />
           </div>
         </div>

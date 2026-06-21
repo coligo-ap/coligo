@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useLocale } from "next-intl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { LocateFixed } from "lucide-react";
 import { haversineKm } from "@/lib/delivery/distance";
@@ -33,6 +34,8 @@ export function ExpressRunMap({
   kind: "pickup" | "drop";
   onEta?: (eta: { min: number; km: number } | null) => void;
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const meMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
@@ -211,7 +214,7 @@ export function ExpressRunMap({
       <button
         type="button"
         onClick={recenter}
-        aria-label="Recentrer sur ma position"
+        aria-label={tr("Recentrer sur ma position", "إعادة التمركز على موقعي")}
         className="absolute right-3.5 bottom-[calc(var(--run-sheet-h,300px)+16px)] z-[55] grid size-12 place-items-center rounded-full bg-white text-[#6c2bd9] shadow-[0_6px_16px_rgba(0,0,0,.15)] active:scale-95"
       >
         <LocateFixed className="size-5" />
