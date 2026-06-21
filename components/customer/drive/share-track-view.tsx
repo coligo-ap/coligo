@@ -62,7 +62,14 @@ export function ShareTrackView({ token }: { token: string }) {
         markers={[
           ...(carPos ? [{ id: "car", pos: carPos, kind: "car" as const }] : []),
           ...(destPos
-            ? [{ id: "dest", pos: destPos, kind: "pin" as const }]
+            ? [
+                {
+                  id: "dest",
+                  pos: destPos,
+                  kind: "pin" as const,
+                  label: "B" as const,
+                },
+              ]
             : []),
         ]}
         route={carPos && destPos && !finished ? [carPos, destPos] : null}

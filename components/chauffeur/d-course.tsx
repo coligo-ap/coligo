@@ -438,10 +438,24 @@ export function DCourse() {
         markers={[
           ...(me ? [{ id: "car", pos: me, kind: "car" as const }] : []),
           ...(pickup && !inProgress
-            ? [{ id: "cli", pos: pickup, kind: "me" as const }]
+            ? [
+                {
+                  id: "cli",
+                  pos: pickup,
+                  kind: "me" as const,
+                  label: "A" as const,
+                },
+              ]
             : []),
           ...(dest && inProgress
-            ? [{ id: "dest", pos: dest, kind: "pin" as const }]
+            ? [
+                {
+                  id: "dest",
+                  pos: dest,
+                  kind: "pin" as const,
+                  label: "B" as const,
+                },
+              ]
             : []),
         ]}
         approach={!inProgress && me && pickup ? [me, pickup] : null}

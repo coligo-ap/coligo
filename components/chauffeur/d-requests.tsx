@@ -424,9 +424,25 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
           markers={[
             ...(me ? [{ id: "car", pos: me, kind: "car" as const }] : []),
             ...(pickup
-              ? [{ id: "cli", pos: pickup, kind: "me" as const }]
+              ? [
+                  {
+                    id: "cli",
+                    pos: pickup,
+                    kind: "me" as const,
+                    label: "A" as const,
+                  },
+                ]
               : []),
-            ...(dest ? [{ id: "dest", pos: dest, kind: "pin" as const }] : []),
+            ...(dest
+              ? [
+                  {
+                    id: "dest",
+                    pos: dest,
+                    kind: "pin" as const,
+                    label: "B" as const,
+                  },
+                ]
+              : []),
           ]}
           approach={me && pickup ? [me, pickup] : null}
           route={pickup && dest ? [pickup, dest] : null}

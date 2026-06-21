@@ -779,8 +779,8 @@ export function DriveView() {
         <div className="relative h-[196px] shrink-0 bg-[var(--d-page)]">
           <DriveMap
             markers={[
-              { id: "me", pos: pickup, kind: "me" },
-              { id: "dest", pos: dest, kind: "pin" },
+              { id: "me", pos: pickup, kind: "me", label: "A" },
+              { id: "dest", pos: dest, kind: "pin", label: "B" },
             ]}
             route={route?.path ?? [pickup, dest]}
             padding={{ top: 40, bottom: 30, left: 50, right: 50 }}

@@ -867,10 +867,24 @@ function EnrouteScreen({
         markers={[
           ...(chPos ? [{ id: "car", pos: chPos, kind: "car" as const }] : []),
           ...(pickupPos && !inProgress
-            ? [{ id: "me", pos: pickupPos, kind: "me" as const }]
+            ? [
+                {
+                  id: "me",
+                  pos: pickupPos,
+                  kind: "me" as const,
+                  label: "A" as const,
+                },
+              ]
             : []),
           ...(destPos
-            ? [{ id: "dest", pos: destPos, kind: "pin" as const }]
+            ? [
+                {
+                  id: "dest",
+                  pos: destPos,
+                  kind: "pin" as const,
+                  label: "B" as const,
+                },
+              ]
             : []),
         ]}
         approach={

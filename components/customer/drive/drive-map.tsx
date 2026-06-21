@@ -95,7 +95,14 @@ const keptOnMove: {
 
 export type LatLng = { lat: number; lng: number };
 
-type Marker = { id: string; pos: LatLng; kind: "me" | "car" | "pin" };
+type Marker = {
+  id: string;
+  pos: LatLng;
+  kind: "me" | "car" | "pin";
+  /** Étiquette A (départ) / B (arrivée) — affichée sur l'épingle pour bien
+   *  comprendre le trajet sur la carte. */
+  label?: "A" | "B";
+};
 
 export function DriveMap({
   markers,
@@ -397,7 +404,17 @@ export function DriveMap({
           continue;
         }
         const el = document.createElement("div");
-        if (m.kind === "me") {
+        if (m.label) {
+          // Épingle étiquetée A (départ, violet) / B (arrivée, rose) : goutte +
+          // lettre blanche → le client/chauffeur lit le trajet d'un coup d'œil.
+          const color = m.label === "A" ? "#6C2BD9" : "#FF2D7A";
+          el.innerHTML =
+            '<div style="width:30px;height:30px;border-radius:50% 50% 50% 4px;transform:rotate(45deg);background:' +
+            color +
+            ';display:flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 6px 14px -3px rgba(0,0,0,.45)"><span style="transform:rotate(-45deg);color:#fff;font-weight:800;font-size:14px;line-height:1;font-family:system-ui,-apple-system,sans-serif">' +
+            m.label +
+            "</span></div>";
+        } else if (m.kind === "me") {
           el.innerHTML =
             '<div style="width:20px;height:20px;border-radius:50%;background:#6C2BD9;border:4px solid #fff;box-shadow:0 0 0 6px rgba(108,43,217,.38)"></div>';
         } else if (m.kind === "car") {
@@ -409,7 +426,7 @@ export function DriveMap({
         }
         const mk = new Mk({
           element: el,
-          anchor: m.kind === "pin" ? "bottom" : "center",
+          anchor: m.label || m.kind === "pin" ? "bottom" : "center",
         })
           .setLngLat([m.pos.lng, m.pos.lat])
           .addTo(map);
