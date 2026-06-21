@@ -139,3 +139,37 @@ bloquante** (ne pas montrer de contenu sensible depuis le cache si la session a
 expiré) ; **cache isolé par utilisateur** (clé de cache incluant l'`user.id`)
 pour qu'aucune donnée d'un autre compte n'apparaisse ; `client_operation_id` et
 contrôles existants conservés.
+
+## RÈGLE PRODUIT — navigation client ULTRA RAPIDE (non négociable)
+
+Objectif startup : **chaque tap doit donner un retour visuel immédiat.** Toute
+navigation client (et surtout les boutons type « Historique », « Mes commandes »,
+détails…) doit être ressentie **instantanée**.
+
+- **`loading.tsx` OBLIGATOIRE sur TOUTE route qui `await` au serveur.** Sans lui,
+  une page `force-dynamic` qui `await` (ex. `getDriveHistory()`) **bloque** : le
+  tap « ne fait rien » tant que le serveur n'a pas répondu → l'utilisateur
+  reclique en boucle. Symptôme vécu : « j'ai cliqué plusieurs fois sur Historique
+  et rien ne s'affichait ». Le squelette rend l'écran **au tap**, puis les données
+  se streament.
+- **Changements d'état purement client (filtres, dark/clair, onglets) = ZÉRO
+  round-trip serveur** : état local / store réactif + `history.replaceState` si
+  l'URL doit suivre ; jamais `router.replace`/`router.refresh` qui re-render tout
+  le RSC.
+- **Listes réaffichées souvent = TanStack Query** (`staleTime`, `placeholderData`)
+  → réaffichage instantané depuis le cache puis rafraîchissement silencieux.
+
+**MAIS jamais au prix de la sécurité ni de l'exactitude :** auth + RLS serveur
+toujours vérifiées ; cache isolé par `user.id` ; et on n'affiche **que des
+informations vraies et à jour** — un cache rapide ne doit jamais montrer un
+ancien prix, un ancien solde ou les données d'un autre compte. Rapidité **et**
+vérité, pas l'une contre l'autre.
+
+## Réutiliser les composants partagés (anti-duplication)
+
+Quand une fonctionnalité existe déjà (carte, feuille/sheet de course, sélecteur
+de position, toggle dark, carte d'adresse…), **réutiliser le composant partagé**
+au lieu de réécrire le markup. Le copier-coller recrée les mêmes bugs partout
+(ex. une feuille de course qui n'adapte pas le dark à un seul endroit). Un
+composant central corrigé une fois = corrigé partout (client + chauffeur +
+livreur).
