@@ -9,6 +9,7 @@ import {
   ChevronUp,
   Clock,
   MapPin,
+  ShoppingBag,
   ShoppingCart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -122,34 +123,6 @@ export function MerchantCompactHeader({
   const addressLine = [commune, wilaya_name].filter(Boolean).join(", ");
   const typeline = [categoryLabel, addressLine].filter(Boolean);
 
-  // Ligne logistique compacte (sous l'identité) : délai · minimum · retrait
-  // gratuit · horaires. La catégorie et le lieu remontent dans la "typeline".
-  const meta: React.ReactNode[] = [];
-  if (prep_time_min > 0)
-    meta.push(
-      <span key="prep" className="inline-flex items-center gap-1">
-        <Clock className="text-primary-600 size-3.5" />
-        <span className="text-foreground font-bold">
-          ~{t("prepMinutes", { count: prep_time_min })}
-        </span>
-      </span>
-    );
-  if (min_order_da > 0)
-    meta.push(
-      <span key="min" className="text-foreground">
-        {t("min")} <strong>{formatDA(min_order_da)}</strong>
-      </span>
-    );
-  meta.push(
-    <span
-      key="pickup"
-      className="text-success-700 inline-flex items-center gap-1"
-    >
-      <MapPin className="size-3.5" />
-      <span className="font-bold">{t("freePickup")}</span>
-    </span>
-  );
-
   // Bouton "verre" de la topbar : translucide sur la photo, plein au scroll.
   const rb = cn(
     "relative grid size-9 place-items-center rounded-full backdrop-blur transition-colors active:scale-90",
@@ -247,10 +220,10 @@ export function MerchantCompactHeader({
             alt=""
             loading="eager"
             decoding="async"
-            className="size-[72px] shrink-0 rounded-[20px] border-[3px] border-white bg-white object-cover shadow-xl lg:size-20"
+            className="size-[72px] shrink-0 rounded-2xl bg-white object-cover shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-[3px] ring-white lg:size-20"
           />
         ) : (
-          <div className="bg-primary-100 text-primary-700 flex size-[72px] shrink-0 items-center justify-center rounded-[20px] border-[3px] border-white text-2xl font-bold shadow-xl lg:size-20">
+          <div className="bg-primary-100 text-primary-700 flex size-[72px] shrink-0 items-center justify-center rounded-2xl text-2xl font-black shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-[3px] ring-white lg:size-20">
             {name.charAt(0)}
           </div>
         )}
@@ -259,10 +232,9 @@ export function MerchantCompactHeader({
         </h1>
       </div>
 
-      {/* ───── Ligne d'INFOS CLÉS (compacte) : statut + note + délai + minimum +
-              retrait gratuit + accès horaires — l'essentiel d'un coup d'œil, sur
-              UNE seule ligne pour rapprocher les produits. ───── */}
-      <div className="text-foreground mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold">
+      {/* ───── INFOS CLÉS en CHIPS (pilules à icônes) : statut + note + délai +
+              minimum + retrait gratuit — scannable d'un coup d'œil, look pro. ── */}
+      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
         <OpenStatusBadge hours={opening_hours} />
         {rating_count > 0 && (
           <MerchantReviewsDialog
@@ -271,19 +243,42 @@ export function MerchantCompactHeader({
             reviews={reviews}
           />
         )}
-        {meta.map((item, i) => (
-          <Fragment key={i}>
-            <span aria-hidden className="text-subtle">
-              ·
-            </span>
-            {item}
-          </Fragment>
-        ))}
+        {prep_time_min > 0 && (
+          <Chip icon={<Clock className="text-primary-600 size-3.5" />}>
+            ~{t("prepMinutes", { count: prep_time_min })}
+          </Chip>
+        )}
+        {min_order_da > 0 && (
+          <Chip icon={<ShoppingBag className="text-primary-600 size-3.5" />}>
+            {t("min")} {formatDA(min_order_da)}
+          </Chip>
+        )}
+        <Chip tone="success" icon={<MapPin className="size-3.5" />}>
+          {t("freePickup")}
+        </Chip>
+      </div>
+
+      {/* ───── Type de commerce + lieu (secondaire) + accès aux horaires. ───── */}
+      <div className="mt-2 flex items-center justify-between gap-3">
+        {typeline.length > 0 ? (
+          <p className="text-muted min-w-0 truncate text-xs font-semibold">
+            {typeline.map((item, i) => (
+              <Fragment key={i}>
+                {i > 0 && <span aria-hidden> · </span>}
+                <span className={i === 0 ? "text-foreground font-bold" : ""}>
+                  {item}
+                </span>
+              </Fragment>
+            ))}
+          </p>
+        ) : (
+          <span />
+        )}
         <button
           type="button"
           onClick={() => setShowHours((v) => !v)}
           aria-expanded={showHours}
-          className="text-primary-700 ms-auto inline-flex items-center gap-0.5 font-bold hover:underline"
+          className="text-primary-700 inline-flex shrink-0 items-center gap-0.5 text-xs font-bold hover:underline"
         >
           {t("hours")}
           {showHours ? (
@@ -293,20 +288,6 @@ export function MerchantCompactHeader({
           )}
         </button>
       </div>
-
-      {/* ───── Type de commerce + lieu (secondaire, sous l'essentiel). ───── */}
-      {typeline.length > 0 && (
-        <p className="text-muted mt-1.5 text-xs font-semibold">
-          {typeline.map((item, i) => (
-            <Fragment key={i}>
-              {i > 0 && <span aria-hidden> · </span>}
-              <span className={i === 0 ? "text-foreground font-bold" : ""}>
-                {item}
-              </span>
-            </Fragment>
-          ))}
-        </p>
-      )}
 
       {/* Pilules de spécialités (tags) — situent l'offre d'un coup d'œil. */}
       {tags.length > 0 && (
@@ -374,5 +355,33 @@ export function MerchantCompactHeader({
         </ul>
       )}
     </div>
+  );
+}
+
+/**
+ * Pilule d'info (chip) : icône + texte, fond doux. `tone="success"` pour le
+ * retrait gratuit (vert). Style aligné sur les badges (OpenStatus / note).
+ */
+function Chip({
+  icon,
+  children,
+  tone = "default",
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  tone?: "default" | "success";
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold",
+        tone === "success"
+          ? "bg-success-50 text-success-700"
+          : "bg-surface-2 text-foreground"
+      )}
+    >
+      {icon}
+      {children}
+    </span>
   );
 }
