@@ -252,7 +252,7 @@ export function MerchantCompactHeader({
             {name.charAt(0)}
           </div>
         )}
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5 pb-1">
+        <div className="flex min-w-0 flex-1 translate-y-2.5 flex-col gap-1.5 pb-1">
           <h1 className="text-foreground line-clamp-2 text-xl leading-tight font-black tracking-tight lg:text-2xl">
             {name}
           </h1>
