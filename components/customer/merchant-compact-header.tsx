@@ -207,8 +207,9 @@ export function MerchantCompactHeader({
         </div>
       </div>
 
-      {/* ───── HERO immersif plein-cadre (plonge sous l'encoche). ───── */}
-      <div className="bg-surface-3 relative -mx-4 -mt-4 h-[228px] w-[calc(100%+2rem)] overflow-hidden lg:-mx-6 lg:-mt-6 lg:h-[300px] lg:w-[calc(100%+3rem)]">
+      {/* ───── HERO immersif plein-cadre (plonge sous l'encoche). Hauteur
+              RÉDUITE pour rapprocher les produits (fiche plus compacte). ───── */}
+      <div className="bg-surface-3 relative -mx-4 -mt-4 h-[150px] w-[calc(100%+2rem)] overflow-hidden lg:-mx-6 lg:-mt-6 lg:h-[200px] lg:w-[calc(100%+3rem)]">
         {heroOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -258,8 +259,10 @@ export function MerchantCompactHeader({
         </h1>
       </div>
 
-      {/* ───── Statut d'ouverture + note — juste en dessous de la rangée. ───── */}
-      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+      {/* ───── Ligne d'INFOS CLÉS (compacte) : statut + note + délai + minimum +
+              retrait gratuit + accès horaires — l'essentiel d'un coup d'œil, sur
+              UNE seule ligne pour rapprocher les produits. ───── */}
+      <div className="text-foreground mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold">
         <OpenStatusBadge hours={opening_hours} />
         {rating_count > 0 && (
           <MerchantReviewsDialog
@@ -268,31 +271,11 @@ export function MerchantCompactHeader({
             reviews={reviews}
           />
         )}
-      </div>
-
-      {/* ───── Type de commerce + lieu (zone blanche, jamais sur la photo). ───── */}
-      {typeline.length > 0 && (
-        <p className="text-muted mt-3 text-[13px] font-semibold">
-          {typeline.map((item, i) => (
-            <Fragment key={i}>
-              {i > 0 && <span aria-hidden> · </span>}
-              <span className={i === 0 ? "text-foreground font-extrabold" : ""}>
-                {item}
-              </span>
-            </Fragment>
-          ))}
-        </p>
-      )}
-
-      {/* ───── Ligne logistique (délai · minimum · retrait gratuit · horaires). ───── */}
-      <div className="text-foreground mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold">
         {meta.map((item, i) => (
           <Fragment key={i}>
-            {i > 0 && (
-              <span aria-hidden className="text-subtle">
-                ·
-              </span>
-            )}
+            <span aria-hidden className="text-subtle">
+              ·
+            </span>
             {item}
           </Fragment>
         ))}
@@ -311,13 +294,27 @@ export function MerchantCompactHeader({
         </button>
       </div>
 
+      {/* ───── Type de commerce + lieu (secondaire, sous l'essentiel). ───── */}
+      {typeline.length > 0 && (
+        <p className="text-muted mt-1.5 text-xs font-semibold">
+          {typeline.map((item, i) => (
+            <Fragment key={i}>
+              {i > 0 && <span aria-hidden> · </span>}
+              <span className={i === 0 ? "text-foreground font-bold" : ""}>
+                {item}
+              </span>
+            </Fragment>
+          ))}
+        </p>
+      )}
+
       {/* Pilules de spécialités (tags) — situent l'offre d'un coup d'œil. */}
       {tags.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {tags.slice(0, 8).map((code) => (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {tags.slice(0, 6).map((code) => (
             <span
               key={code}
-              className="bg-primary-50 text-primary-700 rounded-full px-2.5 py-1 text-[11px] font-bold"
+              className="bg-primary-50 text-primary-700 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
             >
               {getTagLabel(code, locale)}
             </span>
@@ -327,7 +324,7 @@ export function MerchantCompactHeader({
 
       {/* Description repliable (1 ligne par défaut). */}
       {hasDescription && (
-        <div className="mt-2.5">
+        <div className="mt-2">
           {description_fr && (
             <p
               className={cn(

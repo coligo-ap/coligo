@@ -114,7 +114,7 @@ export default async function MerchantPublicPage({
 
         {/* Choix Retrait / Livraison dès la fiche (persisté → pré-rempli au
             checkout). + Bannière promo si des produits sont en réduction. */}
-        <div className="mt-4 space-y-3">
+        <div className="mt-3 space-y-2.5">
           <ShopModeToggle
             merchant={{
               id: m.id,
@@ -138,7 +138,7 @@ export default async function MerchantPublicPage({
 
         {/* Bandeau + pop-up « fermé / en pause » → propose de programmer une
             commande pour plus tard (façon Deliveroo / Uber Eats). */}
-        <div className="mt-5">
+        <div className="mt-3">
           <MerchantClosedNotice
             openingHours={m.opening_hours}
             maxDaysAhead={m.max_days_ahead}
@@ -153,7 +153,7 @@ export default async function MerchantPublicPage({
 
         {/* Catalogue : chips sticky + sections produits en lignes compactes
             (image 64px à gauche, prix violet, bouton + à droite). */}
-        <div className="mt-5 pb-32 lg:pb-12">
+        <div className="mt-4 pb-32 lg:pb-12">
           <MerchantCatalog
             merchant={{
               id: m.id,
