@@ -234,11 +234,11 @@ export function MerchantCompactHeader({
         />
       </div>
 
-      {/* ───── Rangée AVATAR + NOM, à la jonction couverture / contenu.
-              Avatar à gauche (à droite en RTL via flex), NOM à sa droite sur fond
-              clair (token sémantique `text-foreground`, lisible). Le nom n'est
-              plus en overlay sur la photo et ne chevauche plus l'avatar. ───── */}
-      <div className="relative z-[1] -mt-9 flex items-end gap-4 lg:-mt-11">
+      {/* ───── Rangée AVATAR + NOM, CENTRÉE sur la ligne séparatrice (le bord bas
+              de la couverture) : l'avatar est à cheval, le NOM est aligné sur son
+              centre → posé SUR la ligne. Avatar à gauche (à droite en RTL via
+              flex), nom en `text-foreground` (lisible). Le reste vient en dessous. */}
+      <div className="relative z-[1] -mt-9 flex items-center gap-4 lg:-mt-11">
         {logoOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -253,7 +253,7 @@ export function MerchantCompactHeader({
             {name.charAt(0)}
           </div>
         )}
-        <h1 className="text-foreground min-w-0 flex-1 translate-y-1 pb-1 text-xl leading-tight font-black tracking-tight text-pretty lg:text-2xl">
+        <h1 className="text-foreground min-w-0 flex-1 text-xl leading-tight font-black tracking-tight text-pretty lg:text-2xl">
           {name}
         </h1>
       </div>
