@@ -34,10 +34,16 @@ export function MerchantReviewsDialog({
   // (non cliquable : pas d'avis à lister).
   if (ratingCount === 0) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold">
-        <Star className="size-3.5 fill-amber-400 text-amber-400" />
-        <span className="text-amber-800 tabular-nums">5.0</span>
-        <span className="font-medium text-amber-700">{t("newMerchant")}</span>
+      <span className="flex flex-col items-end leading-tight">
+        <span className="inline-flex items-center gap-1">
+          <Star className="size-4 fill-amber-400 text-amber-400" />
+          <span className="text-foreground text-sm font-bold tabular-nums">
+            5.0
+          </span>
+        </span>
+        <span className="text-muted mt-0.5 text-[11px] font-medium">
+          {t("newMerchant")}
+        </span>
       </span>
     );
   }
@@ -47,17 +53,19 @@ export function MerchantReviewsDialog({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold transition-colors hover:border-amber-300 hover:bg-amber-100"
+        className="flex flex-col items-end leading-tight transition-opacity active:opacity-70"
         aria-label={t("ratingAriaLabel", {
           count: ratingCount,
           rating: ratingAvg.toFixed(1),
         })}
       >
-        <Star className="size-3.5 fill-amber-400 text-amber-400" />
-        <span className="text-amber-800 tabular-nums">
-          {ratingAvg.toFixed(1)}
+        <span className="inline-flex items-center gap-1">
+          <Star className="size-4 fill-amber-400 text-amber-400" />
+          <span className="text-foreground text-sm font-bold tabular-nums">
+            {ratingAvg.toFixed(1)}
+          </span>
         </span>
-        <span className="font-medium text-amber-700">
+        <span className="text-muted mt-0.5 text-[11px] font-medium">
           {t("reviewsCount", { count: ratingCount })}
         </span>
       </button>

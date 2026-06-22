@@ -237,8 +237,8 @@ export function MerchantCompactHeader({
             {name}
           </h1>
           {/* Catégorie (gris clair) juste sous le nom + note à droite, même ligne. */}
-          <div className="mt-1 flex items-center justify-between gap-2">
-            <span className="text-muted min-w-0 truncate text-[13px] font-medium">
+          <div className="mt-1 flex items-start justify-between gap-2">
+            <span className="text-muted min-w-0 truncate pt-0.5 text-[13px] font-medium">
               {categoryLabel}
             </span>
             <span className="shrink-0">
