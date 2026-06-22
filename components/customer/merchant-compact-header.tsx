@@ -252,8 +252,8 @@ export function MerchantCompactHeader({
         </div>
       </div>
 
-      {/* ───── INFOS CLÉS en CHIPS (pilules à icônes) : statut + délai + minimum
-              + retrait gratuit — scannable d'un coup d'œil, look pro. ───── */}
+      {/* ───── INFOS CLÉS en CHIPS (pilules à icônes) : statut + délai +
+              minimum — scannable d'un coup d'œil, look pro. ───── */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <OpenStatusBadge hours={opening_hours} />
         {prep_time_min > 0 && (
@@ -266,9 +266,8 @@ export function MerchantCompactHeader({
             {t("min")} {formatDA(min_order_da)}
           </Chip>
         )}
-        <Chip tone="success" icon={<MapPin className="size-3.5" />}>
-          {t("freePickup")}
-        </Chip>
+        {/* « Retrait gratuit » retiré ici : doublon avec le sélecteur
+            Retrait / Livraison affiché juste en dessous. */}
       </div>
 
       {/* ───── ADRESSE du commerce (à gauche) + accès Horaires (à droite). ───── */}
