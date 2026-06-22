@@ -20,7 +20,6 @@ import {
   buildCallbackUrls,
 } from "@/lib/payments/chargily";
 import {
-  getTopupCreditedLast30dForCustomer,
   getMyCashbackHistory,
   type CustomerWalletEntry,
 } from "@/lib/customer/cashback";
@@ -83,9 +82,23 @@ export async function createTopup(
     };
   }
 
-  const credited30d = await getTopupCreditedLast30dForCustomer(customer.id);
-  if (credited30d + amount > cap) {
-    const remaining = Math.max(0, cap - credited30d);
+  // Plafond glissant 30 j — RÉSERVATION ATOMIQUE (mig 0241). Sérialise les
+  // checkouts concurrents : le crédit réel n'est posé qu'au webhook, donc un
+  // simple read de `credited_30d` était contournable par recharges parallèles.
+  // La réservation (verrou advisory + comptage credited+pending) empêche tout
+  // dépassement avant même la création du checkout Chargily.
+  const { data: resvRows, error: resvErr } = await supabase.rpc(
+    "reserve_topup_quota" as never,
+    { p_amount_da: amount } as never
+  );
+  const resv = (Array.isArray(resvRows) ? resvRows[0] : resvRows) as {
+    ok: boolean;
+    reason: string | null;
+    reservation_id: string | null;
+    remaining: number | null;
+  } | null;
+  if (resvErr || !resv || !resv.ok) {
+    const remaining = resv?.remaining ?? 0;
     return {
       ok: false,
       error:
@@ -95,6 +108,7 @@ export async function createTopup(
       code: "limit_reached",
     };
   }
+  const reservationId = resv.reservation_id;
 
   try {
     const { successUrl, failureUrl, webhookEndpoint } = buildCallbackUrls({
@@ -111,10 +125,22 @@ export async function createTopup(
         type: "topup",
         customer_id: customer.id,
         amount_da: amount,
+        // Repris par le webhook pour marquer la réservation consommée (le crédit
+        // remplace alors la réservation dans le comptage du plafond).
+        reservation_id: reservationId,
       },
     });
     return { ok: true, checkout_url: checkout.checkout_url };
   } catch (e) {
+    // Checkout non créé → on libère la réservation pour ne pas geler le quota.
+    if (reservationId) {
+      await supabase.rpc(
+        "release_topup_reservation" as never,
+        {
+          p_reservation_id: reservationId,
+        } as never
+      );
+    }
     return {
       ok: false,
       error:

@@ -249,6 +249,32 @@ export async function POST(req: NextRequest) {
           { status: 200 }
         );
       }
+
+      // Plafond glissant (mig 0241) : marque la réservation de quota consommée
+      // pour qu'elle ne double-compte plus (credited_30d la remplace désormais).
+      // Best-effort : une réservation absente/déjà consommée est sans effet ;
+      // le crédit, lui, est déjà posé.
+      const reservationId =
+        meta && typeof meta.reservation_id === "string"
+          ? meta.reservation_id
+          : null;
+      if (reservationId) {
+        const rpc = admin.rpc.bind(admin) as unknown as (
+          fn: string,
+          args: Record<string, unknown>
+        ) => Promise<{ error: { message: string } | null }>;
+        const { error: consumeErr } = await rpc("consume_topup_reservation", {
+          p_reservation_id: reservationId,
+          p_checkout_id: checkoutId,
+        });
+        if (consumeErr) {
+          console.warn(
+            "[chargily/webhook] consume_topup_reservation:",
+            consumeErr.message
+          );
+        }
+      }
+
       return NextResponse.json({
         ok: true,
         already_processed: insertErr?.code === "23505",

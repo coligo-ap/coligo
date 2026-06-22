@@ -95,6 +95,9 @@ export function DeliveryValidationDialog({
           r.reason &&
           [
             "bad_code",
+            "too_many_attempts",
+            "not_picked_up",
+            "not_ready",
             "online_requires_code",
             "code_required",
             "not_attributed_to_you",
@@ -386,6 +389,14 @@ function reasonLabel(reason: string | undefined, isAr: boolean): string {
       "الرمز إلزامي: طلب مدفوع مسبقاً. على الزبون أن يعطيك رمزه.",
     ],
     bad_code: ["Code incorrect.", "الرمز غير صحيح."],
+    too_many_attempts: [
+      "Trop d'essais. Code bloqué 10 min — demande le bon code au client.",
+      "محاولات كثيرة. تم حظر الرمز 10 دقائق — اطلب الرمز الصحيح من الزبون.",
+    ],
+    not_ready: [
+      "La commande n'est pas encore prête chez le commerçant.",
+      "الطلب ليس جاهزاً بعد عند التاجر.",
+    ],
     not_attributed_to_you: [
       "Cette commande ne t'est pas attribuée.",
       "هذا الطلب غير مُسند إليك.",

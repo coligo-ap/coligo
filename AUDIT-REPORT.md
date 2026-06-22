@@ -124,6 +124,14 @@ Postgres Supabase, limites fonctions Vercel, rate-limits) — reporter séparém
 
 ## 5. Backlog de remédiation priorisé
 
+> **MISE À JOUR 2026-06-22 — P0 CORRIGÉS & DÉPLOYÉS.** Migrations `0240`
+> (orders : garde INSERT + machine à états), `0241` (plafond recharge race-proof
+> par réservation, défaut aligné à 20 000), `0242` (lockout pickupCode + pickup
+> requis avant validation + C-3). Code : `createTopup`/webhook (réservation),
+> messages livreur. Vérifiés en base : F-1 insert forgé neutralisé, C-1 forge de
+> complétion bloquée, F-2 lockout 5 essais, C-2/C-3 séquençage, A-F9 cap=20 000.
+> Suites argent (audit:cod/cancel, merchant:guard, noshow:claim, coligo:pay) OK.
+
 ### P0 — argent réel / sécurité, à corriger avant tout lancement public
 
 1. **F-1 + C-1 (même racine)** — Verrouiller les mutations `orders` côté DB : trigger `BEFORE INSERT`
@@ -139,7 +147,7 @@ Postgres Supabase, limites fonctions Vercel, rate-limits) — reporter séparém
 5. **D-1** — Cron d'expiration des `orders` `pending` (+ remboursement online) ou retrait de la promesse UI. _(~0.5 j)_
 6. **C-2 + C-3** — Séquencer pickup/arrivée/validation côté RPC. _(~0.5 j)_
 7. **B-2** — Ancrer la fenêtre prioritaire Express sur `prep_notif_at`. _(~0.5 j)_
-8. **B-1** — Balayage TTL Drive fréquent (cron dédié/pg_cron). _(~0.25 j)_
+8. **B-1** — Balayage TTL Drive fréquent (cron dédié/pg*cron). *(~0.25 j)\_
 9. **E-7** — Politique blocage chauffeur sur course active + garde `complete_ride`. _(~0.5 j)_
 
 ### P2 — robustesse / hygiène
