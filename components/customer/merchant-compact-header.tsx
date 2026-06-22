@@ -234,10 +234,11 @@ export function MerchantCompactHeader({
         />
       </div>
 
-      {/* ───── Identité : logo (chevauche la limite couverture / blanc) + NOM à
-              DROITE du logo, avec le statut d'ouverture + la note juste en
-              dessous (alignés au bas du logo, dans la zone blanche → lisibles). ── */}
-      <div className="relative z-[1] -mt-9 flex items-end gap-3 lg:-mt-11">
+      {/* ───── Rangée AVATAR + NOM, à la jonction couverture / contenu.
+              Avatar à gauche (à droite en RTL via flex), NOM à sa droite sur fond
+              clair (token sémantique `text-foreground`, lisible). Le nom n'est
+              plus en overlay sur la photo et ne chevauche plus l'avatar. ───── */}
+      <div className="relative z-[1] -mt-9 flex items-end gap-4 lg:-mt-11">
         {logoOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -252,21 +253,21 @@ export function MerchantCompactHeader({
             {name.charAt(0)}
           </div>
         )}
-        <div className="flex min-w-0 flex-1 translate-y-2.5 flex-col gap-1.5 pb-1">
-          <h1 className="text-foreground line-clamp-2 text-xl leading-tight font-black tracking-tight lg:text-2xl">
-            {name}
-          </h1>
-          <div className="flex flex-wrap items-center gap-2">
-            <OpenStatusBadge hours={opening_hours} />
-            {rating_count > 0 && (
-              <MerchantReviewsDialog
-                ratingAvg={rating_avg}
-                ratingCount={rating_count}
-                reviews={reviews}
-              />
-            )}
-          </div>
-        </div>
+        <h1 className="text-foreground min-w-0 flex-1 translate-y-1 pb-1 text-xl leading-tight font-black tracking-tight text-pretty lg:text-2xl">
+          {name}
+        </h1>
+      </div>
+
+      {/* ───── Statut d'ouverture + note — juste en dessous de la rangée. ───── */}
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        <OpenStatusBadge hours={opening_hours} />
+        {rating_count > 0 && (
+          <MerchantReviewsDialog
+            ratingAvg={rating_avg}
+            ratingCount={rating_count}
+            reviews={reviews}
+          />
+        )}
       </div>
 
       {/* ───── Type de commerce + lieu (zone blanche, jamais sur la photo). ───── */}
