@@ -198,7 +198,7 @@ export function MerchantCompactHeader({
 
       {/* ───── HERO immersif plein-cadre (plonge sous l'encoche). Hauteur
               RÉDUITE pour rapprocher les produits (fiche plus compacte). ───── */}
-      <div className="bg-surface-3 relative -mx-4 -mt-4 h-[150px] w-[calc(100%+2rem)] overflow-hidden lg:-mx-6 lg:-mt-6 lg:h-[200px] lg:w-[calc(100%+3rem)]">
+      <div className="bg-surface-3 relative -mx-4 -mt-4 h-[132px] w-[calc(100%+2rem)] overflow-hidden lg:-mx-6 lg:-mt-6 lg:h-[176px] lg:w-[calc(100%+3rem)]">
         {heroOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -224,10 +224,11 @@ export function MerchantCompactHeader({
         />
       </div>
 
-      {/* ───── AVATAR (à cheval sur le bord bas de la couverture) + COLONNE :
-              NOM, puis directement DESSOUS la CATÉGORIE en gris clair (à gauche)
-              et la NOTE (★, à droite) sur la même ligne. ───── */}
-      <div className="relative z-[1] -mt-6 flex items-end gap-3.5 lg:-mt-8">
+      {/* ───── AVATAR + COLONNE (NOM, puis CATÉGORIE grise + NOTE ★ à droite),
+              placés ENTIÈREMENT sous la couverture, dans la zone BLANCHE : le nom
+              est donc toujours noir sur blanc (lisible quelle que soit la photo de
+              couverture, claire ou sombre). ───── */}
+      <div className="relative z-[1] mt-2.5 flex items-center gap-3.5 lg:mt-3">
         {logoOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
