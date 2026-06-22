@@ -223,31 +223,21 @@ export function MerchantCompactHeader({
             </span>
           </div>
         )}
-        {/* Dégradé riche : sombre en haut (barre système + topbar), bande
-            sombre en bas pour le nom + statut, puis fondu vers le fond clair. */}
+        {/* Dégradé : sombre en haut (barre système + topbar) puis fondu vers le
+            fond clair de la page en bas (la couverture se fond dans le blanc). */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, rgba(8,8,18,.58) 0%, rgba(8,8,18,.12) 20%, transparent 44%, rgba(8,8,18,.42) 72%, rgba(8,8,18,.38) 90%, #f7f7fb 100%)",
+              "linear-gradient(180deg, rgba(8,8,18,.58) 0%, rgba(8,8,18,.12) 20%, transparent 44%, rgba(8,8,18,.30) 70%, rgba(8,8,18,.20) 88%, #f7f7fb 100%)",
           }}
         />
-        {/* Nom + statut d'ouverture EMPILÉS sur la photo (zone dégradée du bas) :
-            le nom, puis le badge « Ouvert » juste en dessous. */}
-        <div className="absolute inset-x-4 bottom-6 z-[1] flex flex-col items-start gap-2 lg:bottom-8">
-          <h1
-            className="line-clamp-2 text-[22px] leading-tight font-black tracking-tight text-white lg:text-3xl"
-            style={{ textShadow: "0 2px 12px rgba(0,0,0,.45)" }}
-          >
-            {name}
-          </h1>
-          <OpenStatusBadge hours={opening_hours} />
-        </div>
       </div>
 
-      {/* ───── Identité : logo (sous la couverture) + note. Le statut d'ouverture
-              est désormais empilé sous le nom, sur la photo. ───── */}
-      <div className="relative z-[1] mt-3 flex items-center gap-3">
+      {/* ───── Identité : logo (chevauche la limite couverture / blanc) + NOM à
+              DROITE du logo, avec le statut d'ouverture + la note juste en
+              dessous (alignés au bas du logo, dans la zone blanche → lisibles). ── */}
+      <div className="relative z-[1] -mt-9 flex items-end gap-3 lg:-mt-11">
         {logoOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -262,15 +252,21 @@ export function MerchantCompactHeader({
             {name.charAt(0)}
           </div>
         )}
-        {rating_count > 0 && (
-          <div className="flex flex-1 flex-wrap items-center gap-2">
-            <MerchantReviewsDialog
-              ratingAvg={rating_avg}
-              ratingCount={rating_count}
-              reviews={reviews}
-            />
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5 pb-1">
+          <h1 className="text-foreground line-clamp-2 text-xl leading-tight font-black tracking-tight lg:text-2xl">
+            {name}
+          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <OpenStatusBadge hours={opening_hours} />
+            {rating_count > 0 && (
+              <MerchantReviewsDialog
+                ratingAvg={rating_avg}
+                ratingCount={rating_count}
+                reviews={reviews}
+              />
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* ───── Type de commerce + lieu (zone blanche, jamais sur la photo). ───── */}
