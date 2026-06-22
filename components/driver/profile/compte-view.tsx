@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { useLocale } from "next-intl";
+import { setLocale } from "@/i18n/actions";
 import { driverLogout } from "@/app/(driver)/actions";
 import { useDriverDark, toggleDriverDark } from "@/lib/driver/theme-store";
 import { useDriverSound, toggleDriverSound } from "@/lib/driver/sound-store";
@@ -49,6 +52,15 @@ export function CompteView({
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const dark = useDriverDark();
   const soundOn = useDriverSound();
+  const router = useRouter();
+  const [, startLang] = useTransition();
+  // Langue : bascule FR ⇄ AR et ENREGISTRE le choix (cookie NEXT_LOCALE, 1 an)
+  // via l'action serveur, puis rafraîchit pour appliquer la nouvelle locale + RTL.
+  const switchLang = () =>
+    startLang(async () => {
+      await setLocale(isAr ? "fr" : "ar");
+      router.refresh();
+    });
   const pct = Math.min(
     100,
     Math.round((data.outstandingDa / Math.max(1, data.capDa)) * 100)
@@ -210,7 +222,8 @@ export function CompteView({
         />
         <Mrow
           label={tr("Langue", "اللغة")}
-          value="Français · العربية"
+          value={isAr ? "العربية" : "Français"}
+          onClick={switchLang}
           icon={
             <>
               <circle cx="12" cy="12" r="9" />

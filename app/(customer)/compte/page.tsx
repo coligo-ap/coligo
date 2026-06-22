@@ -19,6 +19,7 @@ import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentMerchant } from "@/lib/auth/merchant";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { CustomerLogoutButton } from "@/components/customer/logout-button";
+import { CustomerLanguageRow } from "@/components/customer/customer-language-row";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { CustomerSupportRow } from "@/components/support/customer-support-row";
 import { WalletBalanceValue } from "@/components/customer/wallet/balance-value";
@@ -287,6 +288,14 @@ export default async function CustomerAccountPage({
             title={t("myFavorites")}
             subtitle={t("favoritesDesc")}
           />
+        </div>
+
+        {/* Section PRÉFÉRENCES — langue (FR / العربية), choix enregistré. */}
+        <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
+          {t("sectionPreferences")}
+        </p>
+        <div className="divide-border mx-4 divide-y overflow-hidden rounded-[20px] bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+          <CustomerLanguageRow title={t("language")} />
         </div>
 
         {/* Section AIDE — live chat support (Tawk.to) */}

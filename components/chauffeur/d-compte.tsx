@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
+import { setLocale } from "@/i18n/actions";
 import {
   BadgeCheck,
   Car,
@@ -56,6 +58,15 @@ import { setChauffeurOnlineLocal } from "@/lib/chauffeur/online-store";
  *  informations groupées en catégories, et bascule clair/sombre. */
 export function DCompte({ gate }: { gate: ChauffeurGate }) {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const [, startLang] = useTransition();
+  // Langue : bascule FR ⇄ AR et ENREGISTRE le choix (cookie NEXT_LOCALE, 1 an)
+  // via l'action serveur, puis rafraîchit pour appliquer la nouvelle locale + RTL.
+  const switchLang = () =>
+    startLang(async () => {
+      await setLocale(isAr ? "fr" : "ar");
+      router.refresh();
+    });
   const [fin, setFin] = useState<ChauffeurFinances | null>(null);
   const [homeAddr, setHomeAddr] = useState(gate.homeAddr);
   const [sosContacts, setSosContactsState] = useState<SosContact[]>([]);
@@ -288,7 +299,8 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         <Row
           icon={<Globe className="size-4" />}
           label="Langue"
-          value="FR · العربية"
+          value={isAr ? "العربية" : "Français"}
+          onClick={switchLang}
         />
         <DarkModeRow />
       </Section>
