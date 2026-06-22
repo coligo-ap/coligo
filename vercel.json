@@ -14,7 +14,7 @@
     },
     {
       "path": "/api/cron/expire-orders",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 4 * * *"
     }
   ]
 }
