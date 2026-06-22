@@ -20,6 +20,7 @@ import { getTagLabel } from "@/lib/config/merchant-tags";
 import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badge";
 import { MerchantReviewsDialog } from "@/components/customer/merchant-reviews-dialog";
 import { FavoriteHeart } from "@/components/customer/favorite-heart";
+import { ShareButton } from "@/components/customer/share-button";
 import { totalUnits, useCart } from "@/lib/customer/cart-store";
 import { DAY_KEYS, DAY_LABELS, type OpeningHours } from "@/lib/types";
 import { formatDA } from "@/lib/utils";
@@ -155,6 +156,12 @@ export function MerchantCompactHeader({
           >
             {name}
           </h2>
+          <ShareButton
+            title={name}
+            label={t("share")}
+            copiedMsg={t("linkCopied")}
+            className={cn(rb, "shrink-0")}
+          />
           <FavoriteHeart
             merchantId={merchantId}
             initialFavorite={initialFavorite}

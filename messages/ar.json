@@ -64,6 +64,8 @@
     "update": "تحديث",
     "add": "إضافة",
     "viewMyCart": "عرض سلتي",
+    "share": "مشاركة",
+    "linkCopied": "تم نسخ الرابط",
     "reopensAround": "يُعاد الفتح حوالي {time}",
     "reopensOn": "يُعاد الفتح يوم {date}",
     "opensDayAt": "يفتح يوم {day} على الساعة {time}",

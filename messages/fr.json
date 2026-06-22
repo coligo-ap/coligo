@@ -64,6 +64,8 @@
     "update": "Mettre à jour",
     "add": "Ajouter",
     "viewMyCart": "Voir mon panier",
+    "share": "Partager",
+    "linkCopied": "Lien copié",
     "reopensAround": "Réouverture vers {time}",
     "reopensOn": "Réouverture le {date}",
     "opensDayAt": "Ouvre {day} à {time}",
