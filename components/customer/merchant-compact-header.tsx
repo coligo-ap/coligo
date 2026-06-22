@@ -217,7 +217,7 @@ export function MerchantCompactHeader({
       {/* ───── AVATAR (à cheval sur le bord bas de la couverture) + COLONNE :
               NOM, puis directement DESSOUS la CATÉGORIE en gris clair (à gauche)
               et la NOTE (★, à droite) sur la même ligne. ───── */}
-      <div className="relative z-[1] -mt-9 flex items-end gap-4 lg:-mt-11">
+      <div className="relative z-[1] -mt-6 flex items-end gap-3.5 lg:-mt-8">
         {logoOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -225,10 +225,10 @@ export function MerchantCompactHeader({
             alt=""
             loading="eager"
             decoding="async"
-            className="size-[72px] shrink-0 rounded-2xl bg-white object-cover shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-[3px] ring-white lg:size-20"
+            className="size-[68px] shrink-0 rounded-2xl bg-white object-cover shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-[3px] ring-white lg:size-[76px]"
           />
         ) : (
-          <div className="bg-primary-100 text-primary-700 flex size-[72px] shrink-0 items-center justify-center rounded-2xl text-2xl font-black shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-[3px] ring-white lg:size-20">
+          <div className="bg-primary-100 text-primary-700 flex size-[68px] shrink-0 items-center justify-center rounded-2xl text-2xl font-black shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-[3px] ring-white lg:size-[76px]">
             {name.charAt(0)}
           </div>
         )}
