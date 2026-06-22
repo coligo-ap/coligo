@@ -7,11 +7,11 @@
  *
  * Bump CACHE_VERSION pour invalider tout le cache à un nouveau déploiement.
  */
-// v4 : invalidation forcée pour purger les anciens chunks _next/static/
-// (PrintOrderButton servait l'ancien JS côté WebView Sunmi → click Imprimer
-// continuait à naviguer vers /print/orders/[id] au lieu d'appeler le pont
-// Sunmi natif).
-const CACHE_VERSION = "coligo-v4";
+// v5 : invalidation forcée — purge des anciens chunks _next/static/ et assets
+// (refonte de la fiche commerçant ; certains clients servaient l'ancien JS en
+// cache → « je ne vois pas de différence »). Bump = tout le cache est supprimé
+// au prochain chargement.
+const CACHE_VERSION = "coligo-v5";
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const PRECACHE_CACHE = `${CACHE_VERSION}-precache`;
 const OFFLINE_URL = "/offline";

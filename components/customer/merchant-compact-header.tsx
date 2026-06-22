@@ -208,85 +208,89 @@ export function MerchantCompactHeader({
         />
       </div>
 
-      {/* ───── Rangée AVATAR + NOM, CENTRÉE sur la ligne séparatrice (le bord bas
-              de la couverture) : l'avatar est à cheval, le NOM est aligné sur son
-              centre → posé SUR la ligne. Avatar à gauche (à droite en RTL via
-              flex), nom en `text-foreground` (lisible). Le reste vient en dessous. */}
-      <div className="relative z-[1] -mt-9 flex items-center gap-4 lg:-mt-11">
-        {logoOptimized ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={logoOptimized}
-            alt=""
-            loading="eager"
-            decoding="async"
-            className="size-[72px] shrink-0 rounded-2xl bg-white object-cover shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-[3px] ring-white lg:size-20"
-          />
-        ) : (
-          <div className="bg-primary-100 text-primary-700 flex size-[72px] shrink-0 items-center justify-center rounded-2xl text-2xl font-black shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-[3px] ring-white lg:size-20">
-            {name.charAt(0)}
-          </div>
-        )}
-        <h1 className="text-foreground min-w-0 flex-1 text-xl leading-tight font-black tracking-tight text-pretty lg:text-2xl">
-          {name}
-        </h1>
-      </div>
-
-      {/* ───── INFOS CLÉS en CHIPS (pilules à icônes) : statut + note + délai +
-              minimum + retrait gratuit — scannable d'un coup d'œil, look pro. ── */}
-      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-        <OpenStatusBadge hours={opening_hours} />
-        {rating_count > 0 && (
-          <MerchantReviewsDialog
-            ratingAvg={rating_avg}
-            ratingCount={rating_count}
-            reviews={reviews}
-          />
-        )}
-        {prep_time_min > 0 && (
-          <Chip icon={<Clock className="text-primary-600 size-3.5" />}>
-            ~{t("prepMinutes", { count: prep_time_min })}
-          </Chip>
-        )}
-        {min_order_da > 0 && (
-          <Chip icon={<ShoppingBag className="text-primary-600 size-3.5" />}>
-            {t("min")} {formatDA(min_order_da)}
-          </Chip>
-        )}
-        <Chip tone="success" icon={<MapPin className="size-3.5" />}>
-          {t("freePickup")}
-        </Chip>
-      </div>
-
-      {/* ───── Type de commerce + lieu (secondaire) + accès aux horaires. ───── */}
-      <div className="mt-2 flex items-center justify-between gap-3">
-        {typeline.length > 0 ? (
-          <p className="text-muted min-w-0 truncate text-xs font-semibold">
-            {typeline.map((item, i) => (
-              <Fragment key={i}>
-                {i > 0 && <span aria-hidden> · </span>}
-                <span className={i === 0 ? "text-foreground font-bold" : ""}>
-                  {item}
-                </span>
-              </Fragment>
-            ))}
-          </p>
-        ) : (
-          <span />
-        )}
-        <button
-          type="button"
-          onClick={() => setShowHours((v) => !v)}
-          aria-expanded={showHours}
-          className="text-primary-700 inline-flex shrink-0 items-center gap-0.5 text-xs font-bold hover:underline"
-        >
-          {t("hours")}
-          {showHours ? (
-            <ChevronUp className="size-3.5" />
+      {/* ═════ CARTE D'IDENTITÉ premium : chevauche le bas de la couverture
+              (façon Uber Eats / Deliveroo). Logo + nom + statut/note, puis chips
+              d'infos clés, puis catégorie/lieu + horaires sous un filet. ═════ */}
+      <div className="border-border relative z-[1] -mt-10 rounded-2xl border bg-white p-3.5 shadow-[0_18px_44px_-22px_rgba(40,35,90,.5)] lg:-mt-12 lg:p-4">
+        <div className="flex items-start gap-3.5">
+          {logoOptimized ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoOptimized}
+              alt=""
+              loading="eager"
+              decoding="async"
+              className="size-[60px] shrink-0 rounded-2xl bg-white object-cover ring-1 ring-black/5 lg:size-[68px]"
+            />
           ) : (
-            <ChevronDown className="size-3.5" />
+            <div className="bg-primary-100 text-primary-700 flex size-[60px] shrink-0 items-center justify-center rounded-2xl text-2xl font-black ring-1 ring-black/5 lg:size-[68px]">
+              {name.charAt(0)}
+            </div>
           )}
-        </button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-foreground text-lg leading-tight font-black tracking-tight text-pretty lg:text-xl">
+              {name}
+            </h1>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <OpenStatusBadge hours={opening_hours} />
+              {rating_count > 0 && (
+                <MerchantReviewsDialog
+                  ratingAvg={rating_avg}
+                  ratingCount={rating_count}
+                  reviews={reviews}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Chips d'infos clés (délai · minimum · retrait gratuit). */}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {prep_time_min > 0 && (
+            <Chip icon={<Clock className="text-primary-600 size-3.5" />}>
+              ~{t("prepMinutes", { count: prep_time_min })}
+            </Chip>
+          )}
+          {min_order_da > 0 && (
+            <Chip icon={<ShoppingBag className="text-primary-600 size-3.5" />}>
+              {t("min")} {formatDA(min_order_da)}
+            </Chip>
+          )}
+          <Chip tone="success" icon={<MapPin className="size-3.5" />}>
+            {t("freePickup")}
+          </Chip>
+        </div>
+
+        {/* Catégorie/lieu (secondaire) + accès horaires, sous un filet. */}
+        <div className="border-border mt-3 flex items-center justify-between gap-3 border-t pt-2.5">
+          {typeline.length > 0 ? (
+            <p className="text-muted min-w-0 truncate text-xs font-semibold">
+              {typeline.map((item, i) => (
+                <Fragment key={i}>
+                  {i > 0 && <span aria-hidden> · </span>}
+                  <span className={i === 0 ? "text-foreground font-bold" : ""}>
+                    {item}
+                  </span>
+                </Fragment>
+              ))}
+            </p>
+          ) : (
+            <span />
+          )}
+          <button
+            type="button"
+            onClick={() => setShowHours((v) => !v)}
+            aria-expanded={showHours}
+            className="text-primary-700 inline-flex shrink-0 items-center gap-0.5 text-xs font-bold hover:underline"
+          >
+            {t("hours")}
+            {showHours ? (
+              <ChevronUp className="size-3.5" />
+            ) : (
+              <ChevronDown className="size-3.5" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Pilules de spécialités (tags) — situent l'offre d'un coup d'œil. */}
