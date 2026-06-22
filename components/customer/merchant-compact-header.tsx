@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowLeft,
@@ -122,7 +122,6 @@ export function MerchantCompactHeader({
   const categoryLabel = category ? getCategoryLabel(category, locale) : null;
   const hasDescription = Boolean(description_fr || description_ar);
   const addressLine = [commune, wilaya_name].filter(Boolean).join(", ");
-  const typeline = [categoryLabel, addressLine].filter(Boolean);
 
   // Bouton "verre" de la topbar : translucide sur la photo, plein au scroll.
   const rb = cn(
@@ -239,17 +238,33 @@ export function MerchantCompactHeader({
         </h1>
       </div>
 
-      {/* ───── INFOS CLÉS en CHIPS (pilules à icônes) : statut + note + délai +
-              minimum + retrait gratuit — scannable d'un coup d'œil, look pro. ── */}
-      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+      {/* ───── CATÉGORIE (à gauche) + NOTE (à droite) — juste sous le nom, sur
+              la même ligne. ───── */}
+      {(categoryLabel || rating_count > 0) && (
+        <div className="mt-1.5 flex items-center justify-between gap-3">
+          {categoryLabel ? (
+            <span className="text-foreground min-w-0 truncate text-[13px] font-bold">
+              {categoryLabel}
+            </span>
+          ) : (
+            <span />
+          )}
+          {rating_count > 0 && (
+            <span className="shrink-0">
+              <MerchantReviewsDialog
+                ratingAvg={rating_avg}
+                ratingCount={rating_count}
+                reviews={reviews}
+              />
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* ───── INFOS CLÉS en CHIPS (pilules à icônes) : statut + délai + minimum
+              + retrait gratuit — scannable d'un coup d'œil, look pro. ───── */}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <OpenStatusBadge hours={opening_hours} />
-        {rating_count > 0 && (
-          <MerchantReviewsDialog
-            ratingAvg={rating_avg}
-            ratingCount={rating_count}
-            reviews={reviews}
-          />
-        )}
         {prep_time_min > 0 && (
           <Chip icon={<Clock className="text-primary-600 size-3.5" />}>
             ~{t("prepMinutes", { count: prep_time_min })}
@@ -265,18 +280,12 @@ export function MerchantCompactHeader({
         </Chip>
       </div>
 
-      {/* ───── Type de commerce + lieu (secondaire) + accès aux horaires. ───── */}
+      {/* ───── ADRESSE du commerce (à gauche) + accès Horaires (à droite). ───── */}
       <div className="mt-2 flex items-center justify-between gap-3">
-        {typeline.length > 0 ? (
-          <p className="text-muted min-w-0 truncate text-xs font-semibold">
-            {typeline.map((item, i) => (
-              <Fragment key={i}>
-                {i > 0 && <span aria-hidden> · </span>}
-                <span className={i === 0 ? "text-foreground font-bold" : ""}>
-                  {item}
-                </span>
-              </Fragment>
-            ))}
+        {addressLine ? (
+          <p className="text-muted inline-flex min-w-0 items-center gap-1 truncate text-xs font-semibold">
+            <MapPin className="size-3.5 shrink-0" />
+            <span className="truncate">{addressLine}</span>
           </p>
         ) : (
           <span />
