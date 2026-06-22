@@ -44,6 +44,8 @@
     "prepMinutes": "{count} min",
     "seeOpeningHours": "Voir les horaires d'ouverture",
     "hours": "Horaires",
+    "openNow": "Ouvert maintenant",
+    "today": "Aujourd'hui",
     "closed": "Fermé",
     "emptyCatalog": "Ce commerce n'a pas encore publié son catalogue.",
     "searchProductPlaceholder": "Rechercher un produit…",

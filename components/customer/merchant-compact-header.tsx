@@ -17,7 +17,7 @@ import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
 import { getCategoryLabel } from "@/lib/config/categories";
 import { getTagLabel } from "@/lib/config/merchant-tags";
-import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badge";
+import { isOpenNow } from "@/lib/merchant/opening-hours";
 import { MerchantReviewsDialog } from "@/components/customer/merchant-reviews-dialog";
 import { FavoriteHeart } from "@/components/customer/favorite-heart";
 import { ShareButton } from "@/components/customer/share-button";
@@ -94,6 +94,16 @@ export function MerchantCompactHeader({
   const [scrolled, setScrolled] = useState(false);
   const cart = useCart();
   const cartCount = totalUnits(cart);
+
+  // Statut d'ouverture (calculé à la volée, rafraîchi 1×/min pour suivre les
+  // bascules de créneau) + jour courant pour surligner « Aujourd'hui ».
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const isOpen = isOpenNow(opening_hours, now);
+  const todayKey = DAY_KEYS[(now.getDay() + 6) % 7];
 
   // Topbar : transparente sur la photo, puis verre dépoli + nom dès qu'on
   // dépasse le hero (≈150 px). On écoute le scroll de la fenêtre.
@@ -252,10 +262,9 @@ export function MerchantCompactHeader({
         </div>
       </div>
 
-      {/* ───── INFOS CLÉS en CHIPS (pilules à icônes) : statut + délai +
-              minimum — scannable d'un coup d'œil, look pro. ───── */}
+      {/* ───── INFOS CLÉS en CHIPS (pilules à icônes) : délai + minimum. Le
+              statut d'ouverture est fusionné avec l'accès Horaires plus bas. ── */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <OpenStatusBadge hours={opening_hours} />
         {prep_time_min > 0 && (
           <Chip icon={<Clock className="text-primary-600 size-3.5" />}>
             ~{t("prepMinutes", { count: prep_time_min })}
@@ -270,7 +279,9 @@ export function MerchantCompactHeader({
             Retrait / Livraison affiché juste en dessous. */}
       </div>
 
-      {/* ───── ADRESSE du commerce (à gauche) + accès Horaires (à droite). ───── */}
+      {/* ───── ADRESSE (à gauche) + STATUT d'ouverture CLIQUABLE (à droite) qui
+              déplie le planning de la semaine (statut « Ouvert/Fermé » = le
+              libellé ; plus de bouton « Horaires » séparé). ───── */}
       <div className="mt-2 flex items-center justify-between gap-3">
         {addressLine ? (
           <p className="text-muted inline-flex min-w-0 items-center gap-1 truncate text-xs font-semibold">
@@ -284,13 +295,21 @@ export function MerchantCompactHeader({
           type="button"
           onClick={() => setShowHours((v) => !v)}
           aria-expanded={showHours}
-          className="text-primary-700 inline-flex shrink-0 items-center gap-0.5 text-xs font-bold hover:underline"
+          className="inline-flex shrink-0 items-center gap-1.5 text-xs font-bold"
         >
-          {t("hours")}
+          <span
+            className={cn(
+              "size-1.5 rounded-full",
+              isOpen ? "bg-success-500" : "bg-stone-400"
+            )}
+          />
+          <span className={isOpen ? "text-success-700" : "text-muted"}>
+            {isOpen ? t("openNow") : t("closed")}
+          </span>
           {showHours ? (
-            <ChevronUp className="size-3.5" />
+            <ChevronUp className="text-subtle size-3.5" />
           ) : (
-            <ChevronDown className="size-3.5" />
+            <ChevronDown className="text-subtle size-3.5" />
           )}
         </button>
       </div>
@@ -339,18 +358,42 @@ export function MerchantCompactHeader({
         </div>
       )}
 
-      {/* Horaires détaillés repliables (fermés par défaut). */}
+      {/* Planning de la semaine (replié par défaut). AUJOURD'HUI est surligné
+          avec un badge + son statut Ouvert/Fermé ; les autres jours suivent. */}
       {showHours && (
-        <ul className="border-border bg-surface-2 mt-3 grid gap-1 rounded-[12px] border p-3 sm:grid-cols-2">
+        <ul className="border-border bg-surface-2 mt-3 grid gap-0.5 rounded-[12px] border p-2 sm:grid-cols-2">
           {DAY_KEYS.map((d) => {
             const slots = opening_hours[d] ?? [];
+            const isToday = d === todayKey;
             return (
               <li
                 key={d}
-                className="text-foreground flex items-center justify-between gap-2 text-xs"
+                className={cn(
+                  "flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs",
+                  isToday ? "bg-primary-50 text-foreground" : "text-foreground"
+                )}
               >
-                <span className="font-medium">{DAY_LABELS[d].long}</span>
-                <span className="text-muted tabular-nums">
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  {DAY_LABELS[d].long}
+                  {isToday && (
+                    <span
+                      className={cn(
+                        "rounded-full px-1.5 py-px text-[9px] font-extrabold",
+                        isOpen
+                          ? "bg-success-100 text-success-700"
+                          : "bg-stone-200 text-stone-600"
+                      )}
+                    >
+                      {t("today")} · {isOpen ? t("openNow") : t("closed")}
+                    </span>
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    "tabular-nums",
+                    isToday ? "text-foreground font-bold" : "text-muted"
+                  )}
+                >
                   {slots.length === 0
                     ? t("closed")
                     : slots.map((s) => `${s.open}–${s.close}`).join(" · ")}
