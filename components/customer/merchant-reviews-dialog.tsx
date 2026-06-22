@@ -28,7 +28,19 @@ export function MerchantReviewsDialog({
 }: Props) {
   const [open, setOpen] = useState(false);
   const t = useTranslations("reviews");
-  if (ratingCount === 0) return null;
+
+  // Aucun avis → note 5,0 par DÉFAUT + libellé « Nouveau ». Tous les commerçants
+  // affichent ainsi 5 étoiles tant qu'ils n'ont pas reçu de vrai avis. Statique
+  // (non cliquable : pas d'avis à lister).
+  if (ratingCount === 0) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold">
+        <Star className="size-3.5 fill-amber-400 text-amber-400" />
+        <span className="text-amber-800 tabular-nums">5.0</span>
+        <span className="font-medium text-amber-700">{t("newMerchant")}</span>
+      </span>
+    );
+  }
 
   return (
     <>

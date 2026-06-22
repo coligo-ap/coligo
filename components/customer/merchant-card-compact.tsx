@@ -129,16 +129,11 @@ function MerchantCardCompactImpl({
           <h3 className="text-foreground line-clamp-1 text-[15.5px] font-extrabold tracking-[-0.3px]">
             {merchant.name}
           </h3>
-          {merchant.rating_count > 0 ? (
-            <span className="bg-surface-2 text-foreground inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-extrabold">
-              <Star className="size-3 fill-amber-400 text-amber-500" />
-              {merchant.rating_avg.toFixed(1)}
-            </span>
-          ) : (
-            <span className="bg-primary-50 text-primary-700 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-bold">
-              {t("new")}
-            </span>
-          )}
+          {/* Note : 5,0 par DÉFAUT tant qu'aucun avis. */}
+          <span className="bg-surface-2 text-foreground inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-extrabold">
+            <Star className="size-3 fill-amber-400 text-amber-500" />
+            {(merchant.rating_count > 0 ? merchant.rating_avg : 5).toFixed(1)}
+          </span>
         </div>
 
         {/* Ligne promo (rose) OU modes (sans promo) */}

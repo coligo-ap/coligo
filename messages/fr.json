@@ -411,6 +411,7 @@
     "anonymousCustomer": "Client Coligo",
     "ratingAriaLabel": "{count} avis, note {rating} sur 5",
     "reviewsCount": "({count} avis)",
+    "newMerchant": "Nouveau",
     "customerFeedback": "Retours clients",
     "close": "Fermer",
     "noWrittenComment": "Pas encore de commentaire écrit pour ce commerce. Les notes restent comptées.",
