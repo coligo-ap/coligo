@@ -263,27 +263,11 @@ export function MerchantCompactHeader({
         </div>
       </div>
 
-      {/* ───── INFOS CLÉS en CHIPS (pilules à icônes) : délai + minimum. Le
-              statut d'ouverture est fusionné avec l'accès Horaires plus bas. ── */}
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        {prep_time_min > 0 && (
-          <Chip icon={<Clock className="text-primary-600 size-3.5" />}>
-            ~{t("prepMinutes", { count: prep_time_min })}
-          </Chip>
-        )}
-        {min_order_da > 0 && (
-          <Chip icon={<ShoppingBag className="text-primary-600 size-3.5" />}>
-            {t("min")} {formatDA(min_order_da)}
-          </Chip>
-        )}
-        {/* « Retrait gratuit » retiré ici : doublon avec le sélecteur
-            Retrait / Livraison affiché juste en dessous. */}
-      </div>
-
-      {/* ───── ADRESSE (à gauche) + STATUT d'ouverture CLIQUABLE (à droite) qui
-              déplie le planning de la semaine (statut « Ouvert/Fermé » = le
-              libellé ; plus de bouton « Horaires » séparé). ───── */}
-      <div className="mt-2 flex items-center justify-between gap-3">
+      {/* ───── ADRESSE (à gauche) + STATUT d'ouverture CLIQUABLE (à droite),
+              DIRECTEMENT sous la catégorie, même ligne. Statut = libellé
+              « Ouvert maintenant » (VERT) / « Fermé » (ROUGE) ; un clic déplie le
+              planning de la semaine (plus de bouton « Horaires » séparé). ───── */}
+      <div className="mt-1.5 flex items-center justify-between gap-3">
         {addressLine ? (
           <p className="text-muted inline-flex min-w-0 items-center gap-1 truncate text-xs font-semibold">
             <MapPin className="size-3.5 shrink-0" />
@@ -301,10 +285,10 @@ export function MerchantCompactHeader({
           <span
             className={cn(
               "size-1.5 rounded-full",
-              isOpen ? "bg-success-500" : "bg-stone-400"
+              isOpen ? "bg-success-500" : "bg-rose-500"
             )}
           />
-          <span className={isOpen ? "text-success-700" : "text-muted"}>
+          <span className={isOpen ? "text-success-700" : "text-rose-600"}>
             {isOpen ? t("openNow") : t("closed")}
           </span>
           {showHours ? (
@@ -313,6 +297,20 @@ export function MerchantCompactHeader({
             <ChevronDown className="text-subtle size-3.5" />
           )}
         </button>
+      </div>
+
+      {/* ───── INFOS CLÉS en CHIPS (pilules à icônes) : délai + minimum. ───── */}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {prep_time_min > 0 && (
+          <Chip icon={<Clock className="text-primary-600 size-3.5" />}>
+            ~{t("prepMinutes", { count: prep_time_min })}
+          </Chip>
+        )}
+        {min_order_da > 0 && (
+          <Chip icon={<ShoppingBag className="text-primary-600 size-3.5" />}>
+            {t("min")} {formatDA(min_order_da)}
+          </Chip>
+        )}
       </div>
 
       {/* Pilules de spécialités (tags) — situent l'offre d'un coup d'œil. */}
