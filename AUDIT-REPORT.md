@@ -143,8 +143,20 @@ Postgres Supabase, limites fonctions Vercel, rate-limits) — reporter séparém
 
 ### P1 — intégrité / promesses produit
 
-4. **A-F11** — Triggers d'immutabilité sur les ledgers client + `order_events`. _(~0.5 j)_
-5. **D-1** — Cron d'expiration des `orders` `pending` (+ remboursement online) ou retrait de la promesse UI. _(~0.5 j)_
+> **MISE À JOUR 2026-06-22 — A-F11 & D-1 CORRIGÉS & DÉPLOYÉS.** Migrations `0243`
+> (ledgers client + `order_events` append-only au niveau DB, échappatoire de
+> maintenance explicite `app.ledger_maintenance`) et `0244` (auto-refus des
+> commandes immédiates `pending` > seuil 15 min : RPC `expire_stale_pending_orders`
+>
+> - wrapper board commerçant `expire_my_stale_pending_orders` en poll gaté + cron
+>   `/api/cron/expire-orders` toutes les 15 min). Vérifiés en base : UPDATE/DELETE
+>   ledger bloqués par défaut + hatch OK ; auto-refus cash→cancelled/system,
+>   online-payé→cancelled/refunded + crédit Coligo Pay, tournée/créneau/récent
+>   exclus. Suites OK (noshow:claim 12/12, offline:idempotency, offline:scenarios
+>   19/19, audit:cancel/cod, coligo:pay) — scripts de test adaptés au hatch.
+
+4. **A-F11** _(FAIT)_ — Triggers d'immutabilité sur les ledgers client + `order_events`. _(~0.5 j)_
+5. **D-1** _(FAIT)_ — Cron d'expiration des `orders` `pending` (+ remboursement online) ou retrait de la promesse UI. _(~0.5 j)_
 6. **C-2 + C-3** — Séquencer pickup/arrivée/validation côté RPC. _(~0.5 j)_
 7. **B-2** — Ancrer la fenêtre prioritaire Express sur `prep_notif_at`. _(~0.5 j)_
 8. **B-1** — Balayage TTL Drive fréquent (cron dédié/pg*cron). *(~0.25 j)\_

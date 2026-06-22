@@ -135,10 +135,14 @@ try {
     `DELETE FROM public.delivery_ledger WHERE order_id = $1 AND type = 'driver_advance_refund'`,
     [o.id]
   );
+  // platform_ledger est append-only (mig 0243) — reset délibéré de scénario de
+  // test : on ouvre l'échappatoire de maintenance le temps du DELETE.
+  await c.query("SET app.ledger_maintenance = 'on'");
   await c.query(
     `DELETE FROM public.platform_ledger WHERE order_id = $1 AND type = 'noshow_advance_expense'`,
     [o.id]
   );
+  await c.query("RESET app.ledger_maintenance");
   const {
     rows: [r5],
   } = await c.query(

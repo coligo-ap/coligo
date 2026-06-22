@@ -27,6 +27,17 @@ export default async function DashboardPage() {
     .eq("user_id", user?.id ?? "")
     .maybeSingle();
 
+  // Auto-refus (mig 0244) : annule + rembourse les commandes IMMÉDIATES restées
+  // « À confirmer » au-delà du seuil (défaut 15 min). Poll gaté — le board se
+  // rafraîchit en continu (Realtime), donc l'auto-refus promis par l'UI est
+  // appliqué en quasi temps réel pour le commerçant actif. Scopé à SES commandes
+  // (wrapper résout merchant_id depuis la session) ; un cron global couvre les
+  // commerçants absents. Best-effort : n'échoue jamais le rendu du board.
+  await supabase.rpc("expire_my_stale_pending_orders" as never).then(
+    () => {},
+    () => {}
+  );
+
   const { data: orders, error } = await supabase
     .from("orders")
     .select(

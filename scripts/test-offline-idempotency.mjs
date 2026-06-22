@@ -125,10 +125,13 @@ async function snapshot(client, orderId) {
 
 async function deleteEventsByOpIds(client, opIds) {
   if (opIds.length === 0) return;
+  // order_events est append-only (mig 0243) — nettoyage de test délibéré.
+  await client.query("SET app.ledger_maintenance = 'on'");
   await client.query(
     "DELETE FROM public.order_events WHERE client_operation_id = ANY($1::uuid[])",
     [opIds]
   );
+  await client.query("RESET app.ledger_maintenance");
 }
 
 async function restoreOrderStatus(client, orderId, status) {
