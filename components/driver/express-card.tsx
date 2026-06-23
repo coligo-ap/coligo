@@ -243,9 +243,24 @@ export function ExpressCard({
             onClick={() =>
               openSupportChat({
                 orderRef: currentOrder.order_number,
+                // Course Express EN COURS → prioritaire (le livreur est bloqué
+                // sur le terrain) : remonté en URGENT côté support.
+                priority: "urgent",
+                subject: "Course Express en cours",
                 attributes: {
                   Boutique: merchantName,
                   Étape: pickedUp ? "Vers le client" : "Vers le commerçant",
+                  Client: currentOrder.customer_name ?? undefined,
+                  "Tél client": currentOrder.delivery_phone ?? undefined,
+                  Adresse: currentOrder.delivery_address_text ?? undefined,
+                  Paiement:
+                    currentOrder.payment_method === "cash"
+                      ? "Espèces"
+                      : "En ligne",
+                  Montant:
+                    currentOrder.total_da != null
+                      ? `${currentOrder.total_da} DA`
+                      : undefined,
                 },
               })
             }

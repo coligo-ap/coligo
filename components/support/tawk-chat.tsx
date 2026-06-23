@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 
 /**
- * Intégration Tawk.to (live chat support GRATUIT) — espaces CLIENT, LIVREUR et
- * COMMERÇANT.
+ * Intégration Tawk.to (live chat support GRATUIT) — TOUS les espaces : CLIENT,
+ * LIVREUR, CHAUFFEUR, COMMERÇANT et AGENT COLIGO PAY.
  *
  * Stratégie « zéro intrusion » :
  *  - Tawk n'est JAMAIS chargé au chargement d'une page. Aucun widget, aucun
@@ -13,14 +13,27 @@ import { useEffect } from "react";
  *    clique « Aide & support » / « Contacter le support » → openSupportChat(),
  *    qui ouvre alors directement la fenêtre de chat.
  *  - <TawkChat> ne fait que MÉMORISER le contexte (rôle + identité) pour qu'au
- *    moment de l'ouverture, l'agent humain ait tout le contexte : nom, e-mail,
- *    tél, RÔLE (Client/Livreur/Commerçant) en attribut + tag, et attributs
- *    additionnels (id, n° de commande, statut, boutique…).
+ *    moment de l'ouverture, l'agent humain ait TOUT le contexte sans poser de
+ *    question :
+ *      • RÔLE (Client / Livreur / Chauffeur / Commerçant / Agent Coligo Pay)
+ *        en attribut + TAG (filtrable côté Tawk),
+ *      • IDENTIFIANT de connexion (e-mail) + nom + téléphone,
+ *      • PAGE d'origine (libellé lisible + chemin) — d'où vient la demande,
+ *      • attributs métier passés par le bouton appelant (n° de commande, course,
+ *        statut, boutique, montant…), fusionnés intelligemment,
+ *      • PRIORITÉ : une demande urgente (course/livraison en cours, incident)
+ *        remonte en PREMIER avec un TAG « 🔴 URGENT » et un nom préfixé 🔴 pour
+ *        être impossible à manquer dans la file Tawk.
  *
  * Compte gratuit sur tawk.to puis dans .env(.local) ET sur Vercel :
  *   NEXT_PUBLIC_TAWK_PROPERTY_ID=<property id>
  *   NEXT_PUBLIC_TAWK_WIDGET_ID=<widget id>        (optionnel — « default » sinon)
  *   NEXT_PUBLIC_SUPPORT_EMAIL=support@coligo.dz   (optionnel — repli si chat KO)
+ *
+ * Astuce Tawk : pour afficher le tag « 🔴 URGENT » en ROUGE dans le tableau de
+ * bord, créer le tag côté Tawk (Administration → Tags) avec une couleur rouge —
+ * ici on garantit juste que le tag + l'emoji 🔴 sont posés à chaque demande
+ * urgente, et que ces conversations sont visuellement distinctes.
  */
 
 const PROPERTY_ID = process.env.NEXT_PUBLIC_TAWK_PROPERTY_ID;
@@ -44,7 +57,12 @@ type TawkWindow = Window & {
   __tawkLoaded?: boolean;
 };
 
-export type SupportRole = "client" | "livreur" | "commercant";
+export type SupportRole =
+  | "client"
+  | "livreur"
+  | "chauffeur"
+  | "commercant"
+  | "agent";
 
 /** Attributs additionnels libres (valeurs converties en chaînes pour Tawk). */
 export type SupportAttributes = Record<
@@ -55,7 +73,9 @@ export type SupportAttributes = Record<
 const ROLE_LABEL: Record<SupportRole, string> = {
   client: "Client",
   livreur: "Livreur",
+  chauffeur: "Chauffeur",
   commercant: "Commerçant",
+  agent: "Agent Coligo Pay",
 };
 
 /** Tawk n'accepte que des chaînes : on filtre les vides et on convertit. */
@@ -66,6 +86,60 @@ function cleanAttrs(attrs: SupportAttributes): Record<string, string> {
     out[k] = typeof v === "boolean" ? (v ? "oui" : "non") : String(v);
   }
   return out;
+}
+
+/**
+ * Libellé LISIBLE de la page d'origine (pour que l'agent sache d'où vient la
+ * demande sans décoder un chemin technique). On reconnaît les sections par
+ * préfixe ; à défaut on renvoie le chemin brut. Le détail (n° commande/course)
+ * est porté par les attributs métier, pas ici.
+ */
+function friendlyPage(pathname: string): string {
+  const p = pathname.replace(/\/+$/, "") || "/";
+  const rules: [RegExp, string][] = [
+    // Client
+    [/^\/$/, "Accueil client"],
+    [/^\/m\//, "Page boutique"],
+    [/^\/produit\//, "Fiche produit"],
+    [/^\/panier/, "Panier"],
+    [/^\/checkout\/success/, "Confirmation de paiement"],
+    [/^\/checkout\/failure/, "Échec de paiement"],
+    [/^\/checkout/, "Paiement (checkout)"],
+    [/^\/commandes\/[^/]+/, "Suivi d'une commande"],
+    [/^\/commandes/, "Mes commandes"],
+    [/^\/favoris/, "Favoris"],
+    [/^\/adresses/, "Mes adresses"],
+    [/^\/compte/, "Mon compte (client)"],
+    [/^\/coligo-pay|^\/pay\b/, "Coligo Pay (client)"],
+    [/^\/drive\/courses?\/[^/]+/, "Suivi d'une course (client)"],
+    [/^\/drive/, "Coligo Drive (client)"],
+    // Livreur
+    [/^\/driver\/releve/, "Relevé livreur"],
+    [/^\/driver\/recharger/, "Recharge portefeuille (livreur)"],
+    [/^\/driver\/compte/, "Compte livreur"],
+    [/^\/driver\/historique|^\/driver\/courses/, "Historique livreur"],
+    [/^\/driver/, "Accueil livreur"],
+    // Chauffeur
+    [
+      /^\/chauffeur\/course\/[^/]+|^\/chauffeur\/courses?\/[^/]+/,
+      "Course en cours (chauffeur)",
+    ],
+    [/^\/chauffeur\/recharger/, "Recharge portefeuille (chauffeur)"],
+    [/^\/chauffeur\/compte/, "Compte chauffeur"],
+    [/^\/chauffeur\/historique/, "Historique chauffeur"],
+    [/^\/chauffeur/, "Accueil chauffeur"],
+    // Commerçant
+    [/^\/dashboard/, "Tableau de bord commerçant"],
+    [/^\/orders\/[^/]+/, "Détail commande (commerçant)"],
+    [/^\/orders/, "Commandes (commerçant)"],
+    [/^\/catalog/, "Catalogue (commerçant)"],
+    [/^\/finances/, "Finances (commerçant)"],
+    [/^\/parametres|^\/settings/, "Paramètres commerçant"],
+    // Agent Coligo Pay
+    [/^\/partenaire/, "Espace Agent Coligo Pay"],
+  ];
+  for (const [re, label] of rules) if (re.test(p)) return label;
+  return p;
 }
 
 export function isSupportConfigured(): boolean {
@@ -82,19 +156,66 @@ let ctx: {
   attributes?: SupportAttributes;
 } | null = null;
 
-/** Pose le contexte (identité + rôle + extras) sur l'API Tawk déjà chargée. */
-function applyContext(w: TawkWindow, extra?: SupportAttributes) {
+/** Options d'ouverture du chat — contexte métier + priorité. */
+export type OpenSupportOptions = {
+  /** Référence de commande (n° lisible) — raccourci de attributes.Commande. */
+  orderRef?: string | null;
+  /** Sujet court de la demande (ex. « Paiement », « Course en cours »). */
+  subject?: string | null;
+  /** URGENT : remonte en premier (tag rouge + nom préfixé 🔴). */
+  priority?: "urgent" | "normal";
+  /** Attributs métier additionnels (statut, boutique, montant, course…). */
+  attributes?: SupportAttributes;
+};
+
+/**
+ * Pose le contexte COMPLET (priorité + identité + rôle + page + métier) sur
+ * l'API Tawk déjà chargée, dans un ORDRE volontaire (priorité → rôle →
+ * identité → page → métier) pour une lecture immédiate par l'agent.
+ */
+function applyContext(w: TawkWindow, opts?: OpenSupportOptions) {
   try {
-    const attrs = cleanAttrs({
-      name: ctx?.name,
+    const urgent = opts?.priority === "urgent";
+    const baseName = ctx?.name?.trim() || (ctx ? ROLE_LABEL[ctx.role] : "—");
+    const page =
+      typeof window !== "undefined"
+        ? friendlyPage(window.location.pathname)
+        : "";
+
+    // Ordre d'affichage voulu (les objets JS conservent l'ordre d'insertion ;
+    // Tawk affiche généralement les attributs dans cet ordre).
+    const ordered: SupportAttributes = {
+      // 1) Priorité bien visible en tête.
+      "⚑ Priorité": urgent ? "🔴 URGENT — à traiter en premier" : "Normale",
+      // 2) Qui ? (rôle + nom affiché côté agent, préfixé 🔴 si urgent).
+      name: urgent ? `🔴 URGENT · ${baseName}` : baseName,
+      Rôle: ctx ? ROLE_LABEL[ctx.role] : undefined,
+      // 3) Identifiants de contact.
+      "Identifiant (e-mail)": ctx?.email,
       email: ctx?.email,
       phone: ctx?.phone,
-      role: ctx ? ROLE_LABEL[ctx.role] : undefined,
+      // 4) D'où vient la demande.
+      Page: page,
+      Chemin:
+        typeof window !== "undefined" ? window.location.pathname : undefined,
+      // 5) Sujet + n° commande (raccourcis pratiques).
+      Sujet: opts?.subject ?? undefined,
+      Commande: opts?.orderRef ?? undefined,
+      // 6) Attributs propres au rôle (posés par <TawkChat>).
       ...(ctx?.attributes ?? {}),
-      ...(extra ?? {}),
-    });
+      // 7) Attributs métier de l'écran appelant (statut, course, montant…).
+      ...(opts?.attributes ?? {}),
+    };
+
+    const attrs = cleanAttrs(ordered);
     if (Object.keys(attrs).length) w.Tawk_API?.setAttributes?.(attrs, () => {});
-    if (ctx) w.Tawk_API?.addTags?.([ROLE_LABEL[ctx.role]], () => {});
+
+    // Tags : rôle (toujours) + URGENT (en tête) + sujet court si fourni.
+    const tags: string[] = [];
+    if (urgent) tags.push("🔴 URGENT");
+    if (ctx) tags.push(ROLE_LABEL[ctx.role]);
+    if (opts?.subject) tags.push(opts.subject);
+    if (tags.length) w.Tawk_API?.addTags?.(tags, () => {});
   } catch {
     /* ignore */
   }
@@ -104,21 +225,14 @@ function applyContext(w: TawkWindow, extra?: SupportAttributes) {
  * Ouvre le chat support. Charge Tawk À LA DEMANDE s'il ne l'est pas encore
  * (jamais au chargement de page). Repli e-mail si Tawk n'est pas configuré.
  */
-export function openSupportChat(opts?: {
-  orderRef?: string | null;
-  attributes?: SupportAttributes;
-}): void {
+export function openSupportChat(opts?: OpenSupportOptions): void {
   if (typeof window === "undefined") return;
   const w = window as TawkWindow;
-  const extra: SupportAttributes = {
-    ...(opts?.attributes ?? {}),
-    ...(opts?.orderRef ? { commande: opts.orderRef } : {}),
-  };
 
-  // 1) Déjà chargé → on pose les attributs + on ouvre directement.
+  // 1) Déjà chargé → on pose le contexte complet + on ouvre directement.
   if (w.__tawkLoaded && typeof w.Tawk_API?.maximize === "function") {
     try {
-      applyContext(w, extra);
+      applyContext(w, opts);
       w.Tawk_API.showWidget?.();
       w.Tawk_API.maximize();
       return;
@@ -133,7 +247,7 @@ export function openSupportChat(opts?: {
     w.Tawk_API = w.Tawk_API || {};
     w.Tawk_API.onLoad = function () {
       try {
-        applyContext(w, extra);
+        applyContext(w, opts);
         w.Tawk_API?.showWidget?.();
         w.Tawk_API?.maximize?.();
       } catch {
@@ -164,15 +278,20 @@ export function openSupportChat(opts?: {
     return;
   }
 
-  // 3) Tawk non configuré → repli e-mail.
+  // 3) Tawk non configuré → repli e-mail (sujet pré-rempli avec le contexte).
   const mail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL;
   if (mail) {
-    const subject = opts?.orderRef
-      ? `Aide commande ${opts.orderRef} — Coligo`
+    const role = ctx ? ROLE_LABEL[ctx.role] : "Coligo";
+    const bits = [
+      opts?.priority === "urgent" ? "URGENT" : null,
+      role,
+      opts?.subject ?? null,
+      opts?.orderRef ? `Commande ${opts.orderRef}` : null,
+    ].filter(Boolean);
+    const subject = bits.length
+      ? `[${bits.join(" · ")}] Aide Coligo`
       : "Aide Coligo";
-    window.location.href = `mailto:${mail}?subject=${encodeURIComponent(
-      subject
-    )}`;
+    window.location.href = `mailto:${mail}?subject=${encodeURIComponent(subject)}`;
   }
 }
 

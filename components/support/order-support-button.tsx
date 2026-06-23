@@ -19,17 +19,28 @@ export function OrderSupportButton({
   label,
   className,
   attributes,
+  subject,
+  priority,
 }: {
   orderRef?: string | null;
   label: string;
   className?: string;
   attributes?: SupportAttributes;
+  /** Sujet court (ex. « Commande », « Livraison en cours »). */
+  subject?: string | null;
+  /** URGENT quand l'incident concerne une livraison/commande en cours. */
+  priority?: "urgent" | "normal";
 }) {
   return (
     <button
       type="button"
       onClick={() =>
-        openSupportChat({ orderRef: orderRef ?? null, attributes })
+        openSupportChat({
+          orderRef: orderRef ?? null,
+          attributes,
+          subject: subject ?? undefined,
+          priority,
+        })
       }
       className={
         className ??

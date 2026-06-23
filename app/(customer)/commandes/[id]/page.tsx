@@ -349,10 +349,22 @@ export default async function CustomerOrderDetailPage({
           <OrderSupportButton
             orderRef={orderNumber}
             label={t("contactSupport")}
+            // Incident pendant une livraison EN COURS = prioritaire (le client
+            // attend, le livreur roule) → remonté en URGENT côté support.
+            priority={inTransit ? "urgent" : "normal"}
+            subject={inTransit ? "Livraison en cours" : "Commande"}
             attributes={{
               Boutique: merchant.name,
               Statut: stateTitle,
+              Type: isDelivery ? "Livraison" : "Retrait",
+              Paiement: isCash ? "Espèces" : "En ligne (payé)",
               Montant: formatDA(order.total_da),
+              ...(isDelivery && order.delivery_address_text
+                ? { Adresse: order.delivery_address_text }
+                : {}),
+              ...(driverContact?.first_name
+                ? { Livreur: driverContact.first_name }
+                : {}),
             }}
             className="border-border bg-surface text-foreground hover:bg-surface-2 inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold shadow-sm transition-colors"
           />
