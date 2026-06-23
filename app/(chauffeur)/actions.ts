@@ -659,6 +659,9 @@ export async function getNearbyRides(
     // Active les courses programmées dont l'heure approche (pas de cron fréquent :
     // le poll chauffeur sert de déclencheur, cf. archi Express). Best-effort.
     await rpc("drive_activate_due_scheduled", {}).catch(() => undefined);
+    // Annule les recherches expirées sans réponse (deadline, mig 0250) — garde le
+    // réseau propre (pas de courses « fantômes »). Best-effort.
+    await rpc("drive_expire_stale_searches", {}).catch(() => undefined);
     const { data } = await rpc("chauffeur_nearby_rides", {
       p_lat: lat,
       p_lng: lng,

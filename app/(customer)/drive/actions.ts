@@ -681,6 +681,8 @@ export type DriveActiveRide = {
   escrow_da: number;
   /** Complément à régler EN ESPÈCES au chauffeur (Coligo Pay partiel). */
   cash_due_da: number;
+  /** Échéance de la recherche (auto-annulation si personne ne répond) — mig 0250. */
+  expires_at: string | null;
   chauffeur: {
     id: string;
     name: string;
@@ -700,6 +702,10 @@ export type DriveActiveRide = {
 
 export async function getDriveActiveRide(): Promise<DriveActiveRide | null> {
   const rpc = await rpcClient();
+  // Deadline : on annule d'abord les recherches expirées sans réponse (mig 0250)
+  // → une demande à laquelle personne n'a répondu repasse en 'cancelled' et
+  // n'apparaît plus comme « en recherche ». Best-effort.
+  await rpc("drive_expire_stale_searches", {}).catch(() => undefined);
   const { data } = await rpc("my_active_ride", {});
   const r = (Array.isArray(data) ? data[0] : null) as Record<
     string,
@@ -729,6 +735,7 @@ export async function getDriveActiveRide(): Promise<DriveActiveRide | null> {
     online_paid: r.online_paid_at != null,
     escrow_da: (r.escrow_da as number) ?? 0,
     cash_due_da: (r.cash_due_da as number) ?? 0,
+    expires_at: (r.expires_at as string) ?? null,
     chauffeur: r.ch_name
       ? {
           id: r.chauffeur_id as string,
