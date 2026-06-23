@@ -22,6 +22,15 @@ function shortLabel(code: string, locale: string): string {
   return full.split(/[/–-]/)[0].trim();
 }
 
+/**
+ * Catégories illustrées par une IMAGE (au lieu de l'emoji) dans le rond de
+ * filtre. L'image SATURE le cercle (object-cover plein). Test produit : on
+ * commence par « Supérette » (panier de nécessité : soda, farine, sucre, huile…).
+ */
+const CATEGORY_FILTER_IMAGE: Record<string, string> = {
+  superette: "/categories/superette.png",
+};
+
 export function CategoryStrip({
   categories,
 }: {
@@ -51,6 +60,7 @@ export function CategoryStrip({
         <Tile
           key={c.name}
           emoji={getCategory(c.name)?.emoji ?? "🏷️"}
+          imageSrc={CATEGORY_FILTER_IMAGE[c.name]}
           label={shortLabel(c.name, locale)}
           active={active === c.name}
           onClick={() => go(c.name)}
@@ -62,11 +72,13 @@ export function CategoryStrip({
 
 function Tile({
   emoji,
+  imageSrc,
   label,
   active,
   onClick,
 }: {
   emoji: string;
+  imageSrc?: string;
   label: string;
   active: boolean;
   onClick: () => void;
@@ -79,13 +91,26 @@ function Tile({
     >
       <span
         className={cn(
-          "grid size-[54px] place-items-center rounded-full border text-[26px] leading-none transition-colors",
+          "grid size-[54px] place-items-center overflow-hidden rounded-full border text-[26px] leading-none transition-colors",
           active
             ? "border-primary-500 bg-primary-50 ring-primary-500/30 ring-2"
             : "bg-surface-2 border-transparent"
         )}
       >
-        <span aria-hidden>{emoji}</span>
+        {imageSrc ? (
+          // Image qui SATURE le cercle (remplit tout le rond, recadrée).
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageSrc}
+            alt=""
+            aria-hidden
+            loading="lazy"
+            decoding="async"
+            className="size-full object-cover"
+          />
+        ) : (
+          <span aria-hidden>{emoji}</span>
+        )}
       </span>
       <span
         className={cn(
