@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import {
@@ -45,6 +45,7 @@ import {
   useChauffeurOnline,
 } from "@/lib/chauffeur/online-store";
 import { useHomeDirOn, setHomeDirOn } from "@/lib/chauffeur/home-dir-store";
+import { isOpenDemande } from "@/lib/chauffeur/dispatch-filter";
 import { getMyWalletState } from "@/app/wallet/recharge-actions";
 import {
   activateHomeDir,
@@ -110,6 +111,17 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   // État RÉACTIF partagé (Accueil ⇄ Demandes) — plus de lecture localStorage
   // au montage qui désynchronisait les écrans.
   const dirOn = useHomeDirOn();
+  // Filtre « je rentre chez moi » PARTAGÉ avec la page Demandes (compteur =
+  // liste). Domicile + tolérance viennent du gate (config admin).
+  const homeFilter = useMemo(
+    () => ({
+      on: dirOn,
+      homeLat: gate.homeLat,
+      homeLng: gate.homeLng,
+      tolerance: gate.homeDirToleranceDeg,
+    }),
+    [dirOn, gate.homeLat, gate.homeLng, gate.homeDirToleranceDeg]
+  );
   const [dirMsg, setDirMsg] = useState<string | null>(null);
   const [homeAddr, setHomeAddr] = useState(gate.homeAddr);
   // Rayon « autour de moi » — dispatch toujours centré sur la position live.
@@ -267,12 +279,15 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   // ouvert (domicile / zone) ni hors ligne.
   useEffect(() => {
     if (current || !online || homeOpen || zoneOpen) return;
+    // Même filtre que le compteur/la liste : on ne fait PAS surgir un popup pour
+    // une course qui n'apparaîtra pas dans « Demandes » (déjà proposée ou hors
+    // « je rentre chez moi »).
     const cand = nearby
-      .filter((r) => !seenRef.current.has(r.id) && r.my_offer_da == null)
+      .filter((r) => !seenRef.current.has(r.id) && isOpenDemande(r, homeFilter))
       .sort((a, b) => a.pickup_dist_km - b.pickup_dist_km);
     if (cand.length) setCurrent(cand[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, online, nearby, zoneOpen]);
+  }, [current, online, nearby, zoneOpen, homeFilter]);
 
   // Auto-masquage du popup après 12 s : la course reste disponible dans Drive.
   useEffect(() => {
@@ -387,11 +402,17 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   };
 
   const me = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
-  const reqCount = nearby.length || (online ? (home?.requestsCount ?? 0) : 0);
+  // Demandes RÉELLEMENT visibles = mêmes filtres que la page « Demandes »
+  // (pas déjà proposées + filtre « je rentre chez moi »). Le compteur de
+  // l'Accueil DOIT égaler la liste → plus de « 5 sur l'accueil, 0 dans Drive ».
+  const openDemandes = useMemo(
+    () => nearby.filter((r) => isOpenDemande(r, homeFilter)),
+    [nearby, homeFilter]
+  );
+  const reqCount = online ? openDemandes.length : 0;
   const queueCount = Math.max(
     0,
-    nearby.filter((r) => !seenRef.current.has(r.id) && r.my_offer_da == null)
-      .length - 1
+    openDemandes.filter((r) => !seenRef.current.has(r.id)).length - 1
   );
   const lowBalance = balance != null && balance < 0;
 

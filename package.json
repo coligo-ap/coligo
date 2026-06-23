@@ -30,6 +30,7 @@
     "test:noshow:claim": "node scripts/test-noshow-claim.mjs",
     "test:merchant:guard": "node scripts/test-merchant-order-guard.mjs",
     "test:vtc": "node scripts/test-vtc.mjs",
+    "test:dispatch": "node --experimental-strip-types scripts/test-chauffeur-dispatch.mjs",
     "test:coligo:pay": "node scripts/test-coligo-pay.mjs",
     "test:agent": "node scripts/test-agent-signup.mjs",
     "android:assets": "node scripts/android-assets.mjs",

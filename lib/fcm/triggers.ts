@@ -339,12 +339,45 @@ export async function notifyChauffeursNewRide(input: {
       p_female_only: ride.female_only ?? false,
       p_customer_id: ride.customer_id ?? null,
     });
+    const nearList =
+      (near as
+        | { user_id: string; chauffeur_id: string; dist_km: number }[]
+        | null) ?? [];
+
+    // COHÉRENCE push ⇄ liste : ne notifier un chauffeur QUE si le départ est
+    // dans SON rayon choisi (« ma zone », work_zone_radius_km, clampé 3..20).
+    // Sinon il recevait un push pour une course absente de sa liste. Rayon non
+    // personnalisé (NULL) → on garde le comportement historique (8 km).
+    const chIds = [
+      ...new Set(nearList.map((r) => r.chauffeur_id).filter(Boolean)),
+    ];
+    const radiusByCh = new Map<string, number | null>();
+    if (chIds.length) {
+      // `work_zone_radius_km` n'est pas dans les types générés → cast local.
+      const chTable = admin.from("chauffeurs") as unknown as {
+        select: (s: string) => {
+          in: (
+            c: string,
+            v: string[]
+          ) => Promise<{
+            data: { id: string; work_zone_radius_km: number | null }[] | null;
+          }>;
+        };
+      };
+      const { data: radii } = await chTable
+        .select("id, work_zone_radius_km")
+        .in("id", chIds);
+      for (const r of radii ?? []) radiusByCh.set(r.id, r.work_zone_radius_km);
+    }
+    const eligible = nearList.filter((r) => {
+      const raw = radiusByCh.get(r.chauffeur_id);
+      if (raw == null) return true; // rayon non personnalisé → comportement 8 km
+      const radius = Math.min(20, Math.max(3, Number(raw)));
+      return Number(r.dist_km) <= radius;
+    });
+
     const userIds = [
-      ...new Set(
-        ((near as { user_id: string }[] | null) ?? [])
-          .map((r) => r.user_id)
-          .filter(Boolean)
-      ),
+      ...new Set(eligible.map((r) => r.user_id).filter(Boolean)),
     ];
     if (userIds.length === 0) return;
     const tokenLists = await Promise.all(
@@ -362,7 +395,9 @@ export async function notifyChauffeursNewRide(input: {
             : "Nouvelle course 🚗",
         body: `Un client propose ${formatDA(total)}. Fais ton offre !`,
       },
-      { route: "/chauffeur", kind: "chauffeur_new_ride" }
+      // Clic sur la notif → la LISTE des demandes (où la course apparaît),
+      // pas l'accueil (qui semblait « vide »).
+      { route: "/chauffeur/demandes", kind: "chauffeur_new_ride" }
     );
   } catch (err) {
     console.warn("[fcm] notifyChauffeursNewRide failed:", err);

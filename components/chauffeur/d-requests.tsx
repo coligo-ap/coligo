@@ -40,8 +40,8 @@ import {
   setChauffeurOnline,
   type NearbyRide,
 } from "@/app/(chauffeur)/actions";
-import { isTowardsHome } from "@/lib/drive/geo";
 import { useHomeDirOn } from "@/lib/chauffeur/home-dir-store";
+import { passesHomeDir } from "@/lib/chauffeur/dispatch-filter";
 
 const AMBER = "#F59E0B";
 
@@ -362,19 +362,17 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   // Séparation Demandes / Propositions (offre déjà envoyée → my_offer_da/sent).
   const isProposed = (q: NearbyRide) =>
     q.my_offer_da != null || sent[q.id] != null;
-  const dirActive = homeDirOn && homeDir.lat != null && homeDir.lng != null;
-  const inDirection = (q: NearbyRide) =>
-    !dirActive ||
-    (q.pickup_lat != null &&
-      q.dest_lat != null &&
-      isTowardsHome(
-        { lat: q.pickup_lat, lng: q.pickup_lng! },
-        { lat: q.dest_lat, lng: q.dest_lng! },
-        { lat: homeDir.lat!, lng: homeDir.lng! },
-        homeDir.tolerance
-      ));
-
-  const demandes = reqs.filter((q) => !isProposed(q) && inDirection(q));
+  // Filtre « je rentre chez moi » PARTAGÉ avec l'Accueil (compteur identique).
+  const homeFilter = {
+    on: homeDirOn,
+    homeLat: homeDir.lat,
+    homeLng: homeDir.lng,
+    tolerance: homeDir.tolerance,
+  };
+  const dirActive = homeFilter.on && homeFilter.homeLat != null;
+  const demandes = reqs.filter(
+    (q) => !isProposed(q) && passesHomeDir(q, homeFilter)
+  );
   const proposed = reqs.filter((q) => isProposed(q));
   if (sort === "pay") demandes.sort((a, b) => total(b) - total(a));
   else demandes.sort((a, b) => a.pickup_dist_km - b.pickup_dist_km);
