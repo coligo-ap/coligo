@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import {
   Loader2,
   Mic,
@@ -69,6 +70,9 @@ export function CallOverlay({
   /** Appelé quand l'appel se termine (raccroché localement, pair parti, erreur). */
   onEnd: () => void;
 }) {
+  // Libellés FR/AR (composant partagé client AR/FR ↔ chauffeur FR).
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [status, setStatus] = useState<
     "connecting" | "ringing" | "active" | "error"
   >("connecting");
@@ -159,10 +163,19 @@ export function CallOverlay({
         const msg = String((e as Error)?.message ?? e);
         setErrorMsg(
           msg.includes("Permission") || msg.includes("NotAllowed")
-            ? "Micro/caméra refusés. Autorise l'accès puis réessaie."
+            ? tr(
+                "Micro/caméra refusés. Autorise l'accès puis réessaie.",
+                "تم رفض الميكروفون/الكاميرا. اسمح بالوصول ثم أعد المحاولة."
+              )
             : msg.startsWith("token_403")
-              ? "Appel non autorisé pour cette course."
-              : "Connexion à l'appel impossible. Vérifie ta connexion."
+              ? tr(
+                  "Appel non autorisé pour cette course.",
+                  "المكالمة غير مسموحة لهذه الرحلة."
+                )
+              : tr(
+                  "Connexion à l'appel impossible. Vérifie ta connexion.",
+                  "تعذّر الاتصال بالمكالمة. تحقّق من اتصالك."
+                )
         );
         setStatus("error");
       }
@@ -261,8 +274,8 @@ export function CallOverlay({
     status === "active"
       ? `${mm}:${ss}`
       : status === "error"
-        ? "Échec"
-        : "Connexion…";
+        ? tr("Échec", "فشل")
+        : tr("Connexion…", "جارٍ الاتصال…");
 
   return (
     <Portal>
@@ -309,7 +322,7 @@ export function CallOverlay({
               <CallBtn
                 onClick={toggleMute}
                 active={muted}
-                label={muted ? "Activer" : "Muet"}
+                label={muted ? tr("Activer", "إلغاء الكتم") : tr("Muet", "كتم")}
               >
                 {muted ? (
                   <MicOff className="size-6" />
@@ -321,7 +334,7 @@ export function CallOverlay({
               <CallBtn
                 onClick={() => void enableCam(!camOn)}
                 active={camOn}
-                label="Caméra"
+                label={tr("Caméra", "الكاميرا")}
               >
                 {camOn ? (
                   <Video className="size-6" />
@@ -331,7 +344,10 @@ export function CallOverlay({
               </CallBtn>
 
               {camOn && (
-                <CallBtn onClick={() => void switchCamera()} label="Pivoter">
+                <CallBtn
+                  onClick={() => void switchCamera()}
+                  label={tr("Pivoter", "تبديل الكاميرا")}
+                >
                   <SwitchCamera className="size-6" />
                 </CallBtn>
               )}
@@ -342,7 +358,7 @@ export function CallOverlay({
           <button
             type="button"
             onClick={end}
-            aria-label="Raccrocher"
+            aria-label={tr("Raccrocher", "إنهاء المكالمة")}
             className="grid size-16 place-items-center rounded-full bg-red-600 shadow-lg transition active:scale-95"
           >
             <PhoneOff className="size-7" />

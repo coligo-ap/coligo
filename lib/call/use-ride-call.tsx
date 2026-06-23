@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import { Phone, PhoneOff, Loader2, Video } from "lucide-react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
@@ -40,6 +41,8 @@ export function useRideCall({
   role: "client" | "chauffeur";
   peerName: string;
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [phase, setPhase] = useState<Phase>("idle");
   const [withVideo, setWithVideo] = useState(false);
   const chanRef = useRef<RealtimeChannel | null>(null);
@@ -88,7 +91,9 @@ export function useRideCall({
         setPhase((p) => {
           if (p !== "outgoing") return p;
           clearTimer();
-          toast.info?.(`${peerName} a refusé l'appel`);
+          toast.info?.(
+            isAr ? `${peerName} رفض المكالمة` : `${peerName} a refusé l'appel`
+          );
           return "idle";
         });
       })
@@ -102,7 +107,7 @@ export function useRideCall({
       void supabase.removeChannel(ch);
       chanRef.current = null;
     };
-  }, [rideId, peerName]);
+  }, [rideId, peerName, isAr]);
 
   // ─── Démarrer un appel sortant ───
   const start = useCallback(
@@ -119,14 +124,14 @@ export function useRideCall({
           setPhase((cur) => {
             if (cur !== "outgoing") return cur;
             send("bye");
-            toast.info?.("Pas de réponse");
+            toast.info?.(isAr ? "لا يوجد ردّ" : "Pas de réponse");
             return "idle";
           });
         }, 30_000);
         return "outgoing";
       });
     },
-    [send, rideId, role]
+    [send, rideId, role, isAr]
   );
 
   // Tant que l'appel SONNE (outgoing), on ré-émet l'invitation toutes les 2,5 s.
@@ -175,7 +180,7 @@ export function useRideCall({
     ui = (
       <RingScreen
         peerName={peerName}
-        sub="Appel en cours…"
+        sub={tr("Appel en cours…", "جارٍ الاتصال…")}
         onHangup={cancelOutgoing}
       />
     );
@@ -203,6 +208,7 @@ function RingScreen({
   sub: string;
   onHangup: () => void;
 }) {
+  const isAr = useLocale() === "ar";
   return (
     <Portal>
       <div className="fixed inset-0 z-[200] flex flex-col items-center bg-[#0d0b18] text-white">
@@ -217,7 +223,7 @@ function RingScreen({
         <button
           type="button"
           onClick={onHangup}
-          aria-label="Annuler"
+          aria-label={isAr ? "إلغاء" : "Annuler"}
           className="mt-auto mb-[max(2.5rem,env(safe-area-inset-bottom))] grid size-16 place-items-center rounded-full bg-red-600 shadow-lg active:scale-95"
         >
           <PhoneOff className="size-7" />
@@ -239,6 +245,7 @@ function IncomingScreen({
   onAccept: () => void;
   onDecline: () => void;
 }) {
+  const isAr = useLocale() === "ar";
   return (
     <Portal>
       <div className="fixed inset-0 z-[200] flex flex-col items-center bg-[#0d0b18] text-white">
@@ -252,13 +259,19 @@ function IncomingScreen({
           ) : (
             <Phone className="size-3.5" />
           )}
-          {video ? "Appel vidéo entrant…" : "Appel entrant…"}
+          {video
+            ? isAr
+              ? "مكالمة فيديو واردة…"
+              : "Appel vidéo entrant…"
+            : isAr
+              ? "مكالمة واردة…"
+              : "Appel entrant…"}
         </p>
         <div className="mt-auto mb-[max(2.5rem,env(safe-area-inset-bottom))] flex items-center gap-16">
           <button
             type="button"
             onClick={onDecline}
-            aria-label="Refuser"
+            aria-label={isAr ? "رفض" : "Refuser"}
             className="grid size-16 place-items-center rounded-full bg-red-600 shadow-lg active:scale-95"
           >
             <PhoneOff className="size-7" />
@@ -266,7 +279,7 @@ function IncomingScreen({
           <button
             type="button"
             onClick={onAccept}
-            aria-label="Accepter"
+            aria-label={isAr ? "قبول" : "Accepter"}
             className="grid size-16 place-items-center rounded-full bg-green-600 shadow-lg active:scale-95"
           >
             <Phone className="size-7" />
