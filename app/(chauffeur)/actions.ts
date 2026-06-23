@@ -356,6 +356,15 @@ export type ChauffeurGate = {
    * de recevoir les demandes.
    */
   isOnline: boolean;
+  /**
+   * Dernière position connue côté SERVEUR (chauffeur_presence). Sert de REPLI
+   * quand le GPS du navigateur (useDriverPosition) n'a pas encore livré de fix
+   * (ou est refusé) : on interroge quand même les demandes autour de cette
+   * position → un chauffeur qui a reçu une push (donc présent près du départ)
+   * VOIT la course même sans fix GPS frais. null si jamais positionné.
+   */
+  presenceLat: number | null;
+  presenceLng: number | null;
   rating: number | null;
   ridesCount: number;
   memberSince: string;
@@ -425,7 +434,7 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
     hdQuery,
     admin
       .from("chauffeur_presence")
-      .select("is_online")
+      .select("is_online, lat, lng")
       .eq("chauffeur_id", ch.id)
       .maybeSingle(),
   ]);
@@ -452,6 +461,8 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
     homeDirToleranceDeg: tolerance,
     homeDirActive: !!hd?.home_dir_active,
     isOnline: !!presence?.is_online,
+    presenceLat: presence?.lat ?? null,
+    presenceLng: presence?.lng ?? null,
     rating: rating == null ? null : Math.round(Number(rating) * 10) / 10,
     ridesCount: count ?? 0,
     memberSince: data.created_at,

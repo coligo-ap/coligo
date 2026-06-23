@@ -210,11 +210,24 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   // récupération des demandes proches (pour le popup + le compteur).
   const tick = useCallback(async () => {
     if (tickBusy.current) return;
-    const c = coordsRef.current;
+    const live = coordsRef.current;
+    // Repli sur la dernière position connue côté serveur (présence, via le gate)
+    // quand le GPS du navigateur n'a pas encore de fix → le compteur et le popup
+    // se peuplent quand même (un chauffeur qui a reçu une push a une présence).
+    const c =
+      live ??
+      (gate.presenceLat != null && gate.presenceLng != null
+        ? { latitude: gate.presenceLat, longitude: gate.presenceLng }
+        : null);
     tickBusy.current = true;
     try {
-      if (c)
-        void chauffeurHeartbeat(c.latitude, c.longitude, onlineRef.current);
+      // Heartbeat seulement avec un VRAI fix GPS (ne pas réécrire un repli).
+      if (live)
+        void chauffeurHeartbeat(
+          live.latitude,
+          live.longitude,
+          onlineRef.current
+        );
       const [h, active, list] = await Promise.all([
         getDriveHome(c?.latitude ?? null, c?.longitude ?? null),
         getChauffeurActiveRide(),

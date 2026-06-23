@@ -6,6 +6,7 @@ import {
   getChauffeurOnlineLocal,
   setChauffeurOnlineLocal,
 } from "@/lib/chauffeur/online-store";
+import { getHomeDirOn, setHomeDirOn } from "@/lib/chauffeur/home-dir-store";
 
 /**
  * Contexte du GATE chauffeur (statut/profil : vérifié, gelé, dossier soumis,
@@ -36,6 +37,15 @@ export function ChauffeurGateProvider({
   useEffect(() => {
     if (getChauffeurOnlineLocal() !== gate.isOnline) {
       setChauffeurOnlineLocal(gate.isOnline);
+    }
+    // MÊME principe pour « Je rentre chez moi » : le serveur (home_dir_active)
+    // est la source de vérité. Sans ça, en arrivant DIRECTEMENT sur
+    // /chauffeur/demandes (deep-link notification) — donc sans passer par
+    // l'accueil qui réalignait —, un ancien « 1 » en localStorage gardait le
+    // filtre actif et MASQUAIT toutes les courses (ex. domicile en Algérie,
+    // courses ailleurs) → liste vide alors que le serveur renvoie bien la course.
+    if (getHomeDirOn() !== gate.homeDirActive) {
+      setHomeDirOn(gate.homeDirActive);
     }
     // Réhydratation au montage de la coque uniquement (1 fois par chargement).
     // eslint-disable-next-line react-hooks/exhaustive-deps

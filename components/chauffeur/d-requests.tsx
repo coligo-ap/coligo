@@ -197,6 +197,18 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     lng: number | null;
     tolerance: number;
   }>({ addr: null, lat: null, lng: null, tolerance: 45 });
+  // REPLI de position : dernière position connue côté serveur (présence). Sert
+  // quand le GPS du navigateur n'a pas encore de fix (ou est refusé) → on
+  // interroge quand même les demandes autour de cette position. Sans ce repli,
+  // `poll` sortait tôt (coords nulles) et la liste restait vide alors que le
+  // chauffeur avait bien reçu une push (donc une présence serveur près du
+  // départ). Le GPS frais reprend la main dès qu'il arrive.
+  const fallbackRef = useRef<{ latitude: number; longitude: number } | null>(
+    null
+  );
+  // Passe à true quand le gate (et donc le repli de position) est chargé → on
+  // relance alors un poll si le GPS n'a toujours rien livré.
+  const [presenceReady, setPresenceReady] = useState(false);
   useEffect(() => {
     void getChauffeurGate().then((g) => {
       if (g) {
@@ -207,19 +219,26 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
           lng: g.homeLng,
           tolerance: g.homeDirToleranceDeg,
         });
+        fallbackRef.current =
+          g.presenceLat != null && g.presenceLng != null
+            ? { latitude: g.presenceLat, longitude: g.presenceLng }
+            : null;
       }
+      setPresenceReady(true);
     });
   }, []);
 
   const poll = useCallback(async () => {
     if (pollBusy.current) return; // le précédent tourne encore → on saute
-    const c = coordsRef.current;
+    // Position : GPS live en priorité, sinon repli sur la présence serveur.
+    const live = coordsRef.current;
+    const c = live ?? fallbackRef.current;
     if (!c) return;
     pollBusy.current = true;
     try {
-      // Heartbeat « en ligne » UNIQUEMENT quand on poll (donc en ligne) → hors
-      // ligne, la présence reste à false et le chauffeur n'est pas dispatché.
-      void chauffeurHeartbeat(c.latitude, c.longitude, true);
+      // Heartbeat « en ligne » UNIQUEMENT avec un VRAI fix GPS (ne pas réécrire
+      // une position de repli périmée). Hors ligne, on ne poll pas du tout.
+      if (live) void chauffeurHeartbeat(live.latitude, live.longitude, true);
       const [list, active] = await Promise.all([
         getNearbyRides(c.latitude, c.longitude, radiusRef.current),
         getChauffeurActiveRide(),
@@ -251,6 +270,11 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
       void poll();
     }
   }, [coords, poll, online]);
+  // GPS muet mais présence serveur connue → on poll quand même via le repli (un
+  // chauffeur qui a reçu une push DOIT voir la course même sans fix navigateur).
+  useEffect(() => {
+    if (online && presenceReady && !coords) void poll();
+  }, [online, presenceReady, coords, poll]);
 
   // Changement de FILTRE → re-poll IMMÉDIAT (sans attendre le cycle 12 s). Le
   // rayon « ma zone » filtre côté serveur : élargir la zone doit ramener tout de
