@@ -145,7 +145,7 @@ export function DriveAiBar({
     lat: number;
     lng: number;
     display: string;
-    kind?: "merchant";
+    kind?: "merchant" | "google";
   }) => {
     setDraft((d) =>
       d

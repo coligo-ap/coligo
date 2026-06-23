@@ -164,7 +164,7 @@ export function MapPositionPicker({
       secondary?: string;
       lat: number;
       lng: number;
-      kind?: "merchant";
+      kind?: "merchant" | "google";
     }[]
   >([]);
   const [searching, setSearching] = useState(false);
@@ -618,6 +618,14 @@ export function MapPositionPicker({
                         style={{ background: "#EEEEFD", color: "#6C2BD9" }}
                       >
                         Coligo
+                      </span>
+                    )}
+                    {r.kind === "google" && (
+                      <span
+                        className="mt-0.5 shrink-0 rounded-full border border-[#e0e0e0] bg-white px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wide text-[#5f6368]"
+                        title="Résultat Google Maps"
+                      >
+                        Google
                       </span>
                     )}
                   </button>

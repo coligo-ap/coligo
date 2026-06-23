@@ -456,8 +456,9 @@ export type GeocodeSearchResult =
         secondary?: string;
         lat: number;
         lng: number;
-        /** "merchant" = commerçant inscrit sur Coligo (badge automatique). */
-        kind?: "merchant";
+        /** "merchant" = commerçant Coligo · "google" = résultat Google Places
+         *  (distinct des cartes gratuites OSM, affiché en premier). */
+        kind?: "merchant" | "google";
       }[];
     }
   | { ok: false; error: string };
@@ -467,8 +468,9 @@ type GeoHit = {
   secondary?: string;
   lat: number;
   lng: number;
-  /** "merchant" = commerçant inscrit sur Coligo (vs lieu / POI / Google). */
-  kind?: "merchant";
+  /** "merchant" = commerçant Coligo · "google" = résultat Google Places (vs
+   *  lieu / POI des cartes gratuites OSM). */
+  kind?: "merchant" | "google";
 };
 
 // Algérie entière (Photon n'a pas de filtre pays → bbox + countrycode).
@@ -818,7 +820,11 @@ async function searchGoogleFallback(
 
     // 1) Cache 30 j (gratuit) — TOUJOURS servi, sans condition d'auth.
     const cached = (await rpc("geo_google_cache_get", { p_q: qn })).data;
-    if (Array.isArray(cached)) return cached as GeoHit[];
+    if (Array.isArray(cached))
+      return (cached as GeoHit[]).map((r) => ({
+        ...r,
+        kind: "google" as const,
+      }));
 
     // 2) Chemin PAYANT : plafonds. Par client si connecté (anti-abus), et
     //    plafond GLOBAL toujours (filet dur). PAS de blocage si non connecté —
@@ -886,6 +892,7 @@ async function searchGoogleFallback(
         secondary: p.formattedAddress ?? undefined,
         lat: p.location!.latitude,
         lng: p.location!.longitude,
+        kind: "google" as const,
       }));
 
     // 4) Cache 30 j si on a des résultats.
@@ -1028,6 +1035,15 @@ export async function geocodeSearch(input: {
   // Boost PERSONNEL « Tes lieux » : les favoris et les lieux déjà choisis par CE
   // client remontent en tête, POUR LUI. Tri stable (ordre d'origine préservé à
   // rang égal). Non connecté / sans historique → liste inchangée.
+  // Résultats Google TOUJOURS en tête de la liste de suggestions (ils ne sortent
+  // qu'en dernier recours, quand les cartes gratuites n'ont pas l'enseigne
+  // cherchée → c'est la réponse la plus pertinente). Partition stable, appliquée
+  // APRÈS la personnalisation (qui sinon remonterait les lieux favoris au-dessus).
+  const googleFirst = (list: GeoHit[]): GeoHit[] => [
+    ...list.filter((r) => r.kind === "google"),
+    ...list.filter((r) => r.kind !== "google"),
+  ];
+
   const personalize = async (list: GeoHit[]): Promise<GeoHit[]> => {
     try {
       const sb = await createClient();
@@ -1154,7 +1170,7 @@ export async function geocodeSearch(input: {
           });
           if (merged.length >= maxN) break;
         }
-        return { ok: true, results: await personalize(merged) };
+        return { ok: true, results: googleFirst(await personalize(merged)) };
       }
     }
   }
@@ -1177,7 +1193,7 @@ export async function geocodeSearch(input: {
     }
   }
 
-  return { ok: true, results: await personalize(results) };
+  return { ok: true, results: googleFirst(await personalize(results)) };
 }
 
 // Itinéraire routier réel (OSRM public) : distance ET durée fiables, au lieu

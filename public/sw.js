@@ -11,7 +11,7 @@
 // (refonte de la fiche commerçant ; certains clients servaient l'ancien JS en
 // cache → « je ne vois pas de différence »). Bump = tout le cache est supprimé
 // au prochain chargement.
-const CACHE_VERSION = "coligo-v13";
+const CACHE_VERSION = "coligo-v14";
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const PRECACHE_CACHE = `${CACHE_VERSION}-precache`;
 const OFFLINE_URL = "/offline";

@@ -25,13 +25,18 @@ export type DriveGamme = "classic" | "confort" | "moto";
 export type DriveIntentDraft = {
   /** Départ : position GPS actuelle (text null) sauf si le client en nomme un autre. */
   pickup: { lat: number; lng: number; text: string | null };
-  destination: { lat: number; lng: number; text: string; kind?: "merchant" };
+  destination: {
+    lat: number;
+    lng: number;
+    text: string;
+    kind?: "merchant" | "google";
+  };
   /** Autres lieux candidats pour la destination (si ambiguë), à proposer au client. */
   alternatives: {
     lat: number;
     lng: number;
     display: string;
-    kind?: "merchant";
+    kind?: "merchant" | "google";
   }[];
   distance_km: number;
   gamme: DriveGamme;

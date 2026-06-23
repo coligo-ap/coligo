@@ -1689,7 +1689,7 @@ function MapPickScreen({
       secondary?: string;
       lat: number;
       lng: number;
-      kind?: "merchant";
+      kind?: "merchant" | "google";
     }[]
   >([]);
   const [searching, setSearching] = useState(false);
@@ -1904,6 +1904,15 @@ function MapPickScreen({
                       style={{ background: "var(--d-accent)", color: VIOLET }}
                     >
                       Coligo
+                    </span>
+                  )}
+                  {/* Résultat Google Maps (distinct des cartes gratuites OSM). */}
+                  {r.kind === "google" && (
+                    <span
+                      className="mt-0.5 shrink-0 rounded-full border border-[var(--d-line)] px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wide text-[var(--d-muted)]"
+                      title="Résultat Google Maps"
+                    >
+                      Google
                     </span>
                   )}
                 </button>
