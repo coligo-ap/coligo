@@ -46,6 +46,8 @@
     "hours": "Horaires",
     "openNow": "Ouvert maintenant",
     "today": "Aujourd'hui",
+    "prepLabel": "Préparation",
+    "minBasketLabel": "Panier min.",
     "closed": "Fermé",
     "emptyCatalog": "Ce commerce n'a pas encore publié son catalogue.",
     "searchProductPlaceholder": "Rechercher un produit…",

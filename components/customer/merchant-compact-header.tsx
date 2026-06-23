@@ -7,10 +7,10 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
-  Clock,
   MapPin,
-  ShoppingBag,
+  ShoppingBasket,
   ShoppingCart,
+  Timer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
@@ -322,19 +322,30 @@ export function MerchantCompactHeader({
         </button>
       </div>
 
-      {/* ───── INFOS CLÉS en CHIPS (pilules à icônes) : délai + minimum. ───── */}
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        {prep_time_min > 0 && (
-          <Chip icon={<Clock className="text-primary-600 size-3.5" />}>
-            ~{t("prepMinutes", { count: prep_time_min })}
-          </Chip>
-        )}
-        {min_order_da > 0 && (
-          <Chip icon={<ShoppingBag className="text-primary-600 size-3.5" />}>
-            {t("min")} {formatDA(min_order_da)}
-          </Chip>
-        )}
-      </div>
+      {/* ───── 2 STATS CLAIRES, étalées : PRÉPARATION à gauche, PANIER MIN. à
+              droite. Icône en pastille + valeur en gras + libellé gris dessous,
+              pour bien comprendre d'un coup d'œil. ───── */}
+      {(prep_time_min > 0 || min_order_da > 0) && (
+        <div className="border-border mt-3 flex items-center justify-between gap-3 rounded-[14px] border bg-white px-3.5 py-2.5">
+          {prep_time_min > 0 ? (
+            <Stat
+              icon={<Timer className="size-[18px]" />}
+              value={`~${t("prepMinutes", { count: prep_time_min })}`}
+              label={t("prepLabel")}
+            />
+          ) : (
+            <span />
+          )}
+          {min_order_da > 0 && (
+            <Stat
+              icon={<ShoppingBasket className="size-[18px]" />}
+              value={formatDA(min_order_da)}
+              label={t("minBasketLabel")}
+              alignEnd
+            />
+          )}
+        </div>
+      )}
 
       {/* Pilules de spécialités (tags) — situent l'offre d'un coup d'œil. */}
       {tags.length > 0 && (
@@ -430,29 +441,39 @@ export function MerchantCompactHeader({
 }
 
 /**
- * Pilule d'info (chip) : icône + texte, fond doux. `tone="success"` pour le
- * retrait gratuit (vert). Style aligné sur les badges (OpenStatus / note).
+ * Stat illustrée : icône en pastille + valeur en gras + libellé gris en dessous.
+ * `alignEnd` (stat de droite) : icône à droite, texte aligné à droite, pour un
+ * rendu symétrique « une à gauche / une à droite ».
  */
-function Chip({
+function Stat({
   icon,
-  children,
-  tone = "default",
+  value,
+  label,
+  alignEnd = false,
 }: {
   icon: React.ReactNode;
-  children: React.ReactNode;
-  tone?: "default" | "success";
+  value: string;
+  label: string;
+  alignEnd?: boolean;
 }) {
   return (
-    <span
+    <div
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold",
-        tone === "success"
-          ? "bg-success-50 text-success-700"
-          : "bg-surface-2 text-foreground"
+        "inline-flex min-w-0 items-center gap-2.5",
+        alignEnd && "flex-row-reverse text-right"
       )}
     >
-      {icon}
-      {children}
-    </span>
+      <span className="bg-primary-50 text-primary-600 grid size-9 shrink-0 place-items-center rounded-full">
+        {icon}
+      </span>
+      <span className="min-w-0 leading-tight">
+        <span className="text-foreground block truncate text-sm font-extrabold tabular-nums">
+          {value}
+        </span>
+        <span className="text-muted block truncate text-[11px] font-medium">
+          {label}
+        </span>
+      </span>
+    </div>
   );
 }

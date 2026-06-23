@@ -46,6 +46,8 @@
     "hours": "ساعات العمل",
     "openNow": "مفتوح الآن",
     "today": "اليوم",
+    "prepLabel": "التحضير",
+    "minBasketLabel": "أدنى للطلب",
     "closed": "مغلق",
     "emptyCatalog": "لم ينشر هذا المتجر قائمته بعد.",
     "searchProductPlaceholder": "ابحث عن منتج…",
