@@ -17,7 +17,7 @@ import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
 import { getCategoryLabel } from "@/lib/config/categories";
 import { getTagLabel } from "@/lib/config/merchant-tags";
-import { isOpenNow } from "@/lib/merchant/opening-hours";
+import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
 import {
   computePauseState,
   type MerchantPauseInput,
@@ -122,8 +122,11 @@ export function MerchantCompactHeader({
     },
     now
   );
-  const isOpen = isOpenNow(opening_hours, now) && !pauseState.closedNow;
-  const todayKey = DAY_KEYS[(now.getDay() + 6) % 7];
+  // isOpenNow() SANS argument → utilise l'heure d'ALGÉRIE (comme le bandeau
+  // « fermé »), pas l'heure locale de l'appareil — sinon incohérence de fuseau.
+  const isOpen = isOpenNow(opening_hours) && !pauseState.closedNow;
+  // Jour courant en heure d'Algérie (pour surligner « Aujourd'hui »).
+  const todayKey = DAY_KEYS[(nowInAlgiers().getDay() + 6) % 7];
 
   // Topbar : transparente sur la photo, puis verre dépoli + nom dès qu'on
   // dépasse le hero (≈150 px). On écoute le scroll de la fenêtre.
