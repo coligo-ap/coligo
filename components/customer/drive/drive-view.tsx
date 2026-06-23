@@ -104,7 +104,13 @@ const GAMME_IMG: Record<Gamme, string> = {
 
 const rnd5 = (v: number) => Math.round(v / 5) * 5;
 
-export function DriveView() {
+export function DriveView({
+  initialActive = null,
+}: {
+  /** Course active résolue CÔTÉ SERVEUR (SSR) → écran de course affiché dès le
+   *  1er rendu, sans loader ni aller-retour client (instantané au tap « Drive »). */
+  initialActive?: DriveActiveRide | null;
+}) {
   const t = useTranslations("drive");
   const router = useRouter();
   // Contexte Drive (solde, récents, dernière course, options) CACHÉ via TanStack
@@ -116,7 +122,8 @@ export function DriveView() {
     queryFn: getDriveContext,
     staleTime: 60_000,
   });
-  const [screen, setScreen] = useState<Screen>("home");
+  // Écran initial : course en cours (SSR) → directement « ride », sinon « home ».
+  const [screen, setScreen] = useState<Screen>(initialActive ? "ride" : "home");
   // Assistant : carte de confirmation affichée → on masque le reste du trajet.
   const [aiConfirming, setAiConfirming] = useState(false);
 
@@ -159,13 +166,10 @@ export function DriveView() {
     null
   );
 
-  // Course active (recherche / en route / fin)
-  const [active, setActive] = useState<DriveActiveRide | null>(null);
-  // Tant que la course active n'a pas été vérifiée au démarrage, on N'AFFICHE
-  // PAS le formulaire départ/arrivée (sinon « flash » du formulaire alors qu'une
-  // demande est déjà en cours). On montre un loader, puis on bascule DIRECTEMENT
-  // sur l'écran de recherche / suivi si une course est active.
-  const [booting, setBooting] = useState(true);
+  // Course active (recherche / en route / fin) — initialisée depuis le SSR : on a
+  // d'emblée le bon écran (aucun loader/flash). Le boot client ne sert plus
+  // qu'au retour Chargily et à un rafraîchissement silencieux.
+  const [active, setActive] = useState<DriveActiveRide | null>(initialActive);
   const [submitting, setSubmitting] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   // Conflit « course déjà en cours » : on affiche le message ET un lien pour
@@ -190,7 +194,7 @@ export function DriveView() {
   /* ───────── Boot : contexte + course active + GPS ───────── */
   useEffect(() => {
     void (async () => {
-      try {
+      {
         // Retour Chargily (?card=failed / ?card=success) : l'URL n'est jamais
         // crue seule — on vérifie l'état réel de la course (webhook fait foi).
         const params = new URLSearchParams(window.location.search);
@@ -240,10 +244,6 @@ export function DriveView() {
           setActive(ride);
           setScreen("ride");
         }
-      } finally {
-        // Vérification terminée → on peut afficher le formulaire si AUCUNE
-        // course n'est active (sinon on est déjà sur l'écran « ride »).
-        setBooting(false);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -754,17 +754,6 @@ export function DriveView() {
   // course active est vérifiée en arrière-plan : l'écran d'accueil s'affiche
   // tout de suite et bascule sur la course si une est en cours.
   if (!ctx) {
-    return (
-      <div className="grid min-h-[70vh] place-items-center bg-[var(--d-page)]">
-        <Loader2 className="size-6 animate-spin" style={{ color: VIOLET }} />
-      </div>
-    );
-  }
-
-  // Démarrage : on attend la vérification de la course active avant d'afficher
-  // QUOI QUE CE SOIT (pas de flash du formulaire). Si une course est en cours,
-  // l'effet de boot a déjà basculé sur l'écran « ride ».
-  if (booting) {
     return (
       <div className="grid min-h-[70vh] place-items-center bg-[var(--d-page)]">
         <Loader2 className="size-6 animate-spin" style={{ color: VIOLET }} />

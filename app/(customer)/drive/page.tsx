@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { getAuthUser } from "@/lib/auth/session";
 import { DriveView } from "@/components/customer/drive/drive-view";
+import { getDriveActiveRide } from "@/app/(customer)/drive/actions";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { FeatureUnavailable } from "@/components/customer/feature-unavailable";
 import {
@@ -34,5 +35,9 @@ export default async function DrivePage() {
       </CustomerShell>
     );
   }
-  return <DriveView />;
+  // Course active résolue CÔTÉ SERVEUR → si une demande/course est en cours, on
+  // affiche DIRECTEMENT son écran (recherche/suivi), pas le formulaire (instantané
+  // au tap « Drive », sans loader ni aller-retour client).
+  const initialActive = await getDriveActiveRide();
+  return <DriveView initialActive={initialActive} />;
 }
