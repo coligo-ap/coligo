@@ -341,6 +341,13 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
             example="3 → une offre disparaît si le client ne répond pas en 3 min."
           />
           <Num
+            label="Rayon réception défaut (km)"
+            value={cfg.default_radius_km}
+            onChange={(v) => set("default_radius_km", v)}
+            hint="Distance, à vol d'oiseau, entre la position actuelle du chauffeur et le DÉPART de la course du client. Appliquée tant que le chauffeur n'a pas personnalisé « Ma zone ». Min 5, max 20 km."
+            example="10 → un chauffeur reçoit par défaut les courses dont le départ est à 10 km ou moins de lui."
+          />
+          <Num
             label="Rayon back-to-back (km)"
             step={0.1}
             value={cfg.b2b_radius_km}

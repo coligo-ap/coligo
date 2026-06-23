@@ -652,7 +652,7 @@ export async function saveChauffeurSearchRadius(
 export async function getNearbyRides(
   lat: number,
   lng: number,
-  radiusKm = 3
+  radiusKm = 10
 ): Promise<NearbyRide[]> {
   try {
     const rpc = await rpcClient();

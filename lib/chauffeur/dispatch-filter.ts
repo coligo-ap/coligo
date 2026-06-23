@@ -76,13 +76,13 @@ export type PushChauffeur = {
 /**
  * Un chauffeur doit-il être NOTIFIÉ d'une nouvelle course ? Mêmes règles que ce
  * qu'il verra dans sa liste : course dans SON rayon (work_zone_radius_km clampé
- * 3..20 ; null = pas de restriction de rayon ici, comportement historique) ET
+ * 5..20 ; null = pas de restriction de rayon ici, comportement historique) ET
  * conforme à « je rentre chez moi » s'il est actif. Fonction PURE → réutilisée
  * par le trigger FCM serveur (lib/fcm/triggers.ts) et testable.
  */
 export function isPushEligible(ride: RideGeo, ch: PushChauffeur): boolean {
   if (ch.radiusKm != null) {
-    const r = Math.min(20, Math.max(3, ch.radiusKm));
+    const r = Math.min(20, Math.max(5, ch.radiusKm));
     if (ch.distKm > r) return false;
   }
   return passesHomeDir(ride, {

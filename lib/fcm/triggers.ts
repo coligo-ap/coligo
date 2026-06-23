@@ -329,12 +329,36 @@ export async function notifyChauffeursNewRide(input: {
       fn: string,
       args: Record<string, unknown>
     ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    // Réglages plateforme : rayon de réception PAR DÉFAUT (super-admin, 10 km au
+    // lancement) + tolérance angulaire « je rentre chez moi ». Le défaut sert à
+    // la fois de pré-filtre de diffusion ET de rayon de repli pour les chauffeurs
+    // qui n'ont pas personnalisé « Ma zone ».
+    const { data: settings } = await admin
+      .from("platform_settings")
+      .select("drive_default_radius_km, drive_home_dir_tolerance_deg")
+      .eq("id", true)
+      .maybeSingle();
+    const defaultRadius = Math.min(
+      20,
+      Math.max(
+        5,
+        Number(
+          (settings as { drive_default_radius_km?: number } | null)
+            ?.drive_default_radius_km ?? 10
+        )
+      )
+    );
+    const tolerance =
+      (settings as { drive_home_dir_tolerance_deg?: number } | null)
+        ?.drive_home_dir_tolerance_deg ?? 45;
+
     // Matching dur gamme + femme au volant (repli géré côté SQL) ; la RPC trie
-    // déjà la diffusion : Premium > favoris du client > distance.
+    // déjà la diffusion : Premium > favoris du client > distance. Pré-filtre au
+    // rayon de réception par défaut (cohérent avec la liste).
     const { data: near } = await rpc("chauffeurs_present_near", {
       p_lat: ride.pickup_lat,
       p_lng: ride.pickup_lng,
-      p_radius_km: 8,
+      p_radius_km: defaultRadius,
       p_within_min: 3,
       p_gamme: ride.gamme ?? "classic",
       p_female_only: ride.female_only ?? false,
@@ -346,10 +370,9 @@ export async function notifyChauffeursNewRide(input: {
         | null) ?? [];
 
     // COHÉRENCE push ⇄ liste : ne notifier un chauffeur QUE pour une course
-    // qu'il VERRAIT réellement — dans SON rayon (« ma zone ») ET conforme à
-    // « je rentre chez moi » s'il l'a activé. Mêmes règles que les écrans
-    // (fonction pure isPushEligible). Rayon non personnalisé (NULL) → pas de
-    // restriction de rayon (comportement historique 8 km).
+    // qu'il VERRAIT réellement — dans SON rayon (« ma zone », sinon le défaut
+    // plateforme) ET conforme à « je rentre chez moi » s'il l'a activé. Mêmes
+    // règles que les écrans (fonction pure isPushEligible).
     const chIds = [
       ...new Set(nearList.map((r) => r.chauffeur_id).filter(Boolean)),
     ];
@@ -361,7 +384,6 @@ export async function notifyChauffeursNewRide(input: {
       home_lng: number | null;
     };
     const chById = new Map<string, ChRow>();
-    let tolerance = 45;
     if (chIds.length) {
       // Colonnes hors types générés → cast local.
       const chTable = admin.from("chauffeurs") as unknown as {
@@ -369,22 +391,10 @@ export async function notifyChauffeursNewRide(input: {
           in: (c: string, v: string[]) => Promise<{ data: ChRow[] | null }>;
         };
       };
-      const [{ data: rows }, { data: st }] = await Promise.all([
-        chTable
-          .select(
-            "id, work_zone_radius_km, home_dir_active, home_lat, home_lng"
-          )
-          .in("id", chIds),
-        admin
-          .from("platform_settings")
-          .select("drive_home_dir_tolerance_deg")
-          .eq("id", true)
-          .maybeSingle(),
-      ]);
+      const { data: rows } = await chTable
+        .select("id, work_zone_radius_km, home_dir_active, home_lat, home_lng")
+        .in("id", chIds);
       for (const r of rows ?? []) chById.set(r.id, r);
-      tolerance =
-        (st as { drive_home_dir_tolerance_deg: number } | null)
-          ?.drive_home_dir_tolerance_deg ?? 45;
     }
 
     const rideGeo = {
@@ -398,7 +408,7 @@ export async function notifyChauffeursNewRide(input: {
       if (!ch) return true; // pas d'info → comportement historique
       return isPushEligible(rideGeo, {
         distKm: Number(r.dist_km),
-        radiusKm: ch.work_zone_radius_km,
+        radiusKm: ch.work_zone_radius_km ?? defaultRadius,
         homeDirActive: !!ch.home_dir_active,
         homeLat: ch.home_lat,
         homeLng: ch.home_lng,

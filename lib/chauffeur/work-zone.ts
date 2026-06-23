@@ -7,8 +7,9 @@ import { saveChauffeurSearchRadius } from "@/app/(chauffeur)/actions";
  * « Ma zone » du CHAUFFEUR (dispatch VTC). Le dispatch est TOUJOURS centré sur
  * la position GPS live du chauffeur (mig 0201) : il se déplace, son rayon le
  * suit, partout en Algérie. « Ma zone » ne choisit donc qu'un RAYON autour de
- * soi (3 km par défaut, jusqu'à 20 km). Si peu de demandes dans ce rayon, le
- * serveur complète avec les courses les plus proches au-delà (expansion auto).
+ * soi (minimum 5 km, défaut 10 km réglable par le super-admin, jusqu'à 20 km).
+ * Si peu de demandes dans ce rayon, le serveur complète avec les courses les
+ * plus proches au-delà (expansion auto).
  *
  * Le rayon est persisté en localStorage (réactif immédiat) ET côté serveur
  * (chauffeurs.work_zone_radius_km, source de vérité du dispatch).
@@ -16,9 +17,13 @@ import { saveChauffeurSearchRadius } from "@/app/(chauffeur)/actions";
 
 const KEY = "coligo_chauffeur_search_radius";
 
-/** Rayons proposés dans le sélecteur (km). */
-export const SEARCH_RADIUS_OPTIONS = [3, 5, 10, 20] as const;
-export const DEFAULT_SEARCH_RADIUS_KM = 3;
+/** Rayons proposés dans le sélecteur (km). Minimum 5 km. */
+export const SEARCH_RADIUS_OPTIONS = [5, 10, 15, 20] as const;
+// Défaut d'AFFICHAGE au lancement (10 km). La vraie valeur par défaut appliquée
+// au dispatch tant que le chauffeur n'a rien personnalisé est le réglage
+// SUPER-ADMIN `drive_default_radius_km` (serveur, source de vérité).
+export const DEFAULT_SEARCH_RADIUS_KM = 10;
+export const MIN_SEARCH_RADIUS_KM = 5;
 export const MAX_SEARCH_RADIUS_KM = 20;
 
 let radius: number | undefined = undefined;
@@ -27,7 +32,10 @@ const listeners = new Set<() => void>();
 function clamp(v: unknown): number {
   const n = Number(v);
   if (!Number.isFinite(n)) return DEFAULT_SEARCH_RADIUS_KM;
-  return Math.min(MAX_SEARCH_RADIUS_KM, Math.max(3, Math.round(n)));
+  return Math.min(
+    MAX_SEARCH_RADIUS_KM,
+    Math.max(MIN_SEARCH_RADIUS_KM, Math.round(n))
+  );
 }
 
 function read(): number {

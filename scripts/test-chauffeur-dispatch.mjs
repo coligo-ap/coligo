@@ -1,7 +1,7 @@
 // =============================================================================
 // Test DISPATCH chauffeur (Coligo Drive) — réponses aux questions :
 //  1) Un chauffeur reçoit-il TOUTES les courses même si les départs sont très
-//     loin ? → NON : centré sur sa position live, rayon 3..20 km + expansion
+//     loin ? → NON : centré sur sa position live, rayon 5..20 km + expansion
 //     auto (les v_min plus proches au-delà), JAMAIS au-delà de 20 km.
 //  2) Avec « Je rentre chez moi » actif, reçoit-il les courses dont l'arrivée ne
 //     va PAS vers son domicile ? → NON : filtre client isTowardsHome les masque.
@@ -23,7 +23,7 @@ import { isTowardsHome, bearingDeg, angularDiff } from "../lib/drive/geo.ts";
 // direction repose sur le VRAI isTowardsHome importé ci-dessus.
 function isPushEligible(ride, ch) {
   if (ch.radiusKm != null) {
-    const r = Math.min(20, Math.max(3, ch.radiusKm));
+    const r = Math.min(20, Math.max(5, ch.radiusKm));
     if (ch.distKm > r) return false;
   }
   const active = ch.homeDirActive && ch.homeLat != null && ch.homeLng != null;
@@ -122,7 +122,7 @@ function expectedTags(pdistByTag, radius) {
   const elig = Object.entries(pdistByTag)
     .filter(([, d]) => d <= V_MAX) // hors plafond 20 km = jamais
     .sort((a, b) => a[1] - b[1]); // plus proche d'abord
-  const r = Math.min(V_MAX, Math.max(3, radius));
+  const r = Math.min(V_MAX, Math.max(5, radius));
   const keep = new Set();
   elig.forEach(([tag, d], i) => {
     if (d <= r || i < V_MIN) keep.add(tag); // dans le rayon OU parmi les v_min plus proches
@@ -178,8 +178,14 @@ try {
     return m;
   }
 
-  // Appel du VRAI RPC en impersonation chauffeur.
+  // Appel du VRAI RPC en impersonation chauffeur. On fixe le rayon PERSONNALISÉ
+  // du chauffeur (work_zone_radius_km), prioritaire sur le défaut plateforme, pour
+  // tester précisément chaque rayon (sinon le défaut super-admin = 10 km gagnerait).
   async function dispatch(pos, radius) {
+    await c.query(
+      "UPDATE chauffeurs SET work_zone_radius_km=$2 WHERE user_id=$1",
+      [CHU_USER, radius]
+    );
     await asChu();
     const rows = (
       await c.query("SELECT * FROM chauffeur_nearby_rides($1,$2,$3)", [
@@ -192,17 +198,17 @@ try {
   }
 
   // ───────────────────────────────────────────────────────────────────────
-  // SCÉNARIO 1 — Chauffeur à Alger, rayon 3 km
+  // SCÉNARIO 1 — Chauffeur à Alger, rayon 5 km (minimum)
   // ───────────────────────────────────────────────────────────────────────
-  console.log("\n=== Scénario 1 : chauffeur à ALGER, rayon 3 km ===");
+  console.log("\n=== Scénario 1 : chauffeur à ALGER, rayon 5 km (min) ===");
   {
     const pd = await pdistFrom(ALGER);
-    const got = await dispatch(ALGER, 3);
+    const got = await dispatch(ALGER, 5);
     const gotTags = new Set(got.map((r) => r.pickup_text));
-    const exp = expectedTags(pd, 3);
+    const exp = expectedTags(pd, 5);
 
     ok(
-      "résultat = oracle (rayon 3)",
+      "résultat = oracle (rayon 5)",
       setsEqual(gotTags, exp),
       `got={${[...gotTags].sort().join(",")}} exp={${[...exp].sort().join(",")}}`
     );
@@ -233,15 +239,15 @@ try {
   console.log("\n=== Scénario 2 : chauffeur à ALGER, rayon 15 km ===");
   {
     const pd = await pdistFrom(ALGER);
-    const got3 = await dispatch(ALGER, 3);
+    const got5 = await dispatch(ALGER, 5);
     const got15 = await dispatch(ALGER, 15);
     const exp = expectedTags(pd, 15);
     const gotTags = new Set(got15.map((r) => r.pickup_text));
     ok("résultat = oracle (rayon 15)", setsEqual(gotTags, exp));
     ok(
       "élargir le rayon ⇒ plus (ou autant) de courses",
-      got15.length >= got3.length,
-      `3km=${got3.length} → 15km=${got15.length}`
+      got15.length >= got5.length,
+      `5km=${got5.length} → 15km=${got15.length}`
     );
     const farLeak = got15.filter((r) => pd[r.pickup_text] > V_MAX);
     ok("toujours AUCUNE course > 20 km", farLeak.length === 0);
@@ -336,14 +342,14 @@ try {
       tolerance: 45,
     };
 
-    // Rayon : départ à 5 km, rayon 3 → exclu ; rayon 10 → inclus ; null → inclus.
+    // Rayon (min 5) : départ à 7 km, rayon 5 → exclu ; rayon 10 → inclus ; null → inclus.
     ok(
-      "push exclu si départ hors du rayon choisi (5km > 3km)",
-      isPushEligible(rideToHome, { ...base, distKm: 5, radiusKm: 3 }) === false
+      "push exclu si départ hors du rayon choisi (7km > 5km)",
+      isPushEligible(rideToHome, { ...base, distKm: 7, radiusKm: 5 }) === false
     );
     ok(
-      "push inclus si départ dans le rayon (5km ≤ 10km)",
-      isPushEligible(rideToHome, { ...base, distKm: 5, radiusKm: 10 }) === true
+      "push inclus si départ dans le rayon (7km ≤ 10km)",
+      isPushEligible(rideToHome, { ...base, distKm: 7, radiusKm: 10 }) === true
     );
     ok(
       "rayon non personnalisé (null) ⇒ pas de restriction de rayon",

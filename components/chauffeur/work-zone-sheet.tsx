@@ -13,7 +13,7 @@ import {
 /**
  * Modale « Ma zone » du CHAUFFEUR. Le dispatch est TOUJOURS centré sur la
  * position GPS actuelle du chauffeur (mig 0201) ; cette modale ne règle que le
- * RAYON autour de lui (3 km par défaut, jusqu'à 20 km). Si peu de demandes dans
+ * RAYON autour de lui (5 km par défaut et minimum, jusqu'à 20 km). Si peu de demandes dans
  * ce rayon, le système élargit automatiquement aux courses les plus proches
  * au-delà — libre au chauffeur de les accepter ou non.
  */

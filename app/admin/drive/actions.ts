@@ -49,6 +49,9 @@ export type DriveConfig = {
   request_ttl_min: number;
   offer_ttl_min: number;
   b2b_radius_km: number;
+  /** Rayon de réception PAR DÉFAUT (km) : distance position chauffeur ↔ départ
+   *  client, tant que le chauffeur n'a pas personnalisé « Ma zone ». Min 5, max 20. */
+  default_radius_km: number;
   pickup_wait_min: number;
   deviation_km: number;
   deviation_min: number;
@@ -101,6 +104,10 @@ export async function getDriveConfig(): Promise<DriveConfig | null> {
     request_ttl_min: s.drive_request_ttl_min,
     offer_ttl_min: s.drive_offer_ttl_min,
     b2b_radius_km: Number(s.drive_b2b_radius_km),
+    // Colonne récente (0247) hors types générés → cast local.
+    default_radius_km: Number(
+      (s as { drive_default_radius_km?: number }).drive_default_radius_km ?? 10
+    ),
     pickup_wait_min: s.drive_pickup_wait_min,
     deviation_km: Number(s.drive_deviation_km),
     deviation_min: s.drive_deviation_min,
@@ -128,6 +135,14 @@ export async function updateDriveConfig(
     if (p.base < 0 || p.per_km < 0 || p.min < 0)
       return { error: `Barème ${g} : valeurs négatives interdites.` };
   }
+  if (
+    !Number.isFinite(cfg.default_radius_km) ||
+    cfg.default_radius_km < 5 ||
+    cfg.default_radius_km > 20
+  )
+    return {
+      error: "Rayon de réception par défaut : entre 5 et 20 km (règle dure).",
+    };
   // Simulateur pire-cas : marge plateforme jamais négative (espèces ET en ligne).
   const sims = simulateMargins({ ...cfg, basket: 300 });
   const losing = sims.find((s) => s.cash < 0 || s.online < 0);
@@ -181,6 +196,16 @@ export async function updateDriveConfig(
     })
     .eq("id", true);
   if (error) return { error: error.message };
+  // Colonne récente (0247) hors types générés → update casté à part.
+  await (
+    admin.from("platform_settings") as unknown as {
+      update: (v: Record<string, unknown>) => {
+        eq: (c: string, val: boolean) => Promise<{ error: unknown }>;
+      };
+    }
+  )
+    .update({ drive_default_radius_km: Math.round(cfg.default_radius_km) })
+    .eq("id", true);
   revalidatePath("/admin/drive");
   return { ok: true };
 }
