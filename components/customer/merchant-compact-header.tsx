@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   MapPin,
+  Search,
   ShoppingBasket,
   ShoppingCart,
   Timer,
@@ -188,6 +189,27 @@ export function MerchantCompactHeader({
           >
             {name}
           </h2>
+          {/* Icône RECHERCHE — apparaît au scroll (quand la barre de recherche
+              produit n'est plus visible). Clic → ramène la barre de recherche à
+              l'écran et la focalise (recherche produit / catégorie). */}
+          {scrolled && (
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById("merchant-product-search");
+                if (!el) return;
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+                window.setTimeout(
+                  () => (el as HTMLInputElement).focus({ preventScroll: true }),
+                  350
+                );
+              }}
+              aria-label={t("searchProducts")}
+              className={cn(rb, "shrink-0")}
+            >
+              <Search className="size-[18px]" />
+            </button>
+          )}
           <ShareButton
             title={name}
             label={t("share")}

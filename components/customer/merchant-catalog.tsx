@@ -234,6 +234,7 @@ export function MerchantCatalog({
         <div className="border-border bg-surface flex items-center gap-2.5 rounded-[13px] border px-3.5 py-3 shadow-sm">
           <Search className="text-muted size-4 shrink-0" />
           <input
+            id="merchant-product-search"
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
