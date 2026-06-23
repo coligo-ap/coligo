@@ -22,6 +22,11 @@ import {
   type ProductSearchOutcome,
 } from "@/lib/data/product-search";
 import {
+  getActiveBanners,
+  type BannerViewerLocation,
+  type PromoBanner,
+} from "@/lib/data/promo-banners";
+import {
   getMyCashbackBalance,
   getMyTopupBalance,
 } from "@/lib/customer/cashback";
@@ -35,6 +40,18 @@ export type CustomerAuthState = {
   error?: string;
   success?: string;
 };
+
+/**
+ * Bannières promo visibles pour une POSITION donnée — utilisé côté client par
+ * les visiteurs ANONYMES (position en localStorage, jamais envoyée au SSR) pour
+ * voir aussi les bannières ciblées par zone qui les concernent. Public (la RPC
+ * `active_banners_for` est SECURITY DEFINER + grant anon).
+ */
+export async function getBannersForLocation(
+  loc: BannerViewerLocation
+): Promise<PromoBanner[]> {
+  return getActiveBanners(loc);
+}
 
 /**
  * Whitelist : un `next` valide doit être une URL RELATIVE à l'app commençant

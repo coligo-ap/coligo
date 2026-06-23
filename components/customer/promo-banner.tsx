@@ -1,4 +1,4 @@
-import { PromoBannerCarousel } from "@/components/customer/promo-banner-carousel";
+import { PromoBannerClient } from "@/components/customer/promo-banner-client";
 import type { PromoBanner as PromoBannerData } from "@/lib/data/promo-banners";
 
 /**
@@ -14,7 +14,14 @@ import type { PromoBanner as PromoBannerData } from "@/lib/data/promo-banners";
  * Le jour où le super-admin active une campagne (table `promo_banners` /
  * future table de campagnes), elle apparaît sans toucher au front.
  */
-export function PromoBanner({ banners }: { banners: PromoBannerData[] }) {
-  if (!banners || banners.length === 0) return null;
-  return <PromoBannerCarousel banners={banners} />;
+export function PromoBanner({
+  banners,
+  geoFallback = false,
+}: {
+  banners: PromoBannerData[];
+  /** Visiteur sans position connue du serveur (anon) → re-filtrage par zone
+   *  côté client via la géoloc/localStorage. */
+  geoFallback?: boolean;
+}) {
+  return <PromoBannerClient initial={banners} geoFallback={geoFallback} />;
 }

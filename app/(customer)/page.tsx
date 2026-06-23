@@ -132,8 +132,10 @@ export default async function CustomerHomePage() {
             </section>
           )}
 
-          {/* Bannière promo — rendue UNIQUEMENT si une campagne est active. */}
-          <PromoBanner banners={banners} />
+          {/* Bannière promo — rendue UNIQUEMENT si une campagne est active.
+              geoFallback : sans position serveur (visiteur anon), on re-filtre
+              les bannières ciblées par zone côté client (géoloc navigateur). */}
+          <PromoBanner banners={banners} geoFallback={!hasCoords} />
 
           {/* Commerces près de toi. */}
           <section className="mt-3 pb-8">
