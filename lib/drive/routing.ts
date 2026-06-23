@@ -19,19 +19,36 @@ export type RoadRoute = {
   fromOsrm: boolean;
 };
 
-/** Appel OSRM brut (route voiture). null si indisponible/échec. */
+// Le serveur public OSRM est lent/indisponible par intermittence et SANS borne
+// de temps il bloquait l'affichage du prix (distance/durée) ET le bouton
+// « Proposer » plusieurs secondes. On borne donc chaque appel (timeout) et on
+// pose un DISJONCTEUR : après un échec, on saute OSRM pendant OSRM_COOLDOWN_MS
+// et on bascule INSTANTANÉMENT sur le repli détour → prix immédiat, jamais figé.
+const OSRM_TIMEOUT_MS = 3000;
+const OSRM_COOLDOWN_MS = 60_000;
+let osrmDownUntil = 0;
+
+/** Appel OSRM brut (route voiture). null si indisponible/échec (toujours borné). */
 async function osrmRoute(from: LatLng, to: LatLng): Promise<RoadRoute | null> {
+  // Disjoncteur : OSRM a échoué récemment → on ne retente pas (repli instantané).
+  if (Date.now() < osrmDownUntil) return null;
   const r4 = (v: number) => v.toFixed(4);
   const url =
     `https://router.project-osrm.org/route/v1/driving/` +
     `${r4(from.lng)},${r4(from.lat)};${r4(to.lng)},${r4(to.lat)}` +
     `?overview=simplified&geometries=geojson&alternatives=false&steps=false`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OSRM_TIMEOUT_MS);
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": "Coligo/0.3 (contact: dev@coligo.app)" },
       next: { revalidate: 3600 },
+      signal: controller.signal,
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      osrmDownUntil = Date.now() + OSRM_COOLDOWN_MS;
+      return null;
+    }
     const data = (await res.json()) as {
       code?: string;
       routes?: {
@@ -48,6 +65,7 @@ async function osrmRoute(from: LatLng, to: LatLng): Promise<RoadRoute | null> {
           Array.isArray(c) && Number.isFinite(c[0]) && Number.isFinite(c[1])
       )
       .map(([lng, lat]) => ({ lat, lng }));
+    osrmDownUntil = 0; // OSRM répond → on réarme le chemin rapide
     return {
       km: Math.max(0.1, Number((route.distance / 1000).toFixed(2))),
       // durée réelle + 20 % tampon trafic (cohérent avec l'historique).
@@ -56,7 +74,11 @@ async function osrmRoute(from: LatLng, to: LatLng): Promise<RoadRoute | null> {
       fromOsrm: true,
     };
   } catch {
+    // Timeout (abort) ou réseau : on arme le disjoncteur → replis instantanés.
+    osrmDownUntil = Date.now() + OSRM_COOLDOWN_MS;
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

@@ -571,19 +571,6 @@ export function DriveView({
     return ride;
   }, []);
 
-  // Basculer AUTOMATIQUEMENT sur la course en cours (selon son statut : recherche
-  // / proposition / course). Appelé quand request_ride signale une course active.
-  const resumeActiveRide = async () => {
-    const ride = await getDriveActiveRide();
-    if (ride) {
-      setActive(ride);
-      setScreen("ride");
-    }
-    // (si null : la course a été terminée/annulée entre-temps → on laisse le
-    //  formulaire, le client peut relancer.)
-    setRequestError(null);
-  };
-
   const submitRequest = async () => {
     // Verrou SYNCHRONE single-flight : posé AVANT tout await (un 2ᵉ tap pendant
     // le vol est ignoré, jamais mis en file ni renvoyé).
@@ -621,11 +608,14 @@ export function DriveView({
       const res = await requestDriveRide(payload);
       if (!res.ok) {
         setSubmitting(false);
-        // Course déjà active → on N'AFFICHE PAS de message : on bascule
-        // AUTOMATIQUEMENT sur l'écran de la course en cours (selon son statut).
+        // Course déjà active → on bascule AUTOMATIQUEMENT sur l'écran de la
+        // course en cours. Si on ne la retrouve pas (annulée/expirée entre-temps),
+        // on N'EST PAS bloqué : on libère l'op et on affiche un message de retry.
         if (res.code === "active_ride") {
           opIdRef.current = null;
-          await resumeActiveRide();
+          const ride = await refreshActive();
+          if (ride) setScreen("ride");
+          else setRequestError(res.error ?? t("requestFailed"));
           return;
         }
         setRequestError(res.error ?? t("requestFailed"));
@@ -647,6 +637,11 @@ export function DriveView({
       opIdRef.current = null; // course créée → prochaine demande = id neuf
       await refreshActive();
       setScreen("ride");
+    } catch {
+      // Échec de l'action serveur (timeout réseau, etc.) : jamais de loader figé
+      // ni d'écran bloqué — on rend la main au bouton avec un message clair.
+      setSubmitting(false);
+      setRequestError(t("requestFailed"));
     } finally {
       inFlightRef.current = false;
     }
