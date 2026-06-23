@@ -30,6 +30,7 @@ import {
   tryOpenNav,
 } from "@/lib/drive/nav";
 import { useUnreadRideMessages } from "@/lib/drive/use-unread-messages";
+import { useRideCall } from "@/lib/call/use-ride-call";
 import { DriveMap } from "@/components/customer/drive/drive-map";
 import {
   CancelModal,
@@ -91,6 +92,12 @@ export function DCourse() {
   const [chatOpen, setChatOpen] = useState(false);
   const [sosContacts, setSosContacts] = useState<SosContact[]>([]);
   const [contactsOpen, setContactsOpen] = useState(false);
+  // Appel in-app (audio + cam optionnelle) avec le client — numéro masqué.
+  const call = useRideCall({
+    rideId: ride?.id ?? "",
+    role: "chauffeur",
+    peerName: ride?.customer_name ?? "Client",
+  });
   useEffect(() => {
     void getChauffeurSosContacts().then(setSosContacts);
   }, []);
@@ -672,27 +679,16 @@ export function DCourse() {
                 </span>
               )}
             </button>
-            {/* Appeler : ligne directe vers le client (numéro réel tant que
-                l'appel masqué Twilio n'est pas branché). Repli sur le chat si
-                le numéro est indisponible. */}
-            {ride.customer_phone ? (
-              <a
-                href={`tel:${ride.customer_phone}`}
-                className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
-                style={{ background: VIOLET }}
-              >
-                <Phone className="size-4" /> Appeler
-              </a>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setChatOpen(true)}
-                className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
-                style={{ background: VIOLET }}
-              >
-                <MessageSquare className="size-4" /> Contacter
-              </button>
-            )}
+            {/* Appel IN-APP (Agora) : voix + caméra optionnelle, numéro du
+                client jamais exposé (tout passe en data). */}
+            <button
+              type="button"
+              onClick={() => call.start(false)}
+              className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
+              style={{ background: VIOLET }}
+            >
+              <Phone className="size-4" /> Appeler
+            </button>
           </div>
         </div>
 
@@ -949,6 +945,9 @@ export function DCourse() {
         />
       )}
       <NavAppSheet target={navSheet} onClose={() => setNavSheet(null)} />
+
+      {/* Appel in-app (sonnerie entrante/sortante + fenêtre d'appel Agora). */}
+      {call.ui}
     </div>
   );
 }

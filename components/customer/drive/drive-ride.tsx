@@ -62,6 +62,7 @@ import {
 } from "@/app/(customer)/drive/actions";
 import { clearPendingRide } from "@/lib/drive/offline-db";
 import { useUnreadRideMessages } from "@/lib/drive/use-unread-messages";
+import { useRideCall } from "@/lib/call/use-ride-call";
 
 /**
  * Drive client — phase course : offres des chauffeurs (triables, favoris en
@@ -746,6 +747,12 @@ function EnrouteScreen({
 }) {
   const t = useTranslations("drive.enroute");
   const tc = useTranslations("drive");
+  // Appel in-app (audio + cam optionnelle) avec le chauffeur — numéro masqué.
+  const call = useRideCall({
+    rideId: ride.id,
+    role: "client",
+    peerName: ride.chauffeur?.name ?? "Chauffeur",
+  });
   const [cancelOpen, setCancelOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [sosOpen, setSosOpen] = useState(false);
@@ -1128,13 +1135,14 @@ function EnrouteScreen({
                   </span>
                 )}
               </button>
-              <a
-                href={ch.phone ? `tel:${ch.phone}` : undefined}
+              <button
+                type="button"
+                onClick={() => call.start(false)}
                 className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
                 style={{ background: VIOLET }}
               >
                 <Phone className="size-4" /> {t("call")}
-              </a>
+              </button>
             </div>
           </div>
         )}
@@ -1293,6 +1301,9 @@ function EnrouteScreen({
         rideId={ride.id}
         side="customer"
       />
+
+      {/* Appel in-app (sonnerie entrante/sortante + fenêtre d'appel Agora). */}
+      {call.ui}
     </div>
   );
 }
