@@ -16,6 +16,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type BannerActionState = { error?: string; ok?: boolean };
 
+/** Zone de ciblage (rayon géométrique). Plusieurs par bannière = plusieurs zones. */
+export type BannerZone = {
+  label: string;
+  center_lat: number;
+  center_lng: number;
+  radius_km: number;
+};
+
 export type BannerInput = {
   title: string;
   subtitle: string;
@@ -29,6 +37,8 @@ export type BannerInput = {
   active: boolean;
   starts_at: string | null;
   ends_at: string | null;
+  /** Zones ciblées (vide = bannière GLOBALE, visible partout). */
+  zones: BannerZone[];
 };
 
 // promo_banners n'est pas dans database.types.ts généré → accès casté (cf. zones).
@@ -51,6 +61,48 @@ function bannerTable(
   return (admin.from as unknown as (n: string) => BannerBuilder)(
     "promo_banners"
   );
+}
+
+// Table des zones (hors types générés → accès casté). delete(eq) + insert(rows).
+type ZonesBuilder = {
+  delete: () => { eq: (c: string, v: unknown) => Resp };
+  insert: (rows: Record<string, unknown>[]) => Resp;
+};
+function zonesTable(admin: ReturnType<typeof createAdminClient>): ZonesBuilder {
+  return (admin.from as unknown as (n: string) => ZonesBuilder)(
+    "promo_banner_zones"
+  );
+}
+
+const zoneSchema = z.object({
+  label: z.string().trim().max(80),
+  center_lat: z.coerce.number().min(-90).max(90),
+  center_lng: z.coerce.number().min(-180).max(180),
+  radius_km: z.coerce.number().positive().max(200),
+});
+
+/** Remplace TOUTES les zones d'une bannière (delete + insert). */
+async function replaceZones(
+  admin: ReturnType<typeof createAdminClient>,
+  bannerId: string,
+  zones: BannerZone[]
+): Promise<void> {
+  await zonesTable(admin).delete().eq("banner_id", bannerId);
+  const rows = zones
+    .map((zz) => zoneSchema.safeParse(zz))
+    .filter((r) => r.success)
+    .map((r) => {
+      const v = (r as { data: z.infer<typeof zoneSchema> }).data;
+      return {
+        banner_id: bannerId,
+        scope: "radius",
+        label: v.label || null,
+        center_lat: v.center_lat,
+        center_lng: v.center_lng,
+        radius_km: v.radius_km,
+      };
+    });
+  if (rows.length) await zonesTable(admin).insert(rows);
 }
 
 async function adminEmail(): Promise<string | null> {
@@ -127,6 +179,7 @@ export async function createBanner(
       .select("id")
       .single();
     if (error) return { error: `Échec : ${error.message}` };
+    if (data?.id) await replaceZones(admin, data.id, input.zones ?? []);
     await audit("banner_create", data?.id ?? null, parsed.data.title);
     refresh();
     return { ok: true };
@@ -151,6 +204,7 @@ export async function updateBanner(
       .update({ ...toRow(parsed.data), updated_at: new Date().toISOString() })
       .eq("id", id);
     if (error) return { error: `Échec : ${error.message}` };
+    await replaceZones(admin, id, input.zones ?? []);
     await audit("banner_update", id, parsed.data.title);
     refresh();
     return { ok: true };

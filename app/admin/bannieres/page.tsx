@@ -25,6 +25,39 @@ export default async function AdminBannersPage() {
     )
     .order("position", { ascending: true });
 
+  // Zones de ciblage (mig 0249) — chargées en bloc puis regroupées par bannière.
+  type ZoneRow = {
+    banner_id: string;
+    label: string | null;
+    center_lat: number | null;
+    center_lng: number | null;
+    radius_km: number | null;
+  };
+  const { data: zoneData } = await (
+    admin.from as unknown as (t: string) => {
+      select: (c: string) => Promise<{ data: ZoneRow[] | null }>;
+    }
+  )("promo_banner_zones").select(
+    "banner_id, label, center_lat, center_lng, radius_km"
+  );
+  const zonesByBanner = new Map<string, AdminBanner["zones"]>();
+  for (const z of zoneData ?? []) {
+    if (z.center_lat == null || z.center_lng == null || z.radius_km == null)
+      continue;
+    const arr = zonesByBanner.get(z.banner_id) ?? [];
+    arr.push({
+      label: z.label ?? "",
+      center_lat: z.center_lat,
+      center_lng: z.center_lng,
+      radius_km: Number(z.radius_km),
+    });
+    zonesByBanner.set(z.banner_id, arr);
+  }
+  const banners = ((data ?? []) as AdminBanner[]).map((b) => ({
+    ...b,
+    zones: zonesByBanner.get(b.id) ?? [],
+  }));
+
   return (
     <div className="mx-auto max-w-3xl p-4 lg:p-6">
       <header className="mb-5">
@@ -38,7 +71,7 @@ export default async function AdminBannersPage() {
         </p>
       </header>
 
-      <BannersManager banners={(data ?? []) as AdminBanner[]} />
+      <BannersManager banners={banners} />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   EyeOff,
   Loader2,
   ImagePlus,
+  MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/confirm";
@@ -22,7 +23,9 @@ import {
   uploadBannerImage,
   type BannerInput,
   type BannerActionState,
+  type BannerZone,
 } from "@/app/admin/bannieres/actions";
+import { MapPositionPicker } from "@/components/shared/map-position-picker";
 
 // =============================================================================
 // Gestion des bannières éditoriales (CRUD super-admin). Aperçu LIVE qui reprend
@@ -43,6 +46,7 @@ export type AdminBanner = {
   active: boolean;
   starts_at: string | null;
   ends_at: string | null;
+  zones: BannerZone[];
 };
 
 type ImageFit = AdminBanner["image_fit"];
@@ -111,6 +115,7 @@ function emptyDraft(): Draft {
     active: true,
     starts_at: "",
     ends_at: "",
+    zones: [],
   };
 }
 
@@ -127,6 +132,7 @@ type Draft = {
   active: boolean;
   starts_at: string;
   ends_at: string;
+  zones: BannerZone[];
 };
 
 function bannerToDraft(b: AdminBanner): Draft {
@@ -142,6 +148,7 @@ function bannerToDraft(b: AdminBanner): Draft {
     active: b.active,
     starts_at: isoToLocalInput(b.starts_at),
     ends_at: isoToLocalInput(b.ends_at),
+    zones: b.zones ?? [],
   };
 }
 
@@ -158,6 +165,7 @@ function draftToInput(d: Draft): BannerInput {
     active: d.active,
     starts_at: localInputToIso(d.starts_at),
     ends_at: localInputToIso(d.ends_at),
+    zones: d.zones,
   };
 }
 
@@ -234,6 +242,152 @@ function PreviewCard({ d }: { d: Draft }) {
         </div>
       )}
     </article>
+  );
+}
+
+/**
+ * Éditeur de ZONES ciblées (rayon). Aucune zone = bannière GLOBALE (visible
+ * partout). Plusieurs zones possibles : la bannière s'affiche aux utilisateurs
+ * situés dans l'UNE des zones.
+ */
+function ZonesEditor({
+  zones,
+  onChange,
+}: {
+  zones: BannerZone[];
+  onChange: (z: BannerZone[]) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [center, setCenter] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
+  const [radius, setRadius] = useState(10);
+  const [label, setLabel] = useState("");
+
+  const add = () => {
+    if (!center) return;
+    onChange([
+      ...zones,
+      {
+        label: label.trim(),
+        center_lat: center.lat,
+        center_lng: center.lng,
+        radius_km: Math.max(1, Math.min(200, Math.round(radius))),
+      },
+    ]);
+    setAdding(false);
+    setCenter(null);
+    setRadius(10);
+    setLabel("");
+  };
+
+  return (
+    <div className="border-border-strong space-y-3 rounded-[12px] border border-dashed p-3">
+      <div>
+        <span className={LABEL}>Zones ciblées</span>
+        <p className="text-muted text-[11px] leading-snug">
+          Vide = bannière <b>visible partout</b>. Ajoutez une ou plusieurs zones
+          (rayon autour d&apos;un point) → la bannière n&apos;apparaît
+          qu&apos;aux utilisateurs situés dans l&apos;une d&apos;elles.
+        </p>
+      </div>
+
+      {zones.length > 0 && (
+        <ul className="space-y-1.5">
+          {zones.map((z, i) => (
+            <li
+              key={i}
+              className="border-border-strong flex items-center gap-2 rounded-[10px] border bg-white px-3 py-2 text-[12px]"
+            >
+              <MapPin className="text-primary-600 size-4 shrink-0" />
+              <span className="min-w-0 flex-1 truncate font-semibold">
+                {z.label || `Zone ${i + 1}`}
+                <span className="text-muted font-normal">
+                  {" "}
+                  · {z.radius_km} km · {z.center_lat.toFixed(3)},{" "}
+                  {z.center_lng.toFixed(3)}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => onChange(zones.filter((_, j) => j !== i))}
+                className="text-danger-600 hover:bg-danger-50 grid size-7 shrink-0 place-items-center rounded-[8px]"
+                title="Retirer"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {adding ? (
+        <div className="border-border-strong space-y-2 rounded-[10px] border bg-white p-2.5">
+          <p className="text-muted text-[11px]">
+            Déplacez la carte / cherchez une adresse pour placer le centre de la
+            zone, puis choisissez le rayon.
+          </p>
+          <MapPositionPicker
+            initial={null}
+            defaultCenter={{ lat: 36.7525, lng: 3.042 }}
+            searchEnabled
+            height={240}
+            onChange={(p) => setCenter({ lat: p.lat, lng: p.lng })}
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className={LABEL}>Rayon (km)</label>
+              <input
+                type="number"
+                min={1}
+                max={200}
+                className={INPUT}
+                value={radius}
+                onChange={(e) => setRadius(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className={LABEL}>Nom (optionnel)</label>
+              <input
+                className={INPUT}
+                value={label}
+                maxLength={80}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="Ex. Alger centre"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={!center}
+              onClick={add}
+              className="bg-primary-600 hover:bg-primary-700 inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[10px] px-3 text-[13px] font-bold text-white disabled:opacity-50"
+            >
+              <Plus className="size-4" /> Ajouter cette zone
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAdding(false);
+                setCenter(null);
+              }}
+              className="border-border-strong text-muted hover:bg-surface-2 inline-flex h-9 items-center justify-center rounded-[10px] border px-3 text-[13px] font-semibold"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="border-primary-200 text-primary-700 hover:bg-primary-50 inline-flex h-9 items-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed px-3 text-[13px] font-bold"
+        >
+          <Plus className="size-4" /> Ajouter une zone
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -469,6 +623,8 @@ function BannerForm({
         </label>
       </div>
 
+      <ZonesEditor zones={d.zones} onChange={(z) => set("zones", z)} />
+
       <div className="flex gap-2 pt-1">
         <button
           type="button"
@@ -594,6 +750,10 @@ export function BannersManager({ banners }: { banners: AdminBanner[] }) {
                 <p className="text-muted truncate text-[12px]">
                   {b.subtitle || ACCENT_LABELS[b.accent]}
                   {b.link ? ` · ${b.link}` : ""}
+                  {" · "}
+                  {b.zones && b.zones.length > 0
+                    ? `📍 ${b.zones.length} zone${b.zones.length > 1 ? "s" : ""}`
+                    : "🌍 partout"}
                 </p>
               </div>
 

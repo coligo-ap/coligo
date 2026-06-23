@@ -69,7 +69,15 @@ export default async function CustomerHomePage() {
           : { limit: 24 }
       ),
       listMerchantCategories(),
-      getActiveBanners(),
+      // Ciblage par ZONE : on transmet la position + wilaya/commune du client
+      // (les bannières sans zone restent globales ; un visiteur sans position
+      // ne voit que les globales).
+      getActiveBanners({
+        lat: customerCoords?.latitude ?? null,
+        lng: customerCoords?.longitude ?? null,
+        wilaya: customer?.default_wilaya_code ?? null,
+        commune: customer?.default_commune ?? null,
+      }),
       getMyReviewableOrders(1),
       getMyFavoriteIds(),
     ]);
