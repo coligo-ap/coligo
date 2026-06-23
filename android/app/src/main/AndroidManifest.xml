@@ -38,8 +38,12 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Caméra : scan QR code pour la validation d'une commande. -->
+    <!-- Caméra : scan QR code (validation commande) + appel vidéo in-app Drive. -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Micro + audio : appels in-app client ↔ chauffeur (Agora/WebRTC). La
+         WebView Capacitor demande le runtime grant à la 1re prise de micro/cam. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <!-- Push notifications (FCM) — Android 13+ exige un runtime grant. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Géolocalisation : « Ma position » (sélecteur d'adresse) + suivi livreur
@@ -53,6 +57,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-feature
       android:name="android.hardware.location.gps"
       android:required="false" />

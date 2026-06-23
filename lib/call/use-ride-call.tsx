@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Portal } from "@/components/ui/portal";
 import { toast } from "@/components/ui/toast";
 import { CallOverlay } from "@/components/call/call-overlay";
+import { ringRidePeer } from "@/lib/call/ring-actions";
 
 // =============================================================================
 // useRideCall — appels in-app client ↔ chauffeur (Coligo Drive), numéros
@@ -110,6 +111,8 @@ export function useRideCall({
         if (p !== "idle") return p;
         setWithVideo(video);
         send("invite", { video });
+        // Sonnerie même app fermée : push FCM au pair (fire-and-forget).
+        void ringRidePeer({ rideId, role });
         // Sans réponse en 30 s → on abandonne.
         clearTimer();
         timeoutRef.current = setTimeout(() => {
@@ -123,8 +126,17 @@ export function useRideCall({
         return "outgoing";
       });
     },
-    [send]
+    [send, rideId, role]
   );
+
+  // Tant que l'appel SONNE (outgoing), on ré-émet l'invitation toutes les 2,5 s.
+  // Le broadcast est éphémère : si le pair vient d'ouvrir l'app (depuis la notif
+  // push), il s'abonne et capte la prochaine émission → l'appel entrant s'affiche.
+  useEffect(() => {
+    if (phase !== "outgoing") return;
+    const id = setInterval(() => send("invite", { video: withVideo }), 2500);
+    return () => clearInterval(id);
+  }, [phase, withVideo, send]);
 
   const accept = useCallback(() => {
     send("accept");

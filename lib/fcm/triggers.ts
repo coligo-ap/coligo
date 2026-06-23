@@ -434,6 +434,92 @@ export async function notifyChauffeursNewRide(input: {
   }
 }
 
+/**
+ * APPEL IN-APP Drive (Agora) — fait « sonner » le pair même APP FERMÉE / en
+ * arrière-plan. Le signaling temps réel (Supabase broadcast) ne marche qu'au
+ * premier plan ; ce push réveille l'appelé et, au clic, l'ouvre sur l'écran de
+ * course où l'invitation (ré-émise périodiquement) affichera l'appel entrant.
+ *
+ * `fromRole` = rôle de l'APPELANT. Le destinataire est l'AUTRE partie :
+ *  - appelant client    → on notifie le CHAUFFEUR (route /chauffeur/course) ;
+ *  - appelant chauffeur → on notifie le CLIENT (route /drive).
+ */
+export async function notifyRideIncomingCall(input: {
+  rideId: string;
+  fromRole: "client" | "chauffeur";
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: ride } = await admin
+      .from("rides")
+      .select("customer_id, chauffeur_id, status")
+      .eq("id", input.rideId)
+      .maybeSingle();
+    if (!ride || !ride.chauffeur_id) return;
+
+    const first = (n: string | null | undefined) =>
+      (n ?? "").trim().split(/\s+/)[0] || null;
+
+    if (input.fromRole === "client") {
+      // Destinataire = chauffeur ; nom affiché = prénom du client.
+      const [{ data: ch }, { data: cu }] = await Promise.all([
+        admin
+          .from("chauffeurs")
+          .select("user_id")
+          .eq("id", ride.chauffeur_id)
+          .maybeSingle(),
+        admin
+          .from("customers")
+          .select("full_name")
+          .eq("id", ride.customer_id)
+          .maybeSingle(),
+      ]);
+      if (!ch?.user_id) return;
+      const tokens = await tokensFor(ch.user_id, "chauffeur");
+      if (tokens.length === 0) return;
+      await sendFcm(
+        tokens,
+        {
+          title: "Appel entrant 📞",
+          body: `${first(cu?.full_name) ?? "Le client"} vous appelle`,
+        },
+        {
+          route: "/chauffeur/course",
+          kind: "ride_call",
+          rideId: input.rideId,
+        }
+      );
+    } else {
+      // Destinataire = client ; nom affiché = prénom du chauffeur.
+      const [{ data: cu }, { data: ch }] = await Promise.all([
+        admin
+          .from("customers")
+          .select("user_id")
+          .eq("id", ride.customer_id)
+          .maybeSingle(),
+        admin
+          .from("chauffeurs")
+          .select("full_name")
+          .eq("id", ride.chauffeur_id)
+          .maybeSingle(),
+      ]);
+      if (!cu?.user_id) return;
+      const tokens = await tokensFor(cu.user_id, "customer");
+      if (tokens.length === 0) return;
+      await sendFcm(
+        tokens,
+        {
+          title: "Appel entrant 📞",
+          body: `${first(ch?.full_name) ?? "Votre chauffeur"} vous appelle`,
+        },
+        { route: "/drive", kind: "ride_call", rideId: input.rideId }
+      );
+    }
+  } catch (err) {
+    console.warn("[fcm] notifyRideIncomingCall failed:", err);
+  }
+}
+
 export async function notifyDriversNewExpress(input: {
   orderId: string;
 }): Promise<void> {
