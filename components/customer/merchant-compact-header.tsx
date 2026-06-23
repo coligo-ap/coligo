@@ -168,7 +168,7 @@ export function MerchantCompactHeader({
   // Bouton "verre" de la topbar : translucide sur la photo, plein au scroll.
   const rb = cn(
     "relative grid size-9 place-items-center rounded-full backdrop-blur transition-colors active:scale-90",
-    scrolled
+    scrolled || searchOpen
       ? "bg-surface-2 text-foreground hover:bg-surface-3"
       : "bg-white/15 text-white ring-1 ring-white/25 hover:bg-white/25"
   );
@@ -204,7 +204,6 @@ export function MerchantCompactHeader({
               <div className="bg-surface-2 flex flex-1 items-center gap-2 rounded-full px-3.5 py-2">
                 <Search className="text-muted size-4 shrink-0" />
                 <input
-                   
                   autoFocus
                   type="search"
                   value={searchQuery}
