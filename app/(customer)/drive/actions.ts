@@ -11,11 +11,7 @@ import {
   resolveWilayaCommune,
 } from "@/lib/zones/server";
 import { zoneMessageFr } from "@/lib/zones/service-zones";
-import {
-  issuePriceQuote,
-  verifyPriceQuote,
-  quoteRejectionMessage,
-} from "@/lib/data/geo-quote";
+import { issuePriceQuote, quoteRejectionMessage } from "@/lib/data/geo-quote";
 import { roadRoute } from "@/lib/drive/routing";
 
 type Rpc = (
@@ -382,21 +378,10 @@ export async function requestDriveRide(input: {
 }> {
   const rpc = await rpcClient();
 
-  // Anti-prix-périmé (Partie D) : si un devis a été émis, on le VÉRIFIE et le
-  // CONSOMME pour le trajet courant AVANT d'engager le prix. Adresse changée /
-  // devis expiré / déjà utilisé → refus net (le client re-demande un prix).
-  if (input.quote_id) {
-    const chk = await verifyPriceQuote({
-      quoteId: input.quote_id,
-      context: "drive",
-      pickup: { lat: input.pickup_lat, lng: input.pickup_lng },
-      dest: { lat: input.dest_lat, lng: input.dest_lng },
-      consume: true,
-    });
-    if (!chk.ok) {
-      return { ok: false, error: quoteRejectionMessage(chk.reason) };
-    }
-  }
+  // Anti-prix-périmé (Partie D) : le devis est désormais VÉRIFIÉ + CONSOMMÉ
+  // ATOMIQUEMENT dans la RPC request_ride, APRÈS la garde « course active ».
+  // → un double-tap est redirigé vers la course en cours AVANT de toucher au
+  // devis : plus de dead-end « Devis déjà utilisé ». On passe juste le quote_id.
 
   // Reverse-géocode départ + arrivée (zones, mig 0174) + distance routière
   // AUTORITAIRE recalculée serveur (A) : on ne fait JAMAIS confiance au km du
@@ -435,12 +420,24 @@ export async function requestDriveRide(input: {
     p_pickup_commune: pickupGeo.commune,
     p_dest_wilaya: destGeo.wilayaCode,
     p_dest_commune: destGeo.commune,
+    // Devis vérifié + consommé ATOMIQUEMENT dans la RPC (après la garde active).
+    p_quote_id: input.quote_id ?? null,
   });
   if (error) {
     // Le client a déjà une course active (anti-spam request_ride) → on le signale
     // par un code dédié pour proposer côté UI de REVENIR à la course concernée.
     if (error.message.includes("déjà une course")) {
       return { ok: false, error: error.message, code: "active_ride" };
+    }
+    // Devis périmé / adresse changée (la garde active passe AVANT, donc 'consumed'
+    // n'arrive ici que SANS course active → le client re-demande une estimation).
+    if (error.message.includes("drive_quote:")) {
+      const reason = error.message.split("drive_quote:")[1]?.trim() as
+        | "expired"
+        | "consumed"
+        | "addr_changed"
+        | "not_found";
+      return { ok: false, error: quoteRejectionMessage(reason) };
     }
     // Refus de zone réel → journalisation ops (best-effort, mig 0170).
     if (error.message.includes("drive_zone")) {

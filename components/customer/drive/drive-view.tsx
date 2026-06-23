@@ -170,6 +170,14 @@ export function DriveView({
   // qu'au retour Chargily et à un rafraîchissement silencieux.
   const [active, setActive] = useState<DriveActiveRide | null>(initialActive);
   const [submitting, setSubmitting] = useState(false);
+  // Verrou SYNCHRONE single-flight : un useState ne ferme pas la fenêtre async
+  // avant le 1ᵉʳ await (reverse-géocode) → deux taps rapides passaient tous les
+  // deux. Le ref bloque immédiatement ; un 2ᵉ tap en vol est ignoré, pas mis en
+  // file.
+  const inFlightRef = useRef(false);
+  // operation_id STABLE par trajet → l'idempotence serveur matche les retries
+  // (double-tap, re-livraison réseau). Régénéré seulement après succès / reset.
+  const opIdRef = useRef<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [offlineQueued, setOfflineQueued] = useState(false);
   // Couverture de zone (départ + arrivée) — pré-check UX avant la demande
@@ -536,7 +544,9 @@ export function DriveView({
         female_only: femaleOnly,
         proxy_name: prox?.name ?? null,
         proxy_phone: prox?.phone ?? null,
-        operation_id: `drv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        operation_id: (opIdRef.current ??= `drv-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}`),
         quote_id: quoteId,
       };
     },
@@ -575,61 +585,71 @@ export function DriveView({
   };
 
   const submitRequest = async () => {
-    if (!pickup || !dest || submitting) return;
-    setRequestError(null);
-    // Départ GPS sans adresse encore résolue : on géocode MAINTENANT pour que le
-    // chauffeur reçoive la vraie adresse (jamais « Ma position actuelle »).
-    let pickupText = pickup.text;
-    if (
-      pickup.gps &&
-      !pickupText &&
-      typeof navigator !== "undefined" &&
-      navigator.onLine
-    ) {
-      const r = await reverseGeocode({
-        latitude: pickup.lat,
-        longitude: pickup.lng,
-        precise: true,
-      }).catch(() => null);
-      if (r?.ok && r.display) pickupText = r.display;
-    }
-    const payload = buildPayload(pickupText);
-    if (!payload) return;
-    // Hors connexion : demande en file Dexie, envoi auto au retour réseau (C8).
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      await queueRideRequest(payload.operation_id, payload);
-      setOfflineQueued(true);
-      setScreen("ride");
-      return;
-    }
-    setSubmitting(true);
-    const res = await requestDriveRide(payload);
-    if (!res.ok) {
-      setSubmitting(false);
-      // Course déjà active → on N'AFFICHE PAS de message : on bascule
-      // AUTOMATIQUEMENT sur l'écran de la course en cours (selon son statut).
-      if (res.code === "active_ride") {
-        await resumeActiveRide();
+    // Verrou SYNCHRONE single-flight : posé AVANT tout await (un 2ᵉ tap pendant
+    // le vol est ignoré, jamais mis en file ni renvoyé).
+    if (!pickup || !dest || inFlightRef.current) return;
+    inFlightRef.current = true;
+    try {
+      setRequestError(null);
+      // Départ GPS sans adresse encore résolue : on géocode MAINTENANT pour que
+      // le chauffeur reçoive la vraie adresse (jamais « Ma position actuelle »).
+      let pickupText = pickup.text;
+      if (
+        pickup.gps &&
+        !pickupText &&
+        typeof navigator !== "undefined" &&
+        navigator.onLine
+      ) {
+        const r = await reverseGeocode({
+          latitude: pickup.lat,
+          longitude: pickup.lng,
+          precise: true,
+        }).catch(() => null);
+        if (r?.ok && r.display) pickupText = r.display;
+      }
+      const payload = buildPayload(pickupText);
+      if (!payload) return;
+      // Hors connexion : demande en file Dexie, envoi auto au retour réseau (C8).
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        await queueRideRequest(payload.operation_id, payload);
+        setOfflineQueued(true);
+        opIdRef.current = null; // prochaine course = id neuf
+        setScreen("ride");
         return;
       }
-      setRequestError(res.error ?? t("requestFailed"));
-      return;
-    }
-    // CARTE : payer AVANT que la demande soit diffusée (Chargily Pay existant).
-    if (payMode === "card" && res.rideId) {
-      const checkout = await createRideCardCheckout(res.rideId);
-      if (checkout.ok && checkout.url) {
-        window.open(checkout.url, "_blank");
-      } else {
+      setSubmitting(true);
+      const res = await requestDriveRide(payload);
+      if (!res.ok) {
         setSubmitting(false);
-        setRequestError(checkout.error ?? t("requestFailed"));
-        await cancelDriveRide(res.rideId, "Paiement carte indisponible");
+        // Course déjà active → on N'AFFICHE PAS de message : on bascule
+        // AUTOMATIQUEMENT sur l'écran de la course en cours (selon son statut).
+        if (res.code === "active_ride") {
+          opIdRef.current = null;
+          await resumeActiveRide();
+          return;
+        }
+        setRequestError(res.error ?? t("requestFailed"));
         return;
       }
+      // CARTE : payer AVANT que la demande soit diffusée (Chargily Pay existant).
+      if (payMode === "card" && res.rideId) {
+        const checkout = await createRideCardCheckout(res.rideId);
+        if (checkout.ok && checkout.url) {
+          window.open(checkout.url, "_blank");
+        } else {
+          setSubmitting(false);
+          setRequestError(checkout.error ?? t("requestFailed"));
+          await cancelDriveRide(res.rideId, "Paiement carte indisponible");
+          return;
+        }
+      }
+      setSubmitting(false);
+      opIdRef.current = null; // course créée → prochaine demande = id neuf
+      await refreshActive();
+      setScreen("ride");
+    } finally {
+      inFlightRef.current = false;
     }
-    setSubmitting(false);
-    await refreshActive();
-    setScreen("ride");
   };
 
   // Pré-check de couverture (départ + arrivée) DÈS que les deux points sont
@@ -709,6 +729,7 @@ export function DriveView({
     setPayMode("cash");
     setGamme("classic");
     setOfflineQueued(false);
+    opIdRef.current = null; // nouvelle demande = nouvel operation_id
   }, []);
 
   /* ───────── Assistant : trajet confirmé → écran prix ─────────
