@@ -42,6 +42,7 @@ export function CustomerBottomNav({
           <Link
             key={item.href}
             href={item.href}
+            prefetch
             className={cn(
               "flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] transition-colors",
               active ? "text-primary-700" : "text-muted hover:text-foreground"

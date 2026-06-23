@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { getAuthUser } from "@/lib/auth/session";
 import { DriveView } from "@/components/customer/drive/drive-view";
-import { getDriveActiveRide } from "@/app/(customer)/drive/actions";
+import { getActiveRideFor } from "@/lib/data/drive-active-ride";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { FeatureUnavailable } from "@/components/customer/feature-unavailable";
 import {
@@ -37,7 +37,8 @@ export default async function DrivePage() {
   }
   // Course active résolue CÔTÉ SERVEUR → si une demande/course est en cours, on
   // affiche DIRECTEMENT son écran (recherche/suivi), pas le formulaire (instantané
-  // au tap « Drive », sans loader ni aller-retour client).
-  const initialActive = await getDriveActiveRide();
+  // au tap « Drive »). `skipAvatar` : on ne signe pas l'avatar au SSR (coûteux) ;
+  // le refresh client le remplira.
+  const initialActive = await getActiveRideFor({ skipAvatar: true });
   return <DriveView initialActive={initialActive} />;
 }
