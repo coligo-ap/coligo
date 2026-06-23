@@ -36,8 +36,19 @@ export function OrderQr({
   return (
     <div
       ref={ref}
-      className="border-border inline-flex items-center justify-center rounded-[14px] border bg-white p-3"
-      style={{ width: size + 24, height: size + 24 }}
+      className="border-border inline-flex items-center justify-center rounded-[14px] border p-3"
+      // Fond TOUJOURS blanc + modules TOUJOURS noirs (peu importe le thème
+      // clair/sombre). On n'utilise PAS la classe `bg-white` car en mode sombre
+      // client elle est remappée vers la surface sombre (cf. globals.css) → le
+      // QR deviendrait illisible. Le style inline (priorité max) garantit un QR
+      // scannable dans tous les cas ; `color:#000` couvre le cas où le SVG zxing
+      // dessine ses modules en `currentColor`.
+      style={{
+        width: size + 24,
+        height: size + 24,
+        backgroundColor: "#ffffff",
+        color: "#000000",
+      }}
       aria-label={t("qrLabel", { value })}
     />
   );

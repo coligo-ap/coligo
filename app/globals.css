@@ -727,8 +727,29 @@ body {
 }
 .theme-dark
   :is([data-space="client"], .drive-jakarta)
-  :where(.text-primary-700, .text-primary-600) {
+  :where(
+    .text-primary-700,
+    .text-primary-600,
+    .text-primary-700\/90,
+    .text-primary-700\/80,
+    .text-primary-600\/90
+  ) {
   color: #b493f9;
+}
+/* Texte violet FONCÉ (800/900, libellés type « Code à donner au commerçant »)
+   et ses variantes translucides : invisibles sur fond sombre tant qu'on ne les
+   remappe pas (le sélecteur ci-dessus ne couvrait que 600/700). On les passe en
+   quasi-blanc → lisibles sur les cartes sombres (demande produit : « rends le
+   texte en blanc en mode sombre »). */
+.theme-dark
+  :is([data-space="client"], .drive-jakarta)
+  :where(
+    .text-primary-800,
+    .text-primary-900,
+    .text-primary-800\/90,
+    .text-primary-900\/90
+  ) {
+  color: #f1eefb;
 }
 
 /* Surfaces « blanc translucide » à forte opacité (pastilles sur photos, barres
