@@ -12,7 +12,13 @@ import {
   ShoppingBasket,
   ShoppingCart,
   Timer,
+  X,
 } from "lucide-react";
+import {
+  useMerchantSearch,
+  setSearchQuery,
+  setSearchOpen,
+} from "@/lib/customer/merchant-search-store";
 import { cn } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
@@ -103,6 +109,8 @@ export function MerchantCompactHeader({
   const [scrolled, setScrolled] = useState(false);
   const cart = useCart();
   const cartCount = totalUnits(cart);
+  // Recherche intégrée au header (état partagé avec la barre du catalogue).
+  const { open: searchOpen, query: searchQuery } = useMerchantSearch();
 
   // Statut d'ouverture (calculé à la volée, rafraîchi 1×/min pour suivre les
   // bascules de créneau) + jour courant pour surligner « Aujourd'hui ».
@@ -172,72 +180,105 @@ export function MerchantCompactHeader({
       <div
         className={cn(
           "fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)] transition-[background-color,box-shadow]",
-          scrolled
+          scrolled || searchOpen
             ? "border-border border-b bg-white/85 shadow-sm backdrop-blur-xl"
             : "bg-transparent"
         )}
       >
         <div className="mx-auto flex h-14 max-w-[1100px] items-center gap-2 px-3 lg:px-4">
-          <Link href="/" aria-label={t("back")} className={rb}>
-            <ArrowLeft className="size-[18px] rtl:-scale-x-100" />
-          </Link>
-          <h2
-            className={cn(
-              "text-foreground min-w-0 flex-1 truncate text-base font-extrabold transition-opacity",
-              scrolled ? "opacity-100" : "opacity-0"
-            )}
-          >
-            {name}
-          </h2>
-          {/* Icône RECHERCHE — apparaît au scroll (quand la barre de recherche
-              produit n'est plus visible). Clic → ramène la barre de recherche à
-              l'écran et la focalise (recherche produit / catégorie). */}
-          {scrolled && (
-            <button
-              type="button"
-              onClick={() => {
-                const el = document.getElementById("merchant-product-search");
-                if (!el) return;
-                el.scrollIntoView({ behavior: "smooth", block: "center" });
-                window.setTimeout(
-                  () => (el as HTMLInputElement).focus({ preventScroll: true }),
-                  350
-                );
-              }}
-              aria-label={t("searchProducts")}
-              className={cn(rb, "shrink-0")}
-            >
-              <Search className="size-[18px]" />
-            </button>
+          {searchOpen ? (
+            // ─── Mode RECHERCHE : barre intégrée au header, recherche en temps
+            //     réel (état partagé avec le catalogue), sans remonter en haut.
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                }}
+                aria-label={t("back")}
+                className={rb}
+              >
+                <ArrowLeft className="size-[18px] rtl:-scale-x-100" />
+              </button>
+              <div className="bg-surface-2 flex flex-1 items-center gap-2 rounded-full px-3.5 py-2">
+                <Search className="text-muted size-4 shrink-0" />
+                <input
+                   
+                  autoFocus
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t("searchProducts")}
+                  className="placeholder:text-hint text-foreground w-full bg-transparent text-sm font-medium outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    aria-label={t("clearSearch")}
+                    className="text-muted hover:text-foreground shrink-0"
+                  >
+                    <X className="size-4" />
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <Link href="/" aria-label={t("back")} className={rb}>
+                <ArrowLeft className="size-[18px] rtl:-scale-x-100" />
+              </Link>
+              <h2
+                className={cn(
+                  "text-foreground min-w-0 flex-1 truncate text-base font-extrabold transition-opacity",
+                  scrolled ? "opacity-100" : "opacity-0"
+                )}
+              >
+                {name}
+              </h2>
+              {/* Icône RECHERCHE — apparaît au scroll. Clic → ouvre la barre de
+              recherche INTÉGRÉE au header (recherche temps réel, sans remonter). */}
+              {scrolled && (
+                <button
+                  type="button"
+                  onClick={() => setSearchOpen(true)}
+                  aria-label={t("searchProducts")}
+                  className={cn(rb, "shrink-0")}
+                >
+                  <Search className="size-[18px]" />
+                </button>
+              )}
+              <ShareButton
+                title={name}
+                label={t("share")}
+                copiedMsg={t("linkCopied")}
+                className={cn(rb, "shrink-0")}
+              />
+              <FavoriteHeart
+                merchantId={merchantId}
+                initialFavorite={initialFavorite}
+                isAuth={isAuth}
+                variant={scrolled ? "card" : "hero"}
+                className={cn(
+                  "size-9 shrink-0",
+                  scrolled && "bg-surface-2 shadow-none"
+                )}
+              />
+              <Link
+                href="/cart"
+                aria-label={t("viewMyCart")}
+                className={cn(rb, "shrink-0")}
+              >
+                <ShoppingCart className="size-[18px]" />
+                {cartCount > 0 && (
+                  <span className="bg-success-600 absolute -end-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full border-2 border-white px-0.5 text-[9px] font-extrabold text-white">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            </>
           )}
-          <ShareButton
-            title={name}
-            label={t("share")}
-            copiedMsg={t("linkCopied")}
-            className={cn(rb, "shrink-0")}
-          />
-          <FavoriteHeart
-            merchantId={merchantId}
-            initialFavorite={initialFavorite}
-            isAuth={isAuth}
-            variant={scrolled ? "card" : "hero"}
-            className={cn(
-              "size-9 shrink-0",
-              scrolled && "bg-surface-2 shadow-none"
-            )}
-          />
-          <Link
-            href="/cart"
-            aria-label={t("viewMyCart")}
-            className={cn(rb, "shrink-0")}
-          >
-            <ShoppingCart className="size-[18px]" />
-            {cartCount > 0 && (
-              <span className="bg-success-600 absolute -end-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full border-2 border-white px-0.5 text-[9px] font-extrabold text-white">
-                {cartCount}
-              </span>
-            )}
-          </Link>
         </div>
       </div>
 

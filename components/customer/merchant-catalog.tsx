@@ -4,6 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  useMerchantSearch,
+  setSearchQuery,
+  resetSearch,
+} from "@/lib/customer/merchant-search-store";
 import { ProductDetailSheet } from "@/components/customer/product-detail-sheet";
 import { ProductRow } from "@/components/customer/product-row";
 import { PopularCarousel } from "@/components/customer/popular-carousel";
@@ -52,7 +57,10 @@ export function MerchantCatalog({
   const t = useTranslations("merchant");
   const [selected, setSelected] = useState<PublicProduct | null>(null);
   // Recherche produit (filtre client, sur le catalogue déjà chargé).
-  const [query, setQuery] = useState("");
+  // Recherche partagée avec la barre intégrée au header (store global). On
+  // réinitialise au démontage (changement de commerce).
+  const { query } = useMerchantSearch();
+  useEffect(() => () => resetSearch(), []);
 
   // Construit les groupes.
   // 1) On utilise les PublicCategory si au moins un produit est rattaché.
@@ -237,14 +245,14 @@ export function MerchantCatalog({
             id="merchant-product-search"
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t("searchProductPlaceholder")}
             className="placeholder:text-hint text-foreground w-full bg-transparent text-[13.5px] font-medium outline-none"
           />
           {query && (
             <button
               type="button"
-              onClick={() => setQuery("")}
+              onClick={() => setSearchQuery("")}
               aria-label={t("clear")}
               className="text-muted hover:text-foreground shrink-0"
             >
