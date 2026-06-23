@@ -1694,6 +1694,10 @@ function MapPickScreen({
   >([]);
   const [searching, setSearching] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  // « Tes lieux » : affiché SEULEMENT au focus de la barre (chargé en arrière-
+  // plan), jamais en permanence → ne masque pas le curseur central. Se ferme à
+  // l'interaction carte ou via le bouton ✕.
+  const [favOpen, setFavOpen] = useState(false);
   const [focusTarget, setFocusTarget] = useState<
     (LatLng & { zoom?: number }) | null
   >(null);
@@ -1792,6 +1796,10 @@ function MapPickScreen({
 
   const onMove = useCallback(
     (c: LatLng) => {
+      // Interaction carte (glisser/zoom pour positionner) → on referme les
+      // panneaux pour dégager le curseur central.
+      setSearchOpen(false);
+      setFavOpen(false);
       setCenter(c);
       setResolving(true);
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -1838,9 +1846,14 @@ function MapPickScreen({
           <Search className="size-4 shrink-0 text-[var(--d-muted)]" />
           <input
             value={searchQ}
-            onChange={(e) => setSearchQ(e.target.value)}
+            onChange={(e) => {
+              setSearchQ(e.target.value);
+              setFavOpen(false);
+            }}
             onFocus={() => {
               if (searchResults.length > 0) setSearchOpen(true);
+              // Barre vide → on ouvre « Tes lieux » (sinon les résultats).
+              if (searchQ.trim() === "") setFavOpen(true);
             }}
             placeholder={t("searchPh")}
             className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
@@ -1855,6 +1868,7 @@ function MapPickScreen({
                 setSearchQ("");
                 setSearchResults([]);
                 setSearchOpen(false);
+                setFavOpen(true); // barre vide → on re-propose « Tes lieux »
               }}
               className="shrink-0 text-[var(--d-muted)]"
             >
@@ -1921,10 +1935,23 @@ function MapPickScreen({
             le client retrouve ses lieux sans retaper. Instantané (favoris en
             cache + récents passés par le contexte). */}
         {searchQ.trim() === "" &&
+          favOpen &&
           (favorites.length > 0 || recents.length > 0) && (
-            <ul className="mt-1.5 max-h-72 overflow-auto rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
+            <ul className="mt-1.5 max-h-44 overflow-auto rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
+              {/* Bouton ✕ pour masquer « Tes lieux » manuellement (sinon il se
+                  ferme à l'interaction carte). */}
+              <li className="flex justify-end px-2 pt-0.5">
+                <button
+                  type="button"
+                  aria-label="Masquer"
+                  onClick={() => setFavOpen(false)}
+                  className="p-1 text-[var(--d-muted)]"
+                >
+                  ✕
+                </button>
+              </li>
               {favorites.length > 0 && (
-                <li className="px-3 pt-1.5 pb-1 text-[10px] font-extrabold tracking-wide text-[var(--d-muted)] uppercase">
+                <li className="px-3 pt-0.5 pb-1 text-[10px] font-extrabold tracking-wide text-[var(--d-muted)] uppercase">
                   {t("savedPlaces")}
                 </li>
               )}
