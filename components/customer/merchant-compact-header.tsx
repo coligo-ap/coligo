@@ -18,6 +18,10 @@ import { categoryImageFor } from "@/lib/images/category-images";
 import { getCategoryLabel } from "@/lib/config/categories";
 import { getTagLabel } from "@/lib/config/merchant-tags";
 import { isOpenNow } from "@/lib/merchant/opening-hours";
+import {
+  computePauseState,
+  type MerchantPauseInput,
+} from "@/lib/merchant/pause-state";
 import { MerchantReviewsDialog } from "@/components/customer/merchant-reviews-dialog";
 import { FavoriteHeart } from "@/components/customer/favorite-heart";
 import { ShareButton } from "@/components/customer/share-button";
@@ -60,6 +64,9 @@ type Props = {
   min_order_da: number;
   prep_time_min: number;
   opening_hours: OpeningHours;
+  /** Pause / fermeture programmée — pour un statut « Ouvert/Fermé » cohérent
+      avec l'acceptation réelle de commandes (et le bandeau « fermé »). */
+  pause?: MerchantPauseInput;
   rating_avg: number;
   rating_count: number;
   reviews: ReviewWithCustomer[];
@@ -82,6 +89,7 @@ export function MerchantCompactHeader({
   min_order_da,
   prep_time_min,
   opening_hours,
+  pause,
   rating_avg,
   rating_count,
   reviews,
@@ -102,7 +110,19 @@ export function MerchantCompactHeader({
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
   }, []);
-  const isOpen = isOpenNow(opening_hours, now);
+  // « Ouvert » = horaires ouverts MAINTENANT *et* aucune pause / fermeture
+  // programmée. Sinon « Fermé » → cohérent avec le bandeau « ce commerce est
+  // fermé… » et avec l'acceptation réelle des commandes immédiates.
+  const pauseState = computePauseState(
+    pause ?? {
+      orders_paused: null,
+      paused_until: null,
+      closure_start: null,
+      closure_end: null,
+    },
+    now
+  );
+  const isOpen = isOpenNow(opening_hours, now) && !pauseState.closedNow;
   const todayKey = DAY_KEYS[(now.getDay() + 6) % 7];
 
   // Topbar : transparente sur la photo, puis verre dépoli + nom dès qu'on

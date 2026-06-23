@@ -106,6 +106,12 @@ export default async function MerchantPublicPage({
           min_order_da={m.min_order_da}
           prep_time_min={m.prep_time_min}
           opening_hours={m.opening_hours}
+          pause={{
+            orders_paused: m.orders_paused,
+            paused_until: m.paused_until,
+            closure_start: m.closure_start,
+            closure_end: m.closure_end,
+          }}
           rating_avg={m.rating_avg}
           rating_count={m.rating_count}
           reviews={reviews}
