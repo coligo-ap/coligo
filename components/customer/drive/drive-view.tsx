@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
-  ArrowRight,
   ArrowUpDown,
   BellRing,
   CalendarClock,
@@ -172,9 +171,6 @@ export function DriveView({
   const [active, setActive] = useState<DriveActiveRide | null>(initialActive);
   const [submitting, setSubmitting] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
-  // Conflit « course déjà en cours » : on affiche le message ET un lien pour
-  // revenir directement à la course concernée.
-  const [activeConflict, setActiveConflict] = useState(false);
   const [offlineQueued, setOfflineQueued] = useState(false);
   // Couverture de zone (départ + arrivée) — pré-check UX avant la demande
   // (l'enforcement réel reste dans request_ride, mig 0169).
@@ -565,26 +561,22 @@ export function DriveView({
     return ride;
   }, []);
 
-  // Revenir DIRECTEMENT à la course en cours (depuis le message de conflit).
+  // Basculer AUTOMATIQUEMENT sur la course en cours (selon son statut : recherche
+  // / proposition / course). Appelé quand request_ride signale une course active.
   const resumeActiveRide = async () => {
     const ride = await getDriveActiveRide();
     if (ride) {
       setActive(ride);
       setScreen("ride");
-      setRequestError(null);
-      setActiveConflict(false);
-    } else {
-      // Course finie/annulée entre-temps → on lève le conflit, le client peut
-      // relancer une demande.
-      setActiveConflict(false);
-      setRequestError(null);
     }
+    // (si null : la course a été terminée/annulée entre-temps → on laisse le
+    //  formulaire, le client peut relancer.)
+    setRequestError(null);
   };
 
   const submitRequest = async () => {
     if (!pickup || !dest || submitting) return;
     setRequestError(null);
-    setActiveConflict(false);
     // Départ GPS sans adresse encore résolue : on géocode MAINTENANT pour que le
     // chauffeur reçoive la vraie adresse (jamais « Ma position actuelle »).
     let pickupText = pickup.text;
@@ -614,10 +606,13 @@ export function DriveView({
     const res = await requestDriveRide(payload);
     if (!res.ok) {
       setSubmitting(false);
+      // Course déjà active → on N'AFFICHE PAS de message : on bascule
+      // AUTOMATIQUEMENT sur l'écran de la course en cours (selon son statut).
+      if (res.code === "active_ride") {
+        await resumeActiveRide();
+        return;
+      }
       setRequestError(res.error ?? t("requestFailed"));
-      // « Vous avez déjà une course en cours » → on propose d'y revenir
-      // (lien de redirection sous le message).
-      setActiveConflict(res.code === "active_ride");
       return;
     }
     // CARTE : payer AVANT que la demande soit diffusée (Chargily Pay existant).
@@ -1278,23 +1273,12 @@ export function DriveView({
           />
 
           {requestError && (
-            <div
+            <p
               className="mt-2 rounded-[12px] bg-[rgba(229,72,77,.1)] px-3 py-2 text-center text-xs font-bold"
               style={{ color: "#E5484D" }}
             >
               {requestError}
-              {activeConflict && (
-                <button
-                  type="button"
-                  onClick={() => void resumeActiveRide()}
-                  className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-[10px] px-3 py-2 text-[12px] font-extrabold text-white"
-                  style={{ background: VIOLET }}
-                >
-                  Reprendre ma course en cours
-                  <ArrowRight className="size-3.5 rtl:-scale-x-100" />
-                </button>
-              )}
-            </div>
+            </p>
           )}
           {zoneBlock && (
             <ZoneBlockNotice

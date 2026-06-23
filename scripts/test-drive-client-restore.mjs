@@ -105,29 +105,45 @@ try {
     msg
   );
 
-  // 4) Deadline : la course expire sans réponse → auto-annulée → re-demande OK.
+  // 4) Deadline : la recherche EXPIRE mais reste 'searching' en base (NON purgée
+  //    explicitement). request_ride ne doit PLUS la considérer active (purge
+  //    interne, mig 0251) → re-demande acceptée SANS faux conflit.
   await c.query(
     "UPDATE rides SET expires_at = now() - interval '1 minute' WHERE id=$1",
     [RIDE]
   );
-  await c.query("SELECT drive_expire_stale_searches()");
-  act = await c.query("SELECT id FROM my_active_ride()");
-  ok("après expiration ⇒ plus de course active", act.rows.length === 0);
-
-  const req2 = await c.query(
-    "SELECT request_ride($1,$2,$3,$4,$5,$6,$7,$8,'cash') AS id",
-    [
-      PICKUP.lat,
-      PICKUP.lng,
-      "Départ 2",
-      DEST.lat,
-      DEST.lng,
-      "Arrivée 2",
-      3,
-      200,
-    ]
+  let blocked = false;
+  let req2Id = null;
+  await c.query("SAVEPOINT sp_reReq");
+  try {
+    const req2 = await c.query(
+      "SELECT request_ride($1,$2,$3,$4,$5,$6,$7,$8,'cash') AS id",
+      [
+        PICKUP.lat,
+        PICKUP.lng,
+        "Départ 2",
+        DEST.lat,
+        DEST.lng,
+        "Arrivée 2",
+        3,
+        200,
+      ]
+    );
+    req2Id = req2.rows[0].id;
+  } catch {
+    blocked = true;
+    await c.query("ROLLBACK TO SAVEPOINT sp_reReq");
+  }
+  ok(
+    "recherche EXPIRÉE ⇒ NE bloque PLUS une nouvelle demande (pas de faux conflit)",
+    !blocked && !!req2Id
   );
-  ok("le client peut RE-demander après expiration", !!req2.rows[0].id);
+  const old = await c.query("SELECT status FROM rides WHERE id=$1", [RIDE]);
+  ok(
+    "l'ancienne recherche expirée est annulée (pas de doublon 'searching')",
+    old.rows[0].status === "cancelled",
+    `status=${old.rows[0].status}`
+  );
 
   console.log(
     `\n${fail === 0 ? "🎉" : "⚠️"} RÉSULTAT — pass=${pass} fail=${fail}`
