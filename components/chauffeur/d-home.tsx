@@ -44,7 +44,7 @@ import {
   setChauffeurOnlineLocal,
   useChauffeurOnline,
 } from "@/lib/chauffeur/online-store";
-import { HOME_DIR_KEY } from "@/lib/drive/geo";
+import { useHomeDirOn, setHomeDirOn } from "@/lib/chauffeur/home-dir-store";
 import { getMyWalletState } from "@/app/wallet/recharge-actions";
 import {
   activateHomeDir,
@@ -107,10 +107,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const [home, setHome] = useState<DriveHome | null>(lastDriveHomeCache);
   // Accueil COMPACT : feuille réduite par défaut (le chauffeur l'ouvre au choix).
   const [mini, setMini] = useState(true);
-  const [dirOn, setDirOn] = useState(false);
-  useEffect(() => {
-    setDirOn(localStorage.getItem(HOME_DIR_KEY) === "1");
-  }, []);
+  // État RÉACTIF partagé (Accueil ⇄ Demandes) — plus de lecture localStorage
+  // au montage qui désynchronisait les écrans.
+  const dirOn = useHomeDirOn();
   const [dirMsg, setDirMsg] = useState<string | null>(null);
   const [homeAddr, setHomeAddr] = useState(gate.homeAddr);
   // Rayon « autour de moi » — dispatch toujours centré sur la position live.
@@ -372,14 +371,12 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const toggleDir = async () => {
     setDirMsg(null);
     if (dirOn) {
-      setDirOn(false);
-      localStorage.setItem(HOME_DIR_KEY, "0");
+      setHomeDirOn(false);
       return;
     }
     const res = await activateHomeDir();
     if (res.ok) {
-      setDirOn(true);
-      localStorage.setItem(HOME_DIR_KEY, "1");
+      setHomeDirOn(true);
       if (res.remaining != null)
         setDirMsg(
           `Activé · ${res.remaining} activation(s) restante(s) aujourd'hui`

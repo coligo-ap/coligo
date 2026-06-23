@@ -40,7 +40,8 @@ import {
   setChauffeurOnline,
   type NearbyRide,
 } from "@/app/(chauffeur)/actions";
-import { HOME_DIR_KEY, isTowardsHome } from "@/lib/drive/geo";
+import { isTowardsHome } from "@/lib/drive/geo";
+import { useHomeDirOn } from "@/lib/chauffeur/home-dir-store";
 
 const AMBER = "#F59E0B";
 
@@ -178,22 +179,21 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     void getChauffeurPlanRate().then(setPlanRate);
   }, []);
 
-  // « Je rentre chez moi » (G4) : toggle partagé avec l'accueil + domicile
-  // géocodé + tolérance angulaire (config admin).
+  // « Je rentre chez moi » (G4) : état RÉACTIF partagé avec l'accueil (store) →
+  // une bascule sur l'Accueil se reflète LIVE ici, sans dépendre du remontage.
+  // Le domicile géocodé + la tolérance angulaire viennent du gate (config admin).
+  const homeDirOn = useHomeDirOn();
   const [homeDir, setHomeDir] = useState<{
-    on: boolean;
     addr: string | null;
     lat: number | null;
     lng: number | null;
     tolerance: number;
-  }>({ on: false, addr: null, lat: null, lng: null, tolerance: 45 });
+  }>({ addr: null, lat: null, lng: null, tolerance: 45 });
   useEffect(() => {
-    const on = localStorage.getItem(HOME_DIR_KEY) === "1";
     void getChauffeurGate().then((g) => {
       if (g) {
         setChId(g.id);
         setHomeDir({
-          on,
           addr: g.homeAddr,
           lat: g.homeLat,
           lng: g.homeLng,
@@ -243,6 +243,21 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
       void poll();
     }
   }, [coords, poll, online]);
+
+  // Changement de FILTRE → re-poll IMMÉDIAT (sans attendre le cycle 12 s). Le
+  // rayon « ma zone » filtre côté serveur : élargir la zone doit ramener tout de
+  // suite les nouvelles courses. « Rentrer chez moi » filtre côté client, mais on
+  // rafraîchit aussi pour rester à jour. On saute le tout premier rendu (déjà
+  // couvert par les effets de boot ci-dessus).
+  const filtersReady = useRef(false);
+  useEffect(() => {
+    if (!online) return;
+    if (!filtersReady.current) {
+      filtersReady.current = true;
+      return;
+    }
+    void poll();
+  }, [searchRadius, homeDirOn, online, poll]);
 
   // Temps réel (mig 0149) : nouvelles demandes instantanées + redirection
   // immédiate quand le client accepte UNE de mes offres.
@@ -347,7 +362,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   // Séparation Demandes / Propositions (offre déjà envoyée → my_offer_da/sent).
   const isProposed = (q: NearbyRide) =>
     q.my_offer_da != null || sent[q.id] != null;
-  const dirActive = homeDir.on && homeDir.lat != null && homeDir.lng != null;
+  const dirActive = homeDirOn && homeDir.lat != null && homeDir.lng != null;
   const inDirection = (q: NearbyRide) =>
     !dirActive ||
     (q.pickup_lat != null &&
