@@ -21,7 +21,7 @@ export default async function AdminBannersPage() {
     "promo_banners"
   )
     .select(
-      "id, title, subtitle, cta_label, image_url, link, accent, position, active, starts_at, ends_at"
+      "id, title, subtitle, cta_label, image_url, image_fit, link, accent, position, active, starts_at, ends_at"
     )
     .order("position", { ascending: true });
 

@@ -21,6 +21,8 @@ export type BannerInput = {
   subtitle: string;
   cta_label: string;
   image_url: string;
+  /** Comment l'image s'intègre : pleine (recadrée) / entière / texture de fond. */
+  image_fit: "cover" | "contain" | "overlay";
   link: string;
   accent: "violet" | "coral" | "mint" | "amber" | "dark";
   position: number;
@@ -80,6 +82,7 @@ const bannerSchema = z.object({
   cta_label: z.string().trim().max(50),
   // Le lien peut être interne (/favoris) ou externe (https://…) → texte libre.
   image_url: z.string().trim().max(500),
+  image_fit: z.enum(["cover", "contain", "overlay"]),
   link: z.string().trim().max(500),
   accent: z.enum(["violet", "coral", "mint", "amber", "dark"]),
   position: z.coerce.number().int().min(0).max(9999),
@@ -94,6 +97,7 @@ function toRow(v: z.infer<typeof bannerSchema>) {
     subtitle: v.subtitle || null,
     cta_label: v.cta_label || null,
     image_url: v.image_url || null,
+    image_fit: v.image_fit,
     link: v.link || null,
     accent: v.accent,
     position: v.position,
@@ -173,6 +177,45 @@ export async function toggleBanner(
   } catch (e) {
     console.error("[toggleBanner] failed:", e);
     return { error: "Action impossible pour le moment." };
+  }
+}
+
+/**
+ * Upload d'une image de bannière vers le bucket public `promo-banners` (mig 0248)
+ * et renvoi de l'URL publique. Super-admin only. Validation type + taille — même
+ * une grande image est acceptée (≤ 5 Mo), le rendu (object-fit) l'intègre au
+ * cadre. Le client redimensionne déjà avant l'envoi pour alléger.
+ */
+export async function uploadBannerImage(
+  formData: FormData
+): Promise<{ url?: string; error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0)
+    return { error: "Aucune image sélectionnée." };
+  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type))
+    return { error: "Format accepté : PNG, JPG ou WEBP." };
+  if (file.size > 5 * 1024 * 1024)
+    return { error: "Image trop lourde (5 Mo maximum)." };
+
+  try {
+    const admin = createAdminClient();
+    const ext =
+      file.type === "image/png"
+        ? "png"
+        : file.type === "image/webp"
+          ? "webp"
+          : "jpg";
+    const path = `banner-${Date.now()}-${globalThis.crypto.randomUUID().slice(0, 8)}.${ext}`;
+    const { error } = await admin.storage
+      .from("promo-banners")
+      .upload(path, file, { contentType: file.type, upsert: false });
+    if (error) return { error: `Upload échoué : ${error.message}` };
+    const { data } = admin.storage.from("promo-banners").getPublicUrl(path);
+    return { url: data.publicUrl };
+  } catch (e) {
+    console.error("[uploadBannerImage] failed:", e);
+    return { error: "Upload impossible pour le moment." };
   }
 }
 

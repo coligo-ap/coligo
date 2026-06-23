@@ -74,6 +74,11 @@ export function PromoBannerCarousel({ banners }: Props) {
 
 function Banner({ banner }: { banner: PromoBanner }) {
   const accentClass = ACCENT_CLASSES[banner.accent];
+  const hasImg = !!banner.image_url;
+  const fit = banner.image_fit ?? "overlay";
+  // En mode image PLEINE (cover) ou ENTIÈRE (contain), un voile dégradé bas→haut
+  // garde le texte lisible par-dessus n'importe quelle image.
+  const scrim = hasImg && fit !== "overlay";
   const content = (
     <article
       className={cn(
@@ -82,15 +87,25 @@ function Banner({ banner }: { banner: PromoBanner }) {
       )}
       style={{ minHeight: 140 }}
     >
-      {banner.image_url && (
+      {hasImg && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={banner.image_url}
+          src={banner.image_url!}
           alt=""
           loading="lazy"
           decoding="async"
-          className="absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-overlay"
+          className={cn(
+            "absolute inset-0 h-full w-full",
+            fit === "cover"
+              ? "object-cover"
+              : fit === "contain"
+                ? "object-contain"
+                : "object-cover opacity-30 mix-blend-overlay"
+          )}
         />
+      )}
+      {scrim && (
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
       )}
       <div className="relative">
         <h3 className="font-display text-lg leading-tight font-bold sm:text-xl">

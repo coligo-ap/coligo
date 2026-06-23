@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  ImagePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/confirm";
@@ -18,6 +19,7 @@ import {
   updateBanner,
   toggleBanner,
   deleteBanner,
+  uploadBannerImage,
   type BannerInput,
   type BannerActionState,
 } from "@/app/admin/bannieres/actions";
@@ -34,6 +36,7 @@ export type AdminBanner = {
   subtitle: string | null;
   cta_label: string | null;
   image_url: string | null;
+  image_fit: "cover" | "contain" | "overlay";
   link: string | null;
   accent: "violet" | "coral" | "mint" | "amber" | "dark";
   position: number;
@@ -41,6 +44,25 @@ export type AdminBanner = {
   starts_at: string | null;
   ends_at: string | null;
 };
+
+type ImageFit = AdminBanner["image_fit"];
+const FIT_OPTIONS: { value: ImageFit; label: string; hint: string }[] = [
+  {
+    value: "cover",
+    label: "Pleine (remplit)",
+    hint: "L'image couvre toute la bannière (recadrée si besoin) — « en full ».",
+  },
+  {
+    value: "contain",
+    label: "Entière (visible)",
+    hint: "L'image entière reste visible, centrée sur le fond de couleur.",
+  },
+  {
+    value: "overlay",
+    label: "Texture de fond",
+    hint: "Image en fond discret (atténuée) sous le texte.",
+  },
+];
 
 const ACCENTS = ["violet", "coral", "mint", "amber", "dark"] as const;
 
@@ -82,6 +104,7 @@ function emptyDraft(): Draft {
     subtitle: "",
     cta_label: "",
     image_url: "",
+    image_fit: "cover",
     link: "",
     accent: "violet",
     position: 0,
@@ -97,6 +120,7 @@ type Draft = {
   subtitle: string;
   cta_label: string;
   image_url: string;
+  image_fit: ImageFit;
   link: string;
   accent: AdminBanner["accent"];
   position: number;
@@ -111,6 +135,7 @@ function bannerToDraft(b: AdminBanner): Draft {
     subtitle: b.subtitle ?? "",
     cta_label: b.cta_label ?? "",
     image_url: b.image_url ?? "",
+    image_fit: b.image_fit ?? "overlay",
     link: b.link ?? "",
     accent: b.accent,
     position: b.position,
@@ -126,6 +151,7 @@ function draftToInput(d: Draft): BannerInput {
     subtitle: d.subtitle,
     cta_label: d.cta_label,
     image_url: d.image_url,
+    image_fit: d.image_fit,
     link: d.link,
     accent: d.accent,
     position: Number(d.position) || 0,
@@ -135,11 +161,38 @@ function draftToInput(d: Draft): BannerInput {
   };
 }
 
+/**
+ * Redimensionne/compresse une image côté client AVANT l'upload : borne la plus
+ * grande dimension à 1600 px et ré-encode en JPEG qualité 0.85. Garantit qu'une
+ * image énorme « s'intègre » sans alourdir le stockage ni casser l'affichage.
+ */
+async function resizeImage(file: File): Promise<Blob> {
+  const MAX = 1600;
+  const bmp = await createImageBitmap(file).catch(() => null);
+  if (!bmp) return file;
+  const scale = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
+  const w = Math.round(bmp.width * scale);
+  const h = Math.round(bmp.height * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return file;
+  ctx.drawImage(bmp, 0, 0, w, h);
+  bmp.close();
+  const blob = await new Promise<Blob | null>((res) =>
+    canvas.toBlob((b) => res(b), "image/jpeg", 0.85)
+  );
+  return blob ?? file;
+}
+
 const INPUT =
   "h-10 w-full rounded-[10px] border border-border-strong bg-white px-3 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-400 focus:outline-none";
 const LABEL = "text-foreground mb-1 block text-[12px] font-bold";
 
 function PreviewCard({ d }: { d: Draft }) {
+  const hasImg = !!d.image_url;
+  const scrim = hasImg && d.image_fit !== "overlay";
   return (
     <article
       className={cn(
@@ -148,13 +201,23 @@ function PreviewCard({ d }: { d: Draft }) {
       )}
       style={{ minHeight: 140 }}
     >
-      {d.image_url && (
+      {hasImg && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={d.image_url}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-overlay"
+          className={cn(
+            "absolute inset-0 h-full w-full",
+            d.image_fit === "cover"
+              ? "object-cover"
+              : d.image_fit === "contain"
+                ? "object-contain"
+                : "object-cover opacity-30 mix-blend-overlay"
+          )}
         />
+      )}
+      {scrim && (
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
       )}
       <div className="relative">
         <h3 className="font-display text-lg leading-tight font-bold">
@@ -188,6 +251,30 @@ function BannerForm({
   const [d, setD] = useState<Draft>(initial);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) =>
     setD((prev) => ({ ...prev, [k]: v }));
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
+
+  const onPickImage = async (file: File | undefined) => {
+    if (!file) return;
+    setUploadErr(null);
+    setUploading(true);
+    try {
+      const blob = await resizeImage(file);
+      const fd = new FormData();
+      fd.append("file", blob, "banner.jpg");
+      const res = await uploadBannerImage(fd);
+      if (res.error) setUploadErr(res.error);
+      else if (res.url) {
+        set("image_url", res.url);
+        // À la 1re image, on bascule sur « pleine » si on était en texture.
+        if (d.image_fit === "overlay") set("image_fit", "cover");
+      }
+    } catch {
+      setUploadErr("Upload impossible. Réessayez.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className="border-border-strong space-y-4 rounded-[14px] border bg-white p-4">
@@ -259,15 +346,83 @@ function BannerForm({
         />
       </div>
 
-      <div>
-        <label className={LABEL}>Image de fond (URL, optionnel)</label>
-        <input
-          className={INPUT}
-          value={d.image_url}
-          maxLength={500}
-          onChange={(e) => set("image_url", e.target.value)}
-          placeholder="https://…  (sinon dégradé selon la couleur)"
-        />
+      {/* Image : upload (recommandé) + mode d'intégration */}
+      <div className="border-border-strong space-y-3 rounded-[12px] border border-dashed p-3">
+        <div>
+          <label className={LABEL}>Image de la bannière (optionnel)</label>
+          <p className="text-muted mb-2 text-[11px] leading-snug">
+            Format conseillé : ~1200×600 px (paysage). Toute image, même grande,
+            est automatiquement redimensionnée et intégrée au cadre — aucune
+            déformation. PNG, JPG ou WEBP, 5 Mo max.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="border-primary-200 text-primary-700 hover:bg-primary-50 inline-flex h-10 cursor-pointer items-center gap-2 rounded-[10px] border-[1.5px] px-3 text-sm font-bold">
+              {uploading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <ImagePlus className="size-4" />
+              )}
+              {d.image_url ? "Changer l'image" : "Téléverser une image"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                disabled={uploading}
+                onChange={(e) => {
+                  void onPickImage(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {d.image_url && (
+              <button
+                type="button"
+                onClick={() => set("image_url", "")}
+                className="text-danger-600 hover:bg-danger-50 inline-flex h-10 items-center gap-1.5 rounded-[10px] px-3 text-sm font-semibold"
+              >
+                <Trash2 className="size-4" /> Retirer
+              </button>
+            )}
+          </div>
+          {uploadErr && (
+            <p className="text-danger-700 mt-1.5 text-[12px] font-semibold">
+              {uploadErr}
+            </p>
+          )}
+          <input
+            className={cn(INPUT, "mt-2")}
+            value={d.image_url}
+            maxLength={500}
+            onChange={(e) => set("image_url", e.target.value)}
+            placeholder="… ou collez une URL d'image"
+          />
+        </div>
+
+        {d.image_url && (
+          <div>
+            <label className={LABEL}>Affichage de l&apos;image</label>
+            <div className="grid grid-cols-3 gap-2">
+              {FIT_OPTIONS.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => set("image_fit", o.value)}
+                  className={cn(
+                    "rounded-[10px] border px-2 py-2 text-[12px] font-bold transition-colors",
+                    d.image_fit === o.value
+                      ? "border-primary-600 bg-primary-50 text-primary-700"
+                      : "border-border-strong text-muted hover:bg-surface-2"
+                  )}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-muted mt-1 text-[11px]">
+              {FIT_OPTIONS.find((o) => o.value === d.image_fit)?.hint}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
