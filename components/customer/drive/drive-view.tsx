@@ -1877,7 +1877,7 @@ function MapPickScreen({
           ) : null}
         </div>
         {searchOpen && searchResults.length > 0 && (
-          <ul className="mt-1.5 max-h-60 overflow-auto rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
+          <ul className="mt-1.5 max-h-44 overflow-auto rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
             {searchResults.map((r, i) => (
               <li key={`${r.lat}-${r.lng}-${i}`} className="flex items-center">
                 <button

@@ -595,7 +595,7 @@ export function MapPositionPicker({
             ) : null}
           </div>
           {searchOpen && searchResults.length > 0 && (
-            <ul className="bg-surface border-border mt-1.5 max-h-64 overflow-auto rounded-[14px] border py-1 shadow-xl">
+            <ul className="bg-surface border-border mt-1.5 max-h-44 overflow-auto rounded-[14px] border py-1 shadow-xl">
               {searchResults.map((r, i) => (
                 <li key={i} className="flex items-center">
                   <button
