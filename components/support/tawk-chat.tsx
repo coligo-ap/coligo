@@ -6,15 +6,16 @@ import { useEffect } from "react";
  * Intégration Tawk.to (live chat support GRATUIT) — espaces CLIENT, LIVREUR et
  * COMMERÇANT.
  *
- * Stratégie « propre » :
- *  - Chargé UNIQUEMENT si configuré (NEXT_PUBLIC_TAWK_PROPERTY_ID) — sinon no-op.
- *  - Le LANCEUR flottant par défaut est MASQUÉ (il chevaucherait les barres de
- *    navigation/onglets des PWA). On ouvre le chat exclusivement via un bouton
- *    « Aide & support » / « Contacter le support » → openSupportChat().
- *  - Contexte MAX injecté pour l'agent humain : identité (nom, e-mail, tél),
- *    RÔLE (Client / Livreur / Commerçant) posé en attribut ET en tag, plus tout
- *    attribut additionnel (id, n° de commande, statut, boutique…). Objectif :
- *    l'agent sait immédiatement à qui il parle et sur quoi.
+ * Stratégie « zéro intrusion » :
+ *  - Tawk n'est JAMAIS chargé au chargement d'une page. Aucun widget, aucun
+ *    lanceur, aucun « flash » du bouton de chat qui apparaît puis disparaît.
+ *  - Le script Tawk est chargé À LA DEMANDE, uniquement quand l'utilisateur
+ *    clique « Aide & support » / « Contacter le support » → openSupportChat(),
+ *    qui ouvre alors directement la fenêtre de chat.
+ *  - <TawkChat> ne fait que MÉMORISER le contexte (rôle + identité) pour qu'au
+ *    moment de l'ouverture, l'agent humain ait tout le contexte : nom, e-mail,
+ *    tél, RÔLE (Client/Livreur/Commerçant) en attribut + tag, et attributs
+ *    additionnels (id, n° de commande, statut, boutique…).
  *
  * Compte gratuit sur tawk.to puis dans .env(.local) ET sur Vercel :
  *   NEXT_PUBLIC_TAWK_PROPERTY_ID=<property id>
@@ -71,10 +72,37 @@ export function isSupportConfigured(): boolean {
   return !!PROPERTY_ID || !!process.env.NEXT_PUBLIC_SUPPORT_EMAIL;
 }
 
+// Contexte courant (rôle + identité), posé par <TawkChat>. Sert à renseigner
+// l'agent au moment de l'ouverture du chat. Aucun chargement de script ici.
+let ctx: {
+  role: SupportRole;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  attributes?: SupportAttributes;
+} | null = null;
+
+/** Pose le contexte (identité + rôle + extras) sur l'API Tawk déjà chargée. */
+function applyContext(w: TawkWindow, extra?: SupportAttributes) {
+  try {
+    const attrs = cleanAttrs({
+      name: ctx?.name,
+      email: ctx?.email,
+      phone: ctx?.phone,
+      role: ctx ? ROLE_LABEL[ctx.role] : undefined,
+      ...(ctx?.attributes ?? {}),
+      ...(extra ?? {}),
+    });
+    if (Object.keys(attrs).length) w.Tawk_API?.setAttributes?.(attrs, () => {});
+    if (ctx) w.Tawk_API?.addTags?.([ROLE_LABEL[ctx.role]], () => {});
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
- * Ouvre le chat support (le lanceur par défaut étant masqué). On peut joindre
- * un n° de commande (`orderRef`) et tout attribut additionnel pour l'agent.
- * Repli e-mail si le chat n'est pas chargé.
+ * Ouvre le chat support. Charge Tawk À LA DEMANDE s'il ne l'est pas encore
+ * (jamais au chargement de page). Repli e-mail si Tawk n'est pas configuré.
  */
 export function openSupportChat(opts?: {
   orderRef?: string | null;
@@ -82,21 +110,61 @@ export function openSupportChat(opts?: {
 }): void {
   if (typeof window === "undefined") return;
   const w = window as TawkWindow;
-  const api = w.Tawk_API;
-  if (api && typeof api.maximize === "function") {
+  const extra: SupportAttributes = {
+    ...(opts?.attributes ?? {}),
+    ...(opts?.orderRef ? { commande: opts.orderRef } : {}),
+  };
+
+  // 1) Déjà chargé → on pose les attributs + on ouvre directement.
+  if (w.__tawkLoaded && typeof w.Tawk_API?.maximize === "function") {
     try {
-      const attrs = cleanAttrs({
-        ...(opts?.attributes ?? {}),
-        ...(opts?.orderRef ? { commande: opts.orderRef } : {}),
-      });
-      if (Object.keys(attrs).length) api.setAttributes?.(attrs, () => {});
-      api.showWidget?.();
-      api.maximize();
+      applyContext(w, extra);
+      w.Tawk_API.showWidget?.();
+      w.Tawk_API.maximize();
       return;
     } catch {
       /* repli ci-dessous */
     }
   }
+
+  // 2) Pas encore chargé mais Tawk configuré → on charge MAINTENANT, puis on
+  //    ouvre la fenêtre dès que prêt (onLoad). Le lanceur flottant reste masqué.
+  if (PROPERTY_ID) {
+    w.Tawk_API = w.Tawk_API || {};
+    w.Tawk_API.onLoad = function () {
+      try {
+        applyContext(w, extra);
+        w.Tawk_API?.showWidget?.();
+        w.Tawk_API?.maximize?.();
+      } catch {
+        /* ignore */
+      }
+    };
+    // Réduire le chat → re-masquer le lanceur (pas de bulle flottante résiduelle).
+    w.Tawk_API.onChatMinimized = function () {
+      try {
+        w.Tawk_API?.hideWidget?.();
+      } catch {
+        /* ignore */
+      }
+    };
+    // Si un chargement est déjà en cours (double-clic), onLoad ouvrira — on sort.
+    if (document.getElementById("tawk-embed")) return;
+    w.Tawk_LoadStart = new Date();
+    const s = document.createElement("script");
+    s.id = "tawk-embed";
+    s.async = true;
+    s.src = `https://embed.tawk.to/${PROPERTY_ID}/${WIDGET_ID}`;
+    s.charset = "UTF-8";
+    s.setAttribute("crossorigin", "*");
+    s.onload = () => {
+      w.__tawkLoaded = true;
+    };
+    document.body.appendChild(s);
+    return;
+  }
+
+  // 3) Tawk non configuré → repli e-mail.
   const mail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL;
   if (mail) {
     const subject = opts?.orderRef
@@ -122,69 +190,18 @@ export function TawkChat({
   /** Attributs additionnels propres au rôle (id, boutique, vérifié…). */
   attributes?: SupportAttributes;
 }) {
-  // Clé stable pour ne pas re-déclencher l'effet à chaque rendu d'un objet
-  // littéral identique (les attributs viennent d'un Server Component).
   const attrKey = JSON.stringify(attributes ?? {});
 
   useEffect(() => {
-    if (!PROPERTY_ID) return;
-    const w = window as TawkWindow;
-
-    const setAttrs = () => {
-      try {
-        const attrs = cleanAttrs({
-          name,
-          email,
-          phone,
-          role: ROLE_LABEL[role],
-          ...(attributes ?? {}),
-        });
-        w.Tawk_API?.setAttributes?.(attrs, () => {});
-        // Tag de rôle → l'agent filtre/route instantanément Client/Livreur/Commerçant.
-        w.Tawk_API?.addTags?.([ROLE_LABEL[role]], () => {});
-      } catch {
-        /* ignore */
-      }
-    };
-
-    // Déjà chargé (navigation interne) → juste (re)poser les attributs.
-    if (w.__tawkLoaded) {
-      setAttrs();
-      return;
-    }
-
-    w.Tawk_API = w.Tawk_API || {};
-    const prevOnLoad = w.Tawk_API.onLoad;
-    w.Tawk_API.onLoad = function () {
-      try {
-        w.Tawk_API?.hideWidget?.(); // masque le lanceur flottant
-      } catch {
-        /* ignore */
-      }
-      setAttrs();
-      prevOnLoad?.();
-    };
-    // Quand l'utilisateur réduit le chat, on re-masque le lanceur.
-    w.Tawk_API.onChatMinimized = function () {
-      try {
-        w.Tawk_API?.hideWidget?.();
-      } catch {
-        /* ignore */
-      }
-    };
-
-    if (!document.getElementById("tawk-embed")) {
-      w.Tawk_LoadStart = new Date();
-      const s = document.createElement("script");
-      s.id = "tawk-embed";
-      s.async = true;
-      s.src = `https://embed.tawk.to/${PROPERTY_ID}/${WIDGET_ID}`;
-      s.charset = "UTF-8";
-      s.setAttribute("crossorigin", "*");
-      s.onload = () => {
-        w.__tawkLoaded = true;
-      };
-      document.body.appendChild(s);
+    // On NE charge PAS Tawk ici : on mémorise seulement le contexte pour que
+    // openSupportChat (au clic « Aide & support ») charge + ouvre le chat avec
+    // les bons attributs. → le widget ne s'affiche JAMAIS au chargement de page.
+    ctx = { role, name, email, phone, attributes };
+    // Si l'utilisateur a déjà ouvert le chat puis navigué (Tawk chargé), on
+    // rafraîchit les attributs en silence (sans rien ré-afficher).
+    if (typeof window !== "undefined") {
+      const w = window as TawkWindow;
+      if (w.__tawkLoaded) applyContext(w);
     }
     // attrKey couvre les changements d'`attributes` (objet littéral).
     // eslint-disable-next-line react-hooks/exhaustive-deps
