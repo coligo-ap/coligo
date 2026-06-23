@@ -18,6 +18,31 @@ import pg from "pg";
 import { getDbUrl } from "./_supabase.mjs";
 import { isTowardsHome, bearingDeg, angularDiff } from "../lib/drive/geo.ts";
 
+// Miroir EXACT de isPushEligible (lib/chauffeur/dispatch-filter.ts) — on évite
+// d'importer le module aliasé « @/ » (non résolu par node) ; la logique de
+// direction repose sur le VRAI isTowardsHome importé ci-dessus.
+function isPushEligible(ride, ch) {
+  if (ch.radiusKm != null) {
+    const r = Math.min(20, Math.max(3, ch.radiusKm));
+    if (ch.distKm > r) return false;
+  }
+  const active = ch.homeDirActive && ch.homeLat != null && ch.homeLng != null;
+  if (!active) return true;
+  if (
+    ride.pickup_lat == null ||
+    ride.dest_lat == null ||
+    ride.pickup_lng == null ||
+    ride.dest_lng == null
+  )
+    return true;
+  return isTowardsHome(
+    { lat: ride.pickup_lat, lng: ride.pickup_lng },
+    { lat: ride.dest_lat, lng: ride.dest_lng },
+    { lat: ch.homeLat, lng: ch.homeLng },
+    ch.tolerance
+  );
+}
+
 const CUST_USER = "00000000-0000-4000-8000-000820591480"; // auth client de test
 const CHU_USER = "22222222-2222-4222-8222-222222222222"; // auth chauffeur de test
 
@@ -282,6 +307,76 @@ try {
     ok(
       "cap pickup→maison ≈ Nord (0°/360°)",
       [0, 360].some((b) => angularDiff(bearingDeg(pickup, home), b) < 5)
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // SCÉNARIO 5 — Éligibilité du PUSH (rayon + « je rentre chez moi »)
+  // Même règle que les écrans (isPushEligible) → cohérence push ⇄ liste.
+  // ───────────────────────────────────────────────────────────────────────
+  console.log("\n=== Scénario 5 : éligibilité du PUSH ===");
+  {
+    const home = { lat: 36.9, lng: 3.06 }; // domicile au nord
+    const rideToHome = {
+      pickup_lat: 36.75,
+      pickup_lng: 3.06,
+      dest_lat: 36.87,
+      dest_lng: 3.06,
+    };
+    const rideAway = {
+      pickup_lat: 36.75,
+      pickup_lng: 3.06,
+      dest_lat: 36.63,
+      dest_lng: 3.06,
+    };
+    const base = {
+      homeDirActive: false,
+      homeLat: home.lat,
+      homeLng: home.lng,
+      tolerance: 45,
+    };
+
+    // Rayon : départ à 5 km, rayon 3 → exclu ; rayon 10 → inclus ; null → inclus.
+    ok(
+      "push exclu si départ hors du rayon choisi (5km > 3km)",
+      isPushEligible(rideToHome, { ...base, distKm: 5, radiusKm: 3 }) === false
+    );
+    ok(
+      "push inclus si départ dans le rayon (5km ≤ 10km)",
+      isPushEligible(rideToHome, { ...base, distKm: 5, radiusKm: 10 }) === true
+    );
+    ok(
+      "rayon non personnalisé (null) ⇒ pas de restriction de rayon",
+      isPushEligible(rideToHome, { ...base, distKm: 5, radiusKm: null }) ===
+        true
+    );
+    // « Je rentre chez moi » actif : course à l'opposé = pas de push.
+    ok(
+      "home-dir actif : push EXCLU pour une course à l'opposé du domicile",
+      isPushEligible(rideAway, {
+        ...base,
+        homeDirActive: true,
+        distKm: 1,
+        radiusKm: null,
+      }) === false
+    );
+    ok(
+      "home-dir actif : push INCLUS pour une course vers le domicile",
+      isPushEligible(rideToHome, {
+        ...base,
+        homeDirActive: true,
+        distKm: 1,
+        radiusKm: null,
+      }) === true
+    );
+    ok(
+      "home-dir inactif : push INCLUS même pour une course à l'opposé",
+      isPushEligible(rideAway, {
+        ...base,
+        homeDirActive: false,
+        distKm: 1,
+        radiusKm: null,
+      }) === true
     );
   }
 

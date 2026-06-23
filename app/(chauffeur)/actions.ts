@@ -346,6 +346,8 @@ export type ChauffeurGate = {
   homeLat: number | null;
   homeLng: number | null;
   homeDirToleranceDeg: number;
+  /** « Je rentre chez moi » actif (état serveur, source de vérité). */
+  homeDirActive: boolean;
   rating: number | null;
   ridesCount: number;
   memberSince: string;
@@ -362,31 +364,52 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
   const admin = createAdminClient();
   // PERF : 4 allers-retours indépendants (profil, note moyenne, nb courses,
   // réglage tolérance) lancés EN PARALLÈLE au lieu d'une cascade séquentielle.
-  const [{ data }, { data: avg }, { count }, { data: st }] = await Promise.all([
-    admin
-      .from("chauffeurs")
-      .select(
-        "id, full_name, first_name, phone, gamme, is_verified, is_frozen, is_blocked, frozen_reason, submitted_at, rejected_reason, home_addr_text, home_lat, home_lng, created_at, is_female_verified, vehicle_make, vehicle_model, vehicle_color, vehicle_plate, selfie_url"
-      )
-      .eq("id", ch.id)
-      .maybeSingle(),
-    admin
-      .from("rides")
-      .select("chauffeur_rating.avg()")
-      .eq("chauffeur_id", ch.id)
-      .not("chauffeur_rating", "is", null)
-      .maybeSingle(),
-    admin
-      .from("rides")
-      .select("id", { count: "exact", head: true })
-      .eq("chauffeur_id", ch.id)
-      .eq("status", "completed"),
-    admin
-      .from("platform_settings")
-      .select("drive_home_dir_tolerance_deg")
-      .eq("id", true)
-      .maybeSingle(),
-  ]);
+  // `home_dir_active` (mig 0245) n'est pas dans les types générés → lecture
+  // casted localisée (la requête principale reste typée).
+  const hdQuery = (
+    admin.from("chauffeurs") as unknown as {
+      select: (s: string) => {
+        eq: (
+          c: string,
+          v: string
+        ) => {
+          maybeSingle: () => Promise<{
+            data: { home_dir_active: boolean | null } | null;
+          }>;
+        };
+      };
+    }
+  )
+    .select("home_dir_active")
+    .eq("id", ch.id)
+    .maybeSingle();
+  const [{ data }, { data: avg }, { count }, { data: st }, { data: hd }] =
+    await Promise.all([
+      admin
+        .from("chauffeurs")
+        .select(
+          "id, full_name, first_name, phone, gamme, is_verified, is_frozen, is_blocked, frozen_reason, submitted_at, rejected_reason, home_addr_text, home_lat, home_lng, created_at, is_female_verified, vehicle_make, vehicle_model, vehicle_color, vehicle_plate, selfie_url"
+        )
+        .eq("id", ch.id)
+        .maybeSingle(),
+      admin
+        .from("rides")
+        .select("chauffeur_rating.avg()")
+        .eq("chauffeur_id", ch.id)
+        .not("chauffeur_rating", "is", null)
+        .maybeSingle(),
+      admin
+        .from("rides")
+        .select("id", { count: "exact", head: true })
+        .eq("chauffeur_id", ch.id)
+        .eq("status", "completed"),
+      admin
+        .from("platform_settings")
+        .select("drive_home_dir_tolerance_deg")
+        .eq("id", true)
+        .maybeSingle(),
+      hdQuery,
+    ]);
   if (!data) return null;
   const rating = (avg as { avg?: number } | null)?.avg;
   const tolerance = st?.drive_home_dir_tolerance_deg ?? 45;
@@ -408,6 +431,7 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
     homeLat: data.home_lat,
     homeLng: data.home_lng,
     homeDirToleranceDeg: tolerance,
+    homeDirActive: !!hd?.home_dir_active,
     rating: rating == null ? null : Math.round(Number(rating) * 10) / 10,
     ridesCount: count ?? 0,
     memberSince: data.created_at,
@@ -1274,6 +1298,16 @@ export async function activateHomeDir(): Promise<{
           ? "Renseignez d'abord votre adresse domicile."
           : row?.reason,
   };
+}
+
+/**
+ * Désactive « Je rentre chez moi » (retire le flag serveur). Le quota du jour
+ * reste consommé. Source de vérité pour que le PUSH respecte le filtre.
+ */
+export async function deactivateHomeDir(): Promise<{ ok: boolean }> {
+  const rpc = await rpcClient();
+  await rpc("chauffeur_home_dir_deactivate", {});
+  return { ok: true };
 }
 
 export type ChauffeurHistoryRide = {

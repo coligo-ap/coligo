@@ -44,11 +44,16 @@ import {
   setChauffeurOnlineLocal,
   useChauffeurOnline,
 } from "@/lib/chauffeur/online-store";
-import { useHomeDirOn, setHomeDirOn } from "@/lib/chauffeur/home-dir-store";
+import {
+  useHomeDirOn,
+  setHomeDirOn,
+  getHomeDirOn,
+} from "@/lib/chauffeur/home-dir-store";
 import { isOpenDemande } from "@/lib/chauffeur/dispatch-filter";
 import { getMyWalletState } from "@/app/wallet/recharge-actions";
 import {
   activateHomeDir,
+  deactivateHomeDir,
   chauffeurHeartbeat,
   declineRide,
   getChauffeurActiveRide,
@@ -111,6 +116,13 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   // État RÉACTIF partagé (Accueil ⇄ Demandes) — plus de lecture localStorage
   // au montage qui désynchronisait les écrans.
   const dirOn = useHomeDirOn();
+  // Le SERVEUR est la source de vérité (gate.homeDirActive, mig 0245) : on aligne
+  // le store client dessus au montage pour éviter toute dérive (et donc que le
+  // push respecte exactement l'état affiché).
+  useEffect(() => {
+    if (gate.homeDirActive !== getHomeDirOn()) setHomeDirOn(gate.homeDirActive);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Filtre « je rentre chez moi » PARTAGÉ avec la page Demandes (compteur =
   // liste). Domicile + tolérance viennent du gate (config admin).
   const homeFilter = useMemo(
@@ -387,6 +399,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     setDirMsg(null);
     if (dirOn) {
       setHomeDirOn(false);
+      void deactivateHomeDir(); // retire le flag serveur (cohérence push)
       return;
     }
     const res = await activateHomeDir();

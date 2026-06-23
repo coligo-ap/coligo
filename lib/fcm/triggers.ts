@@ -18,6 +18,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDA } from "@/lib/utils";
 import type { OrderStatus } from "@/lib/types";
 import { labelFor } from "@/lib/chat/messages";
+import { isPushEligible } from "@/lib/chauffeur/dispatch-filter";
 import { sendFcm } from "./send";
 
 async function tokensFor(
@@ -309,7 +310,7 @@ export async function notifyChauffeursNewRide(input: {
     const { data: ride } = await admin
       .from("rides")
       .select(
-        "status, chauffeur_id, customer_id, pickup_lat, pickup_lng, proposed_price_da, boost_amount_da, gamme, female_only, payment_method, online_paid_at"
+        "status, chauffeur_id, customer_id, pickup_lat, pickup_lng, dest_lat, dest_lng, proposed_price_da, boost_amount_da, gamme, female_only, payment_method, online_paid_at"
       )
       .eq("id", input.rideId)
       .maybeSingle();
@@ -344,36 +345,65 @@ export async function notifyChauffeursNewRide(input: {
         | { user_id: string; chauffeur_id: string; dist_km: number }[]
         | null) ?? [];
 
-    // COHÉRENCE push ⇄ liste : ne notifier un chauffeur QUE si le départ est
-    // dans SON rayon choisi (« ma zone », work_zone_radius_km, clampé 3..20).
-    // Sinon il recevait un push pour une course absente de sa liste. Rayon non
-    // personnalisé (NULL) → on garde le comportement historique (8 km).
+    // COHÉRENCE push ⇄ liste : ne notifier un chauffeur QUE pour une course
+    // qu'il VERRAIT réellement — dans SON rayon (« ma zone ») ET conforme à
+    // « je rentre chez moi » s'il l'a activé. Mêmes règles que les écrans
+    // (fonction pure isPushEligible). Rayon non personnalisé (NULL) → pas de
+    // restriction de rayon (comportement historique 8 km).
     const chIds = [
       ...new Set(nearList.map((r) => r.chauffeur_id).filter(Boolean)),
     ];
-    const radiusByCh = new Map<string, number | null>();
+    type ChRow = {
+      id: string;
+      work_zone_radius_km: number | null;
+      home_dir_active: boolean | null;
+      home_lat: number | null;
+      home_lng: number | null;
+    };
+    const chById = new Map<string, ChRow>();
+    let tolerance = 45;
     if (chIds.length) {
-      // `work_zone_radius_km` n'est pas dans les types générés → cast local.
+      // Colonnes hors types générés → cast local.
       const chTable = admin.from("chauffeurs") as unknown as {
         select: (s: string) => {
-          in: (
-            c: string,
-            v: string[]
-          ) => Promise<{
-            data: { id: string; work_zone_radius_km: number | null }[] | null;
-          }>;
+          in: (c: string, v: string[]) => Promise<{ data: ChRow[] | null }>;
         };
       };
-      const { data: radii } = await chTable
-        .select("id, work_zone_radius_km")
-        .in("id", chIds);
-      for (const r of radii ?? []) radiusByCh.set(r.id, r.work_zone_radius_km);
+      const [{ data: rows }, { data: st }] = await Promise.all([
+        chTable
+          .select(
+            "id, work_zone_radius_km, home_dir_active, home_lat, home_lng"
+          )
+          .in("id", chIds),
+        admin
+          .from("platform_settings")
+          .select("drive_home_dir_tolerance_deg")
+          .eq("id", true)
+          .maybeSingle(),
+      ]);
+      for (const r of rows ?? []) chById.set(r.id, r);
+      tolerance =
+        (st as { drive_home_dir_tolerance_deg: number } | null)
+          ?.drive_home_dir_tolerance_deg ?? 45;
     }
+
+    const rideGeo = {
+      pickup_lat: ride.pickup_lat,
+      pickup_lng: ride.pickup_lng,
+      dest_lat: ride.dest_lat,
+      dest_lng: ride.dest_lng,
+    };
     const eligible = nearList.filter((r) => {
-      const raw = radiusByCh.get(r.chauffeur_id);
-      if (raw == null) return true; // rayon non personnalisé → comportement 8 km
-      const radius = Math.min(20, Math.max(3, Number(raw)));
-      return Number(r.dist_km) <= radius;
+      const ch = chById.get(r.chauffeur_id);
+      if (!ch) return true; // pas d'info → comportement historique
+      return isPushEligible(rideGeo, {
+        distKm: Number(r.dist_km),
+        radiusKm: ch.work_zone_radius_km,
+        homeDirActive: !!ch.home_dir_active,
+        homeLat: ch.home_lat,
+        homeLng: ch.home_lng,
+        tolerance,
+      });
     });
 
     const userIds = [
