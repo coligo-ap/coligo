@@ -1,15 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Check, Loader2, MapPin, Navigation, X } from "lucide-react";
+import {
+  Bookmark,
+  Check,
+  ChevronRight,
+  History,
+  Loader2,
+  LocateFixed,
+  Map as MapIcon,
+  MapPin,
+  Search,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
-import { WILAYAS } from "@/lib/config/wilayas";
-import { getCommunes } from "@/lib/config/communes";
+import { Portal } from "@/components/ui/portal";
 import { useGeolocation } from "@/lib/hooks/use-geolocation";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import {
@@ -19,65 +26,139 @@ import {
 import {
   reverseGeocode,
   updateCustomerLocation,
+  geocodeSearch,
+  listFavoritePlaces,
+  listRecentPlaces,
+  recordPlacePick,
+  type FavPlace,
 } from "@/app/(customer)/actions";
-// Reverse géocodage PRÉCIS (zoom 18 : rue/quartier) pour le libellé exact
-// affiché dans le header — distinct du reverseGeocode serveur (zoom 12 = zone).
+// Reverse géocodage PRÉCIS (zoom 18 : rue/quartier) pour le libellé exact.
 import { reverseGeocode as reverseGeocodeAddress } from "@/lib/geo/geocode";
 
 type Props = {
-  /** Affiche un bouton "Annuler" / "Fermer" en haut à droite. */
   onClose?: () => void;
-  /** Localisation actuelle pour préselectionner les champs. */
   initial: CustomerLocation | null;
 };
 
-type Detected = {
-  wilaya_code: string | null;
-  wilaya_name: string | null;
-  commune: string | null;
+type SearchHit = {
   display: string;
+  secondary?: string;
+  lat: number;
+  lng: number;
 };
 
 export function LocationPicker({ onClose, initial }: Props) {
   const t = useTranslations("account");
-  // Placeholder de la recherche d'adresse sur carte (clé partagée checkout).
   const tCheckout = useTranslations("checkout");
-  const [wilaya, setWilaya] = useState(initial?.wilaya_code ?? "");
-  const [commune, setCommune] = useState(initial?.commune ?? "");
-  const [saving, setSaving] = useState(false);
-  const [resolving, setResolving] = useState(false);
-  const [detected, setDetected] = useState<Detected | null>(null);
-  // Coordonnées ajustées via la carte (après GPS ou clic carte).
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
-    initial?.latitude != null && initial?.longitude != null
-      ? { lat: initial.latitude, lng: initial.longitude }
-      : null
-  );
-  // Cible de recentrage IMPÉRATIF de la carte (posée par le bouton « ma
-  // position »). Identité séparée de `coords` (alimenté par les déplacements de
-  // carte) pour éviter toute boucle recentrage ↔ moveend.
-  const [flyTarget, setFlyTarget] = useState<{
-    lat: number;
-    lng: number;
-    zoom?: number;
-  } | null>(null);
   const geo = useGeolocation();
 
-  const communes = useMemo(() => getCommunes(wilaya), [wilaya]);
-  useEffect(() => {
-    // Si on change de wilaya, on reset la commune si elle n'est plus listée.
-    if (commune && !communes.includes(commune)) setCommune("");
-  }, [wilaya, commune, communes]);
+  const initialCoords =
+    initial?.latitude != null && initial?.longitude != null
+      ? { lat: initial.latitude, lng: initial.longitude }
+      : null;
 
-  async function save(loc: Partial<CustomerLocation>) {
+  const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState<null | "gps">(null);
+
+  // Recherche d'emplacement (forward geocoding).
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<SearchHit[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  // Adresses enregistrées (favoris) + lieux précédents (historique).
+  const [favs, setFavs] = useState<FavPlace[]>([]);
+  const [recents, setRecents] = useState<FavPlace[]>([]);
+
+  // Page « carte plein écran ».
+  const [mapOpen, setMapOpen] = useState(false);
+  const [mapCoords, setMapCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(initialCoords);
+
+  // Charge favoris + historique à l'ouverture (best-effort, non connecté = vide).
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const [f, r] = await Promise.all([
+        listFavoritePlaces(),
+        listRecentPlaces(),
+      ]);
+      if (!alive) return;
+      setFavs(f);
+      setRecents(r);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Recherche débouncée.
+  useEffect(() => {
+    const query = q.trim();
+    if (query.length < 3) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const id = window.setTimeout(async () => {
+      const res = await geocodeSearch({
+        q: query,
+        lat: initialCoords?.lat,
+        lng: initialCoords?.lng,
+      });
+      setResults(res.ok ? res.results : []);
+      setSearching(false);
+    }, 300);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  // Enregistre un emplacement (lat/lng + libellé) comme adresse de livraison.
+  async function savePlace(p: {
+    lat: number;
+    lng: number;
+    label?: string | null;
+  }) {
     setSaving(true);
     try {
-      writeStoredLocation(loc);
+      let w: string | null = null;
+      let c: string | null = null;
+      try {
+        const res = await reverseGeocode({ latitude: p.lat, longitude: p.lng });
+        if (res.ok) {
+          w = res.wilaya_code ?? null;
+          c = res.commune ?? null;
+        }
+      } catch {
+        /* reverse-geocode indispo → on enregistre quand même les coords */
+      }
+      let address = p.label ?? null;
+      if (!address) {
+        try {
+          address = await reverseGeocodeAddress(p.lat, p.lng);
+        } catch {
+          /* géocodage indispo */
+        }
+      }
+      writeStoredLocation({
+        latitude: p.lat,
+        longitude: p.lng,
+        wilaya_code: w,
+        commune: c,
+        address,
+      });
       await updateCustomerLocation({
-        wilaya_code: loc.wilaya_code ?? null,
-        commune: loc.commune ?? null,
-        latitude: loc.latitude ?? null,
-        longitude: loc.longitude ?? null,
+        wilaya_code: w,
+        commune: c,
+        latitude: p.lat,
+        longitude: p.lng,
+      });
+      void recordPlacePick({
+        lat: p.lat,
+        lng: p.lng,
+        label: address ?? ([c, w].filter(Boolean).join(", ") || "—"),
       });
       toast.success(t("locationSaved"));
       onClose?.();
@@ -87,117 +168,31 @@ export function LocationPicker({ onClose, initial }: Props) {
   }
 
   async function useGps() {
-    setDetected(null);
-    const gpsCoords = await geo.requestOnce();
-    if (!gpsCoords) {
-      // Échec NON bloquant : la carte reste là pour choisir à la main.
-      toast.error(
-        geo.error?.kind === "denied" ? t("permissionDenied") : t("geolocFailed")
-      );
-      return;
-    }
-    setCoords({ lat: gpsCoords.latitude, lng: gpsCoords.longitude });
-    setFlyTarget({
-      lat: gpsCoords.latitude,
-      lng: gpsCoords.longitude,
-      zoom: 17,
-    });
-
-    // Reverse-geocoding pour identifier wilaya + commune à partir des GPS
-    // (pré-remplit les selects, le user pourra ajuster avant de valider).
-    setResolving(true);
+    setBusy("gps");
     try {
-      const res = await reverseGeocode({
-        latitude: gpsCoords.latitude,
-        longitude: gpsCoords.longitude,
-      });
-      if (res.ok) {
-        if (res.wilaya_code) setWilaya(res.wilaya_code);
-        if (res.commune) setCommune(res.commune);
-        setDetected({
-          wilaya_code: res.wilaya_code ?? null,
-          wilaya_name: res.wilaya_name ?? null,
-          commune: res.commune ?? null,
-          display:
-            res.display ??
-            [res.commune, res.wilaya_name].filter(Boolean).join(" · "),
-        });
+      const gps = await geo.requestOnce();
+      if (!gps) {
+        toast.error(
+          geo.error?.kind === "denied"
+            ? t("permissionDenied")
+            : t("geolocFailed")
+        );
+        return;
       }
+      await savePlace({ lat: gps.latitude, lng: gps.longitude });
     } finally {
-      setResolving(false);
+      setBusy(null);
     }
-    // NB : on N'ENREGISTRE PAS automatiquement. Le user voit sa position sur
-    // la carte et clique "Confirmer ma position" pour valider/ajuster.
   }
 
-  async function confirmFromMap() {
-    if (!coords) {
-      toast.error(t("positionNotSet"));
-      return;
-    }
-    // Si aucune wilaya n'est encore choisie (point posé directement sur la
-    // carte), on reverse-géocode le point pour déduire wilaya + commune → la
-    // marketplace peut filtrer par zone. Échec silencieux (on garde les coords).
-    let w = wilaya;
-    let c = commune;
-    if (!w) {
-      setResolving(true);
-      try {
-        const res = await reverseGeocode({
-          latitude: coords.lat,
-          longitude: coords.lng,
-        });
-        if (res.ok) {
-          w = res.wilaya_code ?? w;
-          c = res.commune ?? c;
-        }
-      } catch {
-        /* reverse-geocode indispo : on enregistre quand même les coordonnées */
-      } finally {
-        setResolving(false);
-      }
-    }
-    // Adresse EXACTE lisible du point confirmé → affichée dans le header pour
-    // que le client soit sûr que sa position précise est prise en compte.
-    // Échec silencieux : on enregistre quand même (le header retombe alors sur
-    // commune · wilaya).
-    let address: string | null = null;
-    try {
-      address = await reverseGeocodeAddress(coords.lat, coords.lng);
-    } catch {
-      /* géocodage indispo */
-    }
-    await save({
-      latitude: coords.lat,
-      longitude: coords.lng,
-      wilaya_code: w || null,
-      commune: c || null,
-      address,
-    });
-  }
-
-  function saveManual(e: React.FormEvent) {
-    e.preventDefault();
-    if (!wilaya) {
-      toast.error(t("chooseWilaya"));
-      return;
-    }
-    // Choix manuel d'une zone (pas un point précis) → on EFFACE l'adresse
-    // exacte pour que le header affiche bien « commune · wilaya ».
-    void save({ wilaya_code: wilaya, commune: commune || null, address: null });
-  }
-
-  const gpsLoading = geo.loading || resolving;
-  const gpsActive = !!detected;
+  const disabled = saving || busy != null;
 
   return (
-    <div className="space-y-5">
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-foreground text-lg font-bold">
-            {t("whereToOrder")}
-          </h2>
-        </div>
+    <div className="space-y-4">
+      <header className="flex items-center justify-between gap-3">
+        <h2 className="text-foreground text-lg font-bold">
+          {t("whereToOrder")}
+        </h2>
         {onClose && (
           <button
             type="button"
@@ -210,135 +205,222 @@ export function LocationPicker({ onClose, initial }: Props) {
         )}
       </header>
 
-      <Button
-        type="button"
-        size="lg"
-        variant="outline"
-        className={cn(
-          "w-full",
-          gpsActive &&
-            "border-success-300 bg-success-50 text-success-800 hover:bg-success-100 hover:text-success-900"
+      {/* ─── Barre de recherche d'emplacement ─── */}
+      <div className="border-border bg-surface-2 flex items-center gap-2.5 rounded-[13px] px-3.5 py-3">
+        <Search className="text-muted size-4 shrink-0" />
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t("searchLocationPlaceholder")}
+          className="placeholder:text-hint text-foreground w-full bg-transparent text-sm font-medium outline-none"
+        />
+        {searching && (
+          <Loader2 className="text-muted size-4 shrink-0 animate-spin" />
         )}
-        onClick={useGps}
-        disabled={gpsLoading || saving}
-      >
-        {gpsLoading ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : gpsActive ? (
-          <Check className="text-success-700 size-4" />
-        ) : (
-          <Navigation className="size-4" />
+        {!searching && q && (
+          <button
+            type="button"
+            onClick={() => setQ("")}
+            aria-label={t("close")}
+            className="text-muted hover:text-foreground shrink-0"
+          >
+            <X className="size-4" />
+          </button>
         )}
-        {gpsLoading
-          ? resolving
-            ? t("detectingZone")
-            : t("locating")
-          : gpsActive
-            ? t("myPosition", { display: detected!.display })
-            : t("useMyPosition")}
-      </Button>
+      </div>
 
-      {gpsActive && !detected!.wilaya_code && (
-        <p className="text-warning-700 -mt-2 text-xs">
-          {t("wilayaNotRecognized")}
-        </p>
+      {/* Résultats de recherche (remplacent les options tant qu'on tape). */}
+      {q.trim().length >= 3 ? (
+        <div className="divide-border border-border divide-y overflow-hidden rounded-[13px] border">
+          {results.length === 0 && !searching ? (
+            <p className="text-muted px-4 py-3 text-sm">
+              {t("noSearchResults")}
+            </p>
+          ) : (
+            results.map((r, i) => (
+              <PlaceRow
+                key={`${r.lat}-${r.lng}-${i}`}
+                icon={<MapPin className="size-[18px]" />}
+                title={r.display}
+                sub={r.secondary}
+                onClick={() =>
+                  savePlace({ lat: r.lat, lng: r.lng, label: r.display })
+                }
+                disabled={disabled}
+              />
+            ))
+          )}
+        </div>
+      ) : (
+        <>
+          {/* ─── Actions principales ─── */}
+          <div className="divide-border border-border divide-y overflow-hidden rounded-[13px] border">
+            <PlaceRow
+              icon={<MapIcon className="size-[18px]" />}
+              title={t("selectOnMap")}
+              onClick={() => setMapOpen(true)}
+              disabled={disabled}
+            />
+            <PlaceRow
+              icon={
+                busy === "gps" ? (
+                  <Loader2 className="size-[18px] animate-spin" />
+                ) : (
+                  <LocateFixed className="size-[18px]" />
+                )
+              }
+              title={t("myCurrentPosition")}
+              onClick={useGps}
+              disabled={disabled}
+            />
+          </div>
+
+          {/* ─── Adresses enregistrées (si présentes) ─── */}
+          {favs.length > 0 && (
+            <Section title={t("savedAddresses")}>
+              {favs.map((p, i) => (
+                <PlaceRow
+                  key={`fav-${i}`}
+                  icon={<Bookmark className="size-[18px]" />}
+                  title={p.label}
+                  onClick={() =>
+                    savePlace({ lat: p.lat, lng: p.lng, label: p.label })
+                  }
+                  disabled={disabled}
+                />
+              ))}
+            </Section>
+          )}
+
+          {/* ─── Lieux précédents (si présents) ─── */}
+          {recents.length > 0 && (
+            <Section title={t("previousPlaces")}>
+              {recents.map((p, i) => (
+                <PlaceRow
+                  key={`rec-${i}`}
+                  icon={<History className="size-[18px]" />}
+                  title={p.label}
+                  onClick={() =>
+                    savePlace({ lat: p.lat, lng: p.lng, label: p.label })
+                  }
+                  disabled={disabled}
+                />
+              ))}
+            </Section>
+          )}
+        </>
       )}
 
-      {/* Carte TOUJOURS visible : choisir directement en déplaçant la carte,
-          recentrer sur sa position (bouton GPS sur la carte), ou agrandir en
-          plein écran (bouton ⤢). Auto-centrage sur la position actuelle à
-          l'ouverture si aucune position mémorisée. */}
-      <div className="border-primary-200 bg-primary-50/40 space-y-2 rounded-[12px] border p-3">
-        <p className="text-sm font-semibold">{t("adjustExactPosition")}</p>
-        <MapPositionPicker
-          initial={coords ?? undefined}
-          autoLocate={coords == null}
-          focusTarget={flyTarget}
-          onChange={(p) => setCoords(p)}
-          gpsLabel={t("useMyPosition")}
-          height={300}
-          searchEnabled
-          favoritesEnabled
-          searchPlaceholder={tCheckout("searchAddressPlaceholder")}
-        />
-        <Button
-          type="button"
-          className="w-full"
-          onClick={confirmFromMap}
-          disabled={saving || !coords}
-        >
-          {saving ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Check className="size-4" />
-          )}
-          {t("confirmMyPosition")}
-        </Button>
-      </div>
-
-      <div className="text-muted relative text-center text-[11px] tracking-wider uppercase">
-        <span className="bg-surface relative z-10 px-2">
-          {t("orChooseManually")}
-        </span>
-        <span className="border-border absolute inset-x-0 top-1/2 -translate-y-1/2 border-t" />
-      </div>
-
-      <form onSubmit={saveManual} className="space-y-3">
-        <div className="space-y-1.5">
-          <Label>{t("wilaya")}</Label>
-          <select
-            value={wilaya}
-            onChange={(e) => setWilaya(e.target.value)}
-            disabled={saving}
-            className={cn(
-              "border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-12 w-full rounded-[12px] border px-4 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
-            )}
-          >
-            <option value="">{t("selectWilaya")}</option>
-            {WILAYAS.map((w) => (
-              <option key={w.code} value={w.code}>
-                {w.code} · {w.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label>{t("communeOptional")}</Label>
-          {communes.length > 0 ? (
-            <select
-              value={commune}
-              onChange={(e) => setCommune(e.target.value)}
-              disabled={saving || !wilaya}
-              className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-12 w-full rounded-[12px] border px-4 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
-            >
-              <option value="">{t("allWilaya")}</option>
-              {communes.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <Input
-              type="text"
-              value={commune}
-              onChange={(e) => setCommune(e.target.value)}
-              placeholder={t("communePlaceholder")}
-              disabled={saving || !wilaya}
-            />
-          )}
-        </div>
-
-        <Button type="submit" className="w-full" disabled={saving}>
-          {saving ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <MapPin className="size-4" />
-          )}
-          {t("save")}
-        </Button>
-      </form>
+      {/* ═══ PAGE CARTE PLEIN ÉCRAN ═══ */}
+      {mapOpen && (
+        <Portal>
+          <div className="bg-surface fixed inset-0 z-[100] flex flex-col pt-[env(safe-area-inset-top)]">
+            <header className="border-border flex h-14 shrink-0 items-center gap-3 border-b px-3">
+              <button
+                type="button"
+                onClick={() => setMapOpen(false)}
+                aria-label={t("close")}
+                className="text-foreground hover:bg-surface-2 grid size-9 place-items-center rounded-full"
+              >
+                <X className="size-5" />
+              </button>
+              <h2 className="text-foreground flex-1 truncate text-base font-bold">
+                {t("selectOnMap")}
+              </h2>
+            </header>
+            <div className="relative min-h-0 flex-1">
+              <MapPositionPicker
+                initial={mapCoords ?? undefined}
+                autoLocate={mapCoords == null}
+                onChange={(p) => setMapCoords(p)}
+                gpsLabel={t("myCurrentPosition")}
+                height="100%"
+                searchEnabled
+                favoritesEnabled
+                searchPlaceholder={tCheckout("searchAddressPlaceholder")}
+              />
+            </div>
+            <div className="border-border bg-surface shrink-0 border-t p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+              <Button
+                type="button"
+                size="lg"
+                className="w-full"
+                disabled={saving || !mapCoords}
+                onClick={async () => {
+                  if (!mapCoords) return;
+                  await savePlace(mapCoords);
+                  setMapOpen(false);
+                }}
+              >
+                {saving ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Check className="size-4" />
+                )}
+                {t("validatePosition")}
+              </Button>
+            </div>
+          </div>
+        </Portal>
+      )}
     </div>
+  );
+}
+
+/** Section titrée (libellé en petites majuscules + carte de lignes). */
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-muted px-1 text-[11px] font-extrabold tracking-wide uppercase">
+        {title}
+      </p>
+      <div className="divide-border border-border divide-y overflow-hidden rounded-[13px] border">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** Ligne d'option / de lieu : icône en pastille + libellé + chevron. */
+function PlaceRow({
+  icon,
+  title,
+  sub,
+  onClick,
+  disabled,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  sub?: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="hover:bg-surface-2 flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors disabled:opacity-50"
+    >
+      <span className="bg-primary-50 text-primary-600 grid size-9 shrink-0 place-items-center rounded-full">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="text-foreground block truncate text-sm font-bold">
+          {title}
+        </span>
+        {sub && (
+          <span className="text-muted block truncate text-xs">{sub}</span>
+        )}
+      </span>
+      <ChevronRight className="text-subtle size-4 shrink-0 rtl:-scale-x-100" />
+    </button>
   );
 }

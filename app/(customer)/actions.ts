@@ -981,6 +981,34 @@ export async function listFavoritePlaces(): Promise<FavPlace[]> {
   }
 }
 
+/** Lieux RÉCEMMENT choisis par le client (historique « Lieux précédents »),
+ *  hors favoris (qui ont leur propre liste). Les plus récents d'abord. */
+export async function listRecentPlaces(): Promise<FavPlace[]> {
+  try {
+    const supabase = await createClient();
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: unknown }>;
+    const { data } = await rpc("user_place_mine", {});
+    return (
+      (data as
+        | {
+            label: string | null;
+            lat: number;
+            lng: number;
+            favorite: boolean;
+          }[]
+        | null) ?? []
+    )
+      .filter((r) => !r.favorite && r.label)
+      .map((r) => ({ label: r.label as string, lat: r.lat, lng: r.lng }))
+      .slice(0, 6);
+  } catch {
+    return [];
+  }
+}
+
 export async function geocodeSearch(input: {
   q: string;
   lat?: number;
