@@ -3,8 +3,9 @@
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { MapPin, Plus, Star, Trash2 } from "lucide-react";
+import { ChevronLeft, MapPin, Plus, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Portal } from "@/components/ui/portal";
 import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { toast } from "@/components/ui/toast";
@@ -63,45 +64,56 @@ export function AddressesPanel({ addresses }: { addresses: Addr[] }) {
         ))}
       </ul>
 
-      {!adding ? (
-        <Button type="button" onClick={() => setAdding(true)}>
-          <Plus className="size-4" />
-          {t("addAddress")}
-        </Button>
-      ) : (
-        <form
-          action={action}
-          className="border-border bg-surface space-y-4 rounded-[14px] border p-4"
-        >
-          <AddressForm onChange={() => {}} />
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="is_default" />
-            {t("setAsDefault")}
-          </label>
-          {state.error && btnState === "error" && (
-            <p className="text-danger-600 text-sm">{state.error}</p>
-          )}
-          <div className="flex gap-2">
-            <ActionButton
-              type="submit"
-              state={btnState}
-              labels={{
-                idle: t("save"),
-                pending: t("saving"),
-                success: t("addressSaved"),
-                error: t("errorRetry"),
-              }}
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setAdding(false)}
-              disabled={pending}
-            >
-              {t("cancel")}
-            </Button>
+      <Button type="button" onClick={() => setAdding(true)}>
+        <Plus className="size-4" />
+        {t("addAddress")}
+      </Button>
+
+      {/* ═══ PAGE DÉDIÉE PLEIN ÉCRAN — création d'adresse ═══ */}
+      {adding && (
+        <Portal>
+          <div className="bg-surface-2 fixed inset-0 z-[100] flex flex-col pt-[env(safe-area-inset-top)]">
+            <header className="border-border flex h-14 shrink-0 items-center gap-3 border-b bg-white px-3">
+              <button
+                type="button"
+                onClick={() => setAdding(false)}
+                aria-label={t("back")}
+                className="bg-surface-2 grid size-9 place-items-center rounded-full transition-transform active:scale-90"
+              >
+                <ChevronLeft className="size-[18px] rtl:-scale-x-100" />
+              </button>
+              <h2 className="text-foreground flex-1 truncate text-base font-bold">
+                {t("addAddress")}
+              </h2>
+            </header>
+
+            <form action={action} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+                <AddressForm onChange={() => {}} />
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="is_default" />
+                  {t("setAsDefault")}
+                </label>
+                {state.error && btnState === "error" && (
+                  <p className="text-danger-600 text-sm">{state.error}</p>
+                )}
+              </div>
+              <div className="border-border bg-surface shrink-0 border-t p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+                <ActionButton
+                  type="submit"
+                  className="w-full"
+                  state={btnState}
+                  labels={{
+                    idle: t("save"),
+                    pending: t("saving"),
+                    success: t("addressSaved"),
+                    error: t("errorRetry"),
+                  }}
+                />
+              </div>
+            </form>
           </div>
-        </form>
+        </Portal>
       )}
     </div>
   );

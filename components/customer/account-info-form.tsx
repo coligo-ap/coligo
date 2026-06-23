@@ -11,6 +11,7 @@ import {
   User as UserIcon,
 } from "lucide-react";
 import { isValidContactPhone } from "@/lib/dz/phone";
+import { CustomerLogoutButton } from "@/components/customer/logout-button";
 import {
   confirmEmailChange,
   requestEmailChange,
@@ -104,6 +105,11 @@ export function AccountInfoForm({
 
           {/* Email (changement par code) */}
           <EmailField initialEmail={initialEmail} />
+        </div>
+
+        {/* Déconnexion — juste sous la section « Adresse email ». */}
+        <div className="mt-5">
+          <CustomerLogoutButton />
         </div>
       </div>
 
