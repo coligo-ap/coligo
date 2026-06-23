@@ -284,9 +284,21 @@ export function MapPositionPicker({
           // l'émission de coordonnées (évite les doubles emits).
           map.on("moveend", emit);
 
-          // Clic / tap : recentre la carte sur le point cliqué. moveend
-          // s'occupera de l'émission une fois l'animation terminée.
+          // Toute interaction avec la carte (tap, glisser, zoom) referme les
+          // panneaux de recherche / « Tes lieux » → ils ne masquent jamais le
+          // curseur de positionnement central.
+          const closePanels = () => {
+            setFavOpen(false);
+            setSearchOpen(false);
+          };
+          map.on("movestart", closePanels);
+          map.on("dragstart", closePanels);
+
+          // Clic / tap : referme les panneaux PUIS recentre la carte sur le
+          // point cliqué. moveend s'occupera de l'émission une fois l'animation
+          // terminée.
           map.on("click", (e) => {
+            closePanels();
             map.flyTo({
               center: [e.lngLat.lng, e.lngLat.lat],
               zoom: Math.max(map.getZoom(), 16),
@@ -637,9 +649,19 @@ export function MapPositionPicker({
             favOpen &&
             searchQ.trim() === "" &&
             favorites.length > 0 && (
-              <ul className="bg-surface border-border mt-1.5 max-h-64 overflow-auto rounded-[14px] border py-1 shadow-xl">
-                <li className="text-subtle px-3 pt-1.5 pb-1 text-[10px] font-extrabold tracking-wide uppercase">
-                  Tes lieux
+              <ul className="bg-surface border-border mt-1.5 max-h-44 overflow-auto rounded-[14px] border py-1 shadow-xl">
+                <li className="flex items-center justify-between px-3 pt-1.5 pb-1">
+                  <span className="text-subtle text-[10px] font-extrabold tracking-wide uppercase">
+                    Tes lieux
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Masquer"
+                    onClick={() => setFavOpen(false)}
+                    className="text-subtle hover:text-foreground -my-1 shrink-0 p-1"
+                  >
+                    <X className="size-3.5" />
+                  </button>
                 </li>
                 {favorites.map((f, i) => (
                   <li key={`fav-${i}`} className="flex items-center">
