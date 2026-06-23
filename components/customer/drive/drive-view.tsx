@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
+  ArrowRight,
   ArrowUpDown,
   BellRing,
   CalendarClock,
@@ -160,8 +161,16 @@ export function DriveView() {
 
   // Course active (recherche / en route / fin)
   const [active, setActive] = useState<DriveActiveRide | null>(null);
+  // Tant que la course active n'a pas été vérifiée au démarrage, on N'AFFICHE
+  // PAS le formulaire départ/arrivée (sinon « flash » du formulaire alors qu'une
+  // demande est déjà en cours). On montre un loader, puis on bascule DIRECTEMENT
+  // sur l'écran de recherche / suivi si une course est active.
+  const [booting, setBooting] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
+  // Conflit « course déjà en cours » : on affiche le message ET un lien pour
+  // revenir directement à la course concernée.
+  const [activeConflict, setActiveConflict] = useState(false);
   const [offlineQueued, setOfflineQueued] = useState(false);
   // Couverture de zone (départ + arrivée) — pré-check UX avant la demande
   // (l'enforcement réel reste dans request_ride, mig 0169).
@@ -181,54 +190,60 @@ export function DriveView() {
   /* ───────── Boot : contexte + course active + GPS ───────── */
   useEffect(() => {
     void (async () => {
-      // Retour Chargily (?card=failed / ?card=success) : l'URL n'est jamais
-      // crue seule — on vérifie l'état réel de la course (webhook fait foi).
-      const params = new URLSearchParams(window.location.search);
-      const cardReturn = params.get("card");
-      if (cardReturn) {
-        params.delete("card");
-        const qs = params.toString();
-        window.history.replaceState(
-          null,
-          "",
-          window.location.pathname + (qs ? `?${qs}` : "")
-        );
-      }
-      // Le contexte vient du cache TanStack (ci-dessus). Ici on ne vérifie que
-      // la course active (pour restaurer l'écran course / le retour Chargily).
-      const ride = await getDriveActiveRide();
-      // Paiement carte échoué : la demande (jamais diffusée) est annulée et
-      // le client revient à l'écran de CHOIX DE GAMME, trajet restauré,
-      // avec un message inline — pas d'annulation manuelle à faire.
-      if (
-        cardReturn === "failed" &&
-        ride &&
-        ride.payment_method === "card" &&
-        !ride.online_paid &&
-        ride.status === "searching"
-      ) {
-        await cancelDriveRide(ride.id, "Paiement carte échoué");
-        if (ride.pickup_lat != null && ride.dest_lat != null) {
-          setPickup({
-            lat: ride.pickup_lat,
-            lng: ride.pickup_lng!,
-            text: ride.pickup_text,
-            gps: false,
-          });
-          setDest({
-            lat: ride.dest_lat,
-            lng: ride.dest_lng!,
-            text: ride.dest_text,
-          });
-          setGamme((ride.gamme as Gamme) ?? "classic");
-          setPrice(ride.proposed_price_da);
-          setPayMode("card");
-          setRequestError(t("price.cardFailed"));
-          setScreen("price");
+      try {
+        // Retour Chargily (?card=failed / ?card=success) : l'URL n'est jamais
+        // crue seule — on vérifie l'état réel de la course (webhook fait foi).
+        const params = new URLSearchParams(window.location.search);
+        const cardReturn = params.get("card");
+        if (cardReturn) {
+          params.delete("card");
+          const qs = params.toString();
+          window.history.replaceState(
+            null,
+            "",
+            window.location.pathname + (qs ? `?${qs}` : "")
+          );
         }
-      } else if (ride) {
-        setActive(ride);
-        setScreen("ride");
+        // Le contexte vient du cache TanStack (ci-dessus). Ici on ne vérifie que
+        // la course active (pour restaurer l'écran course / le retour Chargily).
+        const ride = await getDriveActiveRide();
+        // Paiement carte échoué : la demande (jamais diffusée) est annulée et
+        // le client revient à l'écran de CHOIX DE GAMME, trajet restauré,
+        // avec un message inline — pas d'annulation manuelle à faire.
+        if (
+          cardReturn === "failed" &&
+          ride &&
+          ride.payment_method === "card" &&
+          !ride.online_paid &&
+          ride.status === "searching"
+        ) {
+          await cancelDriveRide(ride.id, "Paiement carte échoué");
+          if (ride.pickup_lat != null && ride.dest_lat != null) {
+            setPickup({
+              lat: ride.pickup_lat,
+              lng: ride.pickup_lng!,
+              text: ride.pickup_text,
+              gps: false,
+            });
+            setDest({
+              lat: ride.dest_lat,
+              lng: ride.dest_lng!,
+              text: ride.dest_text,
+            });
+            setGamme((ride.gamme as Gamme) ?? "classic");
+            setPrice(ride.proposed_price_da);
+            setPayMode("card");
+            setRequestError(t("price.cardFailed"));
+            setScreen("price");
+          }
+        } else if (ride) {
+          setActive(ride);
+          setScreen("ride");
+        }
+      } finally {
+        // Vérification terminée → on peut afficher le formulaire si AUCUNE
+        // course n'est active (sinon on est déjà sur l'écran « ride »).
+        setBooting(false);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -550,9 +565,26 @@ export function DriveView() {
     return ride;
   }, []);
 
+  // Revenir DIRECTEMENT à la course en cours (depuis le message de conflit).
+  const resumeActiveRide = async () => {
+    const ride = await getDriveActiveRide();
+    if (ride) {
+      setActive(ride);
+      setScreen("ride");
+      setRequestError(null);
+      setActiveConflict(false);
+    } else {
+      // Course finie/annulée entre-temps → on lève le conflit, le client peut
+      // relancer une demande.
+      setActiveConflict(false);
+      setRequestError(null);
+    }
+  };
+
   const submitRequest = async () => {
     if (!pickup || !dest || submitting) return;
     setRequestError(null);
+    setActiveConflict(false);
     // Départ GPS sans adresse encore résolue : on géocode MAINTENANT pour que le
     // chauffeur reçoive la vraie adresse (jamais « Ma position actuelle »).
     let pickupText = pickup.text;
@@ -583,6 +615,9 @@ export function DriveView() {
     if (!res.ok) {
       setSubmitting(false);
       setRequestError(res.error ?? t("requestFailed"));
+      // « Vous avez déjà une course en cours » → on propose d'y revenir
+      // (lien de redirection sous le message).
+      setActiveConflict(res.code === "active_ride");
       return;
     }
     // CARTE : payer AVANT que la demande soit diffusée (Chargily Pay existant).
@@ -719,6 +754,17 @@ export function DriveView() {
   // course active est vérifiée en arrière-plan : l'écran d'accueil s'affiche
   // tout de suite et bascule sur la course si une est en cours.
   if (!ctx) {
+    return (
+      <div className="grid min-h-[70vh] place-items-center bg-[var(--d-page)]">
+        <Loader2 className="size-6 animate-spin" style={{ color: VIOLET }} />
+      </div>
+    );
+  }
+
+  // Démarrage : on attend la vérification de la course active avant d'afficher
+  // QUOI QUE CE SOIT (pas de flash du formulaire). Si une course est en cours,
+  // l'effet de boot a déjà basculé sur l'écran « ride ».
+  if (booting) {
     return (
       <div className="grid min-h-[70vh] place-items-center bg-[var(--d-page)]">
         <Loader2 className="size-6 animate-spin" style={{ color: VIOLET }} />
@@ -1243,12 +1289,23 @@ export function DriveView() {
           />
 
           {requestError && (
-            <p
+            <div
               className="mt-2 rounded-[12px] bg-[rgba(229,72,77,.1)] px-3 py-2 text-center text-xs font-bold"
               style={{ color: "#E5484D" }}
             >
               {requestError}
-            </p>
+              {activeConflict && (
+                <button
+                  type="button"
+                  onClick={() => void resumeActiveRide()}
+                  className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-[10px] px-3 py-2 text-[12px] font-extrabold text-white"
+                  style={{ background: VIOLET }}
+                >
+                  Reprendre ma course en cours
+                  <ArrowRight className="size-3.5 rtl:-scale-x-100" />
+                </button>
+              )}
+            </div>
           )}
           {zoneBlock && (
             <ZoneBlockNotice

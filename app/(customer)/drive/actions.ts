@@ -372,7 +372,13 @@ export async function requestDriveRide(input: {
   operation_id?: string | null;
   /** Devis signé émis par issueDriveQuote — anti-prix-périmé (Partie D). */
   quote_id?: string | null;
-}): Promise<{ ok: boolean; rideId?: string; error?: string }> {
+}): Promise<{
+  ok: boolean;
+  rideId?: string;
+  error?: string;
+  /** "active_ride" = le client a déjà une course en cours (→ proposer d'y revenir). */
+  code?: "active_ride";
+}> {
   const rpc = await rpcClient();
 
   // Anti-prix-périmé (Partie D) : si un devis a été émis, on le VÉRIFIE et le
@@ -430,6 +436,11 @@ export async function requestDriveRide(input: {
     p_dest_commune: destGeo.commune,
   });
   if (error) {
+    // Le client a déjà une course active (anti-spam request_ride) → on le signale
+    // par un code dédié pour proposer côté UI de REVENIR à la course concernée.
+    if (error.message.includes("déjà une course")) {
+      return { ok: false, error: error.message, code: "active_ride" };
+    }
     // Refus de zone réel → journalisation ops (best-effort, mig 0170).
     if (error.message.includes("drive_zone")) {
       const isMax = error.message.includes("drive_zone_maxdist");
