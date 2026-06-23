@@ -348,6 +348,14 @@ export type ChauffeurGate = {
   homeDirToleranceDeg: number;
   /** « Je rentre chez moi » actif (état serveur, source de vérité). */
   homeDirActive: boolean;
+  /**
+   * « En ligne » côté SERVEUR (chauffeur_presence.is_online) — source de vérité
+   * DURABLE de l'intention, indépendante du localStorage du navigateur. Sert à
+   * réhydrater l'état client au démarrage (réinstall APK, nouvel appareil, cache
+   * vidé) → le chauffeur ne réapparaît jamais « hors ligne » à tort et continue
+   * de recevoir les demandes.
+   */
+  isOnline: boolean;
   rating: number | null;
   ridesCount: number;
   memberSince: string;
@@ -383,33 +391,44 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
     .select("home_dir_active")
     .eq("id", ch.id)
     .maybeSingle();
-  const [{ data }, { data: avg }, { count }, { data: st }, { data: hd }] =
-    await Promise.all([
-      admin
-        .from("chauffeurs")
-        .select(
-          "id, full_name, first_name, phone, gamme, is_verified, is_frozen, is_blocked, frozen_reason, submitted_at, rejected_reason, home_addr_text, home_lat, home_lng, created_at, is_female_verified, vehicle_make, vehicle_model, vehicle_color, vehicle_plate, selfie_url"
-        )
-        .eq("id", ch.id)
-        .maybeSingle(),
-      admin
-        .from("rides")
-        .select("chauffeur_rating.avg()")
-        .eq("chauffeur_id", ch.id)
-        .not("chauffeur_rating", "is", null)
-        .maybeSingle(),
-      admin
-        .from("rides")
-        .select("id", { count: "exact", head: true })
-        .eq("chauffeur_id", ch.id)
-        .eq("status", "completed"),
-      admin
-        .from("platform_settings")
-        .select("drive_home_dir_tolerance_deg")
-        .eq("id", true)
-        .maybeSingle(),
-      hdQuery,
-    ]);
+  const [
+    { data },
+    { data: avg },
+    { count },
+    { data: st },
+    { data: hd },
+    { data: presence },
+  ] = await Promise.all([
+    admin
+      .from("chauffeurs")
+      .select(
+        "id, full_name, first_name, phone, gamme, is_verified, is_frozen, is_blocked, frozen_reason, submitted_at, rejected_reason, home_addr_text, home_lat, home_lng, created_at, is_female_verified, vehicle_make, vehicle_model, vehicle_color, vehicle_plate, selfie_url"
+      )
+      .eq("id", ch.id)
+      .maybeSingle(),
+    admin
+      .from("rides")
+      .select("chauffeur_rating.avg()")
+      .eq("chauffeur_id", ch.id)
+      .not("chauffeur_rating", "is", null)
+      .maybeSingle(),
+    admin
+      .from("rides")
+      .select("id", { count: "exact", head: true })
+      .eq("chauffeur_id", ch.id)
+      .eq("status", "completed"),
+    admin
+      .from("platform_settings")
+      .select("drive_home_dir_tolerance_deg")
+      .eq("id", true)
+      .maybeSingle(),
+    hdQuery,
+    admin
+      .from("chauffeur_presence")
+      .select("is_online")
+      .eq("chauffeur_id", ch.id)
+      .maybeSingle(),
+  ]);
   if (!data) return null;
   const rating = (avg as { avg?: number } | null)?.avg;
   const tolerance = st?.drive_home_dir_tolerance_deg ?? 45;
@@ -432,6 +451,7 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
     homeLng: data.home_lng,
     homeDirToleranceDeg: tolerance,
     homeDirActive: !!hd?.home_dir_active,
+    isOnline: !!presence?.is_online,
     rating: rating == null ? null : Math.round(Number(rating) * 10) / 10,
     ridesCount: count ?? 0,
     memberSince: data.created_at,

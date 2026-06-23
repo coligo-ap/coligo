@@ -1,7 +1,11 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect } from "react";
 import type { ChauffeurGate } from "@/app/(chauffeur)/actions";
+import {
+  getChauffeurOnlineLocal,
+  setChauffeurOnlineLocal,
+} from "@/lib/chauffeur/online-store";
 
 /**
  * Contexte du GATE chauffeur (statut/profil : vérifié, gelé, dossier soumis,
@@ -20,6 +24,22 @@ export function ChauffeurGateProvider({
   gate: ChauffeurGate;
   children: React.ReactNode;
 }) {
+  // PERSISTANCE de l'intention « en ligne » : la présence SERVEUR
+  // (gate.isOnline) est la source de vérité durable, indépendante du
+  // localStorage du navigateur. On la réhydrate au montage de la coque
+  // authentifiée (donc sur N'IMPORTE quelle page, y compris un deep-link vers
+  // /chauffeur/demandes depuis une notification). Effet : un chauffeur dont le
+  // cache a été vidé (réinstall APK, nouvel appareil) ne réapparaît plus « hors
+  // ligne » à tort — il reste à l'écoute et continue de recevoir les demandes.
+  // Le serveur n'envoyant de push qu'aux chauffeurs présents+en ligne, taper la
+  // notif ramène donc toujours sur une liste qui poll réellement.
+  useEffect(() => {
+    if (getChauffeurOnlineLocal() !== gate.isOnline) {
+      setChauffeurOnlineLocal(gate.isOnline);
+    }
+    // Réhydratation au montage de la coque uniquement (1 fois par chargement).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return <Ctx.Provider value={gate}>{children}</Ctx.Provider>;
 }
 
