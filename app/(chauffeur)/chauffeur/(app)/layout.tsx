@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { DNav } from "@/components/chauffeur/d-ui";
 import { ChauffeurGateGuard } from "@/components/chauffeur/gate-guard";
 import { HomeSkeleton } from "@/components/chauffeur/d-skeleton";
+import { PushRegistrar } from "@/components/native/push-registrar";
 
 /**
  * Coque PERSISTANTE des pages chauffeur authentifiées. Deux propriétés clés :
@@ -29,6 +30,13 @@ export default function ChauffeurAppLayout({
         <ChauffeurGateGuard>{children}</ChauffeurGateGuard>
       </Suspense>
       <DNav />
+      {/* Token push + branchement du TAP sur notification → navigation Next.js
+          (data.route, ex. /chauffeur/demandes?ride=…). Monté ici (coque
+          PERSISTANTE de TOUTES les pages authentifiées) et non dans l'accueil
+          seul : sinon, taper une notification depuis la page Demandes — ou au
+          démarrage à froid sur une autre page — n'attachait aucun listener et
+          le tap « ne menait nulle part ». */}
+      <PushRegistrar role="chauffeur" />
     </>
   );
 }

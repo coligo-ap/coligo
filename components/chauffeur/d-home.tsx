@@ -24,7 +24,6 @@ import {
 } from "@/lib/native/use-driver-position";
 import { reverseGeocode } from "@/lib/geo/geocode";
 import { createClient } from "@/lib/supabase/client";
-import { PushRegistrar } from "@/components/native/push-registrar";
 import { DriveMap, type LatLng } from "@/components/customer/drive/drive-map";
 import { ChauffeurDarkPill } from "@/components/chauffeur/chauffeur-dark-pill";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
@@ -857,8 +856,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         open={zoneOpen}
         onClose={() => setZoneOpen(false)}
       />
-
-      <PushRegistrar role="chauffeur" />
+      {/* PushRegistrar est désormais monté dans la coque (app)/layout (commun à
+          toutes les pages chauffeur authentifiées) → le tap sur notification est
+          capté partout, plus seulement sur l'accueil. */}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
   Check,
@@ -130,6 +130,14 @@ function MiniMap({ seed }: { seed: number }) {
  */
 export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const router = useRouter();
+  // Course à SURLIGNER : portée par le clic sur la notification push
+  // (route `/chauffeur/demandes?ride=<id>`). On bascule sur le bon onglet, on
+  // centre la carte et on la cercle en violet → le chauffeur identifie tout de
+  // suite la demande notifiée.
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get("ride");
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const highlightDone = useRef<string | null>(null);
   const coords = useDriverPosition();
   // À L'ÉCOUTE seulement si EN LIGNE (intention partagée avec l'accueil).
   const online = useChauffeurOnline();
@@ -300,6 +308,26 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
       for (const c of chans) void supabase.removeChannel(c);
     };
   }, [poll, chId, router, online]);
+
+  // Surlignage de la course notifiée : dès qu'elle est présente dans la liste
+  // (le poll/temps réel l'a ramenée), on sélectionne l'onglet où elle se trouve
+  // et on la centre à l'écran. Une seule fois par id (l'utilisateur garde la
+  // main ensuite). Si elle n'est pas encore chargée, on retentera au prochain
+  // rafraîchissement de `reqs`.
+  useEffect(() => {
+    if (!highlightId || highlightDone.current === highlightId) return;
+    const q = reqs.find((r) => r.id === highlightId);
+    if (!q) return;
+    highlightDone.current = highlightId;
+    setTab(q.my_offer_da != null ? "proposed" : "demandes");
+    const t = setTimeout(() => {
+      cardRefs.current[highlightId]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 80);
+    return () => clearTimeout(t);
+  }, [highlightId, reqs]);
 
   // GO depuis la page Demandes : passe en ligne (intention + présence serveur).
   const goOnline = async () => {
@@ -678,14 +706,33 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
                 ? AMBER
                 : "var(--d-ink)";
 
+          const highlighted = q.id === highlightId;
+
           return (
             <div
               key={q.id}
-              className="drive-rise mb-2.5 overflow-hidden rounded-[16px] border bg-[var(--d-surface)]"
+              ref={(el) => {
+                cardRefs.current[q.id] = el;
+              }}
+              className={`drive-rise mb-2.5 overflow-hidden rounded-[16px] border bg-[var(--d-surface)] ${highlighted ? "drive-attn" : ""}`}
               style={{
-                borderColor: q.boost_amount_da > 0 ? GO : "var(--d-line)",
+                borderColor: highlighted
+                  ? VIOLET
+                  : q.boost_amount_da > 0
+                    ? GO
+                    : "var(--d-line)",
+                ...(highlighted ? { boxShadow: `0 0 0 2px ${VIOLET}` } : null),
               }}
             >
+              {/* Bandeau « course notifiée » : la demande ciblée par la push. */}
+              {highlighted && (
+                <div
+                  className="drive-sora flex items-center justify-center gap-1 py-1 text-[10px] font-extrabold text-white"
+                  style={{ background: VIOLET }}
+                >
+                  <Zap className="size-3" /> Course de votre notification
+                </div>
+              )}
               {/* En-tête : avatar | nom · note · temps | km | prix */}
               <div className="flex items-center gap-2.5 px-3.5 pt-3">
                 <span

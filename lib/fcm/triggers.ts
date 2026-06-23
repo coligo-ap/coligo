@@ -426,8 +426,14 @@ export async function notifyChauffeursNewRide(input: {
         body: `Un client propose ${formatDA(total)}. Fais ton offre !`,
       },
       // Clic sur la notif → la LISTE des demandes (où la course apparaît),
-      // pas l'accueil (qui semblait « vide »).
-      { route: "/chauffeur/demandes", kind: "chauffeur_new_ride" }
+      // pas l'accueil (qui semblait « vide »). On porte le `rideId` (+ query
+      // `?ride=`) pour que l'écran SURLIGNE la course concernée et la mette en
+      // avant — le chauffeur identifie immédiatement la demande notifiée.
+      {
+        route: `/chauffeur/demandes?ride=${input.rideId}`,
+        kind: "chauffeur_new_ride",
+        rideId: input.rideId,
+      }
     );
   } catch (err) {
     console.warn("[fcm] notifyChauffeursNewRide failed:", err);
