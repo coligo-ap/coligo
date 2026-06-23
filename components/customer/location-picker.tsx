@@ -230,87 +230,92 @@ export function LocationPicker({ onClose, initial }: Props) {
         )}
       </div>
 
-      {/* Résultats de recherche (remplacent les options tant qu'on tape). */}
-      {q.trim().length >= 3 ? (
-        <div className="divide-border border-border divide-y overflow-hidden rounded-[13px] border">
-          {results.length === 0 && !searching ? (
-            <p className="text-muted px-4 py-3 text-sm">
-              {t("noSearchResults")}
-            </p>
-          ) : (
-            results.map((r, i) => (
+      {/* Zone dynamique à HAUTEUR FIXE : la carte ne « saute » plus selon le
+          nombre de résultats (pendant la recherche, 0 résultat, ou liste
+          longue). Le contenu défile à l'intérieur, la card garde sa taille. */}
+      <div className="h-[clamp(280px,48vh,440px)] space-y-4 overflow-y-auto overscroll-contain">
+        {/* Résultats de recherche (remplacent les options tant qu'on tape). */}
+        {q.trim().length >= 3 ? (
+          <div className="divide-border border-border divide-y overflow-hidden rounded-[13px] border">
+            {results.length === 0 && !searching ? (
+              <p className="text-muted px-4 py-3 text-sm">
+                {t("noSearchResults")}
+              </p>
+            ) : (
+              results.map((r, i) => (
+                <PlaceRow
+                  key={`${r.lat}-${r.lng}-${i}`}
+                  icon={<MapPin className="size-[18px]" />}
+                  title={r.display}
+                  sub={r.secondary}
+                  onClick={() =>
+                    savePlace({ lat: r.lat, lng: r.lng, label: r.display })
+                  }
+                  disabled={disabled}
+                />
+              ))
+            )}
+          </div>
+        ) : (
+          <>
+            {/* ─── Actions principales ─── */}
+            <div className="divide-border border-border divide-y overflow-hidden rounded-[13px] border">
               <PlaceRow
-                key={`${r.lat}-${r.lng}-${i}`}
-                icon={<MapPin className="size-[18px]" />}
-                title={r.display}
-                sub={r.secondary}
-                onClick={() =>
-                  savePlace({ lat: r.lat, lng: r.lng, label: r.display })
-                }
+                icon={<MapIcon className="size-[18px]" />}
+                title={t("selectOnMap")}
+                onClick={() => setMapOpen(true)}
                 disabled={disabled}
               />
-            ))
-          )}
-        </div>
-      ) : (
-        <>
-          {/* ─── Actions principales ─── */}
-          <div className="divide-border border-border divide-y overflow-hidden rounded-[13px] border">
-            <PlaceRow
-              icon={<MapIcon className="size-[18px]" />}
-              title={t("selectOnMap")}
-              onClick={() => setMapOpen(true)}
-              disabled={disabled}
-            />
-            <PlaceRow
-              icon={
-                busy === "gps" ? (
-                  <Loader2 className="size-[18px] animate-spin" />
-                ) : (
-                  <LocateFixed className="size-[18px]" />
-                )
-              }
-              title={t("myCurrentPosition")}
-              onClick={useGps}
-              disabled={disabled}
-            />
-          </div>
+              <PlaceRow
+                icon={
+                  busy === "gps" ? (
+                    <Loader2 className="size-[18px] animate-spin" />
+                  ) : (
+                    <LocateFixed className="size-[18px]" />
+                  )
+                }
+                title={t("myCurrentPosition")}
+                onClick={useGps}
+                disabled={disabled}
+              />
+            </div>
 
-          {/* ─── Adresses enregistrées (si présentes) ─── */}
-          {favs.length > 0 && (
-            <Section title={t("savedAddresses")}>
-              {favs.map((p, i) => (
-                <PlaceRow
-                  key={`fav-${i}`}
-                  icon={<Bookmark className="size-[18px]" />}
-                  title={p.label}
-                  onClick={() =>
-                    savePlace({ lat: p.lat, lng: p.lng, label: p.label })
-                  }
-                  disabled={disabled}
-                />
-              ))}
-            </Section>
-          )}
+            {/* ─── Adresses enregistrées (si présentes) ─── */}
+            {favs.length > 0 && (
+              <Section title={t("savedAddresses")}>
+                {favs.map((p, i) => (
+                  <PlaceRow
+                    key={`fav-${i}`}
+                    icon={<Bookmark className="size-[18px]" />}
+                    title={p.label}
+                    onClick={() =>
+                      savePlace({ lat: p.lat, lng: p.lng, label: p.label })
+                    }
+                    disabled={disabled}
+                  />
+                ))}
+              </Section>
+            )}
 
-          {/* ─── Lieux précédents (si présents) ─── */}
-          {recents.length > 0 && (
-            <Section title={t("previousPlaces")}>
-              {recents.map((p, i) => (
-                <PlaceRow
-                  key={`rec-${i}`}
-                  icon={<History className="size-[18px]" />}
-                  title={p.label}
-                  onClick={() =>
-                    savePlace({ lat: p.lat, lng: p.lng, label: p.label })
-                  }
-                  disabled={disabled}
-                />
-              ))}
-            </Section>
-          )}
-        </>
-      )}
+            {/* ─── Lieux précédents (si présents) ─── */}
+            {recents.length > 0 && (
+              <Section title={t("previousPlaces")}>
+                {recents.map((p, i) => (
+                  <PlaceRow
+                    key={`rec-${i}`}
+                    icon={<History className="size-[18px]" />}
+                    title={p.label}
+                    onClick={() =>
+                      savePlace({ lat: p.lat, lng: p.lng, label: p.label })
+                    }
+                    disabled={disabled}
+                  />
+                ))}
+              </Section>
+            )}
+          </>
+        )}
+      </div>
 
       {/* ═══ PAGE CARTE PLEIN ÉCRAN ═══ */}
       {mapOpen && (

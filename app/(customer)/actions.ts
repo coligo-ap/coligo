@@ -376,13 +376,38 @@ export async function reverseGeocode(input: {
     };
     const addr = data.address ?? {};
 
-    // Filtre Algérie : si on est hors DZ, on n'essaie pas de matcher.
+    // HORS ALGÉRIE : pas d'enrichissement wilaya/commune (la zone de service
+    // reste l'Algérie), MAIS on renvoie tout de même un LIBELLÉ LISIBLE depuis
+    // OpenStreetMap (rue / quartier, ville) — couverture mondiale — au lieu de
+    // coordonnées GPS brutes. Le wilaya/commune null → pas de zone DZ associée
+    // (l'enforcement de zone au checkout reste la source de vérité).
     const cc = (addr.country_code ?? "").toLowerCase();
     if (cc && cc !== "dz") {
+      const detailX = precise
+        ? [addr.amenity, addr.road, addr.neighbourhood, addr.suburb].find(
+            (x): x is string => !!x
+          )
+        : undefined;
+      const cityX =
+        [
+          addr.city,
+          addr.town,
+          addr.village,
+          addr.municipality,
+          addr.county,
+          addr.suburb,
+        ].find((x): x is string => !!x) ?? null;
+      const displayX =
+        detailX && cityX && detailX !== cityX
+          ? `${detailX}, ${cityX}`
+          : (detailX ?? cityX ?? data.display_name ?? null);
       return {
-        ok: false,
-        error: "Position détectée hors Algérie.",
-        raw_locality: data.display_name ?? null,
+        ok: true,
+        wilaya_code: null,
+        wilaya_name: null,
+        commune: null,
+        display: displayX,
+        raw_locality: cityX,
       };
     }
 
