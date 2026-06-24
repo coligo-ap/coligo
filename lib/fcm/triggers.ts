@@ -311,10 +311,37 @@ export async function notifyChauffeursNewRide(input: {
 }): Promise<void> {
   try {
     const admin = createAdminClient();
-    const { data: ride } = await admin
-      .from("rides")
+    // `dispatch_radius_km` (mig 0255) absent des types générés (Docker requis
+    // pour `gen types`) → requête castée localement (pattern du repo).
+    type RideDispatchRow = {
+      status: string;
+      chauffeur_id: string | null;
+      customer_id: string | null;
+      pickup_lat: number | null;
+      pickup_lng: number | null;
+      dest_lat: number | null;
+      dest_lng: number | null;
+      proposed_price_da: number | null;
+      boost_amount_da: number | null;
+      gamme: string | null;
+      female_only: boolean | null;
+      payment_method: string | null;
+      online_paid_at: string | null;
+      dispatch_radius_km: number | null;
+    };
+    const ridesTable = admin.from("rides") as unknown as {
+      select: (s: string) => {
+        eq: (
+          c: string,
+          v: string
+        ) => {
+          maybeSingle: () => Promise<{ data: RideDispatchRow | null }>;
+        };
+      };
+    };
+    const { data: ride } = await ridesTable
       .select(
-        "status, chauffeur_id, customer_id, pickup_lat, pickup_lng, dest_lat, dest_lng, proposed_price_da, boost_amount_da, gamme, female_only, payment_method, online_paid_at"
+        "status, chauffeur_id, customer_id, pickup_lat, pickup_lng, dest_lat, dest_lng, proposed_price_da, boost_amount_da, gamme, female_only, payment_method, online_paid_at, dispatch_radius_km"
       )
       .eq("id", input.rideId)
       .maybeSingle();
@@ -356,13 +383,22 @@ export async function notifyChauffeursNewRide(input: {
       (settings as { drive_home_dir_tolerance_deg?: number } | null)
         ?.drive_home_dir_tolerance_deg ?? 45;
 
+    // Rayon de DIFFUSION (recherche) : élargi par les escalades successives
+    // (mig 0255, dispatch_radius_km), borné 5..25 km. NB : ce rayon n'élargit
+    // QUE le VIVIER interrogé. La garde finale reste la zone de travail de
+    // CHAQUE chauffeur (isPushEligible ci-dessous, repli = defaultRadius) → on
+    // ne pousse JAMAIS à un chauffeur hors de la zone qu'il a acceptée.
+    const dispatchRadius = Math.min(
+      25,
+      Math.max(5, Number(ride.dispatch_radius_km ?? defaultRadius))
+    );
+
     // Matching dur gamme + femme au volant (repli géré côté SQL) ; la RPC trie
-    // déjà la diffusion : Premium > favoris du client > distance. Pré-filtre au
-    // rayon de réception par défaut (cohérent avec la liste).
+    // déjà la diffusion : Premium > favoris du client > distance.
     const { data: near } = await rpc("chauffeurs_present_near", {
       p_lat: ride.pickup_lat,
       p_lng: ride.pickup_lng,
-      p_radius_km: defaultRadius,
+      p_radius_km: dispatchRadius,
       p_within_min: 3,
       p_gamme: ride.gamme ?? "classic",
       p_female_only: ride.female_only ?? false,

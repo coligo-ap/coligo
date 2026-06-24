@@ -45,6 +45,7 @@ import {
   boostRide,
   cancelDriveRide,
   createRideCardCheckout,
+  escalateDispatch,
   getDriveLastRide,
   getDriveOffers,
   getRideCardState,
@@ -240,10 +241,29 @@ function SearchScreen({
     !!ride && ride.payment_method === "card" && !ride.online_paid;
 
   const stopRef = useRef(false);
+  // Re-dispatch escaladé : si AUCUNE offre après un délai, on demande au serveur
+  // d'élargir le rayon (mig 0255). Délai de DÉPART côté client (≥20 s, laisse sa
+  // chance au rayon initial) ; le serveur gère le RYTHME (25 s) et le PLAFOND.
+  const searchStartRef = useRef(Date.now());
+  const lastEscalateRef = useRef(0);
   const poll = useCallback(async () => {
     if (!rideId) return;
     const o = await getDriveOffers(rideId);
-    if (!stopRef.current) setOffers(o);
+    if (stopRef.current) return;
+    setOffers(o);
+    // Personne n'a répondu et l'attente dépasse le seuil → escalade (best-effort,
+    // throttlée client + serveur autoritaire). On n'escalade pas s'il y a déjà
+    // des offres (le client a des options).
+    if (o.length === 0) {
+      const now = Date.now();
+      if (
+        now - searchStartRef.current > 20_000 &&
+        now - lastEscalateRef.current > 25_000
+      ) {
+        lastEscalateRef.current = now;
+        void escalateDispatch(rideId);
+      }
+    }
   }, [rideId]);
 
   useEffect(() => {

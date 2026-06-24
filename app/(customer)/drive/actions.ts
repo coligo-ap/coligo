@@ -463,6 +463,31 @@ export async function requestDriveRide(input: {
 }
 
 /**
+ * Re-dispatch ESCALADÉ (mig 0255) — déclenché par le poll du CLIENT en attente
+ * quand sa course « searching » tarde à recevoir des offres. Élargit d'un cran
+ * le rayon de DIFFUSION (serveur autoritaire : ownership + intervalle mini +
+ * plafond 25 km) puis re-diffuse aux chauffeurs nouvellement à portée — la garde
+ * par zone de travail de chaque chauffeur reste appliquée. No-op (silencieux) si
+ * ce n'est pas le moment, si on est au plafond, ou si la course n'est plus
+ * éligible. Best-effort : ne jette jamais, ne bloque pas le poll client.
+ */
+export async function escalateDispatch(rideId: string): Promise<void> {
+  try {
+    const rpc = await rpcClient();
+    const { data, error } = await rpc("drive_escalate_dispatch", {
+      p_ride_id: rideId,
+    });
+    if (error) return;
+    // Rayon élargi → re-diffuser (notifyChauffeursNewRide lit dispatch_radius_km).
+    if (typeof data === "number" && data > 0) {
+      void notifyChauffeursNewRide({ rideId });
+    }
+  } catch {
+    /* best-effort — l'escalade ne doit jamais casser l'attente client */
+  }
+}
+
+/**
  * Traduit les erreurs ZONE du RPC request_ride (mig 0169) en message client
  * clair. Les codes : drive_zone_origin:<reason> / drive_zone_dest:<reason> /
  * drive_zone_maxdist:<km>. Sinon on renvoie le message brut.
