@@ -732,12 +732,29 @@ export async function getChauffeurTick(
       ? getNearbyRides(lat, lng, radiusKm)
       : Promise.resolve([] as NearbyRide[]),
   ]);
-  // ch=<id|null> ver=<vérifié> in=<lat,lng reçus> near=<getNearbyRides>
-  // req=<requestsCount via getDriveHome> act=<course active ?>
+  // DIAG : appel DIRECT de chauffeur_nearby_rides (sans le wrapper getNearbyRides)
+  // pour isoler — raw = ce que le RPC renvoie ici même, rawErr = son erreur.
+  let raw = -1;
+  let rawErr = "";
+  try {
+    if (lat != null && lng != null) {
+      const rpc = await rpcClient();
+      const { data, error } = await rpc("chauffeur_nearby_rides", {
+        p_lat: lat,
+        p_lng: lng,
+        p_radius_km: radiusKm,
+      });
+      raw = Array.isArray(data) ? data.length : -2;
+      rawErr = error ? String(error.message).slice(0, 40) : "";
+    }
+  } catch (e) {
+    rawErr = `THROW ${String((e as Error)?.message ?? e)}`.slice(0, 40);
+  }
   const dbg =
     `ch=${ch ? ch.id.slice(0, 8) : "NULL"} ver=${ch?.is_verified ? 1 : 0} ` +
-    `in=${lat == null ? "null" : lat.toFixed(4)},${lng == null ? "null" : lng.toFixed(4)} ` +
-    `near=${nearby.length} req=${home?.requestsCount ?? -1} act=${activeRide ? 1 : 0}`;
+    `in=${lat == null ? "null" : lat.toFixed(4)},${lng == null ? "null" : lng.toFixed(4)} r=${radiusKm} ` +
+    `near=${nearby.length} raw=${raw} req=${home?.requestsCount ?? -1} act=${activeRide ? 1 : 0}` +
+    (rawErr ? ` ERR:${rawErr}` : "");
   return { home, activeRide, nearby, dbg };
 }
 
