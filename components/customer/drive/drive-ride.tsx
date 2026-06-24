@@ -342,13 +342,21 @@ function SearchScreen({
     if (busy) return;
     setBusy(true);
     setError(null);
-    const res = await acceptDriveOffer(offerId, `acc-${offerId}`);
-    if (!res.ok)
-      setError(
-        res.error === "chauffeur_busy" ? t("driverBusy") : (res.error ?? null)
-      );
-    await refreshActive();
-    setBusy(false);
+    try {
+      const res = await acceptDriveOffer(offerId, `acc-${offerId}`);
+      if (!res.ok)
+        setError(
+          res.error === "chauffeur_busy" ? t("driverBusy") : (res.error ?? null)
+        );
+      await refreshActive();
+    } catch {
+      // Exception réseau : on RELÂCHE toujours `busy` (finally). Sinon il reste
+      // bloqué à true → « Annuler la recherche » (if (busy) return) et le choix
+      // d'offre deviennent inopérants jusqu'à un rechargement de page.
+      setError(t("genericError"));
+    } finally {
+      setBusy(false);
+    }
   };
 
   // NB : plus d'ajout aux favoris ici — un chauffeur ne peut devenir favori
@@ -682,10 +690,19 @@ function SearchScreen({
           onClick={async () => {
             if (busy) return;
             setBusy(true);
-            if (rideId) await cancelDriveRide(rideId, null);
-            else await clearPendingRide();
-            setBusy(false);
-            onBackToPrice();
+            setError(null);
+            try {
+              if (rideId) await cancelDriveRide(rideId, null);
+              else await clearPendingRide();
+              onBackToPrice();
+            } catch {
+              // Échec d'annulation (réseau / action) : on relâche TOUJOURS `busy`
+              // via finally → le bouton « Annuler » reste cliquable et réessayable
+              // immédiatement, plus besoin d'actualiser la page.
+              setError(t("genericError"));
+            } finally {
+              setBusy(false);
+            }
           }}
         >
           {t("cancelSearch")}
