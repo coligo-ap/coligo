@@ -103,13 +103,7 @@ const GAMME_IMG: Record<Gamme, string> = {
 
 const rnd5 = (v: number) => Math.round(v / 5) * 5;
 
-export function DriveView({
-  initialActive = null,
-}: {
-  /** Course active résolue CÔTÉ SERVEUR (SSR) → écran de course affiché dès le
-   *  1er rendu, sans loader ni aller-retour client (instantané au tap « Drive »). */
-  initialActive?: DriveActiveRide | null;
-}) {
+export function DriveView() {
   const t = useTranslations("drive");
   const router = useRouter();
   // Contexte Drive (solde, récents, dernière course, options) CACHÉ via TanStack
@@ -121,8 +115,7 @@ export function DriveView({
     queryFn: getDriveContext,
     staleTime: 60_000,
   });
-  // Écran initial : course en cours (SSR) → directement « ride », sinon « home ».
-  const [screen, setScreen] = useState<Screen>(initialActive ? "ride" : "home");
+  const [screen, setScreen] = useState<Screen>("home");
   // Assistant : carte de confirmation affichée → on masque le reste du trajet.
   const [aiConfirming, setAiConfirming] = useState(false);
 
@@ -165,19 +158,9 @@ export function DriveView({
     null
   );
 
-  // Course active (recherche / en route / fin) — initialisée depuis le SSR : on a
-  // d'emblée le bon écran (aucun loader/flash). Le boot client ne sert plus
-  // qu'au retour Chargily et à un rafraîchissement silencieux.
-  const [active, setActive] = useState<DriveActiveRide | null>(initialActive);
+  // Course active (recherche / en route / fin)
+  const [active, setActive] = useState<DriveActiveRide | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  // Verrou SYNCHRONE single-flight : un useState ne ferme pas la fenêtre async
-  // avant le 1ᵉʳ await (reverse-géocode) → deux taps rapides passaient tous les
-  // deux. Le ref bloque immédiatement ; un 2ᵉ tap en vol est ignoré, pas mis en
-  // file.
-  const inFlightRef = useRef(false);
-  // operation_id STABLE par trajet → l'idempotence serveur matche les retries
-  // (double-tap, re-livraison réseau). Régénéré seulement après succès / reset.
-  const opIdRef = useRef<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [offlineQueued, setOfflineQueued] = useState(false);
   // Couverture de zone (départ + arrivée) — pré-check UX avant la demande
@@ -198,56 +181,54 @@ export function DriveView({
   /* ───────── Boot : contexte + course active + GPS ───────── */
   useEffect(() => {
     void (async () => {
-      {
-        // Retour Chargily (?card=failed / ?card=success) : l'URL n'est jamais
-        // crue seule — on vérifie l'état réel de la course (webhook fait foi).
-        const params = new URLSearchParams(window.location.search);
-        const cardReturn = params.get("card");
-        if (cardReturn) {
-          params.delete("card");
-          const qs = params.toString();
-          window.history.replaceState(
-            null,
-            "",
-            window.location.pathname + (qs ? `?${qs}` : "")
-          );
+      // Retour Chargily (?card=failed / ?card=success) : l'URL n'est jamais
+      // crue seule — on vérifie l'état réel de la course (webhook fait foi).
+      const params = new URLSearchParams(window.location.search);
+      const cardReturn = params.get("card");
+      if (cardReturn) {
+        params.delete("card");
+        const qs = params.toString();
+        window.history.replaceState(
+          null,
+          "",
+          window.location.pathname + (qs ? `?${qs}` : "")
+        );
+      }
+      // Le contexte vient du cache TanStack (ci-dessus). Ici on ne vérifie que
+      // la course active (pour restaurer l'écran course / le retour Chargily).
+      const ride = await getDriveActiveRide();
+      // Paiement carte échoué : la demande (jamais diffusée) est annulée et
+      // le client revient à l'écran de CHOIX DE GAMME, trajet restauré,
+      // avec un message inline — pas d'annulation manuelle à faire.
+      if (
+        cardReturn === "failed" &&
+        ride &&
+        ride.payment_method === "card" &&
+        !ride.online_paid &&
+        ride.status === "searching"
+      ) {
+        await cancelDriveRide(ride.id, "Paiement carte échoué");
+        if (ride.pickup_lat != null && ride.dest_lat != null) {
+          setPickup({
+            lat: ride.pickup_lat,
+            lng: ride.pickup_lng!,
+            text: ride.pickup_text,
+            gps: false,
+          });
+          setDest({
+            lat: ride.dest_lat,
+            lng: ride.dest_lng!,
+            text: ride.dest_text,
+          });
+          setGamme((ride.gamme as Gamme) ?? "classic");
+          setPrice(ride.proposed_price_da);
+          setPayMode("card");
+          setRequestError(t("price.cardFailed"));
+          setScreen("price");
         }
-        // Le contexte vient du cache TanStack (ci-dessus). Ici on ne vérifie que
-        // la course active (pour restaurer l'écran course / le retour Chargily).
-        const ride = await getDriveActiveRide();
-        // Paiement carte échoué : la demande (jamais diffusée) est annulée et
-        // le client revient à l'écran de CHOIX DE GAMME, trajet restauré,
-        // avec un message inline — pas d'annulation manuelle à faire.
-        if (
-          cardReturn === "failed" &&
-          ride &&
-          ride.payment_method === "card" &&
-          !ride.online_paid &&
-          ride.status === "searching"
-        ) {
-          await cancelDriveRide(ride.id, "Paiement carte échoué");
-          if (ride.pickup_lat != null && ride.dest_lat != null) {
-            setPickup({
-              lat: ride.pickup_lat,
-              lng: ride.pickup_lng!,
-              text: ride.pickup_text,
-              gps: false,
-            });
-            setDest({
-              lat: ride.dest_lat,
-              lng: ride.dest_lng!,
-              text: ride.dest_text,
-            });
-            setGamme((ride.gamme as Gamme) ?? "classic");
-            setPrice(ride.proposed_price_da);
-            setPayMode("card");
-            setRequestError(t("price.cardFailed"));
-            setScreen("price");
-          }
-        } else if (ride) {
-          setActive(ride);
-          setScreen("ride");
-        }
+      } else if (ride) {
+        setActive(ride);
+        setScreen("ride");
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -544,9 +525,7 @@ export function DriveView({
         female_only: femaleOnly,
         proxy_name: prox?.name ?? null,
         proxy_phone: prox?.phone ?? null,
-        operation_id: (opIdRef.current ??= `drv-${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 8)}`),
+        operation_id: `drv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         quote_id: quoteId,
       };
     },
@@ -572,79 +551,55 @@ export function DriveView({
   }, []);
 
   const submitRequest = async () => {
-    // Verrou SYNCHRONE single-flight : posé AVANT tout await (un 2ᵉ tap pendant
-    // le vol est ignoré, jamais mis en file ni renvoyé).
-    if (!pickup || !dest || inFlightRef.current) return;
-    inFlightRef.current = true;
-    try {
-      setRequestError(null);
-      // Départ GPS sans adresse encore résolue : on géocode MAINTENANT pour que
-      // le chauffeur reçoive la vraie adresse (jamais « Ma position actuelle »).
-      let pickupText = pickup.text;
-      if (
-        pickup.gps &&
-        !pickupText &&
-        typeof navigator !== "undefined" &&
-        navigator.onLine
-      ) {
-        const r = await reverseGeocode({
-          latitude: pickup.lat,
-          longitude: pickup.lng,
-          precise: true,
-        }).catch(() => null);
-        if (r?.ok && r.display) pickupText = r.display;
-      }
-      const payload = buildPayload(pickupText);
-      if (!payload) return;
-      // Hors connexion : demande en file Dexie, envoi auto au retour réseau (C8).
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        await queueRideRequest(payload.operation_id, payload);
-        setOfflineQueued(true);
-        opIdRef.current = null; // prochaine course = id neuf
-        setScreen("ride");
-        return;
-      }
-      setSubmitting(true);
-      const res = await requestDriveRide(payload);
-      if (!res.ok) {
-        setSubmitting(false);
-        // Course déjà active → on bascule AUTOMATIQUEMENT sur l'écran de la
-        // course en cours. Si on ne la retrouve pas (annulée/expirée entre-temps),
-        // on N'EST PAS bloqué : on libère l'op et on affiche un message de retry.
-        if (res.code === "active_ride") {
-          opIdRef.current = null;
-          const ride = await refreshActive();
-          if (ride) setScreen("ride");
-          else setRequestError(res.error ?? t("requestFailed"));
-          return;
-        }
-        setRequestError(res.error ?? t("requestFailed"));
-        return;
-      }
-      // CARTE : payer AVANT que la demande soit diffusée (Chargily Pay existant).
-      if (payMode === "card" && res.rideId) {
-        const checkout = await createRideCardCheckout(res.rideId);
-        if (checkout.ok && checkout.url) {
-          window.open(checkout.url, "_blank");
-        } else {
-          setSubmitting(false);
-          setRequestError(checkout.error ?? t("requestFailed"));
-          await cancelDriveRide(res.rideId, "Paiement carte indisponible");
-          return;
-        }
-      }
-      setSubmitting(false);
-      opIdRef.current = null; // course créée → prochaine demande = id neuf
-      await refreshActive();
-      setScreen("ride");
-    } catch {
-      // Échec de l'action serveur (timeout réseau, etc.) : jamais de loader figé
-      // ni d'écran bloqué — on rend la main au bouton avec un message clair.
-      setSubmitting(false);
-      setRequestError(t("requestFailed"));
-    } finally {
-      inFlightRef.current = false;
+    if (!pickup || !dest || submitting) return;
+    setRequestError(null);
+    // Départ GPS sans adresse encore résolue : on géocode MAINTENANT pour que le
+    // chauffeur reçoive la vraie adresse (jamais « Ma position actuelle »).
+    let pickupText = pickup.text;
+    if (
+      pickup.gps &&
+      !pickupText &&
+      typeof navigator !== "undefined" &&
+      navigator.onLine
+    ) {
+      const r = await reverseGeocode({
+        latitude: pickup.lat,
+        longitude: pickup.lng,
+        precise: true,
+      }).catch(() => null);
+      if (r?.ok && r.display) pickupText = r.display;
     }
+    const payload = buildPayload(pickupText);
+    if (!payload) return;
+    // Hors connexion : demande en file Dexie, envoi auto au retour réseau (C8).
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      await queueRideRequest(payload.operation_id, payload);
+      setOfflineQueued(true);
+      setScreen("ride");
+      return;
+    }
+    setSubmitting(true);
+    const res = await requestDriveRide(payload);
+    if (!res.ok) {
+      setSubmitting(false);
+      setRequestError(res.error ?? t("requestFailed"));
+      return;
+    }
+    // CARTE : payer AVANT que la demande soit diffusée (Chargily Pay existant).
+    if (payMode === "card" && res.rideId) {
+      const checkout = await createRideCardCheckout(res.rideId);
+      if (checkout.ok && checkout.url) {
+        window.open(checkout.url, "_blank");
+      } else {
+        setSubmitting(false);
+        setRequestError(checkout.error ?? t("requestFailed"));
+        await cancelDriveRide(res.rideId, "Paiement carte indisponible");
+        return;
+      }
+    }
+    setSubmitting(false);
+    await refreshActive();
+    setScreen("ride");
   };
 
   // Pré-check de couverture (départ + arrivée) DÈS que les deux points sont
@@ -724,7 +679,6 @@ export function DriveView({
     setPayMode("cash");
     setGamme("classic");
     setOfflineQueued(false);
-    opIdRef.current = null; // nouvelle demande = nouvel operation_id
   }, []);
 
   /* ───────── Assistant : trajet confirmé → écran prix ─────────

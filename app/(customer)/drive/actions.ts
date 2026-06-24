@@ -3,7 +3,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chauffeurAvatarUrls } from "@/lib/drive/avatar-server";
-import { getActiveRideFor } from "@/lib/data/drive-active-ride";
 import { notifyChauffeursNewRide, notifyRideMessage } from "@/lib/fcm/triggers";
 import {
   evaluateZone,
@@ -11,7 +10,11 @@ import {
   resolveWilayaCommune,
 } from "@/lib/zones/server";
 import { zoneMessageFr } from "@/lib/zones/service-zones";
-import { issuePriceQuote, quoteRejectionMessage } from "@/lib/data/geo-quote";
+import {
+  issuePriceQuote,
+  verifyPriceQuote,
+  quoteRejectionMessage,
+} from "@/lib/data/geo-quote";
 import { roadRoute } from "@/lib/drive/routing";
 
 type Rpc = (
@@ -369,19 +372,24 @@ export async function requestDriveRide(input: {
   operation_id?: string | null;
   /** Devis signé émis par issueDriveQuote — anti-prix-périmé (Partie D). */
   quote_id?: string | null;
-}): Promise<{
-  ok: boolean;
-  rideId?: string;
-  error?: string;
-  /** "active_ride" = le client a déjà une course en cours (→ proposer d'y revenir). */
-  code?: "active_ride";
-}> {
+}): Promise<{ ok: boolean; rideId?: string; error?: string }> {
   const rpc = await rpcClient();
 
-  // Anti-prix-périmé (Partie D) : le devis est désormais VÉRIFIÉ + CONSOMMÉ
-  // ATOMIQUEMENT dans la RPC request_ride, APRÈS la garde « course active ».
-  // → un double-tap est redirigé vers la course en cours AVANT de toucher au
-  // devis : plus de dead-end « Devis déjà utilisé ». On passe juste le quote_id.
+  // Anti-prix-périmé (Partie D) : si un devis a été émis, on le VÉRIFIE et le
+  // CONSOMME pour le trajet courant AVANT d'engager le prix. Adresse changée /
+  // devis expiré / déjà utilisé → refus net (le client re-demande un prix).
+  if (input.quote_id) {
+    const chk = await verifyPriceQuote({
+      quoteId: input.quote_id,
+      context: "drive",
+      pickup: { lat: input.pickup_lat, lng: input.pickup_lng },
+      dest: { lat: input.dest_lat, lng: input.dest_lng },
+      consume: true,
+    });
+    if (!chk.ok) {
+      return { ok: false, error: quoteRejectionMessage(chk.reason) };
+    }
+  }
 
   // Reverse-géocode départ + arrivée (zones, mig 0174) + distance routière
   // AUTORITAIRE recalculée serveur (A) : on ne fait JAMAIS confiance au km du
@@ -420,25 +428,8 @@ export async function requestDriveRide(input: {
     p_pickup_commune: pickupGeo.commune,
     p_dest_wilaya: destGeo.wilayaCode,
     p_dest_commune: destGeo.commune,
-    // Devis vérifié + consommé ATOMIQUEMENT dans la RPC (après la garde active).
-    p_quote_id: input.quote_id ?? null,
   });
   if (error) {
-    // Le client a déjà une course active (anti-spam request_ride) → on le signale
-    // par un code dédié pour proposer côté UI de REVENIR à la course concernée.
-    if (error.message.includes("déjà une course")) {
-      return { ok: false, error: error.message, code: "active_ride" };
-    }
-    // Devis périmé / adresse changée (la garde active passe AVANT, donc 'consumed'
-    // n'arrive ici que SANS course active → le client re-demande une estimation).
-    if (error.message.includes("drive_quote:")) {
-      const reason = error.message.split("drive_quote:")[1]?.trim() as
-        | "expired"
-        | "consumed"
-        | "addr_changed"
-        | "not_found";
-      return { ok: false, error: quoteRejectionMessage(reason) };
-    }
     // Refus de zone réel → journalisation ops (best-effort, mig 0170).
     if (error.message.includes("drive_zone")) {
       const isMax = error.message.includes("drive_zone_maxdist");
@@ -665,14 +656,100 @@ export async function cancelDriveRide(
 
 /* ─────────────────────────── Course active ─────────────────────────── */
 
-// La logique (et le type) vivent dans un module DATA pur (appelable au SSR) ;
-// ici on ne fait qu'exposer l'ACTION cliente (avatar inclus pour le refresh).
-export type { DriveActiveRide } from "@/lib/data/drive-active-ride";
+export type DriveActiveRide = {
+  id: string;
+  status: string;
+  pickup_text: string | null;
+  dest_text: string | null;
+  pickup_lat: number | null;
+  pickup_lng: number | null;
+  dest_lat: number | null;
+  dest_lng: number | null;
+  distance_km: number;
+  proposed_price_da: number;
+  agreed_price_da: number | null;
+  boost_amount_da: number;
+  gamme: string;
+  payment_method: string;
+  female_only: boolean;
+  proxy_name: string | null;
+  proxy_phone: string | null;
+  share_token: string | null;
+  end_code: string | null;
+  online_paid: boolean;
+  /** Séquestre Coligo Pay réservé (DA) — mig 0163. */
+  escrow_da: number;
+  /** Complément à régler EN ESPÈCES au chauffeur (Coligo Pay partiel). */
+  cash_due_da: number;
+  chauffeur: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+    vehicle: string | null;
+    plate: string | null;
+    phone: string | null;
+    rating: number | null;
+    rides: number;
+    is_female: boolean;
+    is_premium: boolean;
+    is_favorite: boolean;
+    lat: number | null;
+    lng: number | null;
+  } | null;
+};
 
-export async function getDriveActiveRide(): Promise<
-  import("@/lib/data/drive-active-ride").DriveActiveRide | null
-> {
-  return getActiveRideFor();
+export async function getDriveActiveRide(): Promise<DriveActiveRide | null> {
+  const rpc = await rpcClient();
+  const { data } = await rpc("my_active_ride", {});
+  const r = (Array.isArray(data) ? data[0] : null) as Record<
+    string,
+    unknown
+  > | null;
+  if (!r) return null;
+  return {
+    id: r.id as string,
+    status: r.status as string,
+    pickup_text: (r.pickup_text as string) ?? null,
+    dest_text: (r.dest_text as string) ?? null,
+    pickup_lat: (r.pickup_lat as number) ?? null,
+    pickup_lng: (r.pickup_lng as number) ?? null,
+    dest_lat: (r.dest_lat as number) ?? null,
+    dest_lng: (r.dest_lng as number) ?? null,
+    distance_km: Number(r.distance_km ?? 0),
+    proposed_price_da: (r.proposed_price_da as number) ?? 0,
+    agreed_price_da: (r.agreed_price_da as number) ?? null,
+    boost_amount_da: (r.boost_amount_da as number) ?? 0,
+    gamme: (r.gamme as string) ?? "classic",
+    payment_method: (r.payment_method as string) ?? "cash",
+    female_only: Boolean(r.female_only),
+    proxy_name: (r.proxy_name as string) ?? null,
+    proxy_phone: (r.proxy_phone as string) ?? null,
+    share_token: (r.share_token as string) ?? null,
+    end_code: (r.end_code as string) ?? null,
+    online_paid: r.online_paid_at != null,
+    escrow_da: (r.escrow_da as number) ?? 0,
+    cash_due_da: (r.cash_due_da as number) ?? 0,
+    chauffeur: r.ch_name
+      ? {
+          id: r.chauffeur_id as string,
+          name: r.ch_name as string,
+          avatar_url:
+            (await chauffeurAvatarUrls([r.chauffeur_id as string])).get(
+              r.chauffeur_id as string
+            ) ?? null,
+          vehicle: (r.ch_vehicle as string) ?? null,
+          plate: (r.ch_plate as string) ?? null,
+          phone: (r.ch_phone as string) ?? null,
+          rating: r.ch_rating == null ? null : Number(r.ch_rating),
+          rides: Number(r.ch_rides ?? 0),
+          is_female: Boolean(r.ch_is_female),
+          is_premium: Boolean(r.ch_is_premium),
+          is_favorite: Boolean(r.ch_is_favorite),
+          lat: (r.ch_lat as number) ?? null,
+          lng: (r.ch_lng as number) ?? null,
+        }
+      : null,
+  };
 }
 
 /* ───────────────────── Fin de course (dernière terminée) ───────────────────── */

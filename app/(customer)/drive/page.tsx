@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { getAuthUser } from "@/lib/auth/session";
 import { DriveView } from "@/components/customer/drive/drive-view";
-import { getActiveRideFor } from "@/lib/data/drive-active-ride";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { FeatureUnavailable } from "@/components/customer/feature-unavailable";
 import {
@@ -35,18 +34,5 @@ export default async function DrivePage() {
       </CustomerShell>
     );
   }
-  // Course active résolue CÔTÉ SERVEUR → si une demande/course est en cours, on
-  // affiche DIRECTEMENT son écran (recherche/suivi), pas le formulaire (instantané
-  // au tap « Drive »). `skipAvatar` : on ne signe pas l'avatar au SSR (coûteux) ;
-  // le refresh client le remplira.
-  // DÉFENSIF : une erreur de cette résolution NE DOIT JAMAIS faire planter la page
-  // /drive — on retombe sur null (le boot client restaurera la course de toute
-  // façon).
-  let initialActive = null;
-  try {
-    initialActive = await getActiveRideFor({ skipAvatar: true });
-  } catch (e) {
-    console.error("[drive] getActiveRideFor SSR failed:", e);
-  }
-  return <DriveView initialActive={initialActive} />;
+  return <DriveView />;
 }
