@@ -103,6 +103,32 @@ const GAMME_IMG: Record<Gamme, string> = {
 
 const rnd5 = (v: number) => Math.round(v / 5) * 5;
 
+/**
+ * Devis de REPLI calculés CÔTÉ CLIENT — utilisés UNIQUEMENT si la Server Action
+ * `getDriveQuotes` échoue (réseau, action périmée après déploiement, etc.). But :
+ * ne JAMAIS rester bloqué en loading et permettre quand même de lancer la
+ * recherche. Barème simple aligné sur platform_settings (base 100 + 30/km, min
+ * 150) × multiplicateur de gamme. Le prix RÉEL reste revalidé côté serveur au
+ * moment de `requestRide` (devis signé) — ce repli n'est qu'une estimation.
+ */
+function fallbackQuotes(distanceKm: number): Record<Gamme, DriveQuote> {
+  const make = (mult: number): DriveQuote => {
+    const reco = Math.max(
+      150,
+      rnd5((100 + 30 * Math.max(0, distanceKm)) * mult)
+    );
+    return {
+      recommended: reco,
+      floor: rnd5(reco * 0.85),
+      mini: rnd5(reco * 0.85),
+      fast: rnd5(reco * 1.1),
+      low: rnd5(reco * 0.9),
+      high: rnd5(reco * 1.2),
+    };
+  };
+  return { classic: make(1), confort: make(1.3), moto: make(0.85) };
+}
+
 export function DriveView() {
   const t = useTranslations("drive");
   const router = useRouter();
@@ -394,12 +420,29 @@ export function DriveView() {
     void (async () => {
       // Devis intelligent : départ (demande/offre locale) + durée RÉELLE de
       // navigation (supplément trafic ; trajet fluide = prix inchangé, mig 0235).
-      const q = await getDriveQuotes(
-        distanceKm,
-        { lat: pickup.lat, lng: pickup.lng },
-        etaMin
-      );
+      // ROBUSTE : 1 retry puis REPLI local — l'écran prix ne doit JAMAIS rester
+      // bloqué en loading si la Server Action échoue (réseau / action périmée).
+      let q: Record<Gamme, DriveQuote> | null = null;
+      for (let attempt = 0; attempt < 2 && q == null; attempt++) {
+        try {
+          // Timeout 8 s : une action qui HANG (jamais résolue) ne doit pas non
+          // plus figer le loader → on bascule sur le repli.
+          q = await Promise.race([
+            getDriveQuotes(
+              distanceKm,
+              { lat: pickup.lat, lng: pickup.lng },
+              etaMin
+            ),
+            new Promise<never>((_, rej) =>
+              setTimeout(() => rej(new Error("timeout")), 8000)
+            ),
+          ]);
+        } catch {
+          q = null; // on retente une fois, sinon repli ci-dessous
+        }
+      }
       if (cancelled) return; // une réponse en retard ne doit pas écraser la neuve
+      if (q == null) q = fallbackQuotes(distanceKm); // jamais bloqué
       setQuotes(q);
       const reco = q[gamme]?.recommended ?? q.classic.recommended;
       // Nouveau trajet → on part du recommandé. Raffinement OSRM (même trajet) →
