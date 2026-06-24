@@ -49,6 +49,7 @@ import {
   getHomeDirOn,
 } from "@/lib/chauffeur/home-dir-store";
 import { isOpenDemande } from "@/lib/chauffeur/dispatch-filter";
+import { usePageVisible } from "@/lib/realtime/use-page-visible";
 import { getMyWalletState } from "@/app/wallet/recharge-actions";
 import {
   activateHomeDir,
@@ -173,6 +174,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const online = useChauffeurOnline();
   const onlineRef = useRef(online);
   onlineRef.current = online;
+  // Hygiène connexions (quota Realtime Free PARTAGÉ) : on n'ouvre le canal de
+  // dispatch QUE au premier plan ; en arrière-plan, le FCM réveille l'app.
+  const visible = usePageVisible();
 
   // Bascule OPTIMISTE et NON BLOQUANTE : le switch reflète l'intention
   // INSTANTANÉMENT (store local réactif), et la synchro serveur part en
@@ -285,7 +289,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   //   • la redirection « offre acceptée » reste sur ride_offers (ciblé par id).
   // GATÉ sur l'état en ligne.
   useEffect(() => {
-    if (!online) return;
+    if (!online || !visible) return;
     const supabase = createClient();
     const chans = [
       supabase
@@ -312,7 +316,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     return () => {
       for (const c of chans) void supabase.removeChannel(c);
     };
-  }, [tick, online, gate.id, gate.userId, router]);
+  }, [tick, online, visible, gate.id, gate.userId, router]);
 
   // Dès la 1re position GPS connue : recharger immédiatement (sans attendre 15 s).
   const gotFirstFix = useRef(false);

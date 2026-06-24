@@ -29,6 +29,7 @@ import {
   useChauffeurOnline,
 } from "@/lib/chauffeur/online-store";
 import { useSearchRadius } from "@/lib/chauffeur/work-zone";
+import { usePageVisible } from "@/lib/realtime/use-page-visible";
 import {
   chauffeurHeartbeat,
   declineRide,
@@ -141,6 +142,9 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const coords = useDriverPosition();
   // À L'ÉCOUTE seulement si EN LIGNE (intention partagée avec l'accueil).
   const online = useChauffeurOnline();
+  // Hygiène connexions Realtime (quota Free partagé) : canal de dispatch ouvert
+  // au premier plan seulement ; FCM + poll de secours couvrent l'arrière-plan.
+  const visible = usePageVisible();
   const [goingOnline, setGoingOnline] = useState(false);
   // Initialisé depuis le cache module → affichage instantané au retour (SWR).
   const [reqs, setReqs] = useState<NearbyRide[]>(lastNearbyCache);
@@ -307,7 +311,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   // Temps réel (mig 0149) : nouvelles demandes instantanées + redirection
   // immédiate quand le client accepte UNE de mes offres.
   useEffect(() => {
-    if (!online) return;
+    if (!online || !visible) return;
     const supabase = createClient();
     const chans = [
       // Dispatch push CIBLÉ : canal perso (plus d'écoute globale des INSERT).
@@ -346,7 +350,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     return () => {
       for (const c of chans) void supabase.removeChannel(c);
     };
-  }, [poll, chId, userId, router, online]);
+  }, [poll, chId, userId, router, online, visible]);
 
   // Surlignage de la course notifiée : dès qu'elle est présente dans la liste
   // (le poll/temps réel l'a ramenée), on sélectionne l'onglet où elle se trouve

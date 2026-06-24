@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { usePageVisible } from "@/lib/realtime/use-page-visible";
 
 type OrderRow = {
   id: string;
@@ -47,9 +48,14 @@ export function useOrderRealtime(
   handlers: Handlers
 ): RealtimeStatus {
   const [status, setStatus] = useState<RealtimeStatus>("idle");
+  // Hygiène connexions (quota Realtime Free PARTAGÉ entre tous les rôles) : on
+  // n'ouvre le canal QUE quand le board est au premier plan. En arrière-plan, le
+  // FCM (nouvelle commande) + le poll de secours du bridge couvrent ; on rend la
+  // connexion au pool. Réouverture automatique au retour au premier plan.
+  const visible = usePageVisible();
 
   useEffect(() => {
-    if (!merchantId) return;
+    if (!merchantId || !visible) return;
     setStatus("connecting");
     const supabase = createClient();
     const channel = supabase
@@ -101,7 +107,7 @@ export function useOrderRealtime(
     // handlers est ref-stable côté appelant (useCallback), pas besoin de l'inclure
     // dans les deps pour éviter de re-souscrire à chaque rerender.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [merchantId]);
+  }, [merchantId, visible]);
 
   return status;
 }
