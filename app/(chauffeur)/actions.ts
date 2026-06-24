@@ -663,17 +663,24 @@ export async function saveChauffeurSearchRadius(
 export async function getNearbyRides(
   lat: number,
   lng: number,
-  radiusKm = 10
+  radiusKm = 10,
+  /** Id chauffeur déjà résolu (passé par getChauffeurTick → 1 seule résolution
+   *  d'auth par requête, à toute épreuve). Si absent, on le résout ici. */
+  chauffeurId?: string
 ): Promise<NearbyRide[]> {
   try {
     // ⚠️ Découplé de auth.uid() (mig 0257) : dans une Server Action, le token de
     // session peut être nul par INTERMITTENCE (refresh rotatif, sous-appels) →
     // chauffeur_nearby_rides renvoyait 0 EN SILENCE (« 0 course » alors que la
-    // course existe). On résout le chauffeur via getCurrentChauffeur (mémoïsé,
-    // fiable) puis on interroge en SERVICE_ROLE avec l'id EXPLICITE → la requête
-    // ne dépend plus du token de session.
-    const ch = await getCurrentChauffeur();
-    if (!ch) return [];
+    // course existe). On résout le chauffeur (param explicite en priorité, sinon
+    // getCurrentChauffeur) puis on interroge en SERVICE_ROLE avec l'id EXPLICITE
+    // → la requête ne dépend plus du token de session.
+    let chId = chauffeurId;
+    if (!chId) {
+      const ch = await getCurrentChauffeur();
+      if (!ch) return [];
+      chId = ch.id;
+    }
     const admin = createAdminClient();
     const rpc = admin.rpc.bind(admin) as unknown as (
       fn: string,
@@ -689,7 +696,7 @@ export async function getNearbyRides(
       p_lat: lat,
       p_lng: lng,
       p_radius_km: radiusKm,
-      p_chauffeur_id: ch.id,
+      p_chauffeur_id: chId,
     });
     return ((data as Record<string, unknown>[] | null) ?? []).map((r) => ({
       id: r.id as string,
@@ -736,19 +743,18 @@ export async function getChauffeurTick(
   nearby: NearbyRide[];
   dbg: string;
 }> {
-  // EN SÉRIE (surtout PAS Promise.all) : chaque sous-appel crée son propre client
-  // cookie ; en PARALLÈLE, si le token d'accès a expiré, ils tentent un refresh
-  // SIMULTANÉ avec le refresh-token ROTATIF à usage unique → un seul gagne, les
-  // autres PERDENT l'auth (auth.uid() nul → 0 course reçue, bug vécu en prod).
-  // En série, le 1er refresh propage le token frais aux suivants. Coût ~3×150 ms,
-  // négligeable pour un tick à 15 s — NE PAS repasser en Promise.all.
+  // Chauffeur résolu UNE SEULE FOIS pour toute la requête (à toute épreuve), puis
+  // passé à getNearbyRides → la réception ne dépend plus d'une 2ᵉ résolution
+  // d'auth fragile. EN SÉRIE (pas Promise.all) : éviter la course de refresh du
+  // token entre clients cookie concurrents.
+  const ch = await getCurrentChauffeur();
   const home = await getDriveHome(lat, lng);
   const activeRide = await getChauffeurActiveRide();
   const nearby =
-    lat != null && lng != null
-      ? await getNearbyRides(lat, lng, radiusKm)
+    lat != null && lng != null && ch
+      ? await getNearbyRides(lat, lng, radiusKm, ch.id)
       : ([] as NearbyRide[]);
-  const dbg = `srvNear=${nearby.length} req=${home?.requestsCount ?? -1} ids=${nearby
+  const dbg = `ch=${ch ? ch.id.slice(0, 4) : "NULL"} srvNear=${nearby.length} req=${home?.requestsCount ?? -1} ids=${nearby
     .map((r) => r.id.slice(0, 4))
     .join(",")}`;
   return { home, activeRide, nearby, dbg };
