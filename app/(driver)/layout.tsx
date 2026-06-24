@@ -121,7 +121,7 @@ export default async function DriverLayout({
       {/* Écran de lancement (une fois par session). */}
       <DriverSplash />
       {/* Réception Express globale (pilotée par l'intention « en ligne »). */}
-      <DriverDispatchMount />
+      <DriverDispatchMount userId={driver?.user_id ?? null} />
       {/* Notification TOURNÉE temps réel (bandeau in-app) chez les commerçants
           où le livreur est inscrit — distinct de l'Express. */}
       {driver && <TourDispatchMount />}

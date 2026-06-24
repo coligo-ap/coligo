@@ -91,3 +91,26 @@ export async function broadcastToChauffeurs(
 export function chauffeurChannel(userId: string): string {
   return `chauffeur:${userId}`;
 }
+
+/**
+ * Idem pour les LIVREURS (Express) : canal perso `courier:{userId}`. Remplace
+ * l'abonnement global aux INSERT/UPDATE de `orders` (delivery_mode=express),
+ * qui réveillait TOUS les livreurs en ligne à chaque commande (O(commandes ×
+ * livreurs)). Le serveur ne pousse `new_express` qu'aux livreurs proches.
+ */
+export async function broadcastToCouriers(
+  userIds: string[],
+  event: string,
+  payload: Record<string, unknown>
+): Promise<void> {
+  const unique = [...new Set(userIds.filter(Boolean))];
+  if (unique.length === 0) return;
+  await sendBroadcast(
+    unique.map((uid) => ({ topic: `courier:${uid}`, event, payload }))
+  );
+}
+
+/** Nom de canal personnel d'un livreur (à réutiliser côté client). */
+export function courierChannel(userId: string): string {
+  return `courier:${userId}`;
+}

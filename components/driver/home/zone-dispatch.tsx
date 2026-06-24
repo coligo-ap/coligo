@@ -19,12 +19,20 @@ import { toast } from "@/components/ui/toast";
  * relais. Monté globalement dans le layout livreur → la réception fonctionne
  * sur n'importe quelle page tant qu'il est en ligne.
  *
- * Déclencheurs : Realtime sur les commandes express (réception ~instantanée) +
- * repli polling 20 s (le timing intelligent rend une commande attribuable à son
- * prep_notif_at, sans évènement Realtime à cet instant précis). La RPC est
- * idempotente et ne fait rien si le livreur a déjà une course → poll sûr.
+ * Déclencheurs : DISPATCH PUSH CIBLÉ (le serveur pousse `new_express` sur le
+ * canal perso `courier:{userId}` aux livreurs proches — plus d'abonnement GLOBAL
+ * aux commandes, qui réveillait TOUS les livreurs à chaque commande = O(cmd ×
+ * livreurs)) + repli polling 20 s (le timing intelligent rend une commande
+ * attribuable à son prep_notif_at, sans évènement à cet instant précis). La RPC
+ * est idempotente et ne fait rien si le livreur a déjà une course → poll sûr.
  */
-export function ZoneDispatch({ online }: { online: boolean }) {
+export function ZoneDispatch({
+  online,
+  userId,
+}: {
+  online: boolean;
+  userId: string | null;
+}) {
   const coords = useDriverPosition();
   const router = useRouter();
   const coordsRef = useRef(coords);
@@ -79,38 +87,28 @@ export function ZoneDispatch({ online }: { online: boolean }) {
     void tick();
     const poll = setInterval(tick, 20_000);
 
-    // Realtime : réagit aux commandes express (création / passage prêt).
+    // DISPATCH PUSH CIBLÉ : on n'écoute plus TOUTES les commandes express. Le
+    // serveur (notifyDriversNewExpress) pousse `new_express` aux livreurs proches
+    // sur leur canal perso → on tente alors un pull. Tant que le user_id n'est
+    // pas connu, seul le poll 20 s tourne.
     const supabase = createClient();
-    const channel = supabase
-      .channel("driver-zone-dispatch")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "orders",
-          filter: "delivery_mode=eq.express",
-        },
-        () => void tickRef.current()
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "orders",
-          filter: "delivery_mode=eq.express",
-        },
-        () => void tickRef.current()
-      )
-      .subscribe();
+    const channel = userId
+      ? supabase
+          .channel(`courier:${userId}`)
+          .on(
+            "broadcast",
+            { event: "new_express" },
+            () => void tickRef.current()
+          )
+          .subscribe()
+      : null;
 
     return () => {
       alive = false;
       clearInterval(poll);
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
-  }, [online, router]);
+  }, [online, userId, router]);
 
   // Changement de zone (ou GPS dispo après coup) → tente un pull immédiat dans
   // le nouveau périmètre, sans attendre le prochain cycle de polling.

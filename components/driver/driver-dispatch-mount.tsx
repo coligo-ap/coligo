@@ -18,7 +18,7 @@ import { driverHeartbeat } from "@/app/(driver)/actions";
  * livreur « sonne » pour une course Express proche même sans l'app ouverte
  * (réseau global géolocalisé, mig 0130). NO-OP sur le web. Rend `null`.
  */
-export function DriverDispatchMount() {
+export function DriverDispatchMount({ userId }: { userId: string | null }) {
   const online = useDriverOnline();
 
   useEffect(() => {
@@ -33,5 +33,5 @@ export function DriverDispatchMount() {
     return () => handle.stop();
   }, [online]);
 
-  return <ZoneDispatch online={online} />;
+  return <ZoneDispatch online={online} userId={userId} />;
 }

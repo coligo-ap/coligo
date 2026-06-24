@@ -19,7 +19,10 @@ import { formatDA } from "@/lib/utils";
 import type { OrderStatus } from "@/lib/types";
 import { labelFor } from "@/lib/chat/messages";
 import { isPushEligible } from "@/lib/chauffeur/dispatch-filter";
-import { broadcastToChauffeurs } from "@/lib/realtime/broadcast";
+import {
+  broadcastToChauffeurs,
+  broadcastToCouriers,
+} from "@/lib/realtime/broadcast";
 import { sendFcm } from "./send";
 
 async function tokensFor(
@@ -596,6 +599,13 @@ export async function notifyDriversNewExpress(input: {
 
     const userIds = [...userIdSet];
     if (userIds.length === 0) return;
+
+    // DISPATCH FOREGROUND ciblé : broadcast aux livreurs PROCHES (même audience
+    // que le FCM) sur leur canal perso → réception instantanée app ouverte, sans
+    // abonnement global aux commandes. Le FCM ci-dessous couvre l'arrière-plan.
+    void broadcastToCouriers(userIds, "new_express", {
+      orderId: input.orderId,
+    });
 
     const tokenLists = await Promise.all(
       userIds.map((uid) => tokensFor(uid, "courier"))
