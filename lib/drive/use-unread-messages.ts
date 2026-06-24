@@ -11,6 +11,7 @@
 // =============================================================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export type ChatMsg = {
   id: string;
@@ -56,8 +57,28 @@ export function useUnreadRideMessages(
   useEffect(() => {
     if (!rideId || !active) return;
     void poll();
-    const id = setInterval(poll, 4000);
-    return () => clearInterval(id);
+    // TEMPS RÉEL : un nouveau message (client ↔ chauffeur) arrive INSTANTANÉMENT
+    // via Realtime (`ride_messages` publiée) → plus besoin de poller vite. Le
+    // poll devient un simple FILET de rattrapage (avant 4 s → 20 s).
+    const supabase = createClient();
+    const ch = supabase
+      .channel(`unread-ride-msg-${rideId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "ride_messages",
+          filter: `ride_id=eq.${rideId}`,
+        },
+        () => void poll()
+      )
+      .subscribe();
+    const id = setInterval(poll, 20000);
+    return () => {
+      clearInterval(id);
+      void supabase.removeChannel(ch);
+    };
   }, [rideId, active, poll]);
 
   const markSeen = useCallback(() => {

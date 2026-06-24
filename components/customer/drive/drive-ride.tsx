@@ -144,7 +144,12 @@ export function DriveRide({
       }
       if (ride) lastStatus.current = ride.status;
     };
-    const id = setInterval(tick, 4000);
+    // Poll = FILET LENT seulement : la sync course (statut/terminée/annulée) est
+    // INSTANTANÉE via le Realtime ci-dessous (postgres_changes sur `rides`). On
+    // ne martèle PAS le serveur — façon Uber/Google : push DB temps réel + poll
+    // de rattrapage uniquement (avant : 4 s → 20 s). Cas spécial paiement carte
+    // (webhook) : le filet 20 s suffit le temps de la confirmation.
+    const id = setInterval(tick, 20000);
     void tick();
     return () => {
       stop = true;
@@ -270,7 +275,9 @@ function SearchScreen({
     if (!rideId) return;
     stopRef.current = false;
     void poll();
-    const id = setInterval(() => void poll(), 4000);
+    // FILET LENT : chaque offre arrive INSTANTANÉMENT via le Realtime sur
+    // `ride_offers` (ci-dessous). Poll de rattrapage seulement (avant : 4 s).
+    const id = setInterval(() => void poll(), 15000);
     return () => {
       stopRef.current = true;
       clearInterval(id);
@@ -278,7 +285,7 @@ function SearchScreen({
   }, [rideId, poll]);
 
   // Temps réel (mig 0149) : chaque offre / contre-offre / retrait d'un
-  // chauffeur apparaît instantanément — le poll 4 s reste en filet.
+  // chauffeur apparaît INSTANTANÉMENT — le poll lent n'est qu'un filet.
   useEffect(() => {
     if (!rideId) return;
     const supabase = createClient();

@@ -18,6 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 import { formatDA } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { haversineKm } from "@/lib/delivery/distance";
 import { reverseGeocode } from "@/app/(customer)/actions";
@@ -208,9 +209,38 @@ export function DCourse() {
   }, []);
   useEffect(() => {
     void refresh();
-    const id = setInterval(refresh, 6000);
+    // Poll = FILET LENT seulement (le Realtime ci-dessous fait l'instantané).
+    // Avant : 6 s. La sync ne doit PAS marteler le serveur — façon Uber, on
+    // s'appuie sur le push DB temps réel et le poll ne sert qu'au rattrapage.
+    const id = setInterval(refresh, 20000);
     return () => clearInterval(id);
   }, [refresh]);
+
+  // TEMPS RÉEL (façon Uber) : tout changement de SA course (annulation client,
+  // statut, prix convenu) rafraîchit INSTANTANÉMENT — plus besoin de poller vite.
+  // La table `rides` est dans la publication Realtime ; RLS = le chauffeur ne
+  // voit que sa course attribuée.
+  const rideId = ride?.id ?? null;
+  useEffect(() => {
+    if (!rideId) return;
+    const supabase = createClient();
+    const ch = supabase
+      .channel(`ch-ride-${rideId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "rides",
+          filter: `id=eq.${rideId}`,
+        },
+        () => void refresh()
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [rideId, refresh]);
 
   // Back-to-back : proposition de course proche du POINT DE DÉPOSE (12 s).
   useEffect(() => {
@@ -1064,10 +1094,28 @@ function DChat({ rideId, onClose }: { rideId: string; onClose: () => void }) {
       void markChauffeurMessagesRead(rideId, true);
     };
     void poll();
-    const id = setInterval(poll, 3500);
+    // TEMPS RÉEL : nouveau message du client → instantané (`ride_messages` est
+    // publiée Realtime). Le poll devient un FILET LENT (avant 3,5 s → 30 s) — on
+    // ne martèle plus le serveur pour le chat.
+    const supabase = createClient();
+    const ch = supabase
+      .channel(`ch-msg-${rideId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "ride_messages",
+          filter: `ride_id=eq.${rideId}`,
+        },
+        () => void poll()
+      )
+      .subscribe();
+    const id = setInterval(poll, 30000);
     return () => {
       stop = true;
       clearInterval(id);
+      void supabase.removeChannel(ch);
     };
   }, [rideId]);
 
