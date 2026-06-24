@@ -167,6 +167,13 @@ export function DriveView() {
   // Dernier prix recommandé servi : si le prix courant lui est égal, le client
   // n'a pas ajusté → un raffinement OSRM peut suivre le recommandé affiné.
   const lastRecoRef = useRef<number>(0);
+  // Miroir SYNCHRONE du prix courant : lu dans les calculs ASYNCHRONES (devis
+  // serveur en différé) pour décider de suivre le recommandé affiné SANS
+  // dépendre d'une valeur `price` capturée (périmée) dans la closure de l'effet.
+  const priceRef = useRef(0);
+  useEffect(() => {
+    priceRef.current = price;
+  }, [price]);
   // Desktop (≥ lg) : on affiche une CARTE à côté du formulaire pour visualiser
   // le trajet. La carte n'est MONTÉE qu'en desktop (pas d'init MapLibre sur
   // mobile → accueil instantané conservé).
@@ -417,21 +424,40 @@ export function DriveView() {
     const trajKey = `${pickup.lat.toFixed(5)},${pickup.lng.toFixed(5)},${dest.lat.toFixed(5)},${dest.lng.toFixed(5)}`;
     const isNewTraj = trajKey !== lastTrajRef.current;
     lastTrajRef.current = trajKey;
+
+    // PRIX INSTANTANÉ (comme la distance) : dès que la distance est connue, on
+    // affiche TOUT DE SUITE une estimation LOCALE (fallbackQuotes), puis le
+    // devis serveur l'affine EN SILENCE juste après. Plus de loader 1-2 s sur le
+    // prix — il apparaît en même temps que la distance et la durée.
     if (isNewTraj || quotes == null) {
-      setPricing(true);
-      setQuoteId(null);
+      const fb = fallbackQuotes(distanceKm);
+      setQuotes(fb);
+      setQuoteId(null); // ancien devis périmé tant que le nouveau n'est pas émis
+      const fbReco = fb[gamme]?.recommended ?? fb.classic.recommended;
+      // Nouveau trajet, prix non encore choisi, ou prix encore au recommandé
+      // précédent → on (re)part du recommandé estimé. Sinon on respecte le choix
+      // manuel du client.
+      if (
+        isNewTraj ||
+        priceRef.current === lastRecoRef.current ||
+        priceRef.current <= 0
+      ) {
+        setPrice(fbReco);
+        if (boostOn) setBoostAmt(defBoost(fbReco));
+        lastRecoRef.current = fbReco;
+      }
+      setPricing(false); // jamais bloqué : on a déjà une estimation à afficher
     }
+
     let cancelled = false;
     void (async () => {
-      // Devis intelligent : départ (demande/offre locale) + durée RÉELLE de
-      // navigation (supplément trafic ; trajet fluide = prix inchangé, mig 0235).
-      // ROBUSTE : 1 retry puis REPLI local — l'écran prix ne doit JAMAIS rester
-      // bloqué en loading si la Server Action échoue (réseau / action périmée).
+      // Devis intelligent SERVEUR (affinage silencieux) : départ (demande/offre
+      // locale) + durée RÉELLE de navigation (supplément trafic, mig 0235).
+      // ROBUSTE : 1 retry, timeout 8 s. En cas d'échec on GARDE l'estimation
+      // locale déjà affichée → l'écran prix n'est jamais bloqué ni vidé.
       let q: Record<Gamme, DriveQuote> | null = null;
       for (let attempt = 0; attempt < 2 && q == null; attempt++) {
         try {
-          // Timeout 8 s : une action qui HANG (jamais résolue) ne doit pas non
-          // plus figer le loader → on bascule sur le repli.
           q = await Promise.race([
             getDriveQuotes(
               distanceKm,
@@ -443,23 +469,21 @@ export function DriveView() {
             ),
           ]);
         } catch {
-          q = null; // on retente une fois, sinon repli ci-dessous
+          q = null; // on retente une fois, sinon on garde l'estimation locale
         }
       }
-      if (cancelled) return; // une réponse en retard ne doit pas écraser la neuve
-      if (q == null) q = fallbackQuotes(distanceKm); // jamais bloqué
+      // Réponse en retard / écran démonté / échec serveur → on ne touche à rien.
+      if (cancelled || q == null) return;
       setQuotes(q);
       const reco = q[gamme]?.recommended ?? q.classic.recommended;
-      // Nouveau trajet → on part du recommandé. Raffinement OSRM (même trajet) →
-      // on suit le recommandé affiné UNIQUEMENT si le client n'a pas touché au
-      // prix (sinon on respecte son ajustement). Évite un prix sous le plancher
-      // affiné sans jamais écraser un choix manuel.
-      if (isNewTraj || price === lastRecoRef.current) {
+      // On suit le recommandé serveur affiné UNIQUEMENT si le client n'a pas
+      // ajusté le prix depuis l'estimation locale (priceRef = valeur courante,
+      // pas une closure périmée). Sinon on respecte son choix manuel.
+      if (priceRef.current === lastRecoRef.current) {
         setPrice(reco);
         if (boostOn) setBoostAmt(defBoost(reco));
       }
       lastRecoRef.current = reco;
-      setPricing(false);
     })();
     return () => {
       cancelled = true;
@@ -671,7 +695,6 @@ export function DriveView() {
       setSubmitting(true);
       const res = await requestDriveRide(payload);
       if (!res.ok) {
-        setSubmitting(false);
         setRequestError(res.error ?? t("requestFailed"));
         return;
       }
@@ -681,17 +704,22 @@ export function DriveView() {
         if (checkout.ok && checkout.url) {
           window.open(checkout.url, "_blank");
         } else {
-          setSubmitting(false);
           setRequestError(checkout.error ?? t("requestFailed"));
           await cancelDriveRide(res.rideId, "Paiement carte indisponible");
           return;
         }
       }
-      setSubmitting(false);
       await refreshActive();
       setScreen("ride");
+    } catch {
+      // Exception (réseau, Server Action en échec, action périmée après
+      // déploiement…) : le bouton ne doit JAMAIS rester bloqué en chargement.
+      // Message inline + bouton réactivé (le `finally` libère tout) → réessai.
+      setRequestError(t("requestFailed"));
     } finally {
-      // Libère le verrou (succès, erreur ou retour anticipé) → ré-essai possible.
+      // Libère le chargement ET le verrou dans TOUS les cas (succès, erreur,
+      // exception, retour anticipé) → plus de spinner infini, ré-essai possible.
+      setSubmitting(false);
       inFlightRef.current = false;
     }
   };
@@ -741,6 +769,17 @@ export function DriveView() {
     const flush = async () => {
       const pending = await getPendingRide();
       if (!pending) return;
+      // Demande PÉRIMÉE : une course mise en file hors-ligne ne doit JAMAIS être
+      // envoyée « longtemps après » (le client a changé d'avis, de position, de
+      // plan). Au-delà de 3 min on l'ABANDONNE silencieusement au lieu de la
+      // diffuser à un chauffeur 10 min plus tard. (Le serveur reste idempotent
+      // via operation_id, mais on ne veut même pas tenter une demande obsolète.)
+      const STALE_AFTER_MS = 3 * 60_000;
+      if (Date.now() - pending.createdAt > STALE_AFTER_MS) {
+        await clearPendingRide();
+        setOfflineQueued(false);
+        return;
+      }
       setOfflineQueued(true);
       try {
         const res = await requestDriveRide(
@@ -1769,6 +1808,18 @@ function MapPickScreen({
   // la recherche UNE fois après un choix → la liste ne se réaffiche pas tant que
   // le client ne MODIFIE pas son texte.
   const pickedRef = useRef(false);
+  // Choix EXPLICITE d'un lieu (suggestion / favori / récent / valeur initiale) :
+  // le recentrage de la carte (flyTo) émet un `moveend` → `onMove`. Sans ce
+  // drapeau, ce déplacement programmatique repasserait l'adresse à « … » et
+  // re-géocoderait, RÉGRISANT « Confirmer ce point ». On consomme ce drapeau au
+  // 1ᵉʳ `onMove` qui suit le choix : le libellé déjà connu est CONSERVÉ. Les
+  // déplacements MANUELS suivants re-géocodent normalement. Initialisé à true
+  // quand on entre avec un libellé (édition d'un point déjà choisi).
+  const movePickRef = useRef<boolean>(Boolean(initial?.text));
+  // Filet anti-blocage du « … » : garantit que `resolving` finit toujours par
+  // retomber, même si le géocodage hang/échoue (le libellé tombe alors sur les
+  // coordonnées GPS et « Confirmer ce point » redevient actif).
+  const resolveSafetyRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Recherche d'adresse SUR la carte (suggestions, debounce configurable).
   const [searchQ, setSearchQ] = useState("");
@@ -1869,10 +1920,12 @@ function MapPickScreen({
   // client peut ensuite affiner au doigt — moveend ré-émettra la position).
   const pickSuggestion = (r: { display: string; lat: number; lng: number }) => {
     pickedRef.current = true; // saute la recherche déclenchée par setSearchQ
+    movePickRef.current = true; // le moveend du flyTo ne doit pas effacer ce libellé
     setSearchOpen(false);
     setSearchResults([]); // la liste disparaît et ne se rouvre pas au focus
     setSearchQ(r.display);
     setAddr(r.display);
+    setResolving(false); // adresse connue → « Confirmer ce point » actif tout de suite
     setCenter({ lat: r.lat, lng: r.lng });
     setFocusTarget({ lat: r.lat, lng: r.lng, zoom: 17 });
     // Apprentissage : ce choix fait remonter ce lieu pour les recherches futures.
@@ -1890,14 +1943,34 @@ function MapPickScreen({
       setSearchOpen(false);
       setFavOpen(false);
       setCenter(c);
-      setResolving(true);
+      // Choix explicite (suggestion/favori/récent/init) : le flyTo a émis ce
+      // moveend, mais le libellé est DÉJÀ connu → on le conserve, on ne repasse
+      // pas par « … » et on ne re-géocode pas. Les déplacements MANUELS suivants
+      // (movePickRef remis à false) re-géocoderont normalement.
+      if (movePickRef.current) {
+        movePickRef.current = false;
+        setResolving(false);
+        return;
+      }
       const seq = ++geoSeqRef.current;
+      setResolving(true);
+      // FILET : on ne reste JAMAIS bloqué sur « … » (et donc sur un bouton
+      // grisé). Si aucune phase n'a abouti sous 1,5 s (réseau lent / géocodage
+      // qui hang), on débloque → le libellé tombera sur les coordonnées GPS.
+      if (resolveSafetyRef.current) clearTimeout(resolveSafetyRef.current);
+      resolveSafetyRef.current = setTimeout(() => {
+        if (seq === geoSeqRef.current) setResolving(false);
+      }, 1500);
       // PHASE 1 — INSTANTANÉE : lieu le plus proche via gazetteer local (PostGIS
-      // KNN, ~5-50 ms), SANS debounce → la position s'affiche TOUT DE SUITE.
+      // KNN, ~5-50 ms), SANS debounce → la position s'affiche TOUT DE SUITE et,
+      // dès qu'on a un libellé, on DÉBLOQUE « Confirmer ce point » (la phase 2
+      // ne fait qu'affiner en silence, elle ne doit plus garder le bouton grisé).
       void nearestPlaceLabel({ latitude: c.lat, longitude: c.lng })
         .then((g) => {
-          if (seq === geoSeqRef.current && g?.ok && g.display)
+          if (seq === geoSeqRef.current && g?.ok && g.display) {
             setAddr(g.display);
+            setResolving(false);
+          }
         })
         .catch(() => {});
       // PHASE 2 — débouncée : reverseGeocode précis (rue) AFFINE le libellé.
@@ -1921,6 +1994,14 @@ function MapPickScreen({
       }, geoCfg.reverseGeocodeDebounceMs);
     },
     [geoCfg.reverseGeocodeDebounceMs]
+  );
+
+  // Nettoyage du filet anti-blocage au démontage.
+  useEffect(
+    () => () => {
+      if (resolveSafetyRef.current) clearTimeout(resolveSafetyRef.current);
+    },
+    []
   );
 
   return (
