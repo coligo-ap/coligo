@@ -58,9 +58,7 @@ import {
   deactivateHomeDir,
   chauffeurHeartbeat,
   declineRide,
-  getChauffeurActiveRide,
-  getDriveHome,
-  getNearbyRides,
+  getChauffeurTick,
   offerRide,
   setChauffeurHome,
   setChauffeurOnline,
@@ -227,13 +225,16 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         : null);
     tickBusy.current = true;
     try {
-      const [h, active, list] = await Promise.all([
-        getDriveHome(c?.latitude ?? null, c?.longitude ?? null),
-        getChauffeurActiveRide(),
-        onlineRef.current && c
-          ? getNearbyRides(c.latitude, c.longitude, radiusRef.current)
-          : Promise.resolve([] as NearbyRide[]),
-      ]);
+      // UN SEUL POST (consolidé) au lieu de 3 Server Actions sérialisées.
+      const {
+        home: h,
+        activeRide: active,
+        nearby: list,
+      } = await getChauffeurTick(
+        c?.latitude ?? null,
+        c?.longitude ?? null,
+        radiusRef.current
+      );
       if (active) {
         router.replace("/chauffeur/course");
         return;

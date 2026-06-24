@@ -700,6 +700,46 @@ export async function getNearbyRides(
   }
 }
 
+/**
+ * TICK consolidé de l'accueil : home (gains/heatmap) + course active + demandes
+ * proches en UN SEUL aller-retour. Avant, l'accueil lançait 3 Server Actions
+ * (Next les SÉRIALISE → 3 POST étalés sur ~4 s) ; ici 1 seul POST. Réduit la
+ * charge réseau perçue ET serveur. `getCurrentChauffeur` est mémoïsé (React
+ * cache) → dédupliqué entre les sous-appels dans le même rendu serveur.
+ */
+export async function getChauffeurTick(
+  lat: number | null,
+  lng: number | null,
+  radiusKm = 10
+): Promise<{
+  home: DriveHome | null;
+  activeRide: ChauffeurActiveRide | null;
+  nearby: NearbyRide[];
+}> {
+  const [home, activeRide, nearby] = await Promise.all([
+    getDriveHome(lat, lng),
+    getChauffeurActiveRide(),
+    lat != null && lng != null
+      ? getNearbyRides(lat, lng, radiusKm)
+      : Promise.resolve([] as NearbyRide[]),
+  ]);
+  return { home, activeRide, nearby };
+}
+
+/** TICK consolidé de la page Demandes : demandes proches + course active en
+ *  UN SEUL POST (au lieu de 2 Server Actions sérialisées). */
+export async function getDemandesTick(
+  lat: number,
+  lng: number,
+  radiusKm = 10
+): Promise<{ nearby: NearbyRide[]; activeRide: ChauffeurActiveRide | null }> {
+  const [nearby, activeRide] = await Promise.all([
+    getNearbyRides(lat, lng, radiusKm),
+    getChauffeurActiveRide(),
+  ]);
+  return { nearby, activeRide };
+}
+
 export async function offerRide(
   rideId: string,
   price: number

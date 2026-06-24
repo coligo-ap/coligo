@@ -35,10 +35,9 @@ import { ensureRealtimeAuth } from "@/lib/realtime/ensure-auth";
 import {
   chauffeurHeartbeat,
   declineRide,
-  getChauffeurActiveRide,
   getChauffeurGate,
   getChauffeurPlanRate,
-  getNearbyRides,
+  getDemandesTick,
   offerRide,
   setChauffeurOnline,
   type NearbyRide,
@@ -248,10 +247,12 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
       // Heartbeat « en ligne » UNIQUEMENT avec un VRAI fix GPS (ne pas réécrire
       // une position de repli périmée). Hors ligne, on ne poll pas du tout.
       if (live) void chauffeurHeartbeat(live.latitude, live.longitude, true);
-      const [list, active] = await Promise.all([
-        getNearbyRides(c.latitude, c.longitude, radiusRef.current),
-        getChauffeurActiveRide(),
-      ]);
+      // UN SEUL POST (consolidé) au lieu de 2 Server Actions sérialisées.
+      const { nearby: list, activeRide: active } = await getDemandesTick(
+        c.latitude,
+        c.longitude,
+        radiusRef.current
+      );
       if (active) {
         router.replace("/chauffeur/course");
         return;
