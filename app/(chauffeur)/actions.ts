@@ -725,13 +725,17 @@ export async function getChauffeurTick(
   dbg: string;
 }> {
   const ch = await getCurrentChauffeur();
-  const [home, activeRide, nearby] = await Promise.all([
-    getDriveHome(lat, lng),
-    getChauffeurActiveRide(),
+  // EN SÉRIE (surtout PAS Promise.all) : chaque sous-appel crée son propre client
+  // cookie ; en parallèle, si le token d'accès a expiré, ils tentent un refresh
+  // SIMULTANÉ avec le refresh-token ROTATIF à usage unique → un seul gagne, les
+  // autres perdent l'auth (auth.uid() nul → 0 course). En série, le 1er refresh
+  // propage le token frais aux suivants. Coût ~3×150 ms, négligeable (tick 15 s).
+  const home = await getDriveHome(lat, lng);
+  const activeRide = await getChauffeurActiveRide();
+  const nearby =
     lat != null && lng != null
-      ? getNearbyRides(lat, lng, radiusKm)
-      : Promise.resolve([] as NearbyRide[]),
-  ]);
+      ? await getNearbyRides(lat, lng, radiusKm)
+      : ([] as NearbyRide[]);
   // DIAG : appel DIRECT de chauffeur_nearby_rides (sans le wrapper getNearbyRides)
   // pour isoler — raw = ce que le RPC renvoie ici même, rawErr = son erreur.
   let raw = -1;
@@ -765,10 +769,10 @@ export async function getDemandesTick(
   lng: number,
   radiusKm = 10
 ): Promise<{ nearby: NearbyRide[]; activeRide: ChauffeurActiveRide | null }> {
-  const [nearby, activeRide] = await Promise.all([
-    getNearbyRides(lat, lng, radiusKm),
-    getChauffeurActiveRide(),
-  ]);
+  // EN SÉRIE (cf. getChauffeurTick) : éviter la course de refresh du token entre
+  // clients cookie concurrents → sinon getNearbyRides perd l'auth → 0 course.
+  const nearby = await getNearbyRides(lat, lng, radiusKm);
+  const activeRide = await getChauffeurActiveRide();
   return { nearby, activeRide };
 }
 
