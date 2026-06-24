@@ -232,6 +232,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         home: h,
         activeRide: active,
         nearby: list,
+        dbg: serverDbg,
       } = await getChauffeurTick(
         c?.latitude ?? null,
         c?.longitude ?? null,
@@ -244,12 +245,8 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
       lastDriveHomeCache = h; // alimente le cache SWR
       setHome(h);
       setNearby(onlineRef.current ? list : []);
-      // DIAG temporaire : état réel du client (à retirer après débogage).
-      setDbg(
-        `on=${onlineRef.current ? 1 : 0} pos=${
-          c ? `${c.latitude.toFixed(4)},${c.longitude.toFixed(4)}` : "null"
-        } reçu=${list.length}`
-      );
+      // DIAG temporaire : état client + vérité serveur du chemin réel.
+      setDbg(`on=${onlineRef.current ? 1 : 0} | ${serverDbg}`);
     } catch (e) {
       // Sans ce catch, une seule sous-requête en échec cassait SILENCIEUSEMENT
       // toute la réception (nearby jamais mis à jour). On le rend visible.

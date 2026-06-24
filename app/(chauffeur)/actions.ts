@@ -721,7 +721,10 @@ export async function getChauffeurTick(
   home: DriveHome | null;
   activeRide: ChauffeurActiveRide | null;
   nearby: NearbyRide[];
+  /** DIAG temporaire : vérité serveur du CHEMIN RÉEL (session du téléphone). */
+  dbg: string;
 }> {
+  const ch = await getCurrentChauffeur();
   const [home, activeRide, nearby] = await Promise.all([
     getDriveHome(lat, lng),
     getChauffeurActiveRide(),
@@ -729,7 +732,13 @@ export async function getChauffeurTick(
       ? getNearbyRides(lat, lng, radiusKm)
       : Promise.resolve([] as NearbyRide[]),
   ]);
-  return { home, activeRide, nearby };
+  // ch=<id|null> ver=<vérifié> in=<lat,lng reçus> near=<getNearbyRides>
+  // req=<requestsCount via getDriveHome> act=<course active ?>
+  const dbg =
+    `ch=${ch ? ch.id.slice(0, 8) : "NULL"} ver=${ch?.is_verified ? 1 : 0} ` +
+    `in=${lat == null ? "null" : lat.toFixed(4)},${lng == null ? "null" : lng.toFixed(4)} ` +
+    `near=${nearby.length} req=${home?.requestsCount ?? -1} act=${activeRide ? 1 : 0}`;
+  return { home, activeRide, nearby, dbg };
 }
 
 /** TICK consolidé de la page Demandes : demandes proches + course active en
