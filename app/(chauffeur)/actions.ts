@@ -576,11 +576,17 @@ export async function getDriveHome(
   > | null;
 
   // Heatmap : clusters des demandes en recherche (zones de forte demande).
+  // IMPORTANT : exclure les recherches EXPIRÉES (expires_at <= now) — sinon la
+  // carte affiche une « zone active » pour une course qu'AUCUN chauffeur ne peut
+  // recevoir (chauffeur_nearby_rides les filtre), d'où l'illusion « je vois une
+  // zone mais 0 course ». Cohérence heatmap ⇄ dispatch.
+  const nowIso = new Date().toISOString();
   const { data: searching } = await admin
     .from("rides")
     .select("pickup_lat, pickup_lng")
     .eq("status", "searching")
     .gte("created_at", new Date(Date.now() - 30 * 60_000).toISOString())
+    .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
     .limit(200);
   const clusters = new Map<
     string,
