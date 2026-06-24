@@ -1,0 +1,23 @@
+[
+  {
+    "route": "brise_mer→gare",
+    "km": 4.5,
+    "normal": null,
+    "promo": null,
+    "coligo": 295
+  },
+  {
+    "route": "centre→tichy",
+    "km": 18.5,
+    "normal": null,
+    "promo": null,
+    "coligo": 605
+  },
+  {
+    "route": "akbou→centre",
+    "km": 68.7,
+    "normal": null,
+    "promo": null,
+    "coligo": 1775
+  }
+]
