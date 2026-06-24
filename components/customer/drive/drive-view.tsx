@@ -247,10 +247,12 @@ export function DriveView() {
   useEffect(() => {
     let cancelled = false;
     let bestAcc = Infinity;
+    let lastFix: { lat: number; lng: number } | null = null;
     let lastRev: { lat: number; lng: number } | null = null;
     // Amorçage INSTANTANÉ du départ depuis la dernière position connue
     // (localStorage, partagée avec la marketplace) → au re-montage, le départ
-    // s'affiche tout de suite au lieu de « Localisation… », puis le GPS affine.
+    // s'affiche tout de suite au lieu de « Localisation… », puis le GPS RÉEL
+    // (position actuelle) prend le dessus.
     const stored = readStoredLocation();
     if (stored?.latitude != null && stored?.longitude != null) {
       setPickup((prev) =>
@@ -265,12 +267,26 @@ export function DriveView() {
       );
     }
     const apply = (lat: number, lng: number, accuracy: number) => {
-      if (cancelled || accuracy >= bestAcc) return;
-      bestAcc = accuracy;
+      if (cancelled) return;
+      // On accepte un fix s'il est PLUS précis OU s'il est nettement AILLEURS que
+      // la position affichée (cache périmé / on a bougé). → on ne reste jamais
+      // bloqué sur une vieille position en cache (ex. « Alger ») jugée « plus
+      // précise » : la position ACTUELLE du client gagne toujours.
+      const moved = lastFix != null && haversineKm(lastFix, { lat, lng }) > 0.2;
+      if (accuracy >= bestAcc && !moved) return;
+      bestAcc = moved ? accuracy : Math.min(bestAcc, accuracy);
+      lastFix = { lat, lng };
       setPickup((prev) =>
         prev && !prev.gps
           ? prev
-          : { lat, lng, text: prev?.gps ? prev.text : null, gps: true }
+          : // On a bougé → on EFFACE le libellé périmé le temps du re-géocodage
+            // (jamais une vieille adresse « Alger » sur une autre position).
+            {
+              lat,
+              lng,
+              text: moved ? null : prev?.gps ? prev.text : null,
+              gps: true,
+            }
       );
       // Reverse géocode seulement si on a bougé de plus de ~120 m.
       if (lastRev && haversineKm(lastRev, { lat, lng }) < 0.12) return;
@@ -284,10 +300,12 @@ export function DriveView() {
         })
         .catch(() => {});
     };
+    // maximumAge COURT : on veut la position ACTUELLE, pas un fix en cache de
+    // plusieurs minutes (qui renvoyait parfois une vieille position type Alger).
     void getPosition({
       enableHighAccuracy: false,
       timeout: 4_000,
-      maximumAge: 180_000,
+      maximumAge: 15_000,
     })
       .then((p) => apply(p.latitude, p.longitude, p.accuracy ?? 9_999))
       .catch(() => {
