@@ -681,17 +681,26 @@ export async function getNearbyRides(
       if (!ch) return [];
       chId = ch.id;
     }
-    const admin = createAdminClient();
-    const rpc = admin.rpc.bind(admin) as unknown as (
+    type Arpc = (
       fn: string,
       args: Record<string, unknown>
     ) => Promise<{ data: unknown; error: { message: string } | null }>;
-    // Active les courses programmées dont l'heure approche (pas de cron fréquent :
-    // le poll chauffeur sert de déclencheur, cf. archi Express). Best-effort.
-    await rpc("drive_activate_due_scheduled", {}).catch(() => undefined);
-    // Annule les recherches expirées sans réponse (deadline, mig 0250) — garde le
-    // réseau propre (pas de courses « fantômes »). Best-effort.
-    await rpc("drive_expire_stale_searches", {}).catch(() => undefined);
+
+    // ⚠️ Nettoyage (activate/expire) sur un client DÉDIÉ, fire-and-forget : il ne
+    // doit PAS précéder la requête sur le MÊME client. Constat prod : réutiliser
+    // un client admin pour 3 appels rpc successifs corrompt l'état du builder sur
+    // Vercel → le 3ᵉ (la requête) renvoyait 0 EN SILENCE alors qu'un appel direct
+    // renvoyait 1 (DIAG raw=1 srvNear=0). Le RPC filtre déjà expires_at>now(),
+    // donc l'expiration n'a pas besoin d'être nettoyée AVANT pour être correcte.
+    const cleanup = createAdminClient();
+    const crpc = cleanup.rpc.bind(cleanup) as unknown as Arpc;
+    void crpc("drive_activate_due_scheduled", {}).catch(() => undefined);
+    void crpc("drive_expire_stale_searches", {}).catch(() => undefined);
+
+    // REQUÊTE sur un client NEUF (état rpc frais) = exactement le chemin témoin
+    // qui renvoie 1. SERVICE_ROLE + id chauffeur explicite (mig 0257).
+    const admin = createAdminClient();
+    const rpc = admin.rpc.bind(admin) as unknown as Arpc;
     const { data } = await rpc("chauffeur_nearby_rides", {
       p_lat: lat,
       p_lng: lng,
