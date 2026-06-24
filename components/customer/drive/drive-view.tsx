@@ -661,6 +661,25 @@ export function DriveView() {
     return ride;
   }, []);
 
+  // Reprise du TRAJET depuis une course : quand la page est rechargée alors
+  // qu'une course « searching » est en cours, le trajet n'est pas en mémoire
+  // côté composant. En revenant à l'écran prix (annulation / échec carte) on
+  // re-remplit départ/arrivée/gamme/paiement à partir de la course → on atterrit
+  // sur l'écran PRIX (et pas sur l'accueil). Le prix se ré-estime pour le trajet.
+  const restoreTrajectoryFrom = useCallback((r: DriveActiveRide) => {
+    if (r.pickup_lat == null || r.dest_lat == null) return;
+    setPickup({
+      lat: r.pickup_lat,
+      lng: r.pickup_lng!,
+      text: r.pickup_text,
+      gps: false,
+    });
+    setDest({ lat: r.dest_lat, lng: r.dest_lng!, text: r.dest_text });
+    setGamme((r.gamme as Gamme) ?? "classic");
+    setPrice(r.proposed_price_da);
+    setPayMode((r.payment_method as "cash" | "card" | "coligo_pay") ?? "cash");
+  }, []);
+
   const submitRequest = async () => {
     // Garde synchrone : un 2ᵉ tap pendant que le 1ᵉʳ est en vol est ignoré.
     if (!pickup || !dest || inFlightRef.current) return;
@@ -869,12 +888,17 @@ export function DriveView() {
         refreshActive={refreshActive}
         onExit={resetAll}
         onBackToPrice={() => {
+          // Course reprise (trajet pas en mémoire) → on restaure le trajet exact
+          // pour revenir à l'écran PRIX plutôt qu'à l'accueil.
+          if (!dest && active) restoreTrajectoryFrom(active);
           setActive(null);
           setScreen("price");
         }}
         onCardFailed={() => {
           // Webhook Chargily : paiement échoué → demande déjà annulée côté
-          // serveur. Retour direct au choix de gamme, trajet conservé.
+          // serveur. Retour direct au choix de gamme, trajet conservé (restauré
+          // depuis la course si on l'avait perdu après un rechargement).
+          if (!dest && active) restoreTrajectoryFrom(active);
           setActive(null);
           setRequestError(t("price.cardFailed"));
           setScreen("price");
