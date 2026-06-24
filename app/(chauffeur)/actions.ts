@@ -686,19 +686,26 @@ export async function getNearbyRides(
       args: Record<string, unknown>
     ) => Promise<{ data: unknown; error: { message: string } | null }>;
 
-    // ⚠️ Nettoyage (activate/expire) sur un client DÉDIÉ, fire-and-forget : il ne
-    // doit PAS précéder la requête sur le MÊME client. Constat prod : réutiliser
-    // un client admin pour 3 appels rpc successifs corrompt l'état du builder sur
-    // Vercel → le 3ᵉ (la requête) renvoyait 0 EN SILENCE alors qu'un appel direct
-    // renvoyait 1 (DIAG raw=1 srvNear=0). Le RPC filtre déjà expires_at>now(),
-    // donc l'expiration n'a pas besoin d'être nettoyée AVANT pour être correcte.
+    // ⚠️⚠️ CAUSE RACINE du « 0 course » : le builder rpc Supabase est un
+    // PromiseLike — il a `.then` mais PAS `.catch` ! `rpc(...).catch(...)` lève
+    // « catch is not a function », attrapé par le try/catch externe → return []
+    // EN SILENCE. (Marchait avant une maj de dépendance.) On n'utilise donc
+    // JAMAIS `.catch` sur un builder rpc : await direct (rpc ne rejette pas, les
+    // erreurs sont dans `{error}`) ou `.then(_, _)` pour le fire-and-forget.
+    // Nettoyage (activate/expire) fire-and-forget, client dédié (n'affecte pas la
+    // requête) ; le RPC filtre déjà expires_at>now() donc pas besoin avant.
     const cleanup = createAdminClient();
     const crpc = cleanup.rpc.bind(cleanup) as unknown as Arpc;
-    void crpc("drive_activate_due_scheduled", {}).catch(() => undefined);
-    void crpc("drive_expire_stale_searches", {}).catch(() => undefined);
+    void crpc("drive_activate_due_scheduled", {}).then(
+      undefined,
+      () => undefined
+    );
+    void crpc("drive_expire_stale_searches", {}).then(
+      undefined,
+      () => undefined
+    );
 
-    // REQUÊTE sur un client NEUF (état rpc frais) = exactement le chemin témoin
-    // qui renvoie 1. SERVICE_ROLE + id chauffeur explicite (mig 0257).
+    // REQUÊTE sur un client NEUF, SERVICE_ROLE + id chauffeur explicite (mig 0257).
     const admin = createAdminClient();
     const rpc = admin.rpc.bind(admin) as unknown as Arpc;
     const { data } = await rpc("chauffeur_nearby_rides", {
@@ -750,12 +757,11 @@ export async function getChauffeurTick(
   home: DriveHome | null;
   activeRide: ChauffeurActiveRide | null;
   nearby: NearbyRide[];
-  dbg: string;
 }> {
-  // Chauffeur résolu UNE SEULE FOIS pour toute la requête (à toute épreuve), puis
-  // passé à getNearbyRides → la réception ne dépend plus d'une 2ᵉ résolution
-  // d'auth fragile. EN SÉRIE (pas Promise.all) : éviter la course de refresh du
-  // token entre clients cookie concurrents.
+  // Chauffeur résolu UNE SEULE FOIS pour toute la requête, puis passé à
+  // getNearbyRides → la réception ne dépend plus d'une 2ᵉ résolution d'auth.
+  // EN SÉRIE (pas Promise.all) : éviter la course de refresh du token entre
+  // clients cookie concurrents.
   const ch = await getCurrentChauffeur();
   const home = await getDriveHome(lat, lng);
   const activeRide = await getChauffeurActiveRide();
@@ -763,34 +769,7 @@ export async function getChauffeurTick(
     lat != null && lng != null && ch
       ? await getNearbyRides(lat, lng, radiusKm, ch.id)
       : ([] as NearbyRide[]);
-  // DIAG : appel TÉMOIN direct service_role (chemin exact, sans le wrapper) +
-  // position reçue + erreur éventuelle → isole précisément.
-  let raw = -1;
-  let rawErr = "";
-  try {
-    if (ch && lat != null && lng != null) {
-      const admin = createAdminClient();
-      const arpc = admin.rpc.bind(admin) as unknown as (
-        fn: string,
-        a: Record<string, unknown>
-      ) => Promise<{ data: unknown; error: { message: string } | null }>;
-      const { data, error } = await arpc("chauffeur_nearby_rides", {
-        p_lat: lat,
-        p_lng: lng,
-        p_radius_km: radiusKm,
-        p_chauffeur_id: ch.id,
-      });
-      raw = Array.isArray(data) ? data.length : -2;
-      rawErr = error ? String(error.message).slice(0, 45) : "";
-    }
-  } catch (e) {
-    rawErr = `THROW ${String((e as Error)?.message ?? e)}`.slice(0, 45);
-  }
-  const dbg =
-    `ch=${ch ? ch.id.slice(0, 4) : "NULL"} in=${lat == null ? "n" : lat.toFixed(3)},${lng == null ? "n" : lng.toFixed(3)} ` +
-    `srvNear=${nearby.length} raw=${raw} req=${home?.requestsCount ?? -1}` +
-    (rawErr ? ` E:${rawErr}` : "");
-  return { home, activeRide, nearby, dbg };
+  return { home, activeRide, nearby };
 }
 
 /** TICK consolidé de la page Demandes : demandes proches + course active en
