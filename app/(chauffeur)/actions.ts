@@ -666,7 +666,19 @@ export async function getNearbyRides(
   radiusKm = 10
 ): Promise<NearbyRide[]> {
   try {
-    const rpc = await rpcClient();
+    // ⚠️ Découplé de auth.uid() (mig 0257) : dans une Server Action, le token de
+    // session peut être nul par INTERMITTENCE (refresh rotatif, sous-appels) →
+    // chauffeur_nearby_rides renvoyait 0 EN SILENCE (« 0 course » alors que la
+    // course existe). On résout le chauffeur via getCurrentChauffeur (mémoïsé,
+    // fiable) puis on interroge en SERVICE_ROLE avec l'id EXPLICITE → la requête
+    // ne dépend plus du token de session.
+    const ch = await getCurrentChauffeur();
+    if (!ch) return [];
+    const admin = createAdminClient();
+    const rpc = admin.rpc.bind(admin) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
     // Active les courses programmées dont l'heure approche (pas de cron fréquent :
     // le poll chauffeur sert de déclencheur, cf. archi Express). Best-effort.
     await rpc("drive_activate_due_scheduled", {}).catch(() => undefined);
@@ -677,6 +689,7 @@ export async function getNearbyRides(
       p_lat: lat,
       p_lng: lng,
       p_radius_km: radiusKm,
+      p_chauffeur_id: ch.id,
     });
     return ((data as Record<string, unknown>[] | null) ?? []).map((r) => ({
       id: r.id as string,
