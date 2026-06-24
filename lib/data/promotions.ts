@@ -3,7 +3,7 @@ import type { PromotionWithProducts } from "@/lib/types";
 
 const PROMO_COLUMNS = `id, merchant_id, type, title_fr, title_ar, status,
   discount_kind, discount_value, code, buy_qty, get_qty, starts_at, ends_at,
-  max_uses, max_uses_per_customer, uses_count, created_at,
+  max_uses, max_uses_per_customer, min_subtotal_da, uses_count, created_at,
   promotion_products ( product_id )`;
 
 /** Promotions du commerçant connecté (RLS = ses données), récentes d'abord. */

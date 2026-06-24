@@ -402,7 +402,7 @@ export async function createOrder(
     .from("promotions")
     .select(
       `id, merchant_id, type, status, discount_kind, discount_value, code,
-       buy_qty, get_qty, starts_at, ends_at,
+       buy_qty, get_qty, min_subtotal_da, starts_at, ends_at,
        max_uses, max_uses_per_customer, uses_count, financeur,
        promotion_products ( product_id )`
     )
@@ -427,6 +427,7 @@ export async function createOrder(
       code: string | null;
       buy_qty: number | null;
       get_qty: number | null;
+      min_subtotal_da: number | null;
       starts_at: string | null;
       ends_at: string | null;
       max_uses: number | null;
@@ -451,6 +452,7 @@ export async function createOrder(
       code: p.code,
       buyQty: p.buy_qty,
       getQty: p.get_qty,
+      minSubtotalDa: p.min_subtotal_da,
       productIds: (p.promotion_products ?? []).map((x) => x.product_id),
       startsAt: p.starts_at,
       endsAt: p.ends_at,
@@ -1370,8 +1372,8 @@ export async function previewPromoCode(input: {
       .from("promotions")
       .select(
         `id, type, status, discount_kind, discount_value, code, buy_qty, get_qty,
-         starts_at, ends_at, max_uses, max_uses_per_customer, uses_count,
-         promotion_products ( product_id )`
+         min_subtotal_da, starts_at, ends_at, max_uses, max_uses_per_customer,
+         uses_count, promotion_products ( product_id )`
       )
       .eq("merchant_id", input.merchant_id)
       .eq("status", "active");
@@ -1385,6 +1387,7 @@ export async function previewPromoCode(input: {
       code: string | null;
       buy_qty: number | null;
       get_qty: number | null;
+      min_subtotal_da: number | null;
       starts_at: string | null;
       ends_at: string | null;
       max_uses: number | null;
@@ -1402,6 +1405,7 @@ export async function previewPromoCode(input: {
       code: p.code,
       buyQty: p.buy_qty,
       getQty: p.get_qty,
+      minSubtotalDa: p.min_subtotal_da,
       productIds: (p.promotion_products ?? []).map((x) => x.product_id),
       startsAt: p.starts_at,
       endsAt: p.ends_at,
@@ -1413,6 +1417,21 @@ export async function previewPromoCode(input: {
       promoCode: code,
     });
     if (!settled.promoCode) {
+      // Message ciblé : code valide mais sous-total sous le minimum exigé.
+      const wanted = code.trim().toUpperCase();
+      const belowMin = rows.find(
+        (p) =>
+          p.type === "promo_code" &&
+          (p.code ?? "").trim().toUpperCase() === wanted &&
+          p.min_subtotal_da != null &&
+          settled.subtotalDa < p.min_subtotal_da
+      );
+      if (belowMin?.min_subtotal_da != null) {
+        return {
+          ok: false,
+          error: `Ce code s'applique dès ${belowMin.min_subtotal_da} DA d'achats.`,
+        };
+      }
       return { ok: false, error: "Code promo invalide ou expiré." };
     }
     const raw = rows.find((p) => p.id === settled.promoCode!.id);

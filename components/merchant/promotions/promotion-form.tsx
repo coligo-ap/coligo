@@ -11,6 +11,7 @@ import {
   Loader2,
   Search,
   Ticket,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,11 @@ function toLocalInput(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/** Date/heure actuelle au format de l'input « datetime-local ». */
+function nowLocalInput(): string {
+  return toLocalInput(new Date().toISOString());
+}
+
 export function PromotionForm({
   products,
   promotion,
@@ -64,6 +70,19 @@ export function PromotionForm({
   const [type, setType] = useState<PromotionType | null>(
     promotion?.type ?? null
   );
+
+  // Période : « Début » contrôlé pour pouvoir le pré-remplir avec l'heure
+  // actuelle à la création (après montage → pas d'écart d'hydratation).
+  const [startsAt, setStartsAt] = useState(() =>
+    toLocalInput(promotion?.starts_at ?? null)
+  );
+  const [endsAt, setEndsAt] = useState(() =>
+    toLocalInput(promotion?.ends_at ?? null)
+  );
+  useEffect(() => {
+    if (!isEdit && !startsAt) setStartsAt(nowLocalInput());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const action = isEdit
     ? updatePromotion.bind(null, promotion!.id)
@@ -188,7 +207,8 @@ export function PromotionForm({
         <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
           <h2 className="text-base font-semibold">Période (optionnel)</h2>
           <p className="text-muted -mt-2 text-xs">
-            Vide = permanente · début futur = programmée automatiquement.
+            Début pré-rempli sur maintenant (modifiable) · début futur =
+            programmée automatiquement · fin vide = sans expiration.
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -196,7 +216,8 @@ export function PromotionForm({
               <Input
                 type="datetime-local"
                 name="starts_at"
-                defaultValue={toLocalInput(promotion?.starts_at ?? null)}
+                value={startsAt}
+                onChange={(e) => setStartsAt(e.target.value)}
                 disabled={pending}
               />
             </div>
@@ -205,7 +226,8 @@ export function PromotionForm({
               <Input
                 type="datetime-local"
                 name="ends_at"
-                defaultValue={toLocalInput(promotion?.ends_at ?? null)}
+                value={endsAt}
+                onChange={(e) => setEndsAt(e.target.value)}
                 disabled={pending}
               />
             </div>
@@ -398,6 +420,27 @@ function PromoCodeFields({
           />
         </div>
       </div>
+      <div className="space-y-1.5">
+        <Label>Panier minimum (DA)</Label>
+        <div className="relative">
+          <Input
+            type="number"
+            name="min_subtotal"
+            defaultValue={promotion?.min_subtotal_da ?? ""}
+            min={1}
+            placeholder="Aucun"
+            disabled={pending}
+            className="pr-12"
+          />
+          <span className="text-muted absolute top-1/2 right-4 -translate-y-1/2 text-sm font-medium">
+            DA
+          </span>
+        </div>
+        <p className="text-subtle text-xs">
+          Le code ne s&apos;applique qu&apos;au-dessus de ce montant
+          d&apos;achats (ex. 3 000 DA). Vide = aucun minimum.
+        </p>
+      </div>
     </section>
   );
 }
@@ -463,17 +506,40 @@ function ProductSelector({
   );
   const [query, setQuery] = useState("");
 
+  // Liste filtrée par la recherche, AVEC les produits sélectionnés remontés en
+  // tête (le commerçant voit d'abord ce qui est déjà dans la promo).
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter((p) => p.name_fr.toLowerCase().includes(q));
-  }, [products, query]);
+    const base = q
+      ? products.filter((p) => p.name_fr.toLowerCase().includes(q))
+      : products;
+    return [...base].sort((a, b) => {
+      const sa = selected.has(a.id) ? 0 : 1;
+      const sb = selected.has(b.id) ? 0 : 1;
+      if (sa !== sb) return sa - sb;
+      return a.name_fr.localeCompare(b.name_fr);
+    });
+  }, [products, query, selected]);
+
+  // Récap des produits sélectionnés (ordre du catalogue) pour le bloc du bas.
+  const selectedProducts = useMemo(
+    () => products.filter((p) => selected.has(p.id)),
+    [products, selected]
+  );
 
   function toggle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  }
+
+  function remove(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
       return next;
     });
   }
@@ -544,6 +610,34 @@ function ProductSelector({
               </li>
             )}
           </ul>
+
+          {/* Récap des produits sélectionnés : retrait rapide en cas d'erreur. */}
+          {selectedProducts.length > 0 && (
+            <div className="border-primary-100 bg-primary-50/40 space-y-2 rounded-[12px] border p-3">
+              <p className="text-primary-800 text-xs font-semibold">
+                Produits sélectionnés ({selectedProducts.length})
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {selectedProducts.map((p) => (
+                  <span
+                    key={p.id}
+                    className="border-primary-200 bg-surface inline-flex items-center gap-1.5 rounded-full border py-1 pr-1 pl-3 text-xs font-medium"
+                  >
+                    <span className="max-w-[180px] truncate">{p.name_fr}</span>
+                    <button
+                      type="button"
+                      onClick={() => remove(p.id)}
+                      disabled={pending}
+                      aria-label={`Retirer ${p.name_fr}`}
+                      className="text-muted grid size-5 place-items-center rounded-full transition-colors hover:bg-rose-100 hover:text-rose-700"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
     </section>

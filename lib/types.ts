@@ -357,6 +357,8 @@ export type Promotion = {
   ends_at: string | null;
   max_uses: number | null;
   max_uses_per_customer: number | null;
+  /** Code promo : sous-total minimum (DA) requis, null si aucun. */
+  min_subtotal_da: number | null;
   uses_count: number;
   created_at: string;
 };

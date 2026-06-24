@@ -50,6 +50,7 @@ function buildRow(data: PromotionInput): {
           code: data.code,
           max_uses: data.max_uses,
           max_uses_per_customer: data.max_uses_per_customer,
+          min_subtotal_da: data.min_subtotal,
         },
         productIds: [],
       };

@@ -12,6 +12,7 @@ import {
 import { WILAYAS } from "@/lib/config/wilayas";
 import { MerchantCompactHeader } from "@/components/customer/merchant-compact-header";
 import { MerchantCatalog } from "@/components/customer/merchant-catalog";
+import { MerchantPromoCodes } from "@/components/customer/merchant-promo-codes";
 import { MerchantCartCta } from "@/components/customer/merchant-cart-cta";
 import { MerchantClosedNotice } from "@/components/customer/merchant-closed-notice";
 import { ShopModeToggle } from "@/components/customer/shop-mode-toggle";
@@ -52,20 +53,23 @@ export default async function MerchantPublicPage({
     ? (WILAYAS.find((w) => w.code === m.wilaya_code)?.name ?? null)
     : null;
 
-  // Meilleur prix promo unitaire par produit (la meilleure remise produit).
+  // Promotions actives, ventilées par type (statut effectif calculé à la lecture).
   const now = new Date();
-  const productPromos = promotions.filter(
-    (p) =>
-      p.type === "product_discount" &&
-      isPromotionActive(
-        {
-          status: p.status,
-          startsAt: p.starts_at,
-          endsAt: p.ends_at,
-        },
-        now
-      )
+  const activePromos = promotions.filter((p) =>
+    isPromotionActive(
+      { status: p.status, startsAt: p.starts_at, endsAt: p.ends_at },
+      now
+    )
   );
+  const productPromos = activePromos.filter(
+    (p) => p.type === "product_discount"
+  );
+  const quantityPromos = activePromos.filter(
+    (p) => p.type === "quantity_offer"
+  );
+  const promoCodes = activePromos.filter((p) => p.type === "promo_code");
+
+  // Meilleur prix promo unitaire par produit (la meilleure remise produit).
   const promoPriceById: Record<string, number> = {};
   for (const product of catalog.products) {
     let best = product.price_da;
@@ -82,6 +86,29 @@ export default async function MerchantPublicPage({
     }
     if (best < product.price_da) promoPriceById[product.id] = best;
   }
+
+  // Offre quantité par produit (la plus généreuse : plus d'unités offertes par
+  // groupe). Sert au libellé rouge « X achetés + Y offert(s) » sur les cartes.
+  const quantityOfferByProduct: Record<string, { buy: number; get: number }> =
+    {};
+  for (const promo of quantityPromos) {
+    if (!promo.buy_qty || !promo.get_qty) continue;
+    for (const pid of promo.product_ids) {
+      const prev = quantityOfferByProduct[pid];
+      const ratio = promo.get_qty / (promo.buy_qty + promo.get_qty);
+      const prevRatio = prev ? prev.get / (prev.buy + prev.get) : -1;
+      if (ratio > prevRatio) {
+        quantityOfferByProduct[pid] = {
+          buy: promo.buy_qty,
+          get: promo.get_qty,
+        };
+      }
+    }
+  }
+
+  // Carrousels promo en tête du catalogue : offres quantité d'abord, puis
+  // réductions produit (les codes promo n'ont pas de produits → carte dédiée).
+  const promoCarousels = [...quantityPromos, ...productPromos];
 
   return (
     // hideHeader : la fiche porte sa propre topbar fixe (← retour · ♡ · panier)
@@ -117,6 +144,14 @@ export default async function MerchantPublicPage({
           reviews={reviews}
           tags={m.tags}
         />
+
+        {/* Codes promo de la boutique — carte attractive (entre les stats du
+            commerce et le choix Retrait/Livraison). Copie au clic + conditions. */}
+        {promoCodes.length > 0 && (
+          <div className="mt-3">
+            <MerchantPromoCodes promotions={promoCodes} />
+          </div>
+        )}
 
         {/* Choix Retrait / Livraison dès la fiche (persisté → pré-rempli au
             checkout). + Bannière promo si des produits sont en réduction. */}
@@ -170,6 +205,8 @@ export default async function MerchantPublicPage({
             products={catalog.products}
             categories={catalog.categories}
             promoPriceById={promoPriceById}
+            quantityOfferByProduct={quantityOfferByProduct}
+            promoCarousels={promoCarousels}
           />
         </div>
       </div>

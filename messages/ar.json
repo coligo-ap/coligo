@@ -89,7 +89,22 @@
     "day_thu": "الخميس",
     "day_fri": "الجمعة",
     "day_sat": "السبت",
-    "day_sun": "الأحد"
+    "day_sun": "الأحد",
+    "promoCodeTitle": "رمز ترويجي",
+    "promoCodeTap": "اضغط للنسخ",
+    "promoCodeCopied": "تم نسخ الرمز!",
+    "promoMinBasket": "ابتداءً من {amount} من المشتريات",
+    "promoNoCondition": "بدون حد أدنى للمبلغ",
+    "promoMaxPerCustomer": "{count, plural, one {# استخدام لكل زبون} other {# استخدامات لكل زبون}}",
+    "promoExpiresOn": "صالح حتى {date}",
+    "promoSeeConditions": "عرض الشروط",
+    "promoConditionsTitle": "شروط العرض",
+    "promoClose": "إغلاق",
+    "promoDiscountPercent": "-{value} %",
+    "promoDiscountAmount": "-{amount}",
+    "buyGetLabel": "{buy} {buy, plural, one {مشترى} other {مشتريات}} + {get} {get, plural, one {مجاني} other {مجانية}}",
+    "discountAppliedAria": "تم تطبيق خصم",
+    "promoOffersTitle": "عروض اللحظة"
   },
   "cart": {
     "monoTitle": "بدء سلة جديدة؟",

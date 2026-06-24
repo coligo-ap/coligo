@@ -12,9 +12,11 @@ import {
 import { ProductDetailSheet } from "@/components/customer/product-detail-sheet";
 import { ProductRow } from "@/components/customer/product-row";
 import { PopularCarousel } from "@/components/customer/popular-carousel";
+import { PromoCarousels } from "@/components/customer/promo-carousels";
 import type {
   PublicCategory,
   PublicProduct,
+  PublicPromotion,
 } from "@/lib/data/customer-catalog";
 
 type Props = {
@@ -28,6 +30,10 @@ type Props = {
   categories: PublicCategory[];
   /** Map productId → prix unitaire après meilleure promo produit, le cas échéant. */
   promoPriceById: Record<string, number>;
+  /** Map productId → offre quantité la plus généreuse (libellé « X+Y offert »). */
+  quantityOfferByProduct: Record<string, { buy: number; get: number }>;
+  /** Promotions à produits, ordonnées (offres quantité d'abord) pour les carrousels. */
+  promoCarousels: PublicPromotion[];
 };
 
 const UNCAT_KEY = "__uncat__";
@@ -53,6 +59,8 @@ export function MerchantCatalog({
   products,
   categories,
   promoPriceById,
+  quantityOfferByProduct,
+  promoCarousels,
 }: Props) {
   const t = useTranslations("merchant");
   const [selected, setSelected] = useState<PublicProduct | null>(null);
@@ -319,12 +327,26 @@ export function MerchantCatalog({
         </>
       )}
 
+      {/* PROMOS — carrousels en tête (offres quantité d'abord), masqués en
+          recherche. Les promotions passent AVANT « Populaires ». */}
+      {!q && promoCarousels.length > 0 && (
+        <PromoCarousels
+          merchant={merchant}
+          promotions={promoCarousels}
+          products={products}
+          promoPriceById={promoPriceById}
+          quantityOfferByProduct={quantityOfferByProduct}
+          onOpenDetail={(p) => setSelected(p)}
+        />
+      )}
+
       {/* POPULAIRES — carrousel horizontal (masqué pendant une recherche). */}
       {!q && popular.length >= 4 && (
         <PopularCarousel
           merchant={merchant}
           products={popular}
           promoPriceById={promoPriceById}
+          quantityOfferByProduct={quantityOfferByProduct}
           onOpenDetail={(p) => setSelected(p)}
         />
       )}
@@ -373,6 +395,7 @@ export function MerchantCatalog({
                     merchant={merchant}
                     product={p}
                     promoUnitPriceDa={promoPriceById[p.id] ?? null}
+                    quantityOffer={quantityOfferByProduct[p.id] ?? null}
                     onOpenDetail={() => setSelected(p)}
                   />
                 </li>

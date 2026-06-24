@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Check, Flame, Plus, ShoppingBag } from "lucide-react";
+import { BadgePercent, Check, Flame, Plus, ShoppingBag } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { useCartAdd } from "@/components/customer/cart-mono-provider";
 import { cldUrl } from "@/lib/images/cloudinary";
@@ -24,11 +24,13 @@ export function PopularCarousel({
   merchant,
   products,
   promoPriceById,
+  quantityOfferByProduct,
   onOpenDetail,
 }: {
   merchant: Merchant;
   products: PublicProduct[];
   promoPriceById: Record<string, number>;
+  quantityOfferByProduct?: Record<string, { buy: number; get: number }>;
   onOpenDetail: (p: PublicProduct) => void;
 }) {
   const t = useTranslations("merchant");
@@ -47,6 +49,7 @@ export function PopularCarousel({
             merchant={merchant}
             product={p}
             promoUnitPriceDa={promoPriceById[p.id] ?? null}
+            quantityOffer={quantityOfferByProduct?.[p.id] ?? null}
             onOpenDetail={() => onOpenDetail(p)}
           />
         ))}
@@ -55,15 +58,17 @@ export function PopularCarousel({
   );
 }
 
-function PopCard({
+export function PopCard({
   merchant,
   product,
   promoUnitPriceDa,
+  quantityOffer,
   onOpenDetail,
 }: {
   merchant: Merchant;
   product: PublicProduct;
   promoUnitPriceDa: number | null;
+  quantityOffer?: { buy: number; get: number } | null;
   onOpenDetail: () => void;
 }) {
   const t = useTranslations("merchant");
@@ -154,8 +159,19 @@ function PopCard({
         <div className="text-foreground line-clamp-2 h-8 text-[13px] leading-tight font-semibold">
           {product.name_fr}
         </div>
-        <div className="mt-1.5 flex items-baseline gap-1.5">
-          <span className="text-primary-700 text-[15px] font-black tabular-nums">
+        <div className="mt-1.5 flex items-center gap-1.5">
+          {hasPromo && (
+            <BadgePercent
+              className="size-3.5 shrink-0 text-rose-600"
+              aria-label={t("discountAppliedAria")}
+            />
+          )}
+          <span
+            className={cn(
+              "text-[15px] font-black tabular-nums",
+              hasPromo ? "text-rose-600" : "text-primary-700"
+            )}
+          >
             {formatDA(price)}
           </span>
           {hasPromo && (
@@ -164,6 +180,14 @@ function PopCard({
             </span>
           )}
         </div>
+        {quantityOffer && (
+          <div className="mt-1 text-[10.5px] leading-tight font-bold text-rose-600">
+            {t("buyGetLabel", {
+              buy: quantityOffer.buy,
+              get: quantityOffer.get,
+            })}
+          </div>
+        )}
       </div>
     </button>
   );

@@ -34,11 +34,14 @@ export type PublicPromotion = {
   merchant_id: string;
   type: "product_discount" | "promo_code" | "quantity_offer";
   status: "scheduled" | "active" | "expired" | "disabled";
+  title_fr: string;
+  title_ar: string | null;
   discount_kind: "percent" | "amount" | null;
   discount_value: number | null;
   code: string | null;
   buy_qty: number | null;
   get_qty: number | null;
+  min_subtotal_da: number | null;
   starts_at: string | null;
   ends_at: string | null;
   product_ids: string[];
@@ -82,9 +85,9 @@ export async function listMerchantPromotions(
   const { data } = await supabase
     .from("promotions")
     .select(
-      `id, merchant_id, type, status, discount_kind, discount_value, code,
-       buy_qty, get_qty, starts_at, ends_at,
-       promotion_products ( product_id )`
+      `id, merchant_id, type, status, title_fr, title_ar, discount_kind,
+       discount_value, code, buy_qty, get_qty, min_subtotal_da,
+       starts_at, ends_at, promotion_products ( product_id )`
     )
     .eq("merchant_id", merchantId)
     .eq("status", "active");
@@ -94,11 +97,14 @@ export async function listMerchantPromotions(
     merchant_id: row.merchant_id,
     type: row.type,
     status: row.status,
+    title_fr: row.title_fr,
+    title_ar: row.title_ar,
     discount_kind: row.discount_kind,
     discount_value: row.discount_value,
     code: row.code,
     buy_qty: row.buy_qty,
     get_qty: row.get_qty,
+    min_subtotal_da: row.min_subtotal_da,
     starts_at: row.starts_at,
     ends_at: row.ends_at,
     product_ids: (row.promotion_products ?? []).map((p) => p.product_id),
@@ -110,11 +116,14 @@ type RawPromo = {
   merchant_id: string;
   type: PublicPromotion["type"];
   status: PublicPromotion["status"];
+  title_fr: string;
+  title_ar: string | null;
   discount_kind: PublicPromotion["discount_kind"];
   discount_value: number | null;
   code: string | null;
   buy_qty: number | null;
   get_qty: number | null;
+  min_subtotal_da: number | null;
   starts_at: string | null;
   ends_at: string | null;
   promotion_products: { product_id: string }[];

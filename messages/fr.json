@@ -89,7 +89,22 @@
     "day_thu": "jeudi",
     "day_fri": "vendredi",
     "day_sat": "samedi",
-    "day_sun": "dimanche"
+    "day_sun": "dimanche",
+    "promoCodeTitle": "Code promo",
+    "promoCodeTap": "Touchez pour copier",
+    "promoCodeCopied": "Code copié !",
+    "promoMinBasket": "Dès {amount} d’achats",
+    "promoNoCondition": "Sans condition de montant",
+    "promoMaxPerCustomer": "{count, plural, one {# utilisation par client} other {# utilisations par client}}",
+    "promoExpiresOn": "Valable jusqu’au {date}",
+    "promoSeeConditions": "Voir les conditions",
+    "promoConditionsTitle": "Conditions de l’offre",
+    "promoClose": "Fermer",
+    "promoDiscountPercent": "-{value} %",
+    "promoDiscountAmount": "-{amount}",
+    "buyGetLabel": "{buy} {buy, plural, one {acheté} other {achetés}} + {get} {get, plural, one {offert} other {offerts}}",
+    "discountAppliedAria": "Réduction appliquée",
+    "promoOffersTitle": "Offres du moment"
   },
   "cart": {
     "monoTitle": "Commencer un nouveau panier ?",

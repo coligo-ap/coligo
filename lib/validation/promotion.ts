@@ -72,6 +72,7 @@ const promoCodeSchema = z
     discount_value: discountValueSchema,
     max_uses: optionalPositiveInt,
     max_uses_per_customer: optionalPositiveInt,
+    min_subtotal: optionalPositiveInt,
     ...baseFields,
   })
   .superRefine(refineKindValueAndDates);
@@ -185,6 +186,7 @@ export function parsePromotionForm(formData: FormData): ParsedPromotion {
           discount_value: formData.get("discount_value"),
           max_uses: formData.get("max_uses") ?? "",
           max_uses_per_customer: formData.get("max_uses_per_customer") ?? "",
+          min_subtotal: formData.get("min_subtotal") ?? "",
           ...common,
         })
       );

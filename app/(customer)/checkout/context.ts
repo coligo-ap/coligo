@@ -222,7 +222,7 @@ export async function fetchCheckoutContext(
     .from("promotions")
     .select(
       `id, type, status, discount_kind, discount_value, code,
-       buy_qty, get_qty, starts_at, ends_at,
+       buy_qty, get_qty, min_subtotal_da, starts_at, ends_at,
        promotion_products ( product_id )`
     )
     .eq("merchant_id", merchant.id)
@@ -238,6 +238,7 @@ export async function fetchCheckoutContext(
       code: string | null;
       buy_qty: number | null;
       get_qty: number | null;
+      min_subtotal_da: number | null;
       starts_at: string | null;
       ends_at: string | null;
       promotion_products: { product_id: string }[];
@@ -251,6 +252,7 @@ export async function fetchCheckoutContext(
     code: p.code,
     buyQty: p.buy_qty,
     getQty: p.get_qty,
+    minSubtotalDa: p.min_subtotal_da,
     productIds: (p.promotion_products ?? []).map((x) => x.product_id),
     startsAt: p.starts_at,
     endsAt: p.ends_at,

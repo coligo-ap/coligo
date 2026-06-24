@@ -43,6 +43,8 @@ export type EnginePromotion = {
   productIds?: string[];
   startsAt?: string | null;
   endsAt?: string | null;
+  /** Code promo : sous-total minimum (DA) requis pour s'appliquer. */
+  minSubtotalDa?: number | null;
 };
 
 export type EngineOptions = {
@@ -81,6 +83,8 @@ export type AppliedPromoCode = {
   value: number;
   /** Montant retiré du sous-total par le code, en DA. */
   discountDa: number;
+  /** Sous-total minimum requis (DA), null si aucun. */
+  minSubtotalDa?: number | null;
 };
 
 export type CartComputation = {
@@ -246,7 +250,14 @@ export function computeCart(
     const match = promoCodes.find(
       (p) => (p.code ?? "").trim().toUpperCase() === wanted
     );
-    if (match && match.discountKind && match.discountValue != null) {
+    // Le code ne s'applique que si le sous-total atteint le minimum exigé.
+    const meetsMin = !match?.minSubtotalDa || subtotalDa >= match.minSubtotalDa;
+    if (
+      match &&
+      meetsMin &&
+      match.discountKind &&
+      match.discountValue != null
+    ) {
       const raw =
         match.discountKind === "percent"
           ? subtotalDa * (match.discountValue / 100)
@@ -259,6 +270,7 @@ export function computeCart(
         kind: match.discountKind,
         value: match.discountValue,
         discountDa,
+        minSubtotalDa: match.minSubtotalDa ?? null,
       };
     }
   }

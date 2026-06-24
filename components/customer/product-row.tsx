@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
+  BadgePercent,
   Check,
   Minus,
   Plus,
@@ -32,6 +33,7 @@ export function ProductRow({
   merchant,
   product,
   promoUnitPriceDa,
+  quantityOffer,
   onOpenDetail,
 }: {
   merchant: {
@@ -42,6 +44,7 @@ export function ProductRow({
   };
   product: PublicProduct;
   promoUnitPriceDa: number | null;
+  quantityOffer?: { buy: number; get: number } | null;
   onOpenDetail: () => void;
 }) {
   const t = useTranslations("merchant");
@@ -150,13 +153,32 @@ export function ProductRow({
         <h4 className="text-foreground line-clamp-1 text-sm font-semibold">
           {product.name_fr}
         </h4>
-        <div className="mt-1 flex items-baseline gap-2">
-          <span className="text-primary-700 text-sm font-bold tabular-nums">
+        <div className="mt-1 flex items-center gap-1.5">
+          {hasPromo && (
+            <BadgePercent
+              className="size-3.5 shrink-0 text-rose-600"
+              aria-label={t("discountAppliedAria")}
+            />
+          )}
+          <span
+            className={cn(
+              "text-sm font-bold tabular-nums",
+              hasPromo ? "text-rose-600" : "text-primary-700"
+            )}
+          >
             {formatDA(price)}
           </span>
           {hasPromo && (
             <span className="text-subtle text-xs tabular-nums line-through">
               {formatDA(product.price_da)}
+            </span>
+          )}
+          {quantityOffer && (
+            <span className="ms-auto shrink-0 text-[11px] font-bold text-rose-600">
+              {t("buyGetLabel", {
+                buy: quantityOffer.buy,
+                get: quantityOffer.get,
+              })}
             </span>
           )}
         </div>

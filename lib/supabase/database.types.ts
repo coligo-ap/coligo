@@ -965,6 +965,7 @@ export type Database = {
           ends_at: string | null;
           max_uses: number | null;
           max_uses_per_customer: number | null;
+          min_subtotal_da: number | null;
           uses_count: number;
           created_at: string;
         };
@@ -984,6 +985,7 @@ export type Database = {
           ends_at?: string | null;
           max_uses?: number | null;
           max_uses_per_customer?: number | null;
+          min_subtotal_da?: number | null;
           uses_count?: number;
           created_at?: string;
         };
@@ -1003,6 +1005,7 @@ export type Database = {
           ends_at?: string | null;
           max_uses?: number | null;
           max_uses_per_customer?: number | null;
+          min_subtotal_da?: number | null;
           uses_count?: number;
           created_at?: string;
         };
