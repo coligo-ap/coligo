@@ -14,6 +14,7 @@
  */
 
 import type { PushRole } from "./push";
+import { isDispatchActive } from "@/lib/realtime/dispatch-presence";
 
 const cfg = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -93,7 +94,14 @@ export async function registerWebPush(role: PushRole): Promise<boolean> {
     // listener `notificationclick` du SW (navigation vers data.route).
     onMessage(messaging, (payload) => {
       const n = payload.notification;
-      const data = (payload.data ?? {}) as { route?: string };
+      const data = (payload.data ?? {}) as { route?: string; kind?: string };
+      // DÉDUP dispatch : si l'écran de dispatch in-app écoute déjà (broadcast
+      // Realtime), il affiche le popup riche → on NE double PAS avec une notif
+      // système. Si le partenaire est ailleurs (pas d'écoute), on la garde.
+      if (data.kind === "chauffeur_new_ride" && isDispatchActive("chauffeur"))
+        return;
+      if (data.kind === "driver_new_express" && isDispatchActive("courier"))
+        return;
       void swReg
         .showNotification(n?.title ?? "Coligo", {
           body: n?.body ?? "",

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { driverHeartbeat, pullNextExpressNearby } from "@/app/(driver)/actions";
 import { useWorkZone, LIVE_RADIUS_KM } from "@/lib/driver/work-zone";
+import { setDispatchActive } from "@/lib/realtime/dispatch-presence";
 import { playNewOrder } from "@/lib/driver/sounds";
 import { vibrate } from "@/lib/hooks/use-alert-sound";
 import { toast } from "@/components/ui/toast";
@@ -47,6 +48,8 @@ export function ZoneDispatch({
 
   useEffect(() => {
     if (!online) return;
+    // Dispatch in-app actif → le push FCM web ne doublera pas la notif (dédup).
+    setDispatchActive("courier", true);
     let alive = true;
 
     const tick = async () => {
@@ -104,6 +107,7 @@ export function ZoneDispatch({
       : null;
 
     return () => {
+      setDispatchActive("courier", false);
       alive = false;
       clearInterval(poll);
       if (channel) void supabase.removeChannel(channel);

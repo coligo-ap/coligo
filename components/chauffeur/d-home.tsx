@@ -50,6 +50,7 @@ import {
 } from "@/lib/chauffeur/home-dir-store";
 import { isOpenDemande } from "@/lib/chauffeur/dispatch-filter";
 import { usePageVisible } from "@/lib/realtime/use-page-visible";
+import { setDispatchActive } from "@/lib/realtime/dispatch-presence";
 import { getMyWalletState } from "@/app/wallet/recharge-actions";
 import {
   activateHomeDir,
@@ -290,6 +291,8 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   // GATÉ sur l'état en ligne.
   useEffect(() => {
     if (!online || !visible) return;
+    // Dispatch in-app actif → le push FCM web ne doublera pas la notif (dédup).
+    setDispatchActive("chauffeur", true);
     const supabase = createClient();
     const chans = [
       supabase
@@ -314,6 +317,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         .subscribe(),
     ];
     return () => {
+      setDispatchActive("chauffeur", false);
       for (const c of chans) void supabase.removeChannel(c);
     };
   }, [tick, online, visible, gate.id, gate.userId, router]);

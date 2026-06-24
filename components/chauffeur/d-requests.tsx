@@ -30,6 +30,7 @@ import {
 } from "@/lib/chauffeur/online-store";
 import { useSearchRadius } from "@/lib/chauffeur/work-zone";
 import { usePageVisible } from "@/lib/realtime/use-page-visible";
+import { setDispatchActive } from "@/lib/realtime/dispatch-presence";
 import {
   chauffeurHeartbeat,
   declineRide,
@@ -312,6 +313,8 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   // immédiate quand le client accepte UNE de mes offres.
   useEffect(() => {
     if (!online || !visible) return;
+    // Dispatch in-app actif → le push FCM web ne doublera pas la notif (dédup).
+    setDispatchActive("chauffeur", true);
     const supabase = createClient();
     const chans = [
       // Dispatch push CIBLÉ : canal perso (plus d'écoute globale des INSERT).
@@ -348,6 +351,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
         : []),
     ];
     return () => {
+      setDispatchActive("chauffeur", false);
       for (const c of chans) void supabase.removeChannel(c);
     };
   }, [poll, chId, userId, router, online, visible]);
