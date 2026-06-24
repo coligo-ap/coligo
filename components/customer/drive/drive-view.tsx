@@ -133,10 +133,13 @@ export function DriveView() {
   // `quoteId` = devis signé serveur lié aux adresses courantes (anti-rejeu/TTL).
   const [pricing, setPricing] = useState(false);
   const [quoteId, setQuoteId] = useState<string | null>(null);
-  // Distance pour laquelle le prix courant a été calculé. Si elle ne correspond
-  // PLUS au trajet (le client a modifié départ/arrivée puis revient à l'écran
-  // prix), le prix est PÉRIMÉ → on affiche un loader, jamais l'ancien prix.
-  const [quotedKm, setQuotedKm] = useState<number | null>(null);
+  // Dernier trajet (adresses) pour lequel les devis ont été calculés → distingue
+  // un NOUVEAU trajet (loader + remise au recommandé) d'un raffinement OSRM de la
+  // distance sur le MÊME trajet (recalcul silencieux, prix jamais figé).
+  const lastTrajRef = useRef<string>("");
+  // Dernier prix recommandé servi : si le prix courant lui est égal, le client
+  // n'a pas ajusté → un raffinement OSRM peut suivre le recommandé affiné.
+  const lastRecoRef = useRef<number>(0);
   // Desktop (≥ lg) : on affiche une CARTE à côté du formulaire pour visualiser
   // le trajet. La carte n'est MONTÉE qu'en desktop (pas d'init MapLibre sur
   // mobile → accueil instantané conservé).
@@ -351,35 +354,45 @@ export function DriveView() {
   const distanceKm =
     route?.km ?? (crowKm > 0 ? Number((crowKm * 1.25).toFixed(2)) : 0);
   const etaMin = route?.min ?? Math.max(2, Math.round((distanceKm / 26) * 60));
-  // L'itinéraire routier RÉEL (OSRM) n'est pas encore arrivé → on n'affiche pas
-  // l'estimation à vol d'oiseau (fausse), on montre un loader sur la distance/
-  // durée tant que la vraie valeur n'est pas prête.
-  const routeResolving = pickup != null && dest != null && route == null;
+  // Distance affichée TOUT DE SUITE (vol d'oiseau × détour) puis affinée en
+  // silence par OSRM — plus d'attente/loader sur la distance et la durée.
   const distanceLabel = distanceKm.toFixed(1).replace(".", ",");
 
   /* ───────── Devis par gamme à l'arrivée sur l'écran prix ───────── */
   useEffect(() => {
-    if (screen !== "price" || distanceKm <= 0) return;
-    // Le trajet a changé (distance recalculée) → l'ancien prix est PÉRIMÉ : on
-    // l'efface et on bloque « Demander » le temps du recalcul (Partie D).
-    setPricing(true);
-    setQuoteId(null);
+    if (screen !== "price" || distanceKm <= 0 || !pickup || !dest) return;
+    // ULTRA RAPIDE : on distingue un NOUVEAU trajet (adresses) d'un simple
+    // RAFFINEMENT de distance par OSRM (mêmes adresses). Loader + remise au prix
+    // recommandé UNIQUEMENT sur un nouveau trajet ; le raffinement OSRM recalcule
+    // les devis en SILENCE (prix jamais figé, pas de loader qui clignote).
+    const trajKey = `${pickup.lat.toFixed(5)},${pickup.lng.toFixed(5)},${dest.lat.toFixed(5)},${dest.lng.toFixed(5)}`;
+    const isNewTraj = trajKey !== lastTrajRef.current;
+    lastTrajRef.current = trajKey;
+    if (isNewTraj || quotes == null) {
+      setPricing(true);
+      setQuoteId(null);
+    }
     let cancelled = false;
     void (async () => {
       // Devis intelligent : départ (demande/offre locale) + durée RÉELLE de
       // navigation (supplément trafic ; trajet fluide = prix inchangé, mig 0235).
       const q = await getDriveQuotes(
         distanceKm,
-        pickup ? { lat: pickup.lat, lng: pickup.lng } : null,
+        { lat: pickup.lat, lng: pickup.lng },
         etaMin
       );
       if (cancelled) return; // une réponse en retard ne doit pas écraser la neuve
       setQuotes(q);
-      // Nouveau trajet → on REPART du recommandé (jamais un prix d'un autre trajet).
       const reco = q[gamme]?.recommended ?? q.classic.recommended;
-      setPrice(reco);
-      if (boostOn) setBoostAmt(defBoost(reco));
-      setQuotedKm(distanceKm); // le prix correspond désormais à CE trajet
+      // Nouveau trajet → on part du recommandé. Raffinement OSRM (même trajet) →
+      // on suit le recommandé affiné UNIQUEMENT si le client n'a pas touché au
+      // prix (sinon on respecte son ajustement). Évite un prix sous le plancher
+      // affiné sans jamais écraser un choix manuel.
+      if (isNewTraj || price === lastRecoRef.current) {
+        setPrice(reco);
+        if (boostOn) setBoostAmt(defBoost(reco));
+      }
+      lastRecoRef.current = reco;
       setPricing(false);
     })();
     return () => {
@@ -484,7 +497,9 @@ export function DriveView() {
   // Prix PÉRIMÉ : recalcul en cours OU les quotes ne correspondent plus au
   // trajet courant (adresse modifiée puis retour à l'écran prix) → on n'affiche
   // jamais l'ancien prix, on montre un loader.
-  const priceStale = pricing || quotedKm !== distanceKm;
+  // « Périmé » = uniquement pendant le calcul d'un NOUVEAU trajet. Un raffinement
+  // OSRM met à jour les devis en silence → le prix ne repasse jamais en loader.
+  const priceStale = pricing;
 
   const pickGamme = (g: Gamme) => {
     setGamme(g);
@@ -924,21 +939,13 @@ export function DriveView() {
             </div>
           )}
           <div className="mt-1 mb-3.5 flex gap-2">
+            {/* Affichage INSTANTANÉ : estimation à vol d'oiseau tout de suite,
+                affinée en silence par OSRM (jamais de loader d'attente). */}
             <span className="flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[12.5px] font-bold">
-              <Route className="size-3.5" />{" "}
-              {routeResolving ? (
-                <Loader2 className="size-3.5 animate-spin opacity-60" />
-              ) : (
-                <>{distanceLabel} km</>
-              )}
+              <Route className="size-3.5" /> {distanceLabel} km
             </span>
             <span className="flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[12.5px] font-bold">
-              <Clock className="size-3.5" />{" "}
-              {routeResolving ? (
-                <Loader2 className="size-3.5 animate-spin opacity-60" />
-              ) : (
-                <>~{etaMin} min</>
-              )}
+              <Clock className="size-3.5" /> ~{etaMin} min
             </span>
           </div>
 
