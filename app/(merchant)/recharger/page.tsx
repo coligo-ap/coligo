@@ -1,18 +1,19 @@
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { OperatorRecharge } from "@/components/wallet/operator-recharge";
 
-export const dynamic = "force-dynamic";
-
-export default async function MerchantRechargerPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+/**
+ * Coligo Pay commerçant (solde + recharge). Accès ULTRA RAPIDE : pas d'`await`
+ * serveur ni de `force-dynamic` ici — l'auth (session + boutique) est déjà
+ * garantie en amont par MerchantShell (layout), et l'état du portefeuille est
+ * lu côté client par OperatorRecharge via un RPC protégé par RLS (auth.uid()).
+ * Résultat : la navigation vers cette page est instantanée (aucun aller-retour
+ * serveur bloquant avant le rendu), le composant gère son propre squelette
+ * pendant le seul fetch client nécessaire.
+ */
+export default function MerchantRechargerPage() {
   return (
     <div className="p-4 lg:p-6">
+      {/* Suspense requis : OperatorRecharge utilise useSearchParams. */}
       <Suspense fallback={null}>
         <OperatorRecharge />
       </Suspense>

@@ -173,6 +173,7 @@ function ColigoPayCard({
       </p>
       <Link
         href="/recharger"
+        prefetch
         className="text-primary-700 mt-4 inline-flex h-10 items-center gap-2 rounded-[12px] bg-white px-4 text-sm font-bold"
       >
         <Wallet className="size-4" /> Recharger
