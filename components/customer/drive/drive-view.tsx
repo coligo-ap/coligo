@@ -402,9 +402,13 @@ export function DriveView() {
   // silence par OSRM — plus d'attente/loader sur la distance et la durée.
   const distanceLabel = distanceKm.toFixed(1).replace(".", ",");
 
-  /* ───────── Devis par gamme à l'arrivée sur l'écran prix ───────── */
+  /* ───────── Devis par gamme — PRÉ-CALCULÉS en arrière-plan ───────── */
   useEffect(() => {
-    if (screen !== "price" || distanceKm <= 0 || !pickup || !dest) return;
+    // PRÉ-CHARGE : on calcule les devis DÈS que départ + arrivée sont connus,
+    // SANS attendre l'écran prix (plus de `screen === "price"`). Résultat : en
+    // arrivant sur l'écran prix, les prix par gamme sont DÉJÀ là → ultra rapide.
+    // Sur le home/mappick le loader n'est pas rendu, donc pas de spinner visible.
+    if (distanceKm <= 0 || !pickup || !dest) return;
     // ULTRA RAPIDE : on distingue un NOUVEAU trajet (adresses) d'un simple
     // RAFFINEMENT de distance par OSRM (mêmes adresses). Loader + remise au prix
     // recommandé UNIQUEMENT sur un nouveau trajet ; le raffinement OSRM recalcule
@@ -459,8 +463,10 @@ export function DriveView() {
     return () => {
       cancelled = true;
     };
+    // Déclenché par la DISTANCE (donc dès que départ+arrivée sont posés, puis au
+    // raffinement OSRM) — plus par l'écran : le pré-calcul tourne en avance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, distanceKm]);
+  }, [distanceKm]);
 
   const quote = quotes?.[gamme] ?? null;
 
