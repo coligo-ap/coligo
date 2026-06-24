@@ -332,6 +332,8 @@ export async function submitChauffeurDossier(): Promise<{
 // ---------------------------------------------------------------------------
 export type ChauffeurGate = {
   id: string;
+  /** user_id auth — canal Realtime perso `chauffeur:{userId}` (dispatch push). */
+  userId: string;
   firstName: string;
   fullName: string;
   phone: string;
@@ -445,6 +447,7 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
   const avatarUrl = await signSelfiePath(data.selfie_url);
   return {
     id: data.id,
+    userId: ch.user_id,
     firstName: data.first_name ?? data.full_name.split(" ")[0],
     fullName: data.full_name,
     phone: data.phone,
@@ -495,18 +498,9 @@ export async function chauffeurHeartbeat(
       p_lng: lng,
       p_online: online,
     });
-    if (online) {
-      const ch = await getCurrentChauffeur();
-      if (ch) {
-        const admin = createAdminClient();
-        const { data } = await admin
-          .from("chauffeurs")
-          .select("is_female_verified")
-          .eq("id", ch.id)
-          .maybeSingle();
-        if (data?.is_female_verified) void notifyFemaleDriverOnline();
-      }
-    }
+    // NOTE : la notif « une conductrice est en ligne » N'EST PLUS ici (elle
+    // tournait à CHAQUE battement = gaspillage). Elle se déclenche désormais sur
+    // la TRANSITION en ligne, dans setChauffeurOnline(true).
   } catch {
     /* best-effort */
   }
@@ -528,6 +522,17 @@ export async function setChauffeurOnline(
     .from("chauffeur_presence")
     .update({ is_online: online, updated_at: new Date().toISOString() })
     .eq("chauffeur_id", ch.id);
+  // TRANSITION en ligne : si la conductrice est vérifiée « femme au volant »,
+  // prévenir les clientes en attente (demandes female_only). Déplacé ici depuis
+  // le heartbeat (qui le déclenchait à chaque battement). Best-effort.
+  if (online && !error) {
+    const { data } = await admin
+      .from("chauffeurs")
+      .select("is_female_verified")
+      .eq("id", ch.id)
+      .maybeSingle();
+    if (data?.is_female_verified) void notifyFemaleDriverOnline();
+  }
   return { ok: !error };
 }
 

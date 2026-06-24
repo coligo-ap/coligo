@@ -221,13 +221,6 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         : null);
     tickBusy.current = true;
     try {
-      // Heartbeat seulement avec un VRAI fix GPS (ne pas réécrire un repli).
-      if (live)
-        void chauffeurHeartbeat(
-          live.latitude,
-          live.longitude,
-          onlineRef.current
-        );
       const [h, active, list] = await Promise.all([
         getDriveHome(c?.latitude ?? null, c?.longitude ?? null),
         getChauffeurActiveRide(),
@@ -248,24 +241,56 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   }, [router]);
   useEffect(() => {
     void tick();
-    const id = setInterval(tick, 15_000);
-    return () => clearInterval(id);
+    // Filet de SÉCURITÉ seulement : le dispatch push (broadcast ciblé) fait
+    // l'instantané. On garde un poll LENT (45 s) pour rattraper un message raté
+    // (WebSocket tombé, retour de veille) sans marteler le serveur. Avant : 15 s.
+    const id = setInterval(tick, 45_000);
+    // RATTRAPAGE au retour au premier plan : un broadcast émis pendant que l'app
+    // était en arrière-plan (WebSocket suspendu) a pu être manqué → on resynchro
+    // une fois, immédiatement, plutôt que d'attendre le filet 45 s.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [tick]);
 
-  // Temps réel : une nouvelle demande proche met à jour le popup + le compteur
-  // instantanément (sans attendre le tick de 15 s). + redirection immédiate
-  // quand le client accepte UNE de mes offres. GATÉ sur l'état en ligne.
+  // HEARTBEAT dédié (présence + position pour le dispatch serveur), DÉCOUPLÉ du
+  // refresh de données lourd : cadence stable 30 s, un seul upsert léger. C'est
+  // lui qui garde `is_online` + `updated_at` frais pour le KNN serveur (fenêtre
+  // 60 s, mig 0253). N'écrit qu'avec un VRAI fix GPS (ne pas réécrire un repli).
+  useEffect(() => {
+    const beat = () => {
+      const live = coordsRef.current;
+      if (live)
+        void chauffeurHeartbeat(
+          live.latitude,
+          live.longitude,
+          onlineRef.current
+        );
+    };
+    beat();
+    const id = setInterval(beat, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Temps réel CIBLÉ (dispatch push) : on n'écoute plus TOUS les INSERT de
+  // `rides` (canal global = O(courses × chauffeurs), insoutenable). On écoute
+  // SON canal perso `chauffeur:{userId}` :
+  //   • event "new_ride"  → le serveur nous a poussé une demande éligible →
+  //     on rafraîchit (peuple popup + compteur) sans attendre le filet 45 s ;
+  //   • la redirection « offre acceptée » reste sur ride_offers (ciblé par id).
+  // GATÉ sur l'état en ligne.
   useEffect(() => {
     if (!online) return;
     const supabase = createClient();
     const chans = [
       supabase
-        .channel("home-nearby-rides")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "rides" },
-          () => void tick()
-        )
+        .channel(`chauffeur:${gate.userId}`)
+        .on("broadcast", { event: "new_ride" }, () => void tick())
         .subscribe(),
       supabase
         .channel(`home-my-offers-${gate.id}`)
@@ -287,7 +312,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     return () => {
       for (const c of chans) void supabase.removeChannel(c);
     };
-  }, [tick, online, gate.id, router]);
+  }, [tick, online, gate.id, gate.userId, router]);
 
   // Dès la 1re position GPS connue : recharger immédiatement (sans attendre 15 s).
   const gotFirstFix = useRef(false);

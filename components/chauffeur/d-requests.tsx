@@ -173,6 +173,8 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   // Net estimé : taux de commission du plan (free 8 % / pro / premium).
   const [planRate, setPlanRate] = useState(0.08);
   const [chId, setChId] = useState<string | null>(null);
+  // user_id auth → canal Realtime perso `chauffeur:{userId}` (dispatch push).
+  const [userId, setUserId] = useState<string | null>(null);
   const coordsRef = useRef(coords);
   coordsRef.current = coords;
   // Rayon choisi par le chauffeur (dispatch centré sur sa position live).
@@ -213,6 +215,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     void getChauffeurGate().then((g) => {
       if (g) {
         setChId(g.id);
+        setUserId(g.userId);
         setHomeDir({
           addr: g.homeAddr,
           lat: g.homeLat,
@@ -260,8 +263,18 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   useEffect(() => {
     if (!online) return;
     void poll();
-    const id = setInterval(poll, 12000);
-    return () => clearInterval(id);
+    // Filet de SÉCURITÉ seulement (le dispatch push fait l'instantané) : poll
+    // lent à 45 s pour rattraper un broadcast manqué. Avant : 12 s.
+    const id = setInterval(poll, 45000);
+    // RATTRAPAGE au retour au premier plan (broadcast manqué en arrière-plan).
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [poll, online]);
   const gotFirstFix = useRef(false);
   useEffect(() => {
@@ -297,14 +310,16 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     if (!online) return;
     const supabase = createClient();
     const chans = [
-      supabase
-        .channel("nearby-rides")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "rides" },
-          () => void poll()
-        )
-        .subscribe(),
+      // Dispatch push CIBLÉ : canal perso (plus d'écoute globale des INSERT).
+      // Tant que le user_id n'est pas chargé (gate), on n'ouvre pas ce canal.
+      ...(userId
+        ? [
+            supabase
+              .channel(`chauffeur:${userId}`)
+              .on("broadcast", { event: "new_ride" }, () => void poll())
+              .subscribe(),
+          ]
+        : []),
       ...(chId
         ? [
             supabase
@@ -331,7 +346,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     return () => {
       for (const c of chans) void supabase.removeChannel(c);
     };
-  }, [poll, chId, router, online]);
+  }, [poll, chId, userId, router, online]);
 
   // Surlignage de la course notifiée : dès qu'elle est présente dans la liste
   // (le poll/temps réel l'a ramenée), on sélectionne l'onglet où elle se trouve

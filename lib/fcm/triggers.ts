@@ -19,6 +19,7 @@ import { formatDA } from "@/lib/utils";
 import type { OrderStatus } from "@/lib/types";
 import { labelFor } from "@/lib/chat/messages";
 import { isPushEligible } from "@/lib/chauffeur/dispatch-filter";
+import { broadcastToChauffeurs } from "@/lib/realtime/broadcast";
 import { sendFcm } from "./send";
 
 async function tokensFor(
@@ -420,6 +421,14 @@ export async function notifyChauffeursNewRide(input: {
       ...new Set(eligible.map((r) => r.user_id).filter(Boolean)),
     ];
     if (userIds.length === 0) return;
+
+    // DISPATCH FOREGROUND (instantané, sans polling) : broadcast ciblé sur le
+    // canal perso de chaque chauffeur éligible — MÊME audience que le FCM. Les
+    // apps OUVERTES affichent la course immédiatement via Realtime ; le FCM
+    // ci-dessous couvre les apps fermées / en arrière-plan. Remplace l'ancien
+    // abonnement GLOBAL aux INSERT de `rides` (O(courses × chauffeurs)).
+    void broadcastToChauffeurs(userIds, "new_ride", { rideId: input.rideId });
+
     const tokenLists = await Promise.all(
       userIds.map((uid) => tokensFor(uid, "chauffeur"))
     );
