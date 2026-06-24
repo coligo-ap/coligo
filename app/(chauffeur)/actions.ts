@@ -721,6 +721,7 @@ export async function getChauffeurTick(
   home: DriveHome | null;
   activeRide: ChauffeurActiveRide | null;
   nearby: NearbyRide[];
+  dbg: string;
 }> {
   // EN SÉRIE (surtout PAS Promise.all) : chaque sous-appel crée son propre client
   // cookie ; en PARALLÈLE, si le token d'accès a expiré, ils tentent un refresh
@@ -734,7 +735,10 @@ export async function getChauffeurTick(
     lat != null && lng != null
       ? await getNearbyRides(lat, lng, radiusKm)
       : ([] as NearbyRide[]);
-  return { home, activeRide, nearby };
+  const dbg = `srvNear=${nearby.length} req=${home?.requestsCount ?? -1} ids=${nearby
+    .map((r) => r.id.slice(0, 4))
+    .join(",")}`;
+  return { home, activeRide, nearby, dbg };
 }
 
 /** TICK consolidé de la page Demandes : demandes proches + course active en
