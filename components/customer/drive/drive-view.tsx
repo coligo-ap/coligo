@@ -439,26 +439,27 @@ export function DriveView() {
     // (route réelle) pour ne calculer le devis QU'UNE fois, sur la distance
     // stabilisée → aucun clignotement ni recalcul du prix.
     const timer = setTimeout(async () => {
-      // Devis intelligent SERVEUR : départ (demande/offre locale) + durée RÉELLE
-      // de navigation (supplément trafic, mig 0235). ROBUSTE : 1 retry, timeout
-      // 8 s. Repli local UNIQUEMENT si le serveur échoue → jamais bloqué en
-      // loader, mais en marche normale le client ne voit QUE le prix serveur.
+      // Devis intelligent SERVEUR (mig 0235 : demande/offre locale + retard
+      // trafic réel). BORNÉ à 3,5 s : au-delà (fonction serverless FROIDE / réseau
+      // lent) on bascule sur l'estimation locale, affichée STABLEMENT (jamais
+      // corrigée ensuite). Ainsi le client n'attend jamais 8-10 s ET ne voit
+      // jamais le prix changer ; le serveur revérifie le prix à la demande de
+      // toute façon. Chaud : ~0,5-1 s → prix serveur exact (souvent DÉJÀ
+      // pré-calculé depuis l'accueil). Pas de retry (il doublerait l'attente).
       let q: Record<Gamme, DriveQuote> | null = null;
-      for (let attempt = 0; attempt < 2 && q == null; attempt++) {
-        try {
-          q = await Promise.race([
-            getDriveQuotes(
-              distanceKm,
-              { lat: pickup.lat, lng: pickup.lng },
-              etaMin
-            ),
-            new Promise<never>((_, rej) =>
-              setTimeout(() => rej(new Error("timeout")), 8000)
-            ),
-          ]);
-        } catch {
-          q = null; // on retente une fois, sinon repli local ci-dessous
-        }
+      try {
+        q = await Promise.race([
+          getDriveQuotes(
+            distanceKm,
+            { lat: pickup.lat, lng: pickup.lng },
+            etaMin
+          ),
+          new Promise<never>((_, rej) =>
+            setTimeout(() => rej(new Error("timeout")), 3500)
+          ),
+        ]);
+      } catch {
+        q = null; // serveur lent/indispo → repli local stable ci-dessous
       }
       if (cancelled) return; // une réponse en retard ne doit pas écraser la neuve
       if (q == null) q = fallbackQuotes(distanceKm); // jamais bloqué
