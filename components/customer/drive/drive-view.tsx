@@ -161,6 +161,10 @@ export function DriveView() {
   // Course active (recherche / en route / fin)
   const [active, setActive] = useState<DriveActiveRide | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Verrou SYNCHRONE anti-double-tap : `submitting` (useState) n'est posé qu'APRÈS
+  // le 1ᵉʳ await (reverse-géocode), donc deux taps rapides passaient tous les deux.
+  // Ce ref se ferme IMMÉDIATEMENT au 1ᵉʳ tap → le 2ᵉ est ignoré (jamais en file).
+  const inFlightRef = useRef(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [offlineQueued, setOfflineQueued] = useState(false);
   // Couverture de zone (départ + arrivée) — pré-check UX avant la demande
@@ -551,55 +555,62 @@ export function DriveView() {
   }, []);
 
   const submitRequest = async () => {
-    if (!pickup || !dest || submitting) return;
-    setRequestError(null);
-    // Départ GPS sans adresse encore résolue : on géocode MAINTENANT pour que le
-    // chauffeur reçoive la vraie adresse (jamais « Ma position actuelle »).
-    let pickupText = pickup.text;
-    if (
-      pickup.gps &&
-      !pickupText &&
-      typeof navigator !== "undefined" &&
-      navigator.onLine
-    ) {
-      const r = await reverseGeocode({
-        latitude: pickup.lat,
-        longitude: pickup.lng,
-        precise: true,
-      }).catch(() => null);
-      if (r?.ok && r.display) pickupText = r.display;
-    }
-    const payload = buildPayload(pickupText);
-    if (!payload) return;
-    // Hors connexion : demande en file Dexie, envoi auto au retour réseau (C8).
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      await queueRideRequest(payload.operation_id, payload);
-      setOfflineQueued(true);
-      setScreen("ride");
-      return;
-    }
-    setSubmitting(true);
-    const res = await requestDriveRide(payload);
-    if (!res.ok) {
-      setSubmitting(false);
-      setRequestError(res.error ?? t("requestFailed"));
-      return;
-    }
-    // CARTE : payer AVANT que la demande soit diffusée (Chargily Pay existant).
-    if (payMode === "card" && res.rideId) {
-      const checkout = await createRideCardCheckout(res.rideId);
-      if (checkout.ok && checkout.url) {
-        window.open(checkout.url, "_blank");
-      } else {
-        setSubmitting(false);
-        setRequestError(checkout.error ?? t("requestFailed"));
-        await cancelDriveRide(res.rideId, "Paiement carte indisponible");
+    // Garde synchrone : un 2ᵉ tap pendant que le 1ᵉʳ est en vol est ignoré.
+    if (!pickup || !dest || inFlightRef.current) return;
+    inFlightRef.current = true;
+    try {
+      setRequestError(null);
+      // Départ GPS sans adresse encore résolue : on géocode MAINTENANT pour que le
+      // chauffeur reçoive la vraie adresse (jamais « Ma position actuelle »).
+      let pickupText = pickup.text;
+      if (
+        pickup.gps &&
+        !pickupText &&
+        typeof navigator !== "undefined" &&
+        navigator.onLine
+      ) {
+        const r = await reverseGeocode({
+          latitude: pickup.lat,
+          longitude: pickup.lng,
+          precise: true,
+        }).catch(() => null);
+        if (r?.ok && r.display) pickupText = r.display;
+      }
+      const payload = buildPayload(pickupText);
+      if (!payload) return;
+      // Hors connexion : demande en file Dexie, envoi auto au retour réseau (C8).
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        await queueRideRequest(payload.operation_id, payload);
+        setOfflineQueued(true);
+        setScreen("ride");
         return;
       }
+      setSubmitting(true);
+      const res = await requestDriveRide(payload);
+      if (!res.ok) {
+        setSubmitting(false);
+        setRequestError(res.error ?? t("requestFailed"));
+        return;
+      }
+      // CARTE : payer AVANT que la demande soit diffusée (Chargily Pay existant).
+      if (payMode === "card" && res.rideId) {
+        const checkout = await createRideCardCheckout(res.rideId);
+        if (checkout.ok && checkout.url) {
+          window.open(checkout.url, "_blank");
+        } else {
+          setSubmitting(false);
+          setRequestError(checkout.error ?? t("requestFailed"));
+          await cancelDriveRide(res.rideId, "Paiement carte indisponible");
+          return;
+        }
+      }
+      setSubmitting(false);
+      await refreshActive();
+      setScreen("ride");
+    } finally {
+      // Libère le verrou (succès, erreur ou retour anticipé) → ré-essai possible.
+      inFlightRef.current = false;
     }
-    setSubmitting(false);
-    await refreshActive();
-    setScreen("ride");
   };
 
   // Pré-check de couverture (départ + arrivée) DÈS que les deux points sont
