@@ -754,9 +754,33 @@ export async function getChauffeurTick(
     lat != null && lng != null && ch
       ? await getNearbyRides(lat, lng, radiusKm, ch.id)
       : ([] as NearbyRide[]);
-  const dbg = `ch=${ch ? ch.id.slice(0, 4) : "NULL"} srvNear=${nearby.length} req=${home?.requestsCount ?? -1} ids=${nearby
-    .map((r) => r.id.slice(0, 4))
-    .join(",")}`;
+  // DIAG : appel TÉMOIN direct service_role (chemin exact, sans le wrapper) +
+  // position reçue + erreur éventuelle → isole précisément.
+  let raw = -1;
+  let rawErr = "";
+  try {
+    if (ch && lat != null && lng != null) {
+      const admin = createAdminClient();
+      const arpc = admin.rpc.bind(admin) as unknown as (
+        fn: string,
+        a: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { data, error } = await arpc("chauffeur_nearby_rides", {
+        p_lat: lat,
+        p_lng: lng,
+        p_radius_km: radiusKm,
+        p_chauffeur_id: ch.id,
+      });
+      raw = Array.isArray(data) ? data.length : -2;
+      rawErr = error ? String(error.message).slice(0, 45) : "";
+    }
+  } catch (e) {
+    rawErr = `THROW ${String((e as Error)?.message ?? e)}`.slice(0, 45);
+  }
+  const dbg =
+    `ch=${ch ? ch.id.slice(0, 4) : "NULL"} in=${lat == null ? "n" : lat.toFixed(3)},${lng == null ? "n" : lng.toFixed(3)} ` +
+    `srvNear=${nearby.length} raw=${raw} req=${home?.requestsCount ?? -1}` +
+    (rawErr ? ` E:${rawErr}` : "");
   return { home, activeRide, nearby, dbg };
 }
 
