@@ -35,7 +35,6 @@ import {
   listFavoritePlaces,
   recordPlacePick,
   reverseGeocode,
-  nearestPlaceLabel,
   routeEstimate,
   toggleFavoritePlace,
   type FavPlace,
@@ -410,51 +409,40 @@ export function DriveView() {
   // silence par OSRM — plus d'attente/loader sur la distance et la durée.
   const distanceLabel = distanceKm.toFixed(1).replace(".", ",");
 
-  /* ───────── Devis par gamme — PRÉ-CALCULÉS en arrière-plan ───────── */
+  /* ───────── Devis par gamme — UN SEUL prix affiché (le prix FINAL) ───────── */
   useEffect(() => {
     // PRÉ-CHARGE : on calcule les devis DÈS que départ + arrivée sont connus,
-    // SANS attendre l'écran prix (plus de `screen === "price"`). Résultat : en
-    // arrivant sur l'écran prix, les prix par gamme sont DÉJÀ là → ultra rapide.
-    // Sur le home/mappick le loader n'est pas rendu, donc pas de spinner visible.
+    // SANS attendre l'écran prix → en arrivant sur l'écran prix, les prix par
+    // gamme sont DÉJÀ là.
     if (distanceKm <= 0 || !pickup || !dest) return;
-    // ULTRA RAPIDE : on distingue un NOUVEAU trajet (adresses) d'un simple
-    // RAFFINEMENT de distance par OSRM (mêmes adresses). Loader + remise au prix
-    // recommandé UNIQUEMENT sur un nouveau trajet ; le raffinement OSRM recalcule
-    // les devis en SILENCE (prix jamais figé, pas de loader qui clignote).
     const trajKey = `${pickup.lat.toFixed(5)},${pickup.lng.toFixed(5)},${dest.lat.toFixed(5)},${dest.lng.toFixed(5)}`;
     const isNewTraj = trajKey !== lastTrajRef.current;
-    lastTrajRef.current = trajKey;
 
-    // PRIX INSTANTANÉ (comme la distance) : dès que la distance est connue, on
-    // affiche TOUT DE SUITE une estimation LOCALE (fallbackQuotes), puis le
-    // devis serveur l'affine EN SILENCE juste après. Plus de loader 1-2 s sur le
-    // prix — il apparaît en même temps que la distance et la durée.
-    if (isNewTraj || quotes == null) {
-      const fb = fallbackQuotes(distanceKm);
-      setQuotes(fb);
-      setQuoteId(null); // ancien devis périmé tant que le nouveau n'est pas émis
-      const fbReco = fb[gamme]?.recommended ?? fb.classic.recommended;
-      // Nouveau trajet, prix non encore choisi, ou prix encore au recommandé
-      // précédent → on (re)part du recommandé estimé. Sinon on respecte le choix
-      // manuel du client.
-      if (
-        isNewTraj ||
-        priceRef.current === lastRecoRef.current ||
-        priceRef.current <= 0
-      ) {
-        setPrice(fbReco);
-        if (boostOn) setBoostAmt(defBoost(fbReco));
-        lastRecoRef.current = fbReco;
-      }
-      setPricing(false); // jamais bloqué : on a déjà une estimation à afficher
-    }
+    // PRIX FINAL DIRECT — le client ne doit voir QU'UNE valeur, jamais un
+    // « premier prix » remplacé ensuite. On n'affiche donc AUCUNE estimation
+    // locale intermédiaire : sur un nouveau trajet on montre un loader bref, puis
+    // UNIQUEMENT le devis SERVEUR autoritaire (affiché une seule fois). Et si le
+    // prix est DÉJÀ calculé pour ce trajet, le raffinement OSRM de la distance ne
+    // déclenche AUCUN recalcul visible (le serveur revérifie la distance au
+    // moment de la demande de toute façon).
+    if (!isNewTraj && quotes != null) return;
+    lastTrajRef.current = trajKey;
+    setPricing(true);
+    setQuoteId(null);
+    // Nouveau trajet → on vide les anciens prix : les cartes gammes affichent
+    // « … » le temps du devis final, plutôt que les prix de l'ancien trajet
+    // remplacés ensuite (pas de changement visible).
+    if (isNewTraj) setQuotes(null);
 
     let cancelled = false;
-    void (async () => {
-      // Devis intelligent SERVEUR (affinage silencieux) : départ (demande/offre
-      // locale) + durée RÉELLE de navigation (supplément trafic, mig 0235).
-      // ROBUSTE : 1 retry, timeout 8 s. En cas d'échec on GARDE l'estimation
-      // locale déjà affichée → l'écran prix n'est jamais bloqué ni vidé.
+    // Debounce court : coalesce le passage distance « vol d'oiseau » → OSRM
+    // (route réelle) pour ne calculer le devis QU'UNE fois, sur la distance
+    // stabilisée → aucun clignotement ni recalcul du prix.
+    const timer = setTimeout(async () => {
+      // Devis intelligent SERVEUR : départ (demande/offre locale) + durée RÉELLE
+      // de navigation (supplément trafic, mig 0235). ROBUSTE : 1 retry, timeout
+      // 8 s. Repli local UNIQUEMENT si le serveur échoue → jamais bloqué en
+      // loader, mais en marche normale le client ne voit QUE le prix serveur.
       let q: Record<Gamme, DriveQuote> | null = null;
       for (let attempt = 0; attempt < 2 && q == null; attempt++) {
         try {
@@ -469,27 +457,32 @@ export function DriveView() {
             ),
           ]);
         } catch {
-          q = null; // on retente une fois, sinon on garde l'estimation locale
+          q = null; // on retente une fois, sinon repli local ci-dessous
         }
       }
-      // Réponse en retard / écran démonté / échec serveur → on ne touche à rien.
-      if (cancelled || q == null) return;
+      if (cancelled) return; // une réponse en retard ne doit pas écraser la neuve
+      if (q == null) q = fallbackQuotes(distanceKm); // jamais bloqué
       setQuotes(q);
       const reco = q[gamme]?.recommended ?? q.classic.recommended;
-      // On suit le recommandé serveur affiné UNIQUEMENT si le client n'a pas
-      // ajusté le prix depuis l'estimation locale (priceRef = valeur courante,
-      // pas une closure périmée). Sinon on respecte son choix manuel.
-      if (priceRef.current === lastRecoRef.current) {
+      // Prix initialisé au recommandé tant que le client n'a pas ajusté (priceRef
+      // = valeur courante, pas une closure périmée).
+      if (
+        isNewTraj ||
+        priceRef.current === lastRecoRef.current ||
+        priceRef.current <= 0
+      ) {
         setPrice(reco);
         if (boostOn) setBoostAmt(defBoost(reco));
       }
       lastRecoRef.current = reco;
-    })();
+      setPricing(false);
+    }, 220);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-    // Déclenché par la DISTANCE (donc dès que départ+arrivée sont posés, puis au
-    // raffinement OSRM) — plus par l'écran : le pré-calcul tourne en avance.
+    // Déclenché par la DISTANCE (dès que départ+arrivée sont posés, puis au
+    // raffinement OSRM — coalescé par le debounce et la garde ci-dessus).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [distanceKm]);
 
@@ -1977,45 +1970,45 @@ function MapPickScreen({
         return;
       }
       const seq = ++geoSeqRef.current;
+      // On efface l'adresse du point PRÉCÉDENT → pendant la résolution on affiche
+      // « … », jamais l'ancienne adresse ni une approximation.
+      setAddr(null);
       setResolving(true);
-      // FILET : on ne reste JAMAIS bloqué sur « … » (et donc sur un bouton
-      // grisé). Si aucune phase n'a abouti sous 1,5 s (réseau lent / géocodage
-      // qui hang), on débloque → le libellé tombera sur les coordonnées GPS.
+      // FILET anti-blocage : on ne reste JAMAIS coincé sur « … » / bouton grisé.
+      // reverseGeocode est borné (~2,5 s côté serveur) ; ce filet ne sert que si
+      // l'action elle-même traîne au-delà.
       if (resolveSafetyRef.current) clearTimeout(resolveSafetyRef.current);
       resolveSafetyRef.current = setTimeout(() => {
         if (seq === geoSeqRef.current) setResolving(false);
-      }, 1500);
-      // PHASE 1 — INSTANTANÉE : lieu le plus proche via gazetteer local (PostGIS
-      // KNN, ~5-50 ms), SANS debounce → la position s'affiche TOUT DE SUITE et,
-      // dès qu'on a un libellé, on DÉBLOQUE « Confirmer ce point » (la phase 2
-      // ne fait qu'affiner en silence, elle ne doit plus garder le bouton grisé).
-      void nearestPlaceLabel({ latitude: c.lat, longitude: c.lng })
-        .then((g) => {
-          if (seq === geoSeqRef.current && g?.ok && g.display) {
-            setAddr(g.display);
-            setResolving(false);
-          }
-        })
-        .catch(() => {});
-      // PHASE 2 — débouncée : reverseGeocode précis (rue) AFFINE le libellé.
+      }, 3000);
+      // ADRESSE PRÉCISE DIRECTE : on ne montre PLUS d'abord le « lieu le plus
+      // proche » du gazetteer (qui pouvait être un POI éloigné/erroné, ex. une
+      // plage), puis la corriger. On résout DIRECTEMENT l'adresse de RUE
+      // (reverseGeocode précis) et on n'affiche QUE celle-là → la bonne adresse
+      // d'emblée, sans valeur temporaire fausse. (reverseGeocode bascule déjà sur
+      // le gazetteer EN INTERNE si Nominatim échoue → un seul libellé, le bon.)
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(async () => {
-        try {
-          const r = await reverseGeocode({
-            latitude: c.lat,
-            longitude: c.lng,
-            precise: true,
-          });
-          // Ne pas écraser une position plus récente, ni effacer le libellé
-          // gazetteer si la précision ne renvoie rien.
-          if (seq === geoSeqRef.current && r?.ok && r.display)
-            setAddr(r.display);
-        } catch {
-          /* la phase 1 a déjà posé un libellé */
-        } finally {
-          if (seq === geoSeqRef.current) setResolving(false);
-        }
-      }, geoCfg.reverseGeocodeDebounceMs);
+      debounceRef.current = setTimeout(
+        async () => {
+          try {
+            const r = await reverseGeocode({
+              latitude: c.lat,
+              longitude: c.lng,
+              precise: true,
+            });
+            // Réponse pour une position plus récente → on ignore (anti-rejeu).
+            if (seq !== geoSeqRef.current) return;
+            if (r?.ok && r.display) setAddr(r.display);
+          } catch {
+            /* échec → l'affichage retombe sur les coordonnées GPS exactes */
+          } finally {
+            if (seq === geoSeqRef.current) setResolving(false);
+          }
+          // Debounce court (≤ 200 ms) : reverseGeocode devient le chemin PRINCIPAL
+          // (plus de phase 1 instantanée), on le déclenche donc vite.
+        },
+        Math.min(geoCfg.reverseGeocodeDebounceMs, 200)
+      );
     },
     [geoCfg.reverseGeocodeDebounceMs]
   );
