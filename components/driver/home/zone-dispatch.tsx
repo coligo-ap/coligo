@@ -7,6 +7,7 @@ import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { driverHeartbeat, pullNextExpressNearby } from "@/app/(driver)/actions";
 import { useWorkZone, LIVE_RADIUS_KM } from "@/lib/driver/work-zone";
 import { setDispatchActive } from "@/lib/realtime/dispatch-presence";
+import { ensureRealtimeAuth } from "@/lib/realtime/ensure-auth";
 import { playNewOrder } from "@/lib/driver/sounds";
 import { vibrate } from "@/lib/hooks/use-alert-sound";
 import { toast } from "@/components/ui/toast";
@@ -92,19 +93,27 @@ export function ZoneDispatch({
 
     // DISPATCH PUSH CIBLÉ : on n'écoute plus TOUTES les commandes express. Le
     // serveur (notifyDriversNewExpress) pousse `new_express` aux livreurs proches
-    // sur leur canal perso → on tente alors un pull. Tant que le user_id n'est
-    // pas connu, seul le poll 20 s tourne.
+    // sur leur canal perso → on tente alors un pull. Le poll 20 s reste le FILET
+    // FIABLE (réception garantie même broadcast raté). Tant que le user_id n'est
+    // pas connu, seul le poll tourne.
     const supabase = createClient();
-    const channel = userId
-      ? supabase
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    if (userId) {
+      void (async () => {
+        // JWT garanti sur le socket AVANT le canal PRIVÉ (sinon CHANNEL_ERROR
+        // → broadcast jamais reçu ; seul le poll fonctionnerait).
+        await ensureRealtimeAuth(supabase);
+        if (!alive) return;
+        channel = supabase
           .channel(`courier:${userId}`, { config: { private: true } })
           .on(
             "broadcast",
             { event: "new_express" },
             () => void tickRef.current()
           )
-          .subscribe()
-      : null;
+          .subscribe();
+      })();
+    }
 
     return () => {
       setDispatchActive("courier", false);

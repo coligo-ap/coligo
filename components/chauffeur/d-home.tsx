@@ -51,6 +51,7 @@ import {
 import { isOpenDemande } from "@/lib/chauffeur/dispatch-filter";
 import { usePageVisible } from "@/lib/realtime/use-page-visible";
 import { setDispatchActive } from "@/lib/realtime/dispatch-presence";
+import { ensureRealtimeAuth } from "@/lib/realtime/ensure-auth";
 import { getMyWalletState } from "@/app/wallet/recharge-actions";
 import {
   activateHomeDir,
@@ -246,10 +247,12 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   }, [router]);
   useEffect(() => {
     void tick();
-    // Filet de SÉCURITÉ seulement : le dispatch push (broadcast ciblé) fait
-    // l'instantané. On garde un poll LENT (45 s) pour rattraper un message raté
-    // (WebSocket tombé, retour de veille) sans marteler le serveur. Avant : 15 s.
-    const id = setInterval(tick, 45_000);
+    // Le dispatch push (broadcast ciblé) fait l'instantané ; ce poll est le FILET
+    // FIABLE (broadcast raté, WebSocket tombé, retour de veille). 15 s = réception
+    // garantie même si le broadcast échoue (la réception NE DOIT JAMAIS dépendre
+    // du seul broadcast). Coût maîtrisé : 1 requête/15 s/chauffeur (≠ l'ancien
+    // abonnement global O(courses×chauffeurs) qu'on a supprimé).
+    const id = setInterval(tick, 15_000);
     // RATTRAPAGE au retour au premier plan : un broadcast émis pendant que l'app
     // était en arrière-plan (WebSocket suspendu) a pu être manqué → on resynchro
     // une fois, immédiatement, plutôt que d'attendre le filet 45 s.
@@ -294,33 +297,51 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     // Dispatch in-app actif → le push FCM web ne doublera pas la notif (dédup).
     setDispatchActive("chauffeur", true);
     const supabase = createClient();
-    const chans = [
-      supabase
-        .channel(`chauffeur:${gate.userId}`, { config: { private: true } })
-        .on("broadcast", { event: "new_ride" }, () => void tick())
-        .subscribe(),
-      supabase
-        .channel(`home-my-offers-${gate.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "ride_offers",
-            filter: `chauffeur_id=eq.${gate.id}`,
-          },
-          (payload) => {
-            if ((payload.new as { status?: string }).status === "accepted")
-              router.replace("/chauffeur/course");
-          }
-        )
-        .subscribe(),
-    ];
+    const chans: ReturnType<typeof supabase.channel>[] = [];
+    let cancelled = false;
+    void (async () => {
+      // Garantir le JWT sur le socket AVANT le canal PRIVÉ (sinon CHANNEL_ERROR
+      // → broadcast jamais reçu). Le canal offres (postgres_changes) n'en a pas
+      // besoin mais profite du même socket authentifié.
+      await ensureRealtimeAuth(supabase);
+      if (cancelled) return;
+      chans.push(
+        supabase
+          .channel(`chauffeur:${gate.userId}`, { config: { private: true } })
+          .on("broadcast", { event: "new_ride" }, () => void tick())
+          .subscribe(),
+        supabase
+          .channel(`home-my-offers-${gate.id}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "ride_offers",
+              filter: `chauffeur_id=eq.${gate.id}`,
+            },
+            (payload) => {
+              if ((payload.new as { status?: string }).status === "accepted")
+                router.replace("/chauffeur/course");
+            }
+          )
+          .subscribe()
+      );
+    })();
     return () => {
+      cancelled = true;
       setDispatchActive("chauffeur", false);
       for (const c of chans) void supabase.removeChannel(c);
     };
   }, [tick, online, visible, gate.id, gate.userId, router]);
+
+  // Passage EN LIGNE (bouton GO) → interroger TOUT DE SUITE les demandes, sans
+  // attendre le prochain cycle de poll (l'effet `tick` ci-dessus ne dépend pas
+  // de `online` ; sans ça, aller en ligne laissait le compteur à 0 jusqu'au
+  // poll suivant). Le broadcast couvre les courses créées APRÈS.
+  useEffect(() => {
+    if (online) void tick();
+  }, [online, tick]);
 
   // Dès la 1re position GPS connue : recharger immédiatement (sans attendre 15 s).
   const gotFirstFix = useRef(false);

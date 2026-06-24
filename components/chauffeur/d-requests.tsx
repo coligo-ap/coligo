@@ -31,6 +31,7 @@ import {
 import { useSearchRadius } from "@/lib/chauffeur/work-zone";
 import { usePageVisible } from "@/lib/realtime/use-page-visible";
 import { setDispatchActive } from "@/lib/realtime/dispatch-presence";
+import { ensureRealtimeAuth } from "@/lib/realtime/ensure-auth";
 import {
   chauffeurHeartbeat,
   declineRide,
@@ -268,9 +269,9 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   useEffect(() => {
     if (!online) return;
     void poll();
-    // Filet de SÉCURITÉ seulement (le dispatch push fait l'instantané) : poll
-    // lent à 45 s pour rattraper un broadcast manqué. Avant : 12 s.
-    const id = setInterval(poll, 45000);
+    // FILET FIABLE (le dispatch push fait l'instantané, mais la réception NE DOIT
+    // PAS en dépendre seule) : poll 15 s → réception garantie même broadcast raté.
+    const id = setInterval(poll, 15000);
     // RATTRAPAGE au retour au premier plan (broadcast manqué en arrière-plan).
     const onVisible = () => {
       if (document.visibilityState === "visible") void poll();
@@ -316,41 +317,45 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     // Dispatch in-app actif → le push FCM web ne doublera pas la notif (dédup).
     setDispatchActive("chauffeur", true);
     const supabase = createClient();
-    const chans = [
+    const chans: ReturnType<typeof supabase.channel>[] = [];
+    let cancelled = false;
+    void (async () => {
+      // JWT garanti sur le socket AVANT le canal PRIVÉ (sinon CHANNEL_ERROR).
+      await ensureRealtimeAuth(supabase);
+      if (cancelled) return;
       // Dispatch push CIBLÉ : canal perso (plus d'écoute globale des INSERT).
       // Tant que le user_id n'est pas chargé (gate), on n'ouvre pas ce canal.
-      ...(userId
-        ? [
-            supabase
-              .channel(`chauffeur:${userId}`, { config: { private: true } })
-              .on("broadcast", { event: "new_ride" }, () => void poll())
-              .subscribe(),
-          ]
-        : []),
-      ...(chId
-        ? [
-            supabase
-              .channel(`my-offers-${chId}`)
-              .on(
-                "postgres_changes",
-                {
-                  event: "UPDATE",
-                  schema: "public",
-                  table: "ride_offers",
-                  filter: `chauffeur_id=eq.${chId}`,
-                },
-                (payload) => {
-                  if (
-                    (payload.new as { status?: string }).status === "accepted"
-                  )
-                    router.replace("/chauffeur/course");
-                }
-              )
-              .subscribe(),
-          ]
-        : []),
-    ];
+      if (userId) {
+        chans.push(
+          supabase
+            .channel(`chauffeur:${userId}`, { config: { private: true } })
+            .on("broadcast", { event: "new_ride" }, () => void poll())
+            .subscribe()
+        );
+      }
+      if (chId) {
+        chans.push(
+          supabase
+            .channel(`my-offers-${chId}`)
+            .on(
+              "postgres_changes",
+              {
+                event: "UPDATE",
+                schema: "public",
+                table: "ride_offers",
+                filter: `chauffeur_id=eq.${chId}`,
+              },
+              (payload) => {
+                if ((payload.new as { status?: string }).status === "accepted")
+                  router.replace("/chauffeur/course");
+              }
+            )
+            .subscribe()
+        );
+      }
+    })();
     return () => {
+      cancelled = true;
       setDispatchActive("chauffeur", false);
       for (const c of chans) void supabase.removeChannel(c);
     };
