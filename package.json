@@ -32,6 +32,7 @@
     "test:vtc": "node scripts/test-vtc.mjs",
     "test:dispatch": "node --experimental-strip-types scripts/test-chauffeur-dispatch.mjs",
     "test:dispatch:e2e": "node scripts/test-dispatch-e2e.mjs",
+    "test:dispatch:improvements": "node scripts/test-dispatch-improvements.mjs",
     "test:chauffeur:realtime": "node scripts/test-chauffeur-realtime.mjs",
     "test:drive:restore": "node scripts/test-drive-client-restore.mjs",
     "test:coligo:pay": "node scripts/test-coligo-pay.mjs",
