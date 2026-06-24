@@ -199,8 +199,6 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   };
 
   // ── Réception des courses (popup entrant) ──────────────────────────────
-  // DIAG temporaire (débogage réception) : état réel du dernier tick client.
-  const [dbg, setDbg] = useState<string>("…");
   const [nearby, setNearby] = useState<NearbyRide[]>([]);
   const [current, setCurrent] = useState<NearbyRide | null>(null);
   const [incBusy, setIncBusy] = useState(false);
@@ -232,7 +230,6 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         home: h,
         activeRide: active,
         nearby: list,
-        dbg: serverDbg,
       } = await getChauffeurTick(
         c?.latitude ?? null,
         c?.longitude ?? null,
@@ -245,12 +242,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
       lastDriveHomeCache = h; // alimente le cache SWR
       setHome(h);
       setNearby(onlineRef.current ? list : []);
-      // DIAG temporaire : état client + vérité serveur du chemin réel.
-      setDbg(`on=${onlineRef.current ? 1 : 0} | ${serverDbg}`);
-    } catch (e) {
-      // Sans ce catch, une seule sous-requête en échec cassait SILENCIEUSEMENT
-      // toute la réception (nearby jamais mis à jour). On le rend visible.
-      setDbg(`ERR ${String((e as Error)?.message ?? e)}`.slice(0, 90));
+    } catch {
+      // Filet : un tick en échec ne doit pas casser la réception (le prochain
+      // poll réessaie). Sans ce catch, une exception laissait `nearby` figé.
     } finally {
       tickBusy.current = false;
     }
@@ -507,10 +501,6 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
 
   return (
     <div className="drive-jakarta drive-screen bg-[var(--d-page)]">
-      {/* DIAG temporaire (débogage réception) — à retirer une fois résolu. */}
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-[200] bg-black/80 px-2 py-1 text-center font-mono text-[10px] text-lime-300">
-        DIAG {dbg}
-      </div>
       <DriveMap
         markers={me ? [{ id: "me", pos: me, kind: "me" }] : []}
         heatZones={home?.heatZones ?? []}
