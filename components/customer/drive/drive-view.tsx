@@ -35,6 +35,7 @@ import {
   listFavoritePlaces,
   recordPlacePick,
   reverseGeocode,
+  nearestPlaceLabel,
   routeEstimate,
   toggleFavoritePlace,
   type FavPlace,
@@ -1760,6 +1761,9 @@ function MapPickScreen({
   const [addr, setAddr] = useState<string | null>(initial?.text ?? null);
   const [resolving, setResolving] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Numéro de séquence du dernier déplacement : une réponse en retard (lieu
+  // gazetteer ou rue) ne doit jamais écraser une position plus récente.
+  const geoSeqRef = useRef(0);
   // Quand le client CHOISIT une suggestion, on remet son libellé dans l'input —
   // ce qui retriggerait la recherche et RÉOUVRIRAIT la liste. Ce drapeau saute
   // la recherche UNE fois après un choix → la liste ne se réaffiche pas tant que
@@ -1887,6 +1891,16 @@ function MapPickScreen({
       setFavOpen(false);
       setCenter(c);
       setResolving(true);
+      const seq = ++geoSeqRef.current;
+      // PHASE 1 — INSTANTANÉE : lieu le plus proche via gazetteer local (PostGIS
+      // KNN, ~5-50 ms), SANS debounce → la position s'affiche TOUT DE SUITE.
+      void nearestPlaceLabel({ latitude: c.lat, longitude: c.lng })
+        .then((g) => {
+          if (seq === geoSeqRef.current && g?.ok && g.display)
+            setAddr(g.display);
+        })
+        .catch(() => {});
+      // PHASE 2 — débouncée : reverseGeocode précis (rue) AFFINE le libellé.
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(async () => {
         try {
@@ -1895,11 +1909,14 @@ function MapPickScreen({
             longitude: c.lng,
             precise: true,
           });
-          setAddr(r?.display ?? null);
+          // Ne pas écraser une position plus récente, ni effacer le libellé
+          // gazetteer si la précision ne renvoie rien.
+          if (seq === geoSeqRef.current && r?.ok && r.display)
+            setAddr(r.display);
         } catch {
-          setAddr(null);
+          /* la phase 1 a déjà posé un libellé */
         } finally {
-          setResolving(false);
+          if (seq === geoSeqRef.current) setResolving(false);
         }
       }, geoCfg.reverseGeocodeDebounceMs);
     },

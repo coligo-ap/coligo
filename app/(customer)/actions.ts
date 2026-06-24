@@ -349,6 +349,62 @@ function findCommuneIn(
   return null;
 }
 
+/**
+ * Reverse geocode INSTANTANÉ via le gazetteer LOCAL (geo_nearest_place, PostGIS
+ * KNN, ~5-50 ms) : plus proche lieu de geo_places (~60k lieux DZ). Sert de repli
+ * GARANTI quand Nominatim est lent/indispo, et de 1ʳᵉ réponse « optimiste » pour
+ * que la position s'affiche TOUT DE SUITE au déplacement du repère. Best-effort.
+ */
+async function nearestGazetteerLabel(
+  lat: number,
+  lng: number
+): Promise<ReverseGeocodeResult | null> {
+  try {
+    const supabase = await createClient();
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: unknown }>;
+    const { data, error } = await rpc("geo_nearest_place", {
+      p_lat: lat,
+      p_lng: lng,
+    });
+    if (error) return null;
+    const row = (Array.isArray(data) ? data[0] : null) as {
+      name: string;
+      wilaya: string | null;
+    } | null;
+    if (!row?.name) return null;
+    const wilaya = row.wilaya ? findWilayaByName(row.wilaya) : null;
+    return {
+      ok: true,
+      wilaya_code: wilaya?.code ?? null,
+      wilaya_name: wilaya?.name ?? row.wilaya ?? null,
+      commune: null,
+      display: wilaya ? `${row.name} · ${wilaya.name}` : row.name,
+      raw_locality: row.name,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Libellé INSTANTANÉ du lieu le plus proche (gazetteer local). Le client
+ * l'appelle SANS debounce au déplacement du repère → la position s'affiche
+ * immédiatement, puis `reverseGeocode` (précis) affine avec la rue.
+ */
+export async function nearestPlaceLabel(input: {
+  latitude: number;
+  longitude: number;
+}): Promise<ReverseGeocodeResult> {
+  if (!Number.isFinite(input.latitude) || !Number.isFinite(input.longitude)) {
+    return { ok: false, error: "Coordonnées invalides." };
+  }
+  const g = await nearestGazetteerLabel(input.latitude, input.longitude);
+  return g ?? { ok: false, error: "Lieu introuvable." };
+}
+
 export async function reverseGeocode(input: {
   latitude: number;
   longitude: number;
@@ -374,18 +430,34 @@ export async function reverseGeocode(input: {
   url.searchParams.set("addressdetails", "1");
 
   try {
-    const res = await fetch(url.toString(), {
-      headers: {
-        // Nominatim exige un User-Agent identifiant l'app.
-        "User-Agent": "Coligo/0.3 (contact: dev@coligo.app)",
-        Accept: "application/json",
-      },
-      // Garde les réponses en cache 10 min côté Next pour rester gentil avec
-      // l'API publique gratuite.
-      next: { revalidate: 600 },
-    });
+    // TIMEOUT 2,5 s (AbortController) : Nominatim ne doit JAMAIS figer la
+    // détection. Au-delà, on bascule sur le gazetteer local (instantané).
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2500);
+    let res: Response;
+    try {
+      res = await fetch(url.toString(), {
+        headers: {
+          // Nominatim exige un User-Agent identifiant l'app.
+          "User-Agent": "Coligo/0.3 (contact: dev@coligo.app)",
+          Accept: "application/json",
+        },
+        signal: controller.signal,
+        // Garde les réponses en cache 10 min côté Next pour rester gentil avec
+        // l'API publique gratuite.
+        next: { revalidate: 600 },
+      });
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) {
-      return { ok: false, error: `Géocodage indisponible (${res.status}).` };
+      // Indispo → repli gazetteer local (jamais d'échec sec).
+      return (
+        (await nearestGazetteerLabel(latitude, longitude)) ?? {
+          ok: false,
+          error: `Géocodage indisponible (${res.status}).`,
+        }
+      );
     }
     const data = (await res.json()) as {
       address?: Record<string, string | undefined>;
@@ -475,10 +547,13 @@ export async function reverseGeocode(input: {
       raw_locality: rawLocality,
     };
   } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Géocodage indisponible.",
-    };
+    // Timeout / abort / réseau → repli gazetteer local (instantané, jamais vide).
+    return (
+      (await nearestGazetteerLabel(latitude, longitude)) ?? {
+        ok: false,
+        error: err instanceof Error ? err.message : "Géocodage indisponible.",
+      }
+    );
   }
 }
 

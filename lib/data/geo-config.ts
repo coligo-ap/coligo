@@ -37,7 +37,7 @@ export type GeoConfig = {
 export const GEO_CONFIG_DEFAULTS: GeoConfig = {
   addressSuggestionsMax: 8,
   addressSearchDebounceMs: 450,
-  reverseGeocodeDebounceMs: 450,
+  reverseGeocodeDebounceMs: 300,
   cacheTtlGoogleS: 2592000,
   cacheTtlFreeS: 86400,
   googleMinQlen: 5,
