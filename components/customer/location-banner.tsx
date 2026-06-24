@@ -2,35 +2,84 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { MapPin } from "lucide-react";
+import { Loader2, MapPin, Navigation } from "lucide-react";
 import { useCustomerLocation } from "@/lib/customer/location-store";
+import { detectAndStoreLocation } from "@/lib/customer/detect-location";
 import { LocationPicker } from "@/components/customer/location-picker";
 
 /**
- * Bandeau jaune affiché en haut de la home si AUCUNE localisation n'a été
- * choisie. Cliqué → ouvre le sélecteur. Disparait dès qu'une zone est définie.
+ * Carte d'appel à la localisation, affichée en haut de la home TANT QUE la
+ * position du client n'est PAS détectée. Bouton « Autoriser la localisation »
+ * (déclenche la demande GPS native d'un seul tap) + repli « Choisir
+ * manuellement » (sélecteur d'adresse). Disparaît dès qu'une position est
+ * détectée (coords GPS ou zone choisie).
  */
 export function LocationBanner() {
   const t = useTranslations("account");
   const loc = useCustomerLocation();
   const [open, setOpen] = useState(false);
+  const [detecting, setDetecting] = useState(false);
+  const [denied, setDenied] = useState(false);
 
   // `loc === null` → SSR / pas encore chargé : on ne flash rien.
   if (loc === null) return null;
-  if (loc.wilaya_code) return null;
+  // Position DÉJÀ détectée (coords GPS OU zone choisie) → on n'affiche rien.
+  if (loc.latitude != null || loc.wilaya_code) return null;
+
+  async function allow() {
+    setDetecting(true);
+    setDenied(false);
+    const ok = await detectAndStoreLocation({ highAccuracy: true });
+    setDetecting(false);
+    if (!ok) {
+      // Refus / indispo → on bascule sur le choix manuel.
+      setDenied(true);
+      setOpen(true);
+    }
+    // Succès → le store émet l'event, la carte disparaît (loc.latitude posé).
+  }
 
   return (
     <>
+      <div className="border-primary-100 from-primary-50 to-primary-100/40 mb-4 flex items-center gap-3 rounded-[16px] border bg-gradient-to-r p-3.5">
+        <span className="bg-primary-600 grid size-11 shrink-0 place-items-center rounded-[13px] text-white shadow-sm">
+          <Navigation className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-foreground text-sm font-extrabold">
+            {t("allowLocation")}
+          </p>
+          <p className="text-muted mt-0.5 text-xs font-medium">
+            {denied ? t("locationDeniedManual") : t("allowLocationSub")}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={allow}
+          disabled={detecting}
+          className="bg-primary-600 hover:bg-primary-700 inline-flex shrink-0 items-center gap-1.5 rounded-[11px] px-3.5 py-2.5 text-xs font-bold text-white transition-colors disabled:opacity-60"
+        >
+          {detecting ? (
+            <>
+              <Loader2 className="size-3.5 animate-spin" />
+              {t("detectingLocation")}
+            </>
+          ) : (
+            <>
+              <MapPin className="size-3.5" />
+              {t("allowLocation")}
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Repli manuel (sélecteur d'adresse complet : recherche + carte + GPS). */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="border-warning-100 bg-warning-50 text-warning-700 hover:bg-warning-100/70 mb-4 flex w-full items-center gap-3 rounded-[14px] border px-4 py-3 text-start text-sm transition-colors"
+        className="text-primary-700 -mt-2 mb-4 block text-xs font-semibold underline"
       >
-        <MapPin className="text-warning-600 size-4 shrink-0" />
-        <span className="flex-1">{t("setZonePrompt")}</span>
-        <span className="text-warning-700 text-xs font-semibold">
-          {t("choose")}
-        </span>
+        {t("chooseManually")}
       </button>
 
       {open && (

@@ -587,7 +587,12 @@
     "favoritesDesc": "Tes commerces préférés",
     "saveChanges": "Enregistrer les modifications",
     "emailReceiptsHint": "Sert à recevoir tes reçus et notifications de commande.",
-    "settings": "Réglages"
+    "settings": "Réglages",
+    "allowLocation": "Autoriser la localisation",
+    "allowLocationSub": "Pour voir les commerces près de chez toi",
+    "detectingLocation": "Localisation en cours…",
+    "chooseManually": "Choisir manuellement",
+    "locationDeniedManual": "Localisation indisponible. Choisis ta zone manuellement."
   },
   "auth": {
     "signIn": "Se connecter",

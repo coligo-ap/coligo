@@ -587,7 +587,12 @@
     "favoritesDesc": "متاجرك المفضّلة",
     "saveChanges": "حفظ التعديلات",
     "emailReceiptsHint": "يُستخدم لاستلام إيصالاتك وإشعارات طلباتك.",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "allowLocation": "السماح بتحديد الموقع",
+    "allowLocationSub": "لرؤية المتاجر القريبة منك",
+    "detectingLocation": "جارٍ تحديد الموقع…",
+    "chooseManually": "الاختيار يدويًا",
+    "locationDeniedManual": "تعذّر تحديد الموقع. اختر منطقتك يدويًا."
   },
   "auth": {
     "signIn": "تسجيل الدخول",
