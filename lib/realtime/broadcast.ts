@@ -7,9 +7,10 @@
 // `rides` (O(courses × chauffeurs), insoutenable), le serveur pousse la demande
 // UNIQUEMENT aux chauffeurs éligibles, chacun sur SON canal personnel.
 //
-// Convention de canal : `chauffeur:{userId}` (UUID auth = difficile à deviner ;
-// le durcissement RLS « canal privé » via realtime.messages viendra ensuite).
-// Un seul canal par chauffeur, MULTIPLEXÉ par `event` (new_ride, ride_taken…).
+// Convention de canal : `chauffeur:{userId}` — canal PRIVÉ (Realtime
+// Authorization, mig 0254 : policy SELECT sur realtime.messages → seul le
+// propriétaire du topic s'abonne). Un seul canal par partenaire, MULTIPLEXÉ par
+// `event` (new_ride, ride_taken…). L'émission part en `private: true`.
 //
 // Fire-and-forget : ne THROW jamais (le dispatch ne doit pas casser la création
 // de course). L'API accepte jusqu'à des lots de messages — on chunk par sûreté.
@@ -53,9 +54,11 @@ async function sendBroadcast(messages: BroadcastMessage[]): Promise<void> {
           apikey: key,
           Authorization: `Bearer ${key}`,
         },
-        // `private: false` → canal public (topic en UUID, non énumérable).
+        // `private: true` → canal PRIVÉ (Realtime Authorization, mig 0254) :
+        // seul le partenaire propriétaire du topic peut s'abonner/recevoir. Le
+        // service_role bypass la RLS à l'émission.
         body: JSON.stringify({
-          messages: batch.map((m) => ({ ...m, private: false })),
+          messages: batch.map((m) => ({ ...m, private: true })),
         }),
       });
       if (!res.ok && res.status !== 202) {

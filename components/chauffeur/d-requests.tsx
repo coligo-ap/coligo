@@ -322,7 +322,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
       ...(userId
         ? [
             supabase
-              .channel(`chauffeur:${userId}`)
+              .channel(`chauffeur:${userId}`, { config: { private: true } })
               .on("broadcast", { event: "new_ride" }, () => void poll())
               .subscribe(),
           ]

@@ -296,7 +296,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     const supabase = createClient();
     const chans = [
       supabase
-        .channel(`chauffeur:${gate.userId}`)
+        .channel(`chauffeur:${gate.userId}`, { config: { private: true } })
         .on("broadcast", { event: "new_ride" }, () => void tick())
         .subscribe(),
       supabase

@@ -97,7 +97,7 @@ export function ZoneDispatch({
     const supabase = createClient();
     const channel = userId
       ? supabase
-          .channel(`courier:${userId}`)
+          .channel(`courier:${userId}`, { config: { private: true } })
           .on(
             "broadcast",
             { event: "new_express" },
