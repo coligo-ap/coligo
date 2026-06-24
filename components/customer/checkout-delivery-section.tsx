@@ -1,19 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
   Bolt,
+  Bookmark,
   Calendar,
   Check,
+  ChevronRight,
+  History,
   Loader2,
+  LocateFixed,
+  Map as MapIcon,
   MapPin,
   Truck,
   UserPlus,
+  X,
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Portal } from "@/components/ui/portal";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import { ZoneNotice } from "@/components/zones/zone-notice";
 import { AvailabilityNotice } from "@/components/zones/availability-notice";
@@ -22,8 +30,15 @@ import {
   computeTourDeliveryFee,
 } from "@/lib/delivery/pricing";
 import { haversineKm } from "@/lib/delivery/distance";
-import { reverseGeocode } from "@/app/(customer)/actions";
+import {
+  reverseGeocode,
+  listFavoritePlaces,
+  listRecentPlaces,
+  recordPlacePick,
+  type FavPlace,
+} from "@/app/(customer)/actions";
 import { saveCustomerAddress } from "@/app/(customer)/adresses/actions";
+import { useGeolocation } from "@/lib/hooks/use-geolocation";
 import { toast } from "@/components/ui/toast";
 import type {
   CheckoutDeliveryContext,
@@ -53,6 +68,9 @@ export type DeliveryChoice = {
   deliveryNote: string;
 };
 
+/** Source de la position de livraison sélectionnée par le client. */
+type PositionSource = "current" | "saved" | "map" | null;
+
 export function CheckoutDeliverySection({
   delivery,
   merchantPosition,
@@ -76,11 +94,19 @@ export function CheckoutDeliverySection({
   defaultPosition?: { lat: number; lng: number } | null;
 }) {
   const t = useTranslations("checkout");
+  const geo = useGeolocation();
   const update = (patch: Partial<DeliveryChoice>) =>
     onChange({ ...value, ...patch });
 
-  // « Modifier » rouvre la grande carte après repliement (position confirmée).
+  // « Modifier » rouvre les choix après repliement (position confirmée).
   const [editing, setEditing] = useState(false);
+  // Choix actif (Ma position actuelle / Mes adresses / Sur la carte).
+  const [source, setSource] = useState<PositionSource>(null);
+  const [gpsState, setGpsState] = useState<"idle" | "loading" | "denied">(
+    "idle"
+  );
+  const [addrModalOpen, setAddrModalOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
 
   const selectedSavedAddress = delivery.addresses.find(
     (a) => a.id === value.addressId
@@ -111,6 +137,95 @@ export function CheckoutDeliverySection({
     delivery.tour_bands,
   ]);
 
+  const customOutOfRange = customQuote?.outOfRange ?? false;
+
+  // Pose une position custom (GPS / carte / lieu nommé) puis auto-confirme si
+  // elle est DANS la zone (sinon on laisse l'erreur rouge s'afficher).
+  const pendingConfirm = useRef(false);
+  function pickPosition(
+    pos: { lat: number; lng: number },
+    label?: string | null
+  ) {
+    pendingConfirm.current = true;
+    onChange({
+      ...value,
+      addressId: null,
+      customPosition: pos,
+      customAddressText: label ?? null,
+      positionConfirmed: false,
+    });
+    setEditing(false);
+  }
+
+  // Auto-confirmation : une fois le devis (zone) calculé pour le point fraîchement
+  // posé, on confirme s'il est dans la zone et on l'enregistre dans l'historique.
+  useEffect(() => {
+    if (!pendingConfirm.current) return;
+    if (!value.customPosition || customQuote == null) return;
+    pendingConfirm.current = false;
+    if (!customOutOfRange) {
+      onChange({ ...value, positionConfirmed: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customQuote, value.customPosition]);
+
+  // Reverse-geocode du point custom sans libellé connu (GPS / carte) → adresse
+  // exacte affichée + transmise au livreur. Lieux nommés : libellé déjà posé.
+  const cpLat = value.customPosition?.lat ?? null;
+  const cpLng = value.customPosition?.lng ?? null;
+  const [addrLoading, setAddrLoading] = useState(false);
+  useEffect(() => {
+    if (cpLat == null || cpLng == null) return;
+    if (value.customAddressText) return; // libellé déjà connu (lieu nommé)
+    let alive = true;
+    setAddrLoading(true);
+    const id = setTimeout(async () => {
+      try {
+        const res = await reverseGeocode({ latitude: cpLat, longitude: cpLng });
+        const label = res.ok
+          ? (res.display ??
+            [res.commune, res.wilaya_name].filter(Boolean).join(" · "))
+          : null;
+        if (alive && label) {
+          onChange({ ...value, customAddressText: label });
+          void recordPlacePick({ lat: cpLat, lng: cpLng, label });
+        }
+      } finally {
+        if (alive) setAddrLoading(false);
+      }
+    }, 500);
+    return () => {
+      alive = false;
+      clearTimeout(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cpLat, cpLng]);
+
+  // « Ma position actuelle » — détection GPS one-shot.
+  async function detectCurrent() {
+    setSource("current");
+    setGpsState("loading");
+    const c = await geo.requestOnce();
+    if (!c) {
+      setGpsState("denied");
+      return;
+    }
+    setGpsState("idle");
+    pickPosition({ lat: c.latitude, lng: c.longitude }, null);
+  }
+
+  // « Ma position actuelle » est le choix PAR DÉFAUT : à l'arrivée en livraison,
+  // si rien n'est encore choisi, on lance une détection une seule fois.
+  const autoDetectedRef = useRef(false);
+  useEffect(() => {
+    if (value.fulfillment !== "delivery") return;
+    if (autoDetectedRef.current) return;
+    if (value.addressId || value.customPosition) return;
+    autoDetectedRef.current = true;
+    void detectCurrent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.fulfillment]);
+
   if (!delivery.enabled) {
     // Livraison désactivée chez ce commerçant → uniquement le retrait, pas de
     // toggle (le créneau de retrait est rendu par le parent).
@@ -118,10 +233,10 @@ export function CheckoutDeliverySection({
   }
 
   const isDelivery = value.fulfillment === "delivery";
-  const ready = hasValidPosition(value, selectedSavedAddress);
+  const ready = hasValidPosition(value, selectedSavedAddress, customOutOfRange);
   const collapsed = isDelivery && ready && !editing;
 
-  // Résumé de la position retenue (ligne repliée + statut « dans la zone »).
+  // Résumé de la position retenue (ligne repliée).
   const inZoneFee =
     selectedSavedAddress && !selectedSavedAddress.out_of_range
       ? value.mode === "tour"
@@ -212,72 +327,75 @@ export function CheckoutDeliverySection({
                 </span>
               </span>
               <span className="text-primary-700 shrink-0 text-[13px] font-extrabold">
-                {t("edit")}
+                {t("change")}
               </span>
             </button>
           ) : (
-            /* ── Grande carte de sélection (hero). ── */
-            <div className="bg-surface co-rise overflow-hidden rounded-[20px] shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]">
-              {/* Adresses enregistrées = raccourcis (chips). */}
-              {delivery.addresses.length > 0 && (
-                <div className="scrollbar-hide flex gap-2 overflow-x-auto p-3 pb-0">
-                  {delivery.addresses.map((a) => {
-                    const isSel = value.addressId === a.id;
-                    return (
-                      <button
-                        key={a.id}
-                        type="button"
-                        disabled={a.out_of_range}
-                        onClick={() => {
-                          setEditing(false);
-                          update({
-                            addressId: a.id,
-                            customPosition: null,
-                            customAddressText: null,
-                            positionConfirmed: false,
-                          });
-                        }}
-                        className={cn(
-                          "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold transition",
-                          a.out_of_range
-                            ? "border-border text-subtle cursor-not-allowed opacity-60"
-                            : isSel
-                              ? "border-primary-500 bg-primary-50 text-primary-700"
-                              : "border-border bg-surface text-foreground hover:border-primary-300"
-                        )}
-                      >
-                        <MapPin className="size-3.5" />
-                        {a.label}
-                        {a.out_of_range && (
-                          <span className="text-danger-600 text-[11px]">
-                            · {t("outOfZone")}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+            /* ── 3 choix de position (au lieu d'afficher la carte directement). ── */
+            <div className="bg-surface co-rise space-y-2.5 overflow-hidden rounded-[20px] p-3 shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]">
+              <p className="text-muted px-1 pt-0.5 text-[11px] font-extrabold tracking-wider uppercase">
+                {t("whereToDeliver")}
+              </p>
 
-              <DeliveryMapCard
-                value={value}
-                update={update}
-                customQuote={customQuote}
-                defaultPosition={defaultPosition}
-                onConfirmed={() => setEditing(false)}
+              <ChoiceRow
+                icon={
+                  gpsState === "loading" ? (
+                    <Loader2 className="size-[18px] animate-spin" />
+                  ) : (
+                    <LocateFixed className="size-[18px]" />
+                  )
+                }
+                title={t("currentPosition")}
+                sub={t("currentPositionSub")}
+                active={source === "current"}
+                onClick={detectCurrent}
               />
-            </div>
-          )}
+              <ChoiceRow
+                icon={<Bookmark className="size-[18px]" />}
+                title={t("savedAddressesChoice")}
+                sub={t("savedAddressesChoiceSub")}
+                active={source === "saved"}
+                onClick={() => {
+                  setSource("saved");
+                  setAddrModalOpen(true);
+                }}
+              />
+              <ChoiceRow
+                icon={<MapIcon className="size-[18px]" />}
+                title={t("selectOnMapChoice")}
+                sub={t("selectOnMapChoiceSub")}
+                active={source === "map"}
+                onClick={() => {
+                  setSource("map");
+                  setMapOpen(true);
+                }}
+              />
 
-          {selectedSavedAddress?.out_of_range && (
-            <p className="border-danger-200 bg-danger-50 text-danger-700 flex items-start gap-2 rounded-[12px] border px-3 py-2 text-xs">
-              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-              {t("outOfDeliveryZone")}
-              {merchantPosition
-                ? ` (${t("maxRadius", { km: merchantPosition.radiusKm.toFixed(1) })})`
-                : ""}
-              {t("chooseOtherAddressOrPickup")}
-            </p>
+              {/* État de la position choisie (détection / zone / erreur). */}
+              <PositionStatus
+                source={source}
+                gpsState={gpsState}
+                onRetryGps={detectCurrent}
+                customPosition={value.customPosition}
+                customAddressText={value.customAddressText}
+                addrLoading={addrLoading}
+                customQuote={customQuote}
+                selectedSavedAddress={selectedSavedAddress}
+                maxRadiusKm={merchantPosition?.radiusKm ?? null}
+                mode={value.mode}
+              />
+
+              {/* Enregistrer le point custom confirmé dans le profil. */}
+              {value.customPosition &&
+                !customOutOfRange &&
+                value.positionConfirmed && (
+                  <SaveAddressInline
+                    lat={value.customPosition.lat}
+                    lng={value.customPosition.lng}
+                    addressText={value.customAddressText}
+                  />
+                )}
+            </div>
           )}
 
           {/* Mode + créneau + destinataire — révélés une fois la position prête. */}
@@ -374,217 +492,512 @@ export function CheckoutDeliverySection({
           )}
         </>
       )}
+
+      {/* ═══ Popup « Mes adresses enregistrées » (Favoris / Enregistrées / Précédents). ═══ */}
+      {addrModalOpen && (
+        <SavedAddressesModal
+          addresses={delivery.addresses}
+          onPickSaved={(a) => {
+            setEditing(false);
+            update({
+              addressId: a.id,
+              customPosition: null,
+              customAddressText: null,
+              positionConfirmed: false,
+            });
+            setAddrModalOpen(false);
+          }}
+          onPickPlace={(p) => {
+            pickPosition({ lat: p.lat, lng: p.lng }, p.label);
+            setAddrModalOpen(false);
+          }}
+          onClose={() => setAddrModalOpen(false)}
+        />
+      )}
+
+      {/* ═══ Carte plein écran (même composant que l'accueil marketplace). ═══ */}
+      {mapOpen && (
+        <FullscreenMap
+          initial={value.customPosition ?? defaultPosition ?? null}
+          onValidate={(p) => {
+            pickPosition(p, null);
+            setMapOpen(false);
+          }}
+          onClose={() => setMapOpen(false)}
+        />
+      )}
     </section>
   );
 }
 
-/** True si on a un point de livraison utilisable (adresse OK ou custom confirmée). */
+/** True si on a un point de livraison utilisable (adresse OK ou custom en zone). */
 function hasValidPosition(
   v: DeliveryChoice,
-  saved: CheckoutDeliveryContext["addresses"][number] | undefined
+  saved: CheckoutDeliveryContext["addresses"][number] | undefined,
+  customOutOfRange: boolean
 ): boolean {
-  if (saved && !saved.out_of_range) return true;
-  if (v.customPosition && v.positionConfirmed) return true;
+  if (v.addressId && saved && !saved.out_of_range) return true;
+  if (v.customPosition && v.positionConfirmed && !customOutOfRange) return true;
   return false;
 }
 
-/**
- * Grande carte de sélection : map MapLibre plein largeur + statut zone en UNE
- * ligne (3 états) + case « Je confirme cette position ». Le marqueur change de
- * couleur selon l'état (violet OK / rouge hors-zone).
- */
-function DeliveryMapCard({
-  value,
-  update,
+/** État de la position choisie : détection GPS, zone OK (vert) ou hors zone (rouge). */
+function PositionStatus({
+  source,
+  gpsState,
+  onRetryGps,
+  customPosition,
+  customAddressText,
+  addrLoading,
   customQuote,
-  defaultPosition,
-  onConfirmed,
+  selectedSavedAddress,
+  maxRadiusKm,
+  mode,
 }: {
-  value: DeliveryChoice;
-  update: (patch: Partial<DeliveryChoice>) => void;
+  source: PositionSource;
+  gpsState: "idle" | "loading" | "denied";
+  onRetryGps: () => void;
+  customPosition: { lat: number; lng: number } | null;
+  customAddressText: string | null;
+  addrLoading: boolean;
   customQuote: ReturnType<typeof computeDeliveryFee> | null;
-  defaultPosition?: { lat: number; lng: number } | null;
-  onConfirmed: () => void;
+  selectedSavedAddress:
+    | CheckoutDeliveryContext["addresses"][number]
+    | undefined;
+  maxRadiusKm: number | null;
+  mode: "express" | "tour" | null;
 }) {
   const t = useTranslations("checkout");
-  const outOfRange = customQuote?.outOfRange ?? false;
-  const hasPoint = value.customPosition != null;
 
-  // Adresse lisible du point pointé (reverse-geocode, debounce 800 ms).
-  const [addr, setAddr] = useState<string | null>(value.customAddressText);
-  const [addrLoading, setAddrLoading] = useState(false);
-  const lat = value.customPosition?.lat ?? null;
-  const lng = value.customPosition?.lng ?? null;
-  useEffect(() => {
-    if (lat == null || lng == null) {
-      setAddr(null);
-      return;
-    }
-    setAddrLoading(true);
-    const timer = setTimeout(async () => {
-      try {
-        const res = await reverseGeocode({ latitude: lat, longitude: lng });
-        const label = res.ok
-          ? (res.display ??
-            [res.commune, res.wilaya_name].filter(Boolean).join(" · "))
-          : null;
-        setAddr(label || null);
-        update({ customAddressText: label || null });
-      } finally {
-        setAddrLoading(false);
-      }
-    }, 800);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lat, lng]);
-
-  // Couleur du marqueur : rouge hors zone, sinon violet.
-  const markerColorClass = outOfRange ? "text-danger-600" : "text-primary-700";
-
-  return (
-    <div>
-      <MapPositionPicker
-        initial={value.customPosition ?? undefined}
-        defaultCenter={defaultPosition ?? undefined}
-        autoLocate={value.customPosition == null}
-        height={208}
-        searchEnabled
-        favoritesEnabled
-        searchPlaceholder={t("searchAddressPlaceholder")}
-        pulse
-        markerColorClass={markerColorClass}
-        gpsLabel={t("myPosition")}
-        onChange={(p) =>
-          update({
-            customPosition: p,
-            addressId: null,
-            positionConfirmed: false,
-          })
-        }
-        onConfirm={(p) => {
-          update({
-            customPosition: p,
-            addressId: null,
-            positionConfirmed: true,
-          });
-          onConfirmed();
-        }}
-      />
-
-      {/* Couverture du service de livraison sur ce point (moteur de zones,
-          temps réel) — complète le contrôle de distance ci-dessous. */}
-      {hasPoint && !outOfRange && (
-        <ZoneNotice
-          lat={lat ?? null}
-          lng={lng ?? null}
-          services={value.mode ? [value.mode] : ["express", "tour"]}
-          role="destination"
-          className="mx-4 mt-1"
-        />
-      )}
-
-      {/* Disponibilité livreurs (Express seulement — la tournée est planifiée).
-          Soft : informe uniquement si AUCUN livreur en ligne dans le secteur. */}
-      {hasPoint && !outOfRange && value.mode === "express" && (
-        <AvailabilityNotice
-          service="express"
-          lat={lat ?? null}
-          lng={lng ?? null}
-          radiusKm={12}
-          className="mx-4 mt-1"
-        />
-      )}
-
-      {/* Statut zone — UNE ligne, 3 états. */}
-      {!hasPoint ? (
-        <div className="flex items-center gap-2.5 px-4 py-3.5 text-[13px] font-bold text-amber-600">
-          <span className="grid size-[30px] shrink-0 place-items-center rounded-[9px] bg-amber-50 text-amber-600">
-            <MapPin className="size-4" />
-          </span>
-          <span>{t("pinYourPosition")}</span>
-        </div>
-      ) : outOfRange ? (
-        <div className="text-danger-700 flex items-center gap-2.5 px-4 py-3.5 text-[13px] font-bold">
-          <span className="bg-danger-50 text-danger-600 grid size-[30px] shrink-0 place-items-center rounded-[9px]">
-            <AlertTriangle className="size-4" />
-          </span>
-          <span>
-            {t("outOfZoneFull", {
-              km:
-                customQuote?.outOfRange === true && customQuote.maxRadiusKm
-                  ? customQuote.maxRadiusKm.toFixed(0)
-                  : "",
-            })}
-          </span>
-        </div>
-      ) : (
-        <div className="text-success-700 flex items-center gap-2.5 px-4 py-3.5 text-[13.5px] font-bold">
-          <span className="bg-success-50 text-success-600 grid size-[30px] shrink-0 place-items-center rounded-[9px]">
-            <Check className="size-4" />
-          </span>
-          <span className="min-w-0 flex-1 truncate">
-            {addrLoading ? (
-              <span className="text-muted font-semibold">{t("searching")}</span>
-            ) : (
-              <>
-                <span className="text-foreground font-extrabold">
-                  {/* Partie B : jamais de GPS brut — repli neutre lisible. */}
-                  {addr ?? (value.customPosition ? t("mapPoint") : "")}
-                </span>{" "}
-                · {t("inZone")}
-              </>
-            )}
-          </span>
-          {customQuote && !customQuote.outOfRange && (
-            <span className="bg-surface-2 text-foreground ms-auto shrink-0 rounded-[9px] px-2.5 py-1 text-[13px] font-extrabold tabular-nums">
-              {formatDA(customQuote.feeDa)}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Confirmation explicite — case « Je confirme cette position ». Reste
-          accessible même après confirmation (réouverture via « Modifier »)
-          pour offrir un retour vers la vue repliée. */}
-      {hasPoint && !outOfRange && (
+  // Détection GPS en cours / refusée.
+  if (source === "current" && gpsState === "loading") {
+    return (
+      <StatusLine
+        tone="muted"
+        icon={<Loader2 className="size-4 animate-spin" />}
+      >
+        {t("detectingPosition")}
+      </StatusLine>
+    );
+  }
+  if (source === "current" && gpsState === "denied" && !customPosition) {
+    return (
+      <div className="border-danger-200 bg-danger-50 text-danger-700 flex items-center gap-2.5 rounded-[12px] border px-3 py-2.5 text-[13px] font-semibold">
+        <AlertTriangle className="size-4 shrink-0" />
+        <span className="flex-1">{t("positionDenied")}</span>
         <button
           type="button"
-          onClick={() => {
-            update({ positionConfirmed: true });
-            onConfirmed();
-          }}
-          className="bg-primary-50 mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-3 rounded-[13px] p-3.5 text-start active:scale-[0.99]"
+          onClick={onRetryGps}
+          className="text-danger-700 shrink-0 font-extrabold underline"
         >
-          <span
-            className={cn(
-              "text-background grid size-6 shrink-0 place-items-center rounded-[8px] shadow-[0_3px_8px_-2px_rgba(91,91,230,0.4)] transition",
-              value.positionConfirmed
-                ? "from-primary-400 to-primary-700 bg-gradient-to-br"
-                : "border-primary-400 border-2 bg-white"
-            )}
-          >
-            {value.positionConfirmed && <Check className="size-4" />}
-          </span>
-          <span className="text-muted text-[12.5px] font-semibold">
-            <span className="text-foreground font-extrabold">
-              {t("confirmThisPosition")}.
-            </span>{" "}
-            {t("driverGoesThere")}
-          </span>
+          {t("retryGps")}
         </button>
-      )}
+      </div>
+    );
+  }
 
-      {/* Enregistrer la position confirmée dans le profil. */}
-      {hasPoint && !outOfRange && value.positionConfirmed && (
-        <div className="px-4 pb-4">
-          <SaveAddressInline
-            lat={value.customPosition!.lat}
-            lng={value.customPosition!.lng}
-            addressText={addr}
+  // Adresse enregistrée sélectionnée.
+  if (selectedSavedAddress) {
+    if (selectedSavedAddress.out_of_range) {
+      return <OutOfZone maxRadiusKm={maxRadiusKm} />;
+    }
+    const fee =
+      mode === "tour"
+        ? (selectedSavedAddress.tour_fee_da ??
+          selectedSavedAddress.fee_da ??
+          null)
+        : (selectedSavedAddress.fee_da ?? null);
+    return <InZone label={selectedSavedAddress.label} feeDa={fee} />;
+  }
+
+  // Position custom (GPS / carte / lieu nommé).
+  if (customPosition && customQuote) {
+    if (customQuote.outOfRange) return <OutOfZone maxRadiusKm={maxRadiusKm} />;
+    return (
+      <>
+        <InZone
+          label={
+            addrLoading ? t("searching") : (customAddressText ?? t("mapPoint"))
+          }
+          feeDa={customQuote.outOfRange ? null : customQuote.feeDa}
+          subtitle={t("detectedAddress")}
+        />
+        {/* Couverture service (moteur de zones, temps réel) + dispo livreurs. */}
+        <ZoneNotice
+          lat={customPosition.lat}
+          lng={customPosition.lng}
+          services={mode ? [mode] : ["express", "tour"]}
+          role="destination"
+          className="mt-1"
+        />
+        {mode === "express" && (
+          <AvailabilityNotice
+            service="express"
+            lat={customPosition.lat}
+            lng={customPosition.lng}
+            radiusKm={12}
+            className="mt-1"
           />
-        </div>
+        )}
+      </>
+    );
+  }
+
+  return null;
+}
+
+function InZone({
+  label,
+  feeDa,
+  subtitle,
+}: {
+  label: string;
+  feeDa: number | null;
+  subtitle?: string;
+}) {
+  const t = useTranslations("checkout");
+  return (
+    <div className="border-success-200 bg-success-50 flex items-center gap-2.5 rounded-[12px] border px-3 py-2.5">
+      <span className="bg-success-100 text-success-700 grid size-7 shrink-0 place-items-center rounded-[9px]">
+        <Check className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="text-foreground block truncate text-[13.5px] font-extrabold">
+          {label}
+        </span>
+        <span className="text-success-700 block text-[11px] font-semibold">
+          {subtitle ? `${subtitle} · ` : ""}
+          {t("inZone")}
+        </span>
+      </span>
+      {feeDa != null && (
+        <span className="bg-surface text-foreground ms-auto shrink-0 rounded-[9px] px-2.5 py-1 text-[13px] font-extrabold tabular-nums">
+          {formatDA(feeDa)}
+        </span>
       )}
     </div>
+  );
+}
+
+function OutOfZone({ maxRadiusKm }: { maxRadiusKm: number | null }) {
+  const t = useTranslations("checkout");
+  return (
+    <p className="border-danger-200 bg-danger-50 text-danger-700 flex items-start gap-2 rounded-[12px] border px-3 py-2.5 text-[13px] font-semibold">
+      <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+      <span>
+        {t("outOfDeliveryZone")}
+        {maxRadiusKm != null
+          ? ` (${t("maxRadius", { km: maxRadiusKm.toFixed(1) })})`
+          : ""}{" "}
+        {t("chooseOtherAddressOrPickup")}
+      </span>
+    </p>
+  );
+}
+
+function StatusLine({
+  tone,
+  icon,
+  children,
+}: {
+  tone: "muted";
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2.5 rounded-[12px] px-3 py-2.5 text-[13px] font-semibold",
+        tone === "muted" && "bg-surface-2 text-muted"
+      )}
+    >
+      <span className="shrink-0">{icon}</span>
+      <span>{children}</span>
+    </div>
+  );
+}
+
+/** Ligne de choix : icône en pastille + titre + sous-titre + chevron. */
+function ChoiceRow({
+  icon,
+  title,
+  sub,
+  active,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  sub: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-[14px] border px-3.5 py-3 text-start transition active:scale-[0.99]",
+        active
+          ? "border-primary-500 bg-primary-50"
+          : "border-border bg-surface hover:border-primary-300"
+      )}
+    >
+      <span
+        className={cn(
+          "grid size-9 shrink-0 place-items-center rounded-full",
+          active
+            ? "bg-primary-100 text-primary-700"
+            : "bg-primary-50 text-primary-600"
+        )}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="text-foreground block truncate text-sm font-bold">
+          {title}
+        </span>
+        <span className="text-muted block truncate text-xs">{sub}</span>
+      </span>
+      <ChevronRight className="text-subtle size-4 shrink-0 rtl:-scale-x-100" />
+    </button>
+  );
+}
+
+/**
+ * Popup « Mes adresses enregistrées » : Favoris, Adresses enregistrées (profil)
+ * et Lieux précédents. Le client choisit une adresse.
+ */
+function SavedAddressesModal({
+  addresses,
+  onPickSaved,
+  onPickPlace,
+  onClose,
+}: {
+  addresses: CheckoutDeliveryContext["addresses"];
+  onPickSaved: (a: CheckoutDeliveryContext["addresses"][number]) => void;
+  onPickPlace: (p: FavPlace) => void;
+  onClose: () => void;
+}) {
+  const t = useTranslations("checkout");
+  const [favs, setFavs] = useState<FavPlace[]>([]);
+  const [recents, setRecents] = useState<FavPlace[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const [f, r] = await Promise.all([
+        listFavoritePlaces(),
+        listRecentPlaces(),
+      ]);
+      if (!alive) return;
+      setFavs(f);
+      setRecents(r);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const empty =
+    favs.length === 0 && recents.length === 0 && addresses.length === 0;
+
+  return (
+    <Portal>
+      <div
+        className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div className="bg-surface flex max-h-[88vh] w-full max-w-md flex-col rounded-t-[20px] shadow-xl sm:rounded-[20px]">
+          <header className="border-border flex items-center justify-between gap-3 border-b px-5 py-4">
+            <h2 className="font-display text-foreground text-lg font-bold">
+              {t("savedAddressesChoice")}
+            </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-muted hover:bg-surface-2 rounded-full p-1.5"
+              aria-label={t("closeLabel")}
+            >
+              <X className="size-5" />
+            </button>
+          </header>
+
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+            {empty && (
+              <p className="text-muted px-1 py-6 text-center text-sm">
+                {t("noSavedPlacesYet")}
+              </p>
+            )}
+
+            {favs.length > 0 && (
+              <ModalSection title={t("favorites")}>
+                {favs.map((p, i) => (
+                  <PlaceRow
+                    key={`fav-${i}`}
+                    icon={<Bookmark className="size-[18px]" />}
+                    title={p.label}
+                    onClick={() => onPickPlace(p)}
+                  />
+                ))}
+              </ModalSection>
+            )}
+
+            {addresses.length > 0 && (
+              <ModalSection title={t("savedAddressesSection")}>
+                {addresses.map((a) => (
+                  <PlaceRow
+                    key={a.id}
+                    icon={<MapPin className="size-[18px]" />}
+                    title={a.label}
+                    sub={
+                      a.out_of_range
+                        ? t("outOfZone")
+                        : (a.address_text ?? undefined)
+                    }
+                    disabled={a.out_of_range}
+                    onClick={() => onPickSaved(a)}
+                  />
+                ))}
+              </ModalSection>
+            )}
+
+            {recents.length > 0 && (
+              <ModalSection title={t("previousPlaces")}>
+                {recents.map((p, i) => (
+                  <PlaceRow
+                    key={`rec-${i}`}
+                    icon={<History className="size-[18px]" />}
+                    title={p.label}
+                    onClick={() => onPickPlace(p)}
+                  />
+                ))}
+              </ModalSection>
+            )}
+          </div>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
+function ModalSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-muted px-1 text-[11px] font-extrabold tracking-wide uppercase">
+        {title}
+      </p>
+      <div className="divide-border border-border divide-y overflow-hidden rounded-[13px] border">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function PlaceRow({
+  icon,
+  title,
+  sub,
+  onClick,
+  disabled,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  sub?: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="hover:bg-surface-2 flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors disabled:opacity-50"
+    >
+      <span className="bg-primary-50 text-primary-600 grid size-9 shrink-0 place-items-center rounded-full">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="text-foreground block truncate text-sm font-bold">
+          {title}
+        </span>
+        {sub && (
+          <span className="text-muted block truncate text-xs">{sub}</span>
+        )}
+      </span>
+      <ChevronRight className="text-subtle size-4 shrink-0 rtl:-scale-x-100" />
+    </button>
+  );
+}
+
+/**
+ * Carte plein écran — EXACTEMENT le composant carte de l'accueil marketplace
+ * (MapPositionPicker : recherche + « Tes lieux » + GPS). « Valider » remonte le
+ * point au checkout (le contrôle de zone se fait ensuite sur ce point).
+ */
+function FullscreenMap({
+  initial,
+  onValidate,
+  onClose,
+}: {
+  initial: { lat: number; lng: number } | null;
+  onValidate: (p: { lat: number; lng: number }) => void;
+  onClose: () => void;
+}) {
+  const t = useTranslations("checkout");
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    initial
+  );
+
+  return (
+    <Portal>
+      <div className="bg-surface fixed inset-0 z-[100] flex flex-col pt-[env(safe-area-inset-top)]">
+        <header className="border-border flex h-14 shrink-0 items-center gap-3 border-b px-3">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t("closeLabel")}
+            className="text-foreground hover:bg-surface-2 grid size-9 place-items-center rounded-full"
+          >
+            <X className="size-5" />
+          </button>
+          <h2 className="text-foreground flex-1 truncate text-base font-bold">
+            {t("selectOnMapChoice")}
+          </h2>
+        </header>
+        <div className="relative min-h-0 flex-1">
+          <MapPositionPicker
+            initial={coords ?? undefined}
+            autoLocate={coords == null}
+            onChange={(p) => setCoords(p)}
+            gpsLabel={t("myPosition")}
+            height="100%"
+            searchEnabled
+            favoritesEnabled
+            searchPlaceholder={t("searchAddressPlaceholder")}
+          />
+        </div>
+        <div className="border-border bg-surface shrink-0 border-t p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            disabled={!coords}
+            onClick={() => coords && onValidate(coords)}
+          >
+            <Check className="size-4" />
+            {t("validateThisPosition")}
+          </Button>
+        </div>
+      </div>
+    </Portal>
   );
 }
 
@@ -606,7 +1019,7 @@ function SaveAddressInline({
 
   if (saved) {
     return (
-      <p className="text-success-700 flex items-center gap-1.5 text-[12px] font-semibold">
+      <p className="text-success-700 flex items-center gap-1.5 px-1 text-[12px] font-semibold">
         <Check className="size-3.5" />
         {t("addressSavedToProfile")}
       </p>
@@ -618,7 +1031,7 @@ function SaveAddressInline({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-primary-700 text-xs font-semibold underline"
+        className="text-primary-700 px-1 text-xs font-semibold underline"
       >
         {t("saveThisAddress")}
       </button>
