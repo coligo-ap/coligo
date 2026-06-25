@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+
+/** Délai au-delà duquel une navigation SPA non aboutie est jugée COINCÉE. */
+const STUCK_NAV_MS = 10_000;
 
 /**
  * Mince barre de progression violette en haut de l'écran, visible UNIQUEMENT
@@ -16,17 +19,37 @@ import { usePathname, useSearchParams } from "next/navigation";
  * le click au capture phase, on montre la barre, et on la cache dès que le
  * pathname change (= navigation terminée).
  *
- * Pas de lib externe (nprogress / etc.) — 30 lignes suffisent.
+ * WATCHDOG anti-loader-infini (filet de dernier recours) : comme on connaît
+ * déjà le moment où une navigation DÉMARRE (le clic) et où elle SE TERMINE (le
+ * pathname change), on arme un minuteur. Si après `STUCK_NAV_MS` le pathname
+ * n'a TOUJOURS pas changé alors qu'on est visible + en ligne, c'est que la
+ * navigation SPA est coincée (fetch RSC fantôme sur socket mort, file d'actions
+ * du App Router bloquée…). On force alors une navigation DURE
+ * (`location.assign`) vers la cible : elle ouvre une connexion NEUVE et garantit
+ * qu'aucun loader ne reste affiché indéfiniment. Récupération automatique, sans
+ * intervention de l'utilisateur (plus besoin de fermer/relancer l'app).
+ *
+ * Pas de lib externe (nprogress / etc.).
  */
 export function RouteProgressBar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [visible, setVisible] = useState(false);
   const [progress, setProgress] = useState(0);
+  // Navigation en attente : cible absolue + minuteur watchdog.
+  const pendingNav = useRef<{ href: string; timer: number } | null>(null);
+
+  const clearWatchdog = () => {
+    if (pendingNav.current) {
+      clearTimeout(pendingNav.current.timer);
+      pendingNav.current = null;
+    }
+  };
 
   // Quand la nav se termine (pathname/searchParams changent), on complète +
-  // on cache après 200 ms.
+  // on cache après 200 ms, et on désarme le watchdog (navigation aboutie).
   useEffect(() => {
+    clearWatchdog();
     if (visible) {
       setProgress(100);
       const t = setTimeout(() => {
@@ -50,6 +73,24 @@ export function RouteProgressBar() {
       if (/^(https?:)?\/\//i.test(href)) return;
       // Cmd/Ctrl-click → nouvel onglet, pas de nav SPA.
       if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button !== 0) return;
+      // Téléchargement / nouvel onglet explicite → pas une nav SPA.
+      if (target.hasAttribute("download") || target.target === "_blank") return;
+
+      // Résout la cible absolue et n'arme le watchdog que si le PATHNAME change
+      // vraiment (re-tap de l'onglet courant, lien query/hash seul → ignorés :
+      // le pathname ne bougera pas, ce n'est pas un blocage).
+      let absHref: string | null = null;
+      let changesPath = false;
+      try {
+        const url = new URL(href, window.location.href);
+        if (url.origin === window.location.origin) {
+          absHref = url.href;
+          changesPath = url.pathname !== window.location.pathname;
+        }
+      } catch {
+        absHref = null;
+      }
+
       setVisible(true);
       setProgress(15);
       // Faux progrès qui monte petit à petit jusqu'à 80 % puis attend.
@@ -65,9 +106,30 @@ export function RouteProgressBar() {
         clearInterval(tick);
         clearTimeout(stop);
       }, 8000);
+
+      // Arme le watchdog : si le pathname n'a pas changé à temps → nav coincée.
+      clearWatchdog();
+      if (absHref && changesPath) {
+        const targetHref = absHref;
+        const timer = window.setTimeout(() => {
+          pendingNav.current = null;
+          const stillVisible =
+            document.visibilityState === "visible" &&
+            (typeof navigator === "undefined" || navigator.onLine !== false);
+          // Le pathname N'A PAS changé → la navigation SPA est bloquée. On
+          // bascule en navigation DURE (connexion neuve) vers la cible.
+          if (stillVisible) {
+            window.location.assign(targetHref);
+          }
+        }, STUCK_NAV_MS);
+        pendingNav.current = { href: targetHref, timer };
+      }
     };
     document.addEventListener("click", onClick, true);
-    return () => document.removeEventListener("click", onClick, true);
+    return () => {
+      document.removeEventListener("click", onClick, true);
+      clearWatchdog();
+    };
   }, []);
 
   if (!visible) return null;

@@ -4,6 +4,27 @@ import type { Database } from "./database.types";
 import { withLongSession } from "./session-config";
 import { isValidContactPhone } from "@/lib/dz/phone";
 
+/**
+ * Borne une promesse réseau : résout `null` si elle dépasse `ms` (au lieu de
+ * laisser la requête pendre indéfiniment et bloquer le middleware). Le timer est
+ * nettoyé dans tous les cas.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise<T | null>((resolve) => {
+    const timer = setTimeout(() => resolve(null), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(null);
+      }
+    );
+  });
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -32,10 +53,17 @@ export async function updateSession(request: NextRequest) {
   // (sinon la session peut ne pas être rafraîchie → déconnexions aléatoires).
   // En cas d'échec réseau (Algérie : lien instable vers Supabase), on ne casse
   // pas la navigation : on traite comme "non connecté" sans rediriger en boucle.
+  //
+  // BORNE OBLIGATOIRE : `getUser()` fait un aller-retour Vercel→Supabase Auth.
+  // Sur lien DZ instable il peut TRAÎNER sans jamais résoudre — or ce middleware
+  // gate CHAQUE navigation (chaque fetch RSC) : un getUser fantôme = navigation
+  // bloquée côté serveur (loader infini) pour tout l'onglet. On le borne donc à
+  // 4 s (timeout → traité comme « non connecté », comme un échec réseau) plutôt
+  // que de laisser la requête pendre. Même esprit que le disjoncteur OSRM.
   let user = null;
   try {
-    const result = await supabase.auth.getUser();
-    user = result.data.user;
+    const result = await withTimeout(supabase.auth.getUser(), 4000);
+    user = result?.data.user ?? null;
   } catch {
     user = null;
   }

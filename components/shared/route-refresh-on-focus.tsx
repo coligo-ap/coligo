@@ -15,8 +15,22 @@ import { useRouter } from "next/navigation";
  * et saisies préservés). On ne recharge donc QUE ce qui a changé côté serveur,
  * de façon asynchrone — exactement le « stale-while-revalidate » souhaité.
  *
- * Garde-fou : on ne rafraîchit que si l'app a été masquée au moins `minHiddenMs`
- * (par défaut 10 s) → pas de refresh inutile sur les micro-bascules.
+ * Garde-fou 1 : on ne rafraîchit que si l'app a été masquée au moins
+ * `minHiddenMs` (par défaut 10 s) → pas de refresh inutile sur les micro-bascules.
+ *
+ * ⚠️ Garde-fou 2 — ANTI-DEADLOCK DE NAVIGATION (bug vécu : loader infini après
+ * retour d'arrière-plan). `router.refresh()` lance un fetch RSC NON ABORTABLE.
+ * Au retour au premier plan, le socket HTTP gardé en vie (keep-alive) est
+ * souvent à MOITIÉ MORT (NAT expiré, réseau basculé wifi↔data) : le navigateur
+ * le réutilise et la requête se met en attente SANS jamais résoudre ni échouer.
+ * Or `refresh()` et `push()` (clic sur un <Link>) passent par la MÊME file
+ * d'actions SÉRIELLE du App Router → la navigation suivante de l'utilisateur est
+ * BLOQUÉE derrière ce refresh fantôme = loader infini jusqu'au rechargement.
+ * On SONDE donc d'abord la connexion avec un fetch BORNÉ (AbortController) : on
+ * ne déclenche le refresh QUE si le socket répond. Sinon on s'abstient — la
+ * prochaine navigation rouvrira un socket neuf, et TanStack Query / Realtime /
+ * `useResumeResync` couvrent déjà la fraîcheur des écrans « live ». Même esprit
+ * que le disjoncteur OSRM : on borne TOUTE requête réseau au réveil.
  */
 export function RouteRefreshOnFocus({
   minHiddenMs = 10_000,
@@ -25,6 +39,7 @@ export function RouteRefreshOnFocus({
 }) {
   const router = useRouter();
   const hiddenAt = useRef<number | null>(null);
+  const probing = useRef(false);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -33,14 +48,54 @@ export function RouteRefreshOnFocus({
         return;
       }
       // Revenu au premier plan.
-      if (hiddenAt.current && Date.now() - hiddenAt.current >= minHiddenMs) {
-        router.refresh();
-      }
+      const hiddenFor = hiddenAt.current ? Date.now() - hiddenAt.current : 0;
       hiddenAt.current = null;
+      if (hiddenFor < minHiddenMs || probing.current) return;
+
+      probing.current = true;
+      void probeConnectionAlive(3500)
+        .then((alive) => {
+          // Toujours visible + connexion confirmée vivante → refresh sûr (le
+          // socket répond, le fetch RSC ne restera pas fantôme).
+          if (alive && document.visibilityState === "visible") {
+            router.refresh();
+          }
+        })
+        .finally(() => {
+          probing.current = false;
+        });
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [router, minHiddenMs]);
 
   return null;
+}
+
+/**
+ * Teste que la connexion réseau répond réellement, de façon BORNÉE (le fetch est
+ * abortable au bout de `timeoutMs`, contrairement à `router.refresh()`). On vise
+ * `/favicon.ico` (servi statiquement, HORS middleware → pas d'`auth.getUser()`,
+ * réponse minuscule). `cache: no-store` + cache-buster forcent un vrai
+ * aller-retour réseau → on teste le SOCKET, pas le cache. Échec/timeout =
+ * connexion encore froide → on n'arme pas de `router.refresh()` qui se bloquerait.
+ */
+async function probeConnectionAlive(timeoutMs: number): Promise<boolean> {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    return false;
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    await fetch(`/favicon.ico?_probe=${Date.now()}`, {
+      method: "GET",
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
 }
