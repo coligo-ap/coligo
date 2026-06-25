@@ -13,6 +13,7 @@ import {
   ShoppingCart,
   Ticket,
   Trash2,
+  X,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { cn, formatDA } from "@/lib/utils";
@@ -153,7 +154,7 @@ export function CartView() {
   }
 
   return (
-    <div className="mx-auto max-w-[560px] px-4 pt-3 pb-44">
+    <div className="mx-auto max-w-[560px] px-4 pt-3 pb-56">
       {cart.merchant_slug && (
         <Link
           href={`/m/${cart.merchant_slug}`}
@@ -350,6 +351,21 @@ export function CartView() {
           {/* Détail des promotions & économies — s'ouvre VERS LE HAUT. */}
           {hasDetail && detailOpen && (
             <div className="border-border bg-surface-2 max-h-[40vh] space-y-1.5 overflow-y-auto rounded-[12px] border p-2.5">
+              {/* En-tête du panneau : titre + fermeture explicite. */}
+              <div className="flex items-center justify-between px-1 pb-0.5">
+                <span className="text-foreground text-[12px] font-extrabold">
+                  {t("promoDetailsTitle")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setDetailOpen(false)}
+                  aria-label={t("close")}
+                  className="text-muted hover:text-foreground -m-1 p-1"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+
               {promoSummary.applied.map((p) => (
                 <div
                   key={p.id}
