@@ -6,6 +6,7 @@ import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatDA } from "@/lib/utils";
 import { useCart, setItemQuantity } from "@/lib/customer/cart-store";
+import { trackViewItem } from "@/lib/analytics/ecommerce";
 import { useCartAdd } from "@/components/customer/cart-mono-provider";
 import { toast } from "@/components/ui/toast";
 import type { PublicProduct } from "@/lib/data/customer-catalog";
@@ -45,6 +46,27 @@ export function ProductDetailSheet({
       setQty(inCart?.quantity ?? 1);
     }
   }, [product, cart.items]);
+
+  // GA4 — view_item à l'ouverture d'une fiche produit (keyé sur l'id → une fois
+  // par produit ouvert). Prix effectif (promo si applicable). No-op si GA off.
+  useEffect(() => {
+    if (!product) return;
+    const eff =
+      promoUnitPriceDa != null && promoUnitPriceDa < product.price_da
+        ? promoUnitPriceDa
+        : product.price_da;
+    trackViewItem(
+      {
+        id: product.id,
+        name: product.name_fr,
+        unitPriceDa: eff,
+        quantity: 1,
+        category: product.category ?? null,
+      },
+      merchant.name
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
 
   // Echap pour fermer.
   useEffect(() => {

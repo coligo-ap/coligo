@@ -49,6 +49,66 @@ function toItems(lines: GaLineInput[], merchantName?: string | null): GaItem[] {
   });
 }
 
+/** Consultation d'un produit (ouverture de la fiche détail). */
+export function trackViewItem(
+  line: GaLineInput,
+  merchantName?: string | null
+): void {
+  gaEvent("view_item", {
+    currency: GA_CURRENCY,
+    value: Math.round(line.unitPriceDa),
+    items: toItems([line], merchantName),
+  });
+}
+
+/**
+ * Sélection d'un élément dans une liste (clic sur une carte commerçant depuis
+ * l'accueil / la recherche). L'« item » est ici le COMMERCE (pas un produit).
+ */
+export function trackSelectItem(
+  merchant: { id: string; name: string; category?: string | null },
+  listName?: string | null
+): void {
+  const item: GaItem = {
+    item_id: merchant.id,
+    item_name: merchant.name,
+    price: 0,
+    quantity: 1,
+  };
+  if (merchant.category) item.item_category = merchant.category;
+  const params: Record<string, unknown> = { items: [item] };
+  if (listName) params.item_list_name = listName;
+  gaEvent("select_item", params);
+}
+
+/** Consultation du panier (page panier, articles présents). */
+export function trackViewCart(
+  lines: GaLineInput[],
+  valueDa: number,
+  merchantName?: string | null
+): void {
+  gaEvent("view_cart", {
+    currency: GA_CURRENCY,
+    value: Math.round(valueDa),
+    items: toItems(lines, merchantName),
+  });
+}
+
+/** Renseignement du mode de paiement (étape avant l'achat). */
+export function trackAddPaymentInfo(
+  lines: GaLineInput[],
+  valueDa: number,
+  paymentType: string,
+  merchantName?: string | null
+): void {
+  gaEvent("add_payment_info", {
+    currency: GA_CURRENCY,
+    value: Math.round(valueDa),
+    payment_type: paymentType,
+    items: toItems(lines, merchantName),
+  });
+}
+
 /** Ajout d'un produit au panier (depuis la fiche / la liste). */
 export function trackAddToCart(
   line: GaLineInput,
