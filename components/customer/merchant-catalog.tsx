@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Search, X } from "lucide-react";
+import { Gift, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useMerchantSearch,
@@ -11,7 +11,10 @@ import {
 } from "@/lib/customer/merchant-search-store";
 import { ProductDetailSheet } from "@/components/customer/product-detail-sheet";
 import { ProductRow } from "@/components/customer/product-row";
-import { PopularCarousel } from "@/components/customer/popular-carousel";
+import {
+  PopularCarousel,
+  ProductCarousel,
+} from "@/components/customer/popular-carousel";
 import { PromoCarousels } from "@/components/customer/promo-carousels";
 import type {
   PublicCategory,
@@ -138,6 +141,19 @@ export function MerchantCatalog({
     const rest = available.filter((p) => promoPriceById[p.id] == null);
     return [...promo, ...rest].slice(0, 10);
   }, [products, promoPriceById]);
+
+  // « Achat offert » : tous les produits concernés par une offre quantité
+  // active (disponibles + en stock), pour un carrousel dédié en tête.
+  const offertProducts = useMemo(
+    () =>
+      products.filter(
+        (p) =>
+          quantityOfferByProduct[p.id] != null &&
+          p.is_available !== false &&
+          (p.stock_qty == null || p.stock_qty > 0)
+      ),
+    [products, quantityOfferByProduct]
+  );
 
   // Groupes filtrés par la recherche (sections vides masquées).
   const q = norm(query.trim());
@@ -327,8 +343,22 @@ export function MerchantCatalog({
         </>
       )}
 
-      {/* PROMOS — carrousels en tête (offres quantité d'abord), masqués en
-          recherche. Les promotions passent AVANT « Populaires ». */}
+      {/* ACHAT OFFERT — carrousel dédié des offres quantité, EN PREMIER
+          (masqué en recherche). Met en avant tous les produits « X = Y offert ». */}
+      {!q && offertProducts.length > 0 && (
+        <ProductCarousel
+          title={t("offertCarousel")}
+          icon={<Gift className="size-5 text-rose-600" />}
+          merchant={merchant}
+          products={offertProducts}
+          promoPriceById={promoPriceById}
+          quantityOfferByProduct={quantityOfferByProduct}
+          onOpenDetail={(p) => setSelected(p)}
+        />
+      )}
+
+      {/* PROMOS — carrousels de réduction produit (par promo), masqués en
+          recherche. Affichés AVANT « Populaires ». */}
       {!q && promoCarousels.length > 0 && (
         <PromoCarousels
           merchant={merchant}

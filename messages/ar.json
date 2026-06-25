@@ -102,9 +102,11 @@
     "promoClose": "إغلاق",
     "promoDiscountPercent": "-{value} %",
     "promoDiscountAmount": "-{amount}",
-    "buyGetLabel": "{buy} {buy, plural, one {مشترى} other {مشتريات}} + {get} {get, plural, one {مجاني} other {مجانية}}",
+    "buyGetLabel": "{buy} {buy, plural, one {مشترى} other {مشتريات}} = {get} {get, plural, one {مجاني} other {مجانية}}",
     "discountAppliedAria": "تم تطبيق خصم",
-    "promoOffersTitle": "عروض اللحظة"
+    "promoOffersTitle": "عروض اللحظة",
+    "offertCarousel": "اشترِ واحصل مجانًا",
+    "offered": "مجاني"
   },
   "cart": {
     "monoTitle": "بدء سلة جديدة؟",

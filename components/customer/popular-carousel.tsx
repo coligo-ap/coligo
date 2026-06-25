@@ -2,7 +2,14 @@
 
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { BadgePercent, Check, Flame, Plus, ShoppingBag } from "lucide-react";
+import {
+  BadgePercent,
+  Check,
+  Flame,
+  Gift,
+  Plus,
+  ShoppingBag,
+} from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { useCartAdd } from "@/components/customer/cart-mono-provider";
 import { cldUrl } from "@/lib/images/cloudinary";
@@ -16,31 +23,34 @@ type Merchant = {
 };
 
 /**
- * Carrousel « Populaires » (style Uber Eats) : sélection mise en avant en
- * cartes-photo horizontales avec note/promo, prix et bouton + d'ajout rapide.
- * La logique panier (mono-commerçant) est identique aux lignes produit.
+ * Carrousel horizontal de cartes-photo (style Uber Eats) RÉUTILISABLE :
+ * « Populaires », « Achat offert », etc. Titre + icône paramétrables. La logique
+ * panier (mono-commerçant) et l'affichage promo sont identiques aux lignes.
  */
-export function PopularCarousel({
+export function ProductCarousel({
+  title,
+  icon,
   merchant,
   products,
   promoPriceById,
   quantityOfferByProduct,
   onOpenDetail,
 }: {
+  title: string;
+  icon: React.ReactNode;
   merchant: Merchant;
   products: PublicProduct[];
   promoPriceById: Record<string, number>;
   quantityOfferByProduct?: Record<string, { buy: number; get: number }>;
   onOpenDetail: (p: PublicProduct) => void;
 }) {
-  const t = useTranslations("merchant");
   if (products.length === 0) return null;
 
   return (
     <section className="-mx-4 mb-2 lg:-mx-6">
       <h2 className="font-display text-foreground mb-3 flex items-center gap-2 px-4 text-lg font-bold lg:px-6">
-        <Flame className="text-coral-500 size-5" />
-        {t("popular")}
+        {icon}
+        <span className="truncate">{title}</span>
       </h2>
       <div className="flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-4 pb-1 lg:px-6 [&::-webkit-scrollbar]:hidden">
         {products.map((p) => (
@@ -55,6 +65,24 @@ export function PopularCarousel({
         ))}
       </div>
     </section>
+  );
+}
+
+/** Carrousel « Populaires » — wrapper du carrousel générique. */
+export function PopularCarousel(props: {
+  merchant: Merchant;
+  products: PublicProduct[];
+  promoPriceById: Record<string, number>;
+  quantityOfferByProduct?: Record<string, { buy: number; get: number }>;
+  onOpenDetail: (p: PublicProduct) => void;
+}) {
+  const t = useTranslations("merchant");
+  return (
+    <ProductCarousel
+      title={t("popular")}
+      icon={<Flame className="text-coral-500 size-5" />}
+      {...props}
+    />
   );
 }
 
@@ -106,6 +134,10 @@ export function PopCard({
     }
   }
 
+  const offerLabel = quantityOffer
+    ? t("buyGetLabel", { buy: quantityOffer.buy, get: quantityOffer.get })
+    : null;
+
   return (
     <button
       type="button"
@@ -137,11 +169,22 @@ export function PopCard({
             <ShoppingBag className="text-subtle size-7" />
           </div>
         )}
-        {hasPromo && promoPct > 0 && (
-          <span className="bg-coral-500 absolute start-2 top-2 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
-            −{promoPct}%
-          </span>
-        )}
+
+        {/* Badges (haut-start) : réduction % et/ou « offert » (empilés). */}
+        <div className="absolute start-2 top-2 flex flex-col items-start gap-1">
+          {hasPromo && promoPct > 0 && (
+            <span className="bg-coral-500 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
+              −{promoPct}%
+            </span>
+          )}
+          {quantityOffer && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-rose-600 px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
+              <Gift className="size-3" />
+              {t("offered")}
+            </span>
+          )}
+        </div>
+
         {!isOut && (
           <span
             onClick={quickAdd}
@@ -180,12 +223,10 @@ export function PopCard({
             </span>
           )}
         </div>
-        {quantityOffer && (
-          <div className="mt-1 text-[10.5px] leading-tight font-bold text-rose-600">
-            {t("buyGetLabel", {
-              buy: quantityOffer.buy,
-              get: quantityOffer.get,
-            })}
+        {offerLabel && (
+          <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10.5px] leading-tight font-extrabold text-rose-600 dark:bg-rose-950/40 dark:text-rose-300">
+            <Gift className="size-3 shrink-0" />
+            {offerLabel}
           </div>
         )}
       </div>

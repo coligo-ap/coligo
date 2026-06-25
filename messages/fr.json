@@ -102,9 +102,11 @@
     "promoClose": "Fermer",
     "promoDiscountPercent": "-{value} %",
     "promoDiscountAmount": "-{amount}",
-    "buyGetLabel": "{buy} {buy, plural, one {acheté} other {achetés}} + {get} {get, plural, one {offert} other {offerts}}",
+    "buyGetLabel": "{buy} {buy, plural, one {acheté} other {achetés}} = {get} {get, plural, one {offert} other {offerts}}",
     "discountAppliedAria": "Réduction appliquée",
-    "promoOffersTitle": "Offres du moment"
+    "promoOffersTitle": "Offres du moment",
+    "offertCarousel": "Achat offert",
+    "offered": "Offert"
   },
   "cart": {
     "monoTitle": "Commencer un nouveau panier ?",

@@ -106,9 +106,10 @@ export default async function MerchantPublicPage({
     }
   }
 
-  // Carrousels promo en tête du catalogue : offres quantité d'abord, puis
-  // réductions produit (les codes promo n'ont pas de produits → carte dédiée).
-  const promoCarousels = [...quantityPromos, ...productPromos];
+  // Carrousels de RÉDUCTION produit (par promo). Les offres quantité ont leur
+  // propre carrousel dédié « Achat offert » (via quantityOfferByProduct), et les
+  // codes promo n'ont pas de produits → carte dédiée. Pas de doublon.
+  const promoCarousels = productPromos;
 
   return (
     // hideHeader : la fiche porte sa propre topbar fixe (← retour · ♡ · panier)
