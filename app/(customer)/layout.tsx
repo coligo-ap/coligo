@@ -3,6 +3,7 @@ import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { getFeatureFlags } from "@/lib/data/feature-flags";
 import { CustomerQueryProvider } from "@/components/customer/customer-query-provider";
 import { CustomerChrome } from "@/components/customer/customer-chrome";
+import { ConfirmProvider } from "@/components/ui/confirm";
 
 /**
  * Layout de groupe CLIENT — hôte PERSISTANT du cache TanStack Query ET du chrome
@@ -41,7 +42,9 @@ export default async function CustomerGroupLayout({
         userId={user?.id ?? null}
         hiddenKeys={hiddenKeys}
       >
-        {children}
+        {/* Dialogues designés (confirm/prompt) pour tout l'espace client —
+            remplace window.confirm/prompt (ex. vider le panier). */}
+        <ConfirmProvider>{children}</ConfirmProvider>
       </CustomerChrome>
     </CustomerQueryProvider>
   );

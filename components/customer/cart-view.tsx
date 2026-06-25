@@ -22,11 +22,13 @@ import {
   type EnginePromotion,
 } from "@/lib/promotions/engine";
 import { APP_CONFIG } from "@/lib/config/app-config";
+import { useConfirm } from "@/components/ui/confirm";
 import { getCartPromotions } from "@/app/(customer)/cart/actions";
 import type { PublicPromotion } from "@/lib/data/customer-catalog";
 
 export function CartView() {
   const t = useTranslations("cart");
+  const confirm = useConfirm();
   const cart = useCart();
   const empty = cart.items.length === 0;
 
@@ -172,8 +174,15 @@ export function CartView() {
         </h1>
         <button
           type="button"
-          onClick={() => {
-            if (confirm(t("clearConfirm"))) clearCart();
+          onClick={async () => {
+            const ok = await confirm({
+              title: t("clearTitle"),
+              message: t("clearConfirm"),
+              confirmLabel: t("clear"),
+              cancelLabel: t("cancel"),
+              danger: true,
+            });
+            if (ok) clearCart();
           }}
           className="text-danger-600 inline-flex items-center gap-1 text-[13px] font-bold"
         >

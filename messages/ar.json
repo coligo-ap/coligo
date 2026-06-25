@@ -120,7 +120,7 @@
     "backTo": "العودة إلى",
     "theShop": "المتجر",
     "title": "سلتي",
-    "clearConfirm": "إفراغ السلة بالكامل؟",
+    "clearConfirm": "سيتم حذف جميع المنتجات من سلتك. لا يمكن التراجع عن هذا الإجراء.",
     "clear": "إفراغ السلة",
     "at": "لدى",
     "perUnit": "{price} للوحدة",
@@ -150,7 +150,9 @@
     "promoCodeHint": "لديك رمز ترويجي؟ أدخله في مرحلة الدفع.",
     "promoCodeAvailable": "رمز {code} متاح",
     "promoCodeFrom": "ابتداءً من {amount}",
-    "itemsTitle": "سلتك"
+    "itemsTitle": "سلتك",
+    "clearTitle": "إفراغ السلة؟",
+    "cancel": "إلغاء"
   },
   "checkout": {
     "redirectingOnlineTitle": "جارٍ التحويل إلى Chargily Pay…",

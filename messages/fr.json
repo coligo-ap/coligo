@@ -120,7 +120,7 @@
     "backTo": "Retour à",
     "theShop": "la boutique",
     "title": "Mon panier",
-    "clearConfirm": "Vider tout le panier ?",
+    "clearConfirm": "Tous les articles de votre panier seront supprimés. Cette action est irréversible.",
     "clear": "Vider",
     "at": "chez",
     "perUnit": "{price} l'unité",
@@ -150,7 +150,9 @@
     "promoCodeHint": "Un code promo ? Saisissez-le à l’étape paiement.",
     "promoCodeAvailable": "Code {code} dispo",
     "promoCodeFrom": "dès {amount}",
-    "itemsTitle": "Votre panier"
+    "itemsTitle": "Votre panier",
+    "clearTitle": "Vider le panier ?",
+    "cancel": "Annuler"
   },
   "checkout": {
     "redirectingOnlineTitle": "Redirection vers Chargily Pay…",
