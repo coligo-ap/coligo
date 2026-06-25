@@ -150,6 +150,12 @@
     "promoCodeHint": "لديك رمز ترويجي؟ أدخله في مرحلة الدفع.",
     "promoCodeAvailable": "رمز {code} متاح",
     "promoCodeFrom": "ابتداءً من {amount}",
+    "promosApplied": "{count, plural, one {# عرض مُطبّق} other {# عروض مُطبّقة}}",
+    "promosAppliedSub": "مزاياك على هذه السلة",
+    "productPromoLabel": "تخفيض على المنتج",
+    "initialPrice": "السعر الأصلي",
+    "totalSavings": "إجمالي التوفير",
+    "cartTotalLabel": "إجمالي السلة",
     "itemsTitle": "سلتك",
     "clearTitle": "إفراغ السلة؟",
     "cancel": "إلغاء"

@@ -150,6 +150,12 @@
     "promoCodeHint": "Un code promo ? Saisissez-le à l’étape paiement.",
     "promoCodeAvailable": "Code {code} dispo",
     "promoCodeFrom": "dès {amount}",
+    "promosApplied": "{count, plural, one {# promotion appliquée} other {# promotions appliquées}}",
+    "promosAppliedSub": "Vos avantages sur ce panier",
+    "productPromoLabel": "Réduction produit",
+    "initialPrice": "Prix initial",
+    "totalSavings": "Total des économies",
+    "cartTotalLabel": "Total panier",
     "itemsTitle": "Votre panier",
     "clearTitle": "Vider le panier ?",
     "cancel": "Annuler"

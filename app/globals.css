@@ -425,6 +425,30 @@ body {
   }
 }
 
+/* =============================================================================
+   PANIER — entrée premium du bloc « Vos avantages » + badge promo de la barre
+   « Voir mon panier ». Animation légère et fluide (pas d'effet agressif),
+   réutilisable hors checkout (non scopée à [data-checkout]).
+   ========================================================================== */
+@keyframes cg-promo-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.cg-promo-rise {
+  animation: cg-promo-rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cg-promo-rise {
+    animation: none;
+  }
+}
+
 /* ───────────────────────── Coligo Drive (maquette VTC) ─────────────────────────
    Polices Sora / Plus Jakarta Sans (variables posées par les layouts Drive)
    + animations de la maquette (montée des feuilles, apparition des offres). */

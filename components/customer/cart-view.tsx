@@ -5,26 +5,25 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
-  BadgePercent,
   Gift,
   Minus,
   Plus,
   ShoppingCart,
-  Ticket,
   Trash2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn, formatDA } from "@/lib/utils";
 import { clearCart, setItemQuantity, useCart } from "@/lib/customer/cart-store";
+import { computeCart, isPromotionActive } from "@/lib/promotions/engine";
 import {
-  computeCart,
-  isPromotionActive,
-  type EnginePromotion,
-} from "@/lib/promotions/engine";
+  summarizeCartPromotions,
+  toEnginePromotions,
+} from "@/lib/promotions/cart-summary";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { useConfirm } from "@/components/ui/confirm";
 import { getCartPromotions } from "@/app/(customer)/cart/actions";
 import type { PublicPromotion } from "@/lib/data/customer-catalog";
+import { CartSavingsCard } from "./cart-savings-card";
 
 export function CartView() {
   const t = useTranslations("cart");
@@ -50,22 +49,8 @@ export function CartView() {
     };
   }, [merchantId]);
 
-  const enginePromos: EnginePromotion[] = useMemo(
-    () =>
-      promotions.map((p) => ({
-        id: p.id,
-        type: p.type,
-        status: p.status,
-        discountKind: p.discount_kind,
-        discountValue: p.discount_value,
-        code: p.code,
-        buyQty: p.buy_qty,
-        getQty: p.get_qty,
-        minSubtotalDa: p.min_subtotal_da,
-        productIds: p.product_ids,
-        startsAt: p.starts_at,
-        endsAt: p.ends_at,
-      })),
+  const enginePromos = useMemo(
+    () => toEnginePromotions(promotions),
     [promotions]
   );
 
@@ -128,6 +113,12 @@ export function CartView() {
           })
       ),
     [promotions]
+  );
+
+  // Synthèse premium des promos appliquées (détail + économie par promo).
+  const promoSummary = useMemo(
+    () => summarizeCartPromotions(promotions, settled),
+    [promotions, settled]
   );
 
   const units = cart.items.reduce((s, i) => s + i.quantity, 0);
@@ -344,52 +335,18 @@ export function CartView() {
         })}
       </div>
 
-      {/* Codes promo dispo (teaser — appliqués à l'étape paiement). */}
-      {codePromos.length > 0 && (
-        <div className="border-border bg-surface mt-3 space-y-2 rounded-[16px] border border-dashed p-3">
-          <p className="text-muted flex items-center gap-1.5 text-[12px] font-bold">
-            <Ticket className="size-4 text-rose-600" />
-            {t("promoCodeHint")}
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {codePromos.map((p) => {
-              const val =
-                p.discount_kind === "percent"
-                  ? `−${p.discount_value} %`
-                  : `−${formatDA(p.discount_value ?? 0)}`;
-              return (
-                <span
-                  key={p.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700 dark:border-rose-500/40 dark:bg-rose-950/40 dark:text-rose-300"
-                >
-                  <span className="font-mono font-black tracking-wider">
-                    {p.code}
-                  </span>
-                  <span className="font-black">{val}</span>
-                  {p.min_subtotal_da != null && (
-                    <span className="text-rose-500/80">
-                      ·{" "}
-                      {t("promoCodeFrom", {
-                        amount: formatDA(p.min_subtotal_da),
-                      })}
-                    </span>
-                  )}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Bloc « Vos avantages » premium : détail des promos appliquées, économie
+          totale, prix initial barré → final, + teaser codes promo (au paiement). */}
+      <CartSavingsCard
+        summary={promoSummary}
+        codePromos={codePromos}
+        normalTotalDa={settled.normalTotalDa}
+        subtotalDa={subtotal}
+      />
 
       {/* Barre fixe en bas : économies + cashback + sous-total + bouton. */}
       <div className="border-border fixed inset-x-0 bottom-16 z-40 border-t bg-white px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
         <div className="mx-auto max-w-[560px] space-y-2.5">
-          {savings > 0 && (
-            <div className="flex items-center gap-2 rounded-[10px] bg-rose-50 px-3 py-2 text-[12px] font-extrabold text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
-              <BadgePercent className="size-4 shrink-0" />
-              {t("savings", { amount: formatDA(savings) })}
-            </div>
-          )}
           {cashbackGain > 0 && (
             <div className="bg-success-50 text-success-700 flex items-center gap-2 rounded-[10px] px-3 py-2 text-[12px] font-bold">
               <Gift className="size-4 shrink-0" />
@@ -397,11 +354,25 @@ export function CartView() {
             </div>
           )}
           <div className="flex items-center justify-between">
-            <span className="text-muted text-[13px] font-semibold">
-              {t("subtotalUnits", { count: units })}
+            <span className="min-w-0">
+              <span className="text-muted block text-[13px] font-semibold">
+                {t("subtotalUnits", { count: units })}
+              </span>
+              {savings > 0 && (
+                <span className="text-[11.5px] font-bold text-rose-600 dark:text-rose-300">
+                  {t("savings", { amount: formatDA(savings) })}
+                </span>
+              )}
             </span>
-            <span className="text-foreground text-[21px] font-black tracking-[-0.6px] tabular-nums">
-              {formatDA(subtotal)}
+            <span className="flex flex-col items-end leading-none">
+              {savings > 0 && (
+                <span className="text-subtle mb-0.5 text-[12px] font-semibold tabular-nums line-through">
+                  {formatDA(settled.normalTotalDa)}
+                </span>
+              )}
+              <span className="text-foreground text-[21px] font-black tracking-[-0.6px] tabular-nums">
+                {formatDA(subtotal)}
+              </span>
             </span>
           </div>
           <Link
