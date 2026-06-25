@@ -9,14 +9,26 @@ const optionalText = z
   .optional()
   .transform((v) => (v ? v : null));
 
-/** Champ date "datetime-local" → ISO (heure locale) ou null. */
+/**
+ * Champ date "datetime-local" → ISO (UTC) ou null.
+ * La valeur est interprétée en heure d'ALGÉRIE (UTC+1, sans heure d'été), pas
+ * en heure locale de l'appareil — cohérent avec l'affichage du formulaire
+ * (toAlgiersInput). Sans ça, un appareil mal réglé décalait l'heure de début.
+ */
 const dateField = z
   .string()
   .trim()
   .optional()
   .transform((v, ctx) => {
     if (!v) return null;
-    const d = new Date(v);
+    const m = v.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (!m) {
+      ctx.addIssue({ code: "custom", message: "Date invalide" });
+      return z.NEVER;
+    }
+    // Suffixe +01:00 = heure d'Alger fixe → instant UTC correct quel que soit
+    // le fuseau de l'appareil.
+    const d = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00+01:00`);
     if (Number.isNaN(d.getTime())) {
       ctx.addIssue({ code: "custom", message: "Date invalide" });
       return z.NEVER;

@@ -45,16 +45,39 @@ const TYPES: PromotionType[] = [
   "quantity_offer",
 ];
 
+// La plateforme fonctionne en heure d'ALGÉRIE (UTC+1, sans heure d'été) — pas
+// en heure locale de l'appareil (qui peut être mal réglé, ex. Sunmi). Les champs
+// « datetime-local » des promos sont donc affichés ET interprétés en heure
+// d'Alger, indépendamment du fuseau de l'appareil. Voir parseDateAlgiers côté
+// validation (suffixe +01:00) — les deux doivent rester cohérents.
+const ALGIERS_TZ = "Africa/Algiers";
+
+/** Formate un instant (Date) en chaîne « datetime-local » à l'heure d'Alger. */
+function toAlgiersInput(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ALGIERS_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
+  const hh = get("hour") === "24" ? "00" : get("hour");
+  return `${get("year")}-${get("month")}-${get("day")}T${hh}:${get("minute")}`;
+}
+
 function toLocalInput(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if (Number.isNaN(d.getTime())) return "";
+  return toAlgiersInput(d);
 }
 
-/** Date/heure actuelle au format de l'input « datetime-local ». */
+/** Date/heure actuelle (heure d'Alger) au format de l'input « datetime-local ». */
 function nowLocalInput(): string {
-  return toLocalInput(new Date().toISOString());
+  return toAlgiersInput(new Date());
 }
 
 export function PromotionForm({
