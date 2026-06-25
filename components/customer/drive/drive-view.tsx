@@ -267,6 +267,13 @@ export function DriveView() {
           setScreen("price");
         }
       } else if (ride) {
+        // Reprise d'une course « searching » (le client était parti puis revenu
+        // sur l'écran de recherche) : on PRÉ-REMPLIT le trajet en mémoire. Ainsi
+        // le prix se (pré)calcule en arrière-plan PENDANT l'attente d'offres →
+        // « Annuler la recherche » ramène INSTANTANÉMENT à l'écran prix déjà prêt,
+        // comme si le client n'avait jamais quitté l'écran (sinon le calcul de
+        // prix ne démarrait qu'au moment de l'annulation → retour plus lent).
+        if (ride.status === "searching") restoreTrajectoryFrom(ride);
         setActive(ride);
         setScreen("ride");
       }
