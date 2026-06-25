@@ -224,13 +224,14 @@ export function CheckoutDeliverySection({
   // si rien n'est encore choisi, on lance une détection une seule fois.
   const autoDetectedRef = useRef(false);
   useEffect(() => {
+    if (!delivery.enabled) return;
     if (value.fulfillment !== "delivery") return;
     if (autoDetectedRef.current) return;
     if (value.addressId || value.customPosition) return;
     autoDetectedRef.current = true;
     void detectCurrent();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value.fulfillment]);
+  }, [value.fulfillment, delivery.enabled]);
 
   if (!delivery.enabled) {
     // Livraison désactivée chez ce commerçant → uniquement le retrait, pas de
