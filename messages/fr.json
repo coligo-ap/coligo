@@ -141,7 +141,16 @@
     "merchant": "Commerce",
     "itemsCount": "{count} article(s)",
     "continueWith": "Continuer chez {name}",
-    "abandonAndOrder": "Abandonner et commander chez {name}"
+    "abandonAndOrder": "Abandonner et commander chez {name}",
+    "savings": "Vous économisez {amount}",
+    "freeApplied": "{count, plural, one {# offert} other {# offerts}}",
+    "buyGetLabel": "{buy} {buy, plural, one {acheté} other {achetés}} = {get} {get, plural, one {offert} other {offerts}}",
+    "addForOffer": "Ajoutez-en {count} pour en profiter",
+    "promoTag": "Promo",
+    "promoCodeHint": "Un code promo ? Saisissez-le à l’étape paiement.",
+    "promoCodeAvailable": "Code {code} dispo",
+    "promoCodeFrom": "dès {amount}",
+    "itemsTitle": "Votre panier"
   },
   "checkout": {
     "redirectingOnlineTitle": "Redirection vers Chargily Pay…",

@@ -141,7 +141,16 @@
     "merchant": "متجر",
     "itemsCount": "{count} عنصر",
     "continueWith": "المتابعة لدى {name}",
-    "abandonAndOrder": "التخلي والطلب لدى {name}"
+    "abandonAndOrder": "التخلي والطلب لدى {name}",
+    "savings": "توفّر {amount}",
+    "freeApplied": "{count, plural, one {# مجاني} other {# مجانية}}",
+    "buyGetLabel": "{buy} {buy, plural, one {مشترى} other {مشتريات}} = {get} {get, plural, one {مجاني} other {مجانية}}",
+    "addForOffer": "أضِف {count} للاستفادة",
+    "promoTag": "تخفيض",
+    "promoCodeHint": "لديك رمز ترويجي؟ أدخله في مرحلة الدفع.",
+    "promoCodeAvailable": "رمز {code} متاح",
+    "promoCodeFrom": "ابتداءً من {amount}",
+    "itemsTitle": "سلتك"
   },
   "checkout": {
     "redirectingOnlineTitle": "جارٍ التحويل إلى Chargily Pay…",
