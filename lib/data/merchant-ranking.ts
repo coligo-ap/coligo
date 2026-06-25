@@ -5,7 +5,7 @@
 //   - rating   (note moyenne) ........ poids 30 %
 //   - popular  (commandes 30j) ....... poids 25 %
 //   - promo    (promo active) ........ poids 15 %
-//   - distance (proximité GPS) ....... poids 20 %  (si lat/lng client connu)
+//   - distance (proximité GPS) ....... poids 35 %  (si lat/lng client connu)
 //   - open     (ouvert maintenant) ... poids 10 %  (Africa/Algiers)
 //   - favorite (contexte client) ..... poids 15 %  (UNIQUEMENT si le client a
 //                des favoris — sinon le signal est totalement neutralisé : un
