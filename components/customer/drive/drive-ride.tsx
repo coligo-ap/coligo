@@ -20,6 +20,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn, formatDA } from "@/lib/utils";
 import { haversineKm } from "@/lib/delivery/distance";
+import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import { routeEstimate } from "@/app/(customer)/actions";
 import { DriveMap, type LatLng } from "./drive-map";
 import { ChAvatar } from "./ch-avatar";
@@ -108,6 +109,16 @@ export function DriveRide({
         : null;
   }
 
+  // RETOUR D'ARRIÈRE-PLAN : à la reprise (déverrouillage, retour d'une autre app,
+  // onglet réactivé, réseau revenu), on bumpe ce compteur → les effets de
+  // synchro/Realtime ci-dessous se relancent IMMÉDIATEMENT (poll + ré-abonnement
+  // au Realtime, qui a pu tomber en arrière-plan). Ainsi, si un chauffeur a
+  // accepté / la course a changé pendant l'absence, l'écran le reflète AUSSITÔT
+  // au lieu d'attendre le prochain tick throttlé, et l'action suivante (annuler…)
+  // part d'un état frais sur une connexion réveillée.
+  const [resyncNonce, setResyncNonce] = useState(0);
+  useResumeResync(() => setResyncNonce((n) => n + 1));
+
   // Poll de la course active + détection de transition (terminée / annulée).
   useEffect(() => {
     let stop = false;
@@ -155,8 +166,9 @@ export function DriveRide({
       stop = true;
       clearInterval(id);
     };
+    // resyncNonce : un retour d'arrière-plan relance un tick immédiat.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshActive]);
+  }, [refreshActive, resyncNonce]);
 
   // Temps réel : tout changement de la course (acceptation, statut, prix
   // convenu) rafraîchit instantanément — le poll 4 s reste en filet.
@@ -180,7 +192,9 @@ export function DriveRide({
     return () => {
       void supabase.removeChannel(ch);
     };
-  }, [activeId, refreshActive]);
+    // resyncNonce : ré-abonnement au retour d'arrière-plan (le canal a pu tomber).
+     
+  }, [activeId, refreshActive, resyncNonce]);
 
   if (done) return <DoneScreen ride={done} onExit={onExit} />;
   if (cancelled)
@@ -246,6 +260,11 @@ function SearchScreen({
     !!ride && ride.payment_method === "card" && !ride.online_paid;
 
   const stopRef = useRef(false);
+  // Retour d'arrière-plan : relance le poll des offres + le ré-abonnement Realtime
+  // dès la reprise (cf. DriveRide / CLAUDE.md) → les offres reçues pendant
+  // l'absence apparaissent tout de suite, pas au prochain tick throttlé.
+  const [resyncNonce, setResyncNonce] = useState(0);
+  useResumeResync(() => setResyncNonce((n) => n + 1));
   // Re-dispatch escaladé : si AUCUNE offre après un délai, on demande au serveur
   // d'élargir le rayon (mig 0255). Délai de DÉPART côté client (≥20 s, laisse sa
   // chance au rayon initial) ; le serveur gère le RYTHME (25 s) et le PLAFOND.
@@ -282,7 +301,9 @@ function SearchScreen({
       stopRef.current = true;
       clearInterval(id);
     };
-  }, [rideId, poll]);
+    // resyncNonce : poll immédiat au retour d'arrière-plan.
+     
+  }, [rideId, poll, resyncNonce]);
 
   // Temps réel (mig 0149) : chaque offre / contre-offre / retrait d'un
   // chauffeur apparaît INSTANTANÉMENT — le poll lent n'est qu'un filet.
@@ -305,7 +326,9 @@ function SearchScreen({
     return () => {
       void supabase.removeChannel(ch);
     };
-  }, [rideId, poll]);
+    // resyncNonce : ré-abonnement au retour d'arrière-plan (le canal a pu tomber).
+     
+  }, [rideId, poll, resyncNonce]);
 
   const sorted = useMemo(() => {
     const list = [...offers];

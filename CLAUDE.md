@@ -165,6 +165,39 @@ informations vraies et à jour** — un cache rapide ne doit jamais montrer un
 ancien prix, un ancien solde ou les données d'un autre compte. Rapidité **et**
 vérité, pas l'une contre l'autre.
 
+## Robustesse ARRIÈRE-PLAN → REPRISE (non négociable)
+
+Symptôme vécu : un client lance une recherche de course, **quitte l'app** (verrouille
+le téléphone, bascule sur Instagram/un autre onglet) pendant que des chauffeurs
+répondent (l'un accepte), puis **revient** — l'écran est figé sur l'ancien état, et
+« Annuler la recherche » est lent / l'écran ne revient pas vite à l'écran prix.
+
+Cause (à connaître pour TOUT écran « live ») : en arrière-plan, le navigateur
+**throttle les timers** (`setInterval`/`setTimeout`) et **ferme souvent les
+WebSockets** (Supabase Realtime). À la reprise, l'état client est donc **périmé**
+(une course/commande a pu changer pendant l'absence) et la 1ʳᵉ requête part sur une
+**connexion froide**. Ne JAMAIS supposer que le polling/Realtime est resté vivant.
+
+**Règle :** tout écran qui dépend d'un état serveur vivant (recherche de course,
+suivi de course/commande, offres, statut en ligne, solde temps réel…) DOIT
+**re-synchroniser à la reprise** au premier plan. Utiliser le hook partagé
+**`useResumeResync(onResume)`** (`lib/hooks/use-resume-resync.ts`) — il écoute
+`visibilitychange` + `pageshow` (bfcache) + `focus` + `online` (debounce 600 ms) et
+n'agit que page réellement visible. Pattern recommandé : un `resyncNonce` bumpé par
+le hook, ajouté aux deps des effets de poll **et** de Realtime → relance immédiate du
+fetch ET **ré-abonnement** du canal (qui a pu tomber). Déjà appliqué au parcours
+course client (`DriveRide` + `SearchScreen`) : à la reprise, statut de course +
+offres re-synchronisés tout de suite → si un chauffeur a accepté pendant l'absence,
+l'écran bascule aussitôt (plus d'annulation sur un état mort), et l'action part d'une
+connexion réveillée.
+
+Complément obligatoire : si l'onglet a été **déchargé** (et pas seulement gelé), la
+page se **remonte** → l'effet de boot doit **restaurer l'état serveur** (course
+active, etc.) pour repartir comme si on n'avait jamais quitté (cf. restauration du
+trajet « searching » dans `DriveView`). Et tout handler async qui pose un verrou
+(`busy`/`submitting`) garde son `try/finally` (cf. [verrou busy/submitting]) pour ne
+jamais rester bloqué si la requête de reprise échoue/traîne.
+
 ## Réutiliser les composants partagés (anti-duplication)
 
 Quand une fonctionnalité existe déjà (carte, feuille/sheet de course, sélecteur
