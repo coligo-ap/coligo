@@ -95,14 +95,14 @@ export function MerchantCartCta({ merchantId }: { merchantId: string }) {
       <div className="pointer-events-auto mx-auto max-w-md space-y-1.5">
         {/* Badge promo dynamique — visible uniquement si une promo s'applique. */}
         {hasSavings && (
-          <div className="cg-promo-rise dark:bg-surface/95 flex items-center gap-2 rounded-[14px] border border-rose-200 bg-white/95 px-3 py-1.5 shadow-[0_12px_30px_-14px_rgba(225,29,72,0.5)] backdrop-blur-md dark:border-rose-500/30">
-            <span className="grid size-[22px] shrink-0 place-items-center rounded-full bg-rose-600 text-white">
+          <div className="cg-promo-rise dark:bg-surface/95 border-accent-200 dark:border-accent-500/30 flex items-center gap-2 rounded-[14px] border bg-white/95 px-3 py-1.5 shadow-[0_12px_30px_-14px_rgba(230,0,122,0.5)] backdrop-blur-md">
+            <span className="bg-accent-600 grid size-[22px] shrink-0 place-items-center rounded-full text-white">
               <PartyPopper className="size-[13px]" />
             </span>
             <span className="text-foreground flex-1 truncate text-[12.5px] font-extrabold">
               {tc("promosApplied", { count: promoCount })}
             </span>
-            <span className="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-[12px] font-black text-rose-600 tabular-nums dark:bg-rose-950/40 dark:text-rose-300">
+            <span className="bg-accent-50 text-accent-600 dark:bg-accent-950/40 dark:text-accent-300 shrink-0 rounded-full px-2 py-0.5 text-[12px] font-black tabular-nums">
               −{formatDA(savings)}
             </span>
           </div>

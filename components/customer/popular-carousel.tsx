@@ -173,12 +173,12 @@ export function PopCard({
         {/* Badges (haut-start) : réduction % et/ou « offert » (empilés). */}
         <div className="absolute start-2 top-2 flex flex-col items-start gap-1">
           {hasPromo && promoPct > 0 && (
-            <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
+            <span className="bg-accent-600 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
               −{promoPct}%
             </span>
           )}
           {quantityOffer && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-rose-600 px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
+            <span className="bg-accent-600 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
               <Gift className="size-3" />
               {t("offered")}
             </span>
@@ -205,14 +205,14 @@ export function PopCard({
         <div className="mt-1.5 flex items-center gap-1.5">
           {hasPromo && (
             <BadgePercent
-              className="size-3.5 shrink-0 text-rose-600"
+              className="text-accent-600 size-3.5 shrink-0"
               aria-label={t("discountAppliedAria")}
             />
           )}
           <span
             className={cn(
               "text-[15px] font-black tabular-nums",
-              hasPromo ? "text-rose-600" : "text-primary-700"
+              hasPromo ? "text-accent-600" : "text-primary-700"
             )}
           >
             {formatDA(price)}
@@ -224,7 +224,7 @@ export function PopCard({
           )}
         </div>
         {offerLabel && (
-          <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10.5px] leading-tight font-extrabold text-rose-600 dark:bg-rose-950/40 dark:text-rose-300">
+          <div className="bg-accent-50 text-accent-600 dark:bg-accent-950/40 dark:text-accent-300 mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] leading-tight font-extrabold">
             <Gift className="size-3 shrink-0" />
             {offerLabel}
           </div>

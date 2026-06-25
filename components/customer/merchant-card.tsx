@@ -143,7 +143,7 @@ function MerchantCardImpl({
 
         {/* promo (bas-gauche, vert) */}
         {showPromo && (
-          <span className="bg-success-600 absolute bottom-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-[9px] px-2.5 py-1.5 text-[12px] font-extrabold text-white shadow-md">
+          <span className="bg-accent-600 absolute bottom-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-[9px] px-2.5 py-1.5 text-[12px] font-extrabold text-white shadow-md">
             <Tag className="size-3" />
             {showPromo.text}
           </span>

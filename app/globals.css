@@ -80,6 +80,24 @@
   --color-amber-500: #f0a92c;
   --color-amber-600: #d18d18;
 
+  /* === Accent rose de marque Coligo (#FF2D7A) ===
+     Couleur OFFICIELLE de la charte (avec le violet primaire) réservée aux
+     PROMOTIONS : badges « −X% », « 2 achetés = 1 offert », prix promo, codes
+     promo, cartes de réduction. Rose vif et lumineux (≠ l'ancien `rose` rouge
+     terne de Tailwind). Le 600 garde ≥ 4,5:1 de contraste (texte blanc sur
+     fond / texte sur blanc) pour la lisibilité. */
+  --color-accent-50: #fff0f6;
+  --color-accent-100: #ffdcea;
+  --color-accent-200: #ffb8d5;
+  --color-accent-300: #ff8abb;
+  --color-accent-400: #ff5499;
+  --color-accent-500: #ff2d7a;
+  --color-accent-600: #e6007a;
+  --color-accent-700: #c00068;
+  --color-accent-800: #990052;
+  --color-accent-900: #7a0042;
+  --color-accent-950: #4d0029;
+
   /* Neutres (gris du kit) */
   --color-background: #ffffff;
   --color-surface: #ffffff;
@@ -799,6 +817,23 @@ body {
   [data-space="client"]
   :where(.bg-danger-50, .bg-red-50, .bg-rose-50) {
   background-color: rgba(229, 72, 77, 0.13);
+}
+/* Accent rose de marque (#FF2D7A) — promotions. Sur fond sombre : pastille
+   pâle assombrie en translucide + texte/bordures éclaircis pour rester lisibles
+   et sur la charte. `:where()` (spécificité 0) laisse les `dark:` explicites des
+   composants gagner quand ils sont posés. */
+.theme-dark :is([data-space="client"], .drive-jakarta) :where(.bg-accent-50) {
+  background-color: rgba(255, 45, 122, 0.14);
+}
+.theme-dark
+  :is([data-space="client"], .drive-jakarta)
+  :where(.text-accent-600, .text-accent-700) {
+  color: #ff8abb;
+}
+.theme-dark
+  :is([data-space="client"], .drive-jakarta)
+  :where(.border-accent-100, .border-accent-200, .border-accent-300) {
+  border-color: rgba(255, 45, 122, 0.3);
 }
 .theme-dark
   [data-space="client"]

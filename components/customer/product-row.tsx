@@ -142,7 +142,7 @@ export function ProductRow({
           </div>
         )}
         {hasPromo && promoPct > 0 && (
-          <span className="absolute top-1 left-1 z-10 rounded-[6px] bg-rose-600 px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow-sm">
+          <span className="bg-accent-600 absolute top-1 left-1 z-10 rounded-[6px] px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow-sm">
             −{promoPct}%
           </span>
         )}
@@ -156,14 +156,14 @@ export function ProductRow({
         <div className="mt-1 flex items-center gap-1.5">
           {hasPromo && (
             <BadgePercent
-              className="size-3.5 shrink-0 text-rose-600"
+              className="text-accent-600 size-3.5 shrink-0"
               aria-label={t("discountAppliedAria")}
             />
           )}
           <span
             className={cn(
               "text-sm font-bold tabular-nums",
-              hasPromo ? "text-rose-600" : "text-primary-700"
+              hasPromo ? "text-accent-600" : "text-primary-700"
             )}
           >
             {formatDA(price)}
@@ -174,7 +174,7 @@ export function ProductRow({
             </span>
           )}
           {quantityOffer && (
-            <span className="ms-auto shrink-0 text-[11px] font-bold text-rose-600">
+            <span className="text-accent-600 ms-auto shrink-0 text-[11px] font-bold">
               {t("buyGetLabel", {
                 buy: quantityOffer.buy,
                 get: quantityOffer.get,

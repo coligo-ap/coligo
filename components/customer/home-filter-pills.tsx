@@ -103,7 +103,7 @@ export function HomeFilterPills() {
       {/* Promos — mis en évidence (rose réduction), juste après « Tous ». */}
       <Pill active={state.promo} accent="rose" onClick={togglePromo}>
         <Percent
-          className={cn("size-4", !state.promo && "text-rose-500")}
+          className={cn("size-4", !state.promo && "text-accent-500")}
           strokeWidth={2.5}
         />
         {t("filterPromos")}
@@ -149,7 +149,7 @@ type Accent = "violet" | "rose" | "mint" | "coral" | "amber" | "green";
 
 const ACCENT_ACTIVE: Record<Accent, string> = {
   violet: "border-primary-600 bg-primary-600 text-white",
-  rose: "border-rose-500 bg-rose-500 text-white",
+  rose: "border-accent-500 bg-accent-500 text-white",
   mint: "border-mint-600 bg-mint-600 text-white",
   coral: "border-coral-500 bg-coral-500 text-white",
   amber: "border-amber-500 bg-amber-500 text-white",

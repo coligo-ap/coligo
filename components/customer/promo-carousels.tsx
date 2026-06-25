@@ -59,7 +59,7 @@ export function PromoCarousels({
         return (
           <section key={promo.id} className="-mx-4 mb-2 lg:-mx-6">
             <h2 className="font-display text-foreground mb-3 flex items-center gap-2 px-4 text-lg font-bold lg:px-6">
-              <Icon className="size-5 text-rose-600" />
+              <Icon className="text-accent-600 size-5" />
               <span className="truncate">{promo.title_fr}</span>
             </h2>
             <div className="flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-4 pb-1 lg:px-6 [&::-webkit-scrollbar]:hidden">

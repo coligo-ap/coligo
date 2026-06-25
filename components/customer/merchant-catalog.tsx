@@ -348,7 +348,7 @@ export function MerchantCatalog({
       {!q && offertProducts.length > 0 && (
         <ProductCarousel
           title={t("offertCarousel")}
-          icon={<Gift className="size-5 text-rose-600" />}
+          icon={<Gift className="text-accent-600 size-5" />}
           merchant={merchant}
           products={offertProducts}
           promoPriceById={promoPriceById}

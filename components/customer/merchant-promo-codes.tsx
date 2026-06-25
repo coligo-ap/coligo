@@ -92,31 +92,31 @@ function PromoCodeCard({ promotion }: { promotion: PublicPromotion }) {
         type="button"
         onClick={copy}
         className={cn(
-          "group relative flex w-full items-center gap-3 overflow-hidden rounded-[16px] border border-dashed border-rose-300 bg-gradient-to-r from-rose-50 to-rose-100/60 px-3.5 py-3 text-start transition-transform active:scale-[0.99] dark:border-rose-500/40 dark:from-rose-950/40 dark:to-rose-900/20"
+          "group border-accent-300 from-accent-50 to-accent-100/60 dark:border-accent-500/40 dark:from-accent-950/40 dark:to-accent-900/20 relative flex w-full items-center gap-3 overflow-hidden rounded-[16px] border border-dashed bg-gradient-to-r px-3.5 py-3 text-start transition-transform active:scale-[0.99]"
         )}
       >
         {/* Pastille réduction */}
-        <span className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-rose-600 text-white shadow-sm">
+        <span className="bg-accent-600 grid size-11 shrink-0 place-items-center rounded-[12px] text-white shadow-sm">
           <Ticket className="size-5" />
         </span>
 
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline gap-2">
-            <span className="truncate text-sm font-extrabold text-rose-700 dark:text-rose-300">
+            <span className="text-accent-700 dark:text-accent-300 truncate text-sm font-extrabold">
               {promotion.title_fr || t("promoCodeTitle")}
             </span>
             {discount && (
-              <span className="shrink-0 text-xs font-black text-rose-600 dark:text-rose-300">
+              <span className="text-accent-600 dark:text-accent-300 shrink-0 text-xs font-black">
                 {discount}
               </span>
             )}
           </span>
           {/* Code en rouge + résumé des conditions */}
           <span className="mt-0.5 flex items-center gap-2">
-            <span className="rounded-md border border-rose-300 bg-white px-2 py-0.5 font-mono text-sm font-black tracking-wider text-rose-600 dark:border-rose-500/40 dark:bg-rose-950/60 dark:text-rose-300">
+            <span className="border-accent-300 text-accent-600 dark:border-accent-500/40 dark:bg-accent-950/60 dark:text-accent-300 rounded-md border bg-white px-2 py-0.5 font-mono text-sm font-black tracking-wider">
               {code}
             </span>
-            <span className="text-[11px] font-medium text-rose-500/90 dark:text-rose-300/80">
+            <span className="text-accent-500/90 dark:text-accent-300/80 text-[11px] font-medium">
               {copied ? t("promoCodeCopied") : t("promoCodeTap")}
             </span>
           </span>
@@ -138,7 +138,7 @@ function PromoCodeCard({ promotion }: { promotion: PublicPromotion }) {
                       setOpen(true);
                     }
                   }}
-                  className="font-semibold text-rose-600 underline dark:text-rose-300"
+                  className="text-accent-600 dark:text-accent-300 font-semibold underline"
                 >
                   {t("promoSeeConditions")}
                 </span>
@@ -153,7 +153,7 @@ function PromoCodeCard({ promotion }: { promotion: PublicPromotion }) {
             "grid size-9 shrink-0 place-items-center rounded-full transition-colors",
             copied
               ? "bg-success-600 text-white"
-              : "bg-white text-rose-600 dark:bg-rose-950/60 dark:text-rose-300"
+              : "text-accent-600 dark:bg-accent-950/60 dark:text-accent-300 bg-white"
           )}
         >
           {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
@@ -184,11 +184,11 @@ function PromoCodeCard({ promotion }: { promotion: PublicPromotion }) {
               </header>
               <div className="space-y-3 px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <span className="rounded-md border border-rose-300 bg-rose-50 px-2.5 py-1 font-mono text-base font-black tracking-wider text-rose-600">
+                  <span className="border-accent-300 bg-accent-50 text-accent-600 rounded-md border px-2.5 py-1 font-mono text-base font-black tracking-wider">
                     {code}
                   </span>
                   {discount && (
-                    <span className="text-sm font-black text-rose-600">
+                    <span className="text-accent-600 text-sm font-black">
                       {discount}
                     </span>
                   )}
@@ -204,7 +204,7 @@ function PromoCodeCard({ promotion }: { promotion: PublicPromotion }) {
                       key={i}
                       className="text-muted flex items-start gap-2 text-sm"
                     >
-                      <Check className="mt-0.5 size-4 shrink-0 text-rose-500" />
+                      <Check className="text-accent-500 mt-0.5 size-4 shrink-0" />
                       <span>{c}</span>
                     </li>
                   ))}
