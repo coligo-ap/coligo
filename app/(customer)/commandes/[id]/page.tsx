@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { type OrderStatus } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
 import { CustomerOrderLive } from "@/components/customer/customer-order-live";
+import { OrderPurchaseTracking } from "@/components/analytics/order-purchase-tracking";
 import { CancelOrderButton } from "@/components/customer/cancel-order-button";
 import { ReorderButton } from "@/components/customer/reorder-button";
 import { OrderTrack } from "@/components/customer/order-track";
@@ -336,6 +337,22 @@ export default async function CustomerOrderDetailPage({
     <CustomerShell>
       {/* Suivi live (Realtime + polling) : pop-up + son sur changement de statut. */}
       <CustomerOrderLive orderId={order.id} initialStatus={status} />
+
+      {/* GA4 — purchase (dédupliqué) sur la page de confirmation. Online non payé
+          ne parvient jamais ici (redirige au-dessus) → revenu réel uniquement. */}
+      <OrderPurchaseTracking
+        orderId={order.id}
+        status={status}
+        valueDa={order.total_da}
+        shippingDa={order.delivery_fee_da ?? 0}
+        merchantName={merchant.name}
+        lines={items.map((it) => ({
+          id: it.product_name,
+          name: it.product_name,
+          unitPriceDa: it.unit_price_da,
+          quantity: it.quantity,
+        }))}
+      />
 
       <div className="mx-auto max-w-2xl px-4 pt-3 pb-24 lg:px-6 lg:pt-5">
         <div className="mb-2 flex items-center justify-between gap-3">

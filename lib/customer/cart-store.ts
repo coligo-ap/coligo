@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { trackAddToCart } from "@/lib/analytics/ecommerce";
 
 // =============================================================================
 // Panier client — MULTI-commerce en localStorage, un seul "actif" à la fois.
@@ -209,6 +210,20 @@ export function addItem(
     by_merchant: { ...store.by_merchant, [merchant.id]: nextCart },
   };
   writeStore(nextStore);
+
+  // GA4 — add_to_cart (qté réellement ajoutée à ce tap, pas le cumul). No-op si
+  // GA désactivé.
+  trackAddToCart(
+    {
+      id: item.product_id,
+      name: item.name,
+      unitPriceDa: item.unit_price_da,
+      quantity: qty,
+      category: item.category_title ?? null,
+    },
+    merchant.name
+  );
+
   return { ok: true };
 }
 

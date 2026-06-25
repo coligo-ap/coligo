@@ -6,6 +6,7 @@ import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutPaymentWatcher } from "@/components/customer/checkout-payment-watcher";
 import { ClearCartOnMount } from "@/components/customer/clear-cart-on-mount";
+import { OrderPurchaseTracking } from "@/components/analytics/order-purchase-tracking";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,9 @@ export default async function CheckoutSuccessPage({
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, status, pickup_code, payment_status, total_da, payment_method, customer_id"
+      `id, status, pickup_code, payment_status, total_da, delivery_fee_da, payment_method, customer_id,
+       merchants ( name ),
+       order_items ( product_name, unit_price_da, quantity )`
     )
     .eq("id", order_id)
     .maybeSingle();
@@ -55,7 +58,42 @@ export default async function CheckoutSuccessPage({
     <CustomerShell>
       <div className="mx-auto max-w-md px-4 py-12 text-center lg:py-20">
         {order.payment_status === "paid" ? (
-          <Paid pickupCode={order.pickup_code} orderId={order.id} t={t} />
+          <>
+            {/* GA4 — purchase (payé en ligne). Le client s'arrête souvent ICI
+                sans ouvrir le détail → on compte la vente sur la page « payé ».
+                Dédup par orderId : pas de double-comptage si le client ouvre
+                ensuite /commandes/[id]. */}
+            <OrderPurchaseTracking
+              orderId={order.id}
+              status={order.status}
+              valueDa={order.total_da}
+              shippingDa={
+                (order as { delivery_fee_da: number | null }).delivery_fee_da ??
+                0
+              }
+              merchantName={
+                (order as unknown as { merchants: { name: string } | null })
+                  .merchants?.name ?? null
+              }
+              lines={(
+                (
+                  order as unknown as {
+                    order_items: {
+                      product_name: string;
+                      unit_price_da: number;
+                      quantity: number;
+                    }[];
+                  }
+                ).order_items ?? []
+              ).map((it) => ({
+                id: it.product_name,
+                name: it.product_name,
+                unitPriceDa: it.unit_price_da,
+                quantity: it.quantity,
+              }))}
+            />
+            <Paid pickupCode={order.pickup_code} orderId={order.id} t={t} />
+          </>
         ) : (
           <PendingConfirmation
             orderId={order.id}

@@ -49,6 +49,7 @@ import {
   issueDeliveryQuote,
   previewPromoCode,
 } from "@/app/(customer)/checkout/actions";
+import { trackBeginCheckout } from "@/lib/analytics/ecommerce";
 import { CHARGILY_MIN_AMOUNT_DA } from "@/lib/config/payment-limits";
 import type { FeatureStatus } from "@/lib/data/feature-flags";
 import type { PaymentMethod } from "@/lib/types";
@@ -240,6 +241,26 @@ export function CheckoutView({
       }));
     }
   }, [ctx, cart.mode]);
+
+  // GA4 — begin_checkout, une seule fois quand le contexte (prix recalculés) est
+  // prêt et que le panier n'est pas vide. No-op si GA désactivé.
+  const beginCheckoutRef = useRef(false);
+  useEffect(() => {
+    if (beginCheckoutRef.current) return;
+    if (!ctx || ctx.error || cart.items.length === 0) return;
+    beginCheckoutRef.current = true;
+    trackBeginCheckout(
+      cart.items.map((i) => ({
+        id: i.product_id,
+        name: i.name,
+        unitPriceDa: i.unit_price_da,
+        quantity: i.quantity,
+        category: i.category_title ?? null,
+      })),
+      ctx.cart.totalDa,
+      ctx.merchant.name
+    );
+  }, [ctx, cart.items]);
 
   if (isRedirecting) {
     return (
