@@ -19,10 +19,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { cn, formatDA } from "@/lib/utils";
 import { clearCart, setItemQuantity, useCart } from "@/lib/customer/cart-store";
 import { computeCart, isPromotionActive } from "@/lib/promotions/engine";
-import {
-  summarizeCartPromotions,
-  toEnginePromotions,
-} from "@/lib/promotions/cart-summary";
+import { toEnginePromotions } from "@/lib/promotions/cart-summary";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { useConfirm } from "@/components/ui/confirm";
 import { getCartPromotions } from "@/app/(customer)/cart/actions";
@@ -121,19 +118,60 @@ export function CartView() {
     [promotions]
   );
 
-  // Synthèse premium des promos appliquées (détail + économie par promo).
-  const promoSummary = useMemo(
-    () => summarizeCartPromotions(promotions, settled),
-    [promotions, settled]
-  );
+  // Nom de chaque promotion (localisé) pour l'attribuer au produit concerné.
+  const promoNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of promotions) m.set(p.id, (isAr && p.title_ar) || p.title_fr);
+    return m;
+  }, [promotions, isAr]);
+
+  // Détail des avantages PAR PRODUIT : pour chaque ligne en promo, ce que le
+  // client gagne selon le type (réduction % avec prix barré, ou unités offertes)
+  // + le montant économisé sur ce produit + la/les promo(s) qui s'y appliquent.
+  const productBenefits = useMemo(() => {
+    return cart.items
+      .map((item) => {
+        const cl = lineById.get(item.product_id);
+        const appliedUnit = cl?.appliedUnitPriceDa ?? item.unit_price_da;
+        const freeUnits = cl?.freeUnits ?? 0;
+        const hasDiscount = appliedUnit < item.unit_price_da;
+        const discountPct = hasDiscount
+          ? Math.round(
+              ((item.unit_price_da - appliedUnit) / item.unit_price_da) * 100
+            )
+          : 0;
+        const discountSavings = hasDiscount
+          ? (item.unit_price_da - appliedUnit) * item.quantity
+          : 0;
+        const freeSavings = freeUnits > 0 ? appliedUnit * freeUnits : 0;
+        const totalSaved = Math.round(discountSavings + freeSavings);
+        const names: string[] = [];
+        if (hasDiscount && cl?.productPromotionId) {
+          const n = promoNameById.get(cl.productPromotionId);
+          if (n) names.push(n);
+        }
+        if (freeUnits > 0 && cl?.quantityPromotionId) {
+          const n = promoNameById.get(cl.quantityPromotionId);
+          if (n && !names.includes(n)) names.push(n);
+        }
+        return {
+          item,
+          appliedUnit,
+          freeUnits,
+          hasDiscount,
+          discountPct,
+          totalSaved,
+          names,
+        };
+      })
+      .filter((b) => b.totalSaved > 0 || b.freeUnits > 0);
+  }, [cart.items, lineById, promoNameById]);
 
   const units = cart.items.reduce((s, i) => s + i.quantity, 0);
   const subtotal = settled.subtotalDa;
   const savings = Math.max(0, settled.normalTotalDa - settled.subtotalDa);
   const cashbackGain = Math.round(subtotal * 0.03);
-  const hasDetail = promoSummary.applied.length > 0 || codePromos.length > 0;
-  const promoTitle = (p: { titleFr: string; titleAr: string | null }) =>
-    (isAr && p.titleAr) || p.titleFr;
+  const hasDetail = productBenefits.length > 0 || codePromos.length > 0;
 
   if (empty) {
     return (
@@ -366,31 +404,65 @@ export function CartView() {
                 </button>
               </div>
 
-              {promoSummary.applied.map((p) => (
+              {/* Un bloc par produit en promo : type d'avantage + gain. */}
+              {productBenefits.map((b) => (
                 <div
-                  key={p.id}
-                  className="bg-surface flex items-center gap-2.5 rounded-[10px] px-3 py-2"
+                  key={b.item.product_id}
+                  className="bg-surface flex items-start gap-2.5 rounded-[10px] px-2.5 py-2"
                 >
-                  <span className="text-foreground min-w-0 flex-1">
-                    <span className="line-clamp-1 text-[12.5px] font-bold">
-                      {promoTitle(p)}
-                    </span>
-                    <span className="text-muted flex items-center gap-1 text-[10.5px] font-semibold">
-                      {p.type === "quantity_offer" ? (
-                        <>
-                          <Gift className="size-3 text-rose-500" />
-                          {t("freeApplied", { count: p.freeUnits })}
-                        </>
-                      ) : (
-                        <>
-                          <BadgePercent className="size-3 text-rose-500" />
-                          {t("productPromoLabel")}
-                        </>
-                      )}
-                    </span>
-                  </span>
-                  <span className="text-success-700 dark:text-success-400 shrink-0 text-[12.5px] font-black tabular-nums">
-                    −{formatDA(p.savingsDa)}
+                  <div className="bg-surface-2 size-9 shrink-0 overflow-hidden rounded-[8px]">
+                    {b.item.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={b.item.image_url}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : null}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-foreground line-clamp-1 text-[12.5px] font-bold">
+                      {b.item.name}
+                    </p>
+
+                    {/* Avantage « réduction » : −X% + prix barré → nouveau prix. */}
+                    {b.hasDiscount && (
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                        {b.discountPct > 0 && (
+                          <span className="rounded-md bg-rose-600 px-1.5 py-0.5 text-[9.5px] font-extrabold text-white">
+                            −{b.discountPct}%
+                          </span>
+                        )}
+                        <span className="text-[10.5px] font-semibold">
+                          <span className="font-bold text-rose-600">
+                            {formatDA(b.appliedUnit)}
+                          </span>{" "}
+                          <span className="text-subtle line-through">
+                            {formatDA(b.item.unit_price_da)}
+                          </span>
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Avantage « offre quantité » : N offert(s). */}
+                    {b.freeUnits > 0 && (
+                      <span className="mt-0.5 inline-flex items-center gap-1 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-extrabold text-rose-600 dark:bg-rose-950/40 dark:text-rose-300">
+                        <Gift className="size-3" />
+                        {t("freeApplied", { count: b.freeUnits })}
+                      </span>
+                    )}
+
+                    {/* Promotion(s) à l'origine de l'avantage. */}
+                    {b.names.length > 0 && (
+                      <p className="text-muted mt-0.5 line-clamp-1 text-[10px] font-semibold">
+                        {b.names.join(" · ")}
+                      </p>
+                    )}
+                  </div>
+
+                  <span className="text-success-700 dark:text-success-400 shrink-0 pt-0.5 text-[12.5px] font-black tabular-nums">
+                    −{formatDA(b.totalSaved)}
                   </span>
                 </div>
               ))}
