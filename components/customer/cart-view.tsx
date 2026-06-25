@@ -121,7 +121,6 @@ export function CartView() {
     [promotions, settled]
   );
 
-  const units = cart.items.reduce((s, i) => s + i.quantity, 0);
   const subtotal = settled.subtotalDa;
   const savings = Math.max(0, settled.normalTotalDa - settled.subtotalDa);
   const cashbackGain = Math.round(subtotal * 0.03);
@@ -335,8 +334,8 @@ export function CartView() {
         })}
       </div>
 
-      {/* Bloc « Vos avantages » premium : détail des promos appliquées, économie
-          totale, prix initial barré → final, + teaser codes promo (au paiement). */}
+      {/* Récapitulatif central : sous-total, économies, total à payer (toujours
+          visibles) + détail des promos repliable (fermé par défaut). */}
       <CartSavingsCard
         summary={promoSummary}
         codePromos={codePromos}
@@ -344,43 +343,38 @@ export function CartView() {
         subtotalDa={subtotal}
       />
 
-      {/* Barre fixe en bas : économies + cashback + sous-total + bouton. */}
+      {/* Barre fixe en bas : CTA persistant avec le total intégré (style Uber). */}
       <div className="border-border fixed inset-x-0 bottom-16 z-40 border-t bg-white px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
-        <div className="mx-auto max-w-[560px] space-y-2.5">
+        <div className="mx-auto max-w-[560px] space-y-2">
           {cashbackGain > 0 && (
             <div className="bg-success-50 text-success-700 flex items-center gap-2 rounded-[10px] px-3 py-2 text-[12px] font-bold">
               <Gift className="size-4 shrink-0" />
               {t("cashbackGain", { amount: formatDA(cashbackGain) })}
             </div>
           )}
-          <div className="flex items-center justify-between">
-            <span className="min-w-0">
-              <span className="text-muted block text-[13px] font-semibold">
-                {t("subtotalUnits", { count: units })}
-              </span>
-              {savings > 0 && (
-                <span className="text-[11.5px] font-bold text-rose-600 dark:text-rose-300">
-                  {t("savings", { amount: formatDA(savings) })}
-                </span>
-              )}
+          {savings > 0 && (
+            <p className="text-center text-[12px] font-bold text-rose-600 dark:text-rose-300">
+              {t("savings", { amount: formatDA(savings) })}
+            </p>
+          )}
+          <Link
+            href="/checkout"
+            className="bg-primary-600 hover:bg-primary-700 flex h-[54px] w-full items-center justify-between gap-2 rounded-[14px] px-5 text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"
+          >
+            <span className="inline-flex items-center gap-2 text-base font-extrabold">
+              {t("checkout")}
+              <ArrowRight className="size-5 rtl:-scale-x-100" />
             </span>
-            <span className="flex flex-col items-end leading-none">
+            <span className="flex items-baseline gap-2 leading-none">
               {savings > 0 && (
-                <span className="text-subtle mb-0.5 text-[12px] font-semibold tabular-nums line-through">
+                <span className="text-[12px] font-semibold text-white/60 tabular-nums line-through">
                   {formatDA(settled.normalTotalDa)}
                 </span>
               )}
-              <span className="text-foreground text-[21px] font-black tracking-[-0.6px] tabular-nums">
+              <span className="text-[18px] font-black tabular-nums">
                 {formatDA(subtotal)}
               </span>
             </span>
-          </div>
-          <Link
-            href="/checkout"
-            className="bg-primary-600 hover:bg-primary-700 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-base font-extrabold text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"
-          >
-            {t("checkout")}
-            <ArrowRight className="size-5 rtl:-scale-x-100" />
           </Link>
         </div>
       </div>

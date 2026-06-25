@@ -156,6 +156,10 @@
     "initialPrice": "السعر الأصلي",
     "totalSavings": "إجمالي التوفير",
     "cartTotalLabel": "إجمالي السلة",
+    "subtotalLabel": "المجموع الفرعي",
+    "savingsLabel": "التوفير",
+    "toPayLabel": "المبلغ الإجمالي للدفع",
+    "promoDetailsToggle": "عرض تفاصيل العروض والتوفير",
     "itemsTitle": "سلتك",
     "clearTitle": "إفراغ السلة؟",
     "cancel": "إلغاء"

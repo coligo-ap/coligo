@@ -156,6 +156,10 @@
     "initialPrice": "Prix initial",
     "totalSavings": "Total des économies",
     "cartTotalLabel": "Total panier",
+    "subtotalLabel": "Sous-total",
+    "savingsLabel": "Économies",
+    "toPayLabel": "Total à payer",
+    "promoDetailsToggle": "Voir le détail des promotions et économies",
     "itemsTitle": "Votre panier",
     "clearTitle": "Vider le panier ?",
     "cancel": "Annuler"
