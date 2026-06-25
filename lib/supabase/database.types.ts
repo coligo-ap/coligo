@@ -1147,6 +1147,7 @@ export type Database = {
           max_topup_da_per_30d: number;
           service_fee_tiers: Json;
           ranking_weights: Json;
+          ranking_unified: boolean;
           // Drive (mig 0139)
           drive_pricing: Json;
           drive_night_coef: number;
@@ -1229,6 +1230,7 @@ export type Database = {
           max_topup_da_per_30d?: number;
           service_fee_tiers?: Json;
           ranking_weights?: Json;
+          ranking_unified?: boolean;
           delivery_base_da?: number;
           delivery_per_km_da?: number;
           delivery_free_km_threshold?: number;
@@ -1256,6 +1258,7 @@ export type Database = {
           max_topup_da_per_30d?: number;
           service_fee_tiers?: Json;
           ranking_weights?: Json;
+          ranking_unified?: boolean;
           delivery_base_da?: number;
           delivery_per_km_da?: number;
           delivery_free_km_threshold?: number;

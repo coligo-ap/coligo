@@ -31,6 +31,13 @@ type Props = {
   favoriteIds?: Set<string>;
   /** Client connecté — passe au cœur favori. */
   isAuth?: boolean;
+  /**
+   * Ranking unifié actif (mig 0261) : l'ordre par défaut vient du score
+   * composite calculé côté serveur (proximité FORTE + note/popularité/promo/
+   * favoris, ouverts d'abord). La grille le PRÉSERVE au lieu de re-trier par
+   * distance pure. Les tris explicites (mieux notés / prix) restent prioritaires.
+   */
+  unified?: boolean;
 };
 
 // =============================================================================
@@ -59,6 +66,7 @@ export function MarketplaceGrid({
   promoLabels,
   favoriteIds,
   isAuth = false,
+  unified = false,
 }: Props) {
   const params = useFilterParams();
   const t = useTranslations("browse");
@@ -195,10 +203,15 @@ export function MarketplaceGrid({
       // Prix minimum imposé par l'utilisateur : on respecte l'ordre serveur
       // (min_order croissant), ouverts d'abord.
       sorted.sort((a, b) => openRank(a) - openRank(b));
+    } else if (unified) {
+      // RANKING UNIFIÉ : l'ordre vient du score composite SERVEUR (proximité
+      // forte + note/popularité/promo/favoris, ouverts d'abord). On le PRÉSERVE
+      // — les filtres ci-dessus ne font que retirer des éléments, pas réordonner.
+      // Re-trier par distance ici ANNULERAIT le score → surtout pas.
     } else {
-      // PAR DÉFAUT : les plus PROCHES d'abord (critère géographique principal),
-      // ouverts avant fermés. Si la position n'est pas connue, on garde l'ordre
-      // serveur (déjà classé : proximité si GPS, sinon qualité/popularité).
+      // PAR DÉFAUT (legacy) : les plus PROCHES d'abord (critère géographique
+      // principal), ouverts avant fermés. Si la position n'est pas connue, on
+      // garde l'ordre serveur (déjà classé : proximité si GPS, sinon qualité).
       sorted.sort((a, b) => {
         if (openRank(a) !== openRank(b)) return openRank(a) - openRank(b);
         const da = distanceFor(a);
@@ -219,6 +232,7 @@ export function MarketplaceGrid({
     promos,
     items,
     distanceFor,
+    unified,
   ]);
 
   const wilayaLabel = loc?.wilaya_code

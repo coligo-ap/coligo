@@ -92,11 +92,16 @@ export default async function CustomerHomePage() {
   const promoIds = rankingCtx.promoIds;
 
   const promoLabels = await getPromoLabelsByMerchant(fallback.map((m) => m.id));
-  // Avec coords : la liste est DÉJÀ classée par proximité → on remonte juste les
-  // ouverts. Sans coords : classement composite (qualité/popularité/promo).
-  const rankedFallback = hasCoords
-    ? splitOpenFirst(fallback)
-    : rankMerchants(fallback, rankingCtx);
+  // RANKING UNIFIÉ (mig 0261, façon Uber) : si activé, le score composite classe
+  // TOUS les chemins — la distance (poids fort) départage avec la note, la
+  // popularité, les promos et les favoris. Sinon, comportement legacy :
+  //  - avec coords : liste déjà classée par proximité → on remonte les ouverts ;
+  //  - sans coords : score composite (qualité/popularité/promo).
+  const rankedFallback = rankingCtx.unified
+    ? rankMerchants(fallback, rankingCtx)
+    : hasCoords
+      ? splitOpenFirst(fallback)
+      : rankMerchants(fallback, rankingCtx);
 
   return (
     <CustomerShell>
@@ -148,6 +153,7 @@ export default async function CustomerHomePage() {
                 promoLabels={promoLabels}
                 favoriteIds={favoriteIds}
                 isAuth={isAuth}
+                unified={rankingCtx.unified}
               />
             </Suspense>
           </section>

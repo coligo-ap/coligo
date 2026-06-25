@@ -26,6 +26,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
+import { getMyFavoriteIds } from "@/lib/data/favorites";
 import type { PublicMerchant } from "@/lib/data/merchants-public";
 
 export type RankingWeights = {
@@ -41,7 +42,11 @@ export const DEFAULT_WEIGHTS: RankingWeights = {
   rating: 0.3,
   popular: 0.25,
   promo: 0.15,
-  distance: 0.2,
+  // Distance = signal DOMINANT (proximité d'abord, façon Uber) mais pondéré :
+  // un voisin médiocre ne passe plus systématiquement devant un excellent
+  // commerce un peu plus loin. N'a d'effet que sur le chemin « unifié » (le
+  // chemin legacy GPS trie par distance pure sans ce score).
+  distance: 0.35,
   open: 0.1,
   favorite: 0.15,
 };
@@ -53,6 +58,12 @@ export type RankingContext = {
   /** Favoris du client (contexte utilisateur) — vide si anon / aucun favori. */
   favoriteIds: Set<string>;
   weights: RankingWeights;
+  /**
+   * Drapeau « ranking unifié » (platform_settings.ranking_unified, mig 0261).
+   * true → le score composite classe TOUS les chemins (GPS inclus). false
+   * (défaut) → comportement legacy (distance pure quand le GPS est connu).
+   */
+  unified: boolean;
 };
 
 /**
@@ -85,7 +96,7 @@ export async function loadRankingContext(opts: {
       .in("merchant_id", opts.merchantIds),
     supabase
       .from("platform_settings")
-      .select("ranking_weights")
+      .select("ranking_weights, ranking_unified")
       .eq("id", true)
       .maybeSingle(),
   ]);
@@ -100,9 +111,11 @@ export async function loadRankingContext(opts: {
     orderCounts30d.set(id, (orderCounts30d.get(id) ?? 0) + 1);
   }
 
-  const weights = parseWeights(
-    (settings.data as { ranking_weights?: unknown } | null)?.ranking_weights
-  );
+  const settingsRow = settings.data as {
+    ranking_weights?: unknown;
+    ranking_unified?: boolean | null;
+  } | null;
+  const weights = parseWeights(settingsRow?.ranking_weights);
 
   return {
     promoIds,
@@ -110,6 +123,7 @@ export async function loadRankingContext(opts: {
     customer: opts.customer,
     favoriteIds: opts.favoriteIds ?? new Set(),
     weights,
+    unified: settingsRow?.ranking_unified === true,
   };
 }
 
@@ -219,6 +233,53 @@ export function splitOpenFirst(merchants: PublicMerchant[]): PublicMerchant[] {
     .map((m, i) => ({ m, i, open: isOpenNow(m.opening_hours, now) }))
     .sort((a, b) => (a.open !== b.open ? (a.open ? -1 : 1) : a.i - b.i))
     .map((s) => s.m);
+}
+
+/**
+ * Lecture SEULE du drapeau ranking unifié (1 read indexé sur le singleton).
+ * Sert à court-circuiter sans charger tout le contexte de classement quand le
+ * mode est OFF (le défaut) → le chemin legacy reste quasi gratuit.
+ */
+export async function isRankingUnified(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("platform_settings")
+    .select("ranking_unified")
+    .eq("id", true)
+    .maybeSingle();
+  return (
+    (data as { ranking_unified?: boolean } | null)?.ranking_unified === true
+  );
+}
+
+/**
+ * Applique le classement composite À CONDITION que le ranking unifié soit
+ * activé (platform_settings.ranking_unified). Sinon, renvoie la liste TELLE
+ * QUELLE (ordre déjà décidé par l'appelant : proximité côté serveur, nom, etc.)
+ * → zéro régression quand le drapeau est OFF.
+ *
+ * Pensé pour le refetch côté client (`fetchMerchantsForZone`) : il faut que la
+ * liste rafraîchie suive le MÊME ordre que le SSR quand le mode unifié est ON.
+ * Les favoris (contexte) sont chargés ICI, et seulement si le mode est actif.
+ */
+export async function rankMerchantsIfUnified(
+  merchants: PublicMerchant[],
+  opts: {
+    customer: { latitude: number | null; longitude: number | null } | null;
+    favoriteIds?: Set<string>;
+  }
+): Promise<{ merchants: PublicMerchant[]; unified: boolean }> {
+  if (merchants.length === 0) return { merchants, unified: false };
+  // Court-circuit OFF : 1 seule lecture, aucun chargement de contexte.
+  if (!(await isRankingUnified())) return { merchants, unified: false };
+
+  const favoriteIds = opts.favoriteIds ?? (await getMyFavoriteIds());
+  const ctx = await loadRankingContext({
+    merchantIds: merchants.map((m) => m.id),
+    customer: opts.customer,
+    favoriteIds,
+  });
+  return { merchants: rankMerchants(merchants, ctx), unified: true };
 }
 
 // -----------------------------------------------------------------------------

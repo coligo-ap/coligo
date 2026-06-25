@@ -17,6 +17,8 @@ type Props = {
   promoLabels?: Record<string, PromoLabel>;
   favoriteIds?: Set<string>;
   isAuth?: boolean;
+  /** Ranking unifié actif → la grille préserve l'ordre serveur (score composite). */
+  unified?: boolean;
 };
 
 export function MarketplaceSection(props: Props) {

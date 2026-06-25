@@ -17,6 +17,7 @@ import {
   type PublicMerchant,
   type PromoLabel,
 } from "@/lib/data/merchants-public";
+import { rankMerchantsIfUnified } from "@/lib/data/merchant-ranking";
 import {
   searchProductsInZone,
   type ProductSearchOutcome,
@@ -223,7 +224,7 @@ export async function fetchMerchantsForZone(input: {
   category?: string | null;
   sort?: "name" | "min_order" | null;
 }): Promise<PublicMerchant[]> {
-  return listPublicMerchants({
+  const merchants = await listPublicMerchants({
     wilaya_code: input.wilaya_code,
     commune: input.commune,
     latitude: input.latitude ?? null,
@@ -233,6 +234,21 @@ export async function fetchMerchantsForZone(input: {
     sort: input.sort === "min_order" ? "min_order" : "name",
     limit: 60,
   });
+
+  // RANKING UNIFIÉ (mig 0261) : on reclasse par score composite pour que la
+  // liste rafraîchie suive le MÊME ordre que le SSR. On NE touche PAS aux ordres
+  // EXPLICITES de l'utilisateur : recherche texte (pertinence) et tri prix
+  // (min_order) sont préservés tels quels. Le tri « mieux notés » reste appliqué
+  // côté client (serverSort = name) → le reclassement composite est inoffensif.
+  const isTextSearch = !!input.q?.trim();
+  if (isTextSearch || input.sort === "min_order") return merchants;
+  const { merchants: ranked } = await rankMerchantsIfUnified(merchants, {
+    customer: {
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
+    },
+  });
+  return ranked;
 }
 
 /**

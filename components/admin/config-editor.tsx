@@ -18,6 +18,8 @@ const GROUP_LABELS: Record<string, string> = {
   recharge: "Recharge",
   retrait: "Retrait",
   abonnements: "Abonnements",
+  ranking: "Classement de l'accueil",
+  geo: "Adresses & géolocalisation",
 };
 
 export function ConfigEditor({ items }: { items: ConfigItem[] }) {
