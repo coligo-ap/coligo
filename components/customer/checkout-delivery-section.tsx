@@ -98,6 +98,12 @@ export function CheckoutDeliverySection({
   const update = (patch: Partial<DeliveryChoice>) =>
     onChange({ ...value, ...patch });
 
+  // Toujours la DERNIÈRE valeur (pour les callbacks différés : reverse-geocode,
+  // auto-confirmation). Évite de repartir d'un `value` figé dans une closure
+  // (sinon un patch tardif écrase `positionConfirmed`/autres champs récents).
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
   // « Modifier » rouvre les choix après repliement (position confirmée).
   const [editing, setEditing] = useState(false);
   // Choix actif (Ma position actuelle / Mes adresses / Sur la carte).
@@ -164,7 +170,7 @@ export function CheckoutDeliverySection({
     if (!value.customPosition || customQuote == null) return;
     pendingConfirm.current = false;
     if (!customOutOfRange) {
-      onChange({ ...value, positionConfirmed: true });
+      onChange({ ...valueRef.current, positionConfirmed: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customQuote, value.customPosition]);
@@ -187,7 +193,7 @@ export function CheckoutDeliverySection({
             [res.commune, res.wilaya_name].filter(Boolean).join(" · "))
           : null;
         if (alive && label) {
-          onChange({ ...value, customAddressText: label });
+          onChange({ ...valueRef.current, customAddressText: label });
           void recordPlacePick({ lat: cpLat, lng: cpLng, label });
         }
       } finally {
