@@ -82,10 +82,12 @@ export default async function CustomerHomePage() {
       getMyFavoriteIds(),
     ]);
 
-  // Contexte de classement (promoIds + orderCounts30d + poids + coords client).
+  // Contexte de classement (promoIds + orderCounts30d + poids + coords client
+  // + favoris = signal contexte utilisateur, sans effet si le client n'en a pas).
   const rankingCtx = await loadRankingContext({
     merchantIds: fallback.map((m) => m.id),
     customer: customerCoords,
+    favoriteIds,
   });
   const promoIds = rankingCtx.promoIds;
 

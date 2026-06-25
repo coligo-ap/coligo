@@ -1,22 +1,27 @@
 // =============================================================================
 // Algorithme de classement des commerçants — score composite déterministe.
 // =============================================================================
-// 5 signaux (poids ajustables) :
+// Signaux (poids ajustables) :
 //   - rating   (note moyenne) ........ poids 30 %
 //   - popular  (commandes 30j) ....... poids 25 %
 //   - promo    (promo active) ........ poids 15 %
 //   - distance (proximité GPS) ....... poids 20 %  (si lat/lng client connu)
 //   - open     (ouvert maintenant) ... poids 10 %  (Africa/Algiers)
+//   - favorite (contexte client) ..... poids 15 %  (UNIQUEMENT si le client a
+//                des favoris — sinon le signal est totalement neutralisé : un
+//                client sans favoris est classé EXACTEMENT comme avant)
 //
 // Le score final est dans [0, 1]. Formule explicite, signaux authentiques
 // (non manipulables côté client : tous viennent de la DB sauf la position
-// du client qu'on utilise uniquement pour la distance).
+// du client qu'on utilise uniquement pour la distance, et ses favoris).
 //
 // Les poids sont configurables via platform_settings.ranking_weights (JSONB)
 // si présent. Si absent, on tombe sur DEFAULT_WEIGHTS.
 //
-// ⚠️ Si le client n'a PAS de coords (latitude/longitude null), la composante
-// distance est neutralisée (poids redistribué proportionnellement aux autres).
+// ⚠️ ENRICHISSEMENT CONTRÔLÉ (sans remplacer la base) : un signal n'entre dans
+// la composition QUE si sa donnée est disponible (distance ⇢ coords client,
+// favorite ⇢ au moins un favori). Le poids des signaux absents est redistribué
+// proportionnellement → aucune régression pour les sessions sans coords/favori.
 // =============================================================================
 
 import { createClient } from "@/lib/supabase/server";
@@ -29,6 +34,7 @@ export type RankingWeights = {
   promo: number;
   distance: number;
   open: number;
+  favorite: number;
 };
 
 export const DEFAULT_WEIGHTS: RankingWeights = {
@@ -37,12 +43,15 @@ export const DEFAULT_WEIGHTS: RankingWeights = {
   promo: 0.15,
   distance: 0.2,
   open: 0.1,
+  favorite: 0.15,
 };
 
 export type RankingContext = {
   promoIds: Set<string>;
   orderCounts30d: Map<string, number>;
   customer: { latitude: number | null; longitude: number | null } | null;
+  /** Favoris du client (contexte utilisateur) — vide si anon / aucun favori. */
+  favoriteIds: Set<string>;
   weights: RankingWeights;
 };
 
@@ -55,6 +64,8 @@ export type RankingContext = {
 export async function loadRankingContext(opts: {
   merchantIds: string[];
   customer: { latitude: number | null; longitude: number | null } | null;
+  /** Favoris du client (signal contexte). Optionnel → set vide par défaut. */
+  favoriteIds?: Set<string>;
 }): Promise<RankingContext> {
   const supabase = await createClient();
 
@@ -97,6 +108,7 @@ export async function loadRankingContext(opts: {
     promoIds,
     orderCounts30d,
     customer: opts.customer,
+    favoriteIds: opts.favoriteIds ?? new Set(),
     weights,
   };
 }
@@ -149,28 +161,27 @@ export function computeMerchantScore(
   // Signal 5 : ouvert maintenant (Africa/Algiers)
   const open = isOpenNow(merchant.opening_hours, nowInAlgiers()) ? 1 : 0;
 
-  // Composition avec redistribution si distance neutralisée.
-  if (distance === null) {
-    const total = w.rating + w.popular + w.promo + w.open;
-    if (total === 0) return 0;
-    return (
-      (rating * w.rating +
-        popular * w.popular +
-        promo * w.promo +
-        open * w.open) /
-      total
-    );
-  }
-  const total = w.rating + w.popular + w.promo + w.distance + w.open;
+  // Signal 6 : favori du client (contexte utilisateur). N'entre dans la
+  // composition QUE si le client a au moins un favori → un client sans favoris
+  // a un score STRICTEMENT identique à l'algo d'origine (aucune régression).
+  const hasFavoriteContext = ctx.favoriteIds.size > 0;
+  const favorite = ctx.favoriteIds.has(merchant.id) ? 1 : 0;
+
+  // Composition : on n'inclut un signal QUE si sa donnée existe (distance ⇢
+  // coords, favorite ⇢ favoris), et on redistribue le poids des absents en
+  // normalisant par la somme des poids RÉELLEMENT actifs.
+  const parts: Array<[value: number, weight: number]> = [
+    [rating, w.rating],
+    [popular, w.popular],
+    [promo, w.promo],
+    [open, w.open],
+  ];
+  if (distance !== null) parts.push([distance, w.distance]);
+  if (hasFavoriteContext) parts.push([favorite, w.favorite]);
+
+  const total = parts.reduce((s, [, weight]) => s + weight, 0);
   if (total === 0) return 0;
-  return (
-    (rating * w.rating +
-      popular * w.popular +
-      promo * w.promo +
-      distance * w.distance +
-      open * w.open) /
-    total
-  );
+  return parts.reduce((s, [value, weight]) => s + value * weight, 0) / total;
 }
 
 /**
@@ -244,5 +255,6 @@ function parseWeights(raw: unknown): RankingWeights {
     promo: get("promo"),
     distance: get("distance"),
     open: get("open"),
+    favorite: get("favorite"),
   };
 }

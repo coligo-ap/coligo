@@ -19,6 +19,16 @@ export type CustomerLocation = {
    * compte. `null` si seule une wilaya/commune a été choisie manuellement.
    */
   address: string | null;
+  /**
+   * Origine de la position :
+   *   - "gps"    : détectée automatiquement → peut être RAFRAÎCHIE en arrière-
+   *                plan au démarrage / à la reprise (position temps réel) ;
+   *   - "manual" : zone/adresse CHOISIE par le client → ne JAMAIS l'écraser
+   *                automatiquement (il a explicitement décidé) ;
+   *   - null     : legacy (avant ce champ) → traité comme « ne pas rafraîchir »
+   *                par prudence (on ne sait pas si c'était un choix manuel).
+   */
+  source: "gps" | "manual" | null;
   /** ISO date du dernier set (debug / "à jour depuis…"). */
   updated_at: string;
 };
@@ -37,6 +47,7 @@ export function readStoredLocation(): CustomerLocation | null {
       latitude: parsed.latitude ?? null,
       longitude: parsed.longitude ?? null,
       address: parsed.address ?? null,
+      source: parsed.source ?? null,
       updated_at: parsed.updated_at ?? new Date().toISOString(),
     };
   } catch {
@@ -52,6 +63,7 @@ export function writeStoredLocation(loc: Partial<CustomerLocation>): void {
     latitude: null,
     longitude: null,
     address: null,
+    source: null,
     updated_at: new Date().toISOString(),
   };
   const merged: CustomerLocation = {

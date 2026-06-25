@@ -148,6 +148,8 @@ export function LocationPicker({ onClose, initial }: Props) {
         wilaya_code: w,
         commune: c,
         address,
+        // Choix EXPLICITE du client → jamais écrasé par le refresh GPS auto.
+        source: "manual",
       });
       await updateCustomerLocation({
         wilaya_code: w,

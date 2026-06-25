@@ -58,6 +58,8 @@ export async function detectAndStoreLocation(opts?: {
     wilaya_code: wilayaCode,
     commune,
     address,
+    // Position GPS → éligible au rafraîchissement temps réel en arrière-plan.
+    source: "gps",
   });
 
   // Sync DB si connecté (no-op silencieux sinon).

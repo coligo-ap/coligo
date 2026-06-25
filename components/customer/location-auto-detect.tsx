@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   readStoredLocation,
   writeStoredLocation,
@@ -12,133 +12,189 @@ import {
 } from "@/app/(customer)/actions";
 // Libellé d'adresse PRÉCIS (rue/quartier) pour le header.
 import { reverseGeocode as reverseGeocodeAddress } from "@/lib/geo/geocode";
+import { haversineKm } from "@/lib/delivery/distance";
+import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 
 // =============================================================================
-// LocationAutoDetect — tente une détection silencieuse au chargement.
+// LocationAutoDetect — position GPS en arrière-plan : acquisition + refresh.
 // =============================================================================
-// Stratégie (sans bandeau ni prompt intrusif) :
-//   1. Si une wilaya est déjà stockée → no-op (l'ancienne position est gardée
-//      et la home filtre dessus comme avant).
-//   2. Sinon, on lit l'état de la permission Geolocation :
-//        - "granted"  → on tente getPosition() silencieusement.
-//        - "prompt"   → on tente quand même (un seul prompt navigateur, à la
-//          première visite). Si refusé, on n'insiste plus (`auto-skip` flag).
-//        - "denied"   → on ne touche à rien, le bandeau legacy reste visible.
-//   3. Coords obtenues → reverseGeocode → on stocke wilaya/commune/coords.
+// Objectif (style Uber) : dès l'ouverture de l'app — ET surtout quand le client
+// REVIENT après l'avoir fermée/mise en arrière-plan — récupérer/mettre à jour
+// sa position EXACTE de façon transparente, pour que les règles de zone
+// (proximité, tri, filtres, préchargement) s'appliquent sur une position FRAÎCHE.
 //
-// La home (`MarketplaceGrid`) écoute l'event `coligo:location:change` et
-// rafraîchit automatiquement la liste des commerces dès qu'on écrit.
+// Deux modes :
+//   1. ACQUISITION (aucune position connue) : tentative silencieuse si la
+//      permission est "granted", un seul prompt si "prompt". On n'impose jamais
+//      un dialog surprise ("unknown"/Safari → on attend un geste via le bandeau).
+//   2. REFRESH (position GPS déjà connue) : à chaque montage + à chaque reprise
+//      au premier plan (`useResumeResync`), on relit la position SILENCIEUSEMENT
+//      (jamais de prompt) si la permission est "granted", et on met à jour la
+//      zone si le client a bougé. Throttlé pour ne pas marteler le GPS/géocodage.
+//
+// Une position CHOISIE manuellement (source "manual") n'est JAMAIS écrasée : le
+// client a explicitement décidé de sa zone. Les entrées legacy (source null) ne
+// sont pas rafraîchies non plus, par prudence.
+//
+// Tout écrit via `writeStoredLocation` émet `coligo:location:change` → la home
+// (`MarketplaceGrid` via TanStack Query) re-classe par proximité et le header se
+// met à jour, sans rechargement de page.
 // =============================================================================
 
 const AUTO_SKIP_KEY = "coligo:geo:auto-skip";
+// Ne pas rafraîchir plus d'une fois par fenêtre (reprises groupées au focus).
+const REFRESH_THROTTLE_MS = 45_000;
+// En deçà de ce déplacement, on NE réécrit PAS (évite un refetch inutile).
+const MIN_MOVE_KM = 0.05; // 50 m
+
+/** État de la permission Geolocation (sans jamais déclencher de prompt). */
+async function readPermission(): Promise<PermissionState | "unknown"> {
+  try {
+    if (navigator.permissions?.query) {
+      const status = await navigator.permissions.query({
+        name: "geolocation" as PermissionName,
+      });
+      return status.state;
+    }
+  } catch {
+    /* Permissions API indisponible (Safari iOS ≤ 15) */
+  }
+  return "unknown";
+}
+
+/**
+ * Reverse-géocode + persiste une position GPS (localStorage + DB si connecté).
+ * `source: "gps"` → la position reste éligible aux refreshs ultérieurs.
+ */
+async function persistGpsPosition(latitude: number, longitude: number) {
+  // Wilaya + commune (best-effort).
+  let geo;
+  try {
+    geo = await reverseGeocode({ latitude, longitude });
+  } catch {
+    geo = { ok: false } as const;
+  }
+  const wilayaCode = geo.ok ? (geo.wilaya_code ?? null) : null;
+  const commune = geo.ok ? (geo.commune ?? null) : null;
+
+  // Adresse exacte lisible (best-effort) pour le header.
+  let address: string | null = null;
+  try {
+    address = await reverseGeocodeAddress(latitude, longitude);
+  } catch {
+    /* géocodage indispo : le header retombe sur commune · wilaya */
+  }
+
+  writeStoredLocation({
+    latitude,
+    longitude,
+    wilaya_code: wilayaCode,
+    commune,
+    address,
+    source: "gps",
+  });
+
+  // Sync DB si l'user est connecté (no-op silencieux sinon).
+  try {
+    await updateCustomerLocation({
+      latitude,
+      longitude,
+      wilaya_code: wilayaCode,
+      commune,
+    });
+  } catch {
+    /* offline / RLS — on garde la version locale */
+  }
+}
 
 export function LocationAutoDetect() {
-  const startedRef = useRef(false);
+  // Sérialise les passages (un seul GPS en vol à la fois) + throttle temporel.
+  const inFlightRef = useRef(false);
+  const lastRunRef = useRef(0);
 
-  useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
+  const run = useCallback(async (allowPrompt: boolean) => {
+    if (typeof window === "undefined") return;
+    if (!geolocationSupported()) return;
+    if (inFlightRef.current) return;
+    if (Date.now() - lastRunRef.current < REFRESH_THROTTLE_MS) return;
 
-    void (async () => {
-      // 1) Déjà une wilaya stockée → on garde l'ancienne position.
-      const current = readStoredLocation();
-      if (current?.wilaya_code) return;
+    const current = readStoredLocation();
 
-      // 2) Permissions navigateur.
-      if (!geolocationSupported()) return;
-      if (typeof window === "undefined") return;
+    // Une zone choisie manuellement (ou une entrée legacy) ne se rafraîchit pas
+    // automatiquement : le client a décidé, on ne lui reprend pas la main.
+    const hasPosition =
+      !!current && (current.latitude != null || !!current.wilaya_code);
+    if (hasPosition && current?.source !== "gps") return;
+
+    const permission = await readPermission();
+
+    if (!hasPosition) {
+      // ACQUISITION. Refusé → bandeau legacy. Inconnu (Safari) → pas de prompt
+      // surprise. Prompt → seulement sur un montage (jamais sur une reprise).
+      if (permission === "denied") return;
+      if (permission === "unknown") return;
+      if (permission === "prompt" && !allowPrompt) return;
       if (window.localStorage.getItem(AUTO_SKIP_KEY) === "1") return;
+    } else {
+      // REFRESH SILENCIEUX : uniquement si déjà autorisé (jamais de prompt).
+      if (permission !== "granted") return;
+    }
 
-      let state: PermissionState | "unknown" = "unknown";
-      try {
-        if (navigator.permissions?.query) {
-          const status = await navigator.permissions.query({
-            name: "geolocation" as PermissionName,
-          });
-          state = status.state;
-        }
-      } catch {
-        // Permissions API indisponible (Safari iOS ≤ 15) → on saute en mode
-        // "prompt" passif : on ne tente pas (évite le dialog surprise).
-        state = "unknown";
-      }
-
-      // Si le navigateur sait que c'est refusé → rien à faire, on laisse le
-      // bandeau legacy reprendre la main.
-      if (state === "denied") return;
-      // Si on ne sait pas (Safari) → on ne déclenche PAS de prompt natif
-      // surprise au load. L'utilisateur peut toujours cliquer le bandeau.
-      if (state === "unknown") return;
-
-      // 3) Tentative GPS — silencieuse si "granted", un seul prompt si
-      // "prompt". On évite enableHighAccuracy au load pour rester rapide.
+    inFlightRef.current = true;
+    lastRunRef.current = Date.now();
+    try {
       let coords;
       try {
+        // Rapide (pas de haute précision au load) ; tolère une position récente.
         coords = await getPosition({
           enableHighAccuracy: false,
           timeout: 8_000,
           maximumAge: 60_000,
         });
       } catch {
-        // Permission refusée ou indispo → on mémorise pour ne pas redemander
-        // à chaque page de la session.
-        try {
-          window.localStorage.setItem(AUTO_SKIP_KEY, "1");
-        } catch {
-          /* localStorage plein / privé — ignore */
+        // Acquisition refusée → on n'insiste plus de la session. Refresh échoué
+        // (permission accordée) → on ne désactive rien, on retentera à la reprise.
+        if (!hasPosition) {
+          try {
+            window.localStorage.setItem(AUTO_SKIP_KEY, "1");
+          } catch {
+            /* localStorage plein / privé — ignore */
+          }
         }
         return;
       }
 
-      // 4) Reverse-geocode → wilaya + commune (best-effort).
-      let geo;
-      try {
-        geo = await reverseGeocode({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-        });
-      } catch {
-        geo = { ok: false } as const;
-      }
-
-      const wilayaCode = geo.ok ? (geo.wilaya_code ?? null) : null;
-      const commune = geo.ok ? (geo.commune ?? null) : null;
-
-      // Adresse exacte lisible (best-effort) → le header affiche d'emblée la
-      // position précise détectée, pas seulement la zone.
-      let address: string | null = null;
-      try {
-        address = await reverseGeocodeAddress(
-          coords.latitude,
-          coords.longitude
+      // Refresh : si le client n'a quasiment pas bougé, on évite le re-géocodage
+      // et le refetch (pas de churn). On rafraîchit quand même la zone si elle
+      // manquait (coords sans wilaya).
+      if (
+        hasPosition &&
+        current?.latitude != null &&
+        current?.longitude != null &&
+        current?.wilaya_code
+      ) {
+        const movedKm = haversineKm(
+          { lat: current.latitude, lng: current.longitude },
+          { lat: coords.latitude, lng: coords.longitude }
         );
-      } catch {
-        /* géocodage indispo : le header retombe sur commune · wilaya */
+        if (movedKm < MIN_MOVE_KM) return;
       }
 
-      // 5) On stocke (au minimum les coords, même si la wilaya n'a pas matché
-      // — la home pourra trier par proximité GPS).
-      writeStoredLocation({
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        wilaya_code: wilayaCode,
-        commune,
-        address,
-      });
-
-      // Sync DB si l'user est connecté (no-op silencieux sinon).
-      try {
-        await updateCustomerLocation({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          wilaya_code: wilayaCode,
-          commune,
-        });
-      } catch {
-        /* offline / RLS — on garde la version locale */
-      }
-    })();
+      await persistGpsPosition(coords.latitude, coords.longitude);
+    } finally {
+      inFlightRef.current = false;
+    }
   }, []);
+
+  // Au montage : acquisition (prompt autorisé) ou 1er refresh.
+  useEffect(() => {
+    void run(true);
+  }, [run]);
+
+  // À la reprise au premier plan (retour dans l'app) : refresh SILENCIEUX.
+  useResumeResync(() => {
+    void run(false);
+  });
 
   return null;
 }
