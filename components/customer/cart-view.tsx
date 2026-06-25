@@ -5,13 +5,16 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  BadgePercent,
+  ChevronUp,
   Gift,
   Minus,
   Plus,
   ShoppingCart,
+  Ticket,
   Trash2,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { cn, formatDA } from "@/lib/utils";
 import { clearCart, setItemQuantity, useCart } from "@/lib/customer/cart-store";
 import { computeCart, isPromotionActive } from "@/lib/promotions/engine";
@@ -23,11 +26,13 @@ import { APP_CONFIG } from "@/lib/config/app-config";
 import { useConfirm } from "@/components/ui/confirm";
 import { getCartPromotions } from "@/app/(customer)/cart/actions";
 import type { PublicPromotion } from "@/lib/data/customer-catalog";
-import { CartSavingsCard } from "./cart-savings-card";
 
 export function CartView() {
   const t = useTranslations("cart");
+  const locale = useLocale();
+  const isAr = locale === "ar";
   const confirm = useConfirm();
+  const [detailOpen, setDetailOpen] = useState(false);
   const cart = useCart();
   const empty = cart.items.length === 0;
 
@@ -121,9 +126,13 @@ export function CartView() {
     [promotions, settled]
   );
 
+  const units = cart.items.reduce((s, i) => s + i.quantity, 0);
   const subtotal = settled.subtotalDa;
   const savings = Math.max(0, settled.normalTotalDa - settled.subtotalDa);
   const cashbackGain = Math.round(subtotal * 0.03);
+  const hasDetail = promoSummary.applied.length > 0 || codePromos.length > 0;
+  const promoTitle = (p: { titleFr: string; titleAr: string | null }) =>
+    (isAr && p.titleAr) || p.titleFr;
 
   if (empty) {
     return (
@@ -334,47 +343,136 @@ export function CartView() {
         })}
       </div>
 
-      {/* Récapitulatif central : sous-total, économies, total à payer (toujours
-          visibles) + détail des promos repliable (fermé par défaut). */}
-      <CartSavingsCard
-        summary={promoSummary}
-        codePromos={codePromos}
-        normalTotalDa={settled.normalTotalDa}
-        subtotalDa={subtotal}
-      />
-
-      {/* Barre fixe en bas : CTA persistant avec le total intégré (style Uber). */}
+      {/* Barre fixe en bas : un seul card = détail repliable (ouverture vers le
+          haut) + cashback + récap sous-total/économies/total + bouton. */}
       <div className="border-border fixed inset-x-0 bottom-16 z-40 border-t bg-white px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
-        <div className="mx-auto max-w-[560px] space-y-2">
+        <div className="mx-auto max-w-[560px] space-y-2.5">
+          {/* Détail des promotions & économies — s'ouvre VERS LE HAUT. */}
+          {hasDetail && detailOpen && (
+            <div className="border-border bg-surface-2 max-h-[40vh] space-y-1.5 overflow-y-auto rounded-[12px] border p-2.5">
+              {promoSummary.applied.map((p) => (
+                <div
+                  key={p.id}
+                  className="bg-surface flex items-center gap-2.5 rounded-[10px] px-3 py-2"
+                >
+                  <span className="text-foreground min-w-0 flex-1">
+                    <span className="line-clamp-1 text-[12.5px] font-bold">
+                      {promoTitle(p)}
+                    </span>
+                    <span className="text-muted flex items-center gap-1 text-[10.5px] font-semibold">
+                      {p.type === "quantity_offer" ? (
+                        <>
+                          <Gift className="size-3 text-rose-500" />
+                          {t("freeApplied", { count: p.freeUnits })}
+                        </>
+                      ) : (
+                        <>
+                          <BadgePercent className="size-3 text-rose-500" />
+                          {t("productPromoLabel")}
+                        </>
+                      )}
+                    </span>
+                  </span>
+                  <span className="text-success-700 dark:text-success-400 shrink-0 text-[12.5px] font-black tabular-nums">
+                    −{formatDA(p.savingsDa)}
+                  </span>
+                </div>
+              ))}
+
+              {/* Codes promo dispo — appliqués à l'étape paiement. */}
+              {codePromos.length > 0 && (
+                <div className="px-1 pt-0.5">
+                  <span className="text-primary-700 dark:text-primary-300 flex items-center gap-1.5 text-[11px] font-bold">
+                    <Ticket className="size-3.5 text-rose-500" />
+                    {t("promoCodeHint")}
+                  </span>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {codePromos.map((p) => {
+                      const val =
+                        p.discount_kind === "percent"
+                          ? `−${p.discount_value} %`
+                          : `−${formatDA(p.discount_value ?? 0)}`;
+                      return (
+                        <span
+                          key={p.id}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10.5px] font-bold text-rose-700 dark:border-rose-500/40 dark:bg-rose-950/40 dark:text-rose-300"
+                        >
+                          <span className="font-mono font-black tracking-wider">
+                            {p.code}
+                          </span>
+                          <span className="font-black">{val}</span>
+                          {p.min_subtotal_da != null && (
+                            <span className="text-rose-500/80">
+                              ·{" "}
+                              {t("promoCodeFrom", {
+                                amount: formatDA(p.min_subtotal_da),
+                              })}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Toggle « Voir le détail des promotions et économies ». */}
+          {hasDetail && (
+            <button
+              type="button"
+              onClick={() => setDetailOpen((v) => !v)}
+              aria-expanded={detailOpen}
+              className="text-primary-700 dark:text-primary-300 flex w-full items-center justify-between gap-2 text-[12.5px] font-bold"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <BadgePercent className="size-4 text-rose-500" />
+                {t("promoDetailsToggle")}
+              </span>
+              <ChevronUp
+                className={cn(
+                  "size-4 transition-transform",
+                  detailOpen && "rotate-180"
+                )}
+              />
+            </button>
+          )}
+
           {cashbackGain > 0 && (
             <div className="bg-success-50 text-success-700 flex items-center gap-2 rounded-[10px] px-3 py-2 text-[12px] font-bold">
               <Gift className="size-4 shrink-0" />
               {t("cashbackGain", { amount: formatDA(cashbackGain) })}
             </div>
           )}
-          {savings > 0 && (
-            <p className="text-center text-[12px] font-bold text-rose-600 dark:text-rose-300">
-              {t("savings", { amount: formatDA(savings) })}
-            </p>
-          )}
-          <Link
-            href="/checkout"
-            className="bg-primary-600 hover:bg-primary-700 flex h-[54px] w-full items-center justify-between gap-2 rounded-[14px] px-5 text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"
-          >
-            <span className="inline-flex items-center gap-2 text-base font-extrabold">
-              {t("checkout")}
-              <ArrowRight className="size-5 rtl:-scale-x-100" />
-            </span>
-            <span className="flex items-baseline gap-2 leading-none">
+          <div className="flex items-center justify-between">
+            <span className="min-w-0">
+              <span className="text-muted block text-[13px] font-semibold">
+                {t("subtotalUnits", { count: units })}
+              </span>
               {savings > 0 && (
-                <span className="text-[12px] font-semibold text-white/60 tabular-nums line-through">
+                <span className="text-[11.5px] font-bold text-rose-600 dark:text-rose-300">
+                  {t("savings", { amount: formatDA(savings) })}
+                </span>
+              )}
+            </span>
+            <span className="flex flex-col items-end leading-none">
+              {savings > 0 && (
+                <span className="text-subtle mb-0.5 text-[12px] font-semibold tabular-nums line-through">
                   {formatDA(settled.normalTotalDa)}
                 </span>
               )}
-              <span className="text-[18px] font-black tabular-nums">
+              <span className="text-foreground text-[21px] font-black tracking-[-0.6px] tabular-nums">
                 {formatDA(subtotal)}
               </span>
             </span>
+          </div>
+          <Link
+            href="/checkout"
+            className="bg-primary-600 hover:bg-primary-700 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-base font-extrabold text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"
+          >
+            {t("checkout")}
+            <ArrowRight className="size-5 rtl:-scale-x-100" />
           </Link>
         </div>
       </div>

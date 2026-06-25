@@ -13,6 +13,7 @@ import { ChunkErrorReload } from "@/components/pwa/chunk-error-reload";
 import { CapacitorBootLog } from "@/components/pwa/capacitor-boot-log";
 import { AppUpdateBanner } from "@/components/pwa/app-update-banner";
 import { RouteProgressBar } from "@/components/shared/route-progress-bar";
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { Suspense } from "react";
 import "./globals.css";
 
@@ -200,6 +201,11 @@ export default async function RootLayout({
         <NextIntlClientProvider>
           <Suspense fallback={null}>
             <RouteProgressBar />
+          </Suspense>
+          {/* GA4 — web + APK. No-op si NEXT_PUBLIC_GA_ID absent. Suspense requis
+              car le suivi de page lit useSearchParams. */}
+          <Suspense fallback={null}>
+            <GoogleAnalytics />
           </Suspense>
           {children}
           <Toaster />
