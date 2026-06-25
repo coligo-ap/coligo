@@ -66,6 +66,62 @@ export function writeStoredLocation(loc: Partial<CustomerLocation>): void {
   );
 }
 
+// =============================================================================
+// Cache DÉPART Coligo Drive — séparé de la localisation marketplace ci-dessus
+// (qui peut être une adresse CHOISIE manuellement, à ne pas écraser). Ne sert
+// qu'à amorcer INSTANTANÉMENT le départ GPS à la réouverture de Drive (surtout
+// la PWA Drive ouverte directement) au lieu d'afficher « Localisation… ». Le
+// watch haute précision corrige ensuite la position actuelle.
+// =============================================================================
+
+const DRIVE_DEP_KEY = "coligo:drive:departure";
+
+export type DriveDeparture = {
+  latitude: number;
+  longitude: number;
+  address: string | null;
+  updated_at: string;
+};
+
+export function readDriveDeparture(): DriveDeparture | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(DRIVE_DEP_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as Partial<DriveDeparture>;
+    if (p.latitude == null || p.longitude == null) return null;
+    return {
+      latitude: p.latitude,
+      longitude: p.longitude,
+      address: p.address ?? null,
+      updated_at: p.updated_at ?? new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function writeDriveDeparture(
+  latitude: number,
+  longitude: number,
+  address: string | null
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      DRIVE_DEP_KEY,
+      JSON.stringify({
+        latitude,
+        longitude,
+        address,
+        updated_at: new Date().toISOString(),
+      })
+    );
+  } catch {
+    /* quota / mode privé : sans effet, on retombera sur le GPS */
+  }
+}
+
 /** Hook qui lit la localisation courante et se met à jour si elle change. */
 export function useCustomerLocation(): CustomerLocation | null {
   const [loc, setLoc] = useState<CustomerLocation | null>(null);

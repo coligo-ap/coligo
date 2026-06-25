@@ -29,7 +29,11 @@ import {
 import { cn, formatDA } from "@/lib/utils";
 import { getPosition, watchPosition } from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
-import { readStoredLocation } from "@/lib/customer/location-store";
+import {
+  readStoredLocation,
+  readDriveDeparture,
+  writeDriveDeparture,
+} from "@/lib/customer/location-store";
 import {
   geocodeSearch,
   listFavoritePlaces,
@@ -289,19 +293,38 @@ export function DriveView() {
     let bestAcc = Infinity;
     let lastFix: { lat: number; lng: number } | null = null;
     let lastRev: { lat: number; lng: number } | null = null;
-    // Amorçage INSTANTANÉ du départ depuis la dernière position connue
-    // (localStorage, partagée avec la marketplace) → au re-montage, le départ
-    // s'affiche tout de suite au lieu de « Localisation… », puis le GPS RÉEL
-    // (position actuelle) prend le dessus.
+    // Amorçage INSTANTANÉ du départ depuis la dernière position connue : d'abord
+    // le cache DÉPART de Drive (réouverture, surtout PWA), sinon la position
+    // marketplace partagée. → au montage, le départ s'affiche TOUT DE SUITE au
+    // lieu de « Localisation… », puis le GPS RÉEL (position actuelle) prend le
+    // dessus.
+    const driveDep = readDriveDeparture();
+    // On n'amorce depuis le cache Drive que s'il est RÉCENT (< 6 h) : au-delà le
+    // client a pu changer de zone → on laisse le GPS résoudre la position
+    // actuelle plutôt que d'afficher une vieille position.
+    const freshDriveDep =
+      driveDep &&
+      Date.now() - new Date(driveDep.updated_at).getTime() < 6 * 3_600_000
+        ? driveDep
+        : null;
     const stored = readStoredLocation();
-    if (stored?.latitude != null && stored?.longitude != null) {
+    const seed =
+      freshDriveDep ??
+      (stored?.latitude != null && stored?.longitude != null
+        ? {
+            latitude: stored.latitude,
+            longitude: stored.longitude,
+            address: stored.address,
+          }
+        : null);
+    if (seed) {
       setPickup((prev) =>
         prev
           ? prev
           : {
-              lat: stored.latitude!,
-              lng: stored.longitude!,
-              text: stored.address,
+              lat: seed.latitude,
+              lng: seed.longitude,
+              text: seed.address,
               gps: true,
             }
       );
@@ -337,15 +360,23 @@ export function DriveView() {
           setPickup((prev) =>
             prev?.gps ? { ...prev, text: r.display ?? null } : prev
           );
+          // On PERSISTE la position résolue (cache Drive) → à la prochaine
+          // ouverture de Coligo Drive le départ s'amorce INSTANTANÉMENT depuis ce
+          // cache au lieu de « Localisation… ».
+          writeDriveDeparture(lat, lng, r.display ?? null);
         })
         .catch(() => {});
     };
-    // maximumAge COURT : on veut la position ACTUELLE, pas un fix en cache de
-    // plusieurs minutes (qui renvoyait parfois une vieille position type Alger).
+    // DÉPART INSTANTANÉ : on accepte le DERNIER fix connu de l'OS (cache jusqu'à
+    // 5 min) → 0 ms s'il existe, la position s'affiche tout de suite sans attendre
+    // un fix frais (plus de « Localisation… », surtout en PWA Drive ouverte
+    // directement). C'est PROVISOIRE : le watch haute précision (maximumAge:0)
+    // ci-dessous récupère la position ACTUELLE exacte et, si le client a bougé,
+    // apply() remplace le fix en cache éloigné (anti « vieille position »).
     void getPosition({
       enableHighAccuracy: false,
-      timeout: 4_000,
-      maximumAge: 15_000,
+      timeout: 2_500,
+      maximumAge: 300_000,
     })
       .then((p) => apply(p.latitude, p.longitude, p.accuracy ?? 9_999))
       .catch(() => {
