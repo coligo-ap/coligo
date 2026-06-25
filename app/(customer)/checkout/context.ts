@@ -9,7 +9,7 @@ import {
   getMyTopupBalance,
 } from "@/lib/customer/cashback";
 import {
-  computeServiceFeeDa,
+  resolveServiceFeeDa,
   daUntilFreeServiceFee,
   parseTiers,
   type ServiceFeeTier,
@@ -479,9 +479,15 @@ export async function fetchCheckoutContext(
     topup_balance_da: topupBalance,
     cashback_rate_online: cashbackRateOnline,
     cashback_rate_cash: cashbackRateCash,
-    service_fee_da: computeServiceFeeDa(settled.totalDa, tiers),
+    // Éligibilité / gratuité sur le panier BRUT (avant promos) + garde-fou
+    // frais minimum si le net après promos devient très faible.
+    service_fee_da: resolveServiceFeeDa({
+      grossProductsDa: settled.normalTotalDa,
+      netProductsDa: settled.totalDa,
+      tiers,
+    }),
     service_fee_tiers: tiers,
-    service_fee_free_in_da: daUntilFreeServiceFee(settled.totalDa, tiers),
+    service_fee_free_in_da: daUntilFreeServiceFee(settled.normalTotalDa, tiers),
     delivery: deliveryCtx,
   };
 }

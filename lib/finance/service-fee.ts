@@ -47,6 +47,8 @@ export function computeServiceFeeDa(
 /**
  * Combien manque-t-il pour atteindre la livraison gratuite ?
  * Renvoie `null` si déjà gratuit (productsDa >= dernier upTo).
+ *
+ * À nourrir avec le panier BRUT (avant promotions) — cf. `resolveServiceFeeDa`.
  */
 export function daUntilFreeServiceFee(
   productsDa: number,
@@ -56,6 +58,57 @@ export function daUntilFreeServiceFee(
   const lastTier = tiers[tiers.length - 1];
   if (productsDa >= lastTier.upTo) return null;
   return lastTier.upTo - productsDa;
+}
+
+// =============================================================================
+// Garde-fou anti-abus — éligibilité sur le BRUT, frais minimum sur le NET.
+// =============================================================================
+// L'éligibilité aux paliers (et à la gratuité) se calcule sur le panier BRUT
+// (AVANT promotions) : plus simple à comprendre, meilleure UX — un panier de
+// 3 000 DA reste exonéré de frais de service même après une grosse promo.
+//
+// MAIS si le montant NET réellement à payer (APRÈS promotions) tombe très bas
+// (p. ex. 100 DA), une promo très agressive ne doit pas faire travailler la
+// plateforme à perte : on garantit alors un frais de service minimum couvrant
+// les coûts opérationnels. (Valeurs ajustables ; centralisables plus tard dans
+// platform_settings si besoin de pilotage admin.)
+// =============================================================================
+
+/** Net (après promos) en-dessous duquel le frais minimum s'applique. */
+export const DEFAULT_MIN_NET_FOR_FREE_DA = 200;
+/** Frais de service minimum garanti quand le net est anormalement bas. */
+export const DEFAULT_MIN_SERVICE_FEE_DA = 20;
+
+export type ResolveServiceFeeArgs = {
+  /** Panier BRUT, avant promotions — détermine le palier / la gratuité. */
+  grossProductsDa: number;
+  /** Montant NET à payer, après promotions — déclenche le garde-fou. */
+  netProductsDa: number;
+  tiers?: ServiceFeeTier[];
+  /** Seuil de net sous lequel le frais minimum s'applique. */
+  minNetForFeeDa?: number;
+  /** Frais de service minimum garanti. */
+  minServiceFeeDa?: number;
+};
+
+/**
+ * Frais de service final :
+ *   - palier calculé sur le BRUT (avant promos) → conserve la gratuité ;
+ *   - garde-fou « frais minimum » si le NET (après promos) devient très faible.
+ */
+export function resolveServiceFeeDa({
+  grossProductsDa,
+  netProductsDa,
+  tiers = DEFAULT_SERVICE_FEE_TIERS,
+  minNetForFeeDa = DEFAULT_MIN_NET_FOR_FREE_DA,
+  minServiceFeeDa = DEFAULT_MIN_SERVICE_FEE_DA,
+}: ResolveServiceFeeArgs): number {
+  const fee = computeServiceFeeDa(grossProductsDa, tiers);
+  // Net anormalement bas après une grosse promo → frais minimum garanti.
+  if (netProductsDa > 0 && netProductsDa < minNetForFeeDa) {
+    return Math.max(fee, Math.max(0, Math.round(minServiceFeeDa)));
+  }
+  return fee;
 }
 
 /**

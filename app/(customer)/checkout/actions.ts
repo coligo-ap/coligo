@@ -23,7 +23,7 @@ import {
   CHARGILY_MIN_AMOUNT_DA,
   resolveMinOrderDa,
 } from "@/lib/config/payment-limits";
-import { computeServiceFeeDa, parseTiers } from "@/lib/finance/service-fee";
+import { resolveServiceFeeDa, parseTiers } from "@/lib/finance/service-fee";
 import { notifyMerchantNewOrder, notifyDriversTour } from "@/lib/fcm/triggers";
 import {
   computeDeliveryFee,
@@ -602,12 +602,14 @@ export async function createOrder(
       : new Date(Date.now() + merchant.prep_time_min * 60_000);
 
   // ---------------------------------------------------------------------------
-  // 5a-bis. FRAIS DE SERVICE — calculés sur (subtotal - discount).
-  //   - cashback EXCLU des frais (on ne donne pas de cashback sur ses propres
-  //     frais ; on ne soustrait pas non plus le cashback du panier produits
-  //     pour le calcul des frais — c'est le ticket BRUT du commerçant qui
-  //     détermine le tier).
-  //   - tiers lus depuis platform_settings.service_fee_tiers (JSONB).
+  // 5a-bis. FRAIS DE SERVICE.
+  //   - ÉLIGIBILITÉ (palier + gratuité) calculée sur le panier BRUT, AVANT
+  //     promotions (normalTotalDa) : plus simple à comprendre, meilleure UX —
+  //     un gros panier reste exonéré même après une grosse promo.
+  //   - GARDE-FOU : si le NET réellement à payer après promos (totalDa) devient
+  //     très faible, un frais de service minimum s'applique (couvre les coûts
+  //     opérationnels, évite les abus sur promos très agressives).
+  //   - cashback EXCLU des frais ; tiers lus depuis platform_settings.
   //   - figé dans orders.service_fee_da. Source de vérité pour le trigger.
   // ---------------------------------------------------------------------------
   const { data: settingsRow } = await supabase
@@ -616,7 +618,7 @@ export async function createOrder(
     .eq("id", true)
     .maybeSingle();
   const serviceFeeTiers = parseTiers(settingsRow?.service_fee_tiers);
-  const productsDa = settled.totalDa; // = subtotal - discount, AVANT wallet
+  const productsDa = settled.totalDa; // NET après promos, AVANT wallet
 
   // Estimation cashback AFFICHÉE (display only ; le montant réellement versé est
   // recalculé par le trigger 0118 sur le panier net). On utilise les taux
@@ -626,7 +628,11 @@ export async function createOrder(
       ? Number(settingsRow?.cashback_online ?? 0.03)
       : Number(settingsRow?.cashback_cash ?? 0);
   const cashbackEstimate = Math.round(productsDa * cashbackRate);
-  let serviceFeeDa = computeServiceFeeDa(productsDa, serviceFeeTiers);
+  let serviceFeeDa = resolveServiceFeeDa({
+    grossProductsDa: settled.normalTotalDa, // éligibilité sur le brut (avant promo)
+    netProductsDa: productsDa, // garde-fou sur le net (après promo)
+    tiers: serviceFeeTiers,
+  });
 
   // PÉNALITÉ NO-SHOW (mig 0116) : si le client a un no-show non soldé, sa
   // prochaine commande a des frais de service RELEVÉS mais PLAFONNÉS à 100 DA
