@@ -34,6 +34,11 @@ import {
   formatDayRelative,
 } from "@/lib/customer/pickup-format";
 import { isOpenNow, normalizeOpeningHours } from "@/lib/merchant/opening-hours";
+import {
+  computeDeliveryFee,
+  computeTourDeliveryFee,
+} from "@/lib/delivery/pricing";
+import { haversineKm } from "@/lib/delivery/distance";
 import type { OpeningHours } from "@/lib/types";
 import {
   fetchCheckoutContext,
@@ -453,12 +458,36 @@ export function CheckoutView({
       ? (ctx.delivery.addresses.find((a) => a.id === delivery.addressId) ??
         null)
       : null;
+
+  // Frais d'une position custom (GPS « Ma position actuelle » / carte / lieu) —
+  // MÊME calcul que le serveur (createOrder) : barème express à la distance, ou
+  // prix de bande en tournée. Sans ça, le récap affichait 0 pour une position
+  // custom (alors que le serveur facture bien le frais). Calcul direct (pas de
+  // useMemo : on est APRÈS les early-returns, donc pas un hook).
+  const customDeliveryQuote = (() => {
+    if (delivery.fulfillment !== "delivery" || !delivery.customPosition) {
+      return null;
+    }
+    const mp = ctx.delivery.merchantPosition;
+    const pr = ctx.delivery.pricing;
+    if (!mp || !pr) return null;
+    const distKm = haversineKm(
+      { lat: mp.lat, lng: mp.lng },
+      delivery.customPosition
+    );
+    return delivery.mode === "tour"
+      ? computeTourDeliveryFee(distKm, ctx.delivery.tour_bands, pr, mp.radiusKm)
+      : computeDeliveryFee(distKm, pr, mp.radiusKm);
+  })();
+
   const deliveryFeeDa =
     selectedDeliveryAddr && !selectedDeliveryAddr.out_of_range
       ? delivery.mode === "tour"
         ? (selectedDeliveryAddr.tour_fee_da ?? selectedDeliveryAddr.fee_da ?? 0)
         : (selectedDeliveryAddr.fee_da ?? 0)
-      : 0;
+      : customDeliveryQuote && !customDeliveryQuote.outOfRange
+        ? customDeliveryQuote.feeDa
+        : 0;
 
   const hasValidDeliveryPosition =
     (selectedDeliveryAddr != null && !selectedDeliveryAddr.out_of_range) ||
