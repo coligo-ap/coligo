@@ -272,7 +272,7 @@ export function CartView() {
                   />
                 ) : null}
                 {hasDiscount && discountPct > 0 && (
-                  <span className="bg-coral-500 absolute start-1 top-1 rounded-full px-1.5 py-0.5 text-[8.5px] font-extrabold text-white shadow-sm">
+                  <span className="absolute start-1 top-1 rounded-full bg-rose-600 px-1.5 py-0.5 text-[8.5px] font-extrabold text-white shadow-sm">
                     −{discountPct}%
                   </span>
                 )}
@@ -288,7 +288,7 @@ export function CartView() {
                       className={cn(
                         "text-[15px] font-extrabold tabular-nums",
                         lineTotal < rawLineTotal
-                          ? "text-coral-600"
+                          ? "text-rose-600"
                           : "text-foreground"
                       )}
                     >
@@ -306,7 +306,7 @@ export function CartView() {
                 <p className="text-muted mt-0.5 text-xs font-semibold">
                   {hasDiscount ? (
                     <>
-                      <span className="text-coral-600 font-bold">
+                      <span className="font-bold text-rose-600">
                         {formatDA(appliedUnit)}
                       </span>{" "}
                       <span className="text-subtle line-through">
@@ -322,13 +322,13 @@ export function CartView() {
                 {(freeUnits > 0 || offer) && (
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
                     {freeUnits > 0 ? (
-                      <span className="bg-coral-500 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+                      <span className="inline-flex items-center gap-1 rounded-md bg-rose-600 px-1.5 py-0.5 text-[10px] font-extrabold text-white">
                         <Gift className="size-3" />
                         {t("freeApplied", { count: freeUnits })}
                       </span>
                     ) : (
                       offer && (
-                        <span className="bg-coral-50 text-coral-600 dark:bg-coral-700/30 dark:text-coral-300 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-extrabold text-rose-600 dark:bg-rose-950/40 dark:text-rose-300">
                           <Gift className="size-3" />
                           {t("buyGetLabel", { buy: offer.buy, get: offer.get })}
                         </span>
@@ -430,12 +430,12 @@ export function CartView() {
                     {b.hasDiscount && (
                       <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                         {b.discountPct > 0 && (
-                          <span className="bg-coral-500 rounded-md px-1.5 py-0.5 text-[9.5px] font-extrabold text-white">
+                          <span className="rounded-md bg-rose-600 px-1.5 py-0.5 text-[9.5px] font-extrabold text-white">
                             −{b.discountPct}%
                           </span>
                         )}
                         <span className="text-[10.5px] font-semibold">
-                          <span className="text-coral-600 font-bold">
+                          <span className="font-bold text-rose-600">
                             {formatDA(b.appliedUnit)}
                           </span>{" "}
                           <span className="text-subtle line-through">
@@ -447,7 +447,7 @@ export function CartView() {
 
                     {/* Avantage « offre quantité » : N offert(s). */}
                     {b.freeUnits > 0 && (
-                      <span className="bg-coral-50 text-coral-600 dark:bg-coral-700/30 dark:text-coral-300 mt-0.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold">
+                      <span className="mt-0.5 inline-flex items-center gap-1 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-extrabold text-rose-600 dark:bg-rose-950/40 dark:text-rose-300">
                         <Gift className="size-3" />
                         {t("freeApplied", { count: b.freeUnits })}
                       </span>
@@ -471,7 +471,7 @@ export function CartView() {
               {codePromos.length > 0 && (
                 <div className="px-1 pt-0.5">
                   <span className="text-primary-700 dark:text-primary-300 flex items-center gap-1.5 text-[11px] font-bold">
-                    <Ticket className="text-coral-500 size-3.5" />
+                    <Ticket className="size-3.5 text-rose-600" />
                     {t("promoCodeHint")}
                   </span>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -483,14 +483,14 @@ export function CartView() {
                       return (
                         <span
                           key={p.id}
-                          className="border-coral-100 bg-coral-50 text-coral-700 dark:border-coral-500/40 dark:bg-coral-700/30 dark:text-coral-300 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] font-bold"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-rose-100 bg-rose-50 px-2.5 py-1 text-[10.5px] font-bold text-rose-700 dark:border-rose-500/40 dark:bg-rose-950/40 dark:text-rose-300"
                         >
                           <span className="font-mono font-black tracking-wider">
                             {p.code}
                           </span>
                           <span className="font-black">{val}</span>
                           {p.min_subtotal_da != null && (
-                            <span className="text-coral-500/80">
+                            <span className="text-rose-500/80">
                               ·{" "}
                               {t("promoCodeFrom", {
                                 amount: formatDA(p.min_subtotal_da),
@@ -515,7 +515,7 @@ export function CartView() {
               className="text-primary-700 dark:text-primary-300 flex w-full items-center justify-between gap-2 text-[12.5px] font-bold"
             >
               <span className="inline-flex items-center gap-1.5">
-                <BadgePercent className="text-coral-500 size-4" />
+                <BadgePercent className="size-4 text-rose-600" />
                 {t("promoDetailsToggle")}
               </span>
               <ChevronUp
@@ -539,7 +539,7 @@ export function CartView() {
                 {t("subtotalUnits", { count: units })}
               </span>
               {savings > 0 && (
-                <span className="text-coral-600 dark:text-coral-300 text-[11.5px] font-bold">
+                <span className="text-[11.5px] font-bold text-rose-600 dark:text-rose-300">
                   {t("savings", { amount: formatDA(savings) })}
                 </span>
               )}

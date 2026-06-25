@@ -142,7 +142,7 @@ export function ProductRow({
           </div>
         )}
         {hasPromo && promoPct > 0 && (
-          <span className="absolute top-1 left-1 z-10 rounded-[6px] bg-[#FF5A3C] px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow-sm">
+          <span className="absolute top-1 left-1 z-10 rounded-[6px] bg-rose-600 px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow-sm">
             −{promoPct}%
           </span>
         )}

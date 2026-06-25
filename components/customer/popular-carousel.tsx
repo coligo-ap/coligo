@@ -173,7 +173,7 @@ export function PopCard({
         {/* Badges (haut-start) : réduction % et/ou « offert » (empilés). */}
         <div className="absolute start-2 top-2 flex flex-col items-start gap-1">
           {hasPromo && promoPct > 0 && (
-            <span className="bg-coral-500 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
+            <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
               −{promoPct}%
             </span>
           )}
