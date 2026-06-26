@@ -515,7 +515,7 @@ export function CartView() {
               className="text-primary-700 dark:text-primary-300 flex w-full items-center justify-between gap-2 text-[12.5px] font-bold"
             >
               <span className="inline-flex items-center gap-1.5">
-                <BadgePercent className="text-primary-700 dark:text-primary-300 size-4" />
+                <BadgePercent className="text-accent-600 size-4" />
                 {t("promoDetailsToggle")}
               </span>
               <ChevronUp
