@@ -31,6 +31,9 @@ export async function fetchCatalog(): Promise<{
          is_available, created_at, updated_at,
          categories ( id, title )`
       )
+      // Les produits archivés (supprimés par le commerçant) restent en base
+      // pour la traçabilité mais ne s'affichent plus dans le catalogue.
+      .is("archived_at", null)
       .order("position", { ascending: true })
       .order("created_at", { ascending: false }),
     supabase
@@ -186,20 +189,60 @@ export async function bulkSetAvailability(
   return {};
 }
 
-/** Supprime un ou plusieurs produits (sans redirection). */
+/**
+ * « Supprime » un ou plusieurs produits = ARCHIVAGE DOUX (sans redirection).
+ *
+ * On ne fait JAMAIS de hard delete : la fiche produit est conservée pour la
+ * traçabilité. Les ventes passées sont déjà figées dans order_items (snapshot
+ * du nom + des prix, aucune FK vers products) → finances/commissions/Coligo Pay
+ * ne bougent pas d'un centime. L'archivage rend le produit invisible :
+ *   • côté commerçant : filtre archived_at IS NULL dans fetchCatalog ;
+ *   • côté client      : is_available=false (la RLS publique exige true).
+ * La photo est supprimée du storage pour ne pas accumuler de fichiers inutiles
+ * (le produit archivé n'a plus besoin de son image).
+ */
 export async function deleteProducts(
   productIds: string[]
 ): Promise<{ error?: string }> {
   if (productIds.length === 0) return {};
   const supabase = await createClient();
+
+  // 1) Récupère les images à libérer (RLS-scopé sur le commerçant connecté).
+  const { data: rows } = await supabase
+    .from("products")
+    .select("image_url")
+    .in("id", productIds)
+    .not("image_url", "is", null);
+
+  // 2) Archive : conservé en base, invisible partout.
   const { error } = await supabase
     .from("products")
-    .delete()
+    .update({ archived_at: new Date().toISOString(), is_available: false })
     .in("id", productIds);
-
   if (error) return { error: error.message };
+
+  // 3) Nettoyage des photos du bucket `products` (best-effort, non bloquant).
+  const paths = (rows ?? [])
+    .map((r) => storagePathFromPublicUrl(r.image_url))
+    .filter((p): p is string => !!p);
+  if (paths.length > 0) {
+    await supabase.storage.from("products").remove(paths);
+  }
+
   revalidatePath("/catalog");
   return {};
+}
+
+/**
+ * Extrait le chemin interne ({merchantId}/uuid.ext) d'une URL publique Storage
+ * du bucket `products` (…/object/public/products/<path>). null si non reconnu.
+ */
+function storagePathFromPublicUrl(url: string | null): string | null {
+  if (!url) return null;
+  const prefix = "/object/public/products/";
+  const i = url.indexOf(prefix);
+  if (i === -1) return null;
+  return url.slice(i + prefix.length).split("?")[0] || null;
 }
 
 /**

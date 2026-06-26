@@ -36,6 +36,7 @@ export default async function EditProductPage({
        price_da, unit, category, image_url, is_available, created_at, updated_at`
     )
     .eq("id", id)
+    .is("archived_at", null)
     .maybeSingle();
 
   if (!product) notFound();
