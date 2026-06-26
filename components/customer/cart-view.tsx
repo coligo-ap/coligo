@@ -259,7 +259,7 @@ export function CartView() {
 
           return (
             <div
-              key={item.product_id}
+              key={item.line_key}
               className="border-border bg-surface flex items-center gap-3 rounded-[16px] border p-3 shadow-sm"
             >
               <div className="bg-surface-2 relative size-[58px] shrink-0 overflow-hidden rounded-[12px]">
@@ -301,6 +301,13 @@ export function CartView() {
                     )}
                   </div>
                 </div>
+
+                {/* Options/variantes choisies. */}
+                {item.options && item.options.length > 0 && (
+                  <p className="text-muted mt-0.5 line-clamp-2 text-[11px] font-medium">
+                    {item.options.map((o) => o.option_name_fr).join(" · ")}
+                  </p>
+                )}
 
                 {/* Prix unitaire (barré si réduction). */}
                 <p className="text-muted mt-0.5 text-xs font-semibold">
@@ -347,7 +354,7 @@ export function CartView() {
                 <button
                   type="button"
                   onClick={() =>
-                    setItemQuantity(item.product_id, item.quantity - 1)
+                    setItemQuantity(item.line_key, item.quantity - 1)
                   }
                   aria-label={
                     item.quantity === 1 ? t("remove") : t("removeOne")
@@ -369,7 +376,7 @@ export function CartView() {
                 <button
                   type="button"
                   onClick={() =>
-                    setItemQuantity(item.product_id, item.quantity + 1)
+                    setItemQuantity(item.line_key, item.quantity + 1)
                   }
                   aria-label={t("addOne")}
                   className="text-primary-700 flex size-9 items-center justify-center rounded-full"

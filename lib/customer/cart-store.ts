@@ -24,14 +24,67 @@ import { trackAddToCart } from "@/lib/analytics/ecommerce";
 //   - Migration douce depuis l'ancien format (one-cart) : on lit la clé
 //     historique au boot et on convertit en {by_merchant, active_merchant_id}.
 
+/** Une option/variante choisie sur une ligne (snapshot de libellés + delta). */
+export type SelectedOption = {
+  /** Id de l'option (pour la revalidation serveur — jamais le prix client). */
+  option_id: string;
+  group_id: string;
+  group_name_fr: string;
+  group_name_ar: string | null;
+  option_name_fr: string;
+  option_name_ar: string | null;
+  price_delta_da: number;
+};
+
 export type CartItem = {
   product_id: string;
+  /**
+   * Clé de LIGNE = product_id + signature des options choisies. Deux
+   * combinaisons d'options d'un même produit = deux lignes distinctes. Sert de
+   * clé de fusion / quantité / suppression (et non plus le seul product_id).
+   */
+  line_key: string;
   name: string;
+  /** Nom AR (snapshot, pour le ticket bilingue + affichage). */
+  name_ar?: string | null;
+  /** Prix unitaire EFFECTIF = prix de base + Σ deltas des options. */
   unit_price_da: number;
   quantity: number;
   image_url?: string | null;
   category_title?: string | null;
+  /** Options/variantes choisies (vide pour un produit simple). */
+  options?: SelectedOption[];
 };
+
+/** Entrée d'ajout au panier (line_key calculée par le store, pas par l'appelant). */
+export type AddItemInput = {
+  product_id: string;
+  name: string;
+  name_ar?: string | null;
+  /** Prix unitaire EFFECTIF (base + options). */
+  unit_price_da: number;
+  quantity?: number;
+  image_url?: string | null;
+  category_title?: string | null;
+  options?: SelectedOption[];
+};
+
+/**
+ * Clé de ligne stable : product_id seul si pas d'options, sinon product_id +
+ * signature triée des options (groupe:option). Indépendante de l'ordre de
+ * sélection.
+ */
+export function lineKeyFor(
+  productId: string,
+  options?: SelectedOption[]
+): string {
+  if (!options || options.length === 0) return productId;
+  const sig = options
+    .map((o) => `${o.group_name_fr}=${o.option_name_fr}`)
+    .sort()
+    .join("|");
+  return `${productId}#${sig}`;
+}
 
 export type CartMode = "pickup" | "delivery";
 
@@ -82,6 +135,26 @@ function broadcast(store: Store) {
  *   - Ancien (prompt 13/14) : { merchant_id, merchant_slug, merchant_name,
  *     items, updated_at } — converti à la volée.
  */
+/**
+ * Backfill des `line_key` manquantes (paniers d'avant les options) : un item
+ * sans line_key reçoit product_id (+ signature options s'il en a). Idempotent.
+ */
+function ensureLineKeys(store: Store): Store {
+  let changed = false;
+  const by: Record<string, Cart> = {};
+  for (const [mid, cart] of Object.entries(store.by_merchant)) {
+    let cartChanged = false;
+    const items = cart.items.map((i) => {
+      if (i.line_key) return i;
+      cartChanged = true;
+      changed = true;
+      return { ...i, line_key: lineKeyFor(i.product_id, i.options) };
+    });
+    by[mid] = cartChanged ? { ...cart, items } : cart;
+  }
+  return changed ? { ...store, by_merchant: by } : store;
+}
+
 function readStore(): Store {
   if (typeof window === "undefined") return EMPTY_STORE;
   try {
@@ -91,10 +164,10 @@ function readStore(): Store {
 
     // Nouveau format
     if (parsed && typeof parsed === "object" && "by_merchant" in parsed) {
-      return {
+      return ensureLineKeys({
         active_merchant_id: parsed.active_merchant_id ?? null,
         by_merchant: parsed.by_merchant ?? {},
-      };
+      });
     }
 
     // Ancien format → migration
@@ -109,10 +182,10 @@ function readStore(): Store {
           items: old.items,
           updated_at: old.updated_at ?? new Date().toISOString(),
         };
-        return {
+        return ensureLineKeys({
           active_merchant_id: old.merchant_id,
           by_merchant: { [old.merchant_id]: cart },
-        };
+        });
       }
     }
     return EMPTY_STORE;
@@ -163,7 +236,7 @@ export function addItem(
     name: string;
     logo_url?: string | null;
   },
-  item: Omit<CartItem, "quantity"> & { quantity?: number }
+  item: AddItemInput
 ): { ok: true } {
   const store = readStore();
   const qty = Math.max(1, Math.floor(item.quantity ?? 1));
@@ -177,8 +250,10 @@ export function addItem(
     updated_at: new Date().toISOString(),
   };
 
+  const lineKey = lineKeyFor(item.product_id, item.options);
   const items = [...current.items];
-  const existing = items.findIndex((i) => i.product_id === item.product_id);
+  // Fusion par LIGNE (product_id + options), pas seulement par produit.
+  const existing = items.findIndex((i) => i.line_key === lineKey);
   if (existing >= 0) {
     items[existing] = {
       ...items[existing],
@@ -187,11 +262,14 @@ export function addItem(
   } else {
     items.push({
       product_id: item.product_id,
+      line_key: lineKey,
       name: item.name,
+      name_ar: item.name_ar ?? null,
       unit_price_da: item.unit_price_da,
       quantity: qty,
       image_url: item.image_url ?? null,
       category_title: item.category_title ?? null,
+      options: item.options && item.options.length ? item.options : undefined,
     });
   }
 
@@ -261,8 +339,11 @@ export function setCartMode(
   });
 }
 
-/** Modifie la quantité d'un produit dans le panier ACTIF. qty <= 0 supprime. */
-export function setItemQuantity(productId: string, quantity: number): void {
+/**
+ * Modifie la quantité d'une LIGNE (line_key) dans le panier ACTIF. qty <= 0
+ * supprime. Pour un produit simple, line_key === product_id (rétro-compat).
+ */
+export function setItemQuantity(lineKey: string, quantity: number): void {
   const store = readStore();
   const id = store.active_merchant_id;
   if (!id) return;
@@ -270,7 +351,7 @@ export function setItemQuantity(productId: string, quantity: number): void {
   if (!cart) return;
   const items = cart.items
     .map((i) =>
-      i.product_id === productId
+      i.line_key === lineKey
         ? { ...i, quantity: Math.max(0, Math.floor(quantity)) }
         : i
     )
@@ -292,8 +373,8 @@ export function setItemQuantity(productId: string, quantity: number): void {
   writeStore(nextStore);
 }
 
-export function removeItem(productId: string): void {
-  setItemQuantity(productId, 0);
+export function removeItem(lineKey: string): void {
+  setItemQuantity(lineKey, 0);
 }
 
 /** Vide le panier ACTIF (et bascule l'actif sur un autre cart restant, s'il y en a). */

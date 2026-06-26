@@ -50,7 +50,12 @@ export function ProductRow({
   const t = useTranslations("merchant");
   const { requestAdd } = useCartAdd();
   const cart = useCartFor(merchant.id);
-  const inCart = cart.items.find((i) => i.product_id === product.id);
+  // Produit à options/variantes : pas d'ajout rapide (il faut choisir) → le
+  // « + » ouvre la fiche. Pour un produit simple, line_key === product_id.
+  const hasOptions = (product.option_groups?.length ?? 0) > 0;
+  const inCart = hasOptions
+    ? undefined
+    : cart.items.find((i) => i.line_key === product.id);
   const hasPromo =
     promoUnitPriceDa != null && promoUnitPriceDa < product.price_da;
   const price = hasPromo ? promoUnitPriceDa! : product.price_da;
@@ -79,11 +84,17 @@ export function ProductRow({
   function quickAdd(e: React.MouseEvent) {
     e.stopPropagation();
     if (isOut) return;
+    // Options obligatoires → on ouvre la fiche pour choisir (pas d'ajout aveugle).
+    if (hasOptions) {
+      onOpenDetail();
+      return;
+    }
     // Mono-commerçant : si conflit, la modale s'ouvre et requestAdd renvoie
     // false → on ne flashe pas (l'ajout n'est pas encore confirmé).
     const addedNow = requestAdd(merchant, {
       product_id: product.id,
       name: product.name_fr,
+      name_ar: product.name_ar,
       unit_price_da: product.price_da,
       image_url: product.image_url,
       category_title: product.category,
@@ -95,7 +106,7 @@ export function ProductRow({
     e.stopPropagation();
     if (!inCart) return;
     setActiveMerchant(merchant.id);
-    setItemQuantity(inCart.product_id, inCart.quantity + 1);
+    setItemQuantity(inCart.line_key, inCart.quantity + 1);
     flash();
   }
 
@@ -103,7 +114,7 @@ export function ProductRow({
     e.stopPropagation();
     if (!inCart) return;
     setActiveMerchant(merchant.id);
-    setItemQuantity(inCart.product_id, inCart.quantity - 1);
+    setItemQuantity(inCart.line_key, inCart.quantity - 1);
     if (inCart.quantity === 1) {
       toast.success(t("removedFromCart", { name: product.name_fr }));
     }

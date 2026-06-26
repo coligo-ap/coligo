@@ -5,6 +5,22 @@ import { createClient } from "@/lib/supabase/server";
 // produits/catégories/promotions visibles uniquement pour les commerces actifs.
 // =============================================================================
 
+export type PublicOption = {
+  id: string;
+  name_fr: string;
+  name_ar: string | null;
+  price_delta_da: number;
+};
+
+export type PublicOptionGroup = {
+  id: string;
+  name_fr: string;
+  name_ar: string | null;
+  min_select: number;
+  max_select: number;
+  options: PublicOption[];
+};
+
 export type PublicProduct = {
   id: string;
   merchant_id: string;
@@ -19,6 +35,8 @@ export type PublicProduct = {
   image_url: string | null;
   stock_qty: number | null;
   is_available: boolean;
+  /** Groupes d'options/variantes (absent/vide pour un produit simple). */
+  option_groups?: PublicOptionGroup[];
 };
 
 export type PublicCategory = {
@@ -59,7 +77,13 @@ export async function listMerchantProducts(
     supabase
       .from("products")
       .select(
-        "id, merchant_id, name_fr, name_ar, description_fr, description_ar, price_da, unit, category, category_id, image_url, stock_qty, is_available, position"
+        `id, merchant_id, name_fr, name_ar, description_fr, description_ar,
+         price_da, unit, category, category_id, image_url, stock_qty,
+         is_available, position,
+         product_option_groups (
+           id, name_fr, name_ar, min_select, max_select, position,
+           product_options ( id, name_fr, name_ar, price_delta_da, is_available, position )
+         )`
       )
       .eq("merchant_id", merchantId)
       .eq("is_available", true)
@@ -73,8 +97,56 @@ export async function listMerchantProducts(
 
   return {
     categories: (categories ?? []) as PublicCategory[],
-    products: (products ?? []) as unknown as PublicProduct[],
+    products: ((products ?? []) as unknown as RawProductRow[]).map(
+      normalizeProduct
+    ),
   };
+}
+
+type RawProductRow = Omit<PublicProduct, "option_groups"> & {
+  product_option_groups: {
+    id: string;
+    name_fr: string;
+    name_ar: string | null;
+    min_select: number;
+    max_select: number;
+    position: number;
+    product_options: {
+      id: string;
+      name_fr: string;
+      name_ar: string | null;
+      price_delta_da: number;
+      is_available: boolean;
+      position: number;
+    }[];
+  }[];
+};
+
+/** Normalise la jointure imbriquée → PublicProduct (options dispo triées). */
+function normalizeProduct(p: RawProductRow): PublicProduct {
+  const { product_option_groups, ...rest } = p;
+  const option_groups: PublicOptionGroup[] = (product_option_groups ?? [])
+    .slice()
+    .sort((a, b) => a.position - b.position)
+    .map((g) => ({
+      id: g.id,
+      name_fr: g.name_fr,
+      name_ar: g.name_ar,
+      min_select: g.min_select,
+      max_select: g.max_select,
+      options: (g.product_options ?? [])
+        .filter((o) => o.is_available)
+        .sort((a, b) => a.position - b.position)
+        .map((o) => ({
+          id: o.id,
+          name_fr: o.name_fr,
+          name_ar: o.name_ar,
+          price_delta_da: o.price_delta_da,
+        })),
+    }))
+    // Un groupe sans option disponible n'a pas à s'afficher.
+    .filter((g) => g.options.length > 0);
+  return { ...rest, option_groups };
 }
 
 /** Liste les promotions actives d'un commerce, avec leurs produits liés. */

@@ -141,6 +141,7 @@ export function CheckoutView({
         items: cart.items.map((i) => ({
           product_id: i.product_id,
           quantity: i.quantity,
+          options: i.options?.map((o) => ({ option_id: o.option_id })),
         })),
       });
       setCtx(data);
@@ -384,6 +385,7 @@ export function CheckoutView({
         items: cart.items.map((i) => ({
           product_id: i.product_id,
           quantity: i.quantity,
+          options: i.options?.map((o) => ({ option_id: o.option_id })),
         })),
         pickup_type: pickupType,
         pickup_slot_start: slot?.start.toISOString() ?? null,
@@ -453,6 +455,7 @@ export function CheckoutView({
         items: cart.items.map((i) => ({
           product_id: i.product_id,
           quantity: i.quantity,
+          options: i.options?.map((o) => ({ option_id: o.option_id })),
         })),
         code,
       });

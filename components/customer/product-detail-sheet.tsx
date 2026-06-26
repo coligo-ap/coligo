@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatDA } from "@/lib/utils";
-import { useCart, setItemQuantity } from "@/lib/customer/cart-store";
+import {
+  useCart,
+  setItemQuantity,
+  lineKeyFor,
+  type SelectedOption,
+} from "@/lib/customer/cart-store";
 import { trackViewItem } from "@/lib/analytics/ecommerce";
 import { useCartAdd } from "@/components/customer/cart-mono-provider";
 import { toast } from "@/components/ui/toast";
@@ -24,9 +29,10 @@ type Props = {
 };
 
 /**
- * Sheet bottom (mobile) / dialog centré (desktop) avec les détails du
- * produit : image en grand, descriptions FR/AR, prix, sélecteur de quantité,
- * bouton "Ajouter au panier — X DA".
+ * Sheet bottom (mobile) / dialog centré (desktop) — détails produit + sélection
+ * des OPTIONS/VARIANTES (bilingue FR/AR). Le prix se recalcule en direct (base
+ * + Σ deltas), les groupes obligatoires bloquent l'ajout tant qu'ils ne sont
+ * pas satisfaits, et chaque combinaison d'options forme une ligne distincte.
  */
 export function ProductDetailSheet({
   merchant,
@@ -38,23 +44,77 @@ export function ProductDetailSheet({
   const { requestAdd } = useCartAdd();
   const cart = useCart();
   const [qty, setQty] = useState(1);
+  // Options choisies : groupId → liste d'optionIds sélectionnés.
+  const [selected, setSelected] = useState<Record<string, string[]>>({});
 
-  // Reset la quantité quand on ouvre un autre produit.
-  useEffect(() => {
-    if (product) {
-      const inCart = cart.items.find((i) => i.product_id === product.id);
-      setQty(inCart?.quantity ?? 1);
-    }
-  }, [product, cart.items]);
+  const groups = useMemo(() => product?.option_groups ?? [], [product]);
 
-  // GA4 — view_item à l'ouverture d'une fiche produit (keyé sur l'id → une fois
-  // par produit ouvert). Prix effectif (promo si applicable). No-op si GA off.
+  // Ouverture d'un produit : préselectionne la 1re option des groupes
+  // obligatoires à choix exclusif, réinitialise la quantité.
   useEffect(() => {
     if (!product) return;
-    const eff =
-      promoUnitPriceDa != null && promoUnitPriceDa < product.price_da
-        ? promoUnitPriceDa
-        : product.price_da;
+    const init: Record<string, string[]> = {};
+    for (const g of product.option_groups ?? []) {
+      if (g.min_select >= 1 && g.max_select === 1 && g.options[0]) {
+        init[g.id] = [g.options[0].id];
+      }
+    }
+    setSelected(init);
+    setQty(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
+
+  // Options sélectionnées → snapshot ordonné (ordre des groupes puis options).
+  const selectedOptions: SelectedOption[] = useMemo(
+    () =>
+      groups.flatMap((g) =>
+        (selected[g.id] ?? [])
+          .map((oid) => g.options.find((o) => o.id === oid))
+          .filter((o): o is NonNullable<typeof o> => !!o)
+          .map((o) => ({
+            option_id: o.id,
+            group_id: g.id,
+            group_name_fr: g.name_fr,
+            group_name_ar: g.name_ar,
+            option_name_fr: o.name_fr,
+            option_name_ar: o.name_ar,
+            price_delta_da: o.price_delta_da,
+          }))
+      ),
+    [groups, selected]
+  );
+
+  const hasPromo =
+    promoUnitPriceDa != null &&
+    product != null &&
+    promoUnitPriceDa < product.price_da;
+  const basePrice = hasPromo ? promoUnitPriceDa! : (product?.price_da ?? 0);
+  const deltaSum = selectedOptions.reduce((s, o) => s + o.price_delta_da, 0);
+  const unitPrice = basePrice + deltaSum;
+  const lineTotal = unitPrice * qty;
+
+  const lineKey = product ? lineKeyFor(product.id, selectedOptions) : "";
+  const inCart = cart.items.find((i) => i.line_key === lineKey);
+
+  // Groupes obligatoires non satisfaits → ajout bloqué.
+  const missing = groups.filter(
+    (g) => g.min_select >= 1 && (selected[g.id]?.length ?? 0) < g.min_select
+  );
+  const canAdd = missing.length === 0;
+
+  // Synchronise la quantité affichée avec la ligne existante (si la combinaison
+  // choisie est déjà au panier).
+  useEffect(() => {
+    if (!product) return;
+    const existing = cart.items.find((i) => i.line_key === lineKey);
+    setQty(existing?.quantity ?? 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineKey]);
+
+  // GA4 — view_item à l'ouverture d'une fiche produit.
+  useEffect(() => {
+    if (!product) return;
+    const eff = hasPromo ? promoUnitPriceDa! : product.price_da;
     trackViewItem(
       {
         id: product.id,
@@ -80,29 +140,33 @@ export function ProductDetailSheet({
 
   if (!product) return null;
 
-  const hasPromo =
-    promoUnitPriceDa != null && promoUnitPriceDa < product.price_da;
-  const price = hasPromo ? promoUnitPriceDa! : product.price_da;
-  const lineTotal = price * qty;
-  const inCart = cart.items.find((i) => i.product_id === product.id);
+  function toggle(groupId: string, maxSelect: number, optId: string) {
+    setSelected((prev) => {
+      const cur = prev[groupId] ?? [];
+      if (maxSelect === 1) return { ...prev, [groupId]: [optId] };
+      if (cur.includes(optId))
+        return { ...prev, [groupId]: cur.filter((x) => x !== optId) };
+      if (cur.length >= maxSelect) return prev; // plafond atteint
+      return { ...prev, [groupId]: [...cur, optId] };
+    });
+  }
 
   function addOrUpdate() {
+    if (!canAdd) return;
     if (inCart) {
-      setItemQuantity(product!.id, qty);
+      setItemQuantity(lineKey, qty);
       toast.success(t("quantityUpdated", { qty }));
     } else {
-      // Mono-commerçant (volet 4) : requestAdd ajoute directement si le panier
-      // est vide ou du même commerce ; sinon il ouvre la modale de confirmation
-      // « vider / garder » (gérée par CartMonoProvider au niveau du shell).
       requestAdd(merchant, {
         product_id: product!.id,
         name: product!.name_fr,
-        unit_price_da: product!.price_da,
+        name_ar: product!.name_ar,
+        unit_price_da: unitPrice,
         image_url: product!.image_url,
         category_title: product!.category,
+        options: selectedOptions,
         quantity: qty,
       });
-      // Pas de toast — le CTA panier rebondit + son compteur s'incrémente.
     }
     onClose();
   }
@@ -161,7 +225,7 @@ export function ProductDetailSheet({
                 hasPromo ? "text-success-700" : "text-foreground"
               )}
             >
-              {formatDA(price)}
+              {formatDA(basePrice)}
             </span>
             {hasPromo && (
               <span className="text-subtle text-sm tabular-nums line-through">
@@ -185,6 +249,85 @@ export function ProductDetailSheet({
                   {product.description_ar}
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Options / variantes */}
+          {groups.length > 0 && (
+            <div className="mt-5 space-y-4">
+              {groups.map((g) => {
+                const sel = selected[g.id] ?? [];
+                const single = g.max_select === 1;
+                return (
+                  <div key={g.id}>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-foreground text-sm font-bold">
+                          {g.name_fr}
+                        </span>
+                        {g.name_ar && (
+                          <span className="text-muted text-xs" dir="rtl">
+                            {g.name_ar}
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        className={cn(
+                          "shrink-0 text-[11px] font-bold",
+                          g.min_select >= 1 ? "text-accent-600" : "text-subtle"
+                        )}
+                      >
+                        {g.min_select >= 1
+                          ? t("optionRequired")
+                          : g.max_select > 1
+                            ? t("optionUpTo", { n: g.max_select })
+                            : ""}
+                      </span>
+                    </div>
+                    <div className="mt-2 space-y-1.5">
+                      {g.options.map((o) => {
+                        const checked = sel.includes(o.id);
+                        return (
+                          <label
+                            key={o.id}
+                            className={cn(
+                              "flex cursor-pointer items-center gap-3 rounded-[12px] border px-3 py-2.5",
+                              checked
+                                ? "border-primary-400 bg-primary-50"
+                                : "border-border"
+                            )}
+                          >
+                            <input
+                              type={single ? "radio" : "checkbox"}
+                              name={g.id}
+                              checked={checked}
+                              onChange={() => toggle(g.id, g.max_select, o.id)}
+                              className="accent-primary-600 size-4"
+                            />
+                            <span className="text-foreground flex-1 text-sm font-medium">
+                              {o.name_fr}
+                              {o.name_ar && (
+                                <span
+                                  className="text-muted ms-2 text-xs"
+                                  dir="rtl"
+                                >
+                                  {o.name_ar}
+                                </span>
+                              )}
+                            </span>
+                            {o.price_delta_da !== 0 && (
+                              <span className="text-muted text-xs font-bold tabular-nums">
+                                {o.price_delta_da > 0 ? "+" : ""}
+                                {formatDA(o.price_delta_da)}
+                              </span>
+                            )}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -228,9 +371,12 @@ export function ProductDetailSheet({
             type="button"
             className="flex-1"
             size="lg"
+            disabled={!canAdd}
             onClick={addOrUpdate}
           >
-            {inCart ? t("update") : t("add")} · {formatDA(lineTotal)}
+            {!canAdd
+              ? t("chooseRequired", { name: missing[0].name_fr })
+              : `${inCart ? t("update") : t("add")} · ${formatDA(lineTotal)}`}
           </Button>
         </div>
       </div>

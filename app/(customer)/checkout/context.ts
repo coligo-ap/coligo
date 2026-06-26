@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentCustomer } from "@/lib/auth/customer";
 import { computeCart, type EnginePromotion } from "@/lib/promotions/engine";
+import { loadLineOptions } from "@/lib/checkout/option-pricing";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import {
   getMyCashbackBalance,
@@ -25,7 +26,11 @@ import type { Json } from "@/lib/supabase/database.types";
 
 export type CheckoutContextInput = {
   merchant_id: string;
-  items: { product_id: string; quantity: number }[];
+  items: {
+    product_id: string;
+    quantity: number;
+    options?: { option_id: string }[];
+  }[];
 };
 
 export type CheckoutMerchantPosition = {
@@ -258,14 +263,17 @@ export async function fetchCheckoutContext(
     endsAt: p.ends_at,
   }));
 
+  // Options revalidées serveur (mêmes deltas que createOrder → affiché = facturé).
+  const { deltaPerLine } = await loadLineOptions(supabase, input.items);
+
   const lines = input.items
-    .map((it) => {
+    .map((it, idx) => {
       const p = products.find((pp) => pp.id === it.product_id);
       if (!p || !p.is_available) return null;
       return {
         productId: it.product_id,
         quantity: it.quantity,
-        unitPriceDa: p.price_da,
+        unitPriceDa: p.price_da + deltaPerLine[idx],
       };
     })
     .filter(

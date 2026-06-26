@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { computeCart, type EnginePromotion } from "@/lib/promotions/engine";
+import { loadLineOptions } from "@/lib/checkout/option-pricing";
 import { isOpenNow, normalizeOpeningHours } from "@/lib/merchant/opening-hours";
 import {
   computePauseState,
@@ -43,7 +44,12 @@ import type { OpeningHours, PaymentMethod } from "@/lib/types";
 export type CreateOrderInput = {
   merchant_id: string;
   client_operation_id: string;
-  items: { product_id: string; quantity: number }[];
+  items: {
+    product_id: string;
+    quantity: number;
+    /** Options/variantes choisies (ids → revalidées serveur, jamais le prix). */
+    options?: { option_id: string }[];
+  }[];
   pickup_type: "asap" | "slot";
   pickup_slot_start?: string | null; // ISO
   pickup_slot_end?: string | null; // ISO
@@ -367,7 +373,9 @@ export async function createOrder(
   }
   const { data: products } = await supabase
     .from("products")
-    .select("id, merchant_id, name_fr, price_da, is_available, stock_qty")
+    .select(
+      "id, merchant_id, name_fr, name_ar, unit, price_da, is_available, stock_qty"
+    )
     .in("id", productIds);
 
   if (!products || products.length !== productIds.length) {
@@ -396,14 +404,22 @@ export async function createOrder(
   }
 
   // ---------------------------------------------------------------------------
+  // 4-bis. OPTIONS/VARIANTES — revalidation SERVEUR (jamais le prix client),
+  // via le helper partagé avec l'aperçu (affiché == facturé). Snapshot par ligne
+  // (libellés FR/AR + delta), même index que input.items / lines / settled.lines.
+  // ---------------------------------------------------------------------------
+  const { perLine: lineOptions, deltaPerLine: lineOptionsDelta } =
+    await loadLineOptions(supabase, input.items);
+
+  // ---------------------------------------------------------------------------
   // 5. Charge les promos actives + calcul via le MOTEUR (source de vérité).
   // ---------------------------------------------------------------------------
   const { data: promosRaw } = await supabase
     .from("promotions")
     .select(
-      `id, merchant_id, type, status, discount_kind, discount_value, code,
-       buy_qty, get_qty, min_subtotal_da, starts_at, ends_at,
-       max_uses, max_uses_per_customer, uses_count, financeur,
+      `id, merchant_id, type, status, title_fr, title_ar, discount_kind,
+       discount_value, code, buy_qty, get_qty, min_subtotal_da, starts_at,
+       ends_at, max_uses, max_uses_per_customer, uses_count, financeur,
        promotion_products ( product_id )`
     )
     .eq("merchant_id", merchant.id)
@@ -459,12 +475,13 @@ export async function createOrder(
     };
   });
 
-  const lines = input.items.map((it) => {
+  const lines = input.items.map((it, idx) => {
     const p = products.find((pp) => pp.id === it.product_id)!;
     return {
       productId: it.product_id,
       quantity: it.quantity,
-      unitPriceDa: p.price_da,
+      // Prix de base + Σ deltas des options (revalidés serveur).
+      unitPriceDa: p.price_da + lineOptionsDelta[idx],
     };
   });
 
@@ -1100,24 +1117,118 @@ export async function createOrder(
     };
   }
 
-  // Lignes (snapshot prix unitaire + ligne).
+  // Lignes (snapshot prix unitaire effectif + ligne + unité + nom AR). L'ordre
+  // de settled.lines suit input.items → même index que lineOptions.
   const itemsRows = settled.lines.map((l) => {
     const product = products.find((p) => p.id === l.productId)!;
     return {
       order_id: order.id,
       product_name: product.name_fr,
+      name_ar: product.name_ar,
+      unit: product.unit,
       unit_price_da: l.appliedUnitPriceDa,
       quantity: l.quantity,
       line_total_da: l.lineTotalDa,
     };
   });
-  const { error: itemsErr } = await supabase
+  const { data: insertedItems, error: itemsErr } = await supabase
     .from("order_items")
-    .insert(itemsRows);
-  if (itemsErr) {
+    .insert(itemsRows)
+    .select("id");
+  if (itemsErr || !insertedItems) {
     // Compensation : si les items échouent, on annule la commande.
     await supabase.from("orders").delete().eq("id", order.id);
-    return { ok: false, error: `Erreur ajout articles : ${itemsErr.message}` };
+    return {
+      ok: false,
+      error: `Erreur ajout articles : ${itemsErr?.message ?? "inconnue"}`,
+    };
+  }
+
+  // Snapshot des OPTIONS choisies par ligne (libellés FR/AR + delta figés).
+  const optionRows = insertedItems.flatMap((row, idx) =>
+    (lineOptions[idx] ?? []).map((o, pos) => ({
+      order_item_id: row.id,
+      group_name_fr: o.group_name_fr,
+      group_name_ar: o.group_name_ar,
+      option_name_fr: o.option_name_fr,
+      option_name_ar: o.option_name_ar,
+      price_delta_da: o.price_delta_da,
+      position: pos,
+    }))
+  );
+  if (optionRows.length > 0) {
+    await supabase.from("order_item_options").insert(optionRows);
+  }
+
+  // Snapshot des PROMOTIONS appliquées (type + titre FR/AR + montant + offerts),
+  // pour le ticket et la traçabilité. Best-effort (n'échoue pas la commande).
+  const promoInfo = new Map(
+    (
+      (promosRaw ?? []) as unknown as {
+        id: string;
+        type: string;
+        title_fr: string;
+        title_ar: string | null;
+        code: string | null;
+      }[]
+    ).map((p) => [p.id, p])
+  );
+  const promoAgg = new Map<string, { discount: number; free: number }>();
+  for (const l of settled.lines) {
+    if (l.productPromotionId) {
+      const cur = promoAgg.get(l.productPromotionId) ?? {
+        discount: 0,
+        free: 0,
+      };
+      cur.discount += Math.round(
+        (l.unitPriceDa - l.appliedUnitPriceDa) * l.paidQuantity
+      );
+      promoAgg.set(l.productPromotionId, cur);
+    }
+    if (l.quantityPromotionId && l.freeUnits > 0) {
+      const cur = promoAgg.get(l.quantityPromotionId) ?? {
+        discount: 0,
+        free: 0,
+      };
+      cur.discount += Math.round(l.appliedUnitPriceDa * l.freeUnits);
+      cur.free += l.freeUnits;
+      promoAgg.set(l.quantityPromotionId, cur);
+    }
+  }
+  let promoPos = 0;
+  const promoSnapshotRows = [...promoAgg.entries()].flatMap(([pid, a]) => {
+    const info = promoInfo.get(pid);
+    if (!info) return [];
+    return [
+      {
+        order_id: order.id,
+        promotion_id: pid,
+        type: info.type,
+        title_fr: info.title_fr,
+        title_ar: info.title_ar,
+        code: info.code,
+        discount_da: a.discount,
+        free_qty: a.free,
+        position: promoPos++,
+      },
+    ];
+  });
+  if (appliedPromo) {
+    const info = promoInfo.get(appliedPromo.id);
+    promoSnapshotRows.push({
+      order_id: order.id,
+      promotion_id: appliedPromo.id,
+      type: info?.type ?? "promo_code",
+      title_fr: info?.title_fr ?? appliedPromo.code,
+      title_ar: info?.title_ar ?? null,
+      code: appliedPromo.code,
+      discount_da: appliedPromo.discountDa,
+      free_qty: 0,
+      position: promoPos++,
+    });
+  }
+  if (promoSnapshotRows.length > 0) {
+    await supabase.from("order_promotions").insert(promoSnapshotRows);
   }
 
   // Code promo : journal d'usage (incrémente uses_count, idempotent via
@@ -1337,7 +1448,11 @@ export type PromoPreview =
 
 export async function previewPromoCode(input: {
   merchant_id: string;
-  items: { product_id: string; quantity: number }[];
+  items: {
+    product_id: string;
+    quantity: number;
+    options?: { option_id: string }[];
+  }[];
   code: string;
 }): Promise<PromoPreview> {
   try {
@@ -1365,13 +1480,23 @@ export async function previewPromoCode(input: {
     const priceById = new Map(
       (prods ?? []).map((p) => [p.id as string, p.price_da as number])
     );
+    const { deltaPerLine } = await loadLineOptions(supabase, input.items);
     const lines = input.items
-      .filter((i) => priceById.has(i.product_id))
-      .map((i) => ({
-        productId: i.product_id,
-        quantity: i.quantity,
-        unitPriceDa: priceById.get(i.product_id)!,
-      }));
+      .map((i, idx) =>
+        priceById.has(i.product_id)
+          ? {
+              productId: i.product_id,
+              quantity: i.quantity,
+              unitPriceDa: priceById.get(i.product_id)! + deltaPerLine[idx],
+            }
+          : null
+      )
+      .filter(
+        (
+          l
+        ): l is { productId: string; quantity: number; unitPriceDa: number } =>
+          !!l
+      );
     if (lines.length === 0) return { ok: false, error: "Panier vide." };
 
     const { data: promosRaw } = await supabase

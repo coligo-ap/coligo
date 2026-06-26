@@ -7,7 +7,7 @@ import {
   addItem,
   clearAllCarts,
   readAllCarts,
-  type CartItem,
+  type AddItemInput,
 } from "@/lib/customer/cart-store";
 import { toast } from "@/components/ui/toast";
 
@@ -28,8 +28,6 @@ type AddMerchant = {
   name: string;
   logo_url?: string | null;
 };
-type AddItemInput = Omit<CartItem, "quantity"> & { quantity?: number };
-
 type CartAddCtx = {
   requestAdd: (merchant: AddMerchant, item: AddItemInput) => boolean;
 };
