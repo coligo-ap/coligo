@@ -34,11 +34,13 @@ import {
   deriveTicketMeta,
   formatDA,
   formatOrderClock,
+  formatQtyUnit,
   formatTime,
   groupByCategory,
   groupCount,
   loyaltyInfo,
   orderRef,
+  promoTypeLabel,
   totalUnits,
 } from "@/lib/ticket/ticket-format";
 
@@ -239,13 +241,32 @@ export async function renderTicketCanvasBase64(
       );
       y += Math.round(26 * S);
       for (const it of g.items) {
-        const qty = String(it.quantity).replace(/\.0+$/, "") + "x";
+        const qty = formatQtyUnit(it.quantity, it.unit);
+        const free = it.is_free ? "  (OFFERT/مجاني)" : "";
         y = wrapDraw(
-          `${qty} ${it.product_name}`,
+          `${qty} ${it.product_name}${free}`,
           f(23, true),
           y,
           Math.round(27 * S)
         );
+        // Nom AR (le canvas navigateur shape l'arabe) aligné à droite.
+        if (it.product_name_ar) {
+          textAt(it.product_name_ar, f(20), "right", y);
+          y += Math.round(24 * S);
+        }
+        // Options/variantes bilingues sous l'article.
+        for (const o of it.options ?? []) {
+          const delta = o.price_delta_da
+            ? ` (${o.price_delta_da > 0 ? "+" : ""}${formatDA(o.price_delta_da)})`
+            : "";
+          const arOpt = o.option_name_ar ? ` / ${o.option_name_ar}` : "";
+          y = wrapDraw(
+            `+ ${o.option_name_fr}${arOpt}${delta}`,
+            f(19),
+            y,
+            Math.round(23 * S)
+          );
+        }
       }
     }
   }
@@ -260,7 +281,7 @@ export async function renderTicketCanvasBase64(
   recap("Sous-total", formatDA(meta.subtotalDa));
   if (order.service_fee_da > 0)
     recap(meta.feeLabel, formatDA(order.service_fee_da));
-  if (meta.discountDa > 0) {
+  if (meta.discountDa > 0 && (order.promotions?.length ?? 0) === 0) {
     const pct =
       meta.subtotalDa > 0
         ? Math.round((meta.discountDa / meta.subtotalDa) * 100)
@@ -269,6 +290,11 @@ export async function renderTicketCanvasBase64(
       pct > 0 ? `Reduction -${pct}%` : "Reduction",
       `-${formatDA(meta.discountDa)}`
     );
+  }
+  for (const p of order.promotions ?? []) {
+    const right =
+      p.free_qty > 0 ? `${p.free_qty}x offert` : `-${formatDA(p.discount_da)}`;
+    recap(`${promoTypeLabel(p.type).fr} ${p.title_fr}`, right);
   }
   if (order.cashback_da > 0)
     recap("Cashback", `-${formatDA(order.cashback_da)}`);

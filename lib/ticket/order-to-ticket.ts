@@ -1,5 +1,9 @@
 import type { OrderWithItems } from "@/lib/types";
-import type { TicketOrder } from "@/lib/ticket/build-ticket-html";
+import type {
+  TicketOrder,
+  TicketItemOption,
+  TicketPromotion,
+} from "@/lib/ticket/build-ticket-html";
 import { WILAYAS } from "@/lib/config/wilayas";
 
 export type OrderToTicketExtras = {
@@ -8,6 +12,23 @@ export type OrderToTicketExtras = {
   isNewCustomer?: boolean;
   /** Nombre total de commandes du client chez ce commerçant (fidélité). */
   customerOrderCount?: number | null;
+  /** Promotions appliquées (snapshot order_promotions) — résumé bilingue. */
+  promotions?: TicketPromotion[];
+};
+
+/** Ligne de commande enrichie (colonnes 0262 + jointure order_item_options). */
+type RichOrderItem = OrderWithItems["order_items"][number] & {
+  unit?: string | null;
+  name_ar?: string | null;
+  is_free?: boolean | null;
+  order_item_options?: {
+    group_name_fr: string;
+    group_name_ar: string | null;
+    option_name_fr: string;
+    option_name_ar: string | null;
+    price_delta_da: number;
+    position: number;
+  }[];
 };
 
 /**
@@ -47,13 +68,30 @@ export function orderToTicket(
     delivery_note: order.delivery_note ?? null,
     is_new_customer: extras.isNewCustomer ?? false,
     customer_order_count: extras.customerOrderCount ?? null,
-    items: order.order_items.map((it) => ({
-      product_name: it.product_name,
-      quantity: it.quantity,
-      unit_price_da: it.unit_price_da,
-      line_total_da: it.line_total_da,
-      category_name: categoryMap[it.product_name],
-    })),
+    promotions: extras.promotions ?? [],
+    items: (order.order_items as RichOrderItem[]).map((it) => {
+      const options: TicketItemOption[] = (it.order_item_options ?? [])
+        .slice()
+        .sort((a, b) => a.position - b.position)
+        .map((o) => ({
+          group_name_fr: o.group_name_fr,
+          group_name_ar: o.group_name_ar,
+          option_name_fr: o.option_name_fr,
+          option_name_ar: o.option_name_ar,
+          price_delta_da: o.price_delta_da,
+        }));
+      return {
+        product_name: it.product_name,
+        product_name_ar: it.name_ar ?? null,
+        quantity: it.quantity,
+        unit_price_da: it.unit_price_da,
+        line_total_da: it.line_total_da,
+        unit: it.unit ?? null,
+        is_free: it.is_free ?? false,
+        options: options.length ? options : undefined,
+        category_name: categoryMap[it.product_name],
+      };
+    }),
   };
 }
 

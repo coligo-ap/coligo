@@ -30,11 +30,13 @@ import {
   deriveTicketMeta,
   formatDA,
   formatOrderClock,
+  formatQtyUnit,
   formatTime,
   groupByCategory,
   groupCount,
   loyaltyInfo,
   orderRef,
+  promoTypeLabel,
   SUNMI_LINE_SPACING,
   SUNMI_SIZE as SZ,
   totalUnits,
@@ -211,9 +213,20 @@ export function buildTicketSunmiCommands(
         text: `${g.title.toUpperCase()} (${groupCount(g.items)})`,
       });
       for (const it of g.items) {
-        const qty = String(it.quantity).replace(/\.0+$/, "") + "x";
-        for (const line of itemLines(qty, asciize(it.product_name), cols)) {
+        const qty = formatQtyUnit(it.quantity, it.unit).replace("×", "x");
+        const name = asciize(it.product_name) + (it.is_free ? " [OFFERT]" : "");
+        for (const line of itemLines(qty, name, cols)) {
           out.push({ type: "textBold", text: line });
+        }
+        // Options/variantes sous l'article (FR, ASCII — chemin thermique).
+        for (const o of it.options ?? []) {
+          const delta = o.price_delta_da
+            ? ` (${o.price_delta_da > 0 ? "+" : ""}${formatDA(o.price_delta_da)})`
+            : "";
+          out.push({
+            type: "text",
+            text: "  + " + asciize(o.option_name_fr) + delta,
+          });
         }
       }
     }
@@ -232,7 +245,8 @@ export function buildTicketSunmiCommands(
   if (order.service_fee_da > 0) {
     recap(meta.feeLabel, formatDA(order.service_fee_da));
   }
-  if (meta.discountDa > 0) {
+  // Réduction générique : uniquement si AUCUN détail promo itémisé.
+  if (meta.discountDa > 0 && (order.promotions?.length ?? 0) === 0) {
     const pct =
       meta.subtotalDa > 0
         ? Math.round((meta.discountDa / meta.subtotalDa) * 100)
@@ -241,6 +255,16 @@ export function buildTicketSunmiCommands(
       pct > 0 ? `Reduction -${pct}%` : "Reduction",
       `-${formatDA(meta.discountDa)}`
     );
+  }
+  // Promotions itémisées (FR/ASCII) — type + titre + montant/offert.
+  for (const p of order.promotions ?? []) {
+    const right =
+      p.free_qty > 0 ? `${p.free_qty}x offert` : `-${formatDA(p.discount_da)}`;
+    const label = asciize(`${promoTypeLabel(p.type).fr} ${p.title_fr}`).slice(
+      0,
+      cols - 12
+    );
+    recap(label, right);
   }
   if (order.cashback_da > 0) {
     recap("Cashback", `-${formatDA(order.cashback_da)}`);

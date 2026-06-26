@@ -72,7 +72,10 @@ export async function GET(
        pickup_code, order_number, pickup_slot_at, notes, created_at,
        payment_method, payment_status, fulfillment_type,
        delivery_address_text, delivery_phone, delivery_note,
-       order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`
+       order_items ( id, order_id, product_name, name_ar, unit, is_free,
+         unit_price_da, quantity, line_total_da,
+         order_item_options ( group_name_fr, group_name_ar, option_name_fr,
+           option_name_ar, price_delta_da, position ) )`
     )
     .eq("id", id)
     .maybeSingle();
@@ -84,7 +87,7 @@ export async function GET(
     });
   }
 
-  const order = orderRow as OrderWithItems;
+  const order = orderRow as unknown as OrderWithItems;
 
   const { data: merchant } = await supabase
     .from("merchants")
@@ -102,6 +105,14 @@ export async function GET(
     order.merchant_id,
     order.customer_phone
   );
+
+  // Promotions appliquées (snapshot) — résumé bilingue sur le ticket.
+  const { data: promoRows } = await supabase
+    .from("order_promotions")
+    .select("type, title_fr, title_ar, discount_da, free_qty, position")
+    .eq("order_id", id)
+    .order("position", { ascending: true });
+
   const ticketOrder = orderToTicket(
     order,
     merchant?.name ?? APP_CONFIG.name,
@@ -110,6 +121,13 @@ export async function GET(
       merchantCity: merchant?.city,
       merchantWilayaCode: merchant?.wilaya_code,
       customerOrderCount,
+      promotions: (promoRows ?? []).map((p) => ({
+        type: p.type,
+        title_fr: p.title_fr,
+        title_ar: p.title_ar,
+        discount_da: p.discount_da,
+        free_qty: p.free_qty,
+      })),
     }
   );
 

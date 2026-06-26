@@ -45,7 +45,10 @@ export default async function OrderDetailPage({
          fulfillment_type, delivery_mode, delivery_fee_da,
          delivery_address_text, delivery_phone, delivery_recipient_name, delivery_note, delivery_distance_km,
          delivery_driver_id, delivery_picked_up_at, delivery_arrived_at, delivery_delivered_at,
-         order_items ( id, order_id, product_name, unit_price_da, quantity, line_total_da )`
+         order_items ( id, order_id, product_name, name_ar, unit, is_free,
+           unit_price_da, quantity, line_total_da,
+           order_item_options ( group_name_fr, group_name_ar, option_name_fr,
+             option_name_ar, price_delta_da, position ) )`
       )
       .eq("id", id)
       .maybeSingle(),
@@ -60,7 +63,7 @@ export default async function OrderDetailPage({
 
   if (!order) notFound();
 
-  const o = order as OrderWithItems & {
+  const o = order as unknown as OrderWithItems & {
     service_fee_da: number;
     cashback_da: number;
     commission_da: number;
@@ -95,12 +98,24 @@ export default async function OrderDetailPage({
     o.merchant_id,
     o.customer_phone
   );
+  const { data: promoRows } = await supabase
+    .from("order_promotions")
+    .select("type, title_fr, title_ar, discount_da, free_qty, position")
+    .eq("order_id", id)
+    .order("position", { ascending: true });
   const ticketOrder = orderToTicket(
     o,
     merchant?.name ?? "Coligo",
     categoryMap,
     {
       customerOrderCount,
+      promotions: (promoRows ?? []).map((p) => ({
+        type: p.type,
+        title_fr: p.title_fr,
+        title_ar: p.title_ar,
+        discount_da: p.discount_da,
+        free_qty: p.free_qty,
+      })),
     }
   );
   const printWidth = (merchant?.print_width ?? 50) as PrintWidth;

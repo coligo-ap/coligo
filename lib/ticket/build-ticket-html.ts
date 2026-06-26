@@ -23,23 +23,52 @@ import {
   deriveTicketMeta,
   formatDA,
   formatOrderClock,
+  formatQtyUnit,
   formatTime,
   groupByCategory,
   groupCount,
   loyaltyInfo,
   orderRef,
   ordinalFr,
+  promoTypeLabel,
   totalUnits,
+  truncateName,
 } from "@/lib/ticket/ticket-format";
 import { qrSvg } from "@/lib/ticket/qr-svg";
 
+/** Une option/variante choisie (snapshot bilingue). */
+export type TicketItemOption = {
+  group_name_fr: string;
+  group_name_ar: string | null;
+  option_name_fr: string;
+  option_name_ar: string | null;
+  price_delta_da: number;
+};
+
 export type TicketItem = {
   product_name: string;
+  /** Nom AR (snapshot) — ticket bilingue. */
+  product_name_ar?: string | null;
   quantity: number;
   unit_price_da: number;
   line_total_da: number;
+  /** Unité de vente (piece/kg/l/m/custom) — affichage vrac « 0,75 kg ». */
+  unit?: string | null;
+  /** Article offert (promo buy-x-get-y) → badge « OFFERT ». */
+  is_free?: boolean;
+  /** Options/variantes choisies, affichées sous l'article. */
+  options?: TicketItemOption[];
   /** Optionnel — si présent, l'item est groupé sous cette catégorie. */
   category_name?: string;
+};
+
+/** Promotion appliquée à la commande (snapshot, pour le récap du ticket). */
+export type TicketPromotion = {
+  type: string;
+  title_fr: string;
+  title_ar: string | null;
+  discount_da: number;
+  free_qty: number;
 };
 
 export type TicketOrder = {
@@ -80,6 +109,8 @@ export type TicketOrder = {
   delivery_phone?: string | null;
   /** Instructions d'accès livraison (« code porte », « 3e étage »…). */
   delivery_note?: string | null;
+  /** Promotions appliquées (snapshot) — résumé bilingue en bas de ticket. */
+  promotions?: TicketPromotion[];
 };
 
 export type BuildTicketOptions = {
@@ -155,10 +186,34 @@ export async function buildTicketHTML(
           .map((g) => {
             const rows = g.items
               .map((it) => {
-                const qty = String(it.quantity).replace(/\.0+$/, "");
-                return `<div class="t-item">${escapeHtml(qty)}x ${escapeHtml(
-                  it.product_name
-                )}</div>`;
+                const qty = escapeHtml(formatQtyUnit(it.quantity, it.unit));
+                const nameFr = escapeHtml(truncateName(it.product_name, 28));
+                const free = it.is_free
+                  ? ` <span class="t-free">OFFERT / مجاني</span>`
+                  : "";
+                const ar = it.product_name_ar
+                  ? `<div class="t-item-ar" dir="rtl">${escapeHtml(
+                      truncateName(it.product_name_ar, 28)
+                    )}</div>`
+                  : "";
+                const opts = (it.options ?? [])
+                  .map((o) => {
+                    const delta = o.price_delta_da
+                      ? ` (${o.price_delta_da > 0 ? "+" : ""}${formatDA(
+                          o.price_delta_da
+                        )})`
+                      : "";
+                    const arOpt = o.option_name_ar
+                      ? ` / <span dir="rtl">${escapeHtml(
+                          o.option_name_ar
+                        )}</span>`
+                      : "";
+                    return `<div class="t-opt">+ ${escapeHtml(
+                      o.option_name_fr
+                    )}${arOpt}${escapeHtml(delta)}</div>`;
+                  })
+                  .join("");
+                return `<div class="t-item">${qty} ${nameFr}${free}</div>${ar}${opts}`;
               })
               .join("");
             return `<div class="t-cat">${escapeHtml(
@@ -175,7 +230,9 @@ export async function buildTicketHTML(
   if (order.service_fee_da > 0) {
     recapRows.push(rowLR(meta.feeLabel, formatDA(order.service_fee_da)));
   }
-  if (meta.discountDa > 0) {
+  // Réduction générique : seulement pour les anciennes commandes SANS détail
+  // promo itémisé (sinon le bloc « Promotions » ci-dessous fait foi).
+  if (meta.discountDa > 0 && (order.promotions?.length ?? 0) === 0) {
     const pct =
       meta.subtotalDa > 0
         ? Math.round((meta.discountDa / meta.subtotalDa) * 100)
@@ -198,6 +255,28 @@ export async function buildTicketHTML(
       )}</div>`
     );
   }
+
+  // ─── Promotions appliquées (résumé bilingue par type + offerts) ─────────
+  const promoBlock =
+    order.promotions && order.promotions.length > 0
+      ? `<hr class="t-sep">
+  <div class="t-h">Promotions / العروض</div>
+  ${order.promotions
+    .map((p) => {
+      const lbl = promoTypeLabel(p.type);
+      const right =
+        p.free_qty > 0
+          ? `${p.free_qty}× offert / مجاني`
+          : `-${formatDA(p.discount_da)}`;
+      const arTitle = p.title_ar
+        ? ` <span dir="rtl">${escapeHtml(p.title_ar)}</span>`
+        : "";
+      return `<div class="t-row"><span>${escapeHtml(lbl.fr)} · ${escapeHtml(
+        p.title_fr
+      )}${arTitle}</span><span>${escapeHtml(right)}</span></div>`;
+    })
+    .join("\n  ")}`
+      : "";
 
   // ─── Précisions particulières (note client) ─────────────────────────────
   const note = order.notes && order.notes !== "seed" ? order.notes : null;
@@ -279,7 +358,9 @@ export async function buildTicketHTML(
     /* Articles */
     .tk .t-cat { font-size: 16px; font-weight: 800; margin: 10px 0 4px; }
     .tk .t-item { font-size: 17px; font-weight: 800; line-height: 1.4; margin: 4px 0; }
-    .tk .t-opt { font-size: 15px; font-weight: 700; line-height: 1.5; padding-left: 4px; }
+    .tk .t-item-ar { font-size: 15px; font-weight: 700; line-height: 1.4; margin: 0 0 2px; }
+    .tk .t-opt { font-size: 15px; font-weight: 700; line-height: 1.5; padding-left: 10px; }
+    .tk .t-free { display: inline-block; border: 1.5px solid #000; border-radius: 4px; padding: 0 4px; font-size: 12px; font-weight: 800; }
 
     /* Totaux : label gauche, valeur droite */
     .tk .t-row { font-size: 16px; font-weight: 700; line-height: 1.7; display: flex; justify-content: space-between; gap: 8px; }
@@ -345,6 +426,7 @@ export async function buildTicketHTML(
 
   <!-- 7. Récap + total -->
   ${recapRows.join("\n  ")}
+  ${promoBlock}
 
   <hr class="t-sep">
 

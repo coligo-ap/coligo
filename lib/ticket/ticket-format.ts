@@ -122,6 +122,53 @@ export function groupByCategory(
   return order.map((title) => ({ title, items: map.get(title)! }));
 }
 
+/** Abréviation d'unité de vente pour le ticket (vrac). */
+const UNIT_SHORT: Record<string, string> = {
+  kg: "kg",
+  l: "L",
+  m: "m",
+  custom: "",
+};
+
+/**
+ * Préfixe quantité d'une ligne : « 3× » à la pièce, « 0,75 kg » en vrac
+ * (virgule décimale FR, zéros superflus retirés par JS). Universel FR/AR.
+ */
+export function formatQtyUnit(quantity: number, unit?: string | null): string {
+  const q = String(quantity).replace(".", ",");
+  if (!unit || unit === "piece") return `${q}×`;
+  const short = UNIT_SHORT[unit] ?? unit;
+  return short ? `${q} ${short}` : `${q}`;
+}
+
+/**
+ * Troncature intelligente d'un nom long : coupe sur un mot si la coupure tombe
+ * assez loin, sinon coupe net, et ajoute « … ». Évite les noms qui débordent
+ * sur un ticket étroit (32/48 colonnes).
+ */
+export function truncateName(name: string, max: number): string {
+  const s = (name ?? "").trim();
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max - 1);
+  const lastSpace = cut.lastIndexOf(" ");
+  const base = lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut;
+  return base.trimEnd() + "…";
+}
+
+/** Libellé bilingue du type de promotion (pour le résumé du ticket). */
+export function promoTypeLabel(type: string): { fr: string; ar: string } {
+  switch (type) {
+    case "product_discount":
+      return { fr: "Réduction", ar: "تخفيض" };
+    case "quantity_offer":
+      return { fr: "Offre quantité", ar: "عرض الكمية" };
+    case "promo_code":
+      return { fr: "Code promo", ar: "رمز ترويجي" };
+    default:
+      return { fr: "Promotion", ar: "ترويج" };
+  }
+}
+
 // ===========================================================================
 // Dérivation des libellés métier (mode / paiement / footer)
 // ===========================================================================
@@ -132,14 +179,22 @@ export type TicketMeta = {
   isCash: boolean;
   /** « LIVRAISON » | « RETRAIT ». */
   modeWord: string;
+  /** Variante AR : « توصيل » | « استلام ». */
+  modeWordAr: string;
   /** « PAYÉ » | « CASH ». */
   payWord: string;
-  /** Bandeau inversé combiné : « LIVRAISON · PAYÉ », « RETRAIT · CASH »… */
+  /** Variante AR : « مدفوع » | « نقدا ». */
+  payWordAr: string;
+  /** Bandeau inversé combiné bilingue : « LIVRAISON · PAYÉ / توصيل · مدفوع ». */
   bannerText: string;
   /** « Livrer pour » | « Retrait pour ». */
   timeLineLabel: string;
+  /** Variante AR : « التوصيل في » | « الاستلام في ». */
+  timeLineLabelAr: string;
   /** « Total » (payé/online) | « À ENCAISSER » (cash). */
   totalLabel: string;
+  /** Variante AR : « المجموع » | « للتحصيل ». */
+  totalLabelAr: string;
   /** « à la livraison » | « au retrait » — mention sous le total cash. */
   handoffWord: string;
   /** Sous-total (somme des lignes). */
@@ -148,6 +203,8 @@ export type TicketMeta = {
   discountDa: number;
   /** Libellé de frais : « Frais de livraison » | « Frais de service ». */
   feeLabel: string;
+  /** Variante AR du libellé de frais. */
+  feeLabelAr: string;
   /** Pied de ticket dépendant du mode. */
   footerText: string;
 };
@@ -164,7 +221,9 @@ export function deriveTicketMeta(order: TicketOrder): TicketMeta {
   const isCash = order.payment_method === "cash";
 
   const modeWord = isDelivery ? "LIVRAISON" : "RETRAIT";
+  const modeWordAr = isDelivery ? "توصيل" : "استلام";
   const payWord = isCash ? "CASH" : "PAYÉ";
+  const payWordAr = isCash ? "نقدا" : "مدفوع";
 
   const subtotalDa = order.items.reduce((s, it) => s + it.line_total_da, 0);
   const discountDa = Math.max(
@@ -177,14 +236,20 @@ export function deriveTicketMeta(order: TicketOrder): TicketMeta {
     isPaidOnline,
     isCash,
     modeWord,
+    modeWordAr,
     payWord,
-    bannerText: `${modeWord} · ${payWord}`,
+    payWordAr,
+    // Bandeau bilingue : FR au-dessus, AR en dessous (géré par le builder).
+    bannerText: `${modeWord} · ${payWord} / ${modeWordAr} · ${payWordAr}`,
     timeLineLabel: isDelivery ? "Livrer pour" : "Retrait pour",
+    timeLineLabelAr: isDelivery ? "التوصيل في" : "الاستلام في",
     totalLabel: isCash ? "À ENCAISSER" : "Total",
+    totalLabelAr: isCash ? "للتحصيل" : "المجموع",
     handoffWord: isDelivery ? "à la livraison" : "au retrait",
     subtotalDa,
     discountDa,
     feeLabel: isDelivery ? "Frais de livraison" : "Frais de service",
+    feeLabelAr: isDelivery ? "رسوم التوصيل" : "رسوم الخدمة",
     footerText: isDelivery
       ? "Code remis par le client au livreur (non imprimé)"
       : "Merci pour votre confiance !",
