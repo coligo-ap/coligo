@@ -266,6 +266,7 @@ export function QrScanner({
               facingMode: { ideal: "environment" },
               width: { ideal: 1280 },
               height: { ideal: 720 },
+              frameRate: { ideal: 30 },
             },
             audio: false,
           });
@@ -417,11 +418,28 @@ export function QrScanner({
 
         let lastFrameAt = 0;
         let loggedFirstFrame = false;
+        // Cadence de DÉCODAGE pour une détection ULTRA RAPIDE :
+        //  - BarcodeDetector (PWA, accéléré matériel) → on décode CHAQUE frame ;
+        //  - zxing (APK natif Sunmi, plus lourd) → ~14 fps (espacé pour le CPU).
+        // La boucle est synchronisée sur les frames CAMÉRA via
+        // requestVideoFrameCallback quand dispo (détection au plus tôt, zéro
+        // cycle gaspillé), avec repli requestAnimationFrame.
+        const minInterval = nativeDetector ? 0 : 70;
+        const vfc = video as HTMLVideoElement & {
+          requestVideoFrameCallback?: (cb: (now: number) => void) => number;
+        };
+        const schedule = (cb: (ts: number) => void) => {
+          if (stoppedRef.current) return;
+          if (typeof vfc.requestVideoFrameCallback === "function") {
+            vfc.requestVideoFrameCallback((now) => cb(now));
+          } else {
+            rafRef.current = requestAnimationFrame(cb);
+          }
+        };
         const tick = async (ts: number) => {
           if (stoppedRef.current) return;
-          // ~8 fps : suffisant pour décoder, doux pour le CPU/WebView.
           if (
-            ts - lastFrameAt >= 120 &&
+            ts - lastFrameAt >= minInterval &&
             video.readyState >= 2 &&
             video.videoWidth > 0
           ) {
@@ -462,9 +480,9 @@ export function QrScanner({
               /* frame indisponible : on continue */
             }
           }
-          rafRef.current = requestAnimationFrame(tick);
+          schedule(tick);
         };
-        rafRef.current = requestAnimationFrame(tick);
+        schedule(tick);
       } catch (err) {
         // Filet de sécurité GLOBAL : aucun throw non géré ne doit faire
         // crasher le composant. Sur Sunmi un throw async non-catché peut
