@@ -10,15 +10,6 @@ import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { PushRegistrar } from "@/components/native/push-registrar";
 import { TawkChat } from "@/components/support/tawk-chat";
 
-// Lanceur de chat masqué là où il gênerait : paiement (checkout, hors pages de
-// résultat) et parcours course (Drive + suivi de course), où la bulle
-// chevaucherait la feuille/carte plein écran.
-const CLIENT_TAWK_HIDE: RegExp[] = [
-  /^\/checkout(?!\/(success|failure))/,
-  /^\/drive(\/|$)/,
-  /^\/course(\/|$)/,
-];
-
 /**
  * Chrome CLIENT PERSISTANT — rendu UNE SEULE FOIS dans `(customer)/layout.tsx`.
  * Comme les layouts Next ne se re-rendent pas en naviguant entre pages d'un même
@@ -106,15 +97,14 @@ export function CustomerChrome({
       {/* FCM (no-op hors APK / si non connecté). Monté une fois ici. */}
       {isAuth && <PushRegistrar role="customer" />}
 
-      {/* Live chat support — lanceur visible (chargé en différé), masqué sur
-      checkout et parcours course Drive (la bulle gênerait ces écrans). */}
+      {/* Live chat support — JAMAIS de bulle flottante : Tawk ne se charge QUE
+      sur clic « Contacter le support » (openSupportChat). Ici on ne mémorise
+      que le contexte (rôle/identité) pour l'agent. */}
       <TawkChat
         role="client"
         name={customerName}
         email={userEmail}
         phone={customerPhone}
-        launcher
-        hideOnPaths={CLIENT_TAWK_HIDE}
         attributes={{
           Compte: isAuth ? "Connecté" : "Visiteur",
           "ID client": userId ?? undefined,
