@@ -152,12 +152,14 @@ export async function MerchantShell({
           {/* Enregistrement du token FCM (no-op hors APK Capacitor). */}
           <PushRegistrar role="merchant" />
 
-          {/* Live chat support (Tawk.to) — lanceur masqué, ouvert via « Centre
-          d'aide » (sidebar/drawer). Contexte max pour l'agent. */}
+          {/* Live chat support (Tawk.to) — lanceur visible (chargé en différé).
+          Le commerçant n'a ni checkout ni course → visible partout. Contexte
+          max pour l'agent ; ouvrable aussi via « Centre d'aide ». */}
           <TawkChat
             role="commercant"
             name={merchant.name}
             email={user.email ?? null}
+            launcher
             attributes={{
               Boutique: merchant.name,
               "ID commerçant": merchant.id,
