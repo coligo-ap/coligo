@@ -83,6 +83,17 @@ export function shortId(id: string): string {
   return id.slice(0, 6).toUpperCase();
 }
 
+/** « 30/06 14:00 » — date+heure cible d'une commande programmée (Alger). */
+export function formatScheduleClock(iso: string): string {
+  return new Date(iso).toLocaleString("fr-DZ", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Africa/Algiers",
+  });
+}
+
 /** Référence publique imprimée (#A042). JAMAIS le pickup_code (PIN secret). */
 export function orderRef(order: TicketOrder): string {
   return order.order_number ?? shortId(order.id);

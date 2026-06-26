@@ -2,8 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { TrendingUp } from "lucide-react";
 import { OrdersCacheSync } from "@/components/merchant/orders-cache-sync";
 import { OrderBoard } from "@/components/merchant/order-board";
+import { ScheduledOrders } from "@/components/merchant/scheduled-orders";
 import { MerchantBalancePill } from "@/components/merchant/balance-pill";
 import { formatDA } from "@/lib/utils";
+import { isUpcoming } from "@/lib/orders/scheduled";
 import { type OrderWithItems } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -23,9 +25,11 @@ export default async function DashboardPage() {
 
   const { data: merchant } = await supabase
     .from("merchants")
-    .select("id, name, orders_paused")
+    .select("id, name, orders_paused, prep_time_min")
     .eq("user_id", user?.id ?? "")
     .maybeSingle();
+  const prepTimeMin =
+    (merchant as { prep_time_min?: number } | null)?.prep_time_min ?? 0;
 
   // Auto-refus (mig 0244) : annule + rembourse les commandes IMMÉDIATES restées
   // « À confirmer » au-delà du seuil (défaut 15 min). Poll gaté — le board se
@@ -43,7 +47,7 @@ export default async function DashboardPage() {
     .select(
       `
       id, merchant_id, customer_name, customer_phone, status,
-      total_da, pickup_code, order_number, pickup_slot_at, notes, created_at,
+      total_da, pickup_code, order_number, pickup_type, pickup_slot_at, notes, created_at,
       payment_method, payment_status, fulfillment_type, delivery_mode,
       delivery_driver_id, delivery_picked_up_at, delivery_arrived_at,
       delivery_delivered_at,
@@ -80,6 +84,27 @@ export default async function DashboardPage() {
   const activeOrders = ordersList.filter((o) =>
     ["pending", "accepted", "preparing", "ready"].includes(o.status)
   );
+
+  // Programmées (créneau futur) : retirées de la file active tant que la « fire
+  // time » (pickup_slot_at − prep) n'est pas atteinte → le commerçant ne les
+  // prépare pas trop tôt. Bascule DÉRIVÉE : dès que l'heure passe, l'ordre
+  // réapparaît dans le board au rafraîchissement suivant (zéro minuterie).
+  const now = new Date();
+  const upcomingOrders = activeOrders
+    .filter((o) =>
+      isUpcoming(
+        o as unknown as { pickup_type?: string; pickup_slot_at?: string },
+        prepTimeMin,
+        now
+      )
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.pickup_slot_at).getTime() -
+        new Date(b.pickup_slot_at).getTime()
+    );
+  const upcomingIds = new Set(upcomingOrders.map((o) => o.id));
+  const boardOrders = activeOrders.filter((o) => !upcomingIds.has(o.id));
 
   // Stats du jour (Algérie : on s'appuie sur l'heure locale du serveur Vercel
   // — suffisant pour le résumé ; le détail comptable est dans Finances).
@@ -138,8 +163,11 @@ export default async function DashboardPage() {
         <MerchantBalancePill variant="banner" />
       </section>
 
+      {/* ─── Commandes programmées (à venir) ─── */}
+      <ScheduledOrders orders={upcomingOrders} prepTimeMin={prepTimeMin} />
+
       {/* ─── Board opérationnel live ─── */}
-      <OrderBoard orders={activeOrders} />
+      <OrderBoard orders={boardOrders} />
     </div>
   );
 }

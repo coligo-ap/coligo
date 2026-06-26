@@ -16,6 +16,7 @@ import { buildTicketHTML } from "@/lib/ticket/build-ticket-html";
 import { orderToTicket } from "@/lib/ticket/order-to-ticket";
 import { fetchCategoryMap } from "@/lib/ticket/category-map";
 import { fetchCustomerOrderCount } from "@/lib/ticket/customer-orders";
+import { isScheduled } from "@/lib/orders/scheduled";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import type { OrderWithItems, PrintWidth } from "@/lib/types";
 
@@ -69,7 +70,7 @@ export async function GET(
     .select(
       `id, merchant_id, customer_name, customer_phone, status,
        total_da, service_fee_da, cashback_da, commission_da,
-       pickup_code, order_number, pickup_slot_at, notes, created_at,
+       pickup_code, order_number, pickup_type, pickup_slot_at, notes, created_at,
        payment_method, payment_status, fulfillment_type,
        delivery_address_text, delivery_phone, delivery_note,
        order_items ( id, order_id, product_name, name_ar, unit, is_free,
@@ -121,6 +122,11 @@ export async function GET(
       merchantCity: merchant?.city,
       merchantWilayaCode: merchant?.wilaya_code,
       customerOrderCount,
+      scheduledFor: isScheduled(
+        order as unknown as { pickup_type?: string; pickup_slot_at?: string }
+      )
+        ? order.pickup_slot_at
+        : null,
       promotions: (promoRows ?? []).map((p) => ({
         type: p.type,
         title_fr: p.title_fr,

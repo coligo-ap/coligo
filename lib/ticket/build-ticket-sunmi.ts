@@ -31,6 +31,7 @@ import {
   formatDA,
   formatOrderClock,
   formatQtyUnit,
+  formatScheduleClock,
   formatTime,
   groupByCategory,
   groupCount,
@@ -158,6 +159,17 @@ export function buildTicketSunmiCommands(
     out.push({ type: "align", value: "center" });
     out.push({ type: "size", value: SZ.small });
     out.push({ type: "textBold", text: opts.copyLabel });
+  }
+
+  // ===== 0. BANDEAU COMMANDE PROGRAMMÉE (très visible, FR/ASCII) =====
+  if (order.scheduled_for) {
+    out.push({ type: "align", value: "center" });
+    out.push({ type: "size", value: SZ.base });
+    out.push({ type: "textInverse", text: " COMMANDE PROGRAMMEE " });
+    out.push({
+      type: "textBold",
+      text: `A preparer pour ${formatScheduleClock(order.scheduled_for)}`,
+    });
   }
 
   // ===== 1. EN-TÊTE : logo Coligo (AGRANDI) + nom boutique (centrés) =====

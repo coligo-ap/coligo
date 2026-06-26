@@ -24,6 +24,7 @@ import {
   formatDA,
   formatOrderClock,
   formatQtyUnit,
+  formatScheduleClock,
   formatTime,
   groupByCategory,
   groupCount,
@@ -111,6 +112,12 @@ export type TicketOrder = {
   delivery_note?: string | null;
   /** Promotions appliquées (snapshot) — résumé bilingue en bas de ticket. */
   promotions?: TicketPromotion[];
+  /**
+   * Si la commande est PROGRAMMÉE (créneau futur), date/heure cible ISO → un
+   * bandeau « COMMANDE PROGRAMMÉE » bien visible est imprimé en haut du ticket.
+   * null/absent pour une commande immédiate.
+   */
+  scheduled_for?: string | null;
 };
 
 export type BuildTicketOptions = {
@@ -303,6 +310,14 @@ export async function buildTicketHTML(
   const copyBanner = opts.copyLabel
     ? `<div class="t-copy">${escapeHtml(opts.copyLabel)}</div>`
     : "";
+
+  // Bandeau COMMANDE PROGRAMMÉE (très visible, en haut) — bilingue. Empêche le
+  // préparateur de la lancer trop tôt.
+  const scheduledBanner = order.scheduled_for
+    ? `<div class="t-sched">⚠ COMMANDE PROGRAMMÉE · طلب مبرمج<div class="t-sched-time">À préparer pour / للتحضير في ${escapeHtml(
+        formatScheduleClock(order.scheduled_for)
+      )}</div></div>`
+    : "";
   const badgeNewClient = order.is_new_customer
     ? `<div class="t-badge">NOUVEAU CLIENT</div>`
     : "";
@@ -337,6 +352,13 @@ export async function buildTicketHTML(
       -webkit-print-color-adjust: exact; print-color-adjust: exact;
     }
     .tk .t-mode-ar { display: block; font-size: 14px; font-weight: 700; margin-top: 1px; }
+
+    /* Bandeau COMMANDE PROGRAMMÉE — impossible à manquer (cadre épais). */
+    .tk .t-sched {
+      text-align: center; border: 3px solid #000; padding: 6px 4px; margin-bottom: 8px;
+      font-size: 16px; font-weight: 900; letter-spacing: .3px; line-height: 1.25;
+    }
+    .tk .t-sched-time { font-size: 15px; font-weight: 800; margin-top: 2px; }
 
     /* Numéro de commande énorme, CENTRÉ (comme le QR code auparavant) */
     .tk .t-num { text-align: center; font-size: 56px; font-weight: 900; letter-spacing: -1px; line-height: 1.05; margin: 10px 0 2px; }
@@ -395,6 +417,7 @@ export async function buildTicketHTML(
   const html = `
 <div class="tk">
   ${copyBanner}
+  ${scheduledBanner}
 
   <!-- 1. Logo + boutique (image de marque centralisée ; alt = secours texte) -->
   <div class="t-logo"><img src="${BRAND_ASSETS.print}" alt="${escapeHtml(

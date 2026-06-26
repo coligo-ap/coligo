@@ -14,6 +14,8 @@ export type OrderToTicketExtras = {
   customerOrderCount?: number | null;
   /** Promotions appliquées (snapshot order_promotions) — résumé bilingue. */
   promotions?: TicketPromotion[];
+  /** Date/heure cible ISO si commande PROGRAMMÉE (→ bandeau ticket). */
+  scheduledFor?: string | null;
 };
 
 /** Ligne de commande enrichie (colonnes 0262 + jointure order_item_options). */
@@ -69,6 +71,7 @@ export function orderToTicket(
     is_new_customer: extras.isNewCustomer ?? false,
     customer_order_count: extras.customerOrderCount ?? null,
     promotions: extras.promotions ?? [],
+    scheduled_for: extras.scheduledFor ?? null,
     items: (order.order_items as RichOrderItem[]).map((it) => {
       const options: TicketItemOption[] = (it.order_item_options ?? [])
         .slice()

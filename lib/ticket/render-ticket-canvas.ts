@@ -35,6 +35,7 @@ import {
   formatDA,
   formatOrderClock,
   formatQtyUnit,
+  formatScheduleClock,
   formatTime,
   groupByCategory,
   groupCount,
@@ -176,6 +177,19 @@ export async function renderTicketCanvasBase64(
   if (opts.copyLabel) {
     textAt(opts.copyLabel, f(15), "center", y);
     y += Math.round(20 * S);
+  }
+
+  // === 0. BANDEAU COMMANDE PROGRAMMÉE (bilingue, le canvas shape l'arabe) ===
+  if (order.scheduled_for) {
+    textAt("COMMANDE PROGRAMMEE / طلب مبرمج", f(19, true), "center", y);
+    y += Math.round(24 * S);
+    textAt(
+      `A preparer pour ${formatScheduleClock(order.scheduled_for)}`,
+      f(18, true),
+      "center",
+      y
+    );
+    y += Math.round(28 * S);
   }
 
   // === 1. EN-TÊTE === logo image (cf. brand-assets) ; texte si indisponible.
