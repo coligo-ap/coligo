@@ -94,6 +94,31 @@ try {
     );
   ok((await revenue()) === 3000, "vente enregistrée = 3000 DA");
 
+  // 3-bis) Produit lié à une PROMOTION ACTIVE + une COMMANDE EN COURS.
+  const promo = (
+    await c.query(
+      `INSERT INTO promotions (merchant_id, type, title_fr, status)
+       VALUES ($1,'product_discount','TEST Promo','active') RETURNING id`,
+      [merchantId]
+    )
+  ).rows[0].id;
+  await c.query(
+    "INSERT INTO promotion_products (promotion_id, product_id) VALUES ($1,$2)",
+    [promo, prod]
+  );
+  const openOrder = (
+    await c.query(
+      `INSERT INTO orders (merchant_id, customer_name, customer_phone, total_da, pickup_code, pickup_slot_at, status)
+       VALUES ($1,'En cours','0551',1000,'9999', now(), 'preparing') RETURNING id`,
+      [merchantId]
+    )
+  ).rows[0].id;
+  await c.query(
+    `INSERT INTO order_items (order_id, product_name, unit_price_da, quantity, line_total_da)
+     VALUES ($1,'TEST Couscous',1000,1,1000)`,
+    [openOrder]
+  );
+
   // 4) Archiver le produit (soft-delete)
   await c.query(
     "UPDATE products SET archived_at=now(), is_available=false WHERE id=$1",
@@ -113,6 +138,35 @@ try {
       )
     ).rowCount === 0,
     "produit archivé INVISIBLE au catalogue (filtre archived_at IS NULL)"
+  );
+  // Promotion active : le lien produit survit (archivage = UPDATE, pas DELETE).
+  ok(
+    (
+      await c.query(
+        "SELECT 1 FROM promotion_products WHERE promotion_id=$1 AND product_id=$2",
+        [promo, prod]
+      )
+    ).rowCount === 1,
+    "promotion active : lien produit INTACT après archivage (aucune cascade)"
+  );
+  // Commande EN COURS (en préparation) : totaux & lignes inchangés.
+  ok(
+    Number(
+      (await c.query("SELECT total_da FROM orders WHERE id=$1", [openOrder]))
+        .rows[0].total_da
+    ) === 1000,
+    "commande EN COURS : total inchangé après archivage du produit"
+  );
+  ok(
+    Number(
+      (
+        await c.query(
+          "SELECT COALESCE(SUM(line_total_da),0) s FROM order_items WHERE order_id=$1",
+          [openOrder]
+        )
+      ).rows[0].s
+    ) === 1000,
+    "commande EN COURS : ligne produit intacte après archivage"
   );
 
   // 5) Supprimer une catégorie → produit dé-catégorisé (SET NULL), pas supprimé

@@ -109,6 +109,23 @@ export function CatalogView({
   useEffect(() => setCats(categories), [categories]);
   useEffect(() => setProds(products), [products]);
 
+  // Retrait OPTIMISTE de l'état local : le produit/catégorie disparaît
+  // IMMÉDIATEMENT à la suppression, sans attendre le refetch (qui réconcilie en
+  // fond). Évite l'effet « toast supprimé mais l'élément reste affiché ».
+  const removeProductsLocal = (ids: string[]) =>
+    setProds((p) => p.filter((x) => !ids.includes(x.id)));
+  const removeCategoriesLocal = (ids: string[]) => {
+    setCats((c) => c.filter((x) => !ids.includes(x.id)));
+    // Les produits de ces catégories deviennent « sans catégorie ».
+    setProds((p) =>
+      p.map((x) =>
+        x.category_id && ids.includes(x.category_id)
+          ? { ...x, category_id: null }
+          : x
+      )
+    );
+  };
+
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState<string>(ALL);
   const [sort, setSort] = useState<SortKey>("manual");
@@ -294,6 +311,7 @@ export function CatalogView({
       toast.success(
         `${ids.length} produit${ids.length > 1 ? "s" : ""} supprimé${ids.length > 1 ? "s" : ""}`
       );
+      removeProductsLocal(ids);
       clearSelection();
       refresh();
     });
@@ -318,13 +336,15 @@ export function CatalogView({
       toast.success(
         `${ids.length} catégorie${ids.length > 1 ? "s" : ""} supprimée${ids.length > 1 ? "s" : ""}`
       );
+      removeCategoriesLocal(ids);
       clearSelection();
       refresh();
     });
   }
   function bulk(
     fn: () => Promise<{ error?: string } | void>,
-    successMsg: string
+    successMsg: string,
+    onOptimistic?: () => void
   ) {
     startTransition(async () => {
       const res = await fn();
@@ -333,6 +353,7 @@ export function CatalogView({
         return;
       }
       toast.success(successMsg);
+      onOptimistic?.();
       clearSelection();
       refresh();
     });
@@ -531,7 +552,8 @@ export function CatalogView({
                                 )
                                   bulk(
                                     () => deleteCategories([g.key]),
-                                    "Catégorie supprimée"
+                                    "Catégorie supprimée",
+                                    () => removeCategoriesLocal([g.key])
                                   );
                               }
                             : null
@@ -567,7 +589,10 @@ export function CatalogView({
                             selectMode={selectMode}
                             selected={selProducts}
                             onToggleSelect={toggleSelProduct}
-                            onDeleted={refresh}
+                            onDeleted={(id) => {
+                              removeProductsLocal([id]);
+                              refresh();
+                            }}
                           />
                         )}
                       </CategorySection>
@@ -587,7 +612,10 @@ export function CatalogView({
           selectMode={selectMode}
           selected={selProducts}
           onToggleSelect={toggleSelProduct}
-          onDeleted={refresh}
+          onDeleted={(id) => {
+            removeProductsLocal([id]);
+            refresh();
+          }}
         />
       )}
 
@@ -951,7 +979,7 @@ function ProductItems({
   selectMode: boolean;
   selected: Set<string>;
   onToggleSelect: (id: string) => void;
-  onDeleted: () => void;
+  onDeleted: (id: string) => void;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -1052,12 +1080,14 @@ function ProductCard({
   selectMode: boolean;
   selected: boolean;
   onToggleSelect: () => void;
-  onDeleted: () => void;
+  onDeleted: (id: string) => void;
   dragHandle: DragHandle;
 }) {
   const router = useRouter();
   const confirm = useConfirm();
   const [available, setAvailable] = useState(product.is_available);
+  // Image cassée (URL morte, ex. seed unsplash 404) → placeholder propre.
+  const [imgError, setImgError] = useState(false);
   const [pending, startTransition] = useTransition();
   const [dupPending, startDup] = useTransition();
   const [delPending, startDel] = useTransition();
@@ -1105,7 +1135,7 @@ function ProductCard({
         return;
       }
       toast.success("Produit supprimé");
-      onDeleted();
+      onDeleted(product.id);
     });
   }
 
@@ -1150,7 +1180,7 @@ function ProductCard({
         href={`/catalog/${product.id}`}
         className="bg-surface-3 relative block aspect-square w-full"
       >
-        {product.image_url ? (
+        {product.image_url && !imgError ? (
           <Image
             src={product.image_url}
             alt={product.name_fr}
@@ -1160,6 +1190,7 @@ function ProductCard({
               "object-cover transition-opacity",
               (!available || stock === "out") && "opacity-40"
             )}
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className="text-subtle flex h-full w-full items-center justify-center">
