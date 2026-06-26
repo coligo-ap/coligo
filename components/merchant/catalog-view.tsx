@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/components/ui/confirm";
 import {
@@ -135,6 +135,56 @@ export function CatalogView({
   const [selCats, setSelCats] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [, startTransition] = useTransition();
+
+  // Persistance de l'état d'AFFICHAGE du catalogue (recherche, filtre catégorie,
+  // tri, vue groupée, catégories dépliées) pour la SESSION : en allant éditer /
+  // créer un produit puis en revenant (bouton retour), le commerçant retrouve la
+  // page EXACTEMENT comme il l'avait laissée. sessionStorage scopé par commerce.
+  const uiKey = `coligo:catalog:ui:${products[0]?.merchant_id ?? "x"}`;
+  const firstPersist = useRef(true);
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(uiKey);
+      if (!raw) return;
+      const s = JSON.parse(raw) as {
+        query?: string;
+        categoryId?: string;
+        sort?: SortKey;
+        grouped?: boolean;
+        expanded?: string[];
+      };
+      if (typeof s.query === "string") setQuery(s.query);
+      if (typeof s.categoryId === "string") setCategoryId(s.categoryId);
+      if (typeof s.sort === "string") setSort(s.sort);
+      if (typeof s.grouped === "boolean") setGrouped(s.grouped);
+      if (Array.isArray(s.expanded)) setExpanded(new Set(s.expanded));
+    } catch {
+      /* sessionStorage indispo / JSON cassé → on ignore */
+    }
+     
+  }, [uiKey]);
+  useEffect(() => {
+    // On saute le 1er passage (montage avec les valeurs par défaut / en cours de
+    // restauration) pour ne PAS écraser ce qui est stocké.
+    if (firstPersist.current) {
+      firstPersist.current = false;
+      return;
+    }
+    try {
+      sessionStorage.setItem(
+        uiKey,
+        JSON.stringify({
+          query,
+          categoryId,
+          sort,
+          grouped,
+          expanded: [...expanded],
+        })
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [uiKey, query, categoryId, sort, grouped, expanded]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
