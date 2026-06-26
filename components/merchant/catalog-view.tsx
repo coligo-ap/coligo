@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useConfirm } from "@/components/ui/confirm";
+import { useConfirm, usePrompt } from "@/components/ui/confirm";
 import {
   DndContext,
   closestCenter,
@@ -62,6 +62,8 @@ import {
 import {
   reorderCategories,
   deleteCategories,
+  quickCreateCategory,
+  renameCategory,
 } from "@/app/(merchant)/catalog/categories/actions";
 
 const ALL = "__all__";
@@ -100,6 +102,7 @@ export function CatalogView({
 }) {
   const router = useRouter();
   const confirm = useConfirm();
+  const prompt = usePrompt();
   // Porte unique de rafraîchissement après mutation (TanStack ou RSC).
   const refresh = onMutated ?? (() => router.refresh());
 
@@ -161,7 +164,6 @@ export function CatalogView({
     } catch {
       /* sessionStorage indispo / JSON cassé → on ignore */
     }
-     
   }, [uiKey]);
   useEffect(() => {
     // On saute le 1er passage (montage avec les valeurs par défaut / en cours de
@@ -409,6 +411,66 @@ export function CatalogView({
     });
   }
 
+  // Création INLINE d'une catégorie (plus de page dédiée).
+  async function promptCreateCategory() {
+    const name = await prompt({
+      title: "Nouvelle catégorie",
+      placeholder: "Ex. Boissons, Pains…",
+      confirmLabel: "Créer",
+    });
+    const clean = name?.trim();
+    if (!clean) return;
+    startTransition(async () => {
+      const res = await quickCreateCategory(clean);
+      if (res.error || !res.id) {
+        toast.error(res.error ?? "Échec de la création.");
+        return;
+      }
+      setCats((prev) => [
+        ...prev,
+        {
+          id: res.id!,
+          merchant_id: products[0]?.merchant_id ?? "",
+          title: res.title ?? clean,
+          description: null,
+          image_url: null,
+          position: prev.length,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ]);
+      toast.success(`Catégorie « ${res.title ?? clean} » créée`);
+      refresh();
+    });
+  }
+
+  // Renommage INLINE d'une catégorie (optimiste + repli si erreur serveur).
+  async function promptRename(id: string, current: string) {
+    const name = await prompt({
+      title: "Renommer la catégorie",
+      initialValue: current,
+      confirmLabel: "Renommer",
+    });
+    if (name === null) return;
+    const clean = name.trim();
+    if (!clean || clean === current) return;
+    setCats((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, title: clean } : c))
+    );
+    startTransition(async () => {
+      const res = await renameCategory(id, clean);
+      if (res.error) {
+        toast.error(res.error);
+        setCats((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, title: current } : c))
+        );
+        return;
+      }
+      toast.success("Catégorie renommée");
+      refresh();
+    });
+  }
+
   const availableCount = prods.filter((p) => p.is_available).length;
   const sortableCatKeys = (groups ?? [])
     .filter((g) => g.key !== NONE)
@@ -432,8 +494,9 @@ export function CatalogView({
         {/* Sur mobile : les deux boutons sur la MÊME ligne (50/50) pour gagner
             de la place ; libellés raccourcis. Sur ≥sm : libellés complets. */}
         <div className="flex w-full gap-2 sm:w-auto">
-          <Link
-            href="/catalog/categories/new"
+          <button
+            type="button"
+            onClick={promptCreateCategory}
             className={cn(
               buttonVariants({ variant: "outline" }),
               "flex-1 justify-center sm:flex-initial"
@@ -442,7 +505,7 @@ export function CatalogView({
             <Plus className="size-4" />
             <span className="sm:hidden">Catégorie</span>
             <span className="hidden sm:inline">Nouvelle catégorie</span>
-          </Link>
+          </button>
           <Link
             href="/catalog/new"
             className={cn(
@@ -576,8 +639,10 @@ export function CatalogView({
                         count={g.items.length}
                         open={expanded.has(g.key)}
                         onToggle={() => toggleExpanded(g.key)}
-                        editHref={
-                          g.key !== NONE ? `/catalog/categories/${g.key}` : null
+                        onRename={
+                          g.key !== NONE
+                            ? () => promptRename(g.key, g.title)
+                            : null
                         }
                         addHref={
                           g.key !== NONE
@@ -877,7 +942,7 @@ function CategorySection({
   count,
   open,
   onToggle,
-  editHref,
+  onRename,
   addHref,
   selectMode,
   selectable,
@@ -892,7 +957,7 @@ function CategorySection({
   count: number;
   open: boolean;
   onToggle: () => void;
-  editHref: string | null;
+  onRename: (() => void) | null;
   addHref: string;
   selectMode: boolean;
   selectable: boolean;
@@ -972,14 +1037,15 @@ function CategorySection({
           <Plus className="size-4" />
           <span className="hidden sm:inline">Produit</span>
         </Link>
-        {editHref && (
-          <Link
-            href={editHref}
-            title="Modifier la catégorie"
+        {onRename && (
+          <button
+            type="button"
+            onClick={onRename}
+            title="Renommer la catégorie"
             className="text-muted hover:bg-surface-3 hover:text-foreground inline-flex size-9 items-center justify-center rounded-[10px]"
           >
             <Pencil className="size-4" />
-          </Link>
+          </button>
         )}
         {onDelete && (
           <button

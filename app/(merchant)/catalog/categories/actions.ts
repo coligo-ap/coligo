@@ -225,3 +225,24 @@ export async function seedCategories(
   revalidatePath("/catalog");
   return { created: rows.length };
 }
+
+/**
+ * Renommage INLINE d'une catégorie depuis le catalogue (sans page dédiée).
+ * RLS-scopé sur le commerçant connecté. Retour : {error?} pour un repli inline.
+ */
+export async function renameCategory(
+  categoryId: string,
+  title: string
+): Promise<{ error?: string }> {
+  const clean = title.trim();
+  if (clean.length < 2) return { error: "Nom trop court (2 caractères min)." };
+  if (clean.length > 60) return { error: "Nom trop long (60 caractères max)." };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("categories")
+    .update({ title: clean })
+    .eq("id", categoryId);
+  if (error) return { error: error.message };
+  revalidatePath("/catalog");
+  return {};
+}
