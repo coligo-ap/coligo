@@ -203,8 +203,24 @@ export function CallOverlay({
     if (!AgoraRTC || !client) return;
     try {
       if (on) {
+        // Qualité HD (720p) + bitrate ADAPTATIF (Agora ajuste seul entre
+        // bitrateMin/Max selon le réseau → HD quand ça passe, dégradation
+        // propre sinon, sans coupure). `optimizationMode: "detail"` =
+        // préférence de dégradation « maintien de la résolution » (on baisse le
+        // débit/framerate avant de chuter brutalement la netteté de l'image,
+        // adapté à un appel face-à-face). Les contraintes width/height en
+        // `ideal` poussent getUserMedia à CAPTURER en 1280×720 (sans ça la
+        // webcam est ouverte en basse résolution → image floue).
         const cam = await AgoraRTC.createCameraVideoTrack({
           facingMode: facingRef.current,
+          optimizationMode: "detail",
+          encoderConfig: {
+            width: { ideal: 1280, min: 640, max: 1920 },
+            height: { ideal: 720, min: 480, max: 1080 },
+            frameRate: { ideal: 24, min: 15, max: 30 },
+            bitrateMin: 600,
+            bitrateMax: 2200,
+          },
         });
         camRef.current = cam;
         await client.publish([cam]);
