@@ -74,11 +74,6 @@ export function CartView() {
     [cart.items, enginePromos]
   );
 
-  const lineById = useMemo(
-    () => new Map(settled.lines.map((l) => [l.productId, l])),
-    [settled]
-  );
-
   // Offre quantité par produit (la plus généreuse) — pour le libellé/indice.
   const offerByProduct = useMemo(() => {
     const map: Record<string, { buy: number; get: number }> = {};
@@ -130,8 +125,10 @@ export function CartView() {
   // + le montant économisé sur ce produit + la/les promo(s) qui s'y appliquent.
   const productBenefits = useMemo(() => {
     return cart.items
-      .map((item) => {
-        const cl = lineById.get(item.product_id);
+      .map((item, index) => {
+        // Aligné par INDEX : settled.lines suit l'ordre de cart.items → correct
+        // même pour 2 variantes du même produit (même product_id, options ≠).
+        const cl = settled.lines[index];
         const appliedUnit = cl?.appliedUnitPriceDa ?? item.unit_price_da;
         const freeUnits = cl?.freeUnits ?? 0;
         const hasDiscount = appliedUnit < item.unit_price_da;
@@ -165,7 +162,7 @@ export function CartView() {
         };
       })
       .filter((b) => b.totalSaved > 0 || b.freeUnits > 0);
-  }, [cart.items, lineById, promoNameById]);
+  }, [cart.items, settled, promoNameById]);
 
   const units = cart.items.reduce((s, i) => s + i.quantity, 0);
   const subtotal = settled.subtotalDa;
@@ -237,8 +234,8 @@ export function CartView() {
 
       {/* Lignes produit — promos appliquées (prix barré, offert, badges). */}
       <div className="mt-3 space-y-2.5">
-        {cart.items.map((item) => {
-          const cl = lineById.get(item.product_id);
+        {cart.items.map((item, index) => {
+          const cl = settled.lines[index];
           const rawLineTotal = item.unit_price_da * item.quantity;
           const lineTotal = cl?.lineTotalDa ?? rawLineTotal;
           const appliedUnit = cl?.appliedUnitPriceDa ?? item.unit_price_da;
@@ -414,7 +411,7 @@ export function CartView() {
               {/* Un bloc par produit en promo : type d'avantage + gain. */}
               {productBenefits.map((b) => (
                 <div
-                  key={b.item.product_id}
+                  key={b.item.line_key}
                   className="bg-surface flex items-start gap-2.5 rounded-[10px] px-2.5 py-2"
                 >
                   <div className="bg-surface-2 size-9 shrink-0 overflow-hidden rounded-[8px]">
