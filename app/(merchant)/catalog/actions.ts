@@ -80,8 +80,24 @@ export async function createProduct(
   }
 
   const supabase = await createClient();
+  // Position = fin de SA catégorie (sinon le nouveau produit atterrit à 0 et
+  // casse l'ordre de classement). Scopé (commerce, catégorie).
+  const catId = parsed.data.category_id ?? null;
+  let posQuery = supabase
+    .from("products")
+    .select("position")
+    .eq("merchant_id", merchantId)
+    .order("position", { ascending: false })
+    .limit(1);
+  posQuery = catId
+    ? posQuery.eq("category_id", catId)
+    : posQuery.is("category_id", null);
+  const { data: lastPos } = await posQuery.maybeSingle();
+  const position = ((lastPos?.position as number | undefined) ?? -1) + 1;
+
   const { error } = await supabase.from("products").insert({
     merchant_id: merchantId,
+    position,
     ...parsed.data,
   });
 
