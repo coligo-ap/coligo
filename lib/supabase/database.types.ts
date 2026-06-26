@@ -922,6 +922,10 @@ export type Database = {
           unit_price_da: number;
           quantity: number;
           line_total_da: number;
+          unit: Database["public"]["Enums"]["product_unit"];
+          name_ar: string | null;
+          is_free: boolean;
+          source_promotion_id: string | null;
         };
         Insert: {
           id?: string;
@@ -930,6 +934,10 @@ export type Database = {
           unit_price_da: number;
           quantity: number;
           line_total_da: number;
+          unit?: Database["public"]["Enums"]["product_unit"];
+          name_ar?: string | null;
+          is_free?: boolean;
+          source_promotion_id?: string | null;
         };
         Update: {
           id?: string;
@@ -938,10 +946,189 @@ export type Database = {
           unit_price_da?: number;
           quantity?: number;
           line_total_da?: number;
+          unit?: Database["public"]["Enums"]["product_unit"];
+          name_ar?: string | null;
+          is_free?: boolean;
+          source_promotion_id?: string | null;
         };
         Relationships: [
           {
             foreignKeyName: "order_items_order_id_fkey";
+            columns: ["order_id"];
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      product_option_groups: {
+        Row: {
+          id: string;
+          product_id: string;
+          name_fr: string;
+          name_ar: string | null;
+          min_select: number;
+          max_select: number;
+          position: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          name_fr: string;
+          name_ar?: string | null;
+          min_select?: number;
+          max_select?: number;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          product_id?: string;
+          name_fr?: string;
+          name_ar?: string | null;
+          min_select?: number;
+          max_select?: number;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_option_groups_product_id_fkey";
+            columns: ["product_id"];
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      product_options: {
+        Row: {
+          id: string;
+          group_id: string;
+          name_fr: string;
+          name_ar: string | null;
+          price_delta_da: number;
+          is_available: boolean;
+          position: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          name_fr: string;
+          name_ar?: string | null;
+          price_delta_da?: number;
+          is_available?: boolean;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          name_fr?: string;
+          name_ar?: string | null;
+          price_delta_da?: number;
+          is_available?: boolean;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_options_group_id_fkey";
+            columns: ["group_id"];
+            referencedRelation: "product_option_groups";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      order_item_options: {
+        Row: {
+          id: string;
+          order_item_id: string;
+          group_name_fr: string;
+          group_name_ar: string | null;
+          option_name_fr: string;
+          option_name_ar: string | null;
+          price_delta_da: number;
+          position: number;
+        };
+        Insert: {
+          id?: string;
+          order_item_id: string;
+          group_name_fr: string;
+          group_name_ar?: string | null;
+          option_name_fr: string;
+          option_name_ar?: string | null;
+          price_delta_da?: number;
+          position?: number;
+        };
+        Update: {
+          id?: string;
+          order_item_id?: string;
+          group_name_fr?: string;
+          group_name_ar?: string | null;
+          option_name_fr?: string;
+          option_name_ar?: string | null;
+          price_delta_da?: number;
+          position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_item_options_order_item_id_fkey";
+            columns: ["order_item_id"];
+            referencedRelation: "order_items";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      order_promotions: {
+        Row: {
+          id: string;
+          order_id: string;
+          promotion_id: string | null;
+          type: string;
+          title_fr: string;
+          title_ar: string | null;
+          code: string | null;
+          discount_da: number;
+          free_qty: number;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          promotion_id?: string | null;
+          type: string;
+          title_fr: string;
+          title_ar?: string | null;
+          code?: string | null;
+          discount_da?: number;
+          free_qty?: number;
+          position?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          promotion_id?: string | null;
+          type?: string;
+          title_fr?: string;
+          title_ar?: string | null;
+          code?: string | null;
+          discount_da?: number;
+          free_qty?: number;
+          position?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_promotions_order_id_fkey";
             columns: ["order_id"];
             referencedRelation: "orders";
             referencedColumns: ["id"];

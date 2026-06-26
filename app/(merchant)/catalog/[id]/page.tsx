@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProductForm } from "@/components/merchant/product-form";
+import { ProductOptionsEditor } from "@/components/merchant/product-options-editor";
+import { getProductOptions } from "@/app/(merchant)/catalog/options/actions";
 import { getMerchantCategories } from "@/lib/data/catalog";
 import type { Product } from "@/lib/types";
 
@@ -38,13 +40,21 @@ export default async function EditProductPage({
 
   if (!product) notFound();
 
-  const categories = await getMerchantCategories();
+  const [categories, optionGroups] = await Promise.all([
+    getMerchantCategories(),
+    getProductOptions(id),
+  ]);
 
   return (
-    <ProductForm
-      merchantId={merchant.id}
-      product={product as Product}
-      categories={categories}
-    />
+    <>
+      <ProductForm
+        merchantId={merchant.id}
+        product={product as Product}
+        categories={categories}
+      />
+      <div className="mx-auto max-w-2xl px-4 pb-10 lg:px-8">
+        <ProductOptionsEditor productId={id} initialGroups={optionGroups} />
+      </div>
+    </>
   );
 }
