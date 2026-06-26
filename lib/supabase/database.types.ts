@@ -141,6 +141,7 @@ export type Database = {
           female_only: boolean;
           proxy_name: string | null;
           proxy_phone: string | null;
+          client_phone_shared: boolean;
           share_token: string | null;
           cashback_da: number;
           client_operation_id: string | null;

@@ -710,16 +710,27 @@ export function DCourse() {
               )}
             </button>
             {/* Appel IN-APP (Agora) : voix + caméra optionnelle, numéro du
-                client jamais exposé (tout passe en data). */}
+                client jamais exposé (tout passe en data). Toujours dispo. */}
             <button
               type="button"
               onClick={() => call.start(false)}
               className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
               style={{ background: VIOLET }}
             >
-              <Phone className="size-4" /> Appeler
+              <Phone className="size-4" /> Coligo Call
             </button>
           </div>
+          {/* Numéro DIRECT : visible UNIQUEMENT si le client a choisi de
+              partager son numéro (gating serveur → customer_phone est null
+              sinon). Disparaît instantanément si le client re-masque. */}
+          {ride.customer_phone && (
+            <a
+              href={`tel:${ride.customer_phone}`}
+              className="mt-2 flex h-[44px] items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
+            >
+              <Phone className="size-4" /> Appeler le numéro direct
+            </a>
+          )}
         </div>
 
         <div

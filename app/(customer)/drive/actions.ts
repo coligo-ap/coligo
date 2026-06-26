@@ -1293,3 +1293,36 @@ export async function setSosContacts(
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
+
+/**
+ * Le client AFFICHE / MASQUE son vrai numéro au chauffeur (sinon Coligo Call
+ * uniquement). Gating SERVEUR via RPC set_ride_phone_shared (propriété de la
+ * course + statut actif vérifiés en base). Retour : true si appliqué.
+ */
+export async function setRidePhoneShared(
+  rideId: string,
+  shared: boolean
+): Promise<{ ok: boolean }> {
+  const supabase = await createClient();
+  const { data, error } = await (
+    supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: boolean | null; error: { message: string } | null }>
+  )("set_ride_phone_shared", { p_ride_id: rideId, p_shared: shared });
+  if (error) return { ok: false };
+  return { ok: data === true };
+}
+
+/** Lit l'état de partage du numéro pour une course (le client possède la course). */
+export async function getRidePhoneShared(rideId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("rides")
+    .select("client_phone_shared")
+    .eq("id", rideId)
+    .maybeSingle();
+  return Boolean(
+    (data as { client_phone_shared?: boolean } | null)?.client_phone_shared
+  );
+}

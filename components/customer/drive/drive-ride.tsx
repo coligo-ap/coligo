@@ -65,6 +65,7 @@ import {
 import { clearPendingRide } from "@/lib/drive/offline-db";
 import { useUnreadRideMessages } from "@/lib/drive/use-unread-messages";
 import { useRideCall } from "@/lib/call/use-ride-call";
+import { RidePhoneShareToggle } from "@/components/customer/drive/ride-phone-share-toggle";
 
 /**
  * Drive client — phase course : offres des chauffeurs (triables, favoris en
@@ -193,7 +194,6 @@ export function DriveRide({
       void supabase.removeChannel(ch);
     };
     // resyncNonce : ré-abonnement au retour d'arrière-plan (le canal a pu tomber).
-     
   }, [activeId, refreshActive, resyncNonce]);
 
   if (done) return <DoneScreen ride={done} onExit={onExit} />;
@@ -302,7 +302,6 @@ function SearchScreen({
       clearInterval(id);
     };
     // resyncNonce : poll immédiat au retour d'arrière-plan.
-     
   }, [rideId, poll, resyncNonce]);
 
   // Temps réel (mig 0149) : chaque offre / contre-offre / retrait d'un
@@ -327,7 +326,6 @@ function SearchScreen({
       void supabase.removeChannel(ch);
     };
     // resyncNonce : ré-abonnement au retour d'arrière-plan (le canal a pu tomber).
-     
   }, [rideId, poll, resyncNonce]);
 
   const sorted = useMemo(() => {
@@ -1211,6 +1209,8 @@ function EnrouteScreen({
                 <Phone className="size-4" /> {t("call")}
               </button>
             </div>
+            {/* Toggle « Afficher mon numéro au chauffeur » (gating serveur). */}
+            <RidePhoneShareToggle rideId={ride.id} />
           </div>
         )}
 

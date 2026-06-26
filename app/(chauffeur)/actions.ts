@@ -868,7 +868,7 @@ export async function getChauffeurActiveRide(): Promise<ChauffeurActiveRide | nu
   const { data } = await admin
     .from("rides")
     .select(
-      "id, status, pickup_text, dest_text, pickup_lat, pickup_lng, dest_lat, dest_lng, distance_km, agreed_price_da, proposed_price_da, boost_amount_da, payment_method, cash_due_da, gamme, proxy_name, proxy_phone, customer_id, commission_da, chauffeur_net_da, share_token, customers(full_name, phone)"
+      "id, status, pickup_text, dest_text, pickup_lat, pickup_lng, dest_lat, dest_lng, distance_km, agreed_price_da, proposed_price_da, boost_amount_da, payment_method, cash_due_da, gamme, proxy_name, proxy_phone, client_phone_shared, customer_id, commission_da, chauffeur_net_da, share_token, customers(full_name, phone)"
     )
     .eq("chauffeur_id", ch.id)
     .in("status", ["accepted", "arriving", "arrived", "in_progress"])
@@ -907,7 +907,13 @@ export async function getChauffeurActiveRide(): Promise<ChauffeurActiveRide | nu
     proxy_name: data.proxy_name,
     customer_name:
       data.proxy_name ?? (cu ? cu.full_name.split(" ")[0] : "Client"),
-    customer_phone: (data.proxy_phone as string | null) ?? cu?.phone ?? null,
+    // SÉCURITÉ : le numéro direct n'est exposé au chauffeur QUE si le client a
+    // explicitement choisi de le partager (sinon Coligo Call uniquement). Gating
+    // serveur — le vrai numéro ne quitte jamais la base en mode masqué.
+    customer_phone: (data as unknown as { client_phone_shared?: boolean })
+      .client_phone_shared
+      ? ((data.proxy_phone as string | null) ?? cu?.phone ?? null)
+      : null,
     customer_rating:
       rating == null ? null : Math.round(Number(rating) * 10) / 10,
     commission_da: data.commission_da,
