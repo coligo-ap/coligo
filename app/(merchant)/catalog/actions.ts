@@ -221,12 +221,18 @@ export async function deleteProducts(
     .in("id", productIds);
   if (error) return { error: error.message };
 
-  // 3) Nettoyage des photos du bucket `products` (best-effort, non bloquant).
-  const paths = (rows ?? [])
-    .map((r) => storagePathFromPublicUrl(r.image_url))
-    .filter((p): p is string => !!p);
-  if (paths.length > 0) {
-    await supabase.storage.from("products").remove(paths);
+  // 3) Nettoyage des photos du bucket `products` (best-effort, JAMAIS bloquant :
+  //    l'archivage est déjà commité ci-dessus → un échec storage ne doit pas
+  //    faire échouer/throw la suppression).
+  try {
+    const paths = (rows ?? [])
+      .map((r) => storagePathFromPublicUrl(r.image_url))
+      .filter((p): p is string => !!p);
+    if (paths.length > 0) {
+      await supabase.storage.from("products").remove(paths);
+    }
+  } catch {
+    /* ignore — produit déjà archivé */
   }
 
   revalidatePath("/catalog");

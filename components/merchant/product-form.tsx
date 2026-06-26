@@ -10,6 +10,7 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm";
 import {
@@ -379,13 +380,15 @@ export function ProductForm({
 function DeleteProduct({ productId }: { productId: string }) {
   const router = useRouter();
   const confirm = useConfirm();
+  const queryClient = useQueryClient();
   const [pending, startTransition] = useTransition();
 
   async function onDelete() {
     if (
       !(await confirm({
         title: "Supprimer ce produit ?",
-        message: "Cette action est définitive.",
+        message:
+          "Le produit sera retiré de votre catalogue. Vos ventes passées restent intactes.",
         confirmLabel: "Supprimer",
         danger: true,
       }))
@@ -398,7 +401,11 @@ function DeleteProduct({ productId }: { productId: string }) {
         return;
       }
       toast.success("Produit supprimé");
+      // Invalide le cache catalogue (TanStack) → la liste se met à jour SANS
+      // attendre un refetch hasardeux ; sinon le produit semblait « rester ».
+      queryClient.invalidateQueries({ queryKey: ["merchant-catalog"] });
       router.push("/catalog");
+      router.refresh();
     });
   }
 
