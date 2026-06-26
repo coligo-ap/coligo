@@ -185,8 +185,10 @@ export type TicketMeta = {
   payWord: string;
   /** Variante AR : « مدفوع » | « نقدا ». */
   payWordAr: string;
-  /** Bandeau inversé combiné bilingue : « LIVRAISON · PAYÉ / توصيل · مدفوع ». */
+  /** Bandeau inversé FR : « LIVRAISON · PAYÉ » (ASCII-safe pour Sunmi). */
   bannerText: string;
+  /** Bandeau inversé AR : « توصيل · مدفوع » (rendu HTML/canvas seulement). */
+  bannerTextAr: string;
   /** « Livrer pour » | « Retrait pour ». */
   timeLineLabel: string;
   /** Variante AR : « التوصيل في » | « الاستلام في ». */
@@ -239,8 +241,9 @@ export function deriveTicketMeta(order: TicketOrder): TicketMeta {
     modeWordAr,
     payWord,
     payWordAr,
-    // Bandeau bilingue : FR au-dessus, AR en dessous (géré par le builder).
-    bannerText: `${modeWord} · ${payWord} / ${modeWordAr} · ${payWordAr}`,
+    // Bandeau : FR (ASCII-safe Sunmi) + variante AR séparée (HTML/canvas).
+    bannerText: `${modeWord} · ${payWord}`,
+    bannerTextAr: `${modeWordAr} · ${payWordAr}`,
     timeLineLabel: isDelivery ? "Livrer pour" : "Retrait pour",
     timeLineLabelAr: isDelivery ? "التوصيل في" : "الاستلام في",
     totalLabel: isCash ? "À ENCAISSER" : "Total",

@@ -336,6 +336,7 @@ export async function buildTicketHTML(
       padding: 8px 4px; font-size: 18px; letter-spacing: .5px; margin-bottom: 6px;
       -webkit-print-color-adjust: exact; print-color-adjust: exact;
     }
+    .tk .t-mode-ar { display: block; font-size: 14px; font-weight: 700; margin-top: 1px; }
 
     /* Numéro de commande énorme, CENTRÉ (comme le QR code auparavant) */
     .tk .t-num { text-align: center; font-size: 56px; font-weight: 900; letter-spacing: -1px; line-height: 1.05; margin: 10px 0 2px; }
@@ -402,7 +403,9 @@ export async function buildTicketHTML(
   <div class="t-shop">${escapeHtml(order.merchant_name)}</div>
 
   <!-- 2. Bandeau inversé mode + paiement -->
-  <div class="t-mode">${escapeHtml(meta.bannerText)}</div>
+  <div class="t-mode">${escapeHtml(meta.bannerText)}<span class="t-mode-ar" dir="rtl">${escapeHtml(
+    meta.bannerTextAr
+  )}</span></div>
 
   <!-- 3. Numéro de commande énorme (référence publique) -->
   <div class="t-num">#${escapeHtml(orderRef(order))}</div>
