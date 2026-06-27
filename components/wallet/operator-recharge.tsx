@@ -759,9 +759,64 @@ export function OperatorRecharge({
     );
   }
 
+  // Retour ADAPTÉ à chaque utilisateur : on revient là d'où il vient (historique)
+  // et, à défaut (accès direct par URL), sur l'accueil de SON espace selon le rôle.
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    const home =
+      state.ownerType === "merchant"
+        ? "/dashboard"
+        : state.ownerType === "driver"
+          ? "/driver"
+          : state.ownerType === "chauffeur"
+            ? "/chauffeur"
+            : "/partenaire";
+    router.push(home);
+  };
+
   return (
     <section className="cgw" dir={dir}>
       <style>{RECHARGE_STYLE}</style>
+
+      {!compact && (
+        <button
+          type="button"
+          onClick={goBack}
+          aria-label={lang === "ar" ? "رجوع" : "Retour"}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            marginBottom: 14,
+            padding: "8px 14px",
+            borderRadius: 12,
+            border: "1.5px solid var(--cgw-line, rgba(0,0,0,.12))",
+            background: "transparent",
+            color: "inherit",
+            fontWeight: 700,
+            fontSize: 14,
+            cursor: "pointer",
+          }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ transform: lang === "ar" ? "scaleX(-1)" : undefined }}
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          <span>{lang === "ar" ? "رجوع" : "Retour"}</span>
+        </button>
+      )}
 
       {!compact && <div className="ph1">{t.title}</div>}
 
