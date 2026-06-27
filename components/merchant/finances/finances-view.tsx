@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Download,
+  FileSpreadsheet,
   FileText,
   Info,
   Loader2,
@@ -533,12 +534,23 @@ function Invoices({ months }: { months: InvoiceMonth[] }) {
   if (months.length === 0) return null;
   return (
     <section className="border-border bg-surface mt-5 rounded-[16px] border p-5">
-      <h2 className="mb-1 flex items-center gap-2 text-base font-semibold">
-        <FileText className="text-primary-500 size-4" />
-        Mes factures mensuelles
-      </h2>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-base font-semibold">
+          <FileText className="text-primary-500 size-4" />
+          Mes relevés mensuels
+        </h2>
+        {/* Export comptable de TOUTES les opérations. <a> car la route renvoie
+            un fichier (Content-Disposition) → laisser le navigateur télécharger. */}
+        <a
+          href="/finances/export"
+          className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
+        >
+          <FileSpreadsheet className="size-3.5" />
+          Exporter tout (CSV)
+        </a>
+      </div>
       <p className="text-muted mb-4 text-xs">
-        Un récap clair par mois, à télécharger ou imprimer (PDF).
+        Un récap clair par mois — PDF à imprimer, ou CSV pour votre comptable.
       </p>
       <ul className="divide-border divide-y">
         {months.map((m) => (
@@ -553,13 +565,22 @@ function Invoices({ months }: { months: InvoiceMonth[] }) {
                 encaissé {formatDA(m.collectedForYou)}
               </p>
             </div>
-            <Link
-              href={`/finances/factures/${m.key}`}
-              className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
-            >
-              <Download className="size-3.5" />
-              Télécharger
-            </Link>
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                href={`/finances/factures/${m.key}`}
+                className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
+              >
+                <Download className="size-3.5" />
+                PDF
+              </Link>
+              <a
+                href={`/finances/export?month=${m.key}`}
+                className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
+              >
+                <FileSpreadsheet className="size-3.5" />
+                CSV
+              </a>
+            </div>
           </li>
         ))}
       </ul>

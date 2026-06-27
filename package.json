@@ -33,6 +33,7 @@
     "test:checkout:options": "node scripts/test-checkout-options.mjs",
     "test:earnings": "node --experimental-strip-types scripts/test-order-earnings.mjs",
     "test:payout:next": "node --experimental-strip-types scripts/test-next-payout.mjs",
+    "test:csv": "node --experimental-strip-types scripts/test-wallet-csv.mjs",
     "test:ride:phone": "node scripts/test-ride-phone-share.mjs",
     "test:vtc": "node scripts/test-vtc.mjs",
     "test:dispatch": "node --experimental-strip-types scripts/test-chauffeur-dispatch.mjs",
