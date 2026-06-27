@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, Phone, Truck, User } from "lucide-react";
+import { ArrowLeft, Clock, Phone, Truck, User, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { deliveryPhase } from "@/lib/delivery/merchant-status";
@@ -9,6 +9,10 @@ import { OrderActions } from "@/components/merchant/order-actions";
 import { PrintOrderButton } from "@/components/ticket/print-order-button";
 import { orderToTicket } from "@/lib/ticket/order-to-ticket";
 import { isScheduled } from "@/lib/orders/scheduled";
+import {
+  computeMerchantEarnings,
+  type MerchantOrderEarnings,
+} from "@/lib/finances/order-earnings";
 import { fetchCustomerOrderCount } from "@/lib/ticket/customer-orders";
 import { fetchCategoryMap } from "@/lib/ticket/category-map";
 import {
@@ -41,6 +45,8 @@ export default async function OrderDetailPage({
       .select(
         `id, merchant_id, customer_name, customer_phone, status,
          total_da, service_fee_da, cashback_da, commission_da,
+         net_total_da, subtotal_da, discount_da, commission_rate_applied,
+         cashback_used_da, topup_used_da, tour_delivery_commission_da,
          pickup_code, order_number, pickup_type, pickup_slot_at, notes, created_at,
          payment_method, payment_status,
          fulfillment_type, delivery_mode, delivery_fee_da,
@@ -68,6 +74,13 @@ export default async function OrderDetailPage({
     service_fee_da: number;
     cashback_da: number;
     commission_da: number;
+    net_total_da: number | null;
+    subtotal_da: number | null;
+    discount_da: number | null;
+    commission_rate_applied: number | null;
+    cashback_used_da: number | null;
+    topup_used_da: number | null;
+    tour_delivery_commission_da: number | null;
     fulfillment_type: "pickup" | "delivery";
     delivery_mode: "express" | "tour" | null;
     delivery_fee_da: number;
@@ -85,7 +98,7 @@ export default async function OrderDetailPage({
   // sur le commerçant connecté.
   const { data: merchant } = await supabase
     .from("merchants")
-    .select("name, print_width, print_copies")
+    .select("name, print_width, print_copies, commission_rate")
     .eq("id", o.merchant_id)
     .maybeSingle();
   // Enrichit chaque item avec sa catégorie (best-effort, fallback « ARTICLES »).
@@ -149,8 +162,12 @@ export default async function OrderDetailPage({
     }
     itemGroups[idx].items.push(item);
   }
-  // Montants figés (jamais recalculés).
-  const payout = o.total_da - o.commission_da;
+  // Gains commerçant RÉELS — miroir du ledger (mig 0127), réconcilie avec
+  // /finances. On NE fait PAS « total − commission » (faux : le total inclut
+  // les frais de service plateforme et la livraison du livreur).
+  const earnings = computeMerchantEarnings(o, {
+    commissionRate: merchant?.commission_rate ?? undefined,
+  });
 
   return (
     <div className="mx-auto max-w-[1100px] p-4 pb-[calc(13rem+env(safe-area-inset-bottom))] lg:p-6 lg:px-8 lg:pb-6">
@@ -267,21 +284,14 @@ export default async function OrderDetailPage({
                 <Recap label="Cashback" value={-o.cashback_da} tone="muted" />
               )}
               <div className="flex justify-between font-semibold">
-                <span>Total</span>
+                <span>Total payé par le client</span>
                 <span className="tabular-nums">{formatDA(o.total_da)}</span>
-              </div>
-              <div className="text-muted border-border mt-1 flex justify-between border-t pt-2 text-xs">
-                <span>Commission Coligo</span>
-                <span className="tabular-nums">
-                  −{formatDA(o.commission_da)}
-                </span>
-              </div>
-              <div className="text-success-700 flex justify-between text-xs font-medium">
-                <span>Vous percevez</span>
-                <span className="tabular-nums">{formatDA(payout)}</span>
               </div>
             </div>
           </section>
+
+          {/* Vos gains — le chiffre VRAI, qui réconcilie avec /finances. */}
+          <EarningsCard e={earnings} />
 
           {/* Timeline */}
           <section className="border-border bg-surface rounded-[16px] border p-5">
@@ -399,6 +409,125 @@ export default async function OrderDetailPage({
         </div>
       </div>
     </div>
+  );
+}
+
+/** Une ligne du détail des gains : libellé + montant signé/coloré. */
+function EarnLine({
+  label,
+  amount,
+  sign,
+}: {
+  label: string;
+  amount: number;
+  sign: "+" | "−";
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <span className="text-muted">{label}</span>
+      <span
+        className={
+          "shrink-0 font-semibold tabular-nums " +
+          (sign === "+" ? "text-success-700" : "text-danger-600")
+        }
+      >
+        {sign} {formatDA(amount)}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Carte « Vos gains sur cette commande » — le chiffre VRAI du commerçant,
+ * différencié espèces / en ligne / express, réconcilié avec /finances.
+ */
+function EarningsCard({ e }: { e: MerchantOrderEarnings }) {
+  const pct =
+    e.products > 0 ? Math.round((e.commission / e.products) * 100) : 0;
+  return (
+    <section className="border-border bg-surface rounded-[16px] border">
+      <header className="border-border flex items-center justify-between gap-2 border-b px-5 py-4">
+        <h2 className="flex items-center gap-2 text-base font-semibold">
+          <Wallet className="text-primary-500 size-4" />
+          Vos gains sur cette commande
+        </h2>
+        {!e.finalized && <Badge tone="amber">Estimation</Badge>}
+      </header>
+
+      <div className="space-y-1 px-5 py-4 text-sm">
+        <EarnLine
+          label="Produits (votre chiffre d'affaires)"
+          amount={e.products}
+          sign="+"
+        />
+        <EarnLine
+          label={`Commission Coligo${pct > 0 ? ` (${pct} %)` : ""}`}
+          amount={e.commission}
+          sign="−"
+        />
+        {e.paymentMethod === "online" && e.isTour && e.deliveryFee > 0 && (
+          <EarnLine
+            label="Livraison tournée encaissée"
+            amount={e.deliveryFee}
+            sign="+"
+          />
+        )}
+        {e.tourCommission > 0 && (
+          <EarnLine
+            label="Commission livraison (tournée)"
+            amount={e.tourCommission}
+            sign="−"
+          />
+        )}
+
+        <div className="border-border mt-1 flex items-center justify-between border-t-2 pt-3">
+          <span className="text-base font-bold">Vous gagnez</span>
+          <span className="text-success-700 text-lg font-extrabold tabular-nums">
+            {formatDA(e.net)}
+          </span>
+        </div>
+      </div>
+
+      {/* Comment l'argent vous arrive — selon le mode de paiement */}
+      <div className="border-border text-muted border-t px-5 py-3 text-xs leading-relaxed">
+        {e.isCodExpress ? (
+          <p>
+            🚚 <strong>Livraison express.</strong> Le livreur vous a avancé le
+            montant des produits au retrait — la commission est réglée via lui,
+            rien n&apos;est prélevé sur votre solde.
+          </p>
+        ) : e.paymentMethod === "cash" ? (
+          <p>
+            💵 <strong>Payé en espèces.</strong> Vous avez encaissé{" "}
+            <strong className="text-foreground">
+              {formatDA(e.cashCollected ?? 0)}
+            </strong>{" "}
+            en main. À régler à Coligo :{" "}
+            <strong className="text-foreground">
+              {formatDA(e.owedToColigo ?? 0)}
+            </strong>{" "}
+            (prélevé sur votre solde Coligo Pay).
+            {e.redeemed > 0 && (
+              <>
+                {" "}
+                Dont {formatDA(e.redeemed)} de cashback / Coligo Pay du client
+                qui vous sont reversés.
+              </>
+            )}
+          </p>
+        ) : (
+          <p>
+            🔒 <strong>Payé en ligne.</strong>{" "}
+            <strong className="text-foreground">
+              {formatDA(e.walletImpact)}
+            </strong>{" "}
+            ont été crédités sur votre solde Coligo Pay (commission déjà
+            déduite). Les frais de service et la livraison ne sont pas pour
+            vous.
+          </p>
+        )}
+      </div>
+    </section>
   );
 }
 
