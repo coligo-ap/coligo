@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Download,
   FileText,
+  Info,
   Loader2,
   Settings2,
   Truck,
@@ -33,7 +34,7 @@ import {
   requestPayout,
   type PayoutFormState,
 } from "@/app/(merchant)/finances/actions";
-import type { WalletEntryRow } from "@/lib/data/wallet";
+import type { AdjustmentEntry, WalletEntryRow } from "@/lib/data/wallet";
 import type { InvoiceMonth } from "@/lib/data/invoices";
 import type { NextPayout } from "@/lib/finances/next-payout";
 import type {
@@ -64,6 +65,7 @@ export function FinancesView({
   total,
   coligoPayBalance,
   nextPayout,
+  adjustments,
 }: {
   entries: WalletEntryRow[];
   requests: PayoutRequest[];
@@ -75,6 +77,7 @@ export function FinancesView({
   total: number;
   coligoPayBalance: number;
   nextPayout: NextPayout;
+  adjustments: AdjustmentEntry[];
 }) {
   const [showDetails, setShowDetails] = useState(page > 1);
 
@@ -105,6 +108,9 @@ export function FinancesView({
 
       {/* ── « D'où vient ce montant » — le calcul fait pour vous ── */}
       <SimpleBreakdown summary={summary} />
+
+      {/* ── Pourquoi ces ajustements (motif + commande) ── */}
+      <AdjustmentsCard adjustments={adjustments} />
 
       {/* ── Factures mensuelles téléchargeables ── */}
       <Invoices months={invoiceMonths} />
@@ -463,6 +469,61 @@ function Line({
         {sign} {formatDA(amount)}
       </span>
     </div>
+  );
+}
+
+/* ─────────────────────────── AJUSTEMENTS ─────────────────────────── */
+
+/**
+ * Détaille les ajustements (crédits/corrections manuels de Coligo) avec leur
+ * MOTIF et la commande liée — au lieu d'un total muet « Ajustements ». Chaque
+ * écriture porte un `note` obligatoire (contrainte DB), on l'affiche tel quel.
+ */
+function AdjustmentsCard({ adjustments }: { adjustments: AdjustmentEntry[] }) {
+  if (adjustments.length === 0) return null;
+  return (
+    <section className="border-border bg-surface mt-5 rounded-[16px] border p-5">
+      <h2 className="mb-1 flex items-center gap-2 text-base font-semibold">
+        <Info className="text-primary-500 size-4" />
+        Ajustements expliqués
+      </h2>
+      <p className="text-muted mb-4 text-xs">
+        Crédits et corrections appliqués par Coligo, avec leur motif.
+      </p>
+      <ul className="divide-border divide-y">
+        {adjustments.map((a) => {
+          const positive = a.amount_da >= 0;
+          return (
+            <li key={a.id} className="flex items-start gap-3 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">
+                  {a.note?.trim() || "Ajustement"}
+                </p>
+                <p className="text-subtle mt-0.5 flex flex-wrap items-center gap-x-2 text-xs">
+                  <span>{formatDate(a.created_at)}</span>
+                  {a.order_id && (
+                    <Link
+                      href={`/orders/${a.order_id}`}
+                      className="text-primary-700 hover:underline"
+                    >
+                      voir la commande
+                    </Link>
+                  )}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 text-sm font-bold tabular-nums",
+                  positive ? "text-success-700" : "text-danger-600"
+                )}
+              >
+                {positive ? "+" : "−"} {formatDA(Math.abs(a.amount_da))}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

@@ -1,4 +1,5 @@
 import {
+  getAdjustmentEntries,
   getPayoutRequests,
   getWalletEntriesPage,
   getWalletSummary,
@@ -49,6 +50,7 @@ export default async function FinancesPage({
     ordersDelivery,
     invoiceMonths,
     coligoPay,
+    adjustments,
   ] = await Promise.all([
     getWalletSummary(),
     getWalletEntriesPage(page, PAGE_SIZE),
@@ -71,6 +73,7 @@ export default async function FinancesPage({
       : Promise.resolve({ data: [] }),
     getInvoiceMonths(),
     getMyWalletState(),
+    getAdjustmentEntries(),
   ]);
 
   type DeliveryRow = { type: string; amount_da: number };
@@ -148,6 +151,7 @@ export default async function FinancesPage({
       total={pageData.total}
       coligoPayBalance={coligoPay?.effectiveBalanceDa ?? balance}
       nextPayout={nextPayout}
+      adjustments={adjustments}
     />
   );
 }
