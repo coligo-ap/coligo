@@ -782,43 +782,53 @@ export function OperatorRecharge({
       <style>{RECHARGE_STYLE}</style>
 
       {!compact && (
-        <button
-          type="button"
-          onClick={goBack}
-          aria-label={lang === "ar" ? "رجوع" : "Retour"}
+        <div
           style={{
-            display: "inline-flex",
+            display: "flex",
             alignItems: "center",
-            gap: 6,
+            gap: 12,
             marginBottom: 14,
-            padding: "8px 14px",
-            borderRadius: 12,
-            border: "1.5px solid var(--cgw-line, rgba(0,0,0,.12))",
-            background: "transparent",
-            color: "inherit",
-            fontWeight: 700,
-            fontSize: 14,
-            cursor: "pointer",
           }}
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ transform: lang === "ar" ? "scaleX(-1)" : undefined }}
+          <button
+            type="button"
+            onClick={goBack}
+            aria-label={lang === "ar" ? "رجوع" : "Retour"}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 14px",
+              borderRadius: 12,
+              border: "1.5px solid var(--cgw-line, rgba(0,0,0,.12))",
+              background: "transparent",
+              color: "inherit",
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
           >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-          <span>{lang === "ar" ? "رجوع" : "Retour"}</span>
-        </button>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ transform: lang === "ar" ? "scaleX(-1)" : undefined }}
+            >
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+            <span>{lang === "ar" ? "رجوع" : "Retour"}</span>
+          </button>
+          <div className="ph1" style={{ margin: 0 }}>
+            {t.title}
+          </div>
+        </div>
       )}
-
-      {!compact && <div className="ph1">{t.title}</div>}
 
       {/* HERO solde */}
       {!compact && (
