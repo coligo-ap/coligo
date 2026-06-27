@@ -557,14 +557,20 @@ export function OperatorRecharge({
   const submittingRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    const [st, en] = await Promise.all([
-      getMyWalletState(),
-      getMyWalletEntries(),
-    ]);
-    setState(st);
-    setEntries(en);
-    setLoading(false);
-    return { st, en };
+    try {
+      const [st, en] = await Promise.all([
+        getMyWalletState(),
+        getMyWalletEntries(),
+      ]);
+      setState(st);
+      setEntries(en);
+      return { st, en };
+    } catch {
+      // Réseau/auth KO : on N'enferme PAS l'écran dans un spinner infini.
+      return { st: null, en: [] as MyWalletEntry[] };
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -717,7 +723,41 @@ export function OperatorRecharge({
       </section>
     );
   }
-  if (!state) return null;
+  // Jamais d'écran BLANC : si l'état du portefeuille n'a pas pu être chargé
+  // (réseau/session), on propose un « Réessayer » au lieu de rendre null.
+  if (!state) {
+    return (
+      <section className="cgw" dir={dir}>
+        <style>{RECHARGE_STYLE}</style>
+        <div
+          className="cgw-load"
+          style={{ flexDirection: "column", gap: 14, padding: 24 }}
+        >
+          <p style={{ textAlign: "center", fontWeight: 600 }}>
+            {lang === "ar"
+              ? "تعذّر تحميل محفظتك. تحقّق من اتصالك."
+              : "Impossible de charger votre portefeuille Coligo Pay. Vérifiez votre connexion."}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              void refresh();
+            }}
+            style={{
+              padding: "10px 20px",
+              borderRadius: 12,
+              background: "var(--cg-brand, #6C2BD9)",
+              color: "#fff",
+              fontWeight: 700,
+            }}
+          >
+            {lang === "ar" ? "إعادة المحاولة" : "Réessayer"}
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="cgw" dir={dir}>
