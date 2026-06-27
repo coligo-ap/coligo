@@ -5,11 +5,13 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Banknote,
+  CalendarClock,
   CheckCircle2,
   ChevronDown,
   Download,
   FileText,
   Loader2,
+  Settings2,
   Truck,
   Wallet,
 } from "lucide-react";
@@ -33,6 +35,7 @@ import {
 } from "@/app/(merchant)/finances/actions";
 import type { WalletEntryRow } from "@/lib/data/wallet";
 import type { InvoiceMonth } from "@/lib/data/invoices";
+import type { NextPayout } from "@/lib/finances/next-payout";
 import type {
   DeliveryStats,
   FinancesSummary,
@@ -60,6 +63,7 @@ export function FinancesView({
   pageCount,
   total,
   coligoPayBalance,
+  nextPayout,
 }: {
   entries: WalletEntryRow[];
   requests: PayoutRequest[];
@@ -70,6 +74,7 @@ export function FinancesView({
   pageCount: number;
   total: number;
   coligoPayBalance: number;
+  nextPayout: NextPayout;
 }) {
   const [showDetails, setShowDetails] = useState(page > 1);
 
@@ -91,6 +96,9 @@ export function FinancesView({
 
       {/* ── LE VERDICT : la seule chose vraiment importante ── */}
       <Verdict summary={summary} />
+
+      {/* ── Prochain virement automatique (date concrète) ── */}
+      <NextPayoutBanner info={nextPayout} />
 
       {/* ── Versement (si Coligo vous doit de l'argent) ── */}
       {summary.available > 0 && <PayoutForm available={summary.available} />}
@@ -243,6 +251,100 @@ function Verdict({ summary }: { summary: FinancesSummary }) {
         </p>
       </div>
     </section>
+  );
+}
+
+/* ─────────────────────── PROCHAIN VERSEMENT ─────────────────────── */
+
+function cadenceLabel(c: "weekly" | "monthly"): string {
+  return c === "weekly" ? "hebdomadaire" : "mensuel";
+}
+
+/** Bandeau « Prochain virement » — donne au commerçant une date concrète. */
+function NextPayoutBanner({ info }: { info: NextPayout }) {
+  // Auto désactivé : nudge discret vers le réglage (sans alarmer).
+  if (info.kind === "manual") {
+    return (
+      <Link
+        href="/settings"
+        className="border-border bg-surface text-muted hover:bg-surface-2 mb-5 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm transition-colors"
+      >
+        <Settings2 className="text-primary-500 size-4 shrink-0" />
+        <span>
+          Activez le{" "}
+          <strong className="text-foreground">versement automatique</strong>{" "}
+          pour être payé sans y penser.
+        </span>
+      </Link>
+    );
+  }
+
+  if (info.kind === "frozen") {
+    return (
+      <div className="border-warning-200 bg-warning-50 text-warning-800 mb-5 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm">
+        <CalendarClock className="size-4 shrink-0" />
+        <span>
+          Versements <strong>suspendus</strong> (compte gelé). Contactez le
+          support pour régulariser.
+        </span>
+      </div>
+    );
+  }
+
+  if (info.kind === "needs_setup") {
+    return (
+      <Link
+        href="/settings"
+        className="border-warning-200 bg-warning-50 text-warning-800 hover:bg-warning-100 mb-5 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm transition-colors"
+      >
+        <CalendarClock className="size-4 shrink-0" />
+        <span>
+          Versement {cadenceLabel(info.cadence)} activé —{" "}
+          <strong>renseignez vos coordonnées</strong> de versement pour le
+          déclencher.
+        </span>
+      </Link>
+    );
+  }
+
+  if (info.kind === "waiting_balance") {
+    return (
+      <div className="border-border bg-surface text-muted mb-5 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm">
+        <CalendarClock className="text-primary-500 size-4 shrink-0" />
+        <span>
+          Versement {cadenceLabel(info.cadence)} automatique — dès que votre
+          solde atteint{" "}
+          <strong className="text-foreground">{formatDA(info.minDa)}</strong>.
+        </span>
+      </div>
+    );
+  }
+
+  // scheduled — la date concrète.
+  const d = new Date(info.date);
+  const when = d.toLocaleDateString("fr-DZ", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "Africa/Algiers",
+  });
+  return (
+    <div className="border-primary-200 bg-primary-50/70 mb-5 flex items-center gap-3 rounded-[14px] border px-4 py-3.5">
+      <div className="bg-primary-100 text-primary-700 grid size-9 shrink-0 place-items-center rounded-full">
+        <CalendarClock className="size-5" />
+      </div>
+      <div className="min-w-0 text-sm">
+        <p className="text-primary-900/70 text-xs font-medium">
+          Prochain virement automatique ({cadenceLabel(info.cadence)})
+        </p>
+        <p className="text-foreground font-semibold capitalize">
+          {when}{" "}
+          <span className="text-success-700 font-bold tabular-nums">
+            · ~{formatDA(info.available)}
+          </span>
+        </p>
+      </div>
+    </div>
   );
 }
 

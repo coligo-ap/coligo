@@ -6,6 +6,7 @@ import {
 import { getMyWalletState } from "@/app/wallet/recharge-actions";
 import { getInvoiceMonths } from "@/lib/data/invoices";
 import { reservedAmount } from "@/lib/finances/balance";
+import { computeNextPayout, type NextPayout } from "@/lib/finances/next-payout";
 import { FinancesView } from "@/components/merchant/finances/finances-view";
 import { createClient } from "@/lib/supabase/server";
 
@@ -33,7 +34,9 @@ export default async function FinancesPage({
   const { data: merchant } = user
     ? await supabase
         .from("merchants")
-        .select("id")
+        .select(
+          "id, payout_auto, last_auto_payout_at, payout_method, payout_details, is_frozen"
+        )
         .eq("user_id", user.id)
         .maybeSingle()
     : { data: null };
@@ -116,6 +119,23 @@ export default async function FinancesPage({
 
   const pageCount = Math.max(1, Math.ceil(pageData.total / PAGE_SIZE));
 
+  // Prochain versement automatique (cadence + date concrète) pour le héro.
+  const mp = merchant as {
+    payout_auto?: "none" | "weekly" | "monthly";
+    last_auto_payout_at?: string | null;
+    payout_method?: string | null;
+    payout_details?: string | null;
+    is_frozen?: boolean | null;
+  } | null;
+  const nextPayout: NextPayout = computeNextPayout({
+    payoutAuto: mp?.payout_auto ?? "none",
+    lastAutoPayoutAt: mp?.last_auto_payout_at ?? null,
+    method: mp?.payout_method ?? null,
+    details: mp?.payout_details ?? null,
+    isFrozen: mp?.is_frozen ?? false,
+    available: summary.available,
+  });
+
   return (
     <FinancesView
       entries={pageData.entries}
@@ -127,6 +147,7 @@ export default async function FinancesPage({
       pageCount={pageCount}
       total={pageData.total}
       coligoPayBalance={coligoPay?.effectiveBalanceDa ?? balance}
+      nextPayout={nextPayout}
     />
   );
 }
