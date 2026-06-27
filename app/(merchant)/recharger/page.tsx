@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { OperatorRecharge } from "@/components/wallet/operator-recharge";
+import RechargerLoading from "./loading";
 
 /**
  * Coligo Pay commerçant (solde + recharge). Accès ULTRA RAPIDE : pas d'`await`
@@ -13,8 +14,9 @@ import { OperatorRecharge } from "@/components/wallet/operator-recharge";
 export default function MerchantRechargerPage() {
   return (
     <div className="p-4 lg:p-6">
-      {/* Suspense requis : OperatorRecharge utilise useSearchParams. */}
-      <Suspense fallback={null}>
+      {/* Suspense requis : OperatorRecharge utilise useSearchParams. Fallback =
+      squelette (jamais d'écran blanc, même en chargement direct/SSR). */}
+      <Suspense fallback={<RechargerLoading />}>
         <OperatorRecharge />
       </Suspense>
     </div>
