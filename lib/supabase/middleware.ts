@@ -332,6 +332,7 @@ const MERCHANT_ROOTS = [
   "/aide",
   "/settings",
   "/telecharger",
+  "/recharger", // Coligo Pay commerçant — sinon le commerçant est renvoyé au dashboard
 ];
 
 /**
