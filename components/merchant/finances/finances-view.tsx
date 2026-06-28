@@ -87,69 +87,76 @@ export function FinancesView({
   const [showDetails, setShowDetails] = useState(page > 1);
 
   return (
-    <div className="mx-auto max-w-[760px] p-4 lg:p-6">
-      <header className="mb-5">
-        <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
+    <div className="mx-auto max-w-[680px] p-4 lg:p-6">
+      <header className="mb-4">
+        <h1 className="text-xl font-bold tracking-tight lg:text-2xl">
           Mon argent
         </h1>
-        <p className="text-muted mt-1 text-sm">
-          Tout est réuni dans votre <strong>Coligo Pay</strong> : les paiements
-          en ligne et cashback y arrivent automatiquement (commission déduite),
-          et la commission des commandes en espèces y est prélevée.
+        <p className="text-muted mt-0.5 text-[13px] leading-snug">
+          Tout converge dans votre{" "}
+          <strong className="text-foreground">Coligo Pay</strong> : paiements en
+          ligne, cashback et commissions.
         </p>
       </header>
 
-      {/* ── SOLDE COLIGO PAY : le solde unique (revenus − commissions + recharge) ── */}
-      <ColigoPayCard balance={coligoPayBalance} available={summary.available} />
-
-      {/* ── LE VERDICT : la seule chose vraiment importante ── */}
-      <Verdict summary={summary} />
-
-      {/* ── Dette espèces : alerte au seuil doux, blocage au plafond ── */}
-      <CashDebtBanner status={cashDebt} />
-
-      {/* ── Prochain virement automatique (date concrète) ── */}
-      <NextPayoutBanner info={nextPayout} />
-
-      {/* ── Versement (si Coligo vous doit de l'argent) ── */}
-      {summary.available > 0 && <PayoutForm available={summary.available} />}
-
-      {/* ── « D'où vient ce montant » — le calcul fait pour vous ── */}
-      <SimpleBreakdown summary={summary} />
-
-      {/* ── Pourquoi ces ajustements (motif + commande) ── */}
-      <AdjustmentsCard adjustments={adjustments} />
-
-      {/* ── Factures mensuelles téléchargeables ── */}
-      <Invoices months={invoiceMonths} />
-
-      {/* ── Le reste, replié (détail des opérations, livraisons, versements) ── */}
-      <button
-        type="button"
-        onClick={() => setShowDetails((v) => !v)}
-        className="border-border bg-surface text-foreground hover:bg-surface-2 mt-5 flex w-full items-center justify-between gap-2 rounded-[14px] border px-5 py-4 text-sm font-semibold transition-colors"
-      >
-        <span>Voir le détail (opérations, livraisons, versements)</span>
-        <ChevronDown
-          className={cn(
-            "size-5 transition-transform",
-            showDetails && "rotate-180"
-          )}
+      {/* Rythme vertical uniforme et resserré (façon Uber). Les composants
+          renvoyant null ne créent aucun trou grâce à space-y. */}
+      <div className="space-y-3">
+        {/* Solde unique (revenus − commissions + recharge) */}
+        <ColigoPayCard
+          balance={coligoPayBalance}
+          available={summary.available}
         />
-      </button>
 
-      {showDetails && (
-        <div className="mt-4 space-y-5">
-          <DeliverySection stats={deliveryStats} />
-          <History
-            entries={entries}
-            total={total}
-            page={page}
-            pageCount={pageCount}
+        {/* Le verdict : Coligo vous doit / vous devez / à jour */}
+        <Verdict summary={summary} />
+
+        {/* Dette espèces : alerte au seuil doux, blocage au plafond */}
+        <CashDebtBanner status={cashDebt} />
+
+        {/* Prochain virement automatique (date concrète) */}
+        <NextPayoutBanner info={nextPayout} />
+
+        {/* Versement (si Coligo vous doit de l'argent) */}
+        {summary.available > 0 && <PayoutForm available={summary.available} />}
+
+        {/* « D'où vient ce montant » — le calcul fait pour vous */}
+        <SimpleBreakdown summary={summary} />
+
+        {/* Pourquoi ces ajustements (motif + commande) */}
+        <AdjustmentsCard adjustments={adjustments} />
+
+        {/* Factures mensuelles téléchargeables */}
+        <Invoices months={invoiceMonths} />
+
+        {/* Le reste, replié (détail des opérations, livraisons, versements) */}
+        <button
+          type="button"
+          onClick={() => setShowDetails((v) => !v)}
+          className="border-border bg-surface text-foreground hover:bg-surface-2 flex w-full items-center justify-between gap-2 rounded-[14px] border px-4 py-3.5 text-sm font-semibold transition-colors"
+        >
+          <span>Détail des opérations, livraisons & versements</span>
+          <ChevronDown
+            className={cn(
+              "text-muted size-5 transition-transform",
+              showDetails && "rotate-180"
+            )}
           />
-          <PayoutList requests={requests} />
-        </div>
-      )}
+        </button>
+
+        {showDetails && (
+          <div className="space-y-3">
+            <DeliverySection stats={deliveryStats} />
+            <History
+              entries={entries}
+              total={total}
+              page={page}
+              pageCount={pageCount}
+            />
+            <PayoutList requests={requests} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -169,99 +176,117 @@ function ColigoPayCard({
   return (
     <section
       className={cn(
-        "mb-3 rounded-[20px] p-6 text-white shadow-sm",
+        "relative overflow-hidden rounded-[18px] p-5 text-white shadow-sm",
         negative
           ? "from-warning-500 to-warning-600 bg-gradient-to-br"
           : "from-primary-600 to-primary-800 bg-gradient-to-br"
       )}
     >
-      <div className="flex items-center gap-2 text-sm font-medium text-white/85">
-        <Wallet className="size-5" />
-        Solde Coligo Pay
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-white/85">
+            <Wallet className="size-4" />
+            Solde Coligo Pay
+          </div>
+          <p className="mt-1.5 text-[2rem] leading-none font-extrabold tracking-tight tabular-nums">
+            {formatDA(balance)}
+          </p>
+        </div>
+        <Link
+          href="/recharger"
+          prefetch
+          className="text-primary-700 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[10px] bg-white px-3.5 text-xs font-bold shadow-sm transition-transform active:scale-95"
+        >
+          <Wallet className="size-3.5" /> Recharger
+        </Link>
       </div>
-      <p className="mt-2 text-[2.6rem] leading-none font-extrabold tracking-tight tabular-nums">
-        {formatDA(balance)}
-      </p>
-      <p className="mt-3 text-sm text-white/90">
+      <p className="mt-3 text-[13px] text-white/90">
         {negative ? (
           <>À régulariser — rechargez pour repasser au vert.</>
         ) : available > 0 ? (
           <>
-            <strong>{formatDA(available)}</strong> disponibles à retirer
+            <strong className="font-bold">{formatDA(available)}</strong>{" "}
+            disponibles à retirer
           </>
         ) : (
-          <>Votre porte-monnaie unique : paiements, commissions et recharges.</>
+          <>Votre porte-monnaie unique : paiements, commissions, recharges.</>
         )}
       </p>
-      <Link
-        href="/recharger"
-        prefetch
-        className="text-primary-700 mt-4 inline-flex h-10 items-center gap-2 rounded-[12px] bg-white px-4 text-sm font-bold"
-      >
-        <Wallet className="size-4" /> Recharger
-      </Link>
     </section>
   );
 }
 
 /* ──────────────────────────── VERDICT ──────────────────────────── */
 
+/** Bandeau verdict compact : une ligne « qui doit quoi à qui ». Le solde
+ *  détaillé reste dans « Le détail du calcul » plus bas. */
 function Verdict({ summary }: { summary: FinancesSummary }) {
-  // Trois états : Coligo vous doit / vous devez à Coligo / tout est à jour.
   if (summary.balance > 0) {
     return (
-      <section className="from-success-600 to-success-700 mb-5 rounded-[20px] bg-gradient-to-br p-6 text-white shadow-sm">
-        <div className="flex items-center gap-2 text-sm font-medium text-white/85">
+      <section className="bg-success-50 flex items-center gap-3 rounded-[16px] p-4">
+        <div className="bg-success-100 text-success-700 grid size-10 shrink-0 place-items-center rounded-full">
           <Wallet className="size-5" />
-          Coligo vous doit
         </div>
-        <p className="mt-2 text-[2.6rem] leading-none font-extrabold tracking-tight tabular-nums">
-          {formatDA(summary.balance)}
-        </p>
-        <div className="mt-3 text-sm text-white/90">
+        <div className="min-w-0 flex-1">
+          <p className="text-success-700/90 text-xs font-medium">
+            Coligo vous doit
+          </p>
+          <p className="text-success-700 text-xl leading-tight font-extrabold tabular-nums">
+            {formatDA(summary.balance)}
+          </p>
+        </div>
+        <p className="text-success-700/80 max-w-[44%] text-right text-[11px] leading-tight">
           {summary.reserved > 0 ? (
-            <p>
-              <strong>{formatDA(summary.available)}</strong> à retirer ·{" "}
-              {formatDA(summary.reserved)} en cours de versement
-            </p>
+            <>
+              <strong className="font-bold">
+                {formatDA(summary.available)}
+              </strong>{" "}
+              à retirer · {formatDA(summary.reserved)} en cours
+            </>
           ) : (
-            <p>
-              <strong>{formatDA(summary.available)}</strong> disponibles à
-              retirer
-            </p>
+            <>
+              <strong className="font-bold">
+                {formatDA(summary.available)}
+              </strong>{" "}
+              disponibles
+            </>
           )}
-        </div>
+        </p>
       </section>
     );
   }
 
   if (summary.balance < 0) {
     return (
-      <section className="from-warning-500 to-warning-600 mb-5 rounded-[20px] bg-gradient-to-br p-6 text-white shadow-sm">
-        <div className="flex items-center gap-2 text-sm font-medium text-white/90">
+      <section className="bg-warning-50 flex items-center gap-3 rounded-[16px] p-4">
+        <div className="bg-warning-100 text-warning-700 grid size-10 shrink-0 place-items-center rounded-full">
           <Banknote className="size-5" />
-          Vous devez à Coligo
         </div>
-        <p className="mt-2 text-[2.6rem] leading-none font-extrabold tracking-tight tabular-nums">
-          {formatDA(summary.debt)}
-        </p>
-        <p className="mt-3 text-sm text-white/95">
-          C&apos;est la commission de vos <strong>ventes en espèces</strong> (le
-          client vous a payé en main propre). À régler à Coligo.
+        <div className="min-w-0 flex-1">
+          <p className="text-warning-700/90 text-xs font-medium">
+            Vous devez à Coligo
+          </p>
+          <p className="text-warning-700 text-xl leading-tight font-extrabold tabular-nums">
+            {formatDA(summary.debt)}
+          </p>
+        </div>
+        <p className="text-warning-700/80 max-w-[44%] text-right text-[11px] leading-tight">
+          Commission de vos ventes{" "}
+          <strong className="font-bold">espèces</strong>.
         </p>
       </section>
     );
   }
 
   return (
-    <section className="border-border bg-surface mb-5 flex items-center gap-3 rounded-[20px] border p-6 shadow-sm">
-      <div className="bg-success-50 text-success-600 grid size-12 shrink-0 place-items-center rounded-full">
-        <CheckCircle2 className="size-6" />
+    <section className="border-border bg-surface flex items-center gap-3 rounded-[16px] border p-4">
+      <div className="bg-success-50 text-success-600 grid size-10 shrink-0 place-items-center rounded-full">
+        <CheckCircle2 className="size-5" />
       </div>
       <div>
-        <p className="text-lg font-bold">Tout est à jour ✅</p>
-        <p className="text-muted text-sm">
-          Aucun montant en attente, aucune dette. Tout est réglé.
+        <p className="text-sm font-bold">Tout est à jour</p>
+        <p className="text-muted text-xs">
+          Aucun montant en attente, aucune dette.
         </p>
       </div>
     </section>
@@ -282,10 +307,10 @@ function CashDebtBanner({ status }: { status: CashDebtStatus }) {
   return (
     <section
       className={cn(
-        "mb-5 flex items-start gap-3 rounded-[16px] border p-5",
+        "flex items-start gap-3 rounded-[14px] border p-4",
         blocked
-          ? "border-danger-200 bg-danger-50"
-          : "border-warning-200 bg-warning-50"
+          ? "border-danger-100 bg-danger-50"
+          : "border-warning-100 bg-warning-50"
       )}
     >
       <AlertTriangle
@@ -298,11 +323,11 @@ function CashDebtBanner({ status }: { status: CashDebtStatus }) {
         <p
           className={cn(
             "text-sm font-bold",
-            blocked ? "text-danger-800" : "text-warning-800"
+            blocked ? "text-danger-700" : "text-warning-700"
           )}
         >
           {blocked
-            ? "Ventes en espèces suspendues — plafond de dette atteint"
+            ? "Ventes en espèces suspendues — plafond atteint"
             : "Vous approchez du plafond de dette espèces"}
         </p>
         <p
@@ -315,14 +340,14 @@ function CashDebtBanner({ status }: { status: CashDebtStatus }) {
           {formatDA(status.cap)}.{" "}
           {blocked ? (
             <>
-              Les nouvelles commandes en espèces sont bloquées. Les ventes{" "}
-              <strong>en ligne restent possibles</strong> et réduisent votre
-              dette — ou <strong>rechargez</strong> pour rétablir tout de suite.
+              Les ventes <strong>en ligne restent possibles</strong> et
+              réduisent votre dette — ou <strong>rechargez</strong> pour
+              rétablir tout de suite.
             </>
           ) : (
             <>
-              Encore {formatDA(status.remaining)} avant le blocage des ventes
-              espèces. Encaissez en ligne ou rechargez pour rester serein.
+              Encore {formatDA(status.remaining)} avant le blocage. Encaissez en
+              ligne ou rechargez pour rester serein.
             </>
           )}
         </p>
@@ -354,7 +379,7 @@ function NextPayoutBanner({ info }: { info: NextPayout }) {
     return (
       <Link
         href="/settings"
-        className="border-border bg-surface text-muted hover:bg-surface-2 mb-5 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm transition-colors"
+        className="border-border bg-surface text-muted hover:bg-surface-2 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm transition-colors"
       >
         <Settings2 className="text-primary-500 size-4 shrink-0" />
         <span>
@@ -368,7 +393,7 @@ function NextPayoutBanner({ info }: { info: NextPayout }) {
 
   if (info.kind === "frozen") {
     return (
-      <div className="border-warning-200 bg-warning-50 text-warning-800 mb-5 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm">
+      <div className="border-warning-100 bg-warning-50 text-warning-700 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm">
         <CalendarClock className="size-4 shrink-0" />
         <span>
           Versements <strong>suspendus</strong> (compte gelé). Contactez le
@@ -382,13 +407,12 @@ function NextPayoutBanner({ info }: { info: NextPayout }) {
     return (
       <Link
         href="/settings"
-        className="border-warning-200 bg-warning-50 text-warning-800 hover:bg-warning-100 mb-5 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm transition-colors"
+        className="border-warning-100 bg-warning-50 text-warning-700 hover:bg-warning-100 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm transition-colors"
       >
         <CalendarClock className="size-4 shrink-0" />
         <span>
           Versement {cadenceLabel(info.cadence)} activé —{" "}
-          <strong>renseignez vos coordonnées</strong> de versement pour le
-          déclencher.
+          <strong>renseignez vos coordonnées</strong> pour le déclencher.
         </span>
       </Link>
     );
@@ -396,7 +420,7 @@ function NextPayoutBanner({ info }: { info: NextPayout }) {
 
   if (info.kind === "waiting_balance") {
     return (
-      <div className="border-border bg-surface text-muted mb-5 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm">
+      <div className="border-border bg-surface text-muted flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm">
         <CalendarClock className="text-primary-500 size-4 shrink-0" />
         <span>
           Versement {cadenceLabel(info.cadence)} automatique — dès que votre
@@ -416,12 +440,12 @@ function NextPayoutBanner({ info }: { info: NextPayout }) {
     timeZone: "Africa/Algiers",
   });
   return (
-    <div className="border-primary-200 bg-primary-50/70 mb-5 flex items-center gap-3 rounded-[14px] border px-4 py-3.5">
+    <div className="border-primary-100 bg-primary-50/70 flex items-center gap-3 rounded-[14px] border px-4 py-3">
       <div className="bg-primary-100 text-primary-700 grid size-9 shrink-0 place-items-center rounded-full">
         <CalendarClock className="size-5" />
       </div>
       <div className="min-w-0 text-sm">
-        <p className="text-primary-900/70 text-xs font-medium">
+        <p className="text-primary-700/70 text-xs font-medium">
           Prochain virement automatique ({cadenceLabel(info.cadence)})
         </p>
         <p className="text-foreground font-semibold capitalize">
@@ -452,11 +476,13 @@ function SimpleBreakdown({ summary }: { summary: FinancesSummary }) {
   if (!hasAnything) return null;
 
   return (
-    <section className="border-border bg-surface mt-5 rounded-[16px] border p-5">
-      <h2 className="mb-1 text-base font-semibold">Le détail du calcul</h2>
-      <p className="text-muted mb-4 text-xs">
-        Vert = pour vous · rouge = part Coligo.
-      </p>
+    <section className="border-border bg-surface rounded-[16px] border p-4">
+      <div className="mb-3 flex items-baseline justify-between gap-2">
+        <h2 className="text-sm font-semibold">Le détail du calcul</h2>
+        <span className="text-subtle text-[11px]">
+          vert = pour vous · rouge = part Coligo
+        </span>
+      </div>
 
       <div className="divide-border divide-y">
         {collectedForYou > 0 && (
@@ -506,7 +532,7 @@ function SimpleBreakdown({ summary }: { summary: FinancesSummary }) {
       </div>
 
       <div className="border-border mt-1 flex items-center justify-between border-t-2 pt-3">
-        <span className="text-base font-bold">
+        <span className="text-sm font-bold">
           {summary.balance >= 0 ? "Coligo vous doit" : "Vous devez à Coligo"}
         </span>
         <span
@@ -541,7 +567,7 @@ function Line({
       ? "text-success-700"
       : "text-danger-600";
   return (
-    <div className="flex items-start justify-between gap-3 py-3">
+    <div className="flex items-start justify-between gap-3 py-2.5">
       <div className="min-w-0">
         <p className="text-sm font-medium">{label}</p>
         {sub && <p className="text-subtle mt-0.5 text-xs">{sub}</p>}
@@ -563,19 +589,19 @@ function Line({
 function AdjustmentsCard({ adjustments }: { adjustments: AdjustmentEntry[] }) {
   if (adjustments.length === 0) return null;
   return (
-    <section className="border-border bg-surface mt-5 rounded-[16px] border p-5">
-      <h2 className="mb-1 flex items-center gap-2 text-base font-semibold">
+    <section className="border-border bg-surface rounded-[16px] border p-4">
+      <h2 className="flex items-center gap-2 text-sm font-semibold">
         <Info className="text-primary-500 size-4" />
         Ajustements expliqués
       </h2>
-      <p className="text-muted mb-4 text-xs">
+      <p className="text-muted mt-0.5 mb-3 text-xs">
         Crédits et corrections appliqués par Coligo, avec leur motif.
       </p>
       <ul className="divide-border divide-y">
         {adjustments.map((a) => {
           const positive = a.amount_da >= 0;
           return (
-            <li key={a.id} className="flex items-start gap-3 py-3">
+            <li key={a.id} className="flex items-start gap-3 py-2.5">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">
                   {a.note?.trim() || "Ajustement"}
@@ -613,9 +639,9 @@ function AdjustmentsCard({ adjustments }: { adjustments: AdjustmentEntry[] }) {
 function Invoices({ months }: { months: InvoiceMonth[] }) {
   if (months.length === 0) return null;
   return (
-    <section className="border-border bg-surface mt-5 rounded-[16px] border p-5">
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-base font-semibold">
+    <section className="border-border bg-surface rounded-[16px] border p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-sm font-semibold">
           <FileText className="text-primary-500 size-4" />
           Mes relevés mensuels
         </h2>
@@ -623,20 +649,20 @@ function Invoices({ months }: { months: InvoiceMonth[] }) {
             un fichier (Content-Disposition) → laisser le navigateur télécharger. */}
         <a
           href="/finances/export"
-          className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
+          className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-semibold transition-colors"
         >
           <FileSpreadsheet className="size-3.5" />
           Exporter tout (CSV)
         </a>
       </div>
-      <p className="text-muted mb-4 text-xs">
+      <p className="text-muted mt-0.5 mb-3 text-xs">
         Un récap clair par mois — PDF à imprimer, ou CSV pour votre comptable.
       </p>
       <ul className="divide-border divide-y">
         {months.map((m) => (
           <li
             key={m.key}
-            className="flex items-center justify-between gap-3 py-3"
+            className="flex items-center justify-between gap-3 py-2.5"
           >
             <div className="min-w-0">
               <p className="text-sm font-semibold capitalize">{m.label}</p>
@@ -648,14 +674,14 @@ function Invoices({ months }: { months: InvoiceMonth[] }) {
             <div className="flex shrink-0 items-center gap-2">
               <Link
                 href={`/finances/factures/${m.key}`}
-                className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
+                className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-semibold transition-colors"
               >
                 <Download className="size-3.5" />
                 PDF
               </Link>
               <a
                 href={`/finances/export?month=${m.key}`}
-                className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
+                className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-semibold transition-colors"
               >
                 <FileSpreadsheet className="size-3.5" />
                 CSV
@@ -673,9 +699,9 @@ function Invoices({ months }: { months: InvoiceMonth[] }) {
 function DeliverySection({ stats }: { stats: DeliveryStats }) {
   if (stats.totalDeliveryOrders === 0) return null;
   return (
-    <section className="border-border bg-surface rounded-[16px] border p-5">
-      <h2 className="mb-3 flex items-center gap-2 text-base font-semibold">
-        <Truck className="size-4" />
+    <section className="border-border bg-surface rounded-[16px] border p-4">
+      <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+        <Truck className="text-primary-500 size-4" />
         Livraisons
       </h2>
       <div className="grid grid-cols-2 gap-3">
@@ -711,7 +737,7 @@ function MiniStat({
     <div
       className={cn(
         "rounded-[12px] p-3",
-        tone === "amber" ? "bg-warning-50 text-warning-800" : "bg-surface-2"
+        tone === "amber" ? "bg-warning-50 text-warning-700" : "bg-surface-2"
       )}
     >
       <p className="text-xs font-medium opacity-80">{label}</p>
@@ -734,8 +760,8 @@ function History({
 }) {
   return (
     <section className="border-border bg-surface rounded-[16px] border">
-      <header className="border-border flex items-center justify-between gap-3 border-b px-5 py-4">
-        <h2 className="text-base font-semibold">Toutes les opérations</h2>
+      <header className="border-border flex items-center justify-between gap-3 border-b px-4 py-3">
+        <h2 className="text-sm font-semibold">Toutes les opérations</h2>
         {total > 0 && (
           <span className="text-muted text-xs tabular-nums">
             {total} ligne{total > 1 ? "s" : ""}
@@ -743,7 +769,7 @@ function History({
         )}
       </header>
       {entries.length === 0 ? (
-        <p className="text-muted px-5 py-10 text-center text-sm">
+        <p className="text-muted px-4 py-10 text-center text-sm">
           Aucune opération pour le moment. Vos gains apparaîtront ici dès
           qu&apos;une commande sera récupérée.
         </p>
@@ -755,7 +781,7 @@ function History({
             ))}
           </ul>
           {pageCount > 1 && (
-            <div className="border-border border-t px-5 py-3">
+            <div className="border-border border-t px-4 py-3">
               <Pagination
                 page={page}
                 pageCount={pageCount}
@@ -777,7 +803,7 @@ function EntryRow({ entry }: { entry: WalletEntryRow }) {
   const positive = entry.amount_da >= 0;
   const method = entry.orders?.payment_method;
   return (
-    <li className="flex items-center gap-3 px-5 py-3.5">
+    <li className="flex items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={meta.tone}>{meta.label}</Badge>
@@ -842,7 +868,7 @@ function PayoutForm({ available }: { available: number }) {
       <Button
         type="button"
         onClick={() => setOpen(true)}
-        className="mb-1 w-full"
+        className="w-full"
         size="lg"
       >
         <Banknote className="size-4" />
@@ -852,12 +878,12 @@ function PayoutForm({ available }: { available: number }) {
   }
 
   return (
-    <section className="border-border bg-surface mb-1 rounded-[16px] border p-5">
-      <h2 className="mb-1 flex items-center gap-2 text-base font-semibold">
+    <section className="border-border bg-surface rounded-[16px] border p-4">
+      <h2 className="flex items-center gap-2 text-sm font-semibold">
         <Banknote className="text-primary-500 size-4" />
         Demander mon versement
       </h2>
-      <p className="text-muted mb-4 text-xs">
+      <p className="text-muted mt-0.5 mb-3 text-xs">
         Disponible : {formatDA(Math.max(0, available))}
       </p>
       <form ref={formRef} action={formAction} className="space-y-4">
@@ -953,10 +979,8 @@ function PayoutForm({ available }: { available: number }) {
 function PayoutList({ requests }: { requests: PayoutRequest[] }) {
   if (requests.length === 0) return null;
   return (
-    <section className="border-border bg-surface rounded-[16px] border p-5">
-      <h2 className="mb-3 text-base font-semibold">
-        Mes demandes de versement
-      </h2>
+    <section className="border-border bg-surface rounded-[16px] border p-4">
+      <h2 className="mb-3 text-sm font-semibold">Mes demandes de versement</h2>
       <ul className="space-y-2.5">
         {requests.map((r) => {
           const meta = PAYOUT_STATUS_META[r.status];
