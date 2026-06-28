@@ -3,10 +3,11 @@ import {
   getPlatformSettings,
 } from "@/lib/data/platform";
 import { AdminMerchantsView } from "@/components/admin/admin-merchants-view";
-import { ModulePaymentAccount } from "@/components/admin/module-payment-account";
 
 export const dynamic = "force-dynamic";
 
+// Onglet « Comptes » du hub Commerçants : comptes, inscriptions, validation,
+// gel et surcharges de taux. (Cadre + titre + onglets fournis par layout.tsx.)
 export default async function AdminMerchantsPage() {
   const [merchants, settings] = await Promise.all([
     getAllMerchantsForAdmin(),
@@ -14,19 +15,12 @@ export default async function AdminMerchantsPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-4xl p-4 lg:p-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Commerçants</h1>
-        <p className="text-muted mt-1 text-sm">
-          Soldes, surcharges de taux et gel. Laisser un taux vide = hérite du
-          global.
-        </p>
-      </header>
+    <div>
+      <p className="text-muted mb-5 text-sm">
+        Soldes, surcharges de taux et gel. Laisser un taux vide = hérite du
+        global.
+      </p>
       <AdminMerchantsView merchants={merchants} settings={settings} />
-
-      <div className="mt-6">
-        <ModulePaymentAccount scope="merchant" />
-      </div>
     </div>
   );
 }

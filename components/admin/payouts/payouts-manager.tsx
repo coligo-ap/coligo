@@ -119,7 +119,7 @@ function Stat({
 
 /* ───────────────────────── COMMERÇANTS ───────────────────────── */
 
-function MerchantPayouts({ payouts }: { payouts: MerchantPayout[] }) {
+export function MerchantPayouts({ payouts }: { payouts: MerchantPayout[] }) {
   const [tab, setTab] = useState<"pending" | "all">("pending");
 
   const rows = useMemo(
