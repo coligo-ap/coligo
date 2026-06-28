@@ -2,7 +2,10 @@ import { LogOut, ShieldCheck } from "lucide-react";
 import { requireSuperAdmin } from "@/lib/auth/admin";
 import { logout } from "@/app/(merchant)/actions";
 import { Logo } from "@/components/shared/logo";
-import { getLateOrdersCountForAdmin } from "@/lib/data/platform";
+import {
+  getLateOrdersCountForAdmin,
+  getPendingPayoutsCountForAdmin,
+} from "@/lib/data/platform";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 import { AdminShell } from "@/components/admin/admin-sidebar";
 import { ConfirmProvider } from "@/components/ui/confirm";
@@ -16,15 +19,18 @@ export default async function AdminLayout({
 }) {
   await requireSuperAdmin();
 
-  // Badge « commandes en retard » sur l'entrée Alertes.
-  const lateCount = await getLateOrdersCountForAdmin();
+  // Badges de nav : commandes en retard (Alertes) + versements à traiter.
+  const [lateCount, payoutsCount] = await Promise.all([
+    getLateOrdersCountForAdmin(),
+    getPendingPayoutsCountForAdmin(),
+  ]);
 
   return (
     <ConfirmProvider>
       <div className="bg-surface-2 min-h-screen">
         <header className="border-border sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b bg-white px-4 lg:px-6">
           <div className="flex min-w-0 items-center gap-3 lg:gap-4">
-            <AdminMobileNav lateCount={lateCount} />
+            <AdminMobileNav lateCount={lateCount} payoutsCount={payoutsCount} />
             <span className="flex shrink-0 items-center gap-2 font-semibold">
               <Logo size="sm" className="hidden sm:flex" />
               <ShieldCheck className="text-primary-600 size-5" />
@@ -43,7 +49,7 @@ export default async function AdminLayout({
         </header>
         {/* Drawer desktop (sidebar repliable) + contenu. Sur mobile la nav
           reste le drawer hamburger ci-dessus. */}
-        <AdminShell lateCount={lateCount}>
+        <AdminShell lateCount={lateCount} payoutsCount={payoutsCount}>
           <main>{children}</main>
         </AdminShell>
       </div>

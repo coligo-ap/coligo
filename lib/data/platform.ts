@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { PlatformSettings, OrderStatus } from "@/lib/types";
 
 /** Taux globaux (ligne unique). Lisible par tout authentifié (RLS). */
@@ -278,5 +279,20 @@ export async function getLateOrdersCountForAdmin(
     .in("status", ACTIVE_STATUSES)
     .lt("pickup_slot_at", cutoffIso)
     .or(PAID_OR_CASH);
+  return count ?? 0;
+}
+
+/**
+ * Nombre de demandes de versement commerçant à traiter (pending + approved),
+ * pour le badge de la nav admin. service_role : la RLS de payout_requests ne
+ * laisse voir au commerçant que les siennes — un compte super-admin n'en
+ * verrait aucune via createClient. L'appelant (layout) est déjà gaté.
+ */
+export async function getPendingPayoutsCountForAdmin(): Promise<number> {
+  const admin = createAdminClient();
+  const { count } = await admin
+    .from("payout_requests")
+    .select("id", { count: "exact", head: true })
+    .in("status", ["pending", "approved"]);
   return count ?? 0;
 }

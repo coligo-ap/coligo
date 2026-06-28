@@ -14,7 +14,13 @@ import { APP_CONFIG } from "@/lib/config/app-config";
  * (AdminNav) est masquée sous `lg`. Self-contained : le bouton ET le panneau
  * sont dans ce composant (état local), pas de store global à câbler.
  */
-export function AdminMobileNav({ lateCount }: { lateCount: number }) {
+export function AdminMobileNav({
+  lateCount,
+  payoutsCount = 0,
+}: {
+  lateCount: number;
+  payoutsCount?: number;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -64,9 +70,11 @@ export function AdminMobileNav({ lateCount }: { lateCount: number }) {
         className="text-muted hover:bg-surface-2 hover:text-foreground relative -ml-1 flex size-10 shrink-0 items-center justify-center rounded-[10px] lg:hidden"
       >
         <Menu className="size-5" />
-        {lateCount > 0 && (
+        {lateCount > 0 ? (
           <span className="bg-danger-500 absolute top-1.5 right-1.5 size-2 rounded-full" />
-        )}
+        ) : payoutsCount > 0 ? (
+          <span className="bg-warning-500 absolute top-1.5 right-1.5 size-2 rounded-full" />
+        ) : null}
       </button>
 
       {mounted && (
@@ -125,6 +133,11 @@ export function AdminMobileNav({ lateCount }: { lateCount: number }) {
                   >
                     <Icon className="size-5 shrink-0" />
                     <span className="flex-1">{l.label}</span>
+                    {l.href === "/admin/versements" && payoutsCount > 0 && (
+                      <span className="bg-warning-500 inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-extrabold text-white tabular-nums">
+                        {payoutsCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

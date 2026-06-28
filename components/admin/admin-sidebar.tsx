@@ -16,9 +16,11 @@ const KEY = "coligo_admin_sidebar_open";
  */
 export function AdminShell({
   lateCount,
+  payoutsCount = 0,
   children,
 }: {
   lateCount: number;
+  payoutsCount?: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -42,7 +44,12 @@ export function AdminShell({
     href: string,
     label: string,
     Icon: React.ComponentType<{ className?: string }>,
-    opts?: { exact?: boolean; danger?: boolean; badge?: number }
+    opts?: {
+      exact?: boolean;
+      danger?: boolean;
+      badge?: number;
+      badgeTone?: "danger" | "warning";
+    }
   ) => {
     const active = isActive(href, opts?.exact);
     return (
@@ -67,7 +74,10 @@ export function AdminShell({
         {(opts?.badge ?? 0) > 0 && (
           <span
             className={cn(
-              "bg-danger-500 inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums",
+              "inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums",
+              opts?.badgeTone === "warning"
+                ? "bg-warning-500"
+                : "bg-danger-500",
               !open && "absolute -top-0.5 -right-0.5"
             )}
           >
@@ -109,6 +119,8 @@ export function AdminShell({
         {ADMIN_LINKS.map((l) =>
           item(l.href, l.label, l.icon, {
             exact: "exact" in l ? l.exact : false,
+            badge: l.href === "/admin/versements" ? payoutsCount : undefined,
+            badgeTone: "warning",
           })
         )}
         {item("/admin/alertes", "Alertes", AlertTriangle, {
