@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
   BadgeCheck,
+  Banknote,
   BellRing,
   Bike,
   Car,
@@ -36,6 +37,7 @@ export const ADMIN_LINKS = [
   { href: "/admin/merchants", label: "Commerçants", icon: Store },
   { href: "/admin/coligo-pay", label: "Coligo Pay", icon: Wallet },
   { href: "/admin/recharges", label: "Recharges", icon: PiggyBank },
+  { href: "/admin/versements", label: "Versements", icon: Banknote },
   { href: "/admin/agents", label: "Agents Coligo Pay", icon: BadgeCheck },
   { href: "/admin/drivers", label: "Livreurs", icon: Truck },
   { href: "/admin/chauffeurs", label: "Chauffeurs", icon: Car },
