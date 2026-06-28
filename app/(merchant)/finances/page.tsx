@@ -8,6 +8,8 @@ import { getMyWalletState } from "@/app/wallet/recharge-actions";
 import { getInvoiceMonths } from "@/lib/data/invoices";
 import { reservedAmount } from "@/lib/finances/balance";
 import { computeNextPayout, type NextPayout } from "@/lib/finances/next-payout";
+import { cashDebtStatus, type CashDebtStatus } from "@/lib/finances/cash-debt";
+import { getPlatformSettings } from "@/lib/data/platform";
 import { FinancesView } from "@/components/merchant/finances/finances-view";
 import { createClient } from "@/lib/supabase/server";
 
@@ -51,6 +53,7 @@ export default async function FinancesPage({
     invoiceMonths,
     coligoPay,
     adjustments,
+    platformSettings,
   ] = await Promise.all([
     getWalletSummary(),
     getWalletEntriesPage(page, PAGE_SIZE),
@@ -74,6 +77,7 @@ export default async function FinancesPage({
     getInvoiceMonths(),
     getMyWalletState(),
     getAdjustmentEntries(),
+    getPlatformSettings(),
   ]);
 
   type DeliveryRow = { type: string; amount_da: number };
@@ -139,6 +143,12 @@ export default async function FinancesPage({
     available: summary.available,
   });
 
+  // Politique de dette espèces (mig 0269) : dette = part négative du solde.
+  const cashDebt: CashDebtStatus = cashDebtStatus(
+    Math.max(0, -balance),
+    platformSettings?.max_debt_da ?? 0
+  );
+
   return (
     <FinancesView
       entries={pageData.entries}
@@ -152,6 +162,7 @@ export default async function FinancesPage({
       coligoPayBalance={coligoPay?.effectiveBalanceDa ?? balance}
       nextPayout={nextPayout}
       adjustments={adjustments}
+      cashDebt={cashDebt}
     />
   );
 }

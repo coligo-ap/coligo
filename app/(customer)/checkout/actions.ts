@@ -335,6 +335,29 @@ export async function createOrder(
       error: "Ce commerce n'accepte pas le paiement en espèces.",
     };
   }
+  // Plafond de dette espèces (mig 0269) : si le commerçant a atteint son
+  // plafond, on refuse PROPREMENT les nouvelles commandes espèces qui
+  // creuseraient la dette (retrait + tournée). L'express COD est exclu (le
+  // livreur custodie le cash). Le trigger serveur reste le filet anti-contournement.
+  if (
+    input.payment_method === "cash" &&
+    !(
+      input.fulfillment_type === "delivery" && input.delivery_mode === "express"
+    )
+  ) {
+    const { data: cashBlocked } = await supabase.rpc(
+      "merchant_cash_blocked" as never,
+      { p_merchant: input.merchant_id } as never
+    );
+    if (cashBlocked === true) {
+      return {
+        ok: false,
+        error:
+          "Le paiement en espèces est momentanément indisponible pour ce commerce. " +
+          "Choisissez le paiement en ligne ou Coligo Pay.",
+      };
+    }
+  }
   // COD (mig 0116, façon Yassir) : pas de blocage des comptes neufs. Le COD est
   // dispo SAUF blocage dur (super-admin) via customer_cod_allowed = !cod_blocked.
   // Gate UNIQUEMENT sur la livraison COD (le retrait en boutique se paie sur place).

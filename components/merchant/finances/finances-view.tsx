@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   Banknote,
   CalendarClock,
   CheckCircle2,
@@ -38,6 +39,7 @@ import {
 import type { AdjustmentEntry, WalletEntryRow } from "@/lib/data/wallet";
 import type { InvoiceMonth } from "@/lib/data/invoices";
 import type { NextPayout } from "@/lib/finances/next-payout";
+import type { CashDebtStatus } from "@/lib/finances/cash-debt";
 import type {
   DeliveryStats,
   FinancesSummary,
@@ -67,6 +69,7 @@ export function FinancesView({
   coligoPayBalance,
   nextPayout,
   adjustments,
+  cashDebt,
 }: {
   entries: WalletEntryRow[];
   requests: PayoutRequest[];
@@ -79,6 +82,7 @@ export function FinancesView({
   coligoPayBalance: number;
   nextPayout: NextPayout;
   adjustments: AdjustmentEntry[];
+  cashDebt: CashDebtStatus;
 }) {
   const [showDetails, setShowDetails] = useState(page > 1);
 
@@ -100,6 +104,9 @@ export function FinancesView({
 
       {/* ── LE VERDICT : la seule chose vraiment importante ── */}
       <Verdict summary={summary} />
+
+      {/* ── Dette espèces : alerte au seuil doux, blocage au plafond ── */}
+      <CashDebtBanner status={cashDebt} />
 
       {/* ── Prochain virement automatique (date concrète) ── */}
       <NextPayoutBanner info={nextPayout} />
@@ -256,6 +263,79 @@ function Verdict({ summary }: { summary: FinancesSummary }) {
         <p className="text-muted text-sm">
           Aucun montant en attente, aucune dette. Tout est réglé.
         </p>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────── DETTE ESPÈCES ─────────────────────── */
+
+/**
+ * Politique de dette espèces (mig 0269) : prévient au seuil doux, signale le
+ * blocage des nouvelles ventes espèces au plafond. Les ventes en ligne restent
+ * possibles et réduisent la dette → on pousse vers la recharge.
+ */
+function CashDebtBanner({ status }: { status: CashDebtStatus }) {
+  if (status.state === "clear") return null;
+
+  const blocked = status.state === "blocked";
+  return (
+    <section
+      className={cn(
+        "mb-5 flex items-start gap-3 rounded-[16px] border p-5",
+        blocked
+          ? "border-danger-200 bg-danger-50"
+          : "border-warning-200 bg-warning-50"
+      )}
+    >
+      <AlertTriangle
+        className={cn(
+          "mt-0.5 size-5 shrink-0",
+          blocked ? "text-danger-600" : "text-warning-600"
+        )}
+      />
+      <div className="min-w-0 flex-1">
+        <p
+          className={cn(
+            "text-sm font-bold",
+            blocked ? "text-danger-800" : "text-warning-800"
+          )}
+        >
+          {blocked
+            ? "Ventes en espèces suspendues — plafond de dette atteint"
+            : "Vous approchez du plafond de dette espèces"}
+        </p>
+        <p
+          className={cn(
+            "mt-1 text-xs",
+            blocked ? "text-danger-700" : "text-warning-700"
+          )}
+        >
+          Dette : <strong>{formatDA(status.debt)}</strong> / plafond{" "}
+          {formatDA(status.cap)}.{" "}
+          {blocked ? (
+            <>
+              Les nouvelles commandes en espèces sont bloquées. Les ventes{" "}
+              <strong>en ligne restent possibles</strong> et réduisent votre
+              dette — ou <strong>rechargez</strong> pour rétablir tout de suite.
+            </>
+          ) : (
+            <>
+              Encore {formatDA(status.remaining)} avant le blocage des ventes
+              espèces. Encaissez en ligne ou rechargez pour rester serein.
+            </>
+          )}
+        </p>
+        <Link
+          href="/recharger"
+          prefetch
+          className={cn(
+            "mt-3 inline-flex h-9 items-center gap-2 rounded-[10px] px-4 text-xs font-bold text-white",
+            blocked ? "bg-danger-600" : "bg-warning-600"
+          )}
+        >
+          <Wallet className="size-4" /> Recharger maintenant
+        </Link>
       </div>
     </section>
   );
