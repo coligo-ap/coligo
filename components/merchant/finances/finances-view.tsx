@@ -164,7 +164,8 @@ export function FinancesView({
 /* ─────────────────────────── COLIGO PAY ─────────────────────────── */
 
 /** Solde UNIQUE de la Coligo Pay commerçant (revenus en ligne/cashback nets +
- *  recharges − commissions). C'est l'unique porte-monnaie : tout y converge. */
+ *  recharges − commissions). C'est l'unique porte-monnaie : tout y converge.
+ *  Présenté comme une vraie carte de paiement (façon Uber/Revolut). */
 function ColigoPayCard({
   balance,
   available,
@@ -174,44 +175,57 @@ function ColigoPayCard({
 }) {
   const negative = balance < 0;
   return (
-    <section
-      className={cn(
-        "relative overflow-hidden rounded-[18px] p-5 text-white shadow-sm",
-        negative
-          ? "from-warning-500 to-warning-600 bg-gradient-to-br"
-          : "from-primary-600 to-primary-800 bg-gradient-to-br"
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-white/85">
-            <Wallet className="size-4" />
-            Solde Coligo Pay
-          </div>
-          <p className="mt-1.5 text-[2rem] leading-none font-extrabold tracking-tight tabular-nums">
-            {formatDA(balance)}
-          </p>
-        </div>
-        <Link
-          href="/recharger"
-          prefetch
-          className="text-primary-700 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[10px] bg-white px-3.5 text-xs font-bold shadow-sm transition-transform active:scale-95"
-        >
-          <Wallet className="size-3.5" /> Recharger
-        </Link>
+    <section className="relative overflow-hidden rounded-[22px] p-5 text-white shadow-lg shadow-black/10">
+      {/* Fond dégradé + halo lumineux : profondeur « carte premium ». */}
+      <div
+        className={cn(
+          "absolute inset-0 -z-10 bg-gradient-to-br",
+          negative
+            ? "from-warning-500 via-warning-600 to-warning-700"
+            : "from-primary-600 via-primary-700 to-primary-800"
+        )}
+      />
+      <div className="absolute -top-12 -right-10 -z-10 size-44 rounded-full bg-white/10 blur-2xl" />
+      <div className="absolute -bottom-16 -left-8 -z-10 size-40 rounded-full bg-white/5 blur-2xl" />
+
+      <div className="flex items-center justify-between">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide backdrop-blur-sm">
+          <Wallet className="size-3.5" /> Coligo Pay
+        </span>
+        {!negative && available > 0 && (
+          <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold tabular-nums backdrop-blur-sm">
+            {formatDA(available)} dispo.
+          </span>
+        )}
       </div>
-      <p className="mt-3 text-[13px] text-white/90">
+
+      <p className="mt-4 text-[11px] font-medium tracking-wider text-white/70 uppercase">
+        {negative ? "À régulariser" : "Solde disponible"}
+      </p>
+      <p className="text-[2.4rem] leading-none font-extrabold tracking-tight tabular-nums">
+        {formatDA(balance)}
+      </p>
+
+      <p className="mt-2 text-[12.5px] text-white/85">
         {negative ? (
-          <>À régulariser — rechargez pour repasser au vert.</>
+          <>Rechargez pour repasser au vert et débloquer les ventes espèces.</>
         ) : available > 0 ? (
           <>
             <strong className="font-bold">{formatDA(available)}</strong>{" "}
-            disponibles à retirer
+            disponibles à retirer dès maintenant.
           </>
         ) : (
           <>Votre porte-monnaie unique : paiements, commissions, recharges.</>
         )}
       </p>
+
+      <Link
+        href="/recharger"
+        prefetch
+        className="text-primary-700 mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-white text-sm font-bold shadow-sm transition-transform active:scale-[0.98]"
+      >
+        <Wallet className="size-4" /> Recharger mon compte
+      </Link>
     </section>
   );
 }
