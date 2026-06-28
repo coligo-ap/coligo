@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   Loader2,
   Mail,
   PackagePlus,
@@ -261,6 +262,28 @@ function MerchantRow({
         {state.error && (
           <p className="text-danger-600 text-xs">{state.error}</p>
         )}
+        {(() => {
+          // Garde-fou Chargily : on ABSORBE toujours les frais de paiement
+          // (jamais facturés au commerçant). Mais si la commission online passe
+          // SOUS le taux Chargily, chaque commande en ligne fait PERDRE de
+          // l'argent à Coligo (frais absorbés non couverts par la commission).
+          const chargily = settings?.chargily_fee ?? 0;
+          const effOnline =
+            merchant.commission_online ?? settings?.commission_online ?? 0;
+          if (chargily <= 0 || effOnline >= chargily) return null;
+          return (
+            <p className="text-danger-700 bg-danger-50 border-danger-200 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <span>
+                Commission online ({rateToPct(effOnline)} %) sous le seuil
+                Chargily ({rateToPct(chargily)} %) : Coligo{" "}
+                <strong>perd</strong> sur chaque commande en ligne (frais de
+                paiement absorbés non couverts). Remonte la commission ou
+                désactive l&apos;online.
+              </span>
+            </p>
+          );
+        })()}
         <div className="flex items-center gap-3">
           <Button type="submit" size="sm" disabled={saving}>
             {saving && <Loader2 className="size-3.5 animate-spin" />}

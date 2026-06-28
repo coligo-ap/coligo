@@ -36,6 +36,7 @@
     "test:csv": "node --experimental-strip-types scripts/test-wallet-csv.mjs",
     "test:cash:debt": "node --experimental-strip-types scripts/test-cash-debt.mjs",
     "test:cash:debt:cap": "node scripts/test-cash-debt-cap.mjs",
+    "test:operator:online": "node scripts/test-operator-online-exception.mjs",
     "test:ride:phone": "node scripts/test-ride-phone-share.mjs",
     "test:vtc": "node scripts/test-vtc.mjs",
     "test:dispatch": "node --experimental-strip-types scripts/test-chauffeur-dispatch.mjs",
