@@ -71,7 +71,9 @@ export async function MerchantShell({
   // Validation obligatoire (mig 0273) : tant que le compte n'est pas approuvé,
   // on court-circuite TOUT l'espace commerçant (dashboard, orders, catalog…) par
   // un écran d'attente / refus. Colonnes hors types générés → requête castée.
-  const approvalQuery = supabase.from as unknown as (t: string) => {
+  const approvalQuery = supabase.from.bind(supabase) as unknown as (
+    t: string
+  ) => {
     select: (c: string) => {
       eq: (
         c: string,
