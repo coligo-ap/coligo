@@ -7,31 +7,27 @@ import {
   useState,
   useTransition,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
-  CheckCircle2,
   Clock,
   Loader2,
   Mail,
-  MapPin,
   PackagePlus,
   Phone,
   Search,
   Snowflake,
-  XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
-import { useConfirm, usePrompt } from "@/components/ui/confirm";
 import { cn, formatDA } from "@/lib/utils";
 import type { PlatformSettings } from "@/lib/types";
 import { rateToPct } from "@/lib/validation/platform";
 import type { AdminMerchant } from "@/lib/data/platform";
 import {
-  decideMerchantApproval,
   seedMerchantCatalog,
   toggleMerchantFrozen,
   updateMerchantRates,
@@ -81,33 +77,40 @@ export function AdminMerchantsView({
 }) {
   const [query, setQuery] = useState("");
 
-  // Demandes d'inscription à traiter (mig 0273) — toujours en tête, hors recherche.
-  const pending = useMemo(
-    () => merchants.filter((m) => m.approval_status === "pending"),
+  // Comptes = commerçants approuvés (les inscriptions en attente / refusées sont
+  // gérées dans l'onglet dédié « Inscriptions », mig 0273).
+  const pendingCount = useMemo(
+    () => merchants.filter((m) => m.approval_status === "pending").length,
     [merchants]
   );
-  const others = useMemo(
-    () => merchants.filter((m) => m.approval_status !== "pending"),
+  const approved = useMemo(
+    () => merchants.filter((m) => m.approval_status === "approved"),
     [merchants]
   );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return others;
-    return others.filter((m) =>
+    if (!q) return approved;
+    return approved.filter((m) =>
       [m.name, m.email, m.phone, m.id, m.slug, m.city]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
     );
-  }, [others, query]);
-
-  if (merchants.length === 0) {
-    return <p className="text-muted text-sm">Aucun commerçant.</p>;
-  }
+  }, [approved, query]);
 
   return (
     <div className="space-y-6">
-      {pending.length > 0 && <PendingQueue merchants={pending} />}
+      {/* Rappel discret : des inscriptions attendent une validation. */}
+      {pendingCount > 0 && (
+        <Link
+          href="/admin/merchants/inscriptions"
+          className="border-warning-200 bg-warning-50/60 text-warning-900 hover:bg-warning-100 flex items-center gap-2 rounded-[12px] border px-4 py-3 text-sm font-medium transition-colors"
+        >
+          <Clock className="size-4" />
+          {pendingCount} inscription{pendingCount > 1 ? "s" : ""} en attente de
+          validation — ouvrir l&apos;onglet Inscriptions →
+        </Link>
+      )}
 
       {/* Recherche : nom, e-mail, téléphone, identifiant (id) ou slug. */}
       <div className="relative">
@@ -123,7 +126,7 @@ export function AdminMerchantsView({
       </div>
       <p className="text-muted text-xs tabular-nums">
         {filtered.length} commerçant{filtered.length > 1 ? "s" : ""}
-        {query ? ` sur ${others.length}` : ""}
+        {query ? ` sur ${approved.length}` : ""}
       </p>
 
       {filtered.length === 0 ? (
@@ -140,149 +143,6 @@ export function AdminMerchantsView({
         </ul>
       )}
     </div>
-  );
-}
-
-/* ───────────────── DEMANDES D'INSCRIPTION À TRAITER (mig 0273) ───────────────── */
-
-function formatSubmitted(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("fr-DZ", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Africa/Algiers",
-  });
-}
-
-function PendingQueue({ merchants }: { merchants: AdminMerchant[] }) {
-  return (
-    <section className="border-warning-200 bg-warning-50/60 rounded-[16px] border p-4 lg:p-5">
-      <h2 className="text-warning-900 mb-1 flex items-center gap-2 text-base font-bold">
-        <Clock className="size-4" />
-        Demandes à traiter ({merchants.length})
-      </h2>
-      <p className="text-muted mb-4 text-sm">
-        Nouvelles inscriptions en attente. Le commerce reste{" "}
-        <strong>
-          invisible des clients et ne peut pas recevoir de commande
-        </strong>{" "}
-        tant qu&apos;il n&apos;est pas approuvé.
-      </p>
-      <ul className="space-y-2">
-        {merchants.map((m) => (
-          <PendingMerchantCard key={m.id} merchant={m} />
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function PendingMerchantCard({ merchant }: { merchant: AdminMerchant }) {
-  const router = useRouter();
-  const confirm = useConfirm();
-  const prompt = usePrompt();
-  const [pending, startTransition] = useTransition();
-
-  const run = (decision: "approve" | "reject", reason?: string) =>
-    startTransition(async () => {
-      const res = await decideMerchantApproval(merchant.id, decision, reason);
-      if (res.error) return toast.error(res.error);
-      toast.success(
-        decision === "approve"
-          ? `« ${merchant.name} » approuvé — la boutique est en ligne`
-          : `« ${merchant.name} » refusé`
-      );
-      router.refresh();
-    });
-
-  const askApprove = async () => {
-    const ok = await confirm({
-      title: "Approuver ce commerçant ?",
-      message: `« ${merchant.name} » deviendra visible des clients et pourra recevoir des commandes.`,
-      confirmLabel: "Approuver",
-    });
-    if (ok) run("approve");
-  };
-
-  const askReject = async () => {
-    const reason = await prompt({
-      title: "Refuser cette demande ?",
-      message: `Motif communiqué à « ${merchant.name} » (facultatif).`,
-      placeholder: "Ex. dossier incomplet, hors zone…",
-      confirmLabel: "Refuser",
-    });
-    // prompt renvoie null si annulé ; "" si validé sans texte.
-    if (reason !== null) run("reject", reason);
-  };
-
-  const loc = [merchant.city].filter(Boolean).join(", ");
-
-  return (
-    <li className="border-warning-200 bg-surface rounded-[14px] border p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-semibold">{merchant.name}</h3>
-            {merchant.category && (
-              <Badge tone="neutral">{merchant.category}</Badge>
-            )}
-          </div>
-          <div className="text-muted mt-1 space-y-0.5 text-xs">
-            {loc && (
-              <p className="flex items-center gap-1.5">
-                <MapPin className="size-3" />
-                {loc}
-              </p>
-            )}
-            {merchant.email && (
-              <p className="flex items-center gap-1.5">
-                <Mail className="size-3" />
-                <span className="truncate">{merchant.email}</span>
-              </p>
-            )}
-            {merchant.phone && (
-              <p className="flex items-center gap-1.5">
-                <Phone className="size-3" />
-                {merchant.phone}
-              </p>
-            )}
-            <p className="text-subtle">
-              Demande du {formatSubmitted(merchant.submitted_at)}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={pending}
-            onClick={askReject}
-            className="text-danger-600 hover:bg-danger-50"
-          >
-            <XCircle className="size-4" />
-            Refuser
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            disabled={pending}
-            onClick={askApprove}
-          >
-            {pending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <CheckCircle2 className="size-4" />
-            )}
-            Approuver
-          </Button>
-        </div>
-      </div>
-    </li>
   );
 }
 

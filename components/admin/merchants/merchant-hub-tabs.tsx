@@ -2,19 +2,35 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Banknote, Percent, Receipt, Store } from "lucide-react";
+import {
+  Banknote,
+  ClipboardCheck,
+  Percent,
+  Receipt,
+  Store,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Onglets du hub Commerçants. Chaque onglet = une sous-route réelle (deep-link
 // & rafraîchissement). Le domaine reste actif dans la sidebar (startsWith).
 const TABS = [
   { href: "/admin/merchants", label: "Comptes", icon: Store, exact: true },
+  {
+    href: "/admin/merchants/inscriptions",
+    label: "Inscriptions",
+    icon: ClipboardCheck,
+    badge: true,
+  },
   { href: "/admin/merchants/commandes", label: "Commandes", icon: Receipt },
   { href: "/admin/merchants/finances", label: "Versements", icon: Banknote },
   { href: "/admin/merchants/taux", label: "Taux & paiement", icon: Percent },
 ] as const;
 
-export function MerchantHubTabs() {
+export function MerchantHubTabs({
+  pendingCount = 0,
+}: {
+  pendingCount?: number;
+}) {
   const pathname = usePathname();
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -24,6 +40,7 @@ export function MerchantHubTabs() {
       {TABS.map((t) => {
         const Icon = t.icon;
         const active = isActive(t.href, "exact" in t ? t.exact : false);
+        const count = "badge" in t && t.badge ? pendingCount : 0;
         return (
           <Link
             key={t.href}
@@ -37,6 +54,11 @@ export function MerchantHubTabs() {
           >
             <Icon className="size-4" />
             {t.label}
+            {count > 0 && (
+              <span className="bg-warning-500 inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums">
+                {count}
+              </span>
+            )}
           </Link>
         );
       })}
