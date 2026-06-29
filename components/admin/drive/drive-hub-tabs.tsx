@@ -2,13 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Car, SlidersHorizontal, Sliders } from "lucide-react";
+import { Car, ClipboardCheck, SlidersHorizontal, Sliders } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Onglets du hub Coligo Drive. La fiche chauffeur (/admin/chauffeurs/[id]) est
 // hors du route group (hub) : elle n'affiche pas ces onglets.
 const TABS = [
   { href: "/admin/chauffeurs", label: "Chauffeurs", icon: Car, exact: true },
+  {
+    href: "/admin/chauffeurs/inscriptions",
+    label: "Inscriptions",
+    icon: ClipboardCheck,
+    badge: true,
+  },
   {
     href: "/admin/chauffeurs/config",
     label: "Configuration Drive",
@@ -21,7 +27,7 @@ const TABS = [
   },
 ] as const;
 
-export function DriveHubTabs() {
+export function DriveHubTabs({ pendingCount = 0 }: { pendingCount?: number }) {
   const pathname = usePathname();
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -31,6 +37,7 @@ export function DriveHubTabs() {
       {TABS.map((t) => {
         const Icon = t.icon;
         const active = isActive(t.href, "exact" in t ? t.exact : false);
+        const count = "badge" in t && t.badge ? pendingCount : 0;
         return (
           <Link
             key={t.href}
@@ -44,6 +51,11 @@ export function DriveHubTabs() {
           >
             <Icon className="size-4" />
             {t.label}
+            {count > 0 && (
+              <span className="bg-warning-500 inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums">
+                {count}
+              </span>
+            )}
           </Link>
         );
       })}
