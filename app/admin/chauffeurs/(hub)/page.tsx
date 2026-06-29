@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Car, CreditCard, ShieldCheck } from "lucide-react";
+import { CreditCard, ShieldCheck } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSuperAdmin } from "@/lib/auth/admin";
 import { ChauffeurActions } from "@/components/admin/chauffeur-actions";
@@ -8,10 +9,11 @@ import {
   SubPaymentActions,
 } from "@/components/admin/chauffeur-validation";
 import { formatDA } from "@/lib/utils";
-import { ModulePaymentAccount } from "@/components/admin/module-payment-account";
 
 export const dynamic = "force-dynamic";
 
+// Onglet « Chauffeurs » du hub Coligo Drive : file de validation, abonnements
+// CCP à vérifier, annuaire. (Cadre + titre + onglets fournis par layout.tsx.)
 export default async function AdminChauffeursPage() {
   if (!(await isSuperAdmin())) redirect("/admin");
 
@@ -61,16 +63,14 @@ export default async function AdminChauffeursPage() {
     [c.vehicle_make, c.vehicle_model].filter(Boolean).join(" ") || "—";
 
   return (
-    <div className="mx-auto max-w-[1100px] p-4 lg:p-6">
-      <header className="mb-5 flex items-center gap-2">
-        <Car className="size-6" />
-        <h1 className="text-2xl font-bold tracking-tight">Chauffeurs Drive</h1>
-        {queue.length > 0 && (
-          <span className="bg-warning-100 text-warning-800 ml-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold">
+    <>
+      {queue.length > 0 && (
+        <p className="mb-5">
+          <span className="bg-warning-100 text-warning-800 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold">
             {queue.length} dossier{queue.length > 1 ? "s" : ""} à valider
           </span>
-        )}
-      </header>
+        </p>
+      )}
 
       {/* ── File de validation (docs + selfie) ── */}
       {queue.length > 0 && (
@@ -163,13 +163,14 @@ export default async function AdminChauffeursPage() {
         Un chauffeur ne peut <strong>recevoir des courses</strong> qu&apos;une
         fois <strong>vérifié</strong>. « Geler » le retire temporairement du
         réseau (écran « Compte gelé » avec motif) ; « Bloquer » suspend le
-        compte. Barème, seuils de gel, cashback et CCP se règlent dans{" "}
-        <a
-          href="/admin/drive"
+        compte. Barème, seuils de gel, cashback et CCP se règlent dans
+        l&apos;onglet{" "}
+        <Link
+          href="/admin/chauffeurs/config"
           className="text-primary-700 font-semibold underline"
         >
-          Config Drive
-        </a>
+          Configuration Drive
+        </Link>
         .
       </p>
 
@@ -246,10 +247,6 @@ export default async function AdminChauffeursPage() {
           </table>
         </div>
       )}
-
-      <div className="mt-6">
-        <ModulePaymentAccount scope="chauffeur" />
-      </div>
-    </div>
+    </>
   );
 }
