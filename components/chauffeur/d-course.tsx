@@ -7,12 +7,14 @@ import {
   BadgeCheck,
   Check,
   CheckCheck,
-  Copy,
+  ChevronRight,
   Loader2,
   MessageSquare,
   Navigation,
   Phone,
+  PhoneCall,
   Send,
+  Share2,
   Star,
   X,
   Zap,
@@ -73,6 +75,59 @@ const fmtkm = (v: number) =>
   `${(Math.round(v * 10) / 10).toString().replace(".", ",")} km`;
 
 /**
+ * Bouton d'action circulaire (barre horizontale façon Uber) : icône ronde +
+ * libellé dessous. Sert à REGROUPER tous les contacts/raccourcis (appel,
+ * message, itinéraire, suivi, SOS) sur une seule ligne, au lieu d'empiler des
+ * boutons pleine largeur. `accent` = bouton plein violet (action principale) ;
+ * `danger` = rouge (SOS).
+ */
+function ActBtn({
+  icon,
+  label,
+  onClick,
+  accent,
+  danger,
+  badge,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  accent?: boolean;
+  danger?: boolean;
+  badge?: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-[64px] shrink-0 flex-col items-center gap-1.5"
+    >
+      <span
+        className="relative grid size-[52px] place-items-center rounded-full border-[1.5px] shadow-sm transition-transform active:scale-95"
+        style={{
+          background: accent ? VIOLET : "var(--d-surface)",
+          borderColor: accent ? VIOLET : danger ? RED : "var(--d-line)",
+          color: accent ? "#fff" : danger ? RED : VIOLET,
+        }}
+      >
+        {icon}
+        {badge != null && badge > 0 && (
+          <span
+            className="drive-badge absolute -top-1 -right-1 grid min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-extrabold text-white"
+            style={{ background: RED }}
+          >
+            {badge}
+          </span>
+        )}
+      </span>
+      <span className="text-[10.5px] font-bold whitespace-nowrap text-[var(--d-ink)]">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+/**
  * Course côté chauffeur (maquette s-dmatch → s-dpickup → s-dride → s-ddone) :
  * attribution, prise en charge (« je suis arrivé », règle 5 min client
  * absent), course (SOS, back-to-back 12 s, file de 1), fin (gain net,
@@ -91,6 +146,10 @@ export function DCourse() {
   >(null);
   const [sosOpen, setSosOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  // Sélecteur d'appel : ouvert seulement si le client a AUSSI partagé son numéro
+  // direct → on regroupe « Coligo Call » et « Appeler le numéro » derrière une
+  // seule action (sinon, Coligo Call est lancé directement).
+  const [callMenu, setCallMenu] = useState(false);
   const [sosContacts, setSosContacts] = useState<SosContact[]>([]);
   const [contactsOpen, setContactsOpen] = useState(false);
   // Appel in-app (audio + cam optionnelle) avec le client — numéro masqué.
@@ -468,6 +527,28 @@ export function DCourse() {
 
   const inProgress = ride.status === "in_progress";
 
+  // Appel : Coligo Call par défaut ; si le client a partagé son numéro direct,
+  // on ouvre un mini-sélecteur (Coligo Call / numéro) — une SEULE action visible.
+  const onCall = () => {
+    if (ride.customer_phone) setCallMenu(true);
+    else call.start(false);
+  };
+  // Itinéraire : vers la destination en course, vers le client avant.
+  const onItinerary = () => {
+    if (inProgress) {
+      if (dest) goNav(dest.lat, dest.lng, "la destination");
+    } else if (pickup) {
+      goNav(pickup.lat, pickup.lng, "le client");
+    }
+  };
+  const copyShare = async () => {
+    if (!shareUrl) return;
+    if (await copyText(shareUrl)) {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2500);
+    }
+  };
+
   /* ════════ PRISE EN CHARGE / COURSE (s-dpickup / s-dride) ════════ */
   return (
     <div className="drive-jakarta drive-screen bg-[var(--d-page)]">
@@ -638,7 +719,8 @@ export function DCourse() {
           </div>
         )}
 
-        {/* Fiche client */}
+        {/* Fiche client : identité + adresse (info) — les contacts sont
+            regroupés dans la barre d'actions horizontale juste en dessous. */}
         <div className="mb-2.5 rounded-[22px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
           <div className="flex items-center gap-3">
             <span
@@ -666,92 +748,90 @@ export function DCourse() {
                 )}
               </span>
             </span>
+            {/* Prix convenu (collé à l'identité — plus de bloc séparé). */}
+            <span className="shrink-0 text-right">
+              <span
+                className="drive-sora block text-[18px] leading-none font-extrabold"
+                style={{ color: VIOLET }}
+              >
+                {formatDA(ride.agreed_price_da)}
+              </span>
+              <span className="mt-1 block text-[10px] font-bold text-[var(--d-muted)]">
+                {inProgress
+                  ? ride.prepaid
+                    ? ride.cash_due_da > 0
+                      ? `Encaisser ${formatDA(ride.cash_due_da)}`
+                      : "Prépayée"
+                    : "À encaisser"
+                  : "Prix convenu"}
+              </span>
+            </span>
           </div>
-          {/* Adresse du client (réelle, jamais « Ma position ») — cliquable :
-              ouvre l'itinéraire dans l'app GPS du chauffeur. */}
-          <button
-            type="button"
-            onClick={() => {
-              if (inProgress) {
-                if (dest) goNav(dest.lat, dest.lng, "la destination");
-              } else if (pickup) {
-                goNav(pickup.lat, pickup.lng, "le client");
-              }
-            }}
-            className="mt-3 flex w-full items-center gap-2 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-left text-[12.5px] font-bold"
-          >
-            <Navigation className="size-4 shrink-0" style={{ color: VIOLET }} />
-            <span className="min-w-0 flex-1 truncate">
+          {/* Adresse (réelle, jamais « Ma position ») — info, non bouton :
+              l'action « Itinéraire » est dans la barre ci-dessous. */}
+          <div className="mt-3 flex items-center gap-2 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-[12.5px] font-bold">
+            <span
+              className="grid size-6 shrink-0 place-items-center rounded-full"
+              style={{
+                background: inProgress
+                  ? "rgba(108,43,217,.14)"
+                  : "rgba(22,179,100,.16)",
+              }}
+            >
+              <i
+                className="size-[8px] rounded-full"
+                style={{ background: inProgress ? VIOLET : GO }}
+              />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[var(--d-ink)]">
               {inProgress
                 ? (ride.dest_text ?? "Destination")
-                : `Vous attend · ${pickupAddr ?? "Point de départ du client"}`}
+                : (pickupAddr ?? "Point de départ du client")}
             </span>
-            <span
-              className="shrink-0 text-[11px] font-extrabold"
-              style={{ color: VIOLET }}
-            >
-              Itinéraire ›
-            </span>
-          </button>
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setChatOpen(true)}
-              className="relative flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
-            >
-              <MessageSquare className="size-4" /> Message
-              {unread > 0 && (
-                <span
-                  className="drive-badge absolute -top-1.5 -right-1.5 grid min-w-[20px] place-items-center rounded-full px-1.5 text-[11px] font-extrabold text-white"
-                  style={{ background: RED }}
-                >
-                  {unread}
-                </span>
-              )}
-            </button>
-            {/* Appel IN-APP (Agora) : voix + caméra optionnelle, numéro du
-                client jamais exposé (tout passe en data). Toujours dispo. */}
-            <button
-              type="button"
-              onClick={() => call.start(false)}
-              className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
-              style={{ background: VIOLET }}
-            >
-              <Phone className="size-4" /> Coligo Call
-            </button>
           </div>
-          {/* Numéro DIRECT : visible UNIQUEMENT si le client a choisi de
-              partager son numéro (gating serveur → customer_phone est null
-              sinon). Disparaît instantanément si le client re-masque. */}
-          {ride.customer_phone && (
-            <a
-              href={`tel:${ride.customer_phone}`}
-              className="mt-2 flex h-[44px] items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
-            >
-              <Phone className="size-4" /> Appeler le numéro direct
-            </a>
-          )}
         </div>
 
-        <div
-          className="mb-2.5 flex items-center justify-between rounded-[14px] px-4 py-3"
-          style={{ background: "var(--d-accent)" }}
-        >
-          <span className="text-xs font-bold" style={{ color: VIOLET }}>
-            {inProgress
-              ? ride.prepaid
-                ? ride.cash_due_da > 0
-                  ? `À encaisser : ${formatDA(ride.cash_due_da)} en espèces`
-                  : "Prépayée · rien à encaisser"
-                : "À encaisser à l'arrivée"
-              : "Prix convenu"}
-          </span>
-          <span
-            className="drive-sora text-[17px] font-extrabold"
-            style={{ color: VIOLET }}
-          >
-            {formatDA(ride.agreed_price_da)}
-          </span>
+        {/* ── Barre d'actions horizontale (façon Uber) : tous les contacts et
+            raccourcis sur UNE ligne, plus de boutons empilés. ── */}
+        <div className="mb-3 flex justify-center gap-3 overflow-x-auto pb-1">
+          <ActBtn
+            icon={<PhoneCall className="size-5" />}
+            label="Appel"
+            accent
+            onClick={onCall}
+          />
+          <ActBtn
+            icon={<MessageSquare className="size-5" />}
+            label="Message"
+            badge={unread}
+            onClick={() => setChatOpen(true)}
+          />
+          <ActBtn
+            icon={<Navigation className="size-5" />}
+            label="Itinéraire"
+            onClick={onItinerary}
+          />
+          {shareUrl && (
+            <ActBtn
+              icon={
+                linkCopied ? (
+                  <Check className="size-5" />
+                ) : (
+                  <Share2 className="size-5" />
+                )
+              }
+              label={linkCopied ? "Copié ✓" : "Suivi"}
+              onClick={() => void copyShare()}
+            />
+          )}
+          {inProgress && (
+            <ActBtn
+              icon={<AlertTriangle className="size-5" />}
+              label="SOS"
+              danger
+              onClick={() => setSosOpen(true)}
+            />
+          )}
         </div>
 
         {ride.prepaid && (
@@ -792,34 +872,6 @@ export function DCourse() {
           </p>
         )}
 
-        {/* Partage du suivi : lien public t/{token}, copiable (sans compte) */}
-        {shareUrl && (
-          <button
-            type="button"
-            onClick={async () => {
-              if (await copyText(shareUrl)) {
-                setLinkCopied(true);
-                setTimeout(() => setLinkCopied(false), 2500);
-              }
-            }}
-            className="mb-2.5 flex h-[46px] w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] text-[12.5px] font-bold"
-            style={
-              linkCopied
-                ? { borderColor: GO, color: GO }
-                : { borderColor: "var(--d-line)" }
-            }
-          >
-            {linkCopied ? (
-              <Check className="size-4" />
-            ) : (
-              <Copy className="size-4" />
-            )}
-            {linkCopied
-              ? "Lien copié ✓"
-              : "Suivi de la course · copier le lien"}
-          </button>
-        )}
-
         {error && (
           <p
             className="mb-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
@@ -829,85 +881,55 @@ export function DCourse() {
           </p>
         )}
 
+        {/* ── Action principale (1 seul CTA dominant par étape) ── */}
         {inProgress ? (
+          <PrimaryBtn onClick={() => void complete()} disabled={busy}>
+            {busy ? <Loader2 className="size-5 animate-spin" /> : null}
+            Terminer la course
+          </PrimaryBtn>
+        ) : ride.status !== "arrived" ? (
           <>
-            <div className="mb-2.5 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setChatOpen(true)}
-                className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-[12.5px] font-bold"
-              >
-                💬 Support live
-              </button>
-              <button
-                type="button"
-                onClick={() => setSosOpen(true)}
-                className="flex h-[46px] w-[86px] items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] text-[12.5px] font-bold"
-                style={{ borderColor: RED, color: RED }}
-              >
-                <AlertTriangle className="size-4" /> SOS
-              </button>
-            </div>
-            {/* Navigation vers la destination finale du client (app GPS). */}
-            {dest && (
-              <button
-                type="button"
-                onClick={() => goNav(dest.lat, dest.lng, "la destination")}
-                className="drive-sora mb-2.5 flex h-[50px] w-full items-center justify-center gap-2 rounded-[15px] text-[15px] font-bold text-white"
-                style={{
-                  background: VIOLET,
-                  boxShadow: `0 12px 24px -12px ${VIOLET}`,
-                }}
-              >
-                <Navigation className="size-5" /> Ouvrir le trajet · GPS
-              </button>
-            )}
-            <PrimaryBtn onClick={() => void complete()} disabled={busy}>
-              {busy ? <Loader2 className="size-5 animate-spin" /> : null}
-              Terminer la course
+            <PrimaryBtn
+              onClick={() => void transition("arrived")}
+              disabled={busy}
+            >
+              Je suis arrivé · prévenir le client
             </PrimaryBtn>
+            {/* Démarrage direct (si le client est déjà à bord) — action
+                secondaire discrète, plus de gros boutons empilés. */}
+            <button
+              type="button"
+              onClick={() => void transition("in_progress")}
+              disabled={busy}
+              className="drive-sora mt-2 flex h-[46px] w-full items-center justify-center gap-1.5 rounded-[15px] border-[1.5px] border-[var(--d-line)] text-[13.5px] font-bold disabled:opacity-50"
+              style={{ color: VIOLET }}
+            >
+              Client déjà à bord · démarrer
+              <ChevronRight className="size-4" />
+            </button>
           </>
         ) : (
           <>
-            {/* Navigation vers le point de départ du client (app GPS). */}
-            {pickup && (
-              <button
-                type="button"
-                onClick={() => goNav(pickup.lat, pickup.lng, "le client")}
-                className="drive-sora mb-2.5 flex h-[50px] w-full items-center justify-center gap-2 rounded-[15px] text-[15px] font-bold text-white"
-                style={{
-                  background: GO,
-                  boxShadow: `0 12px 24px -12px ${GO}`,
-                }}
-              >
-                <Navigation className="size-5" /> Aller au point de départ · GPS
-              </button>
-            )}
-            {ride.status !== "arrived" ? (
-              <PrimaryBtn
-                onClick={() => void transition("arrived")}
-                disabled={busy}
-              >
-                Je suis arrivé · prévenir le client
-              </PrimaryBtn>
-            ) : (
-              <p
-                className="mb-1 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
-                style={{ background: "rgba(22,179,100,.12)", color: GO }}
-              >
-                Le client est prévenu que vous êtes arrivé ✓
-              </p>
-            )}
+            <p
+              className="mb-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+              style={{ background: "rgba(22,179,100,.12)", color: GO }}
+            >
+              Le client est prévenu que vous êtes arrivé ✓
+            </p>
             <PrimaryBtn
               onClick={() => void transition("in_progress")}
               disabled={busy}
             >
               Client à bord · démarrer la course
             </PrimaryBtn>
-            <GhostBtn danger onClick={() => setCancelCtx("driver_pickup")}>
-              Annuler · client absent
-            </GhostBtn>
           </>
+        )}
+
+        {/* Annulation : repliée en lien discret (sauf en course). */}
+        {!inProgress && (
+          <GhostBtn danger onClick={() => setCancelCtx("driver_pickup")}>
+            Annuler · client absent
+          </GhostBtn>
         )}
       </div>
 
@@ -986,6 +1008,51 @@ export function DCourse() {
         />
       )}
       <NavAppSheet target={navSheet} onClose={() => setNavSheet(null)} />
+
+      {/* Sélecteur d'appel — n'apparaît que si le client a partagé son numéro
+          direct (sinon « Appel » lance Coligo Call directement). Regroupe les
+          deux méthodes derrière la seule action « Appel ». */}
+      <Sheet open={callMenu} onClose={() => setCallMenu(false)}>
+        <SheetTitle>Appeler {ride.customer_name}</SheetTitle>
+        <p className="mb-3 text-[13px] text-[var(--d-muted)]">
+          Coligo Call protège votre numéro et celui du client.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setCallMenu(false);
+            call.start(false);
+          }}
+          className="drive-sora mb-2 flex h-[54px] w-full items-center gap-3 rounded-[14px] px-4 text-[14px] font-bold text-white"
+          style={{ background: VIOLET }}
+        >
+          <PhoneCall className="size-5" />
+          <span className="flex-1 text-left">
+            Coligo Call
+            <span className="block text-[11px] font-semibold opacity-85">
+              Numéro masqué · recommandé
+            </span>
+          </span>
+          <ChevronRight className="size-4" />
+        </button>
+        {ride.customer_phone && (
+          <a
+            href={`tel:${ride.customer_phone}`}
+            onClick={() => setCallMenu(false)}
+            className="drive-sora mb-1 flex h-[54px] w-full items-center gap-3 rounded-[14px] border-[1.5px] border-[var(--d-line)] px-4 text-[14px] font-bold"
+          >
+            <Phone className="size-5" style={{ color: VIOLET }} />
+            <span className="flex-1 text-left">
+              Appeler le numéro direct
+              <span className="block text-[11px] font-semibold text-[var(--d-muted)]">
+                {ride.customer_phone}
+              </span>
+            </span>
+            <ChevronRight className="size-4 text-[var(--d-muted)]" />
+          </a>
+        )}
+        <GhostBtn onClick={() => setCallMenu(false)}>Annuler</GhostBtn>
+      </Sheet>
 
       {/* Appel in-app (sonnerie entrante/sortante + fenêtre d'appel Agora). */}
       {call.ui}

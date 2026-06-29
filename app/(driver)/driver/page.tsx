@@ -1,11 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverDashboardLive } from "@/components/driver/driver-dashboard-live";
 import { DriverHomeMaquette } from "@/components/driver/home/driver-home-maquette";
-import { WorkZoneControl } from "@/components/driver/home/work-zone-control";
 import { DriverBottomNav } from "@/components/driver/driver-bottom-nav";
 
 export const dynamic = "force-dynamic";
@@ -130,37 +127,20 @@ export default async function DriverHomePage() {
       {/* Refresh temps réel des compteurs + toast nouvelle course. */}
       <DriverDashboardLive />
 
-      {/* Accès rapide « Tournées » (pastille haut-centre) — uniquement si le
-          livreur a rejoint un commerçant et n'est pas gelé (évite tout
-          chevauchement avec le bandeau de gel). */}
-      {showToursEntry && !driver.is_frozen && (
-        <Link
-          href="/driver/tournees"
-          className="absolute left-1/2 z-[45] flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2 text-[13px] font-bold text-[#4b1fa6] shadow-[0_4px_16px_rgba(0,0,0,.12)]"
-          style={{ top: "max(58px, calc(env(safe-area-inset-top) + 14px))" }}
-        >
-          <CalendarDays className="size-4" />
-          Mes tournées
-          {tourPending > 0 && (
-            <span className="grid size-5 place-items-center rounded-full bg-[#4b1fa6] text-[11px] font-extrabold text-white">
-              {tourPending}
-            </span>
-          )}
-        </Link>
-      )}
-
       {/* La carte (MapLibre) est désormais montée dans le layout (persistante) :
-          plus de re-création à chaque retour sur l'Accueil. */}
+          plus de re-création à chaque retour sur l'Accueil. Les options (zone de
+          travail, tournées, compte…) sont regroupées dans le tiroir gauche du
+          chrome maquette (bouton menu en haut à gauche) → accueil dégagé. */}
 
-      {/* Sélecteur « Ma zone de travail » (dispatch par zone) — pilule d'état
-          en haut à droite, sous le bouton recentrer. Masqué si compte gelé. */}
-      {!driver.is_frozen && <WorkZoneControl />}
-
-      {/* Chrome maquette (GO + radar + son + sheet + stats) en overlay. */}
+      {/* Chrome maquette (GO + radar + son + sheet + tiroir) en overlay. */}
       <DriverHomeMaquette
         driverId={driver.id}
+        driverName={driver.full_name}
+        isVerified={driver.is_verified}
         earnedToday={earnedToday}
         coursesToday={coursesToday ?? 0}
+        showToursEntry={showToursEntry && !driver.is_frozen}
+        tourPending={tourPending}
         isFrozen={driver.is_frozen}
         freezeReason={driver.freeze_reason}
       />

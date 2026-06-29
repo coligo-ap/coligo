@@ -4,16 +4,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import {
+  BarChart3,
   Car,
   ChevronRight,
-  ChevronUp,
+  Clock,
   Crosshair,
+  FileText,
   Home,
   Loader2,
   LocateFixed,
+  LogOut,
   Pencil,
   Power,
   Radio,
+  ShieldCheck,
+  User,
   Wallet,
   X,
 } from "lucide-react";
@@ -38,6 +43,14 @@ import { PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
 import { Portal } from "@/components/ui/portal";
 import { DIncoming } from "./d-incoming";
 import { ChauffeurWorkZoneSheet } from "./work-zone-sheet";
+import {
+  PartnerDrawer,
+  PartnerMenuButton,
+  DrawerSection,
+  DrawerRow,
+  DrawerDivider,
+  type DrawerTheme,
+} from "@/components/shared/partner-drawer";
 import { useSearchRadius } from "@/lib/chauffeur/work-zone";
 import {
   setChauffeurOnlineLocal,
@@ -62,6 +75,7 @@ import {
   offerRide,
   setChauffeurHome,
   setChauffeurOnline,
+  chauffeurLogout,
   type ChauffeurGate,
   type DriveHome,
   type NearbyRide,
@@ -111,8 +125,20 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const coords = useDriverPosition();
   // Initialisé depuis le cache module → affichage instantané au retour (SWR).
   const [home, setHome] = useState<DriveHome | null>(lastDriveHomeCache);
-  // Accueil COMPACT : feuille réduite par défaut (le chauffeur l'ouvre au choix).
-  const [mini, setMini] = useState(true);
+  // Tiroir latéral gauche (toutes les options regroupées). L'accueil ne garde
+  // QUE le bouton de mise en ligne ; le reste vit dans ce menu (style Uber).
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutErr, setLogoutErr] = useState<string | null>(null);
+  // Thème du tiroir mappé sur la palette chauffeur (`--d-*` + violet).
+  const drawerTheme: DrawerTheme = {
+    surface: "var(--d-surface)",
+    line: "var(--d-line)",
+    ink: "var(--d-ink)",
+    muted: "var(--d-muted)",
+    soft: "var(--d-soft)",
+    accent: VIOLET,
+  };
   // État RÉACTIF partagé (Accueil ⇄ Demandes) — plus de lecture localStorage
   // au montage qui désynchronisait les écrans.
   const dirOn = useHomeDirOn();
@@ -446,12 +472,12 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     null
   );
   const [locating, setLocating] = useState(false);
-  // Quand on réduit/agrandit la feuille, la zone visible change → on re-centre
-  // le point « moi » avec le nouveau padding (sinon il resterait décalé).
+  // Au premier fix connu, centrer le point « moi » dans la zone visible (le bas
+  // est occupé par la barre de mise en ligne, réservé via le padding de la carte).
   useEffect(() => {
     const c = coordsRef.current;
     if (c) setFocusMe({ lat: c.latitude, lng: c.longitude, zoom: 16.5 });
-  }, [mini]);
+  }, []);
   const recenter = async () => {
     // 1) Recentrage INSTANTANÉ sur la dernière position connue (si on en a une).
     const known = coordsRef.current;
@@ -485,6 +511,20 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     }
   };
 
+  // Déconnexion (depuis le tiroir) : le serveur refuse tant qu'une course est
+  // active (message inline, pas de toast — règle produit).
+  const doLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setLogoutErr(null);
+    setChauffeurOnlineLocal(false);
+    const res = await chauffeurLogout(); // redirige si OK
+    if (res?.error) {
+      setLoggingOut(false);
+      setLogoutErr(res.error);
+    }
+  };
+
   const me = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
   // Demandes RÉELLEMENT visibles = mêmes filtres que la page « Demandes »
   // (pas déjà proposées + filtre « je rentre chez moi »). Le compteur de
@@ -510,65 +550,47 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         // Conserve l'instance MapLibre entre les visites de l'accueil : pas de
         // recréation du contexte WebGL → retour sur l'accueil immédiat.
         keepAlive
-        // Réserve la zone basse occupée par la feuille → le point « moi » est
-        // centré dans la partie VISIBLE de la carte (au-dessus de la feuille),
-        // et s'ajuste quand on réduit/agrandit la feuille.
-        padding={{ top: 96, bottom: mini ? 220 : 520, left: 56, right: 56 }}
+        // Réserve la zone basse occupée par la barre de mise en ligne → le point
+        // « moi » est centré dans la partie VISIBLE de la carte (au-dessus).
+        padding={{ top: 96, bottom: 220, left: 56, right: 56 }}
       />
 
-      {/* Bandeau haut (3 zones) : courses dispo (GAUCHE) · revenus (CENTRE) ·
-          GPS (DROITE). Le centre reste centré quelles que soient les présences. */}
+      {/* Bandeau haut épuré : menu (GAUCHE) · revenu du jour (CENTRE) · GPS
+          (DROITE). Toutes les options sont désormais dans le tiroir → l'accueil
+          reste dégagé sur la carte (style Uber). */}
       <div className="absolute inset-x-3 top-3 z-10 grid grid-cols-3 items-start gap-2">
-        {/* GAUCHE — courses disponibles (en ligne) → ouvre Drive */}
+        {/* GAUCHE — bouton menu (ouvre le tiroir) ; pastille = demandes en attente */}
         <div className="flex justify-start">
-          {online && (
-            <button
-              type="button"
-              onClick={() => router.push("/chauffeur/demandes")}
-              className="flex items-center gap-1.5 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-1.5 pr-2 pl-3 shadow-lg"
-            >
-              <span className="flex flex-col items-start leading-none">
-                <span
-                  className="drive-sora text-[18px] font-extrabold"
-                  style={{ color: VIOLET }}
-                >
-                  {reqCount}
-                </span>
-                <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap text-[var(--d-muted)]">
-                  {isAr ? "متوفرة" : "dispo."}
-                </span>
-              </span>
-              <ChevronRight className="size-3.5 shrink-0 text-[var(--d-muted)]" />
-            </button>
-          )}
+          <PartnerMenuButton
+            onClick={() => setMenuOpen(true)}
+            theme={drawerTheme}
+            label={tr("Menu", "القائمة")}
+            badge={reqCount}
+          />
         </div>
 
-        {/* CENTRE — revenu du jour (mode compact) — carte violette arrondie */}
+        {/* CENTRE — revenu du jour → ouvre Gains */}
         <div className="flex justify-center">
-          {mini && (
-            <button
-              type="button"
-              onClick={() => router.push("/chauffeur/gains")}
-              className="flex items-center gap-1.5 rounded-[16px] border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
-              style={{ background: "#6315E8", borderColor: "#5009C9" }}
-            >
-              <span className="flex flex-col items-start leading-none">
-                <span className="drive-sora text-[18px] font-extrabold tracking-[-0.5px]">
-                  {formatDA(home?.todayNet ?? 0)}
-                </span>
-                <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap opacity-85">
-                  {tr("Revenu du jour", "دخل اليوم")}
-                </span>
+          <button
+            type="button"
+            onClick={() => router.push("/chauffeur/gains")}
+            className="flex items-center gap-1.5 rounded-[16px] border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
+            style={{ background: "#6315E8", borderColor: "#5009C9" }}
+          >
+            <span className="flex flex-col items-start leading-none">
+              <span className="drive-sora text-[18px] font-extrabold tracking-[-0.5px]">
+                {formatDA(home?.todayNet ?? 0)}
               </span>
-              <ChevronRight className="size-3.5 shrink-0 text-white/80" />
-            </button>
-          )}
+              <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap opacity-85">
+                {tr("Revenu du jour", "دخل اليوم")}
+              </span>
+            </span>
+            <ChevronRight className="size-3.5 shrink-0 text-white/80" />
+          </button>
         </div>
 
-        {/* DROITE — langue + thème + GPS (recentrer) */}
-        <div className="flex flex-col items-end gap-2">
-          <LanguageSwitcher compact />
-          <ChauffeurDarkPill />
+        {/* DROITE — GPS (recentrer) */}
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={() => void recenter()}
@@ -603,59 +625,54 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         />
       )}
 
-      {/* Feuille réductible — SCROLLABLE. */}
-      <div
-        className="absolute right-0 bottom-[66px] left-0 z-10 overflow-y-auto overscroll-contain rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-2 pb-6 transition-[max-height] duration-300"
-        style={{ maxHeight: mini ? 118 : "min(580px, calc(100dvh - 140px))" }}
-      >
-        {/* Poignée + flèche INTÉGRÉE (dans le flux, centrée) — repliée ▲ « ouvrir »,
-            dépliée ▼ « fermer ». Plus de pastille flottante qui déborde. */}
-        <button
-          type="button"
-          onClick={() => setMini((m) => !m)}
-          aria-label={mini ? tr("Ouvrir", "فتح") : tr("Fermer", "إغلاق")}
-          className="mx-auto flex w-full flex-col items-center gap-1 py-1"
-        >
-          <span className="block h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
-          <ChevronUp
-            className="size-4 text-[var(--d-muted)] transition-transform duration-300"
-            style={{ transform: mini ? undefined : "rotate(180deg)" }}
-          />
-        </button>
+      {/* ── Barre de mise en ligne docké (SEUL contrôle conservé sur l'accueil) ──
+          Toutes les options sont passées dans le tiroir gauche. Ici, on ne garde
+          que le bouton de disponibilité — large, lisible, façon Uber. */}
+      <div className="absolute inset-x-3 bottom-[78px] z-10 flex flex-col gap-2">
+        {/* Raccourci « Voir les demandes » (en ligne + demandes en attente). */}
+        {online && reqCount > 0 && (
+          <button
+            type="button"
+            onClick={() => router.push("/chauffeur/demandes")}
+            className="drive-attn flex items-center justify-center gap-2 rounded-[16px] px-4 py-2.5 text-[13.5px] font-bold text-white shadow-lg"
+            style={{ background: VIOLET }}
+          >
+            {isAr
+              ? `عرض ${reqCount} ${reqCount > 1 ? "طلبات" : "طلب"}`
+              : `Voir les ${reqCount} demande${reqCount > 1 ? "s" : ""}`}
+            <ChevronRight className="size-4" />
+          </button>
+        )}
 
-        {/* ── Toggle « En ligne » — épuré (style Anthropic) ── */}
         <button
           type="button"
           role="switch"
           aria-checked={online}
           aria-label={tr("Disponibilité", "التوفر")}
           onClick={() => toggleOnline()}
-          className="mt-1 flex w-full items-center gap-3 rounded-[16px] border px-4 py-3 text-start transition-colors"
+          className="flex w-full items-center gap-3 rounded-[20px] border px-4 py-3.5 text-start shadow-xl transition-colors"
           style={{
             borderColor: online ? "rgba(22,179,100,.35)" : "var(--d-line)",
-            background: online ? "rgba(22,179,100,.06)" : "var(--d-surface)",
+            background: online ? "rgba(22,179,100,.07)" : "var(--d-surface)",
           }}
         >
           <span
-            className="grid size-9 shrink-0 place-items-center rounded-full transition-colors"
+            className="grid size-11 shrink-0 place-items-center rounded-full transition-colors"
             style={{
-              background: online ? "rgba(22,179,100,.14)" : "var(--d-soft)",
+              background: online ? "rgba(22,179,100,.16)" : "var(--d-soft)",
             }}
           >
             {online ? (
-              <Radio className="size-[18px]" style={{ color: GO }} />
+              <Radio className="size-5" style={{ color: GO }} />
             ) : (
-              <Power
-                className="size-[18px]"
-                style={{ color: "var(--d-muted)" }}
-              />
+              <Power className="size-5" style={{ color: "var(--d-muted)" }} />
             )}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="drive-sora block text-[14px] font-bold tracking-[-0.2px]">
+            <span className="drive-sora block text-[15.5px] font-extrabold tracking-[-0.2px]">
               {online ? tr("En ligne", "متصل") : tr("Hors ligne", "غير متصل")}
             </span>
-            <span className="block truncate text-[11.5px] text-[var(--d-muted)]">
+            <span className="block truncate text-[12px] text-[var(--d-muted)]">
               {online
                 ? tr("En recherche des courses…", "البحث عن الطلبات…")
                 : tr(
@@ -666,201 +683,273 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           </span>
           {/* Switch iOS-like (RTL-safe) */}
           <span
-            className="relative h-[28px] w-[48px] shrink-0 rounded-full transition-colors"
+            className="relative h-[30px] w-[52px] shrink-0 rounded-full transition-colors"
             style={{ background: online ? GO : "#D6D9E2" }}
           >
             <span
-              className="absolute top-[3px] size-[22px] rounded-full bg-white shadow-sm transition-all"
-              style={{ insetInlineStart: online ? 23 : 3 }}
+              className="absolute top-[3px] size-[24px] rounded-full bg-white shadow-sm transition-all"
+              style={{ insetInlineStart: online ? 25 : 3 }}
             />
           </span>
         </button>
+      </div>
 
-        {/* ── Finance : gains du jour + solde (2 cartes épurées) ── */}
-        <div className="mt-2.5 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => router.push("/chauffeur/gains")}
-            className="flex flex-col gap-0.5 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3 text-left"
-          >
-            <span className="text-[11px] font-medium text-[var(--d-muted)]">
-              {tr("Gains du jour", "أرباح اليوم")}
-            </span>
-            <span className="drive-sora text-[18px] leading-none font-extrabold tracking-[-0.5px]">
-              {formatDA(home?.todayNet ?? 0)}
-            </span>
-            <span className="mt-0.5 text-[10px] text-[var(--d-muted)]">
-              {home?.todayRides ?? 0} {tr("courses", "رحلة")} ·{" "}
-              {fmtOnline(home?.todayOnlineMin ?? 0)}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => router.push("/chauffeur/recharger")}
-            className="flex flex-col gap-0.5 rounded-[14px] border p-3 text-left"
-            style={{
-              borderColor: lowBalance ? "rgba(229,72,77,.25)" : "var(--d-line)",
-              background: lowBalance
-                ? "rgba(229,72,77,.05)"
-                : "var(--d-surface)",
-            }}
-          >
-            <span
-              className="flex items-center gap-1.5 text-[11px] font-medium"
-              style={{ color: lowBalance ? RED : "var(--d-muted)" }}
-            >
-              <Wallet className="size-3.5" />
-              {tr("Solde", "الرصيد")}
-            </span>
-            <span
-              className="drive-sora text-[18px] leading-none font-extrabold tracking-[-0.5px]"
-              style={{ color: lowBalance ? RED : "var(--d-ink)" }}
-            >
-              {balance == null ? "…" : formatDA(balance)}
-            </span>
-            <span
-              className="mt-0.5 text-[10px]"
-              style={{ color: lowBalance ? RED : "var(--d-muted)" }}
-            >
-              {lowBalance
-                ? tr("Recharger le portefeuille", "اشحن المحفظة")
-                : tr("Portefeuille opérateur", "محفظة المشغّل")}
-            </span>
-          </button>
-        </div>
-
-        {/* ── Options — liste épurée (icône · libellé · valeur) ── */}
-        <div className="mt-2.5 overflow-hidden rounded-[14px] border border-[var(--d-line)]">
-          {/* Rentrer chez moi (+ filtre direction) */}
-          <div className="flex items-center gap-3 px-3.5 py-2.5">
-            <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-              <Home className="size-4" style={{ color: VIOLET }} />
-            </span>
+      {/* ── Tiroir latéral gauche : toutes les options (style Uber/Claude) ── */}
+      <PartnerDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        theme={drawerTheme}
+        header={
+          <div className="space-y-3">
+            {/* Profil */}
+            <div className="flex items-center gap-3">
+              <span
+                className="drive-sora grid size-12 shrink-0 place-items-center rounded-[16px] text-[18px] font-extrabold text-white"
+                style={{ background: VIOLET }}
+              >
+                {(gate.firstName || "C").charAt(0).toUpperCase()}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <b className="drive-sora truncate text-[15px] font-extrabold text-[var(--d-ink)]">
+                    {gate.fullName || gate.firstName}
+                  </b>
+                  {gate.isVerified && (
+                    <ShieldCheck
+                      className="size-4 shrink-0"
+                      style={{ color: GO }}
+                    />
+                  )}
+                </div>
+                <span className="block truncate text-[12px] text-[var(--d-muted)]">
+                  {tr("Chauffeur", "سائق")} · {planLabel(home?.plan ?? "free")}{" "}
+                  · {GAMME_LABEL[gate.gamme]}
+                </span>
+              </div>
+            </div>
+            {/* Finance : gains du jour + solde */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  router.push("/chauffeur/gains");
+                }}
+                className="flex flex-col gap-0.5 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3 text-left"
+              >
+                <span className="text-[11px] font-medium text-[var(--d-muted)]">
+                  {tr("Gains du jour", "أرباح اليوم")}
+                </span>
+                <span className="drive-sora text-[17px] leading-none font-extrabold tracking-[-0.5px]">
+                  {formatDA(home?.todayNet ?? 0)}
+                </span>
+                <span className="mt-0.5 text-[10px] text-[var(--d-muted)]">
+                  {home?.todayRides ?? 0} {tr("courses", "رحلة")} ·{" "}
+                  {fmtOnline(home?.todayOnlineMin ?? 0)}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  router.push("/chauffeur/recharger");
+                }}
+                className="flex flex-col gap-0.5 rounded-[14px] border p-3 text-left"
+                style={{
+                  borderColor: lowBalance
+                    ? "rgba(229,72,77,.25)"
+                    : "var(--d-line)",
+                  background: lowBalance
+                    ? "rgba(229,72,77,.05)"
+                    : "var(--d-surface)",
+                }}
+              >
+                <span
+                  className="flex items-center gap-1.5 text-[11px] font-medium"
+                  style={{ color: lowBalance ? RED : "var(--d-muted)" }}
+                >
+                  <Wallet className="size-3.5" />
+                  {tr("Solde", "الرصيد")}
+                </span>
+                <span
+                  className="drive-sora text-[17px] leading-none font-extrabold tracking-[-0.5px]"
+                  style={{ color: lowBalance ? RED : "var(--d-ink)" }}
+                >
+                  {balance == null ? "…" : formatDA(balance)}
+                </span>
+                <span
+                  className="mt-0.5 text-[10px]"
+                  style={{ color: lowBalance ? RED : "var(--d-muted)" }}
+                >
+                  {lowBalance
+                    ? tr("Recharger", "اشحن")
+                    : tr("Portefeuille opérateur", "محفظة المشغّل")}
+                </span>
+              </button>
+            </div>
+          </div>
+        }
+        footer={
+          <div className="space-y-2">
+            {logoutErr && (
+              <p
+                className="rounded-[12px] px-3 py-2 text-center text-[12px] font-bold"
+                style={{ background: "rgba(229,72,77,.1)", color: RED }}
+              >
+                {logoutErr}
+              </p>
+            )}
             <button
               type="button"
-              onClick={() => {
-                setHomeErr(null);
-                setHomePos(null);
-                setHomeOpen(true);
-              }}
-              className="min-w-0 flex-1 text-start"
+              onClick={() => void doLogout()}
+              disabled={loggingOut}
+              className="flex w-full items-center justify-center gap-2 rounded-[14px] border py-3 text-[13.5px] font-bold"
+              style={{ borderColor: "rgba(229,72,77,.3)", color: RED }}
             >
-              <b className="block text-[13px] font-semibold">
-                {tr("Rentrer chez moi", "العودة للمنزل")}
-              </b>
-              <span className="flex items-center gap-1 truncate text-[11px] text-[var(--d-muted)]">
+              {loggingOut ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <LogOut className="size-4" />
+              )}
+              {tr("Se déconnecter", "تسجيل الخروج")}
+            </button>
+          </div>
+        }
+      >
+        {/* Préférences de réception */}
+        <DrawerSection title={tr("Préférences", "التفضيلات")}>
+          {/* Rentrer chez moi (édition adresse + filtre direction) */}
+          <DrawerRow
+            icon={<Home className="size-4" />}
+            label={tr("Rentrer chez moi", "العودة للمنزل")}
+            sublabel={
+              <span className="flex items-center gap-1">
                 <span className="truncate">
                   {homeAddr ?? tr("Définir l'adresse", "تحديد العنوان")}
                 </span>
                 <Pencil className="size-2.5 shrink-0" />
               </span>
-            </button>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={dirOn}
-              aria-label={tr("Filtre domicile", "فلتر المنزل")}
-              onClick={toggleDir}
-              className="relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors"
-              style={{ background: dirOn ? VIOLET : "#D6D9E2" }}
-            >
+            }
+            onClick={() => {
+              setHomeErr(null);
+              setHomePos(null);
+              setMenuOpen(false);
+              setHomeOpen(true);
+            }}
+            trailing={
               <span
-                className="absolute top-[2px] size-[18px] rounded-full bg-white shadow transition-all"
-                style={{ insetInlineStart: dirOn ? 18 : 2 }}
-              />
-            </button>
-          </div>
-
-          <div className="mx-3.5 h-px bg-[var(--d-line)]" />
-
+                role="switch"
+                aria-checked={dirOn}
+                aria-label={tr("Filtre domicile", "فلتر المنزل")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void toggleDir();
+                }}
+                className="relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors"
+                style={{ background: dirOn ? VIOLET : "#D6D9E2" }}
+              >
+                <span
+                  className="absolute top-[2px] size-[18px] rounded-full bg-white shadow transition-all"
+                  style={{ insetInlineStart: dirOn ? 18 : 2 }}
+                />
+              </span>
+            }
+          />
+          <DrawerDivider />
           {/* Ma zone */}
-          <button
-            type="button"
-            onClick={() => setZoneOpen(true)}
-            className="flex w-full items-center gap-3 px-3.5 py-2.5 text-start"
-          >
-            <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-              <Crosshair className="size-4" style={{ color: VIOLET }} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <b className="block text-[13px] font-semibold">
-                {tr("Ma zone", "منطقتي")}
-              </b>
-              <span className="block truncate text-[11px] text-[var(--d-muted)]">
-                {searchRadius} km · {tr("autour de moi", "حولي")}
-              </span>
-            </span>
-            <ChevronRight className="size-4 shrink-0 text-[var(--d-muted)]" />
-          </button>
-
-          <div className="mx-3.5 h-px bg-[var(--d-line)]" />
-
+          <DrawerRow
+            icon={<Crosshair className="size-4" />}
+            label={tr("Ma zone", "منطقتي")}
+            sublabel={`${searchRadius} km · ${tr("autour de moi", "حولي")}`}
+            onClick={() => {
+              setMenuOpen(false);
+              setZoneOpen(true);
+            }}
+          />
+          <DrawerDivider />
           {/* Abonnement */}
-          <button
-            type="button"
-            onClick={() => router.push("/chauffeur/abonnement")}
-            className="flex w-full items-center gap-3 px-3.5 py-2.5 text-start"
-          >
-            <PlanIcon plan={home?.plan ?? "free"} />
-            <span className="min-w-0 flex-1">
-              <b className="block text-[13px] font-semibold">
-                {tr("Abonnement", "الاشتراك")} ·{" "}
-                {planLabel(home?.plan ?? "free")}
-              </b>
-              <span className="block truncate text-[11px] text-[var(--d-muted)]">
-                {home?.plan === "premium"
-                  ? tr(
-                      "0 % de commission · priorité dispatch",
-                      "0٪ عمولة · أولوية في التوزيع"
-                    )
-                  : home?.plan === "pro"
-                    ? `${tr("Commission", "عمولة")} ${fmtPct(home.planRate)} · 1 500 DA/${tr("mois", "شهر")}`
-                    : tr(
-                        "Commission 8 % · passez en Premium = 0 %",
-                        "عمولة 8٪ · انتقل إلى بريميوم = 0٪"
-                      )}
-              </span>
-            </span>
-            <ChevronRight className="size-4 shrink-0 text-[var(--d-muted)]" />
-          </button>
+          <DrawerRow
+            icon={<PlanIcon plan={home?.plan ?? "free"} />}
+            label={`${tr("Abonnement", "الاشتراك")} · ${planLabel(home?.plan ?? "free")}`}
+            sublabel={
+              home?.plan === "premium"
+                ? tr("0 % de commission", "0٪ عمولة")
+                : home?.plan === "pro"
+                  ? `${tr("Commission", "عمولة")} ${fmtPct(home.planRate)}`
+                  : tr("Commission 8 % · passez en Premium", "عمولة 8٪")
+            }
+            onClick={() => {
+              setMenuOpen(false);
+              router.push("/chauffeur/abonnement");
+            }}
+          />
+          <DrawerDivider />
+          {/* Gamme (info) */}
+          <DrawerRow
+            icon={<Car className="size-4" />}
+            label={`${tr("Gamme", "الفئة")} · ${GAMME_LABEL[gate.gamme]}`}
+            sublabel={`${tr("reçoit", "يستقبل")} ${GAMME_RECEIVES[gate.gamme]}`}
+            trailing={<span />}
+          />
+        </DrawerSection>
 
-          <div className="mx-3.5 h-px bg-[var(--d-line)]" />
-
-          {/* Gamme (info, non cliquable) */}
-          <div className="flex items-center gap-3 px-3.5 py-2.5">
-            <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-              <Car className="size-4" style={{ color: VIOLET }} />
-            </span>
-            <span className="min-w-0 flex-1 text-[11.5px] text-[var(--d-muted)]">
-              {tr("Gamme", "الفئة")}{" "}
-              <b className="text-[var(--d-ink)]">{GAMME_LABEL[gate.gamme]}</b> ·{" "}
-              {tr("reçoit", "يستقبل")} {GAMME_RECEIVES[gate.gamme]}
-            </span>
-          </div>
-        </div>
-
-        {/* Retour d'activation du filtre domicile (compte d'activations). */}
         {dirMsg && (
-          <p className="mt-2 px-1 text-[11px] text-[var(--d-muted)]">
+          <p className="px-6 pb-1 text-[11px] text-[var(--d-muted)]">
             {dirMsg}
           </p>
         )}
 
-        {/* Voir les demandes (raccourci quand en ligne) */}
-        {online && (
-          <PrimaryBtn
-            onClick={() => router.push("/chauffeur/demandes")}
-            className={reqCount > 0 ? "drive-attn" : ""}
-          >
-            {reqCount > 0
-              ? isAr
-                ? `عرض ${reqCount} ${reqCount > 1 ? "طلبات" : "طلب"}`
-                : `Voir les ${reqCount} demande${reqCount > 1 ? "s" : ""}`
-              : tr("Voir les demandes", "عرض الطلبات")}
-          </PrimaryBtn>
-        )}
-      </div>
+        {/* Activité & compte */}
+        <DrawerSection title={tr("Mon activité", "نشاطي")}>
+          <DrawerRow
+            icon={<BarChart3 className="size-4" />}
+            label={tr("Mes gains", "أرباحي")}
+            href="/chauffeur/gains"
+            onClick={() => setMenuOpen(false)}
+          />
+          <DrawerDivider />
+          <DrawerRow
+            icon={<Clock className="size-4" />}
+            label={tr("Historique", "السجل")}
+            href="/chauffeur/historique"
+            onClick={() => setMenuOpen(false)}
+          />
+          <DrawerDivider />
+          <DrawerRow
+            icon={<Wallet className="size-4" />}
+            label={tr("Coligo Pay", "كوليغو باي")}
+            href="/chauffeur/recharger"
+            onClick={() => setMenuOpen(false)}
+          />
+          <DrawerDivider />
+          <DrawerRow
+            icon={<FileText className="size-4" />}
+            label={tr("Mes documents", "وثائقي")}
+            href="/chauffeur/documents"
+            onClick={() => setMenuOpen(false)}
+          />
+          <DrawerDivider />
+          <DrawerRow
+            icon={<User className="size-4" />}
+            label={tr("Mon compte", "حسابي")}
+            href="/chauffeur/compte"
+            onClick={() => setMenuOpen(false)}
+          />
+        </DrawerSection>
+
+        {/* Apparence & langue */}
+        <DrawerSection title={tr("Apparence & langue", "المظهر واللغة")}>
+          <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+            <span className="text-[13px] font-semibold text-[var(--d-ink)]">
+              {tr("Thème & langue", "السمة واللغة")}
+            </span>
+            <div className="flex items-center gap-2">
+              <LanguageSwitcher compact />
+              <ChauffeurDarkPill />
+            </div>
+          </div>
+        </DrawerSection>
+      </PartnerDrawer>
 
       {/* Popup domicile : recherche d'adresse + repère sur la carte. */}
       {homeOpen && (

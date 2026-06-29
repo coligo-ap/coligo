@@ -4,12 +4,44 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { setGlobalAvailability } from "@/app/(driver)/actions";
+import {
+  BarChart3,
+  CalendarDays,
+  Clock,
+  Crosshair,
+  Loader2,
+  LogOut,
+  MapPin,
+  ShieldCheck,
+  User,
+  Wallet,
+} from "lucide-react";
+import { setGlobalAvailability, driverLogout } from "@/app/(driver)/actions";
 import { useDriverOnline, setDriverOnline } from "@/lib/driver/online-store";
+import { getActiveCourse } from "@/lib/driver/active-course-store";
+import { useWorkZone } from "@/lib/driver/work-zone";
+import { WorkZoneSheet } from "@/components/driver/home/work-zone-sheet";
 import { DriverBalancePill } from "@/components/driver/balance-pill";
 import { DriverDarkPill } from "@/components/driver/driver-dark-pill";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { playGo } from "@/lib/driver/sounds";
+import {
+  PartnerDrawer,
+  PartnerMenuButton,
+  DrawerSection,
+  DrawerRow,
+  DrawerDivider,
+  type DrawerTheme,
+} from "@/components/shared/partner-drawer";
+
+const DRIVER_THEME: DrawerTheme = {
+  surface: "var(--surface)",
+  line: "var(--line)",
+  ink: "var(--ink)",
+  muted: "var(--muted)",
+  soft: "var(--soft)",
+  accent: "var(--violet)",
+};
 
 export const FROZEN_MESSAGE =
   "Votre compte est gelé/bloqué. Merci de prendre contact avec le support pour résoudre le problème.";
@@ -36,14 +68,22 @@ function grp(n: number) {
  */
 export function DriverHomeMaquette({
   driverId,
+  driverName,
+  isVerified = false,
   earnedToday,
   coursesToday,
+  showToursEntry = false,
+  tourPending = 0,
   isFrozen = false,
   freezeReason = null,
 }: {
   driverId: string;
+  driverName?: string | null;
+  isVerified?: boolean;
   earnedToday: number;
   coursesToday: number;
+  showToursEntry?: boolean;
+  tourPending?: number;
   isFrozen?: boolean;
   freezeReason?: string | null;
 }) {
@@ -55,6 +95,35 @@ export function DriverHomeMaquette({
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   // Affiche le message « compte gelé » si le serveur refuse la mise en ligne.
   const [frozenMsg, setFrozenMsg] = useState(false);
+  // Tiroir latéral gauche (toutes les options) + sélecteur de zone de travail.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [zoneOpen, setZoneOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutErr, setLogoutErr] = useState<string | null>(null);
+  const zone = useWorkZone();
+
+  // Déconnexion (depuis le tiroir) : une course en cours BLOQUE (message inline,
+  // pas de toast — règle produit). Le serveur revérifie (source de vérité).
+  const doLogout = async () => {
+    if (loggingOut) return;
+    if (getActiveCourse()) {
+      setLogoutErr(
+        tr(
+          "Terminez votre course en cours avant de vous déconnecter.",
+          "أكمل رحلتك الحالية قبل تسجيل الخروج."
+        )
+      );
+      return;
+    }
+    setLoggingOut(true);
+    setLogoutErr(null);
+    setDriverOnline(false);
+    const res = await driverLogout(); // redirige si OK
+    if (res?.error) {
+      setLoggingOut(false);
+      setLogoutErr(res.error);
+    }
+  };
 
   const toggle = () => {
     const next = !online;
@@ -218,22 +287,26 @@ export function DriverHomeMaquette({
         </button>
       )}
 
-      {/* Barre du haut alignée : statut « ● En ligne » (gauche, en ligne
-          seulement) ⟷ solde portefeuille (droite, → page de recharge). */}
+      {/* Barre du haut : menu (gauche) + statut « ● En ligne » ⟷ solde (droite).
+          Toutes les options sont regroupées dans le tiroir → l'accueil reste
+          dégagé (style Uber). */}
       <div className="home-topbar">
-        {online && !isFrozen ? (
-          <div className="home-chip">
-            <span className="d" />
-            {tr("En ligne", "متصل")}
-          </div>
-        ) : (
-          <span aria-hidden />
-        )}
         <div className="flex items-center gap-2">
-          <LanguageSwitcher compact />
-          <DriverDarkPill />
-          <DriverBalancePill driverId={driverId} />
+          <PartnerMenuButton
+            onClick={() => setMenuOpen(true)}
+            theme={DRIVER_THEME}
+            label={tr("Menu", "القائمة")}
+            badge={tourPending}
+            className="!size-[42px] !rounded-full"
+          />
+          {online && !isFrozen && (
+            <div className="home-chip">
+              <span className="d" />
+              {tr("En ligne", "متصل")}
+            </div>
+          )}
         </div>
+        <DriverBalancePill driverId={driverId} />
       </div>
 
       {/* Feuille d'accueil (tête d'information), posée au-dessus de la tabbar.
@@ -317,6 +390,191 @@ export function DriverHomeMaquette({
           )}
         </div>
       </div>
+
+      {/* ── Tiroir latéral gauche : toutes les options (unifié avec le chauffeur) ── */}
+      <PartnerDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        theme={DRIVER_THEME}
+        header={
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <span
+                className="mq-sora grid size-12 shrink-0 place-items-center rounded-[16px] text-[18px] font-extrabold text-white"
+                style={{ background: "var(--violet)" }}
+              >
+                {(driverName || "L").charAt(0).toUpperCase()}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <b className="mq-sora truncate text-[15px] font-extrabold text-[var(--ink)]">
+                    {driverName || tr("Livreur", "موصّل")}
+                  </b>
+                  {isVerified && (
+                    <ShieldCheck
+                      className="size-4 shrink-0"
+                      style={{ color: "var(--go)" }}
+                    />
+                  )}
+                </div>
+                <span className="block truncate text-[12px] text-[var(--muted)]">
+                  {tr("Livreur Coligo", "موصّل كوليغو")}
+                </span>
+              </div>
+            </div>
+            {/* Finance : gains du jour + solde portefeuille */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  router.push("/driver/gains");
+                }}
+                className="flex flex-col gap-0.5 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] p-3 text-left"
+              >
+                <span className="text-[11px] font-medium text-[var(--muted)]">
+                  {tr("Aujourd'hui", "اليوم")}
+                </span>
+                <span className="mq-sora text-[17px] leading-none font-extrabold">
+                  {grp(earnedToday)} {tr("DA", "دج")}
+                </span>
+                <span className="mt-0.5 text-[10px] text-[var(--muted)]">
+                  {coursesToday}{" "}
+                  {isAr ? "توصيلة" : "course" + (coursesToday > 1 ? "s" : "")}
+                </span>
+              </button>
+              <div className="flex flex-col gap-1 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] p-3">
+                <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--muted)]">
+                  <Wallet className="size-3.5" />
+                  {tr("Portefeuille", "المحفظة")}
+                </span>
+                <DriverBalancePill driverId={driverId} />
+              </div>
+            </div>
+          </div>
+        }
+        footer={
+          <div className="space-y-2">
+            {logoutErr && (
+              <p
+                className="rounded-[12px] px-3 py-2 text-center text-[12px] font-bold"
+                style={{ background: "var(--red-soft)", color: "var(--red)" }}
+              >
+                {logoutErr}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => void doLogout()}
+              disabled={loggingOut}
+              className="flex w-full items-center justify-center gap-2 rounded-[14px] border py-3 text-[13.5px] font-bold"
+              style={{ borderColor: "var(--red-soft)", color: "var(--red)" }}
+            >
+              {loggingOut ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <LogOut className="size-4" />
+              )}
+              {tr("Se déconnecter", "تسجيل الخروج")}
+            </button>
+          </div>
+        }
+      >
+        {/* Travail : zone + tournées */}
+        <DrawerSection title={tr("Mon travail", "عملي")}>
+          <DrawerRow
+            icon={
+              zone ? (
+                <MapPin className="size-4" />
+              ) : (
+                <Crosshair className="size-4" />
+              )
+            }
+            label={tr("Ma zone de travail", "منطقة عملي")}
+            sublabel={
+              zone
+                ? `${tr("Zone", "منطقة")} · ${zone.radiusKm} km`
+                : tr("Autour de moi (GPS)", "حولي (GPS)")
+            }
+            onClick={() => {
+              setMenuOpen(false);
+              setZoneOpen(true);
+            }}
+          />
+          {showToursEntry && (
+            <>
+              <DrawerDivider />
+              <DrawerRow
+                icon={<CalendarDays className="size-4" />}
+                label={tr("Mes tournées", "جولاتي")}
+                sublabel={
+                  tourPending > 0
+                    ? tr(
+                        `${tourPending} en attente`,
+                        `${tourPending} قيد الانتظار`
+                      )
+                    : tr("Planning & livraisons", "الجدول والتوصيلات")
+                }
+                href="/driver/tournees"
+                onClick={() => setMenuOpen(false)}
+                trailing={
+                  tourPending > 0 ? (
+                    <span className="grid size-6 place-items-center rounded-full bg-[var(--violet)] text-[11px] font-extrabold text-white">
+                      {tourPending}
+                    </span>
+                  ) : undefined
+                }
+              />
+            </>
+          )}
+        </DrawerSection>
+
+        {/* Activité & compte */}
+        <DrawerSection title={tr("Mon activité", "نشاطي")}>
+          <DrawerRow
+            icon={<BarChart3 className="size-4" />}
+            label={tr("Mes gains", "أرباحي")}
+            href="/driver/gains"
+            onClick={() => setMenuOpen(false)}
+          />
+          <DrawerDivider />
+          <DrawerRow
+            icon={<Clock className="size-4" />}
+            label={tr("Historique", "السجل")}
+            href="/driver/historique"
+            onClick={() => setMenuOpen(false)}
+          />
+          <DrawerDivider />
+          <DrawerRow
+            icon={<Wallet className="size-4" />}
+            label={tr("Coligo Pay", "كوليغو باي")}
+            href="/driver/recharger"
+            onClick={() => setMenuOpen(false)}
+          />
+          <DrawerDivider />
+          <DrawerRow
+            icon={<User className="size-4" />}
+            label={tr("Mon compte", "حسابي")}
+            href="/driver/parametres"
+            onClick={() => setMenuOpen(false)}
+          />
+        </DrawerSection>
+
+        {/* Apparence & langue */}
+        <DrawerSection title={tr("Apparence & langue", "المظهر واللغة")}>
+          <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+            <span className="text-[13px] font-semibold text-[var(--ink)]">
+              {tr("Thème & langue", "السمة واللغة")}
+            </span>
+            <div className="flex items-center gap-2">
+              <LanguageSwitcher compact />
+              <DriverDarkPill />
+            </div>
+          </div>
+        </DrawerSection>
+      </PartnerDrawer>
+
+      <WorkZoneSheet open={zoneOpen} onClose={() => setZoneOpen(false)} />
     </>
   );
 }
