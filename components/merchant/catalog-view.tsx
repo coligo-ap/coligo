@@ -9,6 +9,8 @@ import {
   DndContext,
   closestCenter,
   closestCorners,
+  pointerWithin,
+  rectIntersection,
   useDroppable,
   PointerSensor,
   TouchSensor,
@@ -141,7 +143,13 @@ export function CatalogView({
   const [selectMode, setSelectMode] = useState(false);
   const [selProducts, setSelProducts] = useState<Set<string>>(new Set());
   const [selCats, setSelCats] = useState<Set<string>>(new Set());
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // Catégories DÉPLIÉES par défaut : sinon les produits ne sont pas rendus et la
+  // poignée de glisser-déposer reste invisible (« je ne vois pas le drag »). On
+  // déplie toutes les catégories + le bac « sans catégorie » au premier affichage
+  // (l'état est ensuite mémorisé par session via sessionStorage).
+  const [expanded, setExpanded] = useState<Set<string>>(
+    () => new Set([...categories.map((c) => c.id), NONE])
+  );
   const [, startTransition] = useTransition();
 
   // Persistance de l'état d'AFFICHAGE du catalogue (recherche, filtre catégorie,
@@ -382,10 +390,15 @@ export function CatalogView({
     return out;
   }
 
-  // Collision dépendante du type tiré : une catégorie ne se compare qu'aux
-  // catégories ; un produit aux produits + conteneurs (jamais aux catégories).
+  // Collision dépendante du type tiré.
+  //  • Catégorie : ne se compare qu'aux catégories (tri vertical, closestCenter).
+  //  • Produit   : PRIORITÉ aux produits réellement sous le pointeur (sinon le
+  //    grand conteneur droppable de catégorie « gagnerait » et casserait le tri
+  //    intra-catégorie). On ne retombe sur le conteneur que si le pointeur n'est
+  //    au-dessus d'aucun produit (zone vide / catégorie repliée).
   const collision: CollisionDetection = (args) => {
     const activeId = String(args.active.id);
+
     if (activeId.startsWith(CAT_PREFIX)) {
       return closestCenter({
         ...args,
@@ -394,12 +407,23 @@ export function CatalogView({
         ),
       });
     }
-    return closestCorners({
+
+    // Produit : on exclut les sortables de catégorie.
+    const productArgs = {
       ...args,
       droppableContainers: args.droppableContainers.filter(
         (c) => !String(c.id).startsWith(CAT_PREFIX)
       ),
-    });
+    };
+    const pointer = pointerWithin(productArgs);
+    const pointerItems = pointer.filter((c) => !isContainerId(String(c.id)));
+    if (pointerItems.length > 0) return pointerItems; // produit sous le pointeur
+    if (pointer.length > 0) return pointer; // sinon conteneur sous le pointeur
+    const inter = rectIntersection(productArgs);
+    const interItems = inter.filter((c) => !isContainerId(String(c.id)));
+    if (interItems.length > 0) return interItems;
+    if (inter.length > 0) return inter;
+    return closestCorners(productArgs);
   };
 
   function onDragStart(e: DragStartEvent) {
@@ -459,7 +483,12 @@ export function CatalogView({
       setCats(next);
       startTransition(async () => {
         const res = await reorderCategories(next.map((c) => c.id));
-        if (res?.error) toast.error(res.error);
+        if (res?.error) {
+          toast.error(res.error);
+          return;
+        }
+        // Réconcilie avec le serveur : ce qui s'affiche = ce qui est enregistré.
+        refresh();
       });
       return;
     }
@@ -503,7 +532,12 @@ export function CatalogView({
         }
       }
       const r2 = await reorderProducts(destIds);
-      if (r2?.error) toast.error(r2.error);
+      if (r2?.error) {
+        toast.error(r2.error);
+        return;
+      }
+      // Réconcilie avec le serveur : ce qui s'affiche = ce qui est enregistré.
+      refresh();
     });
   }
 
