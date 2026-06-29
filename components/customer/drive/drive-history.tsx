@@ -1,26 +1,130 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Car, ChevronLeft, Heart } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { VIOLET, ROSE } from "./drive-modals";
 import { ChAvatar } from "./ch-avatar";
 import {
+  getDriveHistory,
   toggleFavoriteChauffeur,
   type DriveHistory,
 } from "@/app/(customer)/drive/actions";
 
+/**
+ * Chargeur de l'historique Drive via TanStack Query (cache persistant, clé par
+ * client). Au RETOUR sur la page : affichage INSTANTANÉ depuis le cache + revalidation
+ * silencieuse en fond — plus de squelette plein écran ni de re-téléchargement à
+ * chaque visite (la page serveur n'`await` plus les données : elle ne fait que
+ * l'auth). Le squelette n'apparaît qu'au tout premier chargement (cache vide).
+ *
+ * Sécurité : cache en mémoire de l'onglet, clé incluant l'`customerId`, et action
+ * serveur ré-authentifiée (getCurrentCustomer + RLS) → aucune fuite entre comptes.
+ */
+export function DriveHistoryLoader({ customerId }: { customerId: string }) {
+  const queryClient = useQueryClient();
+  const { data, isPending } = useQuery({
+    queryKey: ["drive-history", customerId],
+    queryFn: () => getDriveHistory(),
+    // Réaffichage immédiat de l'ancien contenu pendant la revalidation.
+    placeholderData: keepPreviousData,
+    // Fraîcheur raisonnable : pas de refetch au montage tant que < 60 s.
+    staleTime: 60_000,
+  });
+
+  // Retrait d'un favori : mise à jour OPTIMISTE du cache (la carte disparaît tout
+  // de suite) puis persistance serveur + invalidation (revalidation en fond).
+  const onRemoveFav = useCallback(
+    (chauffeurId: string) => {
+      queryClient.setQueryData<DriveHistory>(
+        ["drive-history", customerId],
+        (old) =>
+          old
+            ? {
+                ...old,
+                favorites: old.favorites.filter(
+                  (x) => x.chauffeur_id !== chauffeurId
+                ),
+              }
+            : old
+      );
+      void toggleFavoriteChauffeur(chauffeurId, false).then(() =>
+        queryClient.invalidateQueries({
+          queryKey: ["drive-history", customerId],
+        })
+      );
+    },
+    [queryClient, customerId]
+  );
+
+  // Squelette UNIQUEMENT au 1er chargement (cache vide) ; sinon on garde l'ancien
+  // contenu affiché pendant la revalidation (pas de flash).
+  if (isPending && !data) return <DriveHistorySkeleton />;
+
+  return (
+    <DriveHistoryView
+      history={data ?? EMPTY_HISTORY}
+      onRemoveFav={onRemoveFav}
+    />
+  );
+}
+
+const EMPTY_HISTORY: DriveHistory = { rides: [], favorites: [] };
+
+/** Squelette de l'historique Drive (1er chargement + frontière `loading.tsx`). */
+export function DriveHistorySkeleton() {
+  return (
+    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
+      <div className="mb-3 flex items-center gap-3">
+        <div className="size-9 animate-pulse rounded-full bg-[var(--d-soft)]" />
+        <div className="h-6 w-40 animate-pulse rounded-lg bg-[var(--d-soft)]" />
+      </div>
+      <div className="mb-4 flex gap-2">
+        <div className="h-9 w-28 animate-pulse rounded-full bg-[var(--d-soft)]" />
+        <div className="h-9 w-24 animate-pulse rounded-full bg-[var(--d-soft)]" />
+      </div>
+      <div className="space-y-2.5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-3 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-page)] p-3.5"
+          >
+            <div className="size-11 shrink-0 animate-pulse rounded-full bg-[var(--d-soft)]" />
+            <div className="min-w-0 flex-1">
+              <div className="h-4 w-2/3 animate-pulse rounded bg-[var(--d-soft)]" />
+              <div className="mt-2 h-3 w-1/3 animate-pulse rounded bg-[var(--d-soft)]" />
+            </div>
+            <div className="h-5 w-16 animate-pulse rounded bg-[var(--d-soft)]" />
+          </div>
+        ))}
+      </div>
+      <CustomerBottomNav />
+    </div>
+  );
+}
+
 /** Historique Drive : onglets Courses (terminées/annulées) + ♥ Favoris. */
-export function DriveHistoryView({ history }: { history: DriveHistory }) {
+export function DriveHistoryView({
+  history,
+  onRemoveFav,
+}: {
+  history: DriveHistory;
+  onRemoveFav: (chauffeurId: string) => void;
+}) {
   const t = useTranslations("drive.histo");
   const tc = useTranslations("drive");
   const locale = useLocale();
   const router = useRouter();
   const [tab, setTab] = useState<"c" | "f">("c");
-  const [favs, setFavs] = useState(history.favorites);
+  const favs = history.favorites;
 
   return (
     <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
@@ -139,12 +243,7 @@ export function DriveHistoryView({ history }: { history: DriveHistory }) {
             <button
               type="button"
               aria-label={t("removeFav")}
-              onClick={async () => {
-                setFavs((l) =>
-                  l.filter((x) => x.chauffeur_id !== f.chauffeur_id)
-                );
-                await toggleFavoriteChauffeur(f.chauffeur_id, false);
-              }}
+              onClick={() => onRemoveFav(f.chauffeur_id)}
               className="grid size-[34px] shrink-0 place-items-center rounded-full border-[1.5px]"
               style={{ borderColor: ROSE }}
             >
