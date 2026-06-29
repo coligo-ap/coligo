@@ -8,10 +8,15 @@ import { useConfirm, usePrompt } from "@/components/ui/confirm";
 import {
   DndContext,
   closestCenter,
+  closestCorners,
+  useDroppable,
   PointerSensor,
   TouchSensor,
   useSensor,
   useSensors,
+  type CollisionDetection,
+  type DragStartEvent,
+  type DragOverEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
@@ -310,36 +315,195 @@ export function CatalogView({
     setExpanded(allExpanded ? new Set() : new Set(groups.map((g) => g.key)));
   }
 
-  // DnD : produits réordonnables en vue groupée, tri manuel, hors sélection.
-  const productsDraggable = grouped && sort === "manual" && !selectMode;
-  // DnD : catégories réordonnables en vue groupée, hors sélection.
-  const categoriesDraggable = grouped && !selectMode;
+  const noQuery = query.trim() === "";
+  // DnD : produits réordonnables ET déplaçables ENTRE catégories en vue groupée,
+  // tri manuel, hors sélection et hors recherche (positions ambiguës en filtré).
+  const productsDraggable =
+    grouped && sort === "manual" && !selectMode && noQuery;
+  // DnD : catégories réordonnables en vue groupée, hors sélection/recherche.
+  const categoriesDraggable = grouped && !selectMode && noQuery;
 
-  function onReorderProducts(ids: string[]) {
-    setProds((prev) => {
-      const set = new Set(ids);
-      const map = new Map(prev.map((p) => [p.id, p]));
-      const reordered = ids.map((id) => map.get(id)!);
-      const others = prev.filter((p) => !set.has(p.id));
-      return [...reordered, ...others];
+  // ─── Drag-and-drop unifié (vue groupée) ───────────────────────────────────
+  // Un SEUL DndContext gère à la fois le réordonnancement des CATÉGORIES et le
+  // déplacement des PRODUITS d'une catégorie à l'autre (pattern multi-conteneurs
+  // dnd-kit). Identifiants :
+  //   • catégorie (sortable)  → "cat:<id>"
+  //   • produit (sortable)    → l'uuid brut
+  //   • conteneur (droppable) → l'id de catégorie brut, ou NONE
+  const CAT_PREFIX = "cat:";
+  const containerKeys = useMemo(() => [...cats.map((c) => c.id), NONE], [cats]);
+  const isContainerId = (id: string) =>
+    id === NONE || cats.some((c) => c.id === id);
+  const containerOf = (
+    list: ProductWithCategory[],
+    id: string
+  ): string | null => {
+    const p = list.find((x) => x.id === id);
+    return p ? (p.category_id ?? NONE) : null;
+  };
+
+  // Origine d'un drag produit (id + conteneur de départ) → savoir si la
+  // catégorie a changé au lâcher (⇒ persister category_id en plus des positions).
+  const dragOrigin = useRef<{ id: string; from: string } | null>(null);
+
+  function buildContainers(list: ProductWithCategory[]): Map<string, string[]> {
+    const conts = new Map<string, string[]>();
+    for (const k of containerKeys) conts.set(k, []);
+    for (const p of list) {
+      const k = p.category_id ?? NONE;
+      if (!conts.has(k)) conts.set(k, []);
+      conts.get(k)!.push(p.id);
+    }
+    return conts;
+  }
+
+  function flattenContainers(
+    conts: Map<string, string[]>,
+    byId: Map<string, ProductWithCategory>
+  ): ProductWithCategory[] {
+    const out: ProductWithCategory[] = [];
+    for (const [k, ids] of conts) {
+      const cat = k === NONE ? null : k;
+      const title = cat ? (cats.find((c) => c.id === cat)?.title ?? "") : "";
+      for (const id of ids) {
+        const p = byId.get(id);
+        if (!p) continue;
+        out.push(
+          (p.category_id ?? null) === cat
+            ? p
+            : {
+                ...p,
+                category_id: cat,
+                categories: cat ? { id: cat, title } : null,
+              }
+        );
+      }
+    }
+    return out;
+  }
+
+  // Collision dépendante du type tiré : une catégorie ne se compare qu'aux
+  // catégories ; un produit aux produits + conteneurs (jamais aux catégories).
+  const collision: CollisionDetection = (args) => {
+    const activeId = String(args.active.id);
+    if (activeId.startsWith(CAT_PREFIX)) {
+      return closestCenter({
+        ...args,
+        droppableContainers: args.droppableContainers.filter((c) =>
+          String(c.id).startsWith(CAT_PREFIX)
+        ),
+      });
+    }
+    return closestCorners({
+      ...args,
+      droppableContainers: args.droppableContainers.filter(
+        (c) => !String(c.id).startsWith(CAT_PREFIX)
+      ),
     });
-    startTransition(async () => {
-      const res = await reorderProducts(ids);
-      if (res?.error) toast.error(res.error);
+  };
+
+  function onDragStart(e: DragStartEvent) {
+    const id = String(e.active.id);
+    if (id.startsWith(CAT_PREFIX)) {
+      dragOrigin.current = null;
+      return;
+    }
+    dragOrigin.current = { id, from: containerOf(prods, id) ?? NONE };
+  }
+
+  // Survol : si le produit passe au-dessus d'un AUTRE conteneur, on le déplace
+  // optimistiquement (la carte change de section en direct).
+  function onDragOver(e: DragOverEvent) {
+    const { active, over } = e;
+    if (!over) return;
+    const activeId = String(active.id);
+    if (activeId.startsWith(CAT_PREFIX)) return; // drag de catégorie : rien ici
+    const overId = String(over.id);
+    setProds((prev) => {
+      const from = containerOf(prev, activeId);
+      const to = isContainerId(overId) ? overId : containerOf(prev, overId);
+      if (from == null || to == null || from === to) return prev;
+      const byId = new Map(prev.map((p) => [p.id, p]));
+      const conts = buildContainers(prev);
+      for (const ids of conts.values()) {
+        const i = ids.indexOf(activeId);
+        if (i >= 0) ids.splice(i, 1);
+      }
+      const dest = conts.get(to)!;
+      let at = dest.length;
+      if (!isContainerId(overId)) {
+        const oi = dest.indexOf(overId);
+        at = oi >= 0 ? oi : dest.length;
+      }
+      dest.splice(at, 0, activeId);
+      return flattenContainers(conts, byId);
     });
   }
 
-  function onCategoryDragEnd(e: DragEndEvent) {
+  function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const oldI = cats.findIndex((c) => c.id === active.id);
-    const newI = cats.findIndex((c) => c.id === over.id);
-    if (oldI === -1 || newI === -1) return;
-    const next = arrayMove(cats, oldI, newI);
-    setCats(next);
+    const activeId = String(active.id);
+
+    // ── Réordonnancement de CATÉGORIES ──
+    if (activeId.startsWith(CAT_PREFIX)) {
+      if (!over) return;
+      const a = activeId.slice(CAT_PREFIX.length);
+      const o = String(over.id).startsWith(CAT_PREFIX)
+        ? String(over.id).slice(CAT_PREFIX.length)
+        : null;
+      if (!o || a === o) return;
+      const oldI = cats.findIndex((c) => c.id === a);
+      const newI = cats.findIndex((c) => c.id === o);
+      if (oldI === -1 || newI === -1) return;
+      const next = arrayMove(cats, oldI, newI);
+      setCats(next);
+      startTransition(async () => {
+        const res = await reorderCategories(next.map((c) => c.id));
+        if (res?.error) toast.error(res.error);
+      });
+      return;
+    }
+
+    // ── Déplacement / réordonnancement d'un PRODUIT ──
+    const origin = dragOrigin.current;
+    dragOrigin.current = null;
+
+    // Conteneur LIVE de l'actif (déjà déplacé par onDragOver le cas échéant).
+    const to = containerOf(prods, activeId);
+    if (to == null) return;
+    const byId = new Map(prods.map((p) => [p.id, p]));
+    const conts = buildContainers(prods);
+    const dest = conts.get(to)!;
+    if (over) {
+      const overId = String(over.id);
+      const oldI = dest.indexOf(activeId);
+      const newI = isContainerId(overId)
+        ? dest.length - 1
+        : dest.indexOf(overId);
+      if (oldI >= 0 && newI >= 0 && oldI !== newI) {
+        conts.set(to, arrayMove(dest, oldI, newI));
+      }
+    }
+    const next = flattenContainers(conts, byId);
+    setProds(next);
+
+    // Persistance : réassigne la catégorie si elle a changé, puis renumérote les
+    // positions du conteneur de destination.
+    const destIds = (conts.get(to) ?? []).slice();
+    const categoryChanged = !!origin && origin.from !== to;
     startTransition(async () => {
-      const res = await reorderCategories(next.map((c) => c.id));
-      if (res?.error) toast.error(res.error);
+      if (categoryChanged) {
+        const r1 = await bulkAssignCategory(
+          [activeId],
+          to === NONE ? null : to
+        );
+        if (r1?.error) {
+          toast.error(r1.error);
+          return;
+        }
+      }
+      const r2 = await reorderProducts(destIds);
+      if (r2?.error) toast.error(r2.error);
     });
   }
 
@@ -474,7 +638,7 @@ export function CatalogView({
   const availableCount = prods.filter((p) => p.is_available).length;
   const sortableCatKeys = (groups ?? [])
     .filter((g) => g.key !== NONE)
-    .map((g) => g.key);
+    .map((g) => `${CAT_PREFIX}${g.key}`);
 
   return (
     <div className="mx-auto max-w-[1600px] p-4 lg:p-6 lg:px-8">
@@ -612,117 +776,136 @@ export function CatalogView({
           Aucun produit ne correspond à votre recherche.
         </p>
       ) : groups ? (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onCategoryDragEnd}
-        >
-          <SortableContext
-            items={sortableCatKeys}
-            strategy={verticalListSortingStrategy}
+        <>
+          {productsDraggable && (
+            <p className="text-subtle mb-3 flex items-center gap-1.5 px-1 text-xs">
+              <GripVertical className="size-3.5 shrink-0" />
+              Glissez un produit pour le réordonner ou le déposer dans une autre
+              catégorie. L&apos;ordre est répercuté côté client.
+            </p>
+          )}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={collision}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDragEnd={onDragEnd}
           >
-            <div className="space-y-3">
-              {groups.map((g) => {
-                const ids = g.items.map((p) => p.id);
-                const allSel =
-                  ids.length > 0 && ids.every((id) => selProducts.has(id));
-                return (
-                  <SortableCategory
-                    key={g.key}
-                    id={g.key}
-                    sortable={categoriesDraggable && g.key !== NONE}
-                  >
-                    {(handle) => (
-                      <CategorySection
-                        title={g.title}
-                        image={g.image}
-                        count={g.items.length}
-                        open={expanded.has(g.key)}
-                        onToggle={() => toggleExpanded(g.key)}
-                        onRename={
-                          g.key !== NONE
-                            ? () => promptRename(g.key, g.title)
-                            : null
-                        }
-                        addHref={
-                          g.key !== NONE
-                            ? `/catalog/new?category=${g.key}`
-                            : "/catalog/new"
-                        }
-                        selectMode={selectMode}
-                        selectable={g.key !== NONE}
-                        selected={selCats.has(g.key)}
-                        onToggleSelect={() => toggleSelCat(g.key)}
-                        onDelete={
-                          g.key !== NONE
-                            ? async () => {
-                                if (
-                                  await confirm({
-                                    title: "Supprimer cette catégorie ?",
-                                    message:
-                                      "Les produits liés deviendront « sans catégorie ».",
-                                    confirmLabel: "Supprimer",
-                                    danger: true,
-                                  })
-                                )
-                                  bulk(
-                                    () => deleteCategories([g.key]),
-                                    "Catégorie supprimée",
-                                    () => removeCategoriesLocal([g.key])
-                                  );
-                              }
-                            : null
-                        }
-                        dragHandle={handle}
+            <SortableContext
+              items={sortableCatKeys}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-3">
+                {groups.map((g) => {
+                  const ids = g.items.map((p) => p.id);
+                  const allSel =
+                    ids.length > 0 && ids.every((id) => selProducts.has(id));
+                  return (
+                    <DroppableCategory
+                      key={g.key}
+                      id={g.key}
+                      active={productsDraggable}
+                    >
+                      <SortableCategory
+                        id={`${CAT_PREFIX}${g.key}`}
+                        sortable={categoriesDraggable && g.key !== NONE}
                       >
-                        {selectMode && ids.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => selectAllInCategory(ids)}
-                            className="text-primary-700 hover:bg-primary-50 mb-3 inline-flex items-center gap-1.5 rounded-[8px] px-2 py-1 text-xs font-medium"
-                          >
-                            {allSel ? (
-                              <CheckSquare className="size-4" />
-                            ) : (
-                              <Square className="size-4" />
-                            )}
-                            {allSel
-                              ? "Tout désélectionner"
-                              : "Tout sélectionner"}
-                          </button>
-                        )}
-                        {g.items.length === 0 ? (
-                          <p className="text-muted py-4 text-center text-sm">
-                            Aucun produit dans cette catégorie.
-                          </p>
-                        ) : (
-                          <ProductItems
-                            products={g.items}
-                            draggable={productsDraggable}
-                            onReorder={onReorderProducts}
-                            lowStockThreshold={lowStockThreshold}
+                        {(handle) => (
+                          <CategorySection
+                            title={g.title}
+                            image={g.image}
+                            count={g.items.length}
+                            open={expanded.has(g.key)}
+                            onToggle={() => toggleExpanded(g.key)}
+                            onRename={
+                              g.key !== NONE
+                                ? () => promptRename(g.key, g.title)
+                                : null
+                            }
+                            addHref={
+                              g.key !== NONE
+                                ? `/catalog/new?category=${g.key}`
+                                : "/catalog/new"
+                            }
                             selectMode={selectMode}
-                            selected={selProducts}
-                            onToggleSelect={toggleSelProduct}
-                            onDeleted={(id) => {
-                              removeProductsLocal([id]);
-                              refresh();
-                            }}
-                          />
+                            selectable={g.key !== NONE}
+                            selected={selCats.has(g.key)}
+                            onToggleSelect={() => toggleSelCat(g.key)}
+                            onDelete={
+                              g.key !== NONE
+                                ? async () => {
+                                    if (
+                                      await confirm({
+                                        title: "Supprimer cette catégorie ?",
+                                        message:
+                                          "Les produits liés deviendront « sans catégorie ».",
+                                        confirmLabel: "Supprimer",
+                                        danger: true,
+                                      })
+                                    )
+                                      bulk(
+                                        () => deleteCategories([g.key]),
+                                        "Catégorie supprimée",
+                                        () => removeCategoriesLocal([g.key])
+                                      );
+                                  }
+                                : null
+                            }
+                            dragHandle={handle}
+                          >
+                            {selectMode && ids.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => selectAllInCategory(ids)}
+                                className="text-primary-700 hover:bg-primary-50 mb-3 inline-flex items-center gap-1.5 rounded-[8px] px-2 py-1 text-xs font-medium"
+                              >
+                                {allSel ? (
+                                  <CheckSquare className="size-4" />
+                                ) : (
+                                  <Square className="size-4" />
+                                )}
+                                {allSel
+                                  ? "Tout désélectionner"
+                                  : "Tout sélectionner"}
+                              </button>
+                            )}
+                            {g.items.length === 0 ? (
+                              <p className="text-muted py-4 text-center text-sm">
+                                Aucun produit dans cette catégorie.
+                              </p>
+                            ) : (
+                              <SortableContext
+                                items={ids}
+                                strategy={rectSortingStrategy}
+                              >
+                                <ProductItems
+                                  products={g.items}
+                                  draggable={productsDraggable}
+                                  lowStockThreshold={lowStockThreshold}
+                                  selectMode={selectMode}
+                                  selected={selProducts}
+                                  onToggleSelect={toggleSelProduct}
+                                  onDeleted={(id) => {
+                                    removeProductsLocal([id]);
+                                    refresh();
+                                  }}
+                                />
+                              </SortableContext>
+                            )}
+                          </CategorySection>
                         )}
-                      </CategorySection>
-                    )}
-                  </SortableCategory>
-                );
-              })}
-            </div>
-          </SortableContext>
-        </DndContext>
+                      </SortableCategory>
+                    </DroppableCategory>
+                  );
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </>
       ) : (
         <ProductItems
           products={filtered}
           draggable={false}
-          onReorder={onReorderProducts}
           lowStockThreshold={lowStockThreshold}
           selectMode={selectMode}
           selected={selProducts}
@@ -1078,10 +1261,14 @@ function CategorySection({
 const GRID_CLASS =
   "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4 xl:grid-cols-5";
 
+/**
+ * Grille de produits. Le DndContext + SortableContext sont fournis par le
+ * parent (vue groupée) pour permettre le déplacement ENTRE catégories : ici on
+ * ne fait que rendre la grille, sortable ou non.
+ */
 function ProductItems({
   products,
   draggable,
-  onReorder,
   lowStockThreshold,
   selectMode,
   selected,
@@ -1090,20 +1277,12 @@ function ProductItems({
 }: {
   products: ProductWithCategory[];
   draggable: boolean;
-  onReorder: (ids: string[]) => void;
   lowStockThreshold: number;
   selectMode: boolean;
   selected: Set<string>;
   onToggleSelect: (id: string) => void;
   onDeleted: (id: string) => void;
 }) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 200, tolerance: 8 },
-    })
-  );
-
   const cardProps = (p: ProductWithCategory) => ({
     product: p,
     lowStockThreshold,
@@ -1113,44 +1292,46 @@ function ProductItems({
     onDeleted,
   });
 
-  if (!draggable) {
-    return (
-      <div className={GRID_CLASS}>
-        {products.map((p) => (
-          <ProductCard key={p.id} {...cardProps(p)} dragHandle={null} />
-        ))}
-      </div>
-    );
-  }
-
-  const ids = products.map((p) => p.id);
-  function onDragEnd(e: DragEndEvent) {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const oldI = ids.indexOf(active.id as string);
-    const newI = ids.indexOf(over.id as string);
-    if (oldI === -1 || newI === -1) return;
-    onReorder(arrayMove(ids, oldI, newI));
-  }
-
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={onDragEnd}
+    <div className={GRID_CLASS}>
+      {products.map((p) =>
+        draggable ? (
+          <SortableProduct key={p.id} id={p.id}>
+            {(handle) => <ProductCard {...cardProps(p)} dragHandle={handle} />}
+          </SortableProduct>
+        ) : (
+          <ProductCard key={p.id} {...cardProps(p)} dragHandle={null} />
+        )
+      )}
+    </div>
+  );
+}
+
+/**
+ * Conteneur droppable d'une catégorie (toute la section, en-tête compris) :
+ * cible de dépôt pour un produit glissé depuis une autre catégorie, même quand
+ * la catégorie est repliée ou vide. Désactivé hors mode glisser-produits.
+ */
+function DroppableCategory({
+  id,
+  active,
+  children,
+}: {
+  id: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id, disabled: !active });
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "rounded-[16px] transition-shadow",
+        active && isOver && "ring-primary-400/70 ring-2"
+      )}
     >
-      <SortableContext items={ids} strategy={rectSortingStrategy}>
-        <div className={GRID_CLASS}>
-          {products.map((p) => (
-            <SortableProduct key={p.id} id={p.id}>
-              {(handle) => (
-                <ProductCard {...cardProps(p)} dragHandle={handle} />
-              )}
-            </SortableProduct>
-          ))}
-        </div>
-      </SortableContext>
-    </DndContext>
+      {children}
+    </div>
   );
 }
 

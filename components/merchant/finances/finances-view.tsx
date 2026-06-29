@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Banknote,
+  Calculator,
   CalendarClock,
   CheckCircle2,
   ChevronDown,
@@ -84,7 +85,17 @@ export function FinancesView({
   adjustments: AdjustmentEntry[];
   cashDebt: CashDebtStatus;
 }) {
-  const [showDetails, setShowDetails] = useState(page > 1);
+  // Présence d'un détail de calcul (mêmes conditions que SimpleBreakdown) :
+  // sert à n'afficher la sous-section « Le détail du calcul » que si elle a du
+  // contenu (sinon un accordéon se déplierait sur du vide).
+  const hasBreakdown =
+    summary.totalSales + summary.deliveryRevenue + summary.walletRedemption >
+      0 ||
+    -summary.totalCommission > 0 ||
+    summary.totalServiceFeesOwed > 0 ||
+    summary.tourDeliveryCommission > 0 ||
+    summary.totalPaidOut !== 0 ||
+    summary.adjustments !== 0;
 
   return (
     <div className="mx-auto max-w-[680px] p-4 lg:p-6">
@@ -99,65 +110,156 @@ export function FinancesView({
         </p>
       </header>
 
-      {/* Rythme vertical uniforme et resserré (façon Uber). Les composants
-          renvoyant null ne créent aucun trou grâce à space-y. */}
+      {/* ════════════════ L'ESSENTIEL (toujours visible) ════════════════
+          Solde, verdict, alertes et action de versement : ce que le commerçant
+          doit voir d'un coup d'œil sans rien ouvrir. */}
       <div className="space-y-3">
-        {/* Solde unique (revenus − commissions + recharge) */}
         <ColigoPayCard
           balance={coligoPayBalance}
           available={summary.available}
         />
-
-        {/* Le verdict : Coligo vous doit / vous devez / à jour */}
         <Verdict summary={summary} />
-
-        {/* Dette espèces : alerte au seuil doux, blocage au plafond */}
         <CashDebtBanner status={cashDebt} />
-
-        {/* Prochain virement automatique (date concrète) */}
         <NextPayoutBanner info={nextPayout} />
-
-        {/* Versement (si Coligo vous doit de l'argent) */}
         {summary.available > 0 && <PayoutForm available={summary.available} />}
+      </div>
 
-        {/* « D'où vient ce montant » — le calcul fait pour vous */}
-        <SimpleBreakdown summary={summary} />
+      {/* ════════════════ LES DÉTAILS (sous-sections repliables) ════════════════
+          Tout le reste est rangé en accordéons FERMÉS par défaut : la page reste
+          courte et lisible, on n'ouvre que ce dont on a besoin. */}
+      <p className="text-subtle mt-6 mb-2 px-1 text-[11px] font-bold tracking-wider uppercase">
+        Détails &amp; documents
+      </p>
+      <div className="space-y-3">
+        {hasBreakdown && (
+          <CollapsibleSection
+            icon={<Calculator className="size-4" />}
+            title="Le détail du calcul"
+            subtitle="D'où vient votre solde, ligne par ligne"
+          >
+            <SimpleBreakdown summary={summary} />
+          </CollapsibleSection>
+        )}
 
-        {/* Pourquoi ces ajustements (motif + commande) */}
-        <AdjustmentsCard adjustments={adjustments} />
+        {adjustments.length > 0 && (
+          <CollapsibleSection
+            icon={<Info className="size-4" />}
+            title="Ajustements expliqués"
+            subtitle="Crédits et corrections appliqués par Coligo"
+            right={<CountChip n={adjustments.length} />}
+          >
+            <AdjustmentsCard adjustments={adjustments} />
+          </CollapsibleSection>
+        )}
 
-        {/* Factures mensuelles téléchargeables */}
-        <Invoices months={invoiceMonths} />
+        {invoiceMonths.length > 0 && (
+          <CollapsibleSection
+            icon={<FileText className="size-4" />}
+            title="Relevés &amp; factures"
+            subtitle="Récap mensuel — PDF ou CSV pour le comptable"
+            right={<CountChip n={invoiceMonths.length} />}
+          >
+            <Invoices months={invoiceMonths} />
+          </CollapsibleSection>
+        )}
 
-        {/* Le reste, replié (détail des opérations, livraisons, versements) */}
-        <button
-          type="button"
-          onClick={() => setShowDetails((v) => !v)}
-          className="border-border bg-surface text-foreground hover:bg-surface-2 flex w-full items-center justify-between gap-2 rounded-[14px] border px-4 py-3.5 text-sm font-semibold transition-colors"
-        >
-          <span>Détail des opérations, livraisons & versements</span>
-          <ChevronDown
-            className={cn(
-              "text-muted size-5 transition-transform",
-              showDetails && "rotate-180"
-            )}
-          />
-        </button>
-
-        {showDetails && (
-          <div className="space-y-3">
+        {deliveryStats.totalDeliveryOrders > 0 && (
+          <CollapsibleSection
+            icon={<Truck className="size-4" />}
+            title="Livraisons"
+            subtitle="Suivi des livraisons et avances livreurs"
+          >
             <DeliverySection stats={deliveryStats} />
-            <History
-              entries={entries}
-              total={total}
-              page={page}
-              pageCount={pageCount}
-            />
+          </CollapsibleSection>
+        )}
+
+        <CollapsibleSection
+          icon={<Wallet className="size-4" />}
+          title="Historique des opérations"
+          subtitle="Toutes les entrées de votre porte-monnaie"
+          right={total > 0 ? <CountChip n={total} /> : undefined}
+          // Si l'utilisateur arrive sur une page paginée (>1), on ouvre direct.
+          defaultOpen={page > 1}
+        >
+          <History entries={entries} page={page} pageCount={pageCount} />
+        </CollapsibleSection>
+
+        {requests.length > 0 && (
+          <CollapsibleSection
+            icon={<Banknote className="size-4" />}
+            title="Demandes de versement"
+            subtitle="Statut de vos retraits"
+            right={<CountChip n={requests.length} />}
+          >
             <PayoutList requests={requests} />
-          </div>
+          </CollapsibleSection>
         )}
       </div>
     </div>
+  );
+}
+
+/* ─────────────────── SOUS-SECTION REPLIABLE (accordéon) ─────────────────── */
+
+/**
+ * Carte-section dépliable, FERMÉE par défaut. En-tête : pastille d'icône +
+ * titre + sous-titre + compteur optionnel (à droite) + chevron. Donne à la page
+ * finances une organisation claire « sous-section par sous-section ».
+ */
+function CollapsibleSection({
+  icon,
+  title,
+  subtitle,
+  right,
+  defaultOpen = false,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  right?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="border-border bg-surface overflow-hidden rounded-[16px] border">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors"
+      >
+        <span className="bg-primary-50 text-primary-600 grid size-9 shrink-0 place-items-center rounded-full">
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">{title}</span>
+          {subtitle && (
+            <span className="text-subtle mt-0.5 block text-xs leading-snug">
+              {subtitle}
+            </span>
+          )}
+        </span>
+        {right}
+        <ChevronDown
+          className={cn(
+            "text-muted size-5 shrink-0 transition-transform",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+      {open && <div className="border-border border-t p-4">{children}</div>}
+    </section>
+  );
+}
+
+/** Petit compteur (pastille) affiché à droite de l'en-tête d'une sous-section. */
+function CountChip({ n }: { n: number }) {
+  return (
+    <span className="bg-surface-2 text-muted shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums">
+      {n}
+    </span>
   );
 }
 
@@ -175,57 +277,68 @@ function ColigoPayCard({
 }) {
   const negative = balance < 0;
   return (
-    <section className="relative overflow-hidden rounded-[22px] p-5 text-white shadow-lg shadow-black/10">
-      {/* Fond dégradé + halo lumineux : profondeur « carte premium ». */}
+    // Fond dégradé posé DIRECTEMENT sur la carte (classe hex compatible vieux
+    // WebView Sunmi) — l'ancienne version utilisait un calque en `-z-10` qui
+    // passait derrière la carte et la rendait transparente dans l'APK.
+    <section
+      className={cn(
+        "relative overflow-hidden rounded-[22px] p-5 text-white shadow-lg shadow-black/10",
+        negative ? "cg-warning-gradient" : "cg-brand-gradient"
+      )}
+    >
+      {/* Halos lumineux décoratifs (z positif faible, sous le contenu). */}
       <div
-        className={cn(
-          "absolute inset-0 -z-10 bg-gradient-to-br",
-          negative
-            ? "from-warning-500 via-warning-600 to-warning-700"
-            : "from-primary-600 via-primary-700 to-primary-800"
-        )}
+        aria-hidden
+        className="pointer-events-none absolute -top-12 -right-10 size-44 rounded-full bg-white/10 blur-2xl"
       />
-      <div className="absolute -top-12 -right-10 -z-10 size-44 rounded-full bg-white/10 blur-2xl" />
-      <div className="absolute -bottom-16 -left-8 -z-10 size-40 rounded-full bg-white/5 blur-2xl" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-16 -left-8 size-40 rounded-full bg-white/5 blur-2xl"
+      />
 
-      <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide backdrop-blur-sm">
-          <Wallet className="size-3.5" /> Coligo Pay
-        </span>
-        {!negative && available > 0 && (
-          <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold tabular-nums backdrop-blur-sm">
-            {formatDA(available)} dispo.
+      {/* Contenu au-dessus des halos (z-10, jamais de z négatif). */}
+      <div className="relative z-10">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide backdrop-blur-sm">
+            <Wallet className="size-3.5" /> Coligo Pay
           </span>
-        )}
+          {!negative && available > 0 && (
+            <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold tabular-nums backdrop-blur-sm">
+              {formatDA(available)} dispo.
+            </span>
+          )}
+        </div>
+
+        <p className="mt-4 text-[11px] font-medium tracking-wider text-white/70 uppercase">
+          {negative ? "À régulariser" : "Solde disponible"}
+        </p>
+        <p className="text-[2.4rem] leading-none font-extrabold tracking-tight tabular-nums">
+          {formatDA(balance)}
+        </p>
+
+        <p className="mt-2 text-[12.5px] text-white/85">
+          {negative ? (
+            <>
+              Rechargez pour repasser au vert et débloquer les ventes espèces.
+            </>
+          ) : available > 0 ? (
+            <>
+              <strong className="font-bold">{formatDA(available)}</strong>{" "}
+              disponibles à retirer dès maintenant.
+            </>
+          ) : (
+            <>Votre porte-monnaie unique : paiements, commissions, recharges.</>
+          )}
+        </p>
+
+        <Link
+          href="/recharger"
+          prefetch
+          className="text-primary-700 mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-white text-sm font-bold shadow-sm transition-transform active:scale-[0.98]"
+        >
+          <Wallet className="size-4" /> Recharger mon compte
+        </Link>
       </div>
-
-      <p className="mt-4 text-[11px] font-medium tracking-wider text-white/70 uppercase">
-        {negative ? "À régulariser" : "Solde disponible"}
-      </p>
-      <p className="text-[2.4rem] leading-none font-extrabold tracking-tight tabular-nums">
-        {formatDA(balance)}
-      </p>
-
-      <p className="mt-2 text-[12.5px] text-white/85">
-        {negative ? (
-          <>Rechargez pour repasser au vert et débloquer les ventes espèces.</>
-        ) : available > 0 ? (
-          <>
-            <strong className="font-bold">{formatDA(available)}</strong>{" "}
-            disponibles à retirer dès maintenant.
-          </>
-        ) : (
-          <>Votre porte-monnaie unique : paiements, commissions, recharges.</>
-        )}
-      </p>
-
-      <Link
-        href="/recharger"
-        prefetch
-        className="text-primary-700 mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-white text-sm font-bold shadow-sm transition-transform active:scale-[0.98]"
-      >
-        <Wallet className="size-4" /> Recharger mon compte
-      </Link>
     </section>
   );
 }
@@ -490,13 +603,10 @@ function SimpleBreakdown({ summary }: { summary: FinancesSummary }) {
   if (!hasAnything) return null;
 
   return (
-    <section className="border-border bg-surface rounded-[16px] border p-4">
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold">Le détail du calcul</h2>
-        <span className="text-subtle text-[11px]">
-          vert = pour vous · rouge = part Coligo
-        </span>
-      </div>
+    <>
+      <p className="text-subtle mb-3 text-[11px]">
+        vert = pour vous · rouge = part Coligo
+      </p>
 
       <div className="divide-border divide-y">
         {collectedForYou > 0 && (
@@ -558,7 +668,7 @@ function SimpleBreakdown({ summary }: { summary: FinancesSummary }) {
           {formatDA(Math.abs(summary.balance))}
         </span>
       </div>
-    </section>
+    </>
   );
 }
 
@@ -603,48 +713,39 @@ function Line({
 function AdjustmentsCard({ adjustments }: { adjustments: AdjustmentEntry[] }) {
   if (adjustments.length === 0) return null;
   return (
-    <section className="border-border bg-surface rounded-[16px] border p-4">
-      <h2 className="flex items-center gap-2 text-sm font-semibold">
-        <Info className="text-primary-500 size-4" />
-        Ajustements expliqués
-      </h2>
-      <p className="text-muted mt-0.5 mb-3 text-xs">
-        Crédits et corrections appliqués par Coligo, avec leur motif.
-      </p>
-      <ul className="divide-border divide-y">
-        {adjustments.map((a) => {
-          const positive = a.amount_da >= 0;
-          return (
-            <li key={a.id} className="flex items-start gap-3 py-2.5">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">
-                  {a.note?.trim() || "Ajustement"}
-                </p>
-                <p className="text-subtle mt-0.5 flex flex-wrap items-center gap-x-2 text-xs">
-                  <span>{formatDate(a.created_at)}</span>
-                  {a.order_id && (
-                    <Link
-                      href={`/orders/${a.order_id}`}
-                      className="text-primary-700 hover:underline"
-                    >
-                      voir la commande
-                    </Link>
-                  )}
-                </p>
-              </div>
-              <span
-                className={cn(
-                  "shrink-0 text-sm font-bold tabular-nums",
-                  positive ? "text-success-700" : "text-danger-600"
+    <ul className="divide-border divide-y">
+      {adjustments.map((a) => {
+        const positive = a.amount_da >= 0;
+        return (
+          <li key={a.id} className="flex items-start gap-3 py-2.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">
+                {a.note?.trim() || "Ajustement"}
+              </p>
+              <p className="text-subtle mt-0.5 flex flex-wrap items-center gap-x-2 text-xs">
+                <span>{formatDate(a.created_at)}</span>
+                {a.order_id && (
+                  <Link
+                    href={`/orders/${a.order_id}`}
+                    className="text-primary-700 hover:underline"
+                  >
+                    voir la commande
+                  </Link>
                 )}
-              >
-                {positive ? "+" : "−"} {formatDA(Math.abs(a.amount_da))}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+              </p>
+            </div>
+            <span
+              className={cn(
+                "shrink-0 text-sm font-bold tabular-nums",
+                positive ? "text-success-700" : "text-danger-600"
+              )}
+            >
+              {positive ? "+" : "−"} {formatDA(Math.abs(a.amount_da))}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -653,14 +754,10 @@ function AdjustmentsCard({ adjustments }: { adjustments: AdjustmentEntry[] }) {
 function Invoices({ months }: { months: InvoiceMonth[] }) {
   if (months.length === 0) return null;
   return (
-    <section className="border-border bg-surface rounded-[16px] border p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-semibold">
-          <FileText className="text-primary-500 size-4" />
-          Mes relevés mensuels
-        </h2>
-        {/* Export comptable de TOUTES les opérations. <a> car la route renvoie
-            un fichier (Content-Disposition) → laisser le navigateur télécharger. */}
+    <>
+      {/* Export comptable de TOUTES les opérations. <a> car la route renvoie
+          un fichier (Content-Disposition) → laisser le navigateur télécharger. */}
+      <div className="mb-3 flex justify-end">
         <a
           href="/finances/export"
           className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-semibold transition-colors"
@@ -669,9 +766,6 @@ function Invoices({ months }: { months: InvoiceMonth[] }) {
           Exporter tout (CSV)
         </a>
       </div>
-      <p className="text-muted mt-0.5 mb-3 text-xs">
-        Un récap clair par mois — PDF à imprimer, ou CSV pour votre comptable.
-      </p>
       <ul className="divide-border divide-y">
         {months.map((m) => (
           <li
@@ -704,7 +798,7 @@ function Invoices({ months }: { months: InvoiceMonth[] }) {
           </li>
         ))}
       </ul>
-    </section>
+    </>
   );
 }
 
@@ -713,26 +807,20 @@ function Invoices({ months }: { months: InvoiceMonth[] }) {
 function DeliverySection({ stats }: { stats: DeliveryStats }) {
   if (stats.totalDeliveryOrders === 0) return null;
   return (
-    <section className="border-border bg-surface rounded-[16px] border p-4">
-      <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-        <Truck className="text-primary-500 size-4" />
-        Livraisons
-      </h2>
-      <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-3">
+      <MiniStat
+        label="Livraisons"
+        value={`${stats.completedDeliveryOrders}/${stats.totalDeliveryOrders}`}
+        sub="livrées / total"
+      />
+      {stats.owedByDriversDa > 0 && (
         <MiniStat
-          label="Livraisons"
-          value={`${stats.completedDeliveryOrders}/${stats.totalDeliveryOrders}`}
-          sub="livrées / total"
+          label="Avances reçues des livreurs"
+          value={formatDA(stats.owedByDriversDa)}
+          sub="payées en main propre au retrait (COD)"
         />
-        {stats.owedByDriversDa > 0 && (
-          <MiniStat
-            label="Avances reçues des livreurs"
-            value={formatDA(stats.owedByDriversDa)}
-            sub="payées en main propre au retrait (COD)"
-          />
-        )}
-      </div>
-    </section>
+      )}
+    </div>
   );
 }
 
@@ -763,49 +851,40 @@ function MiniStat({
 
 function History({
   entries,
-  total,
   page,
   pageCount,
 }: {
   entries: WalletEntryRow[];
-  total: number;
   page: number;
   pageCount: number;
 }) {
+  if (entries.length === 0) {
+    return (
+      <p className="text-muted py-6 text-center text-sm">
+        Aucune opération pour le moment. Vos gains apparaîtront ici dès
+        qu&apos;une commande sera récupérée.
+      </p>
+    );
+  }
+  // -m-4 : annule le padding de l'accordéon pour une liste bord à bord (les
+  // lignes gardent leur propre px-4), avec pagination collée en bas.
   return (
-    <section className="border-border bg-surface rounded-[16px] border">
-      <header className="border-border flex items-center justify-between gap-3 border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">Toutes les opérations</h2>
-        {total > 0 && (
-          <span className="text-muted text-xs tabular-nums">
-            {total} ligne{total > 1 ? "s" : ""}
-          </span>
-        )}
-      </header>
-      {entries.length === 0 ? (
-        <p className="text-muted px-4 py-10 text-center text-sm">
-          Aucune opération pour le moment. Vos gains apparaîtront ici dès
-          qu&apos;une commande sera récupérée.
-        </p>
-      ) : (
-        <>
-          <ul className="divide-border divide-y">
-            {entries.map((e) => (
-              <EntryRow key={e.id} entry={e} />
-            ))}
-          </ul>
-          {pageCount > 1 && (
-            <div className="border-border border-t px-4 py-3">
-              <Pagination
-                page={page}
-                pageCount={pageCount}
-                hrefFor={(p) => (p > 1 ? `/finances?page=${p}` : "/finances")}
-              />
-            </div>
-          )}
-        </>
+    <div className="-m-4">
+      <ul className="divide-border divide-y">
+        {entries.map((e) => (
+          <EntryRow key={e.id} entry={e} />
+        ))}
+      </ul>
+      {pageCount > 1 && (
+        <div className="border-border border-t px-4 py-3">
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            hrefFor={(p) => (p > 1 ? `/finances?page=${p}` : "/finances")}
+          />
+        </div>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -993,29 +1072,26 @@ function PayoutForm({ available }: { available: number }) {
 function PayoutList({ requests }: { requests: PayoutRequest[] }) {
   if (requests.length === 0) return null;
   return (
-    <section className="border-border bg-surface rounded-[16px] border p-4">
-      <h2 className="mb-3 text-sm font-semibold">Mes demandes de versement</h2>
-      <ul className="space-y-2.5">
-        {requests.map((r) => {
-          const meta = PAYOUT_STATUS_META[r.status];
-          return (
-            <li
-              key={r.id}
-              className="flex items-center justify-between gap-2 text-sm"
-            >
-              <div className="min-w-0">
-                <p className="font-semibold tabular-nums">
-                  {formatDA(r.amount_da)}
-                </p>
-                <p className="text-subtle text-xs">
-                  {formatDate(r.created_at)} · {r.method.toUpperCase()}
-                </p>
-              </div>
-              <Badge tone={meta.tone}>{meta.label}</Badge>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+    <ul className="space-y-2.5">
+      {requests.map((r) => {
+        const meta = PAYOUT_STATUS_META[r.status];
+        return (
+          <li
+            key={r.id}
+            className="flex items-center justify-between gap-2 text-sm"
+          >
+            <div className="min-w-0">
+              <p className="font-semibold tabular-nums">
+                {formatDA(r.amount_da)}
+              </p>
+              <p className="text-subtle text-xs">
+                {formatDate(r.created_at)} · {r.method.toUpperCase()}
+              </p>
+            </div>
+            <Badge tone={meta.tone}>{meta.label}</Badge>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
