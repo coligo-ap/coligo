@@ -12,15 +12,25 @@ export type ProductFormState = {
 };
 
 /**
- * Catalogue du commerçant connecté (loader TanStack `/catalog`). Réplique EXACTE
- * de la requête SSR d'origine (mêmes colonnes, mêmes tris). La RLS scope déjà
- * sur le commerçant connecté → ré-auth implicite à chaque appel.
+ * Catalogue du commerçant connecté (loader TanStack `/catalog`).
+ *
+ * IMPORTANT — on filtre EXPLICITEMENT par `merchant_id`. On NE peut PAS se
+ * reposer sur la RLS : la policy publique `products_select_public_active` rend
+ * visibles les produits disponibles de TOUS les commerces actifs (nécessaire à
+ * la marketplace client). Sans ce filtre, le catalogue du commerçant remontait
+ * des centaines de produits d'autres commerces (versés dans « Sans catégorie »),
+ * surchargeant le glisser-déposer et fuitant des données.
  */
 export async function fetchCatalog(): Promise<{
   products: ProductWithCategory[];
   categories: Category[];
   error: string | null;
 }> {
+  const merchantId = await getCurrentMerchantId();
+  if (!merchantId) {
+    return { products: [], categories: [], error: "Session expirée." };
+  }
+
   const supabase = await createClient();
   const [{ data: products, error }, { data: categories }] = await Promise.all([
     supabase
@@ -31,6 +41,7 @@ export async function fetchCatalog(): Promise<{
          is_available, created_at, updated_at,
          categories ( id, title )`
       )
+      .eq("merchant_id", merchantId)
       // Les produits archivés (supprimés par le commerçant) restent en base
       // pour la traçabilité mais ne s'affichent plus dans le catalogue.
       .is("archived_at", null)
@@ -41,6 +52,7 @@ export async function fetchCatalog(): Promise<{
       .select(
         "id, merchant_id, title, description, image_url, position, created_at, updated_at"
       )
+      .eq("merchant_id", merchantId)
       .order("position", { ascending: true }),
   ]);
   return {

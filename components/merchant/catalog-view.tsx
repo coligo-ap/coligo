@@ -145,12 +145,15 @@ export function CatalogView({
   const [selectMode, setSelectMode] = useState(false);
   const [selProducts, setSelProducts] = useState<Set<string>>(new Set());
   const [selCats, setSelCats] = useState<Set<string>>(new Set());
-  // Catégories DÉPLIÉES par défaut : sinon les produits ne sont pas rendus et la
-  // poignée de glisser-déposer reste invisible (« je ne vois pas le drag »). On
-  // déplie toutes les catégories + le bac « sans catégorie » au premier affichage
-  // (l'état est ensuite mémorisé par session via sessionStorage).
-  const [expanded, setExpanded] = useState<Set<string>>(
-    () => new Set([...categories.map((c) => c.id), NONE])
+  // Catégories dépliées par défaut pour que les produits (et donc la poignée de
+  // glisser + les boutons monter/descendre) soient visibles d'emblée. MAIS sur
+  // un gros catalogue, tout déplier rendrait des centaines de cartes d'un coup
+  // et surchargerait le glisser-déposer → on ne déplie tout que si c'est léger,
+  // sinon seulement la 1ʳᵉ catégorie. (Mémorisé ensuite par session.)
+  const [expanded, setExpanded] = useState<Set<string>>(() =>
+    products.length <= 60
+      ? new Set([...categories.map((c) => c.id), NONE])
+      : new Set([categories[0]?.id ?? NONE])
   );
   const [, startTransition] = useTransition();
 
