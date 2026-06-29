@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useActionState,
-  useEffect,
-  useMemo,
-  useState,
-  useTransition,
-} from "react";
+import { useActionState, useEffect, useMemo, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -16,13 +10,17 @@ import {
   Mail,
   PackagePlus,
   Phone,
-  Search,
   Snowflake,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
+import {
+  Pager,
+  SearchInput,
+  usePaginatedList,
+} from "@/components/admin/shared/list-controls";
 import { cn, formatDA } from "@/lib/utils";
 import type { PlatformSettings } from "@/lib/types";
 import { rateToPct } from "@/lib/validation/platform";
@@ -75,8 +73,6 @@ export function AdminMerchantsView({
   merchants: AdminMerchant[];
   settings: PlatformSettings | null;
 }) {
-  const [query, setQuery] = useState("");
-
   // Comptes = commerçants approuvés (les inscriptions en attente / refusées sont
   // gérées dans l'onglet dédié « Inscriptions », mig 0273).
   const pendingCount = useMemo(
@@ -88,15 +84,22 @@ export function AdminMerchantsView({
     [merchants]
   );
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return approved;
-    return approved.filter((m) =>
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+  } = usePaginatedList<AdminMerchant>({
+    items: approved,
+    search: (m, q) =>
       [m.name, m.email, m.phone, m.id, m.slug, m.city]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
-    );
-  }, [approved, query]);
+        .some((v) => String(v).toLowerCase().includes(q)),
+    pageSize: 20,
+  });
 
   return (
     <div className="space-y-6">
@@ -112,24 +115,17 @@ export function AdminMerchantsView({
         </Link>
       )}
 
-      {/* Recherche : nom, e-mail, téléphone, identifiant (id) ou slug. */}
-      <div className="relative">
-        <Search className="text-muted pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
-        <Input
-          type="search"
-          inputMode="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher : nom, e-mail, téléphone, identifiant…"
-          className="h-12 pl-10"
-        />
-      </div>
+      <SearchInput
+        value={query}
+        onChange={setQuery}
+        placeholder="Rechercher : nom, e-mail, téléphone, identifiant…"
+      />
       <p className="text-muted text-xs tabular-nums">
-        {filtered.length} commerçant{filtered.length > 1 ? "s" : ""}
+        {filteredCount} commerçant{filteredCount > 1 ? "s" : ""}
         {query ? ` sur ${approved.length}` : ""}
       </p>
 
-      {filtered.length === 0 ? (
+      {pageItems.length === 0 ? (
         <p className="text-muted py-8 text-center text-sm">
           {query
             ? `Aucun commerçant ne correspond à « ${query} ».`
@@ -137,11 +133,13 @@ export function AdminMerchantsView({
         </p>
       ) : (
         <ul className="space-y-4">
-          {filtered.map((m) => (
+          {pageItems.map((m) => (
             <MerchantRow key={m.id} merchant={m} settings={settings} />
           ))}
         </ul>
       )}
+
+      <Pager page={page} pageCount={pageCount} onPage={setPage} />
     </div>
   );
 }

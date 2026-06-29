@@ -2,14 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Banknote, SlidersHorizontal, Truck } from "lucide-react";
+import {
+  Banknote,
+  ClipboardCheck,
+  SlidersHorizontal,
+  Truck,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Onglets du hub Livraison. Chaque onglet = une sous-route réelle. La fiche
-// livreur (/admin/drivers/[id]) est hors du route group (hub) : elle n'affiche
-// pas ces onglets (header + retour propres).
+// Onglets du hub Livraison. La fiche livreur (/admin/drivers/[id]) est hors du
+// route group (hub) : elle n'affiche pas ces onglets.
 const TABS = [
   { href: "/admin/drivers", label: "Livreurs", icon: Truck, exact: true },
+  {
+    href: "/admin/drivers/inscriptions",
+    label: "Inscriptions",
+    icon: ClipboardCheck,
+    badge: true,
+  },
   {
     href: "/admin/drivers/finances",
     label: "Finances livraison",
@@ -22,7 +32,11 @@ const TABS = [
   },
 ] as const;
 
-export function DeliveryHubTabs() {
+export function DeliveryHubTabs({
+  pendingCount = 0,
+}: {
+  pendingCount?: number;
+}) {
   const pathname = usePathname();
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -32,6 +46,7 @@ export function DeliveryHubTabs() {
       {TABS.map((t) => {
         const Icon = t.icon;
         const active = isActive(t.href, "exact" in t ? t.exact : false);
+        const count = "badge" in t && t.badge ? pendingCount : 0;
         return (
           <Link
             key={t.href}
@@ -45,6 +60,11 @@ export function DeliveryHubTabs() {
           >
             <Icon className="size-4" />
             {t.label}
+            {count > 0 && (
+              <span className="bg-warning-500 inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums">
+                {count}
+              </span>
+            )}
           </Link>
         );
       })}
