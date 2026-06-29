@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Menu, ShieldCheck, X } from "lucide-react";
+import { Menu, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ADMIN_LINKS } from "@/components/admin/admin-nav";
+import {
+  ADMIN_DOMAINS,
+  isAdminDomainActive,
+} from "@/components/admin/admin-nav";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
 /**
@@ -24,9 +27,6 @@ export function AdminMobileNav({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
-
-  const isActive = (href: string, exact?: boolean) =>
-    exact ? pathname === href : pathname.startsWith(href);
 
   // Anim slide-in fiable même sur WebView : monter en `-translate-x-full` puis
   // basculer à `translate-x-0` au rAF suivant ; à la fermeture, démonter après
@@ -116,53 +116,47 @@ export function AdminMobileNav({
             </div>
 
             <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-              {ADMIN_LINKS.map((l) => {
-                const Icon = l.icon;
-                const active = isActive(l.href, "exact" in l ? l.exact : false);
+              {ADMIN_DOMAINS.map((d) => {
+                const Icon = d.icon;
+                const active = isAdminDomainActive(pathname, d);
+                const count =
+                  d.badge === "late"
+                    ? lateCount
+                    : d.badge === "payouts"
+                      ? payoutsCount
+                      : 0;
+                const danger = d.badge === "late";
                 return (
                   <Link
-                    key={l.href}
-                    href={l.href}
+                    key={d.href}
+                    href={d.href}
                     onClick={() => setOpen(false)}
                     className={cn(
                       "flex min-h-[44px] items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors",
                       active
-                        ? "bg-primary-50 text-primary-900 font-medium"
-                        : "text-muted hover:bg-surface-2 hover:text-foreground"
+                        ? danger
+                          ? "bg-danger-50 text-danger-700 font-medium"
+                          : "bg-primary-50 text-primary-900 font-medium"
+                        : danger && count > 0
+                          ? "text-danger-700 hover:bg-danger-50"
+                          : "text-muted hover:bg-surface-2 hover:text-foreground"
                     )}
                   >
                     <Icon className="size-5 shrink-0" />
-                    <span className="flex-1">{l.label}</span>
-                    {l.href === "/admin/versements" && payoutsCount > 0 && (
-                      <span className="bg-warning-500 inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-extrabold text-white tabular-nums">
-                        {payoutsCount}
+                    <span className="flex-1">{d.label}</span>
+                    {count > 0 && (
+                      <span
+                        className={cn(
+                          "inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-extrabold text-white tabular-nums",
+                          danger ? "bg-danger-500" : "bg-warning-500"
+                        )}
+                      >
+                        {count}
                       </span>
                     )}
                   </Link>
                 );
               })}
-
-              {/* Alertes — avec compteur de commandes en retard. */}
-              <Link
-                href="/admin/alertes"
-                onClick={() => setOpen(false)}
-                className={cn(
-                  "flex min-h-[44px] items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors",
-                  isActive("/admin/alertes")
-                    ? "bg-danger-50 text-danger-700 font-medium"
-                    : lateCount > 0
-                      ? "text-danger-700 hover:bg-danger-50"
-                      : "text-muted hover:bg-surface-2 hover:text-foreground"
-                )}
-              >
-                <AlertTriangle className="size-5 shrink-0" />
-                <span className="flex-1">Alertes</span>
-                {lateCount > 0 && (
-                  <span className="bg-danger-500 inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-extrabold text-white tabular-nums">
-                    {lateCount}
-                  </span>
-                )}
-              </Link>
             </nav>
           </aside>
         </div>
