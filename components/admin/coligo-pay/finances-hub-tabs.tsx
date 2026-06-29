@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Banknote, BadgeCheck, PiggyBank, ShieldCheck } from "lucide-react";
+import {
+  Banknote,
+  BadgeCheck,
+  ClipboardCheck,
+  PiggyBank,
+  ShieldCheck,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Onglets du hub Coligo Pay & Finances. La fiche agent (/admin/agents/[id]) est
@@ -16,6 +22,12 @@ const TABS = [
   },
   { href: "/admin/coligo-pay/agents", label: "Agents", icon: BadgeCheck },
   {
+    href: "/admin/coligo-pay/inscriptions",
+    label: "Inscriptions",
+    icon: ClipboardCheck,
+    badge: true,
+  },
+  {
     href: "/admin/coligo-pay/recharges",
     label: "Recharges",
     icon: PiggyBank,
@@ -27,7 +39,11 @@ const TABS = [
   },
 ] as const;
 
-export function FinancesHubTabs() {
+export function FinancesHubTabs({
+  pendingCount = 0,
+}: {
+  pendingCount?: number;
+}) {
   const pathname = usePathname();
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -37,6 +53,7 @@ export function FinancesHubTabs() {
       {TABS.map((t) => {
         const Icon = t.icon;
         const active = isActive(t.href, "exact" in t ? t.exact : false);
+        const count = "badge" in t && t.badge ? pendingCount : 0;
         return (
           <Link
             key={t.href}
@@ -50,6 +67,11 @@ export function FinancesHubTabs() {
           >
             <Icon className="size-4" />
             {t.label}
+            {count > 0 && (
+              <span className="bg-warning-500 inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums">
+                {count}
+              </span>
+            )}
           </Link>
         );
       })}

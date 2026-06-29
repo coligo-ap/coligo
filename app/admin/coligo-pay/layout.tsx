@@ -1,16 +1,40 @@
 import { Wallet } from "lucide-react";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { FinancesHubTabs } from "@/components/admin/coligo-pay/finances-hub-tabs";
 
-// Hub Coligo Pay & Finances : regroupe Surveillance / Agents / Recharges /
-// Versements en onglets (sous-routes réelles). Bande d'onglets fine : chaque
-// page garde son propre conteneur/titre (composants autonomes lourds réutilisés
-// tels quels). La fiche agent [id] est hors hub (autre arbre de routes).
-// Gate super-admin assuré par app/admin/layout.tsx.
-export default function FinancesHubLayout({
+export const dynamic = "force-dynamic";
+
+// Hub Coligo Pay & Finances : regroupe Surveillance / Agents / Inscriptions /
+// Recharges / Versements en onglets. Bande d'onglets fine : chaque page garde
+// son propre conteneur/titre. La fiche agent [id] est hors hub (autre arbre de
+// routes). Le badge « Inscriptions » = demandes d'agent en attente. Gate
+// super-admin assuré par app/admin/layout.tsx.
+export default async function FinancesHubLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const admin = createAdminClient();
+  const { count } = await (
+    admin.from as unknown as (t: string) => {
+      select: (
+        c: string,
+        o: { count: "exact"; head: true }
+      ) => {
+        eq: (
+          c: string,
+          v: string
+        ) => {
+          eq: (c: string, v: string) => Promise<{ count: number | null }>;
+        };
+      };
+    }
+  )("operator_wallets")
+    .select("id", { count: "exact", head: true })
+    .eq("owner_type", "partner")
+    .eq("status", "pending");
+  const pendingCount = count ?? 0;
+
   return (
     <div>
       <div className="border-border border-b bg-white">
@@ -22,7 +46,7 @@ export default function FinancesHubLayout({
             </h1>
           </div>
           <div className="pb-2">
-            <FinancesHubTabs />
+            <FinancesHubTabs pendingCount={pendingCount} />
           </div>
         </div>
       </div>
