@@ -47,6 +47,8 @@ import {
   GripVertical,
   SlidersHorizontal,
   Trash2,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -541,6 +543,77 @@ export function CatalogView({
     });
   }
 
+  // ─── Repli SANS glisser (boutons) ─────────────────────────────────────────
+  // Sur vieux WebView (Sunmi) le glisser-déposer peut ne pas fonctionner : ces
+  // commandes natives (boutons + <select>) font le même reclassement, partout.
+
+  /** Monte/descend un produit d'un cran DANS sa catégorie. */
+  function moveProductWithin(productId: string, dir: "up" | "down") {
+    const prod = prods.find((p) => p.id === productId);
+    if (!prod) return;
+    const catKey = prod.category_id ?? NONE;
+    const ids = prods
+      .filter((p) => (p.category_id ?? NONE) === catKey)
+      .map((p) => p.id);
+    const i = ids.indexOf(productId);
+    const j = dir === "up" ? i - 1 : i + 1;
+    if (i === -1 || j < 0 || j >= ids.length) return;
+    const newIds = arrayMove(ids, i, j);
+    setProds((prev) => {
+      const byId = new Map(prev.map((p) => [p.id, p]));
+      const conts = buildContainers(prev);
+      conts.set(catKey, newIds);
+      return flattenContainers(conts, byId);
+    });
+    startTransition(async () => {
+      const res = await reorderProducts(newIds);
+      if (res?.error) {
+        toast.error(res.error);
+        return;
+      }
+      refresh();
+    });
+  }
+
+  /** Déplace un produit vers une autre catégorie (ajouté en fin de destination). */
+  function moveProductToCategory(productId: string, newCat: string | null) {
+    const prod = prods.find((p) => p.id === productId);
+    if (!prod) return;
+    const fromKey = prod.category_id ?? NONE;
+    const toKey = newCat ?? NONE;
+    if (fromKey === toKey) return;
+    setProds((prev) => {
+      const byId = new Map(prev.map((p) => [p.id, p]));
+      const conts = buildContainers(prev);
+      for (const ids of conts.values()) {
+        const k = ids.indexOf(productId);
+        if (k >= 0) ids.splice(k, 1);
+      }
+      if (!conts.has(toKey)) conts.set(toKey, []);
+      conts.get(toKey)!.push(productId);
+      return flattenContainers(conts, byId);
+    });
+    const destIds = [
+      ...prods
+        .filter((p) => (p.category_id ?? NONE) === toKey && p.id !== productId)
+        .map((p) => p.id),
+      productId,
+    ];
+    startTransition(async () => {
+      const r1 = await bulkAssignCategory([productId], newCat);
+      if (r1?.error) {
+        toast.error(r1.error);
+        return;
+      }
+      const r2 = await reorderProducts(destIds);
+      if (r2?.error) {
+        toast.error(r2.error);
+        return;
+      }
+      refresh();
+    });
+  }
+
   async function deleteSelectedProducts() {
     const ids = Array.from(selProducts);
     if (
@@ -915,6 +988,12 @@ export function CatalogView({
                                 <ProductItems
                                   products={g.items}
                                   draggable={productsDraggable}
+                                  showMoveControls={productsDraggable}
+                                  categories={cats}
+                                  onMoveProduct={moveProductWithin}
+                                  onMoveProductToCategory={
+                                    moveProductToCategory
+                                  }
                                   lowStockThreshold={lowStockThreshold}
                                   selectMode={selectMode}
                                   selected={selProducts}
@@ -1121,6 +1200,17 @@ type DragHandle = Pick<
   "attributes" | "listeners"
 > | null;
 
+/** Commandes de reclassement SANS glisser (repli compatible vieux WebView). */
+type MoveControls = {
+  isFirst: boolean;
+  isLast: boolean;
+  onUp: () => void;
+  onDown: () => void;
+  categories: Category[];
+  currentCategoryId: string;
+  onMoveToCategory: (categoryId: string | null) => void;
+} | null;
+
 function SortableCategory({
   id,
   sortable,
@@ -1303,6 +1393,10 @@ const GRID_CLASS =
 function ProductItems({
   products,
   draggable,
+  showMoveControls,
+  categories,
+  onMoveProduct,
+  onMoveProductToCategory,
   lowStockThreshold,
   selectMode,
   selected,
@@ -1311,30 +1405,59 @@ function ProductItems({
 }: {
   products: ProductWithCategory[];
   draggable: boolean;
+  /** Repli boutons (monter/descendre + déplacer vers…) — vue groupée + manuel. */
+  showMoveControls?: boolean;
+  categories?: Category[];
+  onMoveProduct?: (id: string, dir: "up" | "down") => void;
+  onMoveProductToCategory?: (id: string, categoryId: string | null) => void;
   lowStockThreshold: number;
   selectMode: boolean;
   selected: Set<string>;
   onToggleSelect: (id: string) => void;
   onDeleted: (id: string) => void;
 }) {
-  const cardProps = (p: ProductWithCategory) => ({
+  // Commandes boutons par carte (position dans la catégorie courante = ordre du
+  // tableau `products`, qui est exactement la liste de cette catégorie).
+  const moveFor = (p: ProductWithCategory, index: number): MoveControls => {
+    if (
+      !showMoveControls ||
+      selectMode ||
+      !onMoveProduct ||
+      !onMoveProductToCategory
+    )
+      return null;
+    return {
+      isFirst: index === 0,
+      isLast: index === products.length - 1,
+      onUp: () => onMoveProduct(p.id, "up"),
+      onDown: () => onMoveProduct(p.id, "down"),
+      categories: categories ?? [],
+      currentCategoryId: p.category_id ?? NONE,
+      onMoveToCategory: (catId) => onMoveProductToCategory(p.id, catId),
+    };
+  };
+
+  const cardProps = (p: ProductWithCategory, index: number) => ({
     product: p,
     lowStockThreshold,
     selectMode,
     selected: selected.has(p.id),
     onToggleSelect: () => onToggleSelect(p.id),
     onDeleted,
+    moveControls: moveFor(p, index),
   });
 
   return (
     <div className={GRID_CLASS}>
-      {products.map((p) =>
+      {products.map((p, index) =>
         draggable ? (
           <SortableProduct key={p.id} id={p.id}>
-            {(handle) => <ProductCard {...cardProps(p)} dragHandle={handle} />}
+            {(handle) => (
+              <ProductCard {...cardProps(p, index)} dragHandle={handle} />
+            )}
           </SortableProduct>
         ) : (
-          <ProductCard key={p.id} {...cardProps(p)} dragHandle={null} />
+          <ProductCard key={p.id} {...cardProps(p, index)} dragHandle={null} />
         )
       )}
     </div>
@@ -1405,6 +1528,7 @@ function ProductCard({
   onToggleSelect,
   onDeleted,
   dragHandle,
+  moveControls,
 }: {
   product: ProductWithCategory;
   lowStockThreshold: number;
@@ -1413,6 +1537,7 @@ function ProductCard({
   onToggleSelect: () => void;
   onDeleted: (id: string) => void;
   dragHandle: DragHandle;
+  moveControls?: MoveControls;
 }) {
   const router = useRouter();
   const confirm = useConfirm();
@@ -1574,6 +1699,52 @@ function ProductCard({
           )}
         </div>
       </div>
+
+      {/* Repli SANS glisser : monter/descendre dans la catégorie + déplacer vers
+          une autre catégorie. Commandes natives (boutons + <select>) qui
+          fonctionnent sur tout WebView, même quand le glisser-déposer échoue. */}
+      {moveControls && (
+        <div className="border-border divide-border grid grid-cols-[2.5rem_2.5rem_1fr] divide-x border-t">
+          <button
+            type="button"
+            onClick={moveControls.onUp}
+            disabled={moveControls.isFirst}
+            title="Monter"
+            aria-label="Monter"
+            className="text-muted hover:bg-surface-2 hover:text-primary-700 flex h-10 items-center justify-center transition-colors disabled:opacity-30"
+          >
+            <ArrowUp className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={moveControls.onDown}
+            disabled={moveControls.isLast}
+            title="Descendre"
+            aria-label="Descendre"
+            className="text-muted hover:bg-surface-2 hover:text-primary-700 flex h-10 items-center justify-center transition-colors disabled:opacity-30"
+          >
+            <ArrowDown className="size-4" />
+          </button>
+          <select
+            value={moveControls.currentCategoryId}
+            onChange={(e) =>
+              moveControls.onMoveToCategory(
+                e.target.value === NONE ? null : e.target.value
+              )
+            }
+            title="Déplacer vers une catégorie"
+            aria-label="Déplacer vers une catégorie"
+            className="text-muted hover:bg-surface-2 h-10 w-full truncate bg-transparent px-2 text-xs font-medium focus:outline-none"
+          >
+            {moveControls.categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
+            ))}
+            <option value={NONE}>Sans catégorie</option>
+          </select>
+        </div>
+      )}
 
       {/* Actions — disposées pour des zones de touche larges et espacées */}
       {/* Ligne 1 : disponibilité (toute la largeur) */}
