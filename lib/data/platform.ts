@@ -84,8 +84,10 @@ export async function getAllMerchantsForAdmin(): Promise<AdminMerchant[]> {
 /** Nombre de demandes d'inscription commerçant en attente (badge nav admin). */
 export async function getPendingMerchantsCountForAdmin(): Promise<number> {
   const admin = createAdminClient();
-  // approval_status hors types générés → requête castée.
-  const q = admin.from as unknown as (t: string) => {
+  // approval_status hors types générés → requête castée. IMPORTANT : .bind(admin)
+  // — extraire admin.from sans binder casse `this.rest` (crash 500). Cf.
+  // reference_supabase_rpc_bind.
+  const q = admin.from.bind(admin) as unknown as (t: string) => {
     select: (
       c: string,
       o: { count: "exact"; head: true }
