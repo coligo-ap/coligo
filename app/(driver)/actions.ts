@@ -1165,3 +1165,71 @@ export async function fetchDriverCompteSummary(): Promise<CompteData | null> {
     ),
   };
 }
+
+export type DeliveryHistoryData = {
+  rows: {
+    id: string;
+    order_number: string | null;
+    customer_name: string | null;
+    total_da: number | null;
+    delivery_fee_da: number | null;
+    driver_net_da: number | null;
+    payment_method: "cash" | "online";
+    delivery_mode: "express" | "tour" | null;
+    status: string;
+    delivery_address_text: string | null;
+    delivery_delivered_at: string | null;
+    delivery_picked_up_at: string | null;
+    created_at: string;
+    merchant_id: string;
+    validated_without_code: boolean;
+  }[];
+  merchants: { id: string; name: string }[];
+};
+
+/**
+ * Historique des livraisons du livreur connecté (≤ 500 dernières) + noms des
+ * commerçants concernés. Server action APPELÉE PAR LE CLIENT (TanStack Query) →
+ * la page /driver/historique ne fait plus que l'auth, le contenu est mis en
+ * cache côté client et réaffiché instantanément au retour (plus de
+ * re-téléchargement à chaque visite). Auth + RLS revérifiées ici (source de
+ * vérité). Confidentialité : le nom du client est masqué une fois la commande
+ * livrée/terminée/annulée (le livreur n'a plus besoin de l'info personnelle).
+ */
+export async function getDeliveryHistory(): Promise<DeliveryHistoryData> {
+  const driver = await getCurrentDriver();
+  if (!driver) return { rows: [], merchants: [] };
+  const supabase = await createClient();
+
+  const { data: orders } = await supabase
+    .from("orders")
+    .select(
+      `id, order_number, customer_name, total_da, delivery_fee_da, driver_net_da, payment_method,
+       delivery_mode, status, delivery_address_text, delivery_delivered_at,
+       delivery_picked_up_at, created_at, merchant_id, validated_without_code`
+    )
+    .eq("delivery_driver_id", driver.id)
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  const rows = ((orders ?? []) as DeliveryHistoryData["rows"]).map((r) => {
+    const done =
+      r.status === "completed" ||
+      r.status === "cancelled" ||
+      r.delivery_delivered_at != null;
+    return done ? { ...r, customer_name: null } : r;
+  });
+
+  const merchantIds = Array.from(new Set(rows.map((r) => r.merchant_id)));
+  const { data: merchants } = merchantIds.length
+    ? await supabase
+        .from("merchants_public")
+        .select("id, name")
+        .in("id", merchantIds)
+    : { data: [] as { id: string; name: string }[] };
+
+  return {
+    rows,
+    merchants: (merchants ?? []) as { id: string; name: string }[],
+  };
+}

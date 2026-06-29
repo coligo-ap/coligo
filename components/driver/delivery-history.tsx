@@ -2,8 +2,78 @@
 
 import { useMemo, useState } from "react";
 import { useLocale } from "next-intl";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { LifeBuoy } from "lucide-react";
 import { openSupportChat } from "@/components/support/tawk-chat";
+import { DriverShell } from "@/components/driver/driver-shell";
+import { getDeliveryHistory } from "@/app/(driver)/actions";
+
+/**
+ * Chargeur de l'historique livraisons via TanStack Query (cache persistant, clé
+ * par livreur). La page serveur ne fait plus que l'auth ; le contenu est lu ici
+ * côté client → affichage INSTANTANÉ depuis le cache au retour + revalidation
+ * silencieuse, plus de re-téléchargement ni de squelette plein écran à chaque
+ * visite. Squelette uniquement au 1er chargement (cache vide).
+ *
+ * Sécurité : cache en mémoire de l'onglet, clé incluant le driverId, action
+ * serveur ré-authentifiée (getCurrentDriver + RLS) → aucune fuite entre comptes.
+ */
+export function DeliveryHistoryLoader({
+  driverId,
+  driverFirstName,
+}: {
+  driverId: string;
+  driverFirstName?: string;
+}) {
+  const { data, isPending } = useQuery({
+    queryKey: ["driver-delivery-history", driverId],
+    queryFn: () => getDeliveryHistory(),
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });
+  return (
+    <DriverShell driverFirstName={driverFirstName}>
+      {isPending && !data ? (
+        <DeliveryHistorySkeleton />
+      ) : (
+        <DeliveryHistory
+          rows={data?.rows ?? []}
+          merchants={data?.merchants ?? []}
+        />
+      )}
+    </DriverShell>
+  );
+}
+
+/** Squelette de l'historique livraisons (1er chargement, cache vide). */
+function DeliveryHistorySkeleton() {
+  return (
+    <div className="space-y-3">
+      <div
+        className="h-7 w-44 animate-pulse rounded-lg"
+        style={{ background: "var(--soft)" }}
+      />
+      <div className="flex gap-2">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="h-8 w-24 animate-pulse rounded-full"
+            style={{ background: "var(--soft)" }}
+          />
+        ))}
+      </div>
+      <div className="space-y-2.5">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-[74px] animate-pulse rounded-[16px] border"
+            style={{ background: "var(--surface)", borderColor: "var(--line)" }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /**
  * Écran HISTORIQUE reproduit À L'IDENTIQUE de MAQUETTE-livreur-pages :
