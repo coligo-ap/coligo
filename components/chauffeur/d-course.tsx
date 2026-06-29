@@ -80,59 +80,6 @@ const fmtkm = (v: number) =>
   `${(Math.round(v * 10) / 10).toString().replace(".", ",")} km`;
 
 /**
- * Bouton d'action circulaire (barre horizontale façon Uber) : icône ronde +
- * libellé dessous. Sert à REGROUPER tous les contacts/raccourcis (appel,
- * message, itinéraire, suivi, SOS) sur une seule ligne, au lieu d'empiler des
- * boutons pleine largeur. `accent` = bouton plein violet (action principale) ;
- * `danger` = rouge (SOS).
- */
-function ActBtn({
-  icon,
-  label,
-  onClick,
-  accent,
-  danger,
-  badge,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  accent?: boolean;
-  danger?: boolean;
-  badge?: number;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-[64px] shrink-0 flex-col items-center gap-1.5"
-    >
-      <span
-        className="relative grid size-[52px] place-items-center rounded-full border-[1.5px] shadow-sm transition-transform active:scale-95"
-        style={{
-          background: accent ? VIOLET : "var(--d-surface)",
-          borderColor: accent ? VIOLET : danger ? RED : "var(--d-line)",
-          color: accent ? "#fff" : danger ? RED : VIOLET,
-        }}
-      >
-        {icon}
-        {badge != null && badge > 0 && (
-          <span
-            className="drive-badge absolute -top-1 -right-1 grid min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-extrabold text-white"
-            style={{ background: RED }}
-          >
-            {badge}
-          </span>
-        )}
-      </span>
-      <span className="text-[10.5px] font-bold whitespace-nowrap text-[var(--d-ink)]">
-        {label}
-      </span>
-    </button>
-  );
-}
-
-/**
  * Course côté chauffeur (maquette s-dmatch → s-dpickup → s-dride → s-ddone) :
  * attribution, prise en charge (« je suis arrivé », règle 5 min client
  * absent), course (SOS, back-to-back 12 s, file de 1), fin (gain net,
@@ -754,8 +701,7 @@ export function DCourse() {
           </div>
         )}
 
-        {/* Fiche client : identité + adresse (info) — les contacts sont
-            regroupés dans la barre d'actions horizontale juste en dessous. */}
+        {/* Fiche client : identité + prix + adresse cliquable (→ itinéraire). */}
         <div className="mb-2.5 rounded-[22px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
           <div className="flex items-center gap-3">
             <span
@@ -802,9 +748,13 @@ export function DCourse() {
               </span>
             </span>
           </div>
-          {/* Adresse (réelle, jamais « Ma position ») — info, non bouton :
-              l'action « Itinéraire » est dans la barre ci-dessous. */}
-          <div className="mt-3 flex items-center gap-2 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-[12.5px] font-bold">
+          {/* Adresse (réelle, jamais « Ma position ») — CLIQUABLE : ouvre
+              l'itinéraire dans l'app GPS (plus de bouton « Itinéraire » séparé). */}
+          <button
+            type="button"
+            onClick={onItinerary}
+            className="mt-3 flex w-full items-center gap-2 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-start text-[12.5px] font-bold"
+          >
             <span
               className="grid size-6 shrink-0 place-items-center rounded-full"
               style={{
@@ -823,45 +773,67 @@ export function DCourse() {
                 ? (ride.dest_text ?? "Destination")
                 : (pickupAddr ?? "Point de départ du client")}
             </span>
-          </div>
+            <span
+              className="flex shrink-0 items-center gap-0.5 text-[11px] font-extrabold"
+              style={{ color: VIOLET }}
+            >
+              <Navigation className="size-3.5" /> Itinéraire
+            </span>
+          </button>
         </div>
 
-        {/* ── Barre d'actions horizontale (façon Uber) : tous les contacts et
-            raccourcis sur UNE ligne, plus de boutons empilés. ── */}
-        <div className="mb-3 flex justify-center gap-3 overflow-x-auto pb-1">
-          <ActBtn
-            icon={<PhoneCall className="size-5" />}
-            label="Appel"
-            accent
+        {/* ── Contacts : 2 actions principales claires (Appel · Message),
+            plus de carrousel surchargé. ── */}
+        <div className="mb-2 grid grid-cols-2 gap-2">
+          <button
+            type="button"
             onClick={onCall}
-          />
-          <ActBtn
-            icon={<MessageSquare className="size-5" />}
-            label="Message"
-            badge={unread}
+            className="drive-sora flex h-[50px] items-center justify-center gap-2 rounded-[15px] text-[14px] font-bold text-white"
+            style={{ background: VIOLET }}
+          >
+            <PhoneCall className="size-[18px] shrink-0" /> Appel
+          </button>
+          <button
+            type="button"
             onClick={() => setChatOpen(true)}
-          />
-          <ActBtn
-            icon={<Navigation className="size-5" />}
-            label="Itinéraire"
-            onClick={onItinerary}
-          />
-          {shareUrl && (
-            <ActBtn
-              icon={<Share2 className="size-5" />}
-              label="Suivi"
-              onClick={() => setShareOpen(true)}
-            />
-          )}
-          {inProgress && (
-            <ActBtn
-              icon={<AlertTriangle className="size-5" />}
-              label="SOS"
-              danger
-              onClick={() => setSosOpen(true)}
-            />
-          )}
+            className="drive-sora relative flex h-[50px] items-center justify-center gap-2 rounded-[15px] bg-[var(--d-soft)] text-[14px] font-bold"
+          >
+            <MessageSquare className="size-[18px] shrink-0" /> Message
+            {unread > 0 && (
+              <span
+                className="drive-badge absolute top-1.5 right-2 grid min-w-[20px] place-items-center rounded-full px-1.5 text-[11px] font-extrabold text-white"
+                style={{ background: RED }}
+              >
+                {unread}
+              </span>
+            )}
+          </button>
         </div>
+
+        {/* ── Sécurité (secondaire) : partage du suivi · SOS (en course). ── */}
+        {(shareUrl || inProgress) && (
+          <div className="mb-2.5 flex gap-2">
+            {shareUrl && (
+              <button
+                type="button"
+                onClick={() => setShareOpen(true)}
+                className="flex h-[40px] flex-1 items-center justify-center gap-1.5 rounded-[13px] border border-[var(--d-line)] text-[12.5px] font-bold text-[var(--d-muted)]"
+              >
+                <Share2 className="size-4" /> Partager le suivi
+              </button>
+            )}
+            {inProgress && (
+              <button
+                type="button"
+                onClick={() => setSosOpen(true)}
+                className="flex h-[40px] w-[96px] shrink-0 items-center justify-center gap-1.5 rounded-[13px] border text-[12.5px] font-bold"
+                style={{ borderColor: RED, color: RED }}
+              >
+                <AlertTriangle className="size-4" /> SOS
+              </button>
+            )}
+          </div>
+        )}
 
         {ride.prepaid && (
           <p
