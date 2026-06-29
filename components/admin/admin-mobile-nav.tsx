@@ -20,9 +20,11 @@ import { APP_CONFIG } from "@/lib/config/app-config";
 export function AdminMobileNav({
   lateCount,
   payoutsCount = 0,
+  merchantPendingCount = 0,
 }: {
   lateCount: number;
   payoutsCount?: number;
+  merchantPendingCount?: number;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -72,7 +74,7 @@ export function AdminMobileNav({
         <Menu className="size-5" />
         {lateCount > 0 ? (
           <span className="bg-danger-500 absolute top-1.5 right-1.5 size-2 rounded-full" />
-        ) : payoutsCount > 0 ? (
+        ) : payoutsCount > 0 || merchantPendingCount > 0 ? (
           <span className="bg-warning-500 absolute top-1.5 right-1.5 size-2 rounded-full" />
         ) : null}
       </button>
@@ -124,7 +126,9 @@ export function AdminMobileNav({
                     ? lateCount
                     : d.badge === "payouts"
                       ? payoutsCount
-                      : 0;
+                      : d.badge === "merchant"
+                        ? merchantPendingCount
+                        : 0;
                 const danger = d.badge === "late";
                 return (
                   <Link

@@ -4,6 +4,7 @@ import { logout } from "@/app/(merchant)/actions";
 import { Logo } from "@/components/shared/logo";
 import {
   getLateOrdersCountForAdmin,
+  getPendingMerchantsCountForAdmin,
   getPendingPayoutsCountForAdmin,
 } from "@/lib/data/platform";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
@@ -19,10 +20,12 @@ export default async function AdminLayout({
 }) {
   await requireSuperAdmin();
 
-  // Badges de nav : commandes en retard (Alertes) + versements à traiter.
-  const [lateCount, payoutsCount] = await Promise.all([
+  // Badges de nav : commandes en retard (Pilotage) + versements à traiter
+  // (Coligo Pay) + demandes d'inscription commerçant (Commerçants).
+  const [lateCount, payoutsCount, merchantPendingCount] = await Promise.all([
     getLateOrdersCountForAdmin(),
     getPendingPayoutsCountForAdmin(),
+    getPendingMerchantsCountForAdmin(),
   ]);
 
   return (
@@ -30,7 +33,11 @@ export default async function AdminLayout({
       <div className="bg-surface-2 min-h-screen">
         <header className="border-border sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b bg-white px-4 lg:px-6">
           <div className="flex min-w-0 items-center gap-3 lg:gap-4">
-            <AdminMobileNav lateCount={lateCount} payoutsCount={payoutsCount} />
+            <AdminMobileNav
+              lateCount={lateCount}
+              payoutsCount={payoutsCount}
+              merchantPendingCount={merchantPendingCount}
+            />
             <span className="flex shrink-0 items-center gap-2 font-semibold">
               <Logo size="sm" className="hidden sm:flex" />
               <ShieldCheck className="text-primary-600 size-5" />
@@ -49,7 +56,11 @@ export default async function AdminLayout({
         </header>
         {/* Drawer desktop (sidebar repliable) + contenu. Sur mobile la nav
           reste le drawer hamburger ci-dessus. */}
-        <AdminShell lateCount={lateCount} payoutsCount={payoutsCount}>
+        <AdminShell
+          lateCount={lateCount}
+          payoutsCount={payoutsCount}
+          merchantPendingCount={merchantPendingCount}
+        >
           <main>{children}</main>
         </AdminShell>
       </div>

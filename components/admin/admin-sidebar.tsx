@@ -22,10 +22,12 @@ const KEY = "coligo_admin_sidebar_open";
 export function AdminShell({
   lateCount,
   payoutsCount = 0,
+  merchantPendingCount = 0,
   children,
 }: {
   lateCount: number;
   payoutsCount?: number;
+  merchantPendingCount?: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -46,7 +48,13 @@ export function AdminShell({
     const Icon = d.icon;
     const active = isAdminDomainActive(pathname, d);
     const count =
-      d.badge === "late" ? lateCount : d.badge === "payouts" ? payoutsCount : 0;
+      d.badge === "late"
+        ? lateCount
+        : d.badge === "payouts"
+          ? payoutsCount
+          : d.badge === "merchant"
+            ? merchantPendingCount
+            : 0;
     const danger = d.badge === "late";
     return (
       <Link

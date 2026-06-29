@@ -228,6 +228,58 @@ export async function toggleMerchantFrozen(
 }
 
 /**
+ * Validation d'une demande d'inscription commerçant (mig 0273).
+ * Approuver ⇒ approval_status='approved' + is_active=true (la boutique devient
+ * visible des clients et peut recevoir des commandes — l'enforcement réutilise
+ * is_active, déjà filtré par merchants_public + RLS commande).
+ * Refuser ⇒ approval_status='rejected' + is_active=false (+ motif affiché au
+ * commerçant). Réversible : ré-approuver rebascule is_active=true.
+ */
+export async function decideMerchantApproval(
+  merchantId: string,
+  decision: "approve" | "reject",
+  reason?: string
+): Promise<{ error?: string }> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+
+  const approve = decision === "approve";
+  const supabase = await createClient();
+  // approval_status/approved_at/rejected_reason hors types générés → cast.
+  const update = supabase.from.bind(supabase) as unknown as (t: string) => {
+    update: (v: Record<string, unknown>) => {
+      eq: (
+        c: string,
+        v: string
+      ) => Promise<{ error: { message: string } | null }>;
+    };
+  };
+  const { error } = await update("merchants")
+    .update({
+      approval_status: approve ? "approved" : "rejected",
+      is_active: approve,
+      approved_at: approve ? new Date().toISOString() : null,
+      rejected_reason: approve ? null : reason?.trim() || null,
+    })
+    .eq("id", merchantId);
+
+  if (error) return { error: error.message };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  await supabase.from("admin_audit_log").insert({
+    admin_email: user?.email ?? null,
+    action: approve ? "approve_merchant" : "reject_merchant",
+    target_kind: "merchant",
+    target_id: merchantId,
+    note: approve ? null : reason?.trim() || null,
+  });
+
+  revalidatePath("/admin/merchants");
+  return {};
+}
+
+/**
  * Gel d'un livreur (anti-fraude / sanction administrative).
  * Un livreur gelé reste connecté mais voit un écran "compte gelé" sur
  * `/driver` ; il ne peut plus rien faire jusqu'au dégel.

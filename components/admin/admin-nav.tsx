@@ -27,7 +27,7 @@ export type AdminDomain = {
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
   match?: string[];
-  badge?: "late" | "payouts";
+  badge?: "late" | "payouts" | "merchant";
 };
 
 export const ADMIN_DOMAINS: AdminDomain[] = [
@@ -39,7 +39,12 @@ export const ADMIN_DOMAINS: AdminDomain[] = [
     match: ["/admin/orders", "/admin/alertes"],
     badge: "late",
   },
-  { href: "/admin/merchants", label: "Commerçants", icon: Store },
+  {
+    href: "/admin/merchants",
+    label: "Commerçants",
+    icon: Store,
+    badge: "merchant",
+  },
   {
     href: "/admin/drivers",
     label: "Livraison",
@@ -97,9 +102,11 @@ export function isAdminDomainActive(pathname: string, d: AdminDomain): boolean {
 export function AdminNav({
   lateCount,
   payoutsCount = 0,
+  merchantPendingCount = 0,
 }: {
   lateCount: number;
   payoutsCount?: number;
+  merchantPendingCount?: number;
 }) {
   const pathname = usePathname();
 
@@ -113,7 +120,9 @@ export function AdminNav({
             ? lateCount
             : d.badge === "payouts"
               ? payoutsCount
-              : 0;
+              : d.badge === "merchant"
+                ? merchantPendingCount
+                : 0;
         const danger = d.badge === "late";
         return (
           <Link

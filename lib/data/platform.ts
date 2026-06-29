@@ -32,6 +32,10 @@ export type AdminMerchant = {
   email: string | null;
   is_active: boolean;
   is_frozen: boolean;
+  /** Workflow de validation (mig 0273) : pending = nouvelle demande à traiter. */
+  approval_status: "pending" | "approved" | "rejected";
+  submitted_at: string | null;
+  rejected_reason: string | null;
   commission_cash: number | null;
   commission_online: number | null;
   cashback_online: number | null;
@@ -64,12 +68,35 @@ export async function getAllMerchantsForAdmin(): Promise<AdminMerchant[]> {
     email: (r.email as string | null) ?? null,
     is_active: !!r.is_active,
     is_frozen: !!r.is_frozen,
+    approval_status:
+      (r.approval_status as AdminMerchant["approval_status"] | null) ??
+      "approved",
+    submitted_at: (r.submitted_at as string | null) ?? null,
+    rejected_reason: (r.rejected_reason as string | null) ?? null,
     commission_cash: (r.commission_cash as number | null) ?? null,
     commission_online: (r.commission_online as number | null) ?? null,
     cashback_online: (r.cashback_online as number | null) ?? null,
     cashback_cash: (r.cashback_cash as number | null) ?? null,
     balance: Number(r.balance_da ?? 0),
   }));
+}
+
+/** Nombre de demandes d'inscription commerçant en attente (badge nav admin). */
+export async function getPendingMerchantsCountForAdmin(): Promise<number> {
+  const admin = createAdminClient();
+  // approval_status hors types générés → requête castée.
+  const q = admin.from as unknown as (t: string) => {
+    select: (
+      c: string,
+      o: { count: "exact"; head: true }
+    ) => {
+      eq: (c: string, v: string) => Promise<{ count: number | null }>;
+    };
+  };
+  const { count } = await q("merchants")
+    .select("id", { count: "exact", head: true })
+    .eq("approval_status", "pending");
+  return count ?? 0;
 }
 
 // =============================================================================

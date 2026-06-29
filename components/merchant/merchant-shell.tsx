@@ -11,6 +11,7 @@ import { MerchantQueryProvider } from "@/components/merchant/merchant-query-prov
 import { ConfirmProvider } from "@/components/ui/confirm";
 import { OrderRealtimeBridge } from "@/components/merchant/order-realtime-bridge";
 import { PushRegistrar } from "@/components/native/push-registrar";
+import { MerchantPendingScreen } from "@/components/merchant/merchant-pending-screen";
 import { TawkChat } from "@/components/support/tawk-chat";
 import { expireStalePendingOrders } from "@/lib/merchant/expire-pending";
 import {
@@ -65,6 +66,38 @@ export async function MerchantShell({
       email: user.email,
     });
     redirect("/login?error=no_merchant");
+  }
+
+  // Validation obligatoire (mig 0273) : tant que le compte n'est pas approuvé,
+  // on court-circuite TOUT l'espace commerçant (dashboard, orders, catalog…) par
+  // un écran d'attente / refus. Colonnes hors types générés → requête castée.
+  const approvalQuery = supabase.from as unknown as (t: string) => {
+    select: (c: string) => {
+      eq: (
+        c: string,
+        v: string
+      ) => {
+        maybeSingle: () => Promise<{
+          data: {
+            approval_status: "pending" | "approved" | "rejected" | null;
+            rejected_reason: string | null;
+          } | null;
+        }>;
+      };
+    };
+  };
+  const { data: approval } = await approvalQuery("merchants")
+    .select("approval_status, rejected_reason")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (approval?.approval_status && approval.approval_status !== "approved") {
+    return (
+      <MerchantPendingScreen
+        status={approval.approval_status}
+        reason={approval.rejected_reason ?? null}
+        merchantName={merchant.name}
+      />
+    );
   }
 
   // Expiration paresseuse : refuse les commandes restées « à confirmer » plus

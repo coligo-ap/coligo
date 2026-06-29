@@ -327,6 +327,10 @@ export async function signup(
       category,
       wilaya_code: wilayaCode,
       city,
+      // Validation obligatoire (mig 0273) : créé EN ATTENTE. is_active=false
+      // ⇒ invisible des clients (merchants_public) et bloqué au checkout (RLS
+      // commande) jusqu'à l'approbation du super-admin.
+      is_active: false,
       // Pré-remplit le minimum de commande selon le panier moyen de la catégorie
       // (étude pouvoir d'achat algérien). Le commerçant peut le monter dans ses
       // réglages ; le plancher Coligo s'applique côté checkout.
