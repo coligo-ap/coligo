@@ -130,6 +130,12 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutErr, setLogoutErr] = useState<string | null>(null);
+  // Recentrage / vol de la caméra vers la position du chauffeur. Déclaré tôt
+  // car le 1er fix GPS (plus haut) s'en sert pour garantir le centrage.
+  const [focusMe, setFocusMe] = useState<(LatLng & { zoom?: number }) | null>(
+    null
+  );
+  const [locating, setLocating] = useState(false);
   // Thème du tiroir mappé sur la palette chauffeur (`--d-*` + violet).
   const drawerTheme: DrawerTheme = {
     surface: "var(--d-surface)",
@@ -374,11 +380,21 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     if (online) void tick();
   }, [online, tick]);
 
-  // Dès la 1re position GPS connue : recharger immédiatement (sans attendre 15 s).
+  // Au montage : forcer un fix GPS FRAIS (déclenche le prompt de permission au
+  // besoin) → la carte ne reste pas bloquée sur le centre par défaut (Alger) en
+  // attendant le 1er relevé du watch (qui peut tarder 15-30 s).
+  useEffect(() => {
+    void refreshDriverPosition();
+  }, []);
+
+  // Dès la 1re position GPS connue : recharger immédiatement (sans attendre 15 s)
+  // ET centrer la carte sur la vraie position (garantit le recadrage même si le
+  // fit interne tardait — fin du « toujours sur Alger »).
   const gotFirstFix = useRef(false);
   useEffect(() => {
     if (coords && !gotFirstFix.current) {
       gotFirstFix.current = true;
+      setFocusMe({ lat: coords.latitude, lng: coords.longitude, zoom: 16.5 });
       void tick();
     }
   }, [coords, tick]);
@@ -467,13 +483,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     setHomeOpen(false);
   };
 
-  // Recentrage de la carte sur la position actuelle du chauffeur.
-  const [focusMe, setFocusMe] = useState<(LatLng & { zoom?: number }) | null>(
-    null
-  );
-  const [locating, setLocating] = useState(false);
-  // Au premier fix connu, centrer le point « moi » dans la zone visible (le bas
-  // est occupé par la barre de mise en ligne, réservé via le padding de la carte).
+  // Si une position est déjà connue au montage, centrer tout de suite.
   useEffect(() => {
     const c = coordsRef.current;
     if (c) setFocusMe({ lat: c.latitude, lng: c.longitude, zoom: 16.5 });
@@ -526,6 +536,13 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   };
 
   const me = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
+  // Centre de secours = dernière position connue côté serveur (présence) → la
+  // carte démarre PRÈS du chauffeur (sa wilaya), jamais sur Alger par défaut,
+  // même avant le 1er fix GPS du navigateur.
+  const presenceCenter =
+    gate.presenceLat != null && gate.presenceLng != null
+      ? { lat: gate.presenceLat, lng: gate.presenceLng }
+      : null;
   // Demandes RÉELLEMENT visibles = mêmes filtres que la page « Demandes »
   // (pas déjà proposées + filtre « je rentre chez moi »). Le compteur de
   // l'Accueil DOIT égaler la liste → plus de « 5 sur l'accueil, 0 dans Drive ».
@@ -546,6 +563,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         markers={me ? [{ id: "me", pos: me, kind: "me" }] : []}
         heatZones={home?.heatZones ?? []}
         focusTarget={focusMe}
+        fallbackCenter={presenceCenter}
         follow
         // Conserve l'instance MapLibre entre les visites de l'accueil : pas de
         // recréation du contexte WebGL → retour sur l'accueil immédiat.
@@ -559,34 +577,39 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           (DROITE). Toutes les options sont désormais dans le tiroir → l'accueil
           reste dégagé sur la carte (style Uber). */}
       <div className="absolute inset-x-3 top-3 z-10 grid grid-cols-3 items-start gap-2">
-        {/* GAUCHE — bouton menu (ouvre le tiroir) ; pastille = demandes en attente */}
+        {/* GAUCHE — bouton menu (ouvre le tiroir). Pas de pastille de comptage
+            ici : les demandes en attente sont déjà signalées par la carte de
+            réception et la barre « Voir N demandes » → on évite le doublon de
+            chiffre rouge qui se chevauchait avec la notification. */}
         <div className="flex justify-start">
           <PartnerMenuButton
             onClick={() => setMenuOpen(true)}
             theme={drawerTheme}
             label={tr("Menu", "القائمة")}
-            badge={reqCount}
           />
         </div>
 
-        {/* CENTRE — revenu du jour → ouvre Gains */}
+        {/* CENTRE — revenu du jour → ouvre Gains. Masqué pendant qu'une course
+            entrante est affichée (la carte de réception occupe le haut). */}
         <div className="flex justify-center">
-          <button
-            type="button"
-            onClick={() => router.push("/chauffeur/gains")}
-            className="flex items-center gap-1.5 rounded-[16px] border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
-            style={{ background: "#6315E8", borderColor: "#5009C9" }}
-          >
-            <span className="flex flex-col items-start leading-none">
-              <span className="drive-sora text-[18px] font-extrabold tracking-[-0.5px]">
-                {formatDA(home?.todayNet ?? 0)}
+          {!current && (
+            <button
+              type="button"
+              onClick={() => router.push("/chauffeur/gains")}
+              className="flex items-center gap-1.5 rounded-[16px] border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
+              style={{ background: "#6315E8", borderColor: "#5009C9" }}
+            >
+              <span className="flex flex-col items-start leading-none">
+                <span className="drive-sora text-[18px] font-extrabold tracking-[-0.5px]">
+                  {formatDA(home?.todayNet ?? 0)}
+                </span>
+                <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap opacity-85">
+                  {tr("Revenu du jour", "دخل اليوم")}
+                </span>
               </span>
-              <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap opacity-85">
-                {tr("Revenu du jour", "دخل اليوم")}
-              </span>
-            </span>
-            <ChevronRight className="size-3.5 shrink-0 text-white/80" />
-          </button>
+              <ChevronRight className="size-3.5 shrink-0 text-white/80" />
+            </button>
+          )}
         </div>
 
         {/* DROITE — GPS (recentrer) */}

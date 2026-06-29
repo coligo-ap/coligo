@@ -49,7 +49,10 @@ export function DIncoming({
   const female = ride.female_only;
 
   return (
-    <div className="absolute inset-x-0 top-[50px] z-[80] px-3">
+    // Positionnée SOUS les coins du bandeau haut (menu à gauche, GPS à droite)
+    // pour ne plus les recouvrir : le bandeau occupe ~12→58 px, la carte démarre
+    // en dessous (safe-area incluse).
+    <div className="absolute inset-x-0 top-[max(64px,calc(env(safe-area-inset-top)+58px))] z-[80] px-3">
       <div className="relative">
         {/* Anneau de notification pulsé (derrière la carte) */}
         <span

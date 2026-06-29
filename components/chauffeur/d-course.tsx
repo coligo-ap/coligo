@@ -8,13 +8,16 @@ import {
   Check,
   CheckCheck,
   ChevronRight,
+  Copy,
   Loader2,
+  MessageCircle,
   MessageSquare,
   Navigation,
   Phone,
   PhoneCall,
   Send,
   Share2,
+  Smartphone,
   Star,
   X,
   Zap,
@@ -34,7 +37,8 @@ import {
 } from "@/lib/drive/nav";
 import { useUnreadRideMessages } from "@/lib/drive/use-unread-messages";
 import { useRideCall } from "@/lib/call/use-ride-call";
-import { DriveMap } from "@/components/customer/drive/drive-map";
+import { useRoadPath } from "@/lib/drive/use-road-path";
+import { DriveMap, type LatLng } from "@/components/customer/drive/drive-map";
 import {
   CancelModal,
   copyText,
@@ -47,6 +51,7 @@ import {
   ReportModal,
   GO,
   RED,
+  ROSE,
   VIOLET,
   type SosContact,
 } from "@/components/customer/drive/drive-modals";
@@ -150,6 +155,8 @@ export function DCourse() {
   // direct → on regroupe « Coligo Call » et « Appeler le numéro » derrière une
   // seule action (sinon, Coligo Call est lancé directement).
   const [callMenu, setCallMenu] = useState(false);
+  // Feuille « Partager le suivi » (carte A → B + partage), façon client.
+  const [shareOpen, setShareOpen] = useState(false);
   const [sosContacts, setSosContacts] = useState<SosContact[]>([]);
   const [contactsOpen, setContactsOpen] = useState(false);
   // Appel in-app (audio + cam optionnelle) avec le client — numéro masqué.
@@ -257,6 +264,27 @@ export function DCourse() {
   const declined = useRef<Set<string>>(new Set());
   const coordsRef = useRef(coords);
   coordsRef.current = coords;
+
+  // Tracé ROUTIER réel (OSRM) du trajet — calculé en haut (hooks inconditionnels)
+  // pour dessiner A (départ client) → B (destination) sur la carte, comme côté
+  // client. Avant la prise en charge : approche véhicule → A en pointillé.
+  const meLL: LatLng | null = coords
+    ? { lat: coords.latitude, lng: coords.longitude }
+    : null;
+  const pickupLL: LatLng | null =
+    ride?.pickup_lat != null && ride?.pickup_lng != null
+      ? { lat: ride.pickup_lat, lng: ride.pickup_lng }
+      : null;
+  const destLL: LatLng | null =
+    ride?.dest_lat != null && ride?.dest_lng != null
+      ? { lat: ride.dest_lat, lng: ride.dest_lng }
+      : null;
+  const inProgressTop = ride?.status === "in_progress";
+  const approachPath = useRoadPath(
+    !inProgressTop ? meLL : null,
+    !inProgressTop ? pickupLL : null
+  );
+  const ridePath = useRoadPath(pickupLL, destLL);
 
   const refresh = useCallback(async () => {
     const c = coordsRef.current;
@@ -554,18 +582,21 @@ export function DCourse() {
     <div className="drive-jakarta drive-screen bg-[var(--d-page)]">
       <DriveMap
         markers={[
+          // Véhicule (moi) + A (départ client) + B (destination) TOUJOURS
+          // affichés → le trajet A → B se lit d'un coup d'œil, dans les deux
+          // états (prise en charge et course en cours), comme côté client.
           ...(me ? [{ id: "car", pos: me, kind: "car" as const }] : []),
-          ...(pickup && !inProgress
+          ...(pickup
             ? [
                 {
                   id: "cli",
                   pos: pickup,
-                  kind: "me" as const,
+                  kind: "pin" as const,
                   label: "A" as const,
                 },
               ]
             : []),
-          ...(dest && inProgress
+          ...(dest
             ? [
                 {
                   id: "dest",
@@ -576,8 +607,12 @@ export function DCourse() {
               ]
             : []),
         ]}
-        approach={!inProgress && me && pickup ? [me, pickup] : null}
-        route={inProgress && me && dest ? [me, dest] : null}
+        // Avant la prise en charge : approche routière véhicule → A (pointillé).
+        approach={
+          !inProgress && me && pickup ? (approachPath ?? [me, pickup]) : null
+        }
+        // Trajet A → B (route réelle OSRM, repli ligne droite) en continu.
+        route={pickup && dest ? (ridePath ?? [pickup, dest]) : null}
         padding={{ top: 90, bottom: 420, left: 60, right: 60 }}
       />
       <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
@@ -813,15 +848,9 @@ export function DCourse() {
           />
           {shareUrl && (
             <ActBtn
-              icon={
-                linkCopied ? (
-                  <Check className="size-5" />
-                ) : (
-                  <Share2 className="size-5" />
-                )
-              }
-              label={linkCopied ? "Copié ✓" : "Suivi"}
-              onClick={() => void copyShare()}
+              icon={<Share2 className="size-5" />}
+              label="Suivi"
+              onClick={() => setShareOpen(true)}
             />
           )}
           {inProgress && (
@@ -1053,6 +1082,114 @@ export function DCourse() {
         )}
         <GhostBtn onClick={() => setCallMenu(false)}>Annuler</GhostBtn>
       </Sheet>
+
+      {/* Partage du suivi — popup AVEC CARTE A → B (façon client) : aperçu du
+          trajet + envoi du lien public t/{token} (WhatsApp / SMS / copie). */}
+      {shareUrl && (
+        <Sheet open={shareOpen} onClose={() => setShareOpen(false)}>
+          <SheetTitle>Partager le suivi</SheetTitle>
+          <p className="mb-3 text-[13px] text-[var(--d-muted)]">
+            Vos proches suivent la course en direct (position live), sans
+            compte.
+          </p>
+          {/* Aperçu carte du trajet A → B */}
+          <DriveMap
+            className="relative h-[190px] w-full overflow-hidden rounded-[18px] border border-[var(--d-line)]"
+            markers={[
+              ...(pickup
+                ? [
+                    {
+                      id: "a",
+                      pos: pickup,
+                      kind: "pin" as const,
+                      label: "A" as const,
+                    },
+                  ]
+                : []),
+              ...(dest
+                ? [
+                    {
+                      id: "b",
+                      pos: dest,
+                      kind: "pin" as const,
+                      label: "B" as const,
+                    },
+                  ]
+                : []),
+            ]}
+            route={pickup && dest ? (ridePath ?? [pickup, dest]) : null}
+            padding={{ top: 44, bottom: 44, left: 44, right: 44 }}
+          />
+          {/* Rail A → B (adresses) */}
+          <div className="my-3 flex gap-2.5 rounded-[14px] bg-[var(--d-soft)] px-3 py-2.5">
+            <div className="flex w-3 shrink-0 flex-col items-center pt-1">
+              <span
+                className="size-1.5 rounded-full"
+                style={{ background: VIOLET }}
+              />
+              <span className="my-0.5 w-[1.5px] flex-1 bg-[var(--d-line)]" />
+              <span
+                className="size-1.5 rounded-full"
+                style={{ background: ROSE }}
+              />
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-2 text-[12px] font-semibold">
+              <span className="truncate">
+                {pickupAddr ?? "Point de départ du client"}
+              </span>
+              <span className="truncate">
+                {ride.dest_text ?? "Destination"}
+              </span>
+            </div>
+          </div>
+          {/* Partage : WhatsApp · SMS · Copie */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                window.open(
+                  `https://wa.me/?text=${encodeURIComponent(`Suivez ma course Coligo en direct : ${shareUrl}`)}`,
+                  "_blank"
+                )
+              }
+              className="drive-sora flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
+              style={{ background: GO }}
+            >
+              <MessageCircle className="size-4" /> WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                window.open(
+                  `sms:?body=${encodeURIComponent(`Suivez ma course Coligo en direct : ${shareUrl}`)}`,
+                  "_self"
+                )
+              }
+              className="drive-sora flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
+            >
+              <Smartphone className="size-4" /> SMS
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => void copyShare()}
+            className="drive-sora mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] text-[13.5px] font-bold"
+            style={
+              linkCopied
+                ? { borderColor: GO, color: GO }
+                : { borderColor: "var(--d-line)" }
+            }
+          >
+            {linkCopied ? (
+              <Check className="size-4" />
+            ) : (
+              <Copy className="size-4" />
+            )}
+            {linkCopied ? "Lien copié ✓" : "Copier le lien de suivi"}
+          </button>
+          <GhostBtn onClick={() => setShareOpen(false)}>Fermer</GhostBtn>
+        </Sheet>
+      )}
 
       {/* Appel in-app (sonnerie entrante/sortante + fenêtre d'appel Agora). */}
       {call.ui}

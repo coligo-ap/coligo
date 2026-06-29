@@ -116,6 +116,7 @@ export function DriveMap({
   className,
   padding = { top: 120, bottom: 340, left: 40, right: 40 },
   keepAlive = false,
+  fallbackCenter,
 }: {
   markers: Marker[];
   /** Tracé course (violet plein) : liste de points [départ → arrivée]. */
@@ -148,6 +149,12 @@ export function DriveMap({
    * canvas WebGL n'est pas recréé au retour sur la page → affichage immédiat.
    */
   keepAlive?: boolean;
+  /**
+   * Centre de SECOURS de la caméra quand aucun marqueur n'est encore disponible
+   * (ex. accueil chauffeur avant le 1er fix GPS) : évite de tomber sur Alger par
+   * défaut. Idéalement la dernière position connue côté serveur (présence).
+   */
+  fallbackCenter?: LatLng | null;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -271,7 +278,8 @@ export function DriveMap({
         target = el;
         keptContainer = el;
       }
-      const first = markers[0]?.pos ?? { lat: 36.7538, lng: 3.0588 };
+      const first = markers[0]?.pos ??
+        fallbackCenter ?? { lat: 36.7538, lng: 3.0588 };
       // Vue initiale : caméra de suivi mémorisée (pas de re-zoom au retour) ou
       // 1er marqueur à un zoom par défaut.
       const restore = follow ? lastFollowCam : null;

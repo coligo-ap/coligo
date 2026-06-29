@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Flame, LocateFixed } from "lucide-react";
-import { useDriverPosition } from "@/lib/native/use-driver-position";
+import {
+  useDriverPosition,
+  refreshDriverPosition,
+} from "@/lib/native/use-driver-position";
 import { MAP_STYLE_URL } from "@/lib/config/map";
 import { getDemandZones } from "@/app/(driver)/actions";
 import {
@@ -38,6 +41,12 @@ export function DriverHomeMap({
   const meMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
   const coords = useDriverPosition();
   const followedOnce = useRef(false);
+  // Force un fix GPS FRAIS au montage (prompt de permission au besoin) → la
+  // carte se cale sur la vraie position du livreur sans rester sur le centre par
+  // défaut en attendant le 1er relevé du watch (parité avec l'accueil chauffeur).
+  useEffect(() => {
+    void refreshDriverPosition();
+  }, []);
   // Zone de travail choisie par le livreur (dispatch par zone). Matérialisée
   // par un disque violet sur la carte ; quand elle est définie, on cadre dessus
   // au lieu de suivre le GPS.

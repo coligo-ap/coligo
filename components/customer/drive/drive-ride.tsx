@@ -21,8 +21,8 @@ import { createClient } from "@/lib/supabase/client";
 import { cn, formatDA } from "@/lib/utils";
 import { haversineKm } from "@/lib/delivery/distance";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
-import { routeEstimate } from "@/app/(customer)/actions";
-import { DriveMap, type LatLng } from "./drive-map";
+import { useRoadPath } from "@/lib/drive/use-road-path";
+import { DriveMap } from "./drive-map";
 import { ChAvatar } from "./ch-avatar";
 import { DriverBadgePill } from "@/components/drive/driver-badge";
 import { getDriverBadge } from "@/lib/drive/driver-badge";
@@ -770,37 +770,6 @@ function Tag({
  * avance) ou l'arrivée de > 50 m — sinon on garde le tracé en l'état.
  * Fallback : l'appelant affiche la ligne droite tant que path est null.
  */
-function useRoadPath(from: LatLng | null, to: LatLng | null) {
-  const [path, setPath] = useState<LatLng[] | null>(null);
-  const lastRef = useRef<{ from: LatLng; to: LatLng } | null>(null);
-  useEffect(() => {
-    if (!from || !to) {
-      lastRef.current = null;
-      setPath(null);
-      return;
-    }
-    const last = lastRef.current;
-    if (
-      last &&
-      haversineKm(last.from, from) < 0.15 &&
-      haversineKm(last.to, to) < 0.05
-    )
-      return;
-    lastRef.current = { from, to };
-    let cancelled = false;
-    void routeEstimate({ from, to })
-      .then((r) => {
-        if (!cancelled && r.ok && r.geometry) setPath(r.geometry);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [from?.lat, from?.lng, to?.lat, to?.lng]);
-  return path;
-}
-
 function EnrouteScreen({
   ctx,
   ride,
@@ -938,12 +907,12 @@ function EnrouteScreen({
       <DriveMap
         markers={[
           ...(chPos ? [{ id: "car", pos: chPos, kind: "car" as const }] : []),
-          ...(pickupPos && !inProgress
+          ...(pickupPos
             ? [
                 {
                   id: "me",
                   pos: pickupPos,
-                  kind: "me" as const,
+                  kind: "pin" as const,
                   label: "A" as const,
                 },
               ]
