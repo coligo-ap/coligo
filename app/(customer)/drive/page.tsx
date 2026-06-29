@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
 
 export default async function DrivePage() {
   // Session mémoïsée (partagée avec CustomerShell → pas de double auth).
-  if (!(await getAuthUser())) redirect("/se-connecter?next=/drive");
+  const user = await getAuthUser();
+  if (!user) redirect("/se-connecter?next=/drive");
 
   // Disponibilité Drive (super-admin) : masqué → retour accueil ;
   // bientôt/maintenance → message ; actif → l'app Drive.
@@ -34,5 +35,5 @@ export default async function DrivePage() {
       </CustomerShell>
     );
   }
-  return <DriveView />;
+  return <DriveView userId={user.id} />;
 }

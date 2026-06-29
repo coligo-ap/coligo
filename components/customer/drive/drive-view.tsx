@@ -133,15 +133,17 @@ function fallbackQuotes(distanceKm: number): Record<Gamme, DriveQuote> {
   return { classic: make(1), confort: make(1.3), moto: make(0.85) };
 }
 
-export function DriveView() {
+export function DriveView({ userId }: { userId: string }) {
   const t = useTranslations("drive");
   const router = useRouter();
   // Contexte Drive (solde, récents, dernière course, options) CACHÉ via TanStack
   // dans le QueryClient persistant du groupe client : au retour sur /drive le
   // contexte est DÉJÀ là (re-affichage instantané, comme /commandes) au lieu
   // d'être re-fetché à chaque montage → plus de « rechargement » de l'écran.
+  // Clé SCOPÉE PAR UTILISATEUR (comme les autres loaders) → aucune fuite de
+  // contexte entre comptes sur un même onglet.
   const { data: ctx = null } = useQuery({
-    queryKey: ["drive-context"],
+    queryKey: ["drive-context", userId],
     queryFn: getDriveContext,
     staleTime: 60_000,
   });
