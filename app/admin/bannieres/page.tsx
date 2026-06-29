@@ -1,77 +1,9 @@
-import { createAdminClient } from "@/lib/supabase/admin";
-import { BannersManager } from "@/components/admin/bannieres/banners-manager";
-import type { AdminBanner } from "@/components/admin/bannieres/banners-manager";
+import { BannersView } from "@/components/admin/bannieres/banners-view";
 
 export const dynamic = "force-dynamic";
 
-// L'accès super-admin (+ MFA) est garanti par app/admin/layout.tsx.
-export default async function AdminBannersPage() {
-  const admin = createAdminClient();
-
-  // promo_banners hors database.types.ts généré → accès casté.
-  type Selectable = {
-    select: (c: string) => {
-      order: (
-        col: string,
-        opts: { ascending: boolean }
-      ) => Promise<{ data: unknown }>;
-    };
-  };
-  const { data } = await (admin.from as unknown as (t: string) => Selectable)(
-    "promo_banners"
-  )
-    .select(
-      "id, title, subtitle, cta_label, image_url, image_fit, link, accent, position, active, starts_at, ends_at"
-    )
-    .order("position", { ascending: true });
-
-  // Zones de ciblage (mig 0249) — chargées en bloc puis regroupées par bannière.
-  type ZoneRow = {
-    banner_id: string;
-    label: string | null;
-    center_lat: number | null;
-    center_lng: number | null;
-    radius_km: number | null;
-  };
-  const { data: zoneData } = await (
-    admin.from as unknown as (t: string) => {
-      select: (c: string) => Promise<{ data: ZoneRow[] | null }>;
-    }
-  )("promo_banner_zones").select(
-    "banner_id, label, center_lat, center_lng, radius_km"
-  );
-  const zonesByBanner = new Map<string, AdminBanner["zones"]>();
-  for (const z of zoneData ?? []) {
-    if (z.center_lat == null || z.center_lng == null || z.radius_km == null)
-      continue;
-    const arr = zonesByBanner.get(z.banner_id) ?? [];
-    arr.push({
-      label: z.label ?? "",
-      center_lat: z.center_lat,
-      center_lng: z.center_lng,
-      radius_km: Number(z.radius_km),
-    });
-    zonesByBanner.set(z.banner_id, arr);
-  }
-  const banners = ((data ?? []) as AdminBanner[]).map((b) => ({
-    ...b,
-    zones: zonesByBanner.get(b.id) ?? [],
-  }));
-
-  return (
-    <div className="mx-auto max-w-3xl p-4 lg:p-6">
-      <header className="mb-5">
-        <h1 className="text-foreground text-xl font-extrabold">
-          Bannières éditoriales
-        </h1>
-        <p className="text-muted mt-1 text-sm">
-          Mises en avant affichées en haut de l&apos;accueil client (carrousel).
-          Purement visuel — sans lien avec les codes promo. Les bannières
-          inactives ou hors fenêtre de dates ne sont pas affichées.
-        </p>
-      </header>
-
-      <BannersManager banners={banners} />
-    </div>
-  );
+// Route transverse conservée (super-admin + MFA via app/admin/layout.tsx).
+// Même vue que l'onglet Bannières du hub Marketing (/admin/marketing).
+export default function AdminBannersPage() {
+  return <BannersView />;
 }
