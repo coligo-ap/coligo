@@ -271,7 +271,11 @@ export function CatalogView({
       );
     });
 
-    if (sort === "manual") return list; // ordre du tableau (= position serveur)
+    // En vue GROUPÉE, on affiche TOUJOURS l'ordre manuel (= positions serveur,
+    // le classement choisi par le commerçant) : c'est ce qui permet de
+    // glisser/réordonner de façon cohérente et ce que voit le client. Le tri
+    // (prix, nom, stock…) ne s'applique qu'en vue grille (non groupée).
+    if (sort === "manual" || grouped) return list;
 
     const sorted = [...list];
     sorted.sort((a, b) => {
@@ -289,7 +293,7 @@ export function CatalogView({
       }
     });
     return sorted;
-  }, [prods, query, categoryId, sort]);
+  }, [prods, query, categoryId, sort, grouped]);
 
   const groups = useMemo(() => {
     if (!grouped) return null;
@@ -329,10 +333,11 @@ export function CatalogView({
   }
 
   const noQuery = query.trim() === "";
-  // DnD : produits réordonnables ET déplaçables ENTRE catégories en vue groupée,
-  // tri manuel, hors sélection et hors recherche (positions ambiguës en filtré).
-  const productsDraggable =
-    grouped && sort === "manual" && !selectMode && noQuery;
+  // DnD : produits réordonnables ET déplaçables ENTRE catégories dès qu'on est en
+  // vue groupée (qui affiche toujours l'ordre manuel), hors sélection/recherche.
+  // Plus de condition sur le tri : en groupé l'ordre EST l'ordre manuel, donc le
+  // glisser et les boutons sont toujours cohérents et visibles.
+  const productsDraggable = grouped && !selectMode && noQuery;
   // DnD : catégories réordonnables en vue groupée, hors sélection/recherche.
   const categoriesDraggable = grouped && !selectMode && noQuery;
 
@@ -808,17 +813,21 @@ export function CatalogView({
         </div>
 
         <div className="flex items-center gap-2">
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortKey)}
-            className="border-border-strong focus:ring-primary-400 h-11 rounded-[12px] border bg-white px-3 text-sm focus:ring-2 focus:outline-none"
-          >
-            {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
-              <option key={k} value={k}>
-                {SORT_LABELS[k]}
-              </option>
-            ))}
-          </select>
+          {/* Le tri ne s'applique qu'en vue GRILLE (non groupée). En vue groupée
+              l'ordre est toujours le classement manuel (réordonnable). */}
+          {!grouped && (
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="border-border-strong focus:ring-primary-400 h-11 rounded-[12px] border bg-white px-3 text-sm focus:ring-2 focus:outline-none"
+            >
+              {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+                <option key={k} value={k}>
+                  {SORT_LABELS[k]}
+                </option>
+              ))}
+            </select>
+          )}
 
           {/* Outils secondaires regroupés dans UN menu (la barre restait
               chargée sur mobile avec 3 boutons toujours visibles). */}
