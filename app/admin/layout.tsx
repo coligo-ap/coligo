@@ -16,11 +16,14 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireSuperAdmin();
-
-  // État initial des alertes (hydrate le provider → pas de flash). Le live est
-  // ensuite assuré par TanStack Query (focus + poll 60 s) via l'endpoint gardé.
-  const initialAlerts = await getAdminAlerts();
+  // Auth + alertes EN PARALLÈLE (perf : le coût commun à toutes les pages admin
+  // ne paie plus 2 allers-retours en série). getAdminAlerts est lui-même gardé
+  // is_super_admin côté RPC → s'il s'exécute pour un non-admin il renvoie [],
+  // sans fuite ; requireSuperAdmin redirige de toute façon avant tout rendu.
+  const [, initialAlerts] = await Promise.all([
+    requireSuperAdmin(),
+    getAdminAlerts(),
+  ]);
 
   return (
     <ConfirmProvider>

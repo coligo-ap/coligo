@@ -2,6 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminReportsList } from "@/components/admin/admin-reports-list";
 import {
+  AdminRideReportsList,
+  type RideReportRow,
+} from "@/components/admin/admin-ride-reports-list";
+import {
   AdminRefundClaims,
   type RefundClaimRow,
 } from "@/components/admin/admin-refund-claims";
@@ -31,31 +35,39 @@ type ReportRow = {
 
 export default async function AdminReportsPage() {
   const supabase = await createClient();
-  // IMPORTANT : appeler supabase.rpc EN MÉTHODE (this lié). Extraire la fonction
-  // (`const rpc = supabase.rpc`) casse `this.rest` → exception serveur.
-  const { data, error } = await supabase.rpc(
-    "admin_delivery_reports" as never,
-    { p_limit: 300 } as never
-  );
-  if (error) {
-    console.error("admin_delivery_reports:", error.message);
-  }
-  const rows = (Array.isArray(data) ? data : []) as ReportRow[];
-
-  // Réclamations d'avance no-show (mig 0160) — service role (table gardée RLS).
   const admin = createAdminClient();
-  const { data: claimRows } = await admin
-    .from("driver_refund_claims")
-    .select(
-      `id, order_id, advance_da, reason, status, goods_decision, admin_note,
-       created_at, driver_id,
-       drivers ( full_name, phone ),
-       orders ( order_number ),
-       merchants ( name ),
-       customers ( noshow_count )`
-    )
-    .order("created_at", { ascending: false })
-    .limit(200);
+
+  // Les 3 sources sont indépendantes → fetch EN PARALLÈLE (perf : on ne paie pas
+  // 3 allers-retours en série). RPC appelées EN MÉTHODE (this lié, cf. bind).
+  const [deliveryRes, rideRes, claimRes] = await Promise.all([
+    supabase.rpc("admin_delivery_reports" as never, { p_limit: 300 } as never),
+    supabase.rpc("admin_ride_reports" as never, { p_limit: 300 } as never),
+    admin
+      .from("driver_refund_claims")
+      .select(
+        `id, order_id, advance_da, reason, status, goods_decision, admin_note,
+         created_at, driver_id,
+         drivers ( full_name, phone ),
+         orders ( order_number ),
+         merchants ( name ),
+         customers ( noshow_count )`
+      )
+      .order("created_at", { ascending: false })
+      .limit(200),
+  ]);
+
+  if (deliveryRes.error)
+    console.error("admin_delivery_reports:", deliveryRes.error.message);
+  if (rideRes.error)
+    console.error("admin_ride_reports:", rideRes.error.message);
+
+  const rows = (
+    Array.isArray(deliveryRes.data) ? deliveryRes.data : []
+  ) as ReportRow[];
+  const rideRows = (
+    Array.isArray(rideRes.data) ? rideRes.data : []
+  ) as RideReportRow[];
+  const claimRows = claimRes.data;
 
   type RawClaim = {
     id: string;
@@ -120,6 +132,15 @@ export default async function AdminReportsPage() {
 
       <h2 className="mb-2 text-lg font-semibold">Signalements de livraison</h2>
       <AdminReportsList rows={rows} />
+
+      <h2 className="mt-8 mb-2 text-lg font-semibold">
+        Signalements de course (Coligo Drive)
+      </h2>
+      <p className="text-muted mb-3 text-sm">
+        Litiges signalés sur une course (client ↔ chauffeur). Traitez chaque
+        cas.
+      </p>
+      <AdminRideReportsList rows={rideRows} />
     </div>
   );
 }

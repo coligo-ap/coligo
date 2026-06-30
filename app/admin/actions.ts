@@ -613,6 +613,30 @@ export async function resolveDeliveryReport(input: {
   return { ok: true };
 }
 
+/**
+ * Modération d'un signalement de COURSE (Drive, mig 0288). open / reviewed /
+ * dismissed (+ décision libre optionnelle). Gardé is_super_admin (RPC + ici).
+ */
+export async function resolveRideReport(input: {
+  reportId: string;
+  status: "open" | "reviewed" | "dismissed";
+  decision?: string | null;
+}): Promise<AdminFormState> {
+  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc(
+    "admin_resolve_ride_report" as never,
+    {
+      p_report_id: input.reportId,
+      p_status: input.status,
+      p_decision: input.decision ?? null,
+    } as never
+  );
+  if (error) return { error: error.message };
+  revalidatePath("/admin/reports");
+  return { ok: true };
+}
+
 // =============================================================================
 // Pouvoirs super-admin sur les commandes (mig 0097).
 // =============================================================================
