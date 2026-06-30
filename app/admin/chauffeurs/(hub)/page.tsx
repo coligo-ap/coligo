@@ -1,11 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { isSuperAdmin } from "@/lib/auth/admin";
-import {
-  ChauffeurList,
-  type ChauffeurRow,
-} from "@/components/admin/chauffeurs/chauffeur-list";
+import { ChauffeurList } from "@/components/admin/chauffeurs/chauffeur-list";
+import { getChauffeurRowsForAdmin } from "@/lib/data/admin-chauffeurs";
 
 export const dynamic = "force-dynamic";
 
@@ -14,18 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminChauffeursPage() {
   if (!(await isSuperAdmin())) redirect("/admin");
 
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("chauffeurs")
-    .select(
-      "id, full_name, phone, gamme, vehicle_make, vehicle_model, vehicle_plate, is_verified, is_frozen, is_blocked, frozen_reason, submitted_at"
-    )
-    .order("created_at", { ascending: false })
-    .limit(2000);
-
-  const rows = (data ?? []) as (ChauffeurRow & {
-    submitted_at: string | null;
-  })[];
+  const rows = await getChauffeurRowsForAdmin();
   const pendingCount = rows.filter(
     (c) => !c.is_verified && !c.is_blocked && c.submitted_at
   ).length;
@@ -41,7 +27,7 @@ export default async function AdminChauffeursPage() {
           valider — ouvrir l&apos;onglet Inscriptions →
         </Link>
       )}
-      <ChauffeurList rows={rows} />
+      <ChauffeurList initialRows={rows} />
     </div>
   );
 }

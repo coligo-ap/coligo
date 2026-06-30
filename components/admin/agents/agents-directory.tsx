@@ -7,11 +7,22 @@ import {
   SearchInput,
   usePaginatedList,
 } from "@/components/admin/shared/list-controls";
+import { useAdminList } from "@/lib/admin/use-admin-list";
 import type { AgentRow } from "@/lib/data/admin-agents";
 
 // Annuaire des agents ACTIFS (hors demandes en attente / refusées, qui vivent
 // dans l'onglet Inscriptions) — recherche + pagination.
-export function AgentsDirectory({ agents }: { agents: AgentRow[] }) {
+export function AgentsDirectory({
+  initialAgents,
+}: {
+  initialAgents: AgentRow[];
+}) {
+  // Cache TanStack Query (réaffichage instantané au retour + refetch silencieux).
+  const agents = useAdminList<AgentRow>(
+    "admin-agents",
+    "/api/admin/agents",
+    initialAgents
+  );
   const active = useMemo(
     () => agents.filter((a) => !["pending", "rejected"].includes(a.status)),
     [agents]

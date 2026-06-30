@@ -6,6 +6,7 @@ import {
   SearchInput,
   usePaginatedList,
 } from "@/components/admin/shared/list-controls";
+import { useAdminList } from "@/lib/admin/use-admin-list";
 
 export type ChauffeurRow = {
   id: string;
@@ -25,7 +26,18 @@ function vehicleOf(c: ChauffeurRow) {
   return [c.vehicle_make, c.vehicle_model].filter(Boolean).join(" ") || "—";
 }
 
-export function ChauffeurList({ rows }: { rows: ChauffeurRow[] }) {
+export function ChauffeurList({
+  initialRows,
+}: {
+  initialRows: ChauffeurRow[];
+}) {
+  // Cache TanStack Query (réaffichage instantané au retour de nav + refetch
+  // silencieux), hydraté par le rendu serveur.
+  const rows = useAdminList<ChauffeurRow>(
+    "admin-chauffeurs",
+    "/api/admin/chauffeurs",
+    initialRows
+  );
   const {
     query,
     setQuery,

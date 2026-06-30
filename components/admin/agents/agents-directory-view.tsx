@@ -16,7 +16,7 @@ export async function AgentsDirectoryView() {
           partenariat se valident dans l&apos;onglet « Inscriptions ».
         </p>
       </header>
-      <AgentsDirectory agents={agents} />
+      <AgentsDirectory initialAgents={agents} />
       <ModulePaymentAccount scope="partner" />
     </div>
   );
