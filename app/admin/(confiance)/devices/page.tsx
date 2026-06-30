@@ -1,6 +1,13 @@
-import { AlertTriangle, MapPin, MonitorSmartphone, Search } from "lucide-react";
+import {
+  AlertTriangle,
+  Ban,
+  MapPin,
+  MonitorSmartphone,
+  Search,
+} from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cn } from "@/lib/utils";
+import { IpActions, UserDisconnect } from "@/components/admin/device-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +89,14 @@ export default async function AdminDevicesPage({
   const rows = (rowsRaw ?? []) as DeviceRow[];
   const shared = (sharedRaw ?? []) as SharedIp[];
 
+  // IP déjà bloquées (mig 0287) → pour afficher le bon bouton (Bloquer/Débloquer).
+  // blocked_ips hors types générés → .from bindé + cast (cf. reference_supabase_rpc_bind).
+  const fromB = admin.from.bind(admin) as unknown as (t: string) => {
+    select: (c: string) => Promise<{ data: { ip: string }[] | null }>;
+  };
+  const { data: blkRaw } = await fromB("blocked_ips").select("ip");
+  const blockedSet = new Set((blkRaw ?? []).map((r) => r.ip));
+
   return (
     <div className="mx-auto max-w-5xl p-4 lg:p-6">
       <header className="mb-5">
@@ -122,6 +137,12 @@ export default async function AdminDevicesPage({
                   <span className="text-muted">
                     {[s.city, s.country].filter(Boolean).join(", ") || "—"}
                   </span>
+                  {blockedSet.has(s.ip) && (
+                    <span className="bg-danger-100 text-danger-700 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold">
+                      <Ban className="size-3" />
+                      Bloquée
+                    </span>
+                  )}
                   <span className="text-muted ml-auto">
                     {fmtDate(s.last_seen_at)}
                   </span>
@@ -132,6 +153,9 @@ export default async function AdminDevicesPage({
                     ({s.roles.map((r) => ROLE_LABEL[r] ?? r).join(", ")})
                   </span>
                 </p>
+                <div className="mt-2">
+                  <IpActions ip={s.ip} blocked={blockedSet.has(s.ip)} />
+                </div>
               </div>
             ))}
           </div>
@@ -176,6 +200,7 @@ export default async function AdminDevicesPage({
                 <th className="px-3 py-2">Localisation</th>
                 <th className="px-3 py-2">Dernière activité</th>
                 <th className="px-3 py-2 text-right">Sessions</th>
+                <th className="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-border divide-y">
@@ -251,6 +276,12 @@ export default async function AdminDevicesPage({
                   </td>
                   <td className="px-3 py-2 text-right font-bold tabular-nums">
                     {r.hits}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      <UserDisconnect userId={r.user_id} />
+                      <IpActions ip={r.ip} blocked={blockedSet.has(r.ip)} />
+                    </div>
                   </td>
                 </tr>
               ))}

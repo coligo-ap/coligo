@@ -25,6 +25,42 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   });
 }
 
+// Cache par-IP du statut de blocage (mig 0287). Évite un appel RPC par requête :
+// 1 appel / IP / 60 s max. Fail-open sur timeout (sécurité best-effort qui ne
+// casse jamais la navigation sur lien instable). La déconnexion forcée des
+// sessions reste, elle, immédiate côté admin.
+const ipBlockCache = new Map<string, { blocked: boolean; at: number }>();
+const IP_BLOCK_TTL = 60_000;
+
+async function isIpBlockedCached(
+  supabase: ReturnType<typeof createServerClient<Database>>,
+  ip: string
+): Promise<boolean> {
+  if (!ip) return false;
+  const hit = ipBlockCache.get(ip);
+  if (hit && Date.now() - hit.at < IP_BLOCK_TTL) return hit.blocked;
+  // Le builder rpc est un PromiseLike (pas un vrai Promise) → on le wrappe dans
+  // une async IIFE pour withTimeout, et on garde l'appel EN MÉTHODE (this lié).
+  const res = await withTimeout(
+    (async () =>
+      supabase.rpc("is_ip_blocked" as never, { p_ip: ip } as never))(),
+    1500
+  );
+  if (res === null) return false; // timeout → fail-open, pas de mise en cache
+  const blocked = (res as { data?: unknown }).data === true;
+  ipBlockCache.set(ip, { blocked, at: Date.now() });
+  return blocked;
+}
+
+/** IP client (même extraction que la télémétrie : x-forwarded-for en tête). */
+function clientIp(request: NextRequest): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    ""
+  );
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -90,6 +126,29 @@ export async function updateSession(request: NextRequest) {
     });
     return redirectResponse;
   };
+
+  // ===========================================================================
+  // BLOCAGE D'IP (anti-fraude/abus, mig 0287). Si l'IP de la requête est bannie :
+  //   • requête API → 403 JSON,
+  //   • page → réécrite vers /bloque (URL conservée, contenu « accès bloqué »).
+  // Exemptions : /bloque (évite la boucle) et /auth (laisse la déconnexion se
+  // faire proprement). Le check est caché par IP (60 s) et fail-open sur timeout
+  // → aucun impact sur la nav normale.
+  // ===========================================================================
+  if (path !== "/bloque" && !path.startsWith("/auth")) {
+    if (await isIpBlockedCached(supabase, clientIp(request))) {
+      if (path.startsWith("/api")) {
+        return new NextResponse(JSON.stringify({ error: "ip_blocked" }), {
+          status: 403,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      const url = request.nextUrl.clone();
+      url.pathname = "/bloque";
+      url.search = "";
+      return NextResponse.rewrite(url);
+    }
+  }
 
   // ===========================================================================
   // ISOLATION DES RÔLES (anti-fraude) — un livreur reste DANS son espace.
