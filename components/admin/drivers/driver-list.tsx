@@ -9,6 +9,7 @@ import {
   SearchInput,
   usePaginatedList,
 } from "@/components/admin/shared/list-controls";
+import { useAdminList } from "@/lib/admin/use-admin-list";
 
 export type DriverRow = {
   id: string;
@@ -32,7 +33,14 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function DriverList({ rows }: { rows: DriverRow[] }) {
+export function DriverList({ initialRows }: { initialRows: DriverRow[] }) {
+  // Cache TanStack Query (réaffichage instantané au retour de nav + refetch
+  // silencieux), hydraté par le rendu serveur.
+  const rows = useAdminList<DriverRow>(
+    "admin-drivers",
+    "/api/admin/drivers",
+    initialRows
+  );
   const {
     query,
     setQuery,

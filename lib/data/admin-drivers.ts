@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { DriverRow } from "@/components/admin/drivers/driver-list";
 
 // Livreurs en attente de validation = livreurs (non bloqués) ayant au moins un
 // document avec status='pending' (mig 0112) à examiner. La revue des pièces +
@@ -47,4 +48,53 @@ export async function getDriverRegistrations(): Promise<DriverRegistration[]> {
       pendingDocs: counts.get(d.id) ?? 0,
     }))
     .sort((a, b) => a.created_at.localeCompare(b.created_at));
+}
+
+/**
+ * Annuaire livreurs pour l'admin (lignes + stats réseau), partagé par la page
+ * (initialData) et l'endpoint /api/admin/drivers (cache TanStack Query).
+ */
+export async function getDriverRowsForAdmin(): Promise<DriverRow[]> {
+  const admin = createAdminClient();
+  const { data: drivers } = await admin
+    .from("drivers")
+    .select(
+      "id, full_name, phone, is_frozen, is_blocked, is_verified, avatar_url, created_at"
+    )
+    .order("created_at", { ascending: false })
+    .limit(2000);
+
+  const driverIds = (drivers ?? []).map((d) => d.id);
+  const { data: links } = driverIds.length
+    ? await admin
+        .from("merchant_drivers")
+        .select("driver_id, status")
+        .in("driver_id", driverIds)
+    : { data: [] };
+
+  const stats = new Map<
+    string,
+    { active: number; pending: number; blocked: number }
+  >();
+  for (const l of links ?? []) {
+    const cur = stats.get(l.driver_id) ?? { active: 0, pending: 0, blocked: 0 };
+    cur[l.status as "active" | "pending" | "blocked"] += 1;
+    stats.set(l.driver_id, cur);
+  }
+
+  return (drivers ?? []).map((d) => {
+    const s = stats.get(d.id) ?? { active: 0, pending: 0, blocked: 0 };
+    return {
+      id: d.id,
+      full_name: d.full_name,
+      phone: d.phone,
+      is_frozen: d.is_frozen,
+      is_blocked: d.is_blocked,
+      is_verified: d.is_verified,
+      avatar_url: d.avatar_url,
+      active: s.active,
+      pending: s.pending,
+      blocked: s.blocked,
+    };
+  });
 }
