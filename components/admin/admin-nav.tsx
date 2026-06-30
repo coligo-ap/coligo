@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   Bike,
   Car,
@@ -12,13 +10,15 @@ import {
   Store,
   Wallet,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import type { AlertDomain } from "@/lib/alerts/alert-model";
 
 // =============================================================================
 // Navigation super-admin regroupée en 8 DOMAINES fonctionnels (chaque domaine
 // est un hub à onglets — la sous-navigation se fait via les onglets du hub).
 // `match` = préfixes de routes supplémentaires appartenant au domaine (pour
-// l'état actif). `badge` = compteur live affiché sur le domaine.
+// l'état actif). `domain` = clé d'alerte (mig 0274) : le badge/pastille de
+// gravité affiché sur le domaine est DÉRIVÉ du moteur d'alertes (plus de
+// compteurs ad hoc câblés à la main).
 // =============================================================================
 
 export type AdminDomain = {
@@ -27,7 +27,8 @@ export type AdminDomain = {
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
   match?: string[];
-  badge?: "late" | "payouts" | "merchant";
+  /** Clé du moteur d'alertes → pilote le badge de gravité + compteur. */
+  domain: AlertDomain;
 };
 
 export const ADMIN_DOMAINS: AdminDomain[] = [
@@ -37,50 +38,55 @@ export const ADMIN_DOMAINS: AdminDomain[] = [
     icon: LayoutDashboard,
     exact: true,
     match: ["/admin/orders", "/admin/alertes"],
-    badge: "late",
+    domain: "pilotage",
   },
   {
     href: "/admin/merchants",
     label: "Commerçants",
     icon: Store,
-    badge: "merchant",
+    domain: "commercants",
   },
   {
     href: "/admin/drivers",
     label: "Livraison",
     icon: Bike,
     match: ["/admin/livraison"],
+    domain: "livraison",
   },
   {
     href: "/admin/chauffeurs",
     label: "Coligo Drive",
     icon: Car,
     match: ["/admin/drive"],
+    domain: "drive",
   },
   {
     href: "/admin/coligo-pay",
     label: "Coligo Pay & Finances",
     icon: Wallet,
     match: ["/admin/agents", "/admin/recharges", "/admin/versements"],
-    badge: "payouts",
+    domain: "finances",
   },
   {
     href: "/admin/marketing",
     label: "Marketing",
     icon: Megaphone,
     match: ["/admin/bannieres", "/admin/notifications"],
+    domain: "marketing",
   },
   {
     href: "/admin/reports",
     label: "Confiance & Sécurité",
     icon: ShieldCheck,
     match: ["/admin/devices", "/admin/security"],
+    domain: "confiance",
   },
   {
     href: "/admin/controle",
     label: "Plateforme",
     icon: Settings2,
     match: ["/admin/settings", "/admin/config", "/admin/zones"],
+    domain: "plateforme",
   },
 ];
 
@@ -96,64 +102,4 @@ export function isAdminDomainActive(pathname: string, d: AdminDomain): boolean {
     : prefixMatches(pathname, d.href);
   if (hrefHit) return true;
   return (d.match ?? []).some((m) => prefixMatches(pathname, m));
-}
-
-// Barre horizontale (legacy, conservée). La nav principale = AdminShell (sidebar).
-export function AdminNav({
-  lateCount,
-  payoutsCount = 0,
-  merchantPendingCount = 0,
-}: {
-  lateCount: number;
-  payoutsCount?: number;
-  merchantPendingCount?: number;
-}) {
-  const pathname = usePathname();
-
-  return (
-    <nav className="scrollbar-hide hidden items-center gap-1 overflow-x-auto text-sm lg:flex">
-      {ADMIN_DOMAINS.map((d) => {
-        const Icon = d.icon;
-        const active = isAdminDomainActive(pathname, d);
-        const count =
-          d.badge === "late"
-            ? lateCount
-            : d.badge === "payouts"
-              ? payoutsCount
-              : d.badge === "merchant"
-                ? merchantPendingCount
-                : 0;
-        const danger = d.badge === "late";
-        return (
-          <Link
-            key={d.href}
-            href={d.href}
-            className={cn(
-              "relative inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 font-medium transition-colors",
-              active
-                ? danger
-                  ? "bg-danger-50 text-danger-700"
-                  : "bg-primary-50 text-primary-700"
-                : danger && count > 0
-                  ? "text-danger-700 hover:bg-danger-50"
-                  : "text-muted hover:bg-surface-2 hover:text-foreground"
-            )}
-          >
-            <Icon className="size-4" />
-            {d.label}
-            {count > 0 && (
-              <span
-                className={cn(
-                  "inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums",
-                  danger ? "bg-danger-500" : "bg-warning-500"
-                )}
-              >
-                {count}
-              </span>
-            )}
-          </Link>
-        );
-      })}
-    </nav>
-  );
 }

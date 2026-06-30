@@ -10,26 +10,21 @@ import {
   isAdminDomainActive,
   type AdminDomain,
 } from "./admin-nav";
+import {
+  DomainBadge,
+  useDomainSummary,
+} from "@/components/admin/admin-domain-badge";
 
 const KEY = "coligo_admin_sidebar_open";
 
 /**
  * DRAWER DESKTOP du super-admin : barre latérale repliable (240px ↔ 64px,
  * état persisté). Navigation regroupée en 8 DOMAINES (chaque domaine = un hub
- * à onglets). Sur mobile, la navigation reste le drawer existant
- * (AdminMobileNav) — la sidebar n'apparaît qu'à partir de lg.
+ * à onglets). Le badge de gravité par domaine est DÉRIVÉ du moteur d'alertes
+ * (mig 0274) via `useAdminAlerts` — plus aucun compteur câblé à la main. Sur
+ * mobile, la navigation reste le drawer existant (AdminMobileNav).
  */
-export function AdminShell({
-  lateCount,
-  payoutsCount = 0,
-  merchantPendingCount = 0,
-  children,
-}: {
-  lateCount: number;
-  payoutsCount?: number;
-  merchantPendingCount?: number;
-  children: React.ReactNode;
-}) {
+export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(true);
   const [hydrated, setHydrated] = useState(false);
@@ -44,51 +39,14 @@ export function AdminShell({
     });
   };
 
-  const item = (d: AdminDomain) => {
-    const Icon = d.icon;
-    const active = isAdminDomainActive(pathname, d);
-    const count =
-      d.badge === "late"
-        ? lateCount
-        : d.badge === "payouts"
-          ? payoutsCount
-          : d.badge === "merchant"
-            ? merchantPendingCount
-            : 0;
-    const danger = d.badge === "late";
-    return (
-      <Link
-        key={d.href}
-        href={d.href}
-        title={d.label}
-        className={cn(
-          "relative flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-sm font-medium transition-colors",
-          !open && "justify-center px-0",
-          active
-            ? danger
-              ? "bg-danger-50 text-danger-700"
-              : "bg-primary-50 text-primary-700"
-            : danger && count > 0
-              ? "text-danger-700 hover:bg-danger-50"
-              : "text-muted hover:bg-surface-2 hover:text-foreground"
-        )}
-      >
-        <Icon className="size-4 shrink-0" />
-        {open && <span className="truncate">{d.label}</span>}
-        {count > 0 && (
-          <span
-            className={cn(
-              "inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums",
-              danger ? "bg-danger-500" : "bg-warning-500",
-              !open && "absolute -top-0.5 -right-0.5"
-            )}
-          >
-            {count}
-          </span>
-        )}
-      </Link>
-    );
-  };
+  const item = (d: AdminDomain) => (
+    <SidebarItem
+      key={d.href}
+      d={d}
+      open={open}
+      active={isAdminDomainActive(pathname, d)}
+    />
+  );
 
   return (
     <div className="flex">
@@ -122,5 +80,40 @@ export function AdminShell({
       </aside>
       <div className="min-w-0 flex-1">{children}</div>
     </div>
+  );
+}
+
+function SidebarItem({
+  d,
+  open,
+  active,
+}: {
+  d: AdminDomain;
+  open: boolean;
+  active: boolean;
+}) {
+  const Icon = d.icon;
+  const summary = useDomainSummary(d.domain);
+  const critical = summary?.severity === "critical";
+  return (
+    <Link
+      href={d.href}
+      title={d.label}
+      className={cn(
+        "relative flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-sm font-medium transition-colors",
+        !open && "justify-center px-0",
+        active
+          ? critical
+            ? "bg-danger-50 text-danger-700"
+            : "bg-primary-50 text-primary-700"
+          : critical
+            ? "text-danger-700 hover:bg-danger-50"
+            : "text-muted hover:bg-surface-2 hover:text-foreground"
+      )}
+    >
+      <Icon className="size-4 shrink-0" />
+      {open && <span className="truncate">{d.label}</span>}
+      <DomainBadge summary={summary} absolute={!open} />
+    </Link>
   );
 }
