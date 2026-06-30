@@ -14,6 +14,7 @@ import {
   DomainBadge,
   useDomainSummary,
 } from "@/components/admin/admin-domain-badge";
+import { AdminContextualAlerts } from "@/components/admin/admin-contextual-alerts";
 
 const KEY = "coligo_admin_sidebar_open";
 
@@ -78,7 +79,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </button>
         {ADMIN_DOMAINS.map((d) => item(d))}
       </aside>
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="min-w-0 flex-1">
+        <AdminContextualAlerts />
+        {children}
+      </div>
     </div>
   );
 }
