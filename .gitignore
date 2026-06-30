@@ -52,3 +52,6 @@ android/app/google-services.json
 playwright-shots/
 
 .vercel
+
+# Sauvegardes de réinitialisation DB (contiennent des données — ne pas committer)
+db-reset-backup-*.json
