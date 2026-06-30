@@ -1,5 +1,24 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+
+/**
+ * Vérif super-admin MÉMOÏSÉE par requête (React `cache`) : dans un même rendu,
+ * le layout /admin ET la page (qui re-gate parfois) ne déclenchent qu'UN SEUL
+ * appel `is_super_admin`.
+ *
+ * PERF : pas de `getUser()` réseau ici. La RPC `is_super_admin()` (SECURITY
+ * DEFINER lisant `auth.jwt()->>'email'`) est la SOURCE DE VÉRITÉ — PostgREST
+ * vérifie d'abord la signature + l'expiration du JWT, donc une session absente/
+ * invalide ⇒ `false` (fail-closed). Le middleware a déjà rafraîchi/validé la
+ * session AVANT ce rendu, donc le token est frais : un seul aller-retour suffit
+ * (au lieu de getUser + rpc en série).
+ */
+const checkSuperAdmin = cache(async (): Promise<boolean> => {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("is_super_admin");
+  return data === true;
+});
 
 /**
  * Super-admin : identifié par son email présent dans `platform_admins`.
@@ -7,13 +26,7 @@ import { createClient } from "@/lib/supabase/server";
  * policies RLS). Ici on l'appelle pour gater les écrans/actions /admin.
  */
 export async function isSuperAdmin(): Promise<boolean> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return false;
-  const { data } = await supabase.rpc("is_super_admin");
-  return data === true;
+  return checkSuperAdmin();
 }
 
 /**
@@ -51,11 +64,13 @@ export async function getAal(): Promise<{
  * layout /admin appellerait ce même gate sur la page de challenge).
  */
 export async function requireSuperAdmin(): Promise<void> {
-  if (!(await isSuperAdmin())) {
+  // PERF : la vérif admin (RPC, mémoïsée) et l'AAL (local, décode le JWT) sont
+  // indépendantes → en parallèle. Coût ≈ 1 aller-retour réseau.
+  const [ok, aal] = await Promise.all([checkSuperAdmin(), getAal()]);
+  if (!ok) {
     redirect("/portail?error=forbidden");
   }
-  const { currentLevel, nextLevel } = await getAal();
-  if (nextLevel === "aal2" && currentLevel !== "aal2") {
+  if (aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
     redirect("/auth/mfa-challenge?next=%2Fadmin");
   }
 }
