@@ -280,7 +280,11 @@ export default async function AdminDevicesPage({
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap items-center justify-end gap-1.5">
                       <UserDisconnect userId={r.user_id} />
-                      <IpActions ip={r.ip} blocked={blockedSet.has(r.ip)} />
+                      <IpActions
+                        ip={r.ip}
+                        blocked={blockedSet.has(r.ip)}
+                        showDisconnect={false}
+                      />
                     </div>
                   </td>
                 </tr>

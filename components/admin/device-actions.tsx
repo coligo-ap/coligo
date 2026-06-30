@@ -17,7 +17,18 @@ import {
  *   • Bloquer / Débloquer — bannit l'IP (message optionnel affiché à
  *     l'utilisateur : on peut bloquer AVEC ou SANS message).
  */
-export function IpActions({ ip, blocked }: { ip: string; blocked: boolean }) {
+export function IpActions({
+  ip,
+  blocked,
+  showDisconnect = true,
+}: {
+  ip: string;
+  blocked: boolean;
+  /** Affiche le bouton « Déconnecter l'IP ». Désactivé dans les lignes du
+   *  tableau (où un bouton « Déconnecter le compte » existe déjà) pour éviter
+   *  deux boutons « Déconnecter ». */
+  showDisconnect?: boolean;
+}) {
   const confirm = useConfirm();
   const prompt = usePrompt();
   const [pending, start] = useTransition();
@@ -69,19 +80,22 @@ export function IpActions({ ip, blocked }: { ip: string; blocked: boolean }) {
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <button
-        type="button"
-        disabled={pending}
-        onClick={onDisconnect}
-        className="border-border hover:bg-surface-2 text-foreground inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
-      >
-        {pending ? (
-          <Loader2 className="size-3 animate-spin" />
-        ) : (
-          <LogOut className="size-3" />
-        )}
-        Déconnecter
-      </button>
+      {showDisconnect && (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onDisconnect}
+          title="Déconnecter tous les comptes vus sur cette IP"
+          className="border-border hover:bg-surface-2 text-foreground inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
+        >
+          {pending ? (
+            <Loader2 className="size-3 animate-spin" />
+          ) : (
+            <LogOut className="size-3" />
+          )}
+          Déconnecter l&apos;IP
+        </button>
+      )}
       {blocked ? (
         <button
           type="button"
@@ -139,7 +153,7 @@ export function UserDisconnect({ userId }: { userId: string }) {
       ) : (
         <LogOut className="size-3" />
       )}
-      Déconnecter
+      Déconnecter le compte
     </button>
   );
 }
