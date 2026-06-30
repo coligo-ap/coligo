@@ -44,6 +44,7 @@ import {
 } from "@/app/(chauffeur)/actions";
 import { useHomeDirOn } from "@/lib/chauffeur/home-dir-store";
 import { passesHomeDir } from "@/lib/chauffeur/dispatch-filter";
+import { registerChauffeurCacheReset } from "@/lib/chauffeur/client-cache";
 
 const AMBER = "#F59E0B";
 
@@ -53,6 +54,10 @@ const AMBER = "#F59E0B";
 // onglets) n'attend jamais. Survit aux navigations (niveau module), vidé à la
 // fermeture de l'onglet.
 let lastNearbyCache: NearbyRide[] = [];
+// Vidange au changement de compte (anti-fuite sur appareil partagé).
+registerChauffeurCacheReset(() => {
+  lastNearbyCache = [];
+});
 
 const fmtkm = (v: number) =>
   `${(Math.round(v * 10) / 10).toString().replace(".", ",")} km`;

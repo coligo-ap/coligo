@@ -62,6 +62,7 @@ import {
   getHomeDirOn,
 } from "@/lib/chauffeur/home-dir-store";
 import { isOpenDemande } from "@/lib/chauffeur/dispatch-filter";
+import { registerChauffeurCacheReset } from "@/lib/chauffeur/client-cache";
 import { usePageVisible } from "@/lib/realtime/use-page-visible";
 import { setDispatchActive } from "@/lib/realtime/dispatch-presence";
 import { ensureRealtimeAuth } from "@/lib/realtime/ensure-auth";
@@ -96,6 +97,10 @@ const GAMME_RECEIVES: Record<string, string> = {
 // RETOUR sur l'accueil, elles s'affichent INSTANTANÉMENT (plus d'attente du
 // tick) ; le rafraîchissement se fait en arrière-plan.
 let lastDriveHomeCache: DriveHome | null = null;
+// Vidange au changement de compte (anti-fuite sur appareil partagé).
+registerChauffeurCacheReset(() => {
+  lastDriveHomeCache = null;
+});
 
 /**
  * Accueil chauffeur (maquette v13 « accueil chauffeur ») : carte + heatmap,

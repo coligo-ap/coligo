@@ -17,6 +17,7 @@ import { VIOLET, GO, RED } from "@/components/customer/drive/drive-modals";
 import { PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
 import { formatOnline } from "@/lib/drive/geo";
 import { getMyWalletState } from "@/app/wallet/recharge-actions";
+import { registerChauffeurCacheReset } from "@/lib/chauffeur/client-cache";
 import {
   getChauffeurFinances,
   getChauffeurHistory,
@@ -45,6 +46,12 @@ const MONTHS = [
 let lastFinCache: ChauffeurFinances | null = null;
 let lastHistoCache: ChauffeurHistoryRide[] | null = null;
 let lastBalanceCache: number | null = null;
+// Vidange au changement de compte (anti-fuite sur appareil partagé).
+registerChauffeurCacheReset(() => {
+  lastFinCache = null;
+  lastHistoCache = null;
+  lastBalanceCache = null;
+});
 
 /** Gains (maquette s-dgains) : aujourd'hui + « Ce mois » + « À reverser ». */
 export function DGains() {

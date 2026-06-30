@@ -7,6 +7,7 @@ import {
   setChauffeurOnlineLocal,
 } from "@/lib/chauffeur/online-store";
 import { getHomeDirOn, setHomeDirOn } from "@/lib/chauffeur/home-dir-store";
+import { ensureChauffeurCacheForUser } from "@/lib/chauffeur/client-cache";
 
 /**
  * Contexte du GATE chauffeur (statut/profil : vérifié, gelé, dossier soumis,
@@ -25,6 +26,12 @@ export function ChauffeurGateProvider({
   gate: ChauffeurGate;
   children: React.ReactNode;
 }) {
+  // Vidange SYNCHRONE (au render, avant que les pages ne lisent leurs caches
+  // module) des caches client chauffeur si le compte connecté a changé →
+  // aucune fuite des données financières d'un autre chauffeur sur un appareil
+  // partagé (les autres espaces sont déjà protégés par une clé TanStack par user).
+  ensureChauffeurCacheForUser(gate.userId);
+
   // PERSISTANCE de l'intention « en ligne » : la présence SERVEUR
   // (gate.isOnline) est la source de vérité durable, indépendante du
   // localStorage du navigateur. On la réhydrate au montage de la coque
