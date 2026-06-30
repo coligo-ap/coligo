@@ -20,7 +20,7 @@ export default async function AdminMerchantsPage() {
         Soldes, surcharges de taux et gel. Laisser un taux vide = hérite du
         global.
       </p>
-      <AdminMerchantsView merchants={merchants} settings={settings} />
+      <AdminMerchantsView initialMerchants={merchants} settings={settings} />
     </div>
   );
 }

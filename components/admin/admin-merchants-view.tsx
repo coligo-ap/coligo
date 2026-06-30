@@ -22,6 +22,7 @@ import {
   usePaginatedList,
 } from "@/components/admin/shared/list-controls";
 import { cn, formatDA } from "@/lib/utils";
+import { useAdminList } from "@/lib/admin/use-admin-list";
 import type { PlatformSettings } from "@/lib/types";
 import { rateToPct } from "@/lib/validation/platform";
 import type { AdminMerchant } from "@/lib/data/platform";
@@ -67,12 +68,20 @@ const OVERRIDE_FIELDS: {
 ];
 
 export function AdminMerchantsView({
-  merchants,
+  initialMerchants,
   settings,
 }: {
-  merchants: AdminMerchant[];
+  initialMerchants: AdminMerchant[];
   settings: PlatformSettings | null;
 }) {
+  // Liste en cache TanStack Query (réaffichage instantané au retour de nav +
+  // refetch silencieux), hydratée par le rendu serveur (initialMerchants).
+  const merchants = useAdminList<AdminMerchant>(
+    "admin-merchants",
+    "/api/admin/merchants",
+    initialMerchants
+  );
+
   // Comptes = commerçants approuvés (les inscriptions en attente / refusées sont
   // gérées dans l'onglet dédié « Inscriptions », mig 0273).
   const pendingCount = useMemo(
