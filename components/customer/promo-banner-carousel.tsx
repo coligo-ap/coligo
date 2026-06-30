@@ -37,15 +37,25 @@ export function PromoBannerCarousel({ banners }: Props) {
   return (
     <section className="space-y-2">
       <div
-        className="-mx-4 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-4 pb-2 lg:-mx-6 lg:px-6 [&::-webkit-scrollbar]:hidden"
+        className="-mx-4 flex snap-x snap-mandatory [scrollbar-width:none] overflow-x-auto pb-2 lg:-mx-6 [&::-webkit-scrollbar]:hidden"
         onScroll={(e) => {
           const el = e.currentTarget;
-          const idx = Math.round(el.scrollLeft / el.clientWidth);
+          // En RTL, `scrollLeft` est négatif (start = 0, swipe → valeurs < 0).
+          // `Math.abs` rend le calcul d'index correct dans les deux sens.
+          const idx = Math.round(Math.abs(el.scrollLeft) / el.clientWidth);
           if (idx !== active) setActive(idx);
         }}
       >
         {banners.map((b) => (
-          <Banner key={b.id} banner={b} />
+          // Chaque diapo occupe TOUTE la largeur du carrousel : une bannière seule
+          // et la 1re d'un lot ont exactement la même taille. Le padding interne
+          // (px-4) recrée la marge latérale ; le snap-center cale chaque diapo.
+          <div
+            key={b.id}
+            className="w-full min-w-full shrink-0 snap-center px-4 lg:px-6"
+          >
+            <Banner banner={b} />
+          </div>
         ))}
       </div>
 
@@ -82,7 +92,7 @@ function Banner({ banner }: { banner: PromoBanner }) {
   const content = (
     <article
       className={cn(
-        "relative flex w-[88%] min-w-[88%] shrink-0 snap-center flex-col justify-between overflow-hidden rounded-[20px] bg-gradient-to-br px-5 py-5 shadow-md sm:w-[420px] sm:min-w-[420px]",
+        "relative flex w-full flex-col justify-between overflow-hidden rounded-[20px] bg-gradient-to-br px-5 py-5 shadow-md",
         accentClass
       )}
       style={{ minHeight: 140 }}

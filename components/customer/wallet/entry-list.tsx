@@ -114,6 +114,8 @@ function describe(
       return { label: t("entryCashbackSpent") };
     case "topup_credit":
       return { label: t("entryTopupCredit") };
+    case "voucher_credit":
+      return { label: t("entryVoucherCredit") };
     case "topup_spent":
       return { label: t("entryTopupSpent") };
     case "transfer_in":

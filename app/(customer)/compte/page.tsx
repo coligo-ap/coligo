@@ -9,6 +9,7 @@ import {
   Phone,
   Receipt,
   Settings,
+  Ticket,
   User as UserIcon,
   Wallet,
 } from "lucide-react";
@@ -288,6 +289,13 @@ export default async function CustomerAccountPage({
             title={t("myFavorites")}
             subtitle={t("favoritesDesc")}
           />
+          <MenuRow
+            href="/codes-promo"
+            tone="promo"
+            icon={<Ticket className="size-[19px]" />}
+            title={t("promosCodes")}
+            subtitle={t("promosCodesDesc")}
+          />
         </div>
 
         {/* Section PRÉFÉRENCES — langue (FR / العربية), choix enregistré. */}
@@ -326,6 +334,7 @@ const TONE: Record<string, string> = {
   info: "bg-[#E7F0FB] text-[#2E6FBF]",
   orders: "bg-primary-50 text-primary-600",
   fav: "bg-coral-50 text-coral-600",
+  promo: "bg-primary-50 text-primary-600",
 };
 
 function MenuRow({

@@ -143,6 +143,27 @@ export async function issueDeliveryQuote(input: {
   return q ? { quoteId: q.quoteId } : null;
 }
 
+/** Message FR pour un refus de code PLATEFORME, selon la raison renvoyée par
+ *  la RPC `validate_platform_promo`. */
+function platformPromoErrorMessage(reason: string): string {
+  switch (reason) {
+    case "online_only":
+      return "Ce code n'est valable qu'avec un paiement en ligne (Coligo Pay ou carte).";
+    case "min_subtotal":
+      return "Le montant de ta commande n'atteint pas le minimum requis pour ce code.";
+    case "not_eligible":
+      return "Ce code ne t'est pas attribué.";
+    case "exhausted":
+      return "Ce code a atteint sa limite d'utilisation.";
+    case "per_customer_limit":
+      return "Tu as déjà utilisé ce code le nombre de fois autorisé.";
+    case "inactive":
+      return "Ce code n'est plus actif.";
+    default:
+      return "Code promo invalide ou expiré.";
+  }
+}
+
 export async function createOrder(
   input: CreateOrderInput
 ): Promise<CreateOrderResult> {
@@ -522,44 +543,89 @@ export async function createOrder(
   // perdante). uses_count + journal d'usage gérés via redeem_promo après insert.
   // ---------------------------------------------------------------------------
   const codeTyped = (input.promo_code ?? "").trim();
+  // Code PLATEFORME éventuel (financé Coligo, cross-commerçant). Renseigné
+  // seulement si le code saisi N'EST PAS un code commerçant et qu'il valide.
+  let platformPromo: { id: string; code: string; discountDa: number } | null =
+    null;
   if (codeTyped) {
-    if (!settled.promoCode) {
-      return { ok: false, error: "Code promo invalide ou expiré." };
-    }
-    const quota = quotaById.get(settled.promoCode.id);
-    if (quota) {
-      if (quota.maxUses != null && quota.usesCount >= quota.maxUses) {
-        return { ok: false, error: "Ce code promo n'est plus disponible." };
-      }
-      if (quota.maxPerCustomer != null) {
-        const { count } = await (
-          supabase.from("promotion_redemptions" as never) as unknown as {
-            select: (
-              c: string,
-              o: { count: "exact"; head: true }
-            ) => {
-              eq: (
+    if (settled.promoCode) {
+      // --- Code COMMERÇANT : contrôle des plafonds (existant). ---
+      const quota = quotaById.get(settled.promoCode.id);
+      if (quota) {
+        if (quota.maxUses != null && quota.usesCount >= quota.maxUses) {
+          return { ok: false, error: "Ce code promo n'est plus disponible." };
+        }
+        if (quota.maxPerCustomer != null) {
+          const { count } = await (
+            supabase.from("promotion_redemptions" as never) as unknown as {
+              select: (
                 c: string,
-                v: string
+                o: { count: "exact"; head: true }
               ) => {
                 eq: (
                   c: string,
                   v: string
-                ) => PromiseLike<{ count: number | null }>;
+                ) => {
+                  eq: (
+                    c: string,
+                    v: string
+                  ) => PromiseLike<{ count: number | null }>;
+                };
               };
-            };
+            }
+          )
+            .select("id", { count: "exact", head: true })
+            .eq("promotion_id", settled.promoCode.id)
+            .eq("customer_id", customer.id);
+          if ((count ?? 0) >= quota.maxPerCustomer) {
+            return { ok: false, error: "Tu as déjà utilisé ce code promo." };
           }
-        )
-          .select("id", { count: "exact", head: true })
-          .eq("promotion_id", settled.promoCode.id)
-          .eq("customer_id", customer.id);
-        if ((count ?? 0) >= quota.maxPerCustomer) {
-          return { ok: false, error: "Tu as déjà utilisé ce code promo." };
         }
+      }
+    } else {
+      // --- Pas un code commerçant → tenter un code PLATEFORME (v1 en ligne). ---
+      // La RPC tranche (fenêtre, plafonds, éligibilité, online_only) et renvoie
+      // la remise. On lui passe le total APRÈS réductions produit (settled.totalDa
+      // == subtotal ici, aucun code commerçant appliqué).
+      const { data: vpRaw } = await supabase.rpc(
+        "validate_platform_promo" as never,
+        {
+          p_code: codeTyped,
+          p_customer_id: customer.id,
+          p_subtotal_da: settled.totalDa,
+          p_payment_method: input.payment_method,
+        } as never
+      );
+      const vp = (Array.isArray(vpRaw) ? vpRaw[0] : vpRaw) as {
+        valid: boolean;
+        promotion_id: string | null;
+        code: string | null;
+        discount_da: number | null;
+        reason: string | null;
+      } | null;
+      if (vp?.valid && vp.promotion_id) {
+        platformPromo = {
+          id: vp.promotion_id,
+          code: vp.code ?? codeTyped.toUpperCase(),
+          discountDa: Math.max(0, vp.discount_da ?? 0),
+        };
+      } else {
+        return {
+          ok: false,
+          error: platformPromoErrorMessage(vp?.reason ?? "invalid"),
+        };
       }
     }
   }
   const appliedPromo = settled.promoCode;
+
+  // Remise plateforme : réduit le total PAYÉ par le client, jamais le net dû au
+  // commerçant (cf. trigger apply_platform_promo_on_paid, mig 0292).
+  const platformDiscountDa = platformPromo
+    ? Math.min(platformPromo.discountDa, settled.totalDa)
+    : 0;
+  // Ce que le client paie pour les produits (net commerçant − remise plateforme).
+  const clientGoodsDa = Math.max(0, settled.totalDa - platformDiscountDa);
 
   // Snapshot immuable (PARTIE B) : prix produits AVANT promo (gross) et APRÈS
   // promo (net = base figée de la commission). La réduction se déduit
@@ -694,7 +760,9 @@ export async function createOrder(
   // Le trigger SQL `spend_customer_cashback_on_order_create` génère l'écriture
   // négative dans le ledger client à l'INSERT de la commande.
   // ---------------------------------------------------------------------------
-  const totalBeforeWallets = productsDa + serviceFeeDa;
+  // Base FACTURÉE au client = produits APRÈS remise plateforme + frais service.
+  // (productsDa reste le NET commerçant, base commission/cashback, inchangé.)
+  const totalBeforeWallets = clientGoodsDa + serviceFeeDa;
   let cashbackUsed = 0;
   if ((input.cashback_to_use_da ?? 0) > 0) {
     const balance = await getCashbackBalanceForCustomer(customer.id);
@@ -1060,6 +1128,11 @@ export async function createOrder(
       promo_id: appliedPromo?.id ?? null,
       promo_code: appliedPromo?.code ?? null,
       promo_financeur: promoFinanceur,
+      // Code PLATEFORME (financé Coligo) — snapshot. La compta (journal +
+      // promo_expense) est posée par le trigger à la confirmation du paiement.
+      platform_promo_id: platformPromo?.id ?? null,
+      platform_promo_code: platformPromo?.code ?? null,
+      platform_discount_da: platformDiscountDa,
       total_da: totalWithDelivery,
       cashback_used_da: cashbackUsed,
       topup_used_da: topupUsed,
@@ -1586,7 +1659,35 @@ export async function previewPromoCode(input: {
           error: `Ce code s'applique dès ${belowMin.min_subtotal_da} DA d'achats.`,
         };
       }
-      return { ok: false, error: "Code promo invalide ou expiré." };
+      // Pas un code commerçant → tenter un code PLATEFORME. L'aperçu suppose un
+      // paiement EN LIGNE (les codes plateforme sont online-only en v1) ;
+      // createOrder revérifie selon le mode réellement choisi.
+      const { data: vpRaw } = await supabase.rpc(
+        "validate_platform_promo" as never,
+        {
+          p_code: code,
+          p_customer_id: customer.id,
+          p_subtotal_da: settled.totalDa,
+          p_payment_method: "online",
+        } as never
+      );
+      const vp = (Array.isArray(vpRaw) ? vpRaw[0] : vpRaw) as {
+        valid: boolean;
+        code: string | null;
+        discount_da: number | null;
+        reason: string | null;
+      } | null;
+      if (vp?.valid) {
+        return {
+          ok: true,
+          discount_da: Math.max(0, vp.discount_da ?? 0),
+          code: vp.code ?? code.toUpperCase(),
+        };
+      }
+      return {
+        ok: false,
+        error: platformPromoErrorMessage(vp?.reason ?? "invalid"),
+      };
     }
     const raw = rows.find((p) => p.id === settled.promoCode!.id);
     if (raw?.max_uses != null && (raw.uses_count ?? 0) >= raw.max_uses) {

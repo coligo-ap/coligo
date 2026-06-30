@@ -16,6 +16,7 @@ export type CustomerWalletEntry = {
     | "adjustment"
     | "topup_credit"
     | "topup_spent"
+    | "voucher_credit"
     | "transfer_in"
     | "transfer_out";
   source: "cashback" | "topup";

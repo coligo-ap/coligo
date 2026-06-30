@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BellRing, Megaphone } from "lucide-react";
+import { BellRing, Gift, Megaphone, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -11,6 +11,16 @@ const TABS = [
     label: "Bannières",
     icon: Megaphone,
     exact: true,
+  },
+  {
+    href: "/admin/marketing/codes",
+    label: "Codes promo",
+    icon: Ticket,
+  },
+  {
+    href: "/admin/marketing/bons",
+    label: "Bons d'achat",
+    icon: Gift,
   },
   {
     href: "/admin/marketing/notifications",

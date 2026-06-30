@@ -22,6 +22,7 @@
     "test:offline:e2e": "node scripts/test-offline-e2e.mjs",
     "test:offline:e2e:serve": "node scripts/run-offline-e2e.mjs",
     "test:promo:money": "node scripts/test-promo-money.mjs",
+    "test:promo:platform": "node scripts/test-platform-promo-money.mjs",
     "test:driver:money": "node scripts/test-driver-money.mjs",
     "test:tour:money": "node scripts/test-tour-treasury.mjs",
     "test:tour:e2e": "node scripts/e2e-tour.mjs",
