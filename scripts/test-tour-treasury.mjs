@@ -99,7 +99,7 @@ try {
   // Taux lus depuis la config (le test s'auto-aligne sur les valeurs de lancement ch.8).
   const settingsRow = (
     await c.query(
-      "SELECT chargily_fee, cashback_cash, tour_delivery_commission_rate FROM platform_settings WHERE id=true"
+      "SELECT chargily_fee, cashback_cash, tour_delivery_commission_rate, driver_fee_min_da, driver_fee_rate, driver_fee_cap_rate FROM platform_settings WHERE id=true"
     )
   ).rows[0];
   const comm = Math.round(P * 0.08),
@@ -225,9 +225,17 @@ try {
     withDriver: true,
   });
   await c.query("UPDATE orders SET status='completed' WHERE id=$1", [o3]);
-  const driverFee = Math.max(
-    10,
-    Math.min(Math.round(D * 0.08), Math.round(D * 0.1))
+  // Frais livreur : formule EXACTE du trigger (0205), lue sur la config live —
+  // LEAST(D, GREATEST(min_da, LEAST(round(D*rate), round(D*cap_rate)))).
+  const driverFee = Math.min(
+    D,
+    Math.max(
+      Number(settingsRow.driver_fee_min_da),
+      Math.min(
+        Math.round(D * Number(settingsRow.driver_fee_rate)),
+        Math.round(D * Number(settingsRow.driver_fee_cap_rate))
+      )
+    )
   );
   check("NO merchant wallet entries (custodian)", await walletSum(c, o3), 0);
   check(
