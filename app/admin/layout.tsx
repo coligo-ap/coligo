@@ -2,7 +2,6 @@ import { LogOut, ShieldCheck } from "lucide-react";
 import { requireSuperAdmin } from "@/lib/auth/admin";
 import { logout } from "@/app/(merchant)/actions";
 import { Logo } from "@/components/shared/logo";
-import { getAdminAlerts } from "@/lib/data/admin-alerts";
 import { AdminAlertsProvider } from "@/components/admin/admin-alerts-provider";
 import { AdminNotificationCenter } from "@/components/admin/admin-notification-center";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
@@ -16,18 +15,15 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Auth + alertes EN PARALLÈLE (perf : le coût commun à toutes les pages admin
-  // ne paie plus 2 allers-retours en série). getAdminAlerts est lui-même gardé
-  // is_super_admin côté RPC → s'il s'exécute pour un non-admin il renvoie [],
-  // sans fuite ; requireSuperAdmin redirige de toute façon avant tout rendu.
-  const [, initialAlerts] = await Promise.all([
-    requireSuperAdmin(),
-    getAdminAlerts(),
-  ]);
+  // PERF : on ne fetch PAS les alertes au rendu serveur (ce serait un aller-retour
+  // de plus sur le chemin critique de CHAQUE page admin). Le provider les charge
+  // côté client juste après le montage (non bloquant) → la page s'affiche aussi
+  // vite qu'avant, les badges apparaissent ~instantanément ensuite.
+  await requireSuperAdmin();
 
   return (
     <ConfirmProvider>
-      <AdminAlertsProvider initial={initialAlerts}>
+      <AdminAlertsProvider>
         <div className="bg-surface-2 min-h-screen">
           <header className="border-border sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b bg-white px-4 lg:px-6">
             <div className="flex min-w-0 items-center gap-3 lg:gap-4">

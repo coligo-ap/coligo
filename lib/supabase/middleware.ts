@@ -52,6 +52,17 @@ async function isIpBlockedCached(
   return blocked;
 }
 
+// Pages de connexion de chaque espace : seuls endroits où l'on vérifie le
+// blocage d'IP (cf. updateSession). Bloquer ici = empêcher toute (re)connexion.
+const LOGIN_PATHS = new Set<string>([
+  "/portail",
+  "/login",
+  "/se-connecter",
+  "/driver/login",
+  "/chauffeur/login",
+  "/partenaire/login",
+]);
+
 /** IP client (même extraction que la télémétrie : x-forwarded-for en tête). */
 function clientIp(request: NextRequest): string {
   return (
@@ -128,21 +139,15 @@ export async function updateSession(request: NextRequest) {
   };
 
   // ===========================================================================
-  // BLOCAGE D'IP (anti-fraude/abus, mig 0287). Si l'IP de la requête est bannie :
-  //   • requête API → 403 JSON,
-  //   • page → réécrite vers /bloque (URL conservée, contenu « accès bloqué »).
-  // Exemptions : /bloque (évite la boucle) et /auth (laisse la déconnexion se
-  // faire proprement). Le check est caché par IP (60 s) et fail-open sur timeout
-  // → aucun impact sur la nav normale.
+  // BLOCAGE D'IP (anti-fraude/abus, mig 0287). PERF : on NE vérifie QUE sur les
+  // pages de CONNEXION (événement rare) — surtout PAS sur chaque navigation (ce
+  // qui ajouterait un appel DB au chemin critique de chaque page). Le blocage
+  // reste effectif : combiné à « Déconnecter les sessions » (immédiat), une IP
+  // bannie ne peut plus se (re)connecter → page de login réécrite vers /bloque.
+  // Le check reste caché par IP (60 s) + fail-open sur timeout.
   // ===========================================================================
-  if (path !== "/bloque" && !path.startsWith("/auth")) {
+  if (LOGIN_PATHS.has(path)) {
     if (await isIpBlockedCached(supabase, clientIp(request))) {
-      if (path.startsWith("/api")) {
-        return new NextResponse(JSON.stringify({ error: "ip_blocked" }), {
-          status: 403,
-          headers: { "content-type": "application/json" },
-        });
-      }
       const url = request.nextUrl.clone();
       url.pathname = "/bloque";
       url.search = "";

@@ -31,7 +31,7 @@ function AlertsInner({
   initial,
   children,
 }: {
-  initial: AdminAlert[];
+  initial?: AdminAlert[];
   children: React.ReactNode;
 }) {
   const { data, isFetching } = useQuery<AdminAlert[]>({
@@ -41,7 +41,12 @@ function AlertsInner({
       if (!res.ok) throw new Error(`alerts ${res.status}`);
       return (await res.json()) as AdminAlert[];
     },
-    initialData: initial,
+    // Données initiales optionnelles. Sans hydratation serveur (cas par défaut,
+    // pour ne pas ralentir le rendu des pages admin), on marque la donnée comme
+    // PÉRIMÉE (`initialDataUpdatedAt: 0`) → fetch immédiat au montage, mais NON
+    // bloquant : la page est déjà affichée, les badges suivent ~aussitôt.
+    initialData: initial ?? [],
+    initialDataUpdatedAt: initial && initial.length ? Date.now() : 0,
     staleTime: 45_000,
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
@@ -57,7 +62,7 @@ export function AdminAlertsProvider({
   initial,
   children,
 }: {
-  initial: AdminAlert[];
+  initial?: AdminAlert[];
   children: React.ReactNode;
 }) {
   const [client] = useState(
