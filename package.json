@@ -28,6 +28,7 @@
     "test:audit:cod": "node scripts/audit-cod-cashback.mjs",
     "test:audit:cancel": "node scripts/audit-cancel.mjs",
     "audit:case-study": "node scripts/case-study-merchant-client.mjs",
+    "test:noshow:cashback": "node scripts/test-noshow-cashback.mjs",
     "test:noshow:claim": "node scripts/test-noshow-claim.mjs",
     "test:merchant:guard": "node scripts/test-merchant-order-guard.mjs",
     "test:catalog": "node scripts/test-catalog-traceability.mjs",
