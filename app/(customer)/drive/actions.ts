@@ -686,6 +686,52 @@ export async function cancelDriveRide(
 
 /* ─────────────────────────── Course active ─────────────────────────── */
 
+/**
+ * Badge (couleur/label) du plan actif de chaque chauffeur (0304) → anneau coloré
+ * autour de l'avatar dans le suivi. Vide si plan par défaut (pas de badge). Lecture
+ * service_role (drive_plans/subscriptions non lisibles par le client via RLS) ;
+ * seules la couleur et le libellé — non sensibles — sont exposés.
+ */
+async function chauffeurPlanBadges(
+  ids: string[]
+): Promise<Map<string, { label: string | null; color: string | null }>> {
+  const out = new Map<string, { label: string | null; color: string | null }>();
+  const uniq = [...new Set(ids.filter(Boolean))];
+  if (uniq.length === 0) return out;
+  const admin =
+    createAdminClient() as unknown as import("@supabase/supabase-js").SupabaseClient;
+  const { data: subs } = await admin
+    .from("chauffeur_subscriptions")
+    .select("chauffeur_id, plan, period_end")
+    .in("chauffeur_id", uniq)
+    .eq("status", "active")
+    .gte("period_end", new Date().toISOString())
+    .order("period_end", { ascending: false });
+  const planOf = new Map<string, string>();
+  for (const s of (subs ?? []) as { chauffeur_id: string; plan: string }[])
+    if (!planOf.has(s.chauffeur_id)) planOf.set(s.chauffeur_id, s.plan);
+  const codes = [...new Set(planOf.values())];
+  if (codes.length === 0) return out;
+  const { data: plans } = await admin
+    .from("drive_plans")
+    .select("code, badge_label, badge_color")
+    .in("code", codes);
+  const byCode = new Map(
+    (
+      (plans ?? []) as {
+        code: string;
+        badge_label: string | null;
+        badge_color: string | null;
+      }[]
+    ).map((p) => [p.code, { label: p.badge_label, color: p.badge_color }])
+  );
+  for (const [ch, code] of planOf) {
+    const b = byCode.get(code);
+    if (b && b.color) out.set(ch, b);
+  }
+  return out;
+}
+
 export type DriveActiveRide = {
   id: string;
   status: string;
@@ -723,6 +769,8 @@ export type DriveActiveRide = {
     is_female: boolean;
     is_premium: boolean;
     is_favorite: boolean;
+    /** Anneau coloré du plan (0304) autour de la photo pendant le suivi. */
+    badge_color: string | null;
     lat: number | null;
     lng: number | null;
   } | null;
@@ -775,6 +823,10 @@ export async function getDriveActiveRide(): Promise<DriveActiveRide | null> {
           is_female: Boolean(r.ch_is_female),
           is_premium: Boolean(r.ch_is_premium),
           is_favorite: Boolean(r.ch_is_favorite),
+          badge_color:
+            (await chauffeurPlanBadges([r.chauffeur_id as string])).get(
+              r.chauffeur_id as string
+            )?.color ?? null,
           lat: (r.ch_lat as number) ?? null,
           lng: (r.ch_lng as number) ?? null,
         }

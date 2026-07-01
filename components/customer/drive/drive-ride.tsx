@@ -1106,6 +1106,7 @@ function EnrouteScreen({
                 url={ch.avatar_url}
                 size={58}
                 female={ch.is_female}
+                ringColor={ch.badge_color}
                 textClassName="text-[22px]"
               />
               <span className="min-w-0 flex-1">
