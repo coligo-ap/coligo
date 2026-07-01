@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       // anormal → on NE marque PAS payé et on log pour investigation.
       const { data: target } = await admin
         .from("orders")
-        .select("total_da")
+        .select("total_da, status, payment_status, customer_id")
         .eq("id", orderId)
         .maybeSingle();
       if (!target) {
@@ -134,11 +134,52 @@ export async function POST(req: NextRequest) {
         // Tournée online payée : prévient les livreurs du commerçant (no-op si
         // ce n'est pas une tournée). Reçu même app fermée / hors ligne.
         void notifyDriversTour({ orderId: updated.id });
+        return NextResponse.json({ ok: true });
       }
-      return NextResponse.json({
-        ok: true,
-        already_processed: updated === null,
-      });
+
+      // updated === null : la transition pending→paid n'a PAS eu lieu.
+      //   • commande déjà 'paid' → simple rejeu du webhook, rien à faire.
+      //   • commande ANNULÉE entre-temps (ex. filet d'expiration mig 0295) alors
+      //     que le client vient de payer sur un checkout ENCORE OUVERT → il a été
+      //     DÉBITÉ pour une commande morte. FILET : on lui recrédite le montant
+      //     payé sur son Coligo Pay (idempotent via chargily_checkout_id) + log
+      //     pour réconciliation. Principe : JAMAIS un client débité sans
+      //     contrepartie. (Le montant a déjà été vérifié == total_da ci-dessus.)
+      if (
+        target.payment_status !== "paid" &&
+        target.customer_id &&
+        event.data.id
+      ) {
+        const { error: compErr } = await (
+          admin.from("customer_wallet_entries") as unknown as {
+            insert: (row: Record<string, unknown>) => Promise<{
+              error: { code?: string; message: string } | null;
+            }>;
+          }
+        ).insert({
+          customer_id: target.customer_id,
+          order_id: orderId,
+          type: "topup_credit",
+          source: "topup",
+          amount_da: paidAmount,
+          chargily_checkout_id: event.data.id,
+          note: `Paiement reçu APRÈS annulation de la commande ${orderId} — recrédité sur Coligo Pay.`,
+        });
+        // 23505 = rejeu (déjà recrédité) → on absorbe. Toute autre erreur est
+        // logguée mais ne fait pas échouer le webhook (on répond 200).
+        if (compErr && compErr.code !== "23505") {
+          console.error(
+            "[chargily/webhook] compensation credit failed:",
+            compErr.message
+          );
+        }
+        console.error(
+          `[chargily/webhook] ⚠️ checkout.paid sur commande NON-payable ${orderId} ` +
+            `(status=${target.status}, payment_status=${target.payment_status}) — ` +
+            `client recrédité ${paidAmount} DA sur Coligo Pay.`
+        );
+      }
+      return NextResponse.json({ ok: true, already_processed: true });
     }
 
     if (
