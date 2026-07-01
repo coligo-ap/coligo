@@ -210,9 +210,15 @@ export async function fetchCheckoutContext(
   }
 
   const productIds = input.items.map((i) => i.product_id);
+  // On borne EXPLICITEMENT au commerce du checkout : `products` a une policy
+  // SELECT publique (products_select_public_active) → sans `.eq(merchant_id)`,
+  // un panier trafiqué mélangeant deux boutiques produirait un aperçu de total
+  // qui serait ensuite rejeté par la création de commande (qui, elle, borne le
+  // merchant). On aligne l'aperçu sur le chemin autoritatif (défense en profondeur).
   const { data: products } = await supabase
     .from("products")
     .select("id, merchant_id, name_fr, price_da, is_available")
+    .eq("merchant_id", merchant.id)
     .in("id", productIds);
 
   if (!products || products.length === 0) {
