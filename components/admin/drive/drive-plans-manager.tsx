@@ -142,8 +142,29 @@ export function DrivePlansManager({ initial }: { initial: DrivePlan[] }) {
     });
   };
 
+  // Overview « Uber-style » : abonnés actifs, revenu mensuel estimé, plans actifs.
+  const activeSubs = plans.reduce((s, p) => s + (p.subscribers ?? 0), 0);
+  const monthlyRevenue = plans.reduce(
+    (s, p) =>
+      s + (p.subscribers ?? 0) * p.price_da * (30 / (p.duration_days || 30)),
+    0
+  );
+  const activePlans = plans.filter((p) => p.is_active && !p.is_default).length;
+
   return (
     <div className="space-y-5">
+      <div className="grid grid-cols-3 gap-3">
+        <Stat
+          label="Abonnés actifs"
+          value={activeSubs.toLocaleString("fr-FR")}
+        />
+        <Stat
+          label="Revenu mensuel estimé"
+          value={`${Math.round(monthlyRevenue).toLocaleString("fr-FR")} DA`}
+        />
+        <Stat label="Plans actifs" value={String(activePlans)} />
+      </div>
+
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold">Plans d’abonnement</h2>
@@ -444,6 +465,15 @@ function PlanEditor({
         </div>
       </div>
 
+      {/* Clarté monétaire : ce que garde réellement la plateforme sur une course. */}
+      <p className="text-muted mt-3 text-sm">
+        Sur une course, la plateforme garde{" "}
+        <b className="text-foreground">
+          {pct(Math.max(0, plan.commission_rate - plan.cashback_rate))}
+        </b>{" "}
+        (commission {pct(plan.commission_rate)} − cashback client{" "}
+        {pct(plan.cashback_rate)}) ; le reste revient au chauffeur.
+      </p>
       {cashbackTooHigh && (
         <p className="text-danger-600 mt-2 text-sm font-medium">
           Le cashback ({pct(plan.cashback_rate)}) dépasse la commission (
@@ -476,6 +506,15 @@ function PlanEditor({
 }
 
 /* ---------- primitives ---------- */
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-border bg-surface rounded-[12px] border p-3">
+      <p className="text-muted text-[11px] font-semibold">{label}</p>
+      <p className="mt-0.5 text-lg font-extrabold">{value}</p>
+    </div>
+  );
+}
+
 const inputCls =
   "border-border bg-surface w-full rounded-[10px] border px-3 py-2 text-sm";
 
