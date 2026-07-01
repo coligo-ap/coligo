@@ -2,16 +2,16 @@
 
 import { Suspense } from "react";
 import { DSubs } from "@/components/chauffeur/d-subs";
-import { PriorityCard } from "@/components/partner/priority-card";
 
+// Affichage UNIFIÉ : la carte Prioritaire est désormais rendue DANS DSubs, en
+// tête de la liste (Prioritaire → Gratuit → plans de commission), même design.
 export default function ChauffeurAbonnementPage() {
   // Suspense : requis par useSearchParams (retour ?card=… de Chargily).
   return (
     <Suspense fallback={null}>
-      <div className="p-4">
-        <PriorityCard />
+      <div className="pt-4">
+        <DSubs />
       </div>
-      <DSubs />
     </Suspense>
   );
 }

@@ -711,24 +711,37 @@ async function chauffeurPlanBadges(
   for (const s of (subs ?? []) as { chauffeur_id: string; plan: string }[])
     if (!planOf.has(s.chauffeur_id)) planOf.set(s.chauffeur_id, s.plan);
   const codes = [...new Set(planOf.values())];
-  if (codes.length === 0) return out;
-  const { data: plans } = await admin
-    .from("drive_plans")
-    .select("code, badge_label, badge_color")
-    .in("code", codes);
-  const byCode = new Map(
-    (
-      (plans ?? []) as {
-        code: string;
-        badge_label: string | null;
-        badge_color: string | null;
-      }[]
-    ).map((p) => [p.code, { label: p.badge_label, color: p.badge_color }])
-  );
-  for (const [ch, code] of planOf) {
-    const b = byCode.get(code);
-    if (b && b.color) out.set(ch, b);
+  if (codes.length > 0) {
+    const { data: plans } = await admin
+      .from("drive_plans")
+      .select("code, badge_label, badge_color")
+      .in("code", codes);
+    const byCode = new Map(
+      (
+        (plans ?? []) as {
+          code: string;
+          badge_label: string | null;
+          badge_color: string | null;
+        }[]
+      ).map((p) => [p.code, { label: p.badge_label, color: p.badge_color }])
+    );
+    for (const [ch, code] of planOf) {
+      const b = byCode.get(code);
+      if (b && b.color) out.set(ch, b);
+    }
   }
+  // Pass Prioritaire (produit séparé, mig 0210) : anneau violet si le chauffeur
+  // n'a pas déjà un badge de plan de commission.
+  const { data: pri } = await admin
+    .from("priority_subscriptions")
+    .select("subject_id")
+    .eq("subject_type", "chauffeur")
+    .in("subject_id", uniq)
+    .eq("status", "active")
+    .gte("period_end", new Date().toISOString());
+  for (const row of (pri ?? []) as { subject_id: string }[])
+    if (!out.has(row.subject_id))
+      out.set(row.subject_id, { label: "Prioritaire", color: "#6C2BD9" });
   return out;
 }
 
