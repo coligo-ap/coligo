@@ -1304,21 +1304,62 @@ export async function cancelMyPendingSub(): Promise<{
  * Souscription : CCP → « j'ai payé » (vérification admin 24 h) ;
  * carte → checkout Chargily (activation immédiate via webhook).
  */
+// Plans d'abonnement PROPOSABLES au chauffeur (data-driven, mig 0304) : plans
+// actifs hors plan par défaut. Prix/taux/durée imposés par la table — jamais le
+// client. Lecture service_role (données non sensibles, RLS autorise déjà l'actif).
+export type ChauffeurPlan = {
+  code: string;
+  title: string;
+  subtitle: string | null;
+  price_da: number;
+  billing_period: "day" | "week" | "month";
+  commission_rate: number;
+  cashback_rate: number;
+  advantages: string[];
+  badge_label: string | null;
+  badge_color: string | null;
+  is_priority: boolean;
+};
+
+export async function getDrivePlansForChauffeur(): Promise<ChauffeurPlan[]> {
+  const admin =
+    createAdminClient() as unknown as import("@supabase/supabase-js").SupabaseClient;
+  const { data } = await admin
+    .from("drive_plans")
+    .select(
+      "code,title,subtitle,price_da,billing_period,commission_rate,cashback_rate,advantages,badge_label,badge_color,is_priority,is_active,is_default,display_rank"
+    )
+    .eq("is_active", true)
+    .eq("is_default", false)
+    .order("display_rank", { ascending: false });
+  return ((data ?? []) as ChauffeurPlan[]).map((p) => ({
+    code: p.code,
+    title: p.title,
+    subtitle: p.subtitle,
+    price_da: Number(p.price_da),
+    billing_period: p.billing_period,
+    commission_rate: Number(p.commission_rate),
+    cashback_rate: Number(p.cashback_rate),
+    advantages: p.advantages ?? [],
+    badge_label: p.badge_label,
+    badge_color: p.badge_color,
+    is_priority: p.is_priority,
+  }));
+}
+
 export async function subscribeDrivePlan(
-  plan: "pro" | "premium",
+  plan: string,
   method: "ccp" | "card",
-  opts?: { upgrade?: boolean; durationDays?: 7 | 14 | 30 }
+  opts?: { upgrade?: boolean }
 ): Promise<{ ok: boolean; url?: string; error?: string }> {
   const rpc = await rpcClient();
-  // Upgrade Pro → Premium : montant au prorata des jours restants (calculé
-  // côté SQL, source de vérité), même date de renouvellement (la durée ne
-  // s'applique pas à un upgrade). Sinon : souscription à la durée choisie.
+  // Upgrade Pro → Premium : montant au prorata des jours restants (source SQL).
+  // Sinon : souscription au plan (prix + durée IMPOSÉS par drive_plans, 0304).
   const { data, error } = opts?.upgrade
     ? await rpc("drive_sub_upgrade", { p_method: method })
     : await rpc("drive_subscribe", {
         p_plan: plan,
         p_method: method,
-        p_duration_days: opts?.durationDays ?? 30,
       });
   if (error) return { ok: false, error: error.message };
   const row = (Array.isArray(data) ? data[0] : data) as {

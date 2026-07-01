@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Calendar,
   ChevronLeft,
   CreditCard,
+  Check,
   Loader2,
+  Star,
   Wallet,
   X,
-  Zap,
 } from "lucide-react";
 import {
   VIOLET,
@@ -21,66 +22,69 @@ import {
   SheetTitle,
 } from "@/components/customer/drive/drive-modals";
 import { PLAN_LABEL } from "./d-ui";
-import { Portal } from "@/components/ui/portal";
 import {
   cancelMyPendingSub,
   getChauffeurFinances,
+  getDrivePlansForChauffeur,
   subscribeDrivePlan,
   type ChauffeurFinances,
+  type ChauffeurPlan,
 } from "@/app/(chauffeur)/actions";
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+const PERIOD_LABEL: Record<ChauffeurPlan["billing_period"], string> = {
+  day: "jour",
+  week: "semaine",
+  month: "mois",
+};
+const pct = (r: number) =>
+  `${(r * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
+const fmtDA = (n: number) => n.toLocaleString("fr-FR").replace(/ | /g, " ");
 
 /**
- * Abonnements (maquette s-dsubs + modale paySub) : Gratuit 8 % · Pro 1 500
- * DA/mois 3,5 % · Premium 3 900 DA/mois 0 % + priorité + badge. Paiement
- * CCP/BaridiMob (reçu, vérification 24 h) ou carte.
+ * Abonnements Drive — DATA-DRIVEN (mig 0304). Affiche le plan Gratuit + tous les
+ * plans ACTIFS créés par le super-admin (prix / période jour-semaine-mois /
+ * commission / cashback / avantages / badge). Le chauffeur ne transmet qu'un CODE
+ * de plan : prix et durée sont IMPOSÉS par le serveur (aucune altération possible).
  *
- * ⚠️ Paiement carte : SEUL le webhook Chargily fait foi. Le retour
- * `?card=success` ne prouve rien — on POLLE le serveur jusqu'à voir le plan
- * réellement activé. Une tentative non finalisée s'affiche comme telle
- * (rien d'activé) et peut être annulée.
+ * ⚠️ Paiement carte : SEUL le webhook Chargily fait foi. Le retour ?card=success
+ * ne prouve rien — on POLLE jusqu'à voir le plan réellement actif.
  */
 export function DSubs() {
   const router = useRouter();
   const search = useSearchParams();
   const [fin, setFin] = useState<ChauffeurFinances | null>(null);
-  const [paying, setPaying] = useState<"pro" | "premium" | null>(null);
-  const [upgrade, setUpgrade] = useState(false);
+  const [plans, setPlans] = useState<ChauffeurPlan[]>([]);
+  const [paying, setPaying] = useState<ChauffeurPlan | null>(null);
   const [step, setStep] = useState<"choice" | "ccp">("choice");
-  const [duration, setDuration] = useState<7 | 14 | 30>(30);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [confirmDowngrade, setConfirmDowngrade] = useState(false);
 
-  // Engage la souscription Pro (après confirmation si remplacement d'un Premium).
-  const proceedPro = () => {
-    setConfirmDowngrade(false);
-    setUpgrade(false);
-    setPaying("pro");
-    setStep("choice");
-  };
-  // Retour Chargily : "checking" tant que le webhook n'a pas confirmé.
   const [cardReturn, setCardReturn] = useState<
     "checking" | "confirmed" | "failed" | null
   >(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const load = () => void getChauffeurFinances().then(setFin);
+  const load = () => {
+    void getChauffeurFinances().then(setFin);
+    void getDrivePlansForChauffeur().then(setPlans);
+  };
   useEffect(load, []);
 
-  // ?card=success → on NE croit PAS la redirection : on attend que le plan
-  // soit actif côté serveur (webhook). ?card=failed → échec affiché.
+  // Libellé d'un code de plan : titre du plan si connu, sinon table statique/code.
+  const labelOf = useMemo(() => {
+    const byCode = new Map(plans.map((p) => [p.code, p.title]));
+    return (code: string) => byCode.get(code) ?? PLAN_LABEL[code] ?? code;
+  }, [plans]);
+
+  // ?card=success → on attend la confirmation serveur (webhook). ?card=failed → échec.
   useEffect(() => {
     const flag = search.get("card");
     if (!flag) return;
     router.replace("/chauffeur/abonnement");
-    if (flag === "failed") {
-      setCardReturn("failed");
-      return;
-    }
+    if (flag === "failed") return setCardReturn("failed");
     if (flag !== "success") return;
     setCardReturn("checking");
     let tries = 0;
@@ -88,12 +92,10 @@ export function DSubs() {
       tries += 1;
       const f = await getChauffeurFinances();
       if (f) setFin(f);
-      // Confirmé quand plus AUCUN paiement en attente et un plan payant actif.
       if (f && !f.pendingSub && f.plan !== "free") {
         setCardReturn("confirmed");
         if (pollRef.current) clearInterval(pollRef.current);
       } else if (tries >= 15) {
-        // ~45 s sans confirmation : on reste honnête (toujours en attente).
         if (pollRef.current) clearInterval(pollRef.current);
         setCardReturn(null);
       }
@@ -112,29 +114,25 @@ export function DSubs() {
     );
   }
 
-  // Traduit le motif d'échec serveur (garde lancement mig 0238 incluse).
   const subErr = (reason?: string) =>
-    reason === "paid_plans_disabled"
-      ? "Les abonnements payants ne sont pas encore disponibles."
-      : (reason ?? "Échec");
+    reason === "paid_plans_disabled" || reason === "plan_inactive"
+      ? "Ce plan n'est pas disponible pour le moment."
+      : reason === "bad_plan"
+        ? "Plan introuvable."
+        : (reason ?? "Échec");
 
   const payCcpDone = async () => {
     if (!paying || busy) return;
     setBusy(true);
     setError(null);
-    const res = await subscribeDrivePlan(paying, "ccp", {
-      upgrade,
-      durationDays: duration,
-    });
+    const res = await subscribeDrivePlan(paying.code, "ccp");
     setBusy(false);
-    if (!res.ok) {
-      setError(subErr(res.error));
-      return;
-    }
+    if (!res.ok) return setError(subErr(res.error));
+    const p = paying;
     setPaying(null);
     setStep("choice");
     setMsg(
-      `Reçu CCP transmis · abonnement ${PLAN_LABEL[paying]} en vérification (24 h) — il sera activé par l'équipe Coligo.`
+      `Reçu CCP transmis · abonnement ${p.title} en vérification (24 h) — il sera activé par l'équipe Coligo.`
     );
     load();
   };
@@ -143,15 +141,10 @@ export function DSubs() {
     if (!paying || busy) return;
     setBusy(true);
     setError(null);
-    const res = await subscribeDrivePlan(paying, "card", {
-      upgrade,
-      durationDays: duration,
-    });
+    const res = await subscribeDrivePlan(paying.code, "card");
     setBusy(false);
-    if (!res.ok || !res.url) {
-      setError(subErr(res.error) ?? "Paiement carte indisponible.");
-      return;
-    }
+    if (!res.ok || !res.url)
+      return setError(subErr(res.error) ?? "Paiement carte indisponible.");
     window.open(res.url, "_blank");
     setPaying(null);
     setStep("choice");
@@ -171,31 +164,12 @@ export function DSubs() {
     load();
   };
 
-  // Commission RÉELLE du plan Gratuit (= vtc_commission_rate, 0 au lancement) —
-  // jamais en dur : reflète la config plateforme.
-  const freePct = (fin.freeRate * 100).toLocaleString("fr-FR", {
-    maximumFractionDigits: 1,
-  });
-
+  const freePct = pct(fin.freeRate);
   const renewBefore = fin.planPeriodEnd
     ? new Date(
         new Date(fin.planPeriodEnd).getTime() + 5 * 86400_000
       ).toISOString()
     : null;
-
-  // Tarif d'une durée = tarif mensuel du plan × facteur (1 mois = ×1).
-  const DUR_LABEL: Record<7 | 14 | 30, string> = {
-    7: "1 semaine",
-    14: "2 semaines",
-    30: "1 mois",
-  };
-  const priceFor = (p: "pro" | "premium", days: 7 | 14 | 30) => {
-    const monthly = p === "premium" ? fin.premiumFee : fin.proFee;
-    if (days === 7) return Math.max(100, Math.round(monthly * fin.weekFactor));
-    if (days === 14)
-      return Math.max(100, Math.round(monthly * fin.twoWeekFactor));
-    return monthly;
-  };
 
   return (
     <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
@@ -211,14 +185,14 @@ export function DSubs() {
         Mon abonnement
       </h1>
       <p className="mb-3 text-[13px] text-[var(--d-muted)]">
-        {fin.paidPlansEnabled
-          ? "Gardez plus sur chaque course. Changez quand vous voulez."
+        {plans.length > 0
+          ? "Gagnez en visibilité et gardez plus sur chaque course. Changez quand vous voulez."
           : fin.freeRate <= 0
             ? "Au lancement, Coligo Drive est gratuit : 0 % de commission, tout est à vous."
-            : "Au lancement, un seul plan : profitez de la commission réduite."}
+            : "Profitez du plan Gratuit."}
       </p>
 
-      {/* Retour Chargily : confirmation RÉELLE (webhook) ou échec. */}
+      {/* Retour Chargily */}
       {cardReturn === "checking" && (
         <p className="mb-3 flex items-center gap-2 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-xs font-bold">
           <Loader2
@@ -234,8 +208,7 @@ export function DSubs() {
           className="mb-3 rounded-[13px] px-3 py-2.5 text-xs font-bold"
           style={{ background: "rgba(22,179,100,.12)", color: GO }}
         >
-          ✓ Paiement confirmé par la banque — abonnement {PLAN_LABEL[fin.plan]}{" "}
-          actif
+          ✓ Paiement confirmé — abonnement {labelOf(fin.plan)} actif
           {fin.planPeriodStart && fin.planPeriodEnd
             ? ` du ${fmtDate(fin.planPeriodStart)} au ${fmtDate(fin.planPeriodEnd)}`
             : ""}
@@ -262,16 +235,7 @@ export function DSubs() {
           </span>
           <span>
             Abonnement{" "}
-            <b className="text-[var(--d-ink)]">{PLAN_LABEL[fin.plan]}</b> actif{" "}
-            {fin.planPeriodStart && (
-              <>
-                du{" "}
-                <b className="text-[var(--d-ink)]">
-                  {fmtDate(fin.planPeriodStart)}
-                </b>{" "}
-              </>
-            )}
-            au{" "}
+            <b className="text-[var(--d-ink)]">{labelOf(fin.plan)}</b> actif au{" "}
             <b className="text-[var(--d-ink)]">{fmtDate(fin.planPeriodEnd)}</b>{" "}
             · renouvelez avant le{" "}
             <b className="text-[var(--d-ink)]">
@@ -283,7 +247,7 @@ export function DSubs() {
         </div>
       )}
 
-      {/* Tentative en attente : HONNÊTE selon le moyen de paiement. */}
+      {/* Tentative en attente */}
       {fin.pendingSub && cardReturn !== "checking" && (
         <div
           className="mb-3 rounded-[13px] px-3 py-2.5 text-xs font-bold"
@@ -295,13 +259,12 @@ export function DSubs() {
         >
           {fin.pendingSub.method === "ccp" ? (
             <>
-              Reçu CCP {PLAN_LABEL[fin.pendingSub.plan]} (
-              {fin.pendingSub.amount} DA) en vérification par l&apos;équipe
-              Coligo (24 h).
+              Reçu CCP {labelOf(fin.pendingSub.plan)} ({fin.pendingSub.amount}{" "}
+              DA) en vérification par l&apos;équipe Coligo (24 h).
             </>
           ) : (
             <>
-              Paiement carte {PLAN_LABEL[fin.pendingSub.plan]} (
+              Paiement carte {labelOf(fin.pendingSub.plan)} (
               {fin.pendingSub.amount} DA) <b>non finalisé</b> — rien n&apos;est
               activé tant que la banque n&apos;a pas confirmé.
             </>
@@ -325,102 +288,56 @@ export function DSubs() {
         </p>
       )}
 
-      {/* Gratuit */}
-      <Plan
+      {/* Plan Gratuit (par défaut) */}
+      <PlanCard
         current={fin.plan === "free"}
-        name="Gratuit"
+        title="Gratuit"
         price="0 DA"
-        desc={
-          fin.freeRate <= 0 ? (
-            <>
-              <b>0 % de commission</b> — tout est à vous au lancement 🎉
-            </>
-          ) : (
-            <>
-              Commission <b>{freePct} %</b> par course · vous reversez les
-              commissions du mois
-            </>
-          )
-        }
-        cta="Choisir Gratuit"
-        secondary
-        onClick={() =>
+        badgeColor={null}
+        badgeLabel={null}
+        advantages={[
+          fin.freeRate <= 0
+            ? "0 % de commission — tout est à vous 🎉"
+            : `Commission ${freePct} par course`,
+        ]}
+        onChoose={() =>
           setMsg(
-            fin.paidPlansEnabled
-              ? "Le plan Gratuit redevient actif automatiquement à l'échéance de votre abonnement."
-              : "Vous êtes sur le plan Gratuit — aucune commission au lancement."
+            "Le plan Gratuit redevient actif automatiquement à l'échéance de votre abonnement."
           )
         }
       />
-      {/* Pro / Premium — MASQUÉS au lancement (drive_paid_plans_enabled).
-          Le garde serveur (mig 0238) refuse aussi toute souscription forgée. */}
-      {fin.paidPlansEnabled && (
-        <>
-          {/* Pro */}
-          <Plan
-            current={fin.plan === "pro"}
-            name="💼 Pro"
-            price={`${fin.proFee.toLocaleString("fr-FR").replace(/ | /g, " ")} DA`}
-            per="/mois"
-            desc={
-              <>
-                Commission réduite à <b>3,5 %</b> · abonnement + commissions
-                réduites
-              </>
-            }
-            cta="Choisir Pro"
-            secondary
-            onClick={() => {
-              // Garde-fou designé : un Premium actif serait REMPLACÉ immédiatement.
-              if (fin.plan === "premium") {
-                setConfirmDowngrade(true);
-                return;
-              }
-              proceedPro();
-            }}
-          />
-          {/* Premium */}
-          <Plan
-            current={fin.plan === "premium"}
-            premium
-            name="👑 Premium"
-            price={`${fin.premiumFee.toLocaleString("fr-FR").replace(/ | /g, " ")} DA`}
-            per="/mois"
-            desc={
-              <>
-                <b>0 % de commission</b> + priorité dispatch + badge Premium ·
-                vous ne devez que l&apos;abonnement
-                {/* Upgrade prorata (façon Claude) : on ne paie que la différence
-                pour les jours restants, même date de renouvellement. */}
-                {fin.plan === "pro" && fin.upgradeQuote && (
-                  <span
-                    className="mt-1.5 flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 font-bold"
-                    style={{ background: "var(--d-accent)", color: VIOLET }}
-                  >
-                    <Zap className="size-3.5 shrink-0" />
-                    Passage immédiat : payez seulement la différence —{" "}
-                    {fin.upgradeQuote.amountDa.toLocaleString("fr-FR")} DA pour
-                    vos {fin.upgradeQuote.daysLeft} jours restants, même date de
-                    renouvellement.
-                  </span>
-                )}
-              </>
-            }
-            cta={
-              fin.plan === "pro" && fin.upgradeQuote
-                ? `Passer à Premium · ${fin.upgradeQuote.amountDa.toLocaleString("fr-FR")} DA`
-                : "Choisir Premium"
-            }
-            onClick={() => {
-              setUpgrade(fin.plan === "pro" && !!fin.upgradeQuote);
-              setPaying("premium");
-              setStep("choice");
-            }}
-          />
-        </>
-      )}
 
-      {/* Modale paiement abonnement (maquette paySubOv) */}
+      {/* Plans actifs créés par le super-admin */}
+      {plans.map((p) => (
+        <PlanCard
+          key={p.code}
+          current={fin.plan === p.code}
+          title={p.title}
+          subtitle={p.subtitle}
+          price={`${fmtDA(p.price_da)} DA`}
+          per={`/ ${PERIOD_LABEL[p.billing_period]}`}
+          badgeLabel={p.badge_label}
+          badgeColor={p.badge_color}
+          priority={p.is_priority}
+          advantages={
+            p.advantages.length
+              ? p.advantages
+              : [
+                  `Commission ${pct(p.commission_rate)}`,
+                  ...(p.cashback_rate > 0
+                    ? [`Cashback client ${pct(p.cashback_rate)}`]
+                    : []),
+                ]
+          }
+          onChoose={() => {
+            setPaying(p);
+            setStep("choice");
+            setError(null);
+          }}
+        />
+      ))}
+
+      {/* Modale paiement */}
       <Sheet
         open={paying != null}
         onClose={() => {
@@ -429,52 +346,12 @@ export function DSubs() {
         }}
       >
         <SheetTitle>
-          {upgrade && fin.upgradeQuote ? (
-            <>
-              Passer à Premium ·{" "}
-              {fin.upgradeQuote.amountDa.toLocaleString("fr-FR")} DA (prorata{" "}
-              {fin.upgradeQuote.daysLeft} j restants)
-            </>
-          ) : (
-            <>
-              Payer l&apos;abonnement {paying ? PLAN_LABEL[paying] : ""} ·{" "}
-              {paying ? priceFor(paying, duration).toLocaleString("fr-FR") : 0}{" "}
-              DA · {DUR_LABEL[duration]}
-            </>
-          )}
+          Payer l&apos;abonnement {paying?.title} ·{" "}
+          {paying ? fmtDA(paying.price_da) : 0} DA /{" "}
+          {paying ? PERIOD_LABEL[paying.billing_period] : ""}
         </SheetTitle>
         {step === "choice" ? (
           <>
-            {/* Durée (pas pour un upgrade : prorata sur la période en cours) */}
-            {!upgrade && paying && (
-              <div className="mb-3 grid grid-cols-3 gap-2">
-                {([7, 14, 30] as const).map((d) => {
-                  const on = duration === d;
-                  return (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setDuration(d)}
-                      className="rounded-[13px] border-[1.5px] p-2.5 text-center transition-colors"
-                      style={{
-                        borderColor: on ? VIOLET : "var(--d-line)",
-                        background: on ? "var(--d-accent)" : "transparent",
-                      }}
-                    >
-                      <span className="block text-[12px] font-bold">
-                        {DUR_LABEL[d]}
-                      </span>
-                      <span
-                        className="block text-[13px] font-extrabold"
-                        style={{ color: on ? VIOLET : "var(--d-ink)" }}
-                      >
-                        {priceFor(paying, d).toLocaleString("fr-FR")} DA
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
             <p className="mb-2.5 text-[13px] text-[var(--d-muted)]">
               Choisissez votre moyen de paiement :
             </p>
@@ -557,83 +434,53 @@ export function DSubs() {
           Annuler
         </GhostBtn>
       </Sheet>
-
-      {/* Confirmation designée — remplacement immédiat d'un Premium actif. */}
-      {confirmDowngrade && (
-        <Portal>
-          <div
-            className="fixed inset-0 z-[140] flex flex-col justify-end bg-black/45"
-            onClick={() => setConfirmDowngrade(false)}
-          >
-            <div
-              className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[max(16px,env(safe-area-inset-bottom))]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <b className="drive-sora block text-[16px] font-extrabold">
-                Passer en Pro maintenant ?
-              </b>
-              <p className="mt-1 mb-3 text-[13px] text-[var(--d-muted)]">
-                Votre Premium est encore actif : souscrire Pro le remplacera
-                immédiatement, sans remboursement des jours restants. À
-                l’échéance, retour automatique au plan Gratuit.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setConfirmDowngrade(false)}
-                  className="drive-sora h-12 flex-1 rounded-[14px] border border-[var(--d-line)] text-sm font-bold"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="button"
-                  onClick={proceedPro}
-                  className="drive-sora h-12 flex-1 rounded-[14px] text-sm font-bold text-white"
-                  style={{ background: RED }}
-                >
-                  Continuer
-                </button>
-              </div>
-            </div>
-          </div>
-        </Portal>
-      )}
     </div>
   );
 }
 
-function Plan({
+function PlanCard({
   current,
-  premium,
-  name,
+  title,
+  subtitle,
   price,
   per,
-  desc,
-  cta,
-  secondary,
-  onClick,
+  badgeLabel,
+  badgeColor,
+  priority,
+  advantages,
+  onChoose,
 }: {
   current: boolean;
-  premium?: boolean;
-  name: string;
+  title: string;
+  subtitle?: string | null;
   price: string;
   per?: string;
-  desc: React.ReactNode;
-  cta: string;
-  secondary?: boolean;
-  onClick: () => void;
+  badgeLabel?: string | null;
+  badgeColor?: string | null;
+  priority?: boolean;
+  advantages: string[];
+  onChoose: () => void;
 }) {
   return (
     <div
       className="mb-2.5 rounded-[18px] border-[1.5px] p-3.5"
       style={{
-        borderColor: current ? VIOLET : premium ? "#E8B53C" : "var(--d-line)",
+        borderColor: current ? VIOLET : badgeColor || "var(--d-line)",
         background: current ? "var(--d-accent)" : undefined,
       }}
     >
       <div className="flex items-center justify-between">
-        <span className="drive-sora flex items-center gap-2 text-base font-extrabold">
-          {name}
+        <span className="drive-sora flex flex-wrap items-center gap-2 text-base font-extrabold">
+          {title}
+          {priority && <Star className="size-4" style={{ color: "#E8B53C" }} />}
+          {badgeLabel && (
+            <span
+              className="rounded-full px-2.5 py-0.5 text-[10px] font-extrabold text-white"
+              style={{ background: badgeColor || VIOLET }}
+            >
+              {badgeLabel}
+            </span>
+          )}
           {current && (
             <span
               className="rounded-full px-2.5 py-0.5 text-[10px] font-extrabold text-white"
@@ -652,23 +499,32 @@ function Plan({
           )}
         </span>
       </div>
-      <p className="mt-1 text-xs text-[var(--d-muted)]">{desc}</p>
+      {subtitle && (
+        <p className="mt-0.5 text-xs text-[var(--d-muted)]">{subtitle}</p>
+      )}
+      <ul className="mt-2 space-y-1">
+        {advantages.map((a, i) => (
+          <li
+            key={i}
+            className="flex items-start gap-1.5 text-xs text-[var(--d-ink)]"
+          >
+            <Check className="mt-0.5 size-3.5 shrink-0" style={{ color: GO }} />
+            {a}
+          </li>
+        ))}
+      </ul>
       {!current && (
         <button
           type="button"
-          onClick={onClick}
+          onClick={onChoose}
           className="drive-sora mt-2.5 h-[42px] w-full rounded-[14px] text-[13px] font-bold"
-          style={
-            secondary
-              ? { background: "var(--d-soft)" }
-              : {
-                  background: VIOLET,
-                  color: "#fff",
-                  boxShadow: `0 10px 22px -10px ${VIOLET}`,
-                }
-          }
+          style={{
+            background: VIOLET,
+            color: "#fff",
+            boxShadow: `0 10px 22px -10px ${VIOLET}`,
+          }}
         >
-          {cta}
+          Choisir {title}
         </button>
       )}
     </div>
