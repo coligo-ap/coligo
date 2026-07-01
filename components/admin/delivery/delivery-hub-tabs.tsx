@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Banknote,
   ClipboardCheck,
+  Crown,
   SlidersHorizontal,
   Truck,
 } from "lucide-react";
@@ -24,6 +25,11 @@ const TABS = [
     href: "/admin/drivers/finances",
     label: "Finances livraison",
     icon: Banknote,
+  },
+  {
+    href: "/admin/drivers/pass-prioritaire",
+    label: "Pass Prioritaire",
+    icon: Crown,
   },
   {
     href: "/admin/drivers/parametres",

@@ -223,8 +223,14 @@ export type PriorityPass = {
   subs_chauffeurs: number; // abonnés actifs chauffeurs (lecture seule)
 };
 
+// Le Pass Prioritaire est commun livreurs + chauffeurs : un admin de l'un OU
+// l'autre domaine peut le gérer (il vit dans les deux hubs).
+async function canManagePriority(): Promise<boolean> {
+  return (await adminCan("drive")) || (await adminCan("livraison"));
+}
+
 export async function getPriorityPass(): Promise<PriorityPass | null> {
-  if (!(await adminCan("drive"))) return null;
+  if (!(await canManagePriority())) return null;
   const admin = db();
   const { data: s } = await admin
     .from("platform_settings")
@@ -269,7 +275,7 @@ export async function updatePriorityPass(input: {
   first_month_da: number;
   window_sec: number;
 }): Promise<{ ok?: boolean; error?: string }> {
-  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
+  if (!(await canManagePriority())) return { error: "Accès refusé." };
 
   const monthly = Math.round(input.monthly_da);
   const first = Math.round(input.first_month_da);
@@ -298,7 +304,9 @@ export async function updatePriorityPass(input: {
     })
     .eq("id", true);
   if (error) return { error: error.message };
+  // Le pass s'affiche dans les deux hubs → on rafraîchit les deux.
   revalidatePath("/admin/chauffeurs/abonnements");
+  revalidatePath("/admin/drivers/pass-prioritaire");
   return { ok: true };
 }
 
