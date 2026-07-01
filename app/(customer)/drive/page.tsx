@@ -13,13 +13,17 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function DrivePage() {
-  // Session mémoïsée (partagée avec CustomerShell → pas de double auth).
-  const user = await getAuthUser();
+  // PERF : la session (mémoïsée, partagée avec CustomerShell) et la disponibilité
+  // Drive sont INDÉPENDANTES → on les résout EN PARALLÈLE (chemin critique =
+  // max(auth, flag) au lieu de la somme). Même principe que le gate super-admin.
+  const [user, flag] = await Promise.all([
+    getAuthUser(),
+    getFeatureFlag("drive"),
+  ]);
   if (!user) redirect("/se-connecter?next=/drive");
 
   // Disponibilité Drive (super-admin) : masqué → retour accueil ;
   // bientôt/maintenance → message ; actif → l'app Drive.
-  const flag = await getFeatureFlag("drive");
   if (flag.status === "hidden") redirect("/");
   if (flag.status !== "active") {
     const locale = await getLocale();
