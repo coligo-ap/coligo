@@ -31,6 +31,9 @@ export async function GET(request: Request) {
     fn: string,
     args: Record<string, unknown>
   ) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+  // 1) Auto-refus des commandes VISIBLES (cash / online payée) non acceptées
+  //    (mig 0244) — filet pour les commerçants absents.
   const { data, error } = await rpc("expire_stale_pending_orders", {
     p_merchant_id: null,
   });
@@ -40,5 +43,26 @@ export async function GET(request: Request) {
   const row = (Array.isArray(data) ? data[0] : data) as
     | { expired?: number }
     | undefined;
-  return NextResponse.json({ ok: true, expired: row?.expired ?? 0 });
+
+  // 2) Annulation des commandes ONLINE non payées qui traînent (mig 0295) —
+  //    filet INDÉPENDANT de l'event `checkout.expired` de Chargily (pas
+  //    toujours reçu → la commande resterait `pending` pour toujours, occupant
+  //    un créneau et gelant le cashback/Coligo Pay réservé). Re-crédit auto par
+  //    les triggers de contre-passation.
+  const { data: unpaidData, error: unpaidErr } = await rpc(
+    "expire_unpaid_online_orders",
+    { p_max_age_min: 60 }
+  );
+  if (unpaidErr) {
+    console.error("[cron/expire-orders] unpaid online:", unpaidErr.message);
+  }
+  const unpaidRow = (Array.isArray(unpaidData) ? unpaidData[0] : unpaidData) as
+    | { expired?: number }
+    | undefined;
+
+  return NextResponse.json({
+    ok: true,
+    expired: row?.expired ?? 0,
+    unpaidOnlineExpired: unpaidRow?.expired ?? 0,
+  });
 }

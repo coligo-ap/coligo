@@ -36,7 +36,7 @@ export default async function CheckoutSuccessPage({
   const { data: order } = await supabase
     .from("orders")
     .select(
-      `id, status, pickup_code, payment_status, total_da, delivery_fee_da, payment_method, customer_id,
+      `id, status, pickup_code, payment_status, total_da, delivery_fee_da, payment_method, customer_id, created_at,
        merchants ( name ),
        order_items ( product_name, unit_price_da, quantity )`
     )
@@ -47,10 +47,27 @@ export default async function CheckoutSuccessPage({
 
   const t = await getTranslations("checkout");
 
-  // Race : si Chargily a notifié `failed` pendant que le client revenait
-  // sur success_url, la commande est déjà cancelled. On redirige vers la
-  // page d'échec (qui expliquera la raison côté UX).
-  if (order.status === "cancelled" || order.payment_status === "failed") {
+  // On bascule vers la page d'échec dédiée (panier conservé + réessai) dans
+  // DEUX cas :
+  //  1. Chargily a notifié `failed`/`canceled`/`expired` → commande déjà
+  //     cancelled/failed (webhook).
+  //  2. Commande ONLINE restée `pending` BIEN au-delà du temps d'un paiement
+  //     (abandon) : le webhook `paid` est quasi instantané, donc un `pending`
+  //     après ce délai = paiement jamais complété. Sans ça, /checkout/success
+  //     affichait « paiement en cours de confirmation » À L'INFINI (même en
+  //     actualisant), alors que rien n'arrivera plus (bug prod 01/07). Le filet
+  //     serveur (mig 0295) finit d'annuler + rembourser côté base.
+  const STALE_UNPAID_MIN = 25;
+  const staleUnpaidOnline =
+    order.payment_method === "online" &&
+    order.payment_status !== "paid" &&
+    Date.now() - new Date(order.created_at as string).getTime() >
+      STALE_UNPAID_MIN * 60_000;
+  if (
+    order.status === "cancelled" ||
+    order.payment_status === "failed" ||
+    staleUnpaidOnline
+  ) {
     redirect(`/checkout/failure?order_id=${order.id}`);
   }
 
