@@ -1,12 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { ChevronRight, Smartphone, Wallet } from "lucide-react";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { CompteLoader } from "@/components/driver/profile/compte-loader";
 import { DriverInfoSection } from "@/components/driver/profile/driver-info-section";
-import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { PriorityCard } from "@/components/partner/priority-card";
 import type { CompteData } from "@/components/driver/profile/compte-view";
 
@@ -63,52 +60,11 @@ export default async function DriverProfilePage() {
           />
         </Suspense>
 
-        {/* Abonnement Prioritaire (priorité dispatch + badge) */}
-        <div className="mt-4">
+        {/* Abonnement Prioritaire (priorité dispatch + badge).
+            Les cartes Portefeuille / Télécharger / Installer sont désormais
+            rendues PAR CompteView (parité maquette chauffeur) — plus de doublon. */}
+        <div className="mt-4 mb-3">
           <PriorityCard />
-        </div>
-
-        {/* Portefeuille & recharge (solde, carte/CCP, points proches) */}
-        <Link
-          href="/driver/recharger"
-          className="mt-4 flex items-center gap-3 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] p-4 transition-colors active:scale-[0.99]"
-        >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--violet-soft)] text-[var(--violet)]">
-            <Wallet className="size-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-[var(--ink)]">
-              Portefeuille & recharge
-            </span>
-            <span className="block text-xs text-[var(--muted)]">
-              Solde, recharge par carte/CCP et points proches.
-            </span>
-          </span>
-          <ChevronRight className="size-5 shrink-0 text-[var(--muted)]" />
-        </Link>
-
-        {/* Télécharger l'app Android « Coligo Livreur » */}
-        <Link
-          href="/driver/telecharger"
-          className="mt-4 flex items-center gap-3 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] p-4 transition-colors active:scale-[0.99]"
-        >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--violet-soft)] text-[var(--violet)]">
-            <Smartphone className="size-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-[var(--ink)]">
-              Télécharger l’application Android
-            </span>
-            <span className="block text-xs text-[var(--muted)]">
-              Nouvelles courses, géoloc fiable et plein écran.
-            </span>
-          </span>
-          <ChevronRight className="size-5 shrink-0 text-[var(--muted)]" />
-        </Link>
-
-        {/* Installer la PWA livreur (« Coligo Livreur ») — masqué si installée/APK */}
-        <div className="mt-4">
-          <InstallAppButton />
         </div>
       </CompteLoader>
     </DriverShell>

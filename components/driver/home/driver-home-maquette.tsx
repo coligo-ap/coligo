@@ -1,30 +1,37 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import {
   BarChart3,
   CalendarDays,
+  ChevronRight,
   Clock,
   Crosshair,
   Loader2,
+  LocateFixed,
   LogOut,
   MapPin,
+  Power,
+  Radio,
   ShieldCheck,
   User,
   Wallet,
 } from "lucide-react";
 import { setGlobalAvailability, driverLogout } from "@/app/(driver)/actions";
 import { useDriverOnline, setDriverOnline } from "@/lib/driver/online-store";
-import { getActiveCourse } from "@/lib/driver/active-course-store";
+import {
+  getActiveCourse,
+  useActiveCourse,
+} from "@/lib/driver/active-course-store";
 import { useWorkZone } from "@/lib/driver/work-zone";
 import { WorkZoneSheet } from "@/components/driver/home/work-zone-sheet";
 import { DriverBalancePill } from "@/components/driver/balance-pill";
 import { DriverDarkPill } from "@/components/driver/driver-dark-pill";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { playGo } from "@/lib/driver/sounds";
+import { BRAND_GO, SORA } from "@/components/shared/partner-ui";
 import {
   PartnerDrawer,
   PartnerMenuButton,
@@ -51,20 +58,15 @@ function grp(n: number) {
 }
 
 /**
- * Accueil livreur (GO + réception) — version PRO « corrigée » reproduite À
- * L'IDENTIQUE de MAQUETTE-livreur-COMPLETE :
- *  - carte plein écran épurée (chip « ● En ligne » haut-gauche en ligne +
- *    bouton recentrer haut-droite porté par DriverHomeMap) ;
- *  - feuille basse = TÊTE D'INFORMATION : en-tête « Aujourd'hui » + montant du
- *    jour (raccourci vers Gains), 3 métriques EN LIGNE FINE (Courses · En
- *    ligne · Note), statut de recherche (en ligne) / invite (hors ligne) ;
- *  - bouton GO rond COMPACT en dock, à cheval sur le bord supérieur de la
- *    feuille : violet plein hors ligne (anneau interne + « GO »), vert plein +
- *    halo + vagues encerclées en ligne (« EN LIGNE ») ;
- *  - son « mise en ligne » (playGo), AUCUN toast de statut (le bouton + le chip
- *    suffisent).
- * Posé en overlay au-dessus de la vraie carte (MapLibre) ; la tabbar reste
- * persistante en dessous.
+ * Accueil livreur — PARITÉ MAQUETTE ACCUEIL CHAUFFEUR (d-home) :
+ *  - bandeau haut épuré : menu (GAUCHE) · revenu du jour en pilule violette
+ *    (CENTRE, → Gains) · GPS recentrer (DROITE, événement vers la carte) ;
+ *  - barre de mise en ligne dockée en bas (interrupteur « En ligne / Hors
+ *    ligne » façon Uber), SEUL contrôle conservé sur l'accueil ;
+ *  - tiroir gauche partagé (PartnerDrawer) pour toutes les options.
+ * La LOGIQUE est inchangée : bascule optimiste (store = source de vérité du
+ * dispatch), gel → refus de mise en ligne + modale, son playGo, logout bloqué
+ * en course.
  */
 export function DriverHomeMaquette({
   driverId,
@@ -88,6 +90,7 @@ export function DriverHomeMaquette({
   freezeReason?: string | null;
 }) {
   const online = useDriverOnline();
+  const activeCourse = useActiveCourse();
   const [, start] = useTransition();
   const router = useRouter();
   // Bilingue FR/ع (suit la locale racine, comme l'espace chauffeur).
@@ -134,11 +137,9 @@ export function DriverHomeMaquette({
       return;
     }
     // Bascule OPTIMISTE et INSTANTANÉE dans les deux sens : le store est la
-    // source de vérité du bouton (et du dispatch). La synchro serveur
-    // (lente : boucle sur chaque paire commerçant) part en arrière-plan et NE
-    // bloque PAS le bouton — qui n'est donc jamais désactivé. Plus de
-    // router.refresh() bloquant : passer hors ligne est aussi rapide que
-    // passer en ligne.
+    // source de vérité du bouton (et du dispatch). La synchro serveur (lente :
+    // boucle sur chaque paire commerçant) part en arrière-plan et NE bloque
+    // PAS le bouton.
     setDriverOnline(next);
     if (next) void playGo();
     start(async () => {
@@ -155,9 +156,13 @@ export function DriverHomeMaquette({
     });
   };
 
+  // Recentrage : la carte persistante (layout) écoute cet événement.
+  const recenter = () =>
+    window.dispatchEvent(new CustomEvent("coligo:driver-map:recenter"));
+
   return (
     <>
-      {/* Message bloquant « compte gelé » (réaffiché à chaque clic sur GO). */}
+      {/* Message bloquant « compte gelé » (réaffiché à chaque tentative). */}
       {frozenMsg && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-6"
@@ -200,8 +205,12 @@ export function DriverHomeMaquette({
               </svg>
             </div>
             <h2
-              className="mq-sora"
-              style={{ fontSize: 19, fontWeight: 800, marginBottom: 8 }}
+              style={{
+                fontFamily: SORA,
+                fontSize: 19,
+                fontWeight: 800,
+                marginBottom: 8,
+              }}
             >
               {tr("Compte gelé", "حساب مجمّد")}
             </h2>
@@ -232,7 +241,7 @@ export function DriverHomeMaquette({
                 borderRadius: 14,
                 background: "var(--violet)",
                 color: "#fff",
-                fontFamily: "var(--font-sora), Sora, sans-serif",
+                fontFamily: SORA,
                 fontWeight: 700,
                 fontSize: 15,
               }}
@@ -248,12 +257,11 @@ export function DriverHomeMaquette({
         <button
           type="button"
           onClick={() => setFrozenMsg(true)}
-          className="mq-sora"
           style={{
-            position: "absolute",
-            top: "max(58px, calc(env(safe-area-inset-top) + 14px))",
-            left: 16,
-            right: 16,
+            position: "fixed",
+            top: "max(64px, calc(env(safe-area-inset-top) + 62px))",
+            left: 12,
+            right: 12,
             zIndex: 46,
             display: "flex",
             alignItems: "center",
@@ -265,6 +273,7 @@ export function DriverHomeMaquette({
             padding: "10px 14px",
             fontSize: 12.5,
             fontWeight: 700,
+            fontFamily: SORA,
             boxShadow: "var(--pill-shadow)",
             textAlign: "left",
           }}
@@ -287,111 +296,121 @@ export function DriverHomeMaquette({
         </button>
       )}
 
-      {/* Barre du haut : menu (gauche) + statut « ● En ligne » ⟷ solde (droite).
-          Toutes les options sont regroupées dans le tiroir → l'accueil reste
-          dégagé (style Uber). */}
-      <div className="home-topbar">
-        <div className="flex items-center gap-2">
+      {/* Bandeau haut épuré (PARITÉ CHAUFFEUR) : menu · revenu du jour · GPS. */}
+      <div className="fixed inset-x-3 top-[max(12px,env(safe-area-inset-top))] z-[46] grid grid-cols-3 items-start gap-2">
+        {/* GAUCHE — bouton menu (ouvre le tiroir). */}
+        <div className="flex justify-start">
           <PartnerMenuButton
             onClick={() => setMenuOpen(true)}
             theme={DRIVER_THEME}
             label={tr("Menu", "القائمة")}
             badge={tourPending}
-            className="!size-[42px] !rounded-full"
           />
-          {online && !isFrozen && (
-            <div className="home-chip">
-              <span className="d" />
-              {tr("En ligne", "متصل")}
-            </div>
-          )}
         </div>
-        <DriverBalancePill driverId={driverId} />
-      </div>
 
-      {/* Feuille d'accueil (tête d'information), posée au-dessus de la tabbar.
-          La classe `online` pilote le bouton (vert + radar), le statut de
-          recherche et la couleur du bouton via le CSS de la maquette. */}
-      <div className={"mq-sheet" + (online ? " online" : "")}>
-        {/* Bouton GO en dock (à cheval sur le bord supérieur de la feuille). */}
-        <div className="go-cap">
-          {online
-            ? tr("Appuyez pour vous déconnecter", "اضغط لقطع الاتصال")
-            : tr("Appuyez pour passer en ligne", "اضغط للاتصال")}
-        </div>
-        <div className="go-dock">
-          <div className="radar">
-            <span />
-            <span />
-            <span />
-          </div>
+        {/* CENTRE — revenu du jour → ouvre Gains. */}
+        <div className="flex justify-center">
           <button
             type="button"
-            className="go-btn"
-            onClick={toggle}
-            aria-label={
-              online
-                ? tr("Se déconnecter", "قطع الاتصال")
-                : tr("Passer en ligne", "الاتصال")
-            }
+            onClick={() => router.push("/driver/gains")}
+            className="flex items-center gap-1.5 rounded-[16px] border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
+            style={{ background: "#6C2BD9", borderColor: "#4B1FA6" }}
           >
-            <span className="go-off">GO</span>
-            <span className="go-on">{tr("EN LIGNE", "متصل")}</span>
+            <span className="flex flex-col items-start leading-none">
+              <span
+                className="text-[18px] font-extrabold tracking-[-0.5px]"
+                style={{ fontFamily: SORA }}
+              >
+                {grp(earnedToday)} {tr("DA", "دج")}
+              </span>
+              <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap opacity-85">
+                {tr("Revenu du jour", "دخل اليوم")} · {coursesToday}{" "}
+                {isAr ? "توصيلة" : "course" + (coursesToday > 1 ? "s" : "")}
+              </span>
+            </span>
+            <ChevronRight className="size-3.5 shrink-0 text-white/80 rtl:rotate-180" />
           </button>
         </div>
 
-        {/* Hero du jour : gains + nombre de courses (raccourci vers Gains).
-            La note et le temps en ligne ne sont PLUS sur l'accueil (la note est
-            réservée au profil). */}
-        <Link
-          href="/driver/gains"
-          className="home-head"
-          aria-label={tr("Voir mes gains", "عرض أرباحي")}
-        >
-          <div className="hh-main">
-            <div className="lbl">{tr("Aujourd'hui", "اليوم")}</div>
-            <div className="v">
-              {grp(earnedToday)} {tr("DA", "دج")}
-            </div>
-          </div>
-          <div className="hh-stat">
-            <div className="hh-num">{coursesToday}</div>
-            <div className="lbl">
-              {isAr ? "توصيلة" : "course" + (coursesToday > 1 ? "s" : "")}
-            </div>
-          </div>
-          <div className="gchev">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              strokeWidth={2.4}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M9 6l6 6-6 6" />
-            </svg>
-          </div>
-        </Link>
-
-        {/* En ligne : statut de recherche (libellé + barre de balayage). */}
-        <div className="statusline">
-          <div className="lbl">
-            <span className="sp" />
-            {tr("Recherche d'une commande à livrer…", "البحث عن طلب للتوصيل…")}
-          </div>
-          <div className="track" />
-        </div>
-
-        {/* Hors ligne : simple ligne d'invite. */}
-        <div className="offhint">
-          {tr(
-            "Passez en ligne pour recevoir des commandes",
-            "اتصل لاستقبال الطلبات"
-          )}
+        {/* DROITE — GPS (recentrer, écouté par la carte persistante). */}
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={recenter}
+            aria-label={tr("Centrer sur ma position", "التمركز على موقعي")}
+            className="grid size-[44px] place-items-center rounded-[16px] border border-[var(--line)] bg-[var(--surface)] shadow-lg"
+          >
+            <LocateFixed
+              className="size-5"
+              style={{ color: "var(--violet)" }}
+            />
+          </button>
         </div>
       </div>
 
-      {/* ── Tiroir latéral gauche : toutes les options (unifié avec le chauffeur) ── */}
+      {/* ── Barre de mise en ligne dockée (PARITÉ CHAUFFEUR) ──
+          Masquée quand une course est active : le bandeau « Course en cours »
+          (global) occupe cet emplacement. */}
+      {!activeCourse && (
+        <div className="fixed inset-x-3 bottom-[78px] z-[46] mx-auto max-w-md">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={online}
+            aria-label={tr("Disponibilité", "التوفر")}
+            onClick={toggle}
+            className="flex w-full items-center gap-3 rounded-[20px] border px-4 py-3.5 text-start shadow-xl transition-colors"
+            style={{
+              borderColor: online ? "rgba(22,179,100,.35)" : "var(--line)",
+              background: online ? "rgba(22,179,100,.07)" : "var(--surface)",
+            }}
+          >
+            <span
+              className="grid size-11 shrink-0 place-items-center rounded-full transition-colors"
+              style={{
+                background: online ? "rgba(22,179,100,.16)" : "var(--soft)",
+              }}
+            >
+              {online ? (
+                <Radio className="size-5" style={{ color: BRAND_GO }} />
+              ) : (
+                <Power className="size-5" style={{ color: "var(--muted)" }} />
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span
+                className="block text-[15.5px] font-extrabold tracking-[-0.2px] text-[var(--ink)]"
+                style={{ fontFamily: SORA }}
+              >
+                {online ? tr("En ligne", "متصل") : tr("Hors ligne", "غير متصل")}
+              </span>
+              <span className="block truncate text-[12px] text-[var(--muted)]">
+                {online
+                  ? tr(
+                      "En recherche d'une commande à livrer…",
+                      "البحث عن طلب للتوصيل…"
+                    )
+                  : tr(
+                      "Activez pour recevoir les commandes",
+                      "فعّل لاستقبال الطلبات"
+                    )}
+              </span>
+            </span>
+            {/* Switch iOS-like (RTL-safe) */}
+            <span
+              className="relative h-[30px] w-[52px] shrink-0 rounded-full transition-colors"
+              style={{ background: online ? BRAND_GO : "#D6D9E2" }}
+            >
+              <span
+                className="absolute top-[3px] size-[24px] rounded-full bg-white shadow-sm transition-all"
+                style={{ insetInlineStart: online ? 25 : 3 }}
+              />
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* ── Tiroir latéral gauche : toutes les options (partagé chauffeur) ── */}
       <PartnerDrawer
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -400,14 +419,17 @@ export function DriverHomeMaquette({
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <span
-                className="mq-sora grid size-12 shrink-0 place-items-center rounded-[16px] text-[18px] font-extrabold text-white"
-                style={{ background: "var(--violet)" }}
+                className="grid size-12 shrink-0 place-items-center rounded-[16px] text-[18px] font-extrabold text-white"
+                style={{ fontFamily: SORA, background: "var(--violet)" }}
               >
                 {(driverName || "L").charAt(0).toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <b className="mq-sora truncate text-[15px] font-extrabold text-[var(--ink)]">
+                  <b
+                    className="truncate text-[15px] font-extrabold text-[var(--ink)]"
+                    style={{ fontFamily: SORA }}
+                  >
                     {driverName || tr("Livreur", "موصّل")}
                   </b>
                   {isVerified && (
@@ -435,7 +457,10 @@ export function DriverHomeMaquette({
                 <span className="text-[11px] font-medium text-[var(--muted)]">
                   {tr("Aujourd'hui", "اليوم")}
                 </span>
-                <span className="mq-sora text-[17px] leading-none font-extrabold">
+                <span
+                  className="text-[17px] leading-none font-extrabold"
+                  style={{ fontFamily: SORA }}
+                >
                   {grp(earnedToday)} {tr("DA", "دج")}
                 </span>
                 <span className="mt-0.5 text-[10px] text-[var(--muted)]">

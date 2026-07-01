@@ -14,8 +14,8 @@ import { DriverBottomNav } from "@/components/driver/driver-bottom-nav";
  */
 export default function DriverPagesLoading() {
   return (
-    <div className="mq-screen min-h-[100dvh]">
-      <main className="mq-content mx-auto max-w-md">
+    <div className="min-h-[100dvh] bg-[var(--d-surface)]">
+      <main className="mx-auto max-w-md px-5 pt-4 pb-24">
         <div className="space-y-4 pt-1">
           {/* En-tête (titre + action) */}
           <div className="flex items-center justify-between">

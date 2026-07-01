@@ -1,17 +1,26 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useLocale } from "next-intl";
 import {
+  BadgeCheck,
   CalendarDays,
+  ChevronRight,
+  Clock,
   Globe,
   KeyRound,
   LifeBuoy,
   LogOut,
-  SunMoon,
+  Moon,
+  ReceiptText,
+  Smartphone,
+  Snowflake,
+  Sun,
   Volume2,
   VolumeX,
+  Wallet,
 } from "lucide-react";
 import { setLocale } from "@/i18n/actions";
 import { driverLogout } from "@/app/(driver)/actions";
@@ -20,17 +29,24 @@ import { useDriverSound, toggleDriverSound } from "@/lib/driver/sound-store";
 import { openSupportChat } from "@/components/support/tawk-chat";
 import { setDriverOnline } from "@/lib/driver/online-store";
 import { getActiveCourse } from "@/lib/driver/active-course-store";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 import {
+  BRAND_RED,
+  BRAND_VIOLET,
   PartnerInlineError,
   PartnerMenuGroup,
   PartnerMenuRow,
+  PartnerProgress,
+  PartnerStatusChip,
+  SORA,
 } from "@/components/shared/partner-ui";
 
 /**
- * Écran COMPTE livreur — refonte « pro » : hero violet (avatar + nom + statut
- * de compte), 3 tuiles stats (note / courses / ancienneté), carte encours,
- * puis les sections « Mes informations » (children), les préférences et le
- * support. Reste scopé [data-space="driver"] (palette + Sora/Jakarta).
+ * Écran COMPTE livreur — MÊME maquette que le Compte chauffeur (d-compte) :
+ * profil en tête (avatar + note + ancienneté), chips de statut, catégories en
+ * listes bordées (primitives partagées PartnerMenuGroup/Row), déconnexion en
+ * ligne bordée + erreur inline, carte « Télécharger l'app ». Seule la LOGIQUE
+ * MÉTIER diffère (encours/plafond COD, tournées, sons, thème livreur).
  */
 export type CompteData = {
   initials: string;
@@ -75,189 +91,274 @@ export function CompteView({
       await setLocale(isAr ? "fr" : "ar");
       router.refresh();
     });
-  const pct = Math.min(
-    100,
-    Math.round((data.outstandingDa / Math.max(1, data.capDa)) * 100)
-  );
   const overCap = data.outstandingDa >= data.capDa;
-  const status = data.frozen
-    ? { cls: "red", label: tr("Compte gelé", "حساب مجمّد") }
-    : data.verified
-      ? { cls: "ok", label: tr("Vérifié ✓", "موثّق ✓") }
-      : {
-          cls: "warn",
-          label: tr("En cours de vérification", "قيد التحقق"),
-        };
 
   return (
     <>
-      <div className="head">
-        <h1>{tr("Mon compte", "حسابي")}</h1>
-      </div>
+      <h1
+        className="mb-3.5 text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
+        style={{ fontFamily: SORA }}
+      >
+        {tr("Compte", "الحساب")}
+      </h1>
 
-      {/* Hero */}
-      <div className="acc-hero">
-        <div className="av">
+      {/* Profil (parité d-compte : avatar + nom + note · courses · depuis) */}
+      <div className="mb-3 flex items-center gap-3">
+        <span
+          className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-full text-[21px] font-extrabold text-white"
+          style={{
+            fontFamily: SORA,
+            background: `linear-gradient(135deg, #8a4dff, ${BRAND_VIOLET})`,
+          }}
+        >
           {data.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={data.avatarUrl}
               alt={tr("Photo de profil", "صورة الملف")}
+              className="h-full w-full object-cover"
             />
           ) : (
             data.initials
           )}
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <div className="nm">{data.fullName}</div>
-          <span className={"acc-chip " + status.cls}>{status.label}</span>
-          {data.joinedYear && (
-            <div className="sub">
-              {isAr
-                ? `سائق كوليغو منذ ${data.joinedYear}`
-                : `Livreur Coligo depuis ${data.joinedYear}`}
-            </div>
-          )}
-        </div>
+        </span>
+        <span className="min-w-0">
+          <span
+            className="block truncate text-[17px] font-bold text-[var(--d-ink)]"
+            style={{ fontFamily: SORA }}
+          >
+            {data.fullName}
+          </span>
+          <span className="text-[13px] text-[var(--d-muted)]">
+            {data.ratingAvg > 0 && (
+              <b className="text-[var(--d-ink)]">
+                ★ {data.ratingAvg.toFixed(1).replace(".", ",")}
+              </b>
+            )}
+            {data.ratingAvg > 0 && " · "}
+            {data.coursesCount} {isAr ? "توصيلة" : "courses"}
+            {data.joinedYear
+              ? ` · ${tr("depuis", "منذ")} ${data.joinedYear}`
+              : ""}
+          </span>
+        </span>
       </div>
 
-      {/* Stats */}
-      <div className="acc-stats">
-        <div className="acc-stat">
-          <div className="v">
-            {data.ratingAvg ? data.ratingAvg.toFixed(1) : "—"}
-            <small> ★</small>
+      {/* Chips de statut */}
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {data.verified ? (
+          <PartnerStatusChip tone="ok" icon={<BadgeCheck className="size-3" />}>
+            {tr("Compte vérifié", "حساب موثّق")}
+          </PartnerStatusChip>
+        ) : (
+          <PartnerStatusChip tone="pending" icon={<Clock className="size-3" />}>
+            {tr("Compte en vérification", "حساب قيد التحقق")}
+          </PartnerStatusChip>
+        )}
+        {data.frozen && (
+          <PartnerStatusChip
+            tone="rejected"
+            icon={<Snowflake className="size-3" />}
+          >
+            {tr("Compte gelé", "حساب مجمّد")}
+          </PartnerStatusChip>
+        )}
+      </div>
+
+      {/* ── Catégorie : Encours & versement (spécifique livreur COD) ── */}
+      <PartnerMenuGroup
+        title={tr("Encours & versement", "المستحقّات والتسديد")}
+      >
+        <div className="px-3.5 py-3.5">
+          <div className="mb-2 flex items-center justify-between text-[12.5px]">
+            <span className="font-semibold text-[var(--d-ink)]">
+              {tr("Encours à reverser", "مستحقّات للتسديد")}
+            </span>
+            <b
+              className="tabular-nums"
+              style={{
+                fontFamily: SORA,
+                color: overCap ? BRAND_RED : "var(--d-ink)",
+              }}
+            >
+              {grp(data.outstandingDa)} / {grp(data.capDa)} DA
+            </b>
           </div>
-          <div className="l">{tr("Note", "التقييم")}</div>
-        </div>
-        <div className="acc-stat">
-          <div className="v">{data.coursesCount}</div>
-          <div className="l">{tr("Courses", "التوصيلات")}</div>
-        </div>
-        <div className="acc-stat">
-          <div className="v">{data.joinedYear ?? "—"}</div>
-          <div className="l">{tr("Membre depuis", "عضو منذ")}</div>
-        </div>
-      </div>
-
-      {/* Encours */}
-      <div className="acc-grp">
-        {tr("Encours & versement", "المستحقّات والتسديد")}
-      </div>
-      <div className="floatc">
-        <div className="top">
-          <span>{tr("Encours à reverser", "مستحقّات للتسديد")}</span>
-          <b style={overCap ? { color: "var(--red)" } : undefined}>
-            {grp(data.outstandingDa)} / {grp(data.capDa)} DA
-          </b>
-        </div>
-        <div className="bar">
-          <i
-            style={{
-              width: `${Math.max(2, pct)}%`,
-              background: overCap ? "var(--red)" : undefined,
-            }}
+          <PartnerProgress
+            value={data.outstandingDa}
+            max={data.capDa}
+            tone={overCap ? BRAND_RED : BRAND_VIOLET}
           />
+          <p className="mt-2 text-[11px] text-[var(--d-muted)]">
+            {overCap
+              ? tr(
+                  "Plafond atteint : l'acceptation de nouvelles courses est suspendue jusqu'au versement.",
+                  "بلغت الحد الأقصى: يُعلَّق قبول توصيلات جديدة حتى التسديد."
+                )
+              : tr(
+                  "Au-delà du plafond, l'acceptation de nouvelles courses est suspendue jusqu'au versement.",
+                  "عند تجاوز الحد، يُعلَّق قبول توصيلات جديدة حتى التسديد."
+                )}
+          </p>
         </div>
-        <div className="note">
-          {overCap
-            ? tr(
-                "Plafond atteint : l'acceptation de nouvelles courses est suspendue jusqu'au versement.",
-                "بلغت الحد الأقصى: يُعلَّق قبول توصيلات جديدة حتى التسديد."
-              )
-            : tr(
-                "Au-delà du plafond, l'acceptation de nouvelles courses est suspendue jusqu'au versement.",
-                "عند تجاوز الحد، يُعلَّق قبول توصيلات جديدة حتى التسديد."
-              )}
-        </div>
-      </div>
+      </PartnerMenuGroup>
 
       {/* Sections « Mes informations » (véhicule / pièces / versement) */}
       {children}
 
-      {/* Tournées — rejoindre un commerçant + accès au démarrage.
-          Menu = primitives PARTAGÉES (mêmes composants que l'espace chauffeur). */}
+      {/* ── Catégorie : Finances (parité d-compte) ── */}
+      <PartnerMenuGroup title={tr("Finances", "المالية")}>
+        <PartnerMenuRow
+          icon={<Wallet className="size-4" />}
+          label={tr("Portefeuille & recharge", "المحفظة والشحن")}
+          value={tr("Solde · recharger", "الرصيد · اشحن")}
+          href="/driver/recharger"
+        />
+        <PartnerMenuRow
+          icon={<ReceiptText className="size-4" />}
+          label={tr("Relevé & versement", "كشف الحساب والتسديد")}
+          value={tr("Solde à régler", "الرصيد للتسوية")}
+          href="/driver/releve"
+        />
+      </PartnerMenuGroup>
+
+      {/* ── Catégorie : Tournées ── */}
       <PartnerMenuGroup title={tr("Tournées", "الجولات")}>
         <PartnerMenuRow
-          icon={<CalendarDays className="size-[18px]" />}
+          icon={<CalendarDays className="size-4" />}
           label={tr("Mes tournées", "جولاتي")}
-          chevron
           href="/driver/tournees"
         />
         <PartnerMenuRow
-          icon={<KeyRound className="size-[18px]" />}
+          icon={<KeyRound className="size-4" />}
           label={tr("Rejoindre un commerçant", "الانضمام إلى تاجر")}
-          chevron
           href="/driver/codes"
         />
       </PartnerMenuGroup>
 
-      {/* Préférences */}
+      {/* ── Catégorie : Préférences ── */}
       <PartnerMenuGroup title={tr("Préférences", "التفضيلات")}>
         <PartnerMenuRow
-          icon={<SunMoon className="size-[18px]" />}
-          label={tr("Apparence", "المظهر")}
-          value={dark ? tr("Sombre", "داكن") : tr("Clair", "فاتح")}
+          icon={
+            dark ? (
+              <Moon className="size-4" style={{ color: BRAND_VIOLET }} />
+            ) : (
+              <Sun className="size-4" style={{ color: BRAND_VIOLET }} />
+            )
+          }
+          label={tr("Mode sombre", "الوضع الداكن")}
           onClick={() => toggleDriverDark()}
+          trailing={
+            <span
+              role="switch"
+              aria-checked={dark}
+              className="relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors"
+              style={{ background: dark ? BRAND_VIOLET : "#D6D9E2" }}
+            >
+              <span
+                className="absolute top-[2px] size-[18px] rounded-full bg-white shadow transition-all"
+                style={{ insetInlineStart: dark ? 18 : 2 }}
+              />
+            </span>
+          }
         />
         <PartnerMenuRow
           icon={
             soundOn ? (
-              <Volume2 className="size-[18px]" />
+              <Volume2 className="size-4" />
             ) : (
-              <VolumeX className="size-[18px]" />
+              <VolumeX className="size-4" />
             )
           }
           label={tr("Sons", "الأصوات")}
-          value={soundOn ? tr("Activés", "مفعّلة") : tr("Coupés", "مكتومة")}
           onClick={() => toggleDriverSound()}
+          trailing={
+            <span
+              role="switch"
+              aria-checked={soundOn}
+              className="relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors"
+              style={{ background: soundOn ? BRAND_VIOLET : "#D6D9E2" }}
+            >
+              <span
+                className="absolute top-[2px] size-[18px] rounded-full bg-white shadow transition-all"
+                style={{ insetInlineStart: soundOn ? 18 : 2 }}
+              />
+            </span>
+          }
         />
         <PartnerMenuRow
-          icon={<Globe className="size-[18px]" />}
+          icon={<Globe className="size-4" />}
           label={tr("Langue", "اللغة")}
           value={isAr ? "العربية" : "Français"}
           onClick={switchLang}
         />
-      </PartnerMenuGroup>
-
-      {/* Support & compte */}
-      <PartnerMenuGroup title={tr("Support & compte", "الدعم والحساب")}>
         <PartnerMenuRow
-          icon={<LifeBuoy className="size-[18px]" />}
+          icon={<LifeBuoy className="size-4" />}
           label={tr("Aide & support", "المساعدة والدعم")}
-          chevron
           onClick={() => openSupportChat()}
         />
-        <PartnerMenuRow
-          icon={<LogOut className="size-[18px]" />}
-          label={tr("Se déconnecter", "تسجيل الخروج")}
-          danger
-          onClick={() => {
-            // Course en cours → déconnexion bloquée (terminer d'abord). Le
-            // serveur revérifie ; ici pré-contrôle client immédiat. Message
-            // INLINE sous le menu (règle produit, pas de toast).
-            if (getActiveCourse()) {
-              setLogoutErr(
-                tr(
-                  "Terminez votre course en cours avant de vous déconnecter.",
-                  "أنهِ توصيلتك الجارية قبل تسجيل الخروج."
-                )
-              );
-              return;
-            }
-            setLogoutErr(null);
-            setDriverOnline(false);
-            void driverLogout().then((res) => {
-              if (res?.error) setLogoutErr(res.error);
-            });
-          }}
-        />
       </PartnerMenuGroup>
+
+      {/* Déconnexion — ligne bordée + erreur INLINE (parité d-compte). */}
+      <button
+        type="button"
+        onClick={() => {
+          // Course en cours → déconnexion bloquée (terminer d'abord). Le
+          // serveur revérifie ; ici pré-contrôle client immédiat.
+          if (getActiveCourse()) {
+            setLogoutErr(
+              tr(
+                "Terminez votre course en cours avant de vous déconnecter.",
+                "أنهِ توصيلتك الجارية قبل تسجيل الخروج."
+              )
+            );
+            return;
+          }
+          setLogoutErr(null);
+          setDriverOnline(false);
+          void driverLogout().then((res) => {
+            if (res?.error) setLogoutErr(res.error);
+          });
+        }}
+        className="mt-3 flex w-full items-center gap-3 rounded-[16px] border border-[var(--d-line)] px-3.5 py-3.5 text-left text-[13.5px] font-semibold"
+        style={{ color: BRAND_RED }}
+      >
+        <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+          <LogOut className="size-4" style={{ color: BRAND_RED }} />
+        </span>
+        {tr("Se déconnecter", "تسجيل الخروج")}
+      </button>
       {logoutErr ? (
         <div className="mt-2">
           <PartnerInlineError>{logoutErr}</PartnerInlineError>
         </div>
       ) : null}
+
+      {/* Télécharger l'app Android « Coligo Livreur » (parité d-compte) */}
+      <Link
+        href="/driver/telecharger"
+        className="mt-4 flex items-center gap-3 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] p-4 text-[var(--d-ink)] transition-colors hover:bg-[var(--d-surface)]"
+      >
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--d-surface)]">
+          <Smartphone className="size-5" style={{ color: BRAND_VIOLET }} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">
+            {tr("Télécharger l'application Android", "تحميل تطبيق أندرويد")}
+          </span>
+          <span className="block text-xs opacity-70">
+            {tr(
+              "Notifications fiables et plein écran.",
+              "إشعارات موثوقة وشاشة كاملة."
+            )}
+          </span>
+        </span>
+        <ChevronRight className="size-5 shrink-0 opacity-50 rtl:rotate-180" />
+      </Link>
+
+      <div className="mt-4">
+        <InstallAppButton className="border-[var(--d-line)] bg-[var(--d-soft)] text-[var(--d-ink)] hover:bg-[var(--d-surface)]" />
+      </div>
     </>
   );
 }

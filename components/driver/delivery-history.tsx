@@ -1,19 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "next-intl";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { LifeBuoy } from "lucide-react";
+import { Bike, ChevronDown, LifeBuoy } from "lucide-react";
 import { openSupportChat } from "@/components/support/tawk-chat";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { getDeliveryHistory } from "@/app/(driver)/actions";
+import { BRAND_GO, BRAND_RED, SORA } from "@/components/shared/partner-ui";
 
 /**
  * Chargeur de l'historique livraisons via TanStack Query (cache persistant, clé
  * par livreur). La page serveur ne fait plus que l'auth ; le contenu est lu ici
  * côté client → affichage INSTANTANÉ depuis le cache au retour + revalidation
- * silencieuse, plus de re-téléchargement ni de squelette plein écran à chaque
- * visite. Squelette uniquement au 1er chargement (cache vide).
+ * silencieuse. Squelette uniquement au 1er chargement (cache vide).
  *
  * Sécurité : cache en mémoire de l'onglet, clé incluant le driverId, action
  * serveur ré-authentifiée (getCurrentDriver + RLS) → aucune fuite entre comptes.
@@ -51,14 +51,14 @@ function DeliveryHistorySkeleton() {
     <div className="space-y-3">
       <div
         className="h-7 w-44 animate-pulse rounded-lg"
-        style={{ background: "var(--soft)" }}
+        style={{ background: "var(--d-soft)" }}
       />
       <div className="flex gap-2">
         {[0, 1, 2].map((i) => (
           <div
             key={i}
             className="h-8 w-24 animate-pulse rounded-full"
-            style={{ background: "var(--soft)" }}
+            style={{ background: "var(--d-soft)" }}
           />
         ))}
       </div>
@@ -66,8 +66,11 @@ function DeliveryHistorySkeleton() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="h-[74px] animate-pulse rounded-[16px] border"
-            style={{ background: "var(--surface)", borderColor: "var(--line)" }}
+            className="h-[74px] animate-pulse rounded-[15px] border"
+            style={{
+              background: "var(--d-surface)",
+              borderColor: "var(--d-line)",
+            }}
           />
         ))}
       </div>
@@ -76,10 +79,11 @@ function DeliveryHistorySkeleton() {
 }
 
 /**
- * Écran HISTORIQUE reproduit À L'IDENTIQUE de MAQUETTE-livreur-pages :
- * .head + pills (Toutes / Livrées / Annulées avec compteurs) + groupes par jour
- * (.daygrp) + cartes .hcard (rail commerçant→client, heure, tag Espèces/Prépayé,
- * gain, badge statut). Données 100 % réelles.
+ * HISTORIQUE livreur — MÊME maquette que « Mes courses » chauffeur (DHisto) :
+ * accordéon PAR MOIS (mois le plus récent ouvert), lignes identiques (icône
+ * carrée, trajet, méta date · montant, badge Livrée/Annulée). Les filtres de
+ * statut (Toutes/Livrées/Annulées) sont conservés (fonctionnalité livreur).
+ * Données 100 % réelles, heures en fuseau Alger (anti-hydratation #418).
  */
 
 type Row = {
@@ -108,27 +112,47 @@ function grp(n: number) {
 }
 
 const TZ = "Africa/Algiers";
-function dayKey(d: Date) {
-  // Clé jour stable (Alger) → pas de mismatch d'hydratation (#418).
-  return d.toLocaleDateString("fr-CA", { timeZone: TZ }); // YYYY-MM-DD
-}
-function dayLabel(d: Date, isAr: boolean) {
-  const today = new Date();
-  const yest = new Date(today.getTime() - 86_400_000);
-  if (dayKey(d) === dayKey(today)) return isAr ? "اليوم" : "Aujourd'hui";
-  if (dayKey(d) === dayKey(yest)) return isAr ? "أمس" : "Hier";
-  return d.toLocaleDateString(isAr ? "ar-DZ" : "fr-FR", {
-    day: "2-digit",
-    month: "long",
+const MONTHS_FR = [
+  "janvier",
+  "février",
+  "mars",
+  "avril",
+  "mai",
+  "juin",
+  "juillet",
+  "août",
+  "septembre",
+  "octobre",
+  "novembre",
+  "décembre",
+];
+const MONTHS_AR = [
+  "جانفي",
+  "فيفري",
+  "مارس",
+  "أفريل",
+  "ماي",
+  "جوان",
+  "جويلية",
+  "أوت",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
+
+function fmtDateTime(d: Date, isAr: boolean) {
+  const date = d.toLocaleDateString(isAr ? "ar-DZ" : "fr-FR", {
+    day: "numeric",
+    month: "short",
     timeZone: TZ,
   });
-}
-function hhmm(d: Date) {
-  return d.toLocaleTimeString("fr-FR", {
+  const time = d.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: TZ,
   });
+  return `${date} ${time}`;
 }
 
 export function DeliveryHistory({
@@ -146,6 +170,8 @@ export function DeliveryHistory({
   }, [merchants, isAr]);
 
   const [filter, setFilter] = useState<Filter>("all");
+  const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
+  const defaultedRef = useRef(false);
 
   const counts = useMemo(
     () => ({
@@ -168,158 +194,211 @@ export function DeliveryHistory({
     [rows, filter]
   );
 
-  // Groupes par jour (ordre déjà décroissant en entrée).
-  const groups = useMemo(() => {
-    const out: { key: string; label: string; items: Row[] }[] = [];
-    const idx = new Map<string, number>();
+  // Regroupe PAR MOIS (parité chauffeur), ordre décroissant conservé.
+  const months = useMemo(() => {
+    const map = new Map<string, Row[]>();
     for (const r of filtered) {
       const d = new Date(r.delivery_delivered_at ?? r.created_at);
-      const k = dayKey(d);
-      if (!idx.has(k)) {
-        idx.set(k, out.length);
-        out.push({ key: k, label: dayLabel(d, isAr), items: [] });
-      }
-      out[idx.get(k)!].items.push(r);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const arr = map.get(key);
+      if (arr) arr.push(r);
+      else map.set(key, [r]);
     }
-    return out;
-  }, [filtered, isAr]);
+    return [...map.entries()];
+  }, [filtered]);
+
+  // Ouvre le mois le plus récent par défaut (une seule fois).
+  useEffect(() => {
+    if (!defaultedRef.current && months.length > 0) {
+      defaultedRef.current = true;
+      setOpenMonths(new Set([months[0][0]]));
+    }
+  }, [months]);
+
+  const toggle = (key: string) =>
+    setOpenMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
   return (
     <>
-      <div className="head">
-        <h1>{tr("Historique", "السجل")}</h1>
-        <div className="ic">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M4 6h16M7 12h10M10 18h4" />
-          </svg>
-        </div>
+      <h1
+        className="mb-3 text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
+        style={{ fontFamily: SORA }}
+      >
+        {tr("Historique", "السجل")}
+      </h1>
+
+      {/* Filtres de statut (fonctionnalité livreur conservée). */}
+      <div className="mb-3 flex flex-wrap gap-2">
+        {(
+          [
+            ["all", tr("Toutes", "الكل"), counts.all],
+            ["delivered", tr("Livrées", "مُسلَّمة"), counts.delivered],
+            ["cancelled", tr("Annulées", "مُلغاة"), counts.cancelled],
+          ] as const
+        ).map(([key, label, count]) => {
+          const on = filter === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className="rounded-full px-3.5 py-2 text-[12.5px] font-bold whitespace-nowrap transition-colors"
+              style={
+                on
+                  ? { background: "var(--d-ink)", color: "var(--d-surface)" }
+                  : { background: "var(--d-soft)", color: "var(--d-muted)" }
+              }
+            >
+              {label} · {count}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="pills">
-        <button
-          type="button"
-          className={"pill" + (filter === "all" ? " on" : "")}
-          onClick={() => setFilter("all")}
-        >
-          {tr("Toutes", "الكل")} · {counts.all}
-        </button>
-        <button
-          type="button"
-          className={"pill" + (filter === "delivered" ? " on" : "")}
-          onClick={() => setFilter("delivered")}
-        >
-          {tr("Livrées", "مُسلَّمة")} · {counts.delivered}
-        </button>
-        <button
-          type="button"
-          className={"pill" + (filter === "cancelled" ? " on" : "")}
-          onClick={() => setFilter("cancelled")}
-        >
-          {tr("Annulées", "مُلغاة")} · {counts.cancelled}
-        </button>
-      </div>
-
-      {groups.length === 0 ? (
-        <p style={{ color: "var(--muted)", fontSize: 13, padding: "0 2px" }}>
+      {months.length === 0 ? (
+        <p className="py-10 text-center text-sm text-[var(--d-muted)]">
           {tr("Aucune course pour ce filtre.", "لا توجد توصيلات لهذا التصفية.")}
         </p>
       ) : (
-        groups.map((g) => (
-          <div key={g.key}>
-            <div className="daygrp">{g.label}</div>
-            {g.items.map((r) => {
-              const date = new Date(r.delivery_delivered_at ?? r.created_at);
-              const delivered = r.status === "completed";
-              const cancelled = r.status === "cancelled";
-              const gain = r.driver_net_da ?? r.delivery_fee_da ?? 0;
-              return (
-                <div className="hcard" key={r.id}>
-                  <div className="rail">
-                    <span className="d s" />
-                    <span className="ln" />
-                    <span className="d e" />
-                  </div>
-                  <div className="mid">
-                    <div className="nm">{merchantNameOf(r.merchant_id)}</div>
-                    <div className="nm">
-                      {r.delivery_address_text ??
-                        tr("Adresse client", "عنوان الزبون")}
-                    </div>
-                    <div className="meta">
-                      <span>{hhmm(date)}</span>·
-                      <span className="tg">
-                        {r.payment_method === "cash"
-                          ? tr("Espèces", "نقداً")
-                          : tr("Prépayé", "مدفوع مسبقاً")}
-                      </span>
-                      ·
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openSupportChat({
-                            orderRef: r.order_number,
-                            attributes: {
-                              Boutique: merchantNameOf(r.merchant_id),
-                              Statut: delivered
-                                ? "Livrée"
-                                : cancelled
-                                  ? "Annulée"
-                                  : "En cours",
-                            },
-                          })
-                        }
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 3,
-                          color: "var(--primary, #6C2BD9)",
-                          fontWeight: 700,
-                        }}
-                      >
-                        <LifeBuoy style={{ width: 12, height: 12 }} />
-                        {tr("Aide", "مساعدة")}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="right">
-                    <span
-                      className="amt"
-                      style={delivered ? undefined : { color: "var(--muted)" }}
-                    >
-                      {delivered ? `+${grp(gain)} DA` : "—"}
-                    </span>
-                    <span
-                      className={
-                        "badge " + (cancelled ? "ko" : delivered ? "ok" : "")
-                      }
-                      style={
-                        delivered || cancelled
-                          ? undefined
-                          : {
-                              background: "var(--soft)",
-                              color: "var(--muted)",
-                            }
-                      }
-                    >
-                      {delivered
-                        ? tr("Livrée", "مُسلَّمة")
-                        : cancelled
-                          ? tr("Annulée", "مُلغاة")
-                          : tr("En cours", "جارية")}
-                    </span>
-                  </div>
+        months.map(([key, items]) => {
+          const d = new Date(
+            items[0].delivery_delivered_at ?? items[0].created_at
+          );
+          const label = `${(isAr ? MONTHS_AR : MONTHS_FR)[d.getMonth()]} ${d.getFullYear()}`;
+          const net = items.reduce(
+            (s, r) =>
+              s +
+              (r.status === "completed"
+                ? (r.driver_net_da ?? r.delivery_fee_da ?? 0)
+                : 0),
+            0
+          );
+          const open = openMonths.has(key);
+          return (
+            <div key={key} className="mb-2.5">
+              <button
+                type="button"
+                onClick={() => toggle(key)}
+                className="flex w-full items-center gap-2 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+              >
+                <span className="min-w-0 flex-1">
+                  <b
+                    className="block text-[14px] text-[var(--d-ink)] capitalize"
+                    style={{ fontFamily: SORA }}
+                  >
+                    {label}
+                  </b>
+                  <small className="text-[11px] text-[var(--d-muted)]">
+                    {items.length} {isAr ? "توصيلة" : "courses"} ·{" "}
+                    {tr("net", "صافي")} +{grp(net)} {tr("DA", "دج")}
+                  </small>
+                </span>
+                <ChevronDown
+                  className="size-5 shrink-0 text-[var(--d-muted)] transition-transform"
+                  style={{ transform: open ? "rotate(180deg)" : "none" }}
+                />
+              </button>
+              {open && (
+                <div className="mt-2">
+                  {items.map((r) => (
+                    <HistoRow
+                      key={r.id}
+                      r={r}
+                      merchantName={merchantNameOf(r.merchant_id)}
+                      isAr={isAr}
+                    />
+                  ))}
                 </div>
-              );
-            })}
-          </div>
-        ))
+              )}
+            </div>
+          );
+        })
       )}
     </>
+  );
+}
+
+/** Une ligne de course (parité HistoRow chauffeur). */
+function HistoRow({
+  r,
+  merchantName,
+  isAr,
+}: {
+  r: Row;
+  merchantName: string;
+  isAr: boolean;
+}) {
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  const delivered = r.status === "completed";
+  const cancelled = r.status === "cancelled";
+  const gain = r.driver_net_da ?? r.delivery_fee_da ?? 0;
+  const date = new Date(r.delivery_delivered_at ?? r.created_at);
+  return (
+    <div className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3">
+      <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)] text-[var(--d-ink)]">
+        <Bike className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <b className="block truncate text-[13.5px] text-[var(--d-ink)]">
+          {merchantName} →{" "}
+          {r.delivery_address_text ?? tr("Adresse client", "عنوان الزبون")}
+        </b>
+        <small className="flex flex-wrap items-center gap-1 text-[11px] text-[var(--d-muted)]">
+          {fmtDateTime(date, isAr)}
+          {delivered && (
+            <>
+              {" "}
+              · +{grp(gain)} {tr("DA", "دج")}
+            </>
+          )}{" "}
+          ·{" "}
+          {r.payment_method === "cash"
+            ? tr("Espèces", "نقداً")
+            : tr("Prépayé", "مدفوع مسبقاً")}
+          <button
+            type="button"
+            onClick={() =>
+              openSupportChat({
+                orderRef: r.order_number,
+                attributes: {
+                  Boutique: merchantName,
+                  Statut: delivered
+                    ? "Livrée"
+                    : cancelled
+                      ? "Annulée"
+                      : "En cours",
+                },
+              })
+            }
+            className="inline-flex items-center gap-0.5 font-bold"
+            style={{ color: "#6c2bd9" }}
+          >
+            <LifeBuoy className="size-3" />
+            {tr("Aide", "مساعدة")}
+          </button>
+        </small>
+      </span>
+      <span
+        className="shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold"
+        style={
+          delivered
+            ? { background: "rgba(22,179,100,.12)", color: BRAND_GO }
+            : cancelled
+              ? { background: "rgba(229,72,77,.12)", color: BRAND_RED }
+              : { background: "var(--d-soft)", color: "var(--d-muted)" }
+        }
+      >
+        {delivered
+          ? tr("Livrée", "مُسلَّمة")
+          : cancelled
+            ? tr("Annulée", "مُلغاة")
+            : tr("En cours", "جارية")}
+      </span>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
@@ -41,6 +41,11 @@ import { getDriverBadge } from "@/lib/drive/driver-badge";
 import { PLAN_LABEL, fmtPct } from "./d-ui";
 import { Portal } from "@/components/ui/portal";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
+import {
+  PartnerMenuGroup,
+  PartnerMenuRow,
+  PartnerStatusChip,
+} from "@/components/shared/partner-ui";
 import {
   chauffeurLogout,
   getChauffeurFinances,
@@ -202,25 +207,25 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
       {/* Statuts (remontés en haut) : vérification + dossier */}
       <div className="mb-3 flex flex-wrap gap-1.5">
         {gate.isVerified ? (
-          <StatusChip tone="ok" icon={<BadgeCheck className="size-3" />}>
+          <PartnerStatusChip tone="ok" icon={<BadgeCheck className="size-3" />}>
             Compte vérifié
-          </StatusChip>
+          </PartnerStatusChip>
         ) : (
-          <StatusChip tone="pending" icon={<Clock className="size-3" />}>
+          <PartnerStatusChip tone="pending" icon={<Clock className="size-3" />}>
             Compte en vérification
-          </StatusChip>
+          </PartnerStatusChip>
         )}
-        <StatusChip
+        <PartnerStatusChip
           tone={docStatus.tone}
           icon={<FileCheck className="size-3" />}
         >
           Documents · {docStatus.label}
-        </StatusChip>
+        </PartnerStatusChip>
       </div>
 
       {/* ── Catégorie : Véhicule & documents ── */}
-      <Section title="Véhicule & documents">
-        <Row
+      <PartnerMenuGroup title="Véhicule & documents">
+        <PartnerMenuRow
           icon={<Car className="size-4" />}
           label="Véhicule"
           value={
@@ -236,7 +241,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
             </>
           }
         />
-        <Row
+        <PartnerMenuRow
           icon={<FileCheck className="size-4" />}
           label="Documents"
           value={
@@ -250,33 +255,33 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
           }
           onClick={() => router.push("/chauffeur/documents")}
         />
-      </Section>
+      </PartnerMenuGroup>
 
       {/* ── Catégorie : Finances ── */}
-      <Section title="Finances">
-        <Row
+      <PartnerMenuGroup title="Finances">
+        <PartnerMenuRow
           icon={<CreditCard className="size-4" />}
           label="Abonnement"
           value={`${PLAN_LABEL[plan]} · ${fin ? fmtPct(fin.planRate) : "…"}`}
           onClick={() => router.push("/chauffeur/abonnement")}
         />
-        <Row
+        <PartnerMenuRow
           icon={<Wallet className="size-4" />}
           label="Portefeuille & recharge"
           value="Solde · recharger"
           onClick={() => router.push("/chauffeur/recharger")}
         />
-        <Row
+        <PartnerMenuRow
           icon={<CreditCard className="size-4" />}
           label="Mon CCP (versements)"
           value="Renseigner / modifier"
           onClick={openCcp}
         />
-      </Section>
+      </PartnerMenuGroup>
 
       {/* ── Catégorie : Préférences & sécurité ── */}
-      <Section title="Préférences & sécurité">
-        <Row
+      <PartnerMenuGroup title="Préférences & sécurité">
+        <PartnerMenuRow
           icon={<Home className="size-4" />}
           label="Domicile"
           value={
@@ -286,7 +291,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
           }
           onClick={openHome}
         />
-        <Row
+        <PartnerMenuRow
           icon={<ShieldAlert className="size-4" />}
           label="Contacts d'urgence"
           value={
@@ -296,14 +301,14 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
           }
           onClick={() => setContactsOpen(true)}
         />
-        <Row
+        <PartnerMenuRow
           icon={<Globe className="size-4" />}
           label="Langue"
           value={isAr ? "العربية" : "Français"}
           onClick={switchLang}
         />
         <DarkModeRow />
-      </Section>
+      </PartnerMenuGroup>
 
       {/* Déconnexion — erreur INLINE sous le bouton (règle produit, pas de toast). */}
       <button
@@ -426,26 +431,6 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
   );
 }
 
-/** En-tête de catégorie + conteneur de lignes (liste bordée). */
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="mb-3">
-      <p className="mb-1.5 px-1 text-[11px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-        {title}
-      </p>
-      <div className="overflow-hidden rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)]">
-        {children}
-      </div>
-    </div>
-  );
-}
-
 /** Modal de saisie designé (bottom-sheet) — remplace window.prompt/alert. */
 function FormModal({
   open,
@@ -511,32 +496,6 @@ function FormModal({
   );
 }
 
-function StatusChip({
-  tone,
-  icon,
-  children,
-}: {
-  tone: "ok" | "pending" | "rejected";
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  const style =
-    tone === "ok"
-      ? { background: "rgba(22,179,100,.12)", color: GO }
-      : tone === "rejected"
-        ? { background: "rgba(229,72,77,.12)", color: "#E5484D" }
-        : { background: "var(--d-accent)", color: VIOLET };
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-bold"
-      style={style}
-    >
-      {icon}
-      {children}
-    </span>
-  );
-}
-
 /** Bascule clair / sombre (cookie coligo_theme + classe theme-dark) — l'espace
  *  chauffeur consomme `.theme-dark .drive-jakarta`, donc le sombre s'applique. */
 function DarkModeRow() {
@@ -555,61 +514,29 @@ function DarkModeRow() {
   };
 
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={dark === true}
-      onClick={toggle}
-      className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-3.5 py-3.5 text-left text-[13.5px] font-semibold"
-    >
-      <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-        {dark ? (
+    <PartnerMenuRow
+      icon={
+        dark ? (
           <Moon className="size-4" style={{ color: VIOLET }} />
         ) : (
           <Sun className="size-4" style={{ color: VIOLET }} />
-        )}
-      </span>
-      <span className="flex-1">Mode sombre</span>
-      <span
-        className="relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors"
-        style={{ background: dark ? VIOLET : "#D6D9E2" }}
-      >
+        )
+      }
+      label="Mode sombre"
+      onClick={toggle}
+      trailing={
         <span
-          className="absolute top-[2px] size-[18px] rounded-full bg-white shadow transition-all"
-          style={{ insetInlineStart: dark ? 18 : 2 }}
-        />
-      </span>
-    </button>
-  );
-}
-
-function Row({
-  icon,
-  label,
-  value,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-  onClick?: () => void;
-}) {
-  const Tag = onClick ? "button" : "div";
-  return (
-    <Tag
-      {...(onClick ? { type: "button" as const, onClick } : {})}
-      className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-3.5 py-3.5 text-left text-[13.5px] font-semibold last:border-b-0"
-    >
-      <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-        {icon}
-      </span>
-      <span className="flex-1">{label}</span>
-      <span className="max-w-[50%] truncate text-right text-xs font-medium text-[var(--d-muted)]">
-        {value}
-      </span>
-      {onClick && (
-        <ChevronRight className="size-4 shrink-0 text-[var(--d-muted)] opacity-70" />
-      )}
-    </Tag>
+          role="switch"
+          aria-checked={dark === true}
+          className="relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors"
+          style={{ background: dark ? VIOLET : "#D6D9E2" }}
+        >
+          <span
+            className="absolute top-[2px] size-[18px] rounded-full bg-white shadow transition-all"
+            style={{ insetInlineStart: dark ? 18 : 2 }}
+          />
+        </span>
+      }
+    />
   );
 }

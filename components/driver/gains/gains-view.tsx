@@ -1,21 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
+import { History, Plus, Wallet } from "lucide-react";
+import { getMyWalletState } from "@/app/wallet/recharge-actions";
 import {
-  PartnerSegmented,
-  PartnerStatTiles,
+  BRAND_GO,
+  BRAND_RED,
+  BRAND_VIOLET,
+  BRAND_VIOLET_D,
+  SORA,
 } from "@/components/shared/partner-ui";
 
 /**
- * Écran GAINS reproduit À L'IDENTIQUE de MAQUETTE-livreur-pages (section Gains) :
- * .head + .miniseg (Jour/Semaine/Mois) + grande .card (total + delta + graphe
- * 7 jours) + .tiles + .linkcard « Relevé & versement ».
- *
- * Montants 100 % réels (delivery_ledger, mêmes sommes par type qu'avant). Le
- * groupement des chiffres est manuel (espace) → déterministe SSR↔client
- * (anti-hydratation #418).
+ * Écran GAINS livreur — MÊME maquette que les Gains chauffeur (d-gains) :
+ * titre + bouton Historique, carte Solde portefeuille (→ recharge), carte
+ * « Ce mois » avec 2 tuiles (Aujourd'hui / Net ce mois) + lignes de détail,
+ * carte violette « Relevé & versement ». Les montants restent 100 % réels
+ * (delivery_ledger, mêmes sommes par type qu'avant) ; groupement des chiffres
+ * manuel (anti-hydratation #418).
  */
 
 export type GainsEntry = {
@@ -33,24 +38,34 @@ export type GainsEntry = {
   merchant_id: string | null;
 };
 
-type Period = "day" | "week" | "month";
-
-const PERIODS: { key: Period; label: string; labelAr: string }[] = [
-  { key: "day", label: "Jour", labelAr: "يوم" },
-  { key: "week", label: "Semaine", labelAr: "أسبوع" },
-  { key: "month", label: "Mois", labelAr: "شهر" },
+const MONTHS_FR = [
+  "janvier",
+  "février",
+  "mars",
+  "avril",
+  "mai",
+  "juin",
+  "juillet",
+  "août",
+  "septembre",
+  "octobre",
+  "novembre",
+  "décembre",
 ];
-const PERIOD_TITLE: Record<Period, [string, string]> = {
-  day: ["Aujourd'hui", "اليوم"],
-  week: ["Cette semaine", "هذا الأسبوع"],
-  month: ["Ce mois-ci", "هذا الشهر"],
-};
-const PERIOD_PREV: Record<Period, [string, string]> = {
-  day: ["hier", "أمس"],
-  week: ["semaine dernière", "الأسبوع الماضي"],
-  month: ["mois dernier", "الشهر الماضي"],
-};
-const DAY_LETTERS = ["L", "M", "M", "J", "V", "S", "D"];
+const MONTHS_AR = [
+  "جانفي",
+  "فيفري",
+  "مارس",
+  "أفريل",
+  "ماي",
+  "جوان",
+  "جويلية",
+  "أوت",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
 
 function grp(n: number) {
   return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -58,200 +73,205 @@ function grp(n: number) {
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
-function startOfWeek(d: Date) {
-  const s = startOfDay(d);
-  const dow = (s.getDay() + 6) % 7;
-  s.setDate(s.getDate() - dow);
-  return s;
-}
 function startOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
 export function GainsView({ entries }: { entries: GainsEntry[] }) {
+  const router = useRouter();
   const isAr = useLocale() === "ar";
-  const L = isAr ? 1 : 0;
-  const [period, setPeriod] = useState<Period>("day");
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
-  const { total, count, avg, cashCollected, deltaPct, bars } = useMemo(() => {
-    const now = new Date();
-    const curFrom =
-      period === "day"
-        ? startOfDay(now)
-        : period === "week"
-          ? startOfWeek(now)
-          : startOfMonth(now);
-    // Borne basse de la période précédente (même durée).
-    const prevFrom =
-      period === "day"
-        ? new Date(curFrom.getTime() - 86_400_000)
-        : period === "week"
-          ? new Date(curFrom.getTime() - 7 * 86_400_000)
-          : new Date(curFrom.getFullYear(), curFrom.getMonth() - 1, 1);
+  // Solde portefeuille opérateur (même source que le chauffeur).
+  const [balance, setBalance] = useState<number | null>(null);
+  useEffect(() => {
+    void getMyWalletState().then((s) => setBalance(s?.effectiveBalanceDa ?? 0));
+  }, []);
+  const lowBalance = balance != null && balance < 0;
 
-    const payoutsBetween = (from: Date, to: Date) =>
-      entries.filter(
-        (e) =>
-          e.type === "driver_payout" &&
-          new Date(e.created_at) >= from &&
-          new Date(e.created_at) < to
+  const { today, todayCount, month, monthCount, cashMonth, avg } =
+    useMemo(() => {
+      const now = new Date();
+      const dayFrom = startOfDay(now);
+      const monthFrom = startOfMonth(now);
+      const payouts = entries.filter((e) => e.type === "driver_payout");
+      const inRange = (rows: GainsEntry[], from: Date) =>
+        rows.filter((e) => new Date(e.created_at) >= from);
+      const sum = (rows: GainsEntry[]) =>
+        rows.reduce((s, e) => s + e.amount_da, 0);
+      const dayRows = inRange(payouts, dayFrom);
+      const monthRows = inRange(payouts, monthFrom);
+      const cashRows = inRange(
+        entries.filter((e) => e.type === "driver_cash_collected"),
+        monthFrom
       );
-    const sum = (rows: GainsEntry[]) =>
-      rows.reduce((s, e) => s + e.amount_da, 0);
+      const monthTotal = sum(monthRows);
+      return {
+        today: sum(dayRows),
+        todayCount: dayRows.length,
+        month: monthTotal,
+        monthCount: monthRows.length,
+        cashMonth: sum(cashRows),
+        avg: monthRows.length ? Math.round(monthTotal / monthRows.length) : 0,
+      };
+    }, [entries]);
 
-    const cur = payoutsBetween(curFrom, now);
-    const prev = payoutsBetween(prevFrom, curFrom);
-    const curTotal = sum(cur);
-    const prevTotal = sum(prev);
-
-    const cashRows = entries.filter(
-      (e) =>
-        e.type === "driver_cash_collected" && new Date(e.created_at) >= curFrom
-    );
-
-    // Graphe : semaine courante (lundi → dimanche), payout/jour.
-    const weekStart = startOfWeek(now);
-    const todayIdx = (now.getDay() + 6) % 7;
-    const dayTotals = Array.from({ length: 7 }, (_, i) => {
-      const ds = new Date(weekStart);
-      ds.setDate(weekStart.getDate() + i);
-      const de = new Date(ds);
-      de.setDate(ds.getDate() + 1);
-      return sum(payoutsBetween(ds, de));
-    });
-    const max = Math.max(1, ...dayTotals);
-
-    return {
-      total: curTotal,
-      count: cur.length,
-      avg: cur.length > 0 ? Math.round(curTotal / cur.length) : 0,
-      cashCollected: sum(cashRows),
-      deltaPct:
-        prevTotal > 0
-          ? Math.round(((curTotal - prevTotal) / prevTotal) * 100)
-          : null,
-      bars: dayTotals.map((v, i) => ({
-        pct: Math.max(4, Math.round((v / max) * 100)),
-        now: i === todayIdx,
-        letter: DAY_LETTERS[i],
-      })),
-    };
-  }, [entries, period]);
+  const monthName = (isAr ? MONTHS_AR : MONTHS_FR)[new Date().getMonth()];
 
   return (
     <>
-      <div className="head">
-        <h1>{isAr ? "الأرباح" : "Gains"}</h1>
-        <div className="ic">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            strokeWidth={2}
-            strokeLinecap="round"
-          >
-            <circle cx="12" cy="12" r="3" />
-            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-          </svg>
-        </div>
-      </div>
-
-      <div className="mb-4">
-        <PartnerSegmented
-          options={PERIODS.map((p) => ({
-            key: p.key,
-            label: isAr ? p.labelAr : p.label,
-          }))}
-          value={period}
-          onChange={setPeriod}
-        />
-      </div>
-
-      <div className="card">
-        <div
-          style={{ fontSize: "12.5px", fontWeight: 600 }}
-          className="text-[var(--muted)]"
+      {/* Titre + Historique (parité d-gains) */}
+      <div className="mb-3 flex items-center gap-3">
+        <h1
+          className="flex-1 text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
+          style={{ fontFamily: SORA }}
         >
-          {PERIOD_TITLE[period][L]} · {count}{" "}
-          {isAr ? "توصيلة" : "course" + (count > 1 ? "s" : "")}
+          {tr("Gains", "الأرباح")}
+        </h1>
+        <button
+          type="button"
+          onClick={() => router.push("/driver/historique")}
+          className="flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold text-[var(--d-ink)] shadow"
+        >
+          <History className="size-3.5" /> {tr("Historique", "السجل")}
+        </button>
+      </div>
+
+      {/* Solde portefeuille + recharge (tap = page de recharge). */}
+      <button
+        type="button"
+        onClick={() => router.push("/driver/recharger")}
+        className="mb-3 flex w-full items-center gap-3 rounded-[16px] border p-3.5 text-left"
+        style={
+          lowBalance
+            ? {
+                borderColor: "rgba(229,72,77,.25)",
+                background: "rgba(229,72,77,.05)",
+              }
+            : { borderColor: "var(--d-line)", background: "var(--d-surface)" }
+        }
+      >
+        <span
+          className="grid size-10 shrink-0 place-items-center rounded-[12px]"
+          style={{
+            background: lowBalance ? "rgba(229,72,77,.12)" : "var(--d-accent)",
+            color: lowBalance ? BRAND_RED : BRAND_VIOLET,
+          }}
+        >
+          <Wallet className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[11px] font-medium text-[var(--d-muted)]">
+            {tr("Solde portefeuille", "رصيد المحفظة")}
+          </span>
+          <b
+            className="block text-[19px] leading-none tracking-[-0.5px]"
+            style={{
+              fontFamily: SORA,
+              color: lowBalance ? BRAND_RED : "var(--d-ink)",
+            }}
+          >
+            {balance == null ? "…" : `${grp(balance)} ${tr("DA", "دج")}`}
+          </b>
+        </span>
+        <span
+          className="flex shrink-0 items-center gap-1 rounded-full px-3.5 py-2 text-[12px] font-bold text-white"
+          style={{ fontFamily: SORA, background: BRAND_VIOLET }}
+        >
+          <Plus className="size-4" /> {tr("Recharger", "اشحن")}
+        </span>
+      </button>
+
+      {/* BILAN COMBINÉ (parité d-gains) : aujourd'hui + ce mois. */}
+      <div className="rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5">
+        <div className="mb-2 flex items-center justify-between">
+          <b
+            className="text-sm text-[var(--d-ink)]"
+            style={{ fontFamily: SORA }}
+          >
+            {tr(`Ce mois (${monthName})`, `هذا الشهر (${monthName})`)}
+          </b>
         </div>
-        <div className="big-amt" style={{ marginTop: 8 }}>
-          {grp(total)} <small>DA</small>
-        </div>
-        {deltaPct !== null && (
-          <span className="delta">
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-[14px] bg-[var(--d-soft)] px-3 py-2.5">
+            <span className="block text-[10.5px] text-[var(--d-muted)]">
+              {tr("Aujourd'hui", "اليوم")}
+            </span>
+            <b
+              className="text-[18px]"
+              style={{ fontFamily: SORA, color: BRAND_GO }}
             >
-              <path d="M7 17L17 7M17 7H8M17 7v9" />
-            </svg>
-            {deltaPct >= 0 ? "+" : ""}
-            {deltaPct}% {isAr ? "مقابل" : "vs"} {PERIOD_PREV[period][L]}
-          </span>
-        )}
-        <div className="chart">
-          {bars.map((b, i) => (
-            <div key={i} className={"bar" + (b.now ? " on" : "")}>
-              <i style={{ height: `${b.pct}%` }} />
-              <span>{b.letter}</span>
-            </div>
-          ))}
+              {grp(today)} {tr("DA", "دج")}
+            </b>
+            <span className="mt-0.5 block text-[10px] text-[var(--d-muted)]">
+              {todayCount} {isAr ? "توصيلة" : "courses"}
+            </span>
+          </div>
+          <div className="rounded-[14px] bg-[var(--d-soft)] px-3 py-2.5">
+            <span className="block text-[10.5px] text-[var(--d-muted)]">
+              {tr("Net ce mois", "صافي هذا الشهر")}
+            </span>
+            <b
+              className="text-[18px]"
+              style={{ fontFamily: SORA, color: BRAND_GO }}
+            >
+              {grp(month)} {tr("DA", "دج")}
+            </b>
+            <span className="mt-0.5 block text-[10px] text-[var(--d-muted)]">
+              {monthCount} {isAr ? "توصيلة" : "courses"}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-1.5">
+          <Line
+            k={tr("Cash encaissé (ce mois)", "النقد المحصّل (هذا الشهر)")}
+            v={`${grp(cashMonth)} ${tr("DA", "دج")}`}
+          />
+          <Line
+            k={tr("Gain moyen / course", "متوسط الربح / توصيلة")}
+            v={`${grp(avg)} ${tr("DA", "دج")}`}
+          />
         </div>
       </div>
 
-      <div className="mt-3.5">
-        <PartnerStatTiles
-          tiles={[
-            {
-              value: `${grp(avg)} DA`,
-              label: isAr ? "متوسط الربح / توصيلة" : "Gain moyen / course",
-            },
-            {
-              value: `${grp(cashCollected)} DA`,
-              label: isAr ? "النقد المحصّل" : "Cash encaissé",
-            },
-          ]}
-        />
-      </div>
-
-      <Link href="/driver/releve" className="linkcard">
-        <div className="ic">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="2" y="5" width="20" height="14" rx="2" />
-            <path d="M2 10h20" />
-          </svg>
-        </div>
-        <div className="t">
-          <b>{isAr ? "كشف الحساب والتسديد" : "Relevé & versement"}</b>
-          <span>
-            {isAr
-              ? "الرصيد المستحق له/عليه · CCP · BaridiMob"
-              : "Solde à reverser / à recevoir · CCP · BaridiMob"}
-          </span>
-        </div>
-        <svg
-          className="chev"
-          viewBox="0 0 24 24"
-          fill="none"
-          strokeWidth={2.4}
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      {/* Relevé & versement — carte violette (parité « À reverser » d-gains). */}
+      <Link
+        href="/driver/releve"
+        className="my-3 block rounded-[18px] p-4 text-white"
+        style={{
+          background: `linear-gradient(135deg, ${BRAND_VIOLET}, ${BRAND_VIOLET_D})`,
+          boxShadow: "0 14px 30px -12px rgba(108,43,217,.5)",
+        }}
+      >
+        <p className="text-xs opacity-85">
+          {tr("Relevé & versement", "كشف الحساب والتسديد")}
+        </p>
+        <p
+          className="mt-1 text-[20px] font-extrabold"
+          style={{ fontFamily: SORA }}
         >
-          <path d="M9 6l6 6-6 6" />
-        </svg>
+          {tr("Voir mon solde à régler", "عرض رصيدي للتسوية")} →
+        </p>
+        <p className="mt-1 text-[11px] opacity-90">
+          {tr(
+            "Solde à reverser / à recevoir · CCP · BaridiMob",
+            "الرصيد المستحق له/عليه · CCP · BaridiMob"
+          )}
+        </p>
       </Link>
     </>
+  );
+}
+
+function Line({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex items-center justify-between border-b border-[var(--d-line)] py-2.5 text-[13px] last:border-b-0">
+      <span className="text-[var(--d-muted)]">{k}</span>
+      <b className="text-[var(--d-ink)]" style={{ fontFamily: SORA }}>
+        {v}
+      </b>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Flame, LocateFixed } from "lucide-react";
+import { Flame } from "lucide-react";
 import {
   useDriverPosition,
   refreshDriverPosition,
@@ -203,19 +203,18 @@ export function DriverHomeMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Recentre la carte sur ma position en la plaçant dans la zone visible
-  // AU-DESSUS du bottom sheet (padding bas ~ moitié de l'écran) pour que le
-  // point ne soit pas caché derrière le sheet.
+  // Recentre la carte sur ma position dans la zone visible AU-DESSUS de la
+  // barre de mise en ligne + tabbar (parité chauffeur : padding bas fixe,
+  // plus de grande feuille d'information).
   const flyToMe = (zoom: number) => {
     const map = mapRef.current;
     const ll = meMarkerRef.current?.getLngLat();
     if (!map || !ll) return;
-    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
     map.easeTo({
       center: ll,
       zoom,
       duration: 600,
-      padding: { top: 60, left: 24, right: 24, bottom: Math.round(vh * 0.5) },
+      padding: { top: 96, left: 24, right: 24, bottom: 220 },
     });
   };
 
@@ -325,7 +324,6 @@ export function DriverHomeMap({
         const key = `${zone.lat.toFixed(5)},${zone.lng.toFixed(5)},${zone.radiusKm}`;
         if (zoneFramedKey.current !== key) {
           zoneFramedKey.current = key;
-          const vh = typeof window !== "undefined" ? window.innerHeight : 800;
           // Zoom indicatif selon le rayon (plus le rayon est grand, plus on
           // dézoome) pour que le disque tienne dans la zone visible.
           const z =
@@ -340,12 +338,7 @@ export function DriverHomeMap({
             center: [zone.lng, zone.lat],
             zoom: z,
             duration: 700,
-            padding: {
-              top: 60,
-              left: 24,
-              right: 24,
-              bottom: Math.round(vh * 0.5),
-            },
+            padding: { top: 96, left: 24, right: 24, bottom: 220 },
           });
         }
       } else {
@@ -355,6 +348,19 @@ export function DriverHomeMap({
       }
     });
   }, [zone]);
+
+  // Recentrage piloté par le bouton GPS du bandeau haut (overlay accueil,
+  // parité chauffeur) : la carte persistante écoute un événement global —
+  // découplage propre entre l'overlay (page) et la carte (layout).
+  useEffect(() => {
+    const onRecenter = () => {
+      void refreshDriverPosition();
+      flyToMe(16);
+    };
+    window.addEventListener("coligo:driver-map:recenter", onRecenter);
+    return () =>
+      window.removeEventListener("coligo:driver-map:recenter", onRecenter);
+  }, []);
 
   // Redimensionne la carte quand elle (re)devient visible : son conteneur était
   // à 0×0 en display:none (carte persistante hissée dans le layout) → sans ça,
@@ -376,10 +382,11 @@ export function DriverHomeMap({
         className="h-full w-full bg-[#e8e8e8]"
         style={{ touchAction: "none" }}
       />
-      {/* Légende des zones de forte demande — visible uniquement s'il y en a. */}
+      {/* Légende des zones de forte demande — sous le bandeau haut (menu /
+          revenu / GPS), visible uniquement s'il y en a. Tokens = dark-safe. */}
       {hasZones && (
-        <div className="absolute top-[max(14px,env(safe-area-inset-top))] left-3.5 z-[55] rounded-[14px] bg-white/95 px-3 py-2.5 shadow-[0_6px_16px_rgba(0,0,0,.15)] backdrop-blur">
-          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-[#0a0a0a] uppercase">
+        <div className="absolute top-[max(66px,calc(env(safe-area-inset-top)+64px))] left-3.5 z-[45] rounded-[14px] border border-[var(--line)] bg-[var(--surface)]/95 px-3 py-2.5 shadow-[0_6px_16px_rgba(0,0,0,.15)] backdrop-blur">
+          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-[var(--ink)] uppercase">
             <Flame className="size-3.5 text-[#f97316]" />
             Zones de forte demande
           </p>
@@ -387,7 +394,7 @@ export function DriverHomeMap({
             {(["very_high", "high", "medium"] as DemandLevel[]).map((lvl) => (
               <span
                 key={lvl}
-                className="flex items-center gap-2 text-[11px] font-semibold text-[#0a0a0a]"
+                className="flex items-center gap-2 text-[11px] font-semibold text-[var(--ink)]"
               >
                 <span
                   className="size-2.5 rounded-full"
@@ -399,16 +406,6 @@ export function DriverHomeMap({
           </div>
         </div>
       )}
-
-      {/* FAB recentrer — haut-droite (carte épurée, cf. maquette COMPLETE). */}
-      <button
-        type="button"
-        onClick={() => flyToMe(16)}
-        aria-label="Recentrer sur ma position"
-        className="home-fab-right absolute top-[max(56px,calc(env(safe-area-inset-top)+14px))] z-[55] grid size-[42px] place-items-center rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] shadow-[var(--pill-shadow)] active:scale-95"
-      >
-        <LocateFixed className="size-5" />
-      </button>
     </div>
   );
 }

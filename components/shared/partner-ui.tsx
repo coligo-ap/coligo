@@ -218,6 +218,10 @@ export function PartnerStatTiles({
 
 /* ─────────────────────────── Menu (groupe + lignes) ─────────────────────────── */
 
+/**
+ * Groupe de lignes façon « Compte chauffeur » (Section) : titre discret +
+ * liste bordée. MÊME rendu dans les deux espaces (parité maquette).
+ */
 export function PartnerMenuGroup({
   title,
   children,
@@ -226,19 +230,24 @@ export function PartnerMenuGroup({
   children: React.ReactNode;
 }) {
   return (
-    <div>
+    <div className="mb-3">
       {title != null && (
-        <div className="mx-1 mt-5 mb-2 text-[11px] font-extrabold tracking-[0.4px] text-[var(--d-muted)] uppercase">
+        <p className="mb-1.5 px-1 text-[11px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
           {title}
-        </div>
+        </p>
       )}
-      <div className="overflow-hidden rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] [&>*+*]:border-t [&>*+*]:border-[var(--d-line)]">
+      <div className="overflow-hidden rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)]">
         {children}
       </div>
     </div>
   );
 }
 
+/**
+ * Ligne de menu façon « Compte chauffeur » (Row) : icône carrée à gauche,
+ * libellé, valeur à droite (tronquée) + chevron si actionnable. `trailing`
+ * remplace la zone droite (ex. interrupteur).
+ */
 export function PartnerMenuRow({
   icon,
   label,
@@ -261,38 +270,43 @@ export function PartnerMenuRow({
   trailing?: React.ReactNode;
 }) {
   const ink = danger ? BRAND_RED : "var(--d-ink)";
+  const actionable = Boolean(href || onClick);
   const content = (
     <>
       {icon != null && (
         <span
-          className="grid size-[34px] shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]"
-          style={{ color: ink }}
+          className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]"
+          style={{ color: danger ? BRAND_RED : undefined }}
         >
           {icon}
         </span>
       )}
       <span className="min-w-0 flex-1">
-        <span
-          className="block truncate text-[14px] font-semibold"
-          style={{ color: ink }}
-        >
+        <span className="block truncate" style={{ color: ink }}>
           {label}
         </span>
         {sublabel != null && (
-          <span className="block truncate text-[11.5px] text-[var(--d-muted)]">
+          <span className="block truncate text-[11.5px] font-medium text-[var(--d-muted)]">
             {sublabel}
           </span>
         )}
       </span>
       {trailing ?? (
-        <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] font-medium text-[var(--d-muted)]">
-          {value}
-          {chevron && <ChevronRight className="size-4 rtl:rotate-180" />}
-        </span>
+        <>
+          {value != null && (
+            <span className="max-w-[50%] truncate text-right text-xs font-medium text-[var(--d-muted)] rtl:text-left">
+              {value}
+            </span>
+          )}
+          {(chevron ?? actionable) && (
+            <ChevronRight className="size-4 shrink-0 text-[var(--d-muted)] opacity-70 rtl:rotate-180" />
+          )}
+        </>
       )}
     </>
   );
-  const cls = "flex w-full items-center gap-3 px-4 py-[15px] text-left";
+  const cls =
+    "flex w-full items-center gap-3 border-b border-[var(--d-line)] px-3.5 py-3.5 text-left text-[13.5px] font-semibold last:border-b-0";
   if (href) {
     return (
       <Link href={href} className={cls} onClick={onClick}>
@@ -308,6 +322,33 @@ export function PartnerMenuRow({
     );
   }
   return <div className={cls}>{content}</div>;
+}
+
+/** Chip de statut de compte (Vérifié / En vérification / Refusé…). */
+export function PartnerStatusChip({
+  tone,
+  icon,
+  children,
+}: {
+  tone: "ok" | "pending" | "rejected";
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const style =
+    tone === "ok"
+      ? { background: "rgba(22,179,100,.12)", color: BRAND_GO }
+      : tone === "rejected"
+        ? { background: "rgba(229,72,77,.12)", color: BRAND_RED }
+        : { background: "var(--d-accent)", color: BRAND_VIOLET };
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-bold"
+      style={style}
+    >
+      {icon}
+      {children}
+    </span>
+  );
 }
 
 /* ─────────────────────────── Badges de statut ─────────────────────────── */

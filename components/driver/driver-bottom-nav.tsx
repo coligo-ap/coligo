@@ -6,10 +6,10 @@ import { useLocale } from "next-intl";
 
 /**
  * Barre d'onglets persistante livreur (Accueil · Gains · Historique ·
- * Coligo Pay · Compte) — désormais rendue par la primitive PARTAGÉE
- * `PartnerTabbar` (même composant que l'espace chauffeur, tokens `--d-*`
- * aliasés sur la palette livreur). Hauteur 74 px conservée : la feuille
- * d'accueil (.mq-sheet) est calée dessus (bottom: 74px).
+ * Coligo Pay · Compte) — rendue par la primitive PARTAGÉE `PartnerTabbar`
+ * (même composant et même hauteur 66 px que l'espace chauffeur : parité
+ * maquette complète, la feuille d'accueil ayant été remplacée par la barre
+ * de mise en ligne dockée).
  */
 const ITEMS: readonly PartnerTab[] = [
   {
@@ -50,7 +50,7 @@ export function DriverBottomNav() {
   return (
     <PartnerTabbar
       items={ITEMS}
-      height={74}
+      height={66}
       ariaLabel={isAr ? "تنقّل السائق" : "Navigation livreur"}
     />
   );
