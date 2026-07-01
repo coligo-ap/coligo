@@ -78,7 +78,7 @@ export const ADMIN_DOMAINS: AdminDomain[] = [
     href: "/admin/reports",
     label: "Confiance & Sécurité",
     icon: ShieldCheck,
-    match: ["/admin/devices", "/admin/security"],
+    match: ["/admin/devices", "/admin/security", "/admin/integrity"],
     domain: "confiance",
   },
   {

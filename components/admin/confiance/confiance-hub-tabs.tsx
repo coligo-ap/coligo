@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Flag, MonitorSmartphone, ShieldCheck } from "lucide-react";
+import { Activity, Flag, MonitorSmartphone, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/admin/reports", label: "Signalements", icon: Flag },
   { href: "/admin/devices", label: "Appareils", icon: MonitorSmartphone },
   { href: "/admin/security", label: "Sécurité", icon: ShieldCheck },
+  { href: "/admin/integrity", label: "Intégrité", icon: Activity },
 ] as const;
 
 export function ConfianceHubTabs() {
