@@ -165,19 +165,38 @@ export async function POST(req: NextRequest) {
           chargily_checkout_id: event.data.id,
           note: `Paiement reçu APRÈS annulation de la commande ${orderId} — recrédité sur Coligo Pay.`,
         });
-        // 23505 = rejeu (déjà recrédité) → on absorbe. Toute autre erreur est
-        // logguée mais ne fait pas échouer le webhook (on répond 200).
-        if (compErr && compErr.code !== "23505") {
+        if (compErr?.code === "23505") {
+          // Rejeu du webhook : incident déjà recrédité + tracé → on n'en fait rien.
+        } else {
+          // Toute autre erreur de crédit est logguée (le webhook répond 200 quand
+          // même) ; l'alerte ci-dessous garantit un traitement manuel.
+          if (compErr) {
+            console.error(
+              "[chargily/webhook] compensation credit failed:",
+              compErr.message
+            );
+          }
+          // Trace pour l'ADMIN → alerte super-admin « payé après annulation »
+          // (mig 0296, domaine finances, fenêtre 7 j). Écrite UNE FOIS par
+          // incident (sur rejeu, le crédit renvoie 23505 → on ne repasse pas ici).
+          await admin.from("admin_audit_log").insert({
+            admin_email: "chargily",
+            action: "paid_after_cancel",
+            target_kind: "order",
+            target_id: orderId,
+            note:
+              `${paidAmount} DA payés APRÈS annulation ` +
+              `(status=${target.status}, payment_status=${target.payment_status}) → ` +
+              (compErr
+                ? "ÉCHEC du recrédit Coligo Pay — RÉCONCILIATION MANUELLE REQUISE."
+                : "recrédités sur Coligo Pay du client."),
+          });
           console.error(
-            "[chargily/webhook] compensation credit failed:",
-            compErr.message
+            `[chargily/webhook] ⚠️ checkout.paid sur commande NON-payable ${orderId} ` +
+              `(status=${target.status}, payment_status=${target.payment_status}) — ` +
+              `client recrédité ${paidAmount} DA sur Coligo Pay.`
           );
         }
-        console.error(
-          `[chargily/webhook] ⚠️ checkout.paid sur commande NON-payable ${orderId} ` +
-            `(status=${target.status}, payment_status=${target.payment_status}) — ` +
-            `client recrédité ${paidAmount} DA sur Coligo Pay.`
-        );
       }
       return NextResponse.json({ ok: true, already_processed: true });
     }
