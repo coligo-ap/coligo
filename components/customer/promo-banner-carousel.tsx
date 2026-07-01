@@ -34,6 +34,12 @@ export function PromoBannerCarousel({ banners }: Props) {
   const t = useTranslations("browse");
   if (banners.length === 0) return null;
 
+  // Une bannière SEULE occupe toute la largeur. Dès qu'il y en a plusieurs, on
+  // rétrécit LÉGÈREMENT chaque diapo pour laisser DÉPASSER la suivante (indice
+  // visuel « scrolle pour en voir plus »). Le snap-center cale chaque diapo au
+  // centre → les voisines pointent des deux côtés.
+  const multi = banners.length > 1;
+
   return (
     <section className="space-y-2">
       <div
@@ -42,17 +48,19 @@ export function PromoBannerCarousel({ banners }: Props) {
           const el = e.currentTarget;
           // En RTL, `scrollLeft` est négatif (start = 0, swipe → valeurs < 0).
           // `Math.abs` rend le calcul d'index correct dans les deux sens.
-          const idx = Math.round(Math.abs(el.scrollLeft) / el.clientWidth);
+          const idx = Math.round(
+            Math.abs(el.scrollLeft) / (el.firstElementChild?.clientWidth || 1)
+          );
           if (idx !== active) setActive(idx);
         }}
       >
         {banners.map((b) => (
-          // Chaque diapo occupe TOUTE la largeur du carrousel : une bannière seule
-          // et la 1re d'un lot ont exactement la même taille. Le padding interne
-          // (px-4) recrée la marge latérale ; le snap-center cale chaque diapo.
           <div
             key={b.id}
-            className="w-full min-w-full shrink-0 snap-center px-4 lg:px-6"
+            className={cn(
+              "shrink-0 snap-center px-2 first:ps-4 last:pe-4 lg:px-3 lg:first:ps-6 lg:last:pe-6",
+              multi ? "w-[90%] min-w-[90%]" : "w-full min-w-full px-4 lg:px-6"
+            )}
           >
             <Banner banner={b} />
           </div>
