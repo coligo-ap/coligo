@@ -10,7 +10,7 @@ import { BRAND_ASSETS } from "@/lib/config/brand-assets";
  */
 export default function DriverLoading() {
   return (
-    <div className="fixed inset-0 z-[150] flex flex-col items-center justify-center bg-[#0a0a0a]">
+    <div className="fixed inset-0 z-[150] flex flex-col items-center justify-center bg-[#4b1fa6]">
       {/* Halo violet de marque derrière le logo. */}
       <div
         aria-hidden

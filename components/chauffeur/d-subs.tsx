@@ -103,7 +103,7 @@ export function DSubs() {
   if (!fin) {
     return (
       <div className="grid min-h-[40vh] place-items-center">
-        <Loader2 className="text-primary-600 size-6 animate-spin" />
+        <Loader2 className="size-6 animate-spin" style={{ color: VIOLET }} />
       </div>
     );
   }
@@ -175,7 +175,10 @@ export function DSubs() {
       {/* Bannières d'état (retour carte / tentative en attente / message). */}
       {cardReturn === "checking" && (
         <Banner tone="info">
-          <Loader2 className="text-primary-600 size-4 shrink-0 animate-spin" />
+          <Loader2
+            className="size-4 shrink-0 animate-spin"
+            style={{ color: VIOLET }}
+          />
           Confirmation du paiement par la banque en cours… rien n&apos;est
           activé pour l&apos;instant.
         </Banner>

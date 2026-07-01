@@ -4,6 +4,7 @@ import { ChevronRight, KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverShell } from "@/components/driver/driver-shell";
+import { PartnerEmptyState } from "@/components/shared/partner-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -161,15 +162,11 @@ export default async function DriverToursHubPage() {
         {active.length === 0 &&
           pending.length === 0 &&
           blocked.length === 0 && (
-            <div className="rounded-[16px] border border-[var(--line)] bg-[var(--soft)] px-4 py-8 text-center">
-              <span className="mx-auto mb-2 grid size-11 place-items-center rounded-full bg-[var(--surface)] text-[var(--violet)] shadow-sm">
-                <KeyRound className="size-5" />
-              </span>
-              <p className="text-sm font-medium text-[var(--muted)]">
-                Tu n&apos;as encore rejoint aucun commerçant. Saisis un code
-                ci-dessus pour commencer à faire des tournées.
-              </p>
-            </div>
+            <PartnerEmptyState
+              icon={<KeyRound className="size-5" />}
+              title="Aucun commerçant rejoint"
+              text="Saisis un code ci-dessus pour commencer à faire des tournées."
+            />
           )}
       </div>
     </DriverShell>

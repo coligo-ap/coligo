@@ -70,7 +70,7 @@ export function PostDeliveryFeedback({
 
   return (
     <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 p-4 sm:items-center">
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[22px] bg-white p-5 text-[var(--ink)]">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[22px] bg-[var(--surface)] p-5 text-[var(--ink)]">
         <div className="mx-auto grid size-14 place-items-center rounded-full bg-[var(--go-soft)] text-[var(--go)]">
           <Check className="size-7" />
         </div>
@@ -100,7 +100,7 @@ export function PostDeliveryFeedback({
               <Star
                 className="size-9"
                 style={{
-                  color: n <= rating ? "#f59e0b" : "#d4d4d4",
+                  color: n <= rating ? "#f59e0b" : "var(--line)",
                   fill: n <= rating ? "#f59e0b" : "transparent",
                 }}
               />
@@ -150,8 +150,8 @@ export function PostDeliveryFeedback({
                     className={
                       "flex items-center justify-between rounded-[10px] border px-3 py-2 text-left text-[13px] font-semibold " +
                       (active
-                        ? "border-[var(--red)] bg-white text-[var(--red)]"
-                        : "border-[var(--line)] bg-white text-[var(--ink)]")
+                        ? "border-[var(--red)] bg-[var(--surface)] text-[var(--red)]"
+                        : "border-[var(--line)] bg-[var(--surface)] text-[var(--ink)]")
                     }
                   >
                     {isAr ? r.ar : r.fr}
@@ -165,7 +165,7 @@ export function PostDeliveryFeedback({
               onChange={(e) => setDetails(e.target.value.slice(0, 1000))}
               rows={2}
               placeholder={tr("Détails (facultatif)", "تفاصيل (اختياري)")}
-              className="mt-2 w-full resize-none rounded-[10px] border border-[var(--line)] bg-white px-3 py-2 text-[13px] outline-none"
+              className="mt-2 w-full resize-none rounded-[10px] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[13px] outline-none"
             />
           </div>
         )}

@@ -90,7 +90,7 @@ export function DriverCancelWatch() {
       style={{ background: "rgba(15,18,30,.55)", backdropFilter: "blur(2px)" }}
     >
       <div
-        className="w-full max-w-sm rounded-[20px] bg-white p-5 text-center"
+        className="w-full max-w-sm rounded-[20px] bg-[var(--surface)] p-5 text-center text-[var(--ink)]"
         style={{ boxShadow: "0 24px 60px -20px rgba(20,18,50,.5)" }}
       >
         <div

@@ -272,7 +272,7 @@ export function ExpressCard({
         </>
       )}
 
-      <section className="space-y-3 rounded-[14px] bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,.06)]">
+      <section className="space-y-3 rounded-[16px] border border-[var(--line)] bg-[var(--surface)] p-4">
         <header className="flex items-center gap-2">
           <span className="grid size-8 place-items-center rounded-full bg-[var(--soft)] text-sm">
             ⚡

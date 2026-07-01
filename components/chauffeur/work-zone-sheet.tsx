@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useLocale } from "next-intl";
 import { Crosshair, X } from "lucide-react";
 import { Portal } from "@/components/ui/portal";
+import { BRAND_VIOLET } from "@/components/shared/partner-ui";
 import {
   useSearchRadius,
   setSearchRadius,
@@ -44,12 +45,15 @@ export function ChauffeurWorkZoneSheet({
         onClick={onClose}
       >
         <div
-          className="bg-surface text-foreground w-full max-w-md overflow-hidden rounded-t-[22px] pb-[max(0px,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[22px] sm:pb-0"
+          className="drive-jakarta w-full max-w-md overflow-hidden rounded-t-[22px] bg-[var(--d-surface)] pb-[max(0px,env(safe-area-inset-bottom))] text-[var(--d-ink)] shadow-2xl sm:rounded-[22px] sm:pb-0"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="border-border flex items-center justify-between border-b px-4 py-3.5">
+          <div className="flex items-center justify-between border-b border-[var(--d-line)] px-4 py-3.5">
             <div className="flex items-center gap-2">
-              <Crosshair className="text-primary-700 size-[18px]" />
+              <Crosshair
+                className="size-[18px]"
+                style={{ color: BRAND_VIOLET }}
+              />
               <h2 className="drive-sora text-[16px] font-extrabold">
                 {tr("Ma zone", "منطقتي")}
               </h2>
@@ -58,21 +62,21 @@ export function ChauffeurWorkZoneSheet({
               type="button"
               onClick={onClose}
               aria-label="Fermer"
-              className="text-subtle hover:text-foreground -mr-1 p-1"
+              className="-mr-1 p-1 text-[var(--d-muted)] hover:text-[var(--d-ink)]"
             >
               <X className="size-5" />
             </button>
           </div>
 
           <div className="p-4">
-            <p className="text-muted mb-4 text-[13px] leading-snug">
+            <p className="mb-4 text-[13px] leading-snug text-[var(--d-muted)]">
               {tr(
                 "Vous recevez les courses autour de votre position actuelle, où que vous soyez. Choisissez la distance maximale. Si peu de demandes sont proches, on vous proposera aussi les plus proches au-delà.",
                 "تستقبل الطلبات حول موقعك الحالي أينما كنت. اختر المسافة القصوى. وإذا قلّت الطلبات القريبة، سنقترح عليك أيضًا الأقرب خارج هذا النطاق."
               )}
             </p>
 
-            <div className="text-subtle mb-2 text-[12px] font-bold tracking-wide uppercase">
+            <div className="mb-2 text-[12px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
               {tr("Rayon autour de moi", "نصف القطر حولي")}
             </div>
             <div className="grid grid-cols-4 gap-2">
@@ -83,11 +87,19 @@ export function ChauffeurWorkZoneSheet({
                     key={r}
                     type="button"
                     onClick={() => setRadius(r)}
-                    className={
-                      "h-11 rounded-[12px] border text-[14px] font-bold transition " +
-                      (active
-                        ? "border-primary-600 bg-primary-600 text-white"
-                        : "border-border bg-surface-2 text-foreground")
+                    className="h-11 rounded-[12px] border text-[14px] font-bold transition"
+                    style={
+                      active
+                        ? {
+                            borderColor: BRAND_VIOLET,
+                            background: BRAND_VIOLET,
+                            color: "#fff",
+                          }
+                        : {
+                            borderColor: "var(--d-line)",
+                            background: "var(--d-soft)",
+                            color: "var(--d-ink)",
+                          }
                     }
                   >
                     {r} km
@@ -99,7 +111,11 @@ export function ChauffeurWorkZoneSheet({
             <button
               type="button"
               onClick={save}
-              className="bg-primary-600 mt-5 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-bold text-white shadow-lg"
+              className="mt-5 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-bold text-white"
+              style={{
+                background: BRAND_VIOLET,
+                boxShadow: "0 14px 28px -12px rgba(108,43,217,.5)",
+              }}
             >
               <Crosshair className="size-[18px]" />
               {tr("Enregistrer", "حفظ")}
