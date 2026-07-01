@@ -117,7 +117,9 @@ function PromoCodeCard({ promotion }: { promotion: PublicPromotion }) {
           </span>
           {/* Code en rouge + résumé des conditions */}
           <span className="mt-0.5 flex items-center gap-2">
-            <span className="border-accent-300 text-accent-600 dark:border-accent-500/40 dark:bg-accent-950/60 dark:text-accent-300 rounded-md border bg-white px-2 py-0.5 font-mono text-sm font-black tracking-wider">
+            {/* Plaque du code : TOUJOURS blanche (bg-[#fff] non remappé par le
+                thème sombre) pour un rendu « ticket » et une lisibilité maximale. */}
+            <span className="border-accent-300 rounded-md border bg-[#fff] px-2 py-0.5 font-mono text-sm font-black tracking-wider text-[#e6007a]">
               {code}
             </span>
             <span className="text-accent-500/90 dark:text-accent-300/80 text-[11px] font-medium">
@@ -142,7 +144,7 @@ function PromoCodeCard({ promotion }: { promotion: PublicPromotion }) {
                       setOpen(true);
                     }
                   }}
-                  className="text-accent-600 dark:text-accent-300 font-semibold underline"
+                  className="font-semibold text-[#2563eb] underline"
                 >
                   {t("promoSeeConditions")}
                 </span>
@@ -154,10 +156,10 @@ function PromoCodeCard({ promotion }: { promotion: PublicPromotion }) {
         {/* Icône copier */}
         <span
           className={cn(
-            "grid size-9 shrink-0 place-items-center rounded-full transition-colors",
-            copied
-              ? "bg-success-600 text-white"
-              : "text-accent-600 dark:bg-accent-950/60 dark:text-accent-300 bg-white"
+            "grid size-9 shrink-0 place-items-center rounded-full shadow-sm transition-colors",
+            // Bouton copier : plaque blanche forcée (comme le code), sauf état
+            // « copié » qui passe au vert de confirmation.
+            copied ? "bg-success-600 text-white" : "bg-[#fff] text-[#e6007a]"
           )}
         >
           {copied ? <Check className="size-4" /> : <Copy className="size-4" />}

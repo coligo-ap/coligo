@@ -221,7 +221,9 @@ function PromoCodeCard({ promo }: { promo: PlatformPromoCode }) {
               onClick={copy}
               className="mt-1 flex items-center gap-2"
             >
-              <span className="border-primary-300 text-primary-700 dark:border-primary-500/40 dark:bg-primary-950/60 dark:text-primary-200 rounded-md border bg-white px-2 py-0.5 font-mono text-sm font-black tracking-wider">
+              {/* Plaque du code : TOUJOURS blanche (bg-[#fff] non remappé par le
+                  thème sombre) → rendu « ticket » et lisibilité maximale. */}
+              <span className="border-primary-300 rounded-md border bg-[#fff] px-2 py-0.5 font-mono text-sm font-black tracking-wider text-[#6c2bd9]">
                 {code}
               </span>
               <span className="text-primary-500/90 dark:text-primary-300/80 inline-flex items-center gap-1 text-[11px] font-medium">
@@ -240,7 +242,7 @@ function PromoCodeCard({ promo }: { promo: PlatformPromoCode }) {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="text-primary-600 hover:bg-primary-100/60 dark:hover:bg-primary-900/40 grid size-9 shrink-0 place-items-center rounded-full"
+            className="hover:bg-primary-100/60 dark:hover:bg-primary-900/40 grid size-9 shrink-0 place-items-center rounded-full text-[#2563eb]"
             aria-label={t("seeConditions")}
           >
             <Info className="size-5" />
