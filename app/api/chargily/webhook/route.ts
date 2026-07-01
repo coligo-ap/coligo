@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
     | "op_topup"
     | "ride"
     | "drive_sub"
+    | "priority_sub"
     | null;
 
   const admin = createAdminClient();
@@ -497,6 +498,48 @@ export async function POST(req: NextRequest) {
           { status: 200 }
         );
       }
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  // ÉTAPE E — Pass Prioritaire par carte (metadata.type === "priority_sub") :
+  // activation immédiate via priority_sub_mark_paid (idempotent). Échec/annulé →
+  // on annule l'abo en attente pour ne rien laisser bloqué.
+  // -------------------------------------------------------------------------
+  if (type === "priority_sub") {
+    const subId = meta && typeof meta.sub_id === "string" ? meta.sub_id : null;
+    if (!subId) {
+      return NextResponse.json(
+        { error: "metadata.sub_id manquant." },
+        { status: 400 }
+      );
+    }
+    const rpc = admin.rpc.bind(admin) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    if (event.type === "checkout.paid") {
+      const { error } = await rpc("priority_sub_mark_paid", {
+        p_sub_id: subId,
+        p_ref: "chargily",
+      });
+      if (error) {
+        console.error("[chargily/webhook] priority_sub failed:", error);
+        return NextResponse.json(
+          { ok: false, error: error.message },
+          { status: 200 }
+        );
+      }
+    } else if (
+      event.type === "checkout.failed" ||
+      event.type === "checkout.canceled" ||
+      event.type === "checkout.expired"
+    ) {
+      await (admin as unknown as import("@supabase/supabase-js").SupabaseClient)
+        .from("priority_subscriptions")
+        .update({ status: "cancelled" })
+        .eq("id", subId)
+        .eq("status", "pending");
     }
     return NextResponse.json({ ok: true });
   }

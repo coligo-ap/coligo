@@ -159,7 +159,9 @@ export function DSubs() {
   };
 
   return (
-    <div className="mx-auto max-w-[560px] space-y-3 px-4 pb-24">
+    // `drive-jakarta` : scope requis pour que le thème sombre convertisse les
+    // cartes (bg-white → surface sombre) via globals.css — PriorityCard incluse.
+    <div className="drive-jakarta mx-auto max-w-[560px] space-y-3 px-4 pb-24">
       <div>
         <h1 className="text-xl font-extrabold tracking-tight">
           Mon abonnement
