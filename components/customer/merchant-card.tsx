@@ -106,7 +106,7 @@ function MerchantCardImpl({
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="from-primary-100 to-primary-50 text-primary-700/70 flex h-full w-full items-center justify-center bg-gradient-to-br text-4xl font-bold">
+          <div className="bg-primary-50 text-primary-700/70 flex h-full w-full items-center justify-center text-4xl font-bold">
             {merchant.name.charAt(0)}
           </div>
         )}

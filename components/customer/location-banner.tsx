@@ -41,7 +41,7 @@ export function LocationBanner() {
 
   return (
     <>
-      <div className="border-primary-100 from-primary-50 to-primary-100/40 mb-4 flex items-center gap-3 rounded-[16px] border bg-gradient-to-r p-3.5">
+      <div className="border-primary-100 bg-primary-50 mb-4 flex items-center gap-3 rounded-[16px] border p-3.5">
         <span className="bg-primary-600 grid size-11 shrink-0 place-items-center rounded-[13px] text-white shadow-sm">
           <Navigation className="size-5" />
         </span>

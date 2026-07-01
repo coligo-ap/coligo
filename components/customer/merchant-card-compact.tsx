@@ -94,7 +94,7 @@ function MerchantCardCompactImpl({
       >
         {/* Fond de secours : initiale si aucune image (la vignette reste pleine). */}
         {!thumb && (
-          <span className="from-primary-100 to-primary-50 text-primary-700/70 absolute inset-0 flex items-center justify-center bg-gradient-to-br text-3xl font-black">
+          <span className="bg-primary-50 text-primary-700/70 absolute inset-0 flex items-center justify-center text-3xl font-black">
             {merchant.name.charAt(0)}
           </span>
         )}

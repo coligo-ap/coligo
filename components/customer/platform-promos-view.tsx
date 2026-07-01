@@ -200,7 +200,9 @@ function PromoCodeCard({ promo }: { promo: PlatformPromoCode }) {
 
   return (
     <>
-      <div className="border-primary-300 from-primary-50 to-primary-100/50 dark:border-primary-500/40 dark:from-primary-950/40 dark:to-primary-900/20 relative overflow-hidden rounded-[16px] border border-dashed bg-gradient-to-r px-3.5 py-3">
+      {/* Fond bg-primary-50 SOLIDE (remappé par le thème sombre) — pas un dégradé
+          from-primary-* + dark: (basé système) qui restait clair en sombre. */}
+      <div className="border-primary-300 bg-primary-50 relative overflow-hidden rounded-[16px] border border-dashed px-3.5 py-3">
         <div className="flex items-center gap-3">
           <span className="bg-primary-600 grid size-11 shrink-0 place-items-center rounded-[12px] text-white shadow-sm">
             <Ticket className="size-5" />
