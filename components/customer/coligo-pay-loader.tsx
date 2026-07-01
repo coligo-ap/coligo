@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, ChevronRight, Gift, Wallet } from "lucide-react";
@@ -22,7 +23,15 @@ import { WalletBalanceValue } from "@/components/customer/wallet/balance-value";
  */
 export function ColigoPayLoader({ userId }: { userId: string }) {
   const t = useTranslations("wallet");
-  const tAccount = useTranslations("account");
+  const router = useRouter();
+  // Retour INTELLIGENT : revient là où l'utilisateur était juste avant (pile de
+  // navigation) ; sinon, repli sur l'accueil de l'app. (Le portefeuille est une
+  // page client-only → l'accueil du type d'utilisateur = "/".)
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1)
+      router.back();
+    else router.push("/");
+  };
   const { data, isPending } = useQuery({
     queryKey: ["coligo-pay", userId],
     queryFn: fetchColigoPayData,
@@ -31,13 +40,14 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
 
   return (
     <div className="mx-auto max-w-2xl px-4 pt-2 pb-24 lg:px-6">
-      <Link
-        href="/compte"
-        className="text-muted hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm font-medium"
+      <button
+        type="button"
+        onClick={goBack}
+        aria-label={t("back")}
+        className="text-muted hover:text-foreground hover:bg-surface-2 -ms-1 mb-3 inline-flex size-9 items-center justify-center rounded-full transition-colors"
       >
-        <ArrowLeft className="size-4 rtl:-scale-x-100" />
-        {tAccount("myAccount")}
-      </Link>
+        <ArrowLeft className="size-5 rtl:-scale-x-100" />
+      </button>
 
       {/* HERO premium : carte arrondie (solde + identité). */}
       <section className="from-primary-400 via-primary-600 to-primary-800 relative overflow-hidden rounded-[26px] bg-gradient-to-br px-6 py-6 text-white shadow-[0_22px_50px_-24px_rgba(91,91,230,.6)]">

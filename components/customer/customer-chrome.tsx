@@ -51,7 +51,7 @@ function isBare(p: string): boolean {
 function isNoHeader(p: string): boolean {
   return (
     p === "/compte" ||
-    p.startsWith("/coligo-pay/envoyer") ||
+    p.startsWith("/coligo-pay") || // portefeuille + sous-pages : topbar propre
     p.startsWith("/m/")
   );
 }

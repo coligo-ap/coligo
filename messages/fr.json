@@ -823,7 +823,8 @@
     "copyFailed": "Copie impossible.",
     "share": "Partager",
     "shareTagText": "Envoie-moi de l'argent sur Coligo Pay : mon identifiant est @{handle} ({name}).",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "back": "Retour"
   },
   "productSearch": {
     "searching": "Recherche…",

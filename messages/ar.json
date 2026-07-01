@@ -823,7 +823,8 @@
     "copyFailed": "تعذّر النسخ.",
     "share": "مشاركة",
     "shareTagText": "أرسل لي أموالاً عبر كوليغو باي: معرّفي هو @{handle} ({name}).",
-    "cancel": "إلغاء"
+    "cancel": "إلغاء",
+    "back": "رجوع"
   },
   "productSearch": {
     "searching": "جارٍ البحث…",
