@@ -209,6 +209,99 @@ export async function deleteDrivePlan(
   return { ok: true };
 }
 
+// =============================================================================
+// PASS PRIORITAIRE (mig 0210) — géré ici « comme un abonnement », commun aux
+// livreurs ET aux chauffeurs. Prix / promo / fenêtre dispatch / interrupteur
+// vivent dans platform_settings ; écriture service_role gardée par adminCan.
+// =============================================================================
+export type PriorityPass = {
+  enabled: boolean;
+  monthly_da: number;
+  first_month_da: number;
+  window_sec: number;
+  subs_drivers: number; // abonnés actifs livreurs (lecture seule)
+  subs_chauffeurs: number; // abonnés actifs chauffeurs (lecture seule)
+};
+
+export async function getPriorityPass(): Promise<PriorityPass | null> {
+  if (!(await adminCan("drive"))) return null;
+  const admin = db();
+  const { data: s } = await admin
+    .from("platform_settings")
+    .select(
+      "priority_pass_enabled, sub_priority_monthly_da, sub_priority_first_month_da, dispatch_priority_delay_sec"
+    )
+    .eq("id", true)
+    .maybeSingle();
+  const row = (s ?? {}) as {
+    priority_pass_enabled?: boolean;
+    sub_priority_monthly_da?: number;
+    sub_priority_first_month_da?: number;
+    dispatch_priority_delay_sec?: number;
+  };
+
+  // Abonnés actifs (non expirés), ventilés par type de partenaire.
+  const { data: subs } = await admin
+    .from("priority_subscriptions")
+    .select("subject_type")
+    .eq("status", "active")
+    .gte("period_end", new Date().toISOString());
+  let subs_drivers = 0;
+  let subs_chauffeurs = 0;
+  for (const r of (subs ?? []) as { subject_type: string }[]) {
+    if (r.subject_type === "driver") subs_drivers++;
+    else if (r.subject_type === "chauffeur") subs_chauffeurs++;
+  }
+
+  return {
+    enabled: row.priority_pass_enabled ?? true,
+    monthly_da: Number(row.sub_priority_monthly_da ?? 0),
+    first_month_da: Number(row.sub_priority_first_month_da ?? 0),
+    window_sec: Number(row.dispatch_priority_delay_sec ?? 10),
+    subs_drivers,
+    subs_chauffeurs,
+  };
+}
+
+export async function updatePriorityPass(input: {
+  enabled: boolean;
+  monthly_da: number;
+  first_month_da: number;
+  window_sec: number;
+}): Promise<{ ok?: boolean; error?: string }> {
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
+
+  const monthly = Math.round(input.monthly_da);
+  const first = Math.round(input.first_month_da);
+  const win = Math.round(input.window_sec);
+  if (!Number.isFinite(monthly) || monthly < 0)
+    return { error: "Le prix mensuel doit être positif ou nul." };
+  if (!Number.isFinite(first) || first < 0)
+    return { error: "La promo 1er mois doit être positive ou nulle." };
+  if (first > monthly)
+    return {
+      error: "La promo du 1er mois ne peut pas dépasser le prix mensuel.",
+    };
+  if (!Number.isFinite(win) || win < 5 || win > 30)
+    return {
+      error: "La fenêtre de priorité doit être entre 5 et 30 secondes.",
+    };
+
+  const { error } = await db()
+    .from("platform_settings")
+    .update({
+      priority_pass_enabled: !!input.enabled,
+      sub_priority_monthly_da: monthly,
+      sub_priority_first_month_da: first,
+      dispatch_priority_delay_sec: win,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", true);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/chauffeurs/abonnements");
+  return { ok: true };
+}
+
 /** Réordonne l'affichage (le 1er de la liste = rang le plus élevé). */
 export async function reorderDrivePlans(
   codes: string[]

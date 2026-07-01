@@ -30,6 +30,7 @@ import {
 type State = {
   partner: boolean;
   subject_type?: "chauffeur" | "driver";
+  enabled?: boolean;
   is_priority?: boolean;
   status?: string;
   period_end?: string | null;
@@ -144,6 +145,10 @@ export function PriorityCard() {
   if (!state || !state.partner) return null;
 
   const active = state.is_priority;
+  // Pass masqué par le super-admin : on ne montre l'offre que si le partenaire
+  // a déjà un abo en cours (pour voir l'échéance / résilier). Sinon → rien.
+  if (state.enabled === false && !active && state.status !== "pending")
+    return null;
   const amount = state.price_da ?? state.monthly_da ?? 0;
   const balance = state.wallet_balance ?? 0;
   const covers = balance >= amount;
