@@ -233,19 +233,27 @@ export async function deleteProducts(
   productIds: string[]
 ): Promise<{ error?: string }> {
   if (productIds.length === 0) return {};
+  const merchantId = await getCurrentMerchantId();
+  if (!merchantId) return { error: "Session expirée." };
   const supabase = await createClient();
 
-  // 1) Récupère les images à libérer (RLS-scopé sur le commerçant connecté).
+  // 1) Récupère les images à libérer. On BORNE par merchant_id : `products` a
+  //    une policy SELECT publique (products_select_public_active) → sans ce
+  //    filtre, des ids étrangers renverraient les image_url d'autres boutiques
+  //    (et alimenteraient à tort l'étape 3). Cf. reference_merchant_query_rls_leak.
   const { data: rows } = await supabase
     .from("products")
     .select("image_url")
+    .eq("merchant_id", merchantId)
     .in("id", productIds)
     .not("image_url", "is", null);
 
-  // 2) Archive : conservé en base, invisible partout.
+  // 2) Archive : conservé en base, invisible partout. Explicitement borné au
+  //    commerçant (en plus de la RLS UPDATE products_update_own).
   const { error } = await supabase
     .from("products")
     .update({ archived_at: new Date().toISOString(), is_available: false })
+    .eq("merchant_id", merchantId)
     .in("id", productIds);
   if (error) return { error: error.message };
 

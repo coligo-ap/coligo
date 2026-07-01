@@ -54,6 +54,8 @@ export async function getProductOptions(
     .eq("merchant_id", merchantId)
     .maybeSingle();
   if (!owned) return [];
+  // tenant-scope-ok: propriété du produit déjà vérifiée juste au-dessus via
+  // products.merchant_id (getCurrentMerchantId) → les groupes sont donc les siens.
   const { data } = await supabase
     .from("product_option_groups")
     .select(
