@@ -33,9 +33,14 @@ const ok = (l, g, w) => {
 const c = new pg.Client({ connectionString: getDbUrl() });
 await c.connect();
 await c.query("BEGIN");
-// Priorité dispatch neutralisée pour ce test (ROLLBACK) — on ne teste pas la priorité.
+// Overrides de test (ROLLBACK — aucune trace en prod) :
+//  · priorité dispatch neutralisée (on ne teste pas la priorité ici) ;
+//  · plans payants Pro/Premium activés pour valider leur logique de commission
+//    MÊME quand le lancement les coupe (drive_paid_plans_enabled=false, mig 0238).
+//    Le circuit d'abonnement (sections 6-7) est ainsi couvert en continu et se
+//    revérifiera tel quel le jour où les plans payants seront ouverts en prod.
 await c.query(
-  "UPDATE platform_settings SET dispatch_priority_delay_sec = 0 WHERE id = true"
+  "UPDATE platform_settings SET dispatch_priority_delay_sec = 0, drive_paid_plans_enabled = true WHERE id = true"
 );
 
 const as = (uid) =>
