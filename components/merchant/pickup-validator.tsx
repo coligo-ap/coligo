@@ -54,6 +54,17 @@ export function PickupValidator() {
   const [tab, setTab] = useState<Tab>("qr");
   const [result, setResult] = useState<Result | null>(null);
   const [pending, startTransition] = useTransition();
+  // Remonte l'onglet actif (caméra + gardes anti-doublon) après avoir fermé
+  // le pop-up d'erreur : le QrScanner est `oneShot` et se fige au 1er scan,
+  // il faut donc le recréer pour pouvoir re-scanner.
+  const [scanKey, setScanKey] = useState(0);
+
+  // Ferme le pop-up d'erreur et réarme le scanner / la saisie pour un
+  // nouvel essai.
+  function dismissError() {
+    setResult(null);
+    setScanKey((k) => k + 1);
+  }
 
   function submit(code: string) {
     setResult(null);
@@ -106,23 +117,55 @@ export function PickupValidator() {
       </div>
 
       {result?.ok ? (
-        <SuccessPanel result={result} onReset={() => setResult(null)} />
+        <SuccessPanel result={result} onReset={dismissError} />
+      ) : tab === "code" ? (
+        <CodeTab key={scanKey} pending={pending} onSubmit={submit} />
       ) : (
-        <>
-          {tab === "code" ? (
-            <CodeTab pending={pending} onSubmit={submit} />
-          ) : (
-            <QrTab pending={pending} onScan={submit} />
-          )}
-
-          {result && !result.ok && (
-            <div className="text-danger-700 bg-danger-50 mt-4 flex items-center gap-2 rounded-[12px] px-4 py-3 text-sm">
-              <XCircle className="size-4 shrink-0" />
-              {result.message}
-            </div>
-          )}
-        </>
+        <QrTab key={scanKey} pending={pending} onScan={submit} />
       )}
+
+      {/* Pop-up d'erreur en SURIMPRESSION : les messages (« Cette commande a
+          déjà été récupérée », code invalide, etc.) passaient inaperçus en bas
+          de la carte de scan. On les remonte dans une modale qui se superpose
+          à l'affichage pour forcer l'attention du commerçant. */}
+      {result && !result.ok && (
+        <ErrorModal message={result.message} onDismiss={dismissError} />
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------- Pop-up erreur --------------------------- */
+
+function ErrorModal({
+  message,
+  onDismiss,
+}: {
+  message: string;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[200] grid place-items-center bg-black/50 p-4"
+      role="alertdialog"
+      aria-modal="true"
+      onClick={onDismiss}
+    >
+      <div
+        className="bg-surface border-border w-full max-w-sm rounded-2xl border p-6 text-center shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="bg-danger-50 mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
+          <XCircle className="text-danger-600 size-8" />
+        </div>
+        <p className="text-foreground text-lg font-semibold">
+          Retrait impossible
+        </p>
+        <p className="text-muted mt-2 text-sm leading-relaxed">{message}</p>
+        <Button size="lg" className="mt-6 w-full" onClick={onDismiss}>
+          Réessayer
+        </Button>
+      </div>
     </div>
   );
 }
