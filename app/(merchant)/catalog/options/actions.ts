@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentMerchantId } from "@/lib/auth/merchant";
 
 /**
  * Options / variantes d'un produit (façon Deliveroo). Gérées à part du
@@ -32,12 +33,27 @@ export type LoadedOptionGroup = OptionGroupInput & { id: string };
 
 /**
  * Charge les groupes d'options + options d'un produit, triés par position.
- * RLS-scopé sur le commerçant connecté.
+ *
+ * Action directement appelable → on VÉRIFIE la propriété du produit. La RLS
+ * seule ne suffit PAS en lecture : `opt_groups_select_public` (mig 0262) rend
+ * les options de tout produit disponible lisibles (nécessaire à la vitrine
+ * client). Sans cette garde, un `productId` étranger renverrait les options
+ * d'une autre boutique. (Les écritures, elles, restent bornées par
+ * `opt_groups_all_own` WITH CHECK.)
  */
 export async function getProductOptions(
   productId: string
 ): Promise<LoadedOptionGroup[]> {
+  const merchantId = await getCurrentMerchantId();
+  if (!merchantId) return [];
   const supabase = await createClient();
+  const { data: owned } = await supabase
+    .from("products")
+    .select("id")
+    .eq("id", productId)
+    .eq("merchant_id", merchantId)
+    .maybeSingle();
+  if (!owned) return [];
   const { data } = await supabase
     .from("product_option_groups")
     .select(

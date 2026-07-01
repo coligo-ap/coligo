@@ -28,7 +28,10 @@ export default async function EditProductPage({
     .maybeSingle();
   if (!merchant) redirect("/login?error=no_merchant");
 
-  // RLS garantit qu'on ne récupère qu'un produit appartenant au commerçant.
+  // On filtre EXPLICITEMENT par merchant_id : la RLS ne suffit PAS (la policy
+  // publique `products_select_public_active` rend tout produit actif lisible →
+  // sans ce filtre, un commerçant pourrait ouvrir la fiche d'édition d'un
+  // produit d'un AUTRE commerce). Un id étranger ⇒ notFound().
   const { data: product } = await supabase
     .from("products")
     .select(
@@ -37,6 +40,7 @@ export default async function EditProductPage({
        is_available, created_at, updated_at`
     )
     .eq("id", id)
+    .eq("merchant_id", merchant.id)
     .is("archived_at", null)
     .maybeSingle();
 
