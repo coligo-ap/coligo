@@ -103,6 +103,34 @@ function isCapacitorNative(): boolean {
   }
 }
 
+/**
+ * Crée un lecteur zxing configuré pour la détection QR la PLUS agressive :
+ *  - `TRY_HARDER` : zxing tente rotations/échelles/binarisations multiples →
+ *    détecte un QR même petit, incliné, légèrement flou ou faiblement
+ *    contrasté (sans ce hint, le décodeur ne lit qu'un QR net et bien cadré,
+ *    d'où le symptôme « le QR n'est jamais détecté »).
+ *  - `POSSIBLE_FORMATS: [QR_CODE]` : on ne cherche QUE des QR → moins de
+ *    travail parasite par frame, détection plus rapide.
+ * Retourne `null` si l'import échoue (repli géré par l'appelant).
+ */
+async function makeZxingReader(): Promise<
+  import("@zxing/browser").BrowserQRCodeReader | null
+> {
+  try {
+    const [{ BrowserQRCodeReader }, { DecodeHintType, BarcodeFormat }] =
+      await Promise.all([import("@zxing/browser"), import("@zxing/library")]);
+    const hints = new Map<number, unknown>();
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
+    return new BrowserQRCodeReader(hints);
+  } catch (err) {
+    log("zxing.import-failed", {
+      msg: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
 /** Log structuré pour logcat (visible via `adb logcat -s chromium:*`). */
 function log(event: string, payload?: Record<string, unknown>) {
   try {
@@ -374,16 +402,13 @@ export function QrScanner({
         }
 
         // zxing : fallback (PWA sans BarcodeDetector) ET moteur natif Capacitor.
+        // Configuré TRY_HARDER (cf. makeZxingReader) pour une détection robuste.
         let zxingReader: import("@zxing/browser").BrowserQRCodeReader | null =
           null;
         if (!nativeDetector) {
-          try {
-            const { BrowserQRCodeReader } = await import("@zxing/browser");
-            zxingReader = new BrowserQRCodeReader();
-          } catch (err) {
-            log("zxing.import-failed", {
-              msg: err instanceof Error ? err.message : String(err),
-            });
+          zxingReader = await makeZxingReader();
+          if (!zxingReader) {
+            if (abort) return;
             setStatus("error");
             setErrMessage(
               "Décodeur QR indisponible. Utilisez la saisie manuelle."
@@ -393,7 +418,7 @@ export function QrScanner({
         }
 
         log("engine.choice", {
-          engine: nativeDetector ? "BarcodeDetector(canvas)" : "zxing(canvas)",
+          engine: nativeDetector ? "BarcodeDetector(video)" : "zxing(canvas)",
           reason: nativeCap
             ? "capacitor-native (skip BarcodeDetector)"
             : nativeDetector
@@ -418,13 +443,11 @@ export function QrScanner({
 
         let lastFrameAt = 0;
         let loggedFirstFrame = false;
-        // Cadence de DÉCODAGE pour une détection ULTRA RAPIDE :
-        //  - BarcodeDetector (PWA, accéléré matériel) → on décode CHAQUE frame ;
-        //  - zxing (APK natif Sunmi, plus lourd) → ~14 fps (espacé pour le CPU).
-        // La boucle est synchronisée sur les frames CAMÉRA via
-        // requestVideoFrameCallback quand dispo (détection au plus tôt, zéro
-        // cycle gaspillé), avec repli requestAnimationFrame.
-        const minInterval = nativeDetector ? 0 : 70;
+        // Nombre d'échecs CONSÉCUTIFS de BarcodeDetector.detect(). Sur certains
+        // navigateurs l'API existe mais `detect()` throw à chaque frame (impl
+        // native cassée) — sans repli, le scanner ne détecterait JAMAIS rien.
+        // Au-delà du seuil, on bascule à chaud sur zxing.
+        let nativeFailStreak = 0;
         const vfc = video as HTMLVideoElement & {
           requestVideoFrameCallback?: (cb: (now: number) => void) => number;
         };
@@ -438,31 +461,73 @@ export function QrScanner({
         };
         const tick = async (ts: number) => {
           if (stoppedRef.current) return;
+          // Cadence de DÉCODAGE (recalculée : on peut basculer native→zxing à
+          // chaud) :
+          //  - BarcodeDetector (PWA, accéléré matériel) → CHAQUE frame caméra ;
+          //  - zxing (APK Sunmi / repli, CPU pur) → ~14 fps (espacé, TRY_HARDER
+          //    est plus lourd mais l'await pace naturellement la boucle).
+          const minInterval = nativeDetector ? 0 : 70;
           if (
             ts - lastFrameAt >= minInterval &&
             video.readyState >= 2 &&
             video.videoWidth > 0
           ) {
             lastFrameAt = ts;
-            // Dessine la frame (capée à 640 px sur le grand côté pour la perf).
-            const vw = video.videoWidth;
-            const vh = video.videoHeight;
-            const scale = Math.min(1, 640 / Math.max(vw, vh));
-            canvas.width = Math.max(1, Math.round(vw * scale));
-            canvas.height = Math.max(1, Math.round(vh * scale));
             try {
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              if (!loggedFirstFrame) {
-                loggedFirstFrame = true;
-                log("frame.first", { w: canvas.width, h: canvas.height });
-              }
               if (nativeDetector) {
-                const results = await nativeDetector.detect(canvas);
-                if (results.length > 0 && results[0].rawValue) {
-                  log("decoded", { engine: "native" });
-                  emit(results[0].rawValue);
+                // On passe le <video> DIRECTEMENT (pas de canvas) : plus rapide,
+                // pleine résolution native → meilleure détection. Sûr ici car ce
+                // moteur n'est JAMAIS utilisé en Capacitor natif (cf. plus haut).
+                if (!loggedFirstFrame) {
+                  loggedFirstFrame = true;
+                  log("frame.first", {
+                    w: video.videoWidth,
+                    h: video.videoHeight,
+                    engine: "native",
+                  });
+                }
+                try {
+                  const results = await nativeDetector.detect(video);
+                  nativeFailStreak = 0;
+                  if (results.length > 0 && results[0].rawValue) {
+                    log("decoded", { engine: "native" });
+                    emit(results[0].rawValue);
+                  }
+                } catch (err) {
+                  // detect() cassé sur ce navigateur → bascule à chaud sur zxing.
+                  nativeFailStreak += 1;
+                  if (nativeFailStreak >= 3) {
+                    log("native.detect-broken → fallback zxing", {
+                      msg: err instanceof Error ? err.message : String(err),
+                    });
+                    nativeDetector = null;
+                    zxingReader = await makeZxingReader();
+                    if (!zxingReader && !stoppedRef.current) {
+                      setStatus("error");
+                      setErrMessage(
+                        "Décodeur QR indisponible. Utilisez la saisie manuelle."
+                      );
+                      return;
+                    }
+                  }
                 }
               } else if (zxingReader) {
+                // Dessine la frame (capée à 720 px sur le grand côté : assez de
+                // modules pour un QR même petit, sans plomber le CPU Sunmi).
+                const vw = video.videoWidth;
+                const vh = video.videoHeight;
+                const scale = Math.min(1, 720 / Math.max(vw, vh));
+                canvas.width = Math.max(1, Math.round(vw * scale));
+                canvas.height = Math.max(1, Math.round(vh * scale));
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                if (!loggedFirstFrame) {
+                  loggedFirstFrame = true;
+                  log("frame.first", {
+                    w: canvas.width,
+                    h: canvas.height,
+                    engine: "zxing",
+                  });
+                }
                 // decodeFromCanvas lève NotFoundException si aucun QR : normal,
                 // on enchaîne sur la frame suivante.
                 try {
