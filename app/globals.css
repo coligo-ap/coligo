@@ -930,6 +930,66 @@ body {
 [data-space="driver"].dark :where(.text-primary-700, .text-primary-600) {
   color: #b493f9;
 }
+/* PARITÉ chips sémantiques (mirror du client 806-900) : cartes/pastilles
+   success / warning / danger / accent lisibles sur fond sombre. Étend la règle
+   dark à TOUS les composants partagés de l'espace livreur (ex. PriorityCard,
+   badges de solde, bandeaux d'alerte). */
+[data-space="driver"].dark :where(.bg-warning-50, .bg-amber-50) {
+  background-color: rgba(245, 158, 11, 0.13);
+}
+[data-space="driver"].dark :where(.bg-success-50) {
+  background-color: rgba(22, 179, 100, 0.13);
+}
+[data-space="driver"].dark :where(.bg-danger-50, .bg-red-50, .bg-rose-50) {
+  background-color: rgba(229, 72, 77, 0.13);
+}
+[data-space="driver"].dark :where(.bg-accent-50) {
+  background-color: rgba(255, 45, 122, 0.14);
+}
+[data-space="driver"].dark :where(.text-accent-600, .text-accent-700) {
+  color: #ff8abb;
+}
+[data-space="driver"].dark :where(.text-warning-800, .text-warning-700) {
+  color: #fcd34d;
+}
+[data-space="driver"].dark
+  :where(
+    .text-success-800,
+    .text-success-700,
+    .text-success-600,
+    .text-success-500
+  ) {
+  color: #4ade80;
+}
+[data-space="driver"].dark
+  :where(
+    .text-danger-800,
+    .text-danger-700,
+    .text-danger-600,
+    .text-danger-500
+  ) {
+  color: #fca5a5;
+}
+[data-space="driver"].dark :where(.border-warning-100, .border-warning-200) {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+[data-space="driver"].dark :where(.border-success-100, .border-success-200) {
+  border-color: rgba(22, 179, 100, 0.3);
+}
+[data-space="driver"].dark :where(.border-danger-200) {
+  border-color: rgba(229, 72, 77, 0.3);
+}
+[data-space="driver"].dark
+  :where(.bg-success-100, .hover\:bg-success-100:hover) {
+  background-color: rgba(22, 179, 100, 0.2);
+}
+[data-space="driver"].dark :where(.bg-danger-100, .hover\:bg-danger-100:hover) {
+  background-color: rgba(229, 72, 77, 0.2);
+}
+[data-space="driver"].dark
+  :where(.bg-warning-100, .hover\:bg-warning-100:hover) {
+  background-color: rgba(245, 158, 11, 0.2);
+}
 
 /* ── Drive : responsive DESKTOP — cadre « téléphone » centré (430px) ──
    Le transform crée un containing block : les feuilles/modales/nav fixed
