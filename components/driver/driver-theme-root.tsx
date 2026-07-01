@@ -10,6 +10,13 @@ import { DriverQueryProvider } from "@/components/driver/driver-query-provider";
  * n'est appliquée qu'APRÈS montage (drapeau `mounted`) pour que le rendu serveur
  * et le 1er rendu client soient identiques (clair) → pas de mismatch
  * d'hydratation (#418). Léger flash clair→sombre acceptable.
+ *
+ * MIROIR SUR <body> : les composants montés via <Portal> (tiroir partenaire,
+ * feuilles…) vivent sur document.body, HORS de ce wrapper — sans miroir, les
+ * tokens `--surface/--ink/--line…`, les polices Sora/Jakarta et la classe
+ * `dark` n'y résolvaient PAS → tiroir TRANSPARENT en clair et figé en sombre.
+ * On réplique donc l'attribut d'espace + les classes de police + `dark` sur le
+ * <body> (même pattern que la coque client, cf. dark mode client).
  */
 export function DriverThemeRoot({
   children,
@@ -22,6 +29,27 @@ export function DriverThemeRoot({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const isDark = mounted && dark;
+
+  // Miroir espace + polices sur <body> (pour les portails). Nettoyé au démontage
+  // (navigation vers un autre espace) pour ne jamais fuir hors du livreur.
+  useEffect(() => {
+    const body = document.body;
+    body.setAttribute("data-space", "driver");
+    const fontClasses = fontVars.split(" ").filter(Boolean);
+    body.classList.add(...fontClasses);
+    return () => {
+      body.removeAttribute("data-space");
+      body.classList.remove(...fontClasses);
+    };
+  }, [fontVars]);
+
+  // Miroir du thème sombre sur <body> (les portails suivent la bascule live).
+  useEffect(() => {
+    document.body.classList.toggle("dark", isDark);
+    return () => {
+      document.body.classList.remove("dark");
+    };
+  }, [isDark]);
 
   return (
     <div
