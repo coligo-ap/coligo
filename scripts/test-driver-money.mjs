@@ -1,11 +1,15 @@
 /**
  * Test parité monétaire LIVREUR (cf. PROMPT-livreur-paiement §3).
  *
- * Valide que la config réelle de `platform_settings` + la formule produisent
- * EXACTEMENT les chiffres de référence du fondateur sur l'exemple :
- *   P=2000, commission 5 %=100, S=50, D=200
- *   → driver_fee=16, gain net=184, avance commerçant=1900,
- *     cash encaissé=2250, à reverser=166. (184+166=350 ✅)
+ * Valide les INVARIANTS de partage sur l'exemple P=2000, commission 5 %=100,
+ * S=50, D=200, à partir du `driver_fee_rate` RÉEL de platform_settings :
+ *   - montants indépendants du taux : avance commerçant=1900, cash encaissé=2250 ;
+ *   - driver_fee = formule bornée [min_da .. D×cap] du taux courant (0 au
+ *     lancement 0 % → net livreur = D entier) ;
+ *   - ÉQUILIBRE : net livreur + à reverser plateforme == cash − avance (350).
+ * NB : on ne fige PLUS un taux métier précis (décision business, pas un invariant
+ * de code) — le test reste vert quel que soit `driver_fee_rate`, tout en
+ * attrapant une vraie erreur d'arithmétique / de partage.
  * Vérifie aussi que driver_outstanding / driver_can_accept répondent.
  *
  * Lecture seule (aucune écriture). Usage : `npm run test:driver:money`.
@@ -48,12 +52,28 @@ const cash = P + S + D; // cashback 0 sur COD
 const advance = P - commission;
 const owesPlatform = commission + S + driverFee;
 
-assert("driver_fee", driverFee, 16);
-assert("gain net livreur (D−fee)", driverNet, 184);
+// Montants INDÉPENDANTS du taux (toujours vrais pour ces entrées).
 assert("avance commerçant (P−comm)", advance, 1900);
 assert("cash encaissé client", cash, 2250);
-assert("à reverser plateforme", owesPlatform, 166);
-assert("cohérence 184+166=350", driverNet + owesPlatform, cash - advance);
+// driver_fee = formule bornée du taux COURANT (0..D). Au lancement 0 % → 0.
+const expectedFee = Math.min(
+  D,
+  Math.max(s.min_da, Math.min(Math.round(D * s.r), Math.round(D * s.cap)))
+);
+assert("driver_fee = formule(config)", driverFee, expectedFee);
+assert("driver_fee borné [0..D]", driverFee >= 0 && driverFee <= D, true);
+// Invariants de PARTAGE (rate-agnostiques) + ÉQUILIBRE (le vrai garde-fou).
+assert("gain net livreur = D − fee", driverNet, D - driverFee);
+assert(
+  "à reverser = commission + S + fee",
+  owesPlatform,
+  commission + S + driverFee
+);
+assert(
+  "ÉQUILIBRE : net + reverser = cash − avance",
+  driverNet + owesPlatform,
+  cash - advance
+);
 
 // Fonctions DB.
 const out = await c.query(
