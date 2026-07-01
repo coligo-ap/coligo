@@ -163,10 +163,10 @@ export function DSubs() {
     // cartes (bg-white → surface sombre) via globals.css — PriorityCard incluse.
     <div className="drive-jakarta mx-auto max-w-[560px] space-y-3 px-4 pb-24">
       <div>
-        <h1 className="text-xl font-extrabold tracking-tight">
+        <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
           Mon abonnement
         </h1>
-        <p className="text-muted text-sm">
+        <p className="text-sm text-[var(--d-muted)]">
           Gagnez en visibilité et gardez plus sur chaque course. Changez quand
           vous voulez.
         </p>
@@ -391,13 +391,13 @@ function PlanCard({
   onChoose?: () => void;
 }) {
   return (
-    <div className="border-border overflow-hidden rounded-2xl border bg-white">
+    <div className="overflow-hidden rounded-2xl border border-[var(--d-line)] bg-[var(--d-surface)]">
       <div
         className="flex items-center gap-2 px-4 py-3 text-white"
         style={{ background: header }}
       >
         <Icon className="size-5" />
-        <span className="font-extrabold">{title}</span>
+        <span className="drive-sora font-extrabold">{title}</span>
         {current ? (
           <span className="ml-auto rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
             Actuel
@@ -411,11 +411,16 @@ function PlanCard({
         )}
       </div>
       <div className="space-y-3 p-4">
-        {subtitle && <p className="text-muted text-sm">{subtitle}</p>}
+        {subtitle && (
+          <p className="text-sm text-[var(--d-muted)]">{subtitle}</p>
+        )}
         <ul className="space-y-2 text-sm">
           {advantages.map((a, i) => (
             <li key={i} className="flex items-start gap-2">
-              <Check className="text-primary-600 mt-0.5 size-4 shrink-0" />
+              <Check
+                className="mt-0.5 size-4 shrink-0"
+                style={{ color: VIOLET }}
+              />
               <span>{a}</span>
             </li>
           ))}
@@ -424,14 +429,18 @@ function PlanCard({
           <div>
             {price && (
               <p className="text-sm">
-                <b className="text-lg">{price}</b>{" "}
-                <span className="text-muted">{per}</span>
+                <b className="drive-sora text-lg tracking-[-0.3px]">{price}</b>{" "}
+                <span className="text-[var(--d-muted)]">{per}</span>
               </p>
             )}
             <button
               type="button"
               onClick={onChoose}
-              className="bg-primary-600 mt-2 w-full rounded-xl py-2.5 text-sm font-bold text-white"
+              className="drive-sora mt-2 w-full rounded-[14px] py-3 text-sm font-bold text-white active:scale-[0.99]"
+              style={{
+                background: VIOLET,
+                boxShadow: "0 14px 28px -12px rgba(108,43,217,.5)",
+              }}
             >
               Choisir {title}
             </button>

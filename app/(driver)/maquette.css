@@ -40,6 +40,20 @@
   --statics: #0b0c12;
   --pill-shadow: 0 14px 34px -12px rgba(20, 22, 40, 0.3);
 
+  /* Pont design system PARTAGÉ livreur/chauffeur : les primitives partagées
+     (components/shared/partner-ui.tsx) sont écrites en tokens `--d-*` (espace
+     chauffeur / Drive). On les aliase ici vers la palette livreur → un même
+     composant rend nativement dans les DEUX espaces, clair ET sombre (les
+     alias référencent des vars redéfinies par [data-space="driver"].dark). */
+  --d-page: var(--page);
+  --d-surface: var(--surface);
+  --d-ink: var(--ink);
+  --d-muted: var(--muted);
+  --d-line: var(--line);
+  --d-soft: var(--soft);
+  --d-accent: var(--violet-soft);
+  --d-field: var(--violet-soft);
+
   font-family:
     var(--font-jakarta),
     "Plus Jakarta Sans",
@@ -65,6 +79,10 @@
   --park: #10231a;
   --statics: #ffffff;
   --pill-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.6);
+  /* Alias partagés : accents violets pâles assombris (mêmes valeurs que le
+     mode sombre chauffeur) — --violet-soft reste clair, inutilisable ici. */
+  --d-accent: rgba(138, 77, 255, 0.16);
+  --d-field: rgba(138, 77, 255, 0.12);
 }
 
 [data-space="driver"] .mq-sora {

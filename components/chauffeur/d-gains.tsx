@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   Car,
   ChevronDown,
-  ChevronLeft,
   History,
   Loader2,
   Plus,
@@ -13,6 +12,7 @@ import {
   Zap,
 } from "lucide-react";
 import { formatDA } from "@/lib/utils";
+import { PartnerBackHeader } from "@/components/shared/partner-ui";
 import { VIOLET, GO, RED } from "@/components/customer/drive/drive-modals";
 import { PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
 import { formatOnline } from "@/lib/drive/geo";
@@ -215,7 +215,7 @@ export function DGains() {
       {due > 0 ? (
         <div
           className="my-3 rounded-[18px] p-4 text-white"
-          style={{ background: `linear-gradient(135deg,${VIOLET},#4646C9)` }}
+          style={{ background: `linear-gradient(135deg,${VIOLET},#4B1FA6)` }}
         >
           <p className="text-xs opacity-85">À reverser à Coligo ce mois</p>
           <p className="drive-sora mt-1 text-[26px] font-extrabold">
@@ -326,7 +326,6 @@ function HistoRow({ r }: { r: ChauffeurHistoryRide }) {
  * précédents » (par plage serveur) pour remonter aussi loin que voulu.
  */
 export function DHisto() {
-  const router = useRouter();
   const [rides, setRides] = useState<ChauffeurHistoryRide[] | null>(
     lastHistoCache
   );
@@ -385,19 +384,7 @@ export function DHisto() {
 
   return (
     <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
-      <div className="mb-3 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="Retour"
-          className="grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
-        >
-          <ChevronLeft className="size-5" />
-        </button>
-        <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
-          Mes courses
-        </h1>
-      </div>
+      <PartnerBackHeader title="Mes courses" />
 
       {rides == null ? (
         <div className="grid place-items-center py-12">

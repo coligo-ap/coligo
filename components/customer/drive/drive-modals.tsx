@@ -27,8 +27,9 @@ import {
   type RideMessage,
 } from "@/app/(customer)/drive/actions";
 
-/* Couleurs maquette (PROMPT-drive §0) */
-export const VIOLET = "#5B5BE6";
+/* Couleurs maquette (PROMPT-drive §0) — violet ALIGNÉ sur la marque Coligo
+   (#6C2BD9 unifié partout : client, livreur, chauffeur). */
+export const VIOLET = "#6C2BD9";
 export const GO = "#16B364";
 export const ROSE = "#EC4899";
 export const RED = "#E5484D";

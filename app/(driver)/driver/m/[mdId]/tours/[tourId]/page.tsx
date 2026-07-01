@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { TourExecution } from "@/components/driver/tour-execution";
+import { PartnerBackHeader } from "@/components/shared/partner-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -64,25 +63,12 @@ export default async function DriverTourExecutionPage({
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
-      <div className="space-y-4">
-        <Link
-          href={`/driver/m/${mdId}/tours`}
-          className="inline-flex items-center gap-1 text-sm font-medium text-[#757575]"
-        >
-          <ArrowLeft className="size-4" /> Créneaux
-        </Link>
-        <header>
-          <h1 className="text-[18px] font-bold tracking-tight text-[#0a0a0a]">
-            Tournée en cours
-          </h1>
-          <p className="text-xs font-medium text-[#757575]">
-            {rows.filter((r) => r.stop_status === "delivered").length}/
-            {rows.length} livrés
-          </p>
-        </header>
-
-        <TourExecution stops={rows} tourId={tourId} />
-      </div>
+      <PartnerBackHeader
+        href={`/driver/m/${mdId}/tours`}
+        title="Tournée en cours"
+        subtitle={`${rows.filter((r) => r.stop_status === "delivered").length}/${rows.length} livrés`}
+      />
+      <TourExecution stops={rows} tourId={tourId} />
     </DriverShell>
   );
 }

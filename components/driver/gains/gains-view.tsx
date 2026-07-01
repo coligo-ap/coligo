@@ -3,6 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
+import {
+  PartnerSegmented,
+  PartnerStatTiles,
+} from "@/components/shared/partner-ui";
 
 /**
  * Écran GAINS reproduit À L'IDENTIQUE de MAQUETTE-livreur-pages (section Gains) :
@@ -151,17 +155,15 @@ export function GainsView({ entries }: { entries: GainsEntry[] }) {
         </div>
       </div>
 
-      <div className="miniseg">
-        {PERIODS.map((p) => (
-          <button
-            key={p.key}
-            type="button"
-            className={period === p.key ? "on" : ""}
-            onClick={() => setPeriod(p.key)}
-          >
-            {isAr ? p.labelAr : p.label}
-          </button>
-        ))}
+      <div className="mb-4">
+        <PartnerSegmented
+          options={PERIODS.map((p) => ({
+            key: p.key,
+            label: isAr ? p.labelAr : p.label,
+          }))}
+          value={period}
+          onChange={setPeriod}
+        />
       </div>
 
       <div className="card">
@@ -203,17 +205,19 @@ export function GainsView({ entries }: { entries: GainsEntry[] }) {
         </div>
       </div>
 
-      <div className="tiles">
-        <div className="tile">
-          <div className="v">{grp(avg)} DA</div>
-          <div className="l">
-            {isAr ? "متوسط الربح / توصيلة" : "Gain moyen / course"}
-          </div>
-        </div>
-        <div className="tile">
-          <div className="v">{grp(cashCollected)} DA</div>
-          <div className="l">{isAr ? "النقد المحصّل" : "Cash encaissé"}</div>
-        </div>
+      <div className="mt-3.5">
+        <PartnerStatTiles
+          tiles={[
+            {
+              value: `${grp(avg)} DA`,
+              label: isAr ? "متوسط الربح / توصيلة" : "Gain moyen / course",
+            },
+            {
+              value: `${grp(cashCollected)} DA`,
+              label: isAr ? "النقد المحصّل" : "Cash encaissé",
+            },
+          ]}
+        />
       </div>
 
       <Link href="/driver/releve" className="linkcard">

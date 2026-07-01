@@ -602,7 +602,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               type="button"
               onClick={() => router.push("/chauffeur/gains")}
               className="flex items-center gap-1.5 rounded-[16px] border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
-              style={{ background: "#6315E8", borderColor: "#5009C9" }}
+              style={{ background: "#6C2BD9", borderColor: "#4B1FA6" }}
             >
               <span className="flex flex-col items-start leading-none">
                 <span className="drive-sora text-[18px] font-extrabold tracking-[-0.5px]">

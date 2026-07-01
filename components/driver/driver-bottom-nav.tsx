@@ -1,106 +1,57 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { BarChart3, Clock, Home, User, Wallet } from "lucide-react";
+import { PartnerTabbar, type PartnerTab } from "@/components/shared/partner-ui";
 import { useLocale } from "next-intl";
 
-const LABELS_AR: Record<string, string> = {
-  Accueil: "الرئيسية",
-  Gains: "الأرباح",
-  Historique: "السجل",
-  "Coligo Pay": "كوليغو باي",
-  Compte: "الحساب",
-};
-
 /**
- * Barre d'onglets persistante (Accueil · Gains · Historique · Compte) reproduite
- * À L'IDENTIQUE de MAQUETTE-livreur-pages / navigation (classes .mq-tabbar /
- * .mq-tab + SVG exacts). Couleur active = violet maquette (--violet #5B5BE6).
+ * Barre d'onglets persistante livreur (Accueil · Gains · Historique ·
+ * Coligo Pay · Compte) — désormais rendue par la primitive PARTAGÉE
+ * `PartnerTabbar` (même composant que l'espace chauffeur, tokens `--d-*`
+ * aliasés sur la palette livreur). Hauteur 74 px conservée : la feuille
+ * d'accueil (.mq-sheet) est calée dessus (bottom: 74px).
  */
-const ITEMS = [
+const ITEMS: readonly PartnerTab[] = [
   {
     href: "/driver",
     label: "Accueil",
+    labelAr: "الرئيسية",
+    icon: Home,
     exact: true,
-    path: "M3 11l9-8 9 8M5 10v10h14V10",
   },
   {
     href: "/driver/gains",
     label: "Gains",
-    exact: false,
-    path: "M3 3v18h18M7 14l3-4 3 3 4-6",
+    labelAr: "الأرباح",
+    icon: BarChart3,
   },
   {
     href: "/driver/historique",
     label: "Historique",
-    exact: false,
-    path: "",
-    clock: true,
+    labelAr: "السجل",
+    icon: Clock,
   },
   {
     href: "/driver/recharger",
     label: "Coligo Pay",
-    exact: false,
-    path: "",
-    wallet: true,
+    labelAr: "كوليغو باي",
+    icon: Wallet,
   },
   {
     href: "/driver/parametres",
     label: "Compte",
-    exact: false,
-    path: "",
-    user: true,
+    labelAr: "الحساب",
+    icon: User,
   },
-] as const;
+];
 
 export function DriverBottomNav() {
-  const pathname = usePathname();
   const isAr = useLocale() === "ar";
-
   return (
-    <nav
-      className="mq-tabbar"
-      aria-label={isAr ? "تنقّل السائق" : "Navigation livreur"}
-    >
-      {ITEMS.map((item) => {
-        const active = item.exact
-          ? pathname === item.href
-          : pathname.startsWith(item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={"mq-tab" + (active ? " active" : "")}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              {"clock" in item && item.clock ? (
-                <>
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7v5l3 2" />
-                </>
-              ) : "user" in item && item.user ? (
-                <>
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 21a8 8 0 0 1 16 0" />
-                </>
-              ) : "wallet" in item && item.wallet ? (
-                <>
-                  <rect x="3" y="6" width="18" height="13" rx="2" />
-                  <path d="M3 10h18M16 14h2" />
-                </>
-              ) : (
-                <path d={item.path} />
-              )}
-            </svg>
-            {isAr ? LABELS_AR[item.label] : item.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <PartnerTabbar
+      items={ITEMS}
+      height={74}
+      ariaLabel={isAr ? "تنقّل السائق" : "Navigation livreur"}
+    />
   );
 }

@@ -1,17 +1,30 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useLocale } from "next-intl";
+import {
+  CalendarDays,
+  Globe,
+  KeyRound,
+  LifeBuoy,
+  LogOut,
+  SunMoon,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { setLocale } from "@/i18n/actions";
 import { driverLogout } from "@/app/(driver)/actions";
 import { useDriverDark, toggleDriverDark } from "@/lib/driver/theme-store";
 import { useDriverSound, toggleDriverSound } from "@/lib/driver/sound-store";
 import { openSupportChat } from "@/components/support/tawk-chat";
-import { toast } from "@/components/ui/toast";
 import { setDriverOnline } from "@/lib/driver/online-store";
 import { getActiveCourse } from "@/lib/driver/active-course-store";
+import {
+  PartnerInlineError,
+  PartnerMenuGroup,
+  PartnerMenuRow,
+} from "@/components/shared/partner-ui";
 
 /**
  * Écran COMPTE livreur — refonte « pro » : hero violet (avatar + nom + statut
@@ -52,6 +65,7 @@ export function CompteView({
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const dark = useDriverDark();
   const soundOn = useDriverSound();
+  const [logoutErr, setLogoutErr] = useState<string | null>(null);
   const router = useRouter();
   const [, startLang] = useTransition();
   // Langue : bascule FR ⇄ AR et ENREGISTRE le choix (cookie NEXT_LOCALE, 1 an)
@@ -161,100 +175,69 @@ export function CompteView({
       {/* Sections « Mes informations » (véhicule / pièces / versement) */}
       {children}
 
-      {/* Tournées — rejoindre un commerçant + accès au démarrage. */}
-      <div className="acc-grp">{tr("Tournées", "الجولات")}</div>
-      <div className="menu">
-        <Mrow
+      {/* Tournées — rejoindre un commerçant + accès au démarrage.
+          Menu = primitives PARTAGÉES (mêmes composants que l'espace chauffeur). */}
+      <PartnerMenuGroup title={tr("Tournées", "الجولات")}>
+        <PartnerMenuRow
+          icon={<CalendarDays className="size-[18px]" />}
           label={tr("Mes tournées", "جولاتي")}
           chevron
           href="/driver/tournees"
-          icon={
-            <>
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M3 10h18M8 2v4M16 2v4" />
-            </>
-          }
         />
-        <Mrow
+        <PartnerMenuRow
+          icon={<KeyRound className="size-[18px]" />}
           label={tr("Rejoindre un commerçant", "الانضمام إلى تاجر")}
           chevron
           href="/driver/codes"
-          icon={
-            <>
-              <circle cx="8" cy="15" r="4" />
-              <path d="M10.85 12.15 19 4M18 5l2 2M15 8l2 2" />
-            </>
-          }
         />
-      </div>
+      </PartnerMenuGroup>
 
       {/* Préférences */}
-      <div className="acc-grp">{tr("Préférences", "التفضيلات")}</div>
-      <div className="menu">
-        <Mrow
+      <PartnerMenuGroup title={tr("Préférences", "التفضيلات")}>
+        <PartnerMenuRow
+          icon={<SunMoon className="size-[18px]" />}
           label={tr("Apparence", "المظهر")}
           value={dark ? tr("Sombre", "داكن") : tr("Clair", "فاتح")}
           onClick={() => toggleDriverDark()}
-          icon={
-            <>
-              <circle cx="12" cy="12" r="4" />
-              <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" />
-            </>
-          }
         />
-        <Mrow
+        <PartnerMenuRow
+          icon={
+            soundOn ? (
+              <Volume2 className="size-[18px]" />
+            ) : (
+              <VolumeX className="size-[18px]" />
+            )
+          }
           label={tr("Sons", "الأصوات")}
           value={soundOn ? tr("Activés", "مفعّلة") : tr("Coupés", "مكتومة")}
           onClick={() => toggleDriverSound()}
-          icon={
-            soundOn ? (
-              <>
-                <path d="M11 5 6 9H2v6h4l5 4z" />
-                <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14" />
-              </>
-            ) : (
-              <>
-                <path d="M11 5 6 9H2v6h4l5 4z" />
-                <path d="M22 9l-6 6M16 9l6 6" />
-              </>
-            )
-          }
         />
-        <Mrow
+        <PartnerMenuRow
+          icon={<Globe className="size-[18px]" />}
           label={tr("Langue", "اللغة")}
           value={isAr ? "العربية" : "Français"}
           onClick={switchLang}
-          icon={
-            <>
-              <circle cx="12" cy="12" r="9" />
-              <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
-            </>
-          }
         />
-      </div>
+      </PartnerMenuGroup>
 
       {/* Support & compte */}
-      <div className="acc-grp">{tr("Support & compte", "الدعم والحساب")}</div>
-      <div className="menu">
-        <Mrow
+      <PartnerMenuGroup title={tr("Support & compte", "الدعم والحساب")}>
+        <PartnerMenuRow
+          icon={<LifeBuoy className="size-[18px]" />}
           label={tr("Aide & support", "المساعدة والدعم")}
           chevron
           onClick={() => openSupportChat()}
-          icon={
-            <>
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 17v.01M12 13.5a2.5 2.5 0 1 0-2.5-3" />
-            </>
-          }
         />
-        <button
-          type="button"
-          className="mrow danger"
+        <PartnerMenuRow
+          icon={<LogOut className="size-[18px]" />}
+          label={tr("Se déconnecter", "تسجيل الخروج")}
+          danger
           onClick={() => {
             // Course en cours → déconnexion bloquée (terminer d'abord). Le
-            // serveur revérifie ; ici pré-contrôle client immédiat.
+            // serveur revérifie ; ici pré-contrôle client immédiat. Message
+            // INLINE sous le menu (règle produit, pas de toast).
             if (getActiveCourse()) {
-              toast.error(
+              setLogoutErr(
                 tr(
                   "Terminez votre course en cours avant de vous déconnecter.",
                   "أنهِ توصيلتك الجارية قبل تسجيل الخروج."
@@ -262,93 +245,19 @@ export function CompteView({
               );
               return;
             }
+            setLogoutErr(null);
             setDriverOnline(false);
             void driverLogout().then((res) => {
-              if (res?.error) toast.error(res.error);
+              if (res?.error) setLogoutErr(res.error);
             });
           }}
-        >
-          <span className="ic">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-            </svg>
-          </span>
-          {tr("Se déconnecter", "تسجيل الخروج")}
-        </button>
-      </div>
+        />
+      </PartnerMenuGroup>
+      {logoutErr ? (
+        <div className="mt-2">
+          <PartnerInlineError>{logoutErr}</PartnerInlineError>
+        </div>
+      ) : null}
     </>
   );
-}
-
-function Mrow({
-  label,
-  value,
-  valueColor,
-  chevron,
-  onClick,
-  href,
-  icon,
-}: {
-  label: string;
-  value?: string;
-  valueColor?: string;
-  chevron?: boolean;
-  onClick?: () => void;
-  href?: string;
-  icon: React.ReactNode;
-}) {
-  const content = (
-    <>
-      <span className="ic">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          {icon}
-        </svg>
-      </span>
-      {label}
-      <span
-        className="va"
-        style={valueColor ? { color: valueColor } : undefined}
-      >
-        {value}
-        {chevron && (
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            strokeWidth={2.2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M9 6l6 6-6 6" />
-          </svg>
-        )}
-      </span>
-    </>
-  );
-  if (href) {
-    return (
-      <Link href={href} className="mrow">
-        {content}
-      </Link>
-    );
-  }
-  if (onClick) {
-    return (
-      <button type="button" className="mrow" onClick={onClick}>
-        {content}
-      </button>
-    );
-  }
-  return <div className="mrow">{content}</div>;
 }

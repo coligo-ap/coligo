@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import {
+  Banknote,
   Check,
+  ChevronDown,
   Loader2,
   MapPin,
   Package,
@@ -12,8 +14,6 @@ import {
   Route,
   StickyNote,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
 import { formatDA } from "@/lib/utils";
 import {
   markDeliveryArrived,
@@ -21,6 +21,13 @@ import {
   reorderTourFromPosition,
 } from "@/app/(driver)/actions";
 import { getPosition } from "@/lib/native/geolocation";
+import {
+  BRAND_GO,
+  BRAND_VIOLET,
+  PartnerBadge,
+  PartnerProgress,
+  SORA,
+} from "@/components/shared/partner-ui";
 import { DeliveryValidationDialog } from "./delivery-validation-dialog";
 import { DeliveryRouteMap } from "./delivery-route-map";
 import { DriverLocationBroadcaster } from "./driver-location-broadcaster";
@@ -46,6 +53,13 @@ type Stop = {
   delivery_arrived_at: string | null;
 };
 
+/**
+ * Exécution de tournée — refonte style maquette livreur (tokens partagés
+ * `--d-*`, Sora, cartes d'arrêt numérotées, jauge de progression, récap
+ * financier en carte dégradé violet). La LOGIQUE MÉTIER est inchangée :
+ * mêmes formules que le ledger (mig 0042), mêmes actions serveur, validation
+ * anti-fraude intacte. Feedback d'action INLINE (règle produit, plus de toast).
+ */
 export function TourExecution({
   stops,
   tourId,
@@ -61,6 +75,13 @@ export function TourExecution({
   const [expandedId, setExpandedId] = useState<string | null>(
     stops.find((s) => s.stop_status === "pending")?.stop_id ?? null
   );
+  // Feedback INLINE de la barre d'action (pickup groupé / ré-optimisation).
+  const [actionMsg, setActionMsg] = useState<{
+    tone: "ok" | "ko";
+    text: string;
+  } | null>(null);
+  // Erreur inline par arrêt (« je suis arrivé »).
+  const [stopErr, setStopErr] = useState<Record<string, string>>({});
 
   const allPickedUp = stops.every(
     (s) => s.stop_status !== "pending" || s.delivery_picked_up_at != null
@@ -71,6 +92,10 @@ export function TourExecution({
   const currentStop = stops.find(
     (s) => s.stop_status === "pending" && s.delivery_picked_up_at != null
   );
+
+  const deliveredCount = stops.filter(
+    (s) => s.stop_status === "delivered"
+  ).length;
 
   // Récap financier de la tournée (mêmes formules que le ledger, cf. mig 0042) :
   //  - gains livreur = somme des delivery_fee_da (toutes commandes)
@@ -87,34 +112,40 @@ export function TourExecution({
 
   const onBulkPickup = () =>
     start(async () => {
+      setActionMsg(null);
       const r = await markTourPickedUp(tourId);
       if (!r.ok) {
-        toast.error(r.error ?? tr("Erreur", "خطأ"));
+        setActionMsg({ tone: "ko", text: r.error ?? tr("Erreur", "خطأ") });
         return;
       }
-      toast.success(
-        isAr
+      setActionMsg({
+        tone: "ok",
+        text: isAr
           ? `تم استلام ${r.count} طلب — جولة موفّقة!`
           : `${r.count} commande${(r.count ?? 0) > 1 ? "s" : ""} récupérée${
               (r.count ?? 0) > 1 ? "s" : ""
-            } — bonne tournée !`
-      );
+            } — bonne tournée !`,
+      });
       router.refresh();
     });
 
-  const onArrived = (orderId: string) =>
+  const onArrived = (stopId: string, orderId: string) =>
     start(async () => {
+      setStopErr((e) => ({ ...e, [stopId]: "" }));
       const r = await markDeliveryArrived(orderId);
       if (!r.ok) {
-        toast.error(r.reason ?? tr("Erreur", "خطأ"));
+        setStopErr((e) => ({
+          ...e,
+          [stopId]: r.reason ?? tr("Erreur", "خطأ"),
+        }));
         return;
       }
-      toast.success(tr("Arrivée signalée au client", "تم إشعار الزبون بوصولك"));
       router.refresh();
     });
 
   const onReorder = () =>
     start(async () => {
+      setActionMsg(null);
       try {
         const pos = await getPosition();
         const r = await reorderTourFromPosition(
@@ -123,24 +154,27 @@ export function TourExecution({
           pos.longitude
         );
         if (!r.ok) {
-          toast.error(r.error ?? tr("Erreur", "خطأ"));
+          setActionMsg({ tone: "ko", text: r.error ?? tr("Erreur", "خطأ") });
           return;
         }
-        toast.success(
-          isAr
+        setActionMsg({
+          tone: "ok",
+          text: isAr
             ? `أُعيد ترتيب المسار (${r.reordered ?? 0} محطات)`
-            : `Itinéraire ré-optimisé (${r.reordered ?? 0} arrêts)`
-        );
+            : `Itinéraire ré-optimisé (${r.reordered ?? 0} arrêts)`,
+        });
         router.refresh();
       } catch (err) {
-        toast.error(
-          err instanceof Error
-            ? err.message
-            : tr(
-                "Position GPS indisponible pour ré-optimiser",
-                "موقع GPS غير متاح لإعادة الترتيب"
-              )
-        );
+        setActionMsg({
+          tone: "ko",
+          text:
+            err instanceof Error
+              ? err.message
+              : tr(
+                  "Position GPS indisponible pour ré-optimiser",
+                  "موقع GPS غير متاح لإعادة الترتيب"
+                ),
+        });
       }
     });
 
@@ -150,45 +184,78 @@ export function TourExecution({
         <DriverLocationBroadcaster orderId={currentStop.order_id} />
       )}
 
-      {/* Récap financier de la tournée. */}
-      <div className="rounded-[16px] bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,.06)]">
+      {/* Récap financier — carte dégradé violet (style net-card maquette). */}
+      <div
+        className="rounded-[22px] p-5 text-white"
+        style={{
+          background: `linear-gradient(135deg, ${BRAND_VIOLET}, #4b1fa6)`,
+          boxShadow: "0 18px 40px -14px rgba(108,43,217,.45)",
+        }}
+      >
         <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="text-[10.5px] font-semibold tracking-[0.4px] text-[var(--muted)] uppercase">
+          <div className="min-w-0">
+            <p className="text-[12px] font-semibold opacity-85">
               {tr("Tes gains · tournée", "أرباحك · الجولة")}
             </p>
-            <p className="mt-1 text-[22px] leading-none font-extrabold tracking-[-0.4px] text-[#6c2bd9]">
+            <p
+              className="mt-1 text-[30px] leading-none font-extrabold tracking-[-1px]"
+              style={{ fontFamily: SORA }}
+            >
               {formatDA(earnings)}
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-[11px] font-bold tracking-[0.5px] text-[var(--muted)] uppercase">
+          <div className="text-right rtl:text-left">
+            <p className="text-[10.5px] font-semibold tracking-[0.4px] uppercase opacity-85">
               {tr("À reverser au commerçant", "للتسديد للتاجر")}
             </p>
-            <p className="mt-1 text-[18px] font-extrabold text-[var(--ink)]">
+            <p
+              className="mt-1 text-[18px] font-extrabold"
+              style={{ fontFamily: SORA }}
+            >
               {formatDA(owedMerchant)}
             </p>
           </div>
         </div>
-        <p className="mt-3 flex items-center gap-1.5 border-t border-[var(--line)] pt-2.5 text-[11px] font-medium text-[var(--muted)]">
-          💵 {tr("Cash à encaisser :", "نقد للتحصيل:")}{" "}
-          <b className="text-[var(--ink)]">{formatDA(cashToCollect)}</b>
-          <span className="ml-auto text-[var(--muted)]">
-            {tr(
-              "commandes en ligne déjà payées",
-              "الطلبات عبر الإنترنت مدفوعة"
-            )}
+        <div className="mt-3.5 flex items-center gap-2 rounded-[14px] bg-white/14 px-3 py-2.5 text-[11.5px] font-medium">
+          <Banknote className="size-4 shrink-0" />
+          {tr("Cash à encaisser :", "نقد للتحصيل:")}{" "}
+          <b style={{ fontFamily: SORA }}>{formatDA(cashToCollect)}</b>
+          <span className="ms-auto opacity-80">
+            {tr("en ligne = déjà payé", "عبر الإنترنت = مدفوع")}
           </span>
-        </p>
+        </div>
       </div>
-      <div className="bg-primary-50 border-primary-200 flex flex-wrap items-center gap-2 rounded-[12px] border p-3">
+
+      {/* Progression de la tournée */}
+      <div className="rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4">
+        <div className="mb-2 flex items-center justify-between text-[12.5px] font-bold">
+          <span className="text-[var(--d-ink)]">
+            {tr("Progression", "التقدّم")}
+          </span>
+          <span className="tabular-nums" style={{ color: BRAND_VIOLET }}>
+            {deliveredCount}/{stops.length} {tr("livrés", "مُسلَّمة")}
+          </span>
+        </div>
+        <PartnerProgress
+          value={deliveredCount}
+          max={stops.length}
+          tone={deliveredCount === stops.length ? BRAND_GO : BRAND_VIOLET}
+        />
+      </div>
+
+      {/* Barre d'action : chargement groupé puis ré-optimisation. */}
+      <div className="space-y-2">
         {!allPickedUp ? (
-          <Button
+          <button
             type="button"
-            size="sm"
             onClick={onBulkPickup}
             disabled={pending}
-            className="flex-1"
+            className="flex h-[54px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-bold text-white active:scale-[0.99] disabled:opacity-60"
+            style={{
+              fontFamily: SORA,
+              background: BRAND_VIOLET,
+              boxShadow: "0 14px 28px -12px rgba(108,43,217,.6)",
+            }}
           >
             {pending ? (
               <Loader2 className="size-4 animate-spin" />
@@ -196,26 +263,37 @@ export function TourExecution({
               <Package className="size-4" />
             )}
             {tr("J'ai chargé toutes les commandes", "حمّلت كل الطلبات")}
-          </Button>
+          </button>
         ) : (
-          <Button
+          <button
             type="button"
-            size="sm"
-            variant="secondary"
             onClick={onReorder}
             disabled={pending}
-            className="flex-1"
+            className="flex h-[50px] w-full items-center justify-center gap-2 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] text-[14px] font-bold text-[var(--d-ink)] active:scale-[0.99] disabled:opacity-60"
           >
             {pending ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Route className="size-4" />
+              <Route className="size-4" style={{ color: BRAND_VIOLET }} />
             )}
             {tr("Re-optimiser depuis ma position", "إعادة الترتيب من موقعي")}
-          </Button>
+          </button>
+        )}
+        {actionMsg && (
+          <p
+            className="rounded-[12px] px-3 py-2 text-center text-[12px] font-bold"
+            style={
+              actionMsg.tone === "ok"
+                ? { background: "rgba(22,179,100,.12)", color: BRAND_GO }
+                : { background: "rgba(229,72,77,.1)", color: "#e5484d" }
+            }
+          >
+            {actionMsg.text}
+          </p>
         )}
       </div>
 
+      {/* Arrêts (cartes numérotées, dépliables) */}
       <ol className="space-y-3">
         {stops.map((s) => {
           const done = s.stop_status === "delivered";
@@ -224,43 +302,60 @@ export function TourExecution({
             <li
               key={s.stop_id}
               className={
-                "space-y-2 rounded-[14px] bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,.05)] " +
-                (done ? "opacity-70" : "")
+                "space-y-2 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 " +
+                (done ? "opacity-60" : "")
               }
             >
               <header
                 className="flex cursor-pointer items-center justify-between gap-2"
                 onClick={() => setExpandedId(expanded ? null : s.stop_id)}
               >
-                <div className="flex items-center gap-2.5">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--soft)] text-xs font-extrabold text-[var(--ink)] tabular-nums">
-                    {s.stop_order}
+                <div className="flex min-w-0 items-center gap-3">
+                  <span
+                    className="grid size-9 shrink-0 place-items-center rounded-full text-[13px] font-extrabold tabular-nums"
+                    style={
+                      done
+                        ? {
+                            background: "rgba(22,179,100,.12)",
+                            color: BRAND_GO,
+                          }
+                        : {
+                            background: "rgba(108,43,217,.1)",
+                            color: BRAND_VIOLET,
+                            fontFamily: SORA,
+                          }
+                    }
+                  >
+                    {done ? <Check className="size-4" /> : s.stop_order}
                   </span>
-                  <div>
-                    <p className="text-sm font-bold text-[var(--ink)]">
-                      {s.customer_name ?? "Client"}
+                  <div className="min-w-0">
+                    <p className="truncate text-[14.5px] font-bold text-[var(--d-ink)]">
+                      {s.customer_name ?? tr("Client", "زبون")}
                     </p>
-                    <p className="text-xs font-medium text-[var(--muted)]">
-                      {s.payment_method === "online" ? "Payé en ligne" : "Cash"}{" "}
+                    <p className="text-[12px] font-medium text-[var(--d-muted)]">
+                      {s.payment_method === "online"
+                        ? tr("Payé en ligne", "مدفوع عبر الإنترنت")
+                        : tr("Espèces", "نقداً")}{" "}
                       · {s.total_da != null ? formatDA(s.total_da) : "—"}
                     </p>
                   </div>
                 </div>
                 {done ? (
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-[#00a86b]">
-                    <Check className="size-3.5" /> Livré
-                  </span>
+                  <PartnerBadge tone="ok">
+                    {tr("Livré", "مُسلَّم")}
+                  </PartnerBadge>
                 ) : (
-                  <span className="text-xs text-[var(--muted)]">
-                    {expanded ? "▼" : "▶"}
-                  </span>
+                  <ChevronDown
+                    className="size-5 shrink-0 text-[var(--d-muted)] transition-transform"
+                    style={{ transform: expanded ? "rotate(180deg)" : "none" }}
+                  />
                 )}
               </header>
 
               {expanded && !done && (
-                <div className="space-y-2 pt-1">
+                <div className="space-y-2.5 pt-1">
                   {s.delivery_address_text && (
-                    <p className="text-muted flex items-start gap-1.5 text-xs">
+                    <p className="flex items-start gap-1.5 text-[12.5px] font-medium text-[var(--d-muted)]">
                       <MapPin className="mt-0.5 size-3.5 shrink-0" />
                       {s.delivery_address_text}
                     </p>
@@ -268,14 +363,21 @@ export function TourExecution({
                   {(s.delivery_phone ?? s.customer_phone) && (
                     <a
                       href={`tel:${s.delivery_phone ?? s.customer_phone}`}
-                      className="text-primary-700 inline-flex items-center gap-1.5 text-xs underline"
+                      className="inline-flex items-center gap-1.5 text-[12.5px] font-bold"
+                      style={{ color: BRAND_VIOLET }}
                     >
                       <Phone className="size-3.5" />
                       {s.delivery_phone ?? s.customer_phone}
                     </a>
                   )}
                   {s.delivery_note && (
-                    <p className="border-warning-200 bg-warning-50 text-warning-800 flex items-start gap-1.5 rounded-[8px] border px-2 py-1.5 text-xs">
+                    <p
+                      className="flex items-start gap-1.5 rounded-[12px] px-3 py-2 text-[12px] font-medium"
+                      style={{
+                        background: "rgba(245,158,11,.12)",
+                        color: "#c2790a",
+                      }}
+                    >
                       <StickyNote className="mt-0.5 size-3.5 shrink-0" />
                       {s.delivery_note}
                     </p>
@@ -309,31 +411,50 @@ export function TourExecution({
                   {/* Étape : signaler l'arrivée (visible côté client) puis valider. */}
                   {s.delivery_picked_up_at != null &&
                     s.delivery_arrived_at == null && (
-                      <Button
+                      <button
                         type="button"
-                        variant="secondary"
-                        className="w-full"
-                        onClick={() => onArrived(s.order_id)}
+                        onClick={() => onArrived(s.stop_id, s.order_id)}
                         disabled={pending}
+                        className="flex h-[50px] w-full items-center justify-center gap-2 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-soft)] text-[14px] font-bold text-[var(--d-ink)] active:scale-[0.99] disabled:opacity-60"
                       >
                         {pending ? (
                           <Loader2 className="size-4 animate-spin" />
                         ) : (
-                          <MapPin className="size-4" />
+                          <MapPin
+                            className="size-4"
+                            style={{ color: BRAND_VIOLET }}
+                          />
                         )}
                         {tr("Je suis arrivé chez le client", "وصلت إلى الزبون")}
-                      </Button>
+                      </button>
                     )}
+                  {stopErr[s.stop_id] ? (
+                    <p
+                      className="rounded-[12px] px-3 py-2 text-center text-[12px] font-bold"
+                      style={{
+                        background: "rgba(229,72,77,.1)",
+                        color: "#e5484d",
+                      }}
+                    >
+                      {stopErr[s.stop_id]}
+                    </p>
+                  ) : null}
 
                   {(s.delivery_arrived_at != null ||
                     s.delivery_picked_up_at == null) && (
-                    <Button
+                    <button
                       type="button"
-                      className="w-full"
                       onClick={() => setValidateFor(s)}
+                      className="flex h-[54px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-bold text-white active:scale-[0.99]"
+                      style={{
+                        fontFamily: SORA,
+                        background: BRAND_VIOLET,
+                        boxShadow: "0 14px 28px -12px rgba(108,43,217,.6)",
+                      }}
                     >
-                      {tr("Marquer livré ✓", "وسم كمُسلَّم ✓")}
-                    </Button>
+                      <Check className="size-4" />
+                      {tr("Marquer livré", "وسم كمُسلَّم")}
+                    </button>
                   )}
                 </div>
               )}

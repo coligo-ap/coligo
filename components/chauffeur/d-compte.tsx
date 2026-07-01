@@ -40,7 +40,6 @@ import { DriverBadgePill } from "@/components/drive/driver-badge";
 import { getDriverBadge } from "@/lib/drive/driver-badge";
 import { PLAN_LABEL, fmtPct } from "./d-ui";
 import { Portal } from "@/components/ui/portal";
-import { toast } from "@/components/ui/toast";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import {
   chauffeurLogout,
@@ -68,6 +67,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
       router.refresh();
     });
   const [fin, setFin] = useState<ChauffeurFinances | null>(null);
+  const [logoutErr, setLogoutErr] = useState<string | null>(null);
   const [homeAddr, setHomeAddr] = useState(gate.homeAddr);
   const [sosContacts, setSosContactsState] = useState<SosContact[]>([]);
   const [contactsOpen, setContactsOpen] = useState(false);
@@ -305,16 +305,17 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         <DarkModeRow />
       </Section>
 
-      {/* Déconnexion */}
+      {/* Déconnexion — erreur INLINE sous le bouton (règle produit, pas de toast). */}
       <button
         type="button"
         onClick={() => {
           // Course en cours → déconnexion bloquée par le serveur (terminer
           // d'abord). Sinon : hors ligne (intention locale ; le serveur met
           // déjà chauffeur_presence.is_online=false) → re-login hors ligne.
+          setLogoutErr(null);
           void chauffeurLogout().then((res) => {
             if (res?.error) {
-              toast.error(res.error);
+              setLogoutErr(res.error);
               return;
             }
             setChauffeurOnlineLocal(false);
@@ -328,6 +329,14 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         </span>
         Se déconnecter
       </button>
+      {logoutErr && (
+        <p
+          className="mt-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+          style={{ background: "rgba(229,72,77,.1)", color: "#E5484D" }}
+        >
+          {logoutErr}
+        </p>
+      )}
 
       {/* Télécharger l'app Android « Coligo Drive » */}
       <Link
