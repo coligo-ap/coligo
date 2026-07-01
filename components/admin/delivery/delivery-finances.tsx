@@ -7,6 +7,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireSuperAdmin } from "@/lib/auth/admin";
 import { formatDA } from "@/lib/utils";
 import { InfoHint } from "@/components/ui/info-hint";
 
@@ -40,6 +41,9 @@ type AuditRow = {
 };
 
 export async function DeliveryFinances() {
+  // Vue « partagée » (route transverse + hub) qui lit en service_role : self-guard
+  // en plus du layout /admin (mémoïsé par requête, coût réseau nul).
+  await requireSuperAdmin();
   const admin = createAdminClient();
 
   // 1. Vue d'ensemble du ledger livraison

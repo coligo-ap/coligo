@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireSuperAdmin } from "@/lib/auth/admin";
 import {
   RechargesManager,
   type PartnerRow,
@@ -12,9 +13,11 @@ import { getPaymentAccounts } from "@/app/admin/recharges/actions";
 // des recharges manuelles, seuils, comptes de versement par module) — partagée
 // entre la route transverse /admin/recharges et l'onglet Recharges du hub
 // Coligo Pay & Finances (/admin/coligo-pay/recharges). Aucune logique métier
-// modifiée. Gate super-admin via le layout /admin.
+// modifiée. Gate super-admin via le layout /admin ET re-gardé ici (service_role)
+// car vue « partagée » → self-guard obligatoire (mémoïsé, coût réseau nul).
 // =============================================================================
 export async function RechargesView() {
+  await requireSuperAdmin();
   const admin = createAdminClient();
   const sel = (t: string) =>
     (

@@ -1,13 +1,16 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireSuperAdmin } from "@/lib/auth/admin";
 import { PushBroadcastForm } from "@/components/admin/push-broadcast-form";
 
 // =============================================================================
 // Vue Notifications push — partagée entre la route transverse
 // /admin/notifications et l'onglet Notifications du hub Marketing
 // (/admin/marketing/notifications). Les compteurs = appareils enregistrés
-// (table device_tokens, natif + web). Gate super-admin via le layout /admin.
+// (table device_tokens, natif + web). Gate super-admin via le layout /admin ET
+// re-gardé ici (service_role) car vue « partagée » (mémoïsé, coût réseau nul).
 // =============================================================================
 export async function NotificationsView() {
+  await requireSuperAdmin();
   const admin = createAdminClient();
   const { data: rows } = await admin.from("device_tokens").select("role");
 

@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireSuperAdmin } from "@/lib/auth/admin";
 import {
   BannersManager,
   type AdminBanner,
@@ -7,9 +8,13 @@ import {
 // =============================================================================
 // Vue Bannières éditoriales — partagée entre la route transverse
 // /admin/bannieres et l'onglet Bannières du hub Marketing (/admin/marketing).
-// Aucune logique métier modifiée. Gate super-admin via le layout /admin.
+// Aucune logique métier modifiée. Gate super-admin via le layout /admin ET
+// re-gardé ici (service_role) : vue « partagée » → self-guard obligatoire pour
+// ne jamais lire en service_role hors d'une session super-admin (mémoïsé par
+// requête, coût réseau nul).
 // =============================================================================
 export async function BannersView() {
+  await requireSuperAdmin();
   const admin = createAdminClient();
 
   // promo_banners hors database.types.ts généré → accès casté.

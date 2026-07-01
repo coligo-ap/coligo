@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isSuperAdmin } from "@/lib/auth/admin";
 import type { PlatformSettings, OrderStatus } from "@/lib/types";
 
 /** Taux globaux (ligne unique). Lisible par tout authentifié (RLS). */
@@ -83,6 +84,10 @@ export async function getAllMerchantsForAdmin(): Promise<AdminMerchant[]> {
 
 /** Nombre de demandes d'inscription commerçant en attente (badge nav admin). */
 export async function getPendingMerchantsCountForAdmin(): Promise<number> {
+  // Lecture service_role → self-guard (en plus du layout /admin). Non-admin ⇒ 0,
+  // sans throw (helper de comptage, cohérent avec les autres data admin qui
+  // renvoient une valeur vide). Mémoïsé par requête → coût réseau nul.
+  if (!(await isSuperAdmin())) return 0;
   const admin = createAdminClient();
   // approval_status hors types générés → requête castée. IMPORTANT : .bind(admin)
   // — extraire admin.from sans binder casse `this.rest` (crash 500). Cf.
