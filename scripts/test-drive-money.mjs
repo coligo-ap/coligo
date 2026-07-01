@@ -42,6 +42,11 @@ await c.query("BEGIN");
 await c.query(
   "UPDATE platform_settings SET dispatch_priority_delay_sec = 0, drive_paid_plans_enabled = true WHERE id = true"
 );
+// Plans payants activés dans la table data-driven (0304) — is_active pilote
+// désormais drive_subscribe (plus le flag). ROLLBACK → aucune trace en prod.
+await c.query(
+  "UPDATE drive_plans SET is_active = true WHERE code IN ('pro','premium')"
+);
 
 const as = (uid) =>
   c.query(
