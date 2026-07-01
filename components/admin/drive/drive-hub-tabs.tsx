@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Car, ClipboardCheck, SlidersHorizontal, Sliders } from "lucide-react";
+import {
+  Car,
+  ClipboardCheck,
+  SlidersHorizontal,
+  Sliders,
+  CreditCard,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Onglets du hub Coligo Drive. La fiche chauffeur (/admin/chauffeurs/[id]) est
@@ -14,6 +20,11 @@ const TABS = [
     label: "Inscriptions",
     icon: ClipboardCheck,
     badge: true,
+  },
+  {
+    href: "/admin/chauffeurs/abonnements",
+    label: "Abonnements",
+    icon: CreditCard,
   },
   {
     href: "/admin/chauffeurs/config",

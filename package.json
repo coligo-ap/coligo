@@ -60,6 +60,7 @@
     "cap:open": "cap open android",
     "prepare": "husky",
     "test:drive:money": "node scripts/test-drive-money.mjs",
+    "test:drive:plans": "node scripts/test-drive-plans.mjs",
     "test:drive:demo": "node scripts/test-drive-demo-e2e.mjs",
     "verify:spec": "node scripts/verify-spec-examples.mjs",
     "test:priority": "node scripts/test-priority.mjs",
