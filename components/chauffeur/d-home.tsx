@@ -900,11 +900,14 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             icon={<PlanIcon plan={home?.plan ?? "free"} />}
             label={`${tr("Abonnement", "الاشتراك")} · ${planLabel(home?.plan ?? "free")}`}
             sublabel={
-              home?.plan === "premium"
-                ? tr("0 % de commission", "0٪ عمولة")
-                : home?.plan === "pro"
-                  ? `${tr("Commission", "عمولة")} ${fmtPct(home.planRate)}`
-                  : tr("Commission 8 % · passez en Premium", "عمولة 8٪")
+              // ADAPTATIF : reflète la commission RÉELLE du plan (0 % au
+              // lancement), sans référence à un plan inactif.
+              (home?.planRate ?? 0) <= 0
+                ? tr(
+                    "0 % de commission — vous gardez tout",
+                    "0٪ عمولة — كل شيء لك"
+                  )
+                : `${tr("Commission", "عمولة")} ${fmtPct(home?.planRate ?? 0)}`
             }
             onClick={() => {
               setMenuOpen(false);

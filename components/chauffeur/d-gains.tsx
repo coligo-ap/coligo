@@ -82,13 +82,14 @@ export function DGains() {
   }
 
   const month = MONTHS[new Date().getMonth()];
+  // « À reverser » ADAPTATIF selon la config réelle (aucun plan/taux en dur) :
+  // au lancement (0 % de commission, sans abonnement payant) il n'y a rien à
+  // reverser → message « à jour ». Sinon on liste les vraies composantes.
   const due = fin.dueUnsettled;
-  const dueSub =
-    fin.plan === "premium"
-      ? "Abonnement uniquement (0 % commission) · avant le 5 du mois, sinon retour au plan Gratuit"
-      : fin.plan === "pro"
-        ? "Abonnement + commissions 3,5 % · avant le 5 du mois, sinon retour au plan Gratuit"
-        : "Commissions sur courses en espèces · avant le 5 du mois · CCP / BaridiMob";
+  const dueParts: string[] = [];
+  if (fin.planRate > 0) dueParts.push("commissions sur courses");
+  if (fin.monthSubFee > 0) dueParts.push("abonnement");
+  const dueSub = `${dueParts.join(" + ") || "montant dû"} · avant le 5 du mois · CCP / BaridiMob`;
 
   return (
     <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
@@ -147,61 +148,91 @@ export function DGains() {
         </span>
       </button>
 
-      <div className="mb-3 rounded-[16px] bg-[var(--d-soft)] px-3.5 py-3">
-        <div className="flex items-center justify-between text-xs font-semibold">
-          <span>Aujourd&apos;hui</span>
-          <b className="drive-sora text-[17px]" style={{ color: GO }}>
-            {formatDA(fin.todayNet)}
-          </b>
-        </div>
-        <p className="mt-1.5 text-[10.5px] text-[var(--d-muted)]">
-          {fin.todayRides} courses · {formatOnline(fin.todayOnlineMin)}
-        </p>
-      </div>
-
+      {/* BILAN COMBINÉ (compact) : aujourd'hui + ce mois dans une seule carte. */}
       <div className="rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5">
-        <div className="mb-1 flex items-center justify-between">
+        <div className="mb-2 flex items-center justify-between">
           <b className="drive-sora text-sm">Ce mois ({month})</b>
           <span
             className="rounded-full px-2.5 py-1 text-[10px] font-extrabold text-white"
             style={{ background: VIOLET }}
           >
-            {PLAN_LABEL[fin.plan]} · {fmtPct(fin.planRate)}
+            {PLAN_LABEL[fin.plan] ?? "Gratuit"} · {fmtPct(fin.planRate)}
           </span>
         </div>
-        <Line
-          k={`Revenus bruts · ${fin.monthRides} courses`}
-          v={formatDA(fin.monthGross)}
-        />
-        {fin.planRate > 0 && (
-          <Line
-            k={`Commission Coligo (${fmtPct(fin.planRate)})`}
-            v={`−${formatDA(fin.monthCommission)}`}
-            tone={RED}
-          />
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-[14px] bg-[var(--d-soft)] px-3 py-2.5">
+            <span className="block text-[10.5px] text-[var(--d-muted)]">
+              Aujourd&apos;hui
+            </span>
+            <b className="drive-sora text-[18px]" style={{ color: GO }}>
+              {formatDA(fin.todayNet)}
+            </b>
+            <span className="mt-0.5 block text-[10px] text-[var(--d-muted)]">
+              {fin.todayRides} courses · {formatOnline(fin.todayOnlineMin)}
+            </span>
+          </div>
+          <div className="rounded-[14px] bg-[var(--d-soft)] px-3 py-2.5">
+            <span className="block text-[10.5px] text-[var(--d-muted)]">
+              Net ce mois
+            </span>
+            <b className="drive-sora text-[18px]" style={{ color: GO }}>
+              {formatDA(fin.monthNet)}
+            </b>
+            <span className="mt-0.5 block text-[10px] text-[var(--d-muted)]">
+              {fin.monthRides} courses
+            </span>
+          </div>
+        </div>
+
+        {/* Détail seulement s'il y a une commission ou un abonnement à déduire
+            (au lancement : 0 % → on n'encombre pas la carte). */}
+        {(fin.planRate > 0 || fin.monthSubFee > 0) && (
+          <div className="mt-1.5">
+            <Line
+              k={`Revenus bruts · ${fin.monthRides} courses`}
+              v={formatDA(fin.monthGross)}
+            />
+            {fin.planRate > 0 && (
+              <Line
+                k={`Commission Coligo (${fmtPct(fin.planRate)})`}
+                v={`−${formatDA(fin.monthCommission)}`}
+                tone={RED}
+              />
+            )}
+            {fin.monthSubFee > 0 && (
+              <Line
+                k="Abonnement mensuel"
+                v={`−${formatDA(fin.monthSubFee)}`}
+                tone={RED}
+              />
+            )}
+          </div>
         )}
-        {fin.monthSubFee > 0 && (
-          <Line
-            k="Abonnement mensuel"
-            v={`−${formatDA(fin.monthSubFee)}`}
-            tone={RED}
-          />
-        )}
-        <Line k="Net pour vous" v={formatDA(fin.monthNet)} tone={GO} />
       </div>
 
-      {/* À reverser à Coligo */}
-      <div
-        className="my-3 rounded-[18px] p-4 text-white"
-        style={{ background: `linear-gradient(135deg,${VIOLET},#4646C9)` }}
-      >
-        <p className="text-xs opacity-85">À reverser à Coligo ce mois</p>
-        <p className="drive-sora mt-1 text-[26px] font-extrabold">
-          {formatDA(due)}
-        </p>
-        <p className="mt-1 text-[11px] opacity-90">{dueSub}</p>
-      </div>
+      {/* À reverser — carte violette si dû, sinon pastille « à jour » (compact). */}
+      {due > 0 ? (
+        <div
+          className="my-3 rounded-[18px] p-4 text-white"
+          style={{ background: `linear-gradient(135deg,${VIOLET},#4646C9)` }}
+        >
+          <p className="text-xs opacity-85">À reverser à Coligo ce mois</p>
+          <p className="drive-sora mt-1 text-[26px] font-extrabold">
+            {formatDA(due)}
+          </p>
+          <p className="mt-1 text-[11px] opacity-90">{dueSub}</p>
+        </div>
+      ) : (
+        <div
+          className="my-3 flex items-center gap-2 rounded-[15px] bg-[var(--d-soft)] px-3.5 py-3 text-[12px] font-bold"
+          style={{ color: GO }}
+        >
+          ✅ Rien à reverser ce mois — vous êtes à jour.
+        </div>
+      )}
 
+      {/* Abonnement — ADAPTATIF : aucune référence à un plan inactif. */}
       <button
         type="button"
         onClick={() => router.push("/chauffeur/abonnement")}
@@ -210,12 +241,12 @@ export function DGains() {
         <PlanIcon plan={fin.plan} />
         <span className="min-w-0 flex-1">
           <b className="block text-[13.5px]">
-            Abonnement : {PLAN_LABEL[fin.plan]}
+            Abonnement : {PLAN_LABEL[fin.plan] ?? "Gratuit"}
           </b>
           <span className="text-[11px] text-[var(--d-muted)]">
-            {fin.plan === "premium"
-              ? "0 % de commission — vous gardez tout"
-              : "Comparez : avec Premium vous gardiez tout"}
+            {fin.planRate <= 0
+              ? "0 % de commission — vous gardez 100 % de vos gains 🎉"
+              : "Voir les abonnements pour gagner en visibilité"}
           </span>
         </span>
         <span className="text-[var(--d-muted)]">›</span>

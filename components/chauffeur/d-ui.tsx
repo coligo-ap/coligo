@@ -76,9 +76,17 @@ export function DNav() {
 }
 
 export function PlanIcon({ plan }: { plan: "free" | "pro" | "premium" }) {
+  const free = plan === "free";
+  // Free : icône NEUTRE (pas de taux en dur — au lancement la commission est 0 %).
   return (
-    <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[#E8B53C] text-[13px] font-extrabold text-[#3a2c00]">
-      {plan === "free" ? "8%" : plan === "pro" ? "💼" : "👑"}
+    <span
+      className={`grid size-9 shrink-0 place-items-center rounded-[11px] text-[15px] font-extrabold ${
+        free
+          ? "bg-[var(--d-soft)] text-[var(--d-ink)]"
+          : "bg-[#E8B53C] text-[#3a2c00]"
+      }`}
+    >
+      {free ? "🚗" : plan === "pro" ? "💼" : "👑"}
     </span>
   );
 }
