@@ -1,14 +1,16 @@
 import { ShieldCheck } from "lucide-react";
 import { ConfianceHubTabs } from "@/components/admin/confiance/confiance-hub-tabs";
+import { requireAdminDomain } from "@/lib/auth/admin";
 
 // Hub Confiance & Sécurité : regroupe Signalements / Appareils / Sécurité en
 // onglets. Scopé au route group (confiance) ; URLs des pages inchangées. Bande
 // fine : chaque page garde son conteneur. Gate super-admin via app/admin/layout.tsx.
-export default function ConfianceHubLayout({
+export default async function ConfianceHubLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requireAdminDomain("confiance");
   return (
     <div>
       <div className="border-border border-b bg-white">

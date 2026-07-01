@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { adminCan } from "@/lib/auth/admin";
 
 // =============================================================================
 // Gestion des chauffeurs VTC (super-admin).
@@ -46,7 +46,7 @@ async function setFlag(
   patch: ChauffeurFlags,
   action: string
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
   if (!chauffeurId) return { error: "Chauffeur manquant." };
   const admin = createAdminClient();
   const { error } = await admin
@@ -105,7 +105,7 @@ const DOCS_BUCKET = "driver-docs";
 export async function getChauffeurDocUrl(
   path: string
 ): Promise<{ url?: string; error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { data, error } = await admin.storage
     .from(DOCS_BUCKET)
@@ -118,7 +118,7 @@ export async function getChauffeurDocUrl(
 export async function approveChauffeur(
   chauffeurId: string
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("chauffeurs")
@@ -165,7 +165,7 @@ export async function rejectChauffeur(
   chauffeurId: string,
   motif: string
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
   if (!motif.trim()) return { error: "Motif requis." };
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -212,7 +212,7 @@ export async function freezeChauffeurWithReason(
   chauffeurId: string,
   motif: string
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { error } = await admin
     .from("chauffeurs")
@@ -232,7 +232,7 @@ export async function freezeChauffeurWithReason(
 export async function approveSubPayment(
   paymentId: string
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const rpc = admin.rpc.bind(admin) as unknown as (
     fn: string,
@@ -282,7 +282,7 @@ export async function rejectSubPayment(
   paymentId: string,
   note: string
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const rpc = admin.rpc.bind(admin) as unknown as (
     fn: string,
@@ -335,7 +335,7 @@ export async function setChauffeurDocStatus(
   status: "approved" | "rejected",
   note?: string | null
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { data: doc, error } = await admin
     .from("chauffeur_documents")
@@ -409,7 +409,7 @@ export async function updateChauffeurInfo(
     is_female_verified?: boolean;
   }
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { error } = await admin
     .from("chauffeurs")
@@ -428,7 +428,7 @@ export async function updateChauffeurInfo(
 export async function approveChauffeurGated(
   chauffeurId: string
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const [{ data: ch }, { data: docs }] = await Promise.all([
     admin

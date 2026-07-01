@@ -1,6 +1,6 @@
 import { Wallet } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireSuperAdmin } from "@/lib/auth/admin";
+import { requireAdminDomain } from "@/lib/auth/admin";
 import { FinancesHubTabs } from "@/components/admin/coligo-pay/finances-hub-tabs";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export default async function FinancesHubLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireSuperAdmin();
+  await requireAdminDomain("finances");
   const admin = createAdminClient();
   const { count } = await (
     admin.from as unknown as (t: string) => {

@@ -1,6 +1,6 @@
 import { Car } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireSuperAdmin } from "@/lib/auth/admin";
+import { requireAdminDomain } from "@/lib/auth/admin";
 import { DriveHubTabs } from "@/components/admin/drive/drive-hub-tabs";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export default async function DriveHubLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireSuperAdmin();
+  await requireAdminDomain("drive");
   const admin = createAdminClient();
   const { data } = await admin
     .from("chauffeurs")

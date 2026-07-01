@@ -1,5 +1,5 @@
 import { LogOut, ShieldCheck } from "lucide-react";
-import { requireSuperAdmin } from "@/lib/auth/admin";
+import { requireSuperAdmin, getAdminContext } from "@/lib/auth/admin";
 import { logout } from "@/app/(merchant)/actions";
 import { Logo } from "@/components/shared/logo";
 import { AdminAlertsProvider } from "@/components/admin/admin-alerts-provider";
@@ -20,6 +20,9 @@ export default async function AdminLayout({
   // côté client juste après le montage (non bloquant) → la page s'affiche aussi
   // vite qu'avant, les badges apparaissent ~instantanément ensuite.
   await requireSuperAdmin();
+  // Contexte RBAC (owner/staff + domaines) → filtre la nav. Mémoïsé (React
+  // cache) : réutilisé par les gates de chaque hub sans re-requêter.
+  const { isOwner, domains } = await getAdminContext();
 
   return (
     <ConfirmProvider>
@@ -27,7 +30,7 @@ export default async function AdminLayout({
         <div className="bg-surface-2 min-h-screen">
           <header className="border-border sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b bg-white px-4 lg:px-6">
             <div className="flex min-w-0 items-center gap-3 lg:gap-4">
-              <AdminMobileNav />
+              <AdminMobileNav domains={domains} isOwner={isOwner} />
               <span className="flex shrink-0 items-center gap-2 font-semibold">
                 <Logo size="sm" className="hidden sm:flex" />
                 <ShieldCheck className="text-primary-600 size-5" />
@@ -49,7 +52,7 @@ export default async function AdminLayout({
           </header>
           {/* Drawer desktop (sidebar repliable) + contenu. Sur mobile la nav
             reste le drawer hamburger ci-dessus. */}
-          <AdminShell>
+          <AdminShell domains={domains} isOwner={isOwner}>
             <main>{children}</main>
           </AdminShell>
         </div>

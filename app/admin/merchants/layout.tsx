@@ -1,5 +1,6 @@
 import { Store } from "lucide-react";
 import { getPendingMerchantsCountForAdmin } from "@/lib/data/platform";
+import { requireAdminDomain } from "@/lib/auth/admin";
 import { MerchantHubTabs } from "@/components/admin/merchants/merchant-hub-tabs";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ export default async function MerchantHubLayout({
 }: {
   children: React.ReactNode;
 }) {
+  await requireAdminDomain("commercants");
   const pendingCount = await getPendingMerchantsCountForAdmin();
   return (
     <div className="mx-auto max-w-4xl p-4 lg:p-6">

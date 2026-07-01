@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { adminCan } from "@/lib/auth/admin";
 import { adminCancelOrder, type AdminFormState } from "@/app/admin/actions";
 
 // =============================================================================
@@ -65,7 +65,7 @@ export async function updateDriverProfile(
   _prev: AdminFormState,
   formData: FormData
 ): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   if (!driverId) return { error: "Livreur manquant." };
 
   const full_name = txt(formData.get("full_name"));
@@ -108,7 +108,7 @@ export async function setDriverVerified(
   driverId: string,
   verified: boolean
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { error } = await admin
     .from("drivers")
@@ -144,7 +144,7 @@ export async function updateDriverAvatar(
   _prev: AdminFormState,
   formData: FormData
 ): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   const file = formData.get("avatar");
   if (!(file instanceof File) || file.size === 0) {
     return { error: "Choisis une image." };
@@ -200,7 +200,7 @@ export async function updateDriverAvatar(
 export async function removeDriverAvatar(
   driverId: string
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { data: existing } = await admin
     .from("drivers")
@@ -237,7 +237,7 @@ const ALLOWED_SCAN = [
 export async function signDriverDocUrl(
   path: string
 ): Promise<{ url?: string; error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { data, error } = await admin.storage
     .from(DOCS_BUCKET)
@@ -251,7 +251,7 @@ export async function upsertDriverDocument(
   _prev: AdminFormState,
   formData: FormData
 ): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   const docType = txt(formData.get("doc_type"));
   const allowed = ["cni", "permis", "carte_grise", "passeport", "autre"];
   if (!docType || !allowed.includes(docType)) {
@@ -335,7 +335,7 @@ export async function setDriverDocumentStatus(
   status: "approved" | "rejected",
   note?: string | null
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { data: doc, error } = await admin
     .from("driver_documents")
@@ -400,7 +400,7 @@ export async function deleteDriverDocument(
   driverId: string,
   docId: string
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   // Récupère le chemin du scan pour le supprimer du bucket.
   const { data: doc } = await admin
@@ -428,7 +428,7 @@ export async function upsertDriverPayoutMethod(
   _prev: AdminFormState,
   formData: FormData
 ): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   const method = txt(formData.get("method"));
   const allowed = ["especes", "ccp", "baridimob", "virement"];
   if (!method || !allowed.includes(method)) {
@@ -458,7 +458,7 @@ export async function deleteDriverPayoutMethod(
   driverId: string,
   methodId: string
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { error } = await admin
     .from("driver_payout_methods")
@@ -479,7 +479,7 @@ export async function resolveDriverChangeRequest(input: {
   decision: "approved" | "rejected";
   reviewNote?: string | null;
 }): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
 
   // Charge la demande (pour appliquer le payload à l'approbation).
@@ -549,7 +549,7 @@ export async function reassignDelivery(input: {
   targetDriverId?: string | null;
   reason?: string | null;
 }): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
 
   // L'annulation réutilise la logique existante (remboursements, notifs).
   if (input.mode === "cancel") {

@@ -1,6 +1,7 @@
 import { LayoutDashboard } from "lucide-react";
 import { getLateOrdersCountForAdmin } from "@/lib/data/platform";
 import { PilotageHubTabs } from "@/components/admin/pilotage/pilotage-hub-tabs";
+import { requireAdminDomain } from "@/lib/auth/admin";
 
 // Hub Pilotage (cockpit) : regroupe Vue d'ensemble / Commandes / Alertes en
 // onglets. Scopé au route group (pilotage) : seules ces 3 pages reçoivent les
@@ -11,6 +12,7 @@ export default async function PilotageHubLayout({
 }: {
   children: React.ReactNode;
 }) {
+  await requireAdminDomain("pilotage");
   const lateCount = await getLateOrdersCountForAdmin();
   return (
     <div>

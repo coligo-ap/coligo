@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Car, FileCheck, User, Wallet } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { requireAdminDomain } from "@/lib/auth/admin";
 import { formatDA } from "@/lib/utils";
 import {
   ChauffeurAccountActions,
@@ -23,7 +23,7 @@ export default async function AdminChauffeurDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  if (!(await isSuperAdmin())) redirect("/admin");
+  await requireAdminDomain("drive");
   const { id } = await params;
   const admin = createAdminClient();
 

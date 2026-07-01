@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { adminCan } from "@/lib/auth/admin";
 
 export type DeviceActionResult = {
   ok?: boolean;
@@ -18,7 +18,7 @@ export async function blockIp(
   ip: string,
   message: string
 ): Promise<DeviceActionResult> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("confiance"))) return { error: "Accès refusé." };
   const supabase = await createClient();
   const { error } = await supabase.rpc(
     "admin_block_ip" as never,
@@ -34,7 +34,7 @@ export async function blockIp(
 
 /** Débloque une IP. */
 export async function unblockIp(ip: string): Promise<DeviceActionResult> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("confiance"))) return { error: "Accès refusé." };
   const supabase = await createClient();
   const { error } = await supabase.rpc(
     "admin_unblock_ip" as never,
@@ -49,7 +49,7 @@ export async function unblockIp(ip: string): Promise<DeviceActionResult> {
 
 /** Déconnecte (supprime les sessions GoTrue) de tous les comptes vus sur l'IP. */
 export async function disconnectIp(ip: string): Promise<DeviceActionResult> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("confiance"))) return { error: "Accès refusé." };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc(
     "admin_disconnect_ip" as never,
@@ -66,7 +66,7 @@ export async function disconnectIp(ip: string): Promise<DeviceActionResult> {
 export async function disconnectUser(
   userId: string
 ): Promise<DeviceActionResult> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("confiance"))) return { error: "Accès refusé." };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc(
     "admin_disconnect_user" as never,

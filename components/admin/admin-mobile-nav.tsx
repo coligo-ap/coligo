@@ -6,10 +6,11 @@ import { useEffect, useRef, useState } from "react";
 import { Menu, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  ADMIN_DOMAINS,
   isAdminDomainActive,
+  visibleDomains,
   type AdminDomain,
 } from "@/components/admin/admin-nav";
+import type { AlertDomain } from "@/lib/alerts/alert-model";
 import {
   DomainBadge,
   useDomainSummary,
@@ -24,9 +25,16 @@ import { APP_CONFIG } from "@/lib/config/app-config";
  * par domaine + la pastille du hamburger sont DÉRIVÉS du moteur d'alertes
  * (mig 0274). Self-contained : bouton ET panneau dans ce composant.
  */
-export function AdminMobileNav() {
+export function AdminMobileNav({
+  domains,
+  isOwner,
+}: {
+  domains: AlertDomain[];
+  isOwner: boolean;
+}) {
   const pathname = usePathname();
   const { alerts } = useAdminAlerts();
+  const items = visibleDomains(domains, isOwner);
   const [open, setOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -123,7 +131,7 @@ export function AdminMobileNav() {
             </div>
 
             <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-              {ADMIN_DOMAINS.map((d) => (
+              {items.map((d) => (
                 <MobileItem
                   key={d.href}
                   d={d}

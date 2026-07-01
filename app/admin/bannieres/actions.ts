@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { adminCan } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -167,7 +167,7 @@ function refresh() {
 export async function createBanner(
   input: BannerInput
 ): Promise<BannerActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
   const parsed = bannerSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Données invalides." };
@@ -193,7 +193,7 @@ export async function updateBanner(
   id: string,
   input: BannerInput
 ): Promise<BannerActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
   const parsed = bannerSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Données invalides." };
@@ -218,7 +218,7 @@ export async function toggleBanner(
   id: string,
   active: boolean
 ): Promise<BannerActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
   try {
     const admin = createAdminClient();
     const { error } = await bannerTable(admin)
@@ -243,7 +243,7 @@ export async function toggleBanner(
 export async function uploadBannerImage(
   formData: FormData
 ): Promise<{ url?: string; error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0)
     return { error: "Aucune image sélectionnée." };
@@ -274,7 +274,7 @@ export async function uploadBannerImage(
 }
 
 export async function deleteBanner(id: string): Promise<BannerActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
   try {
     const admin = createAdminClient();
     const { error } = await bannerTable(admin).delete().eq("id", id);

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { adminCan } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -118,7 +118,7 @@ export type ZoneRuleInput = z.input<typeof ruleSchema>;
 export async function createZoneRule(
   input: ZoneRuleInput
 ): Promise<ZoneActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const parsed = ruleSchema.safeParse(input);
   if (!parsed.success)
     return { error: parsed.error.issues[0]?.message ?? "Données invalides." };
@@ -161,7 +161,7 @@ export async function toggleZoneRule(
   id: string,
   active: boolean
 ): Promise<ZoneActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { error } = await zoneTable(admin, "service_zone_rules")
     .update({ active, updated_at: new Date().toISOString() })
@@ -176,7 +176,7 @@ export async function updateZoneRulePriority(
   id: string,
   priority: number
 ): Promise<ZoneActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const p = Math.max(0, Math.min(1000, Math.trunc(priority)));
   const admin = createAdminClient();
   const { error } = await zoneTable(admin, "service_zone_rules")
@@ -189,7 +189,7 @@ export async function updateZoneRulePriority(
 }
 
 export async function deleteZoneRule(id: string): Promise<ZoneActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { error } = await zoneTable(admin, "service_zone_rules")
     .delete()
@@ -210,7 +210,7 @@ const defaultsSchema = z.object({
 export async function saveServiceDefaults(
   input: z.input<typeof defaultsSchema>
 ): Promise<ZoneActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const parsed = defaultsSchema.safeParse(input);
   if (!parsed.success)
     return { error: parsed.error.issues[0]?.message ?? "Données invalides." };

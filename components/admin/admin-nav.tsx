@@ -90,6 +90,20 @@ export const ADMIN_DOMAINS: AdminDomain[] = [
   },
 ];
 
+/**
+ * Domaines VISIBLES pour la session : owner ⇒ tous ; staff ⇒ uniquement ceux de
+ * `allowed`. L'ordre de `ADMIN_DOMAINS` est conservé. Le filtrage nav est du
+ * CONFORT (la vraie barrière est serveur + RLS) mais évite de montrer à un staff
+ * des hubs qui le redirigeraient aussitôt.
+ */
+export function visibleDomains(
+  allowed: AlertDomain[],
+  isOwner: boolean
+): AdminDomain[] {
+  if (isOwner) return ADMIN_DOMAINS;
+  return ADMIN_DOMAINS.filter((d) => allowed.includes(d.domain));
+}
+
 /** Un préfixe matche la route s'il est égal ou suivi d'un « / » (évite que
  *  /admin/drive (Drive) capture /admin/drivers (Livraison)). */
 function prefixMatches(pathname: string, p: string): boolean {

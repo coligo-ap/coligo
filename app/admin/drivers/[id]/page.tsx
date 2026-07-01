@@ -11,7 +11,7 @@ import {
   Truck,
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { requireAdminDomain } from "@/lib/auth/admin";
 import { formatDA } from "@/lib/utils";
 import { DriverFreezeButton } from "@/components/admin/driver-freeze-button";
 import { DriverBlockButton } from "@/components/admin/drivers/driver-block-button";
@@ -78,7 +78,7 @@ export default async function AdminDriverDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ period?: string }>;
 }) {
-  if (!(await isSuperAdmin())) redirect("/admin");
+  await requireAdminDomain("livraison");
   const { id } = await params;
   const sp = await searchParams;
   const period: Period =

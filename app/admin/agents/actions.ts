@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { adminCan } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -65,7 +65,7 @@ async function patchWallet(
 export async function signAgentDocUrl(
   path: string
 ): Promise<{ url?: string; error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("finances"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { data, error } = await admin.storage
     .from("partner-docs")
@@ -81,7 +81,7 @@ export async function setAgentDocumentStatus(
   status: "approved" | "rejected",
   note?: string | null
 ): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   const admin = createAdminClient();
   const { error } = await (
     admin.from as unknown as (t: string) => {
@@ -112,7 +112,7 @@ export async function setAgentDocumentStatus(
 
 /** Approuver le dossier → le point devient ACTIF (peut revendre + visible). */
 export async function approveAgent(walletId: string): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   const res = await patchWallet(walletId, {
     status: "active",
     rejected_reason: null,
@@ -126,7 +126,7 @@ export async function rejectAgent(
   walletId: string,
   reason: string
 ): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   if (!reason.trim()) return { error: "Motif requis." };
   const res = await patchWallet(walletId, {
     status: "rejected",
@@ -144,7 +144,7 @@ export async function setAgentVerified(
   walletId: string,
   verified: boolean
 ): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   const res = await patchWallet(walletId, {
     is_verified: verified,
     verified_at: verified ? new Date().toISOString() : null,
@@ -160,7 +160,7 @@ export async function setAgentStatus(
   walletId: string,
   status: "active" | "suspended" | "disabled"
 ): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   const res = await patchWallet(walletId, { status });
   if (res.ok) await audit("set_agent_status", walletId, status);
   return res;
@@ -180,7 +180,7 @@ export async function updateAgent(
     hours?: string;
   }
 ): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   if (!fields.displayName.trim()) return { error: "Nom du point requis." };
   const res = await patchWallet(walletId, {
     display_name: fields.displayName.trim(),

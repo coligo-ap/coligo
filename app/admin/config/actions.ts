@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { adminCan } from "@/lib/auth/admin";
 import {
   getConfigKeyHistory,
   type ConfigHistoryEntry,
@@ -20,7 +20,7 @@ export async function updateConfigValue(
   key: string,
   value: unknown
 ): Promise<ConfigActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
 
   const supabase = await createClient();
   const { data: reg } = await supabase
@@ -87,6 +87,6 @@ export async function updateConfigValue(
 export async function fetchKeyHistory(
   key: string
 ): Promise<ConfigHistoryEntry[]> {
-  if (!(await isSuperAdmin())) return [];
+  if (!(await adminCan("plateforme"))) return [];
   return getConfigKeyHistory(key);
 }

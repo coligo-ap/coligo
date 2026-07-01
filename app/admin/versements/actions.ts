@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { adminCan } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 
 type Res = { ok?: true; error?: string };
@@ -16,7 +16,7 @@ export async function processPayout(
   payoutId: string,
   action: "approve" | "pay" | "reject"
 ): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   const supabase = await createClient(); // session admin → auth.uid() pour la garde
   const rpc = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
@@ -40,7 +40,7 @@ export async function recordPartnerPayout(input: {
   amountDa: number;
   note: string;
 }): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   if (!Number.isFinite(input.amountDa) || input.amountDa <= 0)
     return { error: "Montant invalide." };
   const supabase = await createClient();

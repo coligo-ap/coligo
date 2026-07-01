@@ -1,11 +1,13 @@
 import { Car } from "lucide-react";
 import { DriveConfig } from "@/components/admin/drive/drive-config";
+import { requireAdminDomain } from "@/lib/auth/admin";
 
 export const dynamic = "force-dynamic";
 
 // Route transverse conservée. Même vue que l'onglet Configuration du hub
 // Coligo Drive (/admin/chauffeurs/config) via le composant partagé DriveConfig.
-export default function AdminDrivePage() {
+export default async function AdminDrivePage() {
+  await requireAdminDomain("drive");
   return (
     <div className="mx-auto max-w-[1100px] space-y-6 p-4 lg:p-6">
       <header className="flex items-center gap-2">

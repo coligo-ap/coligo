@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { adminCan } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -13,7 +13,7 @@ const DENIED: Res = { error: "Accès refusé." };
 export async function signWalletProofUrl(
   path: string
 ): Promise<{ url?: string; error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("finances"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { data, error } = await admin.storage
     .from("wallet-proofs")
@@ -24,7 +24,7 @@ export async function signWalletProofUrl(
 
 /** Valider une demande de recharge manuelle → crédit (RPC self-guard admin). */
 export async function approveTopup(requestId: string): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   const supabase = await createClient(); // session admin → auth.uid() ok
   const rpc = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
@@ -43,7 +43,7 @@ export async function rejectTopup(
   requestId: string,
   note: string
 ): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   const supabase = await createClient();
   const rpc = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
@@ -60,7 +60,7 @@ export async function rejectTopup(
 
 /** Activer / désactiver l'enforcement global (operator_gating). */
 export async function setOperatorGating(active: boolean): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   const admin = createAdminClient();
   const from = (t: string) =>
     (
@@ -100,7 +100,7 @@ export async function createPartner(input: {
   lng?: number;
   loginPassword?: string;
 }): Promise<CreateRes> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("finances"))) return { error: "Accès refusé." };
   if (!input.displayName.trim()) return { error: "Nom du commerce requis." };
   if (input.lat == null || input.lng == null)
     return { error: "Position sur la carte requise." };
@@ -171,7 +171,7 @@ export async function createPartner(input: {
 
 /** Promouvoir un COMMERÇANT existant en point de recharge (réutilise sa fiche). */
 export async function promoteMerchant(merchantId: string): Promise<CreateRes> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("finances"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const q = (t: string) =>
     (
@@ -230,7 +230,7 @@ export async function promoteMerchant(merchantId: string): Promise<CreateRes> {
 
 /** Téléverse une pièce justificative d'un point (registre commerce, identité…). */
 export async function uploadPartnerDoc(formData: FormData): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   const walletId = String(formData.get("wallet_id") ?? "");
   const kind = String(formData.get("kind") ?? "");
   const label = String(formData.get("label") ?? "");
@@ -279,7 +279,7 @@ export async function uploadPartnerDoc(formData: FormData): Promise<Res> {
 export async function signPartnerDocUrl(
   path: string
 ): Promise<{ url?: string; error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("finances"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { data, error } = await admin.storage
     .from("partner-docs")
@@ -293,7 +293,7 @@ export async function setWalletStatus(
   walletId: string,
   status: "active" | "suspended" | "disabled"
 ): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   const admin = createAdminClient();
   const from = (t: string) =>
     (
@@ -321,7 +321,7 @@ export async function creditWallet(input: {
   type: "topup_manual" | "bonus" | "adjustment";
   note: string;
 }): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   if (!Number.isFinite(input.amountDa) || input.amountDa === 0)
     return { error: "Montant invalide." };
   const supabase = await createClient(); // session admin pour le self-guard
@@ -350,7 +350,7 @@ export async function updateThresholds(input: {
   topupMax: number;
   presets?: number[];
 }): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   const admin = createAdminClient();
   const from = (t: string) =>
     (
@@ -406,7 +406,7 @@ const SCOPE_ORDER: PaymentScope[] = [
 
 /** Les 4 comptes de versement (CCP + banque) par module. Super-admin only. */
 export async function getPaymentAccounts(): Promise<PaymentAccount[]> {
-  if (!(await isSuperAdmin())) return [];
+  if (!(await adminCan("finances"))) return [];
   const admin = createAdminClient();
   const { data } = await (
     admin.from as unknown as (t: string) => {
@@ -444,7 +444,7 @@ export async function getPaymentAccounts(): Promise<PaymentAccount[]> {
 export async function updatePaymentAccount(
   input: PaymentAccount
 ): Promise<Res> {
-  if (!(await isSuperAdmin())) return DENIED;
+  if (!(await adminCan("finances"))) return DENIED;
   if (!SCOPE_ORDER.includes(input.scope)) return { error: "Module invalide." };
   const supabase = await createClient(); // session admin → updated_by = auth.uid()
   const {

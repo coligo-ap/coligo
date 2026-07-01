@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MapPinned, Percent, Power, Settings2 } from "lucide-react";
+import { MapPinned, Percent, Power, Settings2, ShieldPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -12,11 +12,17 @@ const TABS = [
   { href: "/admin/zones", label: "Zones", icon: MapPinned },
 ] as const;
 
-export function PlateformeHubTabs() {
+// L'onglet « Admins » (gestion des super-admins + attribution des domaines) est
+// OWNER-ONLY : il n'apparaît que pour un owner (la page elle-même re-gate via
+// requireOwner()).
+export function PlateformeHubTabs({ isOwner = false }: { isOwner?: boolean }) {
   const pathname = usePathname();
+  const tabs = isOwner
+    ? [...TABS, { href: "/admin/admins", label: "Admins", icon: ShieldPlus }]
+    : TABS;
   return (
     <nav className="scrollbar-hide -mx-1 flex items-center gap-1 overflow-x-auto px-1 text-sm">
-      {TABS.map((t) => {
+      {tabs.map((t) => {
         const Icon = t.icon;
         const active = pathname.startsWith(t.href);
         return (

@@ -1,14 +1,16 @@
 import { Megaphone } from "lucide-react";
 import { MarketingHubTabs } from "@/components/admin/marketing/marketing-hub-tabs";
+import { requireAdminDomain } from "@/lib/auth/admin";
 
 // Hub Marketing & Communication : regroupe Bannières / Notifications en onglets.
 // Bande fine : chaque page garde son conteneur/titre (vues partagées avec les
 // routes transverses). Gate super-admin via app/admin/layout.tsx.
-export default function MarketingHubLayout({
+export default async function MarketingHubLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requireAdminDomain("marketing");
   return (
     <div>
       <div className="border-border border-b bg-white">

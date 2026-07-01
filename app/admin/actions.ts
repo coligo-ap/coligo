@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { adminCan } from "@/lib/auth/admin";
 import { getCatalogTemplate } from "@/lib/config/catalog-templates";
 import {
   merchantRatesSchema,
@@ -25,7 +25,7 @@ export async function updateFeatureFlag(
   _prev: AdminFormState,
   formData: FormData
 ): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
 
   const key = String(formData.get("key") ?? "");
   const status = String(formData.get("status") ?? "");
@@ -73,7 +73,7 @@ export async function updateDispatchRadii(
   _prev: AdminFormState,
   formData: FormData
 ): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
 
   const express = Number(formData.get("express_dispatch_radius_km"));
   const drive = Number(formData.get("drive_dispatch_radius_km"));
@@ -111,7 +111,7 @@ export async function updatePlatformSettings(
   _prev: AdminFormState,
   formData: FormData
 ): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
 
   const parsed = platformSettingsSchema.safeParse({
     commission_cash: formData.get("commission_cash"),
@@ -167,7 +167,7 @@ export async function updateMerchantRates(
   _prev: AdminFormState,
   formData: FormData
 ): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("commercants"))) return { error: "Accès refusé." };
 
   const parsed = merchantRatesSchema.safeParse({
     commission_cash: formData.get("commission_cash"),
@@ -202,7 +202,7 @@ export async function toggleMerchantFrozen(
   merchantId: string,
   frozen: boolean
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("commercants"))) return { error: "Accès refusé." };
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -240,7 +240,7 @@ export async function decideMerchantApproval(
   decision: "approve" | "reject",
   reason?: string
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("commercants"))) return { error: "Accès refusé." };
 
   const approve = decision === "approve";
   const supabase = await createClient();
@@ -289,7 +289,7 @@ export async function toggleDriverFrozen(
   frozen: boolean,
   note?: string
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
 
   // ⚠️ La table `drivers` n'a PAS de policy UPDATE super-admin (seulement
   // `drivers_update_self`). Un update via la session admin matchait 0 ligne →
@@ -353,7 +353,7 @@ export async function toggleDriverBlocked(
   blocked: boolean,
   note?: string
 ): Promise<{ error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
 
   const admin = createAdminClient();
   const { error, count } = await admin
@@ -429,7 +429,7 @@ export async function toggleDriverBlocked(
 export async function forceDriverSignout(
   driverId: string
 ): Promise<{ error?: string; killed?: number }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   const supabase = await createClient();
   const rpc = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
@@ -489,7 +489,8 @@ export async function seedMerchantCatalog(
   merchantId: string,
   templateType?: string
 ): Promise<SeedCatalogResult> {
-  if (!(await isSuperAdmin())) return { ok: false, error: "Accès refusé." };
+  if (!(await adminCan("commercants")))
+    return { ok: false, error: "Accès refusé." };
   if (!merchantId) return { ok: false, error: "Commerçant manquant." };
 
   const admin = createAdminClient();
@@ -593,7 +594,7 @@ export async function resolveDeliveryReport(input: {
   status: "open" | "reviewing" | "resolved" | "dismissed";
   note?: string | null;
 }): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("confiance"))) return { error: "Accès refusé." };
   const supabase = await createClient();
   const rpc = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
@@ -622,7 +623,7 @@ export async function resolveRideReport(input: {
   status: "open" | "reviewed" | "dismissed";
   decision?: string | null;
 }): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("confiance"))) return { error: "Accès refusé." };
   const supabase = await createClient();
   const { error } = await supabase.rpc(
     "admin_resolve_ride_report" as never,
@@ -667,7 +668,7 @@ export async function adminValidateDelivery(
   orderId: string,
   note?: string
 ): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("pilotage"))) return { error: "Accès refusé." };
   const supabase = await createClient();
   const rpc = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
@@ -694,7 +695,7 @@ export async function adminCancelOrder(
   orderId: string,
   reason: string
 ): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("pilotage"))) return { error: "Accès refusé." };
   const supabase = await createClient();
   const rpc = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
@@ -754,7 +755,7 @@ export async function adminRefundMerchant(
   amountDa: number,
   reason: string
 ): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("pilotage"))) return { error: "Accès refusé." };
   const amt = Math.floor(Number(amountDa));
   if (!Number.isFinite(amt) || amt < 1) return { error: "Montant invalide." };
   const supabase = await createClient();
@@ -796,7 +797,7 @@ export async function resolveDriverRefundClaim(input: {
   goodsDecision?: "return_to_merchant" | "driver_keeps" | "give_away";
   note?: string;
 }): Promise<AdminFormState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("confiance"))) return { error: "Accès refusé." };
   if (input.approve && !input.goodsDecision) {
     return { error: "Choisis le sort de la marchandise avant de valider." };
   }

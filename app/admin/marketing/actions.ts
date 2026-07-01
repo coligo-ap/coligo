@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { adminCan } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -110,7 +110,7 @@ function refresh() {
 export async function createPlatformCode(
   input: CodeInput
 ): Promise<MarketingActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
   const parsed = codeSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Données invalides." };
@@ -144,7 +144,7 @@ export async function updatePlatformCode(
   id: string,
   input: CodeInput
 ): Promise<MarketingActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
   const parsed = codeSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Données invalides." };
@@ -173,7 +173,7 @@ export async function togglePlatformCode(
   id: string,
   active: boolean
 ): Promise<MarketingActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
   try {
     const admin = createAdminClient();
     const { error } = await promoTable(admin).update({ active }).eq("id", id);
@@ -189,7 +189,7 @@ export async function togglePlatformCode(
 export async function deletePlatformCode(
   id: string
 ): Promise<MarketingActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
   try {
     const admin = createAdminClient();
     const { error } = await promoTable(admin).delete().eq("id", id);
@@ -209,7 +209,7 @@ export async function grantCodeToCustomers(
   promotionId: string,
   customerIds: string[]
 ): Promise<MarketingActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
   if (customerIds.length === 0) return { error: "Aucun client sélectionné." };
   try {
     const admin = createAdminClient();
@@ -258,7 +258,7 @@ export type VoucherInput = z.input<typeof voucherSchema>;
 export async function issueVoucher(
   input: VoucherInput
 ): Promise<MarketingActionState & { count?: number }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
   const parsed = voucherSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Données invalides." };
@@ -299,7 +299,7 @@ export async function issueVoucher(
 export async function revokeVoucher(
   voucherId: string
 ): Promise<MarketingActionState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
   try {
     const supabase = await createClient();
     const { data, error } = await (
@@ -340,7 +340,7 @@ export type CustomerHit = {
 };
 
 export async function searchCustomers(query: string): Promise<CustomerHit[]> {
-  if (!(await isSuperAdmin())) return [];
+  if (!(await adminCan("marketing"))) return [];
   const q = query.trim();
   if (q.length < 2) return [];
   const admin = createAdminClient();

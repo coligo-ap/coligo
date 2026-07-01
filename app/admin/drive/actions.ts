@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { adminCan } from "@/lib/auth/admin";
 import { simulateMargins } from "@/lib/drive/margins";
 
 export type DriveConfig = {
@@ -59,7 +59,7 @@ export type DriveConfig = {
 };
 
 export async function getDriveConfig(): Promise<DriveConfig | null> {
-  if (!(await isSuperAdmin())) return null;
+  if (!(await adminCan("drive"))) return null;
   const admin = createAdminClient();
   const { data: s } = await admin
     .from("platform_settings")
@@ -118,7 +118,7 @@ export async function getDriveConfig(): Promise<DriveConfig | null> {
 export async function updateDriveConfig(
   cfg: DriveConfig
 ): Promise<{ ok?: boolean; error?: string }> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
 
   // ── Garde-fous DURS (bloquants) ──
   if (cfg.night_coef < 0 || cfg.night_coef > 0.2)
@@ -222,7 +222,7 @@ export type LearningRow = {
 };
 
 export async function getDriveLearning(): Promise<LearningRow[]> {
-  if (!(await isSuperAdmin())) return [];
+  if (!(await adminCan("drive"))) return [];
   const admin = createAdminClient();
   const { data } = await admin
     .from("drive_price_learning")
@@ -245,7 +245,7 @@ export async function recomputeDriveLearning(): Promise<{
   bands?: number;
   error?: string;
 }> {
-  if (!(await isSuperAdmin())) return { ok: false, error: "Accès refusé." };
+  if (!(await adminCan("drive"))) return { ok: false, error: "Accès refusé." };
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("drive_recompute_learning");
   if (error) return { ok: false, error: error.message };

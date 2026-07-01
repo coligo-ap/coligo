@@ -1,7 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isSuperAdmin } from "@/lib/auth/admin";
+import { adminCan } from "@/lib/auth/admin";
 import { sendFcm } from "@/lib/fcm/send";
 
 /**
@@ -25,7 +25,7 @@ export async function sendBroadcastPush(
   _prev: BroadcastState,
   formData: FormData
 ): Promise<BroadcastState> {
-  if (!(await isSuperAdmin())) return { error: "Accès refusé." };
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
 
   const roles = ROLES.filter((r) => formData.get(`role_${r}`) === "on");
   const title = String(formData.get("title") ?? "").trim();

@@ -1,6 +1,7 @@
 import { Bike } from "lucide-react";
 import { DeliveryHubTabs } from "@/components/admin/delivery/delivery-hub-tabs";
 import { getDriverRegistrations } from "@/lib/data/admin-drivers";
+import { requireAdminDomain } from "@/lib/auth/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ export default async function DeliveryHubLayout({
 }: {
   children: React.ReactNode;
 }) {
+  await requireAdminDomain("livraison");
   const pendingCount = (await getDriverRegistrations()).length;
   return (
     <div className="mx-auto max-w-[1100px] p-4 lg:p-6">

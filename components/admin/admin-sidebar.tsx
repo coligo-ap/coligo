@@ -6,10 +6,11 @@ import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  ADMIN_DOMAINS,
   isAdminDomainActive,
+  visibleDomains,
   type AdminDomain,
 } from "./admin-nav";
+import type { AlertDomain } from "@/lib/alerts/alert-model";
 import {
   DomainBadge,
   useDomainSummary,
@@ -25,8 +26,18 @@ const KEY = "coligo_admin_sidebar_open";
  * (mig 0274) via `useAdminAlerts` — plus aucun compteur câblé à la main. Sur
  * mobile, la navigation reste le drawer existant (AdminMobileNav).
  */
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function AdminShell({
+  children,
+  domains,
+  isOwner,
+}: {
+  children: React.ReactNode;
+  /** Domaines autorisés de la session (filtre la nav). */
+  domains: AlertDomain[];
+  isOwner: boolean;
+}) {
   const pathname = usePathname();
+  const items = visibleDomains(domains, isOwner);
   const [open, setOpen] = useState(true);
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
@@ -77,7 +88,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <PanelLeftOpen className="size-4 shrink-0" />
           )}
         </button>
-        {ADMIN_DOMAINS.map((d) => item(d))}
+        {items.map((d) => item(d))}
       </aside>
       <div className="min-w-0 flex-1">
         <AdminContextualAlerts />
