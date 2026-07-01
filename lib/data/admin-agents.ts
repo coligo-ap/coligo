@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isSuperAdmin } from "@/lib/auth/admin";
 
 // Annuaire des Agents Coligo Pay (operator_wallets owner_type=partner) — partagé
 // par l'annuaire, la sous-page Inscriptions et la route transverse /admin/agents.
@@ -16,6 +17,8 @@ export type AgentRow = {
 };
 
 export async function loadAgents(): Promise<AgentRow[]> {
+  // Self-guard : lecture service_role (bypass RLS) → non-admin ⇒ [] (mémoïsé).
+  if (!(await isSuperAdmin())) return [];
   const admin = createAdminClient();
   const { data } = await (
     admin.from as unknown as (t: string) => {

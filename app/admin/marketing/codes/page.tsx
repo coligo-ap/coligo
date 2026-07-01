@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireSuperAdmin } from "@/lib/auth/admin";
 import {
   PlatformCodesManager,
   type AdminPlatformCode,
@@ -9,9 +10,12 @@ export const dynamic = "force-dynamic";
 
 // =============================================================================
 // Onglet « Codes promo » du hub Marketing — codes plateforme (mig 0292).
-// Gate super-admin via app/admin/layout.tsx. Lecture service_role (bypass RLS).
+// Gate super-admin via app/admin/layout.tsx ET self-guard ici : lecture
+// service_role (bypass RLS) exposant des PII clients (usages) → jamais lue hors
+// d'une session super-admin (mémoïsé par requête, coût réseau nul).
 // =============================================================================
 export default async function MarketingCodesTab() {
+  await requireSuperAdmin();
   const admin = createAdminClient();
 
   const { data: codes } = await (

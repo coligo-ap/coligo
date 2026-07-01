@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isSuperAdmin } from "@/lib/auth/admin";
 import type { DriverRow } from "@/components/admin/drivers/driver-list";
 
 // Livreurs en attente de validation = livreurs (non bloqués) ayant au moins un
@@ -15,6 +16,8 @@ export type DriverRegistration = {
 };
 
 export async function getDriverRegistrations(): Promise<DriverRegistration[]> {
+  // Self-guard : lecture service_role (bypass RLS) → non-admin ⇒ [] (mémoïsé).
+  if (!(await isSuperAdmin())) return [];
   const admin = createAdminClient();
 
   const { data: docs } = await admin
@@ -55,6 +58,8 @@ export async function getDriverRegistrations(): Promise<DriverRegistration[]> {
  * (initialData) et l'endpoint /api/admin/drivers (cache TanStack Query).
  */
 export async function getDriverRowsForAdmin(): Promise<DriverRow[]> {
+  // Self-guard : lecture service_role (bypass RLS) → non-admin ⇒ [] (mémoïsé).
+  if (!(await isSuperAdmin())) return [];
   const admin = createAdminClient();
   const { data: drivers } = await admin
     .from("drivers")

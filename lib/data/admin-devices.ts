@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isSuperAdmin } from "@/lib/auth/admin";
 
 export type DeviceRow = {
   user_id: string;
@@ -41,6 +42,11 @@ export type DevicesData = {
  * RPC/table hors types générés → bind + cast (cf. reference_supabase_rpc_bind).
  */
 export async function getDevicesData(): Promise<DevicesData> {
+  // Self-guard au point de convergence : cette lecture service_role (traçage IP,
+  // anti-fraude, PII) alimente la page ET l'endpoint /api/admin/devices. Garder
+  // ici protège TOUS les appelants même si l'un oublie son propre gate. Non-admin
+  // ⇒ vide, sans throw (compatible route API). Mémoïsé par requête → coût nul.
+  if (!(await isSuperAdmin())) return { rows: [], shared: [], blocked: [] };
   const admin = createAdminClient();
   const rpc = admin.rpc.bind(admin) as unknown as (
     fn: string,

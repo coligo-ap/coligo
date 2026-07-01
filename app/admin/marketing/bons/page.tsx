@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireSuperAdmin } from "@/lib/auth/admin";
 import {
   VouchersManager,
   type AdminVoucher,
@@ -8,9 +9,12 @@ export const dynamic = "force-dynamic";
 
 // =============================================================================
 // Onglet « Bons d'achat » du hub Marketing — vouchers (mig 0293).
-// Émission → crédit Coligo Pay du client. Gate super-admin via le layout admin.
+// Émission → crédit Coligo Pay du client. Gate super-admin via le layout admin
+// ET self-guard ici : lecture service_role exposant des PII clients (mémoïsé,
+// coût réseau nul).
 // =============================================================================
 export default async function MarketingVouchersTab() {
+  await requireSuperAdmin();
   const admin = createAdminClient();
 
   const { data: vouchers } = await (

@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isSuperAdmin } from "@/lib/auth/admin";
 import type { MerchantPayout } from "@/components/admin/payouts/payouts-manager";
 
 // =============================================================================
@@ -11,6 +12,9 @@ import type { MerchantPayout } from "@/components/admin/payouts/payouts-manager"
 export async function getMerchantPayouts(
   limit = 300
 ): Promise<MerchantPayout[]> {
+  // Self-guard au point de convergence (lecture service_role partagée page + vue).
+  // Non-admin ⇒ [] sans throw. Mémoïsé par requête → coût réseau nul.
+  if (!(await isSuperAdmin())) return [];
   const admin = createAdminClient();
 
   const sel = (t: string) =>

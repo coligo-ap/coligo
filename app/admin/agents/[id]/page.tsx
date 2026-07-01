@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, MapPin, Phone, UserRound } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireSuperAdmin } from "@/lib/auth/admin";
 import { AgentStatusBadge } from "@/components/admin/agents/agent-status-badge";
 import {
   AgentReviewPanel,
@@ -48,6 +49,7 @@ export default async function AdminAgentDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireSuperAdmin();
   const { id } = await params;
   const admin = createAdminClient();
 

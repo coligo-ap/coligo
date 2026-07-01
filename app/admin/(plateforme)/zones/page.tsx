@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireSuperAdmin } from "@/lib/auth/admin";
 import { ZonesManager } from "@/components/admin/zones/zones-manager";
 import { ZoneStats } from "@/components/admin/zones/zone-stats";
 import type {
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 // L'accès super-admin (+ MFA) est garanti par app/admin/layout.tsx.
 export default async function AdminZonesPage() {
+  await requireSuperAdmin();
   const admin = createAdminClient();
 
   // Tables hors database.types.ts généré (Docker requis) → accès casté.
