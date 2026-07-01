@@ -67,11 +67,13 @@ export default async function OrdersPage({
   }
 
   const offset = (page - 1) * PAGE_SIZE;
-  const {
-    data: orders,
-    count,
-    error,
-  } = await query.range(offset, offset + PAGE_SIZE - 1);
+  // La liste paginée et les compteurs par statut (onglets de filtre) sont
+  // INDÉPENDANTS → en PARALLÈLE plutôt qu'en cascade (un aller-retour de moins).
+  const [ordersRes, statusCounts] = await Promise.all([
+    query.range(offset, offset + PAGE_SIZE - 1),
+    fetchStatusCounts(supabase),
+  ]);
+  const { data: orders, count, error } = ordersRes;
 
   if (error) {
     return (
@@ -95,11 +97,6 @@ export default async function OrdersPage({
   );
   const total = count ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  // Compteurs par statut (sur l'ensemble des commandes, pas seulement la
-  // page courante) — petite query séparée. Sert à afficher « Pending (12) »
-  // dans les onglets de filtre. `head: true` + count exact = pas de payload.
-  const statusCounts = await fetchStatusCounts(supabase);
 
   return (
     <OrdersBrowser
