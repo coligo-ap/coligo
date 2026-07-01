@@ -92,7 +92,11 @@ function PromoCodeCard({ promotion }: { promotion: PublicPromotion }) {
         type="button"
         onClick={copy}
         className={cn(
-          "group border-accent-300 from-accent-50 to-accent-100/60 dark:border-accent-500/40 dark:from-accent-950/40 dark:to-accent-900/20 relative flex w-full items-center gap-3 overflow-hidden rounded-[16px] border border-dashed bg-gradient-to-r px-3.5 py-3 text-start transition-transform active:scale-[0.99]"
+          // Fond = bg-accent-50 SOLIDE (et non un dégradé from-accent-50) : seul
+          // .bg-accent-50 est remappé par le thème sombre de l'app (globals.css).
+          // Un dégradé `from-accent-*` + variant `dark:` (basé système, pas sur
+          // .theme-dark) laissait la carte rose pâle CLAIRE sur fond sombre.
+          "group border-accent-300 bg-accent-50 relative flex w-full items-center gap-3 overflow-hidden rounded-[16px] border border-dashed px-3.5 py-3 text-start transition-transform active:scale-[0.99]"
         )}
       >
         {/* Pastille réduction */}
