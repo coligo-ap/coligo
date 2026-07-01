@@ -625,6 +625,7 @@ function SearchScreen({
                   url={o.avatar_url}
                   size={44}
                   textClassName="text-base"
+                  ringColor={o.badge_color}
                   background={
                     tone === "var(--d-ink)"
                       ? "var(--d-ink)"

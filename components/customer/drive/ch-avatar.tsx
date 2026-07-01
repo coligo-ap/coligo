@@ -16,6 +16,7 @@ export function ChAvatar({
   background,
   className = "",
   textClassName = "",
+  ringColor = null,
 }: {
   name: string;
   url?: string | null;
@@ -24,6 +25,8 @@ export function ChAvatar({
   background?: string;
   className?: string;
   textClassName?: string;
+  /** Couleur du badge de plan (0304) → anneau coloré autour de la photo. */
+  ringColor?: string | null;
 }) {
   // Photo cassée (URL signée expirée…) → repli initiale.
   const [broken, setBroken] = useState(false);
@@ -32,6 +35,10 @@ export function ChAvatar({
     (female
       ? `linear-gradient(135deg,#F9A8D4,${ROSE})`
       : `linear-gradient(135deg,#7B7BF0,${VIOLET})`);
+  // Anneau façon Uber : fin liseré (fond) + anneau de la couleur du plan.
+  const ring = ringColor
+    ? `0 0 0 2px var(--d-surface), 0 0 0 4px ${ringColor}`
+    : undefined;
   if (url && !broken) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
@@ -41,15 +48,20 @@ export function ChAvatar({
         width={size}
         height={size}
         onError={() => setBroken(true)}
-        className={`shrink-0 rounded-full border border-[var(--d-line)] object-cover ${className}`}
-        style={{ width: size, height: size }}
+        className={`shrink-0 rounded-full object-cover ${ringColor ? "" : "border border-[var(--d-line)]"} ${className}`}
+        style={{ width: size, height: size, boxShadow: ring }}
       />
     );
   }
   return (
     <span
       className={`drive-sora grid shrink-0 place-items-center rounded-full font-extrabold text-white ${textClassName} ${className}`}
-      style={{ width: size, height: size, background: fallbackBg }}
+      style={{
+        width: size,
+        height: size,
+        background: fallbackBg,
+        boxShadow: ring,
+      }}
     >
       {name[0]?.toUpperCase() ?? "?"}
     </span>

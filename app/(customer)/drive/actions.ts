@@ -604,6 +604,9 @@ export type DriveOffer = {
   is_premium: boolean;
   /** Abonné Prioritaire (ch.7) — badge montré au client. */
   is_priority: boolean;
+  /** Badge du plan du chauffeur (0304) — anneau coloré autour de sa photo. */
+  badge_label: string | null;
+  badge_color: string | null;
   is_favorite: boolean;
   eta_km: number | null;
   eta_min: number | null;
@@ -633,6 +636,8 @@ export async function getDriveOffers(rideId: string): Promise<DriveOffer[]> {
       is_female: Boolean(o.is_female),
       is_premium: Boolean(o.is_premium),
       is_priority: Boolean(o.is_priority),
+      badge_label: (o.badge_label as string) ?? null,
+      badge_color: (o.badge_color as string) ?? null,
       is_favorite: Boolean(o.is_favorite),
       eta_km: etaKm,
       eta_min:
