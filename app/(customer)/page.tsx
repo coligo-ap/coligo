@@ -83,15 +83,19 @@ export default async function CustomerHomePage() {
     ]);
 
   // Contexte de classement (promoIds + orderCounts30d + poids + coords client
-  // + favoris = signal contexte utilisateur, sans effet si le client n'en a pas).
-  const rankingCtx = await loadRankingContext({
-    merchantIds: fallback.map((m) => m.id),
-    customer: customerCoords,
-    favoriteIds,
-  });
+  // + favoris) ET libellés promo : deux lectures INDÉPENDANTES (elles ne
+  // dépendent que des ids commerçants déjà résolus, pas l'une de l'autre) → en
+  // PARALLÈLE plutôt qu'en cascade, sur la page la plus fréquentée de l'app.
+  const merchantIds = fallback.map((m) => m.id);
+  const [rankingCtx, promoLabels] = await Promise.all([
+    loadRankingContext({
+      merchantIds,
+      customer: customerCoords,
+      favoriteIds,
+    }),
+    getPromoLabelsByMerchant(merchantIds),
+  ]);
   const promoIds = rankingCtx.promoIds;
-
-  const promoLabels = await getPromoLabelsByMerchant(fallback.map((m) => m.id));
   // RANKING UNIFIÉ (mig 0261, façon Uber) : si activé, le score composite classe
   // TOUS les chemins — la distance (poids fort) départage avec la note, la
   // popularité, les promos et les favoris. Sinon, comportement legacy :
