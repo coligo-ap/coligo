@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -18,6 +18,8 @@ export type ClientCategory = {
   emoji: string;
   imageUrl: string | null;
   status: "active" | "hidden" | "coming_soon";
+  /** type = proposé à l'inscription ; filter = filtre éditorial marketplace. */
+  kind: "type" | "filter";
 };
 
 const FALLBACK: ClientCategory[] = MERCHANT_CATEGORIES.map((c) => ({
@@ -27,6 +29,7 @@ const FALLBACK: ClientCategory[] = MERCHANT_CATEGORIES.map((c) => ({
   emoji: c.emoji,
   imageUrl: null,
   status: "active" as const,
+  kind: "type" as const,
 }));
 
 let cache: ClientCategory[] | null = null;
@@ -38,7 +41,7 @@ export function useCategories(): ClientCategory[] {
     const supabase = createClient();
     void supabase
       .from("merchant_categories" as never)
-      .select("code, label, label_ar, emoji, image_url, status, position")
+      .select("code, label, label_ar, emoji, image_url, status, position, kind")
       .order("position", { ascending: true })
       .then(({ data }) => {
         const list = (data ?? []) as unknown as {
@@ -48,6 +51,7 @@ export function useCategories(): ClientCategory[] {
           emoji: string;
           image_url: string | null;
           status: string;
+          kind: string;
         }[];
         if (list.length === 0) return; // repli statique conservé
         cache = list.map((r) => ({
@@ -60,6 +64,7 @@ export function useCategories(): ClientCategory[] {
             r.status === "hidden" || r.status === "coming_soon"
               ? r.status
               : "active",
+          kind: r.kind === "filter" ? ("filter" as const) : ("type" as const),
         }));
         setRows(cache);
       });

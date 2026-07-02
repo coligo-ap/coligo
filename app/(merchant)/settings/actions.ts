@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -210,7 +210,7 @@ export async function updateProfile(
   for (const code of catList) {
     if (owned.has(code)) continue;
     const cat = allCats.find((c) => c.code === code);
-    if (!cat || cat.status !== "active") {
+    if (!cat || cat.status !== "active" || cat.kind !== "type") {
       return { error: "Une des catégories choisies n'est pas disponible." };
     }
   }

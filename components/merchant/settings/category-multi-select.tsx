@@ -31,7 +31,13 @@ export function CategoryMultiSelect({
 
   const selectable = useMemo(
     () =>
-      all.filter((c) => c.status !== "hidden" || currentCodes.includes(c.code)),
+      all.filter(
+        (c) =>
+          // Filtres éditoriaux (kind=filter) : marketplace uniquement, jamais
+          // proposés au commerçant (mapping manuel admin / auto par mots-clés).
+          c.kind !== "filter" &&
+          (c.status !== "hidden" || currentCodes.includes(c.code))
+      ),
     [all, currentCodes]
   );
   const filtered = useMemo(() => {

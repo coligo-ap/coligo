@@ -248,7 +248,7 @@ export async function signup(
     const allCats = await getAllCategories();
     for (const code of catList) {
       const cat = allCats.find((c) => c.code === code);
-      if (!cat || cat.status !== "active") {
+      if (!cat || cat.status !== "active" || cat.kind !== "type") {
         return { error: "Une des catégories choisies n'est pas disponible." };
       }
     }

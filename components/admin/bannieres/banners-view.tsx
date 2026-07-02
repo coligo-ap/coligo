@@ -85,13 +85,17 @@ export async function BannersView() {
                 emoji: string;
                 image_url: string | null;
                 status: string;
+                kind: string;
+                keywords: string[] | null;
               }[]
             | null;
         }>;
       };
     }
   )("merchant_categories")
-    .select("code, label, label_ar, emoji, image_url, status, position")
+    .select(
+      "code, label, label_ar, emoji, image_url, status, position, kind, keywords"
+    )
     .order("position", { ascending: true });
   const { data: merchCats } = await admin.from("merchants").select("category");
   const countByCat = new Map<string, number>();
@@ -108,6 +112,8 @@ export async function BannersView() {
     status: (r.status === "hidden" || r.status === "coming_soon"
       ? r.status
       : "active") as "active" | "hidden" | "coming_soon",
+    kind: (r.kind === "filter" ? "filter" : "type") as "type" | "filter",
+    keywords: r.keywords ?? [],
     merchants: countByCat.get(r.code) ?? 0,
   }));
 

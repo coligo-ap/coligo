@@ -100,12 +100,16 @@ export async function setCategoryStatus(
   return { ok: true };
 }
 
-/** Création d'une catégorie (code technique + libellés FR/AR + emoji). */
+/** Création d'une catégorie — `kind` : type (inscription + filtre) ou
+ *  FILTRE ÉDITORIAL (marketplace uniquement, phase 3) avec mots-clés
+ *  pour le mapping automatique. */
 export async function createCategory(input: {
   code: string;
   label: string;
   labelAr: string;
   emoji: string;
+  kind?: "type" | "filter";
+  keywords?: string;
 }): Promise<{ ok?: true; error?: string }> {
   if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
   const code = input.code.trim().toLowerCase();
@@ -131,7 +135,202 @@ export async function createCategory(input: {
     label_ar: labelAr,
     emoji: input.emoji.trim() || "🏷️",
     position,
+    kind: input.kind === "filter" ? "filter" : "type",
+    keywords: parseKeywords(input.keywords),
   } as never);
+  if (error) return { error: error.message };
+  revalidate();
+  return { ok: true };
+}
+
+/** « burger, hamburger » → ['burger','hamburger'] (max 12, nettoyés). */
+function parseKeywords(raw?: string): string[] {
+  return [
+    ...new Set(
+      (raw ?? "")
+        .split(/[,;\n]/)
+        .map((s) => s.trim().toLowerCase())
+        .filter((s) => s.length >= 2 && s.length <= 40)
+    ),
+  ].slice(0, 12);
+}
+
+/** Mots-clés du mapping AUTO d'un filtre (puis recalcul à la demande). */
+export async function setCategoryKeywords(
+  code: string,
+  raw: string
+): Promise<{ ok?: true; error?: string }> {
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("merchant_categories" as never)
+    .update({
+      keywords: parseKeywords(raw),
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("code", code);
+  if (error) return { error: error.message };
+  revalidate();
+  return { ok: true };
+}
+
+/**
+ * RECALCUL AUTO des liaisons d'un filtre : matche les commerçants dont les
+ * PRODUITS (name_fr/name_ar) ou les TAGS contiennent un mot-clé. Ne touche
+ * QUE les liaisons source='auto' (manuel + principale intouchées).
+ */
+export async function recomputeAutoLinks(
+  code: string
+): Promise<{ ok?: true; added?: number; error?: string }> {
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { data: cat } = await admin
+    .from("merchant_categories" as never)
+    .select("keywords")
+    .eq("code", code)
+    .maybeSingle();
+  const keywords = ((cat as { keywords?: string[] } | null)?.keywords ?? [])
+    .map((k) => k.trim().toLowerCase())
+    .filter(Boolean);
+  if (keywords.length === 0)
+    return { error: "Ajoutez d'abord des mots-clés à ce filtre." };
+
+  const matched = new Set<string>();
+  // Produits : nom FR/AR contenant un mot-clé.
+  for (const kw of keywords) {
+    const { data } = await admin
+      .from("products")
+      .select("merchant_id")
+      .or(`name_fr.ilike.%${kw}%,name_ar.ilike.%${kw}%`)
+      .limit(2000);
+    for (const r of data ?? [])
+      matched.add((r as { merchant_id: string }).merchant_id);
+  }
+  // Tags + nom du commerce.
+  const { data: merchs } = await admin
+    .from("merchants")
+    .select("id, name, tags");
+  for (const m of (merchs ?? []) as {
+    id: string;
+    name: string;
+    tags: string[] | null;
+  }[]) {
+    const hay = [m.name, ...(m.tags ?? [])].join(" ").toLowerCase();
+    if (keywords.some((kw) => hay.includes(kw))) matched.add(m.id);
+  }
+
+  // Remplace les liaisons AUTO uniquement.
+  await admin
+    .from("merchant_category_links" as never)
+    .delete()
+    .eq("code", code)
+    .eq("source", "auto");
+  let added = 0;
+  if (matched.size > 0) {
+    const rows = [...matched].map((merchant_id) => ({
+      merchant_id,
+      code,
+      source: "auto",
+    }));
+    // upsert ignoreDuplicates : une liaison manuelle/principale existante prime.
+    const { error } = await admin
+      .from("merchant_category_links" as never)
+      .upsert(rows as never, {
+        onConflict: "merchant_id,code",
+        ignoreDuplicates: true,
+      });
+    if (error) return { error: error.message };
+    added = rows.length;
+  }
+  revalidate();
+  return { ok: true, added };
+}
+
+/** Commerçants liés à un filtre (nom + provenance) — panneau admin. */
+export async function listFilterMerchants(code: string): Promise<{
+  rows: { merchantId: string; name: string; source: string }[];
+  error?: string;
+}> {
+  if (!(await adminCan("marketing")))
+    return { rows: [], error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { data: links } = await admin
+    .from("merchant_category_links" as never)
+    .select("merchant_id, source")
+    .eq("code", code)
+    .limit(500);
+  const ids = ((links ?? []) as unknown as { merchant_id: string }[]).map(
+    (l) => l.merchant_id
+  );
+  if (ids.length === 0) return { rows: [] };
+  const { data: merchs } = await admin
+    .from("merchants")
+    .select("id, name")
+    .in("id", ids);
+  const nameById = new Map(
+    ((merchs ?? []) as { id: string; name: string }[]).map((m) => [
+      m.id,
+      m.name,
+    ])
+  );
+  return {
+    rows: (
+      (links ?? []) as unknown as { merchant_id: string; source: string }[]
+    )
+      .map((l) => ({
+        merchantId: l.merchant_id,
+        name: nameById.get(l.merchant_id) ?? l.merchant_id,
+        source: l.source,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  };
+}
+
+/** Recherche de commerçants par nom (mapping manuel d'un filtre). */
+export async function searchMerchantsForFilter(
+  q: string
+): Promise<{ rows: { id: string; name: string }[] }> {
+  if (!(await adminCan("marketing"))) return { rows: [] };
+  const needle = q.trim();
+  if (needle.length < 2) return { rows: [] };
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("merchants")
+    .select("id, name")
+    .ilike("name", `%${needle}%`)
+    .limit(8);
+  return { rows: (data ?? []) as { id: string; name: string }[] };
+}
+
+/** Attache / détache MANUELLEMENT un commerçant à un filtre. */
+export async function attachMerchantToFilter(
+  code: string,
+  merchantId: string
+): Promise<{ ok?: true; error?: string }> {
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("merchant_category_links" as never)
+    .upsert({ merchant_id: merchantId, code, source: "manual" } as never, {
+      onConflict: "merchant_id,code",
+      ignoreDuplicates: true,
+    });
+  if (error) return { error: error.message };
+  revalidate();
+  return { ok: true };
+}
+
+export async function detachMerchantFromFilter(
+  code: string,
+  merchantId: string
+): Promise<{ ok?: true; error?: string }> {
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("merchant_category_links" as never)
+    .delete()
+    .eq("code", code)
+    .eq("merchant_id", merchantId);
   if (error) return { error: error.message };
   revalidate();
   return { ok: true };
