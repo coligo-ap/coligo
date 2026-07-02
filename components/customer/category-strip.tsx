@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { createClient } from "@/lib/supabase/client";
+import { useCategories } from "@/lib/hooks/use-categories";
 import { cn } from "@/lib/utils";
 import { getCategory, getCategoryLabel } from "@/lib/config/categories";
 import {
@@ -34,32 +33,6 @@ const CATEGORY_FILTER_IMAGE: Record<string, string> = {
   boulangerie: "/categories/boulangerie.png",
 };
 
-// Images gérées par le SUPER-ADMIN (table publique category_filter_images,
-// mig 0310) : priorité sur les statiques ci-dessus, repli emoji sinon.
-// Cache module = 1 fetch par session d'onglet (léger, lecture anon RLS).
-let dbImagesCache: Record<string, string> | null = null;
-function useAdminFilterImages(): Record<string, string> {
-  const [imgs, setImgs] = useState<Record<string, string>>(dbImagesCache ?? {});
-  useEffect(() => {
-    if (dbImagesCache) return;
-    const supabase = createClient();
-    void supabase
-      .from("category_filter_images" as never)
-      .select("code, image_url")
-      .then(({ data }) => {
-        const rows = (data ?? []) as unknown as {
-          code: string;
-          image_url: string;
-        }[];
-        dbImagesCache = Object.fromEntries(
-          rows.map((r) => [r.code, r.image_url])
-        );
-        setImgs(dbImagesCache);
-      });
-  }, []);
-  return imgs;
-}
-
 export function CategoryStrip({
   categories,
 }: {
@@ -69,7 +42,10 @@ export function CategoryStrip({
   const active = params.get("category");
   const t = useTranslations("browse");
   const locale = useLocale();
-  const adminImages = useAdminFilterImages();
+  // Catégories pilotées en base (mig 0311) : images admin + statuts (une
+  // catégorie masquée n'apparaît pas dans le strip même avec des commerçants).
+  const dbCategories = useCategories();
+  const dbByCode = new Map(dbCategories.map((c) => [c.code, c]));
 
   function go(category: string | null) {
     applyFilters((sp) => {
@@ -86,16 +62,27 @@ export function CategoryStrip({
         active={!active}
         onClick={() => go(null)}
       />
-      {categories.map((c) => (
-        <Tile
-          key={c.name}
-          emoji={getCategory(c.name)?.emoji ?? "🏷️"}
-          imageSrc={adminImages[c.name] ?? CATEGORY_FILTER_IMAGE[c.name]}
-          label={shortLabel(c.name, locale)}
-          active={active === c.name}
-          onClick={() => go(c.name)}
-        />
-      ))}
+      {categories
+        .filter((c) => (dbByCode.get(c.name)?.status ?? "active") === "active")
+        .map((c) => {
+          const db = dbByCode.get(c.name);
+          return (
+            <Tile
+              key={c.name}
+              emoji={db?.emoji ?? getCategory(c.name)?.emoji ?? "🏷️"}
+              imageSrc={db?.imageUrl ?? CATEGORY_FILTER_IMAGE[c.name]}
+              label={
+                db
+                  ? (locale === "ar" ? db.labelAr : db.label)
+                      .split(/[/–-]/)[0]
+                      .trim()
+                  : shortLabel(c.name, locale)
+              }
+              active={active === c.name}
+              onClick={() => go(c.name)}
+            />
+          );
+        })}
     </div>
   );
 }

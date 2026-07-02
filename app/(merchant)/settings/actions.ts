@@ -13,6 +13,7 @@ import {
 } from "@/lib/validation/merchant-settings";
 import { merchantDeliverySchema } from "@/lib/validation/delivery";
 import { MIN_ORDER_CASH_DA } from "@/lib/config/payment-limits";
+import { isActiveCategory } from "@/lib/data/categories";
 import {
   MAX_MERCHANT_TAGS,
   normalizeTagCode,
@@ -168,6 +169,21 @@ export async function updateProfile(
   const tags = parseTags(formData.get("tags"));
 
   const supabase = await createClient();
+
+  // Catégorie pilotée en base (mig 0311) : seul un code ACTIF est accepté
+  // (sauf si le commerçant conserve sa catégorie actuelle, même désactivée).
+  const { data: cur } = await supabase
+    .from("merchants")
+    .select("category")
+    .eq("id", merchant.id)
+    .maybeSingle();
+  if (
+    parsed.data.category &&
+    parsed.data.category !== cur?.category &&
+    !(await isActiveCategory(parsed.data.category))
+  ) {
+    return { error: "Cette catégorie n'est pas disponible." };
+  }
 
   // Si le nom change, on régénère un slug unique côté DB (fonction SQL).
   let slug = merchant.slug;

@@ -68,17 +68,48 @@ export async function BannersView() {
     zones: zonesByBanner.get(b.id) ?? [],
   }));
 
-  // Images des ronds de filtre catégories (mig 0310) — table hors types générés.
-  const { data: filterRows } = await (
+  // Catégories pilotées en base (mig 0311) + nb de commerçants par catégorie
+  // (garde de suppression) — tables hors types générés → accès casté.
+  const { data: catRows } = await (
     admin.from as unknown as (t: string) => {
-      select: (c: string) => Promise<{
-        data: { code: string; image_url: string }[] | null;
-      }>;
+      select: (c: string) => {
+        order: (
+          col: string,
+          o: { ascending: boolean }
+        ) => Promise<{
+          data:
+            | {
+                code: string;
+                label: string;
+                label_ar: string;
+                emoji: string;
+                image_url: string | null;
+                status: string;
+              }[]
+            | null;
+        }>;
+      };
     }
-  )("category_filter_images").select("code, image_url");
-  const filterImages = Object.fromEntries(
-    (filterRows ?? []).map((r) => [r.code, r.image_url])
-  );
+  )("merchant_categories")
+    .select("code, label, label_ar, emoji, image_url, status, position")
+    .order("position", { ascending: true });
+  const { data: merchCats } = await admin.from("merchants").select("category");
+  const countByCat = new Map<string, number>();
+  for (const m of merchCats ?? []) {
+    const k = (m as { category: string | null }).category ?? "";
+    if (k) countByCat.set(k, (countByCat.get(k) ?? 0) + 1);
+  }
+  const adminCategories = (catRows ?? []).map((r) => ({
+    code: r.code,
+    label: r.label,
+    labelAr: r.label_ar,
+    emoji: r.emoji,
+    imageUrl: r.image_url,
+    status: (r.status === "hidden" || r.status === "coming_soon"
+      ? r.status
+      : "active") as "active" | "hidden" | "coming_soon",
+    merchants: countByCat.get(r.code) ?? 0,
+  }));
 
   return (
     <div className="mx-auto max-w-3xl p-4 lg:p-6">
@@ -95,8 +126,9 @@ export async function BannersView() {
 
       <BannersManager banners={banners} />
 
-      {/* Visuels des ronds de filtre catégories du marketplace (mig 0310). */}
-      <CategoryFilterImages images={filterImages} />
+      {/* Catégories & filtres du marketplace (mig 0311) : statuts, images,
+          création, suppression. */}
+      <CategoryFilterImages categories={adminCategories} />
     </div>
   );
 }

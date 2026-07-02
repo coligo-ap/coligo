@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/shared/logo";
 import { signup, type AuthState } from "@/app/(merchant)/actions";
-import { MERCHANT_CATEGORIES } from "@/lib/config/categories";
+import { useCategories } from "@/lib/hooks/use-categories";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { Mail, Lock, Store, Tag, ArrowRight, UserRound } from "lucide-react";
 import { InstallBanner } from "@/components/pwa/install-banner";
@@ -27,6 +27,9 @@ const SELECT_CLASS =
 
 export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signup, initialState);
+  // Catégories pilotées en base (statuts admin) : masquées exclues, « bientôt
+  // disponible » affichées grisées (le serveur refuse de toute façon).
+  const categories = useCategories().filter((c) => c.status !== "hidden");
   // Emplacement (wilaya + commune + position confirmée) — obligatoire.
   const [locationValid, setLocationValid] = useState(false);
 
@@ -152,9 +155,16 @@ export default function SignupPage() {
                       defaultValue=""
                     >
                       <option value="">— Sélectionner une catégorie —</option>
-                      {MERCHANT_CATEGORIES.map((c) => (
-                        <option key={c.code} value={c.code}>
+                      {categories.map((c) => (
+                        <option
+                          key={c.code}
+                          value={c.code}
+                          disabled={c.status === "coming_soon"}
+                        >
                           {c.emoji} {c.label}
+                          {c.status === "coming_soon"
+                            ? " — bientôt disponible"
+                            : ""}
                         </option>
                       ))}
                     </select>

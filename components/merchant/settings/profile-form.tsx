@@ -10,7 +10,7 @@ import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { MediaUpload } from "@/components/merchant/settings/media-upload";
 import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
 import { TagsPicker } from "@/components/merchant/settings/tags-picker";
-import { MERCHANT_CATEGORIES } from "@/lib/config/categories";
+import { useCategories } from "@/lib/hooks/use-categories";
 import {
   setMediaUrl,
   updateProfile,
@@ -25,6 +25,12 @@ export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
   const [state, formAction, pending] = useActionState(updateProfile, initial);
   // Catégorie en state → pilote la liste de tags proposée (TagsPicker).
   const [category, setCategory] = useState(merchant.category ?? "");
+  // Catégories pilotées en base (statuts admin) : masquées exclues SAUF la
+  // catégorie actuelle du commerçant (il doit pouvoir la conserver).
+  const allCategories = useCategories();
+  const categoriesForSelect = allCategories.filter(
+    (c) => c.status !== "hidden" || c.code === category
+  );
   const btnState = useFormActionFeedback({
     pending,
     ok: state.ok,
@@ -83,9 +89,14 @@ export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
                 className="border-border-strong focus:ring-primary-400 focus:border-primary-400 flex h-10 w-full appearance-none rounded-[10px] border bg-white py-2 pr-8 pl-3 text-sm focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="">— Sélectionner une catégorie —</option>
-                {MERCHANT_CATEGORIES.map((c) => (
-                  <option key={c.code} value={c.code}>
+                {categoriesForSelect.map((c) => (
+                  <option
+                    key={c.code}
+                    value={c.code}
+                    disabled={c.status === "coming_soon" && c.code !== category}
+                  >
                     {c.emoji} {c.label}
+                    {c.status === "coming_soon" ? " — bientôt disponible" : ""}
                   </option>
                 ))}
               </select>

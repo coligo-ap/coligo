@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -9,6 +9,7 @@ import {
   firstZodError,
 } from "@/lib/validation/auth";
 import { suggestedMinOrderForCategory } from "@/lib/config/payment-limits";
+import { isActiveCategory } from "@/lib/data/categories";
 
 export type AuthState = {
   error?: string;
@@ -224,6 +225,13 @@ export async function signup(
   // Les domaines internes livreur/chauffeur ne sont pas des emails valides ici.
   if (email.toLowerCase().endsWith(".coligo.local")) {
     return { error: "Adresse email invalide." };
+  }
+
+  // Catégorie pilotée en base (mig 0311) : seul un code ACTIF est accepté —
+  // un statut masqué / « bientôt disponible » est refusé même si le client
+  // force la valeur (bypass-proof).
+  if (category && !(await isActiveCategory(category))) {
+    return { error: "Cette catégorie n'est pas disponible." };
   }
 
   // Position carte → nombres bornés (obligatoire, choisie sur la carte).
