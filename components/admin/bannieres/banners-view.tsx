@@ -4,6 +4,7 @@ import {
   BannersManager,
   type AdminBanner,
 } from "@/components/admin/bannieres/banners-manager";
+import { CategoryFilterImages } from "@/components/admin/bannieres/category-filter-images";
 
 // =============================================================================
 // Vue Bannières éditoriales — partagée entre la route transverse
@@ -67,6 +68,18 @@ export async function BannersView() {
     zones: zonesByBanner.get(b.id) ?? [],
   }));
 
+  // Images des ronds de filtre catégories (mig 0310) — table hors types générés.
+  const { data: filterRows } = await (
+    admin.from as unknown as (t: string) => {
+      select: (c: string) => Promise<{
+        data: { code: string; image_url: string }[] | null;
+      }>;
+    }
+  )("category_filter_images").select("code, image_url");
+  const filterImages = Object.fromEntries(
+    (filterRows ?? []).map((r) => [r.code, r.image_url])
+  );
+
   return (
     <div className="mx-auto max-w-3xl p-4 lg:p-6">
       <header className="mb-5">
@@ -81,6 +94,9 @@ export async function BannersView() {
       </header>
 
       <BannersManager banners={banners} />
+
+      {/* Visuels des ronds de filtre catégories du marketplace (mig 0310). */}
+      <CategoryFilterImages images={filterImages} />
     </div>
   );
 }
