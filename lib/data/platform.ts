@@ -21,6 +21,44 @@ export async function getPlatformSettings(): Promise<PlatformSettings | null> {
   return (data as PlatformSettings | null) ?? null;
 }
 
+/** Option de catégorie pour les sélecteurs admin (mig 0311). */
+export type MerchantCategoryOption = {
+  code: string;
+  label: string;
+  emoji: string;
+  kind: "type" | "filter";
+  status: "active" | "hidden" | "coming_soon";
+};
+
+/** Catégories/filtres du marketplace, ordre éditorial. Lecture publique (RLS) ;
+ *  table hors database.types.ts généré → accès casté. */
+export async function getMerchantCategoryOptions(): Promise<
+  MerchantCategoryOption[]
+> {
+  const supabase = await createClient();
+  const { data } = await (
+    supabase.from as unknown as (t: string) => {
+      select: (c: string) => {
+        order: (
+          col: string,
+          o: { ascending: boolean }
+        ) => Promise<{ data: Record<string, unknown>[] | null }>;
+      };
+    }
+  )("merchant_categories")
+    .select("code, label, emoji, kind, status, position")
+    .order("position", { ascending: true });
+  return (data ?? []).map((r) => ({
+    code: String(r.code),
+    label: String(r.label ?? r.code),
+    emoji: String(r.emoji ?? "🏷️"),
+    kind: (r.kind === "filter" ? "filter" : "type") as "type" | "filter",
+    status: (r.status === "hidden" || r.status === "coming_soon"
+      ? r.status
+      : "active") as "active" | "hidden" | "coming_soon",
+  }));
+}
+
 export type AdminMerchant = {
   id: string;
   name: string;

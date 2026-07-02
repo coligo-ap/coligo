@@ -5,19 +5,18 @@ import { adminCan } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * PHASE 1 catégories — gestion super-admin (domaine Marketing) de la table
+ * Gestion super-admin (hub PLATEFORME, onglet Catégories) de la table
  * `merchant_categories` (mig 0311) : image du rond de filtre, STATUT
- * (actif / masqué / bientôt disponible), création, position, suppression.
- * Écritures service_role UNIQUEMENT (table REVOKE côté client) ; chaque
- * action re-garde adminCan('marketing').
+ * (actif / masqué / bientôt disponible), création, position, suppression,
+ * mapping des filtres éditoriaux. Écritures service_role UNIQUEMENT (table
+ * REVOKE côté client) ; chaque action re-garde adminCan('plateforme').
  */
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const CODE_RE = /^[a-z0-9_]{2,40}$/;
 
 function revalidate() {
-  revalidatePath("/admin/bannieres");
-  revalidatePath("/admin/marketing");
+  revalidatePath("/admin/categories");
 }
 
 async function categoryExists(code: string): Promise<boolean> {
@@ -34,7 +33,7 @@ export async function upsertCategoryFilterImage(
   code: string,
   formData: FormData
 ): Promise<{ ok?: true; error?: string }> {
-  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   if (!(await categoryExists(code))) return { error: "Catégorie inconnue." };
 
   const file = formData.get("file");
@@ -68,7 +67,7 @@ export async function upsertCategoryFilterImage(
 export async function deleteCategoryFilterImage(
   code: string
 ): Promise<{ ok?: true; error?: string }> {
-  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   await admin.storage
     .from("category-filters")
@@ -87,7 +86,7 @@ export async function setCategoryStatus(
   code: string,
   status: "active" | "hidden" | "coming_soon"
 ): Promise<{ ok?: true; error?: string }> {
-  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   if (!["active", "hidden", "coming_soon"].includes(status))
     return { error: "Statut invalide." };
   const admin = createAdminClient();
@@ -111,7 +110,7 @@ export async function createCategory(input: {
   kind?: "type" | "filter";
   keywords?: string;
 }): Promise<{ ok?: true; error?: string }> {
-  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const code = input.code.trim().toLowerCase();
   if (!CODE_RE.test(code))
     return { error: "Code invalide (a-z, 0-9, _ ; 2-40 caractères)." };
@@ -160,7 +159,7 @@ export async function setCategoryKeywords(
   code: string,
   raw: string
 ): Promise<{ ok?: true; error?: string }> {
-  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { error } = await admin
     .from("merchant_categories" as never)
@@ -182,7 +181,7 @@ export async function setCategoryKeywords(
 export async function recomputeAutoLinks(
   code: string
 ): Promise<{ ok?: true; added?: number; error?: string }> {
-  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { data: cat } = await admin
     .from("merchant_categories" as never)
@@ -251,7 +250,7 @@ export async function listFilterMerchants(code: string): Promise<{
   rows: { merchantId: string; name: string; source: string }[];
   error?: string;
 }> {
-  if (!(await adminCan("marketing")))
+  if (!(await adminCan("plateforme")))
     return { rows: [], error: "Accès refusé." };
   const admin = createAdminClient();
   const { data: links } = await admin
@@ -290,7 +289,7 @@ export async function listFilterMerchants(code: string): Promise<{
 export async function searchMerchantsForFilter(
   q: string
 ): Promise<{ rows: { id: string; name: string }[] }> {
-  if (!(await adminCan("marketing"))) return { rows: [] };
+  if (!(await adminCan("plateforme"))) return { rows: [] };
   const needle = q.trim();
   if (needle.length < 2) return { rows: [] };
   const admin = createAdminClient();
@@ -307,7 +306,7 @@ export async function attachMerchantToFilter(
   code: string,
   merchantId: string
 ): Promise<{ ok?: true; error?: string }> {
-  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { error } = await admin
     .from("merchant_category_links" as never)
@@ -324,7 +323,7 @@ export async function detachMerchantFromFilter(
   code: string,
   merchantId: string
 ): Promise<{ ok?: true; error?: string }> {
-  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { error } = await admin
     .from("merchant_category_links" as never)
@@ -341,7 +340,7 @@ export async function detachMerchantFromFilter(
 export async function deleteCategory(
   code: string
 ): Promise<{ ok?: true; error?: string }> {
-  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
   const { count } = await admin
     .from("merchants")

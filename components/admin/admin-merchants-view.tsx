@@ -25,7 +25,11 @@ import { cn, formatDA } from "@/lib/utils";
 import { useAdminList } from "@/lib/admin/use-admin-list";
 import type { PlatformSettings } from "@/lib/types";
 import { rateToPct } from "@/lib/validation/platform";
-import type { AdminMerchant } from "@/lib/data/platform";
+import type {
+  AdminMerchant,
+  MerchantCategoryOption,
+} from "@/lib/data/platform";
+import { MerchantCategoriesPanel } from "@/components/admin/merchants/merchant-categories-panel";
 import {
   seedMerchantCatalog,
   toggleMerchantFrozen,
@@ -70,9 +74,11 @@ const OVERRIDE_FIELDS: {
 export function AdminMerchantsView({
   initialMerchants,
   settings,
+  categoryOptions,
 }: {
   initialMerchants: AdminMerchant[];
   settings: PlatformSettings | null;
+  categoryOptions: MerchantCategoryOption[];
 }) {
   // Liste en cache TanStack Query (réaffichage instantané au retour de nav +
   // refetch silencieux), hydratée par le rendu serveur (initialMerchants).
@@ -143,7 +149,12 @@ export function AdminMerchantsView({
       ) : (
         <ul className="space-y-4">
           {pageItems.map((m) => (
-            <MerchantRow key={m.id} merchant={m} settings={settings} />
+            <MerchantRow
+              key={m.id}
+              merchant={m}
+              settings={settings}
+              categoryOptions={categoryOptions}
+            />
           ))}
         </ul>
       )}
@@ -156,9 +167,11 @@ export function AdminMerchantsView({
 function MerchantRow({
   merchant,
   settings,
+  categoryOptions,
 }: {
   merchant: AdminMerchant;
   settings: PlatformSettings | null;
+  categoryOptions: MerchantCategoryOption[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -324,6 +337,13 @@ function MerchantRow({
           </span>
         </div>
       </form>
+
+      {/* Raccordement aux catégories (principale + secondaires, mig 0312). */}
+      <MerchantCategoriesPanel
+        merchantId={merchant.id}
+        primaryCategory={merchant.category}
+        options={categoryOptions}
+      />
 
       {/* Remplissage automatique du catalogue selon le type de commerce. */}
       <div className="border-border mt-4 flex flex-wrap items-center gap-3 border-t pt-4">

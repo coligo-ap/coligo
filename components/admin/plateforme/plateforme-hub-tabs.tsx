@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MapPinned, Percent, Power, Settings2, ShieldPlus } from "lucide-react";
+import {
+  MapPinned,
+  Percent,
+  Power,
+  Settings2,
+  ShieldPlus,
+  Tags,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -10,6 +17,7 @@ const TABS = [
   { href: "/admin/settings", label: "Taux", icon: Percent },
   { href: "/admin/config", label: "Configuration", icon: Settings2 },
   { href: "/admin/zones", label: "Zones", icon: MapPinned },
+  { href: "/admin/categories", label: "Catégories", icon: Tags },
 ] as const;
 
 // L'onglet « Admins » (gestion des super-admins + attribution des domaines) est

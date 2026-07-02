@@ -1,5 +1,6 @@
 import {
   getAllMerchantsForAdmin,
+  getMerchantCategoryOptions,
   getPlatformSettings,
 } from "@/lib/data/platform";
 import { AdminMerchantsView } from "@/components/admin/admin-merchants-view";
@@ -7,11 +8,13 @@ import { AdminMerchantsView } from "@/components/admin/admin-merchants-view";
 export const dynamic = "force-dynamic";
 
 // Onglet « Comptes » du hub Commerçants : comptes, inscriptions, validation,
-// gel et surcharges de taux. (Cadre + titre + onglets fournis par layout.tsx.)
+// gel, surcharges de taux et raccordement aux catégories. (Cadre + titre +
+// onglets fournis par layout.tsx.)
 export default async function AdminMerchantsPage() {
-  const [merchants, settings] = await Promise.all([
+  const [merchants, settings, categoryOptions] = await Promise.all([
     getAllMerchantsForAdmin(),
     getPlatformSettings(),
+    getMerchantCategoryOptions(),
   ]);
 
   return (
@@ -20,7 +23,11 @@ export default async function AdminMerchantsPage() {
         Soldes, surcharges de taux et gel. Laisser un taux vide = hérite du
         global.
       </p>
-      <AdminMerchantsView initialMerchants={merchants} settings={settings} />
+      <AdminMerchantsView
+        initialMerchants={merchants}
+        settings={settings}
+        categoryOptions={categoryOptions}
+      />
     </div>
   );
 }

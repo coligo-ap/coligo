@@ -85,7 +85,12 @@ export const ADMIN_DOMAINS: AdminDomain[] = [
     href: "/admin/controle",
     label: "Plateforme",
     icon: Settings2,
-    match: ["/admin/settings", "/admin/config", "/admin/zones"],
+    match: [
+      "/admin/settings",
+      "/admin/config",
+      "/admin/zones",
+      "/admin/categories",
+    ],
     domain: "plateforme",
   },
 ];

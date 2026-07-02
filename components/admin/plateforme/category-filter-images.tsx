@@ -15,13 +15,13 @@ import {
   setCategoryKeywords,
   setCategoryStatus,
   upsertCategoryFilterImage,
-} from "@/app/admin/bannieres/filter-images-actions";
+} from "@/app/admin/(plateforme)/categories/actions";
 
 /**
- * ADMIN (Marketing) — GESTION DES CATÉGORIES / FILTRES du marketplace
- * (mig 0311) : statut (actif / masqué / bientôt disponible — appliqué à
- * l'inscription commerçant ET au strip de filtres), image du rond, création
- * de nouvelles catégories, suppression (refusée si des commerçants
+ * ADMIN (Plateforme > Catégories) — GESTION DES CATÉGORIES / FILTRES du
+ * marketplace (mig 0311) : statut (actif / masqué / bientôt disponible —
+ * appliqué à l'inscription commerçant ET au strip de filtres), image du rond,
+ * création de nouvelles catégories, suppression (refusée si des commerçants
  * l'utilisent). Erreurs INLINE par ligne.
  */
 
@@ -79,7 +79,7 @@ export function CategoryFilterImages({
   };
 
   return (
-    <section className="border-border bg-surface mt-8 rounded-[16px] border p-4">
+    <section className="border-border bg-surface mt-5 rounded-[16px] border p-4">
       <div className="mb-1 flex items-center justify-between gap-2">
         <h2 className="text-sm font-bold">Catégories &amp; filtres</h2>
         <button
