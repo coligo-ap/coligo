@@ -95,17 +95,25 @@ export async function getWalletSummary(): Promise<WalletSummary> {
  */
 export async function getWalletEntriesPage(
   page: number,
-  pageSize: number
+  pageSize: number,
+  // Filtres TRAÇABLES (type d'écriture + période ISO [from, to)) — appliqués
+  // CÔTÉ REQUÊTE (pagination juste) ; RLS = toujours le commerçant connecté.
+  filters?: { type?: string | null; from?: string | null; to?: string | null }
 ): Promise<{ entries: WalletEntryRow[]; total: number }> {
   const supabase = await createClient();
   const offset = Math.max(0, (page - 1) * pageSize);
-  const { data, count } = await supabase
-    .from("wallet_entries")
-    .select(
-      `id, merchant_id, order_id, type, amount_da, commission_rate, note,
+  let q = supabase.from("wallet_entries").select(
+    `id, merchant_id, order_id, type, amount_da, commission_rate, note,
        created_at, coligo_pay_payment_id, orders ( payment_method )`,
-      { count: "exact" }
-    )
+    { count: "exact" }
+  );
+  // Cast : l'enum généré est en retard sur la DB (types ajoutés depuis :
+  // tour_delivery_commission, wallet_redemption…) ; la valeur vient d'une
+  // liste UI fermée et la RLS scope de toute façon le commerçant.
+  if (filters?.type) q = q.eq("type", filters.type as never);
+  if (filters?.from) q = q.gte("created_at", filters.from);
+  if (filters?.to) q = q.lt("created_at", filters.to);
+  const { data, count } = await q
     .order("created_at", { ascending: false })
     .range(offset, offset + pageSize - 1);
   return {

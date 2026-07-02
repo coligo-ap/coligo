@@ -26,10 +26,38 @@ function parsePage(raw?: string): number {
 export default async function FinancesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    type?: string;
+    month?: string;
+    from?: string;
+    to?: string;
+  }>;
 }) {
-  const { page: pageParam } = await searchParams;
-  const page = parsePage(pageParam);
+  const sp = await searchParams;
+  const page = parsePage(sp.page);
+
+  // Filtres de l'historique (type + mois OU dates libres) — mêmes conventions
+  // d'URL que la page Coligo Pay ; bornes ISO [from, to) calculées ici.
+  const isDay = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  let fromIso: string | null = null;
+  let toIso: string | null = null;
+  if (sp.month && /^\d{4}-\d{2}$/.test(sp.month)) {
+    const [y, m] = sp.month.split("-").map(Number);
+    fromIso = new Date(Date.UTC(y, m - 1, 1)).toISOString();
+    toIso = new Date(Date.UTC(y, m, 1)).toISOString();
+  } else if (isDay(sp.from) && isDay(sp.to)) {
+    fromIso = new Date(`${sp.from}T00:00:00Z`).toISOString();
+    const t = new Date(`${sp.to}T00:00:00Z`);
+    t.setUTCDate(t.getUTCDate() + 1);
+    toIso = t.toISOString();
+  }
+  const entryFilters = {
+    type: sp.type || null,
+    from: fromIso,
+    to: toIso,
+  };
+  const filtersActive = Boolean(entryFilters.type || fromIso);
 
   const supabase = await createClient();
   const {
@@ -57,7 +85,7 @@ export default async function FinancesPage({
     platformSettings,
   ] = await Promise.all([
     getWalletSummary(),
-    getWalletEntriesPage(page, PAGE_SIZE),
+    getWalletEntriesPage(page, PAGE_SIZE, entryFilters),
     getPayoutRequests(),
     // Delivery_ledger : ce que ses livreurs lui doivent (cash produits)
     // OU ce qu'il leur paie (rare au MVP, on garde minimal).
@@ -158,6 +186,13 @@ export default async function FinancesPage({
       </div>
       <FinancesView
         entries={pageData.entries}
+        historyFilters={{
+          type: sp.type ?? "",
+          month: sp.month ?? "",
+          from: sp.from ?? "",
+          to: sp.to ?? "",
+          active: filtersActive,
+        }}
         requests={requests}
         summary={summary}
         deliveryStats={deliveryStats}

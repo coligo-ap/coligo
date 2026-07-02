@@ -57,8 +57,17 @@ function formatDate(iso: string): string {
   });
 }
 
+export type HistoryFilters = {
+  type: string;
+  month: string;
+  from: string;
+  to: string;
+  active: boolean;
+};
+
 export function FinancesView({
   entries,
+  historyFilters,
   requests,
   summary,
   deliveryStats,
@@ -72,6 +81,7 @@ export function FinancesView({
   cashDebt,
 }: {
   entries: WalletEntryRow[];
+  historyFilters: HistoryFilters;
   requests: PayoutRequest[];
   summary: FinancesSummary;
   deliveryStats: DeliveryStats;
@@ -172,12 +182,17 @@ export function FinancesView({
         <CollapsibleSection
           icon={<Wallet className="size-4" />}
           title="Historique des opérations"
-          subtitle="Toutes les entrées de votre porte-monnaie"
+          subtitle="Filtrable par type et par période"
           right={total > 0 ? <CountChip n={total} /> : undefined}
-          // Si l'utilisateur arrive sur une page paginée (>1), on ouvre direct.
-          defaultOpen={page > 1}
+          // Ouvert direct si pagination ou filtres actifs dans l'URL.
+          defaultOpen={page > 1 || historyFilters.active}
         >
-          <History entries={entries} page={page} pageCount={pageCount} />
+          <History
+            entries={entries}
+            page={page}
+            pageCount={pageCount}
+            filters={historyFilters}
+          />
         </CollapsibleSection>
 
         {requests.length > 0 && (
@@ -798,35 +813,146 @@ function History({
   entries,
   page,
   pageCount,
+  filters,
 }: {
   entries: WalletEntryRow[];
   page: number;
   pageCount: number;
+  filters: HistoryFilters;
 }) {
-  if (entries.length === 0) {
-    return (
-      <p className="text-muted py-6 text-center text-sm">
-        Aucune opération pour le moment. Vos gains apparaîtront ici dès
-        qu&apos;une commande sera récupérée.
-      </p>
-    );
-  }
-  // -m-4 : annule le padding de l'accordéon pour une liste bord à bord (les
-  // lignes gardent leur propre px-4), avec pagination collée en bas.
+  const router = useRouter();
+  const [customDates, setCustomDates] = useState(
+    Boolean(filters.from && filters.to)
+  );
+  const [from, setFrom] = useState(filters.from);
+  const [to, setTo] = useState(filters.to);
+
+  // Navigation par l'URL (mêmes conventions que Coligo Pay) : la pagination
+  // serveur reste JUSTE avec les filtres, et l'état est partageable/traçable.
+  const navigate = (next: Partial<HistoryFilters>) => {
+    const q = new URLSearchParams();
+    const type = next.type ?? filters.type;
+    const month = next.month ?? filters.month;
+    const f = next.from ?? (customDates ? from : "");
+    const t = next.to ?? (customDates ? to : "");
+    if (type) q.set("type", type);
+    if (month) q.set("month", month);
+    else if (f && t) {
+      q.set("from", f);
+      q.set("to", t);
+    }
+    const qs = q.toString();
+    router.push(qs ? `/finances?${qs}` : "/finances");
+  };
+  const qsFor = (p: number) => {
+    const q = new URLSearchParams();
+    if (filters.type) q.set("type", filters.type);
+    if (filters.month) q.set("month", filters.month);
+    else if (filters.from && filters.to) {
+      q.set("from", filters.from);
+      q.set("to", filters.to);
+    }
+    if (p > 1) q.set("page", String(p));
+    const qs = q.toString();
+    return qs ? `/finances?${qs}` : "/finances";
+  };
+
+  const selClass =
+    "border-border-strong bg-surface h-10 rounded-[10px] border px-2.5 text-xs focus-visible:outline-none";
+
   return (
+    // -m-4 : annule le padding de l'accordéon pour une liste bord à bord (les
+    // lignes gardent leur propre px-4), avec pagination collée en bas.
     <div className="-m-4">
-      <ul className="divide-border divide-y">
-        {entries.map((e) => (
-          <EntryRow key={e.id} entry={e} />
-        ))}
-      </ul>
+      {/* Filtres : type d'écriture + mois / dates personnalisées. */}
+      <div className="border-border flex flex-wrap items-center gap-2 border-b px-4 py-3">
+        <select
+          value={filters.type}
+          onChange={(e) => navigate({ type: e.target.value })}
+          className={selClass}
+          aria-label="Type d'opération"
+        >
+          <option value="">Tous les types</option>
+          {Object.entries(WALLET_ENTRY_META).map(([k, m]) => (
+            <option key={k} value={k}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+        <input
+          type="month"
+          value={filters.month}
+          onChange={(e) => {
+            setCustomDates(false);
+            navigate({ month: e.target.value, from: "", to: "" });
+          }}
+          className={selClass}
+          aria-label="Mois"
+        />
+        <button
+          type="button"
+          onClick={() => setCustomDates((v) => !v)}
+          className={cn(
+            "h-10 rounded-[10px] border px-2.5 text-xs font-semibold",
+            customDates
+              ? "border-primary-400 bg-primary-50 text-primary-700"
+              : "border-border-strong bg-surface text-muted"
+          )}
+        >
+          Dates libres
+        </button>
+        {customDates && (
+          <>
+            <input
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className={selClass}
+              aria-label="Du"
+            />
+            <input
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              className={selClass}
+              aria-label="Au"
+            />
+            <button
+              type="button"
+              disabled={!from || !to || from > to}
+              onClick={() => navigate({ month: "", from, to })}
+              className="bg-primary-600 h-10 rounded-[10px] px-3 text-xs font-bold text-white disabled:opacity-50"
+            >
+              Appliquer
+            </button>
+          </>
+        )}
+        {filters.active && (
+          <Link
+            href="/finances"
+            className="text-primary-700 text-xs font-semibold hover:underline"
+          >
+            Réinitialiser
+          </Link>
+        )}
+      </div>
+
+      {entries.length === 0 ? (
+        <p className="text-muted px-4 py-6 text-center text-sm">
+          {filters.active
+            ? "Aucune opération pour ces filtres."
+            : "Aucune opération pour le moment. Vos gains apparaîtront ici dès qu'une commande sera récupérée."}
+        </p>
+      ) : (
+        <ul className="divide-border divide-y">
+          {entries.map((e) => (
+            <EntryRow key={e.id} entry={e} />
+          ))}
+        </ul>
+      )}
       {pageCount > 1 && (
         <div className="border-border border-t px-4 py-3">
-          <Pagination
-            page={page}
-            pageCount={pageCount}
-            hrefFor={(p) => (p > 1 ? `/finances?page=${p}` : "/finances")}
-          />
+          <Pagination page={page} pageCount={pageCount} hrefFor={qsFor} />
         </div>
       )}
     </div>
