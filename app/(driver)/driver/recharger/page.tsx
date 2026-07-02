@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+﻿import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverShell } from "@/components/driver/driver-shell";
@@ -15,7 +15,7 @@ export default async function DriverRechargerPage() {
       {/* Hub Argent : Gains · Courses · Coligo Pay dans une même page. */}
       <MoneyTabs base="/driver" />
       <Suspense fallback={null}>
-        <OperatorRecharge />
+        <OperatorRecharge inHub />
       </Suspense>
     </DriverShell>
   );

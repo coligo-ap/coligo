@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+﻿import { Suspense } from "react";
 import { OperatorRecharge } from "@/components/wallet/operator-recharge";
 import { MoneyTabs } from "@/components/shared/money-tabs";
 
@@ -16,7 +16,7 @@ export default function ChauffeurRechargerPage() {
       {/* Hub Argent : Gains · Courses · Coligo Pay dans une même page. */}
       <MoneyTabs base="/chauffeur" />
       <Suspense fallback={null}>
-        <OperatorRecharge />
+        <OperatorRecharge inHub />
       </Suspense>
     </div>
   );

@@ -520,11 +520,16 @@ const Ico = {
  */
 export function OperatorRecharge({
   compact = false,
+  inHub = false,
   title,
 }: {
   /** Mode encart (portail partenaire) : masque le HERO, le titre de page et
    *  l'historique — le portail affiche déjà son propre solde et historique. */
   compact?: boolean;
+  /** Onglet du hub Argent (Gains·Courses·Coligo Pay / Finances·Stats·Coligo
+   *  Pay) : masque la ligne « Retour + Mon portefeuille » — les onglets
+   *  donnent déjà le contexte et la navigation (zéro doublon). */
+  inHub?: boolean;
   /** Titre de section personnalisé (sinon « Recharger mon solde »). */
   title?: string;
 } = {}) {
@@ -781,7 +786,7 @@ export function OperatorRecharge({
     <section className="cgw" dir={dir}>
       <style>{RECHARGE_STYLE}</style>
 
-      {!compact && (
+      {!compact && !inHub && (
         <div
           style={{
             display: "flex",

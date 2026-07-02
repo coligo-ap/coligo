@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+﻿import { Suspense } from "react";
 import { OperatorRecharge } from "@/components/wallet/operator-recharge";
 import { MerchantMoneyTabs } from "@/components/shared/money-tabs";
 import RechargerLoading from "./loading";
@@ -20,7 +20,7 @@ export default function MerchantRechargerPage() {
       {/* Suspense requis : OperatorRecharge utilise useSearchParams. Fallback =
       squelette (jamais d'écran blanc, même en chargement direct/SSR). */}
       <Suspense fallback={<RechargerLoading />}>
-        <OperatorRecharge />
+        <OperatorRecharge inHub />
       </Suspense>
     </div>
   );
