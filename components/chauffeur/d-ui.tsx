@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { BarChart3, Car, ChevronLeft, Home, User, Wallet } from "lucide-react";
+import { BarChart3, Car, ChevronLeft, Home, User } from "lucide-react";
 import { PartnerTabbar, type PartnerTab } from "@/components/shared/partner-ui";
 
 /**
@@ -31,6 +31,9 @@ export function DBack({ className }: { className?: string }) {
  * Rendue par la primitive PARTAGÉE `PartnerTabbar` (même composant que
  * l'espace livreur) — prefetch complet conservé (routes dynamiques gate).
  */
+// HUB ARGENT : Gains/Courses/Coligo Pay vivent dans UNE page à onglets
+// (MoneyTabs) → la nav basse se simplifie, l'onglet Gains reste actif sur
+// toutes les sous-routes du hub.
 const TABS: readonly PartnerTab[] = [
   {
     href: "/chauffeur",
@@ -45,12 +48,7 @@ const TABS: readonly PartnerTab[] = [
     label: "Gains",
     labelAr: "الأرباح",
     icon: BarChart3,
-  },
-  {
-    href: "/chauffeur/recharger",
-    label: "Coligo Pay",
-    labelAr: "كوليغو باي",
-    icon: Wallet,
+    match: ["/chauffeur/historique", "/chauffeur/recharger"],
   },
   { href: "/chauffeur/compte", label: "Compte", labelAr: "الحساب", icon: User },
 ];

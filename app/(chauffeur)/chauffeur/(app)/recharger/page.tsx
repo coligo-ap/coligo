@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { OperatorRecharge } from "@/components/wallet/operator-recharge";
+import { MoneyTabs } from "@/components/shared/money-tabs";
 
 /**
  * Recharge portefeuille opérateur. L'auth est garantie par la coque `(app)`
@@ -11,7 +12,9 @@ import { OperatorRecharge } from "@/components/wallet/operator-recharge";
  */
 export default function ChauffeurRechargerPage() {
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-page)] px-5 pt-4 pb-24">
+    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
+      {/* Hub Argent : Gains · Courses · Coligo Pay dans une même page. */}
+      <MoneyTabs base="/chauffeur" />
       <Suspense fallback={null}>
         <OperatorRecharge />
       </Suspense>

@@ -6,6 +6,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Bike, ChevronDown, LifeBuoy } from "lucide-react";
 import { openSupportChat } from "@/components/support/tawk-chat";
 import { DriverShell } from "@/components/driver/driver-shell";
+import { MoneyTabs } from "@/components/shared/money-tabs";
 import { getDeliveryHistory } from "@/app/(driver)/actions";
 import { BRAND_GO, BRAND_RED, SORA } from "@/components/shared/partner-ui";
 
@@ -33,6 +34,8 @@ export function DeliveryHistoryLoader({
   });
   return (
     <DriverShell driverFirstName={driverFirstName}>
+      {/* Hub Argent : Gains · Courses · Coligo Pay dans une même page. */}
+      <MoneyTabs base="/driver" />
       {isPending && !data ? (
         <DeliveryHistorySkeleton />
       ) : (
@@ -225,14 +228,7 @@ export function DeliveryHistory({
 
   return (
     <>
-      <h1
-        className="mb-3 text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
-        style={{ fontFamily: SORA }}
-      >
-        {tr("Historique", "السجل")}
-      </h1>
-
-      {/* Filtres de statut (fonctionnalité livreur conservée). */}
+      {/* Filtres de statut (le titre vit dans les onglets du hub Argent). */}
       <div className="mb-3 flex flex-wrap gap-2">
         {(
           [

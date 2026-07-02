@@ -2,21 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Car,
-  ChevronDown,
-  History,
-  Loader2,
-  Plus,
-  Wallet,
-  Zap,
-} from "lucide-react";
+import { Car, ChevronDown, Loader2, Zap } from "lucide-react";
 import { formatDA } from "@/lib/utils";
-import { PartnerBackHeader } from "@/components/shared/partner-ui";
+import { MoneyTabs } from "@/components/shared/money-tabs";
 import { VIOLET, GO, RED } from "@/components/customer/drive/drive-modals";
 import { PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
 import { formatOnline } from "@/lib/drive/geo";
-import { getMyWalletState } from "@/app/wallet/recharge-actions";
 import { registerChauffeurCacheReset } from "@/lib/chauffeur/client-cache";
 import {
   getChauffeurFinances,
@@ -45,33 +36,27 @@ const MONTHS = [
 // fait en arrière-plan. Évite de re-bloquer la page à chaque navigation.
 let lastFinCache: ChauffeurFinances | null = null;
 let lastHistoCache: ChauffeurHistoryRide[] | null = null;
-let lastBalanceCache: number | null = null;
 // Vidange au changement de compte (anti-fuite sur appareil partagé).
 registerChauffeurCacheReset(() => {
   lastFinCache = null;
   lastHistoCache = null;
-  lastBalanceCache = null;
 });
 
-/** Gains (maquette s-dgains) : aujourd'hui + « Ce mois » + « À reverser ». */
+/**
+ * Volet GAINS du hub Argent (Gains · Courses · Coligo Pay via MoneyTabs) :
+ * aujourd'hui + « Ce mois » + « À reverser ». Le solde/recharge vit dans
+ * l'onglet Coligo Pay (zéro doublon).
+ */
 export function DGains() {
   const router = useRouter();
   const [fin, setFin] = useState<ChauffeurFinances | null>(lastFinCache);
-  const [balance, setBalance] = useState<number | null>(lastBalanceCache);
 
   useEffect(() => {
     void getChauffeurFinances().then((f) => {
       lastFinCache = f;
       setFin(f);
     });
-    void getMyWalletState().then((s) => {
-      const b = s?.effectiveBalanceDa ?? 0;
-      lastBalanceCache = b;
-      setBalance(b);
-    });
   }, []);
-
-  const lowBalance = balance != null && balance < 0;
 
   if (!fin) {
     return (
@@ -93,60 +78,8 @@ export function DGains() {
 
   return (
     <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
-      <div className="mb-3 flex items-center gap-3">
-        <h1 className="drive-sora flex-1 text-[21px] font-extrabold tracking-[-0.5px]">
-          Gains
-        </h1>
-        <button
-          type="button"
-          onClick={() => router.push("/chauffeur/historique")}
-          className="flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold shadow"
-        >
-          <History className="size-3.5" /> Historique
-        </button>
-      </div>
-
-      {/* Solde portefeuille + recharge (tap = page de recharge). */}
-      <button
-        type="button"
-        onClick={() => router.push("/chauffeur/recharger")}
-        className="mb-3 flex w-full items-center gap-3 rounded-[16px] border p-3.5 text-left"
-        style={
-          lowBalance
-            ? {
-                borderColor: "rgba(229,72,77,.25)",
-                background: "rgba(229,72,77,.05)",
-              }
-            : { borderColor: "var(--d-line)", background: "var(--d-surface)" }
-        }
-      >
-        <span
-          className="grid size-10 shrink-0 place-items-center rounded-[12px]"
-          style={{
-            background: lowBalance ? "rgba(229,72,77,.12)" : "#F1E9FC",
-            color: lowBalance ? RED : VIOLET,
-          }}
-        >
-          <Wallet className="size-5" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[11px] font-medium text-[var(--d-muted)]">
-            Solde portefeuille
-          </span>
-          <b
-            className="drive-sora block text-[19px] leading-none tracking-[-0.5px]"
-            style={{ color: lowBalance ? RED : "var(--d-ink)" }}
-          >
-            {balance == null ? "…" : formatDA(balance)}
-          </b>
-        </span>
-        <span
-          className="drive-sora flex shrink-0 items-center gap-1 rounded-full px-3.5 py-2 text-[12px] font-bold text-white"
-          style={{ background: VIOLET }}
-        >
-          <Plus className="size-4" /> Recharger
-        </span>
-      </button>
+      {/* Hub Argent : Gains · Courses · Coligo Pay dans une même page. */}
+      <MoneyTabs base="/chauffeur" />
 
       {/* BILAN COMBINÉ (compact) : aujourd'hui + ce mois dans une seule carte. */}
       <div className="rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5">
@@ -384,7 +317,8 @@ export function DHisto() {
 
   return (
     <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
-      <PartnerBackHeader title="Mes courses" />
+      {/* Hub Argent : Gains · Courses · Coligo Pay dans une même page. */}
+      <MoneyTabs base="/chauffeur" />
 
       {rides == null ? (
         <div className="grid place-items-center py-12">

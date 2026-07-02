@@ -34,6 +34,8 @@ export type PartnerTab = {
   icon: LucideIcon;
   /** Actif seulement si le chemin est EXACT (ex. racine de l'espace). */
   exact?: boolean;
+  /** Préfixes SUPPLÉMENTAIRES qui activent l'onglet (ex. hub à sous-routes). */
+  match?: readonly string[];
 };
 
 /**
@@ -65,7 +67,9 @@ export function PartnerTabbar({
         const Icon = tab.icon;
         const active = tab.exact
           ? pathname === tab.href
-          : pathname.startsWith(tab.href);
+          : [tab.href, ...(tab.match ?? [])].some((p) =>
+              pathname.startsWith(p)
+            );
         return (
           <Link
             key={tab.href}

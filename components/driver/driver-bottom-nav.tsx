@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Clock, Home, User, Wallet } from "lucide-react";
+import { BarChart3, Home, User } from "lucide-react";
 import { PartnerTabbar, type PartnerTab } from "@/components/shared/partner-ui";
 import { useLocale } from "next-intl";
 
@@ -11,6 +11,9 @@ import { useLocale } from "next-intl";
  * maquette complète, la feuille d'accueil ayant été remplacée par la barre
  * de mise en ligne dockée).
  */
+// HUB ARGENT : Gains/Courses/Coligo Pay vivent dans UNE page à onglets
+// (MoneyTabs) → la nav basse se simplifie à 3 entrées, l'onglet Gains reste
+// actif sur toutes les sous-routes du hub.
 const ITEMS: readonly PartnerTab[] = [
   {
     href: "/driver",
@@ -24,18 +27,7 @@ const ITEMS: readonly PartnerTab[] = [
     label: "Gains",
     labelAr: "الأرباح",
     icon: BarChart3,
-  },
-  {
-    href: "/driver/historique",
-    label: "Historique",
-    labelAr: "السجل",
-    icon: Clock,
-  },
-  {
-    href: "/driver/recharger",
-    label: "Coligo Pay",
-    labelAr: "كوليغو باي",
-    icon: Wallet,
+    match: ["/driver/historique", "/driver/recharger", "/driver/releve"],
   },
   {
     href: "/driver/parametres",

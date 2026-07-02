@@ -1,26 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { History, Plus, Wallet } from "lucide-react";
-import { getMyWalletState } from "@/app/wallet/recharge-actions";
 import {
   BRAND_GO,
-  BRAND_RED,
   BRAND_VIOLET,
   BRAND_VIOLET_D,
   SORA,
 } from "@/components/shared/partner-ui";
 
 /**
- * Écran GAINS livreur — MÊME maquette que les Gains chauffeur (d-gains) :
- * titre + bouton Historique, carte Solde portefeuille (→ recharge), carte
- * « Ce mois » avec 2 tuiles (Aujourd'hui / Net ce mois) + lignes de détail,
- * carte violette « Relevé & versement ». Les montants restent 100 % réels
- * (delivery_ledger, mêmes sommes par type qu'avant) ; groupement des chiffres
- * manuel (anti-hydratation #418).
+ * Volet GAINS du hub Argent (Gains · Courses · Coligo Pay via MoneyTabs) —
+ * même maquette que les Gains chauffeur : carte « Ce mois » avec 2 tuiles
+ * (Aujourd'hui / Net ce mois) + lignes de détail, carte violette « Relevé &
+ * versement ». Le solde/recharge vit dans l'onglet Coligo Pay (zéro doublon).
+ * Montants 100 % réels (delivery_ledger) ; groupement manuel (anti-#418).
  */
 
 export type GainsEntry = {
@@ -78,16 +73,8 @@ function startOfMonth(d: Date) {
 }
 
 export function GainsView({ entries }: { entries: GainsEntry[] }) {
-  const router = useRouter();
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
-
-  // Solde portefeuille opérateur (même source que le chauffeur).
-  const [balance, setBalance] = useState<number | null>(null);
-  useEffect(() => {
-    void getMyWalletState().then((s) => setBalance(s?.effectiveBalanceDa ?? 0));
-  }, []);
-  const lowBalance = balance != null && balance < 0;
 
   const { today, todayCount, month, monthCount, cashMonth, avg } =
     useMemo(() => {
@@ -120,68 +107,6 @@ export function GainsView({ entries }: { entries: GainsEntry[] }) {
 
   return (
     <>
-      {/* Titre + Historique (parité d-gains) */}
-      <div className="mb-3 flex items-center gap-3">
-        <h1
-          className="flex-1 text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
-          style={{ fontFamily: SORA }}
-        >
-          {tr("Gains", "الأرباح")}
-        </h1>
-        <button
-          type="button"
-          onClick={() => router.push("/driver/historique")}
-          className="flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 text-xs font-bold text-[var(--d-ink)] shadow"
-        >
-          <History className="size-3.5" /> {tr("Historique", "السجل")}
-        </button>
-      </div>
-
-      {/* Solde portefeuille + recharge (tap = page de recharge). */}
-      <button
-        type="button"
-        onClick={() => router.push("/driver/recharger")}
-        className="mb-3 flex w-full items-center gap-3 rounded-[16px] border p-3.5 text-left"
-        style={
-          lowBalance
-            ? {
-                borderColor: "rgba(229,72,77,.25)",
-                background: "rgba(229,72,77,.05)",
-              }
-            : { borderColor: "var(--d-line)", background: "var(--d-surface)" }
-        }
-      >
-        <span
-          className="grid size-10 shrink-0 place-items-center rounded-[12px]"
-          style={{
-            background: lowBalance ? "rgba(229,72,77,.12)" : "var(--d-accent)",
-            color: lowBalance ? BRAND_RED : BRAND_VIOLET,
-          }}
-        >
-          <Wallet className="size-5" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[11px] font-medium text-[var(--d-muted)]">
-            {tr("Solde portefeuille", "رصيد المحفظة")}
-          </span>
-          <b
-            className="block text-[19px] leading-none tracking-[-0.5px]"
-            style={{
-              fontFamily: SORA,
-              color: lowBalance ? BRAND_RED : "var(--d-ink)",
-            }}
-          >
-            {balance == null ? "…" : `${grp(balance)} ${tr("DA", "دج")}`}
-          </b>
-        </span>
-        <span
-          className="flex shrink-0 items-center gap-1 rounded-full px-3.5 py-2 text-[12px] font-bold text-white"
-          style={{ fontFamily: SORA, background: BRAND_VIOLET }}
-        >
-          <Plus className="size-4" /> {tr("Recharger", "اشحن")}
-        </span>
-      </button>
-
       {/* BILAN COMBINÉ (parité d-gains) : aujourd'hui + ce mois. */}
       <div className="rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5">
         <div className="mb-2 flex items-center justify-between">
