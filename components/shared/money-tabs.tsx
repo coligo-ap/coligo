@@ -6,33 +6,18 @@ import { useLocale } from "next-intl";
 import { SORA } from "@/components/shared/partner-ui";
 
 /**
- * Onglets du HUB ARGENT partagé livreur/chauffeur : Gains · Courses ·
- * Coligo Pay regroupés en UNE expérience (l'utilisateur bascule sans se
- * perdre ; le relevé reste une sous-page du volet Gains). Les onglets sont
- * des <Link> préfetchés : bascule instantanée (loading.tsx + router cache),
- * chaque volet garde son URL (deep-links et nav basse inchangés).
+ * Onglets du HUB ARGENT : tout ce qui touche à l'argent regroupé en UNE
+ * expérience (l'utilisateur bascule sans se perdre). Les onglets sont des
+ * <Link> préfetchés : bascule instantanée (loading.tsx + router cache),
+ * chaque volet garde son URL (deep-links et navs inchangés).
+ *
+ * `HubTabs` = générique ; `MoneyTabs` (livreur/chauffeur) et
+ * `MerchantMoneyTabs` (commerçant) = presets par espace.
  */
-export function MoneyTabs({ base }: { base: "/driver" | "/chauffeur" }) {
+export type HubTab = { href: string; label: string; match: readonly string[] };
+
+export function HubTabs({ tabs }: { tabs: readonly HubTab[] }) {
   const pathname = usePathname();
-  const isAr = useLocale() === "ar";
-  const tabs = [
-    {
-      href: `${base}/gains`,
-      label: isAr ? "الأرباح" : "Gains",
-      // Le relevé appartient au volet Gains.
-      match: [`${base}/gains`, `${base}/releve`],
-    },
-    {
-      href: `${base}/historique`,
-      label: isAr ? "التوصيلات" : "Courses",
-      match: [`${base}/historique`],
-    },
-    {
-      href: `${base}/recharger`,
-      label: "Coligo Pay",
-      match: [`${base}/recharger`],
-    },
-  ];
   return (
     <div className="mb-4 flex gap-[3px] rounded-[14px] bg-[var(--d-soft)] p-1">
       {tabs.map((t) => {
@@ -59,5 +44,54 @@ export function MoneyTabs({ base }: { base: "/driver" | "/chauffeur" }) {
         );
       })}
     </div>
+  );
+}
+
+/** Preset livreur/chauffeur : Gains · Courses · Coligo Pay. */
+export function MoneyTabs({ base }: { base: "/driver" | "/chauffeur" }) {
+  const isAr = useLocale() === "ar";
+  return (
+    <HubTabs
+      tabs={[
+        {
+          href: `${base}/gains`,
+          label: isAr ? "الأرباح" : "Gains",
+          // Le relevé appartient au volet Gains.
+          match: [`${base}/gains`, `${base}/releve`],
+        },
+        {
+          href: `${base}/historique`,
+          label: isAr ? "التوصيلات" : "Courses",
+          match: [`${base}/historique`],
+        },
+        {
+          href: `${base}/recharger`,
+          label: "Coligo Pay",
+          match: [`${base}/recharger`],
+        },
+      ]}
+    />
+  );
+}
+
+/** Preset COMMERÇANT : Finances · Stats · Coligo Pay (l'argent du commerce
+ *  regroupé — verdict/versements/factures, chiffre d'affaires, portefeuille). */
+export function MerchantMoneyTabs() {
+  return (
+    <HubTabs
+      tabs={[
+        {
+          href: "/finances",
+          label: "Finances",
+          match: ["/finances"],
+        },
+        { href: "/stats", label: "Stats", match: ["/stats"] },
+        {
+          href: "/recharger",
+          label: "Coligo Pay",
+          match: ["/recharger"],
+        },
+      ]}
+    />
   );
 }

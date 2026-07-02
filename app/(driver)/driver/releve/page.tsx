@@ -2,8 +2,13 @@ import { redirect } from "next/navigation";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { createClient } from "@/lib/supabase/server";
 import { DriverShell } from "@/components/driver/driver-shell";
-import { getDriverSettlement } from "@/lib/driver/settlement-data";
+import {
+  getDriverFirstActivityMonth,
+  getDriverSettlement,
+  parseSettlementPeriod,
+} from "@/lib/driver/settlement-data";
 import { SettlementView } from "@/components/driver/releve/settlement-view";
+import { RelevePeriodPicker } from "@/components/driver/releve/period-picker";
 
 export const dynamic = "force-dynamic";
 
@@ -22,14 +27,23 @@ type Claim = {
  * `getDriverSettlement` (lib/driver/settlement-data.ts) — SOURCE UNIQUE
  * partagée avec l'export PDF /api/pdf/releve.
  */
-export default async function DriverRelevePage() {
+export default async function DriverRelevePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string; from?: string; to?: string }>;
+}) {
+  const params = await searchParams;
   const supabase = await createClient();
   const driver = await getCurrentDriver();
   if (!driver) redirect("/driver/login");
 
-  // Relevé (source partagée) + réclamations no-show, en parallèle.
-  const [data, claimsRes] = await Promise.all([
-    getDriverSettlement(driver.id),
+  // Période demandée (?month= / ?from=&to=) — même interprétation que le PDF.
+  const period = parseSettlementPeriod(params);
+
+  // Relevé (source partagée) + borne du sélecteur + réclamations no-show.
+  const [data, firstMonth, claimsRes] = await Promise.all([
+    getDriverSettlement(driver.id, period),
+    getDriverFirstActivityMonth(driver.id),
     supabase
       .from("driver_refund_claims")
       .select(
@@ -40,11 +54,29 @@ export default async function DriverRelevePage() {
       .limit(10),
   ]);
 
+  // Le PDF reprend EXACTEMENT la période affichée.
+  const pdfQuery = params.month
+    ? `?month=${params.month}`
+    : params.from && params.to
+      ? `?from=${params.from}&to=${params.to}`
+      : "";
+
   const claims = (claimsRes.data ?? []) as Claim[];
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
-      <SettlementView data={data} />
+      <SettlementView
+        data={data}
+        pdfHref={`/api/pdf/releve${pdfQuery}`}
+        periodPicker={
+          <RelevePeriodPicker
+            firstMonth={firstMonth}
+            selectedMonth={params.month ?? null}
+            customFrom={params.from ?? null}
+            customTo={params.to ?? null}
+          />
+        }
+      />
       {claims.length > 0 && <ClaimsSection claims={claims} />}
     </DriverShell>
   );

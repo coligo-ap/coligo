@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { getCurrentDriver } from "@/lib/auth/driver";
-import { getDriverSettlement } from "@/lib/driver/settlement-data";
+import {
+  getDriverSettlement,
+  parseSettlementPeriod,
+} from "@/lib/driver/settlement-data";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +26,19 @@ function grp(n: number) {
   return String(Math.round(Math.abs(n))).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const driver = await getCurrentDriver();
   if (!driver) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   }
-  const data = await getDriverSettlement(driver.id);
+  // MÊME période que l'écran (?month= / ?from=&to=), même interprétation.
+  const sp = req.nextUrl.searchParams;
+  const period = parseSettlementPeriod({
+    month: sp.get("month") ?? undefined,
+    from: sp.get("from") ?? undefined,
+    to: sp.get("to") ?? undefined,
+  });
+  const data = await getDriverSettlement(driver.id, period);
 
   const doc = await PDFDocument.create();
   const page = doc.addPage([595.28, 841.89]); // A4 portrait (points)

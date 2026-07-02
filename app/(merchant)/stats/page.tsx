@@ -9,6 +9,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { MerchantMoneyTabs } from "@/components/shared/money-tabs";
 import { RevenueChart } from "@/components/merchant/stats/revenue-chart";
 import { Pagination } from "@/components/ui/pagination";
 import { type OrderStatus } from "@/lib/types";
@@ -158,6 +159,8 @@ export default async function StatsPage({
 
   return (
     <div className="mx-auto max-w-[1100px] p-4 lg:p-6 lg:px-8">
+      {/* Hub Argent commerçant : Finances · Stats · Coligo Pay. */}
+      <MerchantMoneyTabs />
       {/* Header + sélecteur de période (scrollable en mobile) */}
       <header className="mb-5 lg:mb-6">
         <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">

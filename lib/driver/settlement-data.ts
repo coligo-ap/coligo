@@ -41,18 +41,84 @@ type OrderSnap = {
   delivery_failed_at: string | null;
 };
 
+/** Période de relevé : bornes ISO [from, to) + libellé affichable. */
+export type SettlementPeriod = { from: string; to: string; label: string };
+
+const MONTHS_FR = [
+  "janvier",
+  "février",
+  "mars",
+  "avril",
+  "mai",
+  "juin",
+  "juillet",
+  "août",
+  "septembre",
+  "octobre",
+  "novembre",
+  "décembre",
+];
+
+/**
+ * Interprète les paramètres d'URL de période (?month=YYYY-MM ou
+ * ?from=YYYY-MM-DD&to=YYYY-MM-DD) — PARTAGÉ page relevé + export PDF pour
+ * que le document corresponde toujours à l'écran. null = période en cours
+ * (écritures non réglées).
+ */
+export function parseSettlementPeriod(params: {
+  month?: string;
+  from?: string;
+  to?: string;
+}): SettlementPeriod | null {
+  const isDay = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  if (params.month && /^\d{4}-\d{2}$/.test(params.month)) {
+    const [y, m] = params.month.split("-").map(Number);
+    if (m >= 1 && m <= 12) {
+      const from = new Date(Date.UTC(y, m - 1, 1));
+      const to = new Date(Date.UTC(y, m, 1));
+      return {
+        from: from.toISOString(),
+        to: to.toISOString(),
+        label: `${MONTHS_FR[m - 1]} ${y}`,
+      };
+    }
+  }
+  if (isDay(params.from) && isDay(params.to)) {
+    const from = new Date(`${params.from}T00:00:00Z`);
+    // Borne haute INCLUSIVE côté utilisateur → exclusive au lendemain.
+    const to = new Date(`${params.to}T00:00:00Z`);
+    to.setUTCDate(to.getUTCDate() + 1);
+    if (from.getTime() < to.getTime()) {
+      const fmt = (d: string) => d.split("-").reverse().join("/");
+      return {
+        from: from.toISOString(),
+        to: to.toISOString(),
+        label: `du ${fmt(params.from!)} au ${fmt(params.to!)}`,
+      };
+    }
+  }
+  return null;
+}
+
 export async function getDriverSettlement(
-  driverId: string
+  driverId: string,
+  period?: SettlementPeriod | null
 ): Promise<SettlementData> {
   const supabase = await createClient();
 
-  // Écritures non réglées + config + profil versement.
+  // Écritures de la période : PAR DÉFAUT = non réglées (règlement en cours) ;
+  // avec une période explicite (mois / dates personnalisées) = TOUTES les
+  // écritures créées dans [from, to) — relevé historique consultable/PDF.
+  let ledgerQuery = supabase
+    .from("delivery_ledger")
+    .select("order_id, type, amount_da, settled_at, created_at")
+    .eq("driver_id", driverId);
+  ledgerQuery = period
+    ? ledgerQuery.gte("created_at", period.from).lt("created_at", period.to)
+    : ledgerQuery.is("settled_at", null);
+
   const [ledgerRes, profileRes, settingsRes] = await Promise.all([
-    supabase
-      .from("delivery_ledger")
-      .select("order_id, type, amount_da, settled_at")
-      .eq("driver_id", driverId)
-      .is("settled_at", null),
+    ledgerQuery,
     supabase
       .from("drivers")
       .select("payout_method, payout_details")
@@ -127,7 +193,7 @@ export async function getDriverSettlement(
     settings.driver_settlement_cycle === "monthly" ? "mensuel" : "hebdo";
 
   return {
-    periodLabel: "période en cours",
+    periodLabel: period?.label ?? "période en cours",
     deliveriesCount: deliveryOrderIds.size,
     grossDriverDa: grossDriver,
     commissionDa: commission,
@@ -140,11 +206,33 @@ export async function getDriverSettlement(
     driverFeeRatePct: Math.round((settings.driver_fee_rate ?? 0.08) * 100),
     method: profile.payout_method ?? null,
     details: profile.payout_details ?? null,
-    dueLabel:
-      direction === "reverse"
+    // Échéance : seulement pour la période EN COURS (un relevé historique
+    // constate, il n'annonce pas de règlement à venir).
+    dueLabel: period
+      ? null
+      : direction === "reverse"
         ? `Règlement ${cycle} · part plateforme encaissée en espèces`
         : direction === "receive"
           ? `Versement au prochain cycle ${cycle}`
           : null,
   };
+}
+
+/**
+ * Premier mois d'activité du livreur (YYYY-MM) — borne le sélecteur de
+ * période : un livreur qui travaille depuis des mois/années voit TOUS ses
+ * mois, groupés par année.
+ */
+export async function getDriverFirstActivityMonth(
+  driverId: string
+): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("delivery_ledger")
+    .select("created_at")
+    .eq("driver_id", driverId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data?.created_at ? String(data.created_at).slice(0, 7) : null;
 }

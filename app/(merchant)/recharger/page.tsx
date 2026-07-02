@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { OperatorRecharge } from "@/components/wallet/operator-recharge";
+import { MerchantMoneyTabs } from "@/components/shared/money-tabs";
 import RechargerLoading from "./loading";
 
 /**
@@ -13,7 +14,9 @@ import RechargerLoading from "./loading";
  */
 export default function MerchantRechargerPage() {
   return (
-    <div className="p-4 lg:p-6">
+    <div className="mx-auto max-w-[1100px] p-4 lg:p-6 lg:px-8">
+      {/* Hub Argent commerçant : Finances · Stats · Coligo Pay. */}
+      <MerchantMoneyTabs />
       {/* Suspense requis : OperatorRecharge utilise useSearchParams. Fallback =
       squelette (jamais d'écran blanc, même en chargement direct/SSR). */}
       <Suspense fallback={<RechargerLoading />}>

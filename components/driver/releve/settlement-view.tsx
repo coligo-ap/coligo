@@ -46,7 +46,17 @@ function grp(n: number) {
   return String(Math.round(Math.abs(n))).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
 
-export function SettlementView({ data }: { data: SettlementData }) {
+export function SettlementView({
+  data,
+  pdfHref = "/api/pdf/releve",
+  periodPicker,
+}: {
+  data: SettlementData;
+  /** Export PDF de la MÊME période que l'écran (query reprise par la page). */
+  pdfHref?: string;
+  /** Sélecteur de période (mois / dates personnalisées), fourni par la page. */
+  periodPicker?: React.ReactNode;
+}) {
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [showInstructions, setShowInstructions] = useState(false);
@@ -65,6 +75,9 @@ export function SettlementView({ data }: { data: SettlementData }) {
         title={`${tr("Relevé", "كشف الحساب")} · ${data.periodLabel}`}
         subtitle={`${data.deliveriesCount} ${isAr ? "توصيلة" : "courses"}`}
       />
+
+      {/* Période : en cours · par mois (toute l'ancienneté) · personnalisée. */}
+      {periodPicker}
 
       {/* Carte héro violette (parité « À reverser » chauffeur). */}
       <PartnerHeroCard
@@ -188,7 +201,7 @@ export function SettlementView({ data }: { data: SettlementData }) {
           lecteur PDF puis téléchargeable ; plus de window.print() qui
           capturait l'écran mobile. */}
       <a
-        href="/api/pdf/releve"
+        href={pdfHref}
         target="_blank"
         rel="noopener"
         className="mt-3 block w-full text-center text-[13.5px] font-bold"

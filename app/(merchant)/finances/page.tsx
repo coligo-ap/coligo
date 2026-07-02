@@ -11,6 +11,7 @@ import { computeNextPayout, type NextPayout } from "@/lib/finances/next-payout";
 import { cashDebtStatus, type CashDebtStatus } from "@/lib/finances/cash-debt";
 import { getPlatformSettings } from "@/lib/data/platform";
 import { FinancesView } from "@/components/merchant/finances/finances-view";
+import { MerchantMoneyTabs } from "@/components/shared/money-tabs";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -150,20 +151,26 @@ export default async function FinancesPage({
   );
 
   return (
-    <FinancesView
-      entries={pageData.entries}
-      requests={requests}
-      summary={summary}
-      deliveryStats={deliveryStats}
-      invoiceMonths={invoiceMonths}
-      page={page}
-      pageCount={pageCount}
-      total={pageData.total}
-      coligoPayBalance={coligoPay?.effectiveBalanceDa ?? balance}
-      nextPayout={nextPayout}
-      adjustments={adjustments}
-      cashDebt={cashDebt}
-    />
+    <>
+      {/* Hub Argent commerçant : Finances · Stats · Coligo Pay. */}
+      <div className="mx-auto max-w-[1100px] px-4 pt-4 lg:px-8 lg:pt-6">
+        <MerchantMoneyTabs />
+      </div>
+      <FinancesView
+        entries={pageData.entries}
+        requests={requests}
+        summary={summary}
+        deliveryStats={deliveryStats}
+        invoiceMonths={invoiceMonths}
+        page={page}
+        pageCount={pageCount}
+        total={pageData.total}
+        coligoPayBalance={coligoPay?.effectiveBalanceDa ?? balance}
+        nextPayout={nextPayout}
+        adjustments={adjustments}
+        cashDebt={cashDebt}
+      />
+    </>
   );
 }
 
