@@ -6,9 +6,12 @@ import { useState, useTransition } from "react";
 import { useLocale } from "next-intl";
 import {
   BadgeCheck,
+  Bike,
   CalendarDays,
   ChevronRight,
   Clock,
+  CreditCard,
+  FileCheck,
   Globe,
   KeyRound,
   LifeBuoy,
@@ -31,6 +34,7 @@ import { setDriverOnline } from "@/lib/driver/online-store";
 import { getActiveCourse } from "@/lib/driver/active-course-store";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import {
+  BRAND_GO,
   BRAND_RED,
   BRAND_VIOLET,
   PartnerInlineError,
@@ -165,6 +169,42 @@ export function CompteView({
         )}
       </div>
 
+      {/* ── Catégorie : Véhicule & documents (parité d-compte) ── */}
+      <PartnerMenuGroup title={tr("Véhicule & documents", "المركبة والوثائق")}>
+        <PartnerMenuRow
+          icon={<Bike className="size-4" />}
+          label={tr("Véhicule", "المركبة")}
+          value={
+            data.vehicleLabel
+              ? `${data.vehicleLabel}${data.vehiclePlate ? ` · ${data.vehiclePlate}` : ""}`
+              : tr("À compléter", "للإكمال")
+          }
+          href="/driver/documents"
+        />
+        <PartnerMenuRow
+          icon={<FileCheck className="size-4" />}
+          label={tr("Documents", "الوثائق")}
+          value={
+            <span style={{ color: data.verified ? BRAND_GO : "#c2790a" }}>
+              {data.verified
+                ? tr("À jour", "محدّثة")
+                : tr("En vérification", "قيد التحقق")}
+            </span>
+          }
+          href="/driver/documents"
+        />
+        <PartnerMenuRow
+          icon={<CreditCard className="size-4" />}
+          label={tr("Mon versement (CCP)", "التسديد (CCP)")}
+          value={
+            data.payoutMethod
+              ? `${data.payoutMethod.toUpperCase()}${data.payoutDetails ? ` · ${data.payoutDetails}` : ""}`
+              : tr("Renseigner", "للإدخال")
+          }
+          href="/driver/documents"
+        />
+      </PartnerMenuGroup>
+
       {/* ── Catégorie : Encours & versement (spécifique livreur COD) ── */}
       <PartnerMenuGroup
         title={tr("Encours & versement", "المستحقّات والتسديد")}
@@ -203,9 +243,6 @@ export function CompteView({
         </div>
       </PartnerMenuGroup>
 
-      {/* Sections « Mes informations » (véhicule / pièces / versement) */}
-      {children}
-
       {/* ── Catégorie : Finances (parité d-compte) ── */}
       <PartnerMenuGroup title={tr("Finances", "المالية")}>
         <PartnerMenuRow
@@ -221,6 +258,9 @@ export function CompteView({
           href="/driver/releve"
         />
       </PartnerMenuGroup>
+
+      {/* Cartes complémentaires de la page (ex. Pass Prioritaire). */}
+      {children}
 
       {/* ── Catégorie : Tournées ── */}
       <PartnerMenuGroup title={tr("Tournées", "الجولات")}>

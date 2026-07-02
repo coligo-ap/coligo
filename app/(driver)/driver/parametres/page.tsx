@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { CompteLoader } from "@/components/driver/profile/compte-loader";
-import { DriverInfoSection } from "@/components/driver/profile/driver-info-section";
 import { PriorityCard } from "@/components/partner/priority-card";
 import type { CompteData } from "@/components/driver/profile/compte-view";
 
@@ -45,25 +43,11 @@ export default async function DriverProfilePage() {
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
       <CompteLoader driverId={driver.id} seed={seed}>
-        <Suspense
-          fallback={
-            <div className="mt-4 space-y-2">
-              <div className="h-14 animate-pulse rounded-[14px] bg-[var(--soft)]" />
-              <div className="h-14 animate-pulse rounded-[14px] bg-[var(--soft)]" />
-              <div className="h-14 animate-pulse rounded-[14px] bg-[var(--soft)]" />
-            </div>
-          }
-        >
-          <DriverInfoSection
-            driverId={driver.id}
-            verified={driver.is_verified}
-          />
-        </Suspense>
-
-        {/* Abonnement Prioritaire (priorité dispatch + badge).
-            Les cartes Portefeuille / Télécharger / Installer sont désormais
-            rendues PAR CompteView (parité maquette chauffeur) — plus de doublon. */}
-        <div className="mt-4 mb-3">
+        {/* Abonnement Prioritaire (priorité dispatch + badge). Le dossier
+            véhicule/pièces/versement vit désormais dans la SOUS-PAGE
+            /driver/documents (parité chauffeur), ouverte depuis les lignes
+            « Véhicule & documents » du compte. */}
+        <div className="mb-3">
           <PriorityCard />
         </div>
       </CompteLoader>
