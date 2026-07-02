@@ -29,6 +29,7 @@ function shortLabel(code: string, locale: string): string {
  */
 const CATEGORY_FILTER_IMAGE: Record<string, string> = {
   superette: "/categories/superette.png",
+  boulangerie: "/categories/boulangerie.png",
 };
 
 export function CategoryStrip({
