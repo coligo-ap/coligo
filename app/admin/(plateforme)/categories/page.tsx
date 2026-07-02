@@ -41,12 +41,25 @@ export default async function AdminCategoriesPage() {
     )
     .order("position", { ascending: true });
 
-  // Nb de commerçants par catégorie PRINCIPALE (garde de suppression).
-  const { data: merchCats } = await admin.from("merchants").select("category");
+  // Nb de commerçants par catégorie PRINCIPALE (garde de suppression) +
+  // liaisons SECONDAIRES (manuel/auto) par code — les deux bloquent la
+  // suppression d'un type et renseignent l'affichage.
+  const [{ data: merchCats }, { data: linkRows }] = await Promise.all([
+    admin.from("merchants").select("category"),
+    admin.from("merchant_category_links" as never).select("code, source"),
+  ]);
   const countByCat = new Map<string, number>();
   for (const m of merchCats ?? []) {
     const k = (m as { category: string | null }).category ?? "";
     if (k) countByCat.set(k, (countByCat.get(k) ?? 0) + 1);
+  }
+  const linksByCat = new Map<string, number>();
+  for (const l of (linkRows ?? []) as unknown as {
+    code: string;
+    source: string;
+  }[]) {
+    if (l.source !== "primary")
+      linksByCat.set(l.code, (linksByCat.get(l.code) ?? 0) + 1);
   }
   const categories = (catRows ?? []).map((r) => ({
     code: r.code,
@@ -60,6 +73,7 @@ export default async function AdminCategoriesPage() {
     kind: (r.kind === "filter" ? "filter" : "type") as "type" | "filter",
     keywords: r.keywords ?? [],
     merchants: countByCat.get(r.code) ?? 0,
+    links: linksByCat.get(r.code) ?? 0,
   }));
 
   return (

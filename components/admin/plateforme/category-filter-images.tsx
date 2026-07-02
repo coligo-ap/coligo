@@ -36,7 +36,10 @@ export type AdminCategory = {
   /** type = inscription + filtre ; filter = FILTRE ÉDITORIAL (phase 3). */
   kind: "type" | "filter";
   keywords: string[];
+  /** Commerçants dont c'est la catégorie PRINCIPALE. */
   merchants: number;
+  /** Liaisons SECONDAIRES (source manuel/auto, hors principale). */
+  links: number;
 };
 
 const STATUS_LABEL: Record<AdminCategory["status"], string> = {
@@ -257,9 +260,20 @@ export function CategoryFilterImages({
                 </span>
                 <span className="text-subtle text-xs">
                   {c.code}
-                  {c.kind === "filter" ? " · FILTRE ÉDITORIAL" : ""} ·{" "}
-                  {c.merchants} commerçant
-                  {c.merchants > 1 ? "s" : ""}
+                  {c.kind === "filter" ? (
+                    <>
+                      {" "}
+                      · FILTRE ÉDITORIAL · {c.links} commerçant
+                      {c.links > 1 ? "s" : ""} lié{c.links > 1 ? "s" : ""}
+                    </>
+                  ) : (
+                    <>
+                      {" "}
+                      · {c.merchants} commerçant
+                      {c.merchants > 1 ? "s" : ""}
+                      {c.links > 0 ? ` · ${c.links} en secondaire` : ""}
+                    </>
+                  )}
                   {c.imageUrl ? " · image active" : ""}
                 </span>
                 {errs[c.code] ? (
@@ -369,13 +383,17 @@ export function CategoryFilterImages({
                 </button>
               )}
 
-              {/* Suppression (refusée côté serveur si utilisée) */}
+              {/* Suppression : un TYPE utilisé (principal OU secondaire) est
+                  insupprimable ; un filtre éditorial part avec son mapping. */}
               <button
                 type="button"
-                disabled={busy || c.merchants > 0}
+                disabled={
+                  busy ||
+                  (c.kind !== "filter" && (c.merchants > 0 || c.links > 0))
+                }
                 title={
-                  c.merchants > 0
-                    ? "Des commerçants utilisent cette catégorie — masquez-la."
+                  c.kind !== "filter" && (c.merchants > 0 || c.links > 0)
+                    ? "Des commerçants utilisent cette catégorie (principale ou secondaire) — masquez-la."
                     : "Supprimer la catégorie"
                 }
                 onClick={() => run(c.code, () => deleteCategory(c.code))}

@@ -363,21 +363,43 @@ export async function detachMerchantFromFilter(
   return { ok: true };
 }
 
-/** Suppression — REFUSÉE si des commerçants utilisent la catégorie (masquer
- *  à la place) : on ne casse jamais des données existantes. */
+/** Suppression — REFUSÉE si un TYPE est utilisé par des commerçants, en
+ *  catégorie PRINCIPALE ou SECONDAIRE (sinon le CASCADE effacerait des
+ *  liaisons en silence) : on ne casse jamais des données existantes. Un
+ *  FILTRE éditorial reste supprimable — son mapping lui appartient et part
+ *  avec lui. */
 export async function deleteCategory(
   code: string
 ): Promise<{ ok?: true; error?: string }> {
   if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
-  const { count } = await admin
-    .from("merchants")
-    .select("id", { count: "exact", head: true })
-    .eq("category", code);
-  if ((count ?? 0) > 0)
-    return {
-      error: `${count} commerçant(s) utilisent cette catégorie — masquez-la plutôt.`,
-    };
+  const { data: cat } = await admin
+    .from("merchant_categories" as never)
+    .select("kind")
+    .eq("code", code)
+    .maybeSingle();
+  if (!cat) return { error: "Catégorie inconnue." };
+
+  if ((cat as { kind: string }).kind !== "filter") {
+    const { count } = await admin
+      .from("merchants")
+      .select("id", { count: "exact", head: true })
+      .eq("category", code);
+    if ((count ?? 0) > 0)
+      return {
+        error: `${count} commerçant(s) utilisent cette catégorie — masquez-la plutôt.`,
+      };
+    // Liaisons restantes (secondaires/stales) : elles filtrent le marketplace,
+    // les supprimer en cascade serait une perte silencieuse.
+    const { count: linkCount } = await admin
+      .from("merchant_category_links" as never)
+      .select("merchant_id", { count: "exact", head: true })
+      .eq("code", code);
+    if ((linkCount ?? 0) > 0)
+      return {
+        error: `${linkCount} commerçant(s) ont cette catégorie en secondaire — retirez les liaisons ou masquez-la.`,
+      };
+  }
   await admin.storage
     .from("category-filters")
     .remove([`${code}.png`, `${code}.webp`]);
