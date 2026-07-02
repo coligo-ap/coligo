@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { Car, ChevronDown, Loader2, Zap } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { MoneyTabs } from "@/components/shared/money-tabs";
+import {
+  SettlementVerdict,
+  WalletGlance,
+} from "@/components/partner/money-overview";
 import { VIOLET, GO, RED } from "@/components/customer/drive/drive-modals";
 import { PlanIcon, PLAN_LABEL, fmtPct } from "./d-ui";
 import { formatOnline } from "@/lib/drive/geo";
@@ -144,26 +148,16 @@ export function DGains() {
         )}
       </div>
 
-      {/* À reverser — carte violette si dû, sinon pastille « à jour » (compact). */}
-      {due > 0 ? (
-        <div
-          className="my-3 rounded-[18px] p-4 text-white"
-          style={{ background: `linear-gradient(135deg,${VIOLET},#4B1FA6)` }}
-        >
-          <p className="text-xs opacity-85">À reverser à Coligo ce mois</p>
-          <p className="drive-sora mt-1 text-[26px] font-extrabold">
-            {formatDA(due)}
-          </p>
-          <p className="mt-1 text-[11px] opacity-90">{dueSub}</p>
-        </div>
-      ) : (
-        <div
-          className="my-3 flex items-center gap-2 rounded-[15px] bg-[var(--d-soft)] px-3.5 py-3 text-[12px] font-bold"
-          style={{ color: GO }}
-        >
-          ✅ Rien à reverser ce mois — vous êtes à jour.
-        </div>
-      )}
+      {/* Où j'en suis avec Coligo (verdict PARTAGÉ, montant réel) puis solde
+          Coligo Pay en un coup d'œil — même lecture humaine que le livreur. */}
+      <SettlementVerdict
+        direction={due > 0 ? "reverse" : "settled"}
+        amountDa={due}
+        dueLabel={due > 0 ? dueSub : null}
+      />
+      <div className="mb-3">
+        <WalletGlance rechargeHref="/chauffeur/recharger" />
+      </div>
 
       {/* Abonnement — ADAPTATIF : aucune référence à un plan inactif. */}
       <button

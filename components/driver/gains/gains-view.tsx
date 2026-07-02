@@ -1,14 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import Link from "next/link";
 import { useLocale } from "next-intl";
-import {
-  BRAND_GO,
-  BRAND_VIOLET,
-  BRAND_VIOLET_D,
-  SORA,
-} from "@/components/shared/partner-ui";
+import { BRAND_GO, SORA } from "@/components/shared/partner-ui";
 
 /**
  * Volet GAINS du hub Argent (Gains · Courses · Coligo Pay via MoneyTabs) —
@@ -161,31 +155,10 @@ export function GainsView({ entries }: { entries: GainsEntry[] }) {
         </div>
       </div>
 
-      {/* Relevé & versement — carte violette (parité « À reverser » d-gains). */}
-      <Link
-        href="/driver/releve"
-        className="my-3 block rounded-[18px] p-4 text-white"
-        style={{
-          background: `linear-gradient(135deg, ${BRAND_VIOLET}, ${BRAND_VIOLET_D})`,
-          boxShadow: "0 14px 30px -12px rgba(108,43,217,.5)",
-        }}
-      >
-        <p className="text-xs opacity-85">
-          {tr("Relevé & versement", "كشف الحساب والتسديد")}
-        </p>
-        <p
-          className="mt-1 text-[20px] font-extrabold"
-          style={{ fontFamily: SORA }}
-        >
-          {tr("Voir mon solde à régler", "عرض رصيدي للتسوية")} →
-        </p>
-        <p className="mt-1 text-[11px] opacity-90">
-          {tr(
-            "Solde à reverser / à recevoir · CCP · BaridiMob",
-            "الرصيد المستحق له/عليه · CCP · BaridiMob"
-          )}
-        </p>
-      </Link>
+      {/* Le verdict « où j'en suis avec Coligo » (montant réel + Détail + PDF)
+          et le solde Coligo Pay sont rendus PAR LA PAGE (SettlementVerdict +
+          WalletGlance partagés) juste sous cette carte — plus de carte
+          « Relevé » mystérieuse sans montant. */}
     </>
   );
 }
