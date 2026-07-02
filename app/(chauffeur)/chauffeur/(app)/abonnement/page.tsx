@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { BadgeCheck, Crown, ShieldCheck, Zap } from "lucide-react";
 import { DSubs } from "@/components/chauffeur/d-subs";
 import { getCurrentChauffeur } from "@/lib/auth/chauffeur";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -132,22 +131,22 @@ export default async function ChauffeurAbonnementPage() {
         <BenefitsCarousel
           items={[
             {
-              icon: Zap,
+              icon: "zap",
               title: "Proposé en premier",
               text: "Les demandes proches vous sont proposées avant les autres chauffeurs.",
             },
             {
-              icon: Crown,
+              icon: "crown",
               title: "Gardez plus",
               text: "Plans à commission réduite — plus de gains sur chaque course.",
             },
             {
-              icon: BadgeCheck,
+              icon: "badge",
               title: "Badge visible",
               text: "Votre badge s'affiche chez le client — confiance immédiate.",
             },
             {
-              icon: ShieldCheck,
+              icon: "shield",
               title: "Zéro blocage",
               text: "La priorité accélère, elle ne vous enlève jamais une course.",
             },

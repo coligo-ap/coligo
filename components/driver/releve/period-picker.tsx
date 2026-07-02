@@ -54,12 +54,18 @@ export function RelevePeriodPicker({
   selectedMonth,
   customFrom,
   customTo,
+  basePath = "/driver/releve",
+  currentLabel = "Période en cours (non réglé)",
 }: {
   firstMonth: string | null;
   /** YYYY-MM si un mois est sélectionné dans l'URL. */
   selectedMonth: string | null;
   customFrom: string | null;
   customTo: string | null;
+  /** Route du relevé (livreur par défaut ; chauffeur : /chauffeur/releve). */
+  basePath?: string;
+  /** Libellé de l'option par défaut (sans paramètre d'URL). */
+  currentLabel?: string;
 }) {
   const router = useRouter();
   const isCustom = !!(customFrom && customTo);
@@ -84,9 +90,7 @@ export function RelevePeriodPicker({
       return;
     }
     setShowCustom(false);
-    router.push(
-      v === "current" ? "/driver/releve" : `/driver/releve?month=${v}`
-    );
+    router.push(v === "current" ? basePath : `${basePath}?month=${v}`);
   };
 
   return (
@@ -101,7 +105,7 @@ export function RelevePeriodPicker({
         className="w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2.5 text-[13.5px] font-semibold text-[var(--d-ink)] outline-none"
         style={{ fontFamily: SORA }}
       >
-        <option value="current">Période en cours (non réglé)</option>
+        <option value="current">{currentLabel}</option>
         {[...byYear.entries()].map(([yr, mos]) => (
           <optgroup key={yr} label={yr}>
             {mos.map((mo) => {
@@ -140,7 +144,7 @@ export function RelevePeriodPicker({
           <button
             type="button"
             disabled={!from || !to || from > to}
-            onClick={() => router.push(`/driver/releve?from=${from}&to=${to}`)}
+            onClick={() => router.push(`${basePath}?from=${from}&to=${to}`)}
             className="h-[38px] shrink-0 rounded-[12px] px-3.5 text-[12.5px] font-bold text-white disabled:opacity-50"
             style={{ fontFamily: SORA, background: BRAND_VIOLET }}
           >

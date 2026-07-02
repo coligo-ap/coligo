@@ -1,11 +1,14 @@
 "use client";
 
 import {
+  BadgeCheck,
   CreditCard,
+  Crown,
   Landmark,
   ShieldCheck,
   Sparkles,
   Wallet,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -67,8 +70,22 @@ export function SubsHero({
 
 /* ─────────────────────── Carrousel d'avantages ─────────────────────── */
 
+/**
+ * ⚠️ FRONTIÈRE RSC : les pages abonnement sont des Server Components — on ne
+ * peut PAS leur faire passer une fonction composant (icône Lucide) en prop
+ * (« Functions cannot be passed to Client Components », crash runtime que le
+ * build ne voit pas). L'icône est donc une CLÉ sérialisable, résolue ICI.
+ */
+const BENEFIT_ICONS = {
+  zap: Zap,
+  crown: Crown,
+  badge: BadgeCheck,
+  shield: ShieldCheck,
+  wallet: Wallet,
+} satisfies Record<string, LucideIcon>;
+
 export type Benefit = {
-  icon: LucideIcon;
+  icon: keyof typeof BENEFIT_ICONS;
   title: string;
   text: string;
 };
@@ -80,7 +97,7 @@ export function BenefitsCarousel({ items }: { items: readonly Benefit[] }) {
       role="list"
     >
       {items.map((b, i) => {
-        const Icon = b.icon;
+        const Icon = BENEFIT_ICONS[b.icon];
         return (
           <div
             key={i}
@@ -164,6 +181,7 @@ const STATUS_META: Record<
 > = {
   active: { label: "Actif", tone: "ok" },
   paid: { label: "Payé", tone: "ok" },
+  approved: { label: "Payé", tone: "ok" },
   confirmed: { label: "Payé", tone: "ok" },
   pending: { label: "En attente", tone: "violet" },
   expired: { label: "Expiré", tone: "muted" },

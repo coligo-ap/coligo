@@ -154,6 +154,8 @@ export function DGains() {
         direction={due > 0 ? "reverse" : "settled"}
         amountDa={due}
         dueLabel={due > 0 ? dueSub : null}
+        detailHref="/chauffeur/releve"
+        pdfHref="/api/pdf/releve-chauffeur"
       />
       <div className="mb-3">
         <WalletGlance rechargeHref="/chauffeur/recharger" />

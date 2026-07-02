@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { BadgeCheck, ShieldCheck, Wallet, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverShell } from "@/components/driver/driver-shell";
@@ -96,22 +95,22 @@ export default async function DriverAbonnementPage() {
         <BenefitsCarousel
           items={[
             {
-              icon: Zap,
+              icon: "zap",
               title: "Proposé en premier",
               text: "Les courses proches te sont proposées avant les autres livreurs.",
             },
             {
-              icon: BadgeCheck,
+              icon: "badge",
               title: "Badge Prioritaire",
               text: "Visible par le client — inspire confiance et fidélise.",
             },
             {
-              icon: ShieldCheck,
+              icon: "shield",
               title: "Zéro blocage",
               text: "La priorité accélère, elle ne t'enlève jamais une course.",
             },
             {
-              icon: Wallet,
+              icon: "wallet",
               title: "Activation immédiate",
               text: "Paie avec Coligo Pay ou ta carte — actif tout de suite.",
             },
