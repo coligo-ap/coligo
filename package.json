@@ -102,6 +102,7 @@
     "maplibre-gl": "^5.24.0",
     "next": "^15.5.18",
     "next-intl": "^4.13.0",
+    "pdf-lib": "^1.17.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "tailwind-merge": "^2.6.0",

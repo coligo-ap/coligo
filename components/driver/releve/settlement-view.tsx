@@ -184,14 +184,18 @@ export function SettlementView({ data }: { data: SettlementData }) {
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => window.print()}
+      {/* VRAI PDF (A4 généré serveur, /api/pdf/releve) — affiché dans le
+          lecteur PDF puis téléchargeable ; plus de window.print() qui
+          capturait l'écran mobile. */}
+      <a
+        href="/api/pdf/releve"
+        target="_blank"
+        rel="noopener"
         className="mt-3 block w-full text-center text-[13.5px] font-bold"
         style={{ color: BRAND_VIOLET }}
       >
         {tr("Télécharger le relevé (PDF)", "تحميل كشف الحساب (PDF)")}
-      </button>
+      </a>
     </>
   );
 }
