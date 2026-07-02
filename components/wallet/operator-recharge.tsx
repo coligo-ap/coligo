@@ -561,6 +561,52 @@ export function OperatorRecharge({
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submittingRef = useRef(false);
 
+  // Masquer/afficher le solde (affiché par défaut, choix mémorisé localement).
+  const [hideBalance, setHideBalance] = useState(false);
+  useEffect(() => {
+    try {
+      setHideBalance(window.localStorage.getItem("coligo_pay_hide") === "1");
+    } catch {
+      /* localStorage indisponible */
+    }
+  }, []);
+  const toggleBalance = () =>
+    setHideBalance((v) => {
+      const n = !v;
+      try {
+        window.localStorage.setItem("coligo_pay_hide", n ? "1" : "0");
+      } catch {
+        /* localStorage indisponible */
+      }
+      return n;
+    });
+
+  // Filtres d'historique (type + mois / période libre) — appliqués sur les
+  // écritures chargées (RPC scopée auth.uid, « Voir plus » étend jusqu'à 200).
+  type OpsKind = "all" | "recharge" | "commission" | "cashback" | "autre";
+  const [opsKind, setOpsKind] = useState<OpsKind>("all");
+  const [opsMonth, setOpsMonth] = useState<string>("all");
+  const [opsFrom, setOpsFrom] = useState("");
+  const [opsTo, setOpsTo] = useState("");
+
+  // Historique progressif (« Voir plus ») — borné 200 côté serveur.
+  const [opsLimit, setOpsLimit] = useState(20);
+  const [opsLoading, setOpsLoading] = useState(false);
+  const [opsAllLoaded, setOpsAllLoaded] = useState(false);
+  const loadMoreOps = async () => {
+    if (opsLoading) return;
+    setOpsLoading(true);
+    try {
+      const next = Math.min(200, opsLimit + 40);
+      const en = await getMyWalletEntries(next);
+      setEntries(en);
+      setOpsAllLoaded(en.length < next || next >= 200);
+      setOpsLimit(next);
+    } finally {
+      setOpsLoading(false);
+    }
+  };
+
   const refresh = useCallback(async () => {
     try {
       const [st, en] = await Promise.all([
@@ -718,6 +764,51 @@ export function OperatorRecharge({
   })();
   const presets = config?.presets ?? [500, 1000, 2000, 5000];
 
+  // « Retirer » : chaque rôle a DÉJÀ son flux de règlement sécurisé — on y
+  // route (pas de retrait direct inventé côté wallet).
+  const withdrawHref =
+    owner === "merchant"
+      ? "/finances"
+      : owner === "chauffeur"
+        ? "/chauffeur/releve"
+        : owner === "driver"
+          ? "/driver/releve"
+          : null;
+
+  // Classification TRAÇABLE d'une écriture (recharge / commission / cashback).
+  const kindOf = (e: MyWalletEntry): Exclude<OpsKind, "all"> => {
+    if (e.type.startsWith("topup")) return "recharge";
+    const key = e.type === "finance_mirror" ? (e.note ?? "") : e.type;
+    if (
+      key.includes("commission") ||
+      key === "service_fee" ||
+      key === "cod_settle"
+    )
+      return "commission";
+    if (key === "wallet_redemption" || key === "cashback") return "cashback";
+    return "autre";
+  };
+  const monthsAvailable = [
+    ...new Set(entries.map((e) => String(e.createdAt).slice(0, 7))),
+  ];
+  const filteredEntries = entries.filter((e) => {
+    if (opsKind !== "all" && kindOf(e) !== opsKind) return false;
+    const day = String(e.createdAt).slice(0, 10);
+    if (opsMonth === "custom") {
+      if (opsFrom && day < opsFrom) return false;
+      if (opsTo && day > opsTo) return false;
+      return true;
+    }
+    if (opsMonth !== "all") return day.startsWith(opsMonth);
+    return true;
+  });
+  const KIND_LABEL: Record<Exclude<OpsKind, "all">, [string, string]> = {
+    recharge: ["Recharges", "الشحن"],
+    commission: ["Commissions", "العمولات"],
+    cashback: ["Cashback", "كاش باك"],
+    autre: ["Autres", "أخرى"],
+  };
+
   if (loading) {
     return (
       <section className="cgw" dir={dir}>
@@ -859,13 +950,92 @@ export function OperatorRecharge({
               {OWNER_BADGE[lang][owner]}
             </div>
           </div>
-          <div className="amt">
-            {groupNum(state.effectiveBalanceDa)} <small>DA</small>
+          <div
+            className="amt"
+            style={{ display: "flex", alignItems: "center", gap: 10 }}
+          >
+            <span>
+              {hideBalance ? (
+                "•••••"
+              ) : (
+                <>
+                  {groupNum(state.effectiveBalanceDa)} <small>DA</small>
+                </>
+              )}
+            </span>
+            {/* Masquer/afficher le solde (mémorisé). */}
+            <button
+              type="button"
+              onClick={toggleBalance}
+              aria-label={
+                hideBalance
+                  ? lang === "ar"
+                    ? "إظهار الرصيد"
+                    : "Afficher le solde"
+                  : lang === "ar"
+                    ? "إخفاء الرصيد"
+                    : "Masquer le solde"
+              }
+              style={{
+                background: "rgba(255,255,255,.16)",
+                border: 0,
+                borderRadius: 10,
+                padding: "6px 8px",
+                cursor: "pointer",
+                color: "#fff",
+                display: "inline-flex",
+                flex: "none",
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {hideBalance ? (
+                  <>
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </>
+                ) : (
+                  <>
+                    <path d="M17.94 17.94A10.9 10.9 0 0 1 12 19c-6.5 0-10-7-10-7a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19" />
+                    <path d="M1 1l22 22" />
+                  </>
+                )}
+              </svg>
+            </button>
           </div>
           <div className="ctx">
             {Ico.info}
             <span>{OWNER_CTX[lang][owner]}</span>
           </div>
+          {/* Retirer : route vers le flux de règlement SÉCURISÉ du rôle. */}
+          {withdrawHref && (
+            <button
+              type="button"
+              onClick={() => router.push(withdrawHref)}
+              style={{
+                marginTop: 12,
+                width: "100%",
+                padding: "10px 0",
+                borderRadius: 12,
+                border: "1.5px solid rgba(255,255,255,.35)",
+                background: "rgba(255,255,255,.12)",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 13.5,
+                cursor: "pointer",
+              }}
+            >
+              {lang === "ar" ? "سحب / تسوية ←" : "Retirer / règlement →"}
+            </button>
+          )}
         </div>
       )}
 
@@ -1085,11 +1255,82 @@ export function OperatorRecharge({
         </div>
       )}
 
-      {/* DERNIÈRES OPÉRATIONS */}
+      {/* OPÉRATIONS — filtrables par TYPE (recharge / commission / cashback)
+          et par PÉRIODE (mois ou dates libres) : tout est traçable. */}
       {!compact && entries.length > 0 && (
         <div className="panel" style={{ marginTop: 16 }}>
           <div className="plab plab-sora">{t.opsTitle}</div>
-          {entries.map((e, i) => {
+
+          {/* Filtre type */}
+          <div className="chips" style={{ marginBottom: 8 }}>
+            <div
+              className={opsKind === "all" ? "chip on" : "chip"}
+              onClick={() => setOpsKind("all")}
+            >
+              {lang === "ar" ? "الكل" : "Tout"}
+            </div>
+            {(["recharge", "commission", "cashback", "autre"] as const).map(
+              (k) => (
+                <div
+                  key={k}
+                  className={opsKind === k ? "chip on" : "chip"}
+                  onClick={() => setOpsKind(k)}
+                >
+                  {KIND_LABEL[k][lang === "ar" ? 1 : 0]}
+                </div>
+              )
+            )}
+          </div>
+
+          {/* Filtre période : mois disponibles + dates personnalisées */}
+          <select
+            className="inp"
+            value={opsMonth}
+            onChange={(e) => setOpsMonth(e.target.value)}
+            style={{ marginBottom: 8 }}
+          >
+            <option value="all">
+              {lang === "ar" ? "كل الفترات" : "Toutes les périodes"}
+            </option>
+            {monthsAvailable.map((m) => (
+              <option key={m} value={m}>
+                {new Date(`${m}-01T00:00:00Z`).toLocaleDateString(
+                  lang === "ar" ? "ar-DZ" : "fr-FR",
+                  { month: "long", year: "numeric", timeZone: "UTC" }
+                )}
+              </option>
+            ))}
+            <option value="custom">
+              {lang === "ar" ? "فترة مخصّصة…" : "Dates personnalisées…"}
+            </option>
+          </select>
+          {opsMonth === "custom" && (
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <input
+                type="date"
+                className="inp"
+                value={opsFrom}
+                onChange={(e) => setOpsFrom(e.target.value)}
+                aria-label={lang === "ar" ? "من" : "Du"}
+              />
+              <input
+                type="date"
+                className="inp"
+                value={opsTo}
+                onChange={(e) => setOpsTo(e.target.value)}
+                aria-label={lang === "ar" ? "إلى" : "Au"}
+              />
+            </div>
+          )}
+
+          {filteredEntries.length === 0 && (
+            <p style={{ fontSize: 12.5, opacity: 0.7, padding: "8px 0" }}>
+              {lang === "ar"
+                ? "لا عمليات لهذا التصفية."
+                : "Aucune opération pour ce filtre."}
+            </p>
+          )}
+          {filteredEntries.map((e, i) => {
             const credit = e.amountDa >= 0;
             // Opérations finance (commande/commission/versement…) : le libellé
             // vient du `note` ; les recharges/opérations wallet : du `type`.
@@ -1117,7 +1358,81 @@ export function OperatorRecharge({
               </div>
             );
           })}
+          {/* Historique COMPLET sur la même page : chargement progressif
+              (borné 200 côté serveur, RPC scopée auth.uid). */}
+          {!opsAllLoaded && entries.length >= opsLimit && (
+            <button
+              type="button"
+              disabled={opsLoading}
+              onClick={() => void loadMoreOps()}
+              style={{
+                width: "100%",
+                marginTop: 10,
+                padding: "10px 0",
+                borderRadius: 12,
+                border: "1.5px solid var(--cgw-line, rgba(0,0,0,.12))",
+                background: "transparent",
+                color: "inherit",
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: "pointer",
+                opacity: opsLoading ? 0.6 : 1,
+              }}
+            >
+              {opsLoading
+                ? "…"
+                : lang === "ar"
+                  ? "عرض المزيد"
+                  : "Voir plus d'opérations"}
+            </button>
+          )}
         </div>
+      )}
+
+      {/* Comment ça marche — accordéon COMPACT (fermé), zéro pavé de texte. */}
+      {!compact && (
+        <details className="panel" style={{ marginTop: 12 }}>
+          <summary
+            className="plab plab-sora"
+            style={{ cursor: "pointer", listStyle: "none", marginBottom: 0 }}
+          >
+            {lang === "ar"
+              ? "كيف يعمل كوليغو باي؟"
+              : "Comment fonctionne Coligo Pay ?"}
+          </summary>
+          <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
+            {(lang === "ar"
+              ? [
+                  "بطاقة = رصيد فوري · تحويل CCP = تحقق خلال 24س · نقدًا لدى وكيل = فوري",
+                  "كل عملية مسجّلة وغير قابلة للتعديل — رصيدك محمي ويمكن التحقق منه",
+                  "الرصيد يُستعمل تلقائيًا: عمولات، اشتراكات، Pass — بدون خطوات إضافية",
+                ]
+              : [
+                  "Carte = crédit instantané · Virement CCP = vérifié sous 24 h · Espèces chez un agent = immédiat",
+                  "Chaque opération est enregistrée et infalsifiable — votre solde est protégé et vérifiable",
+                  "Le solde sert automatiquement : commissions, abonnements, Pass — zéro étape en plus",
+                ]
+            ).map((line, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "flex-start",
+                  fontSize: 12.5,
+                  lineHeight: 1.45,
+                }}
+              >
+                <span
+                  style={{ color: "var(--cg-brand, #6C2BD9)", flex: "none" }}
+                >
+                  {Ico.check}
+                </span>
+                <span>{line}</span>
+              </div>
+            ))}
+          </div>
+        </details>
       )}
 
       {/* Contacter le support — disponible sur la page Coligo Pay (chat Tawk

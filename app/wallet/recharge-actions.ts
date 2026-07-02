@@ -72,11 +72,12 @@ export async function getMyTopupConfig(): Promise<TopupConfig> {
   };
 }
 
-/** Historique récent des écritures du portefeuille opérateur. */
-export async function getMyWalletEntries(): Promise<MyWalletEntry[]> {
+/** Historique des écritures du portefeuille opérateur (RPC scopée auth.uid).
+ *  `limit` borné serveur [1..200] → « voir plus » progressif côté page. */
+export async function getMyWalletEntries(limit = 20): Promise<MyWalletEntry[]> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("my_operator_wallet_entries", {
-    p_limit: 20,
+    p_limit: Math.min(200, Math.max(1, Math.round(limit))),
   });
   const rows = (data ?? []) as {
     type: string;
