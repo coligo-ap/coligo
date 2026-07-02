@@ -583,7 +583,13 @@ export function OperatorRecharge({
 
   // Filtres d'historique (type + mois / période libre) — appliqués sur les
   // écritures chargées (RPC scopée auth.uid, « Voir plus » étend jusqu'à 200).
-  type OpsKind = "all" | "recharge" | "commission" | "cashback" | "autre";
+  type OpsKind =
+    | "all"
+    | "recharge"
+    | "vente"
+    | "commission"
+    | "cashback"
+    | "autre";
   const [opsKind, setOpsKind] = useState<OpsKind>("all");
   const [opsMonth, setOpsMonth] = useState<string>("all");
   const [opsFrom, setOpsFrom] = useState("");
@@ -779,6 +785,8 @@ export function OperatorRecharge({
   const kindOf = (e: MyWalletEntry): Exclude<OpsKind, "all"> => {
     if (e.type.startsWith("topup")) return "recharge";
     const key = e.type === "finance_mirror" ? (e.note ?? "") : e.type;
+    // Ventes en ligne (commande payée en ligne / QR encaissé pour le commerçant).
+    if (key === "sale" || key === "delivery_revenue") return "vente";
     if (
       key.includes("commission") ||
       key === "service_fee" ||
@@ -804,6 +812,7 @@ export function OperatorRecharge({
   });
   const KIND_LABEL: Record<Exclude<OpsKind, "all">, [string, string]> = {
     recharge: ["Recharges", "الشحن"],
+    vente: ["Ventes en ligne", "مبيعات عبر الإنترنت"],
     commission: ["Commissions", "العمولات"],
     cashback: ["Cashback", "كاش باك"],
     autre: ["Autres", "أخرى"],
@@ -1269,17 +1278,17 @@ export function OperatorRecharge({
             >
               {lang === "ar" ? "الكل" : "Tout"}
             </div>
-            {(["recharge", "commission", "cashback", "autre"] as const).map(
-              (k) => (
-                <div
-                  key={k}
-                  className={opsKind === k ? "chip on" : "chip"}
-                  onClick={() => setOpsKind(k)}
-                >
-                  {KIND_LABEL[k][lang === "ar" ? 1 : 0]}
-                </div>
-              )
-            )}
+            {(
+              ["recharge", "vente", "commission", "cashback", "autre"] as const
+            ).map((k) => (
+              <div
+                key={k}
+                className={opsKind === k ? "chip on" : "chip"}
+                onClick={() => setOpsKind(k)}
+              >
+                {KIND_LABEL[k][lang === "ar" ? 1 : 0]}
+              </div>
+            ))}
           </div>
 
           {/* Filtre période : mois disponibles + dates personnalisées */}
