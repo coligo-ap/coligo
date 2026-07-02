@@ -47,7 +47,7 @@ const fmtDA = (n: number) => n.toLocaleString("fr-FR").replace(/ | /g, " ");
  *
  * ⚠️ Carte : SEUL le webhook Chargily fait foi (?card=success → on POLLE).
  */
-export function DSubs() {
+export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
   const router = useRouter();
   const search = useSearchParams();
   const [fin, setFin] = useState<ChauffeurFinances | null>(null);
@@ -161,16 +161,21 @@ export function DSubs() {
   return (
     // `drive-jakarta` : scope requis pour que le thème sombre convertisse les
     // cartes (bg-white → surface sombre) via globals.css — PriorityCard incluse.
-    <div className="drive-jakarta mx-auto max-w-[560px] space-y-3 px-4 pb-24">
-      <div>
-        <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
-          Mon abonnement
-        </h1>
-        <p className="text-sm text-[var(--d-muted)]">
-          Gagnez en visibilité et gardez plus sur chaque course. Changez quand
-          vous voulez.
-        </p>
-      </div>
+    // Le padding bas est fourni par la PAGE (l'historique des abonnements est
+    // rendu APRÈS cette liste).
+    <div className="drive-jakarta mx-auto max-w-[560px] space-y-3 px-4">
+      {/* Intro masquée quand la page fournit déjà le héro partagé (SubsHero). */}
+      {!hideIntro && (
+        <div>
+          <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
+            Mon abonnement
+          </h1>
+          <p className="text-sm text-[var(--d-muted)]">
+            Gagnez en visibilité et gardez plus sur chaque course. Changez quand
+            vous voulez.
+          </p>
+        </div>
+      )}
 
       {/* Bannières d'état (retour carte / tentative en attente / message). */}
       {cardReturn === "checking" && (
