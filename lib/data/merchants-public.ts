@@ -234,11 +234,47 @@ async function listNearbyMerchants(
 
   const { data } = await query;
   const rows = (data ?? []).map(toPublicMerchant);
-  // Réordonne par distance croissante (le .in() ne garantit pas l'ordre).
-  rows.sort(
-    (a, b) =>
-      (distById.get(a.id) ?? Infinity) - (distById.get(b.id) ?? Infinity)
-  );
+
+  // ── PHASE 5 : RECOMMANDATION heuristique TRANSPARENTE ──
+  // La distance reste le critère DOMINANT ; elle est pondérée par des signaux
+  // réels et explicables (mig 0315) : popularité récente (commandes 7 j),
+  // RÉACHAT personnel (mes commandes chez ce commerce, via auth.uid dans la
+  // RPC), note (si ≥ 3 avis) et clics récents. log1p = boosts bornés : un
+  // commerce 2× plus loin ne double personne sans signaux très forts.
+  // Échec RPC → tri distance pur (jamais de page cassée).
+  let boostById = new Map<string, number>();
+  try {
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string
+    ) => Promise<{ data: unknown }>;
+    const { data: sig } = await rpc("merchant_reco_signals");
+    boostById = new Map(
+      (
+        (sig ?? []) as {
+          merchant_id: string;
+          orders_7d: number;
+          my_orders: number;
+          clicks_7d: number;
+        }[]
+      ).map((s) => [
+        s.merchant_id,
+        0.1 * Math.log1p(s.orders_7d) +
+          0.2 * Math.log1p(s.my_orders) +
+          0.03 * Math.log1p(s.clicks_7d),
+      ])
+    );
+  } catch {
+    /* repli : distance pure */
+  }
+  const effective = (m: PublicMerchant): number => {
+    const dist = distById.get(m.id) ?? Infinity;
+    let boost = boostById.get(m.id) ?? 0;
+    if ((m.rating_count ?? 0) >= 3 && (m.rating_avg ?? 0) > 3.5) {
+      boost += 0.05 * ((m.rating_avg ?? 0) - 3.5);
+    }
+    return dist / (1 + boost);
+  };
+  rows.sort((a, b) => effective(a) - effective(b));
   return rows;
 }
 

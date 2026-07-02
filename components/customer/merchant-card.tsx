@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { memo, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Bike, Clock, MapPin, Star, Tag, Zap } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
+import { logMerchantEvent } from "@/lib/customer/reco-events";
 import { trackSelectItem } from "@/lib/analytics/ecommerce";
 import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
 import { WILAYAS } from "@/lib/config/wilayas";
@@ -79,13 +80,14 @@ function MerchantCardImpl({
   return (
     <Link
       href={`/m/${merchant.slug}`}
-      // GA4 — select_item (clic sur une carte commerçant depuis la liste).
-      onClick={() =>
+      // GA4 — select_item + événement de RECO (phase 5, best-effort).
+      onClick={() => {
         trackSelectItem(
           { id: merchant.id, name: merchant.name, category: merchant.category },
           "merchants_list"
-        )
-      }
+        );
+        logMerchantEvent(merchant.id, "click");
+      }}
       // `isolate` = nouveau contexte d'empilement : les badges (z-20) restent
       // CONFINÉS dans la carte et ne passent plus AU-DESSUS du header / de la
       // barre de recherche sticky quand on scrolle.
