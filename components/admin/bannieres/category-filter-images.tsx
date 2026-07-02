@@ -91,8 +91,12 @@ export function CategoryFilterImages({
         </button>
       </div>
       <p className="text-muted mb-3 text-xs">
-        Statut appliqué à l&apos;inscription commerçant ET au filtre
-        marketplace. Image : PNG/WebP carré, max 2 Mo — sinon l&apos;emoji.
+        Statut appliqué à l&apos;inscription, au filtre marketplace ET aux
+        commerçants : « Masqué » retire aussi du marketplace les commerces dont
+        c&apos;est la catégorie <strong>principale</strong> (contrôle marketing
+        par segment). Image : PNG/WebP carré, max 2 Mo — sinon l&apos;emoji.
+        Astuce ciblage : une bannière avec le lien <code>/?category=code</code>{" "}
+        pointe droit sur un segment.
       </p>
 
       {showCreate && (
