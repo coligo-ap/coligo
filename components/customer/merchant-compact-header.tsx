@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -33,6 +33,7 @@ import { MerchantReviewsDialog } from "@/components/customer/merchant-reviews-di
 import { FavoriteHeart } from "@/components/customer/favorite-heart";
 import { ShareButton } from "@/components/customer/share-button";
 import { totalUnits, useCart } from "@/lib/customer/cart-store";
+import { logMerchantEvent } from "@/lib/customer/reco-events";
 import { DAY_KEYS, DAY_LABELS, type OpeningHours } from "@/lib/types";
 import { formatDA } from "@/lib/utils";
 import type { ReviewWithCustomer } from "@/lib/data/reviews";
@@ -119,6 +120,13 @@ export function MerchantCompactHeader({
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
   }, []);
+
+  // Événement de RECO « vue de vitrine » (phase 5) — 1× par montage,
+  // best-effort et jamais bloquant. Complète l'entonnoir clic → vue →
+  // commande pour l'apprentissage des pondérations.
+  useEffect(() => {
+    logMerchantEvent(merchantId, "view");
+  }, [merchantId]);
   // « Ouvert » = horaires ouverts MAINTENANT *et* aucune pause / fermeture
   // programmée. Sinon « Fermé » → cohérent avec le bandeau « ce commerce est
   // fermé… » et avec l'acceptation réelle des commandes immédiates.
