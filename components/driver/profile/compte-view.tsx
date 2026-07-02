@@ -1,19 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useLocale } from "next-intl";
 import {
   BadgeCheck,
-  Bike,
   CalendarDays,
-  ChevronRight,
   Clock,
-  CreditCard,
   FileCheck,
   Globe,
-  KeyRound,
   LifeBuoy,
   LogOut,
   Moon,
@@ -24,6 +19,7 @@ import {
   Volume2,
   VolumeX,
   Wallet,
+  Zap,
 } from "lucide-react";
 import { setLocale } from "@/i18n/actions";
 import { driverLogout } from "@/app/(driver)/actions";
@@ -169,21 +165,12 @@ export function CompteView({
         )}
       </div>
 
-      {/* ── Catégorie : Véhicule & documents (parité d-compte) ── */}
-      <PartnerMenuGroup title={tr("Véhicule & documents", "المركبة والوثائق")}>
-        <PartnerMenuRow
-          icon={<Bike className="size-4" />}
-          label={tr("Véhicule", "المركبة")}
-          value={
-            data.vehicleLabel
-              ? `${data.vehicleLabel}${data.vehiclePlate ? ` · ${data.vehiclePlate}` : ""}`
-              : tr("À compléter", "للإكمال")
-          }
-          href="/driver/documents"
-        />
+      {/* ── Mon dossier : UNE ligne — le détail (véhicule, pièces, CCP) vit
+          dans la sous-page /driver/documents, pas de doublon ici. ── */}
+      <PartnerMenuGroup title={tr("Mon dossier", "ملفي")}>
         <PartnerMenuRow
           icon={<FileCheck className="size-4" />}
-          label={tr("Documents", "الوثائق")}
+          label={tr("Documents & véhicule", "الوثائق والمركبة")}
           value={
             <span style={{ color: data.verified ? BRAND_GO : "#c2790a" }}>
               {data.verified
@@ -193,24 +180,12 @@ export function CompteView({
           }
           href="/driver/documents"
         />
-        <PartnerMenuRow
-          icon={<CreditCard className="size-4" />}
-          label={tr("Mon versement (CCP)", "التسديد (CCP)")}
-          value={
-            data.payoutMethod
-              ? `${data.payoutMethod.toUpperCase()}${data.payoutDetails ? ` · ${data.payoutDetails}` : ""}`
-              : tr("Renseigner", "للإدخال")
-          }
-          href="/driver/documents"
-        />
       </PartnerMenuGroup>
 
-      {/* ── Catégorie : Encours & versement (spécifique livreur COD) ── */}
-      <PartnerMenuGroup
-        title={tr("Encours & versement", "المستحقّات والتسديد")}
-      >
-        <div className="px-3.5 py-3.5">
-          <div className="mb-2 flex items-center justify-between text-[12.5px]">
+      {/* ── Finances : encours compact + accès (le détail vit en sous-pages) ── */}
+      <PartnerMenuGroup title={tr("Finances", "المالية")}>
+        <div className="border-b border-[var(--d-line)] px-3.5 py-3">
+          <div className="mb-1.5 flex items-center justify-between text-[12.5px]">
             <span className="font-semibold text-[var(--d-ink)]">
               {tr("Encours à reverser", "مستحقّات للتسديد")}
             </span>
@@ -229,50 +204,44 @@ export function CompteView({
             max={data.capDa}
             tone={overCap ? BRAND_RED : BRAND_VIOLET}
           />
-          <p className="mt-2 text-[11px] text-[var(--d-muted)]">
-            {overCap
-              ? tr(
-                  "Plafond atteint : l'acceptation de nouvelles courses est suspendue jusqu'au versement.",
-                  "بلغت الحد الأقصى: يُعلَّق قبول توصيلات جديدة حتى التسديد."
-                )
-              : tr(
-                  "Au-delà du plafond, l'acceptation de nouvelles courses est suspendue jusqu'au versement.",
-                  "عند تجاوز الحد، يُعلَّق قبول توصيلات جديدة حتى التسديد."
-                )}
-          </p>
+          {overCap && (
+            <p
+              className="mt-1.5 text-[11px] font-bold"
+              style={{ color: BRAND_RED }}
+            >
+              {tr(
+                "Plafond atteint : nouvelles courses suspendues jusqu'au versement.",
+                "بلغت الحد الأقصى: تُعلَّق التوصيلات الجديدة حتى التسديد."
+              )}
+            </p>
+          )}
         </div>
-      </PartnerMenuGroup>
-
-      {/* ── Catégorie : Finances (parité d-compte) ── */}
-      <PartnerMenuGroup title={tr("Finances", "المالية")}>
         <PartnerMenuRow
           icon={<Wallet className="size-4" />}
           label={tr("Portefeuille & recharge", "المحفظة والشحن")}
-          value={tr("Solde · recharger", "الرصيد · اشحن")}
           href="/driver/recharger"
         />
         <PartnerMenuRow
           icon={<ReceiptText className="size-4" />}
           label={tr("Relevé & versement", "كشف الحساب والتسديد")}
-          value={tr("Solde à régler", "الرصيد للتسوية")}
           href="/driver/releve"
+        />
+        <PartnerMenuRow
+          icon={<Zap className="size-4" />}
+          label={tr("Abonnement & Pass Prioritaire", "الاشتراك والممر الأولوي")}
+          href="/driver/abonnement"
         />
       </PartnerMenuGroup>
 
-      {/* Cartes complémentaires de la page (ex. Pass Prioritaire). */}
+      {/* Cartes complémentaires éventuelles de la page. */}
       {children}
 
-      {/* ── Catégorie : Tournées ── */}
+      {/* ── Tournées : une ligne (rejoindre un commerçant vit dans le hub). ── */}
       <PartnerMenuGroup title={tr("Tournées", "الجولات")}>
         <PartnerMenuRow
           icon={<CalendarDays className="size-4" />}
           label={tr("Mes tournées", "جولاتي")}
           href="/driver/tournees"
-        />
-        <PartnerMenuRow
-          icon={<KeyRound className="size-4" />}
-          label={tr("Rejoindre un commerçant", "الانضمام إلى تاجر")}
-          href="/driver/codes"
         />
       </PartnerMenuGroup>
 
@@ -374,29 +343,18 @@ export function CompteView({
         </div>
       ) : null}
 
-      {/* Télécharger l'app Android « Coligo Livreur » (parité d-compte) */}
-      <Link
-        href="/driver/telecharger"
-        className="mt-4 flex items-center gap-3 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] p-4 text-[var(--d-ink)] transition-colors hover:bg-[var(--d-surface)]"
-      >
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--d-surface)]">
-          <Smartphone className="size-5" style={{ color: BRAND_VIOLET }} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">
-            {tr("Télécharger l'application Android", "تحميل تطبيق أندرويد")}
-          </span>
-          <span className="block text-xs opacity-70">
-            {tr(
-              "Notifications fiables et plein écran.",
-              "إشعارات موثوقة وشاشة كاملة."
-            )}
-          </span>
-        </span>
-        <ChevronRight className="size-5 shrink-0 opacity-50 rtl:rotate-180" />
-      </Link>
-
-      <div className="mt-4">
+      {/* Application : une ligne discrète (le détail vit sur /driver/telecharger). */}
+      <div className="mt-3">
+        <PartnerMenuGroup>
+          <PartnerMenuRow
+            icon={<Smartphone className="size-4" />}
+            label={tr("Application Android", "تطبيق أندرويد")}
+            value={tr("Notifications fiables", "إشعارات موثوقة")}
+            href="/driver/telecharger"
+          />
+        </PartnerMenuGroup>
+      </div>
+      <div className="mt-3">
         <InstallAppButton className="border-[var(--d-line)] bg-[var(--d-soft)] text-[var(--d-ink)] hover:bg-[var(--d-surface)]" />
       </div>
     </>

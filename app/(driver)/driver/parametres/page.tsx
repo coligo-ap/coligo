@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { CompteLoader } from "@/components/driver/profile/compte-loader";
-import { PriorityCard } from "@/components/partner/priority-card";
 import type { CompteData } from "@/components/driver/profile/compte-view";
 
 export const dynamic = "force-dynamic";
@@ -42,15 +41,10 @@ export default async function DriverProfilePage() {
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
-      <CompteLoader driverId={driver.id} seed={seed}>
-        {/* Abonnement Prioritaire (priorité dispatch + badge). Le dossier
-            véhicule/pièces/versement vit désormais dans la SOUS-PAGE
-            /driver/documents (parité chauffeur), ouverte depuis les lignes
-            « Véhicule & documents » du compte. */}
-        <div className="mb-3">
-          <PriorityCard />
-        </div>
-      </CompteLoader>
+      {/* Compte COMPACT : le dossier vit dans /driver/documents, l'abonnement
+          Pass Prioritaire (gestion + historique) dans /driver/abonnement —
+          le compte n'affiche plus que des lignes d'accès. */}
+      <CompteLoader driverId={driver.id} seed={seed} />
     </DriverShell>
   );
 }

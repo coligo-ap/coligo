@@ -65,9 +65,11 @@ export function PriorityCard() {
     state?.subject_type === "driver"
       ? "/driver/recharger"
       : "/chauffeur/recharger";
+  // Retour Chargily = la page où vit désormais la carte (sous-page Abonnement
+  // dans les DEUX espaces) — le poll ?prio=success s'y joue.
   const returnPath =
     state?.subject_type === "driver"
-      ? "/driver/parametres"
+      ? "/driver/abonnement"
       : "/chauffeur/abonnement";
 
   // Paiement au PORTEFEUILLE (instantané).
