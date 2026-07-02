@@ -170,8 +170,8 @@ export default async function DriverRelevePage() {
  */
 function ClaimsSection({ claims }: { claims: Claim[] }) {
   return (
-    <section className="mx-4 mt-4 mb-6 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
-      <h2 className="text-sm font-semibold text-[var(--ink)]">
+    <section className="mt-4 mb-6 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4">
+      <h2 className="text-sm font-semibold text-[var(--d-ink)]">
         Avances no-show (validation support)
       </h2>
       <ul className="mt-2 space-y-3">
@@ -183,7 +183,7 @@ function ClaimsSection({ claims }: { claims: Claim[] }) {
               </span>
               <ClaimBadge status={c.status} />
             </div>
-            <p className="mt-0.5 text-xs text-[var(--muted)]">
+            <p className="mt-0.5 text-xs text-[var(--d-muted)]">
               {claimMessage(c)}
             </p>
           </li>

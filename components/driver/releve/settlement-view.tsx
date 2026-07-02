@@ -2,13 +2,21 @@
 
 import { useState } from "react";
 import { useLocale } from "next-intl";
-import Link from "next/link";
+import { CreditCard } from "lucide-react";
+import {
+  BRAND_GO,
+  BRAND_VIOLET,
+  PartnerBackHeader,
+  PartnerHeroCard,
+  SORA,
+} from "@/components/shared/partner-ui";
 
 /**
- * Écran « Relevé · règlement » reproduit À L'IDENTIQUE de MAQUETTE-livreur-pages
- * (.backh + .net-card dégradé + .brk + .mq-btn + .btnlink). Le SENS dépend du mix
- * COD/prépayé (cf. docs/livreur-paiement.md). 100 % des montants viennent du
- * backend (delivery_ledger non réglé + snapshots orders).
+ * Écran « Relevé · règlement » — MÊME langage que les écrans chauffeur
+ * (header retour partagé, carte héro dégradé violet, lignes de détail façon
+ * d-gains, CTA Sora). Le SENS dépend du mix COD/prépayé (cf.
+ * docs/livreur-paiement.md). 100 % des montants viennent du backend
+ * (delivery_ledger non réglé + snapshots orders) — logique INCHANGÉE.
  */
 
 export type SettlementData = {
@@ -52,109 +60,86 @@ export function SettlementView({ data }: { data: SettlementData }) {
 
   return (
     <>
-      <div className="backh">
-        <Link
-          href="/driver/gains"
-          className="b"
-          aria-label={tr("Retour", "رجوع")}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            strokeWidth={2.2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </Link>
-        <h1>
-          {tr("Relevé", "كشف الحساب")} · {data.periodLabel}
-        </h1>
-      </div>
+      <PartnerBackHeader
+        href="/driver/gains"
+        title={`${tr("Relevé", "كشف الحساب")} · ${data.periodLabel}`}
+        subtitle={`${data.deliveriesCount} ${isAr ? "توصيلة" : "courses"}`}
+      />
 
-      <div className="net-card">
-        <div className="lbl">
-          {isReverse
+      {/* Carte héro violette (parité « À reverser » chauffeur). */}
+      <PartnerHeroCard
+        label={
+          isReverse
             ? tr("À reverser à Coligo", "للتسديد إلى كوليغو")
             : isReceive
               ? tr("À recevoir de Coligo", "لاستلامه من كوليغو")
-              : tr("Compte soldé", "الحساب مُسوّى")}
-        </div>
-        <div className="v">{grp(data.netDa)} DA</div>
-        {data.dueLabel && <div className="due">{data.dueLabel}</div>}
+              : tr("Compte soldé", "الحساب مُسوّى")
+        }
+        value={`${grp(data.netDa)} DA`}
+        sub={data.dueLabel}
+      >
         {methodLabel && (
-          <div className="meth">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-            >
-              <rect x="2" y="5" width="20" height="14" rx="2" />
-              <path d="M2 10h20" />
-            </svg>
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/18 px-3 py-1.5 text-[12px] font-semibold">
+            <CreditCard className="size-3.5" />
             {methodLabel}
             {data.details ? ` · ${data.details}` : " · BaridiMob"}
           </div>
         )}
-      </div>
+      </PartnerHeroCard>
 
-      <div className="brk">
-        <div className="r gain">
-          <span className="k">
-            {tr("Tes gains nets (à toi)", "أرباحك الصافية (لك)")}
-          </span>
-          <span className="vv">+{grp(data.grossDriverDa)} DA</span>
-        </div>
-        <div className="r">
-          <span className="k">
-            {tr("Commissions commerçants", "عمولات التجّار")}
-          </span>
-          <span className="vv">{grp(data.commissionDa)} DA</span>
-        </div>
-        <div className="r">
-          <span className="k">{tr("Frais de service", "رسوم الخدمة")}</span>
-          <span className="vv">{grp(data.serviceFeeDa)} DA</span>
-        </div>
-        <div className="r">
-          <span className="k">
-            {tr("Part Coligo livraison", "حصة كوليغو للتوصيل")} (
-            {data.driverFeeRatePct}%)
-          </span>
-          <span className="vv">{grp(data.driverFeeDa)} DA</span>
-        </div>
+      {/* Détail qui réconcilie au solde (lignes façon d-gains). */}
+      <div className="mt-3 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] px-3.5 py-1">
+        <Line
+          k={tr("Tes gains nets (à toi)", "أرباحك الصافية (لك)")}
+          v={`+${grp(data.grossDriverDa)} DA`}
+          tone={BRAND_GO}
+        />
+        <Line
+          k={tr("Commissions commerçants", "عمولات التجّار")}
+          v={`${grp(data.commissionDa)} DA`}
+        />
+        <Line
+          k={tr("Frais de service", "رسوم الخدمة")}
+          v={`${grp(data.serviceFeeDa)} DA`}
+        />
+        <Line
+          k={`${tr("Part Coligo livraison", "حصة كوليغو للتوصيل")} (${data.driverFeeRatePct}%)`}
+          v={`${grp(data.driverFeeDa)} DA`}
+        />
         {data.toReceiveDa > 0 && (
-          <div className="r gain">
-            <span className="k">
-              {tr(
-                "Livraisons prépayées (dues par Coligo)",
-                "توصيلات مدفوعة مسبقاً (مستحقة من كوليغو)"
-              )}
-            </span>
-            <span className="vv">+{grp(data.toReceiveDa)} DA</span>
-          </div>
+          <Line
+            k={tr(
+              "Livraisons prépayées (dues par Coligo)",
+              "توصيلات مدفوعة مسبقاً (مستحقة من كوليغو)"
+            )}
+            v={`+${grp(data.toReceiveDa)} DA`}
+            tone={BRAND_GO}
+          />
         )}
-        <div className="r total">
-          <span className="k">
-            {isReverse
+        <Line
+          k={
+            isReverse
               ? tr("Solde à reverser", "الرصيد المطلوب تسديده")
               : isReceive
                 ? tr("Solde à recevoir", "الرصيد المطلوب استلامه")
-                : tr("Solde", "الرصيد")}
-          </span>
-          <span className="vv">{grp(data.netDa)} DA</span>
-        </div>
+                : tr("Solde", "الرصيد")
+          }
+          v={`${grp(data.netDa)} DA`}
+          tone={BRAND_VIOLET}
+          strong
+        />
       </div>
 
       {data.direction !== "settled" && (
         <button
           type="button"
-          className="mq-btn"
           onClick={() => setShowInstructions((s) => !s)}
+          className="mt-4 flex h-[54px] w-full items-center justify-center rounded-[16px] text-[16px] font-bold text-white active:scale-[0.99]"
+          style={{
+            fontFamily: SORA,
+            background: BRAND_VIOLET,
+            boxShadow: "0 14px 28px -12px rgba(108,43,217,.6)",
+          }}
         >
           {isReverse
             ? isAr
@@ -167,10 +152,7 @@ export function SettlementView({ data }: { data: SettlementData }) {
       )}
 
       {showInstructions && (
-        <div
-          className="card"
-          style={{ marginTop: 12, fontSize: 13, lineHeight: 1.6 }}
-        >
+        <div className="mt-3 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-soft)] p-4 text-[13px] leading-relaxed text-[var(--d-ink)]">
           {isReverse ? (
             isAr ? (
               <>
@@ -202,9 +184,47 @@ export function SettlementView({ data }: { data: SettlementData }) {
         </div>
       )}
 
-      <button type="button" className="btnlink" onClick={() => window.print()}>
+      <button
+        type="button"
+        onClick={() => window.print()}
+        className="mt-3 block w-full text-center text-[13.5px] font-bold"
+        style={{ color: BRAND_VIOLET }}
+      >
         {tr("Télécharger le relevé (PDF)", "تحميل كشف الحساب (PDF)")}
       </button>
     </>
+  );
+}
+
+/** Ligne de détail (parité d-gains). */
+function Line({
+  k,
+  v,
+  tone,
+  strong,
+}: {
+  k: string;
+  v: string;
+  tone?: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between border-b border-[var(--d-line)] py-3 text-[13.5px] last:border-b-0">
+      <span
+        className={strong ? "font-bold" : ""}
+        style={{ color: strong ? "var(--d-ink)" : "var(--d-muted)" }}
+      >
+        {k}
+      </span>
+      <b
+        style={{
+          fontFamily: SORA,
+          color: tone ?? "var(--d-ink)",
+          fontSize: strong ? 16 : undefined,
+        }}
+      >
+        {v}
+      </b>
+    </div>
   );
 }

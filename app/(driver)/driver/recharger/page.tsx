@@ -11,11 +11,9 @@ export default async function DriverRechargerPage() {
   if (!driver) redirect("/driver/login");
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
-      <div className="p-4">
-        <Suspense fallback={null}>
-          <OperatorRecharge />
-        </Suspense>
-      </div>
+      <Suspense fallback={null}>
+        <OperatorRecharge />
+      </Suspense>
     </DriverShell>
   );
 }
