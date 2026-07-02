@@ -142,6 +142,34 @@ export async function createCategory(input: {
   return { ok: true };
 }
 
+/** Édition des LIBELLÉS d'une catégorie (FR/AR + emoji). Le code technique,
+ *  lui, est immuable (clé primaire référencée partout) — le renommage visible
+ *  se propage partout puisque tout l'affichage lit label/label_ar par code. */
+export async function updateCategoryLabels(
+  code: string,
+  input: { label: string; labelAr: string; emoji: string }
+): Promise<{ ok?: true; error?: string }> {
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
+  const label = input.label.trim();
+  const labelAr = input.labelAr.trim();
+  if (!label || !labelAr) return { error: "Libellés FR et AR requis." };
+  if (!(await categoryExists(code))) return { error: "Catégorie inconnue." };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("merchant_categories" as never)
+    .update({
+      label,
+      label_ar: labelAr,
+      emoji: input.emoji.trim() || "🏷️",
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("code", code);
+  if (error) return { error: error.message };
+  revalidate();
+  return { ok: true };
+}
+
 /** « burger, hamburger » → ['burger','hamburger'] (max 12, nettoyés). */
 function parseKeywords(raw?: string): string[] {
   return [

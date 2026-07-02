@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import {
   attachMerchantToFilter,
   createCategory,
@@ -14,6 +14,7 @@ import {
   searchMerchantsForFilter,
   setCategoryKeywords,
   setCategoryStatus,
+  updateCategoryLabels,
   upsertCategoryFilterImage,
 } from "@/app/admin/(plateforme)/categories/actions";
 
@@ -66,6 +67,39 @@ export function CategoryFilterImages({
   const [createErr, setCreateErr] = useState<string | null>(null);
   // Panneau de mapping (filtres éditoriaux) déplié.
   const [openPanel, setOpenPanel] = useState<string | null>(null);
+
+  // Édition des libellés (FR/AR + emoji) — le code technique reste immuable.
+  const [editCode, setEditCode] = useState<string | null>(null);
+  const [eLabel, setELabel] = useState("");
+  const [eLabelAr, setELabelAr] = useState("");
+  const [eEmoji, setEEmoji] = useState("");
+
+  const openEdit = (c: AdminCategory) => {
+    if (editCode === c.code) {
+      setEditCode(null);
+      return;
+    }
+    setEditCode(c.code);
+    setELabel(c.label);
+    setELabelAr(c.labelAr);
+    setEEmoji(c.emoji);
+  };
+
+  const saveLabels = (code: string) => {
+    setBusyCode(code);
+    setErrs((e) => ({ ...e, [code]: "" }));
+    start(async () => {
+      const r = await updateCategoryLabels(code, {
+        label: eLabel,
+        labelAr: eLabelAr,
+        emoji: eEmoji,
+      });
+      if (r.error) setErrs((e) => ({ ...e, [code]: r.error! }));
+      else setEditCode(null);
+      setBusyCode(null);
+      router.refresh();
+    });
+  };
 
   const run = (code: string, fn: () => Promise<{ error?: string }>) => {
     setBusyCode(code);
@@ -301,6 +335,22 @@ export function CategoryFilterImages({
                 </button>
               )}
 
+              {/* Renommage : libellés FR/AR + emoji (le code est immuable). */}
+              <button
+                type="button"
+                disabled={busy}
+                title="Renommer (libellés FR/AR + emoji)"
+                onClick={() => openEdit(c)}
+                className={
+                  "shrink-0 rounded-[10px] border p-2 disabled:opacity-50 " +
+                  (editCode === c.code
+                    ? "border-primary-400 bg-primary-50 text-primary-700"
+                    : "border-border bg-surface-2 text-muted hover:text-foreground")
+                }
+              >
+                <Pencil className="size-4" />
+              </button>
+
               {/* Mapping (filtres éditoriaux) : mots-clés + commerçants liés */}
               {c.kind === "filter" && (
                 <button
@@ -333,6 +383,55 @@ export function CategoryFilterImages({
               >
                 <Trash2 className="size-4" />
               </button>
+
+              {editCode === c.code && (
+                <div className="border-border bg-surface-2 w-full space-y-2 rounded-[12px] border p-3">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    <input
+                      value={eLabel}
+                      onChange={(e) => setELabel(e.target.value)}
+                      placeholder="Libellé FR"
+                      className="border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs"
+                    />
+                    <input
+                      value={eLabelAr}
+                      onChange={(e) => setELabelAr(e.target.value)}
+                      placeholder="Libellé AR"
+                      dir="rtl"
+                      className="border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs"
+                    />
+                    <input
+                      value={eEmoji}
+                      onChange={(e) => setEEmoji(e.target.value)}
+                      placeholder="Emoji"
+                      className="border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs"
+                    />
+                  </div>
+                  <p className="text-subtle text-[11px]">
+                    Le nouveau libellé s&apos;applique partout (inscription,
+                    filtres, vitrines) — le code technique « {c.code} » ne
+                    change pas.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => saveLabels(c.code)}
+                      className="bg-primary-600 rounded-[10px] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+                    >
+                      {busy ? "Enregistrement…" : "Enregistrer"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setEditCode(null)}
+                      className="text-muted hover:text-foreground text-xs font-semibold underline"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {openPanel === c.code && c.kind === "filter" && (
                 <div className="w-full">
