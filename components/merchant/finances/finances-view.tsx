@@ -8,7 +8,6 @@ import {
   Banknote,
   Calculator,
   CalendarClock,
-  CheckCircle2,
   ChevronDown,
   Download,
   FileSpreadsheet,
@@ -111,18 +110,15 @@ export function FinancesView({
       </header>
 
       {/* ════════════════ L'ESSENTIEL (toujours visible) ════════════════
-          Solde, verdict, alertes et action de versement : ce que le commerçant
-          doit voir d'un coup d'œil sans rien ouvrir. */}
-      <div className="space-y-3">
-        <ColigoPayCard
-          balance={coligoPayBalance}
-          available={summary.available}
-        />
-        <Verdict summary={summary} />
-        <CashDebtBanner status={cashDebt} />
-        <NextPayoutBanner info={nextPayout} />
-        {summary.available > 0 && <PayoutForm available={summary.available} />}
-      </div>
+          UNE carte = LE chiffre (solde Coligo Pay ≡ « Coligo vous doit »)
+          + les actions (versement / recharge). Plus de verdict séparé ni de
+          bouton isolé qui répétaient le même montant 5 fois. */}
+      <EssentialMoney
+        balance={coligoPayBalance}
+        summary={summary}
+        cashDebt={cashDebt}
+        nextPayout={nextPayout}
+      />
 
       {/* ════════════════ LES DÉTAILS (sous-sections repliables) ════════════════
           Tout le reste est rangé en accordéons FERMÉS par défaut : la page reste
@@ -263,160 +259,113 @@ function CountChip({ n }: { n: number }) {
   );
 }
 
-/* ─────────────────────────── COLIGO PAY ─────────────────────────── */
+/* ─────────────── L'ESSENTIEL : UNE carte, UN chiffre, LES actions ─────────────── */
 
-/** Solde UNIQUE de la Coligo Pay commerçant (revenus en ligne/cashback nets +
- *  recharges − commissions). C'est l'unique porte-monnaie : tout y converge.
- *  Présenté comme une vraie carte de paiement (façon Uber/Revolut). */
-function ColigoPayCard({
+/**
+ * Pour un commerçant, solde Coligo Pay ≡ « Coligo vous doit » (positif) ou
+ * « Vous devez à Coligo » (négatif) : c'est UNE information — elle n'apparaît
+ * donc qu'UNE fois, dans cette carte, avec les actions qui en découlent
+ * (demander le versement / recharger). Le formulaire de versement s'ouvre
+ * depuis la carte ; les bannières contextuelles (dette, prochain virement)
+ * suivent sans re-citer le montant.
+ */
+function EssentialMoney({
   balance,
-  available,
+  summary,
+  cashDebt,
+  nextPayout,
 }: {
   balance: number;
-  available: number;
+  summary: FinancesSummary;
+  cashDebt: CashDebtStatus;
+  nextPayout: NextPayout;
 }) {
+  const [payoutOpen, setPayoutOpen] = useState(false);
   const negative = balance < 0;
-  return (
-    // Fond dégradé posé DIRECTEMENT sur la carte (classe hex compatible vieux
-    // WebView Sunmi) — l'ancienne version utilisait un calque en `-z-10` qui
-    // passait derrière la carte et la rendait transparente dans l'APK.
-    <section
-      className={cn(
-        "relative overflow-hidden rounded-[22px] p-5 text-white shadow-lg shadow-black/10",
-        negative ? "cg-warning-gradient" : "cg-brand-gradient"
-      )}
-    >
-      {/* Halos lumineux décoratifs (z positif faible, sous le contenu). */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-12 -right-10 size-44 rounded-full bg-white/10 blur-2xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-16 -left-8 size-40 rounded-full bg-white/5 blur-2xl"
-      />
+  const canWithdraw = summary.available > 0;
 
-      {/* Contenu au-dessus des halos (z-10, jamais de z négatif). */}
-      <div className="relative z-10">
-        <div className="flex items-center justify-between">
+  return (
+    <div className="space-y-3">
+      <section
+        className={cn(
+          "relative overflow-hidden rounded-[22px] p-5 text-white shadow-lg shadow-black/10",
+          negative ? "cg-warning-gradient" : "cg-brand-gradient"
+        )}
+      >
+        {/* Halos décoratifs (z positif faible — compat vieux WebView Sunmi). */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-12 -right-10 size-44 rounded-full bg-white/10 blur-2xl"
+        />
+        <div className="relative z-10">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide backdrop-blur-sm">
             <Wallet className="size-3.5" /> Coligo Pay
           </span>
-          {!negative && available > 0 && (
-            <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold tabular-nums backdrop-blur-sm">
-              {formatDA(available)} dispo.
-            </span>
-          )}
-        </div>
 
-        <p className="mt-4 text-[11px] font-medium tracking-wider text-white/70 uppercase">
-          {negative ? "À régulariser" : "Solde disponible"}
-        </p>
-        <p className="text-[2.4rem] leading-none font-extrabold tracking-tight tabular-nums">
-          {formatDA(balance)}
-        </p>
+          <p className="mt-4 text-[11px] font-medium tracking-wider text-white/75 uppercase">
+            {negative
+              ? "Vous devez à Coligo"
+              : balance > 0
+                ? "Coligo vous doit"
+                : "Solde"}
+          </p>
+          <p className="text-[2.4rem] leading-none font-extrabold tracking-tight tabular-nums">
+            {formatDA(Math.abs(balance))}
+          </p>
 
-        <p className="mt-2 text-[12.5px] text-white/85">
+          {/* UNE seule ligne de contexte, seulement si elle AJOUTE une info. */}
           {negative ? (
-            <>
-              Rechargez pour repasser au vert et débloquer les ventes espèces.
-            </>
-          ) : available > 0 ? (
-            <>
-              <strong className="font-bold">{formatDA(available)}</strong>{" "}
-              disponibles à retirer dès maintenant.
-            </>
-          ) : (
-            <>Votre porte-monnaie unique : paiements, commissions, recharges.</>
-          )}
-        </p>
+            <p className="mt-2 text-[12.5px] text-white/85">
+              Commission de vos ventes <strong>espèces</strong> — rechargez pour
+              régulariser.
+            </p>
+          ) : summary.reserved > 0 ? (
+            <p className="mt-2 text-[12.5px] text-white/85">
+              dont <strong>{formatDA(summary.reserved)}</strong> déjà en cours
+              de versement.
+            </p>
+          ) : balance === 0 ? (
+            <p className="mt-2 text-[12.5px] text-white/85">
+              Tout est à jour — aucun montant en attente, aucune dette.
+            </p>
+          ) : null}
 
-        <Link
-          href="/recharger"
-          prefetch
-          className="text-primary-700 mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-white text-sm font-bold shadow-sm transition-transform active:scale-[0.98]"
-        >
-          <Wallet className="size-4" /> Recharger mon compte
-        </Link>
-      </div>
-    </section>
-  );
-}
-
-/* ──────────────────────────── VERDICT ──────────────────────────── */
-
-/** Bandeau verdict compact : une ligne « qui doit quoi à qui ». Le solde
- *  détaillé reste dans « Le détail du calcul » plus bas. */
-function Verdict({ summary }: { summary: FinancesSummary }) {
-  if (summary.balance > 0) {
-    return (
-      <section className="bg-success-50 flex items-center gap-3 rounded-[16px] p-4">
-        <div className="bg-success-100 text-success-700 grid size-10 shrink-0 place-items-center rounded-full">
-          <Wallet className="size-5" />
+          {/* Actions découlant du chiffre (sans le répéter). */}
+          <div className="mt-4 flex gap-2">
+            {canWithdraw && (
+              <button
+                type="button"
+                onClick={() => setPayoutOpen(true)}
+                className="text-primary-700 inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[14px] bg-white text-sm font-bold shadow-sm transition-transform active:scale-[0.98]"
+              >
+                <Banknote className="size-4" /> Demander mon versement
+              </button>
+            )}
+            <Link
+              href="/recharger"
+              prefetch
+              className={cn(
+                "inline-flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-bold transition-transform active:scale-[0.98]",
+                canWithdraw
+                  ? "bg-white/15 px-4 text-white backdrop-blur-sm"
+                  : "text-primary-700 flex-1 bg-white shadow-sm"
+              )}
+            >
+              <Wallet className="size-4" /> Recharger
+            </Link>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-success-700/90 text-xs font-medium">
-            Coligo vous doit
-          </p>
-          <p className="text-success-700 text-xl leading-tight font-extrabold tabular-nums">
-            {formatDA(summary.balance)}
-          </p>
-        </div>
-        <p className="text-success-700/80 max-w-[44%] text-right text-[11px] leading-tight">
-          {summary.reserved > 0 ? (
-            <>
-              <strong className="font-bold">
-                {formatDA(summary.available)}
-              </strong>{" "}
-              à retirer · {formatDA(summary.reserved)} en cours
-            </>
-          ) : (
-            <>
-              <strong className="font-bold">
-                {formatDA(summary.available)}
-              </strong>{" "}
-              disponibles
-            </>
-          )}
-        </p>
       </section>
-    );
-  }
 
-  if (summary.balance < 0) {
-    return (
-      <section className="bg-warning-50 flex items-center gap-3 rounded-[16px] p-4">
-        <div className="bg-warning-100 text-warning-700 grid size-10 shrink-0 place-items-center rounded-full">
-          <Banknote className="size-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-warning-700/90 text-xs font-medium">
-            Vous devez à Coligo
-          </p>
-          <p className="text-warning-700 text-xl leading-tight font-extrabold tabular-nums">
-            {formatDA(summary.debt)}
-          </p>
-        </div>
-        <p className="text-warning-700/80 max-w-[44%] text-right text-[11px] leading-tight">
-          Commission de vos ventes{" "}
-          <strong className="font-bold">espèces</strong>.
-        </p>
-      </section>
-    );
-  }
-
-  return (
-    <section className="border-border bg-surface flex items-center gap-3 rounded-[16px] border p-4">
-      <div className="bg-success-50 text-success-600 grid size-10 shrink-0 place-items-center rounded-full">
-        <CheckCircle2 className="size-5" />
-      </div>
-      <div>
-        <p className="text-sm font-bold">Tout est à jour</p>
-        <p className="text-muted text-xs">
-          Aucun montant en attente, aucune dette.
-        </p>
-      </div>
-    </section>
+      {payoutOpen && (
+        <PayoutForm
+          available={summary.available}
+          onClose={() => setPayoutOpen(false)}
+        />
+      )}
+      <CashDebtBanner status={cashDebt} />
+      <NextPayoutBanner info={nextPayout} />
+    </div>
   );
 }
 
@@ -575,12 +524,8 @@ function NextPayoutBanner({ info }: { info: NextPayout }) {
         <p className="text-primary-700/70 text-xs font-medium">
           Prochain virement automatique ({cadenceLabel(info.cadence)})
         </p>
-        <p className="text-foreground font-semibold capitalize">
-          {when}{" "}
-          <span className="text-success-700 font-bold tabular-nums">
-            · ~{formatDA(info.available)}
-          </span>
-        </p>
+        {/* Pas de re-citation du montant (déjà UNE fois dans la carte). */}
+        <p className="text-foreground font-semibold capitalize">{when}</p>
       </div>
     </div>
   );
@@ -937,11 +882,17 @@ function EntryRow({ entry }: { entry: WalletEntryRow }) {
   );
 }
 
-function PayoutForm({ available }: { available: number }) {
+/** Formulaire de versement — CONTRÔLÉ par la carte (bouton dans la carte). */
+function PayoutForm({
+  available,
+  onClose,
+}: {
+  available: number;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
-  const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(
     requestPayout,
     initialState
@@ -951,24 +902,10 @@ function PayoutForm({ available }: { available: number }) {
     if (state.ok) {
       toast.success("Demande de versement envoyée");
       formRef.current?.reset();
-      setOpen(false);
+      onClose();
       router.refresh();
     }
-  }, [state, router]);
-
-  if (!open) {
-    return (
-      <Button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full"
-        size="lg"
-      >
-        <Banknote className="size-4" />
-        Demander mon versement ({formatDA(available)})
-      </Button>
-    );
-  }
+  }, [state, router, onClose]);
 
   return (
     <section className="border-border bg-surface rounded-[16px] border p-4">
@@ -1050,7 +987,7 @@ function PayoutForm({ available }: { available: number }) {
           <Button
             type="button"
             variant="secondary"
-            onClick={() => setOpen(false)}
+            onClick={onClose}
             disabled={pending}
           >
             Annuler
