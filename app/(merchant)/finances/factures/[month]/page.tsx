@@ -1,22 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileDown } from "lucide-react";
 import { getInvoice } from "@/lib/data/invoices";
 import { formatDA } from "@/lib/utils";
-import { InvoicePrintButton } from "@/components/merchant/finances/invoice-print-button";
 
 export const dynamic = "force-dynamic";
-
-// Règle d'impression : on masque toute l'app (nav comprise) et on ne montre que
-// la facture. Astuce visibility standard, indépendante du layout commerçant.
-const PRINT_CSS = `
-@media print {
-  body * { visibility: hidden !important; }
-  #invoice, #invoice * { visibility: visible !important; }
-  #invoice { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; }
-  @page { margin: 16mm; }
-}
-`;
 
 export default async function InvoicePage({
   params,
@@ -29,10 +17,9 @@ export default async function InvoicePage({
 
   return (
     <div className="mx-auto max-w-[760px] p-4 lg:p-6">
-      <style dangerouslySetInnerHTML={{ __html: PRINT_CSS }} />
-
-      {/* Barre d'actions — masquée à l'impression */}
-      <div className="mb-5 flex items-center justify-between gap-3 print:hidden">
+      {/* Barre d'actions : le téléchargement ouvre un VRAI PDF A4 généré
+          serveur (/api/pdf/facture) — plus de window.print de la page web. */}
+      <div className="mb-5 flex items-center justify-between gap-3">
         <Link
           href="/finances"
           className="text-muted hover:text-foreground inline-flex items-center gap-1.5 text-sm font-medium"
@@ -40,7 +27,15 @@ export default async function InvoicePage({
           <ArrowLeft className="size-4" />
           Retour
         </Link>
-        <InvoicePrintButton />
+        <a
+          href={`/api/pdf/facture/${month}`}
+          target="_blank"
+          rel="noopener"
+          className="bg-primary-600 inline-flex items-center gap-2 rounded-[12px] px-4 py-2.5 text-sm font-bold text-white shadow-sm"
+        >
+          <FileDown className="size-4" />
+          Télécharger (PDF)
+        </a>
       </div>
 
       {/* La facture */}
