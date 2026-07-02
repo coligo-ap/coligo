@@ -104,7 +104,14 @@ export async function listPublicMerchants(
     query = query.ilike("commune", filters.commune);
   }
   if (filters.category) {
-    query = query.ilike("category", `%${filters.category}%`);
+    // PHASE 2 multi-catégories : le filtre matche les LIAISONS (un restaurant
+    // lié « pizza » sort dans le filtre Pizzeria). La catégorie principale est
+    // garantie présente dans les liaisons (backfill + trigger, mig 0312) ;
+    // repli ilike si la table est vide (migration non appliquée).
+    const linked = await categoryMerchantIds(supabase, filters.category);
+    query = linked.length
+      ? query.in("id", linked)
+      : query.ilike("category", `%${filters.category}%`);
   }
   // Recherche texte FLOUE : on passe par search_merchants (trigram f_unaccent
   // bidirectionnel — tolère fautes/accents/« nom + ville ») pour des IDs classés
@@ -209,7 +216,11 @@ async function listNearbyMerchants(
 
   let query = supabase.from("merchants_public").select("*").in("id", ids);
   if (filters.category) {
-    query = query.ilike("category", `%${filters.category}%`);
+    // Multi-catégories (mig 0312) : deux .in("id") successifs = ET logique.
+    const linked = await categoryMerchantIds(supabase, filters.category);
+    query = linked.length
+      ? query.in("id", linked)
+      : query.ilike("category", `%${filters.category}%`);
   }
   if (filters.delivery_enabled === true) {
     query = query.eq("delivery_enabled", true);
@@ -393,19 +404,55 @@ export async function getPromoLabelsByMerchant(
   return out;
 }
 
-/** Liste les catégories distinctes parmi les vitrines actives. */
+/** Ids des commerçants LIÉS à une catégorie (multi-catégories, mig 0312). */
+async function categoryMerchantIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  code: string
+): Promise<string[]> {
+  const { data } = await supabase
+    .from("merchant_category_links" as never)
+    .select("merchant_id")
+    .eq("code", code)
+    .limit(2000);
+  return ((data ?? []) as unknown as { merchant_id: string }[]).map(
+    (r) => r.merchant_id
+  );
+}
+
+/** Liste les catégories distinctes parmi les vitrines actives — via les
+ *  LIAISONS multi-catégories (un commerce compte dans chacun de ses types),
+ *  bornées aux vitrines ACTIVES (merchants_public). */
 export async function listMerchantCategories(): Promise<
   { name: string; count: number }[]
 > {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("merchants_public")
-    .select("category")
-    .not("category", "is", null);
+  const [{ data: pub }, { data: links }] = await Promise.all([
+    supabase.from("merchants_public").select("id, category"),
+    supabase
+      .from("merchant_category_links" as never)
+      .select("merchant_id, code")
+      .limit(10000),
+  ]);
+  const activeIds = new Set((pub ?? []).map((r) => r.id as string));
   const counts = new Map<string, number>();
-  for (const r of data ?? []) {
-    if (!r.category) continue;
-    const cat = r.category.trim();
+  const seen = new Set<string>();
+  for (const l of (links ?? []) as unknown as {
+    merchant_id: string;
+    code: string;
+  }[]) {
+    if (!activeIds.has(l.merchant_id)) continue;
+    const key = `${l.merchant_id}:${l.code}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    counts.set(l.code, (counts.get(l.code) ?? 0) + 1);
+  }
+  // Repli : commerces actifs sans liaison (table vide) → catégorie principale.
+  for (const r of pub ?? []) {
+    const cat = (r.category as string | null)?.trim();
+    if (!cat) continue;
+    const key = `${r.id}:${cat}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     counts.set(cat, (counts.get(cat) ?? 0) + 1);
   }
   return Array.from(counts.entries())

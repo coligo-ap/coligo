@@ -13,7 +13,7 @@ import {
 } from "@/lib/validation/merchant-settings";
 import { merchantDeliverySchema } from "@/lib/validation/delivery";
 import { MIN_ORDER_CASH_DA } from "@/lib/config/payment-limits";
-import { isActiveCategory } from "@/lib/data/categories";
+import { getAllCategories } from "@/lib/data/categories";
 import {
   MAX_MERCHANT_TAGS,
   normalizeTagCode,
@@ -170,19 +170,49 @@ export async function updateProfile(
 
   const supabase = await createClient();
 
-  // Catégorie pilotée en base (mig 0311) : seul un code ACTIF est accepté
-  // (sauf si le commerçant conserve sa catégorie actuelle, même désactivée).
-  const { data: cur } = await supabase
-    .from("merchants")
-    .select("category")
-    .eq("id", merchant.id)
-    .maybeSingle();
-  if (
-    parsed.data.category &&
-    parsed.data.category !== cur?.category &&
-    !(await isActiveCategory(parsed.data.category))
-  ) {
-    return { error: "Cette catégorie n'est pas disponible." };
+  // PHASE 2 multi-catégories : liste depuis le champ `categories` (JSON, la
+  // 1re = principale). Chaque NOUVEAU code doit être ACTIF (mig 0311) ; les
+  // codes déjà portés par le commerçant restent conservables. Écriture des
+  // liaisons sous RLS owner (mig 0312), FK = codes existants uniquement.
+  let catList: string[] = [];
+  try {
+    const raw = formData.get("categories");
+    if (typeof raw === "string" && raw) {
+      catList = (JSON.parse(raw) as unknown[])
+        .filter((x): x is string => typeof x === "string")
+        .slice(0, 8);
+    }
+  } catch {
+    /* champ absent/malformé → repli catégorie simple */
+  }
+  if (catList.length === 0 && parsed.data.category)
+    catList = [parsed.data.category];
+  catList = [...new Set(catList)];
+
+  const [{ data: cur }, { data: curLinksRaw }, allCats] = await Promise.all([
+    supabase
+      .from("merchants")
+      .select("category")
+      .eq("id", merchant.id)
+      .maybeSingle(),
+    supabase
+      .from("merchant_category_links" as never)
+      .select("code")
+      .eq("merchant_id", merchant.id),
+    getAllCategories(),
+  ]);
+  const owned = new Set([
+    ...((curLinksRaw ?? []) as unknown as { code: string }[]).map(
+      (r) => r.code
+    ),
+    ...(cur?.category ? [cur.category] : []),
+  ]);
+  for (const code of catList) {
+    if (owned.has(code)) continue;
+    const cat = allCats.find((c) => c.code === code);
+    if (!cat || cat.status !== "active") {
+      return { error: "Une des catégories choisies n'est pas disponible." };
+    }
   }
 
   // Si le nom change, on régénère un slug unique côté DB (fonction SQL).
@@ -201,7 +231,8 @@ export async function updateProfile(
     .update({
       name: parsed.data.name,
       slug,
-      category: parsed.data.category,
+      // Catégorie PRINCIPALE = 1re de la sélection multiple.
+      category: catList[0] ?? parsed.data.category,
       wilaya_code: parsed.data.wilaya_code,
       commune: parsed.data.commune,
       address: parsed.data.address,
@@ -221,6 +252,21 @@ export async function updateProfile(
     .eq("id", merchant.id);
 
   if (error) return { error: `Erreur : ${error.message}` };
+
+  // Remplace les LIAISONS multi-catégories (RLS owner ; le trigger de la
+  // mig 0312 garantit de toute façon la principale). Best-effort : un échec
+  // ici ne perd pas le profil déjà enregistré.
+  await supabase
+    .from("merchant_category_links" as never)
+    .delete()
+    .eq("merchant_id", merchant.id);
+  if (catList.length > 0) {
+    await supabase
+      .from("merchant_category_links" as never)
+      .insert(
+        catList.map((code) => ({ merchant_id: merchant.id, code })) as never
+      );
+  }
 
   revalidatePath("/settings");
   revalidatePath("/dashboard", "layout");

@@ -9,7 +9,8 @@ import {
   firstZodError,
 } from "@/lib/validation/auth";
 import { suggestedMinOrderForCategory } from "@/lib/config/payment-limits";
-import { isActiveCategory } from "@/lib/data/categories";
+import { getAllCategories } from "@/lib/data/categories";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type AuthState = {
   error?: string;
@@ -227,12 +228,32 @@ export async function signup(
     return { error: "Adresse email invalide." };
   }
 
-  // Catégorie pilotée en base (mig 0311) : seul un code ACTIF est accepté —
-  // un statut masqué / « bientôt disponible » est refusé même si le client
-  // force la valeur (bypass-proof).
-  if (category && !(await isActiveCategory(category))) {
-    return { error: "Cette catégorie n'est pas disponible." };
+  // PHASE 2 multi-catégories : liste depuis `categories` (JSON, 1re =
+  // principale). À l'inscription, CHAQUE code doit être ACTIF (mig 0311) —
+  // masqué / « bientôt disponible » refusé même si le client force la valeur.
+  let catList: string[] = [];
+  try {
+    const raw = formData.get("categories");
+    if (typeof raw === "string" && raw) {
+      catList = (JSON.parse(raw) as unknown[])
+        .filter((x): x is string => typeof x === "string")
+        .slice(0, 8);
+    }
+  } catch {
+    /* champ absent → repli catégorie simple */
   }
+  if (catList.length === 0 && category) catList = [category];
+  catList = [...new Set(catList)];
+  if (catList.length > 0) {
+    const allCats = await getAllCategories();
+    for (const code of catList) {
+      const cat = allCats.find((c) => c.code === code);
+      if (!cat || cat.status !== "active") {
+        return { error: "Une des catégories choisies n'est pas disponible." };
+      }
+    }
+  }
+  const primaryCategory = catList[0] ?? category;
 
   // Position carte → nombres bornés (obligatoire, choisie sur la carte).
   const lat = Number(latitude);
@@ -332,7 +353,7 @@ export async function signup(
       latitude: lat,
       longitude: lng,
       address,
-      category,
+      category: primaryCategory,
       wilaya_code: wilayaCode,
       city,
       // Validation obligatoire (mig 0273) : créé EN ATTENTE. is_active=false
@@ -342,7 +363,7 @@ export async function signup(
       // Pré-remplit le minimum de commande selon le panier moyen de la catégorie
       // (étude pouvoir d'achat algérien). Le commerçant peut le monter dans ses
       // réglages ; le plancher Coligo s'applique côté checkout.
-      min_order_da: suggestedMinOrderForCategory(category),
+      min_order_da: suggestedMinOrderForCategory(primaryCategory),
     });
     merchantError = error;
     if (!error) break;
@@ -357,6 +378,27 @@ export async function signup(
     return {
       error: `Compte créé mais erreur création boutique : ${merchantError.message}. Réessayez avec les mêmes email et mot de passe — l'inscription reprendra où elle s'est arrêtée.`,
     };
+  }
+
+  // Liaisons multi-catégories (mig 0312) — via service_role (l'inscription
+  // sans session confirmée n'a pas de auth.uid pour la RLS owner) ; codes
+  // déjà validés ACTIFS ci-dessus, FK = catégories existantes. Best-effort :
+  // le trigger garantit de toute façon la principale.
+  if (catList.length > 1) {
+    const { data: createdShop } = await supabase
+      .from("merchants")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (createdShop) {
+      const adminDb = createAdminClient();
+      await adminDb.from("merchant_category_links" as never).insert(
+        catList.map((code) => ({
+          merchant_id: createdShop.id,
+          code,
+        })) as never
+      );
+    }
   }
 
   if (!hasSession) {

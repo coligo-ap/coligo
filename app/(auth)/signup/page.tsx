@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/shared/logo";
 import { signup, type AuthState } from "@/app/(merchant)/actions";
-import { useCategories } from "@/lib/hooks/use-categories";
+import { CategoryMultiSelect } from "@/components/merchant/settings/category-multi-select";
 import { APP_CONFIG } from "@/lib/config/app-config";
-import { Mail, Lock, Store, Tag, ArrowRight, UserRound } from "lucide-react";
+import { Mail, Lock, Store, ArrowRight, UserRound } from "lucide-react";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
 import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
@@ -22,14 +22,12 @@ const initialState: AuthState = {};
 const HERO_IMG =
   "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1400&q=80";
 
-const SELECT_CLASS =
-  "appearance-none flex h-10 w-full rounded-[10px] border border-border-strong bg-white pl-9 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 disabled:cursor-not-allowed disabled:opacity-50";
-
 export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signup, initialState);
-  // Catégories pilotées en base (statuts admin) : masquées exclues, « bientôt
-  // disponible » affichées grisées (le serveur refuse de toute façon).
-  const categories = useCategories().filter((c) => c.status !== "hidden");
+  // PHASE 2 : sélection MULTIPLE de types de commerce (la 1re = principale) —
+  // un restaurant peut cocher pizzeria + fast-food, une supérette ajouter
+  // boulangerie… Statuts admin respectés (serveur revalide).
+  const [cats, setCats] = useState<string[]>([]);
   // Emplacement (wilaya + commune + position confirmée) — obligatoire.
   const [locationValid, setLocationValid] = useState(false);
 
@@ -141,34 +139,18 @@ export default function SignupPage() {
                   </div>
                 </div>
 
-                {/* Catégorie */}
+                {/* Types de commerce (multi-sélection cherchable) */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="category">Catégorie</Label>
-                  <div className="relative">
-                    <Tag className="text-subtle pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2" />
-                    <ChevronIcon />
-                    <select
-                      id="category"
-                      name="category"
-                      disabled={pending}
-                      className={SELECT_CLASS}
-                      defaultValue=""
-                    >
-                      <option value="">— Sélectionner une catégorie —</option>
-                      {categories.map((c) => (
-                        <option
-                          key={c.code}
-                          value={c.code}
-                          disabled={c.status === "coming_soon"}
-                        >
-                          {c.emoji} {c.label}
-                          {c.status === "coming_soon"
-                            ? " — bientôt disponible"
-                            : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <Label>Types de commerce</Label>
+                  <CategoryMultiSelect
+                    value={cats}
+                    onChange={setCats}
+                    disabled={pending}
+                  />
+                  <p className="text-subtle text-xs">
+                    Plusieurs types possibles (ex. pizzeria + fast-food) — le
+                    premier est votre type principal.
+                  </p>
                 </div>
 
                 {/* Emplacement de la boutique — wilaya + commune → carte
@@ -312,23 +294,5 @@ function Stat({ value, label }: { value: string; label: string }) {
       <div className="text-xl font-bold">{value}</div>
       <div className="text-xs text-white/80">{label}</div>
     </div>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg
-      className="text-subtle pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      aria-hidden
-    >
-      <path
-        fillRule="evenodd"
-        d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
-        clipRule="evenodd"
-      />
-    </svg>
   );
 }
