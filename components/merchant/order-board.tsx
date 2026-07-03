@@ -486,6 +486,11 @@ function CardActions({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [refusing, setRefusing] = useState(false);
+  // Succès affiché SUR LE BOUTON (« ✓ Commande prête » ~2 s) — règle produit :
+  // pas de toast de succès répétitif, ils encombrent l'écran du comptoir. La
+  // carte glisse ensuite dans sa nouvelle colonne via le refresh ; le filet
+  // 2,5 s réarme le bouton si le refresh traîne.
+  const [done, setDone] = useState<string | null>(null);
 
   const move = (to: OrderWithItems["status"], note?: string, okMsg?: string) =>
     start(async () => {
@@ -500,9 +505,10 @@ function CardActions({
         }
         return;
       }
-      toast.success(okMsg ?? "Mis à jour");
+      setDone(okMsg ?? "C'est fait");
       setRefusing(false);
       router.refresh();
+      setTimeout(() => setDone(null), 2500);
     });
 
   // Annulation DURCIE (mig 0117) : passe par merchant_cancel_order (refus si la
@@ -579,16 +585,26 @@ function CardActions({
       <div className="flex items-center gap-1.5">
         <button
           type="button"
-          onClick={() => move("preparing", undefined, "Commande acceptée")}
-          disabled={pending}
-          className="bg-success-600 hover:bg-success-700 inline-flex flex-1 items-center justify-center gap-1 rounded-[10px] py-2 text-sm font-bold text-white disabled:opacity-50"
+          onClick={() => move("preparing", undefined, "Acceptée")}
+          disabled={pending || !!done}
+          className={cn(
+            "bg-success-600 hover:bg-success-700 inline-flex flex-1 items-center justify-center gap-1 rounded-[10px] py-2 text-sm font-bold text-white",
+            done ? "disabled:opacity-100" : "disabled:opacity-50"
+          )}
         >
-          {pending ? (
+          {done ? (
+            <>
+              <Check className="size-4" />
+              {done}
+            </>
+          ) : pending ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
-            <Check className="size-4" />
+            <>
+              <Check className="size-4" />
+              Accepter
+            </>
           )}
-          Accepter
         </button>
         <button
           type="button"
@@ -609,15 +625,27 @@ function CardActions({
         <button
           type="button"
           onClick={() => move("ready", undefined, "Commande prête")}
-          disabled={pending}
-          className="bg-primary-600 hover:bg-primary-700 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white disabled:opacity-50"
+          disabled={pending || !!done}
+          className={cn(
+            "inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white",
+            done
+              ? "bg-success-600 disabled:opacity-100"
+              : "bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
+          )}
         >
-          {pending ? (
+          {done ? (
+            <>
+              <Check className="size-4" />
+              {done}
+            </>
+          ) : pending ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
-            <Check className="size-4" />
+            <>
+              <Check className="size-4" />
+              Marquer prête
+            </>
           )}
-          Marquer prête
         </button>
         {cancelLink}
       </div>

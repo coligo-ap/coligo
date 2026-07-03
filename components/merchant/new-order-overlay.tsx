@@ -259,7 +259,8 @@ export function NewOrderOverlay({
         else resolvedRef.current = false;
         return;
       }
-      toast.success("Commande acceptée — en préparation");
+      // Pas de toast de succès : l'overlay se ferme et la carte apparaît dans
+      // la colonne « En préparation » — retour visuel suffisant (anti-toast).
       onResolved();
     });
   }, [orderId, onResolved]);
@@ -282,7 +283,7 @@ export function NewOrderOverlay({
           else resolvedRef.current = false;
           return;
         }
-        toast.success("Commande refusée");
+        // Pas de toast : l'overlay se ferme, la commande disparaît du board.
         onResolved();
       });
     },

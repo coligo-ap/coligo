@@ -21,7 +21,6 @@ import {
 } from "@/lib/customer/cart-store";
 import { trackViewItem } from "@/lib/analytics/ecommerce";
 import { useCartAdd } from "@/components/customer/cart-mono-provider";
-import { toast } from "@/components/ui/toast";
 import type { PublicProduct } from "@/lib/data/customer-catalog";
 
 type Props = {
@@ -174,12 +173,10 @@ export function ProductDetailSheet({
   function addOrUpdate() {
     if (!canAdd) return;
     if (inCart) {
+      // Pas de toast « quantité mise à jour » (règle produit anti-toast) :
+      // la barre panier et la ligne produit reflètent déjà la nouvelle
+      // quantité — retour visuel immédiat sans encombrer l'écran.
       setItemQuantity(lineKey, qty);
-      toast.success(
-        t("quantityUpdated", {
-          qty: fractional ? formatQty(qty, product!.unit, locale) : qty,
-        })
-      );
     } else {
       requestAdd(merchant, {
         product_id: product!.id,

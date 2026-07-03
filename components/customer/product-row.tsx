@@ -18,7 +18,6 @@ import {
   useCartFor,
 } from "@/lib/customer/cart-store";
 import { useCartAdd } from "@/components/customer/cart-mono-provider";
-import { toast } from "@/components/ui/toast";
 import { cldUrl } from "@/lib/images/cloudinary";
 import {
   formatQty,
@@ -139,10 +138,8 @@ export function ProductRow({
     setActiveMerchant(merchant.id);
     const next = roundQty(inCart.quantity - step);
     // Sous le minimum (pas d'unité ou min commerçant) → la ligne saute.
+    // Pas de toast : le stepper qui redevient « + » est le retour visuel.
     setItemQuantity(inCart.line_key, next < minQ ? 0 : next);
-    if (next < minQ) {
-      toast.success(t("removedFromCart", { name: product.name_fr }));
-    }
   }
 
   return (

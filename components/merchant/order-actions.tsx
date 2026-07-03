@@ -43,6 +43,10 @@ export function OrderActions({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Succès affiché SUR LE BOUTON (« ✓ En préparation » ~2 s) puis la page se
+  // rafraîchit vers l'étape suivante — règle produit : pas de toast de succès
+  // répétitif. Erreurs = INLINE sous les boutons (pas de toast non plus).
+  const [done, setDone] = useState<string | null>(null);
 
   function run(to: OrderStatus) {
     setError(null);
@@ -64,15 +68,14 @@ export function OrderActions({
         const res = outcome.result;
         if (res.error) {
           setError(res.error);
-          toast.error(res.error);
           return;
         }
-        toast.success(`Commande : ${ORDER_STATUS_META[to].label}`);
+        setDone(ORDER_STATUS_META[to].label);
         router.refresh();
+        setTimeout(() => setDone(null), 2500);
       } catch (e) {
         const message = e instanceof Error ? e.message : "Erreur inattendue.";
         setError(message);
-        toast.error(message);
       }
     });
   }
@@ -120,16 +123,26 @@ export function OrderActions({
         // éteint). Le commerçant encaisse et confirme avec le numéro de commande.
         <Button
           size="lg"
-          className="w-full"
-          disabled={pending}
+          className={cn(
+            "w-full",
+            done && "bg-success-600 hover:bg-success-600"
+          )}
+          disabled={pending || !!done}
           onClick={() => run("completed")}
         >
-          {pending ? (
+          {done ? (
+            <>
+              <Check className="size-4" />
+              {done}
+            </>
+          ) : pending ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
-            <Check className="size-4" />
+            <>
+              <Check className="size-4" />
+              Confirmer le retrait (espèces)
+            </>
           )}
-          Confirmer le retrait (espèces)
         </Button>
       ) : status === "ready" ? (
         <Link
@@ -143,16 +156,26 @@ export function OrderActions({
         next && (
           <Button
             size="lg"
-            className="w-full"
-            disabled={pending}
+            className={cn(
+              "w-full",
+              done && "bg-success-600 hover:bg-success-600"
+            )}
+            disabled={pending || !!done}
             onClick={() => run(next.to)}
           >
-            {pending ? (
+            {done ? (
+              <>
+                <Check className="size-4" />
+                {done}
+              </>
+            ) : pending ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Check className="size-4" />
+              <>
+                <Check className="size-4" />
+                {next.label}
+              </>
             )}
-            {next.label}
           </Button>
         )
       )}
