@@ -12,7 +12,11 @@ export type PlayOptions = {
 };
 
 /**
- * Son d'alerte pour les nouvelles commandes.
+ * Son d'alerte pour les nouvelles commandes / demandes.
+ *
+ * `src` est paramétrable : défaut `/alert.wav` (commerçant, client) ; les
+ * espaces livreur/chauffeur passent leur propre fichier (ex.
+ * `/sounds/new-request.mp3`).
  *
  * Workaround autoplay : la plupart des navigateurs bloquent toute lecture
  * audio tant qu'aucun geste utilisateur n'a eu lieu sur la page. `unlock()`
@@ -23,7 +27,7 @@ export type PlayOptions = {
  * — pour que le commerçant ne rate pas une commande même s'il regarde
  * ailleurs.
  */
-export function useAlertSound() {
+export function useAlertSound(src: string = SRC) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const repeatRef = useRef<{
     on: boolean;
@@ -38,7 +42,7 @@ export function useAlertSound() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const a = new Audio(SRC);
+    const a = new Audio(src);
     a.preload = "auto";
     a.volume = 0.9;
     audioRef.current = a;
@@ -70,7 +74,7 @@ export function useAlertSound() {
       }
       audioRef.current = null;
     };
-  }, []);
+  }, [src]);
 
   const unlock = useCallback(async (): Promise<boolean> => {
     const a = audioRef.current;

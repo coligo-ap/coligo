@@ -5,6 +5,7 @@ import { useCallback, useRef, useState, useTransition } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
+  Clock,
   Hash,
   Loader2,
   QrCode,
@@ -16,7 +17,16 @@ import { enqueueOrExecute } from "@/lib/offline/queue";
 import { QrScanner } from "@/components/scanner/qr-scanner";
 
 type Tab = "code" | "qr";
-type Result = { ok: boolean; message: string; orderId?: string };
+/** `kind` pilote le TITRE du panneau de succès — chaque situation a son
+ *  message : retrait validé ≠ commande simplement marquée prête ≠ action
+ *  enregistrée hors ligne. */
+type ResultKind = "completed" | "ready" | "queued" | "error";
+type Result = {
+  ok: boolean;
+  kind: ResultKind;
+  message: string;
+  orderId?: string;
+};
 
 /**
  * Extrait un code 6 chiffres d'une string scannée. Le QR Coligo encode
@@ -113,8 +123,9 @@ export function PickupValidator() {
           buzz(60);
           setResult({
             ok: true,
+            kind: "queued",
             message:
-              "Hors ligne — le retrait sera enregistré dès le retour du réseau.",
+              "Vous êtes hors ligne : le retrait sera validé automatiquement dès le retour du réseau.",
           });
           return;
         }
@@ -136,13 +147,14 @@ export function PickupValidator() {
         buzz(ok ? 60 : [80, 60, 80]);
         setResult({
           ok,
+          kind: ok ? "completed" : "error",
           message: res.error ?? res.success ?? "",
           orderId: res.orderId,
         });
       } catch (e) {
         const message = e instanceof Error ? e.message : "Erreur inattendue.";
         buzz([80, 60, 80]);
-        setResult({ ok: false, message });
+        setResult({ ok: false, kind: "error", message });
       }
     });
   }
@@ -162,8 +174,9 @@ export function PickupValidator() {
           buzz(60);
           setResult({
             ok: true,
+            kind: "queued",
             message:
-              "Hors ligne — la commande sera marquée prête dès le retour du réseau.",
+              "Vous êtes hors ligne : la commande sera marquée prête dès le retour du réseau.",
           });
           return;
         }
@@ -172,15 +185,16 @@ export function PickupValidator() {
         buzz(ok ? 60 : [80, 60, 80]);
         setResult({
           ok,
+          kind: ok ? "ready" : "error",
           message: ok
-            ? `Commande ${prompt.orderNumber ? `#${prompt.orderNumber} ` : ""}marquée prête — validez le retrait quand le client la récupère.`
+            ? `La commande ${prompt.orderNumber ? `#${prompt.orderNumber} ` : ""}de ${prompt.customerName} est marquée prête et le client est prévenu. Le retrait reste À VALIDER quand il récupère sa commande.`
             : (res.error ?? ""),
           orderId: prompt.orderId,
         });
       } catch (e) {
         const message = e instanceof Error ? e.message : "Erreur inattendue.";
         buzz([80, 60, 80]);
-        setResult({ ok: false, message });
+        setResult({ ok: false, kind: "error", message });
       }
     });
   }
@@ -272,26 +286,37 @@ function ReadyPromptModal({
           est encore « {prompt.statusLabel} ». Vous pouvez la marquer prête, ou
           tout faire d&apos;un coup si le client est devant vous.
         </p>
-        <div className="mt-6 grid gap-2">
-          <Button size="lg" disabled={pending} onClick={onMarkReadyAndComplete}>
-            Marquer prête + valider le retrait
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            disabled={pending}
-            onClick={onMarkReady}
-          >
-            Marquer prête seulement
-          </Button>
+        {/* Deux issues SUR LA MÊME LIGNE, couleurs distinctes : ambre = juste
+            prête (étape intermédiaire), vert = prête + retrait (finalisé). */}
+        <div className="mt-6 grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={onDismiss}
-            className="text-muted hover:text-foreground mt-1 text-sm font-medium"
+            disabled={pending}
+            onClick={onMarkReady}
+            className="bg-warning-500 hover:bg-warning-600 flex min-h-12 items-center justify-center rounded-[12px] px-2 text-center text-[13px] leading-tight font-bold text-white transition active:scale-[0.98] disabled:opacity-60"
           >
-            Annuler
+            Marquer prête
+            <br />
+            seulement
+          </button>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={onMarkReadyAndComplete}
+            className="bg-success-600 hover:bg-success-700 flex min-h-12 items-center justify-center rounded-[12px] px-2 text-center text-[13px] leading-tight font-bold text-white transition active:scale-[0.98] disabled:opacity-60"
+          >
+            Prête + valider
+            <br />
+            le retrait
           </button>
         </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="text-muted hover:text-foreground mt-3 text-sm font-medium"
+        >
+          Annuler
+        </button>
       </div>
     </div>
   );
@@ -501,11 +526,58 @@ function SuccessPanel({
   result: Result;
   onReset: () => void;
 }) {
+  // Chaque situation a SON message : un retrait validé n'est pas la même
+  // chose qu'une commande simplement marquée prête, ni qu'une action mise en
+  // file hors ligne. Titre + ton + libellé du bouton adaptés.
+  const meta =
+    result.kind === "ready"
+      ? {
+          title: "Commande marquée prête",
+          tone: "warning" as const,
+          again: "Scanner une autre commande",
+        }
+      : result.kind === "queued"
+        ? {
+            title: "Enregistré — en attente de réseau",
+            tone: "warning" as const,
+            again: "Scanner une autre commande",
+          }
+        : {
+            title: "Retrait validé",
+            tone: "success" as const,
+            again: "Valider un autre retrait",
+          };
+  const isWarn = meta.tone === "warning";
   return (
-    <div className="border-success-200 bg-success-50 rounded-[16px] border p-6 text-center">
-      <CheckCircle2 className="text-success-600 mx-auto mb-3 size-12" />
-      <p className="text-success-800 text-lg font-semibold">Retrait validé</p>
-      <p className="text-success-700 mt-1 text-sm">{result.message}</p>
+    <div
+      className={cn(
+        "rounded-[16px] border p-6 text-center",
+        isWarn
+          ? "border-warning-200 bg-warning-50"
+          : "border-success-200 bg-success-50"
+      )}
+    >
+      {isWarn ? (
+        <Clock className="text-warning-600 mx-auto mb-3 size-12" />
+      ) : (
+        <CheckCircle2 className="text-success-600 mx-auto mb-3 size-12" />
+      )}
+      <p
+        className={cn(
+          "text-lg font-semibold",
+          isWarn ? "text-warning-800" : "text-success-800"
+        )}
+      >
+        {meta.title}
+      </p>
+      <p
+        className={cn(
+          "mt-1 text-sm",
+          isWarn ? "text-warning-700" : "text-success-700"
+        )}
+      >
+        {result.message}
+      </p>
       <div className="mt-5 flex flex-col gap-2">
         {result.orderId && (
           <Link
@@ -519,7 +591,7 @@ function SuccessPanel({
           </Link>
         )}
         <Button size="lg" className="w-full" onClick={onReset}>
-          Valider un autre retrait
+          {meta.again}
         </Button>
       </div>
     </div>

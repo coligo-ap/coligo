@@ -15,14 +15,15 @@
 
 import { isDriverSoundOn } from "@/lib/driver/sound-store";
 
-// Aucun fichier mp3 n'est livré pour l'instant (public/sounds/ absent) : on va
-// DIRECTEMENT à la synthèse Web Audio. Tenter de charger les .mp3 inexistants
-// générait des 404 répétés en console. Repasser à `true` le jour où des fichiers
-// audio sont ajoutés dans public/sounds/.
+// Seul fichier LIVRÉ : /sounds/new-request.mp3 (son de réception de course,
+// partagé livreur + chauffeur). online.mp3 / alert.mp3 n'existent pas → leurs
+// play* gardent la synthèse directe (tenter de charger un mp3 inexistant
+// générait des 404 répétés en console).
 const USE_SOUND_FILES = false;
+export const NEW_REQUEST_SRC = "/sounds/new-request.mp3";
 
-function tryFile(src: string): Promise<boolean> {
-  if (!USE_SOUND_FILES) return Promise.resolve(false);
+function tryFile(src: string, force = false): Promise<boolean> {
+  if (!USE_SOUND_FILES && !force) return Promise.resolve(false);
   return new Promise((resolve) => {
     try {
       const a = new Audio(src);
@@ -203,6 +204,8 @@ export async function playAlert() {
 
 export async function playNewOrder() {
   if (!isDriverSoundOn()) return;
-  if (await tryFile("/sounds/new-order.mp3")) return;
+  // Fichier dédié « réception de demande » (le même que le chauffeur) ;
+  // synthèse en repli si la lecture échoue (autoplay bloqué, cache froid…).
+  if (await tryFile(NEW_REQUEST_SRC, true)) return;
   synthNewOrder();
 }

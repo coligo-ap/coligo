@@ -69,7 +69,8 @@ export function ExpressOffer({
   const firedTimeout = useRef(false);
   const onTimeoutRef = useRef(onTimeout);
   onTimeoutRef.current = onTimeout;
-  const { play, stop, unlock } = useAlertSound();
+  // Sonnerie dédiée « réception de course » (fichier partagé livreur/chauffeur).
+  const { play, stop, unlock } = useAlertSound("/sounds/new-request.mp3");
 
   // Sonnerie + vibration tant que l'offre est affichée (cf. son maquette). La
   // sonnerie respecte la préférence « Sons » du livreur ; la vibration reste.

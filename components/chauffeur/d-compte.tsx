@@ -21,9 +21,15 @@ import {
   ShieldAlert,
   Smartphone,
   Sun,
+  Volume2,
+  VolumeX,
   Wallet,
   X,
 } from "lucide-react";
+import {
+  toggleChauffeurSound,
+  useChauffeurSound,
+} from "@/lib/chauffeur/sound-store";
 import { formatDA } from "@/lib/utils";
 import { setTheme } from "@/lib/theme/actions";
 import { reverseGeocode } from "@/lib/geo/geocode";
@@ -308,6 +314,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
           onClick={switchLang}
         />
         <DarkModeRow />
+        <SoundRow />
       </PartnerMenuGroup>
 
       {/* Déconnexion — erreur INLINE sous le bouton (règle produit, pas de toast). */}
@@ -534,6 +541,39 @@ function DarkModeRow() {
           <span
             className="absolute top-[2px] size-[18px] rounded-full bg-white shadow transition-all"
             style={{ insetInlineStart: dark ? 18 : 2 }}
+          />
+        </span>
+      }
+    />
+  );
+}
+
+/** Interrupteur « Sons » (sonnerie de course entrante) — même patron que le
+ *  mode sombre : préférence locale instantanée (sound-store chauffeur), la
+ *  vibration reste active quoi qu'il arrive (canal séparé). */
+function SoundRow() {
+  const on = useChauffeurSound();
+  return (
+    <PartnerMenuRow
+      icon={
+        on ? (
+          <Volume2 className="size-4" style={{ color: VIOLET }} />
+        ) : (
+          <VolumeX className="size-4" style={{ color: VIOLET }} />
+        )
+      }
+      label="Sons de notification"
+      onClick={() => toggleChauffeurSound()}
+      trailing={
+        <span
+          role="switch"
+          aria-checked={on}
+          className="relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors"
+          style={{ background: on ? VIOLET : "#D6D9E2" }}
+        >
+          <span
+            className="absolute top-[2px] size-[18px] rounded-full bg-white shadow transition-all"
+            style={{ insetInlineStart: on ? 18 : 2 }}
           />
         </span>
       }

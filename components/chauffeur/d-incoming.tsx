@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { ArrowRight, Bell, Check, MapPin, X } from "lucide-react";
 import { GO, ROSE, VIOLET } from "@/components/customer/drive/drive-modals";
+import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
+import { isChauffeurSoundOn } from "@/lib/chauffeur/sound-store";
 import type { NearbyRide } from "@/app/(chauffeur)/actions";
 
 const fmtkm = (v: number) =>
@@ -47,6 +50,24 @@ export function DIncoming({
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const price = ride.proposed_price_da + ride.boost_amount_da;
   const female = ride.female_only;
+
+  // Sonnerie + vibration tant que la carte est affichée — même patron que
+  // l'offre Express livreur. Respecte la préférence « Sons » du chauffeur
+  // (Compte > Préférences) ; la vibration reste (canal séparé).
+  const { play, stop, unlock } = useAlertSound("/sounds/new-request.mp3");
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      if (!isChauffeurSoundOn()) return;
+      await unlock();
+      if (active) await play({ repeat: true, intervalMs: 3000 });
+    })();
+    vibrate([0, 90, 60, 90]);
+    return () => {
+      active = false;
+      stop();
+    };
+  }, [play, stop, unlock]);
 
   return (
     // Positionnée SOUS les coins du bandeau haut (menu à gauche, GPS à droite)
