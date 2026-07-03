@@ -2,15 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import {
-  ChevronLeft,
-  Gift,
-  LayoutGrid,
-  Rows3,
-  Search,
-  ShoppingBag,
-  X,
-} from "lucide-react";
+import { ChevronLeft, Gift, LayoutGrid, Rows3, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useMerchantSearch,
@@ -94,7 +86,6 @@ export function MerchantCatalog({
     } catch {
       /* stockage indisponible → défaut commerçant */
     }
-     
   }, [displayKey]);
   function switchDisplay(v: "list" | "categories") {
     setDisplay(v);
@@ -466,14 +457,17 @@ export function MerchantCatalog({
       {/* MODE CATÉGORIES (sans recherche) : grille de cartes OU drill-down. */}
       {!q && display === "categories" && openCat === null && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {groups.map((g) => (
-            <button
-              key={g.key}
-              type="button"
-              onClick={() => setOpenCat(g.key)}
-              className="border-border bg-surface hover:border-primary-300 group overflow-hidden rounded-[16px] border text-start shadow-[0_2px_8px_-4px_rgba(40,35,90,0.12)] transition active:scale-[0.98]"
-            >
-              <div className="bg-surface-2 relative aspect-[4/3] w-full overflow-hidden">
+          {groups.map((g) => {
+            const title = g.category?.title ?? t("otherCategory");
+            return (
+              <button
+                key={g.key}
+                type="button"
+                onClick={() => setOpenCat(g.key)}
+                aria-label={title}
+                className="group relative aspect-[5/4] overflow-hidden rounded-[18px] text-start shadow-[0_10px_24px_-12px_rgba(40,35,90,0.35)] transition-transform duration-150 active:scale-[0.97]"
+              >
+                {/* Fond : photo plein cadre, ou dégradé de marque en repli. */}
                 {g.category?.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -481,24 +475,46 @@ export function MerchantCatalog({
                     alt=""
                     loading="lazy"
                     decoding="async"
-                    className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.04]"
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
                   />
                 ) : (
-                  <div className="from-primary-500/15 to-surface-3 flex h-full w-full items-center justify-center bg-gradient-to-br">
-                    <ShoppingBag className="text-primary-300 size-8" />
+                  <div className="from-primary-600 via-primary-700 to-primary-900 absolute inset-0 bg-gradient-to-br">
+                    {/* Grande initiale en filigrane — identité sans photo. */}
+                    <span
+                      aria-hidden
+                      className="absolute -end-2 -bottom-5 text-[92px] leading-none font-black text-white/10 select-none"
+                    >
+                      {title.charAt(0).toUpperCase()}
+                    </span>
                   </div>
                 )}
-              </div>
-              <div className="p-3">
-                <p className="text-foreground truncate text-sm font-bold">
-                  {g.category?.title ?? t("otherCategory")}
-                </p>
-                <p className="text-subtle mt-0.5 text-xs font-semibold">
+
+                {/* Voile de lisibilité : sombre en bas, transparent en haut. */}
+                <div
+                  aria-hidden
+                  className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/0"
+                />
+
+                {/* Compteur — pastille givrée en haut. */}
+                <span className="absolute start-2.5 top-2.5 rounded-full bg-white/20 px-2 py-0.5 text-[10.5px] font-bold text-white backdrop-blur-md">
                   {t("productCount", { count: g.items.length })}
-                </p>
-              </div>
-            </button>
-          ))}
+                </span>
+
+                {/* Titre + flèche d'affordance en bas. */}
+                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3">
+                  <span className="line-clamp-2 text-[15px] leading-tight font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]">
+                    {title}
+                  </span>
+                  <span
+                    aria-hidden
+                    className="text-primary-700 flex size-7 shrink-0 items-center justify-center rounded-full bg-white shadow-md transition-transform duration-150 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5"
+                  >
+                    <ChevronLeft className="size-4 rotate-180 rtl:-rotate-0" />
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
 
