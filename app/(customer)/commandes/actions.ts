@@ -368,3 +368,54 @@ export async function fetchMyOrders(): Promise<CustomerOrderRow[]> {
     };
   });
 }
+
+export type ActiveOrderLite = {
+  id: string;
+  status: OrderStatus;
+  order_number: string | null;
+  fulfillment_type: "pickup" | "delivery";
+  merchant_name: string;
+  merchant_logo: string | null;
+};
+
+/**
+ * Commandes EN COURS du client (bandeau live au-dessus de la bottom-nav).
+ * Volontairement LÉGER (pas d'items, pas d'avis) : appelé en polling par le
+ * bandeau. Même gating paiement que fetchMyOrders (l'online non payé n'existe
+ * pas pour le client tant que le webhook n'a pas confirmé).
+ */
+export async function fetchMyActiveOrders(): Promise<ActiveOrderLite[]> {
+  const customer = await getCurrentCustomer();
+  if (!customer) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("orders")
+    .select(
+      "id, status, order_number, fulfillment_type, merchants ( name, logo_url )"
+    )
+    .eq("customer_id", customer.id)
+    .in("status", ["pending", "accepted", "preparing", "ready"])
+    .or(
+      "payment_method.eq.cash,and(payment_method.eq.online,payment_status.eq.paid)"
+    )
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  return (data ?? []).map((o) => {
+    const merchant = (
+      o as unknown as {
+        merchants: { name: string; logo_url: string | null } | null;
+      }
+    ).merchants;
+    return {
+      id: o.id,
+      status: o.status as OrderStatus,
+      order_number: o.order_number ?? null,
+      fulfillment_type:
+        (o.fulfillment_type as "pickup" | "delivery") ?? "pickup",
+      merchant_name: merchant?.name ?? "",
+      merchant_logo: merchant?.logo_url ?? null,
+    };
+  });
+}

@@ -444,6 +444,101 @@ body {
 }
 
 /* =============================================================================
+   BANDEAU « COMMANDES EN COURS » (client) — petite scène vivante : le cuisinier
+   se balance au-dessus de sa préparation, la vapeur monte, le libellé respire.
+   Non scopé à [data-checkout] : le bandeau vit au-dessus de la bottom-nav.
+   ========================================================================== */
+/* Cuisinier qui « travaille » : balancement doux + petit rebond de mallet. */
+@keyframes co-chef {
+  0%,
+  100% {
+    transform: rotate(-7deg) translateY(0);
+  }
+  25% {
+    transform: rotate(3deg) translateY(-1px);
+  }
+  50% {
+    transform: rotate(7deg) translateY(0);
+  }
+  75% {
+    transform: rotate(-3deg) translateY(-1px);
+  }
+}
+.co-chef {
+  display: inline-block;
+  transform-origin: 50% 85%;
+  animation: co-chef 1.6s ease-in-out infinite;
+}
+/* Volutes de vapeur : montent et s'évanouissent (décalées par nth-child). */
+@keyframes co-steam {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scaleX(0.8);
+  }
+  30% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scaleX(1.25);
+  }
+}
+.co-steam {
+  animation: co-steam 1.8s ease-out infinite;
+}
+.co-steam:nth-child(2) {
+  animation-delay: 0.6s;
+}
+.co-steam:nth-child(3) {
+  animation-delay: 1.1s;
+}
+/* Points de suspension « vivants » du libellé (préparation en cours…). */
+@keyframes co-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+.co-dot {
+  display: inline-block;
+  animation: co-dot 1.2s ease-in-out infinite;
+}
+.co-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.co-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+/* Sac « prêt » qui rebondit doucement (commande prête à récupérer). */
+@keyframes co-ready-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+.co-ready-bounce {
+  display: inline-block;
+  animation: co-ready-bounce 1.1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .co-chef,
+  .co-steam,
+  .co-dot,
+  .co-ready-bounce {
+    animation: none;
+  }
+}
+
+/* =============================================================================
    PANIER — entrée premium du bloc « Vos avantages » + badge promo de la barre
    « Voir mon panier ». Animation légère et fluide (pas d'effet agressif),
    réutilisable hors checkout (non scopée à [data-checkout]).

@@ -7,6 +7,7 @@ import { CartMonoProvider } from "@/components/customer/cart-mono-provider";
 import { CustomerHeader } from "@/components/customer/customer-header";
 import { CustomerFooter } from "@/components/customer/customer-footer";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
+import { ActiveOrdersBar } from "@/components/customer/active-orders-bar";
 import { PushRegistrar } from "@/components/native/push-registrar";
 import { TawkChat } from "@/components/support/tawk-chat";
 
@@ -92,6 +93,9 @@ export function CustomerChrome({
       )}
 
       {!bare && <CustomerFooter />}
+      {/* Bandeau live « commandes en cours » — au-dessus de la bottom-nav,
+          monté UNE FOIS dans la coque (persiste entre navigations). */}
+      {!bare && isAuth && userId && <ActiveOrdersBar userId={userId} />}
       {!bare && <CustomerBottomNav hiddenKeys={hiddenKeys} />}
 
       {/* FCM (no-op hors APK / si non connecté). Monté une fois ici. */}
