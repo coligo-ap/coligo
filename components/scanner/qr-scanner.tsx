@@ -39,8 +39,12 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Loader2, X } from "lucide-react";
+import { Camera, Flashlight, Loader2, SwitchCamera, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/** Caméra retenue par l'utilisateur (persistée : les Sunmi multi-caméras
+ *  choisissent parfois la mauvaise via facingMode — on retient la bonne). */
+const CAM_KEY = "coligo:qr-camera-id";
 
 type Props = {
   /** Appelé à chaque détection (ou une seule fois si `oneShot`). */
@@ -199,6 +203,13 @@ export function QrScanner({
 
   const [status, setStatus] = useState<Status>("starting");
   const [errMessage, setErrMessage] = useState<string | null>(null);
+  // Multi-caméras (Sunmi & co) : liste des entrées vidéo + redémarrage ciblé.
+  const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([]);
+  const [camNonce, setCamNonce] = useState(0);
+  const trackRef = useRef<MediaStreamTrack | null>(null);
+  // Torche (utile pour un ticket thermique dans une boutique sombre).
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   /** Émet vers onScan en respectant cooldown anti-doublon + oneShot. */
   const emit = useCallback(
@@ -240,7 +251,44 @@ export function QrScanner({
       }
       v.srcObject = null;
     }
+    trackRef.current = null;
   }, []);
+
+  /** Passe à la caméra suivante et redémarre le pipeline (choix persisté :
+   *  au prochain scan, la bonne caméra démarre directement). */
+  const switchCamera = useCallback(() => {
+    if (videoInputs.length < 2) return;
+    const currentId = trackRef.current?.getSettings?.().deviceId ?? null;
+    const idx = videoInputs.findIndex((c) => c.deviceId === currentId);
+    const next = videoInputs[(idx + 1) % videoInputs.length];
+    try {
+      window.localStorage.setItem(CAM_KEY, next.deviceId);
+    } catch {
+      /* préférence non mémorisée, sans gravité */
+    }
+    log("camera.switch", { to: next.label || next.deviceId });
+    cleanup();
+    setTorchOn(false);
+    setTorchSupported(false);
+    setStatus("starting");
+    setErrMessage(null);
+    setCamNonce((n) => n + 1);
+  }, [videoInputs, cleanup]);
+
+  /** Torche on/off (si le capteur la supporte). */
+  const toggleTorch = useCallback(async () => {
+    const track = trackRef.current;
+    if (!track) return;
+    const next = !torchOn;
+    try {
+      await track.applyConstraints({
+        advanced: [{ torch: next } as unknown as MediaTrackConstraintSet],
+      });
+      setTorchOn(next);
+    } catch {
+      /* torche refusée par le matériel : bouton sans effet */
+    }
+  }, [torchOn]);
 
   // ─── Démarrage AUTO au mount ────────────────────────────────────────────
   useEffect(() => {
@@ -285,57 +333,135 @@ export function QrScanner({
           return;
         }
 
-        // 2. getUserMedia (caméra arrière, fallback toute caméra dispo)
-        let stream: MediaStream;
+        // 2. getUserMedia — caméra MÉMORISÉE (deviceId) > arrière > n'importe
+        //    laquelle. Capture 1080p : un QR de ticket occupe peu de la frame,
+        //    plus de pixels = plus de modules exploitables par le décodeur.
+        let savedCamId: string | null = null;
         try {
-          log("gum.request", { facingMode: "environment" });
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: { ideal: "environment" },
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              frameRate: { ideal: 30 },
-            },
-            audio: false,
-          });
-          log("gum.ok");
-        } catch (err) {
-          const name = (err as { name?: string })?.name ?? "";
-          log("gum.failed-1", { name });
-          if (
-            name === "OverconstrainedError" ||
-            name === "ConstraintNotSatisfiedError" ||
-            name === "NotFoundError"
-          ) {
+          savedCamId = window.localStorage.getItem(CAM_KEY);
+        } catch {
+          /* stockage indisponible */
+        }
+        const baseVideo: MediaTrackConstraints = {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 },
+        };
+        let stream: MediaStream | null = null;
+        // Essai 1 : caméra retenue précédemment (si toujours branchée).
+        if (savedCamId) {
+          try {
+            log("gum.request", { deviceId: savedCamId });
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { ...baseVideo, deviceId: { exact: savedCamId } },
+              audio: false,
+            });
+            log("gum.ok-saved");
+          } catch (err) {
+            log("gum.saved-failed", { name: (err as { name?: string })?.name });
             try {
-              log("gum.retry-without-constraints");
-              stream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: false,
-              });
-              log("gum.retry-ok");
-            } catch (err2) {
+              window.localStorage.removeItem(CAM_KEY);
+            } catch {
+              /* ignored */
+            }
+          }
+        }
+        // Essai 2 : caméra arrière.
+        if (!stream) {
+          try {
+            log("gum.request", { facingMode: "environment" });
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { ...baseVideo, facingMode: { ideal: "environment" } },
+              audio: false,
+            });
+            log("gum.ok");
+          } catch (err) {
+            const name = (err as { name?: string })?.name ?? "";
+            log("gum.failed-1", { name });
+            if (
+              name === "OverconstrainedError" ||
+              name === "ConstraintNotSatisfiedError" ||
+              name === "NotFoundError"
+            ) {
+              // Essai 3 : sans contrainte.
+              try {
+                log("gum.retry-without-constraints");
+                stream = await navigator.mediaDevices.getUserMedia({
+                  video: true,
+                  audio: false,
+                });
+                log("gum.retry-ok");
+              } catch (err2) {
+                if (abort) return;
+                const e = classifyGumError(err2);
+                log("gum.failed-2", {
+                  name: (err2 as { name?: string })?.name,
+                });
+                setStatus("error");
+                setErrMessage(e.message);
+                return;
+              }
+            } else {
               if (abort) return;
-              const e = classifyGumError(err2);
-              log("gum.failed-2", { name: (err2 as { name?: string })?.name });
+              const e = classifyGumError(err);
               setStatus("error");
               setErrMessage(e.message);
               return;
             }
-          } else {
-            if (abort) return;
-            const e = classifyGumError(err);
-            setStatus("error");
-            setErrMessage(e.message);
-            return;
           }
         }
 
+        if (!stream) return; // toutes les branches d'échec ont déjà conclu
         if (abort || stoppedRef.current) {
           for (const t of stream.getTracks()) t.stop();
           return;
         }
         streamRef.current = stream;
+
+        // Réglages du capteur : AUTOFOCUS CONTINU — les caméras Sunmi restent
+        // souvent en focus fixe dans le WebView → QR flou de près = jamais
+        // décodé, même par TRY_HARDER. + torche exposée si supportée.
+        // Best-effort silencieux : aucun de ces réglages n'est bloquant.
+        const track = stream.getVideoTracks()[0] ?? null;
+        trackRef.current = track;
+        if (track) {
+          try {
+            const caps = (track.getCapabilities?.() ?? {}) as {
+              focusMode?: string[];
+              torch?: boolean;
+            };
+            if (caps.focusMode?.includes("continuous")) {
+              await track.applyConstraints({
+                advanced: [
+                  {
+                    focusMode: "continuous",
+                  } as unknown as MediaTrackConstraintSet,
+                ],
+              });
+              log("track.focus-continuous");
+            }
+            if (caps.torch) setTorchSupported(true);
+            log(
+              "track.settings",
+              (track.getSettings?.() ?? {}) as Record<string, unknown>
+            );
+          } catch (err) {
+            log("track.tune-failed", {
+              msg: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+        // Liste des caméras (fiable seulement APRÈS la permission) → bouton
+        // « changer de caméra » si l'appareil en a plusieurs (Sunmi : la
+        // caméra choisie par facingMode n'est pas toujours la bonne).
+        try {
+          const devs = await navigator.mediaDevices.enumerateDevices();
+          const cams = devs.filter((d) => d.kind === "videoinput");
+          if (!abort) setVideoInputs(cams);
+          log("devices", { count: cams.length });
+        } catch {
+          /* énumération indisponible */
+        }
 
         // 3. Attache le stream au <video> et attend une frame
         const video = videoRef.current;
@@ -443,6 +569,7 @@ export function QrScanner({
 
         let lastFrameAt = 0;
         let loggedFirstFrame = false;
+        let frameSeq = 0;
         // Nombre d'échecs CONSÉCUTIFS de BarcodeDetector.detect(). Sur certains
         // navigateurs l'API existe mais `detect()` throw à chaque frame (impl
         // native cassée) — sans repli, le scanner ne détecterait JAMAIS rien.
@@ -512,14 +639,43 @@ export function QrScanner({
                   }
                 }
               } else if (zxingReader) {
-                // Dessine la frame (capée à 720 px sur le grand côté : assez de
-                // modules pour un QR même petit, sans plomber le CPU Sunmi).
                 const vw = video.videoWidth;
                 const vh = video.videoHeight;
-                const scale = Math.min(1, 720 / Math.max(vw, vh));
-                canvas.width = Math.max(1, Math.round(vw * scale));
-                canvas.height = Math.max(1, Math.round(vh * scale));
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                // Stratégie ROI alternée :
+                //  - 2 frames sur 3 : CENTRE recadré (72 % du petit côté) en
+                //    pleine résolution → là où le cadre de visée guide le
+                //    commerçant, tous les modules du QR restent nets (la
+                //    réduction globale à 720px les écrasait — cause n°1 du
+                //    « jamais détecté » sur ticket imprimé) ;
+                //  - 1 frame sur 3 : frame ENTIÈRE réduite → QR tenu hors
+                //    du cadre de visée quand même détecté.
+                frameSeq += 1;
+                const fullFrame = frameSeq % 3 === 0;
+                let sx = 0;
+                let sy = 0;
+                let sw = vw;
+                let sh = vh;
+                if (!fullFrame) {
+                  const side = Math.round(Math.min(vw, vh) * 0.72);
+                  sx = Math.round((vw - side) / 2);
+                  sy = Math.round((vh - side) / 2);
+                  sw = side;
+                  sh = side;
+                }
+                const scale = Math.min(1, 900 / Math.max(sw, sh));
+                canvas.width = Math.max(1, Math.round(sw * scale));
+                canvas.height = Math.max(1, Math.round(sh * scale));
+                ctx.drawImage(
+                  video,
+                  sx,
+                  sy,
+                  sw,
+                  sh,
+                  0,
+                  0,
+                  canvas.width,
+                  canvas.height
+                );
                 if (!loggedFirstFrame) {
                   loggedFirstFrame = true;
                   log("frame.first", {
@@ -570,8 +726,9 @@ export function QrScanner({
       cleanup();
     };
     // emit et cleanup sont stables (useCallback sans deps changeantes).
+    // camNonce : bumpé par « changer de caméra » → redémarre tout le pipeline.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [camNonce]);
 
   // Pause en arrière-plan : on coupe tout. Au retour au premier plan,
   // le composant n'auto-redémarre PAS (le scanner serait alors fantôme) —
@@ -621,6 +778,37 @@ export function QrScanner({
           className="absolute top-2 right-2 flex size-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80"
         >
           <X className="size-4" />
+        </button>
+      )}
+
+      {/* Changer de caméra — dès que l'appareil en a plusieurs (Sunmi :
+          facingMode choisit parfois la mauvaise ; le choix est mémorisé). */}
+      {status === "scanning" && videoInputs.length > 1 && (
+        <button
+          type="button"
+          onClick={switchCamera}
+          aria-label="Changer de caméra"
+          className="absolute bottom-2 left-2 flex size-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80"
+        >
+          <SwitchCamera className="size-4" />
+        </button>
+      )}
+
+      {/* Torche (ticket thermique dans une boutique sombre). */}
+      {status === "scanning" && torchSupported && (
+        <button
+          type="button"
+          onClick={toggleTorch}
+          aria-label={torchOn ? "Éteindre la torche" : "Allumer la torche"}
+          aria-pressed={torchOn}
+          className={cn(
+            "absolute right-2 bottom-2 flex size-9 items-center justify-center rounded-full backdrop-blur",
+            torchOn
+              ? "bg-white text-black"
+              : "bg-black/60 text-white hover:bg-black/80"
+          )}
+        >
+          <Flashlight className="size-4" />
         </button>
       )}
 

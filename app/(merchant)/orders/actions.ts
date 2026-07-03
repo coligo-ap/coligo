@@ -173,20 +173,32 @@ export async function cancelOrderByMerchant(
 }
 
 /**
- * Valide un retrait à partir du code à 6 chiffres : passe la commande
- * (du commerçant connecté) en « récupérée ». N'accepte que les commandes
- * prêtes (transition ready → completed).
+ * Valide un retrait et passe la commande (du commerçant connecté, RLS) en
+ * « récupérée » — transition ready → completed. Deux identifiants acceptés :
+ *
+ *  - le CODE PIN 4-6 chiffres montré par le CLIENT (QR in-app / oral) ;
+ *  - la RÉFÉRENCE publique de commande (ex. « A042 ») — c'est le QR imprimé
+ *    sur le ticket : le commerçant scanne le sac au comptoir, façon Uber Eats.
+ *    ⚠ moins probante que le PIN (elle ne prouve pas la présence du client) :
+ *    le PIN reste le chemin recommandé en cas de litige.
  */
 export async function validatePickupCode(
   code: string,
   clientOperationId?: string
 ): Promise<OrderActionResult & { orderId?: string }> {
-  const normalized = code.replace(/\D/g, "");
+  const raw = (code ?? "").trim();
+  const digits = raw.replace(/\D/g, "");
   // PIN à 4 chiffres (commandes récentes) ; on tolère 6 pour d'éventuelles
   // commandes legacy non encore régénérées.
-  if (normalized.length < 4 || normalized.length > 6) {
-    return { error: "Le code doit comporter 4 chiffres." };
+  const isPin =
+    /^[\s\d]*$/.test(raw) && digits.length >= 4 && digits.length <= 6;
+  // Référence publique de ticket : « A042 » (# toléré, insensible à la casse).
+  const ref = raw.replace(/^#/, "").toUpperCase();
+  const isRef = !isPin && /^[A-Z0-9]{2,8}$/.test(ref);
+  if (!isPin && !isRef) {
+    return { error: "Code ou référence non reconnu." };
   }
+  const normalized = digits;
 
   const supabase = await createClient();
 
@@ -209,14 +221,63 @@ export async function validatePickupCode(
     }
   }
 
-  const { data: order, error } = await supabase
-    .from("orders")
-    .select("id, status, customer_name, fulfillment_type")
-    .eq("pickup_code", normalized)
-    .maybeSingle();
+  let order: {
+    id: string;
+    status: string;
+    customer_name: string;
+    fulfillment_type: string | null;
+  } | null = null;
 
-  if (error) return { error: `Erreur : ${error.message}` };
-  if (!order) return { error: "Aucune commande ne correspond à ce code." };
+  if (isPin) {
+    const { data, error } = await supabase
+      .from("orders")
+      .select("id, status, customer_name, fulfillment_type")
+      .eq("pickup_code", normalized)
+      .maybeSingle();
+    if (error) return { error: `Erreur : ${error.message}` };
+    if (!data) return { error: "Aucune commande ne correspond à ce code." };
+    order = data;
+  } else {
+    // RÉFÉRENCE de ticket : order_number peut se répéter dans le temps (la
+    // numérotation recommence) → on prend les plus récentes et on ne valide
+    // que s'il y a EXACTEMENT une commande retrait PRÊTE pour cette référence.
+    const { data: matches, error } = await supabase
+      .from("orders")
+      .select("id, status, customer_name, fulfillment_type, created_at")
+      .eq("order_number", ref)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    if (error) return { error: `Erreur : ${error.message}` };
+    if (!matches || matches.length === 0) {
+      return { error: "Aucune commande ne correspond à cette référence." };
+    }
+    const pickups = matches.filter((o) => o.fulfillment_type !== "delivery");
+    if (pickups.length === 0) {
+      return {
+        error:
+          "Commande en livraison : la remise est confirmée par le livreur, pas au comptoir.",
+      };
+    }
+    const ready = pickups.filter((o) => o.status === "ready");
+    if (ready.length > 1) {
+      return {
+        error:
+          "Référence ambiguë (plusieurs commandes prêtes). Utilisez le code du client.",
+      };
+    }
+    if (ready.length === 0) {
+      const last = pickups[0];
+      if (last.status === "completed") {
+        return { error: "Cette commande a déjà été récupérée." };
+      }
+      if (last.status === "cancelled") {
+        return { error: "Cette commande a été annulée." };
+      }
+      return { error: "Cette commande n'est pas encore prête au retrait." };
+    }
+    order = ready[0];
+  }
+
   // Les commandes en LIVRAISON ne se valident JAMAIS côté commerçant : le
   // livreur récupère la commande puis confirme la remise au client. Le code
   // n'est destiné qu'au livreur (anti-fraude). On refuse donc ici.

@@ -40,6 +40,17 @@ function extractPickupCode(raw: string): string | null {
   return null;
 }
 
+/**
+ * Référence publique de commande — c'est ce qu'encode le QR IMPRIMÉ sur le
+ * ticket (ex. « A042 », `#` toléré). Le serveur ne validera que si une seule
+ * commande retrait PRÊTE du commerçant correspond.
+ */
+function extractOrderRef(raw: string): string | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim().replace(/^#/, "").toUpperCase();
+  return /^[A-Z0-9]{2,8}$/.test(s) && /\d/.test(s) ? s : null;
+}
+
 /** Vibration courte côté commerçant (silencieux sur iOS Safari). */
 function buzz(pattern: number | number[]) {
   if (typeof navigator === "undefined") return;
@@ -299,14 +310,15 @@ function QrTab({
   const handleScan = useCallback(
     (text: string) => {
       if (handledRef.current) return;
-      // Le QR Coligo encode UNIQUEMENT le code 6 chiffres. Mais par robustesse
-      // on extrait aussi le code des éventuelles URLs legacy `?code=XXXXXX`
-      // (NE PAS faire un `replace(/\D/g, "")` global : un shortRef alphanum
-      // avec chiffres parasites contamine le code).
+      // Deux QR acceptés : le QR CLIENT (code PIN 4-6 chiffres, URLs legacy
+      // `?code=` tolérées) et le QR du TICKET imprimé (référence publique
+      // « A042 »). (NE PAS faire un `replace(/\D/g, "")` global : un shortRef
+      // alphanum avec chiffres parasites contamine le code.)
       const code = extractPickupCode(text);
-      if (!code) return; // format inconnu : on laisse le commerçant retenter
+      const value = code ?? extractOrderRef(text);
+      if (!value) return; // format inconnu : on laisse le commerçant retenter
       handledRef.current = true;
-      onScan(code);
+      onScan(value);
     },
     [onScan]
   );
@@ -314,7 +326,7 @@ function QrTab({
   return (
     <div className="border-border bg-surface rounded-[16px] border p-5">
       <p className="text-muted mb-4 text-center text-sm">
-        Présentez le QR code de la commande devant la caméra.
+        Scannez le QR du client ou celui du ticket imprimé.
       </p>
 
       <div className="relative">
