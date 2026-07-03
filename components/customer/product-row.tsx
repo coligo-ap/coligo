@@ -154,8 +154,9 @@ export function ProductRow({
         isOut && "opacity-60"
       )}
     >
-      {/* Vignette (overflow caché → le badge promo reste dedans). */}
-      <div className="bg-surface-2 relative size-16 shrink-0 overflow-hidden rounded-[12px]">
+      {/* Vignette (overflow caché → le badge promo reste dedans). Photo
+          entière sur fond blanc (object-contain), comme les cartes produit. */}
+      <div className="border-border relative size-16 shrink-0 overflow-hidden rounded-[12px] border bg-white">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -163,14 +164,13 @@ export function ProductRow({
               cldUrl(product.image_url, {
                 width: 160,
                 height: 160,
-                crop: "fill",
-                gravity: "auto",
+                crop: "fit",
               }) ?? product.image_url
             }
             alt=""
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.04]"
+            className="h-full w-full object-contain p-1"
           />
         ) : (
           <div className="from-primary-500/10 to-surface-3 flex h-full w-full items-center justify-center bg-gradient-to-br">
@@ -199,7 +199,7 @@ export function ProductRow({
           <span
             className={cn(
               "text-sm font-bold tabular-nums",
-              hasPromo ? "text-accent-600" : "text-primary-700"
+              hasPromo ? "text-accent-600" : "text-foreground"
             )}
           >
             {formatDA(price)}
@@ -250,10 +250,10 @@ export function ProductRow({
             onClick={quickAdd}
             aria-label={t("addToCart")}
             className={cn(
-              "flex size-9 items-center justify-center rounded-full text-white shadow-md transition-transform active:scale-90",
+              "flex size-9 items-center justify-center rounded-full border shadow-sm transition-transform active:scale-90",
               added
-                ? "bg-success-600 scale-110"
-                : "bg-primary-600 hover:bg-primary-700"
+                ? "border-success-600 bg-success-600 scale-110 text-white"
+                : "border-border text-accent-600 hover:border-accent-300 bg-white"
             )}
           >
             {added ? <Check className="size-4" /> : <Plus className="size-4" />}

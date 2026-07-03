@@ -282,7 +282,7 @@ export function MerchantCatalog({
 
   if (products.length === 0) {
     return (
-      <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-10 text-center text-sm">
+      <div className="border-border bg-surface text-muted rounded-[12px] border px-6 py-10 text-center text-sm">
         {t("emptyCatalog")}
       </div>
     );
@@ -292,7 +292,7 @@ export function MerchantCatalog({
     <>
       {/* Recherche produit (style Uber) + bascule liste/catégories */}
       <div className="mb-3 flex items-center gap-2">
-        <div className="border-border bg-surface flex flex-1 items-center gap-2.5 rounded-[13px] border px-3.5 py-3 shadow-sm">
+        <div className="border-border-strong bg-surface flex flex-1 items-center gap-2.5 rounded-full border px-4 py-3">
           <Search className="text-muted size-4 shrink-0" />
           <input
             id="merchant-product-search"
@@ -449,14 +449,14 @@ export function MerchantCatalog({
       {/* SECTIONS — toutes visibles (pas d'accordéon). Chacune a un petit
           titre h2 et la liste compacte des produits dessous. */}
       {q && visibleGroups.length === 0 && (
-        <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-10 text-center text-sm">
+        <div className="border-border bg-surface text-muted rounded-[12px] border px-6 py-10 text-center text-sm">
           {t("noProductMatch", { query })}
         </div>
       )}
 
       {/* MODE CATÉGORIES (sans recherche) : grille de cartes OU drill-down. */}
       {!q && display === "categories" && openCat === null && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-3">
           {groups.map((g) => {
             const title = g.category?.title ?? t("otherCategory");
             return (
@@ -465,53 +465,21 @@ export function MerchantCatalog({
                 type="button"
                 onClick={() => setOpenCat(g.key)}
                 aria-label={title}
-                className="group relative aspect-[5/4] overflow-hidden rounded-[18px] text-start shadow-[0_10px_24px_-12px_rgba(40,35,90,0.35)] transition-transform duration-150 active:scale-[0.97]"
+                className="bg-primary-50 dark:bg-primary-950/40 group relative aspect-[3/4] overflow-hidden rounded-[14px] p-3 text-center transition-transform duration-150 active:scale-[0.97]"
               >
-                {/* Fond : photo plein cadre, ou dégradé de marque en repli. */}
-                {g.category?.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={g.category.image_url}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
-                  />
-                ) : (
-                  <div className="from-primary-600 via-primary-700 to-primary-900 absolute inset-0 bg-gradient-to-br">
-                    {/* Grande initiale en filigrane — identité sans photo. */}
-                    <span
-                      aria-hidden
-                      className="absolute -end-2 -bottom-5 text-[92px] leading-none font-black text-white/10 select-none"
-                    >
-                      {title.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-
-                {/* Voile de lisibilité : sombre en bas, transparent en haut. */}
-                <div
-                  aria-hidden
-                  className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/0"
-                />
-
-                {/* Compteur — pastille givrée en haut. */}
-                <span className="absolute start-2.5 top-2.5 rounded-full bg-white/20 px-2 py-0.5 text-[10.5px] font-bold text-white backdrop-blur-md">
+                {/* Titre en haut, centré (2 lignes max) — typographie Yassir. */}
+                <span className="text-foreground relative z-10 mx-auto line-clamp-2 block text-[13.5px] leading-snug font-bold">
+                  {title}
+                </span>
+                <span className="text-subtle relative z-10 mt-0.5 block text-[10.5px] font-semibold">
                   {t("productCount", { count: g.items.length })}
                 </span>
-
-                {/* Titre + flèche d'affordance en bas. */}
-                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3">
-                  <span className="line-clamp-2 text-[15px] leading-tight font-extrabold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]">
-                    {title}
-                  </span>
-                  <span
-                    aria-hidden
-                    className="text-primary-700 flex size-7 shrink-0 items-center justify-center rounded-full bg-white shadow-md transition-transform duration-150 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5"
-                  >
-                    <ChevronLeft className="size-4 rotate-180 rtl:-rotate-0" />
-                  </span>
-                </div>
+                {/* Grand chevron en filigrane, bas de tuile (sens RTL géré). */}
+                <ChevronLeft
+                  aria-hidden
+                  strokeWidth={3.5}
+                  className="text-primary-600/15 absolute start-1/2 bottom-4 size-20 -translate-x-1/2 rotate-180 transition-transform duration-200 group-hover:translate-x-[-42%] rtl:translate-x-1/2 rtl:-rotate-0 rtl:group-hover:translate-x-[42%]"
+                />
               </button>
             );
           })}
@@ -552,7 +520,7 @@ export function MerchantCatalog({
                   {t("productCount", { count: g.items.length })}
                 </span>
               </h2>
-              <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[16px] border">
+              <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[12px] border">
                 {g.items.map((p) => (
                   <li key={p.id}>
                     <ProductRow
@@ -600,7 +568,7 @@ export function MerchantCatalog({
                   {t("productCount", { count: g.items.length })}
                 </span>
               </h2>
-              <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[16px] border">
+              <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[12px] border">
                 {g.items.map((p) => (
                   <li key={p.id}>
                     <ProductRow

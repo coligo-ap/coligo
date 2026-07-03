@@ -13,6 +13,7 @@ import {
 import { cn, formatDA } from "@/lib/utils";
 import { useCartAdd } from "@/components/customer/cart-mono-provider";
 import { cldUrl } from "@/lib/images/cloudinary";
+import { isFractionalUnit, minQtyFor } from "@/lib/units";
 import type { PublicProduct } from "@/lib/data/customer-catalog";
 
 type Merchant = {
@@ -120,9 +121,23 @@ export function PopCard({
   function quickAdd(e: React.MouseEvent) {
     e.stopPropagation();
     if (isOut) return;
+    // Options obligatoires ou vente au poids/volume → la fiche s'ouvre (le
+    // client DOIT choisir), comme sur les lignes produit.
+    if (
+      (product.option_groups?.length ?? 0) > 0 ||
+      isFractionalUnit(product.unit)
+    ) {
+      onOpenDetail();
+      return;
+    }
     const ok = requestAdd(merchant, {
       product_id: product.id,
       name: product.name_fr,
+      name_ar: product.name_ar,
+      unit: product.unit,
+      min_qty: product.min_qty,
+      max_qty: product.max_qty,
+      quantity: minQtyFor(product.unit, product.min_qty),
       unit_price_da: product.price_da,
       image_url: product.image_url,
       category_title: product.category,
@@ -143,11 +158,13 @@ export function PopCard({
       type="button"
       onClick={onOpenDetail}
       className={cn(
-        "bg-surface w-[158px] shrink-0 snap-start overflow-hidden rounded-[20px] text-start shadow-[0_2px_4px_rgba(20,20,50,0.04),0_14px_30px_-14px_rgba(40,35,90,0.28)] transition-transform active:scale-[0.97]",
+        "w-[158px] shrink-0 snap-start text-start transition-transform active:scale-[0.97]",
         isOut && "opacity-60"
       )}
     >
-      <div className="bg-surface-2 relative h-[112px] w-full overflow-hidden">
+      {/* Cadre façon Yassir : la bordure n'entoure QUE la photo (fond blanc,
+          produit entier) ; le texte vit dessous, hors cadre. */}
+      <div className="border-border relative h-[132px] w-full overflow-hidden rounded-[14px] border bg-white">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -155,14 +172,13 @@ export function PopCard({
               cldUrl(product.image_url, {
                 width: 340,
                 height: 240,
-                crop: "fill",
-                gravity: "auto",
+                crop: "fit",
               }) ?? product.image_url
             }
             alt=""
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain p-3"
           />
         ) : (
           <div className="from-primary-500/10 to-surface-3 flex h-full w-full items-center justify-center bg-gradient-to-br">
@@ -190,15 +206,17 @@ export function PopCard({
             onClick={quickAdd}
             aria-label={t("addToCart")}
             className={cn(
-              "absolute end-2 bottom-2 grid size-9 place-items-center rounded-full shadow-md transition-transform active:scale-90",
-              added ? "bg-success-600 text-white" : "text-primary-700 bg-white"
+              "absolute end-2 bottom-2 grid size-9 place-items-center rounded-full border shadow-sm transition-transform active:scale-90",
+              added
+                ? "border-success-600 bg-success-600 text-white"
+                : "border-border text-accent-600 bg-white"
             )}
           >
             {added ? <Check className="size-4" /> : <Plus className="size-4" />}
           </span>
         )}
       </div>
-      <div className="px-3 pt-2.5 pb-3">
+      <div className="px-1 pt-2 pb-1">
         <div className="text-foreground line-clamp-2 h-8 text-[13px] leading-tight font-semibold">
           {product.name_fr}
         </div>
@@ -212,7 +230,7 @@ export function PopCard({
           <span
             className={cn(
               "text-[15px] font-black tabular-nums",
-              hasPromo ? "text-accent-600" : "text-primary-700"
+              hasPromo ? "text-accent-600" : "text-foreground"
             )}
           >
             {formatDA(price)}

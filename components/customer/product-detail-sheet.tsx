@@ -208,14 +208,14 @@ export function ProductDetailSheet({
       aria-modal
     >
       <div className="bg-surface flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-[20px] shadow-xl sm:rounded-[20px]">
-        {/* Image en grand */}
-        <div className="bg-surface-2 relative aspect-[16/10] w-full overflow-hidden">
+        {/* Image en grand — photo entière sur fond blanc (façon Yassir). */}
+        <div className="border-border relative aspect-[16/10] w-full overflow-hidden border-b bg-white">
           {product.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={product.image_url}
               alt=""
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain p-4"
             />
           ) : (
             <div className="from-primary-500/10 to-surface-3 flex h-full w-full items-center justify-center bg-gradient-to-br">

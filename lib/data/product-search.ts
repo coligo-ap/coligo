@@ -20,6 +20,12 @@ export type SearchProduct = {
   image_url: string | null;
   is_available: boolean;
   stock_qty: number | null;
+  /** Unité de vente (piece, kg, L, m…) — garde « pas d'ajout aveugle ». */
+  unit: string;
+  min_qty: number | null;
+  max_qty: number | null;
+  /** Produit à options/variantes → le « + » doit ouvrir la fiche, pas ajouter. */
+  has_options: boolean;
 };
 
 export type ProductMatchKind = "product" | "tag" | "category" | "name";
@@ -100,6 +106,10 @@ export async function searchProductsInZone(input: {
         image_url: row.image_url,
         is_available: row.is_available,
         stock_qty: row.stock_qty,
+        unit: row.unit ?? "piece",
+        min_qty: row.min_qty,
+        max_qty: row.max_qty,
+        has_options: row.has_options === true,
       });
     }
     entry.maxSim = Math.max(entry.maxSim, Number(row.sim) || 0);
@@ -145,13 +155,17 @@ export async function searchProductsInZone(input: {
     const { data: sampleRows } = await supabase
       .from("products")
       .select(
-        "id, merchant_id, name_fr, name_ar, price_da, image_url, is_available, stock_qty, position"
+        "id, merchant_id, name_fr, name_ar, price_da, image_url, is_available, stock_qty, unit, min_qty, max_qty, position, product_option_groups ( id )"
       )
       .in("merchant_id", sampleIds)
       .eq("is_available", true)
       .order("position", { ascending: true });
-    for (const r of (sampleRows ?? []) as (SearchProduct & {
+    for (const r of (sampleRows ?? []) as (Omit<
+      SearchProduct,
+      "has_options"
+    > & {
       position: number | null;
+      product_option_groups: { id: string }[] | null;
     })[]) {
       const list = sampleByMerchant.get(r.merchant_id) ?? [];
       if (list.length < MAX_SAMPLE_PER_MERCHANT) {
@@ -164,6 +178,10 @@ export async function searchProductsInZone(input: {
           image_url: r.image_url,
           is_available: r.is_available,
           stock_qty: r.stock_qty,
+          unit: r.unit ?? "piece",
+          min_qty: r.min_qty,
+          max_qty: r.max_qty,
+          has_options: (r.product_option_groups?.length ?? 0) > 0,
         });
       }
       sampleByMerchant.set(r.merchant_id, list);

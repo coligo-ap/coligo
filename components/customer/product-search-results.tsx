@@ -12,6 +12,7 @@ import { computePauseState } from "@/lib/merchant/pause-state";
 import { haversineKm } from "@/lib/delivery/distance";
 import { useCustomerLocation } from "@/lib/customer/location-store";
 import { useCartAdd } from "@/components/customer/cart-mono-provider";
+import { isFractionalUnit, minQtyFor } from "@/lib/units";
 import { searchProducts } from "@/app/(customer)/actions";
 import type {
   ProductSearchGroup,
@@ -175,7 +176,7 @@ export function ProductSearchResults() {
 
       {/* Aucun résultat. */}
       {!pending && total === 0 && (
-        <div className="border-border bg-surface text-muted mt-2 rounded-[18px] border px-6 py-12 text-center text-sm">
+        <div className="border-border bg-surface text-muted mt-2 rounded-[12px] border px-6 py-12 text-center text-sm">
           <Search className="text-subtle mx-auto mb-2 size-6" />
           {t("empty", { q })}
         </div>
@@ -244,7 +245,7 @@ function MerchantGroup({
   return (
     <section
       className={cn(
-        "bg-surface co-rise mt-3 overflow-hidden rounded-[22px] border shadow-[0_1px_2px_rgba(20,20,50,0.04),0_10px_26px_-14px_rgba(40,35,90,0.22)]",
+        "bg-surface co-rise mt-3 overflow-hidden rounded-[12px] border shadow-[0_1px_3px_rgba(20,20,50,0.05)]",
         closed ? "border-border opacity-60" : "border-border"
       )}
     >
@@ -351,14 +352,23 @@ function ProductCard({
   const out =
     product.is_available === false ||
     (product.stock_qty != null && product.stock_qty <= 0);
+  // Options obligatoires ou vente au poids/volume → pas d'ajout aveugle : le
+  // « + » laisse la navigation ouvrir la vitrine, où le client choisit.
+  const needsChoice = product.has_options || isFractionalUnit(product.unit);
 
   function add(e: React.MouseEvent) {
+    if (needsChoice && !out) return; // laisse le <Link> naviguer
     e.preventDefault();
     e.stopPropagation();
     if (out) return;
     const addedNow = requestAdd(merchant, {
       product_id: product.id,
       name: product.name_fr,
+      name_ar: product.name_ar,
+      unit: product.unit,
+      min_qty: product.min_qty,
+      max_qty: product.max_qty,
+      quantity: minQtyFor(product.unit, product.min_qty),
       unit_price_da: product.price_da,
       image_url: product.image_url,
     });
@@ -372,9 +382,11 @@ function ProductCard({
   return (
     <Link
       href={`/m/${merchant.slug}`}
-      className="bg-surface-2 border-border w-[144px] shrink-0 snap-start overflow-hidden rounded-[16px] border shadow-[0_2px_6px_-2px_rgba(40,35,90,0.12)] transition active:scale-[0.97]"
+      className="w-[144px] shrink-0 snap-start transition active:scale-[0.97]"
     >
-      <div className="relative h-[104px] w-full overflow-hidden">
+      {/* Cadre façon Yassir : bordure autour de la PHOTO seule (fond blanc,
+          produit entier) ; le texte vit dessous, hors cadre. */}
+      <div className="border-border relative h-[112px] w-full overflow-hidden rounded-[14px] border bg-white">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -382,14 +394,13 @@ function ProductCard({
               cldUrl(product.image_url, {
                 width: 320,
                 height: 240,
-                crop: "fill",
-                gravity: "auto",
+                crop: "fit",
               }) ?? product.image_url
             }
             alt=""
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain p-2.5"
           />
         ) : (
           <div className="from-primary-500/10 to-surface-3 h-full w-full bg-gradient-to-br" />
@@ -400,22 +411,22 @@ function ProductCard({
           disabled={out}
           aria-label="+"
           className={cn(
-            "absolute right-2 bottom-2 grid size-8 place-items-center rounded-full shadow-[0_3px_10px_rgba(0,0,0,0.25)] transition active:scale-90",
+            "absolute end-2 bottom-2 grid size-8 place-items-center rounded-full border shadow-sm transition active:scale-90",
             out
-              ? "bg-surface-3 text-subtle cursor-not-allowed"
+              ? "border-border bg-surface-3 text-subtle cursor-not-allowed"
               : added
-                ? "bg-success-600 text-white"
-                : "text-primary-600 bg-white"
+                ? "border-success-600 bg-success-600 text-white"
+                : "border-border text-accent-600 bg-white"
           )}
         >
           {added ? <Check className="size-4" /> : <Plus className="size-4" />}
         </button>
       </div>
-      <div className="px-2.5 pt-2.5 pb-3">
+      <div className="px-1 pt-2">
         <p className="text-foreground line-clamp-2 h-8 text-[13px] leading-tight font-semibold tracking-[-0.2px]">
           {product.name_fr}
         </p>
-        <p className="text-primary-700 mt-1.5 text-[15px] font-extrabold tabular-nums">
+        <p className="text-foreground mt-1 text-[15px] font-extrabold tabular-nums">
           {formatDA(product.price_da)}
         </p>
       </div>
