@@ -446,7 +446,7 @@ export default async function CustomerOrderDetailPage({
                   {t("orderNumberShort")}
                 </small>
                 <b className="text-foreground text-[17px] leading-tight font-black tracking-wide">
-                  {orderNumber}
+                  #{orderNumber}
                 </b>
               </span>
             )}
