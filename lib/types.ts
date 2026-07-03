@@ -155,6 +155,8 @@ export type MerchantSettings = {
   payout_auto: "none" | "weekly" | "monthly";
   payout_method: string | null;
   payout_details: string | null;
+  /** Affichage du catalogue côté client : liste ou cartes catégories d'abord. */
+  catalog_display: "list" | "categories";
 };
 
 export type Order = {
@@ -274,6 +276,9 @@ export type Product = {
   category: string | null;
   category_id: string | null;
   stock_qty: number | null;
+  /** Quantité min par ligne / max par commande (unité de vente). NULL = libre. */
+  min_qty: number | null;
+  max_qty: number | null;
   position: number;
   image_url: string | null;
   is_available: boolean;

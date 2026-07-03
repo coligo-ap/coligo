@@ -72,6 +72,39 @@ export function isValidQty(q: number, unit?: string | null): boolean {
   return Math.abs(q - roundQty(q)) < 1e-9;
 }
 
+/**
+ * Quantité MINIMALE effective d'une ligne : le min posé par le commerçant
+ * (snappé au pas SUPÉRIEUR pour rester atteignable au stepper), sinon le pas
+ * de l'unité (0.25 kg/L, 0.5 m) ou 1 à la pièce.
+ */
+export function minQtyFor(
+  unit?: string | null,
+  minQty?: number | null
+): number {
+  const c = config(unit);
+  const base = c.fractional ? c.step : 1;
+  if (minQty == null || !Number.isFinite(minQty) || minQty <= 0) return base;
+  return Math.max(base, roundQty(Math.ceil(minQty / c.step - 1e-9) * c.step));
+}
+
+/**
+ * Quantité MAXIMALE effective d'une ligne : min(garde-fou unité, max posé par
+ * le commerçant, stock restant). Jamais sous le minimum effectif.
+ */
+export function maxQtyFor(
+  unit?: string | null,
+  maxQty?: number | null,
+  stock?: number | null
+): number {
+  const c = config(unit);
+  let m = c.max;
+  if (maxQty != null && Number.isFinite(maxQty) && maxQty > 0) {
+    m = Math.min(m, roundQty(Math.floor(maxQty / c.step + 1e-9) * c.step));
+  }
+  if (stock != null && Number.isFinite(stock)) m = Math.min(m, stock);
+  return Math.max(m, minQtyFor(unit, null));
+}
+
 /** Libellés courts d'unités, FR et AR (parcours client bilingue). */
 const UNIT_LABELS: Record<string, { fr: string; ar: string }> = {
   kg: { fr: "kg", ar: "كغ" },

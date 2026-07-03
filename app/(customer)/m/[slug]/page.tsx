@@ -208,6 +208,7 @@ export default async function MerchantPublicPage({
             promoPriceById={promoPriceById}
             quantityOfferByProduct={quantityOfferByProduct}
             promoCarousels={promoCarousels}
+            defaultDisplay={m.catalog_display}
           />
         </div>
       </div>

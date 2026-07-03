@@ -47,6 +47,8 @@ export function ReorderButton({ orderId }: { orderId: string }) {
             product_id: it.product_id,
             name: it.name,
             unit: it.unit ?? null,
+            min_qty: it.min_qty,
+            max_qty: it.max_qty,
             unit_price_da: it.unit_price_da,
             image_url: it.image_url,
             category_title: it.category_title,

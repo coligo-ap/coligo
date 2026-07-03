@@ -18,7 +18,14 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { cn, formatDA } from "@/lib/utils";
 import { clearCart, setItemQuantity, useCart } from "@/lib/customer/cart-store";
-import { formatQty, isFractionalUnit, qtyStep, roundQty } from "@/lib/units";
+import {
+  formatQty,
+  isFractionalUnit,
+  maxQtyFor,
+  minQtyFor,
+  qtyStep,
+  roundQty,
+} from "@/lib/units";
 import { computeCart, isPromotionActive } from "@/lib/promotions/engine";
 import { toEnginePromotions } from "@/lib/promotions/cart-summary";
 import { APP_CONFIG } from "@/lib/config/app-config";
@@ -355,9 +362,11 @@ export function CartView() {
 
               <div className="bg-surface-2 inline-flex shrink-0 items-center rounded-full">
                 {(() => {
-                  // Pas par unité de la ligne : 1 (pièce), 0.25 (kg/L), 0.5 (m).
+                  // Pas par unité de la ligne + bornes commerçant (snapshots).
                   const step = qtyStep(item.unit);
-                  const atMin = item.quantity <= step;
+                  const minQ = minQtyFor(item.unit, item.min_qty);
+                  const maxQ = maxQtyFor(item.unit, item.max_qty);
+                  const atMin = item.quantity <= minQ;
                   return (
                     <>
                       <button
@@ -366,7 +375,7 @@ export function CartView() {
                           const next = roundQty(item.quantity - step);
                           setItemQuantity(
                             item.line_key,
-                            next < step ? 0 : next
+                            next < minQ ? 0 : next
                           );
                         }}
                         aria-label={atMin ? t("remove") : t("removeOne")}
@@ -391,7 +400,7 @@ export function CartView() {
                         onClick={() =>
                           setItemQuantity(
                             item.line_key,
-                            roundQty(item.quantity + step)
+                            Math.min(maxQ, roundQty(item.quantity + step))
                           )
                         }
                         aria-label={t("addOne")}

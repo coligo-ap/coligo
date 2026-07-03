@@ -454,6 +454,7 @@ export type Database = {
           last_auto_payout_at: string | null;
           auto_accept_orders: boolean;
           orders_paused: boolean;
+          catalog_display: string;
           paused_until: string | null;
           closure_start: string | null;
           closure_end: string | null;
@@ -509,6 +510,7 @@ export type Database = {
           last_auto_payout_at?: string | null;
           auto_accept_orders?: boolean;
           orders_paused?: boolean;
+          catalog_display?: string;
           paused_until?: string | null;
           closure_start?: string | null;
           closure_end?: string | null;
@@ -564,6 +566,7 @@ export type Database = {
           last_auto_payout_at?: string | null;
           auto_accept_orders?: boolean;
           orders_paused?: boolean;
+          catalog_display?: string;
           paused_until?: string | null;
           closure_start?: string | null;
           closure_end?: string | null;
@@ -781,6 +784,8 @@ export type Database = {
           category: string | null;
           category_id: string | null;
           stock_qty: number | null;
+          min_qty: number | null;
+          max_qty: number | null;
           position: number;
           image_url: string | null;
           is_available: boolean;
@@ -800,6 +805,8 @@ export type Database = {
           category?: string | null;
           category_id?: string | null;
           stock_qty?: number | null;
+          min_qty?: number | null;
+          max_qty?: number | null;
           position?: number;
           image_url?: string | null;
           is_available?: boolean;
@@ -819,6 +826,8 @@ export type Database = {
           category?: string | null;
           category_id?: string | null;
           stock_qty?: number | null;
+          min_qty?: number | null;
+          max_qty?: number | null;
           position?: number;
           image_url?: string | null;
           is_available?: boolean;
@@ -2619,6 +2628,7 @@ export type Database = {
           shop_public_id: string;
           created_at: string;
           orders_paused: boolean;
+          catalog_display: string;
           paused_until: string | null;
           closure_start: string | null;
           closure_end: string | null;

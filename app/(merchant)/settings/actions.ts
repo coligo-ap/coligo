@@ -361,6 +361,30 @@ export async function updateOrderRules(
 }
 
 // =============================================================================
+// AFFICHAGE DU CATALOGUE — liste classique ou cartes catégories d'abord.
+// Le client peut ensuite basculer localement sur la boutique (préférence à lui).
+// =============================================================================
+export async function setCatalogDisplay(
+  display: "list" | "categories"
+): Promise<SettingsResult> {
+  if (display !== "list" && display !== "categories") {
+    return { error: "Affichage inconnu." };
+  }
+  const merchant = await requireMerchant();
+  if ("error" in merchant) return { error: merchant.error };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("merchants")
+    .update({ catalog_display: display })
+    .eq("id", merchant.id);
+  if (error) return { error: `Erreur : ${error.message}` };
+
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+// =============================================================================
 // LOGO / COVER — appelée depuis le composant MediaUpload après un upload réussi
 // =============================================================================
 export async function setMediaUrl(

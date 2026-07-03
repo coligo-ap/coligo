@@ -27,29 +27,48 @@ const optionalStock = z
   .optional()
   .transform((v) => (v === "" || v === undefined ? null : (v as number)));
 
-export const productSchema = z.object({
-  name_fr: z.string().trim().min(1, "Le nom (FR) est requis"),
-  name_ar: optionalText,
-  description_fr: optionalText,
-  description_ar: optionalText,
-  price_da: z.coerce
-    .number({ message: "Prix invalide" })
-    .int("Le prix doit être un entier (en DA)")
-    .min(0, "Le prix ne peut pas être négatif"),
-  unit: z.enum(["piece", "kg", "l", "m", "custom"]),
-  category_id: optionalUuid,
-  stock_qty: optionalStock,
-  image_url: optionalImageUrl,
-  is_available: z
-    .union([
-      z.literal("on"),
-      z.literal("true"),
-      z.literal("false"),
-      z.boolean(),
-    ])
-    .optional()
-    .transform((v) => v === true || v === "on" || v === "true"),
-});
+const optionalQty = z
+  .union([z.literal(""), z.coerce.number().positive("Quantité invalide")])
+  .optional()
+  .transform((v) =>
+    v === "" || v === undefined ? null : Math.round((v as number) * 100) / 100
+  );
+
+export const productSchema = z
+  .object({
+    name_fr: z.string().trim().min(1, "Le nom (FR) est requis"),
+    name_ar: optionalText,
+    description_fr: optionalText,
+    description_ar: optionalText,
+    price_da: z.coerce
+      .number({ message: "Prix invalide" })
+      .int("Le prix doit être un entier (en DA)")
+      .min(0, "Le prix ne peut pas être négatif"),
+    unit: z.enum(["piece", "kg", "l", "m", "custom"]),
+    category_id: optionalUuid,
+    stock_qty: optionalStock,
+    /** Quantité minimum par ligne (unité de vente). NULL = pas de minimum. */
+    min_qty: optionalQty,
+    /** Quantité maximum par commande (somme des lignes). NULL = pas de max. */
+    max_qty: optionalQty,
+    image_url: optionalImageUrl,
+    is_available: z
+      .union([
+        z.literal("on"),
+        z.literal("true"),
+        z.literal("false"),
+        z.boolean(),
+      ])
+      .optional()
+      .transform((v) => v === true || v === "on" || v === "true"),
+  })
+  .refine(
+    (d) => d.min_qty == null || d.max_qty == null || d.min_qty <= d.max_qty,
+    {
+      message: "Le minimum ne peut pas dépasser le maximum.",
+      path: ["min_qty"],
+    }
+  );
 
 export type ProductInput = z.infer<typeof productSchema>;
 

@@ -45,6 +45,8 @@ export type PublicMerchant = {
   score_speed: number;
   avg_prep_min: number | null;
   orders_count: number;
+  /** Affichage du catalogue choisi par le commerçant (le client peut basculer). */
+  catalog_display: "list" | "categories";
 };
 
 type Filters = {
@@ -547,6 +549,10 @@ function toPublicMerchant(row: Record<string, unknown>): PublicMerchant {
     score_speed: numOr(row.score_speed, 0.5),
     avg_prep_min: row.avg_prep_min == null ? null : numOr(row.avg_prep_min, 0),
     orders_count: (row.orders_count as number | null) ?? 0,
+    catalog_display:
+      (row.catalog_display as string | null) === "categories"
+        ? "categories"
+        : "list",
   };
 }
 

@@ -37,8 +37,8 @@ export async function fetchCatalog(): Promise<{
       .from("products")
       .select(
         `id, merchant_id, name_fr, name_ar, description_fr, description_ar,
-         price_da, unit, category, category_id, stock_qty, position, image_url,
-         is_available, created_at, updated_at,
+         price_da, unit, category, category_id, stock_qty, min_qty, max_qty,
+         position, image_url, is_available, created_at, updated_at,
          categories ( id, title )`
       )
       .eq("merchant_id", merchantId)
@@ -72,6 +72,8 @@ function parseForm(formData: FormData) {
     unit: formData.get("unit"),
     category_id: formData.get("category_id"),
     stock_qty: formData.get("stock_qty"),
+    min_qty: formData.get("min_qty"),
+    max_qty: formData.get("max_qty"),
     image_url: formData.get("image_url"),
     is_available: formData.get("is_available"),
   });

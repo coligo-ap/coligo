@@ -40,7 +40,7 @@ import {
 import { zoneMessageFr } from "@/lib/zones/service-zones";
 import { reverseGeocode } from "@/app/(customer)/actions";
 import type { OpeningHours, PaymentMethod } from "@/lib/types";
-import { isValidQty } from "@/lib/units";
+import { formatQty, isValidQty } from "@/lib/units";
 
 export type CreateOrderInput = {
   merchant_id: string;
@@ -419,7 +419,7 @@ export async function createOrder(
   const { data: products } = await supabase
     .from("products")
     .select(
-      "id, merchant_id, name_fr, name_ar, unit, price_da, is_available, stock_qty"
+      "id, merchant_id, name_fr, name_ar, unit, price_da, is_available, stock_qty, min_qty, max_qty"
     )
     .in("id", productIds);
 
@@ -455,6 +455,14 @@ export async function createOrder(
         error: `Quantité invalide pour « ${p.name_fr} ».`,
       };
     }
+    // Minimum PAR LIGNE fixé par le commerçant (ex. min 500 g / 2 pièces).
+    const minQty = p.min_qty == null ? null : Number(p.min_qty);
+    if (minQty != null && it.quantity < minQty - 1e-9) {
+      return {
+        ok: false,
+        error: `Quantité minimum pour « ${p.name_fr} » : ${formatQty(minQty, p.unit)}.`,
+      };
+    }
     qtyByProduct.set(
       it.product_id,
       (qtyByProduct.get(it.product_id) ?? 0) + it.quantity
@@ -462,6 +470,14 @@ export async function createOrder(
   }
   for (const p of products) {
     const totalQty = qtyByProduct.get(p.id) ?? 0;
+    // Maximum PAR COMMANDE fixé par le commerçant (somme des lignes).
+    const maxQty = p.max_qty == null ? null : Number(p.max_qty);
+    if (maxQty != null && totalQty > maxQty + 1e-9) {
+      return {
+        ok: false,
+        error: `Quantité maximum par commande pour « ${p.name_fr} » : ${formatQty(maxQty, p.unit)}.`,
+      };
+    }
     if (p.stock_qty != null && totalQty > p.stock_qty) {
       return {
         ok: false,

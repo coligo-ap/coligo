@@ -20,7 +20,14 @@ import {
 import { useCartAdd } from "@/components/customer/cart-mono-provider";
 import { toast } from "@/components/ui/toast";
 import { cldUrl } from "@/lib/images/cloudinary";
-import { formatQty, isFractionalUnit, qtyStep, roundQty } from "@/lib/units";
+import {
+  formatQty,
+  isFractionalUnit,
+  maxQtyFor,
+  minQtyFor,
+  qtyStep,
+  roundQty,
+} from "@/lib/units";
 import type { PublicProduct } from "@/lib/data/customer-catalog";
 
 /**
@@ -100,20 +107,29 @@ export function ProductRow({
       name: product.name_fr,
       name_ar: product.name_ar,
       unit: product.unit,
+      min_qty: product.min_qty,
+      max_qty: product.max_qty,
       unit_price_da: product.price_da,
       image_url: product.image_url,
       category_title: product.category,
+      // Départ direct au minimum imposé par le commerçant (ex. min 2 pièces).
+      quantity: minQtyFor(product.unit, product.min_qty),
     });
     if (addedNow) flash();
   }
 
   const step = qtyStep(product.unit);
+  const minQ = minQtyFor(product.unit, product.min_qty);
+  const maxQ = maxQtyFor(product.unit, product.max_qty, product.stock_qty);
 
   function increment(e: React.MouseEvent) {
     e.stopPropagation();
     if (!inCart) return;
     setActiveMerchant(merchant.id);
-    setItemQuantity(inCart.line_key, roundQty(inCart.quantity + step));
+    setItemQuantity(
+      inCart.line_key,
+      Math.min(maxQ, roundQty(inCart.quantity + step))
+    );
     flash();
   }
 
@@ -122,9 +138,9 @@ export function ProductRow({
     if (!inCart) return;
     setActiveMerchant(merchant.id);
     const next = roundQty(inCart.quantity - step);
-    // Sous le pas minimal → la ligne saute (0 = suppression côté store).
-    setItemQuantity(inCart.line_key, next < step ? 0 : next);
-    if (next < step) {
+    // Sous le minimum (pas d'unité ou min commerçant) → la ligne saute.
+    setItemQuantity(inCart.line_key, next < minQ ? 0 : next);
+    if (next < minQ) {
       toast.success(t("removedFromCart", { name: product.name_fr }));
     }
   }
@@ -251,18 +267,18 @@ export function ProductRow({
               type="button"
               onClick={decrement}
               aria-label={
-                inCart.quantity <= step
+                inCart.quantity <= minQ
                   ? t("removeFromCartAria", { name: product.name_fr })
                   : t("removeOne")
               }
               className={cn(
                 "flex size-7 items-center justify-center rounded-full transition-colors",
-                inCart.quantity <= step
+                inCart.quantity <= minQ
                   ? "bg-danger-50 text-danger-600 hover:bg-danger-100"
                   : "text-primary-700 hover:bg-primary-100"
               )}
             >
-              {inCart.quantity <= step ? (
+              {inCart.quantity <= minQ ? (
                 <Trash2 className="size-3.5" />
               ) : (
                 <Minus className="size-3.5" />

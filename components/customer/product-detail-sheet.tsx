@@ -2,7 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { formatQty, isFractionalUnit, qtyStep, roundQty } from "@/lib/units";
+import {
+  formatQty,
+  isFractionalUnit,
+  maxQtyFor,
+  minQtyFor,
+  qtyStep,
+  roundQty,
+} from "@/lib/units";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatDA } from "@/lib/utils";
@@ -51,6 +58,10 @@ export function ProductDetailSheet({
   // OBLIGATOIREMENT la quantité, au pas de l'unité (250 g / 25 cl / 50 cm).
   const fractional = isFractionalUnit(product?.unit);
   const step = qtyStep(product?.unit);
+  // Bornes imposées par le commerçant : min par ligne, max par commande
+  // (revalidées serveur au checkout — ici on guide juste le stepper).
+  const minQ = minQtyFor(product?.unit, product?.min_qty);
+  const maxQ = maxQtyFor(product?.unit, product?.max_qty, product?.stock_qty);
   // Options choisies : groupId → liste d'optionIds sélectionnés.
   const [selected, setSelected] = useState<Record<string, string[]>>({});
 
@@ -67,7 +78,9 @@ export function ProductDetailSheet({
       }
     }
     setSelected(init);
-    setQty(1);
+    setQty(
+      Math.max(fractional ? 1 : 1, minQtyFor(product.unit, product.min_qty))
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id]);
 
@@ -114,7 +127,7 @@ export function ProductDetailSheet({
   useEffect(() => {
     if (!product) return;
     const existing = cart.items.find((i) => i.line_key === lineKey);
-    setQty(existing?.quantity ?? 1);
+    setQty(existing?.quantity ?? Math.max(1, minQ));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lineKey]);
 
@@ -173,6 +186,8 @@ export function ProductDetailSheet({
         name: product!.name_fr,
         name_ar: product!.name_ar,
         unit: product!.unit,
+        min_qty: product!.min_qty,
+        max_qty: product!.max_qty,
         unit_price_da: unitPrice,
         image_url: product!.image_url,
         category_title: product!.category,
@@ -345,6 +360,21 @@ export function ProductDetailSheet({
             </div>
           )}
 
+          {(product.min_qty != null || product.max_qty != null) && (
+            <p className="text-muted mt-3 text-xs font-medium">
+              {product.min_qty != null &&
+                t("qtyMinHint", { qty: formatQty(minQ, product.unit, locale) })}
+              {product.min_qty != null && product.max_qty != null && " · "}
+              {product.max_qty != null &&
+                t("qtyMaxHint", {
+                  qty: formatQty(
+                    maxQtyFor(product.unit, product.max_qty),
+                    product.unit,
+                    locale
+                  ),
+                })}
+            </p>
+          )}
           {product.stock_qty != null && product.stock_qty <= 5 && (
             <p className="text-warning-700 mt-3 text-xs font-medium">
               {t("onlyLeftInStock", { count: product.stock_qty })}
@@ -357,7 +387,7 @@ export function ProductDetailSheet({
           <div className="bg-surface-2 inline-flex items-center gap-3 rounded-full p-1">
             <button
               type="button"
-              onClick={() => setQty((q) => Math.max(step, roundQty(q - step)))}
+              onClick={() => setQty((q) => Math.max(minQ, roundQty(q - step)))}
               className="text-foreground hover:bg-surface-3 flex size-8 items-center justify-center rounded-full"
               aria-label={t("removeOne")}
             >
@@ -373,14 +403,7 @@ export function ProductDetailSheet({
             </span>
             <button
               type="button"
-              onClick={() =>
-                setQty((q) => {
-                  const next = roundQty(q + step);
-                  return product.stock_qty != null
-                    ? Math.min(product.stock_qty, next)
-                    : next;
-                })
-              }
+              onClick={() => setQty((q) => Math.min(maxQ, roundQty(q + step)))}
               className="bg-primary-600 hover:bg-primary-700 flex size-8 items-center justify-center rounded-full text-white"
               aria-label={t("addOne")}
             >

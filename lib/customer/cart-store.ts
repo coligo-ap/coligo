@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { trackAddToCart } from "@/lib/analytics/ecommerce";
-import { roundQty, sanitizeQty } from "@/lib/units";
+import { maxQtyFor, minQtyFor, roundQty, sanitizeQty } from "@/lib/units";
 
 // =============================================================================
 // Panier client — MULTI-commerce en localStorage, un seul "actif" à la fois.
@@ -57,6 +57,9 @@ export type CartItem = {
   quantity: number;
   /** Unité de vente (snapshot) — pilote le pas des steppers et l'affichage. */
   unit?: string | null;
+  /** Bornes fixées par le commerçant (snapshot) : min par ligne, max/commande. */
+  min_qty?: number | null;
+  max_qty?: number | null;
   image_url?: string | null;
   category_title?: string | null;
   /** Options/variantes choisies (vide pour un produit simple). */
@@ -72,6 +75,8 @@ export type AddItemInput = {
   unit_price_da: number;
   quantity?: number;
   unit?: string | null;
+  min_qty?: number | null;
+  max_qty?: number | null;
   image_url?: string | null;
   category_title?: string | null;
   options?: SelectedOption[];
@@ -247,8 +252,15 @@ export function addItem(
   item: AddItemInput
 ): { ok: true } {
   const store = readStore();
-  // Entier à la pièce ; fractionnaire (snappé au pas) pour kg/L/m.
-  const qty = sanitizeQty(item.quantity ?? 1, item.unit);
+  // Entier à la pièce ; fractionnaire (snappé au pas) pour kg/L/m, puis
+  // clampé dans les bornes posées par le commerçant (min ligne / max commande).
+  const qty = Math.min(
+    maxQtyFor(item.unit, item.max_qty),
+    Math.max(
+      minQtyFor(item.unit, item.min_qty),
+      sanitizeQty(item.quantity ?? 1, item.unit)
+    )
+  );
   const current: Cart = store.by_merchant[merchant.id] ?? {
     merchant_id: merchant.id,
     merchant_slug: merchant.slug,
@@ -266,8 +278,14 @@ export function addItem(
   if (existing >= 0) {
     items[existing] = {
       ...items[existing],
-      quantity: roundQty(items[existing].quantity + qty),
+      // Fusion clampée au max commerçant (jamais au-delà en tapotant « + »).
+      quantity: Math.min(
+        maxQtyFor(item.unit, item.max_qty ?? items[existing].max_qty),
+        roundQty(items[existing].quantity + qty)
+      ),
       unit: items[existing].unit ?? item.unit ?? null,
+      min_qty: items[existing].min_qty ?? item.min_qty ?? null,
+      max_qty: items[existing].max_qty ?? item.max_qty ?? null,
     };
   } else {
     items.push({
@@ -276,6 +294,8 @@ export function addItem(
       name: item.name,
       name_ar: item.name_ar ?? null,
       unit: item.unit ?? null,
+      min_qty: item.min_qty ?? null,
+      max_qty: item.max_qty ?? null,
       unit_price_da: item.unit_price_da,
       quantity: qty,
       image_url: item.image_url ?? null,

@@ -332,6 +332,41 @@ export function ProductForm({
             </Field>
           </div>
 
+          {/* Quantités imposées au client (dans l'unité de vente). */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Quantité minimum (par commande)">
+              <Input
+                name="min_qty"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                defaultValue={product?.min_qty ?? ""}
+                placeholder="Laisser vide = libre"
+                disabled={pending}
+              />
+              <p className="text-subtle text-xs">
+                Dans l&apos;unité de vente — ex. 0,5 = minimum 500 g pour un
+                produit au kilo.
+              </p>
+            </Field>
+            <Field label="Quantité maximum (par commande)">
+              <Input
+                name="max_qty"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                defaultValue={product?.max_qty ?? ""}
+                placeholder="Laisser vide = libre"
+                disabled={pending}
+              />
+              <p className="text-subtle text-xs">
+                Plafond toutes lignes confondues sur une même commande.
+              </p>
+            </Field>
+          </div>
+
           <label className="flex items-center gap-3 pt-1">
             <input
               type="checkbox"

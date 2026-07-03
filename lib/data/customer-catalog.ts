@@ -34,6 +34,9 @@ export type PublicProduct = {
   category_id: string | null;
   image_url: string | null;
   stock_qty: number | null;
+  /** Quantité min par ligne / max par commande, fixées par le commerçant. */
+  min_qty: number | null;
+  max_qty: number | null;
   is_available: boolean;
   /** Groupes d'options/variantes (absent/vide pour un produit simple). */
   option_groups?: PublicOptionGroup[];
@@ -79,7 +82,7 @@ export async function listMerchantProducts(
       .select(
         `id, merchant_id, name_fr, name_ar, description_fr, description_ar,
          price_da, unit, category, category_id, image_url, stock_qty,
-         is_available, position,
+         min_qty, max_qty, is_available, position,
          product_option_groups (
            id, name_fr, name_ar, min_select, max_select, position,
            product_options ( id, name_fr, name_ar, price_delta_da, is_available, position )

@@ -163,6 +163,8 @@ export type ReorderItem = {
   quantity: number;
   /** Unité de vente actuelle du produit (pilote pas/affichage du panier). */
   unit: string | null;
+  min_qty: number | null;
+  max_qty: number | null;
 };
 
 export type ReorderResult =
@@ -219,7 +221,9 @@ export async function resolveReorder(orderId: string): Promise<ReorderResult> {
     // noms snapshot → product_id + prix du jour + disponibilité.
     const { data: products } = await supabase
       .from("products")
-      .select("id, name_fr, price_da, unit, image_url, category, is_available")
+      .select(
+        "id, name_fr, price_da, unit, min_qty, max_qty, image_url, category, is_available"
+      )
       .eq("merchant_id", o.merchant_id);
 
     const byName = new Map<
@@ -229,6 +233,8 @@ export async function resolveReorder(orderId: string): Promise<ReorderResult> {
         name_fr: string;
         price_da: number;
         unit: string | null;
+        min_qty: number | null;
+        max_qty: number | null;
         image_url: string | null;
         category: string | null;
         is_available: boolean;
@@ -239,6 +245,8 @@ export async function resolveReorder(orderId: string): Promise<ReorderResult> {
       name_fr: string;
       price_da: number;
       unit: string | null;
+      min_qty: number | null;
+      max_qty: number | null;
       image_url: string | null;
       category: string | null;
       is_available: boolean;
@@ -262,6 +270,8 @@ export async function resolveReorder(orderId: string): Promise<ReorderResult> {
           // panier la re-snappe au pas de l'unité ACTUELLE du produit.
           quantity: Number(oi.quantity) > 0 ? Number(oi.quantity) : 1,
           unit: p.unit,
+          min_qty: p.min_qty == null ? null : Number(p.min_qty),
+          max_qty: p.max_qty == null ? null : Number(p.max_qty),
         });
       } else {
         missing.push(oi.product_name);

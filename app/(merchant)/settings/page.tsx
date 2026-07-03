@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   ChevronRight,
   Clock,
+  LayoutGrid,
   Printer,
   Smartphone,
   Store,
@@ -17,6 +18,7 @@ import { ProfileForm } from "@/components/merchant/settings/profile-form";
 import { OpeningHoursForm } from "@/components/merchant/settings/opening-hours-form";
 import { ScheduledClosureForm } from "@/components/merchant/settings/scheduled-closure-form";
 import { OrderRulesForm } from "@/components/merchant/settings/order-rules-form";
+import { CatalogDisplayForm } from "@/components/merchant/settings/catalog-display-form";
 import { OpenStatusBadge } from "@/components/merchant/settings/open-status-badge";
 import { AccountSection } from "@/components/merchant/settings/account-section";
 import { DeliverySettingsForm } from "@/components/merchant/settings/delivery-settings-form";
@@ -55,7 +57,7 @@ export default async function SettingsPage() {
        pickup_slot_minutes, max_orders_per_slot, is_active,
        commission_rate, auto_accept_orders, auto_print, print_copies, print_width,
        delivery_enabled, express_enabled, tours_enabled, delivery_radius_km,
-       closure_start, closure_end, tags,
+       closure_start, closure_end, tags, catalog_display,
        payout_auto, payout_method, payout_details`
     )
     .eq("user_id", user.id)
@@ -140,6 +142,10 @@ export default async function SettingsPage() {
       (m.payout_auto as "none" | "weekly" | "monthly" | null) ?? "none",
     payout_method: m.payout_method ?? null,
     payout_details: m.payout_details ?? null,
+    catalog_display:
+      (m.catalog_display as string | null) === "categories"
+        ? "categories"
+        : "list",
   };
 
   return (
@@ -165,6 +171,21 @@ export default async function SettingsPage() {
           }
         >
           <ProfileForm merchant={merchant} />
+        </SettingsSection>
+
+        <SettingsSection
+          icon={<LayoutGrid />}
+          title="Affichage du catalogue"
+          description="Comment les clients découvrent vos produits sur votre boutique."
+          summary={
+            <span className="text-muted mr-2 text-xs">
+              {merchant.catalog_display === "categories"
+                ? "Catégories d'abord"
+                : "Liste complète"}
+            </span>
+          }
+        >
+          <CatalogDisplayForm initial={merchant.catalog_display} />
         </SettingsSection>
 
         <SettingsSection

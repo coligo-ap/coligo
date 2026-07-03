@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Gift, Search, X } from "lucide-react";
+import {
+  ChevronLeft,
+  Gift,
+  LayoutGrid,
+  Rows3,
+  Search,
+  ShoppingBag,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useMerchantSearch,
@@ -37,6 +45,8 @@ type Props = {
   quantityOfferByProduct: Record<string, { buy: number; get: number }>;
   /** Promotions à produits, ordonnées (offres quantité d'abord) pour les carrousels. */
   promoCarousels: PublicPromotion[];
+  /** Affichage par défaut choisi par le COMMERÇANT (le client peut basculer). */
+  defaultDisplay?: "list" | "categories";
 };
 
 const UNCAT_KEY = "__uncat__";
@@ -64,9 +74,37 @@ export function MerchantCatalog({
   promoPriceById,
   quantityOfferByProduct,
   promoCarousels,
+  defaultDisplay = "list",
 }: Props) {
   const t = useTranslations("merchant");
   const [selected, setSelected] = useState<PublicProduct | null>(null);
+
+  // ---------------------------------------------------------------------------
+  // AFFICHAGE : « liste » (sections déroulées) ou « catégories d'abord »
+  // (grille de cartes → drill-down). Défaut = choix du commerçant ; le client
+  // peut basculer, préférence mémorisée par commerce (localStorage).
+  // ---------------------------------------------------------------------------
+  const displayKey = `coligo:catalog-display:${merchant.id}`;
+  const [display, setDisplay] = useState<"list" | "categories">(defaultDisplay);
+  const [openCat, setOpenCat] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const v = window.localStorage.getItem(displayKey);
+      if (v === "list" || v === "categories") setDisplay(v);
+    } catch {
+      /* stockage indisponible → défaut commerçant */
+    }
+     
+  }, [displayKey]);
+  function switchDisplay(v: "list" | "categories") {
+    setDisplay(v);
+    setOpenCat(null);
+    try {
+      window.localStorage.setItem(displayKey, v);
+    } catch {
+      /* préférence non mémorisée, sans gravité */
+    }
+  }
   // Recherche produit (filtre client, sur le catalogue déjà chargé).
   // Recherche partagée avec la barre intégrée au header (store global). On
   // réinitialise au démontage (changement de commerce).
@@ -261,9 +299,9 @@ export function MerchantCatalog({
 
   return (
     <>
-      {/* Recherche produit (style Uber) */}
-      <div className="mb-3">
-        <div className="border-border bg-surface flex items-center gap-2.5 rounded-[13px] border px-3.5 py-3 shadow-sm">
+      {/* Recherche produit (style Uber) + bascule liste/catégories */}
+      <div className="mb-3 flex items-center gap-2">
+        <div className="border-border bg-surface flex flex-1 items-center gap-2.5 rounded-[13px] border px-3.5 py-3 shadow-sm">
           <Search className="text-muted size-4 shrink-0" />
           <input
             id="merchant-product-search"
@@ -284,10 +322,46 @@ export function MerchantCatalog({
             </button>
           )}
         </div>
+        {groups.length > 1 && (
+          <div
+            role="group"
+            aria-label={t("viewToggleAria")}
+            className="border-border bg-surface flex shrink-0 items-center rounded-[13px] border p-1 shadow-sm"
+          >
+            <button
+              type="button"
+              onClick={() => switchDisplay("categories")}
+              aria-pressed={display === "categories"}
+              title={t("viewAsCategories")}
+              className={cn(
+                "flex size-9 items-center justify-center rounded-[10px] transition-colors",
+                display === "categories"
+                  ? "bg-primary-600 text-white"
+                  : "text-muted hover:text-foreground"
+              )}
+            >
+              <LayoutGrid className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => switchDisplay("list")}
+              aria-pressed={display === "list"}
+              title={t("viewAsList")}
+              className={cn(
+                "flex size-9 items-center justify-center rounded-[10px] transition-colors",
+                display === "list"
+                  ? "bg-primary-600 text-white"
+                  : "text-muted hover:text-foreground"
+              )}
+            >
+              <Rows3 className="size-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* CHIPS catégories — sticky type Uber Eats (masquées pendant une recherche). */}
-      {!q && groups.length > 1 && (
+      {!q && display === "list" && groups.length > 1 && (
         <>
           {/* Sentinelle utilisée pour détecter l'état "stuck" (cf. effect). */}
           <div ref={stickySentinelRef} aria-hidden className="h-px w-full" />
@@ -389,51 +463,144 @@ export function MerchantCatalog({
         </div>
       )}
 
-      <div className="space-y-6">
-        {visibleGroups.map((g) => (
-          <section
-            key={g.key}
-            id={`cat-${g.key}`}
-            ref={(el) => {
-              if (el) sectionRefs.current.set(g.key, el);
-              else sectionRefs.current.delete(g.key);
-            }}
-            className="scroll-mt-[calc(env(safe-area-inset-top)+118px)]"
-          >
-            <h2 className="font-display text-foreground mb-2.5 flex items-center gap-2.5 px-1 text-lg font-bold">
-              {g.category?.image_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={g.category.image_url}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  className="size-8 shrink-0 rounded-[10px] object-cover shadow-[0_3px_8px_-3px_rgba(0,0,0,0.2)]"
-                />
-              )}
-              <span className="truncate">
-                {g.category?.title ?? t("otherCategory")}
-              </span>
-              <span className="text-subtle ms-auto shrink-0 text-xs font-bold">
-                {t("productCount", { count: g.items.length })}
-              </span>
-            </h2>
-            <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[16px] border">
-              {g.items.map((p) => (
-                <li key={p.id}>
-                  <ProductRow
-                    merchant={merchant}
-                    product={p}
-                    promoUnitPriceDa={promoPriceById[p.id] ?? null}
-                    quantityOffer={quantityOfferByProduct[p.id] ?? null}
-                    onOpenDetail={() => setSelected(p)}
+      {/* MODE CATÉGORIES (sans recherche) : grille de cartes OU drill-down. */}
+      {!q && display === "categories" && openCat === null && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {groups.map((g) => (
+            <button
+              key={g.key}
+              type="button"
+              onClick={() => setOpenCat(g.key)}
+              className="border-border bg-surface hover:border-primary-300 group overflow-hidden rounded-[16px] border text-start shadow-[0_2px_8px_-4px_rgba(40,35,90,0.12)] transition active:scale-[0.98]"
+            >
+              <div className="bg-surface-2 relative aspect-[4/3] w-full overflow-hidden">
+                {g.category?.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={g.category.image_url}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.04]"
                   />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-      </div>
+                ) : (
+                  <div className="from-primary-500/15 to-surface-3 flex h-full w-full items-center justify-center bg-gradient-to-br">
+                    <ShoppingBag className="text-primary-300 size-8" />
+                  </div>
+                )}
+              </div>
+              <div className="p-3">
+                <p className="text-foreground truncate text-sm font-bold">
+                  {g.category?.title ?? t("otherCategory")}
+                </p>
+                <p className="text-subtle mt-0.5 text-xs font-semibold">
+                  {t("productCount", { count: g.items.length })}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!q &&
+        display === "categories" &&
+        openCat !== null &&
+        (() => {
+          const g = groups.find((x) => x.key === openCat);
+          if (!g) return null;
+          return (
+            <section>
+              <div className="mb-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOpenCat(null)}
+                  className="border-border bg-surface text-foreground hover:border-primary-300 inline-flex items-center gap-1.5 rounded-full border py-2 ps-2.5 pe-3.5 text-[13px] font-bold shadow-sm"
+                >
+                  <ChevronLeft className="size-4 rtl:rotate-180" />
+                  {t("allCategories")}
+                </button>
+              </div>
+              <h2 className="font-display text-foreground mb-2.5 flex items-center gap-2.5 px-1 text-lg font-bold">
+                {g.category?.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={g.category.image_url}
+                    alt=""
+                    className="size-8 shrink-0 rounded-[10px] object-cover shadow-[0_3px_8px_-3px_rgba(0,0,0,0.2)]"
+                  />
+                )}
+                <span className="truncate">
+                  {g.category?.title ?? t("otherCategory")}
+                </span>
+                <span className="text-subtle ms-auto shrink-0 text-xs font-bold">
+                  {t("productCount", { count: g.items.length })}
+                </span>
+              </h2>
+              <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[16px] border">
+                {g.items.map((p) => (
+                  <li key={p.id}>
+                    <ProductRow
+                      merchant={merchant}
+                      product={p}
+                      promoUnitPriceDa={promoPriceById[p.id] ?? null}
+                      quantityOffer={quantityOfferByProduct[p.id] ?? null}
+                      onOpenDetail={() => setSelected(p)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })()}
+
+      {/* MODE LISTE (ou recherche active) : sections déroulées historiques. */}
+      {(q.length > 0 || display === "list") && (
+        <div className="space-y-6">
+          {visibleGroups.map((g) => (
+            <section
+              key={g.key}
+              id={`cat-${g.key}`}
+              ref={(el) => {
+                if (el) sectionRefs.current.set(g.key, el);
+                else sectionRefs.current.delete(g.key);
+              }}
+              className="scroll-mt-[calc(env(safe-area-inset-top)+118px)]"
+            >
+              <h2 className="font-display text-foreground mb-2.5 flex items-center gap-2.5 px-1 text-lg font-bold">
+                {g.category?.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={g.category.image_url}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="size-8 shrink-0 rounded-[10px] object-cover shadow-[0_3px_8px_-3px_rgba(0,0,0,0.2)]"
+                  />
+                )}
+                <span className="truncate">
+                  {g.category?.title ?? t("otherCategory")}
+                </span>
+                <span className="text-subtle ms-auto shrink-0 text-xs font-bold">
+                  {t("productCount", { count: g.items.length })}
+                </span>
+              </h2>
+              <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[16px] border">
+                {g.items.map((p) => (
+                  <li key={p.id}>
+                    <ProductRow
+                      merchant={merchant}
+                      product={p}
+                      promoUnitPriceDa={promoPriceById[p.id] ?? null}
+                      quantityOffer={quantityOfferByProduct[p.id] ?? null}
+                      onOpenDetail={() => setSelected(p)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
 
       {/* Sheet détails produit */}
       <ProductDetailSheet
