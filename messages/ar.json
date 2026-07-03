@@ -400,6 +400,8 @@
     "badgeAccepted": "تم القبول",
     "badgePreparing": "قيد التحضير",
     "badgeReady": "جاهز",
+    "activeDelivering": "في الطريق إليك",
+    "activeDismiss": "إخفاء هذا التتبع",
     "badgeCompleted": "منتهية",
     "badgeCancelled": "ملغاة",
     "stepSent": "مُرسَل",

@@ -1,10 +1,11 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import {
@@ -15,10 +16,18 @@ import type { OrderStatus } from "@/lib/types";
 
 // =============================================================================
 // BANDEAU « COMMANDES EN COURS » — flotte AU-DESSUS de la bottom-nav (façon
-// live pill Uber Eats). Une carte par commande active (1..n commerçants),
-// avec le statut et une petite scène VIVANTE : le cuisinier 👨‍🍳 se balance
-// sous ses volutes de vapeur pendant la préparation, le sac 🛍️ rebondit quand
-// c'est prêt. Tap = détail de la commande.
+// live pill Uber Eats). Une carte par commande active (1..n commerçants), avec
+// une SCÈNE ANIMÉE spécifique à chaque situation (100 % CSS/emoji, 0 KB de
+// dépendance — pas de Lottie ni d'assets réseau, léger et offline-safe APK) :
+//   - en attente   : le commerçant « écrit » la commande (stylo sur ticket) ;
+//   - préparation  : le cuisinier travaille (vapeur) pendant qu'un ingrédient
+//                    tombe dans le colis qui tressaute (on emballe !) ;
+//   - prête retrait: sac qui rebondit + étincelle ;
+//   - en livraison : moto (express) ou fourgon (tournée) qui roule, traits de
+//                    vitesse défilants (sens inversé en RTL).
+// Tap = détail de la commande. X = fermer la carte : mémorisé par
+// (commande, statut) en sessionStorage → elle RÉAPPARAÎT dès que le statut
+// change (le client ne rate jamais « prête » ou « en livraison »).
 //
 // Données : polling léger (20 s) + resync à la reprise au premier plan
 // (useResumeResync) — cache TanStack isolé par utilisateur.
@@ -30,6 +39,17 @@ const STATUS_BADGE_KEY: Partial<Record<OrderStatus, string>> = {
   preparing: "badgePreparing",
   ready: "badgeReady",
 };
+
+const DISMISS_KEY = "coligo:active-orders-dismissed";
+
+function readDismissed(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.sessionStorage.getItem(DISMISS_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
 
 /** Routes où le bandeau serait redondant ou gênerait un CTA flottant. */
 function hiddenOn(p: string): boolean {
@@ -59,7 +79,23 @@ export function ActiveOrdersBar({ userId }: { userId: string }) {
   // produit « arrière-plan → reprise »).
   useResumeResync(() => void refetch());
 
-  const orders = data ?? [];
+  // Fermeture par carte : mémorisée par (id → statut) pour la session. Si le
+  // statut évolue (préparation → prête), la carte REVIENT automatiquement.
+  const [dismissed, setDismissed] =
+    useState<Record<string, string>>(readDismissed);
+  const dismiss = useCallback((id: string, status: string) => {
+    setDismissed((prev) => {
+      const next = { ...prev, [id]: status };
+      try {
+        window.sessionStorage.setItem(DISMISS_KEY, JSON.stringify(next));
+      } catch {
+        /* stockage indisponible : fermeture non persistée, sans gravité */
+      }
+      return next;
+    });
+  }, []);
+
+  const orders = (data ?? []).filter((o) => dismissed[o.id] !== o.status);
   if (hidden || orders.length === 0) return null;
 
   return (
@@ -72,7 +108,12 @@ export function ActiveOrdersBar({ userId }: { userId: string }) {
         )}
       >
         {orders.map((o) => (
-          <ActiveOrderCard key={o.id} order={o} multi={orders.length > 1} />
+          <ActiveOrderCard
+            key={o.id}
+            order={o}
+            multi={orders.length > 1}
+            onDismiss={() => dismiss(o.id, o.status)}
+          />
         ))}
       </div>
     </div>
@@ -82,51 +123,33 @@ export function ActiveOrdersBar({ userId }: { userId: string }) {
 function ActiveOrderCard({
   order,
   multi,
+  onDismiss,
 }: {
   order: ActiveOrderLite;
   multi: boolean;
+  onDismiss: () => void;
 }) {
   const t = useTranslations("orders");
   const preparing = order.status === "accepted" || order.status === "preparing";
   const ready = order.status === "ready";
+  const delivering = ready && order.fulfillment_type === "delivery";
+
+  // Libellé : badges i18n existants, sauf « en livraison » (clé dédiée).
+  const label = delivering
+    ? t("activeDelivering")
+    : t(STATUS_BADGE_KEY[order.status] ?? "badgePending");
 
   return (
     <Link
       href={`/commandes/${order.id}`}
       className={cn(
-        "border-border bg-surface pointer-events-auto flex items-center gap-3 rounded-[14px] border p-2.5 shadow-[0_10px_30px_-10px_rgba(20,20,50,0.35)] transition-transform active:scale-[0.98]",
+        "border-border bg-surface pointer-events-auto relative flex items-center gap-3 rounded-[14px] border p-2.5 pe-8 shadow-[0_10px_30px_-10px_rgba(20,20,50,0.35)] transition-transform active:scale-[0.98]",
         multi ? "w-[86%] shrink-0 snap-start" : "flex w-full"
       )}
     >
-      {/* Scène animée selon le statut. */}
-      <span className="bg-primary-50 dark:bg-primary-950/40 relative grid size-11 shrink-0 place-items-center rounded-full">
-        {preparing ? (
-          <>
-            {/* Volutes de vapeur au-dessus du cuisinier. */}
-            <span
-              aria-hidden
-              className="absolute -top-1.5 flex items-end gap-[3px]"
-            >
-              <span className="co-steam bg-subtle/70 h-[7px] w-[2.5px] rounded-full" />
-              <span className="co-steam bg-subtle/70 h-[10px] w-[2.5px] rounded-full" />
-              <span className="co-steam bg-subtle/70 h-[7px] w-[2.5px] rounded-full" />
-            </span>
-            <span className="co-chef text-[22px]" aria-hidden>
-              👨‍🍳
-            </span>
-          </>
-        ) : ready ? (
-          <span className="co-ready-bounce text-[20px]" aria-hidden>
-            🛍️
-          </span>
-        ) : (
-          <span className="animate-pulse text-[20px]" aria-hidden>
-            🕒
-          </span>
-        )}
-      </span>
+      <StatusScene order={order} />
 
-      {/* Commerçant + statut (les libellés réutilisent les badges i18n). */}
+      {/* Commerçant + statut. */}
       <span className="min-w-0 flex-1">
         <span className="text-foreground block truncate text-[13.5px] font-bold">
           {order.merchant_name}
@@ -142,8 +165,8 @@ function ActiveOrderCard({
                 : "text-muted"
           )}
         >
-          {t(STATUS_BADGE_KEY[order.status] ?? "badgePending")}
-          {preparing && (
+          {label}
+          {(preparing || delivering) && (
             <span aria-hidden>
               <span className="co-dot">.</span>
               <span className="co-dot">.</span>
@@ -154,6 +177,112 @@ function ActiveOrderCard({
       </span>
 
       <ChevronRight className="text-subtle size-4 shrink-0 rtl:-scale-x-100" />
+
+      {/* Fermer la carte (par statut : elle revient si le statut change). */}
+      <button
+        type="button"
+        aria-label={t("activeDismiss")}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDismiss();
+        }}
+        className="bg-surface-3 text-muted hover:text-foreground absolute -end-1.5 -top-1.5 grid size-6 place-items-center rounded-full border border-[var(--color-border)] shadow-sm"
+      >
+        <X className="size-3" />
+      </button>
     </Link>
+  );
+}
+
+/**
+ * Scène animée du statut — petites illustrations vivantes 100 % CSS/emoji.
+ * Chaque cas a la sienne (préparation ≠ prête retrait ≠ express ≠ tournée).
+ */
+function StatusScene({ order }: { order: ActiveOrderLite }) {
+  const preparing = order.status === "accepted" || order.status === "preparing";
+  const ready = order.status === "ready";
+  const delivering = ready && order.fulfillment_type === "delivery";
+
+  return (
+    <span className="bg-primary-50 dark:bg-primary-950/40 relative grid size-11 shrink-0 place-items-center overflow-visible rounded-full">
+      {delivering ? (
+        // ─── EN LIVRAISON : moto (express) / fourgon (tournée) qui roule ────
+        <>
+          <span
+            aria-hidden
+            className="absolute start-0 top-1/2 flex -translate-y-1/2 flex-col gap-[3px]"
+          >
+            <span className="co-speedline bg-subtle/70 h-[2px] w-[7px] rounded-full" />
+            <span className="co-speedline bg-subtle/70 h-[2px] w-[10px] rounded-full" />
+            <span className="co-speedline bg-subtle/70 h-[2px] w-[6px] rounded-full" />
+          </span>
+          <span className="co-drive text-[20px] rtl:-scale-x-100" aria-hidden>
+            {order.delivery_mode === "tour" ? "🚚" : "🛵"}
+          </span>
+          {/* La route. */}
+          <span
+            aria-hidden
+            className="bg-subtle/40 absolute bottom-1.5 h-[2px] w-6 rounded-full"
+          />
+        </>
+      ) : preparing ? (
+        // ─── EN PRÉPARATION : le cuisinier travaille, un ingrédient tombe
+        //     dans le colis qui tressaute (on emballe la commande). ─────────
+        <>
+          <span
+            aria-hidden
+            className="absolute start-2 -top-1.5 flex items-end gap-[3px]"
+          >
+            <span className="co-steam bg-subtle/70 h-[6px] w-[2px] rounded-full" />
+            <span className="co-steam bg-subtle/70 h-[9px] w-[2px] rounded-full" />
+            <span className="co-steam bg-subtle/70 h-[6px] w-[2px] rounded-full" />
+          </span>
+          <span
+            className="co-chef absolute start-1 top-1 text-[17px]"
+            aria-hidden
+          >
+            👨‍🍳
+          </span>
+          {/* Ingrédient qui tombe dans le colis. */}
+          <span
+            aria-hidden
+            className="co-pack-item bg-accent-500 absolute end-2 top-2.5 size-[5px] rounded-full"
+          />
+          <span
+            className="co-pack-box absolute end-0.5 bottom-0.5 text-[15px]"
+            aria-hidden
+          >
+            📦
+          </span>
+        </>
+      ) : ready ? (
+        // ─── PRÊTE (retrait) : le sac rebondit, ça scintille. ───────────────
+        <>
+          <span className="co-ready-bounce text-[20px]" aria-hidden>
+            🛍️
+          </span>
+          <span
+            aria-hidden
+            className="co-sparkle absolute end-0 -top-0.5 text-[11px]"
+          >
+            ✨
+          </span>
+        </>
+      ) : (
+        // ─── EN ATTENTE : le commerçant « écrit » la commande. ─────────────
+        <>
+          <span className="text-[19px]" aria-hidden>
+            🧾
+          </span>
+          <span
+            aria-hidden
+            className="co-pen absolute end-1 bottom-1 text-[13px]"
+          >
+            ✏️
+          </span>
+        </>
+      )}
+    </span>
   );
 }

@@ -529,11 +529,146 @@ body {
   display: inline-block;
   animation: co-ready-bounce 1.1s ease-in-out infinite;
 }
+/* Ingrédient qui TOMBE dans le colis (scène « on emballe ta commande »). */
+@keyframes co-pack-item {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.7);
+  }
+  35% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(2px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(3px) scale(0.9);
+  }
+}
+.co-pack-item {
+  animation: co-pack-item 1.5s ease-in infinite;
+}
+/* Le colis « encaisse » chaque ingrédient (petit soubresaut synchronisé). */
+@keyframes co-pack-box {
+  0%,
+  60%,
+  100% {
+    transform: scale(1);
+  }
+  72% {
+    transform: scale(1.12) translateY(1px);
+  }
+}
+.co-pack-box {
+  display: inline-block;
+  transform-origin: 50% 100%;
+  animation: co-pack-box 1.5s ease-out infinite;
+}
+/* Véhicule de livraison : trépide légèrement comme sur la route. */
+@keyframes co-drive {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  30% {
+    transform: translateY(-1.5px) rotate(-2deg);
+  }
+  65% {
+    transform: translateY(0.5px) rotate(1.5deg);
+  }
+}
+.co-drive {
+  display: inline-block;
+  animation: co-drive 0.7s ease-in-out infinite;
+}
+/* Traits de vitesse qui défilent derrière le véhicule (sens RTL inversé). */
+@keyframes co-speedline {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  25% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+.co-speedline {
+  animation: co-speedline 0.9s linear infinite;
+}
+.co-speedline:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.co-speedline:nth-child(3) {
+  animation-delay: 0.6s;
+}
+[dir="rtl"] .co-speedline {
+  animation-name: co-speedline-rtl;
+}
+@keyframes co-speedline-rtl {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  25% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+/* Étincelle qui scintille (commande prête ✨). */
+@keyframes co-sparkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.5) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(20deg);
+  }
+}
+.co-sparkle {
+  display: inline-block;
+  animation: co-sparkle 1.4s ease-in-out infinite;
+}
+/* Stylo qui « écrit » la commande (en attente de confirmation). */
+@keyframes co-pen {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(-4deg);
+  }
+  25% {
+    transform: translate(1.5px, 0.5px) rotate(2deg);
+  }
+  50% {
+    transform: translate(3px, 0) rotate(-3deg);
+  }
+  75% {
+    transform: translate(1.5px, 0.5px) rotate(3deg);
+  }
+}
+.co-pen {
+  display: inline-block;
+  animation: co-pen 1.1s ease-in-out infinite;
+}
 @media (prefers-reduced-motion: reduce) {
   .co-chef,
   .co-steam,
   .co-dot,
-  .co-ready-bounce {
+  .co-ready-bounce,
+  .co-pack-item,
+  .co-pack-box,
+  .co-drive,
+  .co-speedline,
+  .co-sparkle,
+  .co-pen {
     animation: none;
   }
 }

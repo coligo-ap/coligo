@@ -374,6 +374,8 @@ export type ActiveOrderLite = {
   status: OrderStatus;
   order_number: string | null;
   fulfillment_type: "pickup" | "delivery";
+  /** express (moto) ou tour (tournée/fourgon) — pilote la scène animée. */
+  delivery_mode: "express" | "tour" | null;
   merchant_name: string;
   merchant_logo: string | null;
 };
@@ -392,7 +394,7 @@ export async function fetchMyActiveOrders(): Promise<ActiveOrderLite[]> {
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, status, order_number, fulfillment_type, merchants ( name, logo_url )"
+      "id, status, order_number, fulfillment_type, delivery_mode, merchants ( name, logo_url )"
     )
     .eq("customer_id", customer.id)
     .in("status", ["pending", "accepted", "preparing", "ready"])
@@ -414,6 +416,7 @@ export async function fetchMyActiveOrders(): Promise<ActiveOrderLite[]> {
       order_number: o.order_number ?? null,
       fulfillment_type:
         (o.fulfillment_type as "pickup" | "delivery") ?? "pickup",
+      delivery_mode: (o.delivery_mode as "express" | "tour" | null) ?? null,
       merchant_name: merchant?.name ?? "",
       merchant_logo: merchant?.logo_url ?? null,
     };

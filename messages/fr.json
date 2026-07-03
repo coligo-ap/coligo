@@ -400,6 +400,8 @@
     "badgeAccepted": "Acceptée",
     "badgePreparing": "En préparation",
     "badgeReady": "Prête",
+    "activeDelivering": "En livraison vers vous",
+    "activeDismiss": "Masquer ce suivi",
     "badgeCompleted": "Terminée",
     "badgeCancelled": "Annulée",
     "stepSent": "Envoyée",
