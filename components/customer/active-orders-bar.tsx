@@ -5,7 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { ChevronRight, X } from "lucide-react";
+import {
+  Bike,
+  ChefHat,
+  ChevronRight,
+  Package,
+  Pencil,
+  ReceiptText,
+  ShoppingBag,
+  Sparkles,
+  Truck,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import {
@@ -17,8 +28,9 @@ import type { OrderStatus } from "@/lib/types";
 // =============================================================================
 // BANDEAU « COMMANDES EN COURS » — flotte AU-DESSUS de la bottom-nav (façon
 // live pill Uber Eats). Une carte par commande active (1..n commerçants), avec
-// une SCÈNE ANIMÉE spécifique à chaque situation (100 % CSS/emoji, 0 KB de
-// dépendance — pas de Lottie ni d'assets réseau, léger et offline-safe APK) :
+// une SCÈNE ANIMÉE spécifique à chaque situation (icônes lucide + CSS, JAMAIS
+// d'emoji en dur — règle produit ; 0 KB de dépendance, pas de Lottie ni
+// d'assets réseau, léger et offline-safe APK) :
 //   - en attente   : le commerçant « écrit » la commande (stylo sur ticket) ;
 //   - préparation  : le cuisinier travaille (vapeur) pendant qu'un ingrédient
 //                    tombe dans le colis qui tressaute (on emballe !) ;
@@ -196,8 +208,9 @@ function ActiveOrderCard({
 }
 
 /**
- * Scène animée du statut — petites illustrations vivantes 100 % CSS/emoji.
- * Chaque cas a la sienne (préparation ≠ prête retrait ≠ express ≠ tournée).
+ * Scène animée du statut — icônes lucide animées en CSS (JAMAIS d'emoji en
+ * dur — règle produit). Chaque cas a la sienne (préparation ≠ prête retrait
+ * ≠ express ≠ tournée).
  */
 function StatusScene({ order }: { order: ActiveOrderLite }) {
   const preparing = order.status === "accepted" || order.status === "preparing";
@@ -211,14 +224,18 @@ function StatusScene({ order }: { order: ActiveOrderLite }) {
         <>
           <span
             aria-hidden
-            className="absolute start-0 top-1/2 flex -translate-y-1/2 flex-col gap-[3px]"
+            className="absolute start-0.5 top-1/2 flex -translate-y-1/2 flex-col gap-[3px]"
           >
-            <span className="co-speedline bg-subtle/70 h-[2px] w-[7px] rounded-full" />
-            <span className="co-speedline bg-subtle/70 h-[2px] w-[10px] rounded-full" />
-            <span className="co-speedline bg-subtle/70 h-[2px] w-[6px] rounded-full" />
+            <span className="co-speedline bg-primary-400/70 h-[2px] w-[7px] rounded-full" />
+            <span className="co-speedline bg-primary-400/70 h-[2px] w-[10px] rounded-full" />
+            <span className="co-speedline bg-primary-400/70 h-[2px] w-[6px] rounded-full" />
           </span>
-          <span className="co-drive text-[20px] rtl:-scale-x-100" aria-hidden>
-            {order.delivery_mode === "tour" ? "🚚" : "🛵"}
+          <span className="co-drive" aria-hidden>
+            {order.delivery_mode === "tour" ? (
+              <Truck className="text-primary-700 dark:text-primary-300 size-5 rtl:-scale-x-100" />
+            ) : (
+              <Bike className="text-primary-700 dark:text-primary-300 size-5 rtl:-scale-x-100" />
+            )}
           </span>
           {/* La route. */}
           <span
@@ -227,59 +244,48 @@ function StatusScene({ order }: { order: ActiveOrderLite }) {
           />
         </>
       ) : preparing ? (
-        // ─── EN PRÉPARATION : le cuisinier travaille, un ingrédient tombe
-        //     dans le colis qui tressaute (on emballe la commande). ─────────
+        // ─── EN PRÉPARATION : la toque s'active sous la vapeur, un
+        //     ingrédient tombe dans le colis qui tressaute (on emballe). ────
         <>
           <span
             aria-hidden
-            className="absolute start-2 -top-1.5 flex items-end gap-[3px]"
+            className="absolute start-2.5 -top-1.5 flex items-end gap-[3px]"
           >
-            <span className="co-steam bg-subtle/70 h-[6px] w-[2px] rounded-full" />
-            <span className="co-steam bg-subtle/70 h-[9px] w-[2px] rounded-full" />
-            <span className="co-steam bg-subtle/70 h-[6px] w-[2px] rounded-full" />
+            <span className="co-steam bg-primary-300/80 h-[6px] w-[2px] rounded-full" />
+            <span className="co-steam bg-primary-300/80 h-[9px] w-[2px] rounded-full" />
+            <span className="co-steam bg-primary-300/80 h-[6px] w-[2px] rounded-full" />
           </span>
-          <span
-            className="co-chef absolute start-1 top-1 text-[17px]"
-            aria-hidden
-          >
-            👨‍🍳
+          <span className="co-chef absolute start-1.5 top-1.5" aria-hidden>
+            <ChefHat className="text-primary-700 dark:text-primary-300 size-[18px]" />
           </span>
           {/* Ingrédient qui tombe dans le colis. */}
           <span
             aria-hidden
-            className="co-pack-item bg-accent-500 absolute end-2 top-2.5 size-[5px] rounded-full"
+            className="co-pack-item bg-accent-500 absolute end-2.5 top-2.5 size-[5px] rounded-full"
           />
-          <span
-            className="co-pack-box absolute end-0.5 bottom-0.5 text-[15px]"
-            aria-hidden
-          >
-            📦
+          <span className="co-pack-box absolute end-1 bottom-1" aria-hidden>
+            <Package className="text-primary-600 dark:text-primary-300 size-4" />
           </span>
         </>
       ) : ready ? (
         // ─── PRÊTE (retrait) : le sac rebondit, ça scintille. ───────────────
         <>
-          <span className="co-ready-bounce text-[20px]" aria-hidden>
-            🛍️
+          <span className="co-ready-bounce" aria-hidden>
+            <ShoppingBag className="text-success-600 size-5" />
           </span>
-          <span
-            aria-hidden
-            className="co-sparkle absolute end-0 -top-0.5 text-[11px]"
-          >
-            ✨
+          <span aria-hidden className="co-sparkle absolute end-0 -top-0.5">
+            <Sparkles className="text-warning-500 size-3" />
           </span>
         </>
       ) : (
         // ─── EN ATTENTE : le commerçant « écrit » la commande. ─────────────
         <>
-          <span className="text-[19px]" aria-hidden>
-            🧾
-          </span>
-          <span
+          <ReceiptText
             aria-hidden
-            className="co-pen absolute end-1 bottom-1 text-[13px]"
-          >
-            ✏️
+            className="text-primary-700 dark:text-primary-300 size-5"
+          />
+          <span aria-hidden className="co-pen absolute end-1 bottom-1">
+            <Pencil className="text-accent-500 size-3" />
           </span>
         </>
       )}

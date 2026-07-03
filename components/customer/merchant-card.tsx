@@ -145,9 +145,10 @@ function MerchantCardImpl({
           className="absolute top-2.5 right-2.5 z-20"
         />
 
-        {/* promo (bas-gauche, rose) */}
+        {/* promo (bas-gauche, rose) — étiquette d'ORIGINE (ne pas aplatir :
+            les codes couleurs promo sont volontairement saillants). */}
         {showPromo && (
-          <span className="bg-accent-600 absolute bottom-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-extrabold text-white shadow-sm">
+          <span className="bg-accent-600 absolute bottom-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-[9px] px-2.5 py-1.5 text-[12px] font-extrabold text-white shadow-md">
             <Tag className="size-3" />
             {showPromo.text}
           </span>
