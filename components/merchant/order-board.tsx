@@ -311,10 +311,11 @@ export function OrderCard({
   column: Column["key"];
 }) {
   const ref = order.order_number ?? order.id.slice(0, 6).toUpperCase();
-  const units = order.order_items.reduce(
-    (s, it) => s + Number(it.quantity || 0),
-    0
-  );
+  const units = order.order_items.reduce((s, it) => {
+    const q = Number(it.quantity || 0);
+    // Une ligne au poids/volume compte pour 1 article.
+    return s + (Number.isInteger(q) ? q : 1);
+  }, 0);
   const itemsPreview = order.order_items
     .map((it) => it.product_name)
     .join(", ");

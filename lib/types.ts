@@ -223,6 +223,8 @@ export type OrderItem = {
   id: string;
   order_id: string;
   product_name: string;
+  /** Unité de vente snapshotée (piece/kg/l/m/custom) — affichage quantité. */
+  unit?: string | null;
   unit_price_da: number;
   quantity: number;
   line_total_da: number;

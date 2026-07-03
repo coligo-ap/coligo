@@ -79,7 +79,10 @@ export function ScheduledOrders({
           const isDelivery =
             (o as { fulfillment_type?: string }).fulfillment_type ===
             "delivery";
-          const count = o.order_items.reduce((s, it) => s + it.quantity, 0);
+          const count = o.order_items.reduce((s, it) => {
+            const q = Number(it.quantity) || 0;
+            return s + (Number.isInteger(q) ? q : 1);
+          }, 0);
           return (
             <Link
               key={o.id}

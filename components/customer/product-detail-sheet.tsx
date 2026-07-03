@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { formatQty, isFractionalUnit, qtyStep, roundQty } from "@/lib/units";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatDA } from "@/lib/utils";
@@ -41,9 +42,15 @@ export function ProductDetailSheet({
   onClose,
 }: Props) {
   const t = useTranslations("merchant");
+  const locale = useLocale();
   const { requestAdd } = useCartAdd();
   const cart = useCart();
   const [qty, setQty] = useState(1);
+
+  // Vente au poids/volume/longueur (kg, L, m) : le client choisit
+  // OBLIGATOIREMENT la quantité, au pas de l'unité (250 g / 25 cl / 50 cm).
+  const fractional = isFractionalUnit(product?.unit);
+  const step = qtyStep(product?.unit);
   // Options choisies : groupId → liste d'optionIds sélectionnés.
   const [selected, setSelected] = useState<Record<string, string[]>>({});
 
@@ -91,7 +98,7 @@ export function ProductDetailSheet({
   const basePrice = hasPromo ? promoUnitPriceDa! : (product?.price_da ?? 0);
   const deltaSum = selectedOptions.reduce((s, o) => s + o.price_delta_da, 0);
   const unitPrice = basePrice + deltaSum;
-  const lineTotal = unitPrice * qty;
+  const lineTotal = Math.round(unitPrice * qty);
 
   const lineKey = product ? lineKeyFor(product.id, selectedOptions) : "";
   const inCart = cart.items.find((i) => i.line_key === lineKey);
@@ -155,12 +162,17 @@ export function ProductDetailSheet({
     if (!canAdd) return;
     if (inCart) {
       setItemQuantity(lineKey, qty);
-      toast.success(t("quantityUpdated", { qty }));
+      toast.success(
+        t("quantityUpdated", {
+          qty: fractional ? formatQty(qty, product!.unit, locale) : qty,
+        })
+      );
     } else {
       requestAdd(merchant, {
         product_id: product!.id,
         name: product!.name_fr,
         name_ar: product!.name_ar,
+        unit: product!.unit,
         unit_price_da: unitPrice,
         image_url: product!.image_url,
         category_title: product!.category,
@@ -233,7 +245,9 @@ export function ProductDetailSheet({
               </span>
             )}
             {product.unit && product.unit !== "piece" && (
-              <span className="text-muted text-xs">/ {product.unit}</span>
+              <span className="text-muted text-xs">
+                / {formatQty(1, product.unit, locale).replace(/^1\s*/, "")}
+              </span>
             )}
           </div>
 
@@ -343,23 +357,29 @@ export function ProductDetailSheet({
           <div className="bg-surface-2 inline-flex items-center gap-3 rounded-full p-1">
             <button
               type="button"
-              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              onClick={() => setQty((q) => Math.max(step, roundQty(q - step)))}
               className="text-foreground hover:bg-surface-3 flex size-8 items-center justify-center rounded-full"
               aria-label={t("removeOne")}
             >
               <Minus className="size-4" />
             </button>
-            <span className="text-foreground min-w-[1.5ch] text-center text-sm font-bold tabular-nums">
-              {qty}
+            <span
+              className={cn(
+                "text-foreground text-center text-sm font-bold tabular-nums",
+                fractional ? "min-w-[5ch]" : "min-w-[1.5ch]"
+              )}
+            >
+              {fractional ? formatQty(qty, product.unit, locale) : qty}
             </span>
             <button
               type="button"
               onClick={() =>
-                setQty((q) =>
-                  product.stock_qty != null
-                    ? Math.min(product.stock_qty, q + 1)
-                    : q + 1
-                )
+                setQty((q) => {
+                  const next = roundQty(q + step);
+                  return product.stock_qty != null
+                    ? Math.min(product.stock_qty, next)
+                    : next;
+                })
               }
               className="bg-primary-600 hover:bg-primary-700 flex size-8 items-center justify-center rounded-full text-white"
               aria-label={t("addOne")}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   AlertTriangle,
   BadgePercent,
@@ -20,6 +20,7 @@ import {
 import { useCartAdd } from "@/components/customer/cart-mono-provider";
 import { toast } from "@/components/ui/toast";
 import { cldUrl } from "@/lib/images/cloudinary";
+import { formatQty, isFractionalUnit, qtyStep, roundQty } from "@/lib/units";
 import type { PublicProduct } from "@/lib/data/customer-catalog";
 
 /**
@@ -48,6 +49,7 @@ export function ProductRow({
   onOpenDetail: () => void;
 }) {
   const t = useTranslations("merchant");
+  const locale = useLocale();
   const { requestAdd } = useCartAdd();
   const cart = useCartFor(merchant.id);
   // Produit à options/variantes : pas d'ajout rapide (il faut choisir) → le
@@ -85,7 +87,9 @@ export function ProductRow({
     e.stopPropagation();
     if (isOut) return;
     // Options obligatoires → on ouvre la fiche pour choisir (pas d'ajout aveugle).
-    if (hasOptions) {
+    // Vente au poids/volume (kg, L, m) → idem : le client DOIT choisir la
+    // quantité sur la fiche (pas d'ajout aveugle d'« 1 kg »).
+    if (hasOptions || isFractionalUnit(product.unit)) {
       onOpenDetail();
       return;
     }
@@ -95,6 +99,7 @@ export function ProductRow({
       product_id: product.id,
       name: product.name_fr,
       name_ar: product.name_ar,
+      unit: product.unit,
       unit_price_da: product.price_da,
       image_url: product.image_url,
       category_title: product.category,
@@ -102,11 +107,13 @@ export function ProductRow({
     if (addedNow) flash();
   }
 
+  const step = qtyStep(product.unit);
+
   function increment(e: React.MouseEvent) {
     e.stopPropagation();
     if (!inCart) return;
     setActiveMerchant(merchant.id);
-    setItemQuantity(inCart.line_key, inCart.quantity + 1);
+    setItemQuantity(inCart.line_key, roundQty(inCart.quantity + step));
     flash();
   }
 
@@ -114,8 +121,10 @@ export function ProductRow({
     e.stopPropagation();
     if (!inCart) return;
     setActiveMerchant(merchant.id);
-    setItemQuantity(inCart.line_key, inCart.quantity - 1);
-    if (inCart.quantity === 1) {
+    const next = roundQty(inCart.quantity - step);
+    // Sous le pas minimal → la ligne saute (0 = suppression côté store).
+    setItemQuantity(inCart.line_key, next < step ? 0 : next);
+    if (next < step) {
       toast.success(t("removedFromCart", { name: product.name_fr }));
     }
   }
@@ -242,25 +251,27 @@ export function ProductRow({
               type="button"
               onClick={decrement}
               aria-label={
-                inCart.quantity === 1
+                inCart.quantity <= step
                   ? t("removeFromCartAria", { name: product.name_fr })
                   : t("removeOne")
               }
               className={cn(
                 "flex size-7 items-center justify-center rounded-full transition-colors",
-                inCart.quantity === 1
+                inCart.quantity <= step
                   ? "bg-danger-50 text-danger-600 hover:bg-danger-100"
                   : "text-primary-700 hover:bg-primary-100"
               )}
             >
-              {inCart.quantity === 1 ? (
+              {inCart.quantity <= step ? (
                 <Trash2 className="size-3.5" />
               ) : (
                 <Minus className="size-3.5" />
               )}
             </button>
-            <span className="text-foreground min-w-[1.5ch] text-center text-sm font-bold tabular-nums">
-              {inCart.quantity}
+            <span className="text-foreground min-w-[1.5ch] text-center text-sm font-bold whitespace-nowrap tabular-nums">
+              {isFractionalUnit(product.unit)
+                ? formatQty(inCart.quantity, product.unit, locale)
+                : inCart.quantity}
             </span>
             <button
               type="button"

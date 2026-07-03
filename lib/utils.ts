@@ -41,5 +41,9 @@ export function formatTime(isoDate: string): string {
 }
 
 export function countItems(items: { quantity: number }[]): number {
-  return items.reduce((sum, item) => sum + Number(item.quantity), 0);
+  return items.reduce((sum, item) => {
+    const q = Number(item.quantity);
+    // Vente au poids/volume (1,5 kg…) : la ligne compte pour 1 article.
+    return sum + (Number.isInteger(q) ? q : 1);
+  }, 0);
 }

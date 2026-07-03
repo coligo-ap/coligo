@@ -40,6 +40,7 @@ import {
 import { zoneMessageFr } from "@/lib/zones/service-zones";
 import { reverseGeocode } from "@/app/(customer)/actions";
 import type { OpeningHours, PaymentMethod } from "@/lib/types";
+import { isValidQty } from "@/lib/units";
 
 export type CreateOrderInput = {
   merchant_id: string;
@@ -438,8 +439,30 @@ export async function createOrder(
         error: `Le produit « ${p.name_fr} » n'est plus disponible.`,
       };
     }
-    const qty = input.items.find((i) => i.product_id === p.id)?.quantity ?? 0;
-    if (p.stock_qty != null && qty > p.stock_qty) {
+  }
+
+  // Quantités : validation STRICTE ligne par ligne (entier à la pièce,
+  // fractionnaire 2 déc. max pour kg/L/m — on REFUSE plutôt que corriger,
+  // le montant affiché doit rester le montant facturé), puis stock par
+  // PRODUIT (somme des lignes — un même produit peut avoir plusieurs lignes
+  // avec des options différentes).
+  const qtyByProduct = new Map<string, number>();
+  for (const it of input.items) {
+    const p = products.find((pp) => pp.id === it.product_id)!;
+    if (!isValidQty(it.quantity, p.unit)) {
+      return {
+        ok: false,
+        error: `Quantité invalide pour « ${p.name_fr} ».`,
+      };
+    }
+    qtyByProduct.set(
+      it.product_id,
+      (qtyByProduct.get(it.product_id) ?? 0) + it.quantity
+    );
+  }
+  for (const p of products) {
+    const totalQty = qtyByProduct.get(p.id) ?? 0;
+    if (p.stock_qty != null && totalQty > p.stock_qty) {
       return {
         ok: false,
         error: `Stock insuffisant pour « ${p.name_fr} » (max ${p.stock_qty}).`,

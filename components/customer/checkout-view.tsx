@@ -534,7 +534,11 @@ export function CheckoutView({
       deliveryPhone !== "" &&
       recipientReady);
 
-  const totalUnits = ctx.lines.reduce((s, l) => s + l.quantity, 0);
+  // Une ligne au poids/volume compte pour 1 article (pas de « 2,75 articles »).
+  const totalUnits = ctx.lines.reduce(
+    (s, l) => s + (Number.isInteger(l.quantity) ? l.quantity : 1),
+    0
+  );
 
   const totalBeforeWallets =
     ctx.cart.totalDa + ctx.service_fee_da + deliveryFeeDa;

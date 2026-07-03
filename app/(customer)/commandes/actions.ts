@@ -161,6 +161,8 @@ export type ReorderItem = {
   image_url: string | null;
   category_title: string | null;
   quantity: number;
+  /** Unité de vente actuelle du produit (pilote pas/affichage du panier). */
+  unit: string | null;
 };
 
 export type ReorderResult =
@@ -217,7 +219,7 @@ export async function resolveReorder(orderId: string): Promise<ReorderResult> {
     // noms snapshot → product_id + prix du jour + disponibilité.
     const { data: products } = await supabase
       .from("products")
-      .select("id, name_fr, price_da, image_url, category, is_available")
+      .select("id, name_fr, price_da, unit, image_url, category, is_available")
       .eq("merchant_id", o.merchant_id);
 
     const byName = new Map<
@@ -226,6 +228,7 @@ export async function resolveReorder(orderId: string): Promise<ReorderResult> {
         id: string;
         name_fr: string;
         price_da: number;
+        unit: string | null;
         image_url: string | null;
         category: string | null;
         is_available: boolean;
@@ -235,6 +238,7 @@ export async function resolveReorder(orderId: string): Promise<ReorderResult> {
       id: string;
       name_fr: string;
       price_da: number;
+      unit: string | null;
       image_url: string | null;
       category: string | null;
       is_available: boolean;
@@ -254,7 +258,10 @@ export async function resolveReorder(orderId: string): Promise<ReorderResult> {
           unit_price_da: p.price_da,
           image_url: p.image_url,
           category_title: p.category,
-          quantity: Math.max(1, Number(oi.quantity) || 1),
+          // Quantité du snapshot, fractionnaire comprise (0.75 kg) — le store
+          // panier la re-snappe au pas de l'unité ACTUELLE du produit.
+          quantity: Number(oi.quantity) > 0 ? Number(oi.quantity) : 1,
+          unit: p.unit,
         });
       } else {
         missing.push(oi.product_name);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { trackAddToCart } from "@/lib/analytics/ecommerce";
+import { roundQty, sanitizeQty } from "@/lib/units";
 
 // =============================================================================
 // Panier client — MULTI-commerce en localStorage, un seul "actif" à la fois.
@@ -49,7 +50,13 @@ export type CartItem = {
   name_ar?: string | null;
   /** Prix unitaire EFFECTIF = prix de base + Σ deltas des options. */
   unit_price_da: number;
+  /**
+   * Quantité — ENTIÈRE à la pièce, FRACTIONNAIRE (2 déc.) pour les ventes au
+   * poids/volume/longueur (kg, L, m) : 0.75 = 750 g à unit_price_da/kg.
+   */
   quantity: number;
+  /** Unité de vente (snapshot) — pilote le pas des steppers et l'affichage. */
+  unit?: string | null;
   image_url?: string | null;
   category_title?: string | null;
   /** Options/variantes choisies (vide pour un produit simple). */
@@ -64,6 +71,7 @@ export type AddItemInput = {
   /** Prix unitaire EFFECTIF (base + options). */
   unit_price_da: number;
   quantity?: number;
+  unit?: string | null;
   image_url?: string | null;
   category_title?: string | null;
   options?: SelectedOption[];
@@ -239,7 +247,8 @@ export function addItem(
   item: AddItemInput
 ): { ok: true } {
   const store = readStore();
-  const qty = Math.max(1, Math.floor(item.quantity ?? 1));
+  // Entier à la pièce ; fractionnaire (snappé au pas) pour kg/L/m.
+  const qty = sanitizeQty(item.quantity ?? 1, item.unit);
   const current: Cart = store.by_merchant[merchant.id] ?? {
     merchant_id: merchant.id,
     merchant_slug: merchant.slug,
@@ -257,7 +266,8 @@ export function addItem(
   if (existing >= 0) {
     items[existing] = {
       ...items[existing],
-      quantity: items[existing].quantity + qty,
+      quantity: roundQty(items[existing].quantity + qty),
+      unit: items[existing].unit ?? item.unit ?? null,
     };
   } else {
     items.push({
@@ -265,6 +275,7 @@ export function addItem(
       line_key: lineKey,
       name: item.name,
       name_ar: item.name_ar ?? null,
+      unit: item.unit ?? null,
       unit_price_da: item.unit_price_da,
       quantity: qty,
       image_url: item.image_url ?? null,
@@ -352,7 +363,12 @@ export function setItemQuantity(lineKey: string, quantity: number): void {
   const items = cart.items
     .map((i) =>
       i.line_key === lineKey
-        ? { ...i, quantity: Math.max(0, Math.floor(quantity)) }
+        ? // 0 (ou moins) supprime ; sinon on snappe au pas de l'unité de la
+          // ligne (entier à la pièce, 0.25 kg/L, 0.5 m…).
+          {
+            ...i,
+            quantity: quantity <= 0 ? 0 : sanitizeQty(quantity, i.unit),
+          }
         : i
     )
     .filter((i) => i.quantity > 0);

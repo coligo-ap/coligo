@@ -18,6 +18,7 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { cn, formatDA } from "@/lib/utils";
 import { clearCart, setItemQuantity, useCart } from "@/lib/customer/cart-store";
+import { formatQty, isFractionalUnit, qtyStep, roundQty } from "@/lib/units";
 import { computeCart, isPromotionActive } from "@/lib/promotions/engine";
 import { toEnginePromotions } from "@/lib/promotions/cart-summary";
 import { APP_CONFIG } from "@/lib/config/app-config";
@@ -164,7 +165,12 @@ export function CartView() {
       .filter((b) => b.totalSaved > 0 || b.freeUnits > 0);
   }, [cart.items, settled, promoNameById]);
 
-  const units = cart.items.reduce((s, i) => s + i.quantity, 0);
+  // Compteur « articles » : une ligne au poids/volume compte pour 1 article
+  // (afficher « 2,75 articles » n'aurait pas de sens).
+  const units = cart.items.reduce(
+    (s, i) => s + (isFractionalUnit(i.unit) ? 1 : i.quantity),
+    0
+  );
   const subtotal = settled.subtotalDa;
   const savings = Math.max(0, settled.normalTotalDa - settled.subtotalDa);
   const cashbackGain = Math.round(subtotal * 0.03);
@@ -236,7 +242,7 @@ export function CartView() {
       <div className="mt-3 space-y-2.5">
         {cart.items.map((item, index) => {
           const cl = settled.lines[index];
-          const rawLineTotal = item.unit_price_da * item.quantity;
+          const rawLineTotal = Math.round(item.unit_price_da * item.quantity);
           const lineTotal = cl?.lineTotalDa ?? rawLineTotal;
           const appliedUnit = cl?.appliedUnitPriceDa ?? item.unit_price_da;
           const hasDiscount = appliedUnit < item.unit_price_da;
@@ -348,38 +354,54 @@ export function CartView() {
               </div>
 
               <div className="bg-surface-2 inline-flex shrink-0 items-center rounded-full">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setItemQuantity(item.line_key, item.quantity - 1)
-                  }
-                  aria-label={
-                    item.quantity === 1 ? t("remove") : t("removeOne")
-                  }
-                  className={cn(
-                    "flex size-9 items-center justify-center rounded-full",
-                    item.quantity === 1 ? "text-danger-600" : "text-primary-700"
-                  )}
-                >
-                  {item.quantity === 1 ? (
-                    <Trash2 className="size-4" />
-                  ) : (
-                    <Minus className="size-4" />
-                  )}
-                </button>
-                <span className="text-foreground min-w-[1.5ch] text-center text-sm font-extrabold tabular-nums">
-                  {item.quantity}
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setItemQuantity(item.line_key, item.quantity + 1)
-                  }
-                  aria-label={t("addOne")}
-                  className="text-primary-700 flex size-9 items-center justify-center rounded-full"
-                >
-                  <Plus className="size-4" />
-                </button>
+                {(() => {
+                  // Pas par unité de la ligne : 1 (pièce), 0.25 (kg/L), 0.5 (m).
+                  const step = qtyStep(item.unit);
+                  const atMin = item.quantity <= step;
+                  return (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = roundQty(item.quantity - step);
+                          setItemQuantity(
+                            item.line_key,
+                            next < step ? 0 : next
+                          );
+                        }}
+                        aria-label={atMin ? t("remove") : t("removeOne")}
+                        className={cn(
+                          "flex size-9 items-center justify-center rounded-full",
+                          atMin ? "text-danger-600" : "text-primary-700"
+                        )}
+                      >
+                        {atMin ? (
+                          <Trash2 className="size-4" />
+                        ) : (
+                          <Minus className="size-4" />
+                        )}
+                      </button>
+                      <span className="text-foreground min-w-[1.5ch] text-center text-sm font-extrabold whitespace-nowrap tabular-nums">
+                        {isFractionalUnit(item.unit)
+                          ? formatQty(item.quantity, item.unit, locale)
+                          : item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setItemQuantity(
+                            item.line_key,
+                            roundQty(item.quantity + step)
+                          )
+                        }
+                        aria-label={t("addOne")}
+                        className="text-primary-700 flex size-9 items-center justify-center rounded-full"
+                      >
+                        <Plus className="size-4" />
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           );

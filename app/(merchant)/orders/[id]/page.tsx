@@ -15,6 +15,7 @@ import {
 } from "@/lib/finances/order-earnings";
 import { fetchCustomerOrderCount } from "@/lib/ticket/customer-orders";
 import { fetchCategoryMap } from "@/lib/ticket/category-map";
+import { formatQtyUnit } from "@/lib/ticket/ticket-format";
 import {
   ORDER_STATUS_META,
   type OrderEvent,
@@ -248,8 +249,8 @@ export default async function OrderDetailPage({
                         key={item.id}
                         className="flex items-center gap-3 px-5 py-3.5"
                       >
-                        <span className="bg-primary-50 text-primary-700 flex size-9 shrink-0 items-center justify-center rounded-[10px] text-sm font-semibold tabular-nums">
-                          {item.quantity}×
+                        <span className="bg-primary-50 text-primary-700 flex h-9 min-w-9 shrink-0 items-center justify-center rounded-[10px] px-1.5 text-sm font-semibold whitespace-nowrap tabular-nums">
+                          {formatQtyUnit(Number(item.quantity), item.unit)}
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">

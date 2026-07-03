@@ -154,10 +154,10 @@ export function OrdersBrowser({
           {filtered.map((o) => {
             const ref = o.order_number ?? o.id.slice(0, 6).toUpperCase();
             const meta = ORDER_STATUS_META[o.status as OrderStatus];
-            const units = o.order_items.reduce(
-              (s, it) => s + Number(it.quantity || 0),
-              0
-            );
+            const units = o.order_items.reduce((s, it) => {
+              const q = Number(it.quantity || 0);
+              return s + (Number.isInteger(q) ? q : 1);
+            }, 0);
             const isDelivery = o.fulfillment_type === "delivery";
             return (
               <li key={o.id}>

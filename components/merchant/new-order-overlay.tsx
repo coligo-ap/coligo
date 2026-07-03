@@ -6,6 +6,7 @@ import { Check, Loader2, PartyPopper, Printer, Timer, X } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { formatDA } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { formatQtyUnit } from "@/lib/ticket/ticket-format";
 import { fetchCategoryMap } from "@/lib/ticket/category-map";
 import { updateOrderStatus } from "@/app/(merchant)/orders/actions";
 import type { OrderStatus } from "@/lib/types";
@@ -61,6 +62,7 @@ function fmtTime(iso: string): string {
 type DetailItem = {
   name: string;
   qty: number;
+  unit?: string | null;
   lineTotal: number;
 };
 type DetailGroup = { title: string; items: DetailItem[] };
@@ -162,7 +164,7 @@ export function NewOrderOverlay({
             `total_da, service_fee_da, cashback_da, pickup_slot_at, notes,
              payment_method, fulfillment_type, delivery_mode, delivery_fee_da,
              delivery_address_text, customer_phone,
-             order_items ( product_name, quantity, unit_price_da, line_total_da )`
+             order_items ( product_name, quantity, unit, unit_price_da, line_total_da )`
           )
           .eq("id", orderId)
           .maybeSingle();
@@ -173,6 +175,7 @@ export function NewOrderOverlay({
         const items = (data.order_items ?? []) as {
           product_name: string;
           quantity: number;
+          unit: string | null;
           line_total_da: number;
         }[];
         const names = items.map((it) => it.product_name);
@@ -191,6 +194,7 @@ export function NewOrderOverlay({
           byCat.get(title)!.push({
             name: it.product_name,
             qty: Number(it.quantity) || 0,
+            unit: it.unit,
             lineTotal: it.line_total_da,
           });
         }
@@ -199,10 +203,11 @@ export function NewOrderOverlay({
           items: byCat.get(title)!,
         }));
         const subtotal = items.reduce((s, it) => s + it.line_total_da, 0);
-        const totalUnits = items.reduce(
-          (s, it) => s + (Number(it.quantity) || 0),
-          0
-        );
+        // Une ligne au poids/volume (1,5 kg…) compte pour 1 article.
+        const totalUnits = items.reduce((s, it) => {
+          const q = Number(it.quantity) || 0;
+          return s + (Number.isInteger(q) ? q : 1);
+        }, 0);
 
         setDetails({
           groups,
@@ -388,8 +393,8 @@ export function NewOrderOverlay({
                           key={`${it.name}-${i}`}
                           className="flex items-center gap-2.5 px-3 py-2"
                         >
-                          <span className="bg-primary-50 text-primary-700 flex size-7 shrink-0 items-center justify-center rounded-[8px] text-xs font-bold tabular-nums">
-                            {it.qty}×
+                          <span className="bg-primary-50 text-primary-700 flex h-7 min-w-7 shrink-0 items-center justify-center rounded-[8px] px-1 text-xs font-bold whitespace-nowrap tabular-nums">
+                            {formatQtyUnit(it.qty, it.unit)}
                           </span>
                           <span className="min-w-0 flex-1 truncate text-sm font-medium">
                             {it.name}

@@ -21,6 +21,7 @@ import { OrderSupportButton } from "@/components/support/order-support-button";
 import { estimateDeliveryEtaMin } from "@/lib/delivery/eta";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { formatAsapReady, formatSlotRange } from "@/lib/customer/pickup-format";
+import { formatQtyUnit } from "@/lib/ticket/ticket-format";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export default async function CustomerOrderDetailPage({
        delivery_lat, delivery_lng,
        driver_live_lat, driver_live_lng, driver_live_at,
        merchants ( name, slug, logo_url, phone_public, address, commune, prep_time_min ),
-       order_items ( id, product_name, unit_price_da, quantity, line_total_da )`
+       order_items ( id, product_name, unit, unit_price_da, quantity, line_total_da )`
     )
     .eq("id", id)
     .maybeSingle();
@@ -91,6 +92,7 @@ export default async function CustomerOrderDetailPage({
         order_items: {
           id: string;
           product_name: string;
+          unit: string | null;
           unit_price_da: number;
           quantity: number;
           line_total_da: number;
@@ -583,7 +585,7 @@ export default async function CustomerOrderDetailPage({
             >
               <span className="min-w-0 font-semibold">
                 <span className="text-primary-600 me-1 font-extrabold">
-                  {it.quantity}×
+                  {formatQtyUnit(Number(it.quantity), it.unit)}
                 </span>
                 {it.product_name}
               </span>
