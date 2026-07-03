@@ -98,6 +98,7 @@
     "firebase": "^11.10.0",
     "google-auth-library": "^10.6.2",
     "html2canvas": "^1.4.1",
+    "lottie-web": "^5.13.0",
     "lucide-react": "^0.469.0",
     "maplibre-gl": "^5.24.0",
     "next": "^15.5.18",

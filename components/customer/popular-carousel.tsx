@@ -39,6 +39,7 @@ export function ProductCarousel({
   promoPriceById,
   quantityOfferByProduct,
   onOpenDetail,
+  titleClassName,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -47,6 +48,8 @@ export function ProductCarousel({
   promoPriceById: Record<string, number>;
   quantityOfferByProduct?: Record<string, { buy: number; get: number }>;
   onOpenDetail: (p: PublicProduct) => void;
+  /** Couleur du titre (ex. promos = rose foncé) — défaut : texte standard. */
+  titleClassName?: string;
 }) {
   const t = useTranslations("merchant");
   // Déplié au SSR ; le choix mémorisé est relu APRÈS montage (sinon mismatch
@@ -80,7 +83,10 @@ export function ProductCarousel({
         type="button"
         onClick={toggle}
         aria-expanded={!collapsed}
-        className="font-display text-foreground mb-3 flex w-full items-center gap-2 px-4 text-lg font-bold lg:px-6"
+        className={cn(
+          "font-display text-foreground mb-3 flex w-full items-center gap-2 px-4 text-lg font-bold lg:px-6",
+          titleClassName
+        )}
       >
         {icon}
         <span className="truncate">{title}</span>
@@ -296,7 +302,9 @@ export function PopCard({
           )}
         </div>
         {offerLabel && (
-          <div className="bg-accent-50 text-accent-600 dark:bg-accent-950/40 dark:text-accent-300 mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] leading-tight font-extrabold">
+          // Étiquette IDENTIQUE à « Offert » : fond rose foncé + texte blanc
+          // (jamais de rose sur fond rose — demande explicite user).
+          <div className="bg-accent-600 mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] leading-tight font-extrabold text-white">
             <Gift className="size-3 shrink-0" />
             {offerLabel}
           </div>

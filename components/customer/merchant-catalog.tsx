@@ -428,6 +428,8 @@ export function MerchantCatalog({
           promoPriceById={promoPriceById}
           quantityOfferByProduct={quantityOfferByProduct}
           onOpenDetail={(p) => setSelected(p)}
+          // Titre promo en rose foncé, cohérent avec les carrousels de promo.
+          titleClassName="text-accent-700 dark:text-accent-300"
         />
       )}
 

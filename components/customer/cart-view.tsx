@@ -345,7 +345,9 @@ export function CartView() {
                       </span>
                     ) : (
                       offer && (
-                        <span className="bg-accent-50 text-accent-600 dark:bg-accent-950/40 dark:text-accent-300 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold">
+                        // Étiquette IDENTIQUE à « Offert » : fond rose foncé
+                        // + texte blanc (jamais de rose sur fond rose).
+                        <span className="bg-accent-600 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold text-white">
                           <Gift className="size-3" />
                           {t("buyGetLabel", { buy: offer.buy, get: offer.get })}
                         </span>

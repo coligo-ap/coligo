@@ -210,7 +210,8 @@ export function ProductRow({
             </span>
           )}
           {quantityOffer && (
-            <span className="text-accent-600 ms-auto shrink-0 text-[11px] font-bold">
+            // Étiquette cohérente avec « Offert » : rose foncé + blanc.
+            <span className="bg-accent-600 ms-auto inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5 text-[10px] font-extrabold text-white">
               {t("buyGetLabel", {
                 buy: quantityOffer.buy,
                 get: quantityOffer.get,

@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LottieScene } from "@/components/ui/lottie";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import {
   fetchMyActiveOrders,
@@ -208,8 +209,10 @@ function ActiveOrderCard({
 }
 
 /**
- * Scène animée du statut — icônes lucide animées en CSS (JAMAIS d'emoji en
- * dur — règle produit). Chaque cas a la sienne (préparation ≠ prête retrait
+ * Scène animée du statut — ILLUSTRATION LOTTIE (public/lottie/*.json, locaux)
+ * avec REPLI icônes lucide + CSS : le repli s'affiche pendant le chargement,
+ * si le fichier manque/échoue, ou si prefers-reduced-motion. JAMAIS d'emoji
+ * en dur (règle produit). Chaque cas a sa scène (préparation ≠ prête retrait
  * ≠ express ≠ tournée).
  */
 function StatusScene({ order }: { order: ActiveOrderLite }) {
@@ -217,8 +220,40 @@ function StatusScene({ order }: { order: ActiveOrderLite }) {
   const ready = order.status === "ready";
   const delivering = ready && order.fulfillment_type === "delivery";
 
+  const lottieSrc = delivering
+    ? order.delivery_mode === "tour"
+      ? "/lottie/tour.json"
+      : "/lottie/express.json"
+    : preparing
+      ? "/lottie/preparing.json"
+      : ready
+        ? "/lottie/ready.json"
+        : "/lottie/pending.json";
+
   return (
     <span className="bg-primary-50 dark:bg-primary-950/40 relative grid size-11 shrink-0 place-items-center overflow-visible rounded-full">
+      <LottieScene
+        src={lottieSrc}
+        className={cn(
+          "absolute inset-0.5",
+          // Les véhicules « roulent » vers la droite dans les fichiers → on
+          // inverse en RTL pour qu'ils aillent vers le lecteur.
+          delivering && "rtl:-scale-x-100"
+        )}
+        fallback={<StatusSceneFallback order={order} />}
+      />
+    </span>
+  );
+}
+
+/** Repli icônes/CSS des scènes (aussi affiché pendant le chargement Lottie). */
+function StatusSceneFallback({ order }: { order: ActiveOrderLite }) {
+  const preparing = order.status === "accepted" || order.status === "preparing";
+  const ready = order.status === "ready";
+  const delivering = ready && order.fulfillment_type === "delivery";
+
+  return (
+    <>
       {delivering ? (
         // ─── EN LIVRAISON : moto (express) / fourgon (tournée) qui roule ────
         <>
@@ -289,6 +324,6 @@ function StatusScene({ order }: { order: ActiveOrderLite }) {
           </span>
         </>
       )}
-    </span>
+    </>
   );
 }
