@@ -38,8 +38,12 @@ export type AdminCategory = {
   keywords: string[];
   /** Commerçants dont c'est la catégorie PRINCIPALE. */
   merchants: number;
-  /** Liaisons SECONDAIRES (source manuel/auto, hors principale). */
+  /** Liaisons SECONDAIRES (commerçants dont la principale diffère). */
   links: number;
+  /** TOUTES les liaisons — même définition que la garde serveur de
+   *  suppression : le bouton se désactive exactement quand le serveur
+   *  refuserait. */
+  linksTotal: number;
 };
 
 const STATUS_LABEL: Record<AdminCategory["status"], string> = {
@@ -383,17 +387,18 @@ export function CategoryFilterImages({
                 </button>
               )}
 
-              {/* Suppression : un TYPE utilisé (principal OU secondaire) est
+              {/* Suppression : un TYPE utilisé (principal OU toute liaison
+                  restante — miroir exact de la garde serveur) est
                   insupprimable ; un filtre éditorial part avec son mapping. */}
               <button
                 type="button"
                 disabled={
                   busy ||
-                  (c.kind !== "filter" && (c.merchants > 0 || c.links > 0))
+                  (c.kind !== "filter" && (c.merchants > 0 || c.linksTotal > 0))
                 }
                 title={
-                  c.kind !== "filter" && (c.merchants > 0 || c.links > 0)
-                    ? "Des commerçants utilisent cette catégorie (principale ou secondaire) — masquez-la."
+                  c.kind !== "filter" && (c.merchants > 0 || c.linksTotal > 0)
+                    ? "Des commerçants utilisent cette catégorie (principale ou liaison) — masquez-la."
                     : "Supprimer la catégorie"
                 }
                 onClick={() => run(c.code, () => deleteCategory(c.code))}

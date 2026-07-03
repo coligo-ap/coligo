@@ -253,19 +253,25 @@ export async function updateProfile(
 
   if (error) return { error: `Erreur : ${error.message}` };
 
-  // Remplace les LIAISONS multi-catégories (RLS owner ; le trigger de la
-  // mig 0312 garantit de toute façon la principale). Best-effort : un échec
-  // ici ne perd pas le profil déjà enregistré.
+  // Remplace les LIAISONS multi-catégories (RLS owner). ATTENTION : le
+  // trigger de la mig 0312 a déjà tiré PENDANT l'update ci-dessus, AVANT ce
+  // delete — il ne re-crée rien après. On doit donc ré-insérer la principale
+  // avec source='primary' nous-mêmes, sinon le marqueur est perdu (les
+  // comptages admin s'appuient dessus, mig 0319). Best-effort : un échec ici
+  // ne perd pas le profil déjà enregistré.
+  const primaryCode = catList[0] ?? parsed.data.category;
   await supabase
     .from("merchant_category_links" as never)
     .delete()
     .eq("merchant_id", merchant.id);
   if (catList.length > 0) {
-    await supabase
-      .from("merchant_category_links" as never)
-      .insert(
-        catList.map((code) => ({ merchant_id: merchant.id, code })) as never
-      );
+    await supabase.from("merchant_category_links" as never).insert(
+      catList.map((code) => ({
+        merchant_id: merchant.id,
+        code,
+        source: code === primaryCode ? "primary" : "manual",
+      })) as never
+    );
   }
 
   revalidatePath("/settings");

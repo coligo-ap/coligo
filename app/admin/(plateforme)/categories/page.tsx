@@ -41,40 +41,42 @@ export default async function AdminCategoriesPage() {
     )
     .order("position", { ascending: true });
 
-  // Nb de commerçants par catégorie PRINCIPALE (garde de suppression) +
-  // liaisons SECONDAIRES (manuel/auto) par code — les deux bloquent la
-  // suppression d'un type et renseignent l'affichage.
-  const [{ data: merchCats }, { data: linkRows }] = await Promise.all([
-    admin.from("merchants").select("category"),
-    admin.from("merchant_category_links" as never).select("code, source"),
-  ]);
-  const countByCat = new Map<string, number>();
-  for (const m of merchCats ?? []) {
-    const k = (m as { category: string | null }).category ?? "";
-    if (k) countByCat.set(k, (countByCat.get(k) ?? 0) + 1);
-  }
-  const linksByCat = new Map<string, number>();
-  for (const l of (linkRows ?? []) as unknown as {
-    code: string;
-    source: string;
-  }[]) {
-    if (l.source !== "primary")
-      linksByCat.set(l.code, (linksByCat.get(l.code) ?? 0) + 1);
-  }
-  const categories = (catRows ?? []).map((r) => ({
-    code: r.code,
-    label: r.label,
-    labelAr: r.label_ar,
-    emoji: r.emoji,
-    imageUrl: r.image_url,
-    status: (r.status === "hidden" || r.status === "coming_soon"
-      ? r.status
-      : "active") as "active" | "hidden" | "coming_soon",
-    kind: (r.kind === "filter" ? "filter" : "type") as "type" | "filter",
-    keywords: r.keywords ?? [],
-    merchants: countByCat.get(r.code) ?? 0,
-    links: linksByCat.get(r.code) ?? 0,
-  }));
+  // Comptages d'usage EXACTS via admin_category_usage (mig 0319) : plus de
+  // plafond PostgREST à 1000 lignes, et le « secondaire » est calculé contre
+  // merchants.category (pas contre `source`, qui peut être mal étiqueté).
+  // links_total = la même définition que la garde serveur de suppression.
+  const { data: usageRows, error: usageErr } = await admin.rpc(
+    "admin_category_usage" as never
+  );
+  if (usageErr) throw new Error(usageErr.message);
+  const usageByCat = new Map(
+    (
+      (usageRows ?? []) as unknown as {
+        code: string;
+        primary_count: number;
+        secondary_count: number;
+        links_total: number;
+      }[]
+    ).map((u) => [u.code, u])
+  );
+  const categories = (catRows ?? []).map((r) => {
+    const u = usageByCat.get(r.code);
+    return {
+      code: r.code,
+      label: r.label,
+      labelAr: r.label_ar,
+      emoji: r.emoji,
+      imageUrl: r.image_url,
+      status: (r.status === "hidden" || r.status === "coming_soon"
+        ? r.status
+        : "active") as "active" | "hidden" | "coming_soon",
+      kind: (r.kind === "filter" ? "filter" : "type") as "type" | "filter",
+      keywords: r.keywords ?? [],
+      merchants: Number(u?.primary_count ?? 0),
+      links: Number(u?.secondary_count ?? 0),
+      linksTotal: Number(u?.links_total ?? 0),
+    };
+  });
 
   return (
     <div className="mx-auto max-w-3xl p-4 lg:p-6">

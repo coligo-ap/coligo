@@ -364,50 +364,37 @@ export async function detachMerchantFromFilter(
 }
 
 /** Suppression — REFUSÉE si un TYPE est utilisé par des commerçants, en
- *  catégorie PRINCIPALE ou SECONDAIRE (sinon le CASCADE effacerait des
- *  liaisons en silence) : on ne casse jamais des données existantes. Un
- *  FILTRE éditorial reste supprimable — son mapping lui appartient et part
- *  avec lui. */
+ *  catégorie PRINCIPALE ou par TOUTE liaison restante (sinon le CASCADE
+ *  effacerait des liaisons en silence) : on ne casse jamais des données
+ *  existantes. Un FILTRE éditorial reste supprimable — son mapping lui
+ *  appartient et part avec lui. Garde + delete ATOMIQUES via
+ *  admin_delete_category (mig 0319, FOR UPDATE) : aucune fenêtre où un
+ *  commerçant gagne la catégorie entre le comptage et le DELETE. */
 export async function deleteCategory(
   code: string
 ): Promise<{ ok?: true; error?: string }> {
   if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
-  const { data: cat } = await admin
-    .from("merchant_categories" as never)
-    .select("kind")
-    .eq("code", code)
-    .maybeSingle();
-  if (!cat) return { error: "Catégorie inconnue." };
-
-  if ((cat as { kind: string }).kind !== "filter") {
-    const { count } = await admin
-      .from("merchants")
-      .select("id", { count: "exact", head: true })
-      .eq("category", code);
-    if ((count ?? 0) > 0)
-      return {
-        error: `${count} commerçant(s) utilisent cette catégorie — masquez-la plutôt.`,
-      };
-    // Liaisons restantes (secondaires/stales) : elles filtrent le marketplace,
-    // les supprimer en cascade serait une perte silencieuse.
-    const { count: linkCount } = await admin
-      .from("merchant_category_links" as never)
-      .select("merchant_id", { count: "exact", head: true })
-      .eq("code", code);
-    if ((linkCount ?? 0) > 0)
-      return {
-        error: `${linkCount} commerçant(s) ont cette catégorie en secondaire — retirez les liaisons ou masquez-la.`,
-      };
-  }
+  const { data, error: rpcErr } = await admin.rpc(
+    "admin_delete_category" as never,
+    { p_code: code } as never
+  );
+  if (rpcErr) return { error: rpcErr.message };
+  const res = (data as unknown as string) ?? "";
+  if (res === "not_found") return { error: "Catégorie inconnue." };
+  if (res.startsWith("primary:"))
+    return {
+      error: `${res.slice(8)} commerçant(s) utilisent cette catégorie — masquez-la plutôt.`,
+    };
+  if (res.startsWith("links:"))
+    return {
+      error: `${res.slice(6)} commerçant(s) ont encore une liaison vers cette catégorie — retirez-les (fiche commerçant) ou masquez-la.`,
+    };
+  // Ligne supprimée : le ménage storage se fait APRÈS coup (plus d'image
+  // perdue si la garde refuse).
   await admin.storage
     .from("category-filters")
     .remove([`${code}.png`, `${code}.webp`]);
-  const { error } = await admin
-    .from("merchant_categories" as never)
-    .delete()
-    .eq("code", code);
-  if (error) return { error: error.message };
   revalidate();
   return { ok: true };
 }

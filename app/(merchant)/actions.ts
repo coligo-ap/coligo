@@ -382,8 +382,11 @@ export async function signup(
 
   // Liaisons multi-catégories (mig 0312) — via service_role (l'inscription
   // sans session confirmée n'a pas de auth.uid pour la RLS owner) ; codes
-  // déjà validés ACTIFS ci-dessus, FK = catégories existantes. Best-effort :
-  // le trigger garantit de toute façon la principale.
+  // déjà validés ACTIFS ci-dessus, FK = catégories existantes. La PRINCIPALE
+  // est déjà créée par le trigger (source='primary') : on n'insère QUE les
+  // secondaires, en upsert ignoreDuplicates — un insert brut incluant la
+  // principale ferait échouer TOUT le lot (PK) et perdrait les secondaires
+  // en silence. Best-effort.
   if (catList.length > 1) {
     const { data: createdShop } = await supabase
       .from("merchants")
@@ -392,11 +395,15 @@ export async function signup(
       .maybeSingle();
     if (createdShop) {
       const adminDb = createAdminClient();
-      await adminDb.from("merchant_category_links" as never).insert(
-        catList.map((code) => ({
-          merchant_id: createdShop.id,
-          code,
-        })) as never
+      await adminDb.from("merchant_category_links" as never).upsert(
+        catList
+          .filter((code) => code !== primaryCategory)
+          .map((code) => ({
+            merchant_id: createdShop.id,
+            code,
+            source: "manual",
+          })) as never,
+        { onConflict: "merchant_id,code", ignoreDuplicates: true }
       );
     }
   }
