@@ -16,6 +16,7 @@ import { ConfirmReception } from "@/components/customer/confirm-reception";
 import { ReportDriver } from "@/components/customer/report-driver";
 import { OrderChat } from "@/components/chat/order-chat";
 import { QrZoom } from "@/components/shared/qr-zoom";
+import { LottieScene } from "@/components/ui/lottie";
 import { DriverReviewCard } from "@/components/customer/driver-review-card";
 import { OrderSupportButton } from "@/components/support/order-support-button";
 import { estimateDeliveryEtaMin } from "@/lib/delivery/eta";
@@ -245,6 +246,26 @@ export default async function CustomerOrderDetailPage({
         ? Truck
         : Clock;
 
+  // Scène ANIMÉE du statut (Lottie locale, repli = icône) — même langage que
+  // le bandeau de suivi : cuisine (préparation), sac (prête retrait), véhicule
+  // (livreur attendu / en route). États terminaux = icône statique.
+  const vehicleScene =
+    !isCancelled &&
+    !isCompleted &&
+    (inTransit || (isDelivery && status === "ready"));
+  const sceneSrc =
+    isCancelled || isCompleted
+      ? null
+      : vehicleScene
+        ? order.delivery_mode === "tour"
+          ? "/lottie/tour.json"
+          : "/lottie/express.json"
+        : status === "ready"
+          ? "/lottie/ready.json"
+          : status === "preparing" || status === "accepted"
+            ? "/lottie/preparing.json"
+            : "/lottie/pending.json";
+
   const stateTitle = isCancelled
     ? t("stateTitleCancelled")
     : isCompleted
@@ -291,15 +312,14 @@ export default async function CustomerOrderDetailPage({
     (merchant.prep_time_min ?? 10) - elapsedMin
   );
 
+  // RÈGLE PRODUIT (cf. CLAUDE.md) : cette ligne n'existe que si elle APPORTE
+  // une info (ETA, créneau, arrivée) — jamais une répétition du titre d'état.
+  // « Prête à récupérer » / « Récupérée » apparaissaient 3× sur la page
+  // (titre + tracker + ici) → supprimés ici, le titre dit déjà tout.
   let delai: { Icon: typeof Clock; label: string; strong?: string } | null =
     null;
-  if (!isCancelled) {
-    if (isCompleted) {
-      delai = {
-        Icon: Check,
-        label: isDelivery ? t("delaiDelivered") : t("delaiPickedUp"),
-      };
-    } else if (isDelivery) {
+  if (!isCancelled && !isCompleted) {
+    if (isDelivery) {
       delai = inTransit
         ? {
             Icon: Truck,
@@ -312,11 +332,7 @@ export default async function CustomerOrderDetailPage({
             strong: etaMin != null ? `~${etaMin} min` : t("delaiPreparing"),
           };
     } else if (status === "ready") {
-      delai = {
-        Icon: Clock,
-        label: t("delaiReady"),
-        strong: t("delaiToPickUp"),
-      };
+      delai = null; // le titre « Prête à récupérer » dit déjà tout
     } else if (isSlot) {
       delai = {
         Icon: Clock,
@@ -396,13 +412,24 @@ export default async function CustomerOrderDetailPage({
             <div className="flex min-w-0 items-center gap-2.5">
               <span
                 className={cn(
-                  "grid size-9 shrink-0 place-items-center rounded-[11px] text-base",
+                  "relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-[13px] text-base",
                   stateTone === "green" && "bg-success-50 text-success-700",
                   stateTone === "red" && "bg-danger-50 text-danger-700",
                   stateTone === "violet" && "bg-primary-50 text-primary-700"
                 )}
               >
-                <StateIcon className="size-5" />
+                {sceneSrc ? (
+                  <LottieScene
+                    src={sceneSrc}
+                    className={cn(
+                      "absolute inset-0.5",
+                      vehicleScene && "rtl:-scale-x-100"
+                    )}
+                    fallback={<StateIcon className="size-5" />}
+                  />
+                ) : (
+                  <StateIcon className="size-5" />
+                )}
               </span>
               <div className="min-w-0">
                 <b className="text-foreground block truncate text-base leading-tight font-extrabold tracking-tight">

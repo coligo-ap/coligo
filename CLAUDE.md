@@ -15,6 +15,21 @@ N'utiliser un **toast QUE** quand il n'y a aucun contexte visuel adapté (ex.
 soumission de formulaire, validation de champ ou action sur un bouton →
 **message inline** (rouge erreur / vert succès), pas de toast.
 
+## UX — JAMAIS de doublon d'information sur une même page
+
+Une information (statut, montant, créneau, adresse…) s'affiche **UNE seule
+fois par écran** sous forme textuelle. Une visualisation peut la re-présenter
+sous une AUTRE forme (tracker d'étapes, barre de progression, icône), mais
+jamais le même libellé répété — exemple vécu : « Prête à récupérer »
+apparaissait 3× sur le suivi de commande (titre d'état + étape du tracker +
+ligne délai). Règles :
+
+- une ligne secondaire (délai, ETA…) n'existe que si elle **apporte** une
+  info nouvelle, pas pour reformuler le titre ;
+- avant d'ajouter un bloc, relire ce que la page affiche déjà ;
+- si deux blocs montrent la même donnée, garder celui « d'un coup d'œil »
+  (héro) et supprimer l'autre, ou fusionner.
+
 ## Accès production Supabase (à utiliser SANS REDEMANDER)
 
 Pour toute tâche d'admin/DB, **fais-le toi-même** au lieu de me lister
