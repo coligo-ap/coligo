@@ -173,19 +173,50 @@ export async function cancelOrderByMerchant(
 }
 
 /**
+ * Résultat de la validation de retrait — en plus du succès/erreur, deux
+ * signaux STRUCTURÉS pour piloter l'UI (jamais du parsing de message) :
+ *  - `needsReady` : commande identifiée mais pas encore marquée « prête » →
+ *    l'UI propose « Marquer prête » ou « Marquer prête + retrait » (renvoyer
+ *    l'appel avec `confirmReady: true` enchaîne les transitions).
+ *  - `needsClientCode` : commande PAYÉE EN LIGNE scannée via le QR du ticket →
+ *    on exige le code/QR du CLIENT (preuve de remise : l'argent est déjà
+ *    encaissé, remettre le sac sans preuve = risque de litige).
+ */
+export type PickupValidationResult = OrderActionResult & {
+  orderId?: string;
+  needsReady?: {
+    orderId: string;
+    orderNumber: string | null;
+    customerName: string;
+    statusLabel: string;
+  };
+  needsClientCode?: boolean;
+};
+
+/**
  * Valide un retrait et passe la commande (du commerçant connecté, RLS) en
- * « récupérée » — transition ready → completed. Deux identifiants acceptés :
+ * « récupérée ». Deux identifiants acceptés :
  *
- *  - le CODE PIN 4-6 chiffres montré par le CLIENT (QR in-app / oral) ;
- *  - la RÉFÉRENCE publique de commande (ex. « A042 ») — c'est le QR imprimé
- *    sur le ticket : le commerçant scanne le sac au comptoir, façon Uber Eats.
- *    ⚠ moins probante que le PIN (elle ne prouve pas la présence du client) :
- *    le PIN reste le chemin recommandé en cas de litige.
+ *  - le CODE PIN 4-6 chiffres montré par le CLIENT (QR in-app / oral) —
+ *    preuve de présence du client, OBLIGATOIRE pour le payé en ligne ;
+ *  - la RÉFÉRENCE publique de commande (ex. « A042 ») — QR imprimé sur le
+ *    ticket : scan du sac au comptoir, façon Uber Eats. Réservée aux
+ *    commandes payées au comptoir (cash).
+ *
+ * Logique métier :
+ *  - livraison (express/tournée) → JAMAIS validée ici (le livreur confirme) ;
+ *  - `ready` → completed (chemin nominal) ;
+ *  - `pending/accepted/preparing` → signal `needsReady` ; avec
+ *    `confirmReady: true`, on enchaîne les transitions réelles jusqu'à
+ *    completed (chaque étape auditée dans order_events, comme si le
+ *    commerçant avait fait « prête » puis « retrait ») ;
+ *  - annulée / déjà récupérée → erreurs explicites.
  */
 export async function validatePickupCode(
   code: string,
-  clientOperationId?: string
-): Promise<OrderActionResult & { orderId?: string }> {
+  clientOperationId?: string,
+  opts?: { confirmReady?: boolean }
+): Promise<PickupValidationResult> {
   const raw = (code ?? "").trim();
   const digits = raw.replace(/\D/g, "");
   // PIN à 4 chiffres (commandes récentes) ; on tolère 6 pour d'éventuelles
@@ -221,17 +252,22 @@ export async function validatePickupCode(
     }
   }
 
-  let order: {
+  type FoundOrder = {
     id: string;
     status: string;
     customer_name: string;
     fulfillment_type: string | null;
-  } | null = null;
+    payment_method: string | null;
+    order_number: string | null;
+  };
+  const FIELDS =
+    "id, status, customer_name, fulfillment_type, payment_method, order_number";
+  let order: FoundOrder | null = null;
 
   if (isPin) {
     const { data, error } = await supabase
       .from("orders")
-      .select("id, status, customer_name, fulfillment_type")
+      .select(FIELDS)
       .eq("pickup_code", normalized)
       .maybeSingle();
     if (error) return { error: `Erreur : ${error.message}` };
@@ -239,11 +275,11 @@ export async function validatePickupCode(
     order = data;
   } else {
     // RÉFÉRENCE de ticket : order_number peut se répéter dans le temps (la
-    // numérotation recommence) → on prend les plus récentes et on ne valide
-    // que s'il y a EXACTEMENT une commande retrait PRÊTE pour cette référence.
+    // numérotation recommence) → on prend les plus récentes. On ne cible que
+    // s'il y a EXACTEMENT une commande retrait non terminée pour la référence.
     const { data: matches, error } = await supabase
       .from("orders")
-      .select("id, status, customer_name, fulfillment_type, created_at")
+      .select(`${FIELDS}, created_at`)
       .eq("order_number", ref)
       .order("created_at", { ascending: false })
       .limit(10);
@@ -258,50 +294,100 @@ export async function validatePickupCode(
           "Commande en livraison : la remise est confirmée par le livreur, pas au comptoir.",
       };
     }
-    const ready = pickups.filter((o) => o.status === "ready");
-    if (ready.length > 1) {
+    // Cible = les commandes encore « en vie » (ni terminées ni annulées) ;
+    // s'il y en a plusieurs pour la même référence (récurrence de numéro),
+    // on refuse et on exige le code client (zéro ambiguïté sur l'argent).
+    const alive = pickups.filter(
+      (o) => o.status !== "completed" && o.status !== "cancelled"
+    );
+    if (alive.length > 1) {
       return {
         error:
-          "Référence ambiguë (plusieurs commandes prêtes). Utilisez le code du client.",
+          "Référence ambiguë (plusieurs commandes en cours). Utilisez le code du client.",
       };
     }
-    if (ready.length === 0) {
-      const last = pickups[0];
-      if (last.status === "completed") {
-        return { error: "Cette commande a déjà été récupérée." };
-      }
-      if (last.status === "cancelled") {
-        return { error: "Cette commande a été annulée." };
-      }
-      return { error: "Cette commande n'est pas encore prête au retrait." };
-    }
-    order = ready[0];
+    order = alive[0] ?? pickups[0];
   }
 
-  // Les commandes en LIVRAISON ne se valident JAMAIS côté commerçant : le
-  // livreur récupère la commande puis confirme la remise au client. Le code
-  // n'est destiné qu'au livreur (anti-fraude). On refuse donc ici.
+  // ─── Gardes métier (ordre volontaire : du définitif au réparable) ─────────
+  // 1. LIVRAISON (express OU tournée) : jamais validée au comptoir — le
+  //    livreur récupère puis confirme la remise avec son propre code.
   if (order.fulfillment_type === "delivery") {
     return {
       error:
         "Commande en livraison : la remise est confirmée par le livreur, pas au comptoir.",
     };
   }
+  // 2. États terminaux.
   if (order.status === "completed") {
     return { error: "Cette commande a déjà été récupérée." };
   }
   if (order.status === "cancelled") {
     return { error: "Cette commande a été annulée." };
   }
-  if (order.status !== "ready") {
-    return { error: "Cette commande n'est pas encore prête au retrait." };
+  // 3. PAYÉ EN LIGNE + scan du ticket : le ticket est dans les mains du
+  //    commerçant, il ne prouve rien. L'argent étant déjà encaissé, on exige
+  //    le code/QR du CLIENT comme preuve de remise. (Le PIN, lui, passe.)
+  //    NB : la RLS ne montre au commerçant une commande online que déjà payée.
+  if (isRef && order.payment_method === "online") {
+    return {
+      error:
+        "Commande payée en ligne : demandez le QR (ou le code) du client — c'est la preuve de remise.",
+      needsClientCode: true,
+    };
+  }
+  // 4. PAS ENCORE PRÊTE (pending / accepted / preparing) : signal structuré →
+  //    l'UI propose « Marquer prête » ou « Marquer prête + retrait ».
+  if (order.status !== "ready" && !opts?.confirmReady) {
+    return {
+      error: "Cette commande n'est pas encore marquée « prête ».",
+      needsReady: {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        customerName: order.customer_name,
+        statusLabel:
+          ORDER_STATUS_META[order.status as OrderStatus]?.label ?? order.status,
+      },
+    };
   }
 
-  const res = await updateOrderStatus(order.id, "completed", clientOperationId);
-  if (res.error) return { error: res.error };
+  // ─── Transitions réelles ───────────────────────────────────────────────────
+  // confirmReady : on enchaîne les VRAIES transitions jusqu'à completed en
+  // respectant ALLOWED_TRANSITIONS (chaque étape = une ligne d'audit
+  // order_events + notifications client, exactement comme si le commerçant
+  // avait cliqué « prête » puis « retrait »). Idempotence par étape via un
+  // client_operation_id suffixé — un rejeu ne réapplique rien.
+  const CHAIN: Partial<Record<OrderStatus, OrderStatus[]>> = {
+    pending: ["preparing", "ready", "completed"],
+    accepted: ["preparing", "ready", "completed"],
+    preparing: ["ready", "completed"],
+    ready: ["completed"],
+  };
+  const steps = CHAIN[order.status as OrderStatus];
+  if (!steps) {
+    return { error: "Cette commande n'est pas encore prête au retrait." };
+  }
+  for (const step of steps) {
+    // L'étape FINALE (completed) porte le client_operation_id BRUT : un rejeu
+    // après réponse perdue retombe ainsi sur le check d'idempotence global en
+    // tête de fonction (succès immédiat, pas de « déjà récupérée » à tort).
+    // Les étapes intermédiaires portent un id suffixé (idempotentes chacune).
+    const stepOpId =
+      step === "completed"
+        ? clientOperationId
+        : clientOperationId
+          ? `${clientOperationId}:${step}`
+          : undefined;
+    const res = await updateOrderStatus(order.id, step, stepOpId);
+    // « Déjà appliqué » (rejeu) n'est pas une erreur : on continue la chaîne.
+    if (res.error) return { error: res.error, stale: res.stale };
+  }
 
   return {
-    success: `Retrait validé pour ${order.customer_name}.`,
+    success:
+      steps.length > 1
+        ? `Commande marquée prête et retrait validé pour ${order.customer_name}.`
+        : `Retrait validé pour ${order.customer_name}.`,
     orderId: order.id,
   };
 }

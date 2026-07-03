@@ -30,8 +30,11 @@ export type UpdateStatusPayload = {
 
 /** Payload d'une action `validate_pickup`. */
 export type ValidatePickupPayload = {
-  /** Code à 6 chiffres (déjà nettoyé). */
+  /** Code PIN client (4-6 chiffres) OU référence de ticket (ex. A042). */
   code: string;
+  /** true = la commande pas encore « prête » est marquée prête PUIS retirée
+   *  (confirmation explicite du commerçant dans le pop-up dédié). */
+  confirmReady?: boolean;
 };
 
 export type PendingActionPayload = UpdateStatusPayload | ValidatePickupPayload;

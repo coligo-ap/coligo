@@ -38,7 +38,7 @@ import type { OrderStatus } from "@/lib/types";
 import {
   updateOrderStatus,
   validatePickupCode,
-  type OrderActionResult,
+  type PickupValidationResult,
 } from "@/app/(merchant)/orders/actions";
 
 const MAX_ATTEMPTS = 3;
@@ -92,7 +92,9 @@ export type EnqueueResult =
       /** Action exécutée en direct contre le serveur (online). */
       mode: "online";
       operationId: string;
-      result: OrderActionResult & { orderId?: string };
+      /** Inclut les signaux structurés du retrait (needsReady, needsClientCode)
+       *  quand l'action était un validate_pickup. */
+      result: PickupValidationResult;
     }
   | {
       /** Action mise en file (offline ou IndexedDB indispo → forcé en file
@@ -103,7 +105,7 @@ export type EnqueueResult =
 
 export type ActionInput =
   | { type: "update_status"; orderId: string; to: OrderStatus }
-  | { type: "validate_pickup"; code: string };
+  | { type: "validate_pickup"; code: string; confirmReady?: boolean };
 
 /**
  * Point d'entrée unique pour les actions résilientes.
@@ -160,7 +162,10 @@ async function enqueueAction(
             orderId: input.orderId,
             to: input.to,
           } satisfies UpdateStatusPayload)
-        : ({ code: input.code } satisfies ValidatePickupPayload),
+        : ({
+            code: input.code,
+            confirmReady: input.confirmReady ?? false,
+          } satisfies ValidatePickupPayload),
     orderId: input.type === "update_status" ? input.orderId : null,
     createdAt: Date.now(),
     status: "queued",
@@ -179,12 +184,14 @@ async function enqueueAction(
 async function execActionOnServer(
   input: ActionInput,
   operationId: string
-): Promise<OrderActionResult & { orderId?: string }> {
+): Promise<PickupValidationResult> {
   if (input.type === "update_status") {
     return updateOrderStatus(input.orderId, input.to, operationId);
   }
   // validate_pickup
-  return validatePickupCode(input.code, operationId);
+  return validatePickupCode(input.code, operationId, {
+    confirmReady: input.confirmReady ?? false,
+  });
 }
 
 function actionAsInput(action: PendingAction): ActionInput {
@@ -193,7 +200,11 @@ function actionAsInput(action: PendingAction): ActionInput {
     return { type: "update_status", orderId: p.orderId, to: p.to };
   }
   const p = action.payload as ValidatePickupPayload;
-  return { type: "validate_pickup", code: p.code };
+  return {
+    type: "validate_pickup",
+    code: p.code,
+    confirmReady: p.confirmReady ?? false,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -218,6 +229,10 @@ function isConflictError(message: string): boolean {
     m.includes("déjà été récupérée") ||
     m.includes("a été annulée") ||
     m.includes("pas encore prête") ||
+    m.includes("pas encore marquée") || // needsReady (rejeu offline : jeter)
+    m.includes("payée en ligne") || // ticket refusé : il faut le code client
+    m.includes("ambiguë") ||
+    m.includes("non reconnu") ||
     m.includes("doit comporter")
   );
 }

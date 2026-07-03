@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useCallback, useRef, useState, useTransition } from "react";
-import { CheckCircle2, Hash, Loader2, QrCode, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Hash,
+  Loader2,
+  QrCode,
+  XCircle,
+} from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { enqueueOrExecute } from "@/lib/offline/queue";
@@ -61,9 +68,20 @@ function buzz(pattern: number | number[]) {
   }
 }
 
+/** Commande identifiée mais pas encore « prête » : contexte du pop-up choix. */
+type ReadyPrompt = {
+  /** Code/référence scanné(e) — resoumis(e) avec confirmReady. */
+  code: string;
+  orderId: string;
+  orderNumber: string | null;
+  customerName: string;
+  statusLabel: string;
+};
+
 export function PickupValidator() {
   const [tab, setTab] = useState<Tab>("qr");
   const [result, setResult] = useState<Result | null>(null);
+  const [readyPrompt, setReadyPrompt] = useState<ReadyPrompt | null>(null);
   const [pending, startTransition] = useTransition();
   // Remonte l'onglet actif (caméra + gardes anti-doublon) après avoir fermé
   // le pop-up d'erreur : le QrScanner est `oneShot` et se fige au 1er scan,
@@ -74,16 +92,19 @@ export function PickupValidator() {
   // nouvel essai.
   function dismissError() {
     setResult(null);
+    setReadyPrompt(null);
     setScanKey((k) => k + 1);
   }
 
-  function submit(code: string) {
+  function submit(code: string, confirmReady = false) {
     setResult(null);
+    setReadyPrompt(null);
     startTransition(async () => {
       try {
         const outcome = await enqueueOrExecute({
           type: "validate_pickup",
           code,
+          confirmReady,
         });
         if (outcome.mode === "queued") {
           // Hors ligne : on enregistre la validation et on confirmera au
@@ -98,12 +119,63 @@ export function PickupValidator() {
           return;
         }
         const res = outcome.result;
+        // Commande trouvée mais pas encore « prête » → pop-up de CHOIX (pas
+        // une impasse) : marquer prête seulement, ou prête + retrait.
+        if (res.needsReady) {
+          buzz(40);
+          setReadyPrompt({
+            code,
+            orderId: res.needsReady.orderId,
+            orderNumber: res.needsReady.orderNumber,
+            customerName: res.needsReady.customerName,
+            statusLabel: res.needsReady.statusLabel,
+          });
+          return;
+        }
         const ok = !res.error;
         buzz(ok ? 60 : [80, 60, 80]);
         setResult({
           ok,
           message: res.error ?? res.success ?? "",
           orderId: res.orderId,
+        });
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "Erreur inattendue.";
+        buzz([80, 60, 80]);
+        setResult({ ok: false, message });
+      }
+    });
+  }
+
+  // « Marquer prête » SEULEMENT : la commande passe en prête (le client est
+  // notifié) — le retrait sera validé plus tard, quand le client se présente.
+  function markReadyOnly(prompt: ReadyPrompt) {
+    setReadyPrompt(null);
+    startTransition(async () => {
+      try {
+        const outcome = await enqueueOrExecute({
+          type: "update_status",
+          orderId: prompt.orderId,
+          to: "ready",
+        });
+        if (outcome.mode === "queued") {
+          buzz(60);
+          setResult({
+            ok: true,
+            message:
+              "Hors ligne — la commande sera marquée prête dès le retour du réseau.",
+          });
+          return;
+        }
+        const res = outcome.result;
+        const ok = !res.error;
+        buzz(ok ? 60 : [80, 60, 80]);
+        setResult({
+          ok,
+          message: ok
+            ? `Commande ${prompt.orderNumber ? `#${prompt.orderNumber} ` : ""}marquée prête — validez le retrait quand le client la récupère.`
+            : (res.error ?? ""),
+          orderId: prompt.orderId,
         });
       } catch (e) {
         const message = e instanceof Error ? e.message : "Erreur inattendue.";
@@ -142,6 +214,85 @@ export function PickupValidator() {
       {result && !result.ok && (
         <ErrorModal message={result.message} onDismiss={dismissError} />
       )}
+
+      {/* Pop-up de CHOIX « pas encore prête » : le scan a identifié la
+          commande, mais le commerçant ne l'a pas marquée prête. Deux issues
+          au lieu d'une impasse : prête seulement, ou prête + retrait. */}
+      {readyPrompt && (
+        <ReadyPromptModal
+          prompt={readyPrompt}
+          pending={pending}
+          onMarkReady={() => markReadyOnly(readyPrompt)}
+          onMarkReadyAndComplete={() => submit(readyPrompt.code, true)}
+          onDismiss={dismissError}
+        />
+      )}
+    </div>
+  );
+}
+
+/* --------------------- Pop-up « pas encore prête » ------------------------ */
+
+function ReadyPromptModal({
+  prompt,
+  pending,
+  onMarkReady,
+  onMarkReadyAndComplete,
+  onDismiss,
+}: {
+  prompt: ReadyPrompt;
+  pending: boolean;
+  onMarkReady: () => void;
+  onMarkReadyAndComplete: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[200] grid place-items-center bg-black/50 p-4"
+      role="alertdialog"
+      aria-modal="true"
+      onClick={onDismiss}
+    >
+      <div
+        className="bg-surface border-border w-full max-w-sm rounded-2xl border p-6 text-center shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="bg-warning-50 mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
+          <AlertTriangle className="text-warning-600 size-8" />
+        </div>
+        <p className="text-foreground text-lg font-semibold">
+          Commande pas encore marquée prête
+        </p>
+        <p className="text-muted mt-2 text-sm leading-relaxed">
+          La commande {prompt.orderNumber ? `#${prompt.orderNumber} ` : ""}
+          de{" "}
+          <span className="text-foreground font-semibold">
+            {prompt.customerName}
+          </span>{" "}
+          est encore « {prompt.statusLabel} ». Vous pouvez la marquer prête, ou
+          tout faire d&apos;un coup si le client est devant vous.
+        </p>
+        <div className="mt-6 grid gap-2">
+          <Button size="lg" disabled={pending} onClick={onMarkReadyAndComplete}>
+            Marquer prête + valider le retrait
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            disabled={pending}
+            onClick={onMarkReady}
+          >
+            Marquer prête seulement
+          </Button>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="text-muted hover:text-foreground mt-1 text-sm font-medium"
+          >
+            Annuler
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
