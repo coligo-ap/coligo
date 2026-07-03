@@ -441,8 +441,13 @@ export default async function CustomerOrderDetailPage({
               </div>
             </div>
             {orderNumber && (
-              <span className="text-muted shrink-0 text-[13px] font-extrabold tracking-wide">
-                {t("orderNumberShort")} {orderNumber}
+              <span className="shrink-0 text-end">
+                <small className="text-muted block text-[9.5px] font-bold tracking-wide uppercase">
+                  {t("orderNumberShort")}
+                </small>
+                <b className="text-foreground text-[17px] leading-tight font-black tracking-wide">
+                  {orderNumber}
+                </b>
               </span>
             )}
           </div>

@@ -165,8 +165,13 @@ function ActiveOrderCard({
       {/* Commerçant + statut. */}
       <span className="min-w-0 flex-1">
         <span className="text-foreground block truncate text-[13.5px] font-bold">
+          {/* N° de commande EN PREMIER (côté gauche/start), bien visible. */}
+          {order.order_number && (
+            <span className="text-primary-700 me-1.5 font-black">
+              #{order.order_number}
+            </span>
+          )}
           {order.merchant_name}
-          {order.order_number ? ` · #${order.order_number}` : ""}
         </span>
         <span
           className={cn(
