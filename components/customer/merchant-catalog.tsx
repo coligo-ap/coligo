@@ -466,7 +466,9 @@ export function MerchantCatalog({
 
       {/* MODE CATÉGORIES (sans recherche) : grille de cartes OU drill-down. */}
       {!q && display === "categories" && openCat === null && (
-        <div className="grid grid-cols-3 gap-3">
+        // Colonnes RESPONSIVES : 3 en mobile → 6 en desktop (conteneur 1100px),
+        // sinon les tuiles aspect-[3/4] deviennent démesurées sur grand écran.
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {groups.map((g) => {
             const title = g.category?.title ?? t("otherCategory");
             // Promos/réductions remontées sur la tuile : incite à ouvrir la
@@ -482,27 +484,33 @@ export function MerchantCatalog({
                 type="button"
                 onClick={() => setOpenCat(g.key)}
                 aria-label={title}
-                className="bg-primary-50 dark:bg-primary-950/40 group relative aspect-[3/4] overflow-hidden rounded-[14px] p-3 text-center transition-transform duration-150 active:scale-[0.97]"
+                className="bg-primary-50 dark:bg-primary-950/40 group flex aspect-[3/4] flex-col overflow-hidden rounded-[14px] p-3 text-center transition-transform duration-150 active:scale-[0.97] sm:aspect-[4/5]"
               >
                 {/* Titre en haut, centré (2 lignes max) — typographie Yassir. */}
-                <span className="text-foreground relative z-10 mx-auto line-clamp-2 block text-[13.5px] leading-snug font-bold">
+                <span className="text-foreground line-clamp-2 block text-[13.5px] leading-snug font-bold">
                   {title}
                 </span>
-                <span className="text-subtle relative z-10 mt-0.5 block text-[10.5px] font-semibold">
+                <span className="text-subtle mt-0.5 block text-[10.5px] font-semibold">
                   {t("productCount", { count: g.items.length })}
                 </span>
                 {promoCount > 0 && (
-                  <span className="bg-accent-600 relative z-10 mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
+                  <span className="bg-accent-600 mt-1.5 inline-flex items-center gap-1 self-center rounded-full px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
                     <BadgePercent className="size-3 shrink-0" />
                     {t("categoryPromoCount", { count: promoCount })}
                   </span>
                 )}
-                {/* Grand chevron en filigrane, bas de tuile (sens RTL géré). */}
-                <ChevronLeft
+                {/* Chevron filigrane dans l'espace RESTANT (flex-1, pas
+                    d'absolu) → ne chevauche JAMAIS le texte/badge, quelle que
+                    soit la hauteur de tuile (mobile comme desktop). */}
+                <span
                   aria-hidden
-                  strokeWidth={3.5}
-                  className="text-primary-600/15 absolute start-1/2 bottom-4 size-20 -translate-x-1/2 rotate-180 transition-transform duration-200 group-hover:translate-x-[-42%] rtl:translate-x-1/2 rtl:-rotate-0 rtl:group-hover:translate-x-[42%]"
-                />
+                  className="grid min-h-0 flex-1 place-items-center"
+                >
+                  <ChevronLeft
+                    strokeWidth={3.5}
+                    className="text-primary-600/15 size-12 rotate-180 transition-transform duration-200 group-hover:translate-x-1 sm:size-16 rtl:-rotate-0 rtl:group-hover:-translate-x-1"
+                  />
+                </span>
               </button>
             );
           })}
@@ -543,9 +551,15 @@ export function MerchantCatalog({
                   {t("productCount", { count: g.items.length })}
                 </span>
               </h2>
-              <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[12px] border">
+              {/* 1 colonne mobile, 2 colonnes desktop (lg). Bordures par <li>
+                  (équivalent divide-y en 1 col) : border-b sauf dernière ligne,
+                  séparateur vertical sur la colonne de gauche. */}
+              <ul className="border-border bg-surface overflow-hidden rounded-[12px] border lg:grid lg:grid-cols-2">
                 {g.items.map((p) => (
-                  <li key={p.id}>
+                  <li
+                    key={p.id}
+                    className="border-border border-b last:border-b-0 lg:odd:border-e lg:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
+                  >
                     <ProductRow
                       merchant={merchant}
                       product={p}
@@ -591,9 +605,15 @@ export function MerchantCatalog({
                   {t("productCount", { count: g.items.length })}
                 </span>
               </h2>
-              <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[12px] border">
+              {/* 1 colonne mobile, 2 colonnes desktop (lg). Bordures par <li>
+                  (équivalent divide-y en 1 col) : border-b sauf dernière ligne,
+                  séparateur vertical sur la colonne de gauche. */}
+              <ul className="border-border bg-surface overflow-hidden rounded-[12px] border lg:grid lg:grid-cols-2">
                 {g.items.map((p) => (
-                  <li key={p.id}>
+                  <li
+                    key={p.id}
+                    className="border-border border-b last:border-b-0 lg:odd:border-e lg:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
+                  >
                     <ProductRow
                       merchant={merchant}
                       product={p}
