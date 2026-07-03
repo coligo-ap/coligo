@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Plus, Trash2, Check } from "lucide-react";
+import { ChevronDown, Loader2, Plus, Trash2, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
 import { TranslateArButton } from "@/components/merchant/translate-ar-button";
 import {
@@ -79,6 +79,12 @@ export function ProductOptionsEditor({
   );
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Section repliée par défaut : la plupart des produits n'ont pas d'options,
+  // le compteur dans l'en-tête suffit pour savoir s'il y en a.
+  const [open, setOpen] = useState(false);
+
+  const groupCount = groups.length;
+  const optionCount = groups.reduce((n, g) => n + g.options.length, 0);
 
   function patchGroup(gi: number, patch: Partial<GroupState>) {
     setGroups((prev) =>
@@ -163,196 +169,237 @@ export function ProductOptionsEditor({
   }
 
   return (
-    <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
-      <div className="flex items-start justify-between gap-3">
+    <section className="border-border bg-surface rounded-[16px] border">
+      {/* En-tête cliquable : replié par défaut, compteur toujours visible */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 rounded-[16px] p-5 text-left"
+      >
         <div>
-          <Label className="text-base">Options & variantes</Label>
+          <span className="text-sm font-medium">Options & variantes</span>
           <p className="text-muted text-xs">
             Taille, suppléments, choix… proposés au client. Bilingue FR/AR.
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={addGroup}>
-          <Plus className="size-4" />
-          Groupe
-        </Button>
-      </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="border-border bg-surface-2 text-muted rounded-full border px-2.5 py-0.5 text-xs font-medium">
+            {groupCount} groupe{groupCount > 1 ? "s" : ""} · {optionCount}{" "}
+            option{optionCount > 1 ? "s" : ""}
+          </span>
+          <ChevronDown
+            className={cn(
+              "text-muted size-4 transition-transform",
+              open && "rotate-180"
+            )}
+          />
+        </div>
+      </button>
 
-      {groups.length === 0 && (
-        <p className="text-subtle py-2 text-sm">
-          Aucune option. Ajoutez un groupe (ex. « Taille », « Suppléments »).
-        </p>
-      )}
-
-      {groups.map((g, gi) => (
-        <div
-          key={gi}
-          className="border-border-strong space-y-3 rounded-[12px] border p-4"
-        >
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              value={g.name_fr}
-              onChange={(e) => patchGroup(gi, { name_fr: e.target.value })}
-              placeholder="Nom du groupe (ex. Taille)"
-              disabled={pending}
-            />
-            <div className="flex items-center gap-2">
-              <Input
-                value={g.name_ar}
-                onChange={(e) => patchGroup(gi, { name_ar: e.target.value })}
-                placeholder="اسم المجموعة"
-                dir="rtl"
-                disabled={pending}
-              />
-              <TranslateArButton
-                compact
-                disabled={pending}
-                getSource={() => g.name_fr}
-                onTranslated={(value) => patchGroup(gi, { name_ar: value })}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={g.required}
-                onChange={(e) => patchGroup(gi, { required: e.target.checked })}
-                disabled={pending}
-                className="accent-primary-600 size-4"
-              />
-              Choix obligatoire
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={g.multi}
-                onChange={(e) => patchGroup(gi, { multi: e.target.checked })}
-                disabled={pending}
-                className="accent-primary-600 size-4"
-              />
-              Choix multiple
-            </label>
-            <button
+      {open && (
+        <div className="border-border space-y-4 border-t p-5">
+          <div className="flex justify-end">
+            <Button
               type="button"
-              onClick={() => removeGroup(gi)}
-              disabled={pending}
-              className="text-danger-600 hover:bg-danger-50 ml-auto inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-xs disabled:opacity-50"
+              variant="outline"
+              size="sm"
+              onClick={addGroup}
             >
-              <Trash2 className="size-3.5" />
-              Supprimer le groupe
-            </button>
+              <Plus className="size-4" />
+              Groupe
+            </Button>
           </div>
 
-          {/* Options du groupe */}
-          <div className="space-y-2">
-            {g.options.map((o, oi) => (
-              <div
-                key={oi}
-                className="border-border bg-surface-2 grid items-center gap-2 rounded-[10px] border p-2 sm:grid-cols-[1fr_1fr_auto_auto_auto]"
-              >
+          {groups.length === 0 && (
+            <p className="text-subtle py-2 text-sm">
+              Aucune option. Ajoutez un groupe (ex. « Taille », « Suppléments
+              »).
+            </p>
+          )}
+
+          {groups.map((g, gi) => (
+            <div
+              key={gi}
+              className="border-border-strong space-y-3 rounded-[12px] border p-4"
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
                 <Input
-                  value={o.name_fr}
-                  onChange={(e) =>
-                    patchOption(gi, oi, { name_fr: e.target.value })
-                  }
-                  placeholder="Option (ex. Grand)"
+                  value={g.name_fr}
+                  onChange={(e) => patchGroup(gi, { name_fr: e.target.value })}
+                  placeholder="Nom du groupe (ex. Taille)"
                   disabled={pending}
-                  className="h-10"
                 />
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <Input
-                    value={o.name_ar}
+                    value={g.name_ar}
                     onChange={(e) =>
-                      patchOption(gi, oi, { name_ar: e.target.value })
+                      patchGroup(gi, { name_ar: e.target.value })
                     }
-                    placeholder="الخيار"
+                    placeholder="اسم المجموعة"
                     dir="rtl"
                     disabled={pending}
-                    className="h-10"
                   />
                   <TranslateArButton
                     compact
                     disabled={pending}
-                    getSource={() => o.name_fr}
-                    onTranslated={(value) =>
-                      patchOption(gi, oi, { name_ar: value })
-                    }
+                    getSource={() => g.name_fr}
+                    onTranslated={(value) => patchGroup(gi, { name_ar: value })}
                   />
                 </div>
-                <div className="flex items-center gap-1">
-                  <Input
-                    value={o.price_delta_da}
-                    onChange={(e) =>
-                      patchOption(gi, oi, { price_delta_da: e.target.value })
-                    }
-                    type="number"
-                    inputMode="numeric"
-                    placeholder="0"
-                    disabled={pending}
-                    className="h-10 w-20"
-                    aria-label="Supplément en DA"
-                  />
-                  <span className="text-muted text-xs">DA</span>
-                </div>
-                <label
-                  className="flex items-center gap-1.5 text-xs"
-                  title="Disponible"
-                >
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
-                    checked={o.is_available}
+                    checked={g.required}
                     onChange={(e) =>
-                      patchOption(gi, oi, { is_available: e.target.checked })
+                      patchGroup(gi, { required: e.target.checked })
                     }
                     disabled={pending}
                     className="accent-primary-600 size-4"
                   />
-                  Dispo
+                  Choix obligatoire
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={g.multi}
+                    onChange={(e) =>
+                      patchGroup(gi, { multi: e.target.checked })
+                    }
+                    disabled={pending}
+                    className="accent-primary-600 size-4"
+                  />
+                  Choix multiple
                 </label>
                 <button
                   type="button"
-                  onClick={() => removeOption(gi, oi)}
+                  onClick={() => removeGroup(gi)}
                   disabled={pending}
-                  className="text-danger-600 hover:bg-danger-50 inline-flex size-8 items-center justify-center rounded-[8px] disabled:opacity-50"
-                  aria-label="Supprimer l'option"
+                  className="text-danger-600 hover:bg-danger-50 ml-auto inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-xs disabled:opacity-50"
                 >
-                  <Trash2 className="size-4" />
+                  <Trash2 className="size-3.5" />
+                  Supprimer le groupe
                 </button>
               </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => addOption(gi)}
-              disabled={pending}
-              className="text-primary-700 hover:text-primary-800 inline-flex items-center gap-1 text-xs font-medium disabled:opacity-50"
-            >
-              <Plus className="size-3.5" />
-              Ajouter une option
-            </button>
-          </div>
-        </div>
-      ))}
 
-      {error && (
-        <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
-          {error}
+              {/* Options du groupe */}
+              <div className="space-y-2">
+                {g.options.map((o, oi) => (
+                  <div
+                    key={oi}
+                    className="border-border bg-surface-2 grid items-center gap-2 rounded-[10px] border p-2 sm:grid-cols-[1fr_1fr_auto_auto_auto]"
+                  >
+                    <Input
+                      value={o.name_fr}
+                      onChange={(e) =>
+                        patchOption(gi, oi, { name_fr: e.target.value })
+                      }
+                      placeholder="Option (ex. Grand)"
+                      disabled={pending}
+                      className="h-10"
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        value={o.name_ar}
+                        onChange={(e) =>
+                          patchOption(gi, oi, { name_ar: e.target.value })
+                        }
+                        placeholder="الخيار"
+                        dir="rtl"
+                        disabled={pending}
+                        className="h-10"
+                      />
+                      <TranslateArButton
+                        compact
+                        disabled={pending}
+                        getSource={() => o.name_fr}
+                        onTranslated={(value) =>
+                          patchOption(gi, oi, { name_ar: value })
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        value={o.price_delta_da}
+                        onChange={(e) =>
+                          patchOption(gi, oi, {
+                            price_delta_da: e.target.value,
+                          })
+                        }
+                        type="number"
+                        inputMode="numeric"
+                        placeholder="0"
+                        disabled={pending}
+                        className="h-10 w-20"
+                        aria-label="Supplément en DA"
+                      />
+                      <span className="text-muted text-xs">DA</span>
+                    </div>
+                    <label
+                      className="flex items-center gap-1.5 text-xs"
+                      title="Disponible"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={o.is_available}
+                        onChange={(e) =>
+                          patchOption(gi, oi, {
+                            is_available: e.target.checked,
+                          })
+                        }
+                        disabled={pending}
+                        className="accent-primary-600 size-4"
+                      />
+                      Dispo
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removeOption(gi, oi)}
+                      disabled={pending}
+                      className="text-danger-600 hover:bg-danger-50 inline-flex size-8 items-center justify-center rounded-[8px] disabled:opacity-50"
+                      aria-label="Supprimer l'option"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => addOption(gi)}
+                  disabled={pending}
+                  className="text-primary-700 hover:text-primary-800 inline-flex items-center gap-1 text-xs font-medium disabled:opacity-50"
+                >
+                  <Plus className="size-3.5" />
+                  Ajouter une option
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {error && (
+            <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+              {error}
+            </div>
+          )}
+
+          <Button type="button" onClick={save} disabled={pending}>
+            {pending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Enregistrement…
+              </>
+            ) : (
+              <>
+                <Check className="size-4" />
+                Enregistrer les options
+              </>
+            )}
+          </Button>
         </div>
       )}
-
-      <Button type="button" onClick={save} disabled={pending}>
-        {pending ? (
-          <>
-            <Loader2 className="size-4 animate-spin" />
-            Enregistrement…
-          </>
-        ) : (
-          <>
-            <Check className="size-4" />
-            Enregistrer les options
-          </>
-        )}
-      </Button>
     </section>
   );
 }
