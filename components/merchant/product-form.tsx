@@ -40,6 +40,7 @@ import {
   type ProductFormState,
 } from "@/app/(merchant)/catalog/actions";
 import { quickCreateCategory } from "@/app/(merchant)/catalog/categories/actions";
+import { TranslateArButton } from "@/components/merchant/translate-ar-button";
 
 const SELECT_CLASS =
   "appearance-none flex h-12 w-full rounded-[12px] border border-border-strong bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 disabled:cursor-not-allowed disabled:opacity-50";
@@ -211,13 +212,20 @@ export function ProductForm({
               />
             </Field>
             <Field label="الاسم (العربية)">
-              <Input
-                name="name_ar"
-                defaultValue={product?.name_ar ?? ""}
-                placeholder="بغيت تقليدي"
-                dir="rtl"
-                disabled={pending}
-              />
+              <div className="space-y-1.5">
+                <Input
+                  name="name_ar"
+                  defaultValue={product?.name_ar ?? ""}
+                  placeholder="بغيت تقليدي"
+                  dir="rtl"
+                  disabled={pending}
+                />
+                <TranslateArButton
+                  sourceField="name_fr"
+                  targetField="name_ar"
+                  disabled={pending}
+                />
+              </div>
             </Field>
           </div>
 
@@ -233,14 +241,21 @@ export function ProductForm({
               />
             </Field>
             <Field label="الوصف (العربية)">
-              <textarea
-                name="description_ar"
-                defaultValue={product?.description_ar ?? ""}
-                rows={3}
-                dir="rtl"
-                disabled={pending}
-                className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-[12px] border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
-              />
+              <div className="space-y-1.5">
+                <textarea
+                  name="description_ar"
+                  defaultValue={product?.description_ar ?? ""}
+                  rows={3}
+                  dir="rtl"
+                  disabled={pending}
+                  className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-[12px] border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+                />
+                <TranslateArButton
+                  sourceField="description_fr"
+                  targetField="description_ar"
+                  disabled={pending}
+                />
+              </div>
             </Field>
           </div>
         </section>

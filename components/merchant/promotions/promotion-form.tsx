@@ -25,6 +25,7 @@ import {
   type PromotionWithProducts,
 } from "@/lib/types";
 import type { ProductLite } from "@/lib/data/promotions";
+import { TranslateArButton } from "@/components/merchant/translate-ar-button";
 import {
   createPromotion,
   updatePromotion,
@@ -198,6 +199,11 @@ export function PromotionForm({
               defaultValue={promotion?.title_ar ?? ""}
               placeholder="عنوان العرض"
               dir="rtl"
+              disabled={pending}
+            />
+            <TranslateArButton
+              sourceField="title_fr"
+              targetField="title_ar"
               disabled={pending}
             />
           </div>

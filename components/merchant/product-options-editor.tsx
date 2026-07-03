@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
+import { TranslateArButton } from "@/components/merchant/translate-ar-button";
 import {
   saveProductOptions,
   type LoadedOptionGroup,
@@ -194,13 +195,21 @@ export function ProductOptionsEditor({
               placeholder="Nom du groupe (ex. Taille)"
               disabled={pending}
             />
-            <Input
-              value={g.name_ar}
-              onChange={(e) => patchGroup(gi, { name_ar: e.target.value })}
-              placeholder="اسم المجموعة"
-              dir="rtl"
-              disabled={pending}
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                value={g.name_ar}
+                onChange={(e) => patchGroup(gi, { name_ar: e.target.value })}
+                placeholder="اسم المجموعة"
+                dir="rtl"
+                disabled={pending}
+              />
+              <TranslateArButton
+                compact
+                disabled={pending}
+                getSource={() => g.name_fr}
+                onTranslated={(value) => patchGroup(gi, { name_ar: value })}
+              />
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
@@ -251,16 +260,26 @@ export function ProductOptionsEditor({
                   disabled={pending}
                   className="h-10"
                 />
-                <Input
-                  value={o.name_ar}
-                  onChange={(e) =>
-                    patchOption(gi, oi, { name_ar: e.target.value })
-                  }
-                  placeholder="الخيار"
-                  dir="rtl"
-                  disabled={pending}
-                  className="h-10"
-                />
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    value={o.name_ar}
+                    onChange={(e) =>
+                      patchOption(gi, oi, { name_ar: e.target.value })
+                    }
+                    placeholder="الخيار"
+                    dir="rtl"
+                    disabled={pending}
+                    className="h-10"
+                  />
+                  <TranslateArButton
+                    compact
+                    disabled={pending}
+                    getSource={() => o.name_fr}
+                    onTranslated={(value) =>
+                      patchOption(gi, oi, { name_ar: value })
+                    }
+                  />
+                </div>
                 <div className="flex items-center gap-1">
                   <Input
                     value={o.price_delta_da}

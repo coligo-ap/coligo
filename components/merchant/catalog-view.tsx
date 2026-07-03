@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useConfirm, usePrompt } from "@/components/ui/confirm";
+import { CatalogTranslateAll } from "@/components/merchant/catalog-translate-all";
 import {
   DndContext,
   closestCenter,
@@ -772,7 +773,8 @@ export function CatalogView({
         </div>
         {/* Sur mobile : les deux boutons sur la MÊME ligne (50/50) pour gagner
             de la place ; libellés raccourcis. Sur ≥sm : libellés complets. */}
-        <div className="flex w-full gap-2 sm:w-auto">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          <CatalogTranslateAll onDone={refresh} />
           <button
             type="button"
             onClick={promptCreateCategory}

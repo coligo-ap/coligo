@@ -12,6 +12,7 @@ import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
 import { TagsPicker } from "@/components/merchant/settings/tags-picker";
 import { createClient } from "@/lib/supabase/client";
 import { CategoryMultiSelect } from "@/components/merchant/settings/category-multi-select";
+import { TranslateArButton } from "@/components/merchant/translate-ar-button";
 import {
   setMediaUrl,
   updateProfile,
@@ -170,15 +171,22 @@ export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
             />
           </Field>
           <Field label="Description (arabe)">
-            <textarea
-              name="description_ar"
-              defaultValue={merchant.description_ar ?? ""}
-              rows={4}
-              maxLength={800}
-              dir="rtl"
-              disabled={pending}
-              className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-[12px] border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
-            />
+            <div className="space-y-1.5">
+              <textarea
+                name="description_ar"
+                defaultValue={merchant.description_ar ?? ""}
+                rows={4}
+                maxLength={800}
+                dir="rtl"
+                disabled={pending}
+                className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-[12px] border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+              />
+              <TranslateArButton
+                sourceField="description_fr"
+                targetField="description_ar"
+                disabled={pending}
+              />
+            </div>
           </Field>
         </div>
 
