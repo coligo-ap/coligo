@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Languages, Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { completeCatalogTranslationsAction } from "@/app/(merchant)/actions/translate";
@@ -57,7 +57,7 @@ export function CatalogTranslateAll({
         type="button"
         onClick={run}
         disabled={busy}
-        title="Traduire automatiquement en arabe tous les champs vides du catalogue"
+        title="Traduction automatique par IA de tous les champs vides du catalogue"
         className={cn(
           buttonVariants({ variant: "outline" }),
           "flex-1 justify-center sm:flex-initial"
@@ -66,12 +66,18 @@ export function CatalogTranslateAll({
         {busy ? (
           <Loader2 className="size-4 animate-spin" />
         ) : (
-          <Languages className="size-4" />
+          <Sparkles className="size-4" />
         )}
         <span className="sm:hidden">{busy ? "Traduction…" : "Arabe"}</span>
         <span className="hidden sm:inline">
           {busy ? "Traduction en cours…" : "Compléter l'arabe"}
         </span>
+        {/* Pastille IA : assume la traduction par intelligence artificielle. */}
+        {!busy && (
+          <span className="bg-primary-600 rounded-full px-1.5 py-px text-[9px] leading-4 font-extrabold text-white">
+            IA
+          </span>
+        )}
       </button>
       {msg && (
         <p

@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   BadgePercent,
   Check,
+  ChevronDown,
   Flame,
   Gift,
   Plus,
@@ -27,6 +28,8 @@ type Merchant = {
  * Carrousel horizontal de cartes-photo (style Uber Eats) RÉUTILISABLE :
  * « Populaires », « Achat offert », etc. Titre + icône paramétrables. La logique
  * panier (mono-commerçant) et l'affichage promo sont identiques aux lignes.
+ * RÉDUCTIBLE : tap sur l'en-tête = plier/déplier (compacte l'écran) — état
+ * 100 % client (zéro round-trip), mémorisé par commerce+titre pour la session.
  */
 export function ProductCarousel({
   title,
@@ -45,25 +48,76 @@ export function ProductCarousel({
   quantityOfferByProduct?: Record<string, { buy: number; get: number }>;
   onOpenDetail: (p: PublicProduct) => void;
 }) {
+  const t = useTranslations("merchant");
+  // Déplié au SSR ; le choix mémorisé est relu APRÈS montage (sinon mismatch
+  // d'hydratation : le HTML serveur ne connaît pas le sessionStorage).
+  const [collapsed, setCollapsed] = useState(false);
+  const storeKey = `coligo:carousel-collapsed:${merchant.id}:${title}`;
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(storeKey) === "1") setCollapsed(true);
+    } catch {
+      /* storage indisponible (navigation privée) → simple état local */
+    }
+  }, [storeKey]);
+  function toggle() {
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        sessionStorage.setItem(storeKey, next ? "1" : "0");
+      } catch {
+        /* idem */
+      }
+      return next;
+    });
+  }
+
   if (products.length === 0) return null;
 
   return (
     <section className="-mx-4 mb-2 lg:-mx-6">
-      <h2 className="font-display text-foreground mb-3 flex items-center gap-2 px-4 text-lg font-bold lg:px-6">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={!collapsed}
+        className="font-display text-foreground mb-3 flex w-full items-center gap-2 px-4 text-lg font-bold lg:px-6"
+      >
         {icon}
         <span className="truncate">{title}</span>
-      </h2>
-      <div className="flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-4 pb-1 lg:px-6 [&::-webkit-scrollbar]:hidden">
-        {products.map((p) => (
-          <PopCard
-            key={p.id}
-            merchant={merchant}
-            product={p}
-            promoUnitPriceDa={promoPriceById[p.id] ?? null}
-            quantityOffer={quantityOfferByProduct?.[p.id] ?? null}
-            onOpenDetail={() => onOpenDetail(p)}
-          />
-        ))}
+        {collapsed && (
+          <span className="text-subtle shrink-0 text-[12px] font-bold">
+            {t("productCount", { count: products.length })}
+          </span>
+        )}
+        <ChevronDown
+          className={cn(
+            "text-muted ms-auto size-5 shrink-0 transition-transform duration-200",
+            collapsed && "-rotate-90 rtl:rotate-90"
+          )}
+        />
+      </button>
+      {/* Pliage animé (grid-rows 1fr→0fr) : pas de re-render des cartes, pas
+          de mesure JS — le rail garde son scroll horizontal une fois rouvert. */}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-200 ease-out",
+          collapsed ? "[grid-template-rows:0fr]" : "[grid-template-rows:1fr]"
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-4 pb-1 lg:px-6 [&::-webkit-scrollbar]:hidden">
+            {products.map((p) => (
+              <PopCard
+                key={p.id}
+                merchant={merchant}
+                product={p}
+                promoUnitPriceDa={promoPriceById[p.id] ?? null}
+                quantityOffer={quantityOfferByProduct?.[p.id] ?? null}
+                onOpenDetail={() => onOpenDetail(p)}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );

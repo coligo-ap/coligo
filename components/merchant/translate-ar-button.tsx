@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Languages, Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { translateTextsAction } from "@/app/(merchant)/actions/translate";
 
@@ -94,7 +94,7 @@ export function TranslateArButton({
         type="button"
         onClick={handleClick}
         disabled={disabled || busy}
-        title="Traduire automatiquement depuis le français"
+        title="Traduction automatique par IA depuis le français"
         className={cn(
           "border-border-strong text-primary-700 hover:bg-surface-2 inline-flex items-center justify-center gap-1.5 rounded-[10px] border text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50",
           compact ? "size-8" : "h-8 px-2.5"
@@ -103,9 +103,15 @@ export function TranslateArButton({
         {busy ? (
           <Loader2 className="size-3.5 animate-spin" />
         ) : (
-          <Languages className="size-3.5" />
+          <Sparkles className="size-3.5" />
         )}
         {!compact && (busy ? "Traduction…" : "Traduire en arabe")}
+        {/* Pastille IA : assume la traduction par intelligence artificielle. */}
+        {!compact && !busy && (
+          <span className="bg-primary-600 rounded-full px-1.5 py-px text-[9px] leading-4 font-extrabold text-white">
+            IA
+          </span>
+        )}
       </button>
       {error && <p className="text-danger-600 mt-1 text-xs">{error}</p>}
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { BadgePercent, Gift } from "lucide-react";
-import { PopCard } from "@/components/customer/popular-carousel";
+import { ProductCarousel } from "@/components/customer/popular-carousel";
 import type {
   PublicProduct,
   PublicPromotion,
@@ -54,27 +54,20 @@ export function PromoCarousels({
 
   return (
     <>
+      {/* Réutilise le carrousel générique (markup unique + pliage inclus). */}
       {sections.map(({ promo, items }) => {
         const Icon = promo.type === "quantity_offer" ? Gift : BadgePercent;
         return (
-          <section key={promo.id} className="-mx-4 mb-2 lg:-mx-6">
-            <h2 className="font-display text-foreground mb-3 flex items-center gap-2 px-4 text-lg font-bold lg:px-6">
-              <Icon className="text-accent-600 size-5" />
-              <span className="truncate">{promo.title_fr}</span>
-            </h2>
-            <div className="flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-4 pb-1 lg:px-6 [&::-webkit-scrollbar]:hidden">
-              {items.map((p) => (
-                <PopCard
-                  key={p.id}
-                  merchant={merchant}
-                  product={p}
-                  promoUnitPriceDa={promoPriceById[p.id] ?? null}
-                  quantityOffer={quantityOfferByProduct[p.id] ?? null}
-                  onOpenDetail={() => onOpenDetail(p)}
-                />
-              ))}
-            </div>
-          </section>
+          <ProductCarousel
+            key={promo.id}
+            title={promo.title_fr}
+            icon={<Icon className="text-accent-600 size-5" />}
+            merchant={merchant}
+            products={items}
+            promoPriceById={promoPriceById}
+            quantityOfferByProduct={quantityOfferByProduct}
+            onOpenDetail={onOpenDetail}
+          />
         );
       })}
     </>

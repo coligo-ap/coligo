@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { ChevronLeft, Gift, LayoutGrid, Rows3, Search, X } from "lucide-react";
+import {
+  BadgePercent,
+  ChevronLeft,
+  Gift,
+  LayoutGrid,
+  Rows3,
+  Search,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useMerchantSearch,
@@ -409,8 +417,9 @@ export function MerchantCatalog({
       )}
 
       {/* ACHAT OFFERT — carrousel dédié des offres quantité, EN PREMIER
-          (masqué en recherche). Met en avant tous les produits « X = Y offert ». */}
-      {!q && offertProducts.length > 0 && (
+          (masqué en recherche ET dans une catégorie ouverte : le drill-down ne
+          montre QUE les produits de la catégorie choisie). */}
+      {!q && openCat === null && offertProducts.length > 0 && (
         <ProductCarousel
           title={t("offertCarousel")}
           icon={<Gift className="text-accent-600 size-5" />}
@@ -423,8 +432,8 @@ export function MerchantCatalog({
       )}
 
       {/* PROMOS — carrousels de réduction produit (par promo), masqués en
-          recherche. Affichés AVANT « Populaires ». */}
-      {!q && promoCarousels.length > 0 && (
+          recherche et en catégorie ouverte. Affichés AVANT « Populaires ». */}
+      {!q && openCat === null && promoCarousels.length > 0 && (
         <PromoCarousels
           merchant={merchant}
           promotions={promoCarousels}
@@ -435,8 +444,9 @@ export function MerchantCatalog({
         />
       )}
 
-      {/* POPULAIRES — carrousel horizontal (masqué pendant une recherche). */}
-      {!q && popular.length >= 4 && (
+      {/* POPULAIRES — carrousel horizontal (masqué pendant une recherche ou
+          dans une catégorie ouverte). */}
+      {!q && openCat === null && popular.length >= 4 && (
         <PopularCarousel
           merchant={merchant}
           products={popular}
@@ -459,6 +469,13 @@ export function MerchantCatalog({
         <div className="grid grid-cols-3 gap-3">
           {groups.map((g) => {
             const title = g.category?.title ?? t("otherCategory");
+            // Promos/réductions remontées sur la tuile : incite à ouvrir la
+            // catégorie (le mode catégories ne montre pas les produits).
+            const promoCount = g.items.filter(
+              (p) =>
+                promoPriceById[p.id] != null ||
+                quantityOfferByProduct[p.id] != null
+            ).length;
             return (
               <button
                 key={g.key}
@@ -474,6 +491,12 @@ export function MerchantCatalog({
                 <span className="text-subtle relative z-10 mt-0.5 block text-[10.5px] font-semibold">
                   {t("productCount", { count: g.items.length })}
                 </span>
+                {promoCount > 0 && (
+                  <span className="bg-accent-600 relative z-10 mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
+                    <BadgePercent className="size-3 shrink-0" />
+                    {t("categoryPromoCount", { count: promoCount })}
+                  </span>
+                )}
                 {/* Grand chevron en filigrane, bas de tuile (sens RTL géré). */}
                 <ChevronLeft
                   aria-hidden

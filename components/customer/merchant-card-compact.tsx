@@ -75,13 +75,13 @@ function MerchantCardCompactImpl({
     <Link
       href={`/m/${merchant.slug}`}
       className={cn(
-        "group bg-surface isolate flex gap-3 rounded-[20px] p-2.5 shadow-[0_1px_2px_rgba(20,20,50,.05),0_10px_24px_-16px_rgba(40,35,90,.24)] transition-transform active:scale-[.985]",
+        "group border-border bg-surface isolate flex gap-3 rounded-[12px] border p-2.5 shadow-[0_1px_3px_rgba(20,20,50,0.05)] transition-transform active:scale-[.985]",
         !open && "opacity-60"
       )}
     >
       {/* ─── Vignette photo (jamais vide) ─── */}
       <div
-        className="bg-surface-2 relative size-[100px] shrink-0 overflow-hidden rounded-[15px]"
+        className="border-border bg-surface-2 relative size-[100px] shrink-0 overflow-hidden rounded-[10px] border"
         style={
           thumb
             ? {
@@ -106,7 +106,7 @@ function MerchantCardCompactImpl({
 
         {/* Badge promo sur la photo (bas-gauche, rose) */}
         {showPromo && (
-          <span className="from-accent-500 to-accent-600 absolute bottom-1.5 left-1.5 z-10 inline-flex items-center gap-1 rounded-[9px] bg-gradient-to-br px-2 py-1 text-[11px] font-black text-white shadow-[0_4px_10px_rgba(230,0,122,.5)]">
+          <span className="bg-accent-600 absolute bottom-1.5 left-1.5 z-10 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-black text-white shadow-sm">
             <PromoIcon className="size-3" strokeWidth={2.5} />
             {showPromo.text}
           </span>
@@ -138,7 +138,7 @@ function MerchantCardCompactImpl({
 
         {/* Ligne promo (rose) OU modes (sans promo) */}
         {showPromo ? (
-          <span className="bg-accent-50 text-accent-700 mt-1.5 inline-flex max-w-full items-center gap-1.5 self-start rounded-[9px] px-2.5 py-1.5 text-[11.5px] font-extrabold">
+          <span className="bg-accent-50 text-accent-700 mt-1.5 inline-flex max-w-full items-center gap-1.5 self-start rounded-full px-2.5 py-1.5 text-[11.5px] font-extrabold">
             <PromoIcon className="text-accent-500 size-3.5 shrink-0" />
             <span className="truncate">{showPromo.text}</span>
           </span>

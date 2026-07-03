@@ -97,7 +97,9 @@ function MerchantCardImpl({
       )}
     >
       {/* ─── Image de couverture + overlays ─── */}
-      <div className="bg-surface-2 relative h-[158px] overflow-hidden rounded-[14px] shadow-sm">
+      {/* Cadre façon Yassir : bordure fine autour de la photo seule, le texte
+          vit dessous (couverture = bannière → cover, pas contain). */}
+      <div className="border-border bg-surface-2 relative h-[158px] overflow-hidden rounded-[14px] border">
         {coverOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -105,7 +107,7 @@ function MerchantCardImpl({
             alt={merchant.name}
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            className="h-full w-full object-cover"
           />
         ) : (
           <div className="bg-primary-50 text-primary-700/70 flex h-full w-full items-center justify-center text-4xl font-bold">
@@ -143,9 +145,9 @@ function MerchantCardImpl({
           className="absolute top-2.5 right-2.5 z-20"
         />
 
-        {/* promo (bas-gauche, vert) */}
+        {/* promo (bas-gauche, rose) */}
         {showPromo && (
-          <span className="bg-accent-600 absolute bottom-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-[9px] px-2.5 py-1.5 text-[12px] font-extrabold text-white shadow-md">
+          <span className="bg-accent-600 absolute bottom-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-extrabold text-white shadow-sm">
             <Tag className="size-3" />
             {showPromo.text}
           </span>
@@ -237,7 +239,7 @@ function Mode({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1.5 text-[11px] font-bold",
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold",
         tone === "deliv"
           ? "bg-primary-50 text-primary-700"
           : "bg-surface-2 text-muted"
