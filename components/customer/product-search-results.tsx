@@ -405,11 +405,21 @@ function ProductCard({
         ) : (
           <div className="from-primary-500/10 to-surface-3 h-full w-full bg-gradient-to-br" />
         )}
-        <button
-          type="button"
-          onClick={add}
-          disabled={out}
+        {/* span role=button (PAS <button>) : un bouton dans un <Link> est du
+            HTML invalide → échec d'hydratation React (DOM corrompu). */}
+        <span
+          role="button"
+          tabIndex={out ? -1 : 0}
+          aria-disabled={out}
           aria-label="+"
+          onClick={add}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              add(e as unknown as React.MouseEvent);
+            }
+          }}
           className={cn(
             "absolute end-2 bottom-2 grid size-8 place-items-center rounded-full border shadow-sm transition active:scale-90",
             out
@@ -420,7 +430,7 @@ function ProductCard({
           )}
         >
           {added ? <Check className="size-4" /> : <Plus className="size-4" />}
-        </button>
+        </span>
       </div>
       <div className="px-1 pt-2">
         <p className="text-foreground line-clamp-2 h-8 text-[13px] leading-tight font-semibold tracking-[-0.2px]">

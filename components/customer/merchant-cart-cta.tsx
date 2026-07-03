@@ -102,7 +102,7 @@ export function MerchantCartCta({ merchantId }: { merchantId: string }) {
             <span className="text-foreground flex-1 truncate text-[12.5px] font-extrabold">
               {tc("promosApplied", { count: promoCount })}
             </span>
-            <span className="bg-accent-50 text-accent-600 dark:bg-accent-950/40 dark:text-accent-300 shrink-0 rounded-full px-2 py-0.5 text-[12px] font-black tabular-nums">
+            <span className="bg-accent-50 text-accent-600 shrink-0 rounded-full px-2 py-0.5 text-[12px] font-black tabular-nums">
               −{formatDA(savings)}
             </span>
           </div>

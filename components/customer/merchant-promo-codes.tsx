@@ -106,11 +106,16 @@ function PromoCodeCard({ promotion }: { promotion: PublicPromotion }) {
 
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline gap-2">
-            <span className="text-accent-700 dark:text-accent-300 truncate text-sm font-extrabold">
+            {/* Titre + réduction en ROSE FONCÉ (accent-700). PAS de variant
+                `dark:` ici : il suit le thème SYSTÈME (pas .theme-dark de
+                l'app) → rose pâle à tort sur téléphone sombre + app claire.
+                Le sombre de l'app est déjà géré par le remap .theme-dark
+                de globals.css (text-accent-600/700 → rose lisible). */}
+            <span className="text-accent-700 truncate text-sm font-extrabold">
               {promotion.title_fr || t("promoCodeTitle")}
             </span>
             {discount && (
-              <span className="text-accent-600 dark:text-accent-300 shrink-0 text-xs font-black">
+              <span className="text-accent-700 shrink-0 text-xs font-black">
                 {discount}
               </span>
             )}
@@ -122,7 +127,7 @@ function PromoCodeCard({ promotion }: { promotion: PublicPromotion }) {
             <span className="border-accent-300 rounded-md border bg-[#fff] px-2 py-0.5 font-mono text-sm font-black tracking-wider text-[#e6007a]">
               {code}
             </span>
-            <span className="text-accent-500/90 dark:text-accent-300/80 text-[11px] font-medium">
+            <span className="text-accent-500/90 text-[11px] font-medium">
               {copied ? t("promoCodeCopied") : t("promoCodeTap")}
             </span>
           </span>

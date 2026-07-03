@@ -76,13 +76,22 @@ export function FavoriteHeart({
   }
 
   return (
-    <button
-      type="button"
+    // span role=button (PAS <button>) : le cœur est souvent rendu DANS un
+    // <Link> (cartes commerçant) — un bouton dans un lien est du HTML
+    // invalide → échec d'hydratation React (DOM corrompu). Clavier géré.
+    <span
+      role="button"
+      tabIndex={0}
       aria-label={fav ? t("removeFromFavorites") : t("addToFavorites")}
       aria-pressed={fav}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          onClick(e as unknown as React.MouseEvent);
+        }
+      }}
       className={cn(
-        "grid place-items-center rounded-full shadow-md backdrop-blur transition-transform active:scale-90",
+        "grid cursor-pointer place-items-center rounded-full shadow-md backdrop-blur transition-transform active:scale-90",
         variant === "hero"
           ? "size-10 bg-black/30 text-white hover:bg-black/40"
           : "size-9 bg-white/95",
@@ -100,6 +109,6 @@ export function FavoriteHeart({
               : "text-foreground"
         )}
       />
-    </button>
+    </span>
   );
 }

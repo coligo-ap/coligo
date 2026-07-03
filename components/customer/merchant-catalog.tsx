@@ -288,6 +288,21 @@ export function MerchantCatalog({
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  // RECALAGE du scroll à l'ouverture/fermeture d'une catégorie : le drill-down
+  // remplace un contenu de hauteur très différente — sans recalage, l'ancienne
+  // position de scroll « atterrit » au milieu du bas de page (footer/nav qui se
+  // superposent visuellement au contenu court). On remonte au début du
+  // catalogue, sauf au premier rendu.
+  const catalogTopRef = useRef<HTMLDivElement | null>(null);
+  const openCatMounted = useRef(false);
+  useEffect(() => {
+    if (!openCatMounted.current) {
+      openCatMounted.current = true;
+      return;
+    }
+    catalogTopRef.current?.scrollIntoView({ block: "start" });
+  }, [openCat]);
+
   if (products.length === 0) {
     return (
       <div className="border-border bg-surface text-muted rounded-[12px] border px-6 py-10 text-center text-sm">
@@ -298,6 +313,13 @@ export function MerchantCatalog({
 
   return (
     <>
+      {/* Ancre de recalage du scroll (drill-down catégorie) — marge de
+          défilement = topbar fixe de la fiche commerce. */}
+      <div
+        ref={catalogTopRef}
+        aria-hidden
+        className="scroll-mt-[calc(env(safe-area-inset-top)+64px)]"
+      />
       {/* Recherche produit (style Uber) + bascule liste/catégories */}
       <div className="mb-3 flex items-center gap-2">
         <div className="border-border-strong bg-surface flex flex-1 items-center gap-2.5 rounded-full border px-4 py-3">
@@ -429,7 +451,7 @@ export function MerchantCatalog({
           quantityOfferByProduct={quantityOfferByProduct}
           onOpenDetail={(p) => setSelected(p)}
           // Titre promo en rose foncé, cohérent avec les carrousels de promo.
-          titleClassName="text-accent-700 dark:text-accent-300"
+          titleClassName="text-accent-700"
         />
       )}
 
@@ -501,16 +523,17 @@ export function MerchantCatalog({
                     {t("categoryPromoCount", { count: promoCount })}
                   </span>
                 )}
-                {/* Chevron filigrane dans l'espace RESTANT (flex-1, pas
-                    d'absolu) → ne chevauche JAMAIS le texte/badge, quelle que
-                    soit la hauteur de tuile (mobile comme desktop). */}
+                {/* Chevron filigrane dans l'espace RESTANT (flex-1 +
+                    overflow-hidden + max-h) → ne chevauche JAMAIS le
+                    texte/badge et ne déborde pas de la tuile, quelle que soit
+                    sa hauteur (mobile comme desktop). */}
                 <span
                   aria-hidden
-                  className="grid min-h-0 flex-1 place-items-center"
+                  className="grid min-h-0 flex-1 place-items-center overflow-hidden"
                 >
                   <ChevronLeft
                     strokeWidth={3.5}
-                    className="text-primary-600/15 size-12 rotate-180 transition-transform duration-200 group-hover:translate-x-1 sm:size-16 rtl:-rotate-0 rtl:group-hover:-translate-x-1"
+                    className="text-primary-600/15 size-12 max-h-full rotate-180 transition-transform duration-200 group-hover:translate-x-1 sm:size-16 rtl:-rotate-0 rtl:group-hover:-translate-x-1"
                   />
                 </span>
               </button>

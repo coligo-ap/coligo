@@ -484,7 +484,7 @@ export function CartView() {
 
                     {/* Avantage « offre quantité » : N offert(s). */}
                     {b.freeUnits > 0 && (
-                      <span className="bg-accent-50 text-accent-600 dark:bg-accent-950/40 dark:text-accent-300 mt-0.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold">
+                      <span className="bg-accent-50 text-accent-600 mt-0.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold">
                         <Gift className="size-3" />
                         {t("freeApplied", { count: b.freeUnits })}
                       </span>
@@ -520,7 +520,7 @@ export function CartView() {
                       return (
                         <span
                           key={p.id}
-                          className="border-accent-100 bg-accent-50 text-accent-700 dark:border-accent-500/40 dark:bg-accent-950/40 dark:text-accent-300 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] font-bold"
+                          className="border-accent-100 bg-accent-50 text-accent-700 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] font-bold"
                         >
                           <span className="font-mono font-black tracking-wider">
                             {p.code}
@@ -576,7 +576,7 @@ export function CartView() {
                 {t("subtotalUnits", { count: units })}
               </span>
               {savings > 0 && (
-                <span className="text-accent-600 dark:text-accent-300 text-[11.5px] font-bold">
+                <span className="text-accent-600 text-[11.5px] font-bold">
                   {t("savings", { amount: formatDA(savings) })}
                 </span>
               )}

@@ -69,7 +69,7 @@ export function PromoCarousels({
             onOpenDetail={onOpenDetail}
             // Titre de promo en ROSE FONCÉ (comme l'étiquette « Offert ») —
             // demande explicite user : la promo doit se voir.
-            titleClassName="text-accent-700 dark:text-accent-300"
+            titleClassName="text-accent-700"
           />
         );
       })}

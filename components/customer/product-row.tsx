@@ -146,11 +146,22 @@ export function ProductRow({
   }
 
   return (
-    <button
-      type="button"
+    // ⚠ PAS un <button> : la ligne CONTIENT de vrais boutons (+ / stepper) et
+    // un <button> imbriqué dans un <button> est du HTML INVALIDE → échec
+    // d'hydratation React → DOM corrompu (sections dupliquées, layout cassé).
+    // div role="button" + clavier = même accessibilité, HTML valide.
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onOpenDetail}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpenDetail();
+        }
+      }}
       className={cn(
-        "hover:bg-surface-2 group flex w-full items-center gap-3 px-3 py-2.5 text-start transition-colors",
+        "hover:bg-surface-2 group flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-start transition-colors",
         isOut && "opacity-60"
       )}
     >
@@ -301,6 +312,6 @@ export function ProductRow({
           </div>
         )}
       </div>
-    </button>
+    </div>
   );
 }

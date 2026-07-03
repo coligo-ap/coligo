@@ -191,19 +191,29 @@ function ActiveOrderCard({
 
       <ChevronRight className="text-subtle size-4 shrink-0 rtl:-scale-x-100" />
 
-      {/* Fermer la carte (par statut : elle revient si le statut change). */}
-      <button
-        type="button"
+      {/* Fermer la carte (par statut : elle revient si le statut change).
+          span role=button : un <button> dans un <Link> = HTML invalide →
+          échec d'hydratation React. */}
+      <span
+        role="button"
+        tabIndex={0}
         aria-label={t("activeDismiss")}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
           onDismiss();
         }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            onDismiss();
+          }
+        }}
         className="bg-surface-3 text-muted hover:text-foreground absolute -end-1.5 -top-1.5 grid size-6 place-items-center rounded-full border border-[var(--color-border)] shadow-sm"
       >
         <X className="size-3" />
-      </button>
+      </span>
     </Link>
   );
 }
