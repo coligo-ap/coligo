@@ -553,12 +553,13 @@ export async function noteCallAttempt(
   orderId: string
 ): Promise<{ ok: boolean; reason?: string }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("driver_note_call_attempt", {
-    p_order_id: orderId,
-  });
+  const { data, error } = await supabase.rpc(
+    "driver_note_call_attempt" as never,
+    { p_order_id: orderId } as never
+  );
   if (error) return { ok: false, reason: error.message };
   const row = (
-    data as Array<{ ok: boolean; reason: string | null }> | null
+    data as unknown as Array<{ ok: boolean; reason: string | null }> | null
   )?.[0];
   return { ok: row?.ok ?? false, reason: row?.reason ?? undefined };
 }
@@ -574,14 +575,17 @@ export async function confirmArrival(input: {
   lng: number;
 }): Promise<{ ok: boolean; reason?: string }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("driver_confirm_arrival", {
-    p_order_id: input.orderId,
-    p_lat: input.lat,
-    p_lng: input.lng,
-  });
+  const { data, error } = await supabase.rpc(
+    "driver_confirm_arrival" as never,
+    {
+      p_order_id: input.orderId,
+      p_lat: input.lat,
+      p_lng: input.lng,
+    } as never
+  );
   if (error) return { ok: false, reason: error.message };
   const row = (
-    data as Array<{ ok: boolean; reason: string | null }> | null
+    data as unknown as Array<{ ok: boolean; reason: string | null }> | null
   )?.[0];
   if (row?.ok) {
     revalidatePath("/driver");
@@ -601,15 +605,18 @@ export async function leaveAtDoor(input: {
   note?: string;
 }): Promise<{ ok: boolean; reason?: string }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("driver_leave_at_door", {
-    p_order_id: input.orderId,
-    p_photo_url: input.photoUrl,
-    p_note: input.note ?? null,
-    p_client_operation_id: `leave-${input.orderId}-${Date.now()}`,
-  });
+  const { data, error } = await supabase.rpc(
+    "driver_leave_at_door" as never,
+    {
+      p_order_id: input.orderId,
+      p_photo_url: input.photoUrl,
+      p_note: input.note ?? null,
+      p_client_operation_id: `leave-${input.orderId}-${Date.now()}`,
+    } as never
+  );
   if (error) return { ok: false, reason: error.message };
   const row = (
-    data as Array<{ ok: boolean; reason: string | null }> | null
+    data as unknown as Array<{ ok: boolean; reason: string | null }> | null
   )?.[0];
   if (row?.ok) {
     revalidatePath("/driver");
