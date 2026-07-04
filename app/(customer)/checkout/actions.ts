@@ -1225,6 +1225,30 @@ export async function createOrder(
     if (orderErr?.message?.includes("slot_not_open")) {
       return { ok: false, error: "Ce créneau n'est plus disponible." };
     }
+    // Kill-switch livraison (trigger 0324) : service coupé entre l'affichage
+    // et l'INSERT.
+    if (orderErr?.message?.includes("feature_disabled:express")) {
+      return {
+        ok: false,
+        error:
+          "La livraison express est momentanément indisponible. Choisis le retrait sur place ou réessaie plus tard.",
+      };
+    }
+    if (orderErr?.message?.includes("feature_disabled:tour")) {
+      return {
+        ok: false,
+        error:
+          "La livraison en tournée est momentanément indisponible. Choisis le retrait sur place ou réessaie plus tard.",
+      };
+    }
+    // Plafond de dette espèces du commerçant (trigger 0269).
+    if (orderErr?.message?.includes("merchant_cash_debt_cap")) {
+      return {
+        ok: false,
+        error:
+          "Ce commerce ne peut plus accepter de paiement en espèces pour le moment. Choisis le paiement en ligne.",
+      };
+    }
     // Garde-fou ZONE (trigger 0169) : zone bloquée entre le pré-check et
     // l'INSERT (ex. l'admin vient de restreindre la zone).
     if (orderErr?.message?.includes("service_zone_blocked")) {

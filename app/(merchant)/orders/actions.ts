@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentMerchantId } from "@/lib/auth/merchant";
 import {
   isValidTransition,
   ORDER_STATUS_META,
@@ -264,15 +265,39 @@ export async function validatePickupCode(
     "id, status, customer_name, fulfillment_type, payment_method, order_number";
   let order: FoundOrder | null = null;
 
+  // Scope commerçant EXPLICITE (règle maison : jamais la RLS seule) — un code
+  // ou une référence d'un autre commerce ne doit jamais matcher ici.
+  const merchantId = await getCurrentMerchantId();
+  if (!merchantId) return { error: "Session expirée, reconnectez-vous." };
+
   if (isPin) {
-    const { data, error } = await supabase
+    // Le PIN à 4 chiffres n'est PAS unique dans le temps : deux commandes du
+    // même commerce peuvent partager un code (audit A5 — `maybeSingle()`
+    // cassait le comptoir sur collision). On vise les commandes VIVANTES ;
+    // 2+ vivantes = ambigu → on exige la référence du ticket.
+    const { data: matches, error } = await supabase
       .from("orders")
-      .select(FIELDS)
+      .select(`${FIELDS}, created_at`)
+      .eq("merchant_id", merchantId)
       .eq("pickup_code", normalized)
-      .maybeSingle();
+      .order("created_at", { ascending: false })
+      .limit(10);
     if (error) return { error: `Erreur : ${error.message}` };
-    if (!data) return { error: "Aucune commande ne correspond à ce code." };
-    order = data;
+    if (!matches || matches.length === 0) {
+      return { error: "Aucune commande ne correspond à ce code." };
+    }
+    const alive = matches.filter(
+      (o) => o.status !== "completed" && o.status !== "cancelled"
+    );
+    if (alive.length > 1) {
+      return {
+        error:
+          "Code ambigu (plusieurs commandes en cours). Utilisez la référence du ticket (ex. A042).",
+      };
+    }
+    // Aucune vivante → la plus récente porte le bon message (déjà récupérée /
+    // annulée) via les gardes plus bas.
+    order = alive[0] ?? matches[0];
   } else {
     // RÉFÉRENCE de ticket : order_number peut se répéter dans le temps (la
     // numérotation recommence) → on prend les plus récentes. On ne cible que
@@ -280,6 +305,7 @@ export async function validatePickupCode(
     const { data: matches, error } = await supabase
       .from("orders")
       .select(`${FIELDS}, created_at`)
+      .eq("merchant_id", merchantId)
       .eq("order_number", ref)
       .order("created_at", { ascending: false })
       .limit(10);

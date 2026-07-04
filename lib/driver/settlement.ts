@@ -1,6 +1,9 @@
 /**
- * Calcul financier LIVREUR — miroir EXACT du SQL de la migration 0103
- * (`generate_delivery_ledger_on_complete`). À utiliser côté front pour
+ * Calcul financier LIVREUR — miroir EXACT du SQL de
+ * `generate_delivery_ledger_on_complete` (introduit en 0103 ; version en
+ * vigueur : mig 0205 — les formules driver_fee/owes_* ci-dessous y sont
+ * identiques ; seul le cashback GAGNÉ y est délégué à
+ * `compute_order_cashback_da`, mig 0291). À utiliser côté front pour
  * afficher l'offre de course (gain net, cash à encaisser) et le relevé, et
  * côté tests. AUCUN pourcentage/durée n'est codé en dur : la config provient
  * de `platform_settings` (et `resolve_rate` pour la commission), passée en

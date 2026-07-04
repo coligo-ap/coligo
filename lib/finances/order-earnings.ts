@@ -1,10 +1,15 @@
 // =============================================================================
-// Gains commerçant PAR COMMANDE — fonction PURE, miroir du trigger mig 0127.
+// Gains commerçant PAR COMMANDE — fonction PURE, miroir du trigger
+// `generate_wallet_entries_on_completion` (version en vigueur : mig 0205 ;
+// cashback : fonction canonique `compute_order_cashback_da`, mig 0291).
 // =============================================================================
 // But : afficher au commerçant ce qu'il gagne RÉELLEMENT sur une commande, avec
 // un chiffre qui réconcilie au centime près avec son /finances (le ledger).
+// Les montants FIGÉS (commission_da, tour_delivery_commission_da) priment dès
+// que la commande est finalisée ; avant finalisation les valeurs au taux sont
+// des ESTIMATIONS (le cashback affiché ailleurs vient de cashback_estimate_da).
 //
-// Rappel du modèle (cf. [[project_billing_payouts_model]] / mig 0127) :
+// Rappel du modèle (cf. [[project_billing_payouts_model]] / mig 0205) :
 //   products      = net_total_da (= subtotal − discount) → CA du commerçant
 //   commission    = products × taux           → part Coligo (prélevée)
 //   service_fee   = 100 % plateforme, PAYÉ PAR LE CLIENT (dette si cash)
@@ -127,7 +132,11 @@ export function computeMerchantEarnings(
     walletImpact = 0; // réglé via le livreur (custodian)
   } else if (isCash) {
     walletImpact = -commission - serviceFee + redeemed - tourCommission;
-    cashCollected = Math.max(0, o.total_da - redeemed);
+    // total_da est DÉJÀ net du cashback/Coligo Pay dépensés (checkout :
+    // total = produits + frais service − wallets + livraison). Ne PAS
+    // re-soustraire `redeemed` ici — c'était l'anomalie A1 de l'audit
+    // 04/07/2026 (espèces remises sous-évaluées côté commerçant).
+    cashCollected = Math.max(0, o.total_da);
     owedToColigo = commission + serviceFee + tourCommission;
   } else {
     walletImpact = products - commission + tourOnlineRevenue - tourCommission;

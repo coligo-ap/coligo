@@ -13,7 +13,14 @@ import {
 
 export type AdminFormState = { error?: string; ok?: boolean };
 
-const FEATURE_KEYS = ["drive", "online_payment", "coligo_pay", "cashback"];
+const FEATURE_KEYS = [
+  "drive",
+  "online_payment",
+  "coligo_pay",
+  "cashback",
+  "express",
+  "tour",
+];
 const FEATURE_STATUSES = ["active", "hidden", "coming_soon", "maintenance"];
 
 /**

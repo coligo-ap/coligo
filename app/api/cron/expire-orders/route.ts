@@ -60,9 +60,21 @@ export async function GET(request: Request) {
     | { expired?: number }
     | undefined;
 
+  // 3) Libération des attributions express abandonnées (mig 0323) — filet :
+  //    le cas nominal est auto-guéri in-band (appel en tête de chaque pull
+  //    livreur) ; ce cron couvre un réseau sans aucun livreur actif.
+  const { data: staleData, error: staleErr } = await rpc(
+    "release_stale_express_claims",
+    {}
+  );
+  if (staleErr) {
+    console.error("[cron/expire-orders] stale claims:", staleErr.message);
+  }
+
   return NextResponse.json({
     ok: true,
     expired: row?.expired ?? 0,
     unpaidOnlineExpired: unpaidRow?.expired ?? 0,
+    staleClaimsReleased: typeof staleData === "number" ? staleData : 0,
   });
 }

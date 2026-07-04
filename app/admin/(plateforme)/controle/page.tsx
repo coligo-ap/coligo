@@ -33,6 +33,16 @@ const FEATURE_META: { key: FeatureKey; label: string; hint: string }[] = [
     label: "Cashback",
     hint: "Le gain et l'usage du cashback. Désactivé = plus de gain ni d'utilisation (sans casser les commandes).",
   },
+  {
+    key: "express",
+    label: "Livraison express",
+    hint: "Coupé = plus AUCUNE nouvelle commande express (refus au checkout) ni attribution aux livreurs. Les commandes déjà créées vont au bout.",
+  },
+  {
+    key: "tour",
+    label: "Livraison en tournée",
+    hint: "Coupé = plus aucune nouvelle commande en tournée (refus au checkout). Les tournées déjà planifiées vont au bout.",
+  },
 ];
 
 export default async function AdminControlePage() {

@@ -12,7 +12,13 @@ import { createClient } from "@/lib/supabase/server";
 // FRONT (masquer / griser / message) et les gardes server-action (UX propre).
 // =============================================================================
 
-export type FeatureKey = "drive" | "online_payment" | "coligo_pay" | "cashback";
+export type FeatureKey =
+  | "drive"
+  | "online_payment"
+  | "coligo_pay"
+  | "cashback"
+  | "express"
+  | "tour";
 export type FeatureStatus = "active" | "hidden" | "coming_soon" | "maintenance";
 
 export type FeatureFlag = {
@@ -29,6 +35,8 @@ export const FEATURE_KEYS: FeatureKey[] = [
   "online_payment",
   "coligo_pay",
   "cashback",
+  "express",
+  "tour",
 ];
 
 function defaultFlag(key: FeatureKey): FeatureFlag {
@@ -54,6 +62,8 @@ export const getFeatureFlags = cache(async (): Promise<FeatureFlags> => {
     online_payment: defaultFlag("online_payment"),
     coligo_pay: defaultFlag("coligo_pay"),
     cashback: defaultFlag("cashback"),
+    express: defaultFlag("express"),
+    tour: defaultFlag("tour"),
   } satisfies FeatureFlags;
   try {
     const supabase = await createClient();
