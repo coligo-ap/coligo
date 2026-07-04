@@ -160,15 +160,19 @@ malveillant peut « aspirer » chaque nouvelle course et s'asseoir dessus).
 **Fix attendu : watchdog serveur — libération auto si non `picked_up` après N
 min sans heartbeat/progression + re-dispatch + éventuel malus.**
 
-### A4 — À ARBITRER (équité livreur) : no-show CASH express, course non payée
+### A4 — ARBITRÉ (décision propriétaire 04/07/2026) : no-show CASH express
 
-`driver_report_no_show` (0164) : en ONLINE payé le livreur touche
-`driver_payout = D−df` ; en CASH il ne touche **rien** pour la course (seul le
-remboursement de l'avance marchandise P−comm est réclamable, validé support).
-Pourtant la pénalité client (= D) prélevée sur ses wallets **reste à la
-plateforme** avec le commentaire « c'est elle qui indemnise le livreur » — or
-aucune écriture n'indemnise la course. Incohérence produit/code : soit on paie
-la course sur la pénalité récupérée, soit on documente que le livreur assume.
+`driver_report_no_show` : en ONLINE payé le livreur touche
+`driver_payout = D−df` ; en CASH il ne touche **rien** pour la course.
+**Décision produit (confirmée, mig 0326)** : c'est le comportement VOULU — au
+no-show espèces, le livreur est UNIQUEMENT remboursé de l'avance remise au
+commerçant au retrait (P − commission), et ce APRÈS validation du support
+plateforme (super-admin, `driver_refund_claims` / mig 0160). La pénalité
+client (= D, prélevée best-effort sur ses soldes) reste à la plateforme :
+elle provisionne le risque d'avance qu'elle rembourse après validation.
+(Une mig 0325 avait brièvement payé la course automatiquement — annulée par
+0326 le jour même, zéro écriture créée entre les deux, fichier réduit en
+no-op ; l'UI livreur affichait déjà la bonne règle.)
 
 ### A5 — MINEUR (robustesse + règle maison) : `validatePickupCode`, chemin PIN
 

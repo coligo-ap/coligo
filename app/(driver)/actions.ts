@@ -509,11 +509,12 @@ export async function validateDelivery(input: {
 }
 
 // ---------------------------------------------------------------------------
-// No-show / refus (règle Yassir exacte, mig 0162) : la commande est ANNULÉE.
-// Espèces → réclamation d'avance (P − commission) validée par le support, la
-// course n'est PAS payée ; pénalité client (prélèvement D sur wallet).
-// Online payé → commerçant + course payés comme une complétion, client non
-// remboursé (« tant pis »), pas de pénalité supplémentaire.
+// No-show ESPÈCES (mig 0327) : la commande est ANNULÉE. Le livreur n'est PAS
+// payé pour la course ; en EXPRESS il ne récupère que l'avance (P − commission)
+// via le support, et la pénalité (D) est prélevée sur le wallet client. En
+// TOURNÉE la plateforme reste neutre (tout à la charge du commerçant).
+// Une commande PRÉPAYÉE EN LIGNE renvoie 'use_leave_at_door' → utiliser
+// `leaveAtDoor` (dépôt + photo) à la place.
 // ---------------------------------------------------------------------------
 export async function reportNoShow(input: {
   orderId: string;
@@ -541,6 +542,83 @@ export async function reportNoShow(input: {
     });
   }
   return { ok: row.ok, reason: row.reason ?? undefined };
+}
+
+// ---------------------------------------------------------------------------
+// No-show ONLINE façon UberEats — 3 étapes anti-fraude (mig 0328).
+// ---------------------------------------------------------------------------
+
+/** 1) Le livreur a tenté d'appeler le client (précondition du dépôt). */
+export async function noteCallAttempt(
+  orderId: string
+): Promise<{ ok: boolean; reason?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("driver_note_call_attempt", {
+    p_order_id: orderId,
+  });
+  if (error) return { ok: false, reason: error.message };
+  const row = (
+    data as Array<{ ok: boolean; reason: string | null }> | null
+  )?.[0];
+  return { ok: row?.ok ?? false, reason: row?.reason ?? undefined };
+}
+
+/**
+ * 2) Arrivée GÉO-CLÔTURÉE : démarre le minuteur no-show. Exige d'être à
+ * quelques mètres de l'adresse exacte + appel tenté + message d'arrivée envoyé.
+ * Notifie le client (« votre livreur est arrivé »).
+ */
+export async function confirmArrival(input: {
+  orderId: string;
+  lat: number;
+  lng: number;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("driver_confirm_arrival", {
+    p_order_id: input.orderId,
+    p_lat: input.lat,
+    p_lng: input.lng,
+  });
+  if (error) return { ok: false, reason: error.message };
+  const row = (
+    data as Array<{ ok: boolean; reason: string | null }> | null
+  )?.[0];
+  if (row?.ok) {
+    revalidatePath("/driver");
+    void notifyCustomerArrived({ orderId: input.orderId });
+  }
+  return { ok: row?.ok ?? false, reason: row?.reason ?? undefined };
+}
+
+/**
+ * 3) Dépôt à l'adresse (ONLINE prépayé, après minuteur) : commande livrée
+ * « No-Show » avec photo de preuve + commentaire. Le client est payé/traité
+ * comme une livraison normale (il a déjà tout réglé) et garde son cashback.
+ */
+export async function leaveAtDoor(input: {
+  orderId: string;
+  photoUrl: string;
+  note?: string;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("driver_leave_at_door", {
+    p_order_id: input.orderId,
+    p_photo_url: input.photoUrl,
+    p_note: input.note ?? null,
+    p_client_operation_id: `leave-${input.orderId}-${Date.now()}`,
+  });
+  if (error) return { ok: false, reason: error.message };
+  const row = (
+    data as Array<{ ok: boolean; reason: string | null }> | null
+  )?.[0];
+  if (row?.ok) {
+    revalidatePath("/driver");
+    void notifyCustomerStatusChange({
+      orderId: input.orderId,
+      newStatus: "completed",
+    });
+  }
+  return { ok: row?.ok ?? false, reason: row?.reason ?? undefined };
 }
 
 /**
