@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Ban, Check, Loader2, Wallet } from "lucide-react";
+import { Ban, Check, Loader2, PackageCheck, Wallet } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { formatDA } from "@/lib/utils";
 import {
   adminCancelOrder,
   adminRefundMerchant,
   adminValidateDelivery,
+  confirmOnlineNoShow,
 } from "@/app/admin/actions";
 
 type Row = {
@@ -100,6 +101,15 @@ function OrderRow({ row }: { row: Row }) {
 
   const isDelivery = row.fulfillment_type === "delivery";
   const terminal = row.status === "completed" || row.status === "cancelled";
+  // No-show en ligne confirmable par le support : commande prépayée en ligne,
+  // en cours de livraison (récupérée), attribuée, pas encore clôturée.
+  const canConfirmNoShow =
+    isDelivery &&
+    !terminal &&
+    row.payment_method === "online" &&
+    row.payment_status === "paid" &&
+    !!row.delivery_driver_id &&
+    !!row.delivery_picked_up_at;
 
   const run = (
     fn: () => Promise<{ ok?: boolean; error?: string }>,
@@ -161,6 +171,28 @@ function OrderRow({ row }: { row: Row }) {
               <Check className="size-3.5" />
             )}
             Valider la livraison
+          </button>
+        )}
+        {canConfirmNoShow && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => {
+              if (
+                !window.confirm(
+                  "Confirmer un no-show EN LIGNE ?\n\nLe client ne répond pas malgré un paiement en ligne. La commande sera traitée COMME LIVRÉE (statut No-Show) : le livreur et le commerçant sont payés, le client garde son cashback. Action tracée."
+                )
+              )
+                return;
+              run(
+                () => confirmOnlineNoShow(row.id),
+                "No-show en ligne confirmé — payé comme livré"
+              );
+            }}
+            className="border-warning-200 text-warning-800 hover:bg-warning-50 inline-flex items-center gap-1 rounded-[10px] border px-3 py-1.5 text-xs font-bold disabled:opacity-50"
+          >
+            <PackageCheck className="size-3.5" />
+            Confirmer no-show en ligne
           </button>
         )}
         {!terminal && (

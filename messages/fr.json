@@ -330,6 +330,8 @@
   },
   "orders": {
     "merchantFallback": "Commerce",
+    "noShowLeftTitle": "Commande déposée à votre adresse",
+    "noShowLeftBody": "Vous étiez absent lors de la livraison. Comme votre commande était déjà payée en ligne, le livreur l'a déposée en lieu sûr et a pris cette photo comme preuve.",
     "myOrders": "Mes commandes",
     "listSubtitle": "Historique et commandes en cours.",
     "emptyTitle": "Tu n'as pas encore commandé",

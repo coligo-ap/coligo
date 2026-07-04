@@ -756,6 +756,60 @@ export async function adminCancelOrder(
   return { ok: true };
 }
 
+/**
+ * Support/super-admin CONFIRME un no-show d'une commande PRÉPAYÉE EN LIGNE : le
+ * commerçant/livreur a signalé un client injoignable malgré le paiement. On
+ * traite la commande COMME LIVRÉE (statut No-Show) → livreur + commerçant payés
+ * comme une livraison, cashback conservé au client (mig 0328). RPC réservée au
+ * service_role → on l'appelle via le client admin après contrôle du domaine.
+ */
+export async function confirmOnlineNoShow(
+  orderId: string,
+  note?: string
+): Promise<AdminFormState> {
+  if (!(await adminCan("pilotage"))) return { error: "Accès refusé." };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const admin = createAdminClient();
+  const rpc = admin.rpc.bind(admin) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc("admin_confirm_online_noshow", {
+    p_order_id: orderId,
+    p_admin_email: user?.email ?? null,
+    p_note: note?.trim() || null,
+  });
+  if (error) return { error: error.message };
+  const res = (Array.isArray(data) ? data[0] : data) as
+    | { ok?: boolean; reason?: string }
+    | undefined;
+  if (!res?.ok) {
+    const M: Record<string, string> = {
+      order_not_found: "Commande introuvable.",
+      not_a_delivery: "Ce n'est pas une commande en livraison.",
+      not_online_paid: "Réservé aux commandes payées en ligne.",
+      already_completed: "Commande déjà livrée.",
+      already_cancelled: "Commande déjà annulée.",
+      no_driver: "Aucun livreur attribué à cette commande.",
+    };
+    return { error: M[res?.reason ?? ""] ?? "Confirmation impossible." };
+  }
+
+  try {
+    const { notifyCustomerStatusChange } = await import("@/lib/fcm/triggers");
+    await notifyCustomerStatusChange({ orderId, newStatus: "completed" });
+  } catch {
+    /* noop */
+  }
+
+  revalidatePath("/admin/orders");
+  return { ok: true };
+}
+
 /** Super-admin crédite/rembourse le wallet d'un commerçant pour une commande. */
 export async function adminRefundMerchant(
   orderId: string,

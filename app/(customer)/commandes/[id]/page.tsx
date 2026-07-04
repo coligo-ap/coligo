@@ -1,7 +1,15 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { ArrowLeft, Check, Clock, MapPin, Truck, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Clock,
+  MapPin,
+  PackageCheck,
+  Truck,
+  X,
+} from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { type OrderStatus } from "@/lib/types";
@@ -106,6 +114,38 @@ export default async function CustomerOrderDetailPage({
   const isDelivery = order.fulfillment_type === "delivery";
   const isCancelled = status === "cancelled";
   const isCompleted = status === "completed";
+
+  // Preuve de dépôt (no-show en ligne « livré à l'adresse », mig 0328). Colonnes
+  // pas encore dans les types générés → requête castée séparée (ne casse pas le
+  // typage de la commande principale).
+  const proofFrom = supabase.from.bind(supabase) as unknown as (t: string) => {
+    select: (c: string) => {
+      eq: (
+        c: string,
+        v: string
+      ) => {
+        maybeSingle: () => Promise<{
+          data: {
+            delivery_no_show_kind: string | null;
+            delivery_proof_url: string | null;
+            delivery_proof_note: string | null;
+          } | null;
+        }>;
+      };
+    };
+  };
+  const { data: proofRow } = await proofFrom("orders")
+    .select("delivery_no_show_kind, delivery_proof_url, delivery_proof_note")
+    .eq("id", order.id)
+    .maybeSingle();
+  const noShowProof =
+    proofRow?.delivery_no_show_kind === "left_at_door" &&
+    proofRow?.delivery_proof_url
+      ? {
+          url: proofRow.delivery_proof_url,
+          note: proofRow.delivery_proof_note,
+        }
+      : null;
 
   // Anti-fraude : un client qui a déjà été remboursé plusieurs fois sur des
   // annulations online (30 j) ne peut plus annuler cette commande payée en
@@ -519,6 +559,34 @@ export default async function CustomerOrderDetailPage({
           {/* « Commander à nouveau » — sur une commande terminée ou annulée. */}
           {(isCompleted || isCancelled) && <ReorderButton orderId={order.id} />}
         </div>
+
+        {/* ═══ PREUVE DE DÉPÔT (No-Show en ligne) ═══
+            Le livreur a déposé la commande à l'adresse après votre absence
+            (commande déjà payée en ligne). Photo + commentaire du livreur. */}
+        {noShowProof?.url && (
+          <div className="border-warning-200 bg-warning-50 mt-2.5 rounded-[16px] border p-3.5">
+            <div className="mb-2 flex items-center gap-2">
+              <PackageCheck className="text-warning-700 size-4 shrink-0" />
+              <b className="text-warning-800 text-[13.5px] font-extrabold">
+                {t("noShowLeftTitle")}
+              </b>
+            </div>
+            <p className="text-warning-800/90 mb-2.5 text-[12px] leading-relaxed font-medium">
+              {t("noShowLeftBody")}
+            </p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={noShowProof.url}
+              alt={t("noShowLeftTitle")}
+              className="border-warning-200 max-h-72 w-full rounded-[12px] border object-cover"
+            />
+            {noShowProof.note && (
+              <p className="text-foreground mt-2.5 rounded-[10px] bg-white/60 px-3 py-2 text-[12.5px] font-medium italic">
+                « {noShowProof.note} »
+              </p>
+            )}
+          </div>
+        )}
 
         {/* ═══ CODE PIN + QR (payé en ligne : livraison ou retrait) ═══
             Le client le montre/à scanner par le livreur (livraison) ou le
