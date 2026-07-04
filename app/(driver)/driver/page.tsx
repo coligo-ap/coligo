@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { DriverDashboardLive } from "@/components/driver/driver-dashboard-live";
 import { DriverHomeMaquette } from "@/components/driver/home/driver-home-maquette";
+import { IncomingRequests } from "@/components/driver/home/incoming-requests";
 import { DriverBottomNav } from "@/components/driver/driver-bottom-nav";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,7 @@ export default async function DriverHomePage() {
     { data: linksRaw },
     { count: coursesToday },
     { data: payouts },
+    { data: feeSettings },
   ] = await Promise.all([
     // Compteurs de courses dispo par commerçant (RPC SECURITY DEFINER, trié).
     supabase.rpc("driver_delivery_counts"),
@@ -69,8 +71,19 @@ export default async function DriverHomePage() {
       .eq("driver_id", driver.id)
       .eq("type", "driver_payout")
       .gte("created_at", since),
+    // Barème part Coligo livraison (gain net affiché dans les demandes).
+    supabase
+      .from("platform_settings")
+      .select("driver_fee_rate, driver_fee_cap_rate, driver_fee_min_da")
+      .eq("id", true)
+      .single(),
   ]);
   const counts = (countsRaw ?? []) as Counts[];
+  const driverFeeConfig = {
+    driverFeeRate: Number(feeSettings?.driver_fee_rate ?? 0.08),
+    driverFeeCapRate: Number(feeSettings?.driver_fee_cap_rate ?? 0.1),
+    driverFeeMinDa: Number(feeSettings?.driver_fee_min_da ?? 10),
+  };
 
   type MerchantInfo = {
     name: string;
@@ -126,6 +139,21 @@ export default async function DriverHomePage() {
     <>
       {/* Refresh temps réel des compteurs + toast nouvelle course. */}
       <DriverDashboardLive />
+
+      {/* Demandes de course (express + tournée) en liste dépliable façon
+          UberEats — apparaissent instantanément sur l'accueil. */}
+      <IncomingRequests
+        driverId={driver.id}
+        tours={merchants
+          .filter((m) => (m.pending ?? 0) > 0)
+          .map((m) => ({
+            mdId: m.mdId,
+            name: m.name,
+            commune: m.commune,
+            pending: m.pending ?? 0,
+          }))}
+        driverFeeConfig={driverFeeConfig}
+      />
 
       {/* La carte (MapLibre) est désormais montée dans le layout (persistante) :
           plus de re-création à chaque retour sur l'Accueil. Les options (zone de

@@ -80,7 +80,11 @@ export function ZoneDispatch({
           void playNewOrder();
           vibrate([0, 120, 60, 120]);
           toast.success("Nouvelle course à proximité ⚡");
-          router.push(`/driver/course/${r.orderId}`);
+          // On ramène le livreur sur l'ACCUEIL : la demande y apparaît en carte
+          // dépliable (IncomingRequests, façon UberEats). Il déplie, appelle,
+          // accepte (→ course) ou refuse. Sur l'accueil, le realtime l'affiche
+          // sans même naviguer.
+          router.push("/driver");
         }
       } finally {
         busy.current = false;
