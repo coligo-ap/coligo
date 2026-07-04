@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMerchantId } from "@/lib/auth/merchant";
 import { categorySchema, firstZodError } from "@/lib/validation/product";
+import { productsStoragePathFromPublicUrl } from "@/lib/images/storage-path";
 
 export type CategoryFormState = {
   error?: string;
@@ -147,9 +148,85 @@ export async function deleteCategories(
   ids: string[]
 ): Promise<{ error?: string }> {
   if (ids.length === 0) return {};
+  const merchantId = await getCurrentMerchantId();
+  if (!merchantId) return { error: "Session expirée." };
+
   const supabase = await createClient();
-  const { error } = await supabase.from("categories").delete().in("id", ids);
+  // Photos à nettoyer (lues AVANT la suppression, scopées commerçant).
+  const { data: rows } = await supabase
+    .from("categories")
+    .select("image_url")
+    .eq("merchant_id", merchantId)
+    .in("id", ids);
+
+  const { error } = await supabase
+    .from("categories")
+    .delete()
+    .eq("merchant_id", merchantId)
+    .in("id", ids);
   if (error) return { error: error.message };
+
+  // Nettoyage storage best-effort (jamais bloquant : la suppression est faite).
+  try {
+    const paths = (rows ?? [])
+      .map((r) => productsStoragePathFromPublicUrl(r.image_url))
+      .filter((p): p is string => !!p);
+    if (paths.length > 0) {
+      await supabase.storage.from("products").remove(paths);
+    }
+  } catch {
+    /* ignore */
+  }
+
+  revalidatePath("/catalog/categories");
+  revalidatePath("/catalog");
+  return {};
+}
+
+/**
+ * Photo d'une catégorie — ajout / remplacement (`imageUrl`) ou retrait (null).
+ * L'upload du fichier est fait côté client (bucket `products`, comme les
+ * produits) ; ici on fige l'URL, scopé commerçant (jamais RLS seule), et on
+ * supprime l'ancien fichier du storage en best-effort.
+ */
+export async function setCategoryImage(
+  categoryId: string,
+  imageUrl: string | null
+): Promise<{ error?: string }> {
+  const merchantId = await getCurrentMerchantId();
+  if (!merchantId) return { error: "Session expirée." };
+
+  const clean = imageUrl?.trim() || null;
+  if (clean && !/^https?:\/\//i.test(clean)) {
+    return { error: "URL d'image invalide." };
+  }
+
+  const supabase = await createClient();
+  const { data: current, error: readErr } = await supabase
+    .from("categories")
+    .select("id, image_url")
+    .eq("id", categoryId)
+    .eq("merchant_id", merchantId)
+    .maybeSingle();
+  if (readErr) return { error: readErr.message };
+  if (!current) return { error: "Catégorie introuvable." };
+
+  const { error } = await supabase
+    .from("categories")
+    .update({ image_url: clean })
+    .eq("id", categoryId)
+    .eq("merchant_id", merchantId);
+  if (error) return { error: error.message };
+
+  // Ancien fichier devenu orphelin → nettoyage best-effort.
+  if (current.image_url && current.image_url !== clean) {
+    try {
+      const path = productsStoragePathFromPublicUrl(current.image_url);
+      if (path) await supabase.storage.from("products").remove([path]);
+    } catch {
+      /* ignore — l'URL est déjà mise à jour */
+    }
+  }
 
   revalidatePath("/catalog/categories");
   revalidatePath("/catalog");

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMerchantId } from "@/lib/auth/merchant";
 import { productSchema, firstZodError } from "@/lib/validation/product";
+import { productsStoragePathFromPublicUrl } from "@/lib/images/storage-path";
 import type { Category, ProductWithCategory } from "@/lib/types";
 
 export type ProductFormState = {
@@ -264,7 +265,7 @@ export async function deleteProducts(
   //    faire échouer/throw la suppression).
   try {
     const paths = (rows ?? [])
-      .map((r) => storagePathFromPublicUrl(r.image_url))
+      .map((r) => productsStoragePathFromPublicUrl(r.image_url))
       .filter((p): p is string => !!p);
     if (paths.length > 0) {
       await supabase.storage.from("products").remove(paths);
@@ -275,18 +276,6 @@ export async function deleteProducts(
 
   revalidatePath("/catalog");
   return {};
-}
-
-/**
- * Extrait le chemin interne ({merchantId}/uuid.ext) d'une URL publique Storage
- * du bucket `products` (…/object/public/products/<path>). null si non reconnu.
- */
-function storagePathFromPublicUrl(url: string | null): string | null {
-  if (!url) return null;
-  const prefix = "/object/public/products/";
-  const i = url.indexOf(prefix);
-  if (i === -1) return null;
-  return url.slice(i + prefix.length).split("?")[0] || null;
 }
 
 /**

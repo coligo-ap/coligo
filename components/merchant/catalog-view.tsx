@@ -36,6 +36,9 @@ import {
   Package,
   Pencil,
   ImageOff,
+  ImagePlus,
+  ImageIcon,
+  Loader2,
   PackageOpen,
   Copy,
   CheckSquare,
@@ -74,7 +77,10 @@ import {
   deleteCategories,
   quickCreateCategory,
   renameCategory,
+  setCategoryImage,
 } from "@/app/(merchant)/catalog/categories/actions";
+import { createClient } from "@/lib/supabase/client";
+import { Portal } from "@/components/ui/portal";
 
 const ALL = "__all__";
 const NONE = "__none__";
@@ -751,6 +757,15 @@ export function CatalogView({
     });
   }
 
+  // Photo de catégorie : reflet local immédiat après ajout/remplacement/retrait.
+  function updateCategoryImageLocal(id: string, url: string | null) {
+    setCats((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, image_url: url } : c))
+    );
+  }
+  const uploadMerchantId =
+    cats[0]?.merchant_id ?? products[0]?.merchant_id ?? "";
+
   const availableCount = prods.filter((p) => p.is_available).length;
   const sortableCatKeys = (groups ?? [])
     .filter((g) => g.key !== NONE)
@@ -942,6 +957,19 @@ export function CatalogView({
                               g.key !== NONE
                                 ? () => promptRename(g.key, g.title)
                                 : null
+                            }
+                            photoAction={
+                              g.key !== NONE && !selectMode ? (
+                                <CategoryPhotoButton
+                                  categoryId={g.key}
+                                  merchantId={uploadMerchantId}
+                                  image={g.image}
+                                  onChanged={(url) => {
+                                    updateCategoryImageLocal(g.key, url);
+                                    refresh();
+                                  }}
+                                />
+                              ) : null
                             }
                             addHref={
                               g.key !== NONE
@@ -1264,6 +1292,7 @@ function CategorySection({
   open,
   onToggle,
   onRename,
+  photoAction,
   addHref,
   selectMode,
   selectable,
@@ -1279,6 +1308,7 @@ function CategorySection({
   open: boolean;
   onToggle: () => void;
   onRename: (() => void) | null;
+  photoAction?: React.ReactNode;
   addHref: string;
   selectMode: boolean;
   selectable: boolean;
@@ -1358,6 +1388,7 @@ function CategorySection({
           <Plus className="size-4" />
           <span className="hidden sm:inline">Produit</span>
         </Link>
+        {photoAction}
         {onRename && (
           <button
             type="button"
@@ -1393,6 +1424,183 @@ function CategorySection({
 
       {open && <div className="px-4 pt-1 pb-4">{children}</div>}
     </section>
+  );
+}
+
+/**
+ * Photo d'une catégorie : ajouter (pas d'image → sélecteur direct), remplacer
+ * ou retirer (image existante → petit menu). Upload côté client dans le bucket
+ * `products` (même chemin que les produits), URL figée par `setCategoryImage`.
+ */
+function CategoryPhotoButton({
+  categoryId,
+  merchantId,
+  image,
+  onChanged,
+}: {
+  categoryId: string;
+  merchantId: string;
+  image: string | null;
+  onChanged: (url: string | null) => void;
+}) {
+  const confirm = useConfirm();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
+    null
+  );
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  function openMenu() {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    // Aligné au bord droit du bouton, juste dessous (192px = w-48).
+    setMenuPos({
+      top: r.bottom + 4,
+      left: Math.max(8, Math.min(r.right - 192, window.innerWidth - 200)),
+    });
+    setMenuOpen(true);
+  }
+
+  async function handleFile(file: File) {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Le fichier doit être une image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image trop lourde (max 5 Mo).");
+      return;
+    }
+    if (!merchantId) {
+      toast.error("Session invalide, rechargez la page.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${merchantId}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("products")
+        .upload(path, file, { upsert: false, contentType: file.type });
+      if (upErr) {
+        toast.error(`Échec de l'upload : ${upErr.message}`);
+        return;
+      }
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("products").getPublicUrl(path);
+
+      const res = await setCategoryImage(categoryId, publicUrl);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(image ? "Photo remplacée" : "Photo ajoutée");
+      onChanged(publicUrl);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeImage() {
+    setMenuOpen(false);
+    if (
+      !(await confirm({
+        title: "Retirer la photo de la catégorie ?",
+        message: "La catégorie s'affichera sans visuel côté client.",
+        confirmLabel: "Retirer",
+        danger: true,
+      }))
+    )
+      return;
+    setBusy(true);
+    try {
+      const res = await setCategoryImage(categoryId, null);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Photo retirée");
+      onChanged(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="relative">
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+          e.target.value = "";
+        }}
+      />
+      <button
+        ref={btnRef}
+        type="button"
+        disabled={busy}
+        onClick={() => {
+          if (!image) fileRef.current?.click();
+          else if (menuOpen) setMenuOpen(false);
+          else openMenu();
+        }}
+        title={image ? "Photo de la catégorie" : "Ajouter une photo"}
+        aria-label={image ? "Photo de la catégorie" : "Ajouter une photo"}
+        className="text-muted hover:bg-surface-3 hover:text-foreground inline-flex size-9 items-center justify-center rounded-[10px] disabled:opacity-50"
+      >
+        {busy ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : image ? (
+          <ImageIcon className="size-4" />
+        ) : (
+          <ImagePlus className="size-4" />
+        )}
+      </button>
+
+      {/* Menu portalisé vers le body : la section catégorie est en
+          `overflow-hidden` (coins arrondis) et clippait un menu absolu,
+          surtout catégorie repliée. Position calculée depuis le bouton. */}
+      {menuOpen && menuPos && (
+        <Portal>
+          <div
+            className="fixed inset-0 z-40"
+            aria-hidden
+            onClick={() => setMenuOpen(false)}
+          />
+          <div
+            className="border-border bg-surface fixed z-50 w-48 overflow-hidden rounded-[12px] border p-1 shadow-lg"
+            style={{ top: menuPos.top, left: menuPos.left }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                fileRef.current?.click();
+              }}
+              className="hover:bg-surface-2 flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-left text-sm"
+            >
+              <ImagePlus className="size-4" />
+              Remplacer la photo
+            </button>
+            <button
+              type="button"
+              onClick={removeImage}
+              className="text-danger-600 hover:bg-danger-50 flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-left text-sm"
+            >
+              <Trash2 className="size-4" />
+              Retirer la photo
+            </button>
+          </div>
+        </Portal>
+      )}
+    </div>
   );
 }
 
