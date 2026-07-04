@@ -14,6 +14,7 @@ import {
 } from "@/lib/driver/settlement";
 import { declineExpress } from "@/app/(driver)/actions";
 import { useDriverOnline } from "@/lib/driver/online-store";
+import { useIncomingSignal } from "@/lib/driver/incoming-store";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import { toast } from "@/components/ui/toast";
 
@@ -158,12 +159,20 @@ export function IncomingRequests({
         () => void load()
       )
       .subscribe();
-    const poll = setInterval(() => void load(), 15_000);
+    // Repli polling court (le fast-path reste l'event/Realtime/bump).
+    const poll = setInterval(() => void load(), 8_000);
     return () => {
       clearInterval(poll);
       void supabase.removeChannel(channel);
     };
   }, [driverId, load]);
+
+  // Signal instantané du dispatch : le pull vient d'attribuer une course →
+  // recharge sans attendre le Realtime (réception « ultra rapide »).
+  const incomingSignal = useIncomingSignal();
+  useEffect(() => {
+    if (incomingSignal > 0) void load();
+  }, [incomingSignal, load]);
 
   // Reprise au premier plan (WebSocket a pu tomber en arrière-plan).
   useResumeResync(() => void load());

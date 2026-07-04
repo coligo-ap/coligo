@@ -11,6 +11,7 @@ import { ensureRealtimeAuth } from "@/lib/realtime/ensure-auth";
 import { playNewOrder } from "@/lib/driver/sounds";
 import { vibrate } from "@/lib/hooks/use-alert-sound";
 import { toast } from "@/components/ui/toast";
+import { bumpIncoming } from "@/lib/driver/incoming-store";
 
 /**
  * Dispatch par ZONE (réception Express GLOBALE). Quand le livreur est EN LIGNE,
@@ -80,6 +81,10 @@ export function ZoneDispatch({
           void playNewOrder();
           vibrate([0, 120, 60, 120]);
           toast.success("Nouvelle course à proximité ⚡");
+          // ULTRA RAPIDE : l'attribution vient de réussir → on prévient
+          // l'accordéon de recharger DANS LE MÊME TICK (sans attendre le
+          // Realtime ni le polling). La carte apparaît instantanément.
+          bumpIncoming();
           // On ramène le livreur sur l'ACCUEIL : la demande y apparaît en carte
           // dépliable (IncomingRequests, façon UberEats). Il déplie, appelle,
           // accepte (→ course) ou refuse. Sur l'accueil, le realtime l'affiche
@@ -93,7 +98,10 @@ export function ZoneDispatch({
     tickRef.current = tick;
 
     void tick();
-    const poll = setInterval(tick, 20_000);
+    // Fast-path = DISPATCH PUSH (sous-seconde). Le poll n'est qu'un FILET si le
+    // broadcast est raté : resserré à 12 s pour une réception « ultra rapide »
+    // même hors ligne temps réel.
+    const poll = setInterval(tick, 12_000);
 
     // DISPATCH PUSH CIBLÉ : on n'écoute plus TOUTES les commandes express. Le
     // serveur (notifyDriversNewExpress) pousse `new_express` aux livreurs proches
