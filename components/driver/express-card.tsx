@@ -6,9 +6,10 @@ import { useLocale } from "next-intl";
 import { toast } from "@/components/ui/toast";
 import {
   declineExpress,
-  markDeliveryArrived,
+  confirmArrival,
   markOrderPickedUp,
 } from "@/app/(driver)/actions";
+import { getPosition } from "@/lib/native/geolocation";
 import { DeliveryValidationDialog } from "./delivery-validation-dialog";
 import { PostDeliveryFeedback } from "./post-delivery-feedback";
 import { DriverLocationBroadcaster } from "./driver-location-broadcaster";
@@ -180,12 +181,42 @@ export function ExpressCard({
     });
   };
 
+  // Arrivée GÉO-CLÔTURÉE (mig 0329) : on doit être à quelques mètres de
+  // l'adresse exacte pour démarrer le minuteur d'attente (anti-fraude no-show).
   const onArrived = () => {
     if (!currentOrder) return;
     start(async () => {
-      const r = await markDeliveryArrived(currentOrder.id);
+      let pos: { latitude: number; longitude: number };
+      try {
+        pos = await getPosition();
+      } catch {
+        toast.error(
+          tr(
+            "Active la localisation pour confirmer ton arrivée.",
+            "فعّل تحديد الموقع لتأكيد وصولك."
+          )
+        );
+        return;
+      }
+      const r = await confirmArrival({
+        orderId: currentOrder.id,
+        lat: pos.latitude,
+        lng: pos.longitude,
+      });
       if (!r.ok) {
-        toast.error(r.reason ?? tr("Erreur", "خطأ"));
+        toast.error(
+          r.reason === "too_far"
+            ? tr(
+                "Tu es trop loin de l'adresse du client. Rapproche-toi pour confirmer.",
+                "أنت بعيد عن عنوان الزبون. اقترب للتأكيد."
+              )
+            : r.reason === "no_location"
+              ? tr(
+                  "Adresse client sans position GPS — contacte le support.",
+                  "عنوان الزبون بدون موقع — تواصل مع الدعم."
+                )
+              : (r.reason ?? tr("Erreur", "خطأ"))
+        );
         return;
       }
       toast.success(tr("Arrivée signalée au client", "تم إشعار الزبون بوصولك"));

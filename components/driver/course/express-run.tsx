@@ -7,6 +7,7 @@ import { ExpressRunMap } from "./express-run-map";
 import { OrderChat } from "@/components/chat/order-chat";
 import { cashToCollectDa, isPrepaid } from "@/lib/delivery/cash";
 import { createClient } from "@/lib/supabase/client";
+import { noteCallAttempt } from "@/app/(driver)/actions";
 
 /**
  * Écran NAVIGATION ACTIVE (course en cours) reproduit À L'IDENTIQUE de
@@ -324,6 +325,11 @@ export function ExpressRun({
             {who.phone && (
               <a
                 href={`tel:${who.phone}`}
+                onClick={() => {
+                  // Trace la tentative d'appel (précondition du dépôt à
+                  // l'adresse en cas de client absent, mig 0328).
+                  if (pickedUp) void noteCallAttempt(order.id);
+                }}
                 className="btnlink"
                 style={{ flex: 1, marginTop: 0 }}
               >

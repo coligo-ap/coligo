@@ -5,7 +5,12 @@ import { useLocale } from "next-intl";
 import { toast } from "@/components/ui/toast";
 import { QrScanner } from "@/components/scanner/qr-scanner";
 import { enqueueValidation } from "@/lib/driver-offline/db";
-import { validateDelivery, reportNoShow } from "@/app/(driver)/actions";
+import {
+  validateDelivery,
+  reportNoShow,
+  leaveAtDoor,
+} from "@/app/(driver)/actions";
+import { createClient } from "@/lib/supabase/client";
 
 /**
  * Écran VALIDATION DE REMISE reproduit À L'IDENTIQUE de MAQUETTE-livreur-pages
@@ -45,6 +50,13 @@ export function DeliveryValidationDialog({
   const [code, setCode] = useState("");
   const [pending, start] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Dépôt à l'adresse (leave-at-door) — ONLINE prépayé, après minuteur.
+  const [proofUrl, setProofUrl] = useState<string | null>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const [leaveNote, setLeaveNote] = useState("");
+  const [leaving, setLeaving] = useState(false);
+  const proofInputRef = useRef<HTMLInputElement>(null);
 
   const isOnline = paymentMethod === "online";
   const collect = isOnline ? 0 : (totalDa ?? 0);
@@ -148,9 +160,10 @@ export function DeliveryValidationDialog({
       submit(true);
   };
 
-  // No-show / refus (règle Yassir, mig 0162) : commande annulée. Espèces →
-  // seule l'avance est remboursable (validation support), course non payée.
-  // Online payé → course payée normalement (le client a déjà tout réglé).
+  // No-show ESPÈCES (mig 0327) : commande annulée. En EXPRESS l'avance au
+  // commerçant est remboursable APRÈS validation support (course non payée) ;
+  // en TOURNÉE tout reste à la charge du commerçant. (L'ONLINE n'utilise plus
+  // ce bouton : il passe par le dépôt à l'adresse ci-dessous.)
   const onNoShow = () => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       toast.error(
@@ -162,21 +175,17 @@ export function DeliveryValidationDialog({
       return;
     }
     if (!noShowReady) return; // bouton déjà désactivé, garde-fou
-    const confirmMsg = isAr
-      ? "الزبون غائب أو الطلب مرفوض؟\n\n" +
-        "تأكّد أنك تواصلت مع الزبون (رسالة) وانتظرت في المكان. سيتم إلغاء الطلب." +
-        (isOnline
-          ? " توصيلتك مدفوعة عادياً (الطلب مدفوع مسبقاً عبر الإنترنت)."
-          : "\n\nسيُعاد لك ما دفعته للتاجر بعد موافقة الدعم — التوصيلة غير مدفوعة (قاعدة الغياب). احتفظ بالطلب معك: الدعم سيخبرك بما تفعله (إرجاع، احتفاظ أو منح). المتابعة في كشف الحساب.")
-      : "Client absent ou commande refusée ?\n\n" +
-        "Vérifie que tu as bien CONTACTÉ le client (message) et attendu sur place. " +
-        "La commande sera ANNULÉE." +
-        (isOnline
-          ? " Ta course est payée normalement (commande déjà payée en ligne)."
-          : "\n\nTon avance au commerçant sera remboursée APRÈS validation du " +
-            "support — la course n'est pas payée (règle no-show). GARDE la " +
-            "commande avec toi : le support te dira quoi en faire (retour, " +
-            "garder ou donner). Suivi dans Relevé.");
+    const confirmMsg = tr(
+      "Client absent ou commande refusée ?\n\n" +
+        "Vérifie que tu as bien APPELÉ et CONTACTÉ le client (message) et " +
+        "attendu sur place. La commande sera ANNULÉE.\n\n" +
+        "Ton avance au commerçant est remboursable APRÈS validation du support " +
+        "— la course n'est pas payée (règle no-show espèces). GARDE la commande " +
+        "avec toi : le support te dira quoi en faire. Suivi dans Relevé.",
+      "الزبون غائب أو الطلب مرفوض؟\n\n" +
+        "تأكّد أنك اتصلت وتواصلت مع الزبون (رسالة) وانتظرت في المكان. سيتم إلغاء الطلب.\n\n" +
+        "يُسترجع ما دفعته للتاجر بعد موافقة الدعم — التوصيلة غير مدفوعة (قاعدة الغياب النقدي). احتفظ بالطلب معك: الدعم سيخبرك بما تفعله. المتابعة في كشف الحساب."
+    );
     if (!confirm(confirmMsg)) return;
     start(async () => {
       const r = await reportNoShow({ orderId, reason: "no_show" });
@@ -185,18 +194,85 @@ export function DeliveryValidationDialog({
         return;
       }
       toast.success(
-        isOnline
-          ? tr(
-              "Signalé — commande annulée, ta course est payée.",
-              "تم الإبلاغ — أُلغي الطلب، وتوصيلتك مدفوعة."
-            )
-          : tr(
-              "Signalé — le support examine le remboursement de ton avance (voir Relevé).",
-              "تم الإبلاغ — يراجع الدعم استرجاع ما دفعته (انظر كشف الحساب)."
-            )
+        tr(
+          "Signalé — le support examine le remboursement de ton avance (voir Relevé).",
+          "تم الإبلاغ — يراجع الدعم استرجاع ما دفعته (انظر كشف الحساب)."
+        )
       );
       onSuccess();
     });
+  };
+
+  // Photo de preuve du dépôt : upload direct dans le bucket public
+  // `delivery-proofs` (policy : livreur authentifié). Path par commande.
+  async function handleProofFile(file: File) {
+    if (!file.type.startsWith("image/")) {
+      toast.error(tr("Le fichier doit être une photo.", "يجب أن يكون صورة."));
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error(
+        tr(
+          "Photo trop lourde (max 8 Mo).",
+          "الصورة كبيرة جداً (8 م.ب كحد أقصى)."
+        )
+      );
+      return;
+    }
+    setUploadingProof(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${orderId}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("delivery-proofs")
+        .upload(path, file, { upsert: false, contentType: file.type });
+      if (error) {
+        toast.error(tr(`Échec de l'envoi : ${error.message}`, "فشل الإرسال."));
+        return;
+      }
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("delivery-proofs").getPublicUrl(path);
+      setProofUrl(publicUrl);
+    } finally {
+      setUploadingProof(false);
+    }
+  }
+
+  const onLeaveAtDoor = () => {
+    if (!proofUrl) {
+      toast.error(
+        tr(
+          "Prends d'abord une photo du colis déposé.",
+          "التقط أولاً صورة للطرد بعد وضعه."
+        )
+      );
+      return;
+    }
+    setLeaving(true);
+    void (async () => {
+      try {
+        const r = await leaveAtDoor({
+          orderId,
+          photoUrl: proofUrl,
+          note: leaveNote.trim() || undefined,
+        });
+        if (!r.ok) {
+          toast.error(reasonLabel(r.reason, isAr));
+          return;
+        }
+        toast.success(
+          tr(
+            "Commande déposée et validée — le client est notifié.",
+            "تم إيداع الطلب وتأكيده — تم إشعار الزبون."
+          )
+        );
+        onSuccess();
+      } finally {
+        setLeaving(false);
+      }
+    })();
   };
 
   const ctaDisabled = pending || (isOnline && code.length < 4);
@@ -307,9 +383,143 @@ export function DeliveryValidationDialog({
             : tr("Valider la livraison", "تأكيد التسليم")}
         </button>
 
-        {/* Client absent / refus — minuteur 8 min depuis l'arrivée avant
-            activation (le serveur étend à ×2 si le client n'a pas répondu). */}
-        {noShowReady ? (
+        {/* Client absent — minuteur 8 min depuis l'arrivée. ONLINE : dépôt à
+            l'adresse avec photo (client déjà payé). ESPÈCES : commande annulée. */}
+        {noShowReady && isOnline ? (
+          <div
+            style={{
+              width: "100%",
+              marginTop: 10,
+              padding: 12,
+              borderRadius: 14,
+              border: "1.5px solid #fda29b",
+              background: "#fffbfa",
+            }}
+          >
+            <div
+              style={{
+                color: "#b42318",
+                fontWeight: 700,
+                fontSize: 14,
+                marginBottom: 6,
+              }}
+            >
+              {tr(
+                "Client absent — déposer à l'adresse",
+                "الزبون غائب — الإيداع في العنوان"
+              )}
+            </div>
+            <p
+              style={{
+                color: "#667085",
+                fontSize: 12.5,
+                lineHeight: 1.45,
+                margin: "0 0 10px",
+              }}
+            >
+              {tr(
+                "Commande déjà payée en ligne. Après avoir APPELÉ le client et envoyé un MESSAGE d'arrivée, dépose le colis en lieu sûr et prends une photo — elle sera partagée au client.",
+                "الطلب مدفوع مسبقاً. بعد الاتصال بالزبون وإرسال رسالة وصول، ضع الطرد في مكان آمن والتقط صورة — ستُشارك مع الزبون."
+              )}
+            </p>
+
+            <input
+              ref={proofInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleProofFile(f);
+                e.target.value = "";
+              }}
+            />
+
+            {proofUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={proofUrl}
+                alt={tr("Preuve de dépôt", "إثبات الإيداع")}
+                style={{
+                  width: "100%",
+                  height: 160,
+                  objectFit: "cover",
+                  borderRadius: 12,
+                  marginBottom: 10,
+                }}
+              />
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => proofInputRef.current?.click()}
+              disabled={uploadingProof || leaving}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                borderRadius: 12,
+                border: "1.5px solid #d0d5dd",
+                background: "#fff",
+                color: "#344054",
+                fontWeight: 600,
+                fontSize: 13.5,
+                marginBottom: 10,
+                opacity: uploadingProof ? 0.6 : 1,
+              }}
+            >
+              {uploadingProof
+                ? tr("Envoi de la photo…", "جارٍ إرسال الصورة…")
+                : proofUrl
+                  ? tr("Reprendre la photo", "إعادة التقاط الصورة")
+                  : tr("Prendre la photo du dépôt", "التقاط صورة الإيداع")}
+            </button>
+
+            <textarea
+              value={leaveNote}
+              onChange={(e) => setLeaveNote(e.target.value.slice(0, 200))}
+              placeholder={tr(
+                "Commentaire (ex. « Déposé devant la porte, à droite »)",
+                "تعليق (مثال: «تُرك أمام الباب، على اليمين»)"
+              )}
+              rows={2}
+              style={{
+                width: "100%",
+                padding: "9px 11px",
+                borderRadius: 12,
+                border: "1.5px solid #d0d5dd",
+                fontSize: 13,
+                resize: "none",
+                marginBottom: 10,
+                fontFamily: "inherit",
+              }}
+            />
+
+            <button
+              type="button"
+              onClick={onLeaveAtDoor}
+              disabled={!proofUrl || leaving || uploadingProof}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: 14,
+                border: "none",
+                background: "#b42318",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 14,
+                opacity: !proofUrl || leaving || uploadingProof ? 0.5 : 1,
+              }}
+            >
+              {leaving
+                ? tr("Validation…", "جارٍ التأكيد…")
+                : tr(
+                    "Terminer la course — colis déposé",
+                    "إنهاء التوصيلة — تم الإيداع"
+                  )}
+            </button>
+          </div>
+        ) : noShowReady ? (
           <button
             type="button"
             onClick={onNoShow}
@@ -419,6 +629,39 @@ function reasonLabel(reason: string | undefined, isAr: boolean): string {
     too_early: [
       "Patiente encore : contacte le client, le délai d'attente n'est pas écoulé.",
       "انتظر قليلاً: تواصل مع الزبون، لم تنتهِ مدة الانتظار بعد.",
+    ],
+    // Leave-at-door / no-show en ligne (mig 0328/0329).
+    use_leave_at_door: [
+      "Commande payée en ligne : dépose-la à l'adresse avec une photo (bouton « Déposer à l'adresse »).",
+      "الطلب مدفوع عبر الإنترنت: أودعه في العنوان مع صورة (زر «الإيداع في العنوان»).",
+    ],
+    call_required: [
+      "Appelle d'abord le client (bouton Appeler) avant de déposer.",
+      "اتصل أولاً بالزبون (زر الاتصال) قبل الإيداع.",
+    ],
+    message_required: [
+      "Envoie d'abord un message d'arrivée au client (messagerie).",
+      "أرسل أولاً رسالة وصول إلى الزبون (الرسائل).",
+    ],
+    photo_required: [
+      "Prends une photo du colis déposé pour valider.",
+      "التقط صورة للطرد بعد إيداعه للتأكيد.",
+    ],
+    too_far: [
+      "Rapproche-toi de l'adresse exacte du client (tu es trop loin).",
+      "اقترب من عنوان الزبون الدقيق (أنت بعيد جداً).",
+    ],
+    no_location: [
+      "Adresse client sans position GPS — contacte le support.",
+      "عنوان الزبون بدون موقع GPS — تواصل مع الدعم.",
+    ],
+    cash_not_allowed: [
+      "Dépôt réservé aux commandes payées en ligne.",
+      "الإيداع مخصص للطلبات المدفوعة عبر الإنترنت.",
+    ],
+    not_in_transit: [
+      "La commande n'est pas en cours de livraison.",
+      "الطلب ليس قيد التوصيل.",
     ],
   };
   const pair = reason ? M[reason] : undefined;

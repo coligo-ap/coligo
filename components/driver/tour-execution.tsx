@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import {
-  markDeliveryArrived,
+  confirmArrival,
+  noteCallAttempt,
   markTourPickedUp,
   reorderTourFromPosition,
 } from "@/app/(driver)/actions";
@@ -129,14 +130,44 @@ export function TourExecution({
       router.refresh();
     });
 
+  // Arrivée GÉO-CLÔTURÉE (mig 0329) : à quelques mètres de l'adresse exacte du
+  // client pour démarrer le minuteur d'attente (anti-fraude no-show).
   const onArrived = (stopId: string, orderId: string) =>
     start(async () => {
       setStopErr((e) => ({ ...e, [stopId]: "" }));
-      const r = await markDeliveryArrived(orderId);
+      let pos: { latitude: number; longitude: number };
+      try {
+        pos = await getPosition();
+      } catch {
+        setStopErr((e) => ({
+          ...e,
+          [stopId]: tr(
+            "Active la localisation pour confirmer ton arrivée.",
+            "فعّل تحديد الموقع لتأكيد وصولك."
+          ),
+        }));
+        return;
+      }
+      const r = await confirmArrival({
+        orderId,
+        lat: pos.latitude,
+        lng: pos.longitude,
+      });
       if (!r.ok) {
         setStopErr((e) => ({
           ...e,
-          [stopId]: r.reason ?? tr("Erreur", "خطأ"),
+          [stopId]:
+            r.reason === "too_far"
+              ? tr(
+                  "Trop loin de l'adresse du client — rapproche-toi.",
+                  "بعيد عن عنوان الزبون — اقترب."
+                )
+              : r.reason === "no_location"
+                ? tr(
+                    "Adresse sans position GPS — contacte le support.",
+                    "عنوان بدون موقع — تواصل مع الدعم."
+                  )
+                : (r.reason ?? tr("Erreur", "خطأ")),
         }));
         return;
       }
@@ -363,6 +394,7 @@ export function TourExecution({
                   {(s.delivery_phone ?? s.customer_phone) && (
                     <a
                       href={`tel:${s.delivery_phone ?? s.customer_phone}`}
+                      onClick={() => void noteCallAttempt(s.order_id)}
                       className="inline-flex items-center gap-1.5 text-[12.5px] font-bold"
                       style={{ color: BRAND_VIOLET }}
                     >
