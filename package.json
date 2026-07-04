@@ -26,6 +26,7 @@
     "test:driver:money": "node scripts/test-driver-money.mjs",
     "test:tour:money": "node scripts/test-tour-treasury.mjs",
     "test:tour:e2e": "node scripts/e2e-tour.mjs",
+    "test:noshow:money": "node scripts/tests/noshow-money-verification.mjs",
     "test:audit:cod": "node scripts/audit-cod-cashback.mjs",
     "test:audit:cancel": "node scripts/audit-cancel.mjs",
     "audit:case-study": "node scripts/case-study-merchant-client.mjs",
