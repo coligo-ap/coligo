@@ -48,6 +48,8 @@
     "openNow": "Ouvert maintenant",
     "today": "Aujourd'hui",
     "prepLabel": "Préparation",
+    "hoursLabel": "Horaires",
+    "locationLabel": "Localisation",
     "minBasketLabel": "Panier min.",
     "searchProducts": "Rechercher un produit",
     "clearSearch": "Effacer",

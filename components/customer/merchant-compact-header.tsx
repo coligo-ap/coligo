@@ -111,7 +111,7 @@ export function MerchantCompactHeader({
   const cart = useCart();
   const cartCount = totalUnits(cart);
   // Recherche intégrée au header (état partagé avec la barre du catalogue).
-  const { open: searchOpen, query: searchQuery } = useMerchantSearch();
+  const { query: searchQuery } = useMerchantSearch();
 
   // Statut d'ouverture (calculé à la volée, rafraîchi 1×/min pour suivre les
   // bascules de créneau) + jour courant pour surligner « Aujourd'hui ».
@@ -176,116 +176,77 @@ export function MerchantCompactHeader({
   // Bouton "verre" de la topbar : translucide sur la photo, plein au scroll.
   const rb = cn(
     "relative grid size-9 place-items-center rounded-full backdrop-blur transition-colors active:scale-90",
-    scrolled || searchOpen
+    scrolled
       ? "bg-surface-2 text-foreground hover:bg-surface-3"
       : "bg-white/15 text-white ring-1 ring-white/25 hover:bg-white/25"
   );
 
   return (
     <div>
-      {/* ───── TOPBAR FIXE — toujours présente pour revenir / voir le panier.
-              Translucide sur la photo, puis verre dépoli + nom au scroll. ───── */}
+      {/* ───── TOPBAR FIXE — translucide sur la photo (← · partager · panier).
+              Au scroll : verre dépoli + BARRE DE RECHERCHE à saisie directe
+              (plus de nom redondant : tout l'espace va à la recherche). ───── */}
       <div
         className={cn(
           "fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)] transition-[background-color,box-shadow]",
-          scrolled || searchOpen
+          scrolled
             ? "border-border border-b bg-white/85 shadow-sm backdrop-blur-xl"
             : "bg-transparent"
         )}
       >
         <div className="mx-auto flex h-14 max-w-[1100px] items-center gap-2 px-3 lg:px-4">
-          {searchOpen ? (
-            // ─── Mode RECHERCHE : barre intégrée au header, recherche en temps
-            //     réel (état partagé avec le catalogue), sans remonter en haut.
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchOpen(false);
-                  setSearchQuery("");
-                }}
-                aria-label={t("back")}
-                className={rb}
-              >
-                <ArrowLeft className="size-[18px] rtl:-scale-x-100" />
-              </button>
-              <div className="bg-surface-2 flex flex-1 items-center gap-2 rounded-full px-3.5 py-2">
-                <Search className="text-muted size-4 shrink-0" />
-                <input
-                  autoFocus
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t("searchProducts")}
-                  className="placeholder:text-hint text-foreground w-full bg-transparent text-sm font-medium outline-none"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    aria-label={t("clearSearch")}
-                    className="text-muted hover:text-foreground shrink-0"
-                  >
-                    <X className="size-4" />
-                  </button>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <Link href="/" aria-label={t("back")} className={rb}>
-                <ArrowLeft className="size-[18px] rtl:-scale-x-100" />
-              </Link>
-              <h2
-                className={cn(
-                  "text-foreground min-w-0 flex-1 truncate text-base font-extrabold transition-opacity",
-                  scrolled ? "opacity-100" : "opacity-0"
-                )}
-              >
-                {name}
-              </h2>
-              {/* Icône RECHERCHE — apparaît au scroll. Clic → ouvre la barre de
-              recherche INTÉGRÉE au header (recherche temps réel, sans remonter). */}
-              {scrolled && (
+          <Link href="/" aria-label={t("back")} className={rb}>
+            <ArrowLeft className="size-[18px] rtl:-scale-x-100" />
+          </Link>
+
+          {scrolled ? (
+            /* Recherche INLINE temps réel (état partagé avec le catalogue) —
+               le client tape directement, les résultats filtrent en dessous. */
+            <div className="bg-surface-2 flex h-9 min-w-0 flex-1 items-center gap-2 rounded-full px-3.5">
+              <Search className="text-muted size-4 shrink-0" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setSearchOpen(true)}
+                placeholder={t("searchProducts")}
+                className="placeholder:text-hint text-foreground w-full min-w-0 bg-transparent text-sm font-medium outline-none"
+              />
+              {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSearchOpen(true)}
-                  aria-label={t("searchProducts")}
-                  className={cn(rb, "shrink-0")}
+                  onClick={() => setSearchQuery("")}
+                  aria-label={t("clearSearch")}
+                  className="text-muted hover:text-foreground shrink-0"
                 >
-                  <Search className="size-[18px]" />
+                  <X className="size-4" />
                 </button>
               )}
+            </div>
+          ) : (
+            <>
+              <span className="min-w-0 flex-1" />
               <ShareButton
                 title={name}
                 label={t("share")}
                 copiedMsg={t("linkCopied")}
                 className={cn(rb, "shrink-0")}
               />
-              <FavoriteHeart
-                merchantId={merchantId}
-                initialFavorite={initialFavorite}
-                isAuth={isAuth}
-                variant={scrolled ? "card" : "hero"}
-                className={cn(
-                  "size-9 shrink-0",
-                  scrolled && "bg-surface-2 shadow-none"
-                )}
-              />
-              <Link
-                href="/cart"
-                aria-label={t("viewMyCart")}
-                className={cn(rb, "shrink-0")}
-              >
-                <ShoppingCart className="size-[18px]" />
-                {cartCount > 0 && (
-                  <span className="bg-success-600 absolute -end-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full border-2 border-white px-0.5 text-[9px] font-extrabold text-white">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
             </>
           )}
+
+          <Link
+            href="/cart"
+            aria-label={t("viewMyCart")}
+            className={cn(rb, "shrink-0")}
+          >
+            <ShoppingCart className="size-[18px]" />
+            {cartCount > 0 && (
+              <span className="bg-success-600 absolute -end-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full border-2 border-white px-0.5 text-[9px] font-extrabold text-white">
+                {cartCount}
+              </span>
+            )}
+          </Link>
         </div>
       </div>
 
@@ -337,11 +298,21 @@ export function MerchantCompactHeader({
           </div>
         )}
         <div className="min-w-0 flex-1 pb-0.5">
-          <h1 className="text-foreground text-xl leading-tight font-black tracking-tight text-pretty lg:text-2xl">
-            {name}
-          </h1>
+          {/* NOM + ♡ FAVORI sur la MÊME ligne (cœur au coin, RTL-safe via flex). */}
+          <div className="flex items-start justify-between gap-2">
+            <h1 className="text-foreground min-w-0 text-xl leading-tight font-black tracking-tight text-pretty lg:text-2xl">
+              {name}
+            </h1>
+            <FavoriteHeart
+              merchantId={merchantId}
+              initialFavorite={initialFavorite}
+              isAuth={isAuth}
+              variant="card"
+              className="bg-surface-2 size-9 shrink-0 shadow-none"
+            />
+          </div>
           {/* Catégorie (gris clair) juste sous le nom + note à droite, même ligne. */}
-          <div className="mt-1 flex items-start justify-between gap-2">
+          <div className="flex items-start justify-between gap-2">
             <span className="text-muted min-w-0 truncate pt-0.5 text-[13px] font-medium">
               {categoryLabel}
             </span>
@@ -356,66 +327,62 @@ export function MerchantCompactHeader({
         </div>
       </div>
 
-      {/* ───── ADRESSE (à gauche) + STATUT d'ouverture CLIQUABLE (à droite),
-              DIRECTEMENT sous la catégorie, même ligne. Statut = libellé
-              « Ouvert maintenant » (VERT) / « Fermé » (ROUGE) ; un clic déplie le
-              planning de la semaine (plus de bouton « Horaires » séparé). ───── */}
-      <div className="mt-1.5 flex items-center justify-between gap-3">
-        {addressLine ? (
-          <p className="text-muted inline-flex min-w-0 items-center gap-1 truncate text-xs font-semibold">
-            <MapPin className="size-3.5 shrink-0" />
-            <span className="truncate">{addressLine}</span>
-          </p>
-        ) : (
-          <span />
-        )}
+      {/* ───── BANDE D'INFOS unifiée (une seule carte, cellules séparées par un
+              filet, RTL-safe via border-inline-start) : statut Ouvert/Fermé
+              (tap → horaires) · préparation · panier min · localisation.
+              Remplace 3 blocs empilés → un seul coup d'œil, zéro doublon. ───── */}
+      <div className="border-border [&>*+*]:border-border mt-3 flex [scrollbar-width:none] overflow-x-auto rounded-[14px] border bg-white [&::-webkit-scrollbar]:hidden [&>*+*]:border-s">
         <button
           type="button"
           onClick={() => setShowHours((v) => !v)}
           aria-expanded={showHours}
-          className="inline-flex shrink-0 items-center gap-1.5 text-xs font-bold"
+          className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-2 py-2.5"
         >
           <span
             className={cn(
-              "size-1.5 rounded-full",
-              isOpen ? "bg-success-500" : "bg-rose-500"
+              "inline-flex items-center gap-1.5 text-[13px] font-extrabold",
+              isOpen ? "text-success-700" : "text-rose-600"
             )}
-          />
-          <span className={isOpen ? "text-success-700" : "text-rose-600"}>
+          >
+            <span
+              className={cn(
+                "size-1.5 rounded-full",
+                isOpen ? "bg-success-500" : "bg-rose-500"
+              )}
+            />
             {isOpen ? t("openNow") : t("closed")}
+            {showHours ? (
+              <ChevronUp className="text-subtle size-3.5" />
+            ) : (
+              <ChevronDown className="text-subtle size-3.5" />
+            )}
           </span>
-          {showHours ? (
-            <ChevronUp className="text-subtle size-3.5" />
-          ) : (
-            <ChevronDown className="text-subtle size-3.5" />
-          )}
+          <span className="text-muted text-[10.5px] font-medium">
+            {t("hoursLabel")}
+          </span>
         </button>
+        {prep_time_min > 0 && (
+          <InfoCell
+            icon={<Timer className="size-3.5" />}
+            value={`~${t("prepMinutes", { count: prep_time_min })}`}
+            label={t("prepLabel")}
+          />
+        )}
+        {min_order_da > 0 && (
+          <InfoCell
+            icon={<ShoppingBasket className="size-3.5" />}
+            value={formatDA(min_order_da)}
+            label={t("minBasketLabel")}
+          />
+        )}
+        {addressLine && (
+          <InfoCell
+            icon={<MapPin className="size-3.5" />}
+            value={commune ?? addressLine}
+            label={wilaya_name ?? t("locationLabel")}
+          />
+        )}
       </div>
-
-      {/* ───── 2 STATS CLAIRES, étalées : PRÉPARATION à gauche, PANIER MIN. à
-              droite. Icône en pastille + valeur en gras + libellé gris dessous,
-              pour bien comprendre d'un coup d'œil. ───── */}
-      {(prep_time_min > 0 || min_order_da > 0) && (
-        <div className="border-border mt-3 flex items-center justify-between gap-3 rounded-[14px] border bg-white px-3.5 py-2.5">
-          {prep_time_min > 0 ? (
-            <Stat
-              icon={<Timer className="size-[18px]" />}
-              value={`~${t("prepMinutes", { count: prep_time_min })}`}
-              label={t("prepLabel")}
-            />
-          ) : (
-            <span />
-          )}
-          {min_order_da > 0 && (
-            <Stat
-              icon={<ShoppingBasket className="size-[18px]" />}
-              value={formatDA(min_order_da)}
-              label={t("minBasketLabel")}
-              alignEnd
-            />
-          )}
-        </div>
-      )}
 
       {/* Pilules de spécialités (tags) — situent l'offre d'un coup d'œil. */}
       {tags.length > 0 && (
@@ -510,39 +477,25 @@ export function MerchantCompactHeader({
   );
 }
 
-/**
- * Stat illustrée : icône en pastille + valeur en gras + libellé gris en dessous.
- * `alignEnd` (stat de droite) : icône à droite, texte aligné à droite, pour un
- * rendu symétrique « une à gauche / une à droite ».
- */
-function Stat({
+/** Cellule de la bande d'infos : valeur en gras (avec petite icône) + libellé
+ *  gris dessous. Centrée, compacte, tronquée proprement. */
+function InfoCell({
   icon,
   value,
   label,
-  alignEnd = false,
 }: {
   icon: React.ReactNode;
   value: string;
   label: string;
-  alignEnd?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "inline-flex min-w-0 items-center gap-2.5",
-        alignEnd && "flex-row-reverse text-right"
-      )}
-    >
-      <span className="bg-primary-50 text-primary-600 grid size-9 shrink-0 place-items-center rounded-full">
-        {icon}
+    <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-2 py-2.5 text-center">
+      <span className="text-foreground inline-flex max-w-full items-center gap-1 text-[13px] font-extrabold tabular-nums">
+        <span className="text-primary-600 shrink-0">{icon}</span>
+        <span className="truncate">{value}</span>
       </span>
-      <span className="min-w-0 leading-tight">
-        <span className="text-foreground block truncate text-sm font-extrabold tabular-nums">
-          {value}
-        </span>
-        <span className="text-muted block truncate text-[11px] font-medium">
-          {label}
-        </span>
+      <span className="text-muted max-w-full truncate text-[10.5px] font-medium">
+        {label}
       </span>
     </div>
   );
