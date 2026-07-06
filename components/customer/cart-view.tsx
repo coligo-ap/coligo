@@ -430,8 +430,10 @@ export function CartView() {
       )}
 
       {/* Barre fixe en bas : un seul card = détail repliable (ouverture vers le
-          haut) + cashback + récap sous-total/économies/total + bouton. */}
-      <div className="border-border fixed inset-x-0 bottom-16 z-40 border-t bg-white px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
+          haut) + cashback + récap sous-total/économies/total + bouton.
+          Fond GRIS CLAIR (token surface-2 → s'adapte seul au mode sombre) pour
+          se différencier du blanc de la page. */}
+      <div className="border-border bg-surface-2 fixed inset-x-0 bottom-16 z-40 border-t px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
         <div className="mx-auto max-w-[560px] space-y-2.5">
           {/* Détail des promotions & économies — contenu INTÉGRÉ directement
               dans la carte du bas (aucune carte autour, pas de titre doublon :
@@ -444,7 +446,7 @@ export function CartView() {
                   key={b.item.line_key}
                   className="flex items-center gap-2.5 py-2"
                 >
-                  <div className="bg-surface-2 size-8 shrink-0 overflow-hidden rounded-[8px]">
+                  <div className="bg-surface size-8 shrink-0 overflow-hidden rounded-[8px]">
                     {b.item.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -499,7 +501,7 @@ export function CartView() {
                       return (
                         <span
                           key={p.id}
-                          className="bg-surface-2 text-foreground inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold"
+                          className="bg-surface text-foreground inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold"
                         >
                           <span className="font-mono font-black tracking-wider">
                             {p.code}
