@@ -123,29 +123,42 @@ export function MerchantCartCta({
     subtotal >= freeDeliveryMin / 2;
 
   // Sous-ligne contextuelle DANS la pilule (une seule, priorité stricte) —
-  // pousse à compléter le panier sans empiler de bandeaux au-dessus.
+  // pousse à compléter le panier sans empiler de bandeaux au-dessus. Les
+  // ÉCONOMIES ont leur propre carte sombre au-dessus (autre couleur → lisible).
   const subline = belowMin
     ? {
         Icon: ShoppingBasket,
         text: t("ctaMinRemaining", { amount: formatDA(minOrderDa - subtotal) }),
       }
-    : hasSavings
+    : showFdNudge
       ? {
-          Icon: PartyPopper,
-          text: `${tc("promosApplied", { count: promoCount })} · −${formatDA(savings)}`,
+          Icon: Truck,
+          text: t("ctaFreeDeliveryRemaining", {
+            amount: formatDA(fdRemaining!),
+          }),
         }
-      : showFdNudge
-        ? {
-            Icon: Truck,
-            text: t("ctaFreeDeliveryRemaining", {
-              amount: formatDA(fdRemaining!),
-            }),
-          }
-        : null;
+      : null;
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-16 z-30 px-4 pb-2 lg:bottom-4">
       <div className="pointer-events-auto mx-auto max-w-md">
+        {/* Économies — carte SOMBRE « verre » premium (charbon, texte inversé
+            via tokens → s'adapte seule au mode sombre), montant en pastille.
+            Distincte du violet de la pilule → lisible d'un coup d'œil. */}
+        {hasSavings && !belowMin && (
+          <div className="cg-promo-rise bg-foreground/95 text-surface mb-1.5 flex items-center gap-2.5 rounded-[16px] px-3.5 py-2 shadow-[0_14px_34px_-14px_rgba(10,10,20,0.65)] backdrop-blur-md">
+            <span className="bg-surface/20 grid size-6 shrink-0 place-items-center rounded-full">
+              <PartyPopper className="size-3.5" />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold">
+              {tc("promosApplied", { count: promoCount })}
+            </span>
+            <span className="bg-surface/20 shrink-0 rounded-full px-2.5 py-1 text-[12px] font-black tabular-nums">
+              −{formatDA(savings)}
+            </span>
+          </div>
+        )}
+
         {/* UNE pilule compacte, style iOS : total + compteur + sous-ligne
             contextuelle intégrée + progression vers le minimum en filet bas. */}
         <Link
