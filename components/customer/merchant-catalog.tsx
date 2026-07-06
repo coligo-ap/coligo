@@ -2,18 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import {
-  BadgePercent,
-  ChevronLeft,
-  Gift,
-  LayoutGrid,
-  Rows3,
-} from "lucide-react";
+import { BadgePercent, ChevronLeft, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useMerchantSearch,
   resetSearch,
 } from "@/lib/customer/merchant-search-store";
+import {
+  useCatalogDisplay,
+  setCatalogDisplay,
+  setCatalogGroupsCount,
+  resetCatalogDisplay,
+} from "@/lib/customer/catalog-display-store";
 import { ProductDetailSheet } from "@/components/customer/product-detail-sheet";
 import { ProductRow } from "@/components/customer/product-row";
 import {
@@ -78,34 +78,37 @@ export function MerchantCatalog({
 
   // ---------------------------------------------------------------------------
   // AFFICHAGE : « liste » (sections déroulées) ou « catégories d'abord »
-  // (grille de cartes → drill-down). Défaut = choix du commerçant ; le client
-  // peut basculer, préférence mémorisée par commerce (localStorage).
+  // (grille de cartes → drill-down). Piloté par le STORE partagé (la bascule
+  // vit sur la ligne Retrait/Livraison — CatalogViewToggle). Défaut = choix du
+  // commerçant ; préférence client mémorisée par commerce (localStorage).
   // ---------------------------------------------------------------------------
   const displayKey = `coligo:catalog-display:${merchant.id}`;
-  const [display, setDisplay] = useState<"list" | "categories">(defaultDisplay);
+  const { display: storedDisplay } = useCatalogDisplay();
+  const display = storedDisplay ?? defaultDisplay;
   const [openCat, setOpenCat] = useState<string | null>(null);
   useEffect(() => {
     try {
       const v = window.localStorage.getItem(displayKey);
-      if (v === "list" || v === "categories") setDisplay(v);
+      if (v === "list" || v === "categories") setCatalogDisplay(v);
     } catch {
       /* stockage indisponible → défaut commerçant */
     }
   }, [displayKey]);
-  function switchDisplay(v: "list" | "categories") {
-    setDisplay(v);
+  // Bascule (depuis le toggle externe) → referme un éventuel drill-down.
+  useEffect(() => {
     setOpenCat(null);
-    try {
-      window.localStorage.setItem(displayKey, v);
-    } catch {
-      /* préférence non mémorisée, sans gravité */
-    }
-  }
+  }, [display]);
   // Recherche produit (filtre client, sur le catalogue déjà chargé).
   // Recherche partagée avec la barre intégrée au header (store global). On
   // réinitialise au démontage (changement de commerce).
   const { query } = useMerchantSearch();
-  useEffect(() => () => resetSearch(), []);
+  useEffect(
+    () => () => {
+      resetSearch();
+      resetCatalogDisplay();
+    },
+    []
+  );
 
   // Construit les groupes.
   // 1) On utilise les PublicCategory si au moins un produit est rattaché.
@@ -162,6 +165,12 @@ export function MerchantCatalog({
 
     return Array.from(richByKey.values()).filter((g) => g.items.length > 0);
   }, [products, categories, merchant.id, t]);
+
+  // Publie le nombre de groupes → la bascule externe se masque s'il n'y a rien
+  // à basculer (< 2 groupes).
+  useEffect(() => {
+    setCatalogGroupsCount(groups.length);
+  }, [groups.length]);
 
   // Sélection « Populaires » : on met en avant d'abord les produits en promo,
   // puis les autres en stock — sans inventer de métrique de popularité. Limité
@@ -317,47 +326,8 @@ export function MerchantCatalog({
         aria-hidden
         className="scroll-mt-[calc(env(safe-area-inset-top)+64px)]"
       />
-      {/* UNE seule barre de recherche pour toute la fiche : celle du HEADER
-          (icône sur la photo → s'ouvre en barre ; pleine largeur au scroll).
-          Ici on ne garde QUE la bascule liste/catégories — zéro doublon. */}
-      <div className="mb-3 flex items-center justify-end gap-2">
-        {groups.length > 1 && (
-          <div
-            role="group"
-            aria-label={t("viewToggleAria")}
-            className="border-border bg-surface flex shrink-0 items-center rounded-[13px] border p-1 shadow-sm"
-          >
-            <button
-              type="button"
-              onClick={() => switchDisplay("categories")}
-              aria-pressed={display === "categories"}
-              title={t("viewAsCategories")}
-              className={cn(
-                "flex size-9 items-center justify-center rounded-[10px] transition-colors",
-                display === "categories"
-                  ? "bg-primary-600 text-white"
-                  : "text-muted hover:text-foreground"
-              )}
-            >
-              <LayoutGrid className="size-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => switchDisplay("list")}
-              aria-pressed={display === "list"}
-              title={t("viewAsList")}
-              className={cn(
-                "flex size-9 items-center justify-center rounded-[10px] transition-colors",
-                display === "list"
-                  ? "bg-primary-600 text-white"
-                  : "text-muted hover:text-foreground"
-              )}
-            >
-              <Rows3 className="size-4" />
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Recherche : UNE seule barre (header). Bascule liste/catégories : sur
+          la ligne Retrait/Livraison (CatalogViewToggle, store partagé). */}
 
       {/* CHIPS catégories — sticky type Uber Eats (masquées pendant une recherche). */}
       {!q && display === "list" && groups.length > 1 && (

@@ -122,96 +122,98 @@ export function MerchantCartCta({
     freeDeliveryMin != null &&
     subtotal >= freeDeliveryMin / 2;
 
+  // Sous-ligne contextuelle DANS la pilule (une seule, priorité stricte) —
+  // pousse à compléter le panier sans empiler de bandeaux au-dessus.
+  const subline = belowMin
+    ? {
+        Icon: ShoppingBasket,
+        text: t("ctaMinRemaining", { amount: formatDA(minOrderDa - subtotal) }),
+      }
+    : hasSavings
+      ? {
+          Icon: PartyPopper,
+          text: `${tc("promosApplied", { count: promoCount })} · −${formatDA(savings)}`,
+        }
+      : showFdNudge
+        ? {
+            Icon: Truck,
+            text: t("ctaFreeDeliveryRemaining", {
+              amount: formatDA(fdRemaining!),
+            }),
+          }
+        : null;
+
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-16 z-30 px-4 pb-2 lg:bottom-4">
-      <div className="pointer-events-auto mx-auto max-w-md space-y-1.5">
-        {/* UNE bande contextuelle max (priorité : minimum > économies > nudge). */}
-        {belowMin ? (
-          <div className="cg-promo-rise dark:bg-surface/95 border-primary-200 relative flex items-center gap-2 overflow-hidden rounded-[14px] border bg-white/95 px-3 py-1.5 shadow-[0_12px_30px_-14px_rgba(108,43,217,0.45)] backdrop-blur-md">
-            <span className="bg-primary-600 grid size-[22px] shrink-0 place-items-center rounded-full text-white">
-              <ShoppingBasket className="size-[13px]" />
+      <div className="pointer-events-auto mx-auto max-w-md">
+        {/* UNE pilule compacte, style iOS : total + compteur + sous-ligne
+            contextuelle intégrée + progression vers le minimum en filet bas. */}
+        <Link
+          href="/cart"
+          onClick={() => setActiveMerchant(merchantId)}
+          className={cn(
+            "bg-primary-600 hover:bg-primary-700 relative block overflow-hidden rounded-[20px] text-white shadow-[0_20px_42px_-12px_rgba(108,43,217,0.55)] transition-transform",
+            pulse && "scale-[1.02]"
+          )}
+        >
+          {/* Reflet "shine" léger sur le haut de la pilule. */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/15 to-transparent"
+          />
+
+          <span
+            className={cn(
+              "relative flex items-center gap-3 ps-2.5 pe-3 pt-2.5",
+              subline ? "pb-1" : "pb-2.5"
+            )}
+          >
+            <span
+              className={cn(
+                "inline-flex h-9 items-center gap-1.5 rounded-[11px] bg-white/15 px-2.5 text-[14px] font-extrabold tabular-nums transition-transform",
+                pulse && "bg-coral-500 scale-110"
+              )}
+            >
+              <ShoppingBag className="size-4" />
+              {count}
             </span>
-            <span className="text-foreground flex-1 truncate text-[12.5px] font-extrabold">
-              {t("ctaMinRemaining", {
-                amount: formatDA(minOrderDa - subtotal),
-              })}
+            <span className="min-w-0 flex-1 truncate text-center text-[15px] font-extrabold">
+              {t("viewMyCart")}
             </span>
-            <span className="bg-primary-50 text-primary-700 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-black tabular-nums">
-              {t("ctaMinLabel", { min: formatDA(minOrderDa) })}
+            <span className="flex shrink-0 flex-col items-end leading-none">
+              {hasSavings && (
+                <span className="text-[11px] font-semibold text-white/70 tabular-nums line-through">
+                  {formatDA(raw)}
+                </span>
+              )}
+              <span className="text-base font-black tracking-tight tabular-nums">
+                {formatDA(subtotal)}
+              </span>
             </span>
-            {/* Progression vers le minimum — filet en bas de la bande. */}
+          </span>
+
+          {/* Sous-ligne contextuelle (min / économies / livraison offerte). */}
+          {subline && (
+            <span className="relative flex items-center justify-center gap-1.5 px-3 pb-2 text-[11.5px] font-bold text-white/90">
+              <subline.Icon className="size-3.5 shrink-0" aria-hidden />
+              <span className="truncate">{subline.text}</span>
+            </span>
+          )}
+
+          {/* Progression vers le minimum de commande — filet bas de la pilule. */}
+          {belowMin && (
             <span
               aria-hidden
-              className="bg-primary-100 absolute inset-x-0 bottom-0 h-[3px]"
+              className="absolute inset-x-0 bottom-0 h-[3px] bg-white/20"
             >
               <span
-                className="bg-primary-600 block h-full transition-[width] duration-300"
+                className="block h-full rounded-e-full bg-white transition-[width] duration-300"
                 style={{
                   width: `${Math.min(100, Math.round((subtotal / minOrderDa) * 100))}%`,
                 }}
               />
             </span>
-          </div>
-        ) : hasSavings ? (
-          <div className="cg-promo-rise dark:bg-surface/95 border-accent-200 dark:border-accent-500/30 flex items-center gap-2 rounded-[14px] border bg-white/95 px-3 py-1.5 shadow-[0_12px_30px_-14px_rgba(230,0,122,0.5)] backdrop-blur-md">
-            <span className="bg-accent-600 grid size-[22px] shrink-0 place-items-center rounded-full text-white">
-              <PartyPopper className="size-[13px]" />
-            </span>
-            <span className="text-foreground flex-1 truncate text-[12.5px] font-extrabold">
-              {tc("promosApplied", { count: promoCount })}
-            </span>
-            <span className="bg-accent-50 text-accent-600 shrink-0 rounded-full px-2 py-0.5 text-[12px] font-black tabular-nums">
-              −{formatDA(savings)}
-            </span>
-          </div>
-        ) : showFdNudge ? (
-          <div className="cg-promo-rise dark:bg-surface/95 border-success-200 flex items-center gap-2 rounded-[14px] border bg-white/95 px-3 py-1.5 shadow-[0_12px_30px_-14px_rgba(22,130,80,0.45)] backdrop-blur-md">
-            <span className="bg-success-600 grid size-[22px] shrink-0 place-items-center rounded-full text-white">
-              <Truck className="size-[13px]" />
-            </span>
-            <span className="text-foreground flex-1 truncate text-[12.5px] font-extrabold">
-              {t("ctaFreeDeliveryRemaining", {
-                amount: formatDA(fdRemaining!),
-              })}
-            </span>
-          </div>
-        ) : null}
-
-        <Link
-          href="/cart"
-          onClick={() => setActiveMerchant(merchantId)}
-          className={cn(
-            "bg-primary-600 hover:bg-primary-700 relative flex items-center gap-3 overflow-hidden rounded-[18px] py-2.5 ps-2.5 pe-3 text-white shadow-[0_20px_42px_-12px_rgba(108,43,217,0.55)] transition-transform",
-            pulse && "scale-[1.02]"
           )}
-        >
-          {/* Reflet "shine" léger sur le haut de la barre. */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/15 to-transparent"
-          />
-          <span
-            className={cn(
-              "relative inline-flex h-10 items-center gap-2 rounded-[12px] bg-white/15 px-3 text-[15px] font-extrabold tabular-nums transition-transform",
-              pulse && "bg-coral-500 scale-110"
-            )}
-          >
-            <ShoppingBag className="size-4" />
-            {count}
-          </span>
-          <span className="relative flex-1 text-center text-[15px] font-extrabold">
-            {t("viewMyCart")}
-          </span>
-          <span className="relative flex flex-col items-end leading-none">
-            {hasSavings && (
-              <span className="text-[11px] font-semibold text-white/70 tabular-nums line-through">
-                {formatDA(raw)}
-              </span>
-            )}
-            <span className="text-base font-black tracking-tight tabular-nums">
-              {formatDA(subtotal)}
-            </span>
-          </span>
         </Link>
       </div>
     </div>

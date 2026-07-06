@@ -10,6 +10,7 @@ import {
 import { WILAYAS } from "@/lib/config/wilayas";
 import { MerchantCompactHeader } from "@/components/customer/merchant-compact-header";
 import { MerchantCatalog } from "@/components/customer/merchant-catalog";
+import { CatalogViewToggle } from "@/components/customer/catalog-view-toggle";
 import { MerchantOffersRail } from "@/components/customer/merchant-offers-rail";
 import { MerchantCartCta } from "@/components/customer/merchant-cart-cta";
 import { MerchantClosedNotice } from "@/components/customer/merchant-closed-notice";
@@ -192,18 +193,24 @@ export default async function MerchantPublicPage({
           </div>
         )}
 
-        {/* Choix Retrait / Livraison dès la fiche (persisté → pré-rempli au
-            checkout). L'ex-bandeau « Promotions en cours… » est SUPPRIMÉ :
-            doublon avec le rail d'offres + les prix barrés du catalogue. */}
-        <div className="mt-3">
-          <ShopModeToggle
-            merchant={{
-              id: m.id,
-              slug: m.slug,
-              name: m.name,
-              logo_url: m.logo_url,
-            }}
-            deliveryEnabled={!!m.delivery_enabled}
+        {/* Retrait/Livraison + bascule liste/catégories sur la MÊME ligne
+            (gain de place). La bascule pilote le catalogue via un store
+            partagé et se masque s'il n'y a qu'un groupe. */}
+        <div className="mt-3 flex items-stretch gap-2">
+          <div className="min-w-0 flex-1">
+            <ShopModeToggle
+              merchant={{
+                id: m.id,
+                slug: m.slug,
+                name: m.name,
+                logo_url: m.logo_url,
+              }}
+              deliveryEnabled={!!m.delivery_enabled}
+            />
+          </div>
+          <CatalogViewToggle
+            merchantId={m.id}
+            defaultDisplay={m.catalog_display}
           />
         </div>
 
