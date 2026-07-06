@@ -1161,6 +1161,7 @@ export type Database = {
           code: string | null;
           buy_qty: number | null;
           get_qty: number | null;
+          gift_label: string | null;
           starts_at: string | null;
           ends_at: string | null;
           max_uses: number | null;
@@ -1181,6 +1182,7 @@ export type Database = {
           code?: string | null;
           buy_qty?: number | null;
           get_qty?: number | null;
+          gift_label?: string | null;
           starts_at?: string | null;
           ends_at?: string | null;
           max_uses?: number | null;
@@ -1201,6 +1203,7 @@ export type Database = {
           code?: string | null;
           buy_qty?: number | null;
           get_qty?: number | null;
+          gift_label?: string | null;
           starts_at?: string | null;
           ends_at?: string | null;
           max_uses?: number | null;
@@ -2922,7 +2925,12 @@ export type Database = {
         | "completed"
         | "cancelled";
       product_unit: "piece" | "kg" | "l" | "m" | "custom";
-      promotion_type: "product_discount" | "promo_code" | "quantity_offer";
+      promotion_type:
+        | "product_discount"
+        | "promo_code"
+        | "quantity_offer"
+        | "free_gift"
+        | "free_delivery";
       promotion_status: "scheduled" | "active" | "expired" | "disabled";
       discount_kind: "percent" | "amount";
       wallet_entry_type:

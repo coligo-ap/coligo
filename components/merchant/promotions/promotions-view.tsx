@@ -7,12 +7,14 @@ import { useConfirm } from "@/components/ui/confirm";
 import {
   BadgePercent,
   Gift,
+  Layers,
   Loader2,
   Pencil,
   Plus,
   Power,
   Tag,
   Ticket,
+  Truck,
   Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +36,9 @@ import type { PromotionListItem } from "@/app/(merchant)/promotions/page";
 const TYPE_ICON: Record<PromotionType, typeof Tag> = {
   product_discount: BadgePercent,
   promo_code: Ticket,
-  quantity_offer: Gift,
+  quantity_offer: Layers,
+  free_gift: Gift,
+  free_delivery: Truck,
 };
 
 const TABS: { key: PromotionStatus; label: string }[] = [
@@ -60,6 +64,8 @@ function promoValueLabel(p: PromotionListItem): string {
   if (p.type === "quantity_offer") {
     return `${p.buy_qty} acheté${(p.buy_qty ?? 0) > 1 ? "s" : ""} = ${p.get_qty} offert${(p.get_qty ?? 0) > 1 ? "s" : ""}`;
   }
+  if (p.type === "free_gift") return p.gift_label || "Cadeau offert";
+  if (p.type === "free_delivery") return "Livraison offerte";
   if (p.discount_kind === "percent") return `−${p.discount_value} %`;
   if (p.discount_kind === "amount")
     return `−${formatDA(p.discount_value ?? 0)}`;

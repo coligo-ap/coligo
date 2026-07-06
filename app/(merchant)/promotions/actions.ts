@@ -63,6 +63,23 @@ function buildRow(data: PromotionInput): {
         },
         productIds: data.product_ids,
       };
+    case "free_gift":
+      return {
+        row: {
+          ...base,
+          gift_label: data.gift_label,
+          min_subtotal_da: data.min_subtotal,
+        },
+        productIds: [],
+      };
+    case "free_delivery":
+      return {
+        row: {
+          ...base,
+          min_subtotal_da: data.min_subtotal,
+        },
+        productIds: [],
+      };
   }
 }
 

@@ -14,12 +14,18 @@ import { createClient } from "@/lib/supabase/server";
  */
 export type BannerOffer = {
   promotion_id: string;
-  type: "product_discount" | "promo_code" | "quantity_offer";
+  type:
+    | "product_discount"
+    | "promo_code"
+    | "quantity_offer"
+    | "free_gift"
+    | "free_delivery";
   discount_kind: "percent" | "amount" | null;
   discount_value: number | null;
   code: string | null;
   buy_qty: number | null;
   get_qty: number | null;
+  gift_label: string | null;
   min_subtotal_da: number | null;
   title_fr: string;
   title_ar: string | null;

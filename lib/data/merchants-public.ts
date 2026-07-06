@@ -362,12 +362,18 @@ export type PromoLabel = { text: string; kind: "discount" | "code" | "offer" };
 
 type PromoRow = {
   merchant_id: string;
-  type: "product_discount" | "promo_code" | "quantity_offer";
+  type:
+    | "product_discount"
+    | "promo_code"
+    | "quantity_offer"
+    | "free_gift"
+    | "free_delivery";
   discount_kind: "percent" | "amount" | null;
   discount_value: number | null;
   code: string | null;
   buy_qty: number | null;
   get_qty: number | null;
+  gift_label: string | null;
 };
 
 /** Construit un libellé court + un score d'attractivité pour CHOISIR la
@@ -376,6 +382,15 @@ function promoToLabel(p: PromoRow): { label: PromoLabel; appeal: number } {
   // discount_value arrive en NUMERIC → string côté JS. On coerce + arrondit.
   const val =
     p.discount_value != null ? Math.round(Number(p.discount_value)) : 0;
+  if (p.type === "free_delivery") {
+    return { label: { text: "Livraison offerte", kind: "offer" }, appeal: 70 };
+  }
+  if (p.type === "free_gift") {
+    return {
+      label: { text: p.gift_label || "Cadeau offert", kind: "offer" },
+      appeal: 65,
+    };
+  }
   if (p.type === "quantity_offer" && p.buy_qty && p.get_qty) {
     return {
       label: {
@@ -423,7 +438,7 @@ export async function getPromoLabelsByMerchant(
   let query = supabase
     .from("promotions")
     .select(
-      "merchant_id, type, discount_kind, discount_value, code, buy_qty, get_qty"
+      "merchant_id, type, discount_kind, discount_value, code, buy_qty, get_qty, gift_label"
     )
     .eq("status", "active");
   if (merchantIds && merchantIds.length > 0) {

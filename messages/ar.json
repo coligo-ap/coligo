@@ -730,7 +730,10 @@
     "offerValueAmount": "−{amount}",
     "offerValueQty": "{buy} مشتراة = {get, plural, one {# مجانية} other {# مجانية}}",
     "offerValueCode": "رمز ترويجي",
-    "offerValueGeneric": "عرض خاص"
+    "offerValueGeneric": "عرض خاص",
+    "offerFreeDelivery": "توصيل مجاني",
+    "offerGift": "هدية مجانية",
+    "perksTitle": "مزايا المتجر"
   },
   "wallet": {
     "cashbackTitle": "استردادي النقدي",

@@ -13,6 +13,7 @@ import { WILAYAS } from "@/lib/config/wilayas";
 import { MerchantCompactHeader } from "@/components/customer/merchant-compact-header";
 import { MerchantCatalog } from "@/components/customer/merchant-catalog";
 import { MerchantPromoCodes } from "@/components/customer/merchant-promo-codes";
+import { MerchantPerkOffers } from "@/components/customer/merchant-perk-offers";
 import { MerchantCartCta } from "@/components/customer/merchant-cart-cta";
 import { MerchantClosedNotice } from "@/components/customer/merchant-closed-notice";
 import { ShopModeToggle } from "@/components/customer/shop-mode-toggle";
@@ -68,6 +69,10 @@ export default async function MerchantPublicPage({
     (p) => p.type === "quantity_offer"
   );
   const promoCodes = activePromos.filter((p) => p.type === "promo_code");
+  // Avantages « perk » : cadeau offert / livraison offerte (mig 0331).
+  const perkPromos = activePromos.filter(
+    (p) => p.type === "free_gift" || p.type === "free_delivery"
+  );
 
   // Meilleur prix promo unitaire par produit (la meilleure remise produit).
   const promoPriceById: Record<string, number> = {};
@@ -151,6 +156,13 @@ export default async function MerchantPublicPage({
         {promoCodes.length > 0 && (
           <div className="mt-3">
             <MerchantPromoCodes promotions={promoCodes} />
+          </div>
+        )}
+
+        {/* Avantages boutique : cadeau / livraison offerte (mig 0331). */}
+        {perkPromos.length > 0 && (
+          <div className="mt-3">
+            <MerchantPerkOffers promotions={perkPromos} />
           </div>
         )}
 

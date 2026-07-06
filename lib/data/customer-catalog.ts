@@ -53,7 +53,12 @@ export type PublicCategory = {
 export type PublicPromotion = {
   id: string;
   merchant_id: string;
-  type: "product_discount" | "promo_code" | "quantity_offer";
+  type:
+    | "product_discount"
+    | "promo_code"
+    | "quantity_offer"
+    | "free_gift"
+    | "free_delivery";
   status: "scheduled" | "active" | "expired" | "disabled";
   title_fr: string;
   title_ar: string | null;
@@ -62,6 +67,7 @@ export type PublicPromotion = {
   code: string | null;
   buy_qty: number | null;
   get_qty: number | null;
+  gift_label: string | null;
   min_subtotal_da: number | null;
   starts_at: string | null;
   ends_at: string | null;
@@ -161,7 +167,7 @@ export async function listMerchantPromotions(
     .from("promotions")
     .select(
       `id, merchant_id, type, status, title_fr, title_ar, discount_kind,
-       discount_value, code, buy_qty, get_qty, min_subtotal_da,
+       discount_value, code, buy_qty, get_qty, gift_label, min_subtotal_da,
        starts_at, ends_at, promotion_products ( product_id )`
     )
     .eq("merchant_id", merchantId)
@@ -179,6 +185,7 @@ export async function listMerchantPromotions(
     code: row.code,
     buy_qty: row.buy_qty,
     get_qty: row.get_qty,
+    gift_label: row.gift_label,
     min_subtotal_da: row.min_subtotal_da,
     starts_at: row.starts_at,
     ends_at: row.ends_at,
@@ -198,6 +205,7 @@ type RawPromo = {
   code: string | null;
   buy_qty: number | null;
   get_qty: number | null;
+  gift_label: string | null;
   min_subtotal_da: number | null;
   starts_at: string | null;
   ends_at: string | null;

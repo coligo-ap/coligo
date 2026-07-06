@@ -730,7 +730,10 @@
     "offerValueAmount": "−{amount}",
     "offerValueQty": "{buy} achetés = {get, plural, one {# offert} other {# offerts}}",
     "offerValueCode": "Code promo",
-    "offerValueGeneric": "Offre spéciale"
+    "offerValueGeneric": "Offre spéciale",
+    "offerFreeDelivery": "Livraison offerte",
+    "offerGift": "Cadeau offert",
+    "perksTitle": "Avantages de la boutique"
   },
   "wallet": {
     "cashbackTitle": "Mon Cashback",

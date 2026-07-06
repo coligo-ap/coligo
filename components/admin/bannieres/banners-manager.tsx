@@ -224,6 +224,8 @@ function offerSummary(o: OfferOption): string {
     o.discount_value != null ? Math.round(Number(o.discount_value)) : 0;
   const money = (n: number) =>
     o.discount_kind === "percent" ? `−${n}%` : `−${n} DA`;
+  if (o.type === "free_delivery") return "Livraison offerte";
+  if (o.type === "free_gift") return o.gift_label || "Cadeau offert";
   if (o.type === "quantity_offer" && o.buy_qty && o.get_qty) {
     return `${o.buy_qty} achetés = ${o.get_qty} offert${o.get_qty > 1 ? "s" : ""}`;
   }
@@ -235,7 +237,9 @@ function offerSummary(o: OfferOption): string {
 
 /** CTA suggéré selon le type d'offre. */
 function suggestedCta(o: OfferOption): string {
-  return o.type === "promo_code" ? "Récupérer mon code" : "Récupérer mon offre";
+  if (o.type === "promo_code") return "Récupérer mon code";
+  if (o.type === "free_delivery") return "En profiter";
+  return "Récupérer mon offre";
 }
 
 /**

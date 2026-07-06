@@ -8,9 +8,11 @@ import {
   ArrowRight,
   BadgePercent,
   Gift,
+  Layers,
   Loader2,
   Search,
   Ticket,
+  Truck,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,13 +39,17 @@ const initialState: PromotionFormState = {};
 const TYPE_ICON: Record<PromotionType, typeof BadgePercent> = {
   product_discount: BadgePercent,
   promo_code: Ticket,
-  quantity_offer: Gift,
+  quantity_offer: Layers,
+  free_gift: Gift,
+  free_delivery: Truck,
 };
 
 const TYPES: PromotionType[] = [
   "product_discount",
   "promo_code",
   "quantity_offer",
+  "free_gift",
+  "free_delivery",
 ];
 
 // La plateforme fonctionne en heure d'ALGÉRIE (UTC+1, sans heure d'été) — pas
@@ -220,6 +226,14 @@ export function PromotionForm({
 
         {type === "quantity_offer" && (
           <QuantityFields promotion={promotion} pending={pending} />
+        )}
+
+        {type === "free_gift" && (
+          <GiftFields promotion={promotion} pending={pending} />
+        )}
+
+        {type === "free_delivery" && (
+          <FreeDeliveryFields promotion={promotion} pending={pending} />
         )}
 
         {(type === "product_discount" || type === "quantity_offer") && (
@@ -517,6 +531,97 @@ function QuantityFields({
           />
         </div>
       </div>
+    </section>
+  );
+}
+
+/** Champ « panier minimum » réutilisable (code / cadeau / livraison offerte). */
+function MinSubtotalField({
+  promotion,
+  pending,
+  hint,
+}: {
+  promotion?: PromotionWithProducts;
+  pending: boolean;
+  hint: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label>Panier minimum (DA)</Label>
+      <div className="relative">
+        <Input
+          type="number"
+          name="min_subtotal"
+          defaultValue={promotion?.min_subtotal_da ?? ""}
+          min={1}
+          placeholder="Aucun"
+          disabled={pending}
+          className="pr-12"
+        />
+        <span className="text-muted absolute top-1/2 right-4 -translate-y-1/2 text-sm font-medium">
+          DA
+        </span>
+      </div>
+      <p className="text-subtle text-xs">{hint}</p>
+    </div>
+  );
+}
+
+function GiftFields({
+  promotion,
+  pending,
+}: {
+  promotion?: PromotionWithProducts;
+  pending: boolean;
+}) {
+  return (
+    <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+      <h2 className="text-base font-semibold">Cadeau offert</h2>
+      <div className="space-y-1.5">
+        <Label>
+          Le cadeau<span className="text-rose-600"> *</span>
+        </Label>
+        <Input
+          name="gift_label"
+          defaultValue={promotion?.gift_label ?? ""}
+          placeholder="Ex. Un café offert, un porte-clé…"
+          maxLength={120}
+          required
+          disabled={pending}
+        />
+        <p className="text-subtle text-xs">
+          Décrivez ce que le client reçoit. Vous remettez le cadeau selon vos
+          conditions (en boutique ou avec la commande).
+        </p>
+      </div>
+      <MinSubtotalField
+        promotion={promotion}
+        pending={pending}
+        hint="Cadeau offert au-dessus de ce montant d'achats (ex. 2 000 DA). Vide = sans condition."
+      />
+    </section>
+  );
+}
+
+function FreeDeliveryFields({
+  promotion,
+  pending,
+}: {
+  promotion?: PromotionWithProducts;
+  pending: boolean;
+}) {
+  return (
+    <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+      <h2 className="text-base font-semibold">Livraison offerte</h2>
+      <p className="text-muted -mt-2 text-xs">
+        Mettez en avant la livraison offerte. Elle s&apos;applique selon vos
+        conditions de livraison (tournée / zone).
+      </p>
+      <MinSubtotalField
+        promotion={promotion}
+        pending={pending}
+        hint="Livraison offerte au-dessus de ce montant d'achats (ex. 3 000 DA). Vide = sans condition."
+      />
     </section>
   );
 }

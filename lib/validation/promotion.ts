@@ -107,6 +107,34 @@ const quantityOfferSchema = z
     refineDatesOnly(data, ctx);
   });
 
+// Cadeau offert : un libellé décrivant le cadeau + panier minimum optionnel.
+// Ni produits, ni code, ni réduction — offre « perk » honorée par le commerçant.
+const freeGiftSchema = z
+  .object({
+    type: z.literal("free_gift"),
+    gift_label: z
+      .string()
+      .trim()
+      .min(1, "Décrivez le cadeau offert")
+      .max(120, "Description trop longue (120 caractères max)"),
+    min_subtotal: optionalPositiveInt,
+    ...baseFields,
+  })
+  .superRefine((data, ctx) => {
+    refineDatesOnly(data, ctx);
+  });
+
+// Livraison offerte : panier minimum optionnel. Rien d'autre à saisir.
+const freeDeliverySchema = z
+  .object({
+    type: z.literal("free_delivery"),
+    min_subtotal: optionalPositiveInt,
+    ...baseFields,
+  })
+  .superRefine((data, ctx) => {
+    refineDatesOnly(data, ctx);
+  });
+
 /** Règle commune : % entre 1 et 100, montant > 0, dates cohérentes. */
 function refineKindValueAndDates(
   data: {
@@ -145,7 +173,9 @@ function refineDatesOnly(
 export type PromotionInput =
   | z.infer<typeof productDiscountSchema>
   | z.infer<typeof promoCodeSchema>
-  | z.infer<typeof quantityOfferSchema>;
+  | z.infer<typeof quantityOfferSchema>
+  | z.infer<typeof freeGiftSchema>
+  | z.infer<typeof freeDeliverySchema>;
 
 export type ParsedPromotion =
   | { success: true; data: PromotionInput }
@@ -154,7 +184,9 @@ export type ParsedPromotion =
 type AnyParseResult =
   | ReturnType<typeof productDiscountSchema.safeParse>
   | ReturnType<typeof promoCodeSchema.safeParse>
-  | ReturnType<typeof quantityOfferSchema.safeParse>;
+  | ReturnType<typeof quantityOfferSchema.safeParse>
+  | ReturnType<typeof freeGiftSchema.safeParse>
+  | ReturnType<typeof freeDeliverySchema.safeParse>;
 
 function normalize(result: AnyParseResult): ParsedPromotion {
   if (!result.success) {
@@ -209,6 +241,23 @@ export function parsePromotionForm(formData: FormData): ParsedPromotion {
           buy_qty: formData.get("buy_qty"),
           get_qty: formData.get("get_qty"),
           product_ids: productIds,
+          ...common,
+        })
+      );
+    case "free_gift":
+      return normalize(
+        freeGiftSchema.safeParse({
+          type,
+          gift_label: formData.get("gift_label") ?? "",
+          min_subtotal: formData.get("min_subtotal") ?? "",
+          ...common,
+        })
+      );
+    case "free_delivery":
+      return normalize(
+        freeDeliverySchema.safeParse({
+          type,
+          min_subtotal: formData.get("min_subtotal") ?? "",
           ...common,
         })
       );

@@ -442,13 +442,19 @@ export async function searchOfferMerchants(
 
 export type OfferOption = {
   id: string;
-  type: "product_discount" | "promo_code" | "quantity_offer";
+  type:
+    | "product_discount"
+    | "promo_code"
+    | "quantity_offer"
+    | "free_gift"
+    | "free_delivery";
   title_fr: string;
   discount_kind: "percent" | "amount" | null;
   discount_value: number | null;
   code: string | null;
   buy_qty: number | null;
   get_qty: number | null;
+  gift_label: string | null;
   min_subtotal_da: number | null;
   ends_at: string | null;
 };
@@ -464,7 +470,7 @@ export async function listMerchantOffers(
     const { data } = await admin
       .from("promotions")
       .select(
-        "id, type, title_fr, discount_kind, discount_value, code, buy_qty, get_qty, min_subtotal_da, ends_at"
+        "id, type, title_fr, discount_kind, discount_value, code, buy_qty, get_qty, gift_label, min_subtotal_da, ends_at"
       )
       .eq("merchant_id", merchantId)
       .eq("status", "active")

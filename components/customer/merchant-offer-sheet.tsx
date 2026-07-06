@@ -26,6 +26,8 @@ function offerValueText(
 ): string {
   const val =
     o.discount_value != null ? Math.round(Number(o.discount_value)) : 0;
+  if (o.type === "free_delivery") return t("offerFreeDelivery");
+  if (o.type === "free_gift") return o.gift_label || t("offerGift");
   if (o.type === "quantity_offer" && o.buy_qty && o.get_qty) {
     return t("offerValueQty", { buy: o.buy_qty, get: o.get_qty });
   }

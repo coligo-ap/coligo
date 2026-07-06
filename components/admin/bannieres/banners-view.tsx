@@ -16,7 +16,12 @@ import {
 
 type OfferRow = {
   id: string;
-  type: "product_discount" | "promo_code" | "quantity_offer";
+  type:
+    | "product_discount"
+    | "promo_code"
+    | "quantity_offer"
+    | "free_gift"
+    | "free_delivery";
   title_fr: string;
   status: string;
   discount_kind: "percent" | "amount" | null;
@@ -24,6 +29,7 @@ type OfferRow = {
   code: string | null;
   buy_qty: number | null;
   get_qty: number | null;
+  gift_label: string | null;
 };
 
 /** Résumé court d'une offre pour la liste/édition admin (« Code -20% », etc.). */
@@ -32,6 +38,8 @@ function summarizeOffer(o: OfferRow): string {
     o.discount_value != null ? Math.round(Number(o.discount_value)) : 0;
   const money = (n: number) =>
     o.discount_kind === "percent" ? `−${n}%` : `−${n} DA`;
+  if (o.type === "free_delivery") return "Livraison offerte";
+  if (o.type === "free_gift") return o.gift_label || "Cadeau offert";
   if (o.type === "quantity_offer" && o.buy_qty && o.get_qty) {
     return `${o.buy_qty} achetés = ${o.get_qty} offert${o.get_qty > 1 ? "s" : ""}`;
   }
@@ -115,7 +123,7 @@ export async function BannersView() {
       ? admin
           .from("promotions")
           .select(
-            "id, type, title_fr, status, discount_kind, discount_value, code, buy_qty, get_qty"
+            "id, type, title_fr, status, discount_kind, discount_value, code, buy_qty, get_qty, gift_label"
           )
           .in("id", promotionIds)
       : Promise.resolve({ data: [] as OfferRow[] }),

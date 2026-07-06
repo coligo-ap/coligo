@@ -310,7 +310,9 @@ export function stockState(
 export type PromotionType =
   | "product_discount"
   | "promo_code"
-  | "quantity_offer";
+  | "quantity_offer"
+  | "free_gift"
+  | "free_delivery";
 
 export type PromotionStatus = "scheduled" | "active" | "expired" | "disabled";
 
@@ -336,6 +338,18 @@ export const PROMOTION_TYPE_META: Record<
     short: "Offre",
     description: "« X achetés = Y offert(s) » sur un produit (ex. 2 = 1).",
   },
+  free_gift: {
+    label: "Cadeau offert",
+    short: "Cadeau",
+    description:
+      "Un cadeau offert au client (ex. un café), sous condition ou non.",
+  },
+  free_delivery: {
+    label: "Livraison offerte",
+    short: "Livraison",
+    description:
+      "La livraison est offerte, éventuellement dès un panier minimum.",
+  },
 };
 
 export const PROMOTION_STATUS_META: Record<
@@ -360,11 +374,13 @@ export type Promotion = {
   code: string | null;
   buy_qty: number | null;
   get_qty: number | null;
+  /** Cadeau (free_gift) : description de ce qui est offert. */
+  gift_label: string | null;
   starts_at: string | null;
   ends_at: string | null;
   max_uses: number | null;
   max_uses_per_customer: number | null;
-  /** Code promo : sous-total minimum (DA) requis, null si aucun. */
+  /** Sous-total minimum (DA) requis, null si aucun (code / cadeau / livraison). */
   min_subtotal_da: number | null;
   uses_count: number;
   created_at: string;
