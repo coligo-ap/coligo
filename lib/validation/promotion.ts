@@ -151,13 +151,23 @@ const flashSaleSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["ends_at"],
-        message: "Une vente flash doit avoir une date de fin",
+        message: "Une vente flash doit avoir une durée",
       });
     } else if (new Date(data.ends_at).getTime() <= Date.now()) {
       ctx.addIssue({
         code: "custom",
         path: ["ends_at"],
         message: "La fin de la vente flash doit être dans le futur",
+      });
+    } else if (
+      // 24 h MAX (+ 10 min de marge d'horloge) — c'est une vente FLASH.
+      new Date(data.ends_at).getTime() >
+      Date.now() + 24 * 3600 * 1000 + 10 * 60 * 1000
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ends_at"],
+        message: "Une vente flash dure 24 heures maximum",
       });
     }
   });

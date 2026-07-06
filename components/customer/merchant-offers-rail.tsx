@@ -143,7 +143,10 @@ function useCountdown(endsAt: string | null) {
   const h = Math.floor((s % 86400) / 3600);
   const m = Math.floor((s % 3600) / 60);
   const sec = s % 60;
-  const text = d > 0 ? `${d}j ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m ${sec}s`;
+  // Minuteur « urgence » HH:MM:SS qui tique à la seconde (une vente flash dure
+  // 24 h max). Repli « Xj Yh » pour d'éventuelles promos datées plus longues.
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const text = d > 0 ? `${d}j ${h}h` : `${pad(h)}:${pad(m)}:${pad(sec)}`;
   return { mounted, ended: false, text };
 }
 

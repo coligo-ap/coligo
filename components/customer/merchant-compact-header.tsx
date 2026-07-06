@@ -109,8 +109,9 @@ export function MerchantCompactHeader({
   const [scrolled, setScrolled] = useState(false);
   const cart = useCart();
   const cartCount = totalUnits(cart);
-  // Recherche intégrée au header (état partagé avec la barre du catalogue).
-  const { query: searchQuery } = useMerchantSearch();
+  // Recherche intégrée au header — SEULE barre de recherche de la fiche
+  // (état partagé : le catalogue lit `query` pour filtrer).
+  const { open: searchOpen, query: searchQuery } = useMerchantSearch();
 
   // Statut d'ouverture (calculé à la volée, rafraîchi 1×/min pour suivre les
   // bascules de créneau) + jour courant pour surligner « Aujourd'hui ».
@@ -172,42 +173,62 @@ export function MerchantCompactHeader({
   const hasDescription = Boolean(description_fr || description_ar);
   const addressLine = [commune, wilaya_name].filter(Boolean).join(", ");
 
+  // Barre de recherche visible : ouverte manuellement (icône) OU au scroll.
+  const showSearchBar = scrolled || searchOpen;
+
   // Bouton "verre" de la topbar : translucide sur la photo, plein au scroll.
   const rb = cn(
     "relative grid size-9 place-items-center rounded-full backdrop-blur transition-colors active:scale-90",
-    scrolled
+    showSearchBar
       ? "bg-surface-2 text-foreground hover:bg-surface-3"
       : "bg-white/15 text-white ring-1 ring-white/25 hover:bg-white/25"
   );
 
   return (
     <div>
-      {/* ───── TOPBAR FIXE — translucide sur la photo (← · partager · panier).
-              Au scroll : verre dépoli + BARRE DE RECHERCHE à saisie directe
-              (plus de nom redondant : tout l'espace va à la recherche). ───── */}
+      {/* ───── TOPBAR FIXE — LA seule barre de recherche de la fiche (aucun
+              doublon dans le corps de page) : icône 🔍 sur la photo → s'ouvre
+              en barre à saisie directe (verre dépoli) ; au scroll, la barre est
+              affichée en permanence, pleine largeur. ───── */}
       <div
         className={cn(
           "fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)] transition-[background-color,box-shadow]",
-          scrolled
+          showSearchBar
             ? "border-border border-b bg-white/85 shadow-sm backdrop-blur-xl"
             : "bg-transparent"
         )}
       >
         <div className="mx-auto flex h-14 max-w-[1100px] items-center gap-2 px-3 lg:px-4">
-          <Link href="/" aria-label={t("back")} className={rb}>
-            <ArrowLeft className="size-[18px] rtl:-scale-x-100" />
-          </Link>
+          {/* ← : referme la recherche si elle a été ouverte depuis la photo,
+              sinon revient à l'accueil. */}
+          {searchOpen && !scrolled ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchOpen(false);
+                setSearchQuery("");
+              }}
+              aria-label={t("back")}
+              className={rb}
+            >
+              <ArrowLeft className="size-[18px] rtl:-scale-x-100" />
+            </button>
+          ) : (
+            <Link href="/" aria-label={t("back")} className={rb}>
+              <ArrowLeft className="size-[18px] rtl:-scale-x-100" />
+            </Link>
+          )}
 
-          {scrolled ? (
+          {showSearchBar ? (
             /* Recherche INLINE temps réel (état partagé avec le catalogue) —
                le client tape directement, les résultats filtrent en dessous. */
             <div className="bg-surface-2 flex h-9 min-w-0 flex-1 items-center gap-2 rounded-full px-3.5">
               <Search className="text-muted size-4 shrink-0" />
               <input
                 type="search"
+                autoFocus={searchOpen && !scrolled}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setSearchOpen(true)}
                 placeholder={t("searchProducts")}
                 className="placeholder:text-hint text-foreground w-full min-w-0 bg-transparent text-sm font-medium outline-none"
               />
@@ -225,6 +246,14 @@ export function MerchantCompactHeader({
           ) : (
             <>
               <span className="min-w-0 flex-1" />
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                aria-label={t("searchProducts")}
+                className={cn(rb, "shrink-0")}
+              >
+                <Search className="size-[18px]" />
+              </button>
               <ShareButton
                 title={name}
                 label={t("share")}

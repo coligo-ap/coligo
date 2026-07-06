@@ -129,6 +129,19 @@ export function PromotionForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // VENTE FLASH : le commerçant choisit une DURÉE (heures/minutes, 24 h max),
+  // pas une date — la vente démarre MAINTENANT et finit dans `flashMinutes`.
+  // En édition : initialisée sur le temps RESTANT (borné 5 min .. 24 h).
+  const [flashMinutes, setFlashMinutes] = useState<number>(() => {
+    if (promotion?.type === "flash_sale" && promotion.ends_at) {
+      const left = Math.round(
+        (new Date(promotion.ends_at).getTime() - Date.now()) / 60000
+      );
+      return Math.min(24 * 60, Math.max(5, left));
+    }
+    return 120; // défaut : 2 h
+  });
+
   const action = isEdit
     ? updatePromotion.bind(null, promotion!.id)
     : createPromotion;
@@ -239,9 +252,10 @@ export function PromotionForm({
           <div className="border-danger-200 bg-danger-50 text-danger-800 flex items-start gap-2 rounded-[12px] border p-3 text-xs">
             <Timer className="mt-0.5 size-4 shrink-0" />
             <span>
-              Vente flash : indiquez une <b>date de fin</b> ci-dessous — un
-              compte à rebours s&apos;affiche au client pour créer
-              l&apos;urgence.
+              Vente flash : elle démarre <b>immédiatement</b> et dure{" "}
+              <b>24 h maximum</b>. Choisissez la durée ci-dessous — le client
+              voit un compte à rebours (heures : minutes : secondes) qui pousse
+              à acheter vite.
             </span>
           </div>
         )}
@@ -283,42 +297,134 @@ export function PromotionForm({
           />
         )}
 
-        {/* Période */}
-        <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
-          <h2 className="text-base font-semibold">Période (optionnel)</h2>
-          <p className="text-muted -mt-2 text-xs">
-            Début pré-rempli sur maintenant (modifiable) · début futur =
-            programmée automatiquement · fin vide = sans expiration.
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Début</Label>
-              <Input
-                type="datetime-local"
-                name="starts_at"
-                value={startsAt}
-                onChange={(e) => setStartsAt(e.target.value)}
-                disabled={pending}
-              />
+        {/* Période — VENTE FLASH : durée (h/min, 24 h max) au lieu de dates ;
+            la vente démarre MAINTENANT. Autres types : dates classiques. */}
+        {type === "flash_sale" ? (
+          <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+            <h2 className="text-base font-semibold">Durée de la vente flash</h2>
+            <p className="text-muted -mt-2 text-xs">
+              Démarre dès l&apos;enregistrement. 24 heures maximum.
+            </p>
+            {/* Préréglages 1-tap (marketing : durées courtes = urgence). */}
+            <div className="flex flex-wrap gap-2">
+              {[30, 60, 120, 180, 360, 720, 1440].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  disabled={pending}
+                  onClick={() => setFlashMinutes(m)}
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-[13px] font-bold transition-colors",
+                    flashMinutes === m
+                      ? "border-danger-500 bg-danger-50 text-danger-700"
+                      : "border-border bg-surface text-muted hover:border-danger-300"
+                  )}
+                >
+                  {m < 60
+                    ? `${m} min`
+                    : m % 60 === 0
+                      ? `${m / 60} h`
+                      : `${Math.floor(m / 60)} h ${m % 60}`}
+                </button>
+              ))}
             </div>
-            <div className="space-y-1.5">
-              <Label>
-                Fin
-                {type === "flash_sale" && (
-                  <span className="text-rose-600"> * (obligatoire)</span>
-                )}
-              </Label>
-              <Input
-                type="datetime-local"
-                name="ends_at"
-                value={endsAt}
-                onChange={(e) => setEndsAt(e.target.value)}
-                required={type === "flash_sale"}
-                disabled={pending}
-              />
+            {/* Réglage fin heures / minutes. */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Heures</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={24}
+                  value={Math.floor(flashMinutes / 60)}
+                  onChange={(e) => {
+                    const h = Math.max(
+                      0,
+                      Math.min(24, Number(e.target.value) || 0)
+                    );
+                    setFlashMinutes(
+                      Math.min(
+                        24 * 60,
+                        Math.max(5, h * 60 + (flashMinutes % 60))
+                      )
+                    );
+                  }}
+                  disabled={pending}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Minutes</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={55}
+                  step={5}
+                  value={flashMinutes % 60}
+                  onChange={(e) => {
+                    const mn = Math.max(
+                      0,
+                      Math.min(59, Number(e.target.value) || 0)
+                    );
+                    setFlashMinutes(
+                      Math.min(
+                        24 * 60,
+                        Math.max(5, Math.floor(flashMinutes / 60) * 60 + mn)
+                      )
+                    );
+                  }}
+                  disabled={pending}
+                />
+              </div>
             </div>
-          </div>
-        </section>
+            <p className="text-danger-700 text-xs font-semibold">
+              Fin de la vente : dans{" "}
+              {Math.floor(flashMinutes / 60) > 0
+                ? `${Math.floor(flashMinutes / 60)} h `
+                : ""}
+              {flashMinutes % 60 > 0 ? `${flashMinutes % 60} min` : ""}
+            </p>
+            {/* ends_at calculé = maintenant + durée (heure d'Alger). Recalculé à
+                chaque rendu → frais à la soumission. Pas de starts_at : la
+                vente démarre immédiatement. */}
+            <input
+              type="hidden"
+              name="ends_at"
+              value={toAlgiersInput(
+                new Date(Date.now() + flashMinutes * 60000)
+              )}
+            />
+          </section>
+        ) : (
+          <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+            <h2 className="text-base font-semibold">Période (optionnel)</h2>
+            <p className="text-muted -mt-2 text-xs">
+              Début pré-rempli sur maintenant (modifiable) · début futur =
+              programmée automatiquement · fin vide = sans expiration.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Début</Label>
+                <Input
+                  type="datetime-local"
+                  name="starts_at"
+                  value={startsAt}
+                  onChange={(e) => setStartsAt(e.target.value)}
+                  disabled={pending}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Fin</Label>
+                <Input
+                  type="datetime-local"
+                  name="ends_at"
+                  value={endsAt}
+                  onChange={(e) => setEndsAt(e.target.value)}
+                  disabled={pending}
+                />
+              </div>
+            </div>
+          </section>
+        )}
 
         {state.error && (
           <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">

@@ -8,13 +8,10 @@ import {
   Gift,
   LayoutGrid,
   Rows3,
-  Search,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useMerchantSearch,
-  setSearchQuery,
   resetSearch,
 } from "@/lib/customer/merchant-search-store";
 import { ProductDetailSheet } from "@/components/customer/product-detail-sheet";
@@ -320,29 +317,10 @@ export function MerchantCatalog({
         aria-hidden
         className="scroll-mt-[calc(env(safe-area-inset-top)+64px)]"
       />
-      {/* Recherche produit (style Uber) + bascule liste/catégories */}
-      <div className="mb-3 flex items-center gap-2">
-        <div className="border-border-strong bg-surface flex flex-1 items-center gap-2.5 rounded-full border px-4 py-3">
-          <Search className="text-muted size-4 shrink-0" />
-          <input
-            id="merchant-product-search"
-            type="search"
-            value={query}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("searchProductPlaceholder")}
-            className="placeholder:text-hint text-foreground w-full bg-transparent text-[13.5px] font-medium outline-none"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              aria-label={t("clear")}
-              className="text-muted hover:text-foreground shrink-0"
-            >
-              <X className="size-4" />
-            </button>
-          )}
-        </div>
+      {/* UNE seule barre de recherche pour toute la fiche : celle du HEADER
+          (icône sur la photo → s'ouvre en barre ; pleine largeur au scroll).
+          Ici on ne garde QUE la bascule liste/catégories — zéro doublon. */}
+      <div className="mb-3 flex items-center justify-end gap-2">
         {groups.length > 1 && (
           <div
             role="group"
