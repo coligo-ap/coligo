@@ -62,7 +62,7 @@ ws.addEventListener("open", async () => {
   await send("Runtime.enable");
   console.log("navigation -> /settings ...");
   await send("Page.navigate", {
-    url: "https://coligo-liart.vercel.app/settings",
+    url: "https://coligo.app/settings",
   });
   await waitLoad();
   await sleep(5000); // hydratation React + chargement chunks

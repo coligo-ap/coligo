@@ -1,26 +1,34 @@
 /* Coligo — Service Worker (hand-rolled, sans dépendance).
  *
  * Stratégies :
- *  - navigations HTML            → network-first, fallback `/offline`
- *  - assets statiques Next/icônes → cache-first
+ *  - navigations HTML            → network-first (réponse fraîche prioritaire),
+ *                                  repli : dernière copie en cache, puis `/offline`
+ *  - assets statiques Next/icônes/manifests → cache-first
  *  - API/Supabase/RSC            → JAMAIS cachés (données fraîches)
  *
- * Bump CACHE_VERSION pour invalider tout le cache à un nouveau déploiement.
+ * skipWaiting + clients.claim : un nouveau SW prend la main immédiatement
+ * (pas d'onglet servi par un vieux worker), et l'activation purge tous les
+ * caches des versions précédentes. Bump CACHE_VERSION pour invalider tout le
+ * cache à un nouveau déploiement.
  */
-// v5 : invalidation forcée — purge des anciens chunks _next/static/ et assets
-// (refonte de la fiche commerçant ; certains clients servaient l'ancien JS en
-// cache → « je ne vois pas de différence »). Bump = tout le cache est supprimé
-// au prochain chargement.
-const CACHE_VERSION = "coligo-v16";
+// v17 : préparation TWA — le document HTML n'est plus JAMAIS servi depuis un
+// cache périmé en priorité (network-first strict) ; le cache ne sert de repli
+// qu'en cas d'échec réseau. Correction : les manifests réels sont
+// `manifest-*.webmanifest` (l'ancien `/manifest.webmanifest` n'existe pas) et
+// les icônes vivent sous `/icons/`.
+const CACHE_VERSION = "coligo-v17";
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const PRECACHE_CACHE = `${CACHE_VERSION}-precache`;
 const OFFLINE_URL = "/offline";
 const PRECACHE_URLS = [
   OFFLINE_URL,
-  "/manifest.webmanifest",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/icon-maskable-512.png",
+  "/manifest-client.webmanifest",
+  "/manifest-livreur.webmanifest",
+  "/manifest-drive.webmanifest",
+  "/manifest-commercant.webmanifest",
+  "/icons/client-192.png",
+  "/icons/client-512.png",
+  "/icons/client-maskable-512.png",
   "/apple-touch-icon.png",
   "/favicon-32.png",
 ];
@@ -60,10 +68,11 @@ self.addEventListener("activate", (event) => {
 function isStaticAsset(url) {
   return (
     url.pathname.startsWith("/_next/static/") ||
+    url.pathname.startsWith("/icons/") ||
     url.pathname.startsWith("/icon-") ||
     url.pathname === "/favicon-32.png" ||
     url.pathname === "/apple-touch-icon.png" ||
-    url.pathname === "/manifest.webmanifest"
+    /^\/manifest-[a-z]+\.webmanifest$/.test(url.pathname)
   );
 }
 
@@ -88,16 +97,27 @@ self.addEventListener("fetch", (event) => {
   // API / RSC / Supabase auth → jamais de cache, pas d'interception.
   if (isApiOrData(url)) return;
 
-  // Navigations (documents HTML) → network-first, fallback offline.
+  // Navigations (documents HTML) → network-first strict : le réseau fait foi
+  // (jamais de page périmée si le serveur répond). En cas d'échec réseau
+  // uniquement : dernière copie de CETTE page en cache, sinon `/offline`.
   if (req.mode === "navigate") {
     event.respondWith(
       (async () => {
         try {
           const res = await fetch(req);
+          // On ne garde en repli que les vraies pages OK (pas les
+          // redirections/erreurs), pour un repli hors-ligne fidèle.
+          if (res && res.ok) {
+            const cache = await caches.open(RUNTIME_CACHE);
+            cache.put(req, res.clone());
+          }
           return res;
         } catch {
-          const cache = await caches.open(PRECACHE_CACHE);
-          const offline = await cache.match(OFFLINE_URL);
+          const runtime = await caches.open(RUNTIME_CACHE);
+          const cachedPage = await runtime.match(req);
+          if (cachedPage) return cachedPage;
+          const precache = await caches.open(PRECACHE_CACHE);
+          const offline = await precache.match(OFFLINE_URL);
           return (
             offline ||
             new Response("Offline", {

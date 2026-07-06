@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import http from "node:http";
 
-const BASE = "https://coligo-liart.vercel.app";
+const BASE = "https://coligo.app";
 const PORT = 9223;
 const SHOTS = "playwright-shots";
 

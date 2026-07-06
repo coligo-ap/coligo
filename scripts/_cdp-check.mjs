@@ -61,7 +61,7 @@ ws.addEventListener("open", async () => {
   await send("Page.enable");
   await send("Runtime.enable");
   await send("Page.navigate", {
-    url: "https://coligo-liart.vercel.app" + path,
+    url: "https://coligo.app" + path,
   });
   await waitLoad();
   await sleep(5000);

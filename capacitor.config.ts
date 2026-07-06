@@ -11,7 +11,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * `npx cap sync` :
  *
  *   # Test (par défaut)
- *   $env:CAPACITOR_SERVER_URL = "https://coligo-liart.vercel.app"
+ *   $env:CAPACITOR_SERVER_URL = "https://coligo.app"
  *
  *   # Prod
  *   $env:CAPACITOR_SERVER_URL = "https://commercant.coligo.app"
@@ -27,7 +27,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // dynamique `/api/start/commerce` (redirige côté serveur → on peut changer la
 // landing sans rebuild). Les variantes livreur/chauffeur écrivent leur propre
 // `server.url` (/api/start/driver | /api/start/drive) au moment du build.
-const DEFAULT_URL = "https://coligo-liart.vercel.app/api/start/commerce";
+const DEFAULT_URL = "https://coligo.app/api/start/commerce";
 const PROD_URL = "https://commercant.coligo.app/api/start/commerce";
 
 const serverUrl =

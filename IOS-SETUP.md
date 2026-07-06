@@ -56,7 +56,7 @@ Exemple pour **Livreur** :
 
 ```bash
 # URL de démarrage de la variante (idem Android)
-export CAPACITOR_SERVER_URL="https://coligo-liart.vercel.app/driver"
+export CAPACITOR_SERVER_URL="https://coligo.app/driver"
 
 # (re)génère ios/ avec cette config
 rm -rf ios
@@ -109,11 +109,11 @@ confidentialité), rattacher le build, soumettre à la revue.
 
 Même procédure en changeant les 3 valeurs :
 
-| Variante   | `CAPACITOR_SERVER_URL`                      | Bundle ID             | Nom             | Icône `ios-assets/…` |
-| ---------- | ------------------------------------------- | --------------------- | --------------- | -------------------- |
-| Commerçant | `https://coligo-liart.vercel.app/dashboard` | `com.coligo.commerce` | Coligo COMMERCE | `commerce/`          |
-| Livreur    | `https://coligo-liart.vercel.app/driver`    | `com.coligo.livreur`  | Coligo Livreur  | `livreur/`           |
-| Chauffeur  | `https://coligo-liart.vercel.app/chauffeur` | `com.coligo.drive`    | Coligo Drive    | `drive/`             |
+| Variante   | `CAPACITOR_SERVER_URL`         | Bundle ID             | Nom             | Icône `ios-assets/…` |
+| ---------- | ------------------------------ | --------------------- | --------------- | -------------------- |
+| Commerçant | `https://coligo.app/dashboard` | `com.coligo.commerce` | Coligo COMMERCE | `commerce/`          |
+| Livreur    | `https://coligo.app/driver`    | `com.coligo.livreur`  | Coligo Livreur  | `livreur/`           |
+| Chauffeur  | `https://coligo.app/chauffeur` | `com.coligo.drive`    | Coligo Drive    | `drive/`             |
 
 > Astuce : comme `cap add ios` régénère `ios/`, build **une app à la fois**
 > (génère → configure dans Xcode → archive → upload), puis passe à la suivante.

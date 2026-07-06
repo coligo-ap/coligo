@@ -3,7 +3,7 @@
  * Sync Capacitor avec un env CAPACITOR_ENV donné, sans dépendre de cross-env.
  *
  *   node scripts/cap-sync.mjs prod   # → server.url = https://commercant.coligo.app
- *   node scripts/cap-sync.mjs        # → server.url = https://coligo-liart.vercel.app
+ *   node scripts/cap-sync.mjs        # → server.url = https://coligo.app
  */
 
 import { spawnSync } from "node:child_process";

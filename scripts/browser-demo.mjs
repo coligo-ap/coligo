@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
-const BASE = "https://coligo-liart.vercel.app";
+const BASE = "https://coligo.app";
 const OUT = "./playwright-shots";
 mkdirSync(OUT, { recursive: true });
 

@@ -2,7 +2,7 @@
 
 App Android native qui embarque le site Coligo (commerçant) dans un WebView
 Capacitor. Approche **Remote URL** : le WebView charge directement
-`https://commercant.coligo.app` (prod) ou `https://coligo-liart.vercel.app`
+`https://commercant.coligo.app` (prod) ou `https://coligo.app`
 (test). Aucun export statique — le serveur Next.js reste actif sur Vercel.
 
 ## Pré-requis (à installer côté machine)
@@ -30,7 +30,7 @@ Capacitor. Approche **Remote URL** : le WebView charge directement
 
 ```powershell
 # Depuis coligo/
-npm run cap:sync              # URL = preview Vercel (coligo-liart.vercel.app)
+npm run cap:sync              # URL = coligo.app (défaut)
 # ou
 npm run cap:sync:prod         # URL = commercant.coligo.app
 ```
@@ -117,7 +117,7 @@ npm run cap:sync
 npm run cap:sync:prod
 
 # URL custom one-shot
-$env:CAPACITOR_SERVER_URL = "https://feature-xyz.coligo-liart.vercel.app"
+$env:CAPACITOR_SERVER_URL = "https://<deployment-preview>.vercel.app"
 npm run cap:sync
 ```
 

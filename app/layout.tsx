@@ -48,7 +48,7 @@ const fontArabic = Noto_Sans_Arabic({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://coligo-liart.vercel.app"
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://coligo.app"
   ),
   // Titre neutre par défaut (espace CLIENT / marketplace). Chaque autre espace
   // (commerçant, livreur) surcharge ce titre dans son propre layout — sinon
