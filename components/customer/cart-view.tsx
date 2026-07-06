@@ -431,9 +431,9 @@ export function CartView() {
 
       {/* Barre fixe en bas : un seul card = détail repliable (ouverture vers le
           haut) + cashback + récap sous-total/économies/total + bouton.
-          Fond GRIS CLAIR (token surface-2 → s'adapte seul au mode sombre) pour
-          se différencier du blanc de la page. */}
-      <div className="border-border bg-surface-2 fixed inset-x-0 bottom-16 z-40 border-t px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
+          Fond GRIS (token surface-3 → s'adapte seul au mode sombre) pour
+          se différencier nettement du blanc de la page. */}
+      <div className="border-border bg-surface-3 fixed inset-x-0 bottom-16 z-40 border-t px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
         <div className="mx-auto max-w-[560px] space-y-2.5">
           {/* Détail des promotions & économies — contenu INTÉGRÉ directement
               dans la carte du bas (aucune carte autour, pas de titre doublon :
@@ -488,7 +488,7 @@ export function CartView() {
               {/* Codes à saisir au paiement — même liste plate, chips légères. */}
               {codePromos.length > 0 && (
                 <div className="py-2">
-                  <span className="text-foreground flex items-center gap-1.5 text-[11px] font-bold">
+                  <span className="text-primary-700 dark:text-primary-300 flex items-center gap-1.5 text-[11px] font-bold">
                     <Ticket className="text-accent-600 size-3.5" />
                     {t("promoCodeHint")}
                   </span>
