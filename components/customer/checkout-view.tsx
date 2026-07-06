@@ -711,47 +711,53 @@ export function CheckoutView({
           cartSubtotalDa={ctx.cart.subtotalDa}
         />
 
-        {/* Créneau de retrait (uniquement si retrait) */}
+        {/* Retrait — QUAND récupérer ? Le nom du commerce est déjà dans la
+            carte « Ma commande » juste au-dessus (zéro doublon). Deux TUILES
+            côte à côte (même langage que Express/Tournée) au lieu de deux
+            grandes lignes radio empilées → moitié moins haut, plus clair. */}
         {!isDelivery && (
           <Block className="mt-3" delay={0.07}>
-            <div className="text-muted flex items-center gap-2 px-4 pt-4 pb-3 text-[13px] font-bold">
-              <Store className="text-primary-600 size-4 shrink-0" />
-              {t("pickupAt", { name: ctx.merchant.name })}
-            </div>
+            <div className="space-y-2.5 p-4">
+              <p className="text-muted text-[11px] font-extrabold tracking-wider uppercase">
+                {t("pickupWhen")}
+              </p>
 
-            {!openNow && (
-              <div className="border-warning-100 bg-warning-50 text-warning-800 mx-4 mb-3 rounded-[10px] border px-3 py-2 text-xs">
-                {t("closedPickSlot")}
+              {!openNow && (
+                <div className="border-warning-100 bg-warning-50 text-warning-800 rounded-[10px] border px-3 py-2 text-xs">
+                  {t("closedPickSlot")}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2">
+                <PickupTile
+                  checked={pickupType === "asap"}
+                  onClick={() => setPickupType("asap")}
+                  icon={<Clock className="size-4" />}
+                  title={t("pickupNow")}
+                  hint={formatAsapReady(
+                    new Date(Date.now() + ctx.merchant.prep_time_min * 60_000)
+                  )}
+                  disabled={!openNow}
+                />
+                <PickupTile
+                  checked={pickupType === "slot"}
+                  onClick={() => setPickupType("slot")}
+                  icon={<CalendarGlyph />}
+                  title={t("pickupSchedule")}
+                  hint={
+                    availableDays.length === 0
+                      ? t("noSlotAvailable")
+                      : t("upToDaysAhead", {
+                          days: ctx.merchant.max_days_ahead,
+                        })
+                  }
+                  disabled={availableDays.length === 0}
+                />
               </div>
-            )}
-
-            <div className="divide-border border-border divide-y border-t">
-              <SlotRadio
-                checked={pickupType === "asap"}
-                onClick={() => setPickupType("asap")}
-                icon={<Clock className="size-[17px]" />}
-                title={t("immediatePrep")}
-                hint={formatAsapReady(
-                  new Date(Date.now() + ctx.merchant.prep_time_min * 60_000)
-                )}
-                disabled={!openNow}
-              />
-              <SlotRadio
-                checked={pickupType === "slot"}
-                onClick={() => setPickupType("slot")}
-                icon={<CalendarGlyph />}
-                title={t("chooseSlot")}
-                hint={
-                  availableDays.length === 0
-                    ? t("noSlotAvailable")
-                    : t("upToDaysAhead", { days: ctx.merchant.max_days_ahead })
-                }
-                disabled={availableDays.length === 0}
-              />
             </div>
 
             {pickupType === "slot" && availableDays.length > 0 && (
-              <div className="space-y-2 px-4 pt-3 pb-4">
+              <div className="-mt-1 space-y-2 px-4 pb-4">
                 <div className="scrollbar-hide -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
                   {availableDays.map((dayKey) => {
                     const sample = slotsByDay.get(dayKey)?.[0]?.start;
@@ -1471,8 +1477,10 @@ function AddLine({
   );
 }
 
-/** Créneau de retrait (radio) — ligne dans la carte retrait. */
-function SlotRadio({
+/** Tuile de choix retrait (Immédiat / Planifier) — même langage visuel que les
+ *  tuiles de mode livraison (Express / Tournée) : cohérent et 2× plus compact
+ *  que les anciennes lignes radio empilées. */
+function PickupTile({
   checked,
   onClick,
   icon,
@@ -1493,39 +1501,22 @@ function SlotRadio({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex w-full items-center gap-3 px-4 py-3.5 text-start transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50",
-        checked && "bg-primary-50"
+        "flex items-start gap-2 rounded-[12px] border p-3 text-start transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
+        checked
+          ? "border-primary-500 bg-primary-50"
+          : "border-border bg-surface hover:border-primary-300"
       )}
     >
       <span
-        className={cn(
-          "grid size-9 shrink-0 place-items-center rounded-[11px]",
-          checked
-            ? "text-primary-600 bg-white shadow-[0_3px_8px_-2px_rgba(91,91,230,0.4)]"
-            : "bg-surface-2 text-foreground"
-        )}
+        className={cn("mt-0.5", checked ? "text-primary-600" : "text-muted")}
       >
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="text-foreground block text-[14.5px] font-extrabold">
+        <span className="text-foreground block text-sm font-semibold">
           {title}
         </span>
-        {hint && (
-          <span className="text-muted block text-[11.5px] font-semibold">
-            {hint}
-          </span>
-        )}
-      </span>
-      <span
-        className={cn(
-          "relative grid size-[21px] shrink-0 place-items-center rounded-full border-2",
-          checked ? "border-primary-600" : "border-border-strong"
-        )}
-      >
-        {checked && (
-          <span className="bg-primary-600 co-pop size-[11px] rounded-full" />
-        )}
+        {hint && <span className="text-muted text-xs">{hint}</span>}
       </span>
     </button>
   );

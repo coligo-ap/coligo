@@ -363,10 +363,13 @@ export function MerchantCompactHeader({
       <div className="border-border [&>*+*]:border-border mt-3 flex [scrollbar-width:none] overflow-x-auto rounded-[14px] border bg-white [&::-webkit-scrollbar]:hidden [&>*+*]:border-s">
         <button
           type="button"
-          onClick={() => setShowHours((v) => !v)}
+          onClick={() => setShowHours(true)}
           aria-expanded={showHours}
-          className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-2 py-2.5"
+          className="hover:bg-surface-2 flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-2 py-2.5 transition-colors active:scale-[0.98]"
         >
+          {/* Statut seul en haut (propre) ; l'affordance ⌄ est COLLÉE au
+              libellé « Horaires » → on comprend que c'est LA carte horaires
+              qui s'ouvre (pas le temps de préparation voisin). */}
           <span
             className={cn(
               "inline-flex items-center gap-1.5 text-[13px] font-extrabold",
@@ -380,14 +383,10 @@ export function MerchantCompactHeader({
               )}
             />
             {isOpen ? t("openNow") : t("closed")}
-            {showHours ? (
-              <ChevronUp className="text-subtle size-3.5" />
-            ) : (
-              <ChevronDown className="text-subtle size-3.5" />
-            )}
           </span>
-          <span className="text-muted text-[10.5px] font-medium">
+          <span className="text-primary-700 inline-flex items-center gap-0.5 text-[10.5px] font-bold">
             {t("hoursLabel")}
+            <ChevronDown className="size-3" />
           </span>
         </button>
         {prep_time_min > 0 && (
