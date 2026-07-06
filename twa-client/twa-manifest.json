@@ -1,0 +1,42 @@
+{
+  "packageId": "app.coligo.client",
+  "host": "coligo.app",
+  "name": "Coligo",
+  "launcherName": "Coligo",
+  "display": "standalone",
+  "themeColor": "#6C2BD9",
+  "themeColorDark": "#6C2BD9",
+  "navigationColor": "#FFFFFF",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#FFFFFF",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#fafaf9",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://coligo.app/icons/client-512.png",
+  "maskableIconUrl": "https://coligo.app/icons/client-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "../android/coligo-release.keystore",
+    "alias": "coligo"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://coligo.app/manifest-client.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://coligo.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": []
+}
