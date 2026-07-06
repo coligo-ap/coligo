@@ -243,7 +243,7 @@ export default async function MerchantPublicPage({
       </div>
 
       {/* CTA panier sticky en bas (mobile + desktop), si panier de ce commerce */}
-      <MerchantCartCta merchantId={m.id} />
+      <MerchantCartCta merchantId={m.id} minOrderDa={m.min_order_da} />
     </CustomerShell>
   );
 }

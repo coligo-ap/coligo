@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { PartyPopper, ShoppingBag } from "lucide-react";
+import { PartyPopper, ShoppingBag, ShoppingBasket, Truck } from "lucide-react";
 import {
   rawSubtotal,
   setActiveMerchant,
   totalUnits,
   useCartFor,
 } from "@/lib/customer/cart-store";
-import { computeCart } from "@/lib/promotions/engine";
+import { computeCart, isPromotionActive } from "@/lib/promotions/engine";
 import {
   summarizeCartPromotions,
   toEnginePromotions,
@@ -23,16 +23,23 @@ import { cn, formatDA } from "@/lib/utils";
 // =============================================================================
 // MerchantCartCta — barre sticky en bas de la fiche commerçant.
 // =============================================================================
-// Petit effet rebond + flash sur le compteur à chaque ajout (au lieu d'un
-// toast intrusif). Le client perçoit l'ajout sans qu'un overlay ne lui
-// bouffe l'écran quand il enchaîne plusieurs produits.
-//
-// Quand des promotions s'appliquent au panier, un badge dynamique met en avant
-// l'économie réalisée (nombre de promos + montant) AVANT même d'ouvrir le
-// panier → incite à finaliser. Mêmes chiffres que le panier (même moteur).
+// Bouton principal (compteur · « Voir mon panier » · total) + UNE seule bande
+// contextuelle au-dessus (jamais d'empilement — l'info la plus UTILE gagne) :
+//   1. panier < minimum de commande  → progression vers le minimum (prioritaire,
+//      c'est bloquant pour commander) ;
+//   2. des promos s'appliquent       → économie réalisée (incite à finaliser) ;
+//   3. livraison offerte proche      → « plus que X » (nudge, tournée).
+// Petit rebond + flash sur le compteur à chaque ajout (pas de toast intrusif).
 // =============================================================================
 
-export function MerchantCartCta({ merchantId }: { merchantId: string }) {
+export function MerchantCartCta({
+  merchantId,
+  minOrderDa = 0,
+}: {
+  merchantId: string;
+  /** Minimum de commande du commerçant (DA) — 0 = aucun. */
+  minOrderDa?: number;
+}) {
   const t = useTranslations("merchant");
   const tc = useTranslations("cart");
   const cart = useCartFor(merchantId);
@@ -52,7 +59,7 @@ export function MerchantCartCta({ merchantId }: { merchantId: string }) {
     };
   }, [merchantId]);
 
-  const { subtotal, savings, promoCount } = useMemo(() => {
+  const { subtotal, savings, promoCount, freeDeliveryMin } = useMemo(() => {
     const settled = computeCart(
       cart.items.map((i) => ({
         productId: i.product_id,
@@ -66,10 +73,23 @@ export function MerchantCartCta({ merchantId }: { merchantId: string }) {
       }
     );
     const sum = summarizeCartPromotions(promotions, settled);
+    // Livraison offerte (tournée) : le seuil le plus bas parmi les offres actives.
+    const fdMins = promotions
+      .filter(
+        (p) =>
+          p.type === "free_delivery" &&
+          isPromotionActive({
+            status: p.status,
+            startsAt: p.starts_at,
+            endsAt: p.ends_at,
+          })
+      )
+      .map((p) => p.min_subtotal_da ?? 0);
     return {
       subtotal: settled.subtotalDa,
       savings: Math.max(0, settled.normalTotalDa - settled.subtotalDa),
       promoCount: sum.count,
+      freeDeliveryMin: fdMins.length > 0 ? Math.min(...fdMins) : null,
     };
   }, [cart.items, promotions]);
 
@@ -89,12 +109,50 @@ export function MerchantCartCta({ merchantId }: { merchantId: string }) {
   if (count === 0) return null;
 
   const hasSavings = savings > 0;
+  const belowMin = minOrderDa > 0 && subtotal < minOrderDa;
+  // Nudge livraison offerte : seuil pas encore atteint, mais À PORTÉE (< 2×).
+  const fdRemaining =
+    freeDeliveryMin != null && subtotal < freeDeliveryMin
+      ? freeDeliveryMin - subtotal
+      : null;
+  const showFdNudge =
+    !belowMin &&
+    !hasSavings &&
+    fdRemaining != null &&
+    freeDeliveryMin != null &&
+    subtotal >= freeDeliveryMin / 2;
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-16 z-30 px-4 pb-2 lg:bottom-4">
       <div className="pointer-events-auto mx-auto max-w-md space-y-1.5">
-        {/* Badge promo dynamique — visible uniquement si une promo s'applique. */}
-        {hasSavings && (
+        {/* UNE bande contextuelle max (priorité : minimum > économies > nudge). */}
+        {belowMin ? (
+          <div className="cg-promo-rise dark:bg-surface/95 border-primary-200 relative flex items-center gap-2 overflow-hidden rounded-[14px] border bg-white/95 px-3 py-1.5 shadow-[0_12px_30px_-14px_rgba(108,43,217,0.45)] backdrop-blur-md">
+            <span className="bg-primary-600 grid size-[22px] shrink-0 place-items-center rounded-full text-white">
+              <ShoppingBasket className="size-[13px]" />
+            </span>
+            <span className="text-foreground flex-1 truncate text-[12.5px] font-extrabold">
+              {t("ctaMinRemaining", {
+                amount: formatDA(minOrderDa - subtotal),
+              })}
+            </span>
+            <span className="bg-primary-50 text-primary-700 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-black tabular-nums">
+              {t("ctaMinLabel", { min: formatDA(minOrderDa) })}
+            </span>
+            {/* Progression vers le minimum — filet en bas de la bande. */}
+            <span
+              aria-hidden
+              className="bg-primary-100 absolute inset-x-0 bottom-0 h-[3px]"
+            >
+              <span
+                className="bg-primary-600 block h-full transition-[width] duration-300"
+                style={{
+                  width: `${Math.min(100, Math.round((subtotal / minOrderDa) * 100))}%`,
+                }}
+              />
+            </span>
+          </div>
+        ) : hasSavings ? (
           <div className="cg-promo-rise dark:bg-surface/95 border-accent-200 dark:border-accent-500/30 flex items-center gap-2 rounded-[14px] border bg-white/95 px-3 py-1.5 shadow-[0_12px_30px_-14px_rgba(230,0,122,0.5)] backdrop-blur-md">
             <span className="bg-accent-600 grid size-[22px] shrink-0 place-items-center rounded-full text-white">
               <PartyPopper className="size-[13px]" />
@@ -106,7 +164,18 @@ export function MerchantCartCta({ merchantId }: { merchantId: string }) {
               −{formatDA(savings)}
             </span>
           </div>
-        )}
+        ) : showFdNudge ? (
+          <div className="cg-promo-rise dark:bg-surface/95 border-success-200 flex items-center gap-2 rounded-[14px] border bg-white/95 px-3 py-1.5 shadow-[0_12px_30px_-14px_rgba(22,130,80,0.45)] backdrop-blur-md">
+            <span className="bg-success-600 grid size-[22px] shrink-0 place-items-center rounded-full text-white">
+              <Truck className="size-[13px]" />
+            </span>
+            <span className="text-foreground flex-1 truncate text-[12.5px] font-extrabold">
+              {t("ctaFreeDeliveryRemaining", {
+                amount: formatDA(fdRemaining!),
+              })}
+            </span>
+          </div>
+        ) : null}
 
         <Link
           href="/cart"
