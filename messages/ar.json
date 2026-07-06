@@ -235,8 +235,9 @@
     "serviceFee": "رسوم الخدمة",
     "free": "مجاناً",
     "deliveryFee": "التوصيل",
+    "deliveryTourLabel": "التوصيل بالجولة",
     "freeDeliveryApplied": "مجاني",
-    "freeDeliveryHint": "أضِف {amount} فقط للحصول على توصيل مجاني",
+    "freeDeliveryHint": "أضِف {amount} فقط للحصول على التوصيل بالجولة مجانًا",
     "promoCodeLabel": "رمز ترويجي ({code})",
     "orderTotal": "إجمالي الطلب",
     "cashbackUsed": "الكاش باك المستخدم",
@@ -735,6 +736,7 @@
     "offerValueGeneric": "عرض خاص",
     "offerFreeDelivery": "توصيل مجاني",
     "offerGift": "هدية مجانية",
+    "offerTourOnly": "في التوصيل بالجولة",
     "perksTitle": "مزايا المتجر"
   },
   "wallet": {

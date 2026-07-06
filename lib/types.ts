@@ -348,7 +348,7 @@ export const PROMOTION_TYPE_META: Record<
     label: "Livraison offerte",
     short: "Livraison",
     description:
-      "La livraison est offerte, éventuellement dès un panier minimum.",
+      "Livraison en TOURNÉE offerte, dès un panier minimum optionnel (l'Express n'est pas concerné).",
   },
 };
 

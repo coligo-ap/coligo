@@ -1071,15 +1071,31 @@ export function CheckoutView({
                 )
               )}
               {freeDeliveryApplies && hasValidDeliveryPosition ? (
-                <RRow
-                  label={t("deliveryFee")}
-                  value={t("freeDeliveryApplied")}
-                  tone="success"
-                />
+                // Livraison offerte (tournée) : on BARRE le prix tournée normal
+                // et on affiche « Gratuit » → le client voit ce qu'il a économisé.
+                <div className="flex items-center justify-between py-[3px] text-sm">
+                  <dt className="text-foreground font-semibold">
+                    {t("deliveryTourLabel")}
+                  </dt>
+                  <dd className="flex items-center gap-2 tabular-nums">
+                    {rawDeliveryFeeDa > 0 && (
+                      <span className="text-muted font-medium line-through">
+                        {formatDA(rawDeliveryFeeDa)}
+                      </span>
+                    )}
+                    <span className="text-success-700 font-extrabold">
+                      {t("freeDeliveryApplied")}
+                    </span>
+                  </dd>
+                </div>
               ) : (
                 deliveryFeeDa > 0 && (
                   <RRow
-                    label={t("deliveryFee")}
+                    label={
+                      delivery.mode === "tour"
+                        ? t("deliveryTourLabel")
+                        : t("deliveryFee")
+                    }
                     value={formatDA(deliveryFeeDa)}
                   />
                 )

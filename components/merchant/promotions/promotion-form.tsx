@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgePercent,
+  Check,
   Gift,
   Layers,
   Loader2,
@@ -14,6 +15,7 @@ import {
   Ticket,
   Truck,
   X,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -613,14 +615,36 @@ function FreeDeliveryFields({
   return (
     <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
       <h2 className="text-base font-semibold">Livraison offerte</h2>
-      <p className="text-muted -mt-2 text-xs">
-        Mettez en avant la livraison offerte. Elle s&apos;applique selon vos
-        conditions de livraison (tournée / zone).
-      </p>
+
+      {/* Type de livraison concerné : TOURNÉE seule éligible (verrouillée). */}
+      <div className="space-y-1.5">
+        <Label>Type de livraison concerné</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="border-primary-500 bg-primary-50/60 flex items-center gap-2 rounded-[12px] border-2 px-3 py-2.5">
+            <Truck className="text-primary-700 size-4 shrink-0" />
+            <span className="text-primary-800 text-sm font-semibold">
+              Tournée
+            </span>
+            <Check className="text-primary-600 ms-auto size-4 shrink-0" />
+          </div>
+          <div className="border-border bg-surface-3 flex items-center gap-2 rounded-[12px] border px-3 py-2.5 opacity-60">
+            <Zap className="text-muted size-4 shrink-0" />
+            <span className="text-muted text-sm font-medium line-through">
+              Express
+            </span>
+          </div>
+        </div>
+        <p className="text-subtle text-xs">
+          La livraison offerte s&apos;applique <b>uniquement à la tournée</b>
+          (votre propre livraison, que vous assumez). L&apos;Express n&apos;est
+          pas concerné : le livreur indépendant est payé par la plateforme.
+        </p>
+      </div>
+
       <MinSubtotalField
         promotion={promotion}
         pending={pending}
-        hint="Livraison offerte au-dessus de ce montant d'achats (ex. 3 000 DA). Vide = sans condition."
+        hint="Livraison en tournée offerte au-dessus de ce montant d'achats (ex. 3 000 DA). Vide = sans condition."
       />
     </section>
   );

@@ -123,6 +123,11 @@ export function MerchantOfferSheet({
               <div className="min-w-0">
                 <p className="text-accent-700 text-lg leading-tight font-black">
                   {value}
+                  {offer.type === "free_delivery" && (
+                    <span className="text-muted ml-1.5 text-[12px] font-semibold">
+                      · {t("offerTourOnly")}
+                    </span>
+                  )}
                 </p>
                 <p className="text-foreground text-sm font-semibold">
                   {headline || title}

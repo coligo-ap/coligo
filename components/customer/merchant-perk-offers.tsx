@@ -79,6 +79,11 @@ function PerkCard({ promotion }: { promotion: PublicPromotion }) {
         </span>
         <span className="text-accent-700 mt-0.5 block text-sm font-black">
           {value}
+          {isDelivery && (
+            <span className="text-muted ml-1.5 text-[11px] font-semibold">
+              · {t("offerTourOnly")}
+            </span>
+          )}
         </span>
         <span className="text-muted mt-0.5 block truncate text-[11px]">
           {summary}
