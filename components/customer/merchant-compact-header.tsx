@@ -42,15 +42,14 @@ import type { ReviewWithCustomer } from "@/lib/data/reviews";
 // MerchantCompactHeader — en-tête fiche commerçant, refonte « ULTRA » immersive.
 // =============================================================================
 //   ┌───────────────────────────────────────────────┐
-//   │  topbar fixe (← retour · ♡ · 🛒) translucide    │  ← devient verre dépoli
-//   │  ┌─────────────────────────────────────────┐   │     + nom au scroll
-//   │  │   COVER plein-cadre · dégradé sombre haut │   │
-//   │  │   Nom de la boutique (posé sur la photo)  │   │
-//   │  └─────────────────────────────────────────┘   │
+//   │  topbar fixe (← · partager · 🛒) translucide    │  ← au scroll : verre
+//   │  ┌─────────────────────────────────────────┐   │     dépoli + BARRE DE
+//   │  │   COVER plein-cadre · dégradé sombre haut │   │     RECHERCHE inline
+//   │  └─────────────────────────────────────────┘   │     (saisie directe)
 //   └───────────────────────────────────────────────┘
-//   [logo]   ●Ouvert   ★4.5 (28)            ← chevauche le bas du hero
-//   Type · Commune, Wilaya                  ← zone blanche
-//   ⏱ ~15 min · Min 500 DA · 📍Retrait gratuit · Horaires⌄
+//   [logo]  Nom de la boutique                    ♡   ← ♡ sur la ligne du nom
+//           Type                          ★4.5 (28)
+//   [ ●Ouvert⌄ │ ⏱~15 min │ 🧺 500 DA │ 📍Commune ]     ← bande d'infos unifiée
 //   [ tags · description repliable · horaires repliables ]
 //
 // Le hero plonge sous l'encoche (env(safe-area-inset-top)) ; le dégradé sombre
