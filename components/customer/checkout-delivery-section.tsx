@@ -348,39 +348,40 @@ export function CheckoutDeliverySection({
                 {t("whereToDeliver")}
               </p>
 
-              <ChoiceRow
-                icon={
-                  gpsState === "loading" ? (
-                    <Loader2 className="size-[18px] animate-spin" />
-                  ) : (
-                    <LocateFixed className="size-[18px]" />
-                  )
-                }
-                title={t("currentPosition")}
-                sub={t("currentPositionSub")}
-                active={source === "current"}
-                onClick={detectCurrent}
-              />
-              <ChoiceRow
-                icon={<Bookmark className="size-[18px]" />}
-                title={t("savedAddressesChoice")}
-                sub={t("savedAddressesChoiceSub")}
-                active={source === "saved"}
-                onClick={() => {
-                  setSource("saved");
-                  setAddrModalOpen(true);
-                }}
-              />
-              <ChoiceRow
-                icon={<MapIcon className="size-[18px]" />}
-                title={t("selectOnMapChoice")}
-                sub={t("selectOnMapChoiceSub")}
-                active={source === "map"}
-                onClick={() => {
-                  setSource("map");
-                  setMapOpen(true);
-                }}
-              />
+              {/* 3 tuiles côte à côte (une seule rangée compacte, style iOS) —
+                  remplace 3 grandes lignes empilées qui mangeaient l'écran. */}
+              <div className="grid grid-cols-3 gap-2">
+                <ChoiceTile
+                  icon={
+                    gpsState === "loading" ? (
+                      <Loader2 className="size-[18px] animate-spin" />
+                    ) : (
+                      <LocateFixed className="size-[18px]" />
+                    )
+                  }
+                  label={t("tileMyPosition")}
+                  active={source === "current"}
+                  onClick={detectCurrent}
+                />
+                <ChoiceTile
+                  icon={<Bookmark className="size-[18px]" />}
+                  label={t("tileMyAddresses")}
+                  active={source === "saved"}
+                  onClick={() => {
+                    setSource("saved");
+                    setAddrModalOpen(true);
+                  }}
+                />
+                <ChoiceTile
+                  icon={<MapIcon className="size-[18px]" />}
+                  label={t("tileOnMap")}
+                  active={source === "map"}
+                  onClick={() => {
+                    setSource("map");
+                    setMapOpen(true);
+                  }}
+                />
+              </div>
 
               {/* État de la position choisie (détection / zone / erreur). */}
               <PositionStatus
@@ -743,17 +744,15 @@ function StatusLine({
   );
 }
 
-/** Ligne de choix : icône en pastille + titre + sous-titre + chevron. */
-function ChoiceRow({
+/** Tuile de choix compacte (icône + libellé court, 3 par rangée, style iOS). */
+function ChoiceTile({
   icon,
-  title,
-  sub,
+  label,
   active,
   onClick,
 }: {
   icon: React.ReactNode;
-  title: string;
-  sub: string;
+  label: string;
   active: boolean;
   onClick: () => void;
 }) {
@@ -762,7 +761,7 @@ function ChoiceRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 rounded-[14px] border px-3.5 py-3 text-start transition active:scale-[0.99]",
+        "flex flex-col items-center gap-1.5 rounded-[14px] border px-2 py-3 transition active:scale-[0.97]",
         active
           ? "border-primary-500 bg-primary-50"
           : "border-border bg-surface hover:border-primary-300"
@@ -778,13 +777,14 @@ function ChoiceRow({
       >
         {icon}
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="text-foreground block truncate text-sm font-bold">
-          {title}
-        </span>
-        <span className="text-muted block truncate text-xs">{sub}</span>
+      <span
+        className={cn(
+          "text-center text-[11.5px] leading-tight font-bold",
+          active ? "text-primary-800" : "text-foreground"
+        )}
+      >
+        {label}
       </span>
-      <ChevronRight className="text-subtle size-4 shrink-0 rtl:-scale-x-100" />
     </button>
   );
 }
@@ -1237,9 +1237,11 @@ function ModeButton({
         <span className="block text-sm font-semibold">{label}</span>
         <span className="text-muted text-xs">{sub}</span>
         {badge && (
-          <span className="bg-success-600 mt-1.5 inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold text-white">
-            <Truck className="size-3 shrink-0" />
-            <span className="truncate">{badge}</span>
+          // Texte JAMAIS tronqué : l'étiquette passe à la ligne si besoin
+          // (rounded-[9px] pour rester joli sur 2 lignes).
+          <span className="bg-success-600 mt-1.5 inline-flex max-w-full items-start gap-1 rounded-[9px] px-1.5 py-1 text-[10.5px] leading-[1.25] font-bold text-white">
+            <Truck className="mt-px size-3 shrink-0" />
+            <span>{badge}</span>
           </span>
         )}
       </span>

@@ -10,6 +10,7 @@ import {
   Gift,
   Layers,
   Leaf,
+  Plus,
   Ticket,
   Timer,
   Truck,
@@ -18,7 +19,12 @@ import {
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { Portal } from "@/components/ui/portal";
-import type { PublicPromotion } from "@/lib/data/customer-catalog";
+import { useCartAdd } from "@/components/customer/cart-mono-provider";
+import { isFractionalUnit, minQtyFor } from "@/lib/units";
+import type {
+  PublicProduct,
+  PublicPromotion,
+} from "@/lib/data/customer-catalog";
 
 // =============================================================================
 // MerchantOffersRail — carrousel COMPACT et CLASSÉ des offres d'une boutique.
@@ -33,13 +39,15 @@ import type { PublicPromotion } from "@/lib/data/customer-catalog";
 // la fiche commerce.
 // =============================================================================
 
-export type OfferProduct = {
-  name: string;
-  image_url: string | null;
-  price_da: number;
-};
+/** Produits COMPLETS indexés par id — nécessaires à l'ajout panier direct. */
+type ProductsById = Record<string, PublicProduct>;
 
-type ProductsById = Record<string, OfferProduct>;
+export type RailMerchant = {
+  id: string;
+  slug: string;
+  name: string;
+  logo_url?: string | null;
+};
 
 type TypeMeta = {
   Icon: LucideIcon;
@@ -201,10 +209,12 @@ function fmtDate(iso: string, locale: string): string {
 }
 
 export function MerchantOffersRail({
+  merchant,
   offers,
   productsById,
   promoPriceById,
 }: {
+  merchant: RailMerchant;
   offers: PublicPromotion[];
   productsById: ProductsById;
   promoPriceById: Record<string, number>;
@@ -235,6 +245,7 @@ export function MerchantOffersRail({
 
       {active && (
         <OfferDetailSheet
+          merchant={merchant}
           promo={active}
           productsById={productsById}
           promoPriceById={promoPriceById}
@@ -346,11 +357,13 @@ function OfferCard({
 }
 
 function OfferDetailSheet({
+  merchant,
   promo,
   productsById,
   promoPriceById,
   onClose,
 }: {
+  merchant: RailMerchant;
   promo: PublicPromotion;
   productsById: ProductsById;
   promoPriceById: Record<string, number>;
@@ -386,8 +399,8 @@ function OfferDetailSheet({
   const products = useMemo(
     () =>
       promo.product_ids
-        .map((id) => ({ id, p: productsById[id] }))
-        .filter((x): x is { id: string; p: OfferProduct } => !!x.p),
+        .map((id) => productsById[id])
+        .filter((p): p is PublicProduct => !!p),
     [promo.product_ids, productsById]
   );
 
@@ -523,59 +536,134 @@ function OfferDetailSheet({
               </div>
             )}
 
-            {/* Produits concernés (réductions / offres quantité). */}
+            {/* Produits concernés — AJOUT PANIER DIRECT depuis la feuille
+                (vente flash, réductions, offres quantité). */}
             {products.length > 0 && (
               <div>
                 <p className="text-foreground mb-1.5 text-[12px] font-bold">
                   {t("concernedProducts")}
                 </p>
                 <ul className="space-y-2">
-                  {products.slice(0, 8).map(({ id, p }) => {
-                    const promoPrice = promoPriceById[id];
-                    return (
-                      <li key={id} className="flex items-center gap-3">
-                        <span className="bg-surface-2 size-11 shrink-0 overflow-hidden rounded-[10px]">
-                          {p.image_url && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={p.image_url}
-                              alt=""
-                              loading="lazy"
-                              className="size-full object-cover"
-                            />
-                          )}
-                        </span>
-                        <span className="text-foreground min-w-0 flex-1 truncate text-sm font-medium">
-                          {p.name}
-                        </span>
-                        <span className="shrink-0 text-sm font-bold tabular-nums">
-                          {promoPrice != null && promoPrice < p.price_da ? (
-                            <>
-                              <span className="text-muted me-1.5 font-normal line-through">
-                                {formatDA(p.price_da)}
-                              </span>
-                              <span className="text-accent-700">
-                                {formatDA(promoPrice)}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-foreground">
-                              {formatDA(p.price_da)}
-                            </span>
-                          )}
-                        </span>
-                      </li>
-                    );
-                  })}
+                  {products.slice(0, 8).map((p) => (
+                    <SheetProductRow
+                      key={p.id}
+                      merchant={merchant}
+                      product={p}
+                      promoPrice={promoPriceById[p.id] ?? null}
+                      onNeedsDetail={onClose}
+                    />
+                  ))}
                 </ul>
-                <p className="text-muted mt-2 text-[12px]">
-                  {t("seeProductsInMenu")}
-                </p>
               </div>
             )}
           </div>
         </div>
       </div>
     </Portal>
+  );
+}
+
+/**
+ * Ligne produit de la feuille d'offre, avec AJOUT PANIER direct.
+ * Même garde anti « ajout aveugle » que ProductRow : un produit à options ou
+ * vendu au poids/volume NE s'ajoute PAS en un tap — on ferme la feuille pour
+ * que le client le configure depuis le menu (fiche produit).
+ */
+function SheetProductRow({
+  merchant,
+  product,
+  promoPrice,
+  onNeedsDetail,
+}: {
+  merchant: RailMerchant;
+  product: PublicProduct;
+  promoPrice: number | null;
+  onNeedsDetail: () => void;
+}) {
+  const t = useTranslations("merchant");
+  const { requestAdd } = useCartAdd();
+  const [added, setAdded] = useState(false);
+
+  const hasOptions = (product.option_groups?.length ?? 0) > 0;
+  const needsDetail = hasOptions || isFractionalUnit(product.unit);
+  const isOut =
+    product.is_available === false ||
+    (product.stock_qty != null && product.stock_qty <= 0);
+  const hasPromo = promoPrice != null && promoPrice < product.price_da;
+
+  function add() {
+    if (isOut) return;
+    if (needsDetail) {
+      // Configuration requise (options / quantité au poids) → retour au menu.
+      onNeedsDetail();
+      return;
+    }
+    const ok = requestAdd(merchant, {
+      product_id: product.id,
+      name: product.name_fr,
+      name_ar: product.name_ar,
+      unit: product.unit,
+      min_qty: product.min_qty,
+      max_qty: product.max_qty,
+      unit_price_da: product.price_da,
+      image_url: product.image_url,
+      category_title: product.category,
+      quantity: minQtyFor(product.unit, product.min_qty),
+    });
+    if (ok) {
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1200);
+    }
+  }
+
+  return (
+    <li className="flex items-center gap-3">
+      <span className="border-border size-11 shrink-0 overflow-hidden rounded-[10px] border bg-white">
+        {product.image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={product.image_url}
+            alt=""
+            loading="lazy"
+            className="size-full object-contain p-0.5"
+          />
+        )}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="text-foreground block truncate text-sm font-medium">
+          {product.name_fr}
+        </span>
+        <span className="text-sm font-bold tabular-nums">
+          {hasPromo ? (
+            <>
+              <span className="text-muted me-1.5 font-normal line-through">
+                {formatDA(product.price_da)}
+              </span>
+              <span className="text-accent-700">{formatDA(promoPrice!)}</span>
+            </>
+          ) : (
+            <span className="text-foreground">
+              {formatDA(product.price_da)}
+            </span>
+          )}
+        </span>
+      </span>
+      <button
+        type="button"
+        onClick={add}
+        disabled={isOut}
+        aria-label={t("addToCart")}
+        className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded-full border shadow-sm transition-transform active:scale-90",
+          isOut
+            ? "border-border bg-surface-3 text-subtle cursor-not-allowed"
+            : added
+              ? "border-success-600 bg-success-600 scale-110 text-white"
+              : "border-border text-accent-600 hover:border-accent-300 bg-white"
+        )}
+      >
+        {added ? <Check className="size-4" /> : <Plus className="size-4" />}
+      </button>
+    </li>
   );
 }

@@ -1,6 +1,4 @@
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
-import { Tag } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { getMyFavoriteIds } from "@/lib/data/favorites";
@@ -32,7 +30,6 @@ export default async function MerchantPublicPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const t = await getTranslations("merchant");
   const m = await getPublicMerchantBySlug(slug);
   if (!m) notFound();
 
@@ -131,12 +128,14 @@ export default async function MerchantPublicPage({
     (p) => p.type === "product_discount"
   );
 
-  // Produits indexés (pour la feuille de détail d'une offre : image + prix).
+  // Produits COMPLETS indexés (feuille de détail d'une offre : affichage +
+  // AJOUT PANIER direct — la garde options/poids a besoin de tout le produit).
+  // Borné aux produits RÉFÉRENCÉS par les offres du rail (payload minimal).
+  const railProductIds = new Set(railOffers.flatMap((o) => o.product_ids));
   const productsById = Object.fromEntries(
-    catalog.products.map((p) => [
-      p.id,
-      { name: p.name_fr, image_url: p.image_url, price_da: p.price_da },
-    ])
+    catalog.products
+      .filter((p) => railProductIds.has(p.id))
+      .map((p) => [p.id, p])
   );
 
   return (
@@ -180,6 +179,12 @@ export default async function MerchantPublicPage({
         {railOffers.length > 0 && (
           <div className="mt-3">
             <MerchantOffersRail
+              merchant={{
+                id: m.id,
+                slug: m.slug,
+                name: m.name,
+                logo_url: m.logo_url,
+              }}
               offers={railOffers}
               productsById={productsById}
               promoPriceById={promoPriceById}
@@ -188,8 +193,9 @@ export default async function MerchantPublicPage({
         )}
 
         {/* Choix Retrait / Livraison dès la fiche (persisté → pré-rempli au
-            checkout). + Bannière promo si des produits sont en réduction. */}
-        <div className="mt-3 space-y-2.5">
+            checkout). L'ex-bandeau « Promotions en cours… » est SUPPRIMÉ :
+            doublon avec le rail d'offres + les prix barrés du catalogue. */}
+        <div className="mt-3">
           <ShopModeToggle
             merchant={{
               id: m.id,
@@ -199,16 +205,6 @@ export default async function MerchantPublicPage({
             }}
             deliveryEnabled={!!m.delivery_enabled}
           />
-          {Object.keys(promoPriceById).length > 0 && (
-            <div className="bg-warning-50 flex items-center gap-3 rounded-[14px] p-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-[11px] bg-gradient-to-br from-[#E0902A] to-[#C77A18] text-white">
-                <Tag className="size-5" />
-              </span>
-              <p className="text-[13px] font-bold text-[#7A4E10]">
-                {t("promoBanner")}
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Bandeau + pop-up « fermé / en pause » → propose de programmer une
