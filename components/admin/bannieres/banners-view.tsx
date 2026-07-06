@@ -21,7 +21,9 @@ type OfferRow = {
     | "promo_code"
     | "quantity_offer"
     | "free_gift"
-    | "free_delivery";
+    | "free_delivery"
+    | "flash_sale"
+    | "anti_gaspillage";
   title_fr: string;
   status: string;
   discount_kind: "percent" | "amount" | null;
@@ -40,6 +42,8 @@ function summarizeOffer(o: OfferRow): string {
     o.discount_kind === "percent" ? `−${n}%` : `−${n} DA`;
   if (o.type === "free_delivery") return "Livraison offerte";
   if (o.type === "free_gift") return o.gift_label || "Cadeau offert";
+  if (o.type === "flash_sale") return `Vente flash ${money(val)}`;
+  if (o.type === "anti_gaspillage") return `Anti-gaspi ${money(val)}`;
   if (o.type === "quantity_offer" && o.buy_qty && o.get_qty) {
     return `${o.buy_qty} achetés = ${o.get_qty} offert${o.get_qty > 1 ? "s" : ""}`;
   }

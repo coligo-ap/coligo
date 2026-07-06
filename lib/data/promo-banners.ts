@@ -19,7 +19,9 @@ export type BannerOffer = {
     | "promo_code"
     | "quantity_offer"
     | "free_gift"
-    | "free_delivery";
+    | "free_delivery"
+    | "flash_sale"
+    | "anti_gaspillage";
   discount_kind: "percent" | "amount" | null;
   discount_value: number | null;
   code: string | null;

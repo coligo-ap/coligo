@@ -10,9 +10,11 @@ import {
   Check,
   Gift,
   Layers,
+  Leaf,
   Loader2,
   Search,
   Ticket,
+  Timer,
   Truck,
   X,
   Zap,
@@ -44,14 +46,25 @@ const TYPE_ICON: Record<PromotionType, typeof BadgePercent> = {
   quantity_offer: Layers,
   free_gift: Gift,
   free_delivery: Truck,
+  flash_sale: Timer,
+  anti_gaspillage: Leaf,
 };
 
 const TYPES: PromotionType[] = [
+  "flash_sale",
   "product_discount",
+  "anti_gaspillage",
   "promo_code",
   "quantity_offer",
   "free_gift",
   "free_delivery",
+];
+
+/** Types = « réduction produit » (mêmes champs : réduction + produits). */
+const PRODUCT_DISCOUNT_TYPES: PromotionType[] = [
+  "product_discount",
+  "flash_sale",
+  "anti_gaspillage",
 ];
 
 // La plateforme fonctionne en heure d'ALGÉRIE (UTC+1, sans heure d'été) — pas
@@ -218,8 +231,29 @@ export function PromotionForm({
         </section>
 
         {/* Champs spécifiques au type */}
-        {(type === "product_discount" || type === "promo_code") && (
+        {(PRODUCT_DISCOUNT_TYPES.includes(type) || type === "promo_code") && (
           <DiscountFields promotion={promotion} pending={pending} />
+        )}
+
+        {type === "flash_sale" && (
+          <div className="border-danger-200 bg-danger-50 text-danger-800 flex items-start gap-2 rounded-[12px] border p-3 text-xs">
+            <Timer className="mt-0.5 size-4 shrink-0" />
+            <span>
+              Vente flash : indiquez une <b>date de fin</b> ci-dessous — un
+              compte à rebours s&apos;affiche au client pour créer
+              l&apos;urgence.
+            </span>
+          </div>
+        )}
+
+        {type === "anti_gaspillage" && (
+          <div className="border-success-200 bg-success-50 text-success-800 flex items-start gap-2 rounded-[12px] border p-3 text-xs">
+            <Leaf className="mt-0.5 size-4 shrink-0" />
+            <span>
+              Anti-gaspillage : mettez vos invendus / surplus à prix cassé.
+              Idéal en fin de journée pour écouler le stock plutôt que de jeter.
+            </span>
+          </div>
         )}
 
         {type === "promo_code" && (
@@ -238,7 +272,8 @@ export function PromotionForm({
           <FreeDeliveryFields promotion={promotion} pending={pending} />
         )}
 
-        {(type === "product_discount" || type === "quantity_offer") && (
+        {(PRODUCT_DISCOUNT_TYPES.includes(type) ||
+          type === "quantity_offer") && (
           <ProductSelector
             products={products}
             initialSelected={
@@ -267,12 +302,18 @@ export function PromotionForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Fin</Label>
+              <Label>
+                Fin
+                {type === "flash_sale" && (
+                  <span className="text-rose-600"> * (obligatoire)</span>
+                )}
+              </Label>
               <Input
                 type="datetime-local"
                 name="ends_at"
                 value={endsAt}
                 onChange={(e) => setEndsAt(e.target.value)}
+                required={type === "flash_sale"}
                 disabled={pending}
               />
             </div>

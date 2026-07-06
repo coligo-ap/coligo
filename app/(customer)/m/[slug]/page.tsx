@@ -12,8 +12,7 @@ import {
 import { WILAYAS } from "@/lib/config/wilayas";
 import { MerchantCompactHeader } from "@/components/customer/merchant-compact-header";
 import { MerchantCatalog } from "@/components/customer/merchant-catalog";
-import { MerchantPromoCodes } from "@/components/customer/merchant-promo-codes";
-import { MerchantPerkOffers } from "@/components/customer/merchant-perk-offers";
+import { MerchantOffersRail } from "@/components/customer/merchant-offers-rail";
 import { MerchantCartCta } from "@/components/customer/merchant-cart-cta";
 import { MerchantClosedNotice } from "@/components/customer/merchant-closed-notice";
 import { ShopModeToggle } from "@/components/customer/shop-mode-toggle";
@@ -22,6 +21,7 @@ import {
   discountedUnitPrice,
   isPromotionActive,
 } from "@/lib/promotions/engine";
+import { rankPromotions } from "@/lib/promotions/ranking";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
 export const dynamic = "force-dynamic";
@@ -62,16 +62,30 @@ export default async function MerchantPublicPage({
       now
     )
   );
+  // Réductions PRODUIT (prix barré en ligne dans le catalogue) : classique +
+  // vente flash + anti-gaspillage (toutes des réductions produit, mig 0331/0333).
   const productPromos = activePromos.filter(
-    (p) => p.type === "product_discount"
+    (p) =>
+      p.type === "product_discount" ||
+      p.type === "flash_sale" ||
+      p.type === "anti_gaspillage"
   );
   const quantityPromos = activePromos.filter(
     (p) => p.type === "quantity_offer"
   );
-  const promoCodes = activePromos.filter((p) => p.type === "promo_code");
-  // Avantages « perk » : cadeau offert / livraison offerte (mig 0331).
-  const perkPromos = activePromos.filter(
-    (p) => p.type === "free_gift" || p.type === "free_delivery"
+
+  // Carrousel d'OFFRES compact & classé (codes, cadeaux, livraison offerte,
+  // ventes flash, anti-gaspi) — mig 0333. Réductions produit « simples » gardent
+  // leurs carrousels de produits (ci-dessous), pas de doublon.
+  const railOffers = rankPromotions(
+    activePromos.filter(
+      (p) =>
+        p.type === "promo_code" ||
+        p.type === "free_gift" ||
+        p.type === "free_delivery" ||
+        p.type === "flash_sale" ||
+        p.type === "anti_gaspillage"
+    )
   );
 
   // Meilleur prix promo unitaire par produit (la meilleure remise produit).
@@ -111,10 +125,19 @@ export default async function MerchantPublicPage({
     }
   }
 
-  // Carrousels de RÉDUCTION produit (par promo). Les offres quantité ont leur
-  // propre carrousel dédié « Achat offert » (via quantityOfferByProduct), et les
-  // codes promo n'ont pas de produits → carte dédiée. Pas de doublon.
-  const promoCarousels = productPromos;
+  // Carrousels de RÉDUCTION produit « simple » (par promo). Les ventes flash /
+  // anti-gaspi sont dans le carrousel d'offres (railOffers) → pas de doublon ici.
+  const promoCarousels = activePromos.filter(
+    (p) => p.type === "product_discount"
+  );
+
+  // Produits indexés (pour la feuille de détail d'une offre : image + prix).
+  const productsById = Object.fromEntries(
+    catalog.products.map((p) => [
+      p.id,
+      { name: p.name_fr, image_url: p.image_url, price_da: p.price_da },
+    ])
+  );
 
   return (
     // hideHeader : la fiche porte sa propre topbar fixe (← retour · ♡ · panier)
@@ -151,18 +174,16 @@ export default async function MerchantPublicPage({
           tags={m.tags}
         />
 
-        {/* Codes promo de la boutique — carte attractive (entre les stats du
-            commerce et le choix Retrait/Livraison). Copie au clic + conditions. */}
-        {promoCodes.length > 0 && (
+        {/* Offres & réductions — carrousel COMPACT et CLASSÉ (codes, cadeaux,
+            livraison offerte, ventes flash à compte à rebours, anti-gaspi).
+            Une seule bande, pas d'empilement de cartes → visuel épuré. */}
+        {railOffers.length > 0 && (
           <div className="mt-3">
-            <MerchantPromoCodes promotions={promoCodes} />
-          </div>
-        )}
-
-        {/* Avantages boutique : cadeau / livraison offerte (mig 0331). */}
-        {perkPromos.length > 0 && (
-          <div className="mt-3">
-            <MerchantPerkOffers promotions={perkPromos} />
+            <MerchantOffersRail
+              offers={railOffers}
+              productsById={productsById}
+              promoPriceById={promoPriceById}
+            />
           </div>
         )}
 

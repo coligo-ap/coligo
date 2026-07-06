@@ -367,7 +367,9 @@ type PromoRow = {
     | "promo_code"
     | "quantity_offer"
     | "free_gift"
-    | "free_delivery";
+    | "free_delivery"
+    | "flash_sale"
+    | "anti_gaspillage";
   discount_kind: "percent" | "amount" | null;
   discount_value: number | null;
   code: string | null;
@@ -382,6 +384,22 @@ function promoToLabel(p: PromoRow): { label: PromoLabel; appeal: number } {
   // discount_value arrive en NUMERIC → string côté JS. On coerce + arrondit.
   const val =
     p.discount_value != null ? Math.round(Number(p.discount_value)) : 0;
+  if (p.type === "flash_sale") {
+    const v =
+      p.discount_kind === "percent" ? `−${val}%` : val ? `−${val} DA` : "";
+    return {
+      label: { text: `Vente flash ${v}`.trim(), kind: "discount" },
+      appeal: 130 + val,
+    };
+  }
+  if (p.type === "anti_gaspillage") {
+    const v =
+      p.discount_kind === "percent" ? `−${val}%` : val ? `−${val} DA` : "";
+    return {
+      label: { text: `Anti-gaspi ${v}`.trim(), kind: "offer" },
+      appeal: 110 + val,
+    };
+  }
   if (p.type === "free_delivery") {
     return { label: { text: "Livraison offerte", kind: "offer" }, appeal: 70 };
   }

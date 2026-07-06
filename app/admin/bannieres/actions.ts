@@ -457,7 +457,9 @@ export type OfferOption = {
     | "promo_code"
     | "quantity_offer"
     | "free_gift"
-    | "free_delivery";
+    | "free_delivery"
+    | "flash_sale"
+    | "anti_gaspillage";
   title_fr: string;
   discount_kind: "percent" | "amount" | null;
   discount_value: number | null;

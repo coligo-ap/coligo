@@ -185,8 +185,13 @@ export function computeCart(
   // Seules les promos actives comptent.
   const activePromos = promotions.filter((p) => isPromotionActive(p, now));
 
+  // Vente flash & anti-gaspillage sont des réductions PRODUIT (même mécanique
+  // -X% / -X DA au checkout) — seul l'affichage diffère (urgence / éco).
   const productDiscounts = activePromos.filter(
-    (p) => p.type === "product_discount"
+    (p) =>
+      p.type === "product_discount" ||
+      p.type === "flash_sale" ||
+      p.type === "anti_gaspillage"
   );
   const quantityOffers = activePromos.filter(
     (p) => p.type === "quantity_offer"

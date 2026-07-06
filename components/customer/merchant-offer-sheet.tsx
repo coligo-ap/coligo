@@ -31,6 +31,16 @@ function offerValueText(
   if (o.type === "quantity_offer" && o.buy_qty && o.get_qty) {
     return t("offerValueQty", { buy: o.buy_qty, get: o.get_qty });
   }
+  if (o.type === "flash_sale" && val) {
+    return o.discount_kind === "percent"
+      ? t("offerValuePercent", { value: val })
+      : t("offerValueAmount", { amount: formatDA(val) });
+  }
+  if (o.type === "anti_gaspillage" && val) {
+    return o.discount_kind === "percent"
+      ? t("offerValuePercent", { value: val })
+      : t("offerValueAmount", { amount: formatDA(val) });
+  }
   if (val && o.discount_kind === "percent") {
     return t("offerValuePercent", { value: val });
   }

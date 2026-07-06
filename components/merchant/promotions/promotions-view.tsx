@@ -8,12 +8,14 @@ import {
   BadgePercent,
   Gift,
   Layers,
+  Leaf,
   Loader2,
   Pencil,
   Plus,
   Power,
   Tag,
   Ticket,
+  Timer,
   Truck,
   Trash2,
 } from "lucide-react";
@@ -39,6 +41,8 @@ const TYPE_ICON: Record<PromotionType, typeof Tag> = {
   quantity_offer: Layers,
   free_gift: Gift,
   free_delivery: Truck,
+  flash_sale: Timer,
+  anti_gaspillage: Leaf,
 };
 
 const TABS: { key: PromotionStatus; label: string }[] = [

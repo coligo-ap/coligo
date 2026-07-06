@@ -135,6 +135,44 @@ const freeDeliverySchema = z
     refineDatesOnly(data, ctx);
   });
 
+// Vente flash : réduction produit à DURÉE LIMITÉE → date de fin OBLIGATOIRE
+// (elle alimente le compte à rebours) et dans le futur.
+const flashSaleSchema = z
+  .object({
+    type: z.literal("flash_sale"),
+    discount_kind: discountKindSchema,
+    discount_value: discountValueSchema,
+    product_ids: productIdsSchema,
+    ...baseFields,
+  })
+  .superRefine((data, ctx) => {
+    refineKindValueAndDates(data, ctx);
+    if (!data.ends_at) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ends_at"],
+        message: "Une vente flash doit avoir une date de fin",
+      });
+    } else if (new Date(data.ends_at).getTime() <= Date.now()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ends_at"],
+        message: "La fin de la vente flash doit être dans le futur",
+      });
+    }
+  });
+
+// Anti-gaspillage : réduction produit (invendus/surplus) — comme product_discount.
+const antiGaspillageSchema = z
+  .object({
+    type: z.literal("anti_gaspillage"),
+    discount_kind: discountKindSchema,
+    discount_value: discountValueSchema,
+    product_ids: productIdsSchema,
+    ...baseFields,
+  })
+  .superRefine(refineKindValueAndDates);
+
 /** Règle commune : % entre 1 et 100, montant > 0, dates cohérentes. */
 function refineKindValueAndDates(
   data: {
@@ -175,7 +213,9 @@ export type PromotionInput =
   | z.infer<typeof promoCodeSchema>
   | z.infer<typeof quantityOfferSchema>
   | z.infer<typeof freeGiftSchema>
-  | z.infer<typeof freeDeliverySchema>;
+  | z.infer<typeof freeDeliverySchema>
+  | z.infer<typeof flashSaleSchema>
+  | z.infer<typeof antiGaspillageSchema>;
 
 export type ParsedPromotion =
   | { success: true; data: PromotionInput }
@@ -186,7 +226,9 @@ type AnyParseResult =
   | ReturnType<typeof promoCodeSchema.safeParse>
   | ReturnType<typeof quantityOfferSchema.safeParse>
   | ReturnType<typeof freeGiftSchema.safeParse>
-  | ReturnType<typeof freeDeliverySchema.safeParse>;
+  | ReturnType<typeof freeDeliverySchema.safeParse>
+  | ReturnType<typeof flashSaleSchema.safeParse>
+  | ReturnType<typeof antiGaspillageSchema.safeParse>;
 
 function normalize(result: AnyParseResult): ParsedPromotion {
   if (!result.success) {
@@ -258,6 +300,26 @@ export function parsePromotionForm(formData: FormData): ParsedPromotion {
         freeDeliverySchema.safeParse({
           type,
           min_subtotal: formData.get("min_subtotal") ?? "",
+          ...common,
+        })
+      );
+    case "flash_sale":
+      return normalize(
+        flashSaleSchema.safeParse({
+          type,
+          discount_kind: formData.get("discount_kind"),
+          discount_value: formData.get("discount_value"),
+          product_ids: productIds,
+          ...common,
+        })
+      );
+    case "anti_gaspillage":
+      return normalize(
+        antiGaspillageSchema.safeParse({
+          type,
+          discount_kind: formData.get("discount_kind"),
+          discount_value: formData.get("discount_value"),
+          product_ids: productIds,
           ...common,
         })
       );

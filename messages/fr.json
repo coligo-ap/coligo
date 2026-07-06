@@ -737,7 +737,20 @@
     "offerFreeDelivery": "Livraison offerte",
     "offerGift": "Cadeau offert",
     "offerTourOnly": "En tournée",
-    "perksTitle": "Avantages de la boutique"
+    "perksTitle": "Avantages de la boutique",
+    "offersTitle": "Offres & réductions",
+    "typeFlashSale": "Vente flash",
+    "typeAntiWaste": "Anti-gaspi",
+    "typeDiscount": "Réduction",
+    "typeQuantityOffer": "Offre",
+    "typePromoCode": "Code promo",
+    "typeGift": "Cadeau",
+    "typeFreeDelivery": "Livraison",
+    "flashEndsIn": "Fin dans {time}",
+    "flashEnded": "Terminé",
+    "offerValueFree": "Offerte",
+    "concernedProducts": "Produits concernés",
+    "seeProductsInMenu": "À ajouter depuis le menu ci-dessous"
   },
   "wallet": {
     "cashbackTitle": "Mon Cashback",

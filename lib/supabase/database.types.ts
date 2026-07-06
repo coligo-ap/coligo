@@ -2930,7 +2930,9 @@ export type Database = {
         | "promo_code"
         | "quantity_offer"
         | "free_gift"
-        | "free_delivery";
+        | "free_delivery"
+        | "flash_sale"
+        | "anti_gaspillage";
       promotion_status: "scheduled" | "active" | "expired" | "disabled";
       discount_kind: "percent" | "amount";
       wallet_entry_type:

@@ -737,7 +737,20 @@
     "offerFreeDelivery": "توصيل مجاني",
     "offerGift": "هدية مجانية",
     "offerTourOnly": "بالجولة",
-    "perksTitle": "مزايا المتجر"
+    "perksTitle": "مزايا المتجر",
+    "offersTitle": "العروض والتخفيضات",
+    "typeFlashSale": "عرض خاطف",
+    "typeAntiWaste": "ضد الهدر",
+    "typeDiscount": "تخفيض",
+    "typeQuantityOffer": "عرض",
+    "typePromoCode": "رمز ترويجي",
+    "typeGift": "هدية",
+    "typeFreeDelivery": "التوصيل",
+    "flashEndsIn": "ينتهي خلال {time}",
+    "flashEnded": "انتهى",
+    "offerValueFree": "مجانًا",
+    "concernedProducts": "المنتجات المعنية",
+    "seeProductsInMenu": "أضِفها من القائمة أدناه"
   },
   "wallet": {
     "cashbackTitle": "استردادي النقدي",

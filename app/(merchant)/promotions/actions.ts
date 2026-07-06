@@ -80,6 +80,17 @@ function buildRow(data: PromotionInput): {
         },
         productIds: [],
       };
+    // Vente flash & anti-gaspillage = réductions produit (mêmes colonnes).
+    case "flash_sale":
+    case "anti_gaspillage":
+      return {
+        row: {
+          ...base,
+          discount_kind: data.discount_kind,
+          discount_value: data.discount_value,
+        },
+        productIds: data.product_ids,
+      };
   }
 }
 

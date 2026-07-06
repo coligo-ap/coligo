@@ -312,7 +312,9 @@ export type PromotionType =
   | "promo_code"
   | "quantity_offer"
   | "free_gift"
-  | "free_delivery";
+  | "free_delivery"
+  | "flash_sale"
+  | "anti_gaspillage";
 
 export type PromotionStatus = "scheduled" | "active" | "expired" | "disabled";
 
@@ -349,6 +351,18 @@ export const PROMOTION_TYPE_META: Record<
     short: "Livraison",
     description:
       "Livraison en TOURNÉE offerte, dès un panier minimum optionnel (l'Express n'est pas concerné).",
+  },
+  flash_sale: {
+    label: "Vente flash",
+    short: "Flash",
+    description:
+      "Réduction à DURÉE LIMITÉE avec compte à rebours (crée l'urgence). Fin obligatoire.",
+  },
+  anti_gaspillage: {
+    label: "Anti-gaspillage",
+    short: "Anti-gaspi",
+    description:
+      "Invendus / surplus à prix cassé — mis en avant façon « anti-gaspi » (éco).",
   },
 };
 
