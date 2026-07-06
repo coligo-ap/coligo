@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PromoBanner } from "@/lib/data/promo-banners";
+import { MerchantOfferSheet } from "@/components/customer/merchant-offer-sheet";
 
 // =============================================================================
 // PromoBannerCarousel — carrousel scroll-snap de bannières éditoriales.
@@ -143,6 +144,12 @@ function Banner({ banner }: { banner: PromoBanner }) {
       )}
     </article>
   );
+  // Offre commerçant : le clic ouvre la pop-up (détails de l'offre), pas une
+  // navigation. Toute la carte est UN SEUL bouton (aucun élément interactif
+  // imbriqué → pas de piège d'hydratation).
+  if (banner.offer) {
+    return <OfferBanner banner={banner}>{content}</OfferBanner>;
+  }
   if (banner.link) {
     return (
       <Link href={banner.link} className="group block">
@@ -151,4 +158,32 @@ function Banner({ banner }: { banner: PromoBanner }) {
     );
   }
   return content;
+}
+
+function OfferBanner({
+  banner,
+  children,
+}: {
+  banner: PromoBanner;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  if (!banner.offer) return <>{children}</>;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="group block w-full text-start"
+      >
+        {children}
+      </button>
+      <MerchantOfferSheet
+        offer={banner.offer}
+        headline={banner.title}
+        open={open}
+        onClose={() => setOpen(false)}
+      />
+    </>
+  );
 }

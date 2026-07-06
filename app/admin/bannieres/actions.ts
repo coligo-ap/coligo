@@ -37,8 +37,18 @@ export type BannerInput = {
   active: boolean;
   starts_at: string | null;
   ends_at: string | null;
-  /** Zones ciblées (vide = bannière GLOBALE, visible partout). */
+  /** Zones ciblées (vide = bannière GLOBALE, visible partout). Éditoriale only. */
   zones: BannerZone[];
+  /**
+   * OFFRE COMMERÇANT (mig 0330) — relie la bannière à une promotion RÉELLE.
+   * `promotion_id` + `merchant_id` définis ⇒ bannière « offre » : le ciblage géo
+   * suit le commerçant, le lien devient sa boutique, et l'offre live est
+   * affichée en pop-up. Les deux NULL ⇒ bannière éditoriale classique.
+   */
+  promotion_id: string | null;
+  merchant_id: string | null;
+  /** Rayon de ciblage forcé (km) — null = auto (portée du commerçant). */
+  geo_radius_km: number | null;
 };
 
 // promo_banners n'est pas dans database.types.ts généré → accès casté (cf. zones).
@@ -141,21 +151,89 @@ const bannerSchema = z.object({
   active: z.boolean(),
   starts_at: z.string().nullable(),
   ends_at: z.string().nullable(),
+  promotion_id: z.string().uuid().nullable().optional().default(null),
+  merchant_id: z.string().uuid().nullable().optional().default(null),
+  geo_radius_km: z.coerce
+    .number()
+    .positive()
+    .max(200)
+    .nullable()
+    .optional()
+    .default(null),
 });
 
-function toRow(v: z.infer<typeof bannerSchema>) {
+/**
+ * Valide le mode « offre commerçant » et renvoie merchant_id/promotion_id sûrs
+ * (ou null,null pour une bannière éditoriale). Vérifie côté serveur que la promo
+ * EXISTE et APPARTIENT bien au commerçant annoncé (source de vérité DB, pas la
+ * confiance dans le formulaire). Renvoie une erreur explicite sinon.
+ */
+async function resolveOffer(
+  admin: ReturnType<typeof createAdminClient>,
+  input: BannerInput
+): Promise<
+  | { ok: true; merchant_id: string | null; promotion_id: string | null }
+  | { ok: false; error: string }
+> {
+  const promotionId = input.promotion_id?.trim() || null;
+  const merchantId = input.merchant_id?.trim() || null;
+  // Éditoriale : aucun des deux → rien à valider.
+  if (!promotionId && !merchantId) {
+    return { ok: true, merchant_id: null, promotion_id: null };
+  }
+  if (!promotionId || !merchantId) {
+    return {
+      ok: false,
+      error: "Sélectionne un commerçant ET une de ses offres.",
+    };
+  }
+  const { data, error } = await admin
+    .from("promotions")
+    .select("id, merchant_id, status")
+    .eq("id", promotionId)
+    .maybeSingle();
+  if (error)
+    return { ok: false, error: `Vérification impossible : ${error.message}` };
+  if (!data) return { ok: false, error: "Cette offre n'existe plus." };
+  if (data.merchant_id !== merchantId) {
+    return {
+      ok: false,
+      error: "Cette offre n'appartient pas à ce commerçant.",
+    };
+  }
+  if (data.status === "disabled" || data.status === "expired") {
+    return {
+      ok: false,
+      error:
+        "Cette offre est désactivée ou expirée — choisis une offre active.",
+    };
+  }
+  return { ok: true, merchant_id: merchantId, promotion_id: promotionId };
+}
+
+function toRow(
+  v: z.infer<typeof bannerSchema>,
+  offer: { merchant_id: string | null; promotion_id: string | null }
+) {
+  const isOffer = !!offer.merchant_id && !!offer.promotion_id;
   return {
     title: v.title,
     subtitle: v.subtitle || null,
     cta_label: v.cta_label || null,
     image_url: v.image_url || null,
     image_fit: v.image_fit,
-    link: v.link || null,
+    // En mode offre, le clic ouvre la pop-up puis redirige vers la boutique :
+    // le lien libre est ignoré (redirection dérivée du slug commerçant).
+    link: isOffer ? null : v.link || null,
     accent: v.accent,
     position: v.position,
     active: v.active,
     starts_at: v.starts_at || null,
     ends_at: v.ends_at || null,
+    promotion_id: offer.promotion_id,
+    merchant_id: offer.merchant_id,
+    // Rayon forcé seulement pertinent en mode offre.
+    geo_radius_km: isOffer ? (v.geo_radius_km ?? null) : null,
   };
 }
 
@@ -174,12 +252,17 @@ export async function createBanner(
   }
   try {
     const admin = createAdminClient();
+    const offer = await resolveOffer(admin, input);
+    if (!offer.ok) return { error: offer.error };
+    const isOffer = !!offer.merchant_id;
     const { data, error } = await bannerTable(admin)
-      .insert(toRow(parsed.data))
+      .insert(toRow(parsed.data, offer))
       .select("id")
       .single();
     if (error) return { error: `Échec : ${error.message}` };
-    if (data?.id) await replaceZones(admin, data.id, input.zones ?? []);
+    // Le ciblage géo d'une offre suit le commerçant → pas de zones manuelles.
+    if (data?.id)
+      await replaceZones(admin, data.id, isOffer ? [] : (input.zones ?? []));
     await audit("banner_create", data?.id ?? null, parsed.data.title);
     refresh();
     return { ok: true };
@@ -200,11 +283,17 @@ export async function updateBanner(
   }
   try {
     const admin = createAdminClient();
+    const offer = await resolveOffer(admin, input);
+    if (!offer.ok) return { error: offer.error };
+    const isOffer = !!offer.merchant_id;
     const { error } = await bannerTable(admin)
-      .update({ ...toRow(parsed.data), updated_at: new Date().toISOString() })
+      .update({
+        ...toRow(parsed.data, offer),
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id);
     if (error) return { error: `Échec : ${error.message}` };
-    await replaceZones(admin, id, input.zones ?? []);
+    await replaceZones(admin, id, isOffer ? [] : (input.zones ?? []));
     await audit("banner_update", id, parsed.data.title);
     refresh();
     return { ok: true };
@@ -285,5 +374,108 @@ export async function deleteBanner(id: string): Promise<BannerActionState> {
   } catch (e) {
     console.error("[deleteBanner] failed:", e);
     return { error: "Suppression impossible pour le moment." };
+  }
+}
+
+// ===========================================================================
+// Mode « offre commerçant » — sélection de la promo à mettre en avant.
+// Lectures super-admin (service_role) gardées par adminCan('marketing'). On ne
+// crée/modifie JAMAIS d'offre ici : la plateforme ne fait que POINTER vers une
+// promotion déjà publiée par le commerçant (source de vérité = son espace).
+// ===========================================================================
+
+export type OfferMerchantOption = {
+  id: string;
+  name: string;
+  slug: string;
+  commune: string | null;
+  wilaya_code: string | null;
+  /** Nombre d'offres actuellement actives chez ce commerçant. */
+  active_offers: number;
+};
+
+/** Recherche des commerçants ACTIFS (par nom), annotés du nombre d'offres actives. */
+export async function searchOfferMerchants(
+  q: string
+): Promise<OfferMerchantOption[]> {
+  if (!(await adminCan("marketing"))) return [];
+  try {
+    const admin = createAdminClient();
+    let query = admin
+      .from("merchants")
+      .select("id, name, slug, commune, wilaya_code")
+      .eq("is_active", true)
+      .order("name", { ascending: true })
+      .limit(30);
+    const term = q.trim();
+    if (term) query = query.ilike("name", `%${term}%`);
+    const { data: merchants } = await query;
+    const list = (merchants ?? []) as {
+      id: string;
+      name: string;
+      slug: string;
+      commune: string | null;
+      wilaya_code: string | null;
+    }[];
+    if (list.length === 0) return [];
+    const ids = list.map((m) => m.id);
+    const { data: promos } = await admin
+      .from("promotions")
+      .select("merchant_id")
+      .eq("status", "active")
+      .in("merchant_id", ids);
+    const counts = new Map<string, number>();
+    for (const p of (promos ?? []) as { merchant_id: string }[]) {
+      counts.set(p.merchant_id, (counts.get(p.merchant_id) ?? 0) + 1);
+    }
+    return list
+      .map((m) => ({ ...m, active_offers: counts.get(m.id) ?? 0 }))
+      .sort(
+        (a, b) =>
+          b.active_offers - a.active_offers || a.name.localeCompare(b.name)
+      );
+  } catch (e) {
+    console.error("[searchOfferMerchants] failed:", e);
+    return [];
+  }
+}
+
+export type OfferOption = {
+  id: string;
+  type: "product_discount" | "promo_code" | "quantity_offer";
+  title_fr: string;
+  discount_kind: "percent" | "amount" | null;
+  discount_value: number | null;
+  code: string | null;
+  buy_qty: number | null;
+  get_qty: number | null;
+  min_subtotal_da: number | null;
+  ends_at: string | null;
+};
+
+/** Offres ACTIVES d'un commerçant, sélectionnables pour la bannière. */
+export async function listMerchantOffers(
+  merchantId: string
+): Promise<OfferOption[]> {
+  if (!(await adminCan("marketing"))) return [];
+  if (!merchantId) return [];
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("promotions")
+      .select(
+        "id, type, title_fr, discount_kind, discount_value, code, buy_qty, get_qty, min_subtotal_da, ends_at"
+      )
+      .eq("merchant_id", merchantId)
+      .eq("status", "active")
+      .order("created_at", { ascending: false });
+    return ((data ?? []) as OfferOption[]).map((o) => ({
+      ...o,
+      discount_value:
+        o.discount_value != null ? Number(o.discount_value) : null,
+    }));
+  } catch (e) {
+    console.error("[listMerchantOffers] failed:", e);
+    return [];
   }
 }

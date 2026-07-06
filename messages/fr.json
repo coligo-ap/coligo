@@ -716,7 +716,21 @@
     "clearFiltersArrow": "Effacer les filtres →",
     "noResults": "Aucun commerce ne correspond à ta recherche.",
     "noActiveMerchants": "Aucun commerce actif disponible pour le moment.",
-    "promoBannersLabel": "Bannières promo"
+    "promoBannersLabel": "Bannières promo",
+    "offerSheetTitle": "Ton offre",
+    "offerClose": "Fermer",
+    "offerConditions": "Conditions",
+    "offerMinBasket": "Valable dès {amount} d'achat",
+    "offerExpiresOn": "Valable jusqu'au {date}",
+    "offerNoCondition": "Sans condition minimum",
+    "offerTapCode": "Touche pour copier le code",
+    "offerCodeCopied": "Code copié !",
+    "offerGoToMerchant": "En profiter chez {merchant}",
+    "offerValuePercent": "−{value}%",
+    "offerValueAmount": "−{amount}",
+    "offerValueQty": "{buy} achetés = {get, plural, one {# offert} other {# offerts}}",
+    "offerValueCode": "Code promo",
+    "offerValueGeneric": "Offre spéciale"
   },
   "wallet": {
     "cashbackTitle": "Mon Cashback",

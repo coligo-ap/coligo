@@ -716,7 +716,21 @@
     "clearFiltersArrow": "مسح عوامل التصفية",
     "noResults": "لا توجد متاجر تطابق بحثك.",
     "noActiveMerchants": "لا توجد متاجر نشطة متاحة في الوقت الحالي.",
-    "promoBannersLabel": "لافتات العروض"
+    "promoBannersLabel": "لافتات العروض",
+    "offerSheetTitle": "عرضك",
+    "offerClose": "إغلاق",
+    "offerConditions": "الشروط",
+    "offerMinBasket": "صالح ابتداءً من {amount} من الشراء",
+    "offerExpiresOn": "صالح حتى {date}",
+    "offerNoCondition": "بدون حد أدنى",
+    "offerTapCode": "اضغط لنسخ الرمز",
+    "offerCodeCopied": "تم نسخ الرمز!",
+    "offerGoToMerchant": "استفد لدى {merchant}",
+    "offerValuePercent": "−{value}%",
+    "offerValueAmount": "−{amount}",
+    "offerValueQty": "{buy} مشتراة = {get, plural, one {# مجانية} other {# مجانية}}",
+    "offerValueCode": "رمز ترويجي",
+    "offerValueGeneric": "عرض خاص"
   },
   "wallet": {
     "cashbackTitle": "استردادي النقدي",

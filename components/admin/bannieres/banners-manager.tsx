@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -12,6 +12,13 @@ import {
   Loader2,
   ImagePlus,
   MapPin,
+  Search,
+  Store,
+  Ticket,
+  Check,
+  X,
+  AlertTriangle,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/components/ui/confirm";
@@ -21,9 +28,13 @@ import {
   toggleBanner,
   deleteBanner,
   uploadBannerImage,
+  searchOfferMerchants,
+  listMerchantOffers,
   type BannerInput,
   type BannerActionState,
   type BannerZone,
+  type OfferMerchantOption,
+  type OfferOption,
 } from "@/app/admin/bannieres/actions";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 
@@ -47,6 +58,16 @@ export type AdminBanner = {
   starts_at: string | null;
   ends_at: string | null;
   zones: BannerZone[];
+  /** Mode « offre commerçant » (mig 0330). NULL = bannière éditoriale. */
+  promotion_id: string | null;
+  merchant_id: string | null;
+  geo_radius_km: number | null;
+  /** Résolus côté serveur pour l'affichage/édition (non persistés ici). */
+  merchant_name: string | null;
+  merchant_slug: string | null;
+  offer_summary: string | null;
+  /** L'offre reliée est-elle toujours active ? (false ⇒ bannière masquée). */
+  offer_active: boolean | null;
 };
 
 type ImageFit = AdminBanner["image_fit"];
@@ -104,6 +125,7 @@ function localInputToIso(v: string): string | null {
 
 function emptyDraft(): Draft {
   return {
+    mode: "editorial",
     title: "",
     subtitle: "",
     cta_label: "",
@@ -116,11 +138,18 @@ function emptyDraft(): Draft {
     starts_at: "",
     ends_at: "",
     zones: [],
+    merchant_id: "",
+    merchant_label: "",
+    promotion_id: "",
+    offer_summary: "",
+    geo_radius_km: "",
   };
 }
 
 // Brouillon = état du formulaire (dates en valeur datetime-local).
 type Draft = {
+  /** Éditoriale (visuel + lien) ou offre reliée à une promotion commerçant. */
+  mode: "editorial" | "offer";
   title: string;
   subtitle: string;
   cta_label: string;
@@ -133,10 +162,19 @@ type Draft = {
   starts_at: string;
   ends_at: string;
   zones: BannerZone[];
+  /** Mode offre : commerçant + promotion sélectionnés. */
+  merchant_id: string;
+  merchant_label: string;
+  promotion_id: string;
+  offer_summary: string;
+  /** Rayon de ciblage forcé (km) — "" = auto (portée du commerçant). */
+  geo_radius_km: string;
 };
 
 function bannerToDraft(b: AdminBanner): Draft {
+  const isOffer = !!b.merchant_id && !!b.promotion_id;
   return {
+    mode: isOffer ? "offer" : "editorial",
     title: b.title,
     subtitle: b.subtitle ?? "",
     cta_label: b.cta_label ?? "",
@@ -149,24 +187,55 @@ function bannerToDraft(b: AdminBanner): Draft {
     starts_at: isoToLocalInput(b.starts_at),
     ends_at: isoToLocalInput(b.ends_at),
     zones: b.zones ?? [],
+    merchant_id: b.merchant_id ?? "",
+    merchant_label: b.merchant_name ?? "",
+    promotion_id: b.promotion_id ?? "",
+    offer_summary: b.offer_summary ?? "",
+    geo_radius_km: b.geo_radius_km != null ? String(b.geo_radius_km) : "",
   };
 }
 
 function draftToInput(d: Draft): BannerInput {
+  const isOffer = d.mode === "offer";
+  const radius = Number(d.geo_radius_km);
   return {
     title: d.title,
     subtitle: d.subtitle,
     cta_label: d.cta_label,
     image_url: d.image_url,
     image_fit: d.image_fit,
-    link: d.link,
+    link: isOffer ? "" : d.link,
     accent: d.accent,
     position: Number(d.position) || 0,
     active: d.active,
     starts_at: localInputToIso(d.starts_at),
     ends_at: localInputToIso(d.ends_at),
-    zones: d.zones,
+    zones: isOffer ? [] : d.zones,
+    promotion_id: isOffer && d.promotion_id ? d.promotion_id : null,
+    merchant_id: isOffer && d.merchant_id ? d.merchant_id : null,
+    geo_radius_km:
+      isOffer && d.geo_radius_km.trim() && radius > 0 ? radius : null,
   };
+}
+
+/** Libellé court d'une offre pour les cartes du sélecteur. */
+function offerSummary(o: OfferOption): string {
+  const val =
+    o.discount_value != null ? Math.round(Number(o.discount_value)) : 0;
+  const money = (n: number) =>
+    o.discount_kind === "percent" ? `−${n}%` : `−${n} DA`;
+  if (o.type === "quantity_offer" && o.buy_qty && o.get_qty) {
+    return `${o.buy_qty} achetés = ${o.get_qty} offert${o.get_qty > 1 ? "s" : ""}`;
+  }
+  if (o.type === "promo_code") {
+    return `Code${o.code ? ` ${o.code.toUpperCase()}` : ""}${val ? ` · ${money(val)}` : ""}`;
+  }
+  return val ? `Réduction ${money(val)}` : "Réduction produit";
+}
+
+/** CTA suggéré selon le type d'offre. */
+function suggestedCta(o: OfferOption): string {
+  return o.type === "promo_code" ? "Récupérer mon code" : "Récupérer mon offre";
 }
 
 /**
@@ -228,6 +297,12 @@ function PreviewCard({ d }: { d: Draft }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
       )}
       <div className="relative">
+        {d.mode === "offer" && d.offer_summary && (
+          <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-bold backdrop-blur">
+            <Ticket className="size-3" />
+            {d.offer_summary}
+          </span>
+        )}
         <h3 className="font-display text-lg leading-tight font-bold">
           {d.title || "Titre de la bannière"}
         </h3>
@@ -391,6 +466,228 @@ function ZonesEditor({
   );
 }
 
+/**
+ * Sélecteur « offre commerçant » : recherche un commerçant ACTIF puis choisit
+ * l'une de ses offres ACTIVES. La plateforme ne crée rien — elle pointe vers une
+ * promotion existante. Si le commerçant n'a aucune offre active, on prévient
+ * (la bannière resterait masquée).
+ */
+function MerchantOfferPicker({
+  merchantId,
+  merchantLabel,
+  promotionId,
+  onSelectMerchant,
+  onSelectOffer,
+}: {
+  merchantId: string;
+  merchantLabel: string;
+  promotionId: string;
+  onSelectMerchant: (id: string, label: string) => void;
+  onSelectOffer: (o: OfferOption | null) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<OfferMerchantOption[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [offers, setOffers] = useState<OfferOption[]>([]);
+  const [loadingOffers, setLoadingOffers] = useState(false);
+
+  // Offres du commerçant sélectionné (rechargées à chaque changement d'id).
+  useEffect(() => {
+    if (!merchantId) {
+      setOffers([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingOffers(true);
+    void listMerchantOffers(merchantId)
+      .then((os) => {
+        if (!cancelled) setOffers(os);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingOffers(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [merchantId]);
+
+  // Recherche commerçants (debounce) — seulement tant qu'aucun n'est choisi.
+  useEffect(() => {
+    if (merchantId) return;
+    let cancelled = false;
+    setSearching(true);
+    const t = setTimeout(() => {
+      void searchOfferMerchants(q)
+        .then((r) => {
+          if (!cancelled) setResults(r);
+        })
+        .finally(() => {
+          if (!cancelled) setSearching(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [q, merchantId]);
+
+  return (
+    <div className="border-border-strong space-y-3 rounded-[12px] border border-dashed p-3">
+      <div>
+        <span className={LABEL}>Offre mise en avant</span>
+        <p className="text-muted text-[11px] leading-snug">
+          Choisis un commerçant puis <b>une de ses offres actives</b>. Coligo ne
+          crée pas l&apos;offre : elle est relue en direct. Si le commerçant la
+          désactive, la bannière disparaît automatiquement.
+        </p>
+      </div>
+
+      {!merchantId ? (
+        <div className="space-y-2">
+          <div className="relative">
+            <Search className="text-muted pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2" />
+            <input
+              className={cn(INPUT, "ps-9")}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Rechercher un commerçant…"
+              autoFocus
+            />
+          </div>
+          <ul className="border-border-strong max-h-64 divide-y overflow-y-auto rounded-[10px] border">
+            {searching && results.length === 0 ? (
+              <li className="text-muted flex items-center gap-2 px-3 py-3 text-sm">
+                <Loader2 className="size-4 animate-spin" /> Recherche…
+              </li>
+            ) : results.length === 0 ? (
+              <li className="text-muted px-3 py-3 text-sm">
+                Aucun commerçant actif trouvé.
+              </li>
+            ) : (
+              results.map((m) => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    disabled={m.active_offers === 0}
+                    onClick={() =>
+                      onSelectMerchant(
+                        m.id,
+                        m.commune ? `${m.name} · ${m.commune}` : m.name
+                      )
+                    }
+                    className="hover:bg-surface-2 flex w-full items-center gap-2.5 px-3 py-2.5 text-start disabled:opacity-50"
+                  >
+                    <Store className="text-primary-600 size-4 shrink-0" />
+                    <span className="min-w-0 flex-1">
+                      <span className="text-foreground block truncate text-sm font-semibold">
+                        {m.name}
+                      </span>
+                      <span className="text-muted block truncate text-[11px]">
+                        {[m.commune, m.wilaya_code]
+                          .filter(Boolean)
+                          .join(" · ") || "—"}
+                      </span>
+                    </span>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold",
+                        m.active_offers > 0
+                          ? "bg-primary-50 text-primary-700"
+                          : "bg-surface-2 text-muted"
+                      )}
+                    >
+                      {m.active_offers > 0
+                        ? `${m.active_offers} offre${m.active_offers > 1 ? "s" : ""}`
+                        : "aucune offre"}
+                    </span>
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {/* Commerçant sélectionné */}
+          <div className="border-primary-200 bg-primary-50 flex items-center gap-2 rounded-[10px] border px-3 py-2">
+            <Store className="text-primary-700 size-4 shrink-0" />
+            <span className="text-primary-800 min-w-0 flex-1 truncate text-sm font-bold">
+              {merchantLabel || "Commerçant"}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                onSelectMerchant("", "");
+                onSelectOffer(null);
+                setQ("");
+              }}
+              className="text-primary-700 hover:bg-primary-100 inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-[12px] font-semibold"
+            >
+              <X className="size-3.5" /> Changer
+            </button>
+          </div>
+
+          {/* Offres actives du commerçant */}
+          {loadingOffers ? (
+            <div className="text-muted flex items-center gap-2 px-1 py-2 text-sm">
+              <Loader2 className="size-4 animate-spin" /> Chargement des offres…
+            </div>
+          ) : offers.length === 0 ? (
+            <div className="flex items-start gap-2 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] font-semibold text-amber-800">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              Ce commerçant n&apos;a aucune offre active en ce moment. La
+              bannière resterait masquée tant qu&apos;il n&apos;en publie pas.
+            </div>
+          ) : (
+            <ul className="space-y-1.5">
+              {offers.map((o) => {
+                const selected = o.id === promotionId;
+                return (
+                  <li key={o.id}>
+                    <button
+                      type="button"
+                      onClick={() => onSelectOffer(o)}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-[10px] border px-3 py-2.5 text-start transition-colors",
+                        selected
+                          ? "border-primary-600 bg-primary-50"
+                          : "border-border-strong hover:bg-surface-2"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "grid size-8 shrink-0 place-items-center rounded-[8px]",
+                          selected
+                            ? "bg-primary-600 text-white"
+                            : "bg-surface-2 text-muted"
+                        )}
+                      >
+                        {selected ? (
+                          <Check className="size-4" />
+                        ) : (
+                          <Ticket className="size-4" />
+                        )}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="text-foreground block truncate text-sm font-semibold">
+                          {o.title_fr}
+                        </span>
+                        <span className="text-primary-700 block truncate text-[12px] font-bold">
+                          {offerSummary(o)}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BannerForm({
   initial,
   pending,
@@ -430,6 +727,30 @@ function BannerForm({
     }
   };
 
+  // Sélection commerçant → on repart d'une offre vierge.
+  const handleSelectMerchant = (id: string, label: string) =>
+    setD((prev) => ({
+      ...prev,
+      merchant_id: id,
+      merchant_label: label,
+      promotion_id: "",
+      offer_summary: "",
+    }));
+
+  // Sélection d'une offre → mémorise + pré-remplit titre/CTA si vides.
+  const handleSelectOffer = (o: OfferOption | null) =>
+    setD((prev) =>
+      o
+        ? {
+            ...prev,
+            promotion_id: o.id,
+            offer_summary: offerSummary(o),
+            cta_label: prev.cta_label.trim() || suggestedCta(o),
+            title: prev.title.trim() || o.title_fr,
+          }
+        : { ...prev, promotion_id: "", offer_summary: "" }
+    );
+
   return (
     <div className="border-border-strong space-y-4 rounded-[14px] border bg-white p-4">
       {/* Aperçu live */}
@@ -437,6 +758,58 @@ function BannerForm({
         <span className={LABEL}>Aperçu</span>
         <PreviewCard d={d} />
       </div>
+
+      {/* Type de bannière */}
+      <div>
+        <span className={LABEL}>Type de bannière</span>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            {
+              value: "editorial" as const,
+              label: "Éditoriale",
+              hint: "Visuel + lien libre",
+            },
+            {
+              value: "offer" as const,
+              label: "Offre d'un commerçant",
+              hint: "Met en avant une promo réelle",
+            },
+          ].map((m) => (
+            <button
+              key={m.value}
+              type="button"
+              onClick={() => set("mode", m.value)}
+              className={cn(
+                "rounded-[10px] border px-3 py-2 text-start transition-colors",
+                d.mode === m.value
+                  ? "border-primary-600 bg-primary-50"
+                  : "border-border-strong hover:bg-surface-2"
+              )}
+            >
+              <span
+                className={cn(
+                  "block text-[13px] font-bold",
+                  d.mode === m.value ? "text-primary-700" : "text-foreground"
+                )}
+              >
+                {m.label}
+              </span>
+              <span className="text-muted block text-[11px]">{m.hint}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sélecteur d'offre (mode offre) — placé haut car il pilote le reste. */}
+      {d.mode === "offer" && (
+        <MerchantOfferPicker
+          merchantId={d.merchant_id}
+          merchantLabel={d.merchant_label}
+          promotionId={d.promotion_id}
+          onSelectMerchant={handleSelectMerchant}
+          onSelectOffer={handleSelectOffer}
+        />
+      )}
 
       <div>
         <label className={LABEL}>Titre *</label>
@@ -489,16 +862,20 @@ function BannerForm({
         </div>
       </div>
 
-      <div>
-        <label className={LABEL}>Lien (au clic) — interne ou URL</label>
-        <input
-          className={INPUT}
-          value={d.link}
-          maxLength={500}
-          onChange={(e) => set("link", e.target.value)}
-          placeholder="Ex. /favoris  ou  https://…"
-        />
-      </div>
+      {/* Lien libre : uniquement en mode éditorial. En mode offre, le clic
+          ouvre la pop-up puis redirige vers la boutique (lien auto). */}
+      {d.mode === "editorial" && (
+        <div>
+          <label className={LABEL}>Lien (au clic) — interne ou URL</label>
+          <input
+            className={INPUT}
+            value={d.link}
+            maxLength={500}
+            onChange={(e) => set("link", e.target.value)}
+            placeholder="Ex. /favoris  ou  https://…"
+          />
+        </div>
+      )}
 
       {/* Image : upload (recommandé) + mode d'intégration */}
       <div className="border-border-strong space-y-3 rounded-[12px] border border-dashed p-3">
@@ -623,12 +1000,52 @@ function BannerForm({
         </label>
       </div>
 
-      <ZonesEditor zones={d.zones} onChange={(z) => set("zones", z)} />
+      {/* Ciblage géographique */}
+      {d.mode === "editorial" ? (
+        <ZonesEditor zones={d.zones} onChange={(z) => set("zones", z)} />
+      ) : (
+        <div className="border-border-strong space-y-2.5 rounded-[12px] border border-dashed p-3">
+          <div>
+            <span className={LABEL}>Ciblage géographique</span>
+            <p className="text-muted flex items-start gap-1.5 text-[11px] leading-snug">
+              <MapPin className="text-primary-600 mt-0.5 size-3.5 shrink-0" />
+              <span>
+                <b>Automatique</b> : la bannière suit la zone du commerçant.
+                Elle n&apos;apparaît qu&apos;aux clients à portée (rayon autour
+                du commerce, ou même wilaya à défaut de position GPS). Un client
+                hors zone ne la voit pas.
+              </span>
+            </p>
+          </div>
+          <div>
+            <label className={LABEL}>Rayon forcé (km) — optionnel</label>
+            <input
+              type="number"
+              min={1}
+              max={200}
+              className={INPUT}
+              value={d.geo_radius_km}
+              onChange={(e) => set("geo_radius_km", e.target.value)}
+              placeholder="Auto (portée de livraison du commerçant)"
+            />
+            <p className="text-muted mt-1 text-[11px]">
+              Laisse vide pour utiliser la portée du commerçant. Renseigne une
+              valeur pour élargir/restreindre la zone d&apos;affichage.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {d.mode === "offer" && !d.promotion_id && (
+        <p className="rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-800">
+          Sélectionne un commerçant et une de ses offres pour enregistrer.
+        </p>
+      )}
 
       <div className="flex gap-2 pt-1">
         <button
           type="button"
-          disabled={pending}
+          disabled={pending || (d.mode === "offer" && !d.promotion_id)}
           onClick={() => onSubmit(draftToInput(d))}
           className="bg-primary-600 hover:bg-primary-700 inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] px-4 text-sm font-bold text-white transition-colors disabled:opacity-60"
         >
@@ -740,6 +1157,11 @@ export function BannersManager({ banners }: { banners: AdminBanner[] }) {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-foreground truncate text-sm font-bold">
+                  {b.merchant_id && (
+                    <span className="bg-primary-50 text-primary-700 me-1.5 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 align-middle text-[10px] font-bold">
+                      <Ticket className="size-2.5" /> Offre
+                    </span>
+                  )}
                   {b.title}
                   {!b.active && (
                     <span className="text-muted ml-2 text-[11px] font-semibold">
@@ -747,14 +1169,35 @@ export function BannersManager({ banners }: { banners: AdminBanner[] }) {
                     </span>
                   )}
                 </p>
-                <p className="text-muted truncate text-[12px]">
-                  {b.subtitle || ACCENT_LABELS[b.accent]}
-                  {b.link ? ` · ${b.link}` : ""}
-                  {" · "}
-                  {b.zones && b.zones.length > 0
-                    ? `📍 ${b.zones.length} zone${b.zones.length > 1 ? "s" : ""}`
-                    : "🌍 partout"}
-                </p>
+                {b.merchant_id ? (
+                  <p className="text-muted flex items-center gap-1 truncate text-[12px]">
+                    <Store className="size-3.5 shrink-0" />
+                    <span className="truncate">
+                      {b.merchant_name ?? "Commerçant"}
+                      {b.offer_summary ? ` · ${b.offer_summary}` : ""}
+                    </span>
+                    {b.offer_active === false && (
+                      <span className="shrink-0 font-semibold text-amber-700">
+                        · masquée (offre inactive)
+                      </span>
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-muted flex items-center gap-1 truncate text-[12px]">
+                    <span className="truncate">
+                      {b.subtitle || ACCENT_LABELS[b.accent]}
+                      {b.link ? ` · ${b.link}` : ""}
+                    </span>
+                    {b.zones && b.zones.length > 0 ? (
+                      <span className="inline-flex shrink-0 items-center gap-0.5">
+                        <MapPin className="size-3.5" />
+                        {b.zones.length}
+                      </span>
+                    ) : (
+                      <Globe className="size-3.5 shrink-0" />
+                    )}
+                  </p>
+                )}
               </div>
 
               <div className="flex shrink-0 items-center gap-1">
