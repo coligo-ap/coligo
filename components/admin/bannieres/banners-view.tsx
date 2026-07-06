@@ -66,7 +66,7 @@ export async function BannersView() {
     "promo_banners"
   )
     .select(
-      "id, title, subtitle, cta_label, image_url, image_fit, link, accent, position, active, starts_at, ends_at, promotion_id, merchant_id, geo_radius_km"
+      "id, title, subtitle, cta_label, image_url, image_fit, overlay_opacity, link, accent, position, active, starts_at, ends_at, promotion_id, merchant_id, geo_radius_km"
     )
     .order("position", { ascending: true });
 
@@ -105,6 +105,7 @@ export async function BannersView() {
     promotion_id: string | null;
     merchant_id: string | null;
     geo_radius_km: number | string | null;
+    overlay_opacity: number | string | null;
   };
   const raw = (data ?? []) as RawBanner[];
   const merchantIds = [
@@ -144,6 +145,8 @@ export async function BannersView() {
     return {
       ...b,
       geo_radius_km: b.geo_radius_km != null ? Number(b.geo_radius_km) : null,
+      overlay_opacity:
+        b.overlay_opacity != null ? Number(b.overlay_opacity) : 30,
       zones: zonesByBanner.get(b.id) ?? [],
       merchant_name: m?.name ?? null,
       merchant_slug: m?.slug ?? null,

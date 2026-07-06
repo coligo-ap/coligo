@@ -235,6 +235,8 @@
     "serviceFee": "Frais de service",
     "free": "Gratuit",
     "deliveryFee": "Livraison",
+    "freeDeliveryApplied": "Offerte",
+    "freeDeliveryHint": "Plus que {amount} pour la livraison offerte",
     "promoCodeLabel": "Code promo ({code})",
     "orderTotal": "Total commande",
     "cashbackUsed": "Cashback utilisé",

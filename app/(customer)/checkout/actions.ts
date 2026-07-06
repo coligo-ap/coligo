@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { computeCart, type EnginePromotion } from "@/lib/promotions/engine";
+import {
+  computeCart,
+  isPromotionActive,
+  type EnginePromotion,
+} from "@/lib/promotions/engine";
 import { loadLineOptions } from "@/lib/checkout/option-pricing";
 import { isOpenNow, normalizeOpeningHours } from "@/lib/merchant/opening-hours";
 import {
@@ -1017,6 +1021,22 @@ export async function createOrder(
         };
       }
       deliveryFeeDa = tourQuote.feeDa;
+
+      // Livraison offerte (mig 0331) — TOURNÉE UNIQUEMENT : le commerçant fait
+      // sa propre livraison et l'ASSUME. Si une offre free_delivery est active et
+      // que le sous-total (après réductions produit) atteint son minimum → 0.
+      // Coligo garde sa commission PRODUITS (calculée sur le net, hors livraison,
+      // par le trigger wallet). L'EXPRESS n'est jamais concerné (le livreur
+      // indépendant doit être payé). Autoritaire : recalculé ici, pas de confiance
+      // au client.
+      const nowFd = new Date();
+      const hasFreeDelivery = promotions.some(
+        (p) =>
+          p.type === "free_delivery" &&
+          isPromotionActive(p, nowFd) &&
+          (p.minSubtotalDa == null || settled.subtotalDa >= p.minSubtotalDa)
+      );
+      if (hasFreeDelivery) deliveryFeeDa = 0;
     }
 
     // Tournée : vérifier la capacité du créneau choisi.

@@ -42,6 +42,8 @@ export type PromoBanner = {
   cta_label: string | null;
   image_url: string | null;
   image_fit: "cover" | "contain" | "overlay";
+  /** Opacité de l'image en mode « Texture de fond » (0–100). */
+  overlay_opacity: number;
   link: string | null;
   accent: "violet" | "coral" | "mint" | "amber" | "dark";
   position: number;
@@ -76,8 +78,9 @@ export async function getActiveBanners(
     p_wilaya: loc?.wilaya ?? null,
     p_commune: loc?.commune ?? null,
   });
-  type Row = Omit<PromoBanner, "image_fit" | "offer"> & {
+  type Row = Omit<PromoBanner, "image_fit" | "offer" | "overlay_opacity"> & {
     image_fit?: string;
+    overlay_opacity?: number | null;
     offer?: BannerOffer | null;
   };
   const rows = (data ?? []) as unknown as Row[];
@@ -86,6 +89,8 @@ export async function getActiveBanners(
     return {
       ...b,
       image_fit: (b.image_fit ?? "overlay") as PromoBanner["image_fit"],
+      overlay_opacity:
+        b.overlay_opacity != null ? Number(b.overlay_opacity) : 30,
       // discount_value / min_subtotal arrivent en NUMERIC → number sûr.
       offer: offer
         ? {

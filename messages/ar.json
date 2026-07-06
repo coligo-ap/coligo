@@ -235,6 +235,8 @@
     "serviceFee": "رسوم الخدمة",
     "free": "مجاناً",
     "deliveryFee": "التوصيل",
+    "freeDeliveryApplied": "مجاني",
+    "freeDeliveryHint": "أضِف {amount} فقط للحصول على توصيل مجاني",
     "promoCodeLabel": "رمز ترويجي ({code})",
     "orderTotal": "إجمالي الطلب",
     "cashbackUsed": "الكاش باك المستخدم",

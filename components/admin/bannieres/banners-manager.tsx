@@ -51,6 +51,7 @@ export type AdminBanner = {
   cta_label: string | null;
   image_url: string | null;
   image_fit: "cover" | "contain" | "overlay";
+  overlay_opacity: number;
   link: string | null;
   accent: "violet" | "coral" | "mint" | "amber" | "dark";
   position: number;
@@ -131,6 +132,7 @@ function emptyDraft(): Draft {
     cta_label: "",
     image_url: "",
     image_fit: "cover",
+    overlay_opacity: 30,
     link: "",
     accent: "violet",
     position: 0,
@@ -155,6 +157,7 @@ type Draft = {
   cta_label: string;
   image_url: string;
   image_fit: ImageFit;
+  overlay_opacity: number;
   link: string;
   accent: AdminBanner["accent"];
   position: number;
@@ -180,6 +183,7 @@ function bannerToDraft(b: AdminBanner): Draft {
     cta_label: b.cta_label ?? "",
     image_url: b.image_url ?? "",
     image_fit: b.image_fit ?? "overlay",
+    overlay_opacity: b.overlay_opacity ?? 30,
     link: b.link ?? "",
     accent: b.accent,
     position: b.position,
@@ -204,6 +208,7 @@ function draftToInput(d: Draft): BannerInput {
     cta_label: d.cta_label,
     image_url: d.image_url,
     image_fit: d.image_fit,
+    overlay_opacity: d.overlay_opacity,
     link: isOffer ? "" : d.link,
     accent: d.accent,
     position: Number(d.position) || 0,
@@ -293,8 +298,13 @@ function PreviewCard({ d }: { d: Draft }) {
               ? "object-cover"
               : d.image_fit === "contain"
                 ? "object-contain"
-                : "object-cover opacity-30 mix-blend-overlay"
+                : "object-cover mix-blend-overlay"
           )}
+          style={
+            d.image_fit === "overlay"
+              ? { opacity: (d.overlay_opacity ?? 30) / 100 }
+              : undefined
+          }
         />
       )}
       {scrim && (
@@ -956,6 +966,30 @@ function BannerForm({
             <p className="text-muted mt-1 text-[11px]">
               {FIT_OPTIONS.find((o) => o.value === d.image_fit)?.hint}
             </p>
+
+            {/* Opacité réglable — seulement en mode « Texture de fond ». */}
+            {d.image_fit === "overlay" && (
+              <div className="mt-3">
+                <label className={LABEL}>
+                  Fondu de l&apos;image · {d.overlay_opacity}%
+                </label>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={d.overlay_opacity}
+                  onChange={(e) =>
+                    set("overlay_opacity", Number(e.target.value))
+                  }
+                  className="accent-primary-600 h-2 w-full cursor-pointer"
+                />
+                <p className="text-muted mt-1 text-[11px]">
+                  0 % = image invisible · 100 % = image bien visible sous le
+                  texte. Défaut 30 %.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

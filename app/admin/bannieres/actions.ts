@@ -31,6 +31,8 @@ export type BannerInput = {
   image_url: string;
   /** Comment l'image s'intègre : pleine (recadrée) / entière / texture de fond. */
   image_fit: "cover" | "contain" | "overlay";
+  /** Opacité (0–100) de l'image en mode « Texture de fond ». */
+  overlay_opacity: number;
   link: string;
   accent: "violet" | "coral" | "mint" | "amber" | "dark";
   position: number;
@@ -145,6 +147,13 @@ const bannerSchema = z.object({
   // Le lien peut être interne (/favoris) ou externe (https://…) → texte libre.
   image_url: z.string().trim().max(500),
   image_fit: z.enum(["cover", "contain", "overlay"]),
+  overlay_opacity: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(100)
+    .optional()
+    .default(30),
   link: z.string().trim().max(500),
   accent: z.enum(["violet", "coral", "mint", "amber", "dark"]),
   position: z.coerce.number().int().min(0).max(9999),
@@ -222,6 +231,7 @@ function toRow(
     cta_label: v.cta_label || null,
     image_url: v.image_url || null,
     image_fit: v.image_fit,
+    overlay_opacity: v.overlay_opacity ?? 30,
     // En mode offre, le clic ouvre la pop-up puis redirige vers la boutique :
     // le lien libre est ignoré (redirection dérivée du slug commerçant).
     link: isOffer ? null : v.link || null,

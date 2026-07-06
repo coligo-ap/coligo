@@ -2,7 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentCustomer } from "@/lib/auth/customer";
-import { computeCart, type EnginePromotion } from "@/lib/promotions/engine";
+import {
+  computeCart,
+  isPromotionActive,
+  type EnginePromotion,
+} from "@/lib/promotions/engine";
 import { loadLineOptions } from "@/lib/checkout/option-pricing";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import {
@@ -73,6 +77,13 @@ export type CheckoutDeliveryContext = {
   }[];
   /** Bandes de prix tournée du commerçant (pour le calcul live d'une position custom). */
   tour_bands: TourBand[];
+  /**
+   * Livraison offerte (mig 0331) — TOURNÉE uniquement (le commerçant l'assume ;
+   * l'Express n'est pas concerné, le livreur indépendant doit être payé).
+   * Présent si une offre `free_delivery` active existe ; `min_subtotal_da` = le
+   * panier minimum requis (le plus bas si plusieurs offres). null = pas d'offre.
+   */
+  free_delivery: { min_subtotal_da: number } | null;
   /** Créneaux de tournée ouverts à venir, avec capacité restante. */
   slots: {
     id: string;
@@ -202,6 +213,7 @@ export async function fetchCheckoutContext(
       addresses: [] as CheckoutDeliveryContext["addresses"],
       tour_bands: [] as CheckoutDeliveryContext["tour_bands"],
       slots: [] as CheckoutDeliveryContext["slots"],
+      free_delivery: null,
     },
   };
 
@@ -359,6 +371,17 @@ export async function fetchCheckoutContext(
     price_da: z.price_da,
   }));
 
+  // Livraison offerte (mig 0331) — TOURNÉE : la meilleure offre free_delivery
+  // ACTIVE (statut effectif via dates), c.-à-d. le panier minimum le plus bas.
+  const nowFd = new Date();
+  const freeDeliveryMins = promotions
+    .filter((p) => p.type === "free_delivery" && isPromotionActive(p, nowFd))
+    .map((p) => p.minSubtotalDa ?? 0);
+  const freeDelivery =
+    freeDeliveryMins.length > 0
+      ? { min_subtotal_da: Math.min(...freeDeliveryMins) }
+      : null;
+
   // Capacité restante par slot (compte commandes non-cancelled).
   const slotIds = rawSlots.map((s) => s.id);
   const usedBySlot = new Map<string, number>();
@@ -452,6 +475,7 @@ export async function fetchCheckoutContext(
     pricing: deliverySettings ?? null,
     addresses,
     tour_bands: tourBands,
+    free_delivery: freeDelivery,
     slots: rawSlots.map((s) => ({
       id: s.id,
       slot_date: s.slot_date,

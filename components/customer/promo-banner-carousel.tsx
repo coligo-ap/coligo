@@ -119,8 +119,14 @@ function Banner({ banner }: { banner: PromoBanner }) {
               ? "object-cover"
               : fit === "contain"
                 ? "object-contain"
-                : "object-cover opacity-30 mix-blend-overlay"
+                : "object-cover mix-blend-overlay"
           )}
+          // En mode « Texture de fond », l'opacité est réglable (0–100 %).
+          style={
+            fit === "overlay"
+              ? { opacity: (banner.overlay_opacity ?? 30) / 100 }
+              : undefined
+          }
         />
       )}
       {scrim && (

@@ -504,7 +504,7 @@ export function CheckoutView({
       : computeDeliveryFee(distKm, pr, mp.radiusKm);
   })();
 
-  const deliveryFeeDa =
+  const rawDeliveryFeeDa =
     selectedDeliveryAddr && !selectedDeliveryAddr.out_of_range
       ? delivery.mode === "tour"
         ? (selectedDeliveryAddr.tour_fee_da ?? selectedDeliveryAddr.fee_da ?? 0)
@@ -512,6 +512,17 @@ export function CheckoutView({
       : customDeliveryQuote && !customDeliveryQuote.outOfRange
         ? customDeliveryQuote.feeDa
         : 0;
+
+  // Livraison offerte (mig 0331) — TOURNÉE : si le commerçant a une offre
+  // free_delivery active et que le sous-total atteint son minimum, la livraison
+  // passe à 0 (il l'assume). Miroir exact de la règle serveur (autoritaire).
+  // L'EXPRESS n'est jamais concerné.
+  const freeDeliveryApplies =
+    delivery.fulfillment === "delivery" &&
+    delivery.mode === "tour" &&
+    ctx.delivery.free_delivery != null &&
+    ctx.cart.subtotalDa >= ctx.delivery.free_delivery.min_subtotal_da;
+  const deliveryFeeDa = freeDeliveryApplies ? 0 : rawDeliveryFeeDa;
 
   const hasValidDeliveryPosition =
     (selectedDeliveryAddr != null && !selectedDeliveryAddr.out_of_range) ||
@@ -1059,12 +1070,38 @@ export function CheckoutView({
                   />
                 )
               )}
-              {deliveryFeeDa > 0 && (
+              {freeDeliveryApplies && hasValidDeliveryPosition ? (
                 <RRow
                   label={t("deliveryFee")}
-                  value={formatDA(deliveryFeeDa)}
+                  value={t("freeDeliveryApplied")}
+                  tone="success"
                 />
+              ) : (
+                deliveryFeeDa > 0 && (
+                  <RRow
+                    label={t("deliveryFee")}
+                    value={formatDA(deliveryFeeDa)}
+                  />
+                )
               )}
+              {/* Nudge « plus que X pour la livraison offerte » (façon Uber Eats) :
+                  tournée sélectionnée, offre existante, panier sous le minimum. */}
+              {delivery.fulfillment === "delivery" &&
+                delivery.mode === "tour" &&
+                ctx.delivery.free_delivery != null &&
+                !freeDeliveryApplies && (
+                  <p className="text-accent-700 px-1 text-[12px] font-semibold">
+                    {t("freeDeliveryHint", {
+                      amount: formatDA(
+                        Math.max(
+                          0,
+                          ctx.delivery.free_delivery.min_subtotal_da -
+                            ctx.cart.subtotalDa
+                        )
+                      ),
+                    })}
+                  </p>
+                )}
               {promoDiscount > 0 && (
                 <RRow
                   label={t("promoCodeLabel", {
