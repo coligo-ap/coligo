@@ -29,12 +29,13 @@ import {
   computePauseState,
   type MerchantPauseInput,
 } from "@/lib/merchant/pause-state";
+import { Portal } from "@/components/ui/portal";
 import { MerchantReviewsDialog } from "@/components/customer/merchant-reviews-dialog";
 import { FavoriteHeart } from "@/components/customer/favorite-heart";
 import { ShareButton } from "@/components/customer/share-button";
 import { totalUnits, useCart } from "@/lib/customer/cart-store";
 import { logMerchantEvent } from "@/lib/customer/reco-events";
-import { DAY_KEYS, DAY_LABELS, type OpeningHours } from "@/lib/types";
+import { DAY_KEYS, dayLongLabel, type OpeningHours } from "@/lib/types";
 import { formatDA } from "@/lib/utils";
 import type { ReviewWithCustomer } from "@/lib/data/reviews";
 
@@ -456,52 +457,151 @@ export function MerchantCompactHeader({
         </div>
       )}
 
-      {/* Planning de la semaine (replié par défaut). AUJOURD'HUI est surligné
-          avec un badge + son statut Ouvert/Fermé ; les autres jours suivent. */}
+      {/* Planning de la semaine — POP-UP (feuille animée) au lieu d'un
+          accordéon qui pousse toute la page. Aujourd'hui surligné + statut. */}
       {showHours && (
-        <ul className="border-border bg-surface-2 mt-3 grid gap-0.5 rounded-[12px] border p-2 sm:grid-cols-2">
-          {DAY_KEYS.map((d) => {
-            const slots = opening_hours[d] ?? [];
-            const isToday = d === todayKey;
-            return (
-              <li
-                key={d}
-                className={cn(
-                  "flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs",
-                  isToday ? "bg-primary-50 text-foreground" : "text-foreground"
-                )}
-              >
-                <span className="inline-flex items-center gap-1.5 font-medium">
-                  {DAY_LABELS[d].long}
-                  {isToday && (
-                    <span
-                      className={cn(
-                        "rounded-full px-1.5 py-px text-[9px] font-extrabold",
-                        isOpen
-                          ? "bg-success-100 text-success-700"
-                          : "bg-stone-200 text-stone-600"
-                      )}
-                    >
-                      {t("today")} · {isOpen ? t("openNow") : t("closed")}
-                    </span>
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    "tabular-nums",
-                    isToday ? "text-foreground font-bold" : "text-muted"
-                  )}
-                >
-                  {slots.length === 0
-                    ? t("closed")
-                    : slots.map((s) => `${s.open}–${s.close}`).join(" · ")}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+        <HoursSheet
+          openingHours={opening_hours}
+          todayKey={todayKey}
+          isOpen={isOpen}
+          name={name}
+          addressLine={addressLine}
+          onClose={() => setShowHours(false)}
+        />
       )}
     </div>
+  );
+}
+
+/** Pop-up des horaires : statut du moment, planning de la semaine (Aujourd'hui
+ *  surligné), adresse en pied. Feuille bas-d'écran mobile / dialog desktop. */
+function HoursSheet({
+  openingHours,
+  todayKey,
+  isOpen,
+  name,
+  addressLine,
+  onClose,
+}: {
+  openingHours: OpeningHours;
+  todayKey: (typeof DAY_KEYS)[number];
+  isOpen: boolean;
+  name: string;
+  addressLine: string;
+  onClose: () => void;
+}) {
+  const t = useTranslations("merchant");
+  const locale = useLocale();
+  return (
+    <Portal>
+      <div
+        className="partner-overlay-in fixed inset-0 z-[100] flex items-end justify-center bg-black/50 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div
+          className="bg-surface partner-sheet-in flex max-h-[85vh] w-full max-w-md flex-col rounded-t-[24px] shadow-xl sm:rounded-[24px]"
+          role="dialog"
+          aria-modal="true"
+        >
+          {/* Poignée (standard bottom-sheet) */}
+          <div
+            className="flex justify-center pt-2.5 pb-1 sm:hidden"
+            aria-hidden
+          >
+            <span className="bg-border-strong h-1 w-10 rounded-full" />
+          </div>
+
+          <header className="flex items-start justify-between gap-3 px-5 pt-2 pb-3 sm:pt-5">
+            <div className="min-w-0">
+              <h2 className="font-display text-foreground truncate text-lg font-bold">
+                {t("hoursLabel")}
+              </h2>
+              <p
+                className={cn(
+                  "mt-0.5 inline-flex items-center gap-1.5 text-[13px] font-extrabold",
+                  isOpen ? "text-success-700" : "text-rose-600"
+                )}
+              >
+                <span
+                  className={cn(
+                    "size-1.5 rounded-full",
+                    isOpen ? "bg-success-500" : "bg-rose-500"
+                  )}
+                />
+                {isOpen ? t("openNow") : t("closed")}
+                <span className="text-muted font-medium">· {name}</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t("close")}
+              className="text-muted hover:bg-surface-2 mt-0.5 shrink-0 rounded-full p-1.5"
+            >
+              <X className="size-5" />
+            </button>
+          </header>
+
+          <div className="overflow-y-auto px-5 pb-5">
+            <ul className="border-border divide-border divide-y rounded-[14px] border">
+              {DAY_KEYS.map((d) => {
+                const slots = openingHours[d] ?? [];
+                const isToday = d === todayKey;
+                return (
+                  <li
+                    key={d}
+                    className={cn(
+                      "flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px] first:rounded-t-[13px] last:rounded-b-[13px]",
+                      isToday && "bg-primary-50"
+                    )}
+                  >
+                    <span className="inline-flex items-center gap-1.5 font-semibold">
+                      {dayLongLabel(d, locale)}
+                      {isToday && (
+                        <span
+                          className={cn(
+                            "rounded-full px-1.5 py-px text-[9px] font-extrabold",
+                            isOpen
+                              ? "bg-success-100 text-success-700"
+                              : "bg-stone-200 text-stone-600"
+                          )}
+                        >
+                          {t("today")}
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-end tabular-nums",
+                        isToday
+                          ? "text-foreground font-bold"
+                          : slots.length === 0
+                            ? "font-medium text-rose-500"
+                            : "text-muted"
+                      )}
+                    >
+                      {slots.length === 0
+                        ? t("closed")
+                        : slots.map((s) => `${s.open}–${s.close}`).join(" · ")}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Localisation — l'info complémentaire utile au même endroit. */}
+            {addressLine && (
+              <p className="text-muted mt-3 flex items-center gap-1.5 text-[12.5px] font-semibold">
+                <MapPin className="text-primary-600 size-4 shrink-0" />
+                {addressLine}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </Portal>
   );
 }
 

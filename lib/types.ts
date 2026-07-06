@@ -107,6 +107,23 @@ export const DAY_LABELS: Record<DayKey, { short: string; long: string }> = {
   sun: { short: "Dim", long: "Dimanche" },
 };
 
+/** Jours en ARABE — map codée en dur (PAS Intl : piège d'hydratation #418,
+ *  cf. formatDA). Utilisée côté client quand locale === "ar". */
+export const DAY_LABELS_AR: Record<DayKey, string> = {
+  mon: "الاثنين",
+  tue: "الثلاثاء",
+  wed: "الأربعاء",
+  thu: "الخميس",
+  fri: "الجمعة",
+  sat: "السبت",
+  sun: "الأحد",
+};
+
+/** Nom long du jour selon la locale ("ar" → arabe, sinon français). */
+export function dayLongLabel(day: DayKey, locale: string): string {
+  return locale === "ar" ? DAY_LABELS_AR[day] : DAY_LABELS[day].long;
+}
+
 /** Un créneau (ex: 08:00 → 12:00). open et close au format "HH:MM". */
 export type OpeningSlot = { open: string; close: string };
 
