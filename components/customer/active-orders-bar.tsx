@@ -282,9 +282,9 @@ function StatusSceneFallback({ order }: { order: ActiveOrderLite }) {
           </span>
           <span className="co-drive" aria-hidden>
             {order.delivery_mode === "tour" ? (
-              <Truck className="text-primary-700 dark:text-primary-300 size-5 rtl:-scale-x-100" />
+              <Truck className="text-primary-700 size-5 rtl:-scale-x-100" />
             ) : (
-              <Bike className="text-primary-700 dark:text-primary-300 size-5 rtl:-scale-x-100" />
+              <Bike className="text-primary-700 size-5 rtl:-scale-x-100" />
             )}
           </span>
           {/* La route. */}
@@ -306,7 +306,7 @@ function StatusSceneFallback({ order }: { order: ActiveOrderLite }) {
             <span className="co-steam bg-primary-300/80 h-[6px] w-[2px] rounded-full" />
           </span>
           <span className="co-chef absolute start-1.5 top-1.5" aria-hidden>
-            <ChefHat className="text-primary-700 dark:text-primary-300 size-[18px]" />
+            <ChefHat className="text-primary-700 size-[18px]" />
           </span>
           {/* Ingrédient qui tombe dans le colis. */}
           <span
@@ -314,7 +314,7 @@ function StatusSceneFallback({ order }: { order: ActiveOrderLite }) {
             className="co-pack-item bg-accent-500 absolute end-2.5 top-2.5 size-[5px] rounded-full"
           />
           <span className="co-pack-box absolute end-1 bottom-1" aria-hidden>
-            <Package className="text-primary-600 dark:text-primary-300 size-4" />
+            <Package className="text-primary-600 size-4" />
           </span>
         </>
       ) : ready ? (
@@ -330,10 +330,7 @@ function StatusSceneFallback({ order }: { order: ActiveOrderLite }) {
       ) : (
         // ─── EN ATTENTE : le commerçant « écrit » la commande. ─────────────
         <>
-          <ReceiptText
-            aria-hidden
-            className="text-primary-700 dark:text-primary-300 size-5"
-          />
+          <ReceiptText aria-hidden className="text-primary-700 size-5" />
           <span aria-hidden className="co-pen absolute end-1 bottom-1">
             <Pencil className="text-accent-500 size-3" />
           </span>

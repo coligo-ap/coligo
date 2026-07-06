@@ -1004,7 +1004,8 @@ body {
     .text-primary-600,
     .text-primary-700\/90,
     .text-primary-700\/80,
-    .text-primary-600\/90
+    .text-primary-600\/90,
+    .text-primary-500\/90
   ) {
   color: #b493f9;
 }

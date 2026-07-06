@@ -212,7 +212,7 @@ function PromoCodeCard({ promo }: { promo: PlatformPromoCode }) {
               <span className="text-primary-800 dark:text-primary-200 truncate text-sm font-extrabold">
                 {title}
               </span>
-              <span className="text-primary-600 dark:text-primary-300 shrink-0 text-xs font-black">
+              <span className="text-primary-600 shrink-0 text-xs font-black">
                 {discount}
               </span>
             </div>
@@ -226,7 +226,7 @@ function PromoCodeCard({ promo }: { promo: PlatformPromoCode }) {
               <span className="border-primary-300 rounded-md border bg-[#fff] px-2 py-0.5 font-mono text-sm font-black tracking-wider text-[#6c2bd9]">
                 {code}
               </span>
-              <span className="text-primary-500/90 dark:text-primary-300/80 inline-flex items-center gap-1 text-[11px] font-medium">
+              <span className="text-primary-500/90 inline-flex items-center gap-1 text-[11px] font-medium">
                 {copied ? (
                   <>
                     <Check className="size-3" /> {t("copied")}

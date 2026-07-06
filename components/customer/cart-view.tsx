@@ -488,7 +488,7 @@ export function CartView() {
               {/* Codes à saisir au paiement — même liste plate, chips légères. */}
               {codePromos.length > 0 && (
                 <div className="py-2">
-                  <span className="text-primary-700 dark:text-primary-300 flex items-center gap-1.5 text-[11px] font-bold">
+                  <span className="text-primary-700 flex items-center gap-1.5 text-[11px] font-bold">
                     <Ticket className="text-accent-600 size-3.5" />
                     {t("promoCodeHint")}
                   </span>
@@ -532,7 +532,7 @@ export function CartView() {
               type="button"
               onClick={() => setDetailOpen((v) => !v)}
               aria-expanded={detailOpen}
-              className="text-primary-700 dark:text-primary-300 flex w-full items-center justify-between gap-2 text-[12.5px] font-bold"
+              className="text-primary-700 flex w-full items-center justify-between gap-2 text-[12.5px] font-bold"
             >
               <span className="inline-flex items-center gap-1.5">
                 <BadgePercent className="text-accent-600 size-4" />
