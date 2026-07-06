@@ -22,12 +22,16 @@ type Props = {
   banners: PromoBanner[];
 };
 
+// Couleurs AUTO-PORTÉES (comme une photo) : une bannière garde exactement le
+// même rendu en mode sombre. PAS de tokens qui se remappent (`text-foreground`
+// devenait clair sur ambre clair, `from-foreground` devenait un fond clair) ni
+// de variant `dark:` (le sombre client est `.theme-dark`, pas le système).
 const ACCENT_CLASSES: Record<PromoBanner["accent"], string> = {
   violet: "from-primary-700 via-primary-600 to-primary-500 text-white",
   coral: "from-coral-700 via-coral-600 to-coral-500 text-white",
   mint: "from-mint-700 via-mint-600 to-mint-500 text-white",
-  amber: "from-amber-600 via-amber-500 to-amber-400 text-foreground",
-  dark: "from-foreground via-foreground/95 to-foreground/85 text-white",
+  amber: "from-amber-600 via-amber-500 to-amber-400 text-[#2b1f05]",
+  dark: "from-[#16161e] via-[#16161e] to-[#26262e] text-white",
 };
 
 export function PromoBannerCarousel({ banners }: Props) {

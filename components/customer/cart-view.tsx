@@ -13,7 +13,6 @@ import {
   ShoppingCart,
   Ticket,
   Trash2,
-  X,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { cn, formatDA } from "@/lib/utils";
@@ -434,113 +433,94 @@ export function CartView() {
           haut) + cashback + récap sous-total/économies/total + bouton. */}
       <div className="border-border fixed inset-x-0 bottom-16 z-40 border-t bg-white px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
         <div className="mx-auto max-w-[560px] space-y-2.5">
-          {/* Détail des promotions & économies — s'ouvre VERS LE HAUT.
-              UNE seule carte PLATE (charbon « verre ») : des LIGNES séparées
-              par un filet, pas de cartes imbriquées. Par produit : vignette +
-              nom + UN seul résumé d'avantage (−X% → prix, ou N offert) + gain
-              en vert — zéro info répétée. */}
+          {/* Détail des promotions & économies — contenu INTÉGRÉ directement
+              dans la carte du bas (aucune carte autour, pas de titre doublon :
+              le bouton « Voir le détail… » sert d'ouverture/fermeture). Lignes
+              plates séparées par un filet, un seul résumé par produit. */}
           {hasDetail && detailOpen && (
-            <div className="bg-foreground/95 text-surface max-h-[40vh] overflow-y-auto rounded-[16px] px-3 py-2.5 shadow-[0_12px_32px_-12px_rgba(10,10,20,0.55)] backdrop-blur-md">
-              {/* En-tête du panneau : titre + fermeture explicite. */}
-              <div className="flex items-center justify-between pb-1">
-                <span className="text-[12px] font-extrabold">
-                  {t("promoDetailsTitle")}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setDetailOpen(false)}
-                  aria-label={t("close")}
-                  className="text-surface/70 hover:text-surface -m-1 p-1"
+            <div className="divide-border border-border max-h-[40vh] divide-y overflow-y-auto border-b pb-1">
+              {productBenefits.map((b) => (
+                <div
+                  key={b.item.line_key}
+                  className="flex items-center gap-2.5 py-2"
                 >
-                  <X className="size-4" />
-                </button>
-              </div>
-
-              {/* Lignes plates séparées par un filet discret. */}
-              <div className="divide-surface/12 divide-y">
-                {productBenefits.map((b) => (
-                  <div
-                    key={b.item.line_key}
-                    className="flex items-center gap-2.5 py-2"
-                  >
-                    <div className="bg-surface/15 size-8 shrink-0 overflow-hidden rounded-[8px]">
-                      {b.item.image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={b.item.image_url}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      ) : null}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="line-clamp-1 text-[12.5px] font-bold">
-                        {b.item.name}
-                      </p>
-                      {/* UN résumé compact : réduction → nouveau prix, et/ou
-                          unités offertes. (Noms de promos retirés : redondants.) */}
-                      <p className="text-surface/65 flex items-center gap-1.5 text-[10.5px] font-semibold">
-                        {b.hasDiscount && (
-                          <span>
-                            {b.discountPct > 0 ? `−${b.discountPct} % → ` : ""}
-                            {formatDA(b.appliedUnit)}
-                          </span>
-                        )}
-                        {b.freeUnits > 0 && (
-                          <span className="inline-flex items-center gap-1">
-                            <Gift className="size-3" />
-                            {t("freeApplied", { count: b.freeUnits })}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-
-                    <span className="text-success-400 shrink-0 text-[12.5px] font-black tabular-nums">
-                      −{formatDA(b.totalSaved)}
-                    </span>
+                  <div className="bg-surface-2 size-8 shrink-0 overflow-hidden rounded-[8px]">
+                    {b.item.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={b.item.image_url}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : null}
                   </div>
-                ))}
 
-                {/* Codes à saisir au paiement — même liste plate, chips légères. */}
-                {codePromos.length > 0 && (
-                  <div className="py-2">
-                    <span className="text-surface/80 flex items-center gap-1.5 text-[11px] font-bold">
-                      <Ticket className="text-accent-400 size-3.5" />
-                      {t("promoCodeHint")}
-                    </span>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {codePromos.map((p) => {
-                        const val =
-                          p.discount_kind === "percent"
-                            ? `−${p.discount_value} %`
-                            : `−${formatDA(p.discount_value ?? 0)}`;
-                        return (
-                          <span
-                            key={p.id}
-                            className="bg-surface/15 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold"
-                          >
-                            <span className="font-mono font-black tracking-wider">
-                              {p.code}
-                            </span>
-                            <span className="text-success-400 font-black">
-                              {val}
-                            </span>
-                            {p.min_subtotal_da != null && (
-                              <span className="text-surface/60">
-                                ·{" "}
-                                {t("promoCodeFrom", {
-                                  amount: formatDA(p.min_subtotal_da),
-                                })}
-                              </span>
-                            )}
-                          </span>
-                        );
-                      })}
-                    </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-foreground line-clamp-1 text-[12.5px] font-bold">
+                      {b.item.name}
+                    </p>
+                    {/* UN résumé compact : réduction → nouveau prix, et/ou
+                        unités offertes. (Noms de promos retirés : redondants.) */}
+                    <p className="text-muted flex items-center gap-1.5 text-[10.5px] font-semibold">
+                      {b.hasDiscount && (
+                        <span>
+                          {b.discountPct > 0 ? `−${b.discountPct} % → ` : ""}
+                          {formatDA(b.appliedUnit)}
+                        </span>
+                      )}
+                      {b.freeUnits > 0 && (
+                        <span className="inline-flex items-center gap-1">
+                          <Gift className="size-3" />
+                          {t("freeApplied", { count: b.freeUnits })}
+                        </span>
+                      )}
+                    </p>
                   </div>
-                )}
-              </div>
+
+                  <span className="text-success-700 dark:text-success-400 shrink-0 text-[12.5px] font-black tabular-nums">
+                    −{formatDA(b.totalSaved)}
+                  </span>
+                </div>
+              ))}
+
+              {/* Codes à saisir au paiement — même liste plate, chips légères. */}
+              {codePromos.length > 0 && (
+                <div className="py-2">
+                  <span className="text-foreground flex items-center gap-1.5 text-[11px] font-bold">
+                    <Ticket className="text-accent-600 size-3.5" />
+                    {t("promoCodeHint")}
+                  </span>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {codePromos.map((p) => {
+                      const val =
+                        p.discount_kind === "percent"
+                          ? `−${p.discount_value} %`
+                          : `−${formatDA(p.discount_value ?? 0)}`;
+                      return (
+                        <span
+                          key={p.id}
+                          className="bg-surface-2 text-foreground inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold"
+                        >
+                          <span className="font-mono font-black tracking-wider">
+                            {p.code}
+                          </span>
+                          <span className="text-success-700 dark:text-success-400 font-black">
+                            {val}
+                          </span>
+                          {p.min_subtotal_da != null && (
+                            <span className="text-muted">
+                              ·{" "}
+                              {t("promoCodeFrom", {
+                                amount: formatDA(p.min_subtotal_da),
+                              })}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
