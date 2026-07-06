@@ -423,19 +423,22 @@ export function CartView() {
           haut) + cashback + récap sous-total/économies/total + bouton. */}
       <div className="border-border fixed inset-x-0 bottom-16 z-40 border-t bg-white px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
         <div className="mx-auto max-w-[560px] space-y-2.5">
-          {/* Détail des promotions & économies — s'ouvre VERS LE HAUT. */}
+          {/* Détail des promotions & économies — s'ouvre VERS LE HAUT.
+              Fond CHARBON « verre » (tokens inversés → s'adapte seul au mode
+              sombre), DIFFÉRENT du blanc de la page : le panneau se détache
+              nettement et les cartes produits claires ressortent dedans. */}
           {hasDetail && detailOpen && (
-            <div className="border-border bg-surface-2 max-h-[40vh] space-y-1.5 overflow-y-auto rounded-[12px] border p-2.5">
+            <div className="bg-foreground/95 text-surface max-h-[40vh] space-y-1.5 overflow-y-auto rounded-[14px] p-2.5 shadow-[0_12px_32px_-12px_rgba(10,10,20,0.55)] backdrop-blur-md">
               {/* En-tête du panneau : titre + fermeture explicite. */}
               <div className="flex items-center justify-between px-1 pb-0.5">
-                <span className="text-foreground text-[12px] font-extrabold">
+                <span className="text-[12px] font-extrabold">
                   {t("promoDetailsTitle")}
                 </span>
                 <button
                   type="button"
                   onClick={() => setDetailOpen(false)}
                   aria-label={t("close")}
-                  className="text-muted hover:text-foreground -m-1 p-1"
+                  className="text-surface/70 hover:text-surface -m-1 p-1"
                 >
                   <X className="size-4" />
                 </button>
@@ -507,8 +510,8 @@ export function CartView() {
               {/* Codes promo dispo — appliqués à l'étape paiement. */}
               {codePromos.length > 0 && (
                 <div className="px-1 pt-0.5">
-                  <span className="text-primary-700 dark:text-primary-300 flex items-center gap-1.5 text-[11px] font-bold">
-                    <Ticket className="text-accent-600 size-3.5" />
+                  <span className="text-surface/90 flex items-center gap-1.5 text-[11px] font-bold">
+                    <Ticket className="text-accent-400 size-3.5" />
                     {t("promoCodeHint")}
                   </span>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
