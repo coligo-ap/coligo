@@ -61,26 +61,19 @@ function PerkCard({ promotion }: { promotion: PublicPromotion }) {
   }
   const summary =
     conditions.length > 0 ? conditions.join(" · ") : t("offerNoCondition");
-  const title =
-    locale === "ar" && promotion.title_ar
-      ? promotion.title_ar
-      : promotion.title_fr;
 
+  // Une SEULE fois l'offre (le titre libre du commerçant — souvent « Livraison
+  // gratuite » — ferait doublon avec la valeur), puis la condition en dessous.
   return (
     <div className="border-accent-300 bg-accent-50 flex items-center gap-3 overflow-hidden rounded-[16px] border border-dashed px-3.5 py-3">
       <span className="bg-accent-600 grid size-11 shrink-0 place-items-center rounded-[12px] text-white shadow-sm">
         <Icon className="size-5" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="flex items-baseline gap-2">
-          <span className="text-accent-700 truncate text-sm font-extrabold">
-            {title}
-          </span>
-        </span>
-        <span className="text-accent-700 mt-0.5 block text-sm font-black">
-          {value}
+        <span className="text-accent-700 flex items-baseline gap-1.5 text-sm font-extrabold">
+          <span className="truncate">{value}</span>
           {isDelivery && (
-            <span className="text-muted ml-1.5 text-[11px] font-semibold">
+            <span className="text-muted shrink-0 text-[11px] font-semibold">
               · {t("offerTourOnly")}
             </span>
           )}
