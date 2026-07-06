@@ -238,6 +238,8 @@
     "deliveryTourLabel": "التوصيل بالجولة",
     "freeDeliveryApplied": "مجاني",
     "freeDeliveryHint": "أضِف {amount} فقط للحصول على التوصيل بالجولة مجانًا",
+    "freeDeliveryBadge": "توصيل مجاني",
+    "freeDeliveryBadgeFrom": "توصيل مجاني ابتداءً من {amount}",
     "promoCodeLabel": "رمز ترويجي ({code})",
     "orderTotal": "إجمالي الطلب",
     "cashbackUsed": "الكاش باك المستخدم",

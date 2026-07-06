@@ -708,6 +708,7 @@ export function CheckoutView({
           value={delivery}
           onChange={setDelivery}
           defaultPosition={savedPosition}
+          cartSubtotalDa={ctx.cart.subtotalDa}
         />
 
         {/* Créneau de retrait (uniquement si retrait) */}

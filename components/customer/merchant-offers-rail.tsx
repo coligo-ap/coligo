@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   BadgePercent,
   Check,
+  ChevronRight,
   Copy,
   Gift,
   Layers,
@@ -22,11 +23,14 @@ import type { PublicPromotion } from "@/lib/data/customer-catalog";
 // =============================================================================
 // MerchantOffersRail — carrousel COMPACT et CLASSÉ des offres d'une boutique.
 // =============================================================================
-// Une seule bande horizontale (scroll-snap) de petites cartes, ordonnées de la
-// plus attractive à la moins (cf. lib/promotions/ranking). Les ventes flash
-// affichent un COMPTE À REBOURS live. Toucher une carte ouvre une feuille de
-// détail (conditions, code copiable, cadeau, produits concernés). Design
-// volontairement compact — n'encombre pas la fiche commerce.
+// Une seule bande horizontale (scroll-snap) de cartes claires, ordonnées de la
+// plus attractive à la moins (cf. lib/promotions/ranking). Design « clean » :
+// carte blanche + léger voile teinté par type, pastille dégradée, grande
+// valeur, chevron d'affordance (on comprend qu'on peut toucher). Les ventes
+// flash affichent un COMPTE À REBOURS live (point pulsant). Toucher une carte
+// ouvre une feuille détaillée (poignée, animation, conditions, code copiable,
+// produits concernés avec prix barré). Volontairement compact — n'encombre pas
+// la fiche commerce.
 // =============================================================================
 
 export type OfferProduct = {
@@ -40,60 +44,72 @@ type ProductsById = Record<string, OfferProduct>;
 type TypeMeta = {
   Icon: LucideIcon;
   labelKey: string;
-  card: string; // fond + bordure de la carte
-  pill: string; // pastille icône
-  value: string; // couleur de la valeur
+  /** Voile teinté très léger du HAUT de la carte vers le blanc. */
+  wash: string;
+  /** Pastille icône en dégradé (profondeur, façon iOS). */
+  pill: string;
+  /** Couleur du libellé de type + de la valeur. */
+  value: string;
+  /** Bordure au survol / sélection. */
+  ring: string;
 };
 
 const TYPE_META: Record<PublicPromotion["type"], TypeMeta> = {
   flash_sale: {
     Icon: Timer,
     labelKey: "typeFlashSale",
-    card: "border-danger-200 bg-danger-50",
-    pill: "bg-danger-600 text-white",
+    wash: "from-danger-50/80",
+    pill: "from-danger-500 to-danger-600",
     value: "text-danger-700",
+    ring: "hover:border-danger-300",
   },
   anti_gaspillage: {
     Icon: Leaf,
     labelKey: "typeAntiWaste",
-    card: "border-success-200 bg-success-50",
-    pill: "bg-success-600 text-white",
+    wash: "from-success-50/80",
+    pill: "from-success-500 to-success-600",
     value: "text-success-700",
+    ring: "hover:border-success-300",
   },
   quantity_offer: {
     Icon: Layers,
     labelKey: "typeQuantityOffer",
-    card: "border-accent-200 bg-accent-50",
-    pill: "bg-accent-600 text-white",
+    wash: "from-accent-50/80",
+    pill: "from-accent-500 to-accent-600",
     value: "text-accent-700",
+    ring: "hover:border-accent-300",
   },
   free_delivery: {
     Icon: Truck,
     labelKey: "typeFreeDelivery",
-    card: "border-primary-200 bg-primary-50",
-    pill: "bg-primary-600 text-white",
+    wash: "from-primary-50/80",
+    pill: "from-primary-500 to-primary-600",
     value: "text-primary-700",
+    ring: "hover:border-primary-300",
   },
   free_gift: {
     Icon: Gift,
     labelKey: "typeGift",
-    card: "border-accent-200 bg-accent-50",
-    pill: "bg-accent-600 text-white",
+    wash: "from-accent-50/80",
+    pill: "from-accent-500 to-accent-600",
     value: "text-accent-700",
+    ring: "hover:border-accent-300",
   },
   product_discount: {
     Icon: BadgePercent,
     labelKey: "typeDiscount",
-    card: "border-primary-200 bg-primary-50",
-    pill: "bg-primary-600 text-white",
+    wash: "from-primary-50/80",
+    pill: "from-primary-500 to-primary-600",
     value: "text-primary-700",
+    ring: "hover:border-primary-300",
   },
   promo_code: {
     Icon: Ticket,
     labelKey: "typePromoCode",
-    card: "border-accent-200 bg-accent-50",
-    pill: "bg-accent-600 text-white",
+    wash: "from-accent-50/80",
+    pill: "from-accent-500 to-accent-600",
     value: "text-accent-700",
+    ring: "hover:border-accent-300",
   },
 };
 
@@ -200,11 +216,18 @@ export function MerchantOffersRail({
 
   return (
     <section className="space-y-2">
-      <h2 className="text-foreground flex items-center gap-1.5 px-0.5 text-sm font-extrabold">
-        <BadgePercent className="text-accent-600 size-4" />
-        {t("offersTitle")}
-      </h2>
-      <div className="-mx-4 flex snap-x [scrollbar-width:none] gap-2.5 overflow-x-auto px-4 pb-1 lg:-mx-6 lg:px-6 [&::-webkit-scrollbar]:hidden">
+      <div className="flex items-baseline justify-between px-0.5">
+        <h2 className="text-foreground flex items-center gap-1.5 text-sm font-extrabold">
+          <BadgePercent className="text-accent-600 size-4" />
+          {t("offersTitle")}
+        </h2>
+        {offers.length > 1 && (
+          <span className="text-muted text-[11px] font-semibold tabular-nums">
+            {offers.length}
+          </span>
+        )}
+      </div>
+      <div className="-mx-4 flex snap-x [scrollbar-width:none] gap-2.5 overflow-x-auto px-4 pb-1.5 lg:-mx-6 lg:px-6 [&::-webkit-scrollbar]:hidden">
         {offers.map((o) => (
           <OfferCard key={o.id} promo={o} onOpen={() => setOpenId(o.id)} />
         ))}
@@ -245,47 +268,79 @@ function OfferCard({
       type="button"
       onClick={onOpen}
       className={cn(
-        "relative flex w-[152px] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-[16px] border p-3 text-start transition-transform active:scale-[0.98]",
-        meta.card
+        "border-border bg-surface relative flex w-[168px] shrink-0 snap-start flex-col overflow-hidden rounded-[18px] border p-3 text-start shadow-[0_1px_2px_rgba(20,20,50,0.05),0_10px_24px_-16px_rgba(40,35,90,0.25)] transition-all duration-150 active:scale-[0.97]",
+        meta.ring
       )}
-      style={{ minHeight: 104 }}
+      style={{ minHeight: 118 }}
     >
-      <div className="flex items-center gap-1.5">
+      {/* Voile teinté très léger, du haut vers le blanc — identité par type
+          sans « bloc de couleur » lourd. */}
+      <span
+        className={cn(
+          "pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b to-transparent",
+          meta.wash
+        )}
+        aria-hidden
+      />
+
+      <span className="relative flex items-center gap-1.5">
         <span
           className={cn(
-            "grid size-6 shrink-0 place-items-center rounded-[8px]",
+            "grid size-7 shrink-0 place-items-center rounded-[9px] bg-gradient-to-br text-white shadow-sm",
             meta.pill
           )}
         >
-          <Icon className="size-3.5" />
+          <Icon className="size-4" />
         </span>
-        <span className={cn("truncate text-[11px] font-bold", meta.value)}>
+        <span
+          className={cn(
+            "min-w-0 truncate text-[11px] font-extrabold",
+            meta.value
+          )}
+        >
           {t(meta.labelKey)}
         </span>
-      </div>
+        <ChevronRight className="text-subtle ms-auto size-3.5 shrink-0 rtl:-scale-x-100" />
+      </span>
 
-      <p
-        className={cn(
-          "mt-1.5 truncate text-xl leading-none font-black",
-          meta.value,
-          value.mono && "font-mono tracking-tight"
-        )}
-      >
-        {value.text}
-      </p>
+      {/* Valeur : un code s'affiche en « coupon » (chip pointillé), le reste en
+          grande valeur nette. */}
+      {value.mono ? (
+        <span className="relative mt-2.5 inline-flex w-fit max-w-full">
+          <span className="border-accent-300 bg-accent-50 truncate rounded-[8px] border border-dashed px-2 py-1 font-mono text-[15px] font-black tracking-wide text-[#e6007a]">
+            {value.text}
+          </span>
+        </span>
+      ) : (
+        <span
+          className={cn(
+            "relative mt-2 truncate text-[21px] leading-tight font-black",
+            meta.value
+          )}
+        >
+          {value.text}
+        </span>
+      )}
 
-      <div className="mt-1.5 min-h-[16px]">
+      <span className="relative mt-auto flex min-h-[18px] items-end pt-1.5">
         {isFlash && countdown.mounted ? (
-          <span className="bg-danger-600 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold text-white">
-            <Timer className="size-3" />
+          <span className="bg-danger-600 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-bold text-white tabular-nums">
+            <span
+              className="size-1.5 animate-pulse rounded-full bg-white"
+              aria-hidden
+            />
             {countdown.text}
           </span>
         ) : condition ? (
           <span className="text-muted block truncate text-[11px] font-medium">
             {condition}
           </span>
-        ) : null}
-      </div>
+        ) : (
+          <span className="text-muted block truncate text-[11px] font-medium">
+            {t("offerNoCondition")}
+          </span>
+        )}
+      </span>
     </button>
   );
 }
@@ -349,59 +404,70 @@ function OfferDetailSheet({
   return (
     <Portal>
       <div
-        className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+        className="partner-overlay-in fixed inset-0 z-[100] flex items-end justify-center bg-black/50 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
         onClick={(e) => {
           if (e.target === e.currentTarget) onClose();
         }}
       >
         <div
-          className="bg-surface flex max-h-[85vh] w-full max-w-md flex-col rounded-t-[20px] shadow-xl sm:rounded-[20px]"
+          className="bg-surface partner-sheet-in flex max-h-[85vh] w-full max-w-md flex-col rounded-t-[24px] shadow-xl sm:rounded-[24px]"
           role="dialog"
           aria-modal="true"
         >
-          <header className="border-border flex items-center justify-between gap-3 border-b px-5 py-4">
-            <span className="flex items-center gap-2">
+          {/* Poignée (standard bottom-sheet) */}
+          <div
+            className="flex justify-center pt-2.5 pb-1 sm:hidden"
+            aria-hidden
+          >
+            <span className="bg-border-strong h-1 w-10 rounded-full" />
+          </div>
+
+          <header className="flex items-start justify-between gap-3 px-5 pt-2 pb-3 sm:pt-5">
+            <div className="flex min-w-0 items-start gap-3">
               <span
                 className={cn(
-                  "grid size-8 place-items-center rounded-[10px]",
+                  "grid size-11 shrink-0 place-items-center rounded-[13px] bg-gradient-to-br text-white shadow-sm",
                   meta.pill
                 )}
               >
-                <Icon className="size-4" />
+                <Icon className="size-5" />
               </span>
-              <span className="font-display text-foreground text-base font-bold">
-                {t(meta.labelKey)}
-              </span>
-            </span>
+              <div className="min-w-0">
+                <p className={cn("text-[12px] font-extrabold", meta.value)}>
+                  {t(meta.labelKey)}
+                </p>
+                <p
+                  className={cn(
+                    "truncate text-[22px] leading-tight font-black",
+                    meta.value,
+                    value.mono && "font-mono text-[19px]"
+                  )}
+                >
+                  {value.text}
+                </p>
+              </div>
+            </div>
             <button
               type="button"
               onClick={onClose}
-              className="text-muted hover:bg-surface-2 rounded-full p-1.5"
+              className="text-muted hover:bg-surface-2 mt-0.5 shrink-0 rounded-full p-1.5"
               aria-label={t("offerClose")}
             >
               <X className="size-5" />
             </button>
           </header>
 
-          <div className="space-y-4 overflow-y-auto px-5 py-4">
+          <div className="space-y-4 overflow-y-auto px-5 pb-5">
             <div>
-              <p
-                className={cn(
-                  "text-2xl leading-none font-black",
-                  meta.value,
-                  value.mono && "font-mono"
-                )}
-              >
-                {value.text}
-              </p>
-              <p className="text-foreground mt-1 text-sm font-semibold">
-                {title}
-              </p>
+              <p className="text-foreground text-sm font-semibold">{title}</p>
               {promo.type === "flash_sale" &&
                 countdown.mounted &&
                 !countdown.ended && (
-                  <span className="bg-danger-600 mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold text-white">
-                    <Timer className="size-3.5" />
+                  <span className="bg-danger-600 mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-bold text-white tabular-nums">
+                    <span
+                      className="size-1.5 animate-pulse rounded-full bg-white"
+                      aria-hidden
+                    />
                     {t("flashEndsIn", { time: countdown.text })}
                   </span>
                 )}
@@ -412,7 +478,7 @@ function OfferDetailSheet({
               <button
                 type="button"
                 onClick={copy}
-                className="border-accent-300 bg-accent-50 flex w-full items-center gap-3 rounded-[14px] border border-dashed px-3.5 py-3"
+                className="border-accent-300 bg-accent-50 flex w-full items-center gap-3 rounded-[14px] border border-dashed px-3.5 py-3 transition-transform active:scale-[0.99]"
               >
                 <span className="border-accent-300 rounded-md border bg-[#fff] px-2.5 py-1 font-mono text-base font-black tracking-wider text-[#e6007a]">
                   {code}
@@ -422,7 +488,7 @@ function OfferDetailSheet({
                 </span>
                 <span
                   className={cn(
-                    "grid size-9 shrink-0 place-items-center rounded-full shadow-sm",
+                    "grid size-9 shrink-0 place-items-center rounded-full shadow-sm transition-colors",
                     copied
                       ? "bg-success-600 text-white"
                       : "bg-[#fff] text-[#e6007a]"

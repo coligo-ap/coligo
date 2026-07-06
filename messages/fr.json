@@ -238,6 +238,8 @@
     "deliveryTourLabel": "Livraison en tournée",
     "freeDeliveryApplied": "Gratuit",
     "freeDeliveryHint": "Plus que {amount} pour la livraison en tournée offerte",
+    "freeDeliveryBadge": "Livraison offerte",
+    "freeDeliveryBadgeFrom": "Livraison offerte dès {amount}",
     "promoCodeLabel": "Code promo ({code})",
     "orderTotal": "Total commande",
     "cashbackUsed": "Cashback utilisé",

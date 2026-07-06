@@ -78,6 +78,7 @@ export function CheckoutDeliverySection({
   value,
   onChange,
   defaultPosition,
+  cartSubtotalDa = 0,
 }: {
   delivery: CheckoutDeliveryContext;
   merchantPosition: CheckoutMerchantPosition | null;
@@ -92,6 +93,9 @@ export function CheckoutDeliverySection({
   value: DeliveryChoice;
   onChange: (next: DeliveryChoice) => void;
   defaultPosition?: { lat: number; lng: number } | null;
+  /** Sous-total panier (après promos produit) — pour l'étiquette « Livraison
+   *  offerte » sur la carte Tournée (déjà acquise vs « dès X DA »). */
+  cartSubtotalDa?: number;
 }) {
   const t = useTranslations("checkout");
   const geo = useGeolocation();
@@ -430,6 +434,21 @@ export function CheckoutDeliverySection({
                         icon={<Calendar className="size-4" />}
                         label={t("tour")}
                         sub={t("tourSub")}
+                        // Livraison offerte (mig 0331) : l'offre du commerçant ne
+                        // vaut QUE pour la tournée → étiquette DANS la carte pour
+                        // que le client comprenne où il en bénéficie.
+                        badge={
+                          delivery.free_delivery
+                            ? cartSubtotalDa >=
+                              delivery.free_delivery.min_subtotal_da
+                              ? t("freeDeliveryBadge")
+                              : t("freeDeliveryBadgeFrom", {
+                                  amount: formatDA(
+                                    delivery.free_delivery.min_subtotal_da
+                                  ),
+                                })
+                            : null
+                        }
                         active={value.mode === "tour"}
                         onClick={() => update({ mode: "tour" })}
                       />
@@ -1186,12 +1205,15 @@ function ModeButton({
   icon,
   label,
   sub,
+  badge,
   active,
   onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   sub: string;
+  /** Étiquette promo (ex. « Livraison offerte ») affichée DANS la carte. */
+  badge?: string | null;
   active: boolean;
   onClick: () => void;
 }) {
@@ -1200,7 +1222,7 @@ function ModeButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-start gap-2 rounded-[12px] border p-3 text-start transition active:scale-[0.98]",
+        "relative flex items-start gap-2 rounded-[12px] border p-3 text-start transition active:scale-[0.98]",
         active
           ? "border-primary-500 bg-primary-50"
           : "border-border bg-surface hover:border-primary-300"
@@ -1214,6 +1236,12 @@ function ModeButton({
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold">{label}</span>
         <span className="text-muted text-xs">{sub}</span>
+        {badge && (
+          <span className="bg-success-600 mt-1.5 inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold text-white">
+            <Truck className="size-3 shrink-0" />
+            <span className="truncate">{badge}</span>
+          </span>
+        )}
       </span>
     </button>
   );
