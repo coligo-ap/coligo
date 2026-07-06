@@ -5,7 +5,6 @@
       "namespace": "android_app",
       "package_name": "app.coligo.client",
       "sha256_cert_fingerprints": [
-        "PLACEHOLDER_SHA256_SIGNATURE_PLAY_APP_SIGNING",
         "47:CD:45:1F:E6:B1:B9:C8:E3:41:F4:C4:A5:A2:C0:47:B6:4B:16:91:7C:07:AF:5F:5A:FC:4C:2C:21:50:FB:79"
       ]
     }
