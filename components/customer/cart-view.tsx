@@ -419,18 +419,30 @@ export function CartView() {
         })}
       </div>
 
+      {/* Voile FLOU sur la page quand le détail des avantages est ouvert —
+          focalise l'attention sur le panneau ; un tap dessus le referme. */}
+      {hasDetail && detailOpen && (
+        <button
+          type="button"
+          aria-label={t("close")}
+          onClick={() => setDetailOpen(false)}
+          className="partner-overlay-in fixed inset-0 z-[39] cursor-default bg-black/25 backdrop-blur-[3px]"
+        />
+      )}
+
       {/* Barre fixe en bas : un seul card = détail repliable (ouverture vers le
           haut) + cashback + récap sous-total/économies/total + bouton. */}
       <div className="border-border fixed inset-x-0 bottom-16 z-40 border-t bg-white px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
         <div className="mx-auto max-w-[560px] space-y-2.5">
           {/* Détail des promotions & économies — s'ouvre VERS LE HAUT.
-              Fond CHARBON « verre » (tokens inversés → s'adapte seul au mode
-              sombre), DIFFÉRENT du blanc de la page : le panneau se détache
-              nettement et les cartes produits claires ressortent dedans. */}
+              UNE seule carte PLATE (charbon « verre ») : des LIGNES séparées
+              par un filet, pas de cartes imbriquées. Par produit : vignette +
+              nom + UN seul résumé d'avantage (−X% → prix, ou N offert) + gain
+              en vert — zéro info répétée. */}
           {hasDetail && detailOpen && (
-            <div className="bg-foreground/95 text-surface max-h-[40vh] space-y-1.5 overflow-y-auto rounded-[14px] p-2.5 shadow-[0_12px_32px_-12px_rgba(10,10,20,0.55)] backdrop-blur-md">
+            <div className="bg-foreground/95 text-surface max-h-[40vh] overflow-y-auto rounded-[16px] px-3 py-2.5 shadow-[0_12px_32px_-12px_rgba(10,10,20,0.55)] backdrop-blur-md">
               {/* En-tête du panneau : titre + fermeture explicite. */}
-              <div className="flex items-center justify-between px-1 pb-0.5">
+              <div className="flex items-center justify-between pb-1">
                 <span className="text-[12px] font-extrabold">
                   {t("promoDetailsTitle")}
                 </span>
@@ -444,105 +456,91 @@ export function CartView() {
                 </button>
               </div>
 
-              {/* Un bloc par produit en promo : type d'avantage + gain. */}
-              {productBenefits.map((b) => (
-                <div
-                  key={b.item.line_key}
-                  className="bg-surface flex items-start gap-2.5 rounded-[10px] px-2.5 py-2"
-                >
-                  <div className="bg-surface-2 size-9 shrink-0 overflow-hidden rounded-[8px]">
-                    {b.item.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={b.item.image_url}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : null}
-                  </div>
+              {/* Lignes plates séparées par un filet discret. */}
+              <div className="divide-surface/12 divide-y">
+                {productBenefits.map((b) => (
+                  <div
+                    key={b.item.line_key}
+                    className="flex items-center gap-2.5 py-2"
+                  >
+                    <div className="bg-surface/15 size-8 shrink-0 overflow-hidden rounded-[8px]">
+                      {b.item.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={b.item.image_url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : null}
+                    </div>
 
-                  <div className="min-w-0 flex-1">
-                    <p className="text-foreground line-clamp-1 text-[12.5px] font-bold">
-                      {b.item.name}
-                    </p>
-
-                    {/* Avantage « réduction » : −X% + prix barré → nouveau prix. */}
-                    {b.hasDiscount && (
-                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                        {b.discountPct > 0 && (
-                          <span className="bg-accent-600 rounded-md px-1.5 py-0.5 text-[9.5px] font-extrabold text-white">
-                            −{b.discountPct}%
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-1 text-[12.5px] font-bold">
+                        {b.item.name}
+                      </p>
+                      {/* UN résumé compact : réduction → nouveau prix, et/ou
+                          unités offertes. (Noms de promos retirés : redondants.) */}
+                      <p className="text-surface/65 flex items-center gap-1.5 text-[10.5px] font-semibold">
+                        {b.hasDiscount && (
+                          <span>
+                            {b.discountPct > 0 ? `−${b.discountPct} % → ` : ""}
+                            {formatDA(b.appliedUnit)}
                           </span>
                         )}
-                        <span className="text-[10.5px] font-semibold">
-                          <span className="text-accent-600 font-bold">
-                            {formatDA(b.appliedUnit)}
-                          </span>{" "}
-                          <span className="text-subtle line-through">
-                            {formatDA(b.item.unit_price_da)}
+                        {b.freeUnits > 0 && (
+                          <span className="inline-flex items-center gap-1">
+                            <Gift className="size-3" />
+                            {t("freeApplied", { count: b.freeUnits })}
                           </span>
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Avantage « offre quantité » : N offert(s). */}
-                    {b.freeUnits > 0 && (
-                      <span className="bg-accent-50 text-accent-600 mt-0.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold">
-                        <Gift className="size-3" />
-                        {t("freeApplied", { count: b.freeUnits })}
-                      </span>
-                    )}
-
-                    {/* Promotion(s) à l'origine de l'avantage. */}
-                    {b.names.length > 0 && (
-                      <p className="text-muted mt-0.5 line-clamp-1 text-[10px] font-semibold">
-                        {b.names.join(" · ")}
+                        )}
                       </p>
-                    )}
+                    </div>
+
+                    <span className="text-success-400 shrink-0 text-[12.5px] font-black tabular-nums">
+                      −{formatDA(b.totalSaved)}
+                    </span>
                   </div>
+                ))}
 
-                  <span className="text-success-700 dark:text-success-400 shrink-0 pt-0.5 text-[12.5px] font-black tabular-nums">
-                    −{formatDA(b.totalSaved)}
-                  </span>
-                </div>
-              ))}
-
-              {/* Codes promo dispo — appliqués à l'étape paiement. */}
-              {codePromos.length > 0 && (
-                <div className="px-1 pt-0.5">
-                  <span className="text-surface/90 flex items-center gap-1.5 text-[11px] font-bold">
-                    <Ticket className="text-accent-400 size-3.5" />
-                    {t("promoCodeHint")}
-                  </span>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {codePromos.map((p) => {
-                      const val =
-                        p.discount_kind === "percent"
-                          ? `−${p.discount_value} %`
-                          : `−${formatDA(p.discount_value ?? 0)}`;
-                      return (
-                        <span
-                          key={p.id}
-                          className="border-accent-100 bg-accent-50 text-accent-700 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] font-bold"
-                        >
-                          <span className="font-mono font-black tracking-wider">
-                            {p.code}
-                          </span>
-                          <span className="font-black">{val}</span>
-                          {p.min_subtotal_da != null && (
-                            <span className="text-accent-500/80">
-                              ·{" "}
-                              {t("promoCodeFrom", {
-                                amount: formatDA(p.min_subtotal_da),
-                              })}
+                {/* Codes à saisir au paiement — même liste plate, chips légères. */}
+                {codePromos.length > 0 && (
+                  <div className="py-2">
+                    <span className="text-surface/80 flex items-center gap-1.5 text-[11px] font-bold">
+                      <Ticket className="text-accent-400 size-3.5" />
+                      {t("promoCodeHint")}
+                    </span>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {codePromos.map((p) => {
+                        const val =
+                          p.discount_kind === "percent"
+                            ? `−${p.discount_value} %`
+                            : `−${formatDA(p.discount_value ?? 0)}`;
+                        return (
+                          <span
+                            key={p.id}
+                            className="bg-surface/15 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold"
+                          >
+                            <span className="font-mono font-black tracking-wider">
+                              {p.code}
                             </span>
-                          )}
-                        </span>
-                      );
-                    })}
+                            <span className="text-success-400 font-black">
+                              {val}
+                            </span>
+                            {p.min_subtotal_da != null && (
+                              <span className="text-surface/60">
+                                ·{" "}
+                                {t("promoCodeFrom", {
+                                  amount: formatDA(p.min_subtotal_da),
+                                })}
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 

@@ -31,7 +31,9 @@ import { CartConflictModal } from "@/components/customer/cart-conflict-modal";
 import { generateSlotsForRange, type Slot } from "@/lib/customer/pickup-slots";
 import {
   formatAsapReady,
-  formatDayRelative,
+  formatDayCardParts,
+  formatSlotRange,
+  formatTimeFr,
 } from "@/lib/customer/pickup-format";
 import { isOpenNow, normalizeOpeningHours } from "@/lib/merchant/opening-hours";
 import {
@@ -757,12 +759,14 @@ export function CheckoutView({
             </div>
 
             {pickupType === "slot" && availableDays.length > 0 && (
-              <div className="-mt-1 space-y-2 px-4 pb-4">
-                <div className="scrollbar-hide -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+              <div className="-mt-1 space-y-2.5 px-4 pb-4">
+                {/* JOURS — cartes calendrier (libellé court + numéro du jour),
+                    défilement fluide avec snap : scannable d'un coup d'œil. */}
+                <div className="scrollbar-hide -mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5">
                   {availableDays.map((dayKey) => {
                     const sample = slotsByDay.get(dayKey)?.[0]?.start;
                     if (!sample) return null;
-                    const label = formatDayRelative(sample);
+                    const { top, num } = formatDayCardParts(sample);
                     const active = effectiveDayKey === dayKey;
                     return (
                       <button
@@ -773,34 +777,65 @@ export function CheckoutView({
                           setChosenSlotIdx(null);
                         }}
                         className={cn(
-                          "shrink-0 rounded-[10px] border px-3 py-1.5 text-xs font-bold capitalize transition",
+                          "flex w-[60px] shrink-0 snap-start flex-col items-center rounded-[12px] border py-1.5 transition active:scale-[0.96]",
                           active
-                            ? "border-primary-600 bg-primary-50 text-primary-700"
+                            ? "border-primary-600 bg-primary-600 text-white shadow-[0_6px_16px_-6px_rgba(108,43,217,0.55)]"
                             : "border-border bg-surface hover:border-primary-300"
                         )}
                       >
-                        {label}
+                        <span
+                          className={cn(
+                            "text-[10.5px] font-bold capitalize",
+                            active ? "text-white/85" : "text-muted"
+                          )}
+                        >
+                          {top}
+                        </span>
+                        <span className="text-[17px] leading-tight font-black tabular-nums">
+                          {num}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {slots.map((s, i) => (
-                    <button
-                      key={s.start.toISOString()}
-                      type="button"
-                      onClick={() => setChosenSlotIdx(i)}
-                      className={cn(
-                        "rounded-[10px] border px-3 py-1.5 text-sm font-bold tabular-nums transition",
-                        chosenSlotIdx === i
-                          ? "border-primary-600 bg-primary-600 text-white"
-                          : "border-border bg-surface hover:border-primary-300"
-                      )}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
+
+                {/* HEURES — grille bornée en hauteur, défilement vertical +
+                    fondu bas (on comprend qu'il y a plus) : fini le mur de
+                    pilules qui s'étire sur tout l'écran. */}
+                <div className="relative">
+                  <div className="grid max-h-[212px] grid-cols-3 gap-1.5 overflow-y-auto pe-0.5 pb-5">
+                    {slots.map((s, i) => (
+                      <button
+                        key={s.start.toISOString()}
+                        type="button"
+                        onClick={() => setChosenSlotIdx(i)}
+                        className={cn(
+                          "rounded-[10px] border py-2 text-[13px] font-bold tabular-nums transition active:scale-[0.97]",
+                          chosenSlotIdx === i
+                            ? "border-primary-600 bg-primary-600 text-white"
+                            : "border-border bg-surface hover:border-primary-300"
+                        )}
+                      >
+                        {formatTimeFr(s.start)}
+                      </button>
+                    ))}
+                  </div>
+                  {slots.length > 9 && (
+                    <div className="from-surface pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t to-transparent" />
+                  )}
                 </div>
+
+                {/* Confirmation du créneau choisi — phrase complète (plage),
+                    zéro ambiguïté sur ce qui vient d'être sélectionné. */}
+                {chosenSlotIdx != null && slots[chosenSlotIdx] && (
+                  <p className="bg-success-50 text-success-700 flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-[12.5px] font-bold">
+                    <Check className="size-4 shrink-0" />
+                    {formatSlotRange(
+                      slots[chosenSlotIdx].start,
+                      slots[chosenSlotIdx].end
+                    )}
+                  </p>
+                )}
               </div>
             )}
           </Block>

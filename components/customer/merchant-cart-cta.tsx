@@ -153,9 +153,9 @@ export function MerchantCartCta({
             <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold">
               {tc("promosApplied", { count: promoCount })}
             </span>
-            {/* Montant du gain en VERT (uniquement le montant) — lisible sur le
-                charbon (success-400) comme sur la variante claire du mode sombre. */}
-            <span className="bg-surface/20 text-success-400 shrink-0 rounded-full px-2.5 py-1 text-[12px] font-black tabular-nums">
+            {/* Montant du gain en VERT franc (pastille pleine) — impossible à
+                rater, lisible sur charbon comme sur la variante claire. */}
+            <span className="bg-success-600 shrink-0 rounded-full px-2.5 py-1 text-[12px] font-black text-white tabular-nums">
               −{formatDA(savings)}
             </span>
           </div>

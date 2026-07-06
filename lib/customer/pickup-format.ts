@@ -74,6 +74,27 @@ export function formatDayRelative(date: Date, now: Date = new Date()): string {
   return `${date.getDate()} ${MONTHS_FR[date.getMonth()]}`;
 }
 
+/**
+ * Carte de JOUR du sélecteur de créneau : libellé court au-dessus + numéro du
+ * jour en gros (« Auj. / 7 », « Dem. / 8 », « mer. / 9 ») — scannable d'un
+ * coup d'œil, façon calendrier.
+ */
+export function formatDayCardParts(
+  date: Date,
+  now: Date = new Date()
+): { top: string; num: string } {
+  const a = startOfDay(now).getTime();
+  const b = startOfDay(date).getTime();
+  const diffDays = Math.round((b - a) / 86_400_000);
+  const top =
+    diffDays === 0
+      ? "Auj."
+      : diffDays === 1
+        ? "Dem."
+        : `${DAYS_FR[date.getDay()].slice(0, 3)}.`;
+  return { top, num: String(date.getDate()) };
+}
+
 // -----------------------------------------------------------------------------
 // Compositions prêtes à l'emploi.
 // -----------------------------------------------------------------------------
