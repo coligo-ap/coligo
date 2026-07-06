@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateUploadedFile, MB } from "@/lib/security/file-validation";
 import {
   normalizePhone,
   phoneToChauffeurEmail,
@@ -200,18 +201,18 @@ export async function uploadChauffeurDoc(
     ].includes(kind)
   )
     return { ok: false, error: "Type de document inconnu." };
-  if (!(file instanceof File) || file.size === 0)
-    return { ok: false, error: "Photo manquante." };
-  if (file.size > 8 * 1024 * 1024)
-    return { ok: false, error: "Photo trop lourde (8 Mo max)." };
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type))
-    return { ok: false, error: "Format accepté : JPG, PNG ou WEBP." };
+  // Signature binaire vérifiée serveur (le type client n'est jamais fiable).
+  const v = await validateUploadedFile(file, {
+    kind: "image",
+    maxBytes: 8 * MB,
+  });
+  if (!v.ok) return { ok: false, error: v.error };
 
   const admin = createAdminClient();
-  const path = `chauffeur/${ch.id}/${kind}-${globalThis.crypto.randomUUID()}.jpg`;
+  const path = `chauffeur/${ch.id}/${kind}-${globalThis.crypto.randomUUID()}.${v.ext}`;
   const { error: upErr } = await admin.storage
     .from(DOCS_BUCKET)
-    .upload(path, file, { contentType: file.type, upsert: false });
+    .upload(path, v.bytes, { contentType: v.mime, upsert: false });
   if (upErr) return { ok: false, error: `Upload échoué : ${upErr.message}` };
 
   // Remplace l'éventuel document existant du même type.

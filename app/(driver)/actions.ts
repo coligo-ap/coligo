@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { validateUploadedFile } from "@/lib/security/file-validation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -842,12 +843,6 @@ export async function saveDriverWorkZone(
 
 const SELF_DOCS_BUCKET = "driver-docs";
 const SELF_MAX_SCAN = 8 * 1024 * 1024;
-const SELF_SCAN_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "application/pdf",
-];
 
 const selfTxt = (v: FormDataEntryValue | null): string | null => {
   const s = (v == null ? "" : String(v)).trim();
@@ -929,20 +924,18 @@ export async function submitDriverDocument(
   if (!docType || !allowed.includes(docType))
     return { error: "Type de pièce invalide." };
 
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0)
-    return { error: "Joignez le scan / la photo de la pièce." };
-  if (file.size > SELF_MAX_SCAN)
-    return { error: "Fichier trop lourd (max 8 Mo)." };
-  if (!SELF_SCAN_TYPES.includes(file.type))
-    return { error: "Format accepté : JPG, PNG, WEBP ou PDF." };
+  // Signature binaire vérifiée serveur ; extension dérivée du contenu réel.
+  const v = await validateUploadedFile(formData.get("file"), {
+    kind: "image-pdf",
+    maxBytes: SELF_MAX_SCAN,
+  });
+  if (!v.ok) return { error: v.error };
 
   const supabase = await createClient();
-  const safe = (file.name || "scan").replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = `${driver.id}/${globalThis.crypto.randomUUID()}-${safe}`;
+  const path = `${driver.id}/${globalThis.crypto.randomUUID()}.${v.ext}`;
   const { error: upErr } = await supabase.storage
     .from(SELF_DOCS_BUCKET)
-    .upload(path, file, { contentType: file.type, upsert: false });
+    .upload(path, v.bytes, { contentType: v.mime, upsert: false });
   if (upErr) return { error: `Upload échoué : ${upErr.message}` };
 
   const { error } = await supabase.from("driver_documents").insert({

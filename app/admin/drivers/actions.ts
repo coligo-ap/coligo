@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminCan } from "@/lib/auth/admin";
 import { adminCancelOrder, type AdminFormState } from "@/app/admin/actions";
+import { validateUploadedFile } from "@/lib/security/file-validation";
 
 // =============================================================================
 // Gestion des profils livreurs (super-admin) — mig 0104.
@@ -128,8 +129,7 @@ export async function setDriverVerified(
 // 2bis. Photo de profil (bucket PUBLIC `driver-avatars`)
 // ---------------------------------------------------------------------------
 const AVATARS_BUCKET = "driver-avatars";
-const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 Mo
-const ALLOWED_AVATAR = ["image/jpeg", "image/png", "image/webp"];
+const MAX_AVATAR_BYTES = 3 * 1024 * 1024; // 3 Mo (aligné bucket, mig 0334)
 
 /** Extrait le chemin storage depuis une URL publique du bucket avatars. */
 function avatarPathFromUrl(url: string | null): string | null {
@@ -145,27 +145,18 @@ export async function updateDriverAvatar(
   formData: FormData
 ): Promise<AdminFormState> {
   if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
-  const file = formData.get("avatar");
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: "Choisis une image." };
-  }
-  if (file.size > MAX_AVATAR_BYTES)
-    return { error: "Image trop lourde (max 5 Mo)." };
-  if (!ALLOWED_AVATAR.includes(file.type)) {
-    return { error: "Format accepté : JPG, PNG ou WEBP." };
-  }
+  // Signature binaire vérifiée serveur (jamais le type déclaré par le client).
+  const v = await validateUploadedFile(formData.get("avatar"), {
+    kind: "image",
+    maxBytes: MAX_AVATAR_BYTES,
+  });
+  if (!v.ok) return { error: v.error };
 
   const admin = createAdminClient();
-  const ext =
-    file.type === "image/png"
-      ? "png"
-      : file.type === "image/webp"
-        ? "webp"
-        : "jpg";
-  const path = `${driverId}/${globalThis.crypto.randomUUID()}.${ext}`;
+  const path = `${driverId}/${globalThis.crypto.randomUUID()}.${v.ext}`;
   const { error: upErr } = await admin.storage
     .from(AVATARS_BUCKET)
-    .upload(path, file, { contentType: file.type, upsert: false });
+    .upload(path, v.bytes, { contentType: v.mime, upsert: false });
   if (upErr) return { error: `Upload échoué : ${upErr.message}` };
 
   const { data: pub } = admin.storage.from(AVATARS_BUCKET).getPublicUrl(path);
@@ -226,12 +217,6 @@ export async function removeDriverAvatar(
 // ---------------------------------------------------------------------------
 const DOCS_BUCKET = "driver-docs";
 const MAX_SCAN_BYTES = 8 * 1024 * 1024; // 8 Mo
-const ALLOWED_SCAN = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "application/pdf",
-];
 
 /** Génère une URL signée (1 h) pour afficher un scan côté serveur. */
 export async function signDriverDocUrl(
@@ -261,20 +246,20 @@ export async function upsertDriverDocument(
   const admin = createAdminClient();
 
   // Upload du scan (optionnel) → bucket privé, dossier {driver_id}/.
+  // Signature binaire vérifiée serveur ; extension DÉRIVÉE du contenu réel
+  // (le nom client n'est jamais réutilisé → pas de double extension piégée).
   let newPath: string | null = null;
   const file = formData.get("file");
   if (file instanceof File && file.size > 0) {
-    if (file.size > MAX_SCAN_BYTES) {
-      return { error: "Scan trop lourd (max 8 Mo)." };
-    }
-    if (!ALLOWED_SCAN.includes(file.type)) {
-      return { error: "Format accepté : JPG, PNG, WEBP ou PDF." };
-    }
-    const safe = (file.name || "scan").replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `${driverId}/${globalThis.crypto.randomUUID()}-${safe}`;
+    const v = await validateUploadedFile(file, {
+      kind: "image-pdf",
+      maxBytes: MAX_SCAN_BYTES,
+    });
+    if (!v.ok) return { error: v.error };
+    const path = `${driverId}/${globalThis.crypto.randomUUID()}.${v.ext}`;
     const { error: upErr } = await admin.storage
       .from(DOCS_BUCKET)
-      .upload(path, file, { contentType: file.type, upsert: false });
+      .upload(path, v.bytes, { contentType: v.mime, upsert: false });
     if (upErr) return { error: `Upload échoué : ${upErr.message}` };
     newPath = path;
   }

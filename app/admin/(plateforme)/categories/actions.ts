@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { adminCan } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateUploadedFile } from "@/lib/security/file-validation";
 
 /**
  * Gestion super-admin (hub PLATEFORME, onglet Catégories) de la table
@@ -36,18 +37,18 @@ export async function upsertCategoryFilterImage(
   if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   if (!(await categoryExists(code))) return { error: "Catégorie inconnue." };
 
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0)
-    return { error: "Choisissez une image." };
-  if (file.size > MAX_BYTES) return { error: "Image trop lourde (max 2 Mo)." };
-  if (!file.type.startsWith("image/")) return { error: "Fichier non image." };
+  // Signature binaire vérifiée serveur (refuse SVG/HTML déguisés en image).
+  const v = await validateUploadedFile(formData.get("file"), {
+    kind: "image",
+    maxBytes: MAX_BYTES,
+  });
+  if (!v.ok) return { error: v.error };
 
   const admin = createAdminClient();
-  const ext = file.type === "image/webp" ? "webp" : "png";
-  const path = `${code}.${ext}`;
+  const path = `${code}.${v.ext}`;
   const { error: upErr } = await admin.storage
     .from("category-filters")
-    .upload(path, file, { upsert: true, contentType: file.type });
+    .upload(path, v.bytes, { upsert: true, contentType: v.mime });
   if (upErr) return { error: `Upload échoué : ${upErr.message}` };
 
   const { data: pub } = admin.storage

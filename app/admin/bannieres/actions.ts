@@ -5,6 +5,7 @@ import { z } from "zod";
 import { adminCan } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateUploadedFile, MB } from "@/lib/security/file-validation";
 
 // =============================================================================
 // /admin/bannieres — bannières éditoriales (table promo_banners, mig 0026).
@@ -343,26 +344,19 @@ export async function uploadBannerImage(
   formData: FormData
 ): Promise<{ url?: string; error?: string }> {
   if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0)
-    return { error: "Aucune image sélectionnée." };
-  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type))
-    return { error: "Format accepté : PNG, JPG ou WEBP." };
-  if (file.size > 5 * 1024 * 1024)
-    return { error: "Image trop lourde (5 Mo maximum)." };
+  // Validation par SIGNATURE BINAIRE (jamais le type déclaré par le client).
+  const v = await validateUploadedFile(formData.get("file"), {
+    kind: "image",
+    maxBytes: 5 * MB,
+  });
+  if (!v.ok) return { error: v.error };
 
   try {
     const admin = createAdminClient();
-    const ext =
-      file.type === "image/png"
-        ? "png"
-        : file.type === "image/webp"
-          ? "webp"
-          : "jpg";
-    const path = `banner-${Date.now()}-${globalThis.crypto.randomUUID().slice(0, 8)}.${ext}`;
+    const path = `banner-${Date.now()}-${globalThis.crypto.randomUUID().slice(0, 8)}.${v.ext}`;
     const { error } = await admin.storage
       .from("promo-banners")
-      .upload(path, file, { contentType: file.type, upsert: false });
+      .upload(path, v.bytes, { contentType: v.mime, upsert: false });
     if (error) return { error: `Upload échoué : ${error.message}` };
     const { data } = admin.storage.from("promo-banners").getPublicUrl(path);
     return { url: data.publicUrl };

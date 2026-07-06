@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { adminCan } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { validateUploadedFile, MB } from "@/lib/security/file-validation";
 
 type Res = { ok?: true; error?: string };
 
@@ -240,17 +241,18 @@ export async function uploadPartnerDoc(formData: FormData): Promise<Res> {
     !["registre_commerce", "piece_identite", "autre"].includes(kind)
   )
     return { error: "Paramètres invalides." };
-  if (!(file instanceof File) || file.size === 0)
-    return { error: "Fichier requis." };
-  if (file.size > 10 * 1024 * 1024)
-    return { error: "Fichier trop volumineux (10 Mo max)." };
+  // Signature binaire vérifiée serveur ; extension dérivée du contenu réel.
+  const v = await validateUploadedFile(file, {
+    kind: "image-pdf",
+    maxBytes: 10 * MB,
+  });
+  if (!v.ok) return { error: v.error };
 
   const admin = createAdminClient();
-  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = `${walletId}/${crypto.randomUUID()}-${safe}`;
+  const path = `${walletId}/${crypto.randomUUID()}.${v.ext}`;
   const { error: upErr } = await admin.storage
     .from("partner-docs")
-    .upload(path, file, { contentType: file.type, upsert: false });
+    .upload(path, v.bytes, { contentType: v.mime, upsert: false });
   if (upErr) return { error: `Upload échoué : ${upErr.message}` };
 
   const from = (t: string) =>
