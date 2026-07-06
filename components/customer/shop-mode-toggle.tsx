@@ -43,22 +43,25 @@ export function ShopModeToggle({
           mode === "delivery" && "translate-x-full rtl:-translate-x-full"
         )}
       />
+      {/* Libellés JAMAIS tronqués (« Retrait gratuit » doit se lire en entier) :
+          taille/espacements compacts + icônes masquées sur très petits écrans
+          (le texte gagne toujours). */}
       <button
         type="button"
         onClick={() => setCartMode(merchant, "pickup")}
         aria-pressed={mode === "pickup"}
         className={cn(
-          "relative z-[1] flex min-w-0 flex-1 items-center justify-center gap-2 rounded-[12px] px-2 py-3 text-sm font-extrabold transition-colors",
+          "relative z-[1] flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[12px] px-1 py-3 text-[13px] font-extrabold whitespace-nowrap transition-colors",
           mode === "pickup" ? "text-foreground" : "text-muted"
         )}
       >
         <MapPin
           className={cn(
-            "size-4 shrink-0",
+            "size-4 shrink-0 max-[389px]:hidden",
             mode === "pickup" && "text-primary-600"
           )}
         />
-        <span className="truncate">{t("freePickup")}</span>
+        <span>{t("freePickup")}</span>
       </button>
       <button
         type="button"
@@ -66,17 +69,17 @@ export function ShopModeToggle({
         aria-pressed={mode === "delivery"}
         disabled={!deliveryEnabled}
         className={cn(
-          "relative z-[1] flex min-w-0 flex-1 items-center justify-center gap-2 rounded-[12px] px-2 py-3 text-sm font-extrabold transition-colors disabled:opacity-40",
+          "relative z-[1] flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[12px] px-1 py-3 text-[13px] font-extrabold whitespace-nowrap transition-colors disabled:opacity-40",
           mode === "delivery" ? "text-foreground" : "text-muted"
         )}
       >
         <Bike
           className={cn(
-            "size-4 shrink-0",
+            "size-4 shrink-0 max-[389px]:hidden",
             mode === "delivery" && "text-primary-600"
           )}
         />
-        <span className="truncate">
+        <span>
           {deliveryEnabled
             ? `${t("delivery")}${deliveryFeeLabel ? ` ${deliveryFeeLabel}` : ""}`
             : t("deliveryUnavailable")}

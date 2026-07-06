@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -86,6 +86,7 @@ export function CheckoutView({
   const cashbackOn = cashbackStatus === "active";
   const t = useTranslations("checkout");
   const tc = useTranslations("cart");
+  const locale = useLocale();
   const router = useRouter();
   const cart = useCart();
   const otherCarts = useOtherCarts();
@@ -210,6 +211,36 @@ export function CheckoutView({
   const slots: Slot[] = effectiveDayKey
     ? (slotsByDay.get(effectiveDayKey) ?? [])
     : [];
+
+  // PRÉ-SÉLECTION du premier créneau dispo (mode « Planifier » / changement de
+  // jour) : moins de friction — la ligne verte de confirmation rend le choix
+  // explicite, et le client peut en toucher un autre.
+  useEffect(() => {
+    if (pickupType === "slot" && chosenSlotIdx == null && slots.length > 0) {
+      setChosenSlotIdx(0);
+    }
+  }, [pickupType, chosenSlotIdx, slots.length]);
+
+  // Jour actif recentré dans sa rangée ; rangée d'heures remise au début à
+  // chaque changement de jour ; heure choisie recentrée dans sa rangée.
+  const activeDayRef = useRef<HTMLButtonElement | null>(null);
+  const activeHourRef = useRef<HTMLButtonElement | null>(null);
+  const hoursGridRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    activeDayRef.current?.scrollIntoView({
+      inline: "center",
+      block: "nearest",
+      behavior: "smooth",
+    });
+    if (hoursGridRef.current) hoursGridRef.current.scrollLeft = 0;
+  }, [effectiveDayKey]);
+  useEffect(() => {
+    activeHourRef.current?.scrollIntoView({
+      inline: "center",
+      block: "nearest",
+      behavior: "smooth",
+    });
+  }, [chosenSlotIdx]);
 
   const openNow = useMemo(() => {
     if (!ctx) return false;
@@ -737,7 +768,9 @@ export function CheckoutView({
                   icon={<Clock className="size-4" />}
                   title={t("pickupNow")}
                   hint={formatAsapReady(
-                    new Date(Date.now() + ctx.merchant.prep_time_min * 60_000)
+                    new Date(Date.now() + ctx.merchant.prep_time_min * 60_000),
+                    new Date(),
+                    locale
                   )}
                   disabled={!openNow}
                 />
@@ -766,11 +799,12 @@ export function CheckoutView({
                   {availableDays.map((dayKey) => {
                     const sample = slotsByDay.get(dayKey)?.[0]?.start;
                     if (!sample) return null;
-                    const { top, num } = formatDayCardParts(sample);
+                    const { top, num } = formatDayCardParts(sample, locale);
                     const active = effectiveDayKey === dayKey;
                     return (
                       <button
                         key={dayKey}
+                        ref={active ? activeDayRef : undefined}
                         type="button"
                         onClick={() => {
                           setChosenDayKey(dayKey);
@@ -799,30 +833,32 @@ export function CheckoutView({
                   })}
                 </div>
 
-                {/* HEURES — grille bornée en hauteur, défilement vertical +
-                    fondu bas (on comprend qu'il y a plus) : fini le mur de
-                    pilules qui s'étire sur tout l'écran. */}
-                <div className="relative">
-                  <div className="grid max-h-[212px] grid-cols-3 gap-1.5 overflow-y-auto pe-0.5 pb-5">
-                    {slots.map((s, i) => (
+                {/* HEURES — UNE rangée horizontale à snap (comme les jours) :
+                    une seule ligne compacte, pouce-friendly, l'heure choisie
+                    se recentre automatiquement. */}
+                <div
+                  ref={hoursGridRef}
+                  className="scrollbar-hide -mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5"
+                >
+                  {slots.map((s, i) => {
+                    const active = chosenSlotIdx === i;
+                    return (
                       <button
                         key={s.start.toISOString()}
+                        ref={active ? activeHourRef : undefined}
                         type="button"
                         onClick={() => setChosenSlotIdx(i)}
                         className={cn(
-                          "rounded-[10px] border py-2 text-[13px] font-bold tabular-nums transition active:scale-[0.97]",
-                          chosenSlotIdx === i
-                            ? "border-primary-600 bg-primary-600 text-white"
+                          "shrink-0 snap-center rounded-full border px-3.5 py-2 text-[13px] font-bold tabular-nums transition active:scale-[0.95]",
+                          active
+                            ? "border-primary-600 bg-primary-600 text-white shadow-[0_6px_16px_-6px_rgba(108,43,217,0.55)]"
                             : "border-border bg-surface hover:border-primary-300"
                         )}
                       >
-                        {formatTimeFr(s.start)}
+                        {formatTimeFr(s.start, locale)}
                       </button>
-                    ))}
-                  </div>
-                  {slots.length > 9 && (
-                    <div className="from-surface pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t to-transparent" />
-                  )}
+                    );
+                  })}
                 </div>
 
                 {/* Confirmation du créneau choisi — phrase complète (plage),
@@ -832,7 +868,9 @@ export function CheckoutView({
                     <Check className="size-4 shrink-0" />
                     {formatSlotRange(
                       slots[chosenSlotIdx].start,
-                      slots[chosenSlotIdx].end
+                      slots[chosenSlotIdx].end,
+                      new Date(),
+                      locale
                     )}
                   </p>
                 )}

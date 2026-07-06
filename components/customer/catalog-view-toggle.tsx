@@ -39,7 +39,7 @@ export function CatalogViewToggle({
     <div
       role="group"
       aria-label={t("viewToggleAria")}
-      className="bg-surface-2 flex shrink-0 items-center self-stretch rounded-[16px] p-1.5 shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)]"
+      className="bg-surface-2 flex shrink-0 items-center self-stretch rounded-[16px] p-1 shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)]"
     >
       <button
         type="button"
@@ -47,7 +47,7 @@ export function CatalogViewToggle({
         aria-pressed={display === "categories"}
         title={t("viewAsCategories")}
         className={cn(
-          "flex h-full w-10 items-center justify-center rounded-[12px] transition-colors",
+          "flex h-full w-8 items-center justify-center rounded-[12px] transition-colors",
           display === "categories"
             ? "bg-surface text-primary-700 shadow-[0_4px_12px_-2px_rgba(40,35,90,0.2)]"
             : "text-muted hover:text-foreground"
@@ -61,7 +61,7 @@ export function CatalogViewToggle({
         aria-pressed={display === "list"}
         title={t("viewAsList")}
         className={cn(
-          "flex h-full w-10 items-center justify-center rounded-[12px] transition-colors",
+          "flex h-full w-8 items-center justify-center rounded-[12px] transition-colors",
           display === "list"
             ? "bg-surface text-primary-700 shadow-[0_4px_12px_-2px_rgba(40,35,90,0.2)]"
             : "text-muted hover:text-foreground"

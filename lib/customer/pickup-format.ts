@@ -7,28 +7,36 @@
 //   - pour les slots, on affiche une PLAGE (« entre 14h00 et 14h30 ») plutôt
 //     qu'un point précis — évite la frustration « j'étais à 14h32, raté ».
 //
-// Le format « 14h00 » est préféré à « 14:00 » : plus naturel pour la lecture
-// quotidienne en Algérie (alignement avec la signalétique grand public).
+// BILINGUE FR/AR : maps codées en dur (PAS Intl — piège d'hydratation #418,
+// cf. formatDA). Mois en arabe ALGÉRIEN (جانفي، فيفري…) — c'est l'usage local.
+// `locale` est un paramètre optionnel de FIN (défaut "fr") → non cassant.
 // =============================================================================
 
-/** « 14h32 » au lieu de « 14:32 ». */
-export function formatTimeFr(d: Date): string {
+type Loc = string; // "fr" | "ar" (tout autre → fr)
+
+const isAr = (locale: Loc) => locale === "ar";
+
+/** « 14h32 » (fr) / « 14:32 » (ar). */
+export function formatTimeFr(d: Date, locale: Loc = "fr"): string {
   const h = d.getHours().toString().padStart(2, "0");
   const m = d.getMinutes().toString().padStart(2, "0");
-  return `${h}h${m}`;
+  return isAr(locale) ? `${h}:${m}` : `${h}h${m}`;
 }
 
-/** « ~15 min », « 1h30 », « <1 min ». Renvoie null si négatif/passé. */
+/** « ~15 min », « 1h30 », « à l'instant » / arabe. null si négatif/passé. */
 export function formatRelativeMinutes(
   date: Date,
-  now: Date = new Date()
+  now: Date = new Date(),
+  locale: Loc = "fr"
 ): string | null {
   const diffMin = Math.round((date.getTime() - now.getTime()) / 60_000);
   if (diffMin < 0) return null;
-  if (diffMin === 0) return "à l'instant";
-  if (diffMin < 60) return `~${diffMin} min`;
+  const ar = isAr(locale);
+  if (diffMin === 0) return ar ? "الآن" : "à l'instant";
+  if (diffMin < 60) return ar ? `~${diffMin} د` : `~${diffMin} min`;
   const h = Math.floor(diffMin / 60);
   const m = diffMin % 60;
+  if (ar) return m === 0 ? `${h} سا` : `${h} سا ${m} د`;
   if (m === 0) return `${h}h`;
   return `${h}h${m.toString().padStart(2, "0")}`;
 }
@@ -41,6 +49,16 @@ const DAYS_FR = [
   "jeudi",
   "vendredi",
   "samedi",
+];
+// Index getDay() (0 = dimanche), comme DAYS_FR.
+const DAYS_AR = [
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
 ];
 const MONTHS_FR = [
   "janvier",
@@ -56,42 +74,74 @@ const MONTHS_FR = [
   "novembre",
   "décembre",
 ];
+// Mois en arabe ALGÉRIEN (usage local, pas les noms orientaux).
+const MONTHS_AR = [
+  "جانفي",
+  "فيفري",
+  "مارس",
+  "أفريل",
+  "ماي",
+  "جوان",
+  "جويلية",
+  "أوت",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
 
 function startOfDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-/** Jour relatif : « aujourd'hui », « demain », « mardi 26 mai ». */
-export function formatDayRelative(date: Date, now: Date = new Date()): string {
-  const a = startOfDay(now).getTime();
-  const b = startOfDay(date).getTime();
-  const diffDays = Math.round((b - a) / 86_400_000);
-  if (diffDays === 0) return "aujourd'hui";
-  if (diffDays === 1) return "demain";
+function diffDaysFrom(now: Date, date: Date): number {
+  return Math.round(
+    (startOfDay(date).getTime() - startOfDay(now).getTime()) / 86_400_000
+  );
+}
+
+/** Jour relatif : « aujourd'hui », « demain », « mardi 26 mai » / arabe. */
+export function formatDayRelative(
+  date: Date,
+  now: Date = new Date(),
+  locale: Loc = "fr"
+): string {
+  const diffDays = diffDaysFrom(now, date);
+  const ar = isAr(locale);
+  if (diffDays === 0) return ar ? "اليوم" : "aujourd'hui";
+  if (diffDays === 1) return ar ? "غدًا" : "demain";
+  const days = ar ? DAYS_AR : DAYS_FR;
+  const months = ar ? MONTHS_AR : MONTHS_FR;
   if (diffDays < 7) {
-    return `${DAYS_FR[date.getDay()]} ${date.getDate()} ${MONTHS_FR[date.getMonth()]}`;
+    return `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]}`;
   }
-  return `${date.getDate()} ${MONTHS_FR[date.getMonth()]}`;
+  return `${date.getDate()} ${months[date.getMonth()]}`;
 }
 
 /**
  * Carte de JOUR du sélecteur de créneau : libellé court au-dessus + numéro du
- * jour en gros (« Auj. / 7 », « Dem. / 8 », « mer. / 9 ») — scannable d'un
- * coup d'œil, façon calendrier.
+ * jour en gros (« Auj. / 7 », « Dem. / 8 », « mer. / 9 » — arabe : « اليوم »,
+ * « غدًا », « الأربعاء ») — scannable d'un coup d'œil, façon calendrier.
  */
 export function formatDayCardParts(
   date: Date,
+  locale: Loc = "fr",
   now: Date = new Date()
 ): { top: string; num: string } {
-  const a = startOfDay(now).getTime();
-  const b = startOfDay(date).getTime();
-  const diffDays = Math.round((b - a) / 86_400_000);
+  const diffDays = diffDaysFrom(now, date);
+  const ar = isAr(locale);
   const top =
     diffDays === 0
-      ? "Auj."
+      ? ar
+        ? "اليوم"
+        : "Auj."
       : diffDays === 1
-        ? "Dem."
-        : `${DAYS_FR[date.getDay()].slice(0, 3)}.`;
+        ? ar
+          ? "غدًا"
+          : "Dem."
+        : ar
+          ? DAYS_AR[date.getDay()]
+          : `${DAYS_FR[date.getDay()].slice(0, 3)}.`;
   return { top, num: String(date.getDate()) };
 }
 
@@ -99,10 +149,19 @@ export function formatDayCardParts(
 // Compositions prêtes à l'emploi.
 // -----------------------------------------------------------------------------
 
-/** ASAP : « Prêt dans ~15 min — vers 14h32 ». */
-export function formatAsapReady(readyAt: Date, now: Date = new Date()): string {
-  const rel = formatRelativeMinutes(readyAt, now);
-  const abs = formatTimeFr(readyAt);
+/** ASAP : « Prêt dans ~15 min — vers 14h32 » / arabe. */
+export function formatAsapReady(
+  readyAt: Date,
+  now: Date = new Date(),
+  locale: Loc = "fr"
+): string {
+  const rel = formatRelativeMinutes(readyAt, now, locale);
+  const abs = formatTimeFr(readyAt, locale);
+  if (isAr(locale)) {
+    return rel === null
+      ? `جاهز حوالي ${abs}`
+      : `جاهز خلال ${rel} — حوالي ${abs}`;
+  }
   if (rel === null) return `Prêt vers ${abs}`;
   return `Prêt dans ${rel} — vers ${abs}`;
 }
@@ -112,14 +171,23 @@ export function formatAsapReady(readyAt: Date, now: Date = new Date()): string {
  *   - même jour : « Retrait entre 14h00 et 14h30 »
  *   - demain    : « Demain entre 10h00 et 10h30 »
  *   - 2j+       : « Mardi 26 mai entre 10h00 et 10h30 »
+ * Arabe : « الاستلام من 14:00 إلى 14:30 », « غدًا من … إلى … ».
  */
 export function formatSlotRange(
   start: Date,
   end: Date,
-  now: Date = new Date()
+  now: Date = new Date(),
+  locale: Loc = "fr"
 ): string {
-  const day = formatDayRelative(start, now);
-  const range = `entre ${formatTimeFr(start)} et ${formatTimeFr(end)}`;
+  const day = formatDayRelative(start, now, locale);
+  const t1 = formatTimeFr(start, locale);
+  const t2 = formatTimeFr(end, locale);
+  if (isAr(locale)) {
+    return day === "اليوم"
+      ? `الاستلام من ${t1} إلى ${t2}`
+      : `${day} من ${t1} إلى ${t2}`;
+  }
+  const range = `entre ${t1} et ${t2}`;
   if (day === "aujourd'hui") return `Retrait ${range}`;
   // « Demain » et « Mardi 26 mai » — capitalisation initiale.
   const dayCap = day.charAt(0).toUpperCase() + day.slice(1);
