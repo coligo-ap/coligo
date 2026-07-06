@@ -122,34 +122,6 @@ export async function getWalletEntriesPage(
   };
 }
 
-/** Une ligne d'ajustement : motif (note) + commande liée, pour expliquer
- *  AU COMMERÇANT d'où vient un crédit/débit manuel (remboursement, correction). */
-export type AdjustmentEntry = {
-  id: string;
-  order_id: string | null;
-  amount_da: number;
-  note: string | null;
-  created_at: string;
-};
-
-/**
- * Ajustements du commerçant connecté (RLS), récents d'abord. Chaque écriture
- * `adjustment` porte un `note` OBLIGATOIRE (contrainte DB) → on l'expose pour
- * que le commerçant sache POURQUOI son solde a bougé, avec lien commande.
- */
-export async function getAdjustmentEntries(
-  limit = 50
-): Promise<AdjustmentEntry[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("wallet_entries")
-    .select("id, order_id, amount_da, note, created_at")
-    .eq("type", "adjustment")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  return (data ?? []) as AdjustmentEntry[];
-}
-
 /** Demandes de versement du commerçant connecté (RLS), récentes d'abord. */
 export async function getPayoutRequests(): Promise<PayoutRequest[]> {
   const supabase = await createClient();

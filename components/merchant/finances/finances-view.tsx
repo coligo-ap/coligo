@@ -6,16 +6,12 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Banknote,
-  Calculator,
   CalendarClock,
   ChevronDown,
-  Download,
   FileSpreadsheet,
   FileText,
-  Info,
   Loader2,
   Settings2,
-  Truck,
   Wallet,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -30,20 +26,17 @@ import {
   PAYOUT_METHODS,
   PAYOUT_STATUS_META,
   WALLET_ENTRY_META,
-  type PayoutRequest,
 } from "@/lib/types";
+import { PERIOD_OPTIONS, type PeriodKey } from "@/lib/finances/period";
 import {
   requestPayout,
   type PayoutFormState,
 } from "@/app/(merchant)/finances/actions";
-import type { AdjustmentEntry, WalletEntryRow } from "@/lib/data/wallet";
-import type { InvoiceMonth } from "@/lib/data/invoices";
+import type { WalletEntryRow } from "@/lib/data/wallet";
+import type { PayoutHistoryItem } from "@/lib/data/payout-statements";
 import type { NextPayout } from "@/lib/finances/next-payout";
 import type { CashDebtStatus } from "@/lib/finances/cash-debt";
-import type {
-  DeliveryStats,
-  FinancesSummary,
-} from "@/app/(merchant)/finances/page";
+import type { FinancesSummary } from "@/app/(merchant)/finances/page";
 
 const initialState: PayoutFormState = {};
 
@@ -59,53 +52,46 @@ function formatDate(iso: string): string {
 
 export type HistoryFilters = {
   type: string;
-  month: string;
+  period: PeriodKey;
   from: string;
   to: string;
+  /** Vrai si l'utilisateur a dévié des défauts (type ou période ≠ « Ce mois »). */
   active: boolean;
 };
 
 export function FinancesView({
   entries,
   historyFilters,
-  requests,
+  payouts,
+  hasAnyPayout,
   summary,
-  deliveryStats,
-  invoiceMonths,
   page,
   pageCount,
   total,
   coligoPayBalance,
   nextPayout,
-  adjustments,
   cashDebt,
+  owedByDriversDa,
+  exportQs,
 }: {
   entries: WalletEntryRow[];
   historyFilters: HistoryFilters;
-  requests: PayoutRequest[];
+  /** Versements (toutes demandes) DANS la période sélectionnée. */
+  payouts: PayoutHistoryItem[];
+  /** Vrai si le commerçant a au moins une demande, toutes périodes confondues. */
+  hasAnyPayout: boolean;
   summary: FinancesSummary;
-  deliveryStats: DeliveryStats;
-  invoiceMonths: InvoiceMonth[];
   page: number;
   pageCount: number;
   total: number;
   coligoPayBalance: number;
   nextPayout: NextPayout;
-  adjustments: AdjustmentEntry[];
   cashDebt: CashDebtStatus;
+  /** Avances COD reçues des livreurs (payées en main propre au retrait). */
+  owedByDriversDa: number;
+  /** Query string (from/to ISO) pour l'export CSV de la période courante. */
+  exportQs: string;
 }) {
-  // Présence d'un détail de calcul (mêmes conditions que SimpleBreakdown) :
-  // sert à n'afficher la sous-section « Le détail du calcul » que si elle a du
-  // contenu (sinon un accordéon se déplierait sur du vide).
-  const hasBreakdown =
-    summary.totalSales + summary.deliveryRevenue + summary.walletRedemption >
-      0 ||
-    -summary.totalCommission > 0 ||
-    summary.totalServiceFeesOwed > 0 ||
-    summary.tourDeliveryCommission > 0 ||
-    summary.totalPaidOut !== 0 ||
-    summary.adjustments !== 0;
-
   return (
     <div className="mx-auto max-w-[680px] p-4 lg:p-6">
       <header className="mb-4">
@@ -121,8 +107,7 @@ export function FinancesView({
 
       {/* ════════════════ L'ESSENTIEL (toujours visible) ════════════════
           UNE carte = LE chiffre (solde Coligo Pay ≡ « Coligo vous doit »)
-          + les actions (versement / recharge). Plus de verdict séparé ni de
-          bouton isolé qui répétaient le même montant 5 fois. */}
+          + les actions (versement / recharge). */}
       <EssentialMoney
         balance={coligoPayBalance}
         summary={summary}
@@ -130,147 +115,22 @@ export function FinancesView({
         nextPayout={nextPayout}
       />
 
-      {/* ════════════════ LES DÉTAILS (sous-sections repliables) ════════════════
-          Tout le reste est rangé en accordéons FERMÉS par défaut : la page reste
-          courte et lisible, on n'ouvre que ce dont on a besoin. */}
-      <p className="text-subtle mt-6 mb-2 px-1 text-[11px] font-bold tracking-wider uppercase">
-        Détails &amp; documents
-      </p>
-      <div className="space-y-3">
-        {hasBreakdown && (
-          <CollapsibleSection
-            icon={<Calculator className="size-4" />}
-            title="Le détail du calcul"
-            subtitle="D'où vient votre solde, ligne par ligne"
-          >
-            <SimpleBreakdown summary={summary} />
-          </CollapsibleSection>
-        )}
-
-        {adjustments.length > 0 && (
-          <CollapsibleSection
-            icon={<Info className="size-4" />}
-            title="Ajustements expliqués"
-            subtitle="Crédits et corrections appliqués par Coligo"
-            right={<CountChip n={adjustments.length} />}
-          >
-            <AdjustmentsCard adjustments={adjustments} />
-          </CollapsibleSection>
-        )}
-
-        {invoiceMonths.length > 0 && (
-          <CollapsibleSection
-            icon={<FileText className="size-4" />}
-            title="Relevés &amp; factures"
-            subtitle="Récap mensuel — PDF ou CSV pour le comptable"
-            right={<CountChip n={invoiceMonths.length} />}
-          >
-            <Invoices months={invoiceMonths} />
-          </CollapsibleSection>
-        )}
-
-        {deliveryStats.totalDeliveryOrders > 0 && (
-          <CollapsibleSection
-            icon={<Truck className="size-4" />}
-            title="Livraisons"
-            subtitle="Suivi des livraisons et avances livreurs"
-          >
-            <DeliverySection stats={deliveryStats} />
-          </CollapsibleSection>
-        )}
-
-        <CollapsibleSection
-          icon={<Wallet className="size-4" />}
-          title="Historique des opérations"
-          subtitle="Filtrable par type et par période"
-          right={total > 0 ? <CountChip n={total} /> : undefined}
-          // Ouvert direct si pagination ou filtres actifs dans l'URL.
-          defaultOpen={page > 1 || historyFilters.active}
-        >
-          <History
-            entries={entries}
-            page={page}
-            pageCount={pageCount}
-            filters={historyFilters}
-          />
-        </CollapsibleSection>
-
-        {requests.length > 0 && (
-          <CollapsibleSection
-            icon={<Banknote className="size-4" />}
-            title="Demandes de versement"
-            subtitle="Statut de vos retraits"
-            right={<CountChip n={requests.length} />}
-          >
-            <PayoutList requests={requests} />
-          </CollapsibleSection>
-        )}
-      </div>
+      {/* ════════════════ LE MODULE PAIEMENTS (unique) ════════════════
+          Versements + opérations dans UNE carte, sous UN filtre de période.
+          Chaque versement payé porte ses documents (facture résumé PDF,
+          détail PDF/CSV) — plus de sections séparées à déplier. */}
+      <PaymentsModule
+        payouts={payouts}
+        hasAnyPayout={hasAnyPayout}
+        entries={entries}
+        filters={historyFilters}
+        page={page}
+        pageCount={pageCount}
+        total={total}
+        owedByDriversDa={owedByDriversDa}
+        exportQs={exportQs}
+      />
     </div>
-  );
-}
-
-/* ─────────────────── SOUS-SECTION REPLIABLE (accordéon) ─────────────────── */
-
-/**
- * Carte-section dépliable, FERMÉE par défaut. En-tête : pastille d'icône +
- * titre + sous-titre + compteur optionnel (à droite) + chevron. Donne à la page
- * finances une organisation claire « sous-section par sous-section ».
- */
-function CollapsibleSection({
-  icon,
-  title,
-  subtitle,
-  right,
-  defaultOpen = false,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  subtitle?: string;
-  right?: React.ReactNode;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <section className="border-border bg-surface overflow-hidden rounded-[16px] border">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors"
-      >
-        <span className="bg-primary-50 text-primary-600 grid size-9 shrink-0 place-items-center rounded-full">
-          {icon}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">{title}</span>
-          {subtitle && (
-            <span className="text-subtle mt-0.5 block text-xs leading-snug">
-              {subtitle}
-            </span>
-          )}
-        </span>
-        {right}
-        <ChevronDown
-          className={cn(
-            "text-muted size-5 shrink-0 transition-transform",
-            open && "rotate-180"
-          )}
-        />
-      </button>
-      {open && <div className="border-border border-t p-4">{children}</div>}
-    </section>
-  );
-}
-
-/** Petit compteur (pastille) affiché à droite de l'en-tête d'une sous-section. */
-function CountChip({ n }: { n: number }) {
-  return (
-    <span className="bg-surface-2 text-muted shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums">
-      {n}
-    </span>
   );
 }
 
@@ -280,9 +140,7 @@ function CountChip({ n }: { n: number }) {
  * Pour un commerçant, solde Coligo Pay ≡ « Coligo vous doit » (positif) ou
  * « Vous devez à Coligo » (négatif) : c'est UNE information — elle n'apparaît
  * donc qu'UNE fois, dans cette carte, avec les actions qui en découlent
- * (demander le versement / recharger). Le formulaire de versement s'ouvre
- * depuis la carte ; les bannières contextuelles (dette, prochain virement)
- * suivent sans re-citer le montant.
+ * (demander le versement / recharger).
  */
 function EssentialMoney({
   balance,
@@ -546,162 +404,348 @@ function NextPayoutBanner({ info }: { info: NextPayout }) {
   );
 }
 
-/* ─────────────────────── DÉTAIL « FAIT POUR VOUS » ─────────────────────── */
+/* ════════════════════════ MODULE PAIEMENTS (unique) ════════════════════════ */
 
-function SimpleBreakdown({ summary }: { summary: FinancesSummary }) {
-  const collectedForYou =
-    summary.totalSales + summary.deliveryRevenue + summary.walletRedemption;
-  const commission = -summary.totalCommission; // magnitude positive
-  const hasAnything =
-    collectedForYou > 0 ||
-    commission > 0 ||
-    summary.totalServiceFeesOwed > 0 ||
-    summary.tourDeliveryCommission > 0 ||
-    summary.totalPaidOut !== 0 ||
-    summary.adjustments !== 0;
-
-  if (!hasAnything) return null;
-
-  return (
-    <>
-      <p className="text-subtle mb-3 text-[11px]">
-        vert = pour vous · rouge = part Coligo
-      </p>
-
-      <div className="divide-border divide-y">
-        {collectedForYou > 0 && (
-          <Line
-            label="Encaissé pour vous"
-            sub="Ventes en ligne, Coligo Pay, tournées"
-            amount={collectedForYou}
-            sign="+"
-          />
-        )}
-        {commission > 0 && (
-          <Line
-            label="Commission Coligo (produits)"
-            amount={commission}
-            sign="−"
-          />
-        )}
-        {summary.totalServiceFeesOwed > 0 && (
-          <Line
-            label="Frais de service (ventes espèces)"
-            amount={summary.totalServiceFeesOwed}
-            sign="−"
-          />
-        )}
-        {summary.tourDeliveryCommission > 0 && (
-          <Line
-            label="Commission livraison (tournée)"
-            amount={summary.tourDeliveryCommission}
-            sign="−"
-          />
-        )}
-        {summary.adjustments !== 0 && (
-          <Line
-            label="Ajustements"
-            amount={Math.abs(summary.adjustments)}
-            sign={summary.adjustments >= 0 ? "+" : "−"}
-          />
-        )}
-        {summary.totalPaidOut !== 0 && (
-          <Line
-            label="Déjà versé sur votre compte"
-            amount={Math.abs(summary.totalPaidOut)}
-            sign="−"
-            neutral
-          />
-        )}
-      </div>
-
-      <div className="border-border mt-1 flex items-center justify-between border-t-2 pt-3">
-        <span className="text-sm font-bold">
-          {summary.balance >= 0 ? "Coligo vous doit" : "Vous devez à Coligo"}
-        </span>
-        <span
-          className={cn(
-            "text-lg font-extrabold tabular-nums",
-            summary.balance >= 0 ? "text-success-700" : "text-warning-700"
-          )}
-        >
-          {formatDA(Math.abs(summary.balance))}
-        </span>
-      </div>
-    </>
-  );
-}
-
-function Line({
-  label,
-  sub,
-  amount,
-  sign,
-  neutral,
-}: {
-  label: string;
-  sub?: string;
-  amount: number;
-  sign: "+" | "−";
-  neutral?: boolean;
-}) {
-  const tone = neutral
-    ? "text-muted"
-    : sign === "+"
-      ? "text-success-700"
-      : "text-danger-600";
-  return (
-    <div className="flex items-start justify-between gap-3 py-2.5">
-      <div className="min-w-0">
-        <p className="text-sm font-medium">{label}</p>
-        {sub && <p className="text-subtle mt-0.5 text-xs">{sub}</p>}
-      </div>
-      <span className={cn("shrink-0 text-sm font-bold tabular-nums", tone)}>
-        {sign} {formatDA(amount)}
-      </span>
-    </div>
-  );
-}
-
-/* ─────────────────────────── AJUSTEMENTS ─────────────────────────── */
+type Tab = "versements" | "operations";
 
 /**
- * Détaille les ajustements (crédits/corrections manuels de Coligo) avec leur
- * MOTIF et la commande liée — au lieu d'un total muet « Ajustements ». Chaque
- * écriture porte un `note` obligatoire (contrainte DB), on l'affiche tel quel.
+ * LE module financier : deux onglets (Versements = liste principale,
+ * Opérations = grand livre filtrable) sous UN filtre de période partagé
+ * (défaut « Ce mois »). Ultra compact : tout est bord à bord dans une carte,
+ * les documents d'un versement (facture PDF résumé / détail PDF / CSV)
+ * s'ouvrent depuis sa ligne.
  */
-function AdjustmentsCard({ adjustments }: { adjustments: AdjustmentEntry[] }) {
-  if (adjustments.length === 0) return null;
+function PaymentsModule({
+  payouts,
+  hasAnyPayout,
+  entries,
+  filters,
+  page,
+  pageCount,
+  total,
+  owedByDriversDa,
+  exportQs,
+}: {
+  payouts: PayoutHistoryItem[];
+  hasAnyPayout: boolean;
+  entries: WalletEntryRow[];
+  filters: HistoryFilters;
+  page: number;
+  pageCount: number;
+  total: number;
+  owedByDriversDa: number;
+  exportQs: string;
+}) {
+  const router = useRouter();
+  // Un filtre d'opérations ou une pagination dans l'URL ⇒ l'utilisateur
+  // travaillait sur l'onglet Opérations : on l'y ramène.
+  const [tab, setTab] = useState<Tab>(
+    filters.type || page > 1 ? "operations" : "versements"
+  );
+  const [customOpen, setCustomOpen] = useState(filters.period === "custom");
+  const [from, setFrom] = useState(filters.from);
+  const [to, setTo] = useState(filters.to);
+
+  // Navigation par l'URL (état partageable, pagination serveur juste).
+  const navigate = (next: {
+    period?: PeriodKey;
+    from?: string;
+    to?: string;
+    type?: string;
+  }) => {
+    const q = new URLSearchParams();
+    const period = next.period ?? filters.period;
+    if (period !== "month") q.set("period", period);
+    if (period === "custom") {
+      q.set("from", next.from ?? filters.from);
+      q.set("to", next.to ?? filters.to);
+    }
+    const type = next.type ?? filters.type;
+    if (type) q.set("type", type);
+    const qs = q.toString();
+    router.push(qs ? `/finances?${qs}` : "/finances");
+  };
+  const qsFor = (p: number) => {
+    const q = new URLSearchParams();
+    if (filters.period !== "month") q.set("period", filters.period);
+    if (filters.period === "custom") {
+      q.set("from", filters.from);
+      q.set("to", filters.to);
+    }
+    if (filters.type) q.set("type", filters.type);
+    if (p > 1) q.set("page", String(p));
+    const qs = q.toString();
+    return qs ? `/finances?${qs}` : "/finances";
+  };
+
+  const selClass =
+    "border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs focus-visible:outline-none";
+
+  return (
+    <section className="border-border bg-surface mt-4 overflow-hidden rounded-[16px] border">
+      {/* ── En-tête : onglets + période ── */}
+      <div className="border-border flex flex-wrap items-center gap-2 border-b px-3 py-2.5">
+        <div className="bg-surface-2 flex rounded-full p-0.5" role="tablist">
+          <TabButton
+            active={tab === "versements"}
+            onClick={() => setTab("versements")}
+            label="Versements"
+            count={payouts.length}
+          />
+          <TabButton
+            active={tab === "operations"}
+            onClick={() => setTab("operations")}
+            label="Opérations"
+            count={total}
+          />
+        </div>
+        <div className="ml-auto">
+          <select
+            value={filters.period}
+            onChange={(e) => {
+              const v = e.target.value as PeriodKey;
+              if (v === "custom") setCustomOpen(true);
+              else {
+                setCustomOpen(false);
+                navigate({ period: v });
+              }
+            }}
+            className={selClass}
+            aria-label="Période"
+          >
+            {PERIOD_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* ── Dates libres (période personnalisée) ── */}
+      {customOpen && (
+        <div className="border-border flex flex-wrap items-center gap-2 border-b px-3 py-2.5">
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className={selClass}
+            aria-label="Date de début"
+          />
+          <span className="text-subtle text-xs">au</span>
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className={selClass}
+            aria-label="Date de fin"
+          />
+          <button
+            type="button"
+            disabled={!from || !to || from > to}
+            onClick={() => navigate({ period: "custom", from, to })}
+            className="bg-primary-600 h-9 rounded-[10px] px-3 text-xs font-bold text-white disabled:opacity-50"
+          >
+            Appliquer
+          </button>
+        </div>
+      )}
+
+      {/* ── Contenu de l'onglet ── */}
+      {tab === "versements" ? (
+        <PayoutHistory payouts={payouts} hasAnyPayout={hasAnyPayout} />
+      ) : (
+        <Operations
+          entries={entries}
+          filters={filters}
+          page={page}
+          pageCount={pageCount}
+          qsFor={qsFor}
+          onType={(type) => navigate({ type })}
+        />
+      )}
+
+      {/* ── Pied : info livraison (si utile) + export comptable ── */}
+      <div className="border-border bg-surface-2/50 flex flex-wrap items-center justify-between gap-2 border-t px-4 py-2.5">
+        {owedByDriversDa > 0 ? (
+          <span className="text-subtle text-xs">
+            Avances COD reçues des livreurs :{" "}
+            <strong className="text-foreground">
+              {formatDA(owedByDriversDa)}
+            </strong>
+          </span>
+        ) : (
+          <span />
+        )}
+        {/* <a> car la route renvoie un fichier (Content-Disposition). */}
+        <a
+          href={`/finances/export${exportQs ? `?${exportQs}` : ""}`}
+          className="text-muted hover:text-foreground inline-flex items-center gap-1.5 text-xs font-semibold transition-colors"
+        >
+          <FileSpreadsheet className="size-3.5" />
+          Exporter la période (CSV)
+        </a>
+      </div>
+    </section>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+        active ? "bg-surface text-foreground shadow-sm" : "text-muted"
+      )}
+    >
+      {label}
+      <span
+        className={cn(
+          "rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums",
+          active ? "bg-primary-50 text-primary-700" : "bg-surface-3 text-muted"
+        )}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+/* ─────────────────────── ONGLET VERSEMENTS ─────────────────────── */
+
+/**
+ * Liste principale : un versement par ligne (date · commandes · montant ·
+ * statut). Une ligne PAYÉE se déplie sur ses documents : facture PDF résumé
+ * (défaut), facture détaillée PDF et CSV — générés serveur (pdf-lib), jamais
+ * window.print.
+ */
+function PayoutHistory({
+  payouts,
+  hasAnyPayout,
+}: {
+  payouts: PayoutHistoryItem[];
+  hasAnyPayout: boolean;
+}) {
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  if (payouts.length === 0) {
+    return (
+      <p className="text-muted px-4 py-8 text-center text-sm">
+        {hasAnyPayout
+          ? "Aucun versement sur cette période — élargissez la période pour retrouver les précédents."
+          : "Vos versements apparaîtront ici, avec leur facture à télécharger. Demandez-en un depuis la carte ci-dessus, ou activez le versement automatique."}
+      </p>
+    );
+  }
+
   return (
     <ul className="divide-border divide-y">
-      {adjustments.map((a) => {
-        const positive = a.amount_da >= 0;
+      {payouts.map((p) => {
+        const paid = p.status === "paid";
+        const meta = PAYOUT_STATUS_META[p.status];
+        const open = openId === p.id;
+        const when = paid && p.periodTo ? p.periodTo : p.created_at;
         return (
-          <li key={a.id} className="flex items-start gap-3 py-2.5">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">
-                {a.note?.trim() || "Ajustement"}
-              </p>
-              <p className="text-subtle mt-0.5 flex flex-wrap items-center gap-x-2 text-xs">
-                <span>{formatDate(a.created_at)}</span>
-                {a.order_id && (
-                  <Link
-                    href={`/orders/${a.order_id}`}
-                    className="text-primary-700 hover:underline"
-                  >
-                    voir la commande
-                  </Link>
-                )}
-              </p>
-            </div>
-            <span
-              className={cn(
-                "shrink-0 text-sm font-bold tabular-nums",
-                positive ? "text-success-700" : "text-danger-600"
-              )}
+          <li key={p.id}>
+            <button
+              type="button"
+              onClick={() => setOpenId(open ? null : p.id)}
+              aria-expanded={open}
+              className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
             >
-              {positive ? "+" : "−"} {formatDA(Math.abs(a.amount_da))}
-            </span>
+              <span className="bg-primary-50 text-primary-600 grid size-9 shrink-0 place-items-center rounded-full">
+                <Banknote className="size-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">
+                  {formatDate(when)}
+                </span>
+                <span className="text-subtle mt-0.5 block text-xs">
+                  {paid
+                    ? `${p.ordersCount} commande${p.ordersCount > 1 ? "s" : ""} · ${p.invoiceNumber}`
+                    : `Demande du ${formatDate(p.created_at)} · ${p.method.toUpperCase()}`}
+                </span>
+              </span>
+              <span className="shrink-0 text-right">
+                <span className="block text-sm font-bold tabular-nums">
+                  {formatDA(p.amount_da)}
+                </span>
+                <Badge tone={meta.tone}>{meta.label}</Badge>
+              </span>
+              <ChevronDown
+                className={cn(
+                  "text-muted size-4 shrink-0 transition-transform",
+                  open && "rotate-180"
+                )}
+              />
+            </button>
+
+            {open && (
+              <div className="bg-surface-2/50 px-4 pt-1 pb-3">
+                {paid ? (
+                  <>
+                    <p className="text-subtle mb-2 text-xs">
+                      Période couverte :{" "}
+                      {p.periodFrom
+                        ? `${formatDate(p.periodFrom)} → ${formatDate(p.periodTo!)}`
+                        : `jusqu'au ${formatDate(p.periodTo!)}`}{" "}
+                      · versé par {p.method.toUpperCase()}
+                    </p>
+                    {/* <a> : routes fichiers (PDF inline / CSV téléchargé). */}
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={`/api/pdf/versement/${p.id}`}
+                        target="_blank"
+                        rel="noopener"
+                        className="bg-primary-600 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-xs font-bold text-white"
+                      >
+                        <FileText className="size-3.5" />
+                        Facture (PDF)
+                      </a>
+                      <a
+                        href={`/api/pdf/versement/${p.id}?detail=1`}
+                        target="_blank"
+                        rel="noopener"
+                        className="border-border bg-surface text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
+                      >
+                        <FileText className="size-3.5" />
+                        Détail par commande (PDF)
+                      </a>
+                      <a
+                        href={`/finances/versements/${p.id}/export`}
+                        className="border-border bg-surface text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
+                      >
+                        <FileSpreadsheet className="size-3.5" />
+                        Détail (CSV)
+                      </a>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-subtle text-xs">
+                    {p.status === "pending" &&
+                      "Demande en cours de traitement par Coligo — le montant est réservé sur votre solde."}
+                    {p.status === "approved" &&
+                      "Demande approuvée — le paiement est en préparation."}
+                    {p.status === "rejected" &&
+                      "Demande refusée — le montant est resté disponible sur votre solde."}
+                  </p>
+                )}
+              </div>
+            )}
           </li>
         );
       })}
@@ -709,167 +753,31 @@ function AdjustmentsCard({ adjustments }: { adjustments: AdjustmentEntry[] }) {
   );
 }
 
-/* ─────────────────────────── FACTURES ─────────────────────────── */
+/* ─────────────────────── ONGLET OPÉRATIONS ─────────────────────── */
 
-function Invoices({ months }: { months: InvoiceMonth[] }) {
-  if (months.length === 0) return null;
-  return (
-    <>
-      {/* Export comptable de TOUTES les opérations. <a> car la route renvoie
-          un fichier (Content-Disposition) → laisser le navigateur télécharger. */}
-      <div className="mb-3 flex justify-end">
-        <a
-          href="/finances/export"
-          className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-semibold transition-colors"
-        >
-          <FileSpreadsheet className="size-3.5" />
-          Exporter tout (CSV)
-        </a>
-      </div>
-      <ul className="divide-border divide-y">
-        {months.map((m) => (
-          <li
-            key={m.key}
-            className="flex items-center justify-between gap-3 py-2.5"
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-semibold capitalize">{m.label}</p>
-              <p className="text-subtle text-xs">
-                {m.ordersCount} commande{m.ordersCount > 1 ? "s" : ""} ·
-                encaissé {formatDA(m.collectedForYou)}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <Link
-                href={`/finances/factures/${m.key}`}
-                className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-semibold transition-colors"
-              >
-                <Download className="size-3.5" />
-                PDF
-              </Link>
-              <a
-                href={`/finances/export?month=${m.key}`}
-                className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-semibold transition-colors"
-              >
-                <FileSpreadsheet className="size-3.5" />
-                CSV
-              </a>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </>
-  );
-}
-
-/* ─────────────────────── DÉTAILS REPLIÉS ─────────────────────── */
-
-function DeliverySection({ stats }: { stats: DeliveryStats }) {
-  if (stats.totalDeliveryOrders === 0) return null;
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      <MiniStat
-        label="Livraisons"
-        value={`${stats.completedDeliveryOrders}/${stats.totalDeliveryOrders}`}
-        sub="livrées / total"
-      />
-      {stats.owedByDriversDa > 0 && (
-        <MiniStat
-          label="Avances reçues des livreurs"
-          value={formatDA(stats.owedByDriversDa)}
-          sub="payées en main propre au retrait (COD)"
-        />
-      )}
-    </div>
-  );
-}
-
-function MiniStat({
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  tone?: "amber";
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-[12px] p-3",
-        tone === "amber" ? "bg-warning-50 text-warning-700" : "bg-surface-2"
-      )}
-    >
-      <p className="text-xs font-medium opacity-80">{label}</p>
-      <p className="mt-1 text-lg font-bold tabular-nums">{value}</p>
-      <p className="text-xs opacity-70">{sub}</p>
-    </div>
-  );
-}
-
-function History({
+/** Grand livre de la période : filtre par type + pagination serveur. */
+function Operations({
   entries,
+  filters,
   page,
   pageCount,
-  filters,
+  qsFor,
+  onType,
 }: {
   entries: WalletEntryRow[];
+  filters: HistoryFilters;
   page: number;
   pageCount: number;
-  filters: HistoryFilters;
+  qsFor: (p: number) => string;
+  onType: (type: string) => void;
 }) {
-  const router = useRouter();
-  const [customDates, setCustomDates] = useState(
-    Boolean(filters.from && filters.to)
-  );
-  const [from, setFrom] = useState(filters.from);
-  const [to, setTo] = useState(filters.to);
-
-  // Navigation par l'URL (mêmes conventions que Coligo Pay) : la pagination
-  // serveur reste JUSTE avec les filtres, et l'état est partageable/traçable.
-  const navigate = (next: Partial<HistoryFilters>) => {
-    const q = new URLSearchParams();
-    const type = next.type ?? filters.type;
-    const month = next.month ?? filters.month;
-    const f = next.from ?? (customDates ? from : "");
-    const t = next.to ?? (customDates ? to : "");
-    if (type) q.set("type", type);
-    if (month) q.set("month", month);
-    else if (f && t) {
-      q.set("from", f);
-      q.set("to", t);
-    }
-    const qs = q.toString();
-    router.push(qs ? `/finances?${qs}` : "/finances");
-  };
-  const qsFor = (p: number) => {
-    const q = new URLSearchParams();
-    if (filters.type) q.set("type", filters.type);
-    if (filters.month) q.set("month", filters.month);
-    else if (filters.from && filters.to) {
-      q.set("from", filters.from);
-      q.set("to", filters.to);
-    }
-    if (p > 1) q.set("page", String(p));
-    const qs = q.toString();
-    return qs ? `/finances?${qs}` : "/finances";
-  };
-
-  const selClass =
-    "border-border-strong bg-surface h-10 rounded-[10px] border px-2.5 text-xs focus-visible:outline-none";
-
   return (
-    // -m-4 : annule le padding de l'accordéon pour une liste bord à bord (les
-    // lignes gardent leur propre px-4), avec pagination collée en bas.
-    <div className="-m-4">
-      {/* Filtres : type d'écriture + mois / dates personnalisées. */}
-      <div className="border-border flex flex-wrap items-center gap-2 border-b px-4 py-3">
+    <div>
+      <div className="border-border flex flex-wrap items-center gap-2 border-b px-4 py-2.5">
         <select
           value={filters.type}
-          onChange={(e) => navigate({ type: e.target.value })}
-          className={selClass}
+          onChange={(e) => onType(e.target.value)}
+          className="border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs focus-visible:outline-none"
           aria-label="Type d'opération"
         >
           <option value="">Tous les types</option>
@@ -879,54 +787,6 @@ function History({
             </option>
           ))}
         </select>
-        <input
-          type="month"
-          value={filters.month}
-          onChange={(e) => {
-            setCustomDates(false);
-            navigate({ month: e.target.value, from: "", to: "" });
-          }}
-          className={selClass}
-          aria-label="Mois"
-        />
-        <button
-          type="button"
-          onClick={() => setCustomDates((v) => !v)}
-          className={cn(
-            "h-10 rounded-[10px] border px-2.5 text-xs font-semibold",
-            customDates
-              ? "border-primary-400 bg-primary-50 text-primary-700"
-              : "border-border-strong bg-surface text-muted"
-          )}
-        >
-          Dates libres
-        </button>
-        {customDates && (
-          <>
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              className={selClass}
-              aria-label="Du"
-            />
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className={selClass}
-              aria-label="Au"
-            />
-            <button
-              type="button"
-              disabled={!from || !to || from > to}
-              onClick={() => navigate({ month: "", from, to })}
-              className="bg-primary-600 h-10 rounded-[10px] px-3 text-xs font-bold text-white disabled:opacity-50"
-            >
-              Appliquer
-            </button>
-          </>
-        )}
         {filters.active && (
           <Link
             href="/finances"
@@ -938,10 +798,9 @@ function History({
       </div>
 
       {entries.length === 0 ? (
-        <p className="text-muted px-4 py-6 text-center text-sm">
-          {filters.active
-            ? "Aucune opération pour ces filtres."
-            : "Aucune opération pour le moment. Vos gains apparaîtront ici dès qu'une commande sera récupérée."}
+        <p className="text-muted px-4 py-8 text-center text-sm">
+          Aucune opération sur cette période
+          {filters.type ? " pour ce type" : ""}.
         </p>
       ) : (
         <ul className="divide-border divide-y">
@@ -1129,32 +988,5 @@ function PayoutForm({
         </div>
       </form>
     </section>
-  );
-}
-
-function PayoutList({ requests }: { requests: PayoutRequest[] }) {
-  if (requests.length === 0) return null;
-  return (
-    <ul className="space-y-2.5">
-      {requests.map((r) => {
-        const meta = PAYOUT_STATUS_META[r.status];
-        return (
-          <li
-            key={r.id}
-            className="flex items-center justify-between gap-2 text-sm"
-          >
-            <div className="min-w-0">
-              <p className="font-semibold tabular-nums">
-                {formatDA(r.amount_da)}
-              </p>
-              <p className="text-subtle text-xs">
-                {formatDate(r.created_at)} · {r.method.toUpperCase()}
-              </p>
-            </div>
-            <Badge tone={meta.tone}>{meta.label}</Badge>
-          </li>
-        );
-      })}
-    </ul>
   );
 }

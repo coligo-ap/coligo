@@ -1,11 +1,7 @@
-import {
-  getAdjustmentEntries,
-  getPayoutRequests,
-  getWalletEntriesPage,
-  getWalletSummary,
-} from "@/lib/data/wallet";
+import { getWalletEntriesPage, getWalletSummary } from "@/lib/data/wallet";
 import { getMyWalletState } from "@/app/wallet/recharge-actions";
-import { getInvoiceMonths } from "@/lib/data/invoices";
+import { getPayoutHistory } from "@/lib/data/payout-statements";
+import { resolvePeriod } from "@/lib/finances/period";
 import { reservedAmount } from "@/lib/finances/balance";
 import { computeNextPayout, type NextPayout } from "@/lib/finances/next-payout";
 import { cashDebtStatus, type CashDebtStatus } from "@/lib/finances/cash-debt";
@@ -29,7 +25,7 @@ export default async function FinancesPage({
   searchParams: Promise<{
     page?: string;
     type?: string;
-    month?: string;
+    period?: string;
     from?: string;
     to?: string;
   }>;
@@ -37,27 +33,15 @@ export default async function FinancesPage({
   const sp = await searchParams;
   const page = parsePage(sp.page);
 
-  // Filtres de l'historique (type + mois OU dates libres) — mêmes conventions
-  // d'URL que la page Coligo Pay ; bornes ISO [from, to) calculées ici.
-  const isDay = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
-  let fromIso: string | null = null;
-  let toIso: string | null = null;
-  if (sp.month && /^\d{4}-\d{2}$/.test(sp.month)) {
-    const [y, m] = sp.month.split("-").map(Number);
-    fromIso = new Date(Date.UTC(y, m - 1, 1)).toISOString();
-    toIso = new Date(Date.UTC(y, m, 1)).toISOString();
-  } else if (isDay(sp.from) && isDay(sp.to)) {
-    fromIso = new Date(`${sp.from}T00:00:00Z`).toISOString();
-    const t = new Date(`${sp.to}T00:00:00Z`);
-    t.setUTCDate(t.getUTCDate() + 1);
-    toIso = t.toISOString();
-  }
+  // Filtre de période PARTAGÉ du module Paiements (versements + opérations).
+  // Préréglages résolus en bornes ISO [from, to) heure d'Alger — défaut « Ce
+  // mois » ; « custom » = dates libres AAAA-MM-JJ de l'URL.
+  const period = resolvePeriod(sp.period, sp.from, sp.to);
   const entryFilters = {
     type: sp.type || null,
-    from: fromIso,
-    to: toIso,
+    from: period.fromIso,
+    to: period.toIso,
   };
-  const filtersActive = Boolean(entryFilters.type || fromIso);
 
   const supabase = await createClient();
   const {
@@ -76,82 +60,44 @@ export default async function FinancesPage({
   const [
     walletSummary,
     pageData,
-    requests,
+    payoutHistory,
     deliveryRows,
-    ordersDelivery,
-    invoiceMonths,
     coligoPay,
-    adjustments,
     platformSettings,
   ] = await Promise.all([
     getWalletSummary(),
     getWalletEntriesPage(page, PAGE_SIZE, entryFilters),
-    getPayoutRequests(),
-    // Delivery_ledger : ce que ses livreurs lui doivent (cash produits)
-    // OU ce qu'il leur paie (rare au MVP, on garde minimal).
+    getPayoutHistory(),
+    // Avances COD que ses livreurs lui ont payées en main propre au retrait.
     merchant
       ? supabase
           .from("delivery_ledger")
-          .select("type, amount_da")
+          .select("amount_da")
           .eq("merchant_id", merchant.id)
+          .eq("type", "driver_owes_merchant")
       : Promise.resolve({ data: [] }),
-    // Total des frais de livraison sur ses commandes complétées.
-    merchant
-      ? supabase
-          .from("orders")
-          .select("delivery_fee_da, payment_method, status")
-          .eq("merchant_id", merchant.id)
-          .eq("fulfillment_type", "delivery")
-      : Promise.resolve({ data: [] }),
-    getInvoiceMonths(),
     getMyWalletState(),
-    getAdjustmentEntries(),
     getPlatformSettings(),
   ]);
 
-  type DeliveryRow = { type: string; amount_da: number };
-  type OrderDeliveryRow = {
-    delivery_fee_da: number | null;
-    payment_method: "cash" | "online";
-    status: string;
-  };
-  const dlRows = (deliveryRows.data ?? []) as DeliveryRow[];
-  const ordRows = (ordersDelivery.data ?? []) as OrderDeliveryRow[];
+  const owedByDriversDa = (
+    (deliveryRows.data ?? []) as { amount_da: number }[]
+  ).reduce((s, r) => s + r.amount_da, 0);
 
-  const deliveryStats = {
-    totalDeliveryOrders: ordRows.length,
-    completedDeliveryOrders: ordRows.filter((o) => o.status === "completed")
-      .length,
-    cashDeliveryFeesDa: ordRows
-      .filter((o) => o.payment_method === "cash" && o.status === "completed")
-      .reduce((s, o) => s + (o.delivery_fee_da ?? 0), 0),
-    onlineDeliveryFeesDa: ordRows
-      .filter((o) => o.payment_method === "online" && o.status === "completed")
-      .reduce((s, o) => s + (o.delivery_fee_da ?? 0), 0),
-    owedByDriversDa: dlRows
-      .filter((r) => r.type === "driver_owes_merchant")
-      .reduce((s, r) => s + r.amount_da, 0),
-  };
-
-  const reserved = reservedAmount(requests);
+  const reserved = reservedAmount(payoutHistory);
   const balance = walletSummary.balance;
-
   const summary: FinancesSummary = {
     balance,
-    debt: balance < 0 ? -balance : 0,
     available: Math.max(0, balance - reserved),
     reserved,
-    totalSales: walletSummary.totalSales,
-    totalCommission: walletSummary.totalCommission,
-    totalServiceFeesOwed: walletSummary.totalServiceFeesOwed,
-    totalPaidOut: walletSummary.totalPaidOut,
-    coligoPayCollected: walletSummary.coligoPayCollected,
-    onlineCollected: walletSummary.onlineCollected,
-    deliveryRevenue: walletSummary.deliveryRevenue,
-    tourDeliveryCommission: walletSummary.tourDeliveryCommission,
-    walletRedemption: walletSummary.walletRedemption,
-    adjustments: walletSummary.adjustments,
   };
+
+  // Versements affichés = ceux de la période sélectionnée (un versement payé
+  // « vit » à sa date de paiement, une demande en cours à sa date de demande).
+  const payoutsInPeriod = payoutHistory.filter((p) => {
+    const d = p.status === "paid" ? (p.periodTo ?? p.created_at) : p.created_at;
+    return d >= period.fromIso && d < period.toIso;
+  });
 
   const pageCount = Math.max(1, Math.ceil(pageData.total / PAGE_SIZE));
 
@@ -178,6 +124,11 @@ export default async function FinancesPage({
     platformSettings?.max_debt_da ?? 0
   );
 
+  const exportQs = new URLSearchParams({
+    from: period.fromIso,
+    to: period.toIso,
+  }).toString();
+
   return (
     <>
       {/* Hub Argent commerçant : Finances · Stats · Coligo Pay. */}
@@ -188,48 +139,29 @@ export default async function FinancesPage({
         entries={pageData.entries}
         historyFilters={{
           type: sp.type ?? "",
-          month: sp.month ?? "",
+          period: period.key,
           from: sp.from ?? "",
           to: sp.to ?? "",
-          active: filtersActive,
+          active: Boolean(sp.type) || period.key !== "month",
         }}
-        requests={requests}
+        payouts={payoutsInPeriod}
+        hasAnyPayout={payoutHistory.length > 0}
         summary={summary}
-        deliveryStats={deliveryStats}
-        invoiceMonths={invoiceMonths}
         page={page}
         pageCount={pageCount}
         total={pageData.total}
         coligoPayBalance={coligoPay?.effectiveBalanceDa ?? balance}
         nextPayout={nextPayout}
-        adjustments={adjustments}
         cashDebt={cashDebt}
+        owedByDriversDa={owedByDriversDa}
+        exportQs={exportQs}
       />
     </>
   );
 }
 
-export type DeliveryStats = {
-  totalDeliveryOrders: number;
-  completedDeliveryOrders: number;
-  cashDeliveryFeesDa: number;
-  onlineDeliveryFeesDa: number;
-  owedByDriversDa: number;
-};
-
 export type FinancesSummary = {
   balance: number;
-  debt: number;
   available: number;
   reserved: number;
-  totalSales: number;
-  totalCommission: number;
-  totalServiceFeesOwed: number;
-  totalPaidOut: number;
-  coligoPayCollected: number;
-  onlineCollected: number;
-  deliveryRevenue: number;
-  tourDeliveryCommission: number;
-  walletRedemption: number;
-  adjustments: number;
 };

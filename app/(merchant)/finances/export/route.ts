@@ -31,8 +31,10 @@ type Row = {
 };
 
 /**
- * Export CSV du relevé commerçant (toutes les opérations, ou un mois via
- * ?month=AAAA-MM). RLS scope déjà au commerçant connecté. Format Excel FR/DZ.
+ * Export CSV du relevé commerçant (toutes les opérations, un mois via
+ * ?month=AAAA-MM, ou une période libre via ?from/?to ISO — bornes [from, to)
+ * fournies par le filtre de période de la page Finances). RLS scope déjà au
+ * commerçant connecté. Format Excel FR/DZ.
  */
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -43,14 +45,19 @@ export async function GET(request: Request) {
     return new Response("unauthorized", { status: 401 });
   }
 
-  const month = new URL(request.url).searchParams.get("month");
+  const sp = new URL(request.url).searchParams;
+  const month = sp.get("month");
+  const from = sp.get("from");
+  const to = sp.get("to");
 
-  const { data } = await supabase
+  let q = supabase
     .from("wallet_entries")
     .select(
       "created_at, type, amount_da, note, orders ( order_number, payment_method )"
-    )
-    .order("created_at", { ascending: false });
+    );
+  if (from) q = q.gte("created_at", from);
+  if (to) q = q.lt("created_at", to);
+  const { data } = await q.order("created_at", { ascending: false });
 
   let rows = (data ?? []) as unknown as Row[];
   if (month) rows = rows.filter((r) => monthKeyAlgiers(r.created_at) === month);
@@ -69,7 +76,8 @@ export async function GET(request: Request) {
     (t) => WALLET_ENTRY_META[t as WalletEntryType]?.label ?? t
   );
 
-  const filename = `coligo-releve${month ? `-${month}` : ""}.csv`;
+  const suffix = month ? `-${month}` : from ? "-periode" : "";
+  const filename = `coligo-releve${suffix}.csv`;
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
