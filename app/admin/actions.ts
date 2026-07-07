@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminCan } from "@/lib/auth/admin";
@@ -646,28 +647,60 @@ export async function resolveRideReport(input: {
 }
 
 // =============================================================================
-// Pouvoirs super-admin sur les commandes (mig 0097).
+// Pouvoirs super-admin sur les commandes (mig 0097, module avancé 0337-0338).
 // =============================================================================
+
+/** IP client (même extraction que la télémétrie : x-forwarded-for en tête). */
+async function clientIp(): Promise<string | null> {
+  try {
+    const h = await headers();
+    return (
+      h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      h.get("x-real-ip") ||
+      null
+    );
+  } catch {
+    return null;
+  }
+}
+
 async function logAdmin(
   supabase: Awaited<ReturnType<typeof createClient>>,
   action: string,
   orderId: string,
-  note?: string | null
+  note?: string | null,
+  values?: {
+    oldValue?: Record<string, unknown> | null;
+    newValue?: Record<string, unknown> | null;
+  }
 ) {
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    await supabase.from("admin_audit_log").insert({
+    // Colonnes old_value/new_value/ip (mig 0337) hors types générés → cast.
+    const from = supabase.from.bind(supabase) as unknown as (t: string) => {
+      insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+    };
+    await from("admin_audit_log").insert({
       admin_email: user?.email ?? null,
       action,
       target_kind: "order",
       target_id: orderId,
       note: note ?? null,
+      old_value: values?.oldValue ?? null,
+      new_value: values?.newValue ?? null,
+      ip: await clientIp(),
     });
   } catch {
     /* l'audit ne doit jamais faire échouer l'action métier */
   }
+}
+
+/** Revalide la liste ET la fiche d'une commande. */
+function refreshOrder(orderId: string) {
+  revalidatePath("/admin/orders");
+  revalidatePath(`/admin/orders/${orderId}`);
 }
 
 /** Super-admin valide une livraison (sans code, sans être le livreur). */
@@ -692,8 +725,18 @@ export async function adminValidateDelivery(
   if (!row?.ok && row?.reason && row.reason !== "already_delivered") {
     return { error: row.reason };
   }
-  await logAdmin(supabase, "validate_delivery", orderId, note);
-  revalidatePath("/admin/orders");
+  await logAdmin(supabase, "validate_delivery", orderId, note, {
+    newValue: { status: "completed" },
+  });
+
+  try {
+    const { notifyCustomerStatusChange } = await import("@/lib/fcm/triggers");
+    await notifyCustomerStatusChange({ orderId, newStatus: "completed" });
+  } catch {
+    /* noop */
+  }
+
+  refreshOrder(orderId);
   return { ok: true };
 }
 
@@ -716,6 +759,8 @@ export async function adminCancelOrder(
   const res = (data ?? {}) as {
     ok?: boolean;
     reason?: string;
+    from_status?: string;
+    refunded_da?: number;
     merchant_id?: string;
     order_number?: string | null;
     customer_name?: string | null;
@@ -728,7 +773,13 @@ export async function adminCancelOrder(
           : "Annulation impossible.",
     };
   }
-  await logAdmin(supabase, "cancel_order", orderId, reason);
+  await logAdmin(supabase, "cancel_order", orderId, reason, {
+    oldValue: res.from_status ? { status: res.from_status } : null,
+    newValue: {
+      status: "cancelled",
+      ...(res.refunded_da ? { refunded_da: res.refunded_da } : {}),
+    },
+  });
 
   // Notifications best-effort (jamais bloquantes).
   try {
@@ -752,7 +803,7 @@ export async function adminCancelOrder(
     /* noop */
   }
 
-  revalidatePath("/admin/orders");
+  refreshOrder(orderId);
   return { ok: true };
 }
 
@@ -806,7 +857,7 @@ export async function confirmOnlineNoShow(
     /* noop */
   }
 
-  revalidatePath("/admin/orders");
+  refreshOrder(orderId);
   return { ok: true };
 }
 
@@ -841,8 +892,10 @@ export async function adminRefundMerchant(
             : "Remboursement impossible.",
     };
   }
-  await logAdmin(supabase, "refund_merchant", orderId, `${amt} DA — ${reason}`);
-  revalidatePath("/admin/orders");
+  await logAdmin(supabase, "refund_merchant", orderId, reason, {
+    newValue: { merchant_refund_da: amt },
+  });
+  refreshOrder(orderId);
   return { ok: true };
 }
 
@@ -895,5 +948,331 @@ export async function resolveDriverRefundClaim(input: {
     };
   }
   revalidatePath("/admin/reports");
+  return { ok: true };
+}
+
+// =============================================================================
+// Gestion avancée des commandes (mig 0337-0338) — fiche /admin/orders/[id].
+// =============================================================================
+
+type AdminRpc = (
+  fn: string,
+  args: Record<string, unknown>
+) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+/**
+ * Réattribution d'une commande depuis la FICHE COMMANDE : remise au réseau
+ * (`pool`) ou attribution directe (`driver`). La RPC (0338) libère l'ancien
+ * livreur, remet les horodatages de prise à zéro et trace `order_events`.
+ * Notifs : ancien livreur (course retirée) + réseau OU nouveau livreur.
+ */
+export async function adminReassignOrderDriver(input: {
+  orderId: string;
+  mode: "pool" | "driver";
+  targetDriverId?: string | null;
+  reason?: string | null;
+}): Promise<AdminFormState> {
+  if (!(await adminCan("pilotage"))) return { error: "Accès refusé." };
+
+  const supabase = await createClient();
+  const rpc = supabase.rpc.bind(supabase) as unknown as AdminRpc;
+  const { data, error } = await rpc("admin_reassign_delivery", {
+    p_order_id: input.orderId,
+    p_mode: input.mode,
+    p_driver_id: input.targetDriverId ?? null,
+  });
+  if (error) return { error: error.message };
+
+  const res = (data ?? {}) as {
+    ok?: boolean;
+    reason?: string;
+    old_driver_id?: string | null;
+    new_driver_id?: string | null;
+    order_number?: string | null;
+  };
+  if (!res.ok) {
+    const map: Record<string, string> = {
+      forbidden: "Accès refusé.",
+      order_not_found: "Commande introuvable.",
+      not_delivery: "Ce n'est pas une commande de livraison.",
+      already_terminal: "Commande déjà terminée ou annulée.",
+      driver_required: "Choisis un livreur cible.",
+      driver_unavailable: "Livreur cible introuvable, gelé ou bloqué.",
+      bad_mode: "Mode invalide.",
+    };
+    return { error: map[res.reason ?? ""] ?? "Réattribution impossible." };
+  }
+
+  await logAdmin(
+    supabase,
+    input.mode === "pool" ? "reassign_order_pool" : "reassign_order_driver",
+    input.orderId,
+    input.reason ?? null,
+    {
+      oldValue: { driver_id: res.old_driver_id ?? null },
+      newValue: { driver_id: res.new_driver_id ?? null },
+    }
+  );
+
+  // Notifications best-effort (jamais bloquantes).
+  try {
+    const {
+      notifyDriverOrderWithdrawn,
+      notifyDriverOrderAssigned,
+      notifyDriversNewExpress,
+    } = await import("@/lib/fcm/triggers");
+    if (res.old_driver_id) {
+      await notifyDriverOrderWithdrawn({
+        driverId: res.old_driver_id,
+        orderId: input.orderId,
+        orderRef: res.order_number ?? null,
+      });
+    }
+    if (input.mode === "driver" && res.new_driver_id) {
+      await notifyDriverOrderAssigned({
+        driverId: res.new_driver_id,
+        orderId: input.orderId,
+        orderRef: res.order_number ?? null,
+      });
+    } else {
+      // Remise au réseau : re-broadcast comme une nouvelle course express.
+      await notifyDriversNewExpress({ orderId: input.orderId });
+    }
+  } catch {
+    /* noop */
+  }
+
+  refreshOrder(input.orderId);
+  revalidatePath("/admin/drivers");
+  return { ok: true };
+}
+
+/**
+ * Indemnise un livreur sur une commande (montant personnalisable + motif
+ * OBLIGATOIRE). UNE indemnité max par commande (garde structurelle en base).
+ * L'écriture arrive « à recevoir » sur le prochain relevé du livreur.
+ */
+export async function adminCompensateDriver(input: {
+  orderId: string;
+  driverId: string;
+  amountDa: number;
+  reason: string;
+}): Promise<AdminFormState> {
+  if (!(await adminCan("pilotage"))) return { error: "Accès refusé." };
+  const amt = Math.floor(Number(input.amountDa));
+  if (!Number.isFinite(amt) || amt < 1 || amt > 20000) {
+    return { error: "Montant invalide (1 à 20 000 DA)." };
+  }
+  const reason = input.reason?.trim();
+  if (!reason) return { error: "Le motif est obligatoire." };
+
+  const supabase = await createClient();
+  const rpc = supabase.rpc.bind(supabase) as unknown as AdminRpc;
+  const { data, error } = await rpc("admin_compensate_driver", {
+    p_order_id: input.orderId,
+    p_driver_id: input.driverId,
+    p_amount_da: amt,
+    p_note: reason,
+  });
+  if (error) return { error: error.message };
+
+  const res = (data ?? {}) as {
+    ok?: boolean;
+    reason?: string;
+    order_number?: string | null;
+  };
+  if (!res.ok) {
+    const map: Record<string, string> = {
+      forbidden: "Accès refusé.",
+      bad_amount: "Montant invalide (1 à 20 000 DA).",
+      note_required: "Le motif est obligatoire.",
+      order_not_found: "Commande introuvable.",
+      driver_not_found: "Livreur introuvable.",
+      already_compensated:
+        "Ce livreur a déjà été indemnisé sur cette commande.",
+    };
+    return { error: map[res.reason ?? ""] ?? "Indemnisation impossible." };
+  }
+
+  await logAdmin(supabase, "compensate_driver", input.orderId, reason, {
+    newValue: { driver_id: input.driverId, compensation_da: amt },
+  });
+
+  try {
+    const { notifyDriverCompensation } = await import("@/lib/fcm/triggers");
+    await notifyDriverCompensation({
+      driverId: input.driverId,
+      amountDa: amt,
+      orderRef: res.order_number ?? null,
+    });
+  } catch {
+    /* noop */
+  }
+
+  refreshOrder(input.orderId);
+  return { ok: true };
+}
+
+/**
+ * Décision explicite de NE PAS indemniser un livreur (motif obligatoire).
+ * Aucune écriture financière — uniquement l'audit : la décision est tracée
+ * et visible dans l'historique de la fiche.
+ */
+export async function adminDecideNoCompensation(input: {
+  orderId: string;
+  driverId: string | null;
+  reason: string;
+}): Promise<AdminFormState> {
+  if (!(await adminCan("pilotage"))) return { error: "Accès refusé." };
+  const reason = input.reason?.trim();
+  if (!reason) return { error: "Le motif est obligatoire." };
+
+  const supabase = await createClient();
+  await logAdmin(supabase, "no_compensation", input.orderId, reason, {
+    newValue: { driver_id: input.driverId, compensation_da: 0 },
+  });
+  refreshOrder(input.orderId);
+  return { ok: true };
+}
+
+/**
+ * Remboursement MANUEL du client (partiel ou total) → crédit Coligo Pay.
+ * Réservé aux commandes TERMINÉES (une commande en cours s'annule : le circuit
+ * d'annulation rembourse déjà tout). Plafonné à ce que le client a réellement
+ * payé, anti-double via cumul `orders.admin_refunded_da` (FOR UPDATE en base).
+ */
+export async function adminRefundCustomer(input: {
+  orderId: string;
+  amountDa: number;
+  reason: string;
+}): Promise<AdminFormState & { remainingDa?: number }> {
+  if (!(await adminCan("pilotage"))) return { error: "Accès refusé." };
+  const amt = Math.floor(Number(input.amountDa));
+  if (!Number.isFinite(amt) || amt < 1) return { error: "Montant invalide." };
+  const reason = input.reason?.trim();
+  if (!reason) return { error: "Le motif est obligatoire." };
+
+  const supabase = await createClient();
+  const rpc = supabase.rpc.bind(supabase) as unknown as AdminRpc;
+  const { data, error } = await rpc("admin_refund_customer", {
+    p_order_id: input.orderId,
+    p_amount_da: amt,
+    p_note: reason,
+  });
+  if (error) return { error: error.message };
+
+  const res = (data ?? {}) as {
+    ok?: boolean;
+    reason?: string;
+    remaining_da?: number;
+    total_refunded_da?: number;
+    payment_status?: string;
+  };
+  if (!res.ok) {
+    const map: Record<string, string> = {
+      forbidden: "Accès refusé.",
+      bad_amount: "Montant invalide.",
+      note_required: "Le motif est obligatoire.",
+      order_not_found: "Commande introuvable.",
+      no_customer:
+        "Commande sans compte client (pas de portefeuille à créditer).",
+      cancelled_already_refunded:
+        "Commande annulée : le remboursement a déjà été effectué automatiquement.",
+      not_completed_use_cancel:
+        "Commande non terminée : utilise l'annulation (elle rembourse tout automatiquement).",
+      nothing_refundable: "Plus rien à rembourser sur cette commande.",
+      exceeds_refundable: `Montant supérieur au remboursable restant (${res.remaining_da ?? 0} DA).`,
+    };
+    return {
+      error: map[res.reason ?? ""] ?? "Remboursement impossible.",
+      remainingDa: res.remaining_da,
+    };
+  }
+
+  await logAdmin(supabase, "refund_customer", input.orderId, reason, {
+    newValue: {
+      refund_da: amt,
+      total_refunded_da: res.total_refunded_da ?? amt,
+      payment_status: res.payment_status ?? null,
+    },
+  });
+
+  try {
+    const { notifyCustomerRefund } = await import("@/lib/fcm/triggers");
+    await notifyCustomerRefund({ orderId: input.orderId, amountDa: amt });
+  } catch {
+    /* noop */
+  }
+
+  refreshOrder(input.orderId);
+  return { ok: true };
+}
+
+/**
+ * Marque une livraison en ÉCHEC : pose delivery_failed_at + motif puis annule
+ * via le circuit standard (remboursements + libération livreur + notifs).
+ */
+export async function adminMarkDeliveryFailed(
+  orderId: string,
+  reason: string
+): Promise<AdminFormState> {
+  if (!(await adminCan("pilotage"))) return { error: "Accès refusé." };
+  const clean = reason?.trim();
+  if (!clean) return { error: "Le motif est obligatoire." };
+
+  const supabase = await createClient();
+  const rpc = supabase.rpc.bind(supabase) as unknown as AdminRpc;
+  const { data, error } = await rpc("admin_mark_delivery_failed", {
+    p_order_id: orderId,
+    p_reason: clean,
+  });
+  if (error) return { error: error.message };
+
+  const res = (data ?? {}) as {
+    ok?: boolean;
+    reason?: string;
+    from_status?: string;
+    merchant_id?: string;
+    order_number?: string | null;
+    customer_name?: string | null;
+  };
+  if (!res.ok) {
+    const map: Record<string, string> = {
+      forbidden: "Accès refusé.",
+      order_not_found: "Commande introuvable.",
+      not_delivery: "Ce n'est pas une commande de livraison.",
+      already_terminal: "Commande déjà terminée ou annulée.",
+    };
+    return {
+      error: map[res.reason ?? ""] ?? "Échec impossible à enregistrer.",
+    };
+  }
+
+  await logAdmin(supabase, "mark_delivery_failed", orderId, clean, {
+    oldValue: res.from_status ? { status: res.from_status } : null,
+    newValue: { status: "cancelled", delivery_failed: true },
+  });
+
+  try {
+    const {
+      notifyMerchantOrderCancelled,
+      notifyCustomerStatusChange,
+      notifyDriverOrderCancelled,
+    } = await import("@/lib/fcm/triggers");
+    if (res.merchant_id) {
+      await notifyMerchantOrderCancelled({
+        merchantId: res.merchant_id,
+        orderId,
+        orderRef: res.order_number ?? null,
+        customerName: res.customer_name ?? null,
+      });
+    }
+    await notifyCustomerStatusChange({ orderId, newStatus: "cancelled" });
+    await notifyDriverOrderCancelled({ orderId });
+  } catch {
+    /* noop */
+  }
+
+  refreshOrder(orderId);
   return { ok: true };
 }

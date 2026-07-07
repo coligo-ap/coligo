@@ -200,6 +200,171 @@ export async function notifyDriverOrderCancelled(input: {
   }
 }
 
+/**
+ * Notifie un livreur PRÉCIS que la plateforme lui a RETIRÉ une commande
+ * (réattribution / remise au réseau). Le porteur a déjà changé en base au
+ * moment de l'appel → on cible le livreur par son id, pas via la commande.
+ * Broadcast temps réel en plus du push (app au premier plan). Fire-and-forget.
+ */
+export async function notifyDriverOrderWithdrawn(input: {
+  driverId: string;
+  orderId: string;
+  orderRef: string | null;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: driver } = await admin
+      .from("drivers")
+      .select("user_id")
+      .eq("id", input.driverId)
+      .maybeSingle();
+    if (!driver?.user_id) return;
+
+    void broadcastToCouriers([driver.user_id], "order_withdrawn", {
+      orderId: input.orderId,
+    });
+
+    const tokens = await tokensFor(driver.user_id, "courier");
+    if (tokens.length === 0) return;
+
+    const ref = input.orderRef ? `#${input.orderRef}` : "";
+    await sendFcm(
+      tokens,
+      {
+        title: "Course retirée",
+        body: `La commande ${ref} t'a été retirée par la plateforme. Ne poursuis pas cette livraison — contacte le support si besoin.`,
+      },
+      {
+        route: "/driver",
+        kind: "driver_order_cancelled",
+        orderId: input.orderId,
+      }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyDriverOrderWithdrawn failed:", err);
+  }
+}
+
+/**
+ * Notifie un livreur PRÉCIS que la plateforme vient de lui ATTRIBUER une
+ * commande (réattribution directe par le support). Fire-and-forget.
+ */
+export async function notifyDriverOrderAssigned(input: {
+  driverId: string;
+  orderId: string;
+  orderRef: string | null;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: driver } = await admin
+      .from("drivers")
+      .select("user_id")
+      .eq("id", input.driverId)
+      .maybeSingle();
+    if (!driver?.user_id) return;
+
+    void broadcastToCouriers([driver.user_id], "new_express", {
+      orderId: input.orderId,
+    });
+
+    const tokens = await tokensFor(driver.user_id, "courier");
+    if (tokens.length === 0) return;
+
+    const ref = input.orderRef ? `#${input.orderRef}` : "";
+    await sendFcm(
+      tokens,
+      {
+        title: "Course attribuée 📦",
+        body: `La plateforme t'a attribué la commande ${ref} — ouvre l'app pour la récupérer.`,
+      },
+      { route: "/driver", kind: "driver_new_express", orderId: input.orderId }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyDriverOrderAssigned failed:", err);
+  }
+}
+
+/**
+ * Notifie un livreur qu'une INDEMNITÉ lui a été créditée par le support
+ * (course retirée après déplacement, litige…). Fire-and-forget.
+ */
+export async function notifyDriverCompensation(input: {
+  driverId: string;
+  amountDa: number;
+  orderRef: string | null;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: driver } = await admin
+      .from("drivers")
+      .select("user_id")
+      .eq("id", input.driverId)
+      .maybeSingle();
+    if (!driver?.user_id) return;
+
+    const tokens = await tokensFor(driver.user_id, "courier");
+    if (tokens.length === 0) return;
+
+    const ref = input.orderRef ? ` (commande #${input.orderRef})` : "";
+    await sendFcm(
+      tokens,
+      {
+        title: "Indemnité créditée 💰",
+        body: `Le support t'a crédité ${formatDA(input.amountDa)}${ref}. Elle apparaîtra sur ton prochain relevé.`,
+      },
+      { route: "/driver/gains", kind: "driver_compensation" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyDriverCompensation failed:", err);
+  }
+}
+
+/**
+ * Notifie le client qu'un REMBOURSEMENT vient d'être crédité sur son
+ * Coligo Pay (décision support sur une commande). Fire-and-forget.
+ */
+export async function notifyCustomerRefund(input: {
+  orderId: string;
+  amountDa: number;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("orders")
+      .select("customer_id, order_number")
+      .eq("id", input.orderId)
+      .maybeSingle();
+    if (!order?.customer_id) return;
+
+    const { data: customer } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", order.customer_id)
+      .maybeSingle();
+    if (!customer?.user_id) return;
+
+    const tokens = await tokensFor(customer.user_id, "customer");
+    if (tokens.length === 0) return;
+
+    const ref = order.order_number
+      ? ` de la commande #${order.order_number}`
+      : "";
+    await sendFcm(
+      tokens,
+      {
+        title: "Remboursement effectué",
+        body: `${formatDA(input.amountDa)} ont été crédités sur votre Coligo Pay au titre${ref}.`,
+      },
+      {
+        route: `/commandes/${input.orderId}`,
+        kind: "customer_refund",
+      }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyCustomerRefund failed:", err);
+  }
+}
+
 /** Libellés clients par statut — alignés sur la copy commerçant. */
 const STATUS_PUSH: Partial<
   Record<OrderStatus, { title: string; body: string }>
