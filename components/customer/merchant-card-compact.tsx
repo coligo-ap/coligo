@@ -81,7 +81,7 @@ function MerchantCardCompactImpl({
     >
       {/* ─── Vignette photo (jamais vide) ─── */}
       <div
-        className="border-border bg-surface-2 relative size-[100px] shrink-0 overflow-hidden rounded-[10px] border"
+        className="border-border bg-surface-2 relative size-[100px] shrink-0 overflow-hidden rounded-[8px] border"
         style={
           thumb
             ? {

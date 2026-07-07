@@ -271,7 +271,7 @@ export function CartView() {
               key={item.line_key}
               className="border-border bg-surface flex items-center gap-3 rounded-[16px] border p-3 shadow-sm"
             >
-              <div className="bg-surface-2 relative size-[58px] shrink-0 overflow-hidden rounded-[12px]">
+              <div className="bg-surface-2 relative size-[58px] shrink-0 overflow-hidden rounded-[8px]">
                 {item.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
