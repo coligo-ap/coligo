@@ -345,11 +345,23 @@ export function MerchantCatalog({
           >
             <div
               ref={stripRef}
-              className="[scrollbar-width:none] overflow-x-auto px-4 py-2 lg:px-6 [&::-webkit-scrollbar]:hidden"
+              className="snap-x [scrollbar-width:none] overflow-x-auto px-4 py-2 lg:px-6 [&::-webkit-scrollbar]:hidden"
             >
               <div className="flex min-w-max gap-1.5">
                 {groups.map((g) => {
                   const active = activeKey === g.key;
+                  const title = g.category?.title ?? t("otherCategory");
+                  // Visuel d'ANCRAGE systématique : photo de la catégorie
+                  // (optimisée) ou tuile initiale — chaque chip devient
+                  // scannable d'un coup d'œil, même sans image.
+                  const img = g.category?.image_url
+                    ? (cldUrl(g.category.image_url, {
+                        width: 64,
+                        height: 64,
+                        crop: "fill",
+                        gravity: "auto",
+                      }) ?? g.category.image_url)
+                    : null;
                   return (
                     <button
                       key={g.key}
@@ -360,24 +372,34 @@ export function MerchantCatalog({
                       }}
                       onClick={() => scrollToGroup(g.key)}
                       className={cn(
-                        "inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pe-3.5 text-[13px] font-bold whitespace-nowrap transition-colors active:scale-[0.96]",
-                        g.category?.image_url ? "ps-1.5" : "ps-3.5",
+                        "inline-flex shrink-0 snap-start items-center gap-2 rounded-[10px] border py-1.5 ps-1.5 pe-3 text-[13px] font-bold whitespace-nowrap transition-colors active:scale-[0.96]",
                         active
                           ? "border-primary-600 bg-primary-600 text-white shadow-[0_6px_16px_-4px_rgba(108,43,217,0.45)]"
                           : "border-border bg-surface text-foreground hover:border-primary-300 shadow-[0_2px_6px_-3px_rgba(40,35,90,0.12)]"
                       )}
                     >
-                      {g.category?.image_url && (
+                      {img ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={g.category.image_url}
+                          src={img}
                           alt=""
                           loading="lazy"
                           decoding="async"
-                          className="size-7 shrink-0 rounded-full object-cover"
+                          className="size-7 shrink-0 rounded-[7px] object-cover"
                         />
+                      ) : (
+                        <span
+                          className={cn(
+                            "grid size-7 shrink-0 place-items-center rounded-[7px] text-[12px] font-black",
+                            active
+                              ? "bg-white/20 text-white"
+                              : "bg-primary-50 text-primary-700"
+                          )}
+                        >
+                          {title.charAt(0).toUpperCase()}
+                        </span>
                       )}
-                      {g.category?.title ?? t("otherCategory")}
+                      {title}
                     </button>
                   );
                 })}
