@@ -55,3 +55,6 @@ playwright-shots/
 
 # Sauvegardes de réinitialisation DB (contiennent des données — ne pas committer)
 db-reset-backup-*.json
+
+# Clé compte de service Google Play (secret — JAMAIS committer)
+play-service-account.json
