@@ -577,7 +577,7 @@ export function CartView() {
           </div>
           <Link
             href="/checkout"
-            className="bg-primary-600 hover:bg-primary-700 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-base font-extrabold text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"
+            className="bg-primary-600 hover:bg-primary-700 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[10px] text-base font-extrabold text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"
           >
             {t("checkout")}
             <ArrowRight className="size-5 rtl:-scale-x-100" />

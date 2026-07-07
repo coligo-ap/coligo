@@ -167,7 +167,7 @@ export function MerchantCartCta({
           href="/cart"
           onClick={() => setActiveMerchant(merchantId)}
           className={cn(
-            "bg-primary-600 hover:bg-primary-700 relative block overflow-hidden rounded-[20px] text-white shadow-[0_20px_42px_-12px_rgba(108,43,217,0.55)] transition-transform",
+            "bg-primary-600 hover:bg-primary-700 relative block overflow-hidden rounded-[10px] text-white shadow-[0_20px_42px_-12px_rgba(108,43,217,0.55)] transition-transform",
             pulse && "scale-[1.02]"
           )}
         >

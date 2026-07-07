@@ -99,7 +99,7 @@ function MerchantCardImpl({
       {/* ─── Image de couverture + overlays ─── */}
       {/* Cadre façon Yassir : bordure fine autour de la photo seule, le texte
           vit dessous (couverture = bannière → cover, pas contain). */}
-      <div className="border-border bg-surface-2 relative h-[158px] overflow-hidden rounded-[10px] border">
+      <div className="border-border bg-surface-2 relative h-[158px] overflow-hidden rounded-[8px] border">
         {coverOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

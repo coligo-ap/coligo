@@ -1296,7 +1296,7 @@ export function CheckoutView({
             onClick={submit}
             disabled={!canSubmit}
             className={cn(
-              "relative inline-flex h-[54px] w-full items-center justify-center gap-2 overflow-hidden rounded-[16px] text-base font-extrabold transition-all",
+              "relative inline-flex h-[54px] w-full items-center justify-center gap-2 overflow-hidden rounded-[10px] text-base font-extrabold transition-all",
               canSubmit
                 ? "from-primary-400 to-primary-700 co-shine bg-gradient-to-br text-white shadow-[0_10px_26px_-8px_rgba(91,91,230,0.55)] active:scale-[0.98]"
                 : "bg-foreground/90 cursor-not-allowed text-white opacity-50"
