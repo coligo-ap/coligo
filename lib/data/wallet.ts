@@ -96,9 +96,15 @@ export async function getWalletSummary(): Promise<WalletSummary> {
 export async function getWalletEntriesPage(
   page: number,
   pageSize: number,
-  // Filtres TRAÇABLES (type d'écriture + période ISO [from, to)) — appliqués
-  // CÔTÉ REQUÊTE (pagination juste) ; RLS = toujours le commerçant connecté.
-  filters?: { type?: string | null; from?: string | null; to?: string | null }
+  // Filtres TRAÇABLES (type d'écriture + période ISO [from, to) + recherche
+  // libre) — appliqués CÔTÉ REQUÊTE (pagination juste) ; RLS = toujours le
+  // commerçant connecté.
+  filters?: {
+    type?: string | null;
+    from?: string | null;
+    to?: string | null;
+    q?: string | null;
+  }
 ): Promise<{ entries: WalletEntryRow[]; total: number }> {
   const supabase = await createClient();
   const offset = Math.max(0, (page - 1) * pageSize);
@@ -113,6 +119,35 @@ export async function getWalletEntriesPage(
   if (filters?.type) q = q.eq("type", filters.type as never);
   if (filters?.from) q = q.gte("created_at", filters.from);
   if (filters?.to) q = q.lt("created_at", filters.to);
+  // Recherche : note OU n° de commande. Le n° passe par une pré-requête orders
+  // scopée EXPLICITEMENT au commerçant (jamais la RLS seule) → liste d'ids.
+  // Caractères spéciaux PostgREST retirés (le `.or()` est une mini-grammaire).
+  const needle = (filters?.q ?? "").replace(/["%*,()\\]/g, " ").trim();
+  if (needle) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const { data: me } = user
+      ? await supabase
+          .from("merchants")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle()
+      : { data: null };
+    let orderIds: string[] = [];
+    if (me) {
+      const { data: ords } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("merchant_id", me.id)
+        .ilike("order_number", `%${needle}%`)
+        .limit(200);
+      orderIds = ((ords ?? []) as { id: string }[]).map((o) => o.id);
+    }
+    const parts = [`note.ilike."*${needle}*"`];
+    if (orderIds.length) parts.push(`order_id.in.(${orderIds.join(",")})`);
+    q = q.or(parts.join(","));
+  }
   const { data, count } = await q
     .order("created_at", { ascending: false })
     .range(offset, offset + pageSize - 1);

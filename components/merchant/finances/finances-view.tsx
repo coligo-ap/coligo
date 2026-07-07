@@ -11,6 +11,7 @@ import {
   FileSpreadsheet,
   FileText,
   Loader2,
+  Search,
   Settings2,
   Wallet,
 } from "lucide-react";
@@ -52,10 +53,12 @@ function formatDate(iso: string): string {
 
 export type HistoryFilters = {
   type: string;
+  /** Recherche libre (n° commande, note, n° facture…). */
+  q: string;
   period: PeriodKey;
   from: string;
   to: string;
-  /** Vrai si l'utilisateur a dévié des défauts (type ou période ≠ « Ce mois »). */
+  /** Vrai si l'utilisateur a dévié des défauts (type/recherche/période). */
   active: boolean;
 };
 
@@ -63,6 +66,9 @@ export function FinancesView({
   entries,
   historyFilters,
   payouts,
+  payoutsTotal,
+  vpage,
+  vpageCount,
   hasAnyPayout,
   summary,
   page,
@@ -76,8 +82,12 @@ export function FinancesView({
 }: {
   entries: WalletEntryRow[];
   historyFilters: HistoryFilters;
-  /** Versements (toutes demandes) DANS la période sélectionnée. */
+  /** Page de versements (période + recherche appliquées côté serveur). */
   payouts: PayoutHistoryItem[];
+  /** Total de versements après filtres (pour la pastille + pagination). */
+  payoutsTotal: number;
+  vpage: number;
+  vpageCount: number;
   /** Vrai si le commerçant a au moins une demande, toutes périodes confondues. */
   hasAnyPayout: boolean;
   summary: FinancesSummary;
@@ -89,7 +99,7 @@ export function FinancesView({
   cashDebt: CashDebtStatus;
   /** Avances COD reçues des livreurs (payées en main propre au retrait). */
   owedByDriversDa: number;
-  /** Query string (from/to ISO) pour l'export CSV de la période courante. */
+  /** Query string (from/to ISO) des exports PDF/CSV de la période courante. */
   exportQs: string;
 }) {
   return (
@@ -121,6 +131,9 @@ export function FinancesView({
           détail PDF/CSV) — plus de sections séparées à déplier. */}
       <PaymentsModule
         payouts={payouts}
+        payoutsTotal={payoutsTotal}
+        vpage={vpage}
+        vpageCount={vpageCount}
         hasAnyPayout={hasAnyPayout}
         entries={entries}
         filters={historyFilters}
@@ -417,6 +430,9 @@ type Tab = "versements" | "operations";
  */
 function PaymentsModule({
   payouts,
+  payoutsTotal,
+  vpage,
+  vpageCount,
   hasAnyPayout,
   entries,
   filters,
@@ -427,6 +443,9 @@ function PaymentsModule({
   exportQs,
 }: {
   payouts: PayoutHistoryItem[];
+  payoutsTotal: number;
+  vpage: number;
+  vpageCount: number;
   hasAnyPayout: boolean;
   entries: WalletEntryRow[];
   filters: HistoryFilters;
@@ -445,14 +464,10 @@ function PaymentsModule({
   const [customOpen, setCustomOpen] = useState(filters.period === "custom");
   const [from, setFrom] = useState(filters.from);
   const [to, setTo] = useState(filters.to);
+  const [qInput, setQInput] = useState(filters.q);
 
-  // Navigation par l'URL (état partageable, pagination serveur juste).
-  const navigate = (next: {
-    period?: PeriodKey;
-    from?: string;
-    to?: string;
-    type?: string;
-  }) => {
+  // Query string commune (période + type + recherche) ± pages courantes.
+  const baseQs = (next: Partial<HistoryFilters> = {}) => {
     const q = new URLSearchParams();
     const period = next.period ?? filters.period;
     if (period !== "month") q.set("period", period);
@@ -462,21 +477,43 @@ function PaymentsModule({
     }
     const type = next.type ?? filters.type;
     if (type) q.set("type", type);
-    const qs = q.toString();
+    const search = (next.q ?? filters.q).trim();
+    if (search) q.set("q", search);
+    return q;
+  };
+  // Navigation par l'URL (état partageable, pagination serveur juste). Tout
+  // changement de filtre REPART en page 1 (les deux paginations).
+  const navigate = (next: Partial<HistoryFilters>) => {
+    const qs = baseQs(next).toString();
     router.push(qs ? `/finances?${qs}` : "/finances");
   };
+  // hrefs de pagination : chaque onglet garde la page de l'autre.
   const qsFor = (p: number) => {
-    const q = new URLSearchParams();
-    if (filters.period !== "month") q.set("period", filters.period);
-    if (filters.period === "custom") {
-      q.set("from", filters.from);
-      q.set("to", filters.to);
-    }
-    if (filters.type) q.set("type", filters.type);
+    const q = baseQs();
+    if (vpage > 1) q.set("vpage", String(vpage));
     if (p > 1) q.set("page", String(p));
     const qs = q.toString();
     return qs ? `/finances?${qs}` : "/finances";
   };
+  const vqsFor = (p: number) => {
+    const q = baseQs();
+    if (page > 1) q.set("page", String(page));
+    if (p > 1) q.set("vpage", String(p));
+    const qs = q.toString();
+    return qs ? `/finances?${qs}` : "/finances";
+  };
+
+  // Recherche débouncée → URL (le serveur filtre versements ET opérations).
+  useEffect(() => {
+    if (qInput === filters.q) return;
+    const t = setTimeout(() => navigate({ q: qInput }), 450);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- navigate recréée à chaque render
+  }, [qInput, filters.q]);
+  // Re-synchronise l'input quand l'URL change ailleurs (« Réinitialiser »).
+  useEffect(() => {
+    setQInput(filters.q);
+  }, [filters.q]);
 
   const selClass =
     "border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs focus-visible:outline-none";
@@ -490,7 +527,7 @@ function PaymentsModule({
             active={tab === "versements"}
             onClick={() => setTab("versements")}
             label="Versements"
-            count={payouts.length}
+            count={payoutsTotal}
           />
           <TabButton
             active={tab === "operations"}
@@ -520,6 +557,38 @@ function PaymentsModule({
             ))}
           </select>
         </div>
+      </div>
+
+      {/* ── Recherche + téléchargements (EN HAUT du module) ── */}
+      <div className="border-border flex items-center gap-2 border-b px-3 py-2.5">
+        <div className="relative min-w-0 flex-1">
+          <Search className="text-subtle pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+          <input
+            type="search"
+            value={qInput}
+            onChange={(e) => setQInput(e.target.value)}
+            placeholder="Rechercher (commande, note, facture…)"
+            aria-label="Rechercher"
+            className="border-border-strong bg-surface h-9 w-full rounded-[10px] border pr-2.5 pl-8 text-xs focus-visible:outline-none"
+          />
+        </div>
+        {/* <a> : routes fichiers (PDF inline / CSV téléchargé). */}
+        <a
+          href={`/api/pdf/releve-commercant?${exportQs}`}
+          target="_blank"
+          rel="noopener"
+          className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[10px] border px-2.5 text-xs font-semibold transition-colors"
+        >
+          <FileText className="size-3.5" />
+          PDF
+        </a>
+        <a
+          href={`/finances/export?${exportQs}`}
+          className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[10px] border px-2.5 text-xs font-semibold transition-colors"
+        >
+          <FileSpreadsheet className="size-3.5" />
+          CSV
+        </a>
       </div>
 
       {/* ── Dates libres (période personnalisée) ── */}
@@ -553,7 +622,14 @@ function PaymentsModule({
 
       {/* ── Contenu de l'onglet ── */}
       {tab === "versements" ? (
-        <PayoutHistory payouts={payouts} hasAnyPayout={hasAnyPayout} />
+        <PayoutHistory
+          payouts={payouts}
+          hasAnyPayout={hasAnyPayout}
+          searching={Boolean(filters.q)}
+          vpage={vpage}
+          vpageCount={vpageCount}
+          hrefFor={vqsFor}
+        />
       ) : (
         <Operations
           entries={entries}
@@ -565,27 +641,17 @@ function PaymentsModule({
         />
       )}
 
-      {/* ── Pied : info livraison (si utile) + export comptable ── */}
-      <div className="border-border bg-surface-2/50 flex flex-wrap items-center justify-between gap-2 border-t px-4 py-2.5">
-        {owedByDriversDa > 0 ? (
+      {/* ── Pied : info livraison (seulement si elle apporte une info) ── */}
+      {owedByDriversDa > 0 && (
+        <div className="border-border bg-surface-2/50 border-t px-4 py-2.5">
           <span className="text-subtle text-xs">
             Avances COD reçues des livreurs :{" "}
             <strong className="text-foreground">
               {formatDA(owedByDriversDa)}
             </strong>
           </span>
-        ) : (
-          <span />
-        )}
-        {/* <a> car la route renvoie un fichier (Content-Disposition). */}
-        <a
-          href={`/finances/export${exportQs ? `?${exportQs}` : ""}`}
-          className="text-muted hover:text-foreground inline-flex items-center gap-1.5 text-xs font-semibold transition-colors"
-        >
-          <FileSpreadsheet className="size-3.5" />
-          Exporter la période (CSV)
-        </a>
-      </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -636,120 +702,137 @@ function TabButton({
 function PayoutHistory({
   payouts,
   hasAnyPayout,
+  searching,
+  vpage,
+  vpageCount,
+  hrefFor,
 }: {
   payouts: PayoutHistoryItem[];
   hasAnyPayout: boolean;
+  searching: boolean;
+  vpage: number;
+  vpageCount: number;
+  hrefFor: (p: number) => string;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   if (payouts.length === 0) {
     return (
       <p className="text-muted px-4 py-8 text-center text-sm">
-        {hasAnyPayout
-          ? "Aucun versement sur cette période — élargissez la période pour retrouver les précédents."
-          : "Vos versements apparaîtront ici, avec leur facture à télécharger. Demandez-en un depuis la carte ci-dessus, ou activez le versement automatique."}
+        {searching
+          ? "Aucun versement ne correspond à votre recherche."
+          : hasAnyPayout
+            ? "Aucun versement sur cette période — élargissez la période pour retrouver les précédents."
+            : "Vos versements apparaîtront ici, avec leur facture à télécharger. Demandez-en un depuis la carte ci-dessus, ou activez le versement automatique."}
       </p>
     );
   }
 
   return (
-    <ul className="divide-border divide-y">
-      {payouts.map((p) => {
-        const paid = p.status === "paid";
-        const meta = PAYOUT_STATUS_META[p.status];
-        const open = openId === p.id;
-        const when = paid && p.periodTo ? p.periodTo : p.created_at;
-        return (
-          <li key={p.id}>
-            <button
-              type="button"
-              onClick={() => setOpenId(open ? null : p.id)}
-              aria-expanded={open}
-              className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
-            >
-              <span className="bg-primary-50 text-primary-600 grid size-9 shrink-0 place-items-center rounded-full">
-                <Banknote className="size-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold">
-                  {formatDate(when)}
+    <>
+      <ul className="divide-border divide-y">
+        {payouts.map((p) => {
+          const paid = p.status === "paid";
+          const meta = PAYOUT_STATUS_META[p.status];
+          const open = openId === p.id;
+          const when = paid && p.periodTo ? p.periodTo : p.created_at;
+          return (
+            <li key={p.id}>
+              <button
+                type="button"
+                onClick={() => setOpenId(open ? null : p.id)}
+                aria-expanded={open}
+                className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
+              >
+                <span className="bg-primary-50 text-primary-600 grid size-9 shrink-0 place-items-center rounded-full">
+                  <Banknote className="size-4" />
                 </span>
-                <span className="text-subtle mt-0.5 block text-xs">
-                  {paid
-                    ? `${p.ordersCount} commande${p.ordersCount > 1 ? "s" : ""} · ${p.invoiceNumber}`
-                    : `Demande du ${formatDate(p.created_at)} · ${p.method.toUpperCase()}`}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">
+                    {formatDate(when)}
+                  </span>
+                  <span className="text-subtle mt-0.5 block text-xs">
+                    {paid
+                      ? `${p.ordersCount} commande${p.ordersCount > 1 ? "s" : ""} · ${p.invoiceNumber}`
+                      : `Demande du ${formatDate(p.created_at)} · ${p.method.toUpperCase()}`}
+                  </span>
                 </span>
-              </span>
-              <span className="shrink-0 text-right">
-                <span className="block text-sm font-bold tabular-nums">
-                  {formatDA(p.amount_da)}
+                <span className="shrink-0 text-right">
+                  <span className="block text-sm font-bold tabular-nums">
+                    {formatDA(p.amount_da)}
+                  </span>
+                  <Badge tone={meta.tone}>{meta.label}</Badge>
                 </span>
-                <Badge tone={meta.tone}>{meta.label}</Badge>
-              </span>
-              <ChevronDown
-                className={cn(
-                  "text-muted size-4 shrink-0 transition-transform",
-                  open && "rotate-180"
-                )}
-              />
-            </button>
+                <ChevronDown
+                  className={cn(
+                    "text-muted size-4 shrink-0 transition-transform",
+                    open && "rotate-180"
+                  )}
+                />
+              </button>
 
-            {open && (
-              <div className="bg-surface-2/50 px-4 pt-1 pb-3">
-                {paid ? (
-                  <>
-                    <p className="text-subtle mb-2 text-xs">
-                      Période couverte :{" "}
-                      {p.periodFrom
-                        ? `${formatDate(p.periodFrom)} → ${formatDate(p.periodTo!)}`
-                        : `jusqu'au ${formatDate(p.periodTo!)}`}{" "}
-                      · versé par {p.method.toUpperCase()}
+              {open && (
+                <div className="bg-surface-2/50 px-4 pt-1 pb-3">
+                  {paid ? (
+                    <>
+                      <p className="text-subtle mb-2 text-xs">
+                        Période couverte :{" "}
+                        {p.periodFrom
+                          ? `${formatDate(p.periodFrom)} → ${formatDate(p.periodTo!)}`
+                          : `jusqu'au ${formatDate(p.periodTo!)}`}{" "}
+                        · versé par {p.method.toUpperCase()}
+                      </p>
+                      {/* <a> : routes fichiers (PDF inline / CSV téléchargé). */}
+                      <div className="flex flex-wrap gap-2">
+                        <a
+                          href={`/api/pdf/versement/${p.id}`}
+                          target="_blank"
+                          rel="noopener"
+                          className="bg-primary-600 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-xs font-bold text-white"
+                        >
+                          <FileText className="size-3.5" />
+                          Facture (PDF)
+                        </a>
+                        <a
+                          href={`/api/pdf/versement/${p.id}?detail=1`}
+                          target="_blank"
+                          rel="noopener"
+                          className="border-border bg-surface text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
+                        >
+                          <FileText className="size-3.5" />
+                          Détail par commande (PDF)
+                        </a>
+                        <a
+                          href={`/finances/versements/${p.id}/export`}
+                          className="border-border bg-surface text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
+                        >
+                          <FileSpreadsheet className="size-3.5" />
+                          Détail (CSV)
+                        </a>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-subtle text-xs">
+                      {p.status === "pending" &&
+                        "Demande en cours de traitement par Coligo — le montant est réservé sur votre solde."}
+                      {p.status === "approved" &&
+                        "Demande approuvée — le paiement est en préparation."}
+                      {p.status === "rejected" &&
+                        "Demande refusée — le montant est resté disponible sur votre solde."}
                     </p>
-                    {/* <a> : routes fichiers (PDF inline / CSV téléchargé). */}
-                    <div className="flex flex-wrap gap-2">
-                      <a
-                        href={`/api/pdf/versement/${p.id}`}
-                        target="_blank"
-                        rel="noopener"
-                        className="bg-primary-600 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-xs font-bold text-white"
-                      >
-                        <FileText className="size-3.5" />
-                        Facture (PDF)
-                      </a>
-                      <a
-                        href={`/api/pdf/versement/${p.id}?detail=1`}
-                        target="_blank"
-                        rel="noopener"
-                        className="border-border bg-surface text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
-                      >
-                        <FileText className="size-3.5" />
-                        Détail par commande (PDF)
-                      </a>
-                      <a
-                        href={`/finances/versements/${p.id}/export`}
-                        className="border-border bg-surface text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
-                      >
-                        <FileSpreadsheet className="size-3.5" />
-                        Détail (CSV)
-                      </a>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-subtle text-xs">
-                    {p.status === "pending" &&
-                      "Demande en cours de traitement par Coligo — le montant est réservé sur votre solde."}
-                    {p.status === "approved" &&
-                      "Demande approuvée — le paiement est en préparation."}
-                    {p.status === "rejected" &&
-                      "Demande refusée — le montant est resté disponible sur votre solde."}
-                  </p>
-                )}
-              </div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+                  )}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {vpageCount > 1 && (
+        <div className="border-border border-t px-4 py-3">
+          <Pagination page={vpage} pageCount={vpageCount} hrefFor={hrefFor} />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -800,7 +883,8 @@ function Operations({
       {entries.length === 0 ? (
         <p className="text-muted px-4 py-8 text-center text-sm">
           Aucune opération sur cette période
-          {filters.type ? " pour ce type" : ""}.
+          {filters.type ? " pour ce type" : ""}
+          {filters.q ? " ne correspond à votre recherche" : ""}.
         </p>
       ) : (
         <ul className="divide-border divide-y">

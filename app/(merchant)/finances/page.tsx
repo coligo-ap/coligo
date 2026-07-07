@@ -24,7 +24,9 @@ export default async function FinancesPage({
 }: {
   searchParams: Promise<{
     page?: string;
+    vpage?: string;
     type?: string;
+    q?: string;
     period?: string;
     from?: string;
     to?: string;
@@ -32,6 +34,7 @@ export default async function FinancesPage({
 }) {
   const sp = await searchParams;
   const page = parsePage(sp.page);
+  const search = (sp.q ?? "").trim();
 
   // Filtre de période PARTAGÉ du module Paiements (versements + opérations).
   // Préréglages résolus en bornes ISO [from, to) heure d'Alger — défaut « Ce
@@ -41,6 +44,7 @@ export default async function FinancesPage({
     type: sp.type || null,
     from: period.fromIso,
     to: period.toIso,
+    q: search || null,
   };
 
   const supabase = await createClient();
@@ -93,11 +97,27 @@ export default async function FinancesPage({
   };
 
   // Versements affichés = ceux de la période sélectionnée (un versement payé
-  // « vit » à sa date de paiement, une demande en cours à sa date de demande).
+  // « vit » à sa date de paiement, une demande en cours à sa date de demande),
+  // puis recherche (n° facture / méthode / montant) et pagination `vpage`.
   const payoutsInPeriod = payoutHistory.filter((p) => {
     const d = p.status === "paid" ? (p.periodTo ?? p.created_at) : p.created_at;
     return d >= period.fromIso && d < period.toIso;
   });
+  const needle = search.toLowerCase();
+  const payoutsFiltered = needle
+    ? payoutsInPeriod.filter(
+        (p) =>
+          (p.invoiceNumber ?? "").toLowerCase().includes(needle) ||
+          p.method.toLowerCase().includes(needle) ||
+          String(p.amount_da).includes(needle)
+      )
+    : payoutsInPeriod;
+  const vpageCount = Math.max(1, Math.ceil(payoutsFiltered.length / PAGE_SIZE));
+  const vpage = Math.min(parsePage(sp.vpage), vpageCount);
+  const payoutsPage = payoutsFiltered.slice(
+    (vpage - 1) * PAGE_SIZE,
+    vpage * PAGE_SIZE
+  );
 
   const pageCount = Math.max(1, Math.ceil(pageData.total / PAGE_SIZE));
 
@@ -139,12 +159,16 @@ export default async function FinancesPage({
         entries={pageData.entries}
         historyFilters={{
           type: sp.type ?? "",
+          q: search,
           period: period.key,
           from: sp.from ?? "",
           to: sp.to ?? "",
-          active: Boolean(sp.type) || period.key !== "month",
+          active: Boolean(sp.type) || Boolean(search) || period.key !== "month",
         }}
-        payouts={payoutsInPeriod}
+        payouts={payoutsPage}
+        payoutsTotal={payoutsFiltered.length}
+        vpage={vpage}
+        vpageCount={vpageCount}
         hasAnyPayout={payoutHistory.length > 0}
         summary={summary}
         page={page}
