@@ -112,7 +112,7 @@ export function ActiveOrdersBar({ userId }: { userId: string }) {
   if (hidden || orders.length === 0) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-16 z-30 px-3 pb-2 lg:bottom-4">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 px-3 pb-1.5 lg:bottom-4">
       <div
         className={cn(
           "mx-auto max-w-md",

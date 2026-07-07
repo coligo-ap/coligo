@@ -1278,7 +1278,7 @@ export function CheckoutView({
       </div>
 
       {/* ── Barre d'action UNIQUE, fixe en bas ── */}
-      <div className="border-border fixed inset-x-0 bottom-16 z-40 border-t bg-white/95 px-4 pt-3 pb-3 shadow-[0_-8px_30px_rgba(40,35,90,0.1)] backdrop-blur-md lg:bottom-0">
+      <div className="border-border fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-40 border-t bg-white/95 px-4 pt-3 pb-3 shadow-[0_-8px_30px_rgba(40,35,90,0.1)] backdrop-blur-md lg:bottom-0">
         <div className="mx-auto max-w-[560px]">
           <div className="mb-2.5 flex items-center justify-between gap-3">
             <span className="text-muted text-[12.5px] font-semibold">

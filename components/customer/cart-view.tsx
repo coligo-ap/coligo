@@ -432,7 +432,7 @@ export function CartView() {
           haut) + cashback + récap sous-total/économies/total + bouton.
           Fond GRIS (token surface-3 → s'adapte seul au mode sombre) pour
           se différencier nettement du blanc de la page. */}
-      <div className="border-border bg-surface-3 fixed inset-x-0 bottom-16 z-40 border-t px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
+      <div className="border-border bg-surface-3 fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-40 border-t px-4 pt-3 pb-3 shadow-[0_-6px_24px_rgba(40,35,90,0.09)] lg:bottom-0">
         <div className="mx-auto max-w-[560px] space-y-2.5">
           {/* Détail des promotions & économies — contenu INTÉGRÉ directement
               dans la carte du bas (aucune carte autour, pas de titre doublon :

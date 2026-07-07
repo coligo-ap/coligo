@@ -140,7 +140,7 @@ export function MerchantCartCta({
       : null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-16 z-30 px-4 pb-2 lg:bottom-4">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 px-4 pb-1.5 lg:bottom-4">
       <div className="pointer-events-auto mx-auto max-w-md">
         {/* UNE pilule compacte, style iOS : total + compteur + sous-ligne
             contextuelle intégrée + progression vers le minimum en filet bas. */}
