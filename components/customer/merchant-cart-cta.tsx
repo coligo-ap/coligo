@@ -142,25 +142,6 @@ export function MerchantCartCta({
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-16 z-30 px-4 pb-2 lg:bottom-4">
       <div className="pointer-events-auto mx-auto max-w-md">
-        {/* Économies — carte SOMBRE « verre » premium (charbon, texte inversé
-            via tokens → s'adapte seule au mode sombre), montant en pastille.
-            Distincte du violet de la pilule → lisible d'un coup d'œil. */}
-        {hasSavings && !belowMin && (
-          <div className="cg-promo-rise bg-foreground/95 text-surface mb-1.5 flex items-center gap-2.5 rounded-[16px] px-3.5 py-2 shadow-[0_14px_34px_-14px_rgba(10,10,20,0.65)] backdrop-blur-md">
-            <span className="bg-surface/20 grid size-6 shrink-0 place-items-center rounded-full">
-              <PartyPopper className="size-3.5" />
-            </span>
-            <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold">
-              {tc("promosApplied", { count: promoCount })}
-            </span>
-            {/* Montant du gain en VERT franc (pastille pleine) — impossible à
-                rater, lisible sur charbon comme sur la variante claire. */}
-            <span className="bg-success-600 shrink-0 rounded-full px-2.5 py-1 text-[12px] font-black text-white tabular-nums">
-              −{formatDA(savings)}
-            </span>
-          </div>
-        )}
-
         {/* UNE pilule compacte, style iOS : total + compteur + sous-ligne
             contextuelle intégrée + progression vers le minimum en filet bas. */}
         <Link
@@ -230,6 +211,26 @@ export function MerchantCartCta({
             </span>
           )}
         </Link>
+
+        {/* Économies — carte SOMBRE « verre » premium (charbon, texte inversé
+            via tokens → s'adapte seule au mode sombre), montant en pastille.
+            COLLÉE SOUS la pilule (mt-1, même silhouette) — plus rien au-dessus
+            du bouton. Couleurs inchangées. */}
+        {hasSavings && !belowMin && (
+          <div className="cg-promo-rise bg-foreground/95 text-surface mt-1 flex items-center gap-2.5 rounded-[10px] px-3.5 py-2 shadow-[0_14px_34px_-14px_rgba(10,10,20,0.65)] backdrop-blur-md">
+            <span className="bg-surface/20 grid size-6 shrink-0 place-items-center rounded-full">
+              <PartyPopper className="size-3.5" />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold">
+              {tc("promosApplied", { count: promoCount })}
+            </span>
+            {/* Montant du gain en VERT franc (pastille pleine) — impossible à
+                rater, lisible sur charbon comme sur la variante claire. */}
+            <span className="bg-success-600 shrink-0 rounded-full px-2.5 py-1 text-[12px] font-black text-white tabular-nums">
+              −{formatDA(savings)}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
