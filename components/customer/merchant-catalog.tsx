@@ -517,7 +517,11 @@ export function MerchantCatalog({
                 type="button"
                 onClick={() => setOpenCat(g.key)}
                 aria-label={title}
-                className="bg-primary-50 dark:bg-primary-950/40 group flex aspect-[3/4] flex-col overflow-hidden rounded-[8px] p-3 text-center transition-transform duration-150 active:scale-[0.97] sm:aspect-[4/5]"
+                // PAS de variante dark: (système) ici — le sombre APPLICATIF
+                // est géré par le remap .theme-dark de bg-primary-50
+                // (globals.css) ; une dark: système s'activerait selon l'OS
+                // même quand l'app est en clair (texte illisible).
+                className="bg-primary-50 group flex aspect-[3/4] flex-col overflow-hidden rounded-[8px] p-3 text-center transition-transform duration-150 active:scale-[0.97] sm:aspect-[4/5]"
               >
                 {/* Titre en haut, centré (2 lignes max) — typographie Yassir. */}
                 <span className="text-foreground line-clamp-2 block text-[13.5px] leading-snug font-bold">
