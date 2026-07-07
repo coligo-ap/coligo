@@ -31,7 +31,7 @@ const ACTIVE_RIDE_STATUSES = [
   "arriving",
   "arrived",
   "in_progress",
-];
+] as const;
 
 export default async function DeleteAccountPage() {
   const t = await getTranslations("account");

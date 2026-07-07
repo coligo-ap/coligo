@@ -227,7 +227,7 @@ const ACTIVE_RIDE_STATUSES = [
   "arriving",
   "arrived",
   "in_progress",
-];
+] as const;
 
 export async function deleteMyCustomerAccount(): Promise<DeleteAccountState> {
   const supabase = await createClient();
@@ -312,7 +312,8 @@ export async function deleteMyCustomerAccount(): Promise<DeleteAccountState> {
       .from("orders")
       .update({
         customer_name: "Client supprimé",
-        customer_phone: null,
+        // Colonne NOT NULL : anonymisation par chaîne vide (null refusé en DB).
+        customer_phone: "",
         customer_note: null,
         delivery_address_text: null,
         delivery_recipient_name: null,
