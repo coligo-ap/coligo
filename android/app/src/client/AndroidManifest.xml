@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Surcharge manifest du flavor CLIENT (app.coligo.client — Google Play).
+
+    Fusionné PAR-DESSUS src/main/AndroidManifest.xml. Deux objectifs :
+
+    1. RETIRER les permissions réservées aux apps pros : la localisation en
+       arrière-plan (livreur en service) déclenche un examen Play très strict,
+       injustifiable pour l'app grand public. tools:node="remove" gagne aussi
+       sur les manifests des librairies (plugin background-geolocation, qui
+       reste compilé mais jamais invoqué côté client).
+
+    2. AJOUTER les App Links https://coligo.app (autoVerify — l'assetlinks.json
+       du site liste déjà app.coligo.client + l'empreinte du keystore) : les
+       liens Coligo (e-mails de confirmation, partages) ouvrent l'app native.
+       La navigation vers le bon chemin est faite côté JS (AppUrlListener).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" tools:node="remove" />
+
+    <!-- allowBackup=false : la session Supabase (cookies/localStorage WebView)
+         ne doit pas partir dans les sauvegardes cloud de l'appareil. -->
+    <application
+        android:allowBackup="false"
+        tools:replace="android:allowBackup">
+
+        <activity android:name="com.coligo.app.MainActivity">
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="coligo.app" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

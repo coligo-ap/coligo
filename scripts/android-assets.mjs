@@ -14,8 +14,22 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const ANDROID_RES = join(ROOT, "android", "app", "src", "main", "res");
+// Dossier res cible — surchargable pour générer les ressources d'un FLAVOR
+// (ex. src/client/res pour l'app Google Play) sans écraser celles de main :
+//   COLIGO_RES_DIR=src/client/res node scripts/android-assets.mjs
+const ANDROID_RES = join(
+  ROOT,
+  "android",
+  "app",
+  ...(process.env.COLIGO_RES_DIR || "src/main/res").split("/")
+);
 const VALUES = join(ANDROID_RES, "values");
+
+// COLIGO_ICON_FULLBLEED=1 : la source est une icône maskable pleine surface
+// (fond de marque intégré + safe-zone déjà respectée, ex. icons/client-
+// maskable-512.png). Dans ce cas le foreground adaptatif utilise TOUT le
+// canvas (le padding 66 % habituel ferait un double retrait → logo minuscule).
+const FULLBLEED = process.env.COLIGO_ICON_FULLBLEED === "1";
 
 // Icône de l'APK. Par défaut = logo COMMERCE (app commerçant). Paramétrable
 // par env pour générer les autres apps (livreur / chauffeur Drive) :
@@ -80,6 +94,14 @@ async function writeIcon(filePath, size) {
 }
 
 async function writeForeground(filePath, size) {
+  if (FULLBLEED) {
+    // Source maskable : plein canvas, Android masque lui-même les bords.
+    await sharp(ICON_SRC)
+      .resize(size, size, { fit: "cover" })
+      .png()
+      .toFile(filePath);
+    return;
+  }
   // Icône centrée dans un canvas transparent — Android compose le background
   // (la couleur de marque) en dessous.
   const inner = Math.round(size * 0.66);
@@ -178,6 +200,7 @@ async function main() {
     await writeSplash(join(dir, "splash.png"), w, h);
   }
   // Splash par défaut (sans qualifier de densité).
+  await ensureDir(join(ANDROID_RES, "drawable"));
   await writeSplash(join(ANDROID_RES, "drawable", "splash.png"), 1280, 1920);
 
   console.log("Android assets generated.");

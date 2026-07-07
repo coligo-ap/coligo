@@ -1,0 +1,12 @@
+{
+  "appId": "app.coligo.client",
+  "appName": "Coligo",
+  "webDir": "capacitor-webroot",
+  "server": {
+    "url": "https://coligo.app/api/start/client",
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

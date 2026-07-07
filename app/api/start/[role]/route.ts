@@ -7,11 +7,12 @@
  * l'app atterrit SANS rebuilder l'APK. Sous /api → neutre vis-à-vis de
  * l'isolation des rôles (toutes sessions passent).
  *
- * role ∈ { commerce, driver, drive }.
+ * role ∈ { client, commerce, driver, drive }.
  */
 export const dynamic = "force-dynamic";
 
 const DEFAULT_LANDING: Record<string, string> = {
+  client: "/",
   commerce: "/dashboard",
   driver: "/driver",
   drive: "/chauffeur",

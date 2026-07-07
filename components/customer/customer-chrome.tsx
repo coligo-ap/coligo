@@ -9,6 +9,8 @@ import { CustomerFooter } from "@/components/customer/customer-footer";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { ActiveOrdersBar } from "@/components/customer/active-orders-bar";
 import { PushRegistrar } from "@/components/native/push-registrar";
+import { AppUrlListener } from "@/components/native/app-url-listener";
+import { AppUpdateManager } from "@/components/native/app-update-manager";
 import { TawkChat } from "@/components/support/tawk-chat";
 
 /**
@@ -100,6 +102,14 @@ export function CustomerChrome({
 
       {/* FCM (no-op hors APK / si non connecté). Monté une fois ici. */}
       {isAuth && <PushRegistrar role="customer" />}
+
+      {/* App Links Android : un lien https://coligo.app/… tapé hors de l'app
+          (e-mail, partage) route la SPA vers ce chemin. No-op hors APK. */}
+      <AppUrlListener />
+
+      {/* Google Play In-App Updates (flexible / immediate selon le minimum
+          imposé côté serveur). No-op hors APK client installé depuis Play. */}
+      <AppUpdateManager />
 
       {/* Live chat support — JAMAIS de bulle flottante : Tawk ne se charge QUE
       sur clic « Contacter le support » (openSupportChat). Ici on ne mémorise

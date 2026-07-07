@@ -24,8 +24,15 @@ public class MainActivity extends BridgeActivity {
     // permission WebView via son BridgeWebChromeClient.onPermissionRequest()
     // qui appelle ActivityCompat — on pré-demande au boot pour éviter le
     // dialogue lors du 1er scan.
-    if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-        != PackageManager.PERMISSION_GRANTED) {
+    //
+    // FLAVOR commerce UNIQUEMENT : le scan QR est le cœur du métier commerçant
+    // (validation des retraits sur Sunmi). Côté flavor client (Google Play),
+    // demander la caméra au démarrage serait hors-contexte (recommandations
+    // Play : permission au moment de l'usage) — la demande part à la première
+    // prise caméra réelle (paiement QR, appel vidéo), gérée par Capacitor.
+    if ("commerce".equals(BuildConfig.FLAVOR)
+        && ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED) {
       ActivityCompat.requestPermissions(this,
           new String[] {Manifest.permission.CAMERA}, 1001);
     }

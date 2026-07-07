@@ -1,9 +1,32 @@
 # Coligo Android (Capacitor)
 
-App Android native qui embarque le site Coligo (commerçant) dans un WebView
-Capacitor. Approche **Remote URL** : le WebView charge directement
-`https://commercant.coligo.app` (prod) ou `https://coligo.app`
-(test). Aucun export statique — le serveur Next.js reste actif sur Vercel.
+App Android native qui embarque le site Coligo dans un WebView Capacitor.
+Approche **Remote URL** : le WebView charge directement le site (aucun export
+statique — le serveur Next.js reste actif sur Vercel).
+
+## Deux flavors (build.gradle → productFlavors)
+
+| Flavor     | Package             | Distribution                           | Particularités                                                                                                                                  |
+| ---------- | ------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `commerce` | `com.coligo.app`    | APK sideload via `/telecharger` (pros) | Identité historique ; pré-prompt caméra au boot (scan QR Sunmi) ; géoloc arrière-plan (livreur)                                                 |
+| `client`   | `app.coligo.client` | **GOOGLE PLAY** (grand public)         | Manifest allégé (PAS de géoloc arrière-plan ni foreground-service), App Links coligo.app, allowBackup=false, In-App Updates, versionCode propre |
+
+Les surcharges du flavor client vivent sous `app/src/client/` (manifest,
+strings, res générées, `assets/capacitor.config.json`). Les tâches Gradle
+deviennent `assembleCommerceDebug`, `bundleClientRelease`, etc.
+
+### Build du .aab Google Play (client)
+
+```powershell
+# Depuis coligo/ — préflight Firebase + sync + bundle signé :
+npm run build:client:aab
+# Sortie : android/app/build/outputs/bundle/clientRelease/app-client-release.aab
+```
+
+Pré-requis one-shot : `google-services.json` doit contenir le package
+`app.coligo.client` (console Firebase coligo-c04b0 → ajouter une app Android),
+sinon le script refuse de builder (FCM serait mort). Incrémenter le
+`versionCode` du flavor `client` dans `app/build.gradle` à chaque upload Play.
 
 ## Pré-requis (à installer côté machine)
 

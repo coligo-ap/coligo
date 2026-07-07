@@ -1232,6 +1232,12 @@
     "enableCta": "Activer",
     "dismiss": "Plus tard"
   },
+  "appUpdate": {
+    "readyTitle": "Mise à jour prête",
+    "readyBody": "La nouvelle version de Coligo est téléchargée. Redémarre pour en profiter.",
+    "restartCta": "Redémarrer",
+    "dismiss": "Plus tard"
+  },
   "install": {
     "cta": "Installer l’application",
     "ctaIos": "Installer sur iPhone",

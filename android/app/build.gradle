@@ -12,9 +12,11 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "com.coligo.app"
     compileSdk = rootProject.ext.compileSdkVersion
-    // AGP 8+ exige l'opt-in pour AIDL (utilisé par le plugin Sunmi).
+    // AGP 8+ exige l'opt-in pour AIDL (utilisé par le plugin Sunmi) et pour
+    // BuildConfig (MainActivity lit BuildConfig.FLAVOR pour adapter le boot).
     buildFeatures {
         aidl true
+        buildConfig true
     }
     signingConfigs {
         release {
@@ -37,6 +39,27 @@ android {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // Deux identités d'app sur la même base de code native :
+    //  - commerce : APK pros (commerçant / livreur / chauffeur) sideloadés via
+    //    /telecharger — identité historique com.coligo.app, rien ne change.
+    //  - client   : app grand public publiée sur GOOGLE PLAY (fiche
+    //    app.coligo.client). Manifest allégé (pas de géoloc arrière-plan),
+    //    icônes/nom/config Capacitor propres sous src/client/.
+    flavorDimensions = ["app"]
+    productFlavors {
+        commerce {
+            dimension "app"
+            applicationId "com.coligo.app"
+        }
+        client {
+            dimension "app"
+            applicationId "app.coligo.client"
+            // Versionnage indépendant des APK pros. Play exige un versionCode
+            // strictement croissant à chaque upload — incrémenter ICI.
+            versionCode 3
+            versionName "1.0.0"
         }
     }
     buildTypes {

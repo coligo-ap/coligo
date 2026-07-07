@@ -21,6 +21,13 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * La valeur est figée dans `android/app/src/main/assets/capacitor.config.json`
  * au moment du `cap sync` — il faut donc re-sync (et re-build l'APK) après
  * changement.
+ *
+ * FLAVOR CLIENT (Google Play, package app.coligo.client) : le flavor Android
+ * `client` embarque SA PROPRE config dans `android/app/src/client/assets/
+ * capacitor.config.json` (appName « Coligo », server.url = /api/start/client).
+ * Ce fichier est régénéré par `node scripts/build-client-aab.mjs` — les assets
+ * d'un flavor écrasent ceux de main à la fusion, donc `cap sync` (qui n'écrit
+ * que dans src/main) ne le touche jamais.
  */
 
 // URL de démarrage par défaut = app COMMERCE via la route d'indirection
