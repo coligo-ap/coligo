@@ -253,25 +253,31 @@ export async function updateProfile(
 
   if (error) return { error: `Erreur : ${error.message}` };
 
-  // Remplace les LIAISONS multi-catégories (RLS owner). ATTENTION : le
-  // trigger de la mig 0312 a déjà tiré PENDANT l'update ci-dessus, AVANT ce
-  // delete — il ne re-crée rien après. On doit donc ré-insérer la principale
-  // avec source='primary' nous-mêmes, sinon le marqueur est perdu (les
-  // comptages admin s'appuient dessus, mig 0319). Best-effort : un échec ici
-  // ne perd pas le profil déjà enregistré.
+  // Synchronise les LIAISONS multi-catégories (RLS owner). La PRINCIPALE est
+  // entièrement gérée par le trigger DEFINER (mig 0340 : upsert 'primary' +
+  // rétrogradation de l'ancienne) pendant l'update ci-dessus — ici on ne
+  // touche QUE les secondaires : retrait des décochées (la policy interdit de
+  // toute façon de supprimer une 'primary'), ajout des nouvelles en 'manual'
+  // (seule source autorisée à l'insert owner). Best-effort : un échec ici ne
+  // perd pas le profil déjà enregistré.
   const primaryCode = catList[0] ?? parsed.data.category;
-  await supabase
-    .from("merchant_category_links" as never)
-    .delete()
-    .eq("merchant_id", merchant.id);
   if (catList.length > 0) {
-    await supabase.from("merchant_category_links" as never).insert(
-      catList.map((code) => ({
-        merchant_id: merchant.id,
-        code,
-        source: code === primaryCode ? "primary" : "manual",
-      })) as never
-    );
+    await supabase
+      .from("merchant_category_links" as never)
+      .delete()
+      .eq("merchant_id", merchant.id)
+      .not("code", "in", `(${catList.join(",")})`);
+    const secondaries = catList.filter((code) => code !== primaryCode);
+    if (secondaries.length > 0) {
+      await supabase.from("merchant_category_links" as never).upsert(
+        secondaries.map((code) => ({
+          merchant_id: merchant.id,
+          code,
+          source: "manual",
+        })) as never,
+        { onConflict: "merchant_id,code", ignoreDuplicates: true }
+      );
+    }
   }
 
   revalidatePath("/settings");

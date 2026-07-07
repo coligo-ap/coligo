@@ -17,6 +17,7 @@ import {
   ClipboardList,
   GripVertical,
   Loader2,
+  Lock,
   Plus,
   Search,
   Store,
@@ -720,14 +721,14 @@ function CategoryDetail({
         )}
       </div>
 
-      {/* Mapping (filtres éditoriaux) */}
-      {c.kind === "filter" && (
-        <FilterMappingPanel
-          code={c.code}
-          initialKeywords={c.keywords.join(", ")}
-          onDone={onRefresh}
-        />
-      )}
+      {/* Commerçants liés — pour TOUTE catégorie (type ou filtre). Les filtres
+          gardent en plus le mapping auto par mots-clés. */}
+      <FilterMappingPanel
+        code={c.code}
+        kind={c.kind}
+        initialKeywords={c.keywords.join(", ")}
+        onDone={onRefresh}
+      />
 
       {/* Suppression — miroir exact de la garde serveur */}
       <div className="border-border flex items-center justify-between gap-2 border-t pt-2.5">
@@ -925,10 +926,13 @@ const SOURCE_LABEL: Record<string, string> = {
 
 function FilterMappingPanel({
   code,
+  kind,
   initialKeywords,
   onDone,
 }: {
   code: string;
+  /** filter = mots-clés + recalcul auto en plus du mapping manuel. */
+  kind: "type" | "filter";
   initialKeywords: string;
   onDone: () => void;
 }) {
@@ -972,35 +976,41 @@ function FilterMappingPanel({
 
   return (
     <div className="border-border bg-surface-2 space-y-2.5 rounded-[12px] border p-3">
-      {/* Mots-clés + recalcul auto */}
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          value={kw}
-          onChange={(e) => setKw(e.target.value)}
-          placeholder="Mots-clés auto (ex. burger, hamburger)"
-          className="border-border-strong bg-surface h-9 min-w-0 flex-1 rounded-[10px] border px-2.5 text-xs"
-        />
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => act(() => setCategoryKeywords(code, kw))}
-          className="border-border bg-surface rounded-[10px] border px-3 py-2 text-xs font-semibold disabled:opacity-50"
-        >
-          Enregistrer
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => act(() => recomputeAutoLinks(code))}
-          className="bg-primary-600 rounded-[10px] px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
-        >
-          Recalculer auto
-        </button>
-      </div>
-      <p className="text-subtle text-[11px]">
-        Le recalcul lie les commerçants dont les produits, tags ou le nom
-        contiennent un mot-clé — sans toucher aux liaisons manuelles.
-      </p>
+      <p className="text-muted text-xs font-bold uppercase">Commerçants liés</p>
+
+      {/* Mots-clés + recalcul auto — FILTRES ÉDITORIAUX uniquement */}
+      {kind === "filter" && (
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={kw}
+              onChange={(e) => setKw(e.target.value)}
+              placeholder="Mots-clés auto (ex. burger, hamburger)"
+              className="border-border-strong bg-surface h-9 min-w-0 flex-1 rounded-[10px] border px-2.5 text-xs"
+            />
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => act(() => setCategoryKeywords(code, kw))}
+              className="border-border bg-surface rounded-[10px] border px-3 py-2 text-xs font-semibold disabled:opacity-50"
+            >
+              Enregistrer
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => act(() => recomputeAutoLinks(code))}
+              className="bg-primary-600 rounded-[10px] px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+            >
+              Recalculer auto
+            </button>
+          </div>
+          <p className="text-subtle text-[11px]">
+            Le recalcul lie les commerçants dont les produits, tags ou le nom
+            contiennent un mot-clé — sans toucher aux liaisons manuelles.
+          </p>
+        </>
+      )}
 
       {/* Ajout manuel */}
       <div className="flex flex-wrap items-center gap-2">
@@ -1042,34 +1052,55 @@ function FilterMappingPanel({
 
       {msg && <p className="text-xs font-semibold">{msg}</p>}
 
-      {/* Commerçants liés */}
+      {/* Commerçants liés — la liaison PRINCIPALE ne se retire pas d'ici
+          (elle suit merchants.category : changez-la depuis la fiche du
+          commerçant, hub Commerçants). */}
       {rows.length === 0 ? (
         <p className="text-muted text-xs">
-          Aucun commerçant lié — ajoutez des mots-clés puis « Recalculer auto »,
-          ou liez manuellement.
+          Aucun commerçant lié —{" "}
+          {kind === "filter"
+            ? "ajoutez des mots-clés puis « Recalculer auto », ou liez manuellement."
+            : "recherchez un commerçant ci-dessus pour le lier."}
         </p>
       ) : (
         <ul className="flex flex-wrap gap-1.5">
           {rows.map((r) => (
             <li
               key={r.merchantId}
-              className="border-border bg-surface inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs",
+                r.source === "primary"
+                  ? "border-primary-300 bg-primary-50"
+                  : "border-border bg-surface"
+              )}
             >
               {r.name}
               <span className="text-subtle">
                 ({SOURCE_LABEL[r.source] ?? r.source})
               </span>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() =>
-                  act(() => detachMerchantFromFilter(code, r.merchantId))
-                }
-                aria-label={`Retirer ${r.name}`}
-                className="text-danger-600"
-              >
-                ×
-              </button>
+              {r.source === "primary" ? (
+                <Lock
+                  className="text-subtle size-3"
+                  aria-label="Catégorie principale — se change depuis la fiche du commerçant (hub Commerçants)."
+                >
+                  <title>
+                    Catégorie principale — se change depuis la fiche du
+                    commerçant (hub Commerçants).
+                  </title>
+                </Lock>
+              ) : (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    act(() => detachMerchantFromFilter(code, r.merchantId))
+                  }
+                  aria-label={`Retirer ${r.name}`}
+                  className="text-danger-600"
+                >
+                  ×
+                </button>
+              )}
             </li>
           ))}
         </ul>

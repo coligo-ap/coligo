@@ -22,7 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
-import { getCategoryLabel } from "@/lib/config/categories";
+import { categoryLabelFrom, useCategories } from "@/lib/hooks/use-categories";
 import { getTagLabel } from "@/lib/config/merchant-tags";
 import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
 import {
@@ -105,6 +105,8 @@ export function MerchantCompactHeader({
 }: Props) {
   const t = useTranslations("merchant");
   const locale = useLocale();
+  // Libellés de catégorie pilotés en base (renommages admin répercutés).
+  const dbCategories = useCategories();
   const [showHours, setShowHours] = useState(false);
   const [expandDesc, setExpandDesc] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -170,7 +172,9 @@ export function MerchantCompactHeader({
     crop: "fill",
     gravity: "auto",
   });
-  const categoryLabel = category ? getCategoryLabel(category, locale) : null;
+  const categoryLabel = category
+    ? categoryLabelFrom(dbCategories, category, locale)
+    : null;
   const hasDescription = Boolean(description_fr || description_ar);
   const addressLine = [commune, wilaya_name].filter(Boolean).join(", ");
 

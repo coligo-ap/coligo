@@ -15,6 +15,10 @@ import { validateUploadedFile } from "@/lib/security/file-validation";
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const CODE_RE = /^[a-z0-9_]{2,40}$/;
+/** Extensions image possibles (lib/security/file-validation) — le ménage
+ *  storage doit toutes les couvrir, sinon un .jpg orphelin survit. */
+const IMAGE_EXTS = ["png", "webp", "jpg"] as const;
+const imagePaths = (code: string) => IMAGE_EXTS.map((e) => `${code}.${e}`);
 
 function revalidate() {
   revalidatePath("/admin/categories");
@@ -50,6 +54,10 @@ export async function upsertCategoryFilterImage(
     .from("category-filters")
     .upload(path, v.bytes, { upsert: true, contentType: v.mime });
   if (upErr) return { error: `Upload échoué : ${upErr.message}` };
+  // Ménage des anciens fichiers d'une AUTRE extension (remplacement png→jpg…).
+  await admin.storage
+    .from("category-filters")
+    .remove(imagePaths(code).filter((p) => p !== path));
 
   const { data: pub } = admin.storage
     .from("category-filters")
@@ -70,9 +78,7 @@ export async function deleteCategoryFilterImage(
 ): Promise<{ ok?: true; error?: string }> {
   if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
-  await admin.storage
-    .from("category-filters")
-    .remove([`${code}.png`, `${code}.webp`]);
+  await admin.storage.from("category-filters").remove(imagePaths(code));
   const { error } = await admin
     .from("merchant_categories" as never)
     .update({ image_url: null, updated_at: new Date().toISOString() } as never)
@@ -128,43 +134,27 @@ export async function setCategoryVisibility(
 }
 
 /**
- * RECLASSEMENT (mig 0336) : reçoit l'ordre GLOBAL complet (tous les codes,
- * types + filtres mélangés) et réécrit `position` — c'est l'ordre du strip
- * marketplace. Refuse tout envoi partiel/périmé (le set de codes doit être
- * EXACTEMENT celui en base) : pas d'écrasement silencieux après une création
- * ou suppression concurrente.
+ * RECLASSEMENT (mig 0336/0339) : reçoit l'ordre GLOBAL complet (tous les
+ * codes, types + filtres mélangés) et réécrit `position` — c'est l'ordre du
+ * strip marketplace. Tout passe par la RPC `admin_reorder_categories` (0339) :
+ * UPDATE only (l'ancien upsert PostgREST échouait en NOT NULL sur `label` —
+ * le tuple candidat à l'INSERT est contrôlé AVANT l'arbitrage ON CONFLICT),
+ * set exact exigé sous verrou (pas d'écrasement après création/suppression
+ * concurrente), positions réécrites atomiquement.
  */
 export async function reorderCategories(
   codes: string[]
 ): Promise<{ ok?: true; error?: string }> {
   if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("merchant_categories" as never)
-    .select("code");
-  const existing = new Set(
-    ((data ?? []) as unknown as { code: string }[]).map((r) => r.code)
+  const { data, error } = await admin.rpc(
+    "admin_reorder_categories" as never,
+    { p_codes: codes } as never
   );
-  const unique = new Set(codes);
-  if (
-    unique.size !== codes.length ||
-    unique.size !== existing.size ||
-    codes.some((c) => !existing.has(c))
-  ) {
+  if (error) return { error: error.message };
+  if ((data as unknown as string) !== "ok") {
     return { error: "Liste périmée — rechargez la page puis réessayez." };
   }
-  // Upsert par PK : seuls position/updated_at sont réécrits (tous les codes
-  // existent — vérifié ci-dessus — donc jamais de branche INSERT).
-  const now = new Date().toISOString();
-  const rows = codes.map((code, i) => ({
-    code,
-    position: (i + 1) * 10,
-    updated_at: now,
-  }));
-  const { error } = await admin
-    .from("merchant_categories" as never)
-    .upsert(rows as never, { onConflict: "code" });
-  if (error) return { error: error.message };
   revalidate();
   return { ok: true };
 }
@@ -349,7 +339,8 @@ export async function recomputeAutoLinks(
   return { ok: true, added };
 }
 
-/** Commerçants liés à un filtre (nom + provenance) — panneau admin. */
+/** Commerçants liés à une catégorie (TYPE ou FILTRE) : nom + provenance
+ *  (principale / manuel / auto) — panneau admin, tri principale d'abord. */
 export async function listFilterMerchants(code: string): Promise<{
   rows: { merchantId: string; name: string; source: string }[];
   error?: string;
@@ -385,7 +376,13 @@ export async function listFilterMerchants(code: string): Promise<{
         name: nameById.get(l.merchant_id) ?? l.merchant_id,
         source: l.source,
       }))
-      .sort((a, b) => a.name.localeCompare(b.name)),
+      .sort((a, b) =>
+        a.source === "primary" && b.source !== "primary"
+          ? -1
+          : b.source === "primary" && a.source !== "primary"
+            ? 1
+            : a.name.localeCompare(b.name)
+      ),
   };
 }
 
@@ -423,12 +420,26 @@ export async function attachMerchantToFilter(
   return { ok: true };
 }
 
+/** Détache une liaison — REFUSÉ sur la catégorie PRINCIPALE du commerçant
+ *  (miroir de removeMerchantCategoryLink, hub Commerçants) : supprimer la
+ *  liaison 'primary' alors que merchants.category pointe encore dessus
+ *  désynchroniserait comptages, garde de suppression et visibilité. */
 export async function detachMerchantFromFilter(
   code: string,
   merchantId: string
 ): Promise<{ ok?: true; error?: string }> {
   if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
+  const { data: merch } = await admin
+    .from("merchants")
+    .select("category")
+    .eq("id", merchantId)
+    .maybeSingle();
+  if ((merch as { category: string | null } | null)?.category === code)
+    return {
+      error:
+        "Catégorie principale de ce commerçant — changez-la depuis sa fiche (hub Commerçants) avant de la retirer.",
+    };
   const { error } = await admin
     .from("merchant_category_links" as never)
     .delete()
@@ -468,9 +479,7 @@ export async function deleteCategory(
     };
   // Ligne supprimée : le ménage storage se fait APRÈS coup (plus d'image
   // perdue si la garde refuse).
-  await admin.storage
-    .from("category-filters")
-    .remove([`${code}.png`, `${code}.webp`]);
+  await admin.storage.from("category-filters").remove(imagePaths(code));
   revalidate();
   return { ok: true };
 }

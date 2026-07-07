@@ -1,3 +1,12 @@
+// =============================================================================
+// ⚠️ REPLI STATIQUE UNIQUEMENT. La source de vérité des catégories est la
+// table `merchant_categories` (mig 0311+, gérée dans /admin/categories) :
+// - serveur → lib/data/categories.ts (getAllCategories & co) ;
+// - client  → lib/hooks/use-categories.ts (useCategories, categoryLabelFrom).
+// Cette liste ne sert QUE si la DB est injoignable (et de source des types
+// TS). N'y ajoutez PAS de nouvelle catégorie : créez-la dans l'admin.
+// =============================================================================
+
 export type MerchantCategory = {
   code: string;
   label: string;

@@ -45,6 +45,24 @@ const FALLBACK: ClientCategory[] = MERCHANT_CATEGORIES.map((c, i) => ({
 
 let cache: ClientCategory[] | null = null;
 
+/**
+ * Libellé d'une catégorie depuis la LISTE PILOTÉE EN BASE (renommages admin
+ * inclus), repli statique puis code brut. À utiliser avec useCategories() :
+ * `categoryLabelFrom(useCategories(), code, locale)` — remplace l'ancien
+ * getCategoryLabel statique dans les écrans client (indépendance du code dur).
+ */
+export function categoryLabelFrom(
+  list: ClientCategory[],
+  code: string,
+  locale: string = "fr"
+): string {
+  const db = list.find((c) => c.code === code);
+  if (db) return locale === "ar" ? db.labelAr : db.label;
+  const fallback = MERCHANT_CATEGORIES.find((c) => c.code === code);
+  if (fallback) return locale === "ar" ? fallback.labelAr : fallback.label;
+  return code;
+}
+
 export function useCategories(): ClientCategory[] {
   const [rows, setRows] = useState<ClientCategory[]>(cache ?? FALLBACK);
   useEffect(() => {

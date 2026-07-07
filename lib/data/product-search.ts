@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { listPublicMerchants, type PublicMerchant } from "./merchants-public";
-import { MERCHANT_CATEGORIES } from "@/lib/config/categories";
+import { getAllCategories } from "./categories";
 
 // =============================================================================
 // Recherche par PRODUIT (volet 2) — le client cherche un produit, on remonte
@@ -117,9 +117,12 @@ export async function searchProductsInZone(input: {
   }
 
   // 3) Match tags / catégorie / nom (en JS, sur la forme normalisée) pour les
-  //    commerçants qui n'ont PAS déjà un match produit.
+  //    commerçants qui n'ont PAS déjà un match produit. Libellés pilotés en
+  //    base (renommages/créations admin matchés) — repli statique intégré à
+  //    getAllCategories si la DB ne répond pas.
+  const allCategories = await getAllCategories();
   const catLabelsByCode = new Map(
-    MERCHANT_CATEGORIES.map((c) => [
+    allCategories.map((c) => [
       c.code,
       [norm(c.code), norm(c.label), norm(c.labelAr)],
     ])
