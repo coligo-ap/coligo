@@ -205,3 +205,162 @@ export async function confirmEmailChange(input: {
   revalidatePath("/compte");
   return { success: "Adresse email mise à jour." };
 }
+
+// =============================================================================
+// SUPPRESSION DE COMPTE CLIENT — exigence Google Play (et bonne pratique RGPD)
+// =============================================================================
+// Le user auth ne peut PAS être physiquement supprimé : customers.user_id est
+// en ON DELETE CASCADE, et la ligne customers entraînerait en cascade les
+// REGISTRES FINANCIERS (customer_wallet_entries, coligo_pay_payments, rides…)
+// dont dépendent la comptabilité plateforme et integrity_violations(). La
+// suppression est donc une ANONYMISATION COMPLÈTE (aucune donnée personnelle
+// résiduelle) + NEUTRALISATION du compte auth (email brouillé, mot de passe
+// aléatoire, bannissement) — les écritures comptables, elles, sont conservées
+// (rétention légitime, sans identité rattachée).
+
+export type DeleteAccountState = { error?: string; done?: boolean };
+
+/** Statuts de course Drive considérés « en vol » (index uniq_active_ride). */
+const ACTIVE_RIDE_STATUSES = [
+  "searching",
+  "accepted",
+  "arriving",
+  "arrived",
+  "in_progress",
+];
+
+export async function deleteMyCustomerAccount(): Promise<DeleteAccountState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée." };
+
+  const admin = createAdminClient();
+  const { data: customer } = await admin
+    .from("customers")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!customer) return { error: "Profil client introuvable." };
+
+  // Compte hybride (espace pro rattaché au même login) : la fermeture passe
+  // par le support — on ne détruit pas un commerce/livreur depuis /compte.
+  const [{ data: merchant }, { data: driver }, { data: chauffeur }] =
+    await Promise.all([
+      admin.from("merchants").select("id").eq("user_id", user.id).maybeSingle(),
+      admin.from("drivers").select("id").eq("user_id", user.id).maybeSingle(),
+      admin
+        .from("chauffeurs")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
+  if (merchant || driver || chauffeur) {
+    return {
+      error:
+        "Ce compte est aussi un compte professionnel (commerce, livreur ou chauffeur). Contacte le support pour le fermer.",
+    };
+  }
+
+  // GARDE : rien d'« en vol ». Une commande/course active implique de l'argent
+  // ou une logistique en cours — terminer (ou annuler) avant de supprimer.
+  const { count: activeOrders } = await admin
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("customer_id", customer.id)
+    .not("status", "in", "(completed,cancelled)");
+  if ((activeOrders ?? 0) > 0) {
+    return {
+      error:
+        "Tu as une commande en cours. Attends qu'elle soit terminée (ou annule-la) avant de supprimer ton compte.",
+    };
+  }
+  const { count: activeRides } = await admin
+    .from("rides")
+    .select("id", { count: "exact", head: true })
+    .eq("customer_id", customer.id)
+    .in("status", ACTIVE_RIDE_STATUSES);
+  if ((activeRides ?? 0) > 0) {
+    return {
+      error:
+        "Tu as une course en cours. Attends qu'elle soit terminée avant de supprimer ton compte.",
+    };
+  }
+
+  try {
+    // 1) Anonymisation du profil (la ligne reste : pivot des registres).
+    const { error: custErr } = await admin
+      .from("customers")
+      .update({
+        full_name: "Compte supprimé",
+        phone: null,
+        email: null,
+        pay_handle: null,
+        latitude: null,
+        longitude: null,
+        default_wilaya_code: null,
+        default_commune: null,
+        sos_contacts: null,
+      })
+      .eq("id", customer.id);
+    if (custErr) throw custErr;
+
+    // 2) Snapshots PII sur les commandes (toutes terminées grâce à la garde).
+    //    Colonnes non financières → passe le guard mig 0166 (service_role).
+    const { error: ordErr } = await admin
+      .from("orders")
+      .update({
+        customer_name: "Client supprimé",
+        customer_phone: null,
+        customer_note: null,
+        delivery_address_text: null,
+        delivery_recipient_name: null,
+        delivery_lat: null,
+        delivery_lng: null,
+      })
+      .eq("customer_id", customer.id);
+    if (ordErr) throw ordErr;
+
+    // 3) Données personnelles pures → suppression réelle.
+    await admin
+      .from("customer_addresses")
+      .delete()
+      .eq("customer_id", customer.id);
+    await admin
+      .from("customer_favorites")
+      .delete()
+      .eq("customer_id", customer.id);
+    await admin
+      .from("customer_favorite_chauffeurs")
+      .delete()
+      .eq("customer_id", customer.id);
+    await admin.from("device_tokens").delete().eq("user_id", user.id);
+
+    // 4) Neutralisation auth : email brouillé (l'ancien redevient réutilisable
+    //    pour un nouveau compte), mot de passe aléatoire, métadonnées vidées
+    //    (nom/avatar OAuth), bannissement long → plus aucun refresh possible.
+    const anonEmail = `supprime.${customer.id.slice(0, 8)}.${Date.now().toString(36)}@deleted.coligo.app`;
+    const randomPassword =
+      globalThis.crypto?.randomUUID?.() ?? `${Math.random()}${Date.now()}`;
+    const { error: authErr } = await admin.auth.admin.updateUserById(user.id, {
+      email: anonEmail,
+      email_confirm: true,
+      password: randomPassword,
+      user_metadata: { deleted: true },
+      ban_duration: "876000h", // ~100 ans
+    });
+    if (authErr) throw authErr;
+  } catch (err) {
+    console.error("[compte] deleteMyCustomerAccount failed:", err);
+    return {
+      error:
+        "La suppression a échoué. Réessaie, ou contacte le support si le problème persiste.",
+    };
+  }
+
+  // 5) Fin de session locale (cookies) — le ban couvre les autres appareils.
+  await supabase.auth.signOut();
+  revalidatePath("/", "layout");
+  return { done: true };
+}

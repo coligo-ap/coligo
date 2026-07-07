@@ -325,6 +325,16 @@ export default async function CustomerAccountPage({
         <div className="px-4">
           <CustomerLogoutButton />
         </div>
+
+        {/* Suppression de compte (exigence Google Play) — lien discret. */}
+        <div className="pt-4 text-center">
+          <Link
+            href="/compte/supprimer"
+            className="text-muted hover:text-danger-700 text-xs font-semibold underline-offset-2 hover:underline"
+          >
+            {t("deleteAccount")}
+          </Link>
+        </div>
       </div>
     </CustomerShell>
   );

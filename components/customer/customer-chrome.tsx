@@ -47,7 +47,8 @@ function isBare(p: string): boolean {
     p.startsWith("/drive") || // /drive + /drive/historique (nav propre)
     p.startsWith("/coligo-pay/qr") ||
     p.startsWith("/compte/infos") ||
-    p.startsWith("/compte/telephone")
+    p.startsWith("/compte/telephone") ||
+    p.startsWith("/compte/supprimer")
   );
 }
 // La page porte sa propre topbar (pas de header sticky), mais garde nav+footer.

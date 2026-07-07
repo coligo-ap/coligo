@@ -148,7 +148,12 @@ if (!existsSync(join(ANDROID, "keystore.properties"))) {
 run(
   join(ANDROID, process.platform === "win32" ? "gradlew.bat" : "gradlew"),
   ["bundleClientRelease"],
-  { cwd: ANDROID, env: existsSync(JBR) ? { JAVA_HOME: JBR } : {} }
+  {
+    cwd: ANDROID,
+    env: existsSync(JBR) ? { JAVA_HOME: JBR } : {},
+    // .bat → exécution via cmd.exe obligatoire (spawnSync sans shell = ENOENT).
+    shell: process.platform === "win32",
+  }
 );
 
 const sizeMb = (statSync(AAB).size / (1024 * 1024)).toFixed(1);
