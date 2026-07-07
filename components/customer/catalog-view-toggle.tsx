@@ -41,15 +41,17 @@ export function CatalogViewToggle({
       aria-label={t("viewToggleAria")}
       className="bg-surface-2 flex shrink-0 items-center self-stretch rounded-[16px] p-1 shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)]"
     >
+      {/* Boutons LARGES (profitent de la ligne) ; mode sélectionné = violet
+          Coligo plein, icône blanche — l'état actif se voit d'un coup d'œil. */}
       <button
         type="button"
         onClick={() => pick("categories")}
         aria-pressed={display === "categories"}
         title={t("viewAsCategories")}
         className={cn(
-          "flex h-full w-8 items-center justify-center rounded-[12px] transition-colors max-[399px]:w-7",
+          "flex h-full w-12 items-center justify-center rounded-[12px] transition-colors max-[399px]:w-9",
           display === "categories"
-            ? "bg-surface text-primary-700 shadow-[0_4px_12px_-2px_rgba(40,35,90,0.2)]"
+            ? "bg-primary-600 text-white shadow-[0_4px_12px_-2px_rgba(108,43,217,0.45)]"
             : "text-muted hover:text-foreground"
         )}
       >
@@ -61,9 +63,9 @@ export function CatalogViewToggle({
         aria-pressed={display === "list"}
         title={t("viewAsList")}
         className={cn(
-          "flex h-full w-8 items-center justify-center rounded-[12px] transition-colors max-[399px]:w-7",
+          "flex h-full w-12 items-center justify-center rounded-[12px] transition-colors max-[399px]:w-9",
           display === "list"
-            ? "bg-surface text-primary-700 shadow-[0_4px_12px_-2px_rgba(40,35,90,0.2)]"
+            ? "bg-primary-600 text-white shadow-[0_4px_12px_-2px_rgba(108,43,217,0.45)]"
             : "text-muted hover:text-foreground"
         )}
       >
