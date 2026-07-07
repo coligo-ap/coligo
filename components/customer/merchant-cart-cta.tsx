@@ -138,6 +138,10 @@ export function MerchantCartCta({
           }),
         }
       : null;
+  // Une languette (CtaTab) est-elle affichée sous la pilule ? → coins bas de
+  // la pilule à PLAT (sinon ses arrondis laissent deux encoches transparentes
+  // au-dessus de la languette : jonction 100 % pleine, effet soudé pro).
+  const hasTab = subline !== null || (hasSavings && !belowMin);
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 px-4 pb-1.5 lg:bottom-4">
@@ -149,6 +153,7 @@ export function MerchantCartCta({
           onClick={() => setActiveMerchant(merchantId)}
           className={cn(
             "bg-primary-600 hover:bg-primary-700 relative block overflow-hidden rounded-[10px] text-white shadow-[0_20px_42px_-12px_rgba(108,43,217,0.55)] transition-transform",
+            hasTab && "rounded-b-none",
             pulse && "scale-[1.02]"
           )}
         >
