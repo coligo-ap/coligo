@@ -483,18 +483,13 @@ export function MerchantCatalog({
                     decoding="async"
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
                   />
-                  {/* Fondu de lisibilité (jamais toute la photo). */}
+                  {/* Fondu de lisibilité EN HAUT (jamais toute la photo) —
+                      titre en tête de tuile, comme les tuiles sans image. */}
                   <span
                     aria-hidden
-                    className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/75 via-black/30 to-transparent"
+                    className="absolute inset-x-0 top-0 h-[55%] bg-gradient-to-b from-black/75 via-black/30 to-transparent"
                   />
-                  {promoCount > 0 && (
-                    <span className="bg-accent-600 absolute start-1.5 top-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold whitespace-nowrap text-white shadow-sm">
-                      <BadgePercent className="size-3 shrink-0" />
-                      {t("categoryPromoCount", { count: promoCount })}
-                    </span>
-                  )}
-                  <span className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-px px-2 pb-2 text-center">
+                  <span className="absolute inset-x-0 top-0 flex flex-col items-center gap-px px-2 pt-2 text-center">
                     <span className="line-clamp-2 text-[12.5px] leading-snug font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
                       {title}
                     </span>
@@ -502,6 +497,13 @@ export function MerchantCatalog({
                       {t("productCount", { count: g.items.length })}
                     </span>
                   </span>
+                  {/* Badge promo en bas (le haut est occupé par le titre). */}
+                  {promoCount > 0 && (
+                    <span className="bg-accent-600 absolute start-1.5 bottom-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold whitespace-nowrap text-white shadow-sm">
+                      <BadgePercent className="size-3 shrink-0" />
+                      {t("categoryPromoCount", { count: promoCount })}
+                    </span>
+                  )}
                 </button>
               );
             }
