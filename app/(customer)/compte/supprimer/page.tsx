@@ -61,7 +61,7 @@ export default async function DeleteAccountPage() {
   return (
     <div className="bg-surface-2 min-h-screen">
       {/* En-tête simple : retour + titre (pattern /compte/infos). */}
-      <header className="border-border sticky top-0 z-20 flex items-center gap-3 border-b bg-white px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3">
+      <header className="border-border bg-surface sticky top-0 z-20 flex items-center gap-3 border-b px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3">
         <Link
           href="/compte"
           aria-label={t("back")}

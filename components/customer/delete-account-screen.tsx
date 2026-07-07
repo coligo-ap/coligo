@@ -83,7 +83,7 @@ export function DeleteAccountScreen({
 
       {/* Solde restant — affiché seulement s'il y a de l'argent à perdre. */}
       {balance > 0 && (
-        <section className="border-border rounded-[16px] border bg-white p-4">
+        <section className="border-border bg-surface rounded-[16px] border p-4">
           <p className="text-sm font-bold">
             {t("delBalanceWarn", { amount: formatDA(balance) })}
           </p>
@@ -93,14 +93,14 @@ export function DeleteAccountScreen({
 
       {blocked ? (
         /* Commande / course en vol : pas de suppression possible maintenant. */
-        <section className="border-border rounded-[16px] border bg-white p-4">
+        <section className="border-border bg-surface rounded-[16px] border p-4">
           <div className="flex items-start gap-3">
             <ShieldX className="text-muted mt-0.5 size-5 shrink-0" />
             <p className="text-sm font-semibold">{t("delBlockedActive")}</p>
           </div>
         </section>
       ) : (
-        <section className="border-border space-y-4 rounded-[16px] border bg-white p-4">
+        <section className="border-border bg-surface space-y-4 rounded-[16px] border p-4">
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
