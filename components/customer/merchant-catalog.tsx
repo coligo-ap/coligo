@@ -462,50 +462,83 @@ export function MerchantCatalog({
                   gravity: "auto",
                 }) ?? g.category.image_url)
               : null;
-            return (
-              <button
-                key={g.key}
-                type="button"
-                onClick={() => setOpenCat(g.key)}
-                aria-label={title}
-                className="border-border bg-surface group flex aspect-[3/4] flex-col overflow-hidden rounded-[16px] border text-center shadow-[0_2px_10px_-6px_rgba(40,35,90,0.15)] transition-transform duration-150 active:scale-[0.97] sm:aspect-[4/5]"
-              >
-                {/* ── Média plein cadre : PHOTO de la catégorie (cover, zoom
-                    subtil au survol) ou placeholder designé (dégradé primaire
-                    + initiale — même langage que le fallback logo boutique).
-                    Le badge promo vit EN SURIMPRESSION sur le média. ── */}
-                <span className="relative block min-h-0 w-full flex-1 overflow-hidden">
-                  {img ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={img}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
-                    />
-                  ) : (
-                    <span className="from-primary-500/15 to-primary-700/25 grid h-full w-full place-items-center bg-gradient-to-br">
-                      <span className="text-primary-700/55 text-3xl font-black">
-                        {title.charAt(0).toUpperCase()}
-                      </span>
-                    </span>
-                  )}
+            // ── Tuile AVEC image : photo plein cadre, titre INTÉGRÉ sur la
+            //    photo (pas de zone texte séparée) — lisible grâce à un FONDU
+            //    sombre bas → transparent + ombre portée sur le texte, sans
+            //    masquer l'image. Badge promo en surimpression haut-start. ──
+            if (img) {
+              return (
+                <button
+                  key={g.key}
+                  type="button"
+                  onClick={() => setOpenCat(g.key)}
+                  aria-label={title}
+                  className="group relative block aspect-[3/4] overflow-hidden rounded-[16px] shadow-[0_4px_14px_-8px_rgba(40,35,90,0.35)] transition-transform duration-150 active:scale-[0.97] sm:aspect-[4/5]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
+                  />
+                  {/* Fondu de lisibilité (jamais toute la photo). */}
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/75 via-black/30 to-transparent"
+                  />
                   {promoCount > 0 && (
                     <span className="bg-accent-600 absolute start-1.5 top-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold whitespace-nowrap text-white shadow-sm">
                       <BadgePercent className="size-3 shrink-0" />
                       {t("categoryPromoCount", { count: promoCount })}
                     </span>
                   )}
+                  <span className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-px px-2 pb-2 text-center">
+                    <span className="line-clamp-2 text-[12.5px] leading-snug font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
+                      {title}
+                    </span>
+                    <span className="text-[10px] font-semibold text-white/85">
+                      {t("productCount", { count: g.items.length })}
+                    </span>
+                  </span>
+                </button>
+              );
+            }
+            // ── Tuile SANS image : design d'origine (fond teinté, titre en
+            //    haut, chevron filigrane). ──
+            return (
+              <button
+                key={g.key}
+                type="button"
+                onClick={() => setOpenCat(g.key)}
+                aria-label={title}
+                className="bg-primary-50 dark:bg-primary-950/40 group flex aspect-[3/4] flex-col overflow-hidden rounded-[14px] p-3 text-center transition-transform duration-150 active:scale-[0.97] sm:aspect-[4/5]"
+              >
+                {/* Titre en haut, centré (2 lignes max) — typographie Yassir. */}
+                <span className="text-foreground line-clamp-2 block text-[13.5px] leading-snug font-bold">
+                  {title}
                 </span>
-                {/* ── Texte SOUS le média (jamais superposé à la photo). ── */}
-                <span className="flex flex-col items-center gap-0.5 px-2 pt-2 pb-2.5">
-                  <span className="text-foreground line-clamp-2 text-[12.5px] leading-snug font-bold">
-                    {title}
+                <span className="text-subtle mt-0.5 block text-[10.5px] font-semibold">
+                  {t("productCount", { count: g.items.length })}
+                </span>
+                {promoCount > 0 && (
+                  <span className="bg-accent-600 mt-1.5 inline-flex items-center gap-1 self-center rounded-full px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
+                    <BadgePercent className="size-3 shrink-0" />
+                    {t("categoryPromoCount", { count: promoCount })}
                   </span>
-                  <span className="text-subtle text-[10.5px] font-semibold">
-                    {t("productCount", { count: g.items.length })}
-                  </span>
+                )}
+                {/* Chevron filigrane dans l'espace RESTANT (flex-1 +
+                    overflow-hidden + max-h) → ne chevauche JAMAIS le
+                    texte/badge et ne déborde pas de la tuile. */}
+                <span
+                  aria-hidden
+                  className="grid min-h-0 flex-1 place-items-center overflow-hidden"
+                >
+                  <ChevronLeft
+                    strokeWidth={3.5}
+                    className="text-primary-600/15 size-12 max-h-full rotate-180 transition-transform duration-200 group-hover:translate-x-1 sm:size-16 rtl:-rotate-0 rtl:group-hover:-translate-x-1"
+                  />
                 </span>
               </button>
             );
