@@ -76,23 +76,43 @@ await api("PUT", `${base}/edits/${edit.id}/tracks/${track}`, {
 
 // Tant que la fiche Play n'est pas complète, l'envoi en review est refusé →
 // on committe alors sans review (la release reste visible dans Play Console).
+async function commitEdit() {
+  try {
+    await api("POST", `${base}/edits/${edit.id}:commit`);
+  } catch (e) {
+    if (
+      !String(e.message).includes("ReviewRequired") &&
+      !String(e.message).includes("NotSentForReview")
+    )
+      throw e;
+    await api(
+      "POST",
+      `${base}/edits/${edit.id}:commit?changesNotSentForReview=true`
+    );
+    console.log(
+      "(commit sans envoi en review — fiche Play incomplète, à finaliser dans la console)"
+    );
+  }
+}
+
+let finalStatus = status;
 try {
-  await api("POST", `${base}/edits/${edit.id}:commit`);
+  await commitEdit();
 } catch (e) {
-  if (
-    !String(e.message).includes("ReviewRequired") &&
-    !String(e.message).includes("NotSentForReview")
-  )
-    throw e;
-  await api(
-    "POST",
-    `${base}/edits/${edit.id}:commit?changesNotSentForReview=true`
-  );
+  // Appli jamais publiée (« draft app ») : Play n'accepte que des releases
+  // brouillon → on repose la release en draft puis on recommitte.
+  if (!String(e.message).includes("draft app")) throw e;
+  finalStatus = "draft";
+  await api("PUT", `${base}/edits/${edit.id}/tracks/${track}`, {
+    track,
+    releases: [{ status: "draft", versionCodes: [String(bundle.versionCode)] }],
+  });
+  await commitEdit();
   console.log(
-    "(commit sans envoi en review — fiche Play incomplète, à finaliser dans la console)"
+    "(appli encore en brouillon → release posée en brouillon, à déployer depuis Play Console)"
   );
 }
 
 console.log(
-  `OK — versionCode ${bundle.versionCode} publié sur le canal ${track}.`
+  `OK — versionCode ${bundle.versionCode} (${finalStatus}) sur le canal ${track}.`
 );

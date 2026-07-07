@@ -16,7 +16,7 @@
 // qu'en cas d'échec réseau. Correction : les manifests réels sont
 // `manifest-*.webmanifest` (l'ancien `/manifest.webmanifest` n'existe pas) et
 // les icônes vivent sous `/icons/`.
-const CACHE_VERSION = "coligo-v17";
+const CACHE_VERSION = "coligo-v18";
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const PRECACHE_CACHE = `${CACHE_VERSION}-precache`;
 const OFFLINE_URL = "/offline";
