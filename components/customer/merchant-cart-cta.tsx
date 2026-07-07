@@ -149,8 +149,6 @@ export function MerchantCartCta({
           onClick={() => setActiveMerchant(merchantId)}
           className={cn(
             "bg-primary-600 hover:bg-primary-700 relative block overflow-hidden rounded-[10px] text-white shadow-[0_20px_42px_-12px_rgba(108,43,217,0.55)] transition-transform",
-            // Bloc SOUDÉ à la carte économies dessous : coins bas à plat.
-            hasSavings && !belowMin && "rounded-b-none",
             pulse && "scale-[1.02]"
           )}
         >
@@ -216,10 +214,11 @@ export function MerchantCartCta({
 
         {/* Économies — carte SOMBRE « verre » premium (charbon, texte inversé
             via tokens → s'adapte seule au mode sombre), montant en pastille.
-            SOUDÉE à la pilule (zéro espace, coins joints à plat) : le bouton
-            et la carte forment UN bloc. Couleurs inchangées. */}
+            LANGUETTE soudée sous la pilule : légèrement rentrée (mx-2) et
+            bien COURBÉE en bas (16 px) → effet d'étiquette attachée qui
+            signale une info importante. Couleurs inchangées. */}
         {hasSavings && !belowMin && (
-          <div className="cg-promo-rise bg-foreground/95 text-surface flex items-center gap-2.5 rounded-b-[10px] px-3.5 py-2 shadow-[0_14px_34px_-14px_rgba(10,10,20,0.65)] backdrop-blur-md">
+          <div className="cg-promo-rise bg-foreground/95 text-surface mx-2 flex items-center gap-2.5 rounded-b-[16px] px-3.5 py-2 shadow-[0_14px_34px_-14px_rgba(10,10,20,0.65)] backdrop-blur-md">
             <span className="bg-surface/20 grid size-6 shrink-0 place-items-center rounded-full">
               <PartyPopper className="size-3.5" />
             </span>
