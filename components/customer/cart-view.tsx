@@ -202,6 +202,28 @@ export function CartView() {
     );
   }
 
+  // Déclencheur du détail des avantages : en BAS de la carte quand fermé,
+  // migré EN TÊTE du panneau quand ouvert (même bouton, même chevron).
+  const detailToggle = (
+    <button
+      type="button"
+      onClick={() => setDetailOpen((v) => !v)}
+      aria-expanded={detailOpen}
+      className="text-primary-700 flex w-full items-center justify-between gap-2 text-[12.5px] font-bold"
+    >
+      <span className="inline-flex items-center gap-1.5">
+        <BadgePercent className="text-accent-600 size-4" />
+        {t("promoDetailsToggle")}
+      </span>
+      <ChevronUp
+        className={cn(
+          "size-4 transition-transform",
+          detailOpen && "rotate-180"
+        )}
+      />
+    </button>
+  );
+
   return (
     <div className="mx-auto max-w-[560px] px-4 pt-3 pb-56">
       {cart.merchant_slug && (
@@ -437,7 +459,10 @@ export function CartView() {
           {/* Détail des promotions & économies — contenu INTÉGRÉ directement
               dans la carte du bas (aucune carte autour, pas de titre doublon :
               le bouton « Voir le détail… » sert d'ouverture/fermeture). Lignes
-              plates séparées par un filet, un seul résumé par produit. */}
+              plates séparées par un filet, un seul résumé par produit.
+              Le DÉCLENCHEUR migre EN TÊTE de la carte quand elle est ouverte
+              (et revient en bas à la fermeture) : il sert d'en-tête au panneau. */}
+          {hasDetail && detailOpen && detailToggle}
           {hasDetail && detailOpen && (
             <div className="divide-border border-border max-h-[40vh] divide-y overflow-y-auto border-b pb-1">
               {productBenefits.map((b) => (
@@ -522,26 +547,9 @@ export function CartView() {
             </div>
           )}
 
-          {/* Toggle « Voir le détail des promotions et économies ». */}
-          {hasDetail && (
-            <button
-              type="button"
-              onClick={() => setDetailOpen((v) => !v)}
-              aria-expanded={detailOpen}
-              className="text-primary-700 flex w-full items-center justify-between gap-2 text-[12.5px] font-bold"
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <BadgePercent className="text-accent-600 size-4" />
-                {t("promoDetailsToggle")}
-              </span>
-              <ChevronUp
-                className={cn(
-                  "size-4 transition-transform",
-                  detailOpen && "rotate-180"
-                )}
-              />
-            </button>
-          )}
+          {/* Toggle « Voir le détail… » en BAS uniquement quand c'est fermé
+              (ouvert → il est en tête du panneau, cf. plus haut). */}
+          {hasDetail && !detailOpen && detailToggle}
 
           {cashbackGain > 0 && (
             <div className="bg-success-50 text-success-700 flex items-center gap-2 rounded-[10px] px-3 py-2 text-[12px] font-bold">
