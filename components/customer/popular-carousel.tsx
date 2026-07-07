@@ -111,7 +111,7 @@ export function ProductCarousel({
         )}
       >
         <div className="min-h-0 overflow-hidden">
-          <div className="flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-4 pb-1 lg:px-6 [&::-webkit-scrollbar]:hidden">
+          <div className="flex snap-x snap-mandatory [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 lg:px-6 [&::-webkit-scrollbar]:hidden">
             {products.map((p) => (
               <PopCard
                 key={p.id}
