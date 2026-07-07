@@ -184,13 +184,13 @@ export function MerchantCartCta({
           </span>
         </Link>
 
-        {/* Sous-ligne contextuelle (minimum / livraison offerte) — MÊME
-            languette charbon que la carte économies (jamais les deux à la
+        {/* Sous-ligne contextuelle (minimum / livraison offerte) — même
+            languette (CtaTab) que la carte économies (jamais les deux à la
             fois : priorités mutuellement exclusives), avec la progression
             vers le minimum en filet VERT à sa base. */}
         {subline && (
-          <div className="cg-promo-rise bg-foreground/95 text-surface relative mx-2 overflow-hidden rounded-b-[16px] px-3.5 pt-1.5 pb-2.5 shadow-[0_14px_34px_-14px_rgba(10,10,20,0.65)] backdrop-blur-md">
-            <span className="flex items-center justify-center gap-1.5 text-[11.5px] font-bold">
+          <CtaTab className="justify-center pb-2">
+            <span className="flex min-w-0 items-center gap-1.5 text-[11.5px] font-bold">
               <subline.Icon className="size-3.5 shrink-0" aria-hidden />
               <span className="truncate">{subline.text}</span>
             </span>
@@ -207,30 +207,50 @@ export function MerchantCartCta({
                 />
               </span>
             )}
-          </div>
+          </CtaTab>
         )}
 
-        {/* Économies — carte SOMBRE « verre » premium (charbon, texte inversé
-            via tokens → s'adapte seule au mode sombre), montant en pastille.
-            LANGUETTE soudée sous la pilule : légèrement rentrée (mx-2) et
-            bien COURBÉE en bas (16 px) → effet d'étiquette attachée qui
-            signale une info importante. Couleurs inchangées. */}
+        {/* Économies — même languette, montant en pastille verte. */}
         {hasSavings && !belowMin && (
-          <div className="cg-promo-rise bg-foreground/95 text-surface mx-2 flex items-center gap-2.5 rounded-b-[16px] px-3.5 py-2 shadow-[0_14px_34px_-14px_rgba(10,10,20,0.65)] backdrop-blur-md">
-            <span className="bg-surface/20 grid size-6 shrink-0 place-items-center rounded-full">
-              <PartyPopper className="size-3.5" />
+          <CtaTab>
+            <span className="bg-surface/20 grid size-5 shrink-0 place-items-center rounded-full">
+              <PartyPopper className="size-3" />
             </span>
             <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold">
               {tc("promosApplied", { count: promoCount })}
             </span>
             {/* Montant du gain en VERT franc (pastille pleine) — impossible à
                 rater, lisible sur charbon comme sur la variante claire. */}
-            <span className="bg-success-600 shrink-0 rounded-full px-2.5 py-1 text-[12px] font-black text-white tabular-nums">
+            <span className="bg-success-600 shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-black text-white tabular-nums">
               −{formatDA(savings)}
             </span>
-          </div>
+          </CtaTab>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Languette charbon commune sous la pilule « Voir mon panier » : PLEINE
+ * largeur (celle du bouton), fine (py-1.5) et courbée en bas (16 px) —
+ * « verre » premium qui s'inverse seul en mode sombre via les tokens.
+ */
+function CtaTab({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "cg-promo-rise bg-foreground/95 text-surface relative flex items-center gap-2.5 overflow-hidden rounded-b-[16px] px-3.5 py-1.5 shadow-[0_14px_34px_-14px_rgba(10,10,20,0.65)] backdrop-blur-md",
+        className
+      )}
+    >
+      {children}
     </div>
   );
 }
