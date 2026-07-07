@@ -1,0 +1,98 @@
+// Upload du .aab client sur Google Play via l'API Android Publisher.
+// Usage : node scripts/play-upload.mjs [--track internal] [--status draft|completed] [--aab <chemin>]
+// Auth : clé du compte de service play-publisher (play-service-account.json à la racine, gitignorée).
+// Par défaut : canal de test interne, release en brouillon (déployable depuis Play Console).
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { JWT } from "google-auth-library";
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const PACKAGE = "app.coligo.client";
+
+const args = process.argv.slice(2);
+const opt = (name, dflt) => {
+  const i = args.indexOf(`--${name}`);
+  return i >= 0 && args[i + 1] ? args[i + 1] : dflt;
+};
+const track = opt("track", "internal");
+const status = opt("status", "draft");
+const aabPath = resolve(
+  root,
+  opt(
+    "aab",
+    "android/app/build/outputs/bundle/clientRelease/app-client-release.aab"
+  )
+);
+
+const key = JSON.parse(
+  readFileSync(resolve(root, "play-service-account.json"), "utf8")
+);
+const jwt = new JWT({
+  email: key.client_email,
+  key: key.private_key,
+  scopes: ["https://www.googleapis.com/auth/androidpublisher"],
+});
+const { token } = await jwt.getAccessToken();
+
+const base = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE}`;
+
+async function api(method, url, body, headers = {}) {
+  const isRaw = body instanceof Uint8Array;
+  const res = await fetch(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(body && !isRaw ? { "Content-Type": "application/json" } : {}),
+      ...headers,
+    },
+    body: body ? (isRaw ? body : JSON.stringify(body)) : undefined,
+  });
+  const text = await res.text();
+  if (!res.ok)
+    throw new Error(`${method} ${url}\n→ HTTP ${res.status}\n${text}`);
+  return text ? JSON.parse(text) : null;
+}
+
+console.log(`AAB    : ${aabPath}`);
+console.log(`Canal  : ${track} (release ${status})`);
+
+const edit = await api("POST", `${base}/edits`);
+
+const bundle = await api(
+  "POST",
+  `https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/${PACKAGE}/edits/${edit.id}/bundles?uploadType=media`,
+  new Uint8Array(readFileSync(aabPath)),
+  { "Content-Type": "application/octet-stream" }
+);
+console.log(
+  `Bundle uploadé : versionCode ${bundle.versionCode} (sha256 ${bundle.sha256.slice(0, 12)}…)`
+);
+
+await api("PUT", `${base}/edits/${edit.id}/tracks/${track}`, {
+  track,
+  releases: [{ status, versionCodes: [String(bundle.versionCode)] }],
+});
+
+// Tant que la fiche Play n'est pas complète, l'envoi en review est refusé →
+// on committe alors sans review (la release reste visible dans Play Console).
+try {
+  await api("POST", `${base}/edits/${edit.id}:commit`);
+} catch (e) {
+  if (
+    !String(e.message).includes("ReviewRequired") &&
+    !String(e.message).includes("NotSentForReview")
+  )
+    throw e;
+  await api(
+    "POST",
+    `${base}/edits/${edit.id}:commit?changesNotSentForReview=true`
+  );
+  console.log(
+    "(commit sans envoi en review — fiche Play incomplète, à finaliser dans la console)"
+  );
+}
+
+console.log(
+  `OK — versionCode ${bundle.versionCode} publié sur le canal ${track}.`
+);
