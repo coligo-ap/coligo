@@ -441,7 +441,7 @@ export function MerchantCatalog({
       {!q && display === "categories" && openCat === null && (
         // Colonnes RESPONSIVES : 3 en mobile → 6 en desktop (conteneur 1100px),
         // sinon les tuiles aspect-[3/4] deviennent démesurées sur grand écran.
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {groups.map((g) => {
             const title = g.category?.title ?? t("otherCategory");
             // Promos/réductions remontées sur la tuile : incite à ouvrir la
@@ -487,13 +487,15 @@ export function MerchantCatalog({
                       titre en tête de tuile, comme les tuiles sans image. */}
                   <span
                     aria-hidden
-                    className="absolute inset-x-0 top-0 h-[55%] bg-gradient-to-b from-black/75 via-black/30 to-transparent"
+                    className="absolute inset-x-0 top-0 h-[45%] bg-gradient-to-b from-black/75 via-black/30 to-transparent"
                   />
-                  <span className="absolute inset-x-0 top-0 flex flex-col items-center gap-px px-2 pt-2 text-center">
-                    <span className="line-clamp-2 text-[12.5px] leading-snug font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
+                  {/* Bloc titre COMPACT (interligne serré, sans écart) : la
+                      photo reste le plus visible possible. */}
+                  <span className="absolute inset-x-0 top-0 flex flex-col items-center px-2 pt-1.5 text-center">
+                    <span className="line-clamp-2 text-[12.5px] leading-tight font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
                       {title}
                     </span>
-                    <span className="text-[10px] font-semibold text-white/85">
+                    <span className="text-[10px] leading-tight font-semibold text-white/85">
                       {t("productCount", { count: g.items.length })}
                     </span>
                   </span>
