@@ -224,7 +224,7 @@ export function PopCard({
     >
       {/* Cadre façon Yassir : la bordure n'entoure QUE la photo (fond blanc,
           produit entier) ; le texte vit dessous, hors cadre. */}
-      <div className="border-border relative h-[132px] w-full overflow-hidden rounded-[14px] border bg-white">
+      <div className="border-border relative h-[132px] w-full overflow-hidden rounded-[10px] border bg-white">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
