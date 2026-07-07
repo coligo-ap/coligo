@@ -179,7 +179,10 @@ function MerchantCardImpl({
 
         {/* ligne d'infos : frais · distance · ville/min */}
         <div className="text-muted mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px] font-semibold">
-          <span className="text-success-700 font-bold">{t("freePickup")}</span>
+          <span className="text-success-700 inline-flex items-center gap-1 font-bold whitespace-nowrap">
+            <MapPin className="size-3.5 shrink-0" />
+            {t("freePickup")}
+          </span>
           {distLabel && (
             <>
               <Dot />

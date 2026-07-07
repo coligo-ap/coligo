@@ -559,7 +559,7 @@ function ConfirmStep({
       ) : !hasPin ? (
         <InlineCreatePin t={t} onCreated={onPinCreated} />
       ) : (
-        <div className="rounded-[16px] bg-white p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
+        <div className="bg-surface rounded-[16px] p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
           <p className="text-muted mb-2 text-center text-[13px] font-bold">
             {t("sendEnterPin")}
           </p>
@@ -571,7 +571,7 @@ function ConfirmStep({
               setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
             }
             placeholder="••••"
-            className="border-border bg-surface-2 focus:border-primary-400 w-full rounded-[14px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
+            className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 w-full rounded-[14px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
           />
           <button
             type="button"
@@ -637,7 +637,7 @@ function InlineCreatePin({
   }
 
   return (
-    <div className="rounded-[16px] bg-white p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
+    <div className="bg-surface rounded-[16px] p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
       <p className="text-foreground flex items-center gap-2 text-sm font-extrabold">
         <Lock className="text-primary-600 size-4" />
         {t("qrCreatePinTitle")}
@@ -651,14 +651,14 @@ function InlineCreatePin({
           value={a}
           onChange={(e) => setA(e.target.value.replace(/\D/g, "").slice(0, 4))}
           placeholder={t("qrPinLabel")}
-          className="border-border bg-surface-2 focus:border-primary-400 rounded-[12px] border py-3 text-center text-lg font-black tracking-[0.4em] tabular-nums outline-none"
+          className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 rounded-[12px] border py-3 text-center text-lg font-black tracking-[0.4em] tabular-nums outline-none"
         />
         <input
           inputMode="numeric"
           value={b}
           onChange={(e) => setB(e.target.value.replace(/\D/g, "").slice(0, 4))}
           placeholder={t("qrPinConfirmLabel")}
-          className="border-border bg-surface-2 focus:border-primary-400 rounded-[12px] border py-3 text-center text-lg font-black tracking-[0.4em] tabular-nums outline-none"
+          className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 rounded-[12px] border py-3 text-center text-lg font-black tracking-[0.4em] tabular-nums outline-none"
         />
       </div>
       <button

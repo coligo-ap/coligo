@@ -43,21 +43,21 @@ export function ShopModeToggle({
           mode === "delivery" && "translate-x-full rtl:-translate-x-full"
         )}
       />
-      {/* Libellés JAMAIS tronqués (« Retrait gratuit » doit se lire en entier) :
-          taille/espacements compacts + icônes masquées sur très petits écrans
-          (le texte gagne toujours). */}
+      {/* Libellés JAMAIS tronqués (« Retrait gratuit » doit se lire en entier)
+          ET icônes TOUJOURS visibles (compréhension immédiate) : sur les petits
+          écrans, on réduit la taille du texte/icône — jamais le mot. */}
       <button
         type="button"
         onClick={() => setCartMode(merchant, "pickup")}
         aria-pressed={mode === "pickup"}
         className={cn(
-          "relative z-[1] flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[12px] px-1 py-3 text-[13px] font-extrabold whitespace-nowrap transition-colors",
+          "relative z-[1] flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[12px] px-1 py-3 text-[13px] font-extrabold whitespace-nowrap transition-colors max-[399px]:gap-1 max-[399px]:text-[11.5px]",
           mode === "pickup" ? "text-foreground" : "text-muted"
         )}
       >
         <MapPin
           className={cn(
-            "size-4 shrink-0 max-[389px]:hidden",
+            "size-4 shrink-0 max-[399px]:size-3.5",
             mode === "pickup" && "text-primary-600"
           )}
         />
@@ -69,13 +69,13 @@ export function ShopModeToggle({
         aria-pressed={mode === "delivery"}
         disabled={!deliveryEnabled}
         className={cn(
-          "relative z-[1] flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[12px] px-1 py-3 text-[13px] font-extrabold whitespace-nowrap transition-colors disabled:opacity-40",
+          "relative z-[1] flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[12px] px-1 py-3 text-[13px] font-extrabold whitespace-nowrap transition-colors disabled:opacity-40 max-[399px]:gap-1 max-[399px]:text-[11.5px]",
           mode === "delivery" ? "text-foreground" : "text-muted"
         )}
       >
         <Bike
           className={cn(
-            "size-4 shrink-0 max-[389px]:hidden",
+            "size-4 shrink-0 max-[399px]:size-3.5",
             mode === "delivery" && "text-primary-600"
           )}
         />

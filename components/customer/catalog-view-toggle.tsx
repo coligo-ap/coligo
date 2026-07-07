@@ -47,7 +47,7 @@ export function CatalogViewToggle({
         aria-pressed={display === "categories"}
         title={t("viewAsCategories")}
         className={cn(
-          "flex h-full w-8 items-center justify-center rounded-[12px] transition-colors",
+          "flex h-full w-8 items-center justify-center rounded-[12px] transition-colors max-[399px]:w-7",
           display === "categories"
             ? "bg-surface text-primary-700 shadow-[0_4px_12px_-2px_rgba(40,35,90,0.2)]"
             : "text-muted hover:text-foreground"
@@ -61,7 +61,7 @@ export function CatalogViewToggle({
         aria-pressed={display === "list"}
         title={t("viewAsList")}
         className={cn(
-          "flex h-full w-8 items-center justify-center rounded-[12px] transition-colors",
+          "flex h-full w-8 items-center justify-center rounded-[12px] transition-colors max-[399px]:w-7",
           display === "list"
             ? "bg-surface text-primary-700 shadow-[0_4px_12px_-2px_rgba(40,35,90,0.2)]"
             : "text-muted hover:text-foreground"

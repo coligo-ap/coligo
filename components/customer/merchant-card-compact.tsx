@@ -190,7 +190,10 @@ function MerchantCardCompactImpl({
           ) : (
             <>
               <Dot />
-              <span className="text-success-700">{t("freePickup")}</span>
+              <span className="text-success-700 inline-flex items-center gap-1 whitespace-nowrap">
+                <MapPin className="size-3 shrink-0" />
+                {t("freePickup")}
+              </span>
             </>
           )}
           {!distLabel && cityLabel && (

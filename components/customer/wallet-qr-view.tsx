@@ -326,7 +326,7 @@ export function WalletQrView({
                     onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
                     placeholder={t("qrEnterCodePlaceholder")}
                     autoCapitalize="characters"
-                    className="text-foreground w-full rounded-[13px] bg-white px-3.5 py-3.5 text-center text-sm font-bold tracking-wider outline-none"
+                    className="text-foreground bg-surface w-full rounded-[13px] px-3.5 py-3.5 text-center text-sm font-bold tracking-wider outline-none"
                   />
                   <div className="flex gap-2">
                     <button
@@ -362,7 +362,7 @@ export function WalletQrView({
       {/* ── MONTANT (transfert P2P) ───────────────────────────────────────── */}
       {step === "amount" && pending?.kind === "transfer" && (
         <div className="flex flex-1 flex-col items-center justify-center px-6 pb-10">
-          <div className="w-full max-w-[320px] rounded-[26px] bg-white p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+          <div className="bg-surface w-full max-w-[320px] rounded-[26px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
             <div className="bg-primary-50 text-primary-600 mx-auto grid size-14 place-items-center rounded-2xl">
               <Send className="size-7" />
             </div>
@@ -411,7 +411,7 @@ export function WalletQrView({
       {/* ── CONFIRMATION + PIN ────────────────────────────────────────────── */}
       {step === "confirm" && pending && (
         <div className="flex flex-1 flex-col items-center justify-center px-6 pb-10">
-          <div className="w-full max-w-[320px] rounded-[26px] bg-white p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+          <div className="bg-surface w-full max-w-[320px] rounded-[26px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
             <div className="bg-primary-50 text-primary-600 mx-auto grid size-14 place-items-center rounded-2xl">
               {pending.kind === "pay" ? (
                 <ShieldCheck className="size-7" />
@@ -440,7 +440,7 @@ export function WalletQrView({
                 setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
               }
               placeholder="••••"
-              className="border-border bg-surface-2 focus:border-primary-400 mt-2 w-full rounded-[14px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
+              className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 mt-2 w-full rounded-[14px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
             />
 
             <button
@@ -471,7 +471,7 @@ export function WalletQrView({
       {/* ── REÇU ──────────────────────────────────────────────────────────── */}
       {step === "success" && receipt && (
         <div className="flex flex-1 flex-col items-center justify-center px-6 pb-10">
-          <div className="w-full max-w-[320px] rounded-[26px] bg-white p-7 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+          <div className="bg-surface w-full max-w-[320px] rounded-[26px] p-7 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
             <div className="bg-success-100 text-success-700 mx-auto grid size-16 place-items-center rounded-full">
               <Check className="size-9" />
             </div>
@@ -600,7 +600,7 @@ function CreatePinPanel({
   }
 
   return (
-    <div className="mt-4 w-full max-w-[320px] rounded-[26px] bg-white p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+    <div className="bg-surface mt-4 w-full max-w-[320px] rounded-[26px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
       <div className="bg-primary-50 text-primary-600 mx-auto grid size-14 place-items-center rounded-2xl">
         <Lock className="size-7" />
       </div>
@@ -615,7 +615,7 @@ function CreatePinPanel({
         value={pin}
         onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
         placeholder="••••"
-        className="border-border bg-surface-2 focus:border-primary-400 mt-1.5 w-full rounded-[13px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
+        className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 mt-1.5 w-full rounded-[13px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
       />
       <label className="text-muted mt-3 block text-start text-[11.5px] font-extrabold tracking-wide uppercase">
         {labelConfirm}
@@ -627,7 +627,7 @@ function CreatePinPanel({
           setConfirm(e.target.value.replace(/\D/g, "").slice(0, 4))
         }
         placeholder="••••"
-        className="border-border bg-surface-2 focus:border-primary-400 mt-1.5 w-full rounded-[13px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
+        className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 mt-1.5 w-full rounded-[13px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
       />
       <button
         type="button"
