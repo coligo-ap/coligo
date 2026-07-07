@@ -164,7 +164,7 @@ export function ProductRow({
     >
       {/* Vignette (overflow caché → le badge promo reste dedans). Photo
           entière sur fond blanc (object-contain), comme les cartes produit. */}
-      <div className="border-border relative size-16 shrink-0 overflow-hidden rounded-[10px] border bg-white">
+      <div className="border-border relative size-16 shrink-0 overflow-hidden rounded-[8px] border bg-white">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

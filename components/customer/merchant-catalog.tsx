@@ -473,7 +473,7 @@ export function MerchantCatalog({
                   type="button"
                   onClick={() => setOpenCat(g.key)}
                   aria-label={title}
-                  className="group relative block aspect-[3/4] overflow-hidden rounded-[10px] shadow-[0_4px_14px_-8px_rgba(40,35,90,0.35)] transition-transform duration-150 active:scale-[0.97] sm:aspect-[4/5]"
+                  className="group relative block aspect-[3/4] overflow-hidden rounded-[8px] shadow-[0_4px_14px_-8px_rgba(40,35,90,0.35)] transition-transform duration-150 active:scale-[0.97] sm:aspect-[4/5]"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -517,7 +517,7 @@ export function MerchantCatalog({
                 type="button"
                 onClick={() => setOpenCat(g.key)}
                 aria-label={title}
-                className="bg-primary-50 dark:bg-primary-950/40 group flex aspect-[3/4] flex-col overflow-hidden rounded-[10px] p-3 text-center transition-transform duration-150 active:scale-[0.97] sm:aspect-[4/5]"
+                className="bg-primary-50 dark:bg-primary-950/40 group flex aspect-[3/4] flex-col overflow-hidden rounded-[8px] p-3 text-center transition-transform duration-150 active:scale-[0.97] sm:aspect-[4/5]"
               >
                 {/* Titre en haut, centré (2 lignes max) — typographie Yassir. */}
                 <span className="text-foreground line-clamp-2 block text-[13.5px] leading-snug font-bold">
