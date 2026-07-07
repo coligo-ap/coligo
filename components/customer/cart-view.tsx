@@ -487,12 +487,14 @@ export function CartView() {
               {/* Codes à saisir au paiement — même liste plate, chips légères. */}
               {codePromos.length > 0 && (
                 <div className="py-2">
-                  {/* TOUJOURS une seule ligne (copy courte + nowrap). */}
-                  <span className="text-primary-700 flex min-w-0 items-center gap-1.5 text-[11px] font-bold whitespace-nowrap">
-                    <Ticket className="text-accent-600 size-3.5 shrink-0" />
-                    <span className="truncate">{t("promoCodeHint")}</span>
-                  </span>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {/* TOUT sur UNE seule ligne : hint + chips de codes côte à
+                      côte ; s'il y a trop long, la ligne DÉFILE (jamais de
+                      retour à la ligne). */}
+                  <div className="flex min-w-0 [scrollbar-width:none] items-center gap-2 overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden">
+                    <span className="text-primary-700 flex shrink-0 items-center gap-1.5 text-[11px] font-bold">
+                      <Ticket className="text-accent-600 size-3.5 shrink-0" />
+                      {t("promoCodeHint")}
+                    </span>
                     {codePromos.map((p) => {
                       const val =
                         p.discount_kind === "percent"
@@ -621,7 +623,7 @@ function CodeChip({
       onClick={copy}
       aria-label={`${code} — ${copiedLabel}`}
       className={cn(
-        "inline-flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold transition-colors active:scale-[0.96]",
+        "inline-flex min-w-0 shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold transition-colors active:scale-[0.96]",
         copied
           ? "bg-success-100 text-success-700"
           : "bg-surface text-foreground"
