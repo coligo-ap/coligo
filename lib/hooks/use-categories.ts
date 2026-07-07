@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -9,6 +9,8 @@ import { MERCHANT_CATEGORIES } from "@/lib/config/categories";
  * lecture anon (RLS publique), cache module (1 fetch par onglet), REPLI sur
  * la config statique tant que la DB n'a pas répondu. Consommé par le select
  * d'inscription, les réglages boutique et le strip de filtres marketplace.
+ * Mig 0336 : visibilité par surface (showMarketplace / showSignup) + position
+ * (ordre éditorial du strip).
  */
 
 export type ClientCategory = {
@@ -20,9 +22,15 @@ export type ClientCategory = {
   status: "active" | "hidden" | "coming_soon";
   /** type = proposé à l'inscription ; filter = filtre éditorial marketplace. */
   kind: "type" | "filter";
+  /** Ordre éditorial (reclassement admin). */
+  position: number;
+  /** Affichée dans le strip de filtres du marketplace. */
+  showMarketplace: boolean;
+  /** Proposée à l'inscription / réglages commerçant. */
+  showSignup: boolean;
 };
 
-const FALLBACK: ClientCategory[] = MERCHANT_CATEGORIES.map((c) => ({
+const FALLBACK: ClientCategory[] = MERCHANT_CATEGORIES.map((c, i) => ({
   code: c.code,
   label: c.label,
   labelAr: c.labelAr,
@@ -30,6 +38,9 @@ const FALLBACK: ClientCategory[] = MERCHANT_CATEGORIES.map((c) => ({
   imageUrl: null,
   status: "active" as const,
   kind: "type" as const,
+  position: (i + 1) * 10,
+  showMarketplace: true,
+  showSignup: true,
 }));
 
 let cache: ClientCategory[] | null = null;
@@ -41,7 +52,9 @@ export function useCategories(): ClientCategory[] {
     const supabase = createClient();
     void supabase
       .from("merchant_categories" as never)
-      .select("code, label, label_ar, emoji, image_url, status, position, kind")
+      .select(
+        "code, label, label_ar, emoji, image_url, status, position, kind, show_marketplace, show_signup"
+      )
       .order("position", { ascending: true })
       .then(({ data }) => {
         const list = (data ?? []) as unknown as {
@@ -51,7 +64,10 @@ export function useCategories(): ClientCategory[] {
           emoji: string;
           image_url: string | null;
           status: string;
+          position: number;
           kind: string;
+          show_marketplace: boolean;
+          show_signup: boolean;
         }[];
         if (list.length === 0) return; // repli statique conservé
         cache = list.map((r) => ({
@@ -65,6 +81,9 @@ export function useCategories(): ClientCategory[] {
               ? r.status
               : "active",
           kind: r.kind === "filter" ? ("filter" as const) : ("type" as const),
+          position: Number(r.position ?? 0),
+          showMarketplace: r.show_marketplace !== false,
+          showSignup: r.show_signup !== false,
         }));
         setRows(cache);
       });

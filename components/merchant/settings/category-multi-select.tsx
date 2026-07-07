@@ -33,9 +33,9 @@ export function CategoryMultiSelect({
     () =>
       all.filter(
         (c) =>
-          // Filtres éditoriaux (kind=filter) : marketplace uniquement, jamais
-          // proposés au commerçant (mapping manuel admin / auto par mots-clés).
-          c.kind !== "filter" &&
+          // Visibilité inscription pilotée par l'admin (show_signup, mig 0336) ;
+          // un code déjà porté par le commerçant reste listé (conservable).
+          (c.showSignup || currentCodes.includes(c.code)) &&
           (c.status !== "hidden" || currentCodes.includes(c.code))
       ),
     [all, currentCodes]

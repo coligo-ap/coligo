@@ -1,13 +1,15 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireSuperAdmin } from "@/lib/auth/admin";
-import { CategoryFilterImages } from "@/components/admin/plateforme/category-filter-images";
+import { CategoriesManager } from "@/components/admin/plateforme/categories-manager";
 
 export const dynamic = "force-dynamic";
 
 // Onglet « Catégories » du hub Plateforme : types de commerce + filtres
-// éditoriaux du marketplace (mig 0311-0313) — statuts, images, création,
-// mapping, suppression. Domaine « plateforme » exigé par le layout du hub ;
-// re-gate super-admin ici (lecture service_role → self-guard obligatoire).
+// éditoriaux du marketplace (mig 0311-0313 + 0336) — reclassement (= ordre du
+// strip marketplace), visibilité par surface (marketplace / inscription),
+// statuts, images, création, mapping, suppression. Domaine « plateforme »
+// exigé par le layout du hub ; re-gate super-admin ici (lecture service_role
+// → self-guard obligatoire).
 export default async function AdminCategoriesPage() {
   await requireSuperAdmin();
   const admin = createAdminClient();
@@ -30,6 +32,8 @@ export default async function AdminCategoriesPage() {
                 status: string;
                 kind: string;
                 keywords: string[] | null;
+                show_marketplace: boolean;
+                show_signup: boolean;
               }[]
             | null;
         }>;
@@ -37,7 +41,7 @@ export default async function AdminCategoriesPage() {
     }
   )("merchant_categories")
     .select(
-      "code, label, label_ar, emoji, image_url, status, position, kind, keywords"
+      "code, label, label_ar, emoji, image_url, status, position, kind, keywords, show_marketplace, show_signup"
     )
     .order("position", { ascending: true });
 
@@ -72,6 +76,8 @@ export default async function AdminCategoriesPage() {
         : "active") as "active" | "hidden" | "coming_soon",
       kind: (r.kind === "filter" ? "filter" : "type") as "type" | "filter",
       keywords: r.keywords ?? [],
+      showMarketplace: r.show_marketplace !== false,
+      showSignup: r.show_signup !== false,
       merchants: Number(u?.primary_count ?? 0),
       links: Number(u?.secondary_count ?? 0),
       linksTotal: Number(u?.links_total ?? 0),
@@ -85,12 +91,13 @@ export default async function AdminCategoriesPage() {
           Catégories &amp; filtres
         </h1>
         <p className="text-muted mt-1 text-sm">
-          Types de commerce (inscription + filtre marketplace) et filtres
-          éditoriaux. Le statut est appliqué côté serveur partout (inscription,
-          strip de filtres, visibilité des commerces).
+          Reclassez (glisser-déposer) : l&apos;ordre ci-dessous est celui du
+          strip marketplace. Les chips « Marketplace » / « Inscription »
+          contrôlent où chaque catégorie s&apos;affiche — appliqué côté serveur
+          partout (strip, inscription, réglages boutique).
         </p>
       </header>
-      <CategoryFilterImages categories={categories} />
+      <CategoriesManager categories={categories} />
     </div>
   );
 }

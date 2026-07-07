@@ -44,8 +44,16 @@ export function CategoryStrip({
   const locale = useLocale();
   // Catégories pilotées en base (mig 0311) : images admin + statuts (une
   // catégorie masquée n'apparaît pas dans le strip même avec des commerçants).
+  // Mig 0336 : show_marketplace retire du strip sans toucher l'inscription,
+  // et l'ordre = POSITION admin (reclassement /admin/categories).
   const dbCategories = useCategories();
   const dbByCode = new Map(dbCategories.map((c) => [c.code, c]));
+  const orderByCode = new Map(dbCategories.map((c, i) => [c.code, i]));
+  const ordered = [...categories].sort(
+    (a, b) =>
+      (orderByCode.get(a.name) ?? Number.MAX_SAFE_INTEGER) -
+      (orderByCode.get(b.name) ?? Number.MAX_SAFE_INTEGER)
+  );
 
   function go(category: string | null) {
     applyFilters((sp) => {
@@ -62,8 +70,12 @@ export function CategoryStrip({
         active={!active}
         onClick={() => go(null)}
       />
-      {categories
-        .filter((c) => (dbByCode.get(c.name)?.status ?? "active") === "active")
+      {ordered
+        .filter((c) => {
+          const db = dbByCode.get(c.name);
+          if (!db) return true; // code hors table (repli) : comportement d'avant
+          return db.status === "active" && db.showMarketplace;
+        })
         .map((c) => {
           const db = dbByCode.get(c.name);
           return (

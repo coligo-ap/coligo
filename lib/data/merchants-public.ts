@@ -492,18 +492,34 @@ async function categoryMerchantIds(
 
 /** Liste les catégories distinctes parmi les vitrines actives — via les
  *  LIAISONS multi-catégories (un commerce compte dans chacun de ses types),
- *  bornées aux vitrines ACTIVES (merchants_public). */
+ *  bornées aux vitrines ACTIVES (merchants_public). Ordre = POSITION admin
+ *  (reclassement /admin/categories, mig 0336) — plus le comptage — et les
+ *  catégories retirées du marketplace (show_marketplace=false) sont exclues
+ *  dès le SSR. */
 export async function listMerchantCategories(): Promise<
   { name: string; count: number }[]
 > {
   const supabase = await createClient();
-  const [{ data: pub }, { data: links }] = await Promise.all([
+  const [{ data: pub }, { data: links }, { data: cats }] = await Promise.all([
     supabase.from("merchants_public").select("id, category"),
     supabase
       .from("merchant_category_links" as never)
       .select("merchant_id, code")
       .limit(10000),
+    supabase
+      .from("merchant_categories" as never)
+      .select("code, position, show_marketplace")
+      .order("position", { ascending: true }),
   ]);
+  const catRows = (cats ?? []) as unknown as {
+    code: string;
+    position: number;
+    show_marketplace: boolean;
+  }[];
+  const orderByCode = new Map(catRows.map((c, i) => [c.code, i]));
+  const hiddenFromMarketplace = new Set(
+    catRows.filter((c) => c.show_marketplace === false).map((c) => c.code)
+  );
   const activeIds = new Set((pub ?? []).map((r) => r.id as string));
   const counts = new Map<string, number>();
   const seen = new Set<string>();
@@ -527,8 +543,14 @@ export async function listMerchantCategories(): Promise<
     counts.set(cat, (counts.get(cat) ?? 0) + 1);
   }
   return Array.from(counts.entries())
+    .filter(([name]) => !hiddenFromMarketplace.has(name))
     .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => {
+      // Position admin d'abord ; codes inconnus de la table en fin, par comptage.
+      const pa = orderByCode.get(a.name) ?? Number.MAX_SAFE_INTEGER;
+      const pb = orderByCode.get(b.name) ?? Number.MAX_SAFE_INTEGER;
+      return pa !== pb ? pa - pb : b.count - a.count;
+    });
 }
 
 // `merchants_public.opening_hours` est un Json générique → on le normalise.

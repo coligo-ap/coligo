@@ -100,9 +100,79 @@ export async function setCategoryStatus(
   return { ok: true };
 }
 
+/** Visibilité PAR SURFACE (mig 0336) : marketplace (strip de filtres) et/ou
+ *  liste d'inscription commerçant — appliquée côté serveur partout (strip,
+ *  inscription, réglages boutique, garde isActiveCategory). */
+export async function setCategoryVisibility(
+  code: string,
+  input: { showMarketplace?: boolean; showSignup?: boolean }
+): Promise<{ ok?: true; error?: string }> {
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
+  const patch: Record<string, boolean | string> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (typeof input.showMarketplace === "boolean")
+    patch.show_marketplace = input.showMarketplace;
+  if (typeof input.showSignup === "boolean")
+    patch.show_signup = input.showSignup;
+  if (Object.keys(patch).length === 1)
+    return { error: "Aucun changement demandé." };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("merchant_categories" as never)
+    .update(patch as never)
+    .eq("code", code);
+  if (error) return { error: error.message };
+  revalidate();
+  return { ok: true };
+}
+
+/**
+ * RECLASSEMENT (mig 0336) : reçoit l'ordre GLOBAL complet (tous les codes,
+ * types + filtres mélangés) et réécrit `position` — c'est l'ordre du strip
+ * marketplace. Refuse tout envoi partiel/périmé (le set de codes doit être
+ * EXACTEMENT celui en base) : pas d'écrasement silencieux après une création
+ * ou suppression concurrente.
+ */
+export async function reorderCategories(
+  codes: string[]
+): Promise<{ ok?: true; error?: string }> {
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("merchant_categories" as never)
+    .select("code");
+  const existing = new Set(
+    ((data ?? []) as unknown as { code: string }[]).map((r) => r.code)
+  );
+  const unique = new Set(codes);
+  if (
+    unique.size !== codes.length ||
+    unique.size !== existing.size ||
+    codes.some((c) => !existing.has(c))
+  ) {
+    return { error: "Liste périmée — rechargez la page puis réessayez." };
+  }
+  // Upsert par PK : seuls position/updated_at sont réécrits (tous les codes
+  // existent — vérifié ci-dessus — donc jamais de branche INSERT).
+  const now = new Date().toISOString();
+  const rows = codes.map((code, i) => ({
+    code,
+    position: (i + 1) * 10,
+    updated_at: now,
+  }));
+  const { error } = await admin
+    .from("merchant_categories" as never)
+    .upsert(rows as never, { onConflict: "code" });
+  if (error) return { error: error.message };
+  revalidate();
+  return { ok: true };
+}
+
 /** Création d'une catégorie — `kind` : type (inscription + filtre) ou
- *  FILTRE ÉDITORIAL (marketplace uniquement, phase 3) avec mots-clés
- *  pour le mapping automatique. */
+ *  FILTRE ÉDITORIAL (mapping auto par mots-clés, phase 3). La visibilité par
+ *  surface (mig 0336) est explicite ; à défaut : type → partout, filtre →
+ *  marketplace seul. */
 export async function createCategory(input: {
   code: string;
   label: string;
@@ -110,6 +180,8 @@ export async function createCategory(input: {
   emoji: string;
   kind?: "type" | "filter";
   keywords?: string;
+  showMarketplace?: boolean;
+  showSignup?: boolean;
 }): Promise<{ ok?: true; error?: string }> {
   if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   const code = input.code.trim().toLowerCase();
@@ -129,14 +201,17 @@ export async function createCategory(input: {
     .limit(1)
     .maybeSingle();
   const position = ((last as { position?: number } | null)?.position ?? 0) + 10;
+  const kind = input.kind === "filter" ? "filter" : "type";
   const { error } = await admin.from("merchant_categories" as never).insert({
     code,
     label,
     label_ar: labelAr,
     emoji: input.emoji.trim() || "🏷️",
     position,
-    kind: input.kind === "filter" ? "filter" : "type",
+    kind,
     keywords: parseKeywords(input.keywords),
+    show_marketplace: input.showMarketplace ?? true,
+    show_signup: input.showSignup ?? kind === "type",
   } as never);
   if (error) return { error: error.message };
   revalidate();

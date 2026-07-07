@@ -210,7 +210,7 @@ export async function updateProfile(
   for (const code of catList) {
     if (owned.has(code)) continue;
     const cat = allCats.find((c) => c.code === code);
-    if (!cat || cat.status !== "active" || cat.kind !== "type") {
+    if (!cat || cat.status !== "active" || !cat.showSignup) {
       return { error: "Une des catégories choisies n'est pas disponible." };
     }
   }
