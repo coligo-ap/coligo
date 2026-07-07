@@ -158,12 +158,7 @@ export function MerchantCartCta({
             className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/15 to-transparent"
           />
 
-          <span
-            className={cn(
-              "relative flex items-center gap-3 ps-2.5 pe-3 pt-2.5",
-              subline ? "pb-1" : "pb-2.5"
-            )}
-          >
+          <span className="relative flex items-center gap-3 ps-2.5 pe-3 pt-2.5 pb-2.5">
             <span
               className={cn(
                 "inline-flex h-9 items-center gap-1.5 rounded-[11px] bg-white/15 px-2.5 text-[14px] font-extrabold tabular-nums transition-transform",
@@ -187,30 +182,33 @@ export function MerchantCartCta({
               </span>
             </span>
           </span>
+        </Link>
 
-          {/* Sous-ligne contextuelle (min / économies / livraison offerte). */}
-          {subline && (
-            <span className="relative flex items-center justify-center gap-1.5 px-3 pb-2 text-[11.5px] font-bold text-white/90">
+        {/* Sous-ligne contextuelle (minimum / livraison offerte) — MÊME
+            languette charbon que la carte économies (jamais les deux à la
+            fois : priorités mutuellement exclusives), avec la progression
+            vers le minimum en filet VERT à sa base. */}
+        {subline && (
+          <div className="cg-promo-rise bg-foreground/95 text-surface relative mx-2 overflow-hidden rounded-b-[16px] px-3.5 pt-1.5 pb-2.5 shadow-[0_14px_34px_-14px_rgba(10,10,20,0.65)] backdrop-blur-md">
+            <span className="flex items-center justify-center gap-1.5 text-[11.5px] font-bold">
               <subline.Icon className="size-3.5 shrink-0" aria-hidden />
               <span className="truncate">{subline.text}</span>
             </span>
-          )}
-
-          {/* Progression vers le minimum de commande — filet bas de la pilule. */}
-          {belowMin && (
-            <span
-              aria-hidden
-              className="absolute inset-x-0 bottom-0 h-[3px] bg-white/20"
-            >
+            {belowMin && (
               <span
-                className="block h-full rounded-e-full bg-white transition-[width] duration-300"
-                style={{
-                  width: `${Math.min(100, Math.round((subtotal / minOrderDa) * 100))}%`,
-                }}
-              />
-            </span>
-          )}
-        </Link>
+                aria-hidden
+                className="bg-surface/20 absolute inset-x-0 bottom-0 h-[3px]"
+              >
+                <span
+                  className="bg-success-500 block h-full rounded-e-full transition-[width] duration-300"
+                  style={{
+                    width: `${Math.min(100, Math.round((subtotal / minOrderDa) * 100))}%`,
+                  }}
+                />
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Économies — carte SOMBRE « verre » premium (charbon, texte inversé
             via tokens → s'adapte seule au mode sombre), montant en pastille.
