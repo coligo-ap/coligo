@@ -6,7 +6,9 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgePercent,
+  Check,
   ChevronUp,
+  Copy,
   Gift,
   Minus,
   Plus,
@@ -237,12 +239,9 @@ export function CartView() {
           {t("clear")}
         </button>
       </div>
-      {cart.merchant_name && (
-        <p className="text-muted mt-0.5 text-[13px] font-semibold">
-          {t("at")}{" "}
-          <span className="text-primary-700">{cart.merchant_name}</span>
-        </p>
-      )}
+      {/* Pas de « chez {commerçant} » sous le titre : le nom est DÉJÀ dans le
+          bouton « Retour à … » juste au-dessus (règle : jamais la même info
+          deux fois sur un écran). */}
 
       {/* Lignes produit — promos appliquées (prix barré, offert, badges). */}
       <div className="mt-3 space-y-2.5">
@@ -488,9 +487,10 @@ export function CartView() {
               {/* Codes à saisir au paiement — même liste plate, chips légères. */}
               {codePromos.length > 0 && (
                 <div className="py-2">
-                  <span className="text-primary-700 flex items-center gap-1.5 text-[11px] font-bold">
-                    <Ticket className="text-accent-600 size-3.5" />
-                    {t("promoCodeHint")}
+                  {/* TOUJOURS une seule ligne (copy courte + nowrap). */}
+                  <span className="text-primary-700 flex min-w-0 items-center gap-1.5 text-[11px] font-bold whitespace-nowrap">
+                    <Ticket className="text-accent-600 size-3.5 shrink-0" />
+                    <span className="truncate">{t("promoCodeHint")}</span>
                   </span>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {codePromos.map((p) => {
@@ -499,25 +499,19 @@ export function CartView() {
                           ? `−${p.discount_value} %`
                           : `−${formatDA(p.discount_value ?? 0)}`;
                       return (
-                        <span
+                        <CodeChip
                           key={p.id}
-                          className="bg-surface text-foreground inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold"
-                        >
-                          <span className="font-mono font-black tracking-wider">
-                            {p.code}
-                          </span>
-                          <span className="text-success-700 dark:text-success-400 font-black">
-                            {val}
-                          </span>
-                          {p.min_subtotal_da != null && (
-                            <span className="text-muted">
-                              ·{" "}
-                              {t("promoCodeFrom", {
-                                amount: formatDA(p.min_subtotal_da),
-                              })}
-                            </span>
-                          )}
-                        </span>
+                          code={p.code ?? ""}
+                          value={val}
+                          minLabel={
+                            p.min_subtotal_da != null
+                              ? t("promoCodeFrom", {
+                                  amount: formatDA(p.min_subtotal_da),
+                                })
+                              : null
+                          }
+                          copiedLabel={t("promoCodeCopied")}
+                        />
                       );
                     })}
                   </div>
@@ -585,5 +579,70 @@ export function CartView() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Chip de code promo AUTO-COPIANTE (composant autonome) : un tap copie le
+ * code et la chip se ré-affiche en état « Copié » (vert, ✓) pendant 1,6 s —
+ * aucun texte ajouté ailleurs. Le code long est tronqué proprement (la chip
+ * garde une seule ligne, la valeur et le seuil restent visibles).
+ */
+function CodeChip({
+  code,
+  value,
+  minLabel,
+  copiedLabel,
+}: {
+  code: string;
+  value: string;
+  minLabel: string | null;
+  copiedLabel: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const t = setTimeout(() => setCopied(false), 1600);
+    return () => clearTimeout(t);
+  }, [copied]);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+    } catch {
+      /* Clipboard indisponible (vieux WebView) : rien à casser. */
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={`${code} — ${copiedLabel}`}
+      className={cn(
+        "inline-flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold transition-colors active:scale-[0.96]",
+        copied
+          ? "bg-success-100 text-success-700"
+          : "bg-surface text-foreground"
+      )}
+    >
+      {copied ? (
+        <Check className="text-success-600 size-3 shrink-0" />
+      ) : (
+        <Copy className="text-muted size-3 shrink-0" />
+      )}
+      <span className="max-w-[9rem] truncate font-mono font-black tracking-wider">
+        {copied ? copiedLabel : code}
+      </span>
+      {!copied && (
+        <span className="text-success-700 dark:text-success-400 shrink-0 font-black">
+          {value}
+        </span>
+      )}
+      {!copied && minLabel && (
+        <span className="text-muted shrink-0">· {minLabel}</span>
+      )}
+    </button>
   );
 }

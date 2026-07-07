@@ -162,7 +162,7 @@
     "buyGetLabel": "{buy} {buy, plural, one {acheté} other {achetés}} = {get} {get, plural, one {offert} other {offerts}}",
     "addForOffer": "Ajoutez-en {count} pour en profiter",
     "promoTag": "Promo",
-    "promoCodeHint": "Un code promo ? Saisissez-le à l’étape paiement.",
+    "promoCodeHint": "Code promo ? À saisir au paiement",
     "promoCodeAvailable": "Code {code} dispo",
     "promoCodeFrom": "dès {amount}",
     "promosApplied": "{count, plural, one {# promotion appliquée} other {# promotions appliquées}}",
@@ -178,7 +178,8 @@
     "promoDetailsTitle": "Détail des avantages",
     "itemsTitle": "Votre panier",
     "clearTitle": "Vider le panier ?",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "promoCodeCopied": "Copié !"
   },
   "checkout": {
     "redirectingOnlineTitle": "Redirection vers Chargily Pay…",

@@ -162,7 +162,7 @@
     "buyGetLabel": "{buy} {buy, plural, one {مشترى} other {مشتريات}} = {get} {get, plural, one {مجاني} other {مجانية}}",
     "addForOffer": "أضِف {count} للاستفادة",
     "promoTag": "تخفيض",
-    "promoCodeHint": "لديك رمز ترويجي؟ أدخله في مرحلة الدفع.",
+    "promoCodeHint": "رمز تخفيض؟ يُدخل عند الدفع",
     "promoCodeAvailable": "رمز {code} متاح",
     "promoCodeFrom": "ابتداءً من {amount}",
     "promosApplied": "{count, plural, one {# عرض مُطبّق} other {# عروض مُطبّقة}}",
@@ -178,7 +178,8 @@
     "promoDetailsTitle": "تفاصيل المزايا",
     "itemsTitle": "سلتك",
     "clearTitle": "إفراغ السلة؟",
-    "cancel": "إلغاء"
+    "cancel": "إلغاء",
+    "promoCodeCopied": "تم النسخ!"
   },
   "checkout": {
     "redirectingOnlineTitle": "جارٍ التحويل إلى Chargily Pay…",
