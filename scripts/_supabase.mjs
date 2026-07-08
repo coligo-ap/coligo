@@ -17,7 +17,13 @@ import { dirname, join } from "node:path";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 // Pooler Supabase — eu-west-1, mode session (port 5432, requis pour migrations).
-const DB_USER = "postgres.htxqzktwuymzetbdqghx";
+// DEUX environnements : prod (défaut) et dev (projet gvdojuitcexemvkcaqfa).
+//   - cible dev : flag `--dev` sur les scripts (npm run db:push -- --dev) ou
+//     env COLIGO_DB=dev ; mot de passe lu depuis SUPABASE_DEV_DB_PASSWORD.
+const PROJECTS = {
+  prod: { ref: "htxqzktwuymzetbdqghx", passwordVar: "SUPABASE_DB_PASSWORD" },
+  dev: { ref: "gvdojuitcexemvkcaqfa", passwordVar: "SUPABASE_DEV_DB_PASSWORD" },
+};
 const DB_HOST = "aws-0-eu-west-1.pooler.supabase.com";
 const DB_PORT = 5432;
 const DB_NAME = "postgres";
@@ -46,28 +52,34 @@ function loadEnvLocal() {
 }
 
 /** Connection string complète du pooler (mot de passe URL-encodé). */
-export function getDbUrl() {
+export function getDbUrl(target = process.env.COLIGO_DB ?? "prod") {
   loadEnvLocal();
-  const password = process.env.SUPABASE_DB_PASSWORD;
+  const project = PROJECTS[target] ?? PROJECTS.prod;
+  const password = process.env[project.passwordVar];
   if (!password) {
     console.error(
-      "❌ SUPABASE_DB_PASSWORD manquant.\n" +
+      `❌ ${project.passwordVar} manquant.\n` +
         "   Ajoute-le dans .env.local (et sur Vercel : Settings > Environment Variables)."
     );
     process.exit(1);
   }
-  return `postgresql://${DB_USER}:${encodeURIComponent(
+  return `postgresql://postgres.${project.ref}:${encodeURIComponent(
     password
   )}@${DB_HOST}:${DB_PORT}/${DB_NAME}`;
 }
 
 /**
  * Lance le CLI supabase avec les args fournis, en injectant --db-url.
+ * `--dev` (retiré des args) cible le projet Supabase de DÉVELOPPEMENT.
  * Exit avec le même code que le CLI.
  */
 export function runSupabase(args) {
+  const target = args.includes("--dev") ? "dev" : "prod";
+  const rest = args.filter((a) => a !== "--dev");
+  if (target === "dev")
+    console.log("🧪 Cible : Supabase DEV (gvdojuitcexemvkcaqfa)");
   const cli = join(ROOT, "node_modules", "supabase", "dist", "supabase.js");
-  const full = [cli, ...args, "--db-url", getDbUrl()];
+  const full = [cli, ...rest, "--db-url", getDbUrl(target)];
   const res = spawnSync(process.execPath, full, { stdio: "inherit" });
   process.exit(res.status ?? 1);
 }
