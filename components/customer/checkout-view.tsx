@@ -52,6 +52,10 @@ import {
   previewPromoCode,
 } from "@/app/(customer)/checkout/actions";
 import { trackBeginCheckout } from "@/lib/analytics/ecommerce";
+import {
+  computeServiceFeeDa,
+  daUntilFreeServiceFee,
+} from "@/lib/finance/service-fee";
 import { CHARGILY_MIN_AMOUNT_DA } from "@/lib/config/payment-limits";
 import type { FeatureStatus } from "@/lib/data/feature-flags";
 import type { PaymentMethod } from "@/lib/types";
@@ -584,14 +588,24 @@ export function CheckoutView({
     0
   );
 
-  const totalBeforeWallets =
-    ctx.cart.totalDa + ctx.service_fee_da + deliveryFeeDa;
-  // Le code promo (estimation client) retranche du total avant soldes ; le
-  // serveur recalcule et tranche à la création.
+  // Code promo : retranché des PRODUITS d'abord (miroir exact du serveur,
+  // qui plafonne la remise au net produits). Les FRAIS DE SERVICE se
+  // recalculent ensuite sur ce que le client paie RÉELLEMENT — même assiette
+  // et mêmes tiers que createOrder, qui reste seul juge (tout est revalidé
+  // côté serveur : un montant trafiqué dans le navigateur est ignoré).
   const promoDiscount = appliedPromo
-    ? Math.min(appliedPromo.discount_da, totalBeforeWallets)
+    ? Math.min(appliedPromo.discount_da, ctx.cart.totalDa)
     : 0;
-  const totalAfterPromo = Math.max(0, totalBeforeWallets - promoDiscount);
+  const goodsAfterPromo = Math.max(0, ctx.cart.totalDa - promoDiscount);
+  const serviceFeeDa = computeServiceFeeDa(
+    goodsAfterPromo,
+    ctx.service_fee_tiers
+  );
+  const serviceFeeFreeInDa = daUntilFreeServiceFee(
+    goodsAfterPromo,
+    ctx.service_fee_tiers
+  );
+  const totalAfterPromo = goodsAfterPromo + serviceFeeDa + deliveryFeeDa;
   const cashbackApplied = useCashback
     ? Math.min(ctx.cashback_balance_da, totalAfterPromo)
     : 0;
@@ -659,17 +673,16 @@ export function CheckoutView({
         ? t("errPickupSlot")
         : "";
 
-  // Jauge « frais offerts » : progression vers le palier de gratuité.
+  // Jauge « frais offerts » : progression vers le palier de gratuité — même
+  // assiette que le frais (net réellement payé, code promo compris).
   const gaugePct =
-    ctx.service_fee_free_in_da != null && ctx.service_fee_free_in_da > 0
+    serviceFeeFreeInDa != null && serviceFeeFreeInDa > 0
       ? Math.max(
           8,
           Math.min(
             92,
             Math.round(
-              (ctx.cart.totalDa /
-                (ctx.cart.totalDa + ctx.service_fee_free_in_da)) *
-                100
+              (goodsAfterPromo / (goodsAfterPromo + serviceFeeFreeInDa)) * 100
             )
           )
         )
@@ -1105,14 +1118,14 @@ export function CheckoutView({
             <SectionTitle icon={Receipt} className="mb-3">
               {t("recap")}
             </SectionTitle>
-            {ctx.service_fee_da > 0 && ctx.service_fee_free_in_da != null && (
+            {serviceFeeDa > 0 && serviceFeeFreeInDa != null && (
               <div className="bg-primary-50 text-primary-700 relative mb-3.5 flex items-center gap-2.5 overflow-hidden rounded-[13px] px-3.5 py-3 text-[12.5px] font-bold">
                 <span className="text-primary-600 grid size-7 shrink-0 place-items-center rounded-[8px] bg-white shadow-[0_2px_6px_-1px_rgba(91,91,230,0.4)]">
                   <Zap className="size-3.5" />
                 </span>
                 <span>
                   {t.rich("serviceFeeFreeIn", {
-                    amount: formatDA(ctx.service_fee_free_in_da),
+                    amount: formatDA(serviceFeeFreeInDa),
                     strong: (chunks) => <strong>{chunks}</strong>,
                   })}
                 </span>
@@ -1135,10 +1148,10 @@ export function CheckoutView({
                   tone="success"
                 />
               )}
-              {ctx.service_fee_da > 0 ? (
+              {serviceFeeDa > 0 ? (
                 <RRow
                   label={t("serviceFee")}
-                  value={`+ ${formatDA(ctx.service_fee_da)}`}
+                  value={`+ ${formatDA(serviceFeeDa)}`}
                   muted
                 />
               ) : (

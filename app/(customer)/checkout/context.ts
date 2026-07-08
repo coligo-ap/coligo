@@ -14,7 +14,7 @@ import {
   getMyTopupBalance,
 } from "@/lib/customer/cashback";
 import {
-  resolveServiceFeeDa,
+  computeServiceFeeDa,
   daUntilFreeServiceFee,
   parseTiers,
   type ServiceFeeTier,
@@ -133,9 +133,12 @@ export type CheckoutContext = {
    */
   cashback_rate_online: number;
   cashback_rate_cash: number;
-  /** Frais de service (DA) calculés serveur sur (subtotal - discount). */
+  /** Frais de service (DA) calculés serveur sur le NET réellement payé
+   *  (après promos commerçant ; le code promo, appliqué plus tard dans la vue,
+   *  est répercuté en direct via `service_fee_tiers`). */
   service_fee_da: number;
-  /** Tiers actifs sur la plateforme — pour l'affichage du « Gratuit dès X DA ». */
+  /** Tiers actifs sur la plateforme — pour recalculer l'affichage en direct
+   *  (code promo appliqué) et la jauge « Gratuit dès X DA ». */
   service_fee_tiers: ServiceFeeTier[];
   /** DA manquants pour atteindre la gratuité, ou null si déjà gratuit. */
   service_fee_free_in_da: number | null;
@@ -517,15 +520,12 @@ export async function fetchCheckoutContext(
     topup_balance_da: topupBalance,
     cashback_rate_online: cashbackRateOnline,
     cashback_rate_cash: cashbackRateCash,
-    // Éligibilité / gratuité sur le panier BRUT (avant promos) + garde-fou
-    // frais minimum si le net après promos devient très faible.
-    service_fee_da: resolveServiceFeeDa({
-      grossProductsDa: settled.normalTotalDa,
-      netProductsDa: settled.totalDa,
-      tiers,
-    }),
+    // Assiette = NET réellement payé (après promos commerçant). Le code promo
+    // plateforme, saisi plus tard au checkout, est répercuté en direct par la
+    // vue avec ces mêmes tiers — et le serveur (createOrder) reste seul juge.
+    service_fee_da: computeServiceFeeDa(settled.totalDa, tiers),
     service_fee_tiers: tiers,
-    service_fee_free_in_da: daUntilFreeServiceFee(settled.normalTotalDa, tiers),
+    service_fee_free_in_da: daUntilFreeServiceFee(settled.totalDa, tiers),
     delivery: deliveryCtx,
   };
 }

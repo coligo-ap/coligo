@@ -1,19 +1,30 @@
 // =============================================================================
 // Frais de service — calcul côté serveur ET côté client (UI temps réel).
 // =============================================================================
-// MÊME LOGIQUE que la fonction SQL `compute_service_fee_da(products_da)`. La
-// source de vérité reste le serveur (Server Action recalcule via cette
-// fonction avant d'insérer la commande). Côté UI on s'en sert pour afficher
-// les frais et le seuil « Gratuit dès X DA » en temps réel.
+// RÈGLE PRODUIT (08/07/2026) : les frais de service se calculent sur ce que le
+// client PAIE RÉELLEMENT pour ses produits — le panier NET après promotions
+// commerçant (réductions, offres « X achetés = Y offert ») ET après code promo
+// plateforme. Ni le cashback ni le solde Coligo Pay n'entrent dans l'assiette
+// (ce sont des moyens de paiement, pas des remises).
+//
+// ANTI-FRAUDE : la SOURCE DE VÉRITÉ est le serveur. La Server Action
+// `createOrder` recalcule prix produits (DB), promotions, code promo et frais
+// via cette même fonction avant d'insérer la commande — toute valeur affichée
+// ou envoyée par le navigateur est ignorée. Le montant est figé dans
+// `orders.service_fee_da` puis rendu immuable par le trigger
+// `protect_order_financial_fields` (mig 0166). Côté UI on réutilise cette
+// fonction uniquement pour AFFICHER le même résultat en temps réel.
 //
 // Modèle : tiers triés du plus petit `upTo` au plus grand. Premier tier dont
-// `upTo` > productsDa l'emporte. Au-dessus du dernier `upTo` : frais = 0.
+// `upTo` > netPayableDa l'emporte. Au-dessus du dernier `upTo` : frais = 0.
+// (Un panier rendu très petit par une grosse promo retombe naturellement dans
+// le premier palier payant — plus besoin de garde-fou séparé.)
 // =============================================================================
 
 export type ServiceFeeTier = {
   /** Borne supérieure exclusive de ce tier, en DA. */
   upTo: number;
-  /** Frais à appliquer si productsDa < upTo, en DA. */
+  /** Frais à appliquer si netPayableDa < upTo, en DA. */
   fee: number;
 };
 
@@ -28,87 +39,39 @@ export const DEFAULT_SERVICE_FEE_TIERS: ServiceFeeTier[] = [
 ];
 
 /**
- * Calcule les frais de service en DA pour un total produits donné.
+ * Calcule les frais de service en DA sur le montant produits RÉELLEMENT payé.
  *
- * @param productsDa — subtotal − discount, AVANT cashback/topup/service_fee.
- * @param tiers     — config plateforme, ou DEFAULT_SERVICE_FEE_TIERS.
+ * @param netPayableDa — produits APRÈS promotions commerçant ET code promo
+ *                       plateforme (AVANT cashback/topup, qui sont des moyens
+ *                       de paiement).
+ * @param tiers        — config plateforme, ou DEFAULT_SERVICE_FEE_TIERS.
  */
 export function computeServiceFeeDa(
-  productsDa: number,
+  netPayableDa: number,
   tiers: ServiceFeeTier[] = DEFAULT_SERVICE_FEE_TIERS
 ): number {
-  if (!Number.isFinite(productsDa) || productsDa <= 0) return 0;
+  if (!Number.isFinite(netPayableDa) || netPayableDa <= 0) return 0;
   for (const tier of tiers) {
-    if (productsDa < tier.upTo) return Math.max(0, Math.round(tier.fee));
+    if (netPayableDa < tier.upTo) return Math.max(0, Math.round(tier.fee));
   }
   return 0;
 }
 
 /**
- * Combien manque-t-il pour atteindre la livraison gratuite ?
- * Renvoie `null` si déjà gratuit (productsDa >= dernier upTo).
+ * Combien manque-t-il pour atteindre la gratuité des frais ?
+ * Renvoie `null` si déjà gratuit (netPayableDa >= dernier upTo).
  *
- * À nourrir avec le panier BRUT (avant promotions) — cf. `resolveServiceFeeDa`.
+ * À nourrir avec la MÊME assiette que `computeServiceFeeDa` (net réellement
+ * payé) pour que la jauge « gratuit dès X DA » soit cohérente avec le frais.
  */
 export function daUntilFreeServiceFee(
-  productsDa: number,
+  netPayableDa: number,
   tiers: ServiceFeeTier[] = DEFAULT_SERVICE_FEE_TIERS
 ): number | null {
   if (tiers.length === 0) return null;
   const lastTier = tiers[tiers.length - 1];
-  if (productsDa >= lastTier.upTo) return null;
-  return lastTier.upTo - productsDa;
-}
-
-// =============================================================================
-// Garde-fou anti-abus — éligibilité sur le BRUT, frais minimum sur le NET.
-// =============================================================================
-// L'éligibilité aux paliers (et à la gratuité) se calcule sur le panier BRUT
-// (AVANT promotions) : plus simple à comprendre, meilleure UX — un panier de
-// 3 000 DA reste exonéré de frais de service même après une grosse promo.
-//
-// MAIS si le montant NET réellement à payer (APRÈS promotions) tombe très bas
-// (p. ex. 100 DA), une promo très agressive ne doit pas faire travailler la
-// plateforme à perte : on garantit alors un frais de service minimum couvrant
-// les coûts opérationnels. (Valeurs ajustables ; centralisables plus tard dans
-// platform_settings si besoin de pilotage admin.)
-// =============================================================================
-
-/** Net (après promos) en-dessous duquel le frais minimum s'applique. */
-export const DEFAULT_MIN_NET_FOR_FREE_DA = 200;
-/** Frais de service minimum garanti quand le net est anormalement bas. */
-export const DEFAULT_MIN_SERVICE_FEE_DA = 20;
-
-export type ResolveServiceFeeArgs = {
-  /** Panier BRUT, avant promotions — détermine le palier / la gratuité. */
-  grossProductsDa: number;
-  /** Montant NET à payer, après promotions — déclenche le garde-fou. */
-  netProductsDa: number;
-  tiers?: ServiceFeeTier[];
-  /** Seuil de net sous lequel le frais minimum s'applique. */
-  minNetForFeeDa?: number;
-  /** Frais de service minimum garanti. */
-  minServiceFeeDa?: number;
-};
-
-/**
- * Frais de service final :
- *   - palier calculé sur le BRUT (avant promos) → conserve la gratuité ;
- *   - garde-fou « frais minimum » si le NET (après promos) devient très faible.
- */
-export function resolveServiceFeeDa({
-  grossProductsDa,
-  netProductsDa,
-  tiers = DEFAULT_SERVICE_FEE_TIERS,
-  minNetForFeeDa = DEFAULT_MIN_NET_FOR_FREE_DA,
-  minServiceFeeDa = DEFAULT_MIN_SERVICE_FEE_DA,
-}: ResolveServiceFeeArgs): number {
-  const fee = computeServiceFeeDa(grossProductsDa, tiers);
-  // Net anormalement bas après une grosse promo → frais minimum garanti.
-  if (netProductsDa > 0 && netProductsDa < minNetForFeeDa) {
-    return Math.max(fee, Math.max(0, Math.round(minServiceFeeDa)));
-  }
-  return fee;
+  if (netPayableDa >= lastTier.upTo) return null;
+  return lastTier.upTo - netPayableDa;
 }
 
 /**

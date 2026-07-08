@@ -28,7 +28,7 @@ import {
   CHARGILY_MIN_AMOUNT_DA,
   resolveMinOrderDa,
 } from "@/lib/config/payment-limits";
-import { resolveServiceFeeDa, parseTiers } from "@/lib/finance/service-fee";
+import { computeServiceFeeDa, parseTiers } from "@/lib/finance/service-fee";
 import { notifyMerchantNewOrder, notifyDriversTour } from "@/lib/fcm/triggers";
 import {
   computeDeliveryFee,
@@ -751,15 +751,17 @@ export async function createOrder(
       : new Date(Date.now() + merchant.prep_time_min * 60_000);
 
   // ---------------------------------------------------------------------------
-  // 5a-bis. FRAIS DE SERVICE.
-  //   - ÉLIGIBILITÉ (palier + gratuité) calculée sur le panier BRUT, AVANT
-  //     promotions (normalTotalDa) : plus simple à comprendre, meilleure UX —
-  //     un gros panier reste exonéré même après une grosse promo.
-  //   - GARDE-FOU : si le NET réellement à payer après promos (totalDa) devient
-  //     très faible, un frais de service minimum s'applique (couvre les coûts
-  //     opérationnels, évite les abus sur promos très agressives).
-  //   - cashback EXCLU des frais ; tiers lus depuis platform_settings.
-  //   - figé dans orders.service_fee_da. Source de vérité pour le trigger.
+  // 5a-bis. FRAIS DE SERVICE — assiette = ce que le client PAIE RÉELLEMENT.
+  //   - Palier calculé sur le panier NET FINAL (clientGoodsDa) : après
+  //     promotions/offres/réductions commerçant ET après code promo plateforme.
+  //     Une grosse promo fait donc retomber le panier dans le palier payant —
+  //     plus de gratuité « héritée » du brut, plus de garde-fou séparé.
+  //   - cashback / Coligo Pay EXCLUS de l'assiette (moyens de paiement, pas
+  //     des remises) ; tiers lus depuis platform_settings.
+  //   - ANTI-FRAUDE : tout est recalculé ICI depuis la DB (prix produits,
+  //     promos, code) — les montants affichés/envoyés par le navigateur ne
+  //     sont jamais crus. Figé dans orders.service_fee_da, rendu immuable par
+  //     le trigger protect_order_financial_fields (mig 0166).
   // ---------------------------------------------------------------------------
   const { data: settingsRow } = await supabase
     .from("platform_settings")
@@ -777,11 +779,7 @@ export async function createOrder(
       ? Number(settingsRow?.cashback_online ?? 0.03)
       : Number(settingsRow?.cashback_cash ?? 0);
   const cashbackEstimate = Math.round(productsDa * cashbackRate);
-  let serviceFeeDa = resolveServiceFeeDa({
-    grossProductsDa: settled.normalTotalDa, // éligibilité sur le brut (avant promo)
-    netProductsDa: productsDa, // garde-fou sur le net (après promo)
-    tiers: serviceFeeTiers,
-  });
+  let serviceFeeDa = computeServiceFeeDa(clientGoodsDa, serviceFeeTiers);
 
   // PÉNALITÉ NO-SHOW (mig 0116) : si le client a un no-show non soldé, sa
   // prochaine commande a des frais de service RELEVÉS mais PLAFONNÉS à 100 DA
