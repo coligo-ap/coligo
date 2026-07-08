@@ -318,7 +318,7 @@ function PlanEditor({
   const cashbackTooHigh = plan.cashback_rate > plan.commission_rate;
 
   return (
-    <div className="border-primary-200 bg-surface fixed inset-x-0 bottom-0 z-40 mx-auto max-h-[85vh] max-w-[1100px] overflow-y-auto rounded-t-2xl border-2 p-4 shadow-2xl lg:p-6">
+    <div className="border-primary-200 bg-surface fixed inset-x-0 bottom-0 z-40 mx-auto max-h-[85vh] max-w-[1100px] overflow-y-auto rounded-t-2xl border-2 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl lg:p-6">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-lg font-bold">
           {isNew ? "Nouveau plan" : `Éditer « ${plan.title} »`}

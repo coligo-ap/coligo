@@ -397,7 +397,7 @@ function SearchScreen({
           padding={{ top: 80, bottom: 500, left: 60, right: 60 }}
         />
       )}
-      <div className="absolute inset-x-0 top-[230px] bottom-0 z-10 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-8 shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
+      <div className="absolute inset-x-0 top-[230px] bottom-0 z-10 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[max(2rem,env(safe-area-inset-bottom))] shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
         <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
 
         {/* Statut de recherche */}

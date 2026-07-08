@@ -90,7 +90,7 @@ export function LocationBanner() {
           }}
         >
           <div
-            className="bg-surface flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-[20px] shadow-xl sm:max-h-[90vh] sm:rounded-[20px]"
+            className="bg-surface flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:max-h-[90vh] sm:rounded-[20px]"
             style={{
               paddingBottom: "max(0px, env(safe-area-inset-bottom))",
             }}

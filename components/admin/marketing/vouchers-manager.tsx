@@ -214,7 +214,7 @@ function IssueForm({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-surface flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[20px] shadow-xl sm:rounded-[20px]">
+      <div className="bg-surface flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[20px] sm:pb-0">
         <header className="border-border flex items-center justify-between border-b px-5 py-4">
           <h2 className="text-foreground text-lg font-bold">Émettre un bon</h2>
           <button

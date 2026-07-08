@@ -998,7 +998,7 @@ export function DriveView({ userId }: { userId: string }) {
           </button>
         </div>
 
-        <div className="drive-jakarta -mt-4 flex-1 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-8">
+        <div className="drive-jakarta -mt-4 flex-1 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[max(2rem,env(safe-area-inset-bottom))]">
           <div className="mx-auto mb-4 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
           {/* Départ / destination (rail pointillé) */}
           <Leg
@@ -1056,7 +1056,7 @@ export function DriveView({ userId }: { userId: string }) {
               onClick={() => !schedBusy && setSchedOpen(false)}
             >
               <div
-                className="w-full max-w-md rounded-t-[24px] bg-[var(--d-surface)] p-5"
+                className="w-full max-w-md rounded-t-[24px] bg-[var(--d-surface)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
                 onClick={(e) => e.stopPropagation()}
               >
                 <p className="mb-1 text-[15px] font-extrabold">

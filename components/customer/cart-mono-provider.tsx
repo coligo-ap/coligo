@@ -93,7 +93,7 @@ export function CartMonoProvider({ children }: { children: React.ReactNode }) {
           onClick={() => setPending(null)}
         >
           <div
-            className="bg-surface animate-fade-in w-full max-w-[420px] rounded-t-[26px] px-5 pt-2 pb-7 shadow-2xl sm:rounded-[26px] sm:pb-6"
+            className="bg-surface animate-fade-in w-full max-w-[420px] rounded-t-[26px] px-5 pt-2 pb-[max(1.75rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[26px] sm:pb-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-border mx-auto mb-4 h-[5px] w-9 rounded-full sm:hidden" />

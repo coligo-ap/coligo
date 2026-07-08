@@ -106,7 +106,7 @@ export function MerchantOfferSheet({
         }}
       >
         <div
-          className="bg-surface flex w-full max-w-md flex-col rounded-t-[20px] shadow-xl sm:rounded-[20px]"
+          className="bg-surface flex w-full max-w-md flex-col rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[20px]"
           role="dialog"
           aria-modal="true"
         >

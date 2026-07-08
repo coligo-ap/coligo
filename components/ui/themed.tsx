@@ -189,7 +189,7 @@ export function SheetSurface({
   return (
     <div
       className={cn(
-        "bg-surface text-foreground w-full rounded-t-3xl px-5 pt-4 pb-6",
+        "bg-surface text-foreground w-full rounded-t-3xl px-5 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]",
         className
       )}
       {...rest}

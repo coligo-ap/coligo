@@ -835,7 +835,7 @@ function SavedAddressesModal({
           if (e.target === e.currentTarget) onClose();
         }}
       >
-        <div className="bg-surface flex max-h-[88vh] w-full max-w-md flex-col rounded-t-[20px] shadow-xl sm:rounded-[20px]">
+        <div className="bg-surface flex max-h-[88vh] w-full max-w-md flex-col rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[20px]">
           <header className="border-border flex items-center justify-between gap-3 border-b px-5 py-4">
             <h2 className="font-display text-foreground text-lg font-bold">
               {t("savedAddressesChoice")}

@@ -174,7 +174,7 @@ export function CustomerOrderLive({
     <div
       role="alertdialog"
       aria-modal="true"
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/40 p-4 sm:items-center"
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center"
       onClick={() => setPopup(null)}
     >
       <div

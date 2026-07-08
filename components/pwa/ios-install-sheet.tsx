@@ -38,7 +38,7 @@ export function IosInstallSheet({ onClose }: { onClose: () => void }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="border-border w-full max-w-md overflow-hidden rounded-t-[18px] border bg-white shadow-2xl sm:rounded-[18px]"
+        className="border-border w-full max-w-md overflow-hidden rounded-t-[18px] border bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-[18px] sm:pb-0"
       >
         {/* Header chaleureux */}
         <div className="from-primary-600 to-primary-700 relative bg-gradient-to-br p-5 text-white">
@@ -116,7 +116,7 @@ function OpenInSafariSheet({ onClose }: { onClose: () => void }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="border-border w-full max-w-md overflow-hidden rounded-t-[18px] border bg-white shadow-2xl sm:rounded-[18px]"
+        className="border-border w-full max-w-md overflow-hidden rounded-t-[18px] border bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-[18px] sm:pb-0"
       >
         <div className="from-primary-600 to-primary-700 relative bg-gradient-to-br p-5 text-white">
           <button

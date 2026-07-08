@@ -434,7 +434,7 @@ function CreateRuleModal({
       onClick={onClose}
     >
       <div
-        className="bg-surface text-foreground max-h-[92vh] w-full max-w-lg overflow-auto rounded-t-[20px] shadow-2xl sm:rounded-[20px]"
+        className="bg-surface text-foreground max-h-[92vh] w-full max-w-lg overflow-auto rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-[20px] sm:pb-0"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="border-border bg-surface sticky top-0 flex items-center justify-between border-b px-4 py-3">

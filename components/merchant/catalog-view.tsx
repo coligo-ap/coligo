@@ -2050,7 +2050,7 @@ function BulkBar({
   onDeleteCategories: () => void;
 }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 px-4 pb-4 lg:bottom-4 lg:left-60">
+    <div className="fixed inset-x-0 bottom-0 z-40 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:bottom-4 lg:left-60 lg:pb-4">
       <div className="border-border bg-surface mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-[16px] border p-3 shadow-lg">
         <span className="text-sm font-medium">
           {productCount > 0 &&

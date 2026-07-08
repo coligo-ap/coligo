@@ -204,7 +204,7 @@ export function ProductDetailSheet({
       role="dialog"
       aria-modal
     >
-      <div className="bg-surface flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-[20px] shadow-xl sm:rounded-[20px]">
+      <div className="bg-surface flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[20px]">
         {/* Image en grand — photo entière sur fond blanc (façon Yassir). */}
         <div className="border-border relative aspect-[16/10] w-full overflow-hidden border-b bg-white">
           {product.image_url ? (

@@ -75,7 +75,7 @@ export function Sheet({
         onClick={onClose}
       >
         <div
-          className="drive-up w-full rounded-t-[26px] bg-[var(--d-surface)] px-5 pt-[18px] pb-6 text-[var(--d-ink)]"
+          className="drive-up w-full rounded-t-[26px] bg-[var(--d-surface)] px-5 pt-[18px] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-[var(--d-ink)]"
           onClick={(e) => e.stopPropagation()}
         >
           {children}

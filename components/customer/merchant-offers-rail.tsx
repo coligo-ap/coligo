@@ -426,7 +426,7 @@ function OfferDetailSheet({
         }}
       >
         <div
-          className="bg-surface partner-sheet-in flex max-h-[85vh] w-full max-w-md flex-col rounded-t-[24px] shadow-xl sm:rounded-[24px]"
+          className="bg-surface partner-sheet-in flex max-h-[85vh] w-full max-w-md flex-col rounded-t-[24px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[24px]"
           role="dialog"
           aria-modal="true"
         >
