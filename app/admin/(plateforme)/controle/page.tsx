@@ -101,7 +101,10 @@ export default async function AdminControlePage() {
         />
       </section>
 
-      <section className="space-y-4">
+      <section
+        data-alert-focus="services_maintenance"
+        className="space-y-4 rounded-[16px]"
+      >
         <h2 className="text-foreground text-sm font-semibold tracking-tight">
           Disponibilité des fonctionnalités
         </h2>

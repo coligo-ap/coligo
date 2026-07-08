@@ -17,6 +17,7 @@ import {
   SEVERITY_DOT_CLASS,
   SEVERITY_LABEL,
   SEVERITY_RANK,
+  alertFocusHref,
   sortAlerts,
   summarizeByDomain,
   type AlertDomain,
@@ -153,7 +154,7 @@ export function AdminAlertCenterView({
           {visible.map((a) => (
             <Link
               key={a.code}
-              href={a.href}
+              href={alertFocusHref(a)}
               className={cn(
                 "bg-surface group rounded-[16px] border-l-4 p-4 shadow-sm transition-shadow hover:shadow-md",
                 a.severity === "critical"
@@ -195,9 +196,13 @@ export function AdminAlertCenterView({
         </div>
       )}
 
-      {/* Drill-down Pilotage : détail riche des commandes en retard */}
+      {/* Drill-down Pilotage : détail riche des commandes en retard — cible
+          des alertes retards/non acceptées (?focus=…). */}
       {showLate && lateOrders.length > 0 && (
-        <section className="border-border mt-8 border-t pt-2">
+        <section
+          data-alert-focus="orders_late_crit orders_late_warn orders_stuck_pending"
+          className="border-border mt-8 rounded-[16px] border-t pt-2"
+        >
           <AdminLateOrdersView
             orders={lateOrders}
             thresholdMin={thresholdMin}

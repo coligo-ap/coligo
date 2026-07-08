@@ -31,7 +31,11 @@ export default async function AdminDriversPage() {
           valider — ouvrir l&apos;onglet Inscriptions →
         </Link>
       )}
-      <DriverList initialRows={rows} />
+      {/* Cible de l'alerte « livreurs bloqués en course » (?focus=…) :
+          l'annuaire, où se libère la disponibilité d'un livreur. */}
+      <div data-alert-focus="ghost_busy_drivers" className="rounded-[16px]">
+        <DriverList initialRows={rows} />
+      </div>
     </div>
   );
 }

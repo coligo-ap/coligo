@@ -131,7 +131,10 @@ export async function DeliveryFinances() {
         />
       </section>
 
-      <section className="border-border bg-surface mb-6 rounded-[14px] border p-5">
+      <section
+        data-alert-focus="drivers_over_cap"
+        className="border-border bg-surface mb-6 rounded-[14px] border p-5"
+      >
         <h2 className="mb-3 flex items-center gap-2 text-base font-semibold">
           <Truck className="size-4" />
           Ledger livreurs (cumul)

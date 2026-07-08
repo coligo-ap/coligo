@@ -198,7 +198,10 @@ export function ColigoPaySurveillance({
       </section>
 
       {/* Journal d'audit */}
-      <section className="border-border bg-surface rounded-[16px] border">
+      <section
+        data-alert-focus="paid_after_cancel"
+        className="border-border bg-surface rounded-[16px] border"
+      >
         <header className="border-border flex items-center justify-between border-b px-5 py-4">
           <h2 className="text-base font-semibold">Journal d&apos;audit</h2>
           <span className="text-muted text-xs tabular-nums">

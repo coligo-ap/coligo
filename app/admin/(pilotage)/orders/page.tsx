@@ -34,14 +34,21 @@ export default async function AdminOrdersPage({
           période — les filtres se combinent. Ouvre une commande pour la gérer.
         </p>
       </header>
-      <AdminOrdersExplorer
-        rows={rows}
-        total={total}
-        page={page}
-        pageSize={ORDERS_PAGE_SIZE}
-        filters={explorer}
-        basePath="/admin/orders"
-      />
+      {/* Cible de l'alerte « livraisons récupérées sans issue » (?focus=…) :
+          l'explorateur, déjà pré-filtré par le href de l'alerte. */}
+      <div
+        data-alert-focus="deliveries_stuck_in_transit"
+        className="rounded-[16px]"
+      >
+        <AdminOrdersExplorer
+          rows={rows}
+          total={total}
+          page={page}
+          pageSize={ORDERS_PAGE_SIZE}
+          filters={explorer}
+          basePath="/admin/orders"
+        />
+      </div>
     </div>
   );
 }

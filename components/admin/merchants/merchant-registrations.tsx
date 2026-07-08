@@ -64,7 +64,10 @@ export function MerchantRegistrations({
       </p>
 
       {/* À TRAITER */}
-      <section className="border-warning-200 bg-warning-50/60 rounded-[16px] border p-4 lg:p-5">
+      <section
+        data-alert-focus="merchants_pending"
+        className="border-warning-200 bg-warning-50/60 rounded-[16px] border p-4 lg:p-5"
+      >
         <h2 className="text-warning-900 mb-1 flex items-center gap-2 text-base font-bold">
           <Clock className="size-4" />
           Demandes à traiter ({pending.length})

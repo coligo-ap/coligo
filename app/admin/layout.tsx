@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import { LogOut, ShieldCheck } from "lucide-react";
 import { requireSuperAdmin, getAdminContext } from "@/lib/auth/admin";
 import { logout } from "@/app/(merchant)/actions";
 import { Logo } from "@/components/shared/logo";
 import { AdminAlertsProvider } from "@/components/admin/admin-alerts-provider";
+import { AlertFocusEffect } from "@/components/admin/alert-focus";
 import { AdminNotificationCenter } from "@/components/admin/admin-notification-center";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 import { AdminShell } from "@/components/admin/admin-sidebar";
@@ -27,6 +29,11 @@ export default async function AdminLayout({
   return (
     <ConfirmProvider>
       <AdminAlertsProvider>
+        {/* Surbrillance d'atterrissage des alertes (?focus=<code>). Suspense
+            requis par useSearchParams ; ne rend rien. */}
+        <Suspense fallback={null}>
+          <AlertFocusEffect />
+        </Suspense>
         <div className="bg-surface-2 min-h-screen">
           <header className="border-border sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b bg-white px-4 lg:px-6">
             <div className="flex min-w-0 items-center gap-3 lg:gap-4">

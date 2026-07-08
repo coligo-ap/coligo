@@ -85,7 +85,10 @@ export function DevicesView({ initial }: { initial: DevicesData }) {
 
       {/* Anti-fraude : IP partagées entre plusieurs comptes */}
       {shared.length > 0 && (
-        <section className="border-warning-300 bg-warning-50 mb-6 rounded-[14px] border p-4">
+        <section
+          data-alert-focus="shared_ip_devices"
+          className="border-warning-300 bg-warning-50 mb-6 rounded-[14px] border p-4"
+        >
           <h2 className="text-warning-800 mb-2 flex items-center gap-1.5 text-sm font-bold">
             <AlertTriangle className="size-4" />
             IP partagées par plusieurs comptes ({shared.length})

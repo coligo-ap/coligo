@@ -59,7 +59,10 @@ export default async function ChauffeurRegistrationsTab() {
 
   return (
     <div className="space-y-8">
-      <section>
+      <section
+        data-alert-focus="chauffeur_pending_validation"
+        className="rounded-[16px]"
+      >
         <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold uppercase">
           <ShieldCheck className="size-4" /> File de validation ({queue.length})
         </h2>

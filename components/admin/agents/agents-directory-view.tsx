@@ -16,7 +16,10 @@ export async function AgentsDirectoryView() {
           partenariat se valident dans l&apos;onglet « Inscriptions ».
         </p>
       </header>
-      <AgentsDirectory initialAgents={agents} />
+      {/* Cible de l'alerte « agents à valider (pièces) » (?focus=…). */}
+      <div data-alert-focus="partner_docs_pending" className="rounded-[16px]">
+        <AgentsDirectory initialAgents={agents} />
+      </div>
       <ModulePaymentAccount scope="partner" />
     </div>
   );

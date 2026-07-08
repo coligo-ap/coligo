@@ -135,7 +135,10 @@ export default async function AdminIntegrityPage() {
 
       {/* Liste des violations */}
       {violations.length > 0 && (
-        <ul className="mt-4 space-y-2.5">
+        <ul
+          data-alert-focus="integrity_violation"
+          className="mt-4 space-y-2.5 rounded-[12px]"
+        >
           {violations.map((v) => {
             const s = sev(v.severity);
             return (

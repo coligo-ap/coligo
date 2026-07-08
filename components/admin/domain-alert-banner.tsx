@@ -7,6 +7,7 @@ import { useAdminAlerts } from "@/components/admin/admin-alerts-provider";
 import {
   SEVERITY_DOT_CLASS,
   SEVERITY_LABEL,
+  alertFocusHref,
   maxSeverity,
   sortAlerts,
   type AlertDomain,
@@ -74,7 +75,7 @@ export function DomainAlertBanner({ domain }: { domain: AlertDomain }) {
           {mine.map((a) => (
             <Link
               key={a.code}
-              href={a.href}
+              href={alertFocusHref(a)}
               title={ago(a.since) ? `${a.label} — ${ago(a.since)}` : a.label}
               className="border-border hover:bg-surface inline-flex items-center gap-1.5 rounded-full border bg-white/70 px-2.5 py-1 text-xs font-semibold transition-colors"
             >

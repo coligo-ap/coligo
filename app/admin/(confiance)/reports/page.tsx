@@ -117,7 +117,10 @@ export default async function AdminReportsPage() {
         </p>
       </header>
 
-      <section className="mb-8">
+      <section
+        data-alert-focus="driver_refund_pending"
+        className="mb-8 rounded-[16px]"
+      >
         <h2 className="mb-2 text-lg font-semibold">
           Avances no-show à valider
         </h2>
@@ -130,17 +133,29 @@ export default async function AdminReportsPage() {
         <AdminRefundClaims rows={claims} />
       </section>
 
-      <h2 className="mb-2 text-lg font-semibold">Signalements de livraison</h2>
-      <AdminReportsList rows={rows} />
+      <section
+        data-alert-focus="delivery_reports_open"
+        className="rounded-[16px]"
+      >
+        <h2 className="mb-2 text-lg font-semibold">
+          Signalements de livraison
+        </h2>
+        <AdminReportsList rows={rows} />
+      </section>
 
-      <h2 className="mt-8 mb-2 text-lg font-semibold">
-        Signalements de course (Coligo Drive)
-      </h2>
-      <p className="text-muted mb-3 text-sm">
-        Litiges signalés sur une course (client ↔ chauffeur). Traitez chaque
-        cas.
-      </p>
-      <AdminRideReportsList rows={rideRows} />
+      <section
+        data-alert-focus="ride_reports_open"
+        className="mt-8 rounded-[16px]"
+      >
+        <h2 className="mb-2 text-lg font-semibold">
+          Signalements de course (Coligo Drive)
+        </h2>
+        <p className="text-muted mb-3 text-sm">
+          Litiges signalés sur une course (client ↔ chauffeur). Traitez chaque
+          cas.
+        </p>
+        <AdminRideReportsList rows={rideRows} />
+      </section>
     </div>
   );
 }

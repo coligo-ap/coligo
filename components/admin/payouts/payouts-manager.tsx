@@ -133,7 +133,10 @@ export function MerchantPayouts({ payouts }: { payouts: MerchantPayout[] }) {
   );
 
   return (
-    <section className="border-border bg-surface rounded-[16px] border">
+    <section
+      data-alert-focus="payouts_pending"
+      className="border-border bg-surface rounded-[16px] border"
+    >
       <header className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
         <h2 className="flex items-center gap-2 text-base font-semibold">
           <Banknote className="text-primary-500 size-4" />

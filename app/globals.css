@@ -1276,3 +1276,31 @@ body {
   background-image: linear-gradient(135deg, #f59e0b, #b45309);
   background-color: #d97706; /* repli ultime */
 }
+
+/* ── Admin : surbrillance d'atterrissage des alertes (AlertFocusEffect) ──
+   Halo violet clignotant appliqué au composant cible quand un super-admin
+   clique une alerte/notification (?focus=<code> + data-alert-focus). Purement
+   visuel, retiré après ~6 s. L'outline suit le border-radius de l'élément ;
+   scroll-margin garde la cible sous le header sticky. */
+@keyframes alert-focus-blink {
+  0%,
+  100% {
+    outline-color: transparent;
+    background-color: transparent;
+  }
+  50% {
+    outline-color: var(--color-primary-500, #7a3aec);
+    background-color: color-mix(
+      in srgb,
+      var(--color-primary-500, #7a3aec) 14%,
+      transparent
+    );
+  }
+}
+.alert-focus-ring {
+  outline: 3px solid transparent;
+  outline-offset: 3px;
+  scroll-margin-top: 96px;
+  scroll-margin-bottom: 32px;
+  animation: alert-focus-blink 0.85s ease-in-out 7;
+}

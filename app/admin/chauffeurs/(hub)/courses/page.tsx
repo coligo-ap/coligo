@@ -30,7 +30,14 @@ export default async function AdminRidesPage({
 
   return (
     <div className="space-y-4">
-      <StuckRidesPanel rides={stuckRides} />
+      {/* Cible des alertes courses bloquées / recherches carte expirées
+          (?focus=…) : le panneau de tête, où elles se tranchent. */}
+      <div
+        data-alert-focus="rides_stuck_active rides_searching_card_expired"
+        className="rounded-[16px]"
+      >
+        <StuckRidesPanel rides={stuckRides} />
+      </div>
       <RidesExplorer
         rows={rows}
         total={total}

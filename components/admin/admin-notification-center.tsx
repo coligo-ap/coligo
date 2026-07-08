@@ -10,6 +10,7 @@ import {
   SEVERITY_DOT_CLASS,
   SEVERITY_LABEL,
   SEVERITY_RANK,
+  alertFocusHref,
   maxSeverity,
   sortAlerts,
   summarizeByDomain,
@@ -122,7 +123,7 @@ export function AdminNotificationCenter() {
                     {sortAlerts(byDomain[dom].alerts).map((a) => (
                       <li key={a.code}>
                         <Link
-                          href={a.href}
+                          href={alertFocusHref(a)}
                           onClick={() => setOpen(false)}
                           className="hover:bg-surface-2 flex items-center gap-2.5 rounded-[10px] px-2 py-2"
                         >

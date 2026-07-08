@@ -92,6 +92,21 @@ export const DOMAIN_LABEL: Record<AlertDomain, string> = {
   marketing: "Marketing",
 };
 
+/**
+ * FOCUS FRONTEND — nom du paramètre d'URL ajouté aux liens d'alerte pour que
+ * la page d'arrivée mette en SURBRILLANCE CLIGNOTANTE le composant concerné
+ * (marqué `data-alert-focus="<codes>"`, cf. `AlertFocusEffect`). Purement
+ * visuel : aucun impact données, le href de la RPC reste la vérité.
+ */
+export const ALERT_FOCUS_PARAM = "focus";
+
+/** Href d'une alerte enrichi du code à surligner sur la page cible. */
+export function alertFocusHref(a: AdminAlert): string {
+  if (!a.href || a.href === "#") return a.href;
+  const sep = a.href.includes("?") ? "&" : "?";
+  return `${a.href}${sep}${ALERT_FOCUS_PARAM}=${encodeURIComponent(a.code)}`;
+}
+
 /** Gravité la plus forte d'une liste d'alertes (`ok` si vide). */
 export function maxSeverity(alerts: AdminAlert[]): AlertSeverity {
   let best: AlertSeverity = "ok";

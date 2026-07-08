@@ -12,7 +12,12 @@ export default async function MerchantFinancesTab() {
   const payouts = await getMerchantPayouts();
 
   return (
-    <div className="space-y-5">
+    // Cible de l'alerte « dette espèces » (surbrillance ?focus=…) : le hub
+    // finances entier — la dette se lit sur les soldes des demandes.
+    <div
+      data-alert-focus="merchant_cash_debt"
+      className="space-y-5 rounded-[16px]"
+    >
       <p className="text-muted text-sm">
         Traitez les demandes de versement des commerçants. « Marquer payée »
         débite le solde — à faire <strong>après</strong> le virement réel.

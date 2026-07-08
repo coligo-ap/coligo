@@ -92,15 +92,21 @@ function Section({
   icon,
   title,
   description,
+  focus,
   children,
 }: {
   icon: React.ReactNode;
   title: string;
   description?: string;
+  /** Code(s) d'alerte ciblant cette section (surbrillance ?focus=<code>). */
+  focus?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-border bg-surface rounded-[16px] border p-5">
+    <section
+      data-alert-focus={focus}
+      className="border-border bg-surface rounded-[16px] border p-5"
+    >
       <div className="mb-4 flex items-start gap-3">
         <span className="bg-primary-50 text-primary-600 flex size-9 shrink-0 items-center justify-center rounded-full">
           {icon}
@@ -221,6 +227,7 @@ export function RechargesManager({
         icon={<Wallet className="size-4" />}
         title="Recharges manuelles à valider"
         description="Preuves de virement / CCP en attente."
+        focus="topup_pending"
       >
         {pending.length === 0 ? (
           <p className="text-muted text-sm">Aucune demande en attente.</p>
@@ -272,6 +279,7 @@ export function RechargesManager({
         icon={<Store className="size-4" />}
         title="Agents Coligo Pay"
         description="Agents Coligo Pay visibles dans « Où recharger » des opérateurs."
+        focus="operator_wallets_negative"
       >
         <CreatePartnerForm busy={busy} run={run} merchants={merchants} />
         {partners.length === 0 ? (
