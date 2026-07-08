@@ -252,3 +252,302 @@ export async function recomputeDriveLearning(): Promise<{
   revalidatePath("/admin/drive");
   return { ok: true, bands: typeof data === "number" ? data : 0 };
 }
+
+// =============================================================================
+// Courses BLOQUÉES (mig 0342) — le support tranche : annuler (+ remboursement
+// séquestre) ou clôturer comme terminée (chauffeur payé). Chaque action est
+// auditée (admin_audit_log, target_kind='ride', avant/après + IP) et notifie
+// chauffeur + client (push ; leurs apps se resynchronisent via poll/Realtime).
+// =============================================================================
+
+/** IP client (même extraction que la télémétrie : x-forwarded-for en tête). */
+async function rideActionIp(): Promise<string | null> {
+  try {
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    return (
+      h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      h.get("x-real-ip") ||
+      null
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function auditRide(
+  action: string,
+  rideId: string,
+  note: string | null,
+  values?: {
+    oldValue?: Record<string, unknown> | null;
+    newValue?: Record<string, unknown> | null;
+  }
+) {
+  try {
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const from = supabase.from.bind(supabase) as unknown as (t: string) => {
+      insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+    };
+    await from("admin_audit_log").insert({
+      admin_email: user?.email ?? null,
+      action,
+      target_kind: "ride",
+      target_id: rideId,
+      note,
+      old_value: values?.oldValue ?? null,
+      new_value: values?.newValue ?? null,
+      ip: await rideActionIp(),
+    });
+  } catch {
+    /* l'audit ne doit jamais faire échouer l'action métier */
+  }
+}
+
+export type StuckRide = {
+  id: string;
+  status: string;
+  paymentMethod: string;
+  priceDa: number;
+  escrowDa: number;
+  pickupText: string | null;
+  destText: string | null;
+  customerName: string | null;
+  chauffeurName: string | null;
+  chauffeurId: string | null;
+  /** Dernier signe de vie (accepted/arrived/started… selon l'étape). */
+  sinceAt: string;
+  /** Classe : attribuée sans progression / recherche carte expirée. */
+  kind: "active" | "card_expired";
+};
+
+/**
+ * Courses à TRANCHER (mêmes définitions que les alertes 0342) :
+ *  - attribuées (accepted/arriving/arrived/in_progress) sans progression
+ *    depuis drive_stuck_ride_alert_min ;
+ *  - recherches payées CARTE expirées (0250 ne les auto-annule pas).
+ * Lecture service_role AUTO-GARDÉE (adminCan → []).
+ */
+export async function getStuckRides(): Promise<StuckRide[]> {
+  if (!(await adminCan("drive"))) return [];
+  const admin = createAdminClient();
+
+  const { data: settings } = await admin
+    .from("platform_settings")
+    .select("drive_stuck_ride_alert_min" as never)
+    .eq("id", true)
+    .maybeSingle();
+  const thresholdMin = Number(
+    (settings as { drive_stuck_ride_alert_min?: number } | null)
+      ?.drive_stuck_ride_alert_min ?? 120
+  );
+
+  const { data: rides } = await admin
+    .from("rides")
+    .select(
+      "id, status, payment_method, agreed_price_da, proposed_price_da, boost_amount_da, escrow_da, pickup_text, dest_text, customer_id, chauffeur_id, created_at, accepted_at, arrived_at, started_at, expires_at, online_paid_at"
+    )
+    .not("status", "in", "(completed,cancelled)")
+    .order("created_at", { ascending: true })
+    .limit(100);
+
+  const now = Date.now();
+  type RideRow = NonNullable<typeof rides>[number] & {
+    customer_id: string | null;
+    chauffeur_id: string | null;
+  };
+  const rows: StuckRide[] = [];
+  const custIds = new Set<string>();
+  const chIds = new Set<string>();
+  for (const raw of rides ?? []) {
+    const r = raw as RideRow;
+    const sinceAt =
+      r.started_at ?? r.arrived_at ?? r.accepted_at ?? r.created_at;
+    const ageMin = (now - new Date(sinceAt).getTime()) / 60000;
+    const isActive = [
+      "accepted",
+      "arriving",
+      "arrived",
+      "in_progress",
+    ].includes(r.status);
+    const isCardExpired =
+      r.status === "searching" &&
+      r.payment_method === "card" &&
+      !!r.online_paid_at &&
+      !!r.expires_at &&
+      new Date(r.expires_at).getTime() < now;
+    if (
+      !(isActive && thresholdMin > 0 && ageMin >= thresholdMin) &&
+      !isCardExpired
+    )
+      continue;
+    if (r.customer_id) custIds.add(r.customer_id);
+    if (r.chauffeur_id) chIds.add(r.chauffeur_id);
+    rows.push({
+      id: r.id,
+      status: r.status,
+      paymentMethod: r.payment_method,
+      priceDa: Math.max(
+        0,
+        r.agreed_price_da ??
+          (r.proposed_price_da ?? 0) + (r.boost_amount_da ?? 0)
+      ),
+      escrowDa: r.escrow_da ?? 0,
+      pickupText: r.pickup_text,
+      destText: r.dest_text,
+      customerName: r.customer_id,
+      chauffeurName: r.chauffeur_id,
+      chauffeurId: r.chauffeur_id,
+      sinceAt,
+      kind: isCardExpired ? "card_expired" : "active",
+    });
+  }
+  if (rows.length === 0) return rows;
+
+  // Résolution des noms (tables courtes filtrées par id, best-effort).
+  const [{ data: custs }, { data: chs }] = await Promise.all([
+    custIds.size
+      ? admin
+          .from("customers")
+          .select("id, full_name")
+          .in("id", [...custIds])
+      : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+    chIds.size
+      ? admin
+          .from("chauffeurs")
+          .select("id, full_name")
+          .in("id", [...chIds])
+      : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+  ]);
+  const custName = new Map((custs ?? []).map((c) => [c.id, c.full_name]));
+  const chName = new Map((chs ?? []).map((c) => [c.id, c.full_name]));
+  for (const row of rows) {
+    row.customerName = row.customerName
+      ? (custName.get(row.customerName) ?? null)
+      : null;
+    row.chauffeurName = row.chauffeurName
+      ? (chName.get(row.chauffeurName) ?? null)
+      : null;
+  }
+  return rows;
+}
+
+/** Annule une course bloquée (remboursement séquestre automatique). */
+export async function adminCancelRide(input: {
+  rideId: string;
+  reason: string;
+}): Promise<{ ok?: boolean; error?: string }> {
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
+  const reason = input.reason?.trim();
+  if (!reason) return { error: "Le motif est obligatoire." };
+
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc("admin_cancel_ride", {
+    p_ride_id: input.rideId,
+    p_reason: reason,
+  });
+  if (error) return { error: error.message };
+  const res = (data ?? {}) as {
+    ok?: boolean;
+    reason?: string;
+    from_status?: string;
+    refunded_da?: number;
+  };
+  if (!res.ok) {
+    const map: Record<string, string> = {
+      forbidden: "Accès refusé.",
+      ride_not_found: "Course introuvable.",
+      already_terminal: "Course déjà terminée ou annulée.",
+    };
+    return { error: map[res.reason ?? ""] ?? "Annulation impossible." };
+  }
+
+  await auditRide("cancel_ride", input.rideId, reason, {
+    oldValue: res.from_status ? { status: res.from_status } : null,
+    newValue: {
+      status: "cancelled",
+      ...(res.refunded_da ? { refunded_da: res.refunded_da } : {}),
+    },
+  });
+  try {
+    const { notifyRideClosedByAdmin } = await import("@/lib/fcm/triggers");
+    await notifyRideClosedByAdmin({
+      rideId: input.rideId,
+      outcome: "cancelled",
+      refundedDa: res.refunded_da ?? 0,
+    });
+  } catch {
+    /* noop */
+  }
+  revalidatePath("/admin/drive");
+  return { ok: true };
+}
+
+/** Clôture une course bloquée COMME TERMINÉE (chauffeur payé, motif requis). */
+export async function adminCompleteRide(input: {
+  rideId: string;
+  reason: string;
+}): Promise<{ ok?: boolean; error?: string }> {
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
+  const reason = input.reason?.trim();
+  if (!reason) return { error: "Le motif est obligatoire." };
+
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc("admin_complete_ride", {
+    p_ride_id: input.rideId,
+    p_note: reason,
+  });
+  if (error) return { error: error.message };
+  const res = (data ?? {}) as {
+    ok?: boolean;
+    reason?: string;
+    from_status?: string;
+    chauffeur_net_da?: number;
+  };
+  if (!res.ok) {
+    const map: Record<string, string> = {
+      forbidden: "Accès refusé.",
+      ride_not_found: "Course introuvable.",
+      cancelled: "Course déjà annulée.",
+      no_chauffeur: "Aucun chauffeur attribué — annule plutôt la course.",
+      escrow_missing:
+        "Séquestre carte incomplet — contacte la finance avant de clôturer.",
+    };
+    return { error: map[res.reason ?? ""] ?? "Clôture impossible." };
+  }
+
+  await auditRide("complete_ride", input.rideId, reason, {
+    oldValue: res.from_status ? { status: res.from_status } : null,
+    newValue: {
+      status: "completed",
+      ...(res.chauffeur_net_da
+        ? { chauffeur_net_da: res.chauffeur_net_da }
+        : {}),
+    },
+  });
+  try {
+    const { notifyRideClosedByAdmin } = await import("@/lib/fcm/triggers");
+    await notifyRideClosedByAdmin({
+      rideId: input.rideId,
+      outcome: "completed",
+    });
+  } catch {
+    /* noop */
+  }
+  revalidatePath("/admin/drive");
+  return { ok: true };
+}

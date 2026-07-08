@@ -1265,6 +1265,90 @@ export async function notifyRideCustomer(
 }
 
 /**
+ * Drive — la plateforme (support) vient de CLÔTURER une course : annulée
+ * (+ remboursement séquestre éventuel) ou terminée à la place du chauffeur.
+ * Notifie le CHAUFFEUR et le CLIENT — l'app chauffeur (poll 20 s + Realtime)
+ * et l'app client (my_active_ride) se resynchronisent d'elles-mêmes ; le push
+ * couvre l'arrière-plan et EXPLIQUE la décision. Fire-and-forget.
+ */
+export async function notifyRideClosedByAdmin(input: {
+  rideId: string;
+  outcome: "completed" | "cancelled";
+  refundedDa?: number;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: ride } = await admin
+      .from("rides")
+      .select("customer_id, chauffeur_id")
+      .eq("id", input.rideId)
+      .maybeSingle();
+    if (!ride) return;
+
+    // Chauffeur.
+    if (ride.chauffeur_id) {
+      const { data: ch } = await admin
+        .from("chauffeurs")
+        .select("user_id")
+        .eq("id", ride.chauffeur_id)
+        .maybeSingle();
+      if (ch?.user_id) {
+        const tokens = await tokensFor(ch.user_id, "chauffeur");
+        if (tokens.length > 0) {
+          await sendFcm(
+            tokens,
+            input.outcome === "completed"
+              ? {
+                  title: "Course clôturée ✓",
+                  body: "Le support a clôturé ta course : elle est comptée comme terminée et tes gains sont crédités. Tu peux reprendre les courses.",
+                }
+              : {
+                  title: "Course annulée",
+                  body: "Le support a annulé ta course en cours. Ne poursuis pas le trajet — contacte le support si besoin.",
+                },
+            {
+              route: "/chauffeur",
+              kind: "drive_ride_closed_admin",
+              rideId: input.rideId,
+            }
+          );
+        }
+      }
+    }
+
+    // Client.
+    const { data: cust } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", ride.customer_id)
+      .maybeSingle();
+    if (cust?.user_id) {
+      const tokens = await tokensFor(cust.user_id, "customer");
+      if (tokens.length > 0) {
+        await sendFcm(
+          tokens,
+          input.outcome === "completed"
+            ? {
+                title: "Course terminée",
+                body: "Votre course a été clôturée par le support Coligo.",
+              }
+            : {
+                title: "Course annulée par le support",
+                body:
+                  input.refundedDa && input.refundedDa > 0
+                    ? `Votre course a été annulée — ${formatDA(input.refundedDa)} recrédités sur votre Coligo Pay.`
+                    : "Votre course a été annulée par le support Coligo.",
+              },
+          { route: "/drive", kind: "drive_ride_closed_admin" }
+        );
+      }
+    }
+  } catch (err) {
+    console.warn("[fcm] notifyRideClosedByAdmin failed:", err);
+  }
+}
+
+/**
  * Drive — notifie le DESTINATAIRE d'un message de chat de course (client ↔
  * chauffeur). L'expéditeur vient d'envoyer `body` ; on pousse au camp opposé.
  * Fire-and-forget (le poll/temps réel couvre le cas app ouverte).
