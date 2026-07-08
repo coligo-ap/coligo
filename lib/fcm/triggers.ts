@@ -1349,6 +1349,112 @@ export async function notifyRideClosedByAdmin(input: {
 }
 
 /**
+ * Coligo Pay — notifie le CLIENT d'un ajustement de son portefeuille par le
+ * support (crédit ou débit motivé). Fire-and-forget.
+ */
+export async function notifyCustomerWalletAdjusted(input: {
+  customerId: string;
+  amountDa: number; // signé
+  source: "topup" | "cashback";
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: cust } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", input.customerId)
+      .maybeSingle();
+    if (!cust?.user_id) return;
+    const tokens = await tokensFor(cust.user_id, "customer");
+    if (tokens.length === 0) return;
+    const label = input.source === "topup" ? "Coligo Pay" : "cashback";
+    await sendFcm(
+      tokens,
+      input.amountDa > 0
+        ? {
+            title: "Crédit ajouté",
+            body: `${formatDA(input.amountDa)} ont été crédités sur votre ${label} par le support Coligo.`,
+          }
+        : {
+            title: "Ajustement de solde",
+            body: `${formatDA(-input.amountDa)} ont été retirés de votre ${label} par le support Coligo. Contactez-nous pour toute question.`,
+          },
+      { route: "/wallet", kind: "wallet_adjusted" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyCustomerWalletAdjusted failed:", err);
+  }
+}
+
+/**
+ * Drive — notifie le CLIENT d'un remboursement (partiel/total) du support sur
+ * une course TERMINÉE (crédit Coligo Pay). Fire-and-forget.
+ */
+export async function notifyRideCustomerRefund(input: {
+  rideId: string;
+  amountDa: number;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: ride } = await admin
+      .from("rides")
+      .select("customer_id")
+      .eq("id", input.rideId)
+      .maybeSingle();
+    if (!ride) return;
+    const { data: cust } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", ride.customer_id)
+      .maybeSingle();
+    if (!cust?.user_id) return;
+    const tokens = await tokensFor(cust.user_id, "customer");
+    if (tokens.length === 0) return;
+    await sendFcm(
+      tokens,
+      {
+        title: "Remboursement effectué",
+        body: `${formatDA(input.amountDa)} ont été crédités sur votre Coligo Pay au titre de votre course Drive.`,
+      },
+      { route: "/drive", kind: "drive_ride_refund" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyRideCustomerRefund failed:", err);
+  }
+}
+
+/**
+ * Drive — notifie un CHAUFFEUR qu'une indemnité a été créditée sur son
+ * portefeuille opérateur par le support. Fire-and-forget.
+ */
+export async function notifyChauffeurCompensation(input: {
+  chauffeurId: string;
+  amountDa: number;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: ch } = await admin
+      .from("chauffeurs")
+      .select("user_id")
+      .eq("id", input.chauffeurId)
+      .maybeSingle();
+    if (!ch?.user_id) return;
+    const tokens = await tokensFor(ch.user_id, "chauffeur");
+    if (tokens.length === 0) return;
+    await sendFcm(
+      tokens,
+      {
+        title: "Indemnité créditée 💰",
+        body: `Le support t'a crédité ${formatDA(input.amountDa)} sur ton portefeuille opérateur.`,
+      },
+      { route: "/chauffeur", kind: "chauffeur_compensation" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyChauffeurCompensation failed:", err);
+  }
+}
+
+/**
  * Drive — notifie le DESTINATAIRE d'un message de chat de course (client ↔
  * chauffeur). L'expéditeur vient d'envoyer `body` ; on pousse au camp opposé.
  * Fire-and-forget (le poll/temps réel couvre le cas app ouverte).

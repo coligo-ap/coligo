@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Ban,
@@ -165,7 +166,13 @@ export function StuckRidesPanel({ rides }: { rides: StuckRide[] }) {
                 </span>
               )}
             </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <Link
+                href={`/admin/chauffeurs/courses/${r.id}`}
+                className="text-primary-700 mr-1 text-xs font-semibold hover:underline"
+              >
+                Fiche course →
+              </Link>
               {r.chauffeurId && (
                 <button
                   type="button"

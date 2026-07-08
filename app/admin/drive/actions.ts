@@ -207,6 +207,7 @@ export async function updateDriveConfig(
     .update({ drive_default_radius_km: Math.round(cfg.default_radius_km) })
     .eq("id", true);
   revalidatePath("/admin/drive");
+  revalidatePath("/admin/chauffeurs/courses");
   return { ok: true };
 }
 
@@ -250,6 +251,7 @@ export async function recomputeDriveLearning(): Promise<{
   const { data, error } = await admin.rpc("drive_recompute_learning");
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/drive");
+  revalidatePath("/admin/chauffeurs/courses");
   return { ok: true, bands: typeof data === "number" ? data : 0 };
 }
 
@@ -489,6 +491,7 @@ export async function adminCancelRide(input: {
     /* noop */
   }
   revalidatePath("/admin/drive");
+  revalidatePath("/admin/chauffeurs/courses");
   return { ok: true };
 }
 
@@ -549,5 +552,143 @@ export async function adminCompleteRide(input: {
     /* noop */
   }
   revalidatePath("/admin/drive");
+  revalidatePath("/admin/chauffeurs/courses");
+  return { ok: true };
+}
+
+/**
+ * Remboursement MANUEL du client d'une course TERMINÉE (partiel/total) →
+ * crédit Coligo Pay via admin_refund_ride_customer (0345 : plafonné au payé
+ * réel, anti-double sous FOR UPDATE). Une course non terminée s'ANNULE
+ * (le séquestre est déjà recrédité par ce circuit).
+ */
+export async function adminRefundRideCustomer(input: {
+  rideId: string;
+  amountDa: number;
+  reason: string;
+}): Promise<{ ok?: boolean; error?: string }> {
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
+  const amt = Math.floor(Number(input.amountDa));
+  if (!Number.isFinite(amt) || amt < 1) return { error: "Montant invalide." };
+  const reason = input.reason?.trim();
+  if (!reason) return { error: "Le motif est obligatoire." };
+
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc("admin_refund_ride_customer", {
+    p_ride_id: input.rideId,
+    p_amount_da: amt,
+    p_note: reason,
+  });
+  if (error) return { error: error.message };
+  const res = (data ?? {}) as {
+    ok?: boolean;
+    reason?: string;
+    remaining_da?: number;
+    total_refunded_da?: number;
+  };
+  if (!res.ok) {
+    const map: Record<string, string> = {
+      forbidden: "Accès refusé.",
+      bad_amount: "Montant invalide.",
+      note_required: "Le motif est obligatoire.",
+      ride_not_found: "Course introuvable.",
+      cancelled_already_refunded:
+        "Course annulée : le séquestre a déjà été remboursé automatiquement.",
+      not_completed_use_cancel:
+        "Course non terminée : utilise l'annulation (elle rembourse le séquestre).",
+      nothing_refundable: "Plus rien à rembourser sur cette course.",
+      exceeds_refundable: `Montant supérieur au remboursable restant (${res.remaining_da ?? 0} DA).`,
+    };
+    return { error: map[res.reason ?? ""] ?? "Remboursement impossible." };
+  }
+
+  await auditRide("refund_ride_customer", input.rideId, reason, {
+    newValue: {
+      refund_da: amt,
+      total_refunded_da: res.total_refunded_da ?? amt,
+    },
+  });
+  try {
+    const { notifyRideCustomerRefund } = await import("@/lib/fcm/triggers");
+    await notifyRideCustomerRefund({ rideId: input.rideId, amountDa: amt });
+  } catch {
+    /* noop */
+  }
+  revalidatePath("/admin/drive");
+  revalidatePath("/admin/chauffeurs/courses");
+  return { ok: true };
+}
+
+/**
+ * INDEMNISE le chauffeur d'une course : crédit motivé de son PORTEFEUILLE
+ * OPÉRATEUR (admin_operator_credit 0185 — grand livre immuable, idempotent
+ * via op_id dérivé de la course : UNE indemnité par course). Audit ride.
+ */
+export async function adminCompensateChauffeur(input: {
+  rideId: string;
+  amountDa: number;
+  reason: string;
+}): Promise<{ ok?: boolean; error?: string }> {
+  if (!(await adminCan("drive"))) return { error: "Accès refusé." };
+  const amt = Math.floor(Number(input.amountDa));
+  if (!Number.isFinite(amt) || amt < 1 || amt > 20000) {
+    return { error: "Montant invalide (1 à 20 000 DA)." };
+  }
+  const reason = input.reason?.trim();
+  if (!reason) return { error: "Le motif est obligatoire." };
+
+  const admin = createAdminClient();
+  const { data: ride } = await admin
+    .from("rides")
+    .select("id, chauffeur_id")
+    .eq("id", input.rideId)
+    .maybeSingle();
+  if (!ride) return { error: "Course introuvable." };
+  if (!ride.chauffeur_id) return { error: "Aucun chauffeur sur cette course." };
+  // operator_wallets hors database.types.ts généré → accès casté (pattern).
+  const { data: wallet } = await admin
+    .from("operator_wallets" as never)
+    .select("id")
+    .eq("owner_type" as never, "chauffeur" as never)
+    .eq("owner_id" as never, ride.chauffeur_id as never)
+    .maybeSingle<{ id: string }>();
+  if (!wallet)
+    return { error: "Portefeuille opérateur du chauffeur introuvable." };
+
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { error } = await rpc("admin_operator_credit", {
+    p_wallet_id: wallet.id,
+    p_amount_da: amt,
+    p_type: "bonus",
+    p_note: `Indemnité course Drive ${input.rideId.slice(0, 8)} — ${reason}`,
+    // Idempotence structurelle : UNE indemnité par course (rejouer ne double pas).
+    p_op_id: `ride-compensation-${input.rideId}`,
+  });
+  if (error) return { error: error.message };
+
+  await auditRide("compensate_chauffeur", input.rideId, reason, {
+    newValue: { chauffeur_id: ride.chauffeur_id, compensation_da: amt },
+  });
+  try {
+    const { notifyChauffeurCompensation } = await import("@/lib/fcm/triggers");
+    await notifyChauffeurCompensation({
+      chauffeurId: ride.chauffeur_id,
+      amountDa: amt,
+    });
+  } catch {
+    /* noop */
+  }
+  revalidatePath("/admin/drive");
+  revalidatePath("/admin/chauffeurs/courses");
   return { ok: true };
 }

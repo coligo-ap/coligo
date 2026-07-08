@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   PiggyBank,
   ShieldCheck,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,11 @@ const TABS = [
     label: "Surveillance",
     icon: ShieldCheck,
     exact: true,
+  },
+  {
+    href: "/admin/coligo-pay/portefeuilles",
+    label: "Portefeuilles",
+    icon: Wallet,
   },
   { href: "/admin/coligo-pay/agents", label: "Agents", icon: BadgeCheck },
   {
