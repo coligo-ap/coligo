@@ -158,10 +158,23 @@ export function MerchantCompactHeader({
   }, []);
 
   const heroSrc = cover_url ?? categoryImageFor(category) ?? null;
-  const heroOptimized = heroSrc
+  // QUALITÉ COUVERTURE : le crop Cloudinary doit épouser le RATIO RÉEL du
+  // bandeau (≈3:1 mobile, ≈6:1 desktop). Avant : crop 2,5:1 re-recadré par
+  // object-cover → zoom navigateur + perte de netteté. Ici on demande deux
+  // variantes au bon ratio, en 2–3× DPR (jamais d'upscale : gravity auto
+  // choisit la meilleure bande de la photo, le navigateur n'agrandit rien).
+  const heroMobile = heroSrc
     ? (cldUrl(heroSrc, {
         width: 1200,
-        height: 480,
+        height: 408,
+        crop: "fill",
+        gravity: "auto",
+      }) ?? heroSrc)
+    : null;
+  const heroDesktop = heroSrc
+    ? (cldUrl(heroSrc, {
+        width: 2200,
+        height: 352,
         crop: "fill",
         gravity: "auto",
       }) ?? heroSrc)
@@ -286,13 +299,17 @@ export function MerchantCompactHeader({
       {/* ───── HERO immersif plein-cadre (plonge sous l'encoche). Hauteur
               RÉDUITE pour rapprocher les produits (fiche plus compacte). ───── */}
       <div className="bg-surface-3 relative -mx-4 -mt-4 h-[132px] w-[calc(100%+2rem)] overflow-hidden lg:-mx-6 lg:-mt-6 lg:h-[176px] lg:w-[calc(100%+3rem)]">
-        {heroOptimized ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={heroOptimized}
-            alt={t("merchantPhotoAlt", { name })}
-            className="h-full w-full object-cover"
-          />
+        {heroMobile ? (
+          <picture>
+            {heroDesktop && (
+              <source media="(min-width: 1024px)" srcSet={heroDesktop} />
+            )}
+            <img
+              src={heroMobile}
+              alt={t("merchantPhotoAlt", { name })}
+              className="h-full w-full object-cover"
+            />
+          </picture>
         ) : (
           <div className="from-primary-500/25 to-primary-700/35 flex h-full w-full items-center justify-center bg-gradient-to-br">
             <span className="text-primary-700/70 text-6xl font-bold">

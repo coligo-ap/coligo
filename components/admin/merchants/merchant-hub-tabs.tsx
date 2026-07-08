@@ -6,6 +6,7 @@ import {
   Banknote,
   ClipboardCheck,
   FileSignature,
+  Images,
   Percent,
   Receipt,
   Store,
@@ -30,6 +31,7 @@ const TABS = [
     label: "Contrats",
     icon: FileSignature,
   },
+  { href: "/admin/merchants/visuels", label: "Visuels", icon: Images },
 ] as const;
 
 export function MerchantHubTabs({

@@ -22,6 +22,7 @@ import {
   Zap,
 } from "lucide-react";
 import { setLocale } from "@/i18n/actions";
+import { LocaleFlag } from "@/components/i18n/locale-flag";
 import { driverLogout } from "@/app/(driver)/actions";
 import { useDriverDark, toggleDriverDark } from "@/lib/driver/theme-store";
 import { useDriverSound, toggleDriverSound } from "@/lib/driver/sound-store";
@@ -298,7 +299,12 @@ export function CompteView({
         <PartnerMenuRow
           icon={<Globe className="size-4" />}
           label={tr("Langue", "اللغة")}
-          value={isAr ? "العربية" : "Français"}
+          value={
+            <span className="inline-flex items-center gap-1.5">
+              <LocaleFlag locale={isAr ? "ar" : "fr"} className="w-5" />
+              {isAr ? "العربية" : "Français"}
+            </span>
+          }
           onClick={switchLang}
         />
         <PartnerMenuRow

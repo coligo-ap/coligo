@@ -6,6 +6,7 @@ import { useLocale } from "next-intl";
 import { Check, ChevronDown, Globe } from "lucide-react";
 import { setLocale } from "@/i18n/actions";
 import { LOCALES, LOCALE_LABELS, type Locale } from "@/i18n/locale";
+import { LocaleFlag } from "@/components/i18n/locale-flag";
 import { cn } from "@/lib/utils";
 
 /**
@@ -49,7 +50,8 @@ export function CustomerLanguageRow({ title }: { title: string }) {
         <span className="text-foreground min-w-0 flex-1 text-[15px] font-extrabold tracking-tight">
           {title}
         </span>
-        <span className="text-muted inline-flex shrink-0 items-center gap-1 text-[13px] font-semibold">
+        <span className="text-muted inline-flex shrink-0 items-center gap-1.5 text-[13px] font-semibold">
+          <LocaleFlag locale={active} className="w-5" />
           {LOCALE_LABELS[active]}
           <ChevronDown
             className={cn("size-4 transition-transform", open && "rotate-180")}
@@ -68,15 +70,16 @@ export function CustomerLanguageRow({ title }: { title: string }) {
                 onClick={() => choose(loc)}
                 disabled={pending}
                 className={cn(
-                  "flex w-full items-center justify-between gap-3 py-2.5 ps-[68px] pe-4 text-start text-[14px] transition-colors disabled:opacity-60",
+                  "flex w-full items-center gap-2.5 py-2.5 ps-[68px] pe-4 text-start text-[14px] transition-colors disabled:opacity-60",
                   active === loc
                     ? "text-foreground font-bold"
                     : "text-muted hover:text-foreground hover:bg-surface-2"
                 )}
               >
-                {LOCALE_LABELS[loc]}
+                <LocaleFlag locale={loc} className="w-5 shrink-0" />
+                <span className="min-w-0 flex-1">{LOCALE_LABELS[loc]}</span>
                 {active === loc && (
-                  <Check className="text-primary-600 size-4" />
+                  <Check className="text-primary-600 size-4 shrink-0" />
                 )}
               </button>
             </li>

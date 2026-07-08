@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { setLocale } from "@/i18n/actions";
+import { LocaleFlag } from "@/components/i18n/locale-flag";
 import {
   BadgeCheck,
   Car,
@@ -310,7 +311,12 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         <PartnerMenuRow
           icon={<Globe className="size-4" />}
           label="Langue"
-          value={isAr ? "العربية" : "Français"}
+          value={
+            <span className="inline-flex items-center gap-1.5">
+              <LocaleFlag locale={isAr ? "ar" : "fr"} className="w-5" />
+              {isAr ? "العربية" : "Français"}
+            </span>
+          }
           onClick={switchLang}
         />
         <DarkModeRow />

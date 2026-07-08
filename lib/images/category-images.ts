@@ -18,8 +18,9 @@ export const CATEGORY_IMAGES: Record<string, string> = {
     "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=1200&auto=format",
   boucherie:
     "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=1200&auto=format",
+  // (remplacée 08/07 — l'ancienne photo Unsplash renvoyait 404)
   poissonnerie:
-    "https://images.unsplash.com/photo-1535850579364-560bd02b7d2c?w=1200&auto=format",
+    "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=1200&auto=format",
   fruits_legumes:
     "https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=1200&auto=format",
   produits_bio:
@@ -41,8 +42,9 @@ export const CATEGORY_IMAGES: Record<string, string> = {
   // Santé / soin
   pharmacie:
     "https://images.unsplash.com/photo-1583912086096-8c60d75a53f9?w=1200&auto=format",
+  // (remplacée 08/07 — l'ancienne photo Unsplash renvoyait 404)
   cosmetiques:
-    "https://images.unsplash.com/photo-1522335789203-aaa8ecaadf03?w=1200&auto=format",
+    "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=1200&auto=format",
 
   // Mode / accessoires
   vetements:
