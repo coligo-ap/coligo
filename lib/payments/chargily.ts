@@ -19,6 +19,7 @@
 // =============================================================================
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // Chargily Pay v2 a DEUX endpoints distincts :
 //   - test  : https://pay.chargily.net/test/api/v2   (utilisé par les clés test_sk_…)
@@ -30,15 +31,76 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 const LIVE_BASE = "https://pay.chargily.net/api/v2";
 const TEST_BASE = "https://pay.chargily.net/test/api/v2";
 
-function requireSecretKey(): string {
-  const key = process.env.CHARGILY_SECRET_KEY;
+// ─────────────────────────────────────────────────────────────────────────────
+// Mode TEST / LIVE — piloté par le super-admin (toggle /admin/controle,
+// colonne platform_settings.chargily_live_mode, mig 0347). Les CLÉS restent
+// dans l'environnement :
+//   - test : CHARGILY_TEST_SECRET_KEY (repli : CHARGILY_SECRET_KEY historique)
+//   - live : CHARGILY_LIVE_SECRET_KEY
+// Fail-safe : toute erreur de lecture ⇒ TEST (on n'encaisse jamais du vrai
+// argent par accident). Garde de préfixe : une clé qui ne correspond pas au
+// mode demandé fait ÉCHOUER le paiement plutôt que de l'envoyer au mauvais
+// environnement.
+// ─────────────────────────────────────────────────────────────────────────────
+export type ChargilyMode = "live" | "test";
+
+export async function getChargilyMode(): Promise<ChargilyMode> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("platform_settings")
+      .select("chargily_live_mode" as never)
+      .eq("id", true)
+      .maybeSingle();
+    return (data as { chargily_live_mode?: boolean } | null)
+      ?.chargily_live_mode === true
+      ? "live"
+      : "test";
+  } catch {
+    return "test";
+  }
+}
+
+function secretKeyFor(mode: ChargilyMode): string {
+  const key =
+    mode === "live"
+      ? process.env.CHARGILY_LIVE_SECRET_KEY
+      : (process.env.CHARGILY_TEST_SECRET_KEY ??
+        process.env.CHARGILY_SECRET_KEY);
   if (!key || key.length < 10) {
     throw new Error(
-      "CHARGILY_SECRET_KEY manquant dans l'environnement. " +
-        "Branchement Chargily impossible."
+      `Clé secrète Chargily du mode ${mode.toUpperCase()} manquante dans ` +
+        "l'environnement. Branchement Chargily impossible."
+    );
+  }
+  const expected = mode === "live" ? "live_" : "test_";
+  if (!key.startsWith(expected)) {
+    throw new Error(
+      `La clé Chargily configurée pour le mode ${mode.toUpperCase()} ne ` +
+        `commence pas par « ${expected} » — refus d'envoyer le paiement au ` +
+        "mauvais environnement."
     );
   }
   return key;
+}
+
+/** Clés candidates pour vérifier un webhook (test + live si configurées). */
+function webhookCandidateKeys(): string[] {
+  return [
+    process.env.CHARGILY_LIVE_SECRET_KEY,
+    process.env.CHARGILY_TEST_SECRET_KEY,
+    process.env.CHARGILY_SECRET_KEY,
+  ].filter((k): k is string => !!k && k.length >= 10);
+}
+
+/** Présence des clés par mode (pour l'écran admin — jamais les valeurs). */
+export function chargilyKeysPresence(): { test: boolean; live: boolean } {
+  return {
+    test: !!(
+      process.env.CHARGILY_TEST_SECRET_KEY ?? process.env.CHARGILY_SECRET_KEY
+    ),
+    live: !!process.env.CHARGILY_LIVE_SECRET_KEY,
+  };
 }
 
 function resolveApiBase(secretKey: string): string {
@@ -97,7 +159,10 @@ export type ChargilyWebhookEvent = {
 export async function createCheckout(
   input: CreateCheckoutInput
 ): Promise<ChargilyCheckout> {
-  const secret = requireSecretKey();
+  // Le mode actif (test/live) est lu en base à CHAQUE création : le toggle
+  // super-admin prend effet immédiatement, sans redéploiement.
+  const mode = await getChargilyMode();
+  const secret = secretKeyFor(mode);
   const apiBase = resolveApiBase(secret);
 
   const body: Record<string, unknown> = {
@@ -153,19 +218,24 @@ export function verifyWebhookSignature(
   signatureHeader: string | null | undefined
 ): boolean {
   if (!signatureHeader) return false;
-  const secret = requireSecretKey();
-
-  const computed = createHmac("sha256", secret).update(rawBody).digest("hex");
   const provided = signatureHeader.trim();
 
-  // Longueurs identiques requises pour timingSafeEqual.
-  if (computed.length !== provided.length) return false;
-
-  try {
-    return timingSafeEqual(Buffer.from(computed), Buffer.from(provided));
-  } catch {
-    return false;
+  // Un webhook peut provenir de l'environnement TEST ou LIVE (ex. events test
+  // encore en file après le passage en live) : on vérifie contre CHAQUE clé
+  // configurée. Un HMAC ne valide que pour sa propre clé — aucune perte de
+  // sécurité, et l'event.livemode du payload reste disponible aux consommateurs.
+  for (const secret of webhookCandidateKeys()) {
+    const computed = createHmac("sha256", secret).update(rawBody).digest("hex");
+    if (computed.length !== provided.length) continue;
+    try {
+      if (timingSafeEqual(Buffer.from(computed), Buffer.from(provided))) {
+        return true;
+      }
+    } catch {
+      /* longueur/encodage invalide → clé suivante */
+    }
   }
+  return false;
 }
 
 // -----------------------------------------------------------------------------

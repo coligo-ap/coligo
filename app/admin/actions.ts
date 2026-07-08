@@ -76,6 +76,56 @@ export async function updateFeatureFlag(
   return { ok: true };
 }
 
+/**
+ * Bascule TEST / LIVE de Chargily Pay (mig 0347). Les clés vivent dans
+ * l'environnement — ici on ne change QUE le mode actif, et on refuse
+ * d'activer un mode dont la clé n'est pas configurée (ou a un mauvais
+ * préfixe) : le checkout ne doit jamais partir vers le mauvais environnement.
+ */
+export async function setChargilyLiveMode(
+  live: boolean
+): Promise<AdminFormState> {
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
+
+  if (live) {
+    const key = process.env.CHARGILY_LIVE_SECRET_KEY;
+    if (!key) {
+      return {
+        error:
+          "CHARGILY_LIVE_SECRET_KEY absente de l'environnement — ajoutez la clé (Vercel) puis redéployez avant d'activer le mode live.",
+      };
+    }
+    if (!key.startsWith("live_")) {
+      return {
+        error:
+          "La clé configurée en CHARGILY_LIVE_SECRET_KEY n'a pas le préfixe « live_ » — vérifiez la clé.",
+      };
+    }
+  } else {
+    const key =
+      process.env.CHARGILY_TEST_SECRET_KEY ?? process.env.CHARGILY_SECRET_KEY;
+    if (!key || !key.startsWith("test_")) {
+      return {
+        error:
+          "Aucune clé TEST valide (CHARGILY_TEST_SECRET_KEY / CHARGILY_SECRET_KEY) dans l'environnement.",
+      };
+    }
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("platform_settings")
+    .update({
+      chargily_live_mode: live,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", true);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/controle");
+  return { ok: true };
+}
+
 /** Rayons de dispatch (A) — express + drive — sur platform_settings. */
 export async function updateDispatchRadii(
   _prev: AdminFormState,

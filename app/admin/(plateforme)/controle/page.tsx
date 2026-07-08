@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { getFeatureFlags, type FeatureKey } from "@/lib/data/feature-flags";
+import { chargilyKeysPresence } from "@/lib/payments/chargily";
 import { FeatureFlagCard } from "@/components/admin/feature-flags-form";
 import { DispatchRadiiForm } from "@/components/admin/dispatch-radii-form";
+import { ChargilyModeCard } from "@/components/admin/chargily-mode-card";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +60,7 @@ export default async function AdminControlePage() {
           data: {
             express_dispatch_radius_km: number | string | null;
             drive_dispatch_radius_km: number | string | null;
+            chargily_live_mode: boolean | null;
           } | null;
         }>;
       };
@@ -66,7 +69,9 @@ export default async function AdminControlePage() {
   const [flags, { data: settings }] = await Promise.all([
     getFeatureFlags(),
     from("platform_settings")
-      .select("express_dispatch_radius_km, drive_dispatch_radius_km")
+      .select(
+        "express_dispatch_radius_km, drive_dispatch_radius_km, chargily_live_mode"
+      )
       .eq("id", true)
       .maybeSingle(),
   ]);
@@ -83,6 +88,16 @@ export default async function AdminControlePage() {
           base, jamais contournable).
         </p>
       </header>
+
+      <section className="mb-8">
+        <h2 className="text-foreground mb-3 text-sm font-semibold tracking-tight">
+          Paiements en ligne — environnement
+        </h2>
+        <ChargilyModeCard
+          live={settings?.chargily_live_mode === true}
+          keys={chargilyKeysPresence()}
+        />
+      </section>
 
       <section className="space-y-4">
         <h2 className="text-foreground text-sm font-semibold tracking-tight">
