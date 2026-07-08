@@ -7,35 +7,107 @@ import {
   useActiveCourse,
   clearActiveCourse,
 } from "@/lib/driver/active-course-store";
+import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import { playAlert } from "@/lib/driver/sounds";
 
 /**
- * DriverCancelWatch — STOP temps réel d'une course annulée.
+ * DriverCancelWatch — clôture temps réel de la course active, quelle que soit
+ * l'ISSUE décidée ailleurs (commerçant, client, SUPPORT) :
  *
- * Quand le commerçant ou le super-admin annule une commande que le livreur a
- * DÉJÀ ACCEPTÉE (avant récupération), le serveur libère le livreur + envoie un
- * push (`notifyDriverOrderCancelled`). Ce composant, monté GLOBALEMENT dans le
- * layout livreur, écoute en plus la commande active en Realtime : dès qu'elle
- * passe à `cancelled`, il COUPE la course (clearActiveCourse) et affiche un
- * pop-up bloquant « Commande annulée ». L'app reste cohérente même si le push
- * n'arrive pas (app au premier plan).
+ *  - `cancelled`  → pop-up « Commande annulée » + coupe la course ;
+ *  - `completed`  → la plateforme a VALIDÉ la livraison à la place du livreur
+ *    (support : client injoignable, litige, no-show en ligne « payé comme
+ *    livré »…) → pop-up « Livraison clôturée, gains crédités » + coupe la
+ *    course. Silencieux si c'est le livreur lui-même qui vient de valider
+ *    (marqueur sessionStorage posé par le flux de validation) ;
+ *  - commande RETIRÉE (réattribution / remise au réseau : la RLS
+ *    `orders_driver_select_assigned` ne renvoie plus la ligne) → pop-up
+ *    « Course retirée » + coupe la course.
  *
- * Périmètre : la course active (Express accepté) via active-course-store. La RLS
- * `orders_driver_select_assigned` garantit que le livreur ne reçoit l'event que
- * pour SA commande.
+ * Sans ça, l'appareil du livreur reste BLOQUÉ sur un bandeau « Course en
+ * cours » fantôme (incident du 07/07 : validation support → aucun signal au
+ * livreur). Trois canaux se complètent : Realtime (app ouverte), push FCM
+ * (arrière-plan), et une RESYNCHRONISATION au montage + à la reprise au
+ * premier plan (useResumeResync) qui rattrape tout événement manqué.
  */
+
+const SELF_DONE_PREFIX = "coligo_self_validated_";
+
+/** À poser AVANT router.refresh quand le LIVREUR valide lui-même (pas de
+ *  pop-up « clôturée par la plateforme » sur sa propre action). */
+export function markSelfValidated(orderId: string) {
+  try {
+    sessionStorage.setItem(SELF_DONE_PREFIX + orderId, "1");
+  } catch {
+    /* sessionStorage indispo → au pire un pop-up informatif en trop */
+  }
+}
+
+function wasSelfValidated(orderId: string): boolean {
+  try {
+    return sessionStorage.getItem(SELF_DONE_PREFIX + orderId) === "1";
+  } catch {
+    return false;
+  }
+}
+
+type Closure = {
+  kind: "cancelled" | "completed" | "withdrawn";
+  orderNumber: string | null;
+  merchantName: string | null;
+};
+
 export function DriverCancelWatch() {
   const course = useActiveCourse();
   const orderId = course?.orderId ?? null;
   const router = useRouter();
-  const [cancelled, setCancelled] = useState<{
-    orderNumber: string | null;
-    merchantName: string | null;
-  } | null>(null);
+  const [closure, setClosure] = useState<Closure | null>(null);
+  // Reprise au premier plan (timers/socket morts en arrière-plan) → re-fetch
+  // immédiat + ré-abonnement du canal Realtime (nonce dans les deps de l'effet).
+  const [resyncNonce, setResyncNonce] = useState(0);
+  useResumeResync(() => setResyncNonce((n) => n + 1));
 
   useEffect(() => {
     if (!orderId) return;
     const supabase = createClient();
+
+    const close = (
+      kind: Closure["kind"],
+      orderNumber: string | null = null
+    ) => {
+      if (kind === "completed" && wasSelfValidated(orderId)) {
+        clearActiveCourse();
+        return;
+      }
+      void playAlert();
+      clearActiveCourse();
+      setClosure({
+        kind,
+        orderNumber,
+        merchantName: course?.merchantName ?? null,
+      });
+    };
+
+    // RESYNC (montage + reprise) : état réel de la course — rattrape un
+    // événement manqué app fermée/gelée. `maybeSingle` sans erreur et sans
+    // ligne = la commande ne nous est PLUS visible (retirée / réattribuée).
+    let alive = true;
+    void supabase
+      .from("orders")
+      .select("id, status, order_number, delivery_driver_id")
+      .eq("id", orderId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!alive || error) return; // erreur réseau → on ne conclut rien
+        if (!data) {
+          close("withdrawn");
+        } else if (data.status === "completed") {
+          close("completed", data.order_number ?? null);
+        } else if (data.status === "cancelled") {
+          close("cancelled", data.order_number ?? null);
+        }
+      });
+
     const channel = supabase
       .channel(`driver-cancel:${orderId}`)
       .on(
@@ -50,37 +122,81 @@ export function DriverCancelWatch() {
           const row = payload.new as {
             status?: string;
             order_number?: string | null;
+            delivery_driver_id?: string | null;
           };
           if (row.status === "cancelled") {
-            // Coupe la course immédiatement (bandeau + écran plein) puis pop-up.
-            void playAlert();
-            clearActiveCourse();
-            setCancelled({
-              orderNumber: row.order_number ?? null,
-              merchantName: course?.merchantName ?? null,
-            });
+            close("cancelled", row.order_number ?? null);
+          } else if (row.status === "completed") {
+            close("completed", row.order_number ?? null);
           }
+          // NB : un retrait (delivery_driver_id → autre) coupe la visibilité
+          // RLS — l'event peut ne pas arriver ; couvert par le resync + push.
         }
       )
       .subscribe();
 
     return () => {
+      alive = false;
       void supabase.removeChannel(channel);
     };
     // course?.merchantName lu au moment de l'event (closure) — pas besoin de
-    // re-souscrire s'il change ; seul l'orderId pilote l'abonnement.
+    // re-souscrire s'il change ; orderId + resyncNonce pilotent l'abonnement.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId]);
+  }, [orderId, resyncNonce]);
 
-  if (!cancelled) return null;
+  if (!closure) return null;
 
-  const ref = cancelled.orderNumber ? `#${cancelled.orderNumber}` : "";
+  const ref = closure.orderNumber ? `#${closure.orderNumber}` : "";
   const close = () => {
-    setCancelled(null);
+    setClosure(null);
     // Retour à l'accueil + re-fetch (la course n'existe plus côté serveur).
     router.push("/driver");
     router.refresh();
   };
+
+  const COPY: Record<
+    Closure["kind"],
+    { title: string; body: React.ReactNode; tone: "danger" | "success" }
+  > = {
+    cancelled: {
+      title: "Commande annulée",
+      tone: "danger",
+      body: (
+        <>
+          La commande {ref}
+          {closure.merchantName ? ` (${closure.merchantName})` : ""} a été{" "}
+          <strong>annulée</strong>. Merci de t&apos;arrêter — ne te déplace plus
+          vers le client. Contacte le support si besoin de plus de détails.
+        </>
+      ),
+    },
+    completed: {
+      title: "Livraison clôturée ✓",
+      tone: "success",
+      body: (
+        <>
+          La commande {ref}
+          {closure.merchantName ? ` (${closure.merchantName})` : ""} a été{" "}
+          <strong>validée par la plateforme</strong> : la course est terminée et
+          tes gains sont crédités (visibles dans Gains / ton prochain relevé).
+          Tu peux reprendre les courses.
+        </>
+      ),
+    },
+    withdrawn: {
+      title: "Course retirée",
+      tone: "danger",
+      body: (
+        <>
+          La commande {ref}
+          {closure.merchantName ? ` (${closure.merchantName})` : ""} t&apos;a
+          été <strong>retirée par la plateforme</strong>. Ne poursuis pas cette
+          livraison — contacte le support si besoin.
+        </>
+      ),
+    },
+  };
+  const copy = COPY[closure.kind];
 
   return (
     <div
@@ -95,30 +211,47 @@ export function DriverCancelWatch() {
       >
         <div
           className="mx-auto mb-3 grid size-14 place-items-center rounded-full"
-          style={{ background: "#fee4e2", color: "#b42318" }}
+          style={
+            copy.tone === "success"
+              ? { background: "#dcfae6", color: "#067647" }
+              : { background: "#fee4e2", color: "#b42318" }
+          }
         >
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="9" />
-            <path d="M15 9l-6 6M9 9l6 6" />
-          </svg>
+          {copy.tone === "success" ? (
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M8.5 12.5l2.5 2.5 4.5-5" />
+            </svg>
+          ) : (
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M15 9l-6 6M9 9l6 6" />
+            </svg>
+          )}
         </div>
         <h2 className="text-[17px] font-extrabold text-[#101828]">
-          Commande annulée
+          {copy.title}
         </h2>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-[#475467]">
-          La commande {ref}
-          {cancelled.merchantName ? ` (${cancelled.merchantName})` : ""} a été{" "}
-          <strong>annulée</strong>. Merci de t&apos;arrêter — ne te déplace plus
-          vers le client. Contacte le support si besoin de plus de détails.
+          {copy.body}
         </p>
         <button
           type="button"

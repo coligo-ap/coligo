@@ -730,8 +730,14 @@ export async function adminValidateDelivery(
   });
 
   try {
-    const { notifyCustomerStatusChange } = await import("@/lib/fcm/triggers");
+    const { notifyCustomerStatusChange, notifyDriverCourseClosed } =
+      await import("@/lib/fcm/triggers");
     await notifyCustomerStatusChange({ orderId, newStatus: "completed" });
+    // Le livreur affecté est prévenu que sa course est CLÔTURÉE (sinon son
+    // appareil reste bloqué sur la course — incident du 07/07). Le pop-up
+    // temps réel (DriverCancelWatch) couvre l'app ouverte ; le push couvre
+    // l'arrière-plan.
+    await notifyDriverCourseClosed({ orderId });
   } catch {
     /* noop */
   }
@@ -851,8 +857,12 @@ export async function confirmOnlineNoShow(
   }
 
   try {
-    const { notifyCustomerStatusChange } = await import("@/lib/fcm/triggers");
+    const { notifyCustomerStatusChange, notifyDriverCourseClosed } =
+      await import("@/lib/fcm/triggers");
     await notifyCustomerStatusChange({ orderId, newStatus: "completed" });
+    // No-show confirmé = payé comme livré : le livreur qui attendait chez le
+    // client est prévenu que sa course est clôturée et créditée.
+    await notifyDriverCourseClosed({ orderId });
   } catch {
     /* noop */
   }

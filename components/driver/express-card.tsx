@@ -22,6 +22,7 @@ import {
   setActiveCourse,
   clearActiveCourse,
 } from "@/lib/driver/active-course-store";
+import { markSelfValidated } from "./driver-cancel-watch";
 
 const ACCEPTED_KEY = "coligo_driver_accepted_orders";
 
@@ -340,6 +341,9 @@ export function ExpressCard({
             onClose={() => setShowValidate(false)}
             onSuccess={() => {
               setShowValidate(false);
+              // Validation par le LIVREUR lui-même : le watch global ne doit
+              // pas afficher « clôturée par la plateforme » sur cette action.
+              markSelfValidated(currentOrder.id);
               // Affiche le retour post-livraison (note + signalement).
               setFeedbackOrder({
                 id: currentOrder.id,

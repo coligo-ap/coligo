@@ -285,6 +285,57 @@ export async function notifyDriverOrderAssigned(input: {
 }
 
 /**
+ * Notifie le livreur affecté que sa course a été CLÔTURÉE PAR LA PLATEFORME
+ * (support : validation manuelle, no-show en ligne « payé comme livré »…) —
+ * il est payé comme une livraison normale. Complète le pop-up temps réel du
+ * DriverCancelWatch (app ouverte) pour l'arrière-plan. Fire-and-forget.
+ */
+export async function notifyDriverCourseClosed(input: {
+  orderId: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("orders")
+      .select("delivery_driver_id, order_number, fulfillment_type")
+      .eq("id", input.orderId)
+      .maybeSingle();
+    if (
+      !order ||
+      order.fulfillment_type !== "delivery" ||
+      !order.delivery_driver_id
+    ) {
+      return;
+    }
+    const { data: driver } = await admin
+      .from("drivers")
+      .select("user_id")
+      .eq("id", order.delivery_driver_id)
+      .maybeSingle();
+    if (!driver?.user_id) return;
+
+    const tokens = await tokensFor(driver.user_id, "courier");
+    if (tokens.length === 0) return;
+
+    const ref = order.order_number ? `#${order.order_number}` : "";
+    await sendFcm(
+      tokens,
+      {
+        title: "Livraison clôturée ✓",
+        body: `La commande ${ref} a été validée par la plateforme : course terminée, tes gains sont crédités. Tu peux reprendre les courses.`,
+      },
+      {
+        route: "/driver",
+        kind: "driver_course_closed",
+        orderId: input.orderId,
+      }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyDriverCourseClosed failed:", err);
+  }
+}
+
+/**
  * Notifie un livreur qu'une INDEMNITÉ lui a été créditée par le support
  * (course retirée après déplacement, litige…). Fire-and-forget.
  */
