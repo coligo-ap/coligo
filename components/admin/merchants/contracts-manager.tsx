@@ -8,8 +8,10 @@ import {
   FileSignature,
   Loader2,
   Plus,
+  Search,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -175,31 +177,17 @@ export function ContractsManager({
 
         {open && (
           <div className="mt-4 space-y-5">
-            {/* Identification rapide */}
+            {/* Identification rapide — recherche intelligente */}
             <div className="space-y-1.5">
-              <Label htmlFor="ctr-merchant">
+              <Label htmlFor="ctr-merchant-search">
                 Pré-remplir depuis un commerçant inscrit
               </Label>
-              <div className="flex items-center gap-2">
-                <select
-                  id="ctr-merchant"
-                  value={merchantId}
-                  onChange={(e) => pickMerchant(e.target.value)}
-                  className="border-border bg-surface text-foreground focus:border-primary-500 h-10 w-full rounded-[10px] border px-3 text-sm outline-none"
-                >
-                  <option value="">— Saisie manuelle (aucun compte) —</option>
-                  {merchants.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                      {m.commune ? ` · ${m.commune}` : ""}
-                      {m.pending ? " · (inscription en attente)" : ""}
-                    </option>
-                  ))}
-                </select>
-                {prefilling && (
-                  <Loader2 className="text-muted size-4 shrink-0 animate-spin" />
-                )}
-              </div>
+              <MerchantSearch
+                merchants={merchants}
+                value={merchantId}
+                onPick={pickMerchant}
+                busy={prefilling}
+              />
             </div>
 
             {/* Partie commerçant */}
@@ -618,6 +606,162 @@ function Field({
     <div className="space-y-1.5">
       <Label>{label}</Label>
       {children}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Recherche intelligente de commerçant : insensible aux accents et à la casse,
+// multi-mots (chaque mot doit matcher le nom OU la commune), navigation clavier
+// (flèches + Entrée, Échap). Sélection affichée en « chip » avec bouton retirer.
+// ─────────────────────────────────────────────────────────────────────────────
+const foldText = (s: string) =>
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+function MerchantSearch({
+  merchants,
+  value,
+  onPick,
+  busy,
+}: {
+  merchants: MerchantOpt[];
+  value: string;
+  onPick: (id: string) => void;
+  busy: boolean;
+}) {
+  const [q, setQ] = useState("");
+  const [openList, setOpenList] = useState(false);
+  const [hi, setHi] = useState(0);
+  const selected = merchants.find((m) => m.id === value) ?? null;
+
+  const tokens = foldText(q).split(/\s+/).filter(Boolean);
+  const results = (
+    tokens.length === 0
+      ? merchants
+      : merchants.filter((m) => {
+          const hay = foldText(`${m.name} ${m.commune}`);
+          return tokens.every((t) => hay.includes(t));
+        })
+  ).slice(0, 8);
+
+  const pick = (id: string) => {
+    onPick(id);
+    setQ("");
+    setOpenList(false);
+  };
+
+  if (selected) {
+    return (
+      <div className="border-primary-200 bg-primary-50 flex items-center gap-2 rounded-[10px] border px-3 py-2">
+        <Search className="text-primary-600 size-4 shrink-0" />
+        <span className="text-foreground min-w-0 flex-1 truncate text-sm font-medium">
+          {selected.name}
+          {selected.commune && (
+            <span className="text-muted font-normal">
+              {" "}
+              · {selected.commune}
+            </span>
+          )}
+          {selected.pending && (
+            <span className="bg-warning-500 ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white">
+              inscription en attente
+            </span>
+          )}
+        </span>
+        {busy ? (
+          <Loader2 className="text-muted size-4 shrink-0 animate-spin" />
+        ) : (
+          <button
+            type="button"
+            aria-label="Retirer le commerçant sélectionné (saisie manuelle)"
+            className="text-muted hover:text-foreground shrink-0 rounded-full p-1"
+            onClick={() => pick("")}
+          >
+            <X className="size-4" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <Search className="text-muted pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+        <Input
+          id="ctr-merchant-search"
+          value={q}
+          placeholder="Rechercher par nom ou commune… (vide = saisie manuelle)"
+          className="pl-9"
+          autoComplete="off"
+          onChange={(e) => {
+            setQ(e.target.value);
+            setOpenList(true);
+            setHi(0);
+          }}
+          onFocus={() => setOpenList(true)}
+          onBlur={() => setOpenList(false)}
+          onKeyDown={(e) => {
+            if (!openList) return;
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setHi((h) => Math.min(h + 1, results.length - 1));
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setHi((h) => Math.max(h - 1, 0));
+            } else if (e.key === "Enter") {
+              e.preventDefault();
+              if (results[hi]) pick(results[hi].id);
+            } else if (e.key === "Escape") {
+              setOpenList(false);
+            }
+          }}
+        />
+      </div>
+
+      {openList && (
+        <ul
+          className="border-border bg-surface absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-[12px] border shadow-lg"
+          // Empêche le blur de l'input avant le clic sur une option.
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          {results.length === 0 ? (
+            <li className="text-muted px-3 py-2.5 text-sm">
+              Aucun commerçant ne correspond à « {q} » — laissez vide pour une
+              saisie manuelle.
+            </li>
+          ) : (
+            results.map((m, i) => (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm",
+                    i === hi ? "bg-primary-50" : "hover:bg-surface-2"
+                  )}
+                  onMouseEnter={() => setHi(i)}
+                  onClick={() => pick(m.id)}
+                >
+                  <span className="text-foreground min-w-0 flex-1 truncate font-medium">
+                    {m.name}
+                    {m.commune && (
+                      <span className="text-muted font-normal">
+                        {" "}
+                        · {m.commune}
+                      </span>
+                    )}
+                  </span>
+                  {m.pending && (
+                    <span className="bg-warning-500 shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      en attente
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
     </div>
   );
 }
