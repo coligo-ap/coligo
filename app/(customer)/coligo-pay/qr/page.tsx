@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentMerchant } from "@/lib/auth/merchant";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
+import { getP2pEnabled } from "@/lib/customer/p2p";
 import { WalletQrView } from "@/components/customer/wallet-qr-view";
 import {
   getMyPayHandle,
@@ -19,7 +20,7 @@ export default async function ColigoPayQrPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const tab = (await searchParams).tab === "recv" ? "recv" : "pay";
+  const wantRecv = (await searchParams).tab === "recv";
   if (!(await getAuthUser())) redirect("/se-connecter?next=/coligo-pay/qr");
   if (await getCurrentMerchant()) redirect("/dashboard");
 
@@ -29,10 +30,14 @@ export default async function ColigoPayQrPage({
   // Handle de réception STABLE (code unique, généré au 1er appel) encodé dans le
   // QR « Recevoir ». Pas un secret : il sert à identifier le bénéficiaire d'un
   // transfert Coligo Pay (boucle fermée).
-  const [pinStatus, handleRes] = await Promise.all([
+  const [pinStatus, handleRes, p2pEnabled] = await Promise.all([
     getWalletPinStatus(),
     getMyPayHandle(),
+    getP2pEnabled(),
   ]);
+
+  // P2P off (défaut) → l'onglet « Recevoir » n'existe pas : on force « Payer ».
+  const tab = wantRecv && p2pEnabled ? "recv" : "pay";
 
   return (
     <WalletQrView
@@ -41,6 +46,7 @@ export default async function ColigoPayQrPage({
       initialTab={tab}
       hasPin={pinStatus.hasPin}
       locked={pinStatus.locked}
+      p2pEnabled={p2pEnabled}
     />
   );
 }

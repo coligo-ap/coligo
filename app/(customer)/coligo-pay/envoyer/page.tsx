@@ -4,6 +4,7 @@ import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentMerchant } from "@/lib/auth/merchant";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { getMyTopupBalance } from "@/lib/customer/cashback";
+import { getP2pEnabled } from "@/lib/customer/p2p";
 import { EnvoyerAmiView } from "@/components/customer/envoyer-ami-view";
 import {
   getRecentRecipients,
@@ -22,6 +23,8 @@ export default async function EnvoyerAmiPage() {
   const user = await getAuthUser();
   if (!user) redirect("/se-connecter?next=/coligo-pay/envoyer");
   if (await getCurrentMerchant()) redirect("/dashboard");
+  // P2P désactivé → la page « Envoyer à un ami » n'est pas accessible.
+  if (!(await getP2pEnabled())) redirect("/coligo-pay");
 
   const customer = await getCurrentCustomerFull();
 

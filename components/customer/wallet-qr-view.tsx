@@ -60,12 +60,16 @@ export function WalletQrView({
   initialTab = "pay",
   hasPin: initialHasPin,
   locked,
+  p2pEnabled = false,
 }: {
   customerName: string;
   myHandle: string | null;
   initialTab?: Tab;
   hasPin: boolean;
   locked: boolean;
+  // P2P off (défaut) → onglet « Recevoir » et transfert par QR ami MASQUÉS ;
+  // seul le paiement marchand reste. Réversible (platform_settings.p2p_enabled).
+  p2pEnabled?: boolean;
 }) {
   const t = useTranslations("wallet");
   const router = useRouter();
@@ -116,7 +120,12 @@ export function WalletQrView({
       try {
         const userMatch = v.match(/^coligo:user:(.+)$/i);
         if (userMatch) {
-          // QR ami → transfert P2P.
+          // QR ami → transfert P2P. Bloqué tant que le P2P n'est pas activé
+          // (aucune surface de transfert d'argent exposée pour la review Play).
+          if (!p2pEnabled) {
+            toast.error(t("comingSoon"));
+            return;
+          }
           const handle = userMatch[1].trim();
           const res = await resolveReceiver(handle);
           if (!res.ok) {
@@ -160,7 +169,7 @@ export function WalletQrView({
         setBusy(false);
       }
     },
-    [busy, step, errMsg, t]
+    [busy, step, errMsg, t, p2pEnabled]
   );
 
   function confirmAmount() {
@@ -249,7 +258,9 @@ export function WalletQrView({
         <h1 className="text-[19px] font-black">{t("qrTitle")}</h1>
       </header>
 
-      {step === "scan" && (
+      {/* Sélecteur Payer/Recevoir : uniquement si le P2P est activé. Sinon
+          l'écran est un pur scanner de paiement marchand (crédit fermé). */}
+      {step === "scan" && p2pEnabled && (
         <div className="relative mx-4 mt-3 flex rounded-[14px] bg-white/15 p-1">
           <span
             className={cn(

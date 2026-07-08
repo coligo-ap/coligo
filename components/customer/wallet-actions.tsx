@@ -37,29 +37,37 @@ export function WalletActions({
 
   return (
     <>
-      {/* Panneau d'actions UNIFIÉ (une seule carte, 4 colonnes) — épuré.
-          Pas de chevauchement avec le hero : marge nette au-dessus. */}
-      <div className="border-border mt-4 grid grid-cols-4 gap-1 rounded-[22px] border bg-white p-2 shadow-[0_10px_28px_-18px_rgba(40,35,90,.28)]">
+      {/* Panneau d'actions UNIFIÉ (une seule carte) — épuré. Pas de chevauchement
+          avec le hero : marge nette au-dessus.
+          P2P (Envoyer/Recevoir) MASQUÉ tant que p2pEnabled est faux — aucune
+          surface « transfert d'argent » exposée (cf. lib/customer/p2p.ts). Le
+          panneau retombe alors sur 2 colonnes (Payer + Recharger). */}
+      <div
+        className={
+          "border-border mt-4 grid gap-1 rounded-[22px] border bg-white p-2 shadow-[0_10px_28px_-18px_rgba(40,35,90,.28)] " +
+          (p2pEnabled ? "grid-cols-4" : "grid-cols-2")
+        }
+      >
         <Action
           href="/coligo-pay/qr"
           icon={<QrCode className="size-[21px]" />}
           label={t("actionPay")}
           primary
         />
-        <Action
-          href={p2pEnabled ? "/coligo-pay/envoyer" : undefined}
-          disabled={!p2pEnabled}
-          soon={!p2pEnabled}
-          icon={<Send className="size-[21px]" />}
-          label={t("actionSend")}
-        />
-        <Action
-          href={p2pEnabled ? "/coligo-pay/qr?tab=recv" : undefined}
-          disabled={!p2pEnabled}
-          soon={!p2pEnabled}
-          icon={<Plus className="size-[21px]" />}
-          label={t("actionReceive")}
-        />
+        {p2pEnabled && (
+          <Action
+            href="/coligo-pay/envoyer"
+            icon={<Send className="size-[21px]" />}
+            label={t("actionSend")}
+          />
+        )}
+        {p2pEnabled && (
+          <Action
+            href="/coligo-pay/qr?tab=recv"
+            icon={<Plus className="size-[21px]" />}
+            label={t("actionReceive")}
+          />
+        )}
         <Action
           onClick={() => setOpen(true)}
           disabled={rechargeDisabled}
