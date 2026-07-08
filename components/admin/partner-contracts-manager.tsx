@@ -20,32 +20,31 @@ import { cn } from "@/lib/utils";
 import {
   CONTRACT_STATUS_META,
   EQUIPMENT_CONDITIONS,
-  EQUIPMENT_PRESETS,
-  LEGAL_FORMS,
   type ContractEquipmentItem,
-  type ContractParty,
-  type ContractTerms,
-  type MerchantContractRow,
 } from "@/lib/types/merchant-contract";
 import {
-  createMerchantContract,
-  getContractPrefill,
-  getSignedContractUrl,
-  saveContractNotes,
-  terminateContract,
-  uploadSignedContract,
-  type ContractActionState,
-} from "@/app/admin/merchants/contrats/actions";
+  PARTNER_EQUIPMENT_PRESETS,
+  PARTNER_KIND_META,
+  PARTNER_WORK_STATUS,
+  type PartnerContractRow,
+  type PartnerKind,
+  type PartnerParty,
+  type PartnerTerms,
+} from "@/lib/types/partner-contract";
+import {
+  createPartnerContract,
+  getPartnerContractPrefill,
+  getSignedPartnerContractUrl,
+  savePartnerContractNotes,
+  terminatePartnerContract,
+  uploadSignedPartnerContract,
+  type PartnerContractActionState,
+} from "@/app/admin/partner-contracts-actions";
 
-type MerchantOpt = {
-  id: string;
-  name: string;
-  commune: string;
-  pending: boolean;
-};
+type PartnerOpt = { id: string; name: string; sub: string; pending: boolean };
 type Defaults = {
-  commission_cash_pct: number;
-  commission_online_pct: number;
+  fee_pct: number;
+  float_cap_da: number;
   debt_cap_da: number;
   sign_place: string;
 };
@@ -64,40 +63,46 @@ const emptyItem = (): ContractEquipmentItem => ({
   notes: "",
 });
 
-const emptyParty = (): ContractParty => ({
-  merchant_name: "",
-  legal_form: LEGAL_FORMS[0],
-  rc_number: "",
-  nif: "",
+const emptyParty = (): PartnerParty => ({
+  full_name: "",
+  id_number: "",
+  license_number: "",
+  work_status: PARTNER_WORK_STATUS[0],
+  registration_number: "",
   address: "",
-  commune: "",
   wilaya: "",
   phone: "",
   email: "",
-  representative: "",
+  vehicle_type: "",
+  vehicle_brand: "",
+  vehicle_model: "",
+  vehicle_plate: "",
 });
 
-export function ContractsManager({
+export function PartnerContractsManager({
+  kind,
   contracts,
-  merchants,
+  partners,
   defaults,
 }: {
-  contracts: MerchantContractRow[];
-  merchants: MerchantOpt[];
+  kind: PartnerKind;
+  contracts: PartnerContractRow[];
+  partners: PartnerOpt[];
   defaults: Defaults;
 }) {
+  const meta = PARTNER_KIND_META[kind];
   const [open, setOpen] = useState(contracts.length === 0);
-  const [merchantId, setMerchantId] = useState<string>("");
-  const [party, setParty] = useState<ContractParty>(emptyParty());
-  const [terms, setTerms] = useState<ContractTerms>({
-    commission_cash_pct: defaults.commission_cash_pct,
-    commission_online_pct: defaults.commission_online_pct,
-    cash_settlement_days: 7,
-    payout_delay_days: 5,
+  const [partnerId, setPartnerId] = useState("");
+  const [party, setParty] = useState<PartnerParty>(emptyParty());
+  const [terms, setTerms] = useState<PartnerTerms>({
+    fee_pct: defaults.fee_pct,
+    float_cap_da: defaults.float_cap_da,
     debt_cap_da: defaults.debt_cap_da,
+    settlement_days: 7,
+    payout_delay_days: 5,
     duration_type: "indeterminee",
     duration_months: null,
-    notice_days: 30,
+    notice_days: 15,
     effective_date: new Date().toISOString().slice(0, 10),
     sign_place: defaults.sign_place,
     equipment: { provided: false, return_required: false, items: [] },
@@ -107,36 +112,31 @@ export function ContractsManager({
   const [busy, setBusy] = useState(false);
   const [formMsg, setFormMsg] = useState<{ err?: string; ok?: string }>({});
 
-  const setP = <K extends keyof ContractParty>(k: K, v: ContractParty[K]) =>
+  const setP = <K extends keyof PartnerParty>(k: K, v: PartnerParty[K]) =>
     setParty((p) => ({ ...p, [k]: v }));
-  const setT = <K extends keyof ContractTerms>(k: K, v: ContractTerms[K]) =>
+  const setT = <K extends keyof PartnerTerms>(k: K, v: PartnerTerms[K]) =>
     setTerms((t) => ({ ...t, [k]: v }));
 
-  const pickMerchant = (id: string) => {
-    setMerchantId(id);
+  const pickPartner = (id: string) => {
+    setPartnerId(id);
     setFormMsg({});
     if (!id) return;
     startPrefill(async () => {
-      const r = await getContractPrefill(id);
+      const r = await getPartnerContractPrefill(kind, id);
       if (r.error) {
         setFormMsg({ err: r.error });
         return;
       }
       setParty((p) => ({ ...p, ...r.party }));
-      setTerms((t) => ({
-        ...t,
-        commission_cash_pct: r.commission_cash_pct ?? t.commission_cash_pct,
-        commission_online_pct:
-          r.commission_online_pct ?? t.commission_online_pct,
-      }));
     });
   };
 
   const submit = async () => {
     setBusy(true);
     setFormMsg({});
-    const r = await createMerchantContract({
-      merchant_id: merchantId || null,
+    const r = await createPartnerContract({
+      kind,
+      partner_id: partnerId || null,
       party,
       terms,
       notes,
@@ -147,9 +147,9 @@ export function ContractsManager({
       return;
     }
     setFormMsg({
-      ok: "Contrat émis. Le PDF s'ouvre : imprimez-le en 2 exemplaires pour signature (« lu et approuvé » + cachet).",
+      ok: "Contrat émis. Le PDF s'ouvre : imprimez-le en 2 exemplaires pour signature (« lu et approuvé »).",
     });
-    window.open(`/api/pdf/contrat/${r.id}`, "_blank", "noopener");
+    window.open(`/api/pdf/contrat-partenaire/${r.id}`, "_blank", "noopener");
   };
 
   return (
@@ -160,13 +160,13 @@ export function ContractsManager({
           <div>
             <h2 className="text-foreground flex items-center gap-2 text-base font-bold">
               <FilePlus2 className="text-primary-600 size-5" />
-              Nouveau contrat de partenariat
+              Nouveau contrat de partenariat {meta.label}
             </h2>
             <p className="text-muted mt-0.5 text-sm">
-              Identifiez un commerçant pour pré-remplir, ou saisissez tout
-              manuellement. Le PDF généré est conforme au droit algérien
-              (intermédiation loi 18-05, signature « lu et approuvé », deux
-              exemplaires originaux).
+              Identifiez un {meta.label} pour pré-remplir, ou saisissez tout
+              manuellement. PDF conforme au droit algérien (prestataire
+              indépendant, signature « lu et approuvé », deux exemplaires
+              originaux).
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={() => setOpen(!open)}>
@@ -176,66 +176,58 @@ export function ContractsManager({
 
         {open && (
           <div className="mt-4 space-y-5">
-            {/* Identification rapide — recherche intelligente */}
             <div className="space-y-1.5">
-              <Label htmlFor="ctr-merchant-search">
-                Pré-remplir depuis un commerçant inscrit
+              <Label htmlFor="ptn-search">
+                Pré-remplir depuis un {meta.label} inscrit
               </Label>
               <ContractEntitySearch
-                inputId="ctr-merchant-search"
-                options={merchants.map((m) => ({
-                  id: m.id,
-                  name: m.name,
-                  sub: m.commune,
-                  pending: m.pending,
-                }))}
-                value={merchantId}
-                onPick={pickMerchant}
+                inputId="ptn-search"
+                options={partners}
+                value={partnerId}
+                onPick={pickPartner}
                 busy={prefilling}
-                placeholder="Rechercher par nom ou commune… (vide = saisie manuelle)"
+                placeholder="Rechercher par nom, wilaya ou téléphone… (vide = saisie manuelle)"
               />
             </div>
 
-            {/* Partie commerçant */}
+            {/* Partie partenaire */}
             <fieldset className="grid gap-3 sm:grid-cols-2">
               <legend className="text-foreground mb-1 text-sm font-semibold">
-                Le Commerçant (partie au contrat)
+                Le {meta.role} (partie au contrat)
               </legend>
-              <Field label="Raison sociale / enseigne *">
+              <Field label="Nom complet *">
                 <Input
-                  value={party.merchant_name}
-                  onChange={(e) => setP("merchant_name", e.target.value)}
+                  value={party.full_name}
+                  onChange={(e) => setP("full_name", e.target.value)}
                 />
               </Field>
-              <Field label="Forme juridique">
+              <Field label="N° pièce d'identité (CNI) *">
+                <Input
+                  value={party.id_number}
+                  onChange={(e) => setP("id_number", e.target.value)}
+                />
+              </Field>
+              <Field label="N° permis de conduire *">
+                <Input
+                  value={party.license_number}
+                  onChange={(e) => setP("license_number", e.target.value)}
+                />
+              </Field>
+              <Field label="Statut d'exercice">
                 <select
-                  value={party.legal_form}
-                  onChange={(e) => setP("legal_form", e.target.value)}
+                  value={party.work_status}
+                  onChange={(e) => setP("work_status", e.target.value)}
                   className="border-border bg-surface text-foreground focus:border-primary-500 h-10 w-full rounded-[10px] border px-3 text-sm outline-none"
                 >
-                  {LEGAL_FORMS.map((f) => (
-                    <option key={f}>{f}</option>
+                  {PARTNER_WORK_STATUS.map((s) => (
+                    <option key={s}>{s}</option>
                   ))}
                 </select>
               </Field>
-              <Field label="N° registre de commerce / immatriculation *">
+              <Field label="Immatriculation pro (auto-entrepreneur / RC, si existante)">
                 <Input
-                  value={party.rc_number}
-                  onChange={(e) => setP("rc_number", e.target.value)}
-                  placeholder="RC n° …"
-                />
-              </Field>
-              <Field label="NIF (identification fiscale)">
-                <Input
-                  value={party.nif}
-                  onChange={(e) => setP("nif", e.target.value)}
-                />
-              </Field>
-              <Field label="Représentant signataire (nom, qualité) *">
-                <Input
-                  value={party.representative}
-                  onChange={(e) => setP("representative", e.target.value)}
-                  placeholder="M. / Mme …, gérant(e)"
+                  value={party.registration_number}
+                  onChange={(e) => setP("registration_number", e.target.value)}
                 />
               </Field>
               <Field label="Téléphone">
@@ -244,26 +236,17 @@ export function ContractsManager({
                   onChange={(e) => setP("phone", e.target.value)}
                 />
               </Field>
-              <Field label="Adresse de l'établissement *">
+              <Field label="Adresse *">
                 <Input
                   value={party.address}
                   onChange={(e) => setP("address", e.target.value)}
                 />
               </Field>
-              <Field label="Commune / wilaya">
-                <div className="flex gap-2">
-                  <Input
-                    value={party.commune}
-                    onChange={(e) => setP("commune", e.target.value)}
-                    placeholder="Commune"
-                  />
-                  <Input
-                    value={party.wilaya}
-                    onChange={(e) => setP("wilaya", e.target.value)}
-                    placeholder="Wilaya"
-                    className="max-w-[120px]"
-                  />
-                </div>
+              <Field label="Wilaya">
+                <Input
+                  value={party.wilaya}
+                  onChange={(e) => setP("wilaya", e.target.value)}
+                />
               </Field>
               <Field label="E-mail (notifications contractuelles)">
                 <Input
@@ -274,36 +257,70 @@ export function ContractsManager({
               </Field>
             </fieldset>
 
+            {/* Véhicule */}
+            <fieldset className="grid gap-3 sm:grid-cols-4">
+              <legend className="text-foreground mb-1 text-sm font-semibold">
+                Véhicule déclaré
+              </legend>
+              <Field label="Type / gamme">
+                <Input
+                  value={party.vehicle_type}
+                  onChange={(e) => setP("vehicle_type", e.target.value)}
+                  placeholder={
+                    kind === "driver" ? "Moto, voiture…" : "Berline…"
+                  }
+                />
+              </Field>
+              <Field label="Marque">
+                <Input
+                  value={party.vehicle_brand}
+                  onChange={(e) => setP("vehicle_brand", e.target.value)}
+                />
+              </Field>
+              <Field label="Modèle">
+                <Input
+                  value={party.vehicle_model}
+                  onChange={(e) => setP("vehicle_model", e.target.value)}
+                />
+              </Field>
+              <Field label="Immatriculation *">
+                <Input
+                  value={party.vehicle_plate}
+                  onChange={(e) => setP("vehicle_plate", e.target.value)}
+                />
+              </Field>
+            </fieldset>
+
             {/* Conditions financières */}
             <fieldset className="grid gap-3 sm:grid-cols-3">
               <legend className="text-foreground mb-1 text-sm font-semibold">
                 Conditions financières
               </legend>
-              <Field label="Commission ventes espèces (%)">
+              <Field
+                label={`Frais de service Coligo (%) par ${kind === "driver" ? "livraison" : "course"}`}
+              >
                 <Input
                   type="number"
                   step="0.1"
                   min={0}
                   max={50}
-                  value={terms.commission_cash_pct}
-                  onChange={(e) =>
-                    setT("commission_cash_pct", Number(e.target.value))
-                  }
+                  value={terms.fee_pct}
+                  onChange={(e) => setT("fee_pct", Number(e.target.value))}
                 />
               </Field>
-              <Field label="Commission ventes en ligne (%)">
-                <Input
-                  type="number"
-                  step="0.1"
-                  min={0}
-                  max={50}
-                  value={terms.commission_online_pct}
-                  onChange={(e) =>
-                    setT("commission_online_pct", Number(e.target.value))
-                  }
-                />
-              </Field>
-              <Field label="Plafond d'endettement (DA)">
+              {kind === "driver" && (
+                <Field label="Plafond de fonds détenus (DA)">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={terms.float_cap_da}
+                    onChange={(e) =>
+                      setT("float_cap_da", Number(e.target.value))
+                    }
+                  />
+                </Field>
+              )}
+              <Field label="Plafond de dette avant gel (DA)">
                 <Input
                   type="number"
                   min={0}
@@ -311,17 +328,17 @@ export function ContractsManager({
                   onChange={(e) => setT("debt_cap_da", Number(e.target.value))}
                 />
               </Field>
-              <Field label="Reversement commissions espèces (jours)">
+              <Field label="Cycle de règlement des sommes dues (jours)">
                 <Input
                   type="number"
                   min={1}
-                  value={terms.cash_settlement_days}
+                  value={terms.settlement_days}
                   onChange={(e) =>
-                    setT("cash_settlement_days", Number(e.target.value))
+                    setT("settlement_days", Number(e.target.value))
                   }
                 />
               </Field>
-              <Field label="Versement des sommes dues (jours ouvrés)">
+              <Field label="Versement des gains (jours ouvrés)">
                 <Input
                   type="number"
                   min={1}
@@ -352,7 +369,7 @@ export function ContractsManager({
                   onChange={(e) =>
                     setT(
                       "duration_type",
-                      e.target.value as ContractTerms["duration_type"]
+                      e.target.value as PartnerTerms["duration_type"]
                     )
                   }
                   className="border-border bg-surface text-foreground focus:border-primary-500 h-10 w-full rounded-[10px] border px-3 text-sm outline-none"
@@ -390,10 +407,10 @@ export function ContractsManager({
               </Field>
             </fieldset>
 
-            {/* Matériel (annexe optionnelle) */}
+            {/* Matériel */}
             <fieldset className="border-border rounded-[12px] border p-4">
               <legend className="text-foreground px-1 text-sm font-semibold">
-                Matériel remis au commerçant
+                Matériel remis au {meta.label}
               </legend>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -426,8 +443,8 @@ export function ContractsManager({
                         })
                       }
                     />
-                    Restitution exigée en fin de contrat (sinon : matériel cédé
-                    au commerçant, à la valeur indiquée)
+                    Restitution exigée en fin de contrat (sinon : matériel cédé,
+                    à la valeur indiquée)
                   </label>
 
                   {terms.equipment.items.map((it, i) => (
@@ -437,9 +454,9 @@ export function ContractsManager({
                     >
                       <div className="sm:col-span-2">
                         <Input
-                          list="ctr-equip-presets"
+                          list="ptn-equip-presets"
                           value={it.label}
-                          placeholder="Désignation (ex. Tablette)"
+                          placeholder="Désignation (ex. Sac isotherme)"
                           onChange={(e) => {
                             const items = [...terms.equipment.items];
                             items[i] = { ...it, label: e.target.value };
@@ -525,8 +542,8 @@ export function ContractsManager({
                       </div>
                     </div>
                   ))}
-                  <datalist id="ctr-equip-presets">
-                    {EQUIPMENT_PRESETS.map((p) => (
+                  <datalist id="ptn-equip-presets">
+                    {PARTNER_EQUIPMENT_PRESETS[kind].map((p) => (
                       <option key={p} value={p} />
                     ))}
                   </datalist>
@@ -547,7 +564,6 @@ export function ContractsManager({
               )}
             </fieldset>
 
-            {/* Notes internes */}
             <Field label="Notes internes (traçabilité — n'apparaissent pas dans le PDF)">
               <textarea
                 value={notes}
@@ -580,10 +596,10 @@ export function ContractsManager({
         )}
       </section>
 
-      {/* ── Registre des contrats ────────────────────────────────────────── */}
+      {/* ── Registre ─────────────────────────────────────────────────────── */}
       <section>
         <h2 className="text-foreground mb-2 text-base font-bold">
-          Registre des contrats ({contracts.length})
+          Registre des contrats {meta.label}s ({contracts.length})
         </h2>
         {contracts.length === 0 ? (
           <p className="text-muted text-sm">
@@ -592,7 +608,7 @@ export function ContractsManager({
         ) : (
           <div className="space-y-3">
             {contracts.map((c) => (
-              <ContractCard key={c.id} c={c} />
+              <PartnerContractCard key={c.id} c={c} />
             ))}
           </div>
         )}
@@ -616,10 +632,7 @@ function Field({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Carte d'un contrat émis : PDF, archivage du scan signé, notes, résiliation.
-// ─────────────────────────────────────────────────────────────────────────────
-function ContractCard({ c }: { c: MerchantContractRow }) {
+function PartnerContractCard({ c }: { c: PartnerContractRow }) {
   const meta = CONTRACT_STATUS_META[c.status];
   const confirm = useConfirm();
   const prompt = usePrompt();
@@ -628,8 +641,8 @@ function ContractCard({ c }: { c: MerchantContractRow }) {
   const [notesOpen, setNotesOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [uploadState, uploadAction, uploading] = useActionState(
-    uploadSignedContract,
-    {} as ContractActionState
+    uploadSignedPartnerContract,
+    {} as PartnerContractActionState
   );
 
   const equip = c.terms.equipment;
@@ -658,16 +671,16 @@ function ContractCard({ c }: { c: MerchantContractRow }) {
       </div>
 
       <p className="text-foreground mt-1 text-sm font-semibold">
-        {c.party.merchant_name}
+        {c.party.full_name}
         <span className="text-muted font-normal">
           {" "}
-          — {c.party.legal_form}, RC {c.party.rc_number || "—"}
-          {c.party.commune ? ` · ${c.party.commune}` : ""}
+          — CNI {c.party.id_number || "—"} · véhicule{" "}
+          {c.party.vehicle_plate || "—"}
+          {c.party.wilaya ? ` · ${c.party.wilaya}` : ""}
         </span>
       </p>
       <p className="text-muted mt-0.5 text-xs">
-        Commissions {c.terms.commission_cash_pct}% espèces /{" "}
-        {c.terms.commission_online_pct}% en ligne · plafond dette{" "}
+        Frais de service {c.terms.fee_pct}% · plafond dette{" "}
         {da(c.terms.debt_cap_da)} · effet {dayFr(c.terms.effective_date)}
         {equip.provided
           ? ` · matériel : ${equip.items.length} article(s)${equip.return_required ? " (restituable)" : " (cédé)"}`
@@ -676,7 +689,7 @@ function ContractCard({ c }: { c: MerchantContractRow }) {
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <a
-          href={`/api/pdf/contrat/${c.id}`}
+          href={`/api/pdf/contrat-partenaire/${c.id}`}
           target="_blank"
           rel="noopener noreferrer"
           className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-sm font-medium"
@@ -717,7 +730,7 @@ function ContractCard({ c }: { c: MerchantContractRow }) {
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
-                const r = await getSignedContractUrl(c.id);
+                const r = await getSignedPartnerContractUrl(c.id);
                 if (r.error) setMsg({ err: r.error });
                 else window.open(r.url, "_blank", "noopener");
               })
@@ -759,7 +772,7 @@ function ContractCard({ c }: { c: MerchantContractRow }) {
               });
               if (!ok) return;
               startTransition(async () => {
-                const r = await terminateContract(c.id, reason);
+                const r = await terminatePartnerContract(c.id, reason);
                 setMsg(r.error ? { err: r.error } : { ok: r.success });
               });
             }}
@@ -783,7 +796,7 @@ function ContractCard({ c }: { c: MerchantContractRow }) {
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
-                const r = await saveContractNotes(c.id, notes);
+                const r = await savePartnerContractNotes(c.id, notes);
                 setMsg(r.error ? { err: r.error } : { ok: r.success });
               })
             }

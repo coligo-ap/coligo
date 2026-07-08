@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import {
   Car,
   ClipboardCheck,
+  FileSignature,
+  Route,
   SlidersHorizontal,
   Sliders,
   CreditCard,
@@ -15,6 +17,11 @@ import { cn } from "@/lib/utils";
 // hors du route group (hub) : elle n'affiche pas ces onglets.
 const TABS = [
   { href: "/admin/chauffeurs", label: "Chauffeurs", icon: Car, exact: true },
+  {
+    href: "/admin/chauffeurs/courses",
+    label: "Courses",
+    icon: Route,
+  },
   {
     href: "/admin/chauffeurs/inscriptions",
     label: "Inscriptions",
@@ -35,6 +42,11 @@ const TABS = [
     href: "/admin/chauffeurs/parametres",
     label: "Paramètres & zones",
     icon: SlidersHorizontal,
+  },
+  {
+    href: "/admin/chauffeurs/contrats",
+    label: "Contrats",
+    icon: FileSignature,
   },
 ] as const;
 

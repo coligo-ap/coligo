@@ -6,6 +6,7 @@ import {
   Banknote,
   ClipboardCheck,
   Crown,
+  FileSignature,
   SlidersHorizontal,
   Truck,
 } from "lucide-react";
@@ -35,6 +36,11 @@ const TABS = [
     href: "/admin/drivers/parametres",
     label: "Paramètres & zones",
     icon: SlidersHorizontal,
+  },
+  {
+    href: "/admin/drivers/contrats",
+    label: "Contrats",
+    icon: FileSignature,
   },
 ] as const;
 
