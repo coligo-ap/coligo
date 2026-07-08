@@ -245,8 +245,21 @@ export default function SignupPage() {
                 )}
 
                 <p className="text-muted pt-2 text-center text-xs">
-                  En vous inscrivant, vous acceptez les CGU de {APP_CONFIG.name}
-                  .
+                  En vous inscrivant, vous acceptez les{" "}
+                  <Link
+                    href="/cgu"
+                    className="text-primary-700 font-medium hover:underline"
+                  >
+                    Conditions générales
+                  </Link>{" "}
+                  et la{" "}
+                  <Link
+                    href="/confidentialite"
+                    className="text-primary-700 font-medium hover:underline"
+                  >
+                    Politique de confidentialité
+                  </Link>{" "}
+                  de {APP_CONFIG.name}.
                 </p>
               </form>
 

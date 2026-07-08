@@ -29,15 +29,14 @@ export function CustomerFooter() {
         </Column>
 
         <Column title={t("help")}>
-          <Item href="/aide">{t("helpCenter")}</Item>
-          <Item href={`mailto:${APP_CONFIG.contact.supportEmail}`}>
-            {t("contactUs")}
-          </Item>
+          <Item href="/centre-aide">{t("helpCenter")}</Item>
+          <Item href="/contact">{t("contactUs")}</Item>
         </Column>
 
         <Column title={t("legal")}>
           <Item href="/cgu">{t("terms")}</Item>
           <Item href="/confidentialite">{t("privacy")}</Item>
+          <Item href="/mentions-legales">{t("legalNotice")}</Item>
         </Column>
       </div>
     </footer>

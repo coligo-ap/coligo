@@ -695,6 +695,7 @@
     "voucherCredited": "مُضاف إلى كوليغو باي"
   },
   "auth": {
+    "signupConsent": "بإنشاء حساب، فإنك توافق على <cgu>الشروط العامة</cgu> و<privacy>سياسة الخصوصية</privacy>.",
     "signIn": "تسجيل الدخول",
     "forgotPassword": "نسيت كلمة المرور",
     "forgotPasswordIntro": "أدخل البريد الإلكتروني لحسابك في Coligo. سنرسل لك رابطاً لتعيين كلمة مرور جديدة.",
@@ -926,7 +927,8 @@
     "contactUs": "اتصل بنا",
     "legal": "الشروط القانونية",
     "terms": "الشروط العامة",
-    "privacy": "الخصوصية"
+    "privacy": "الخصوصية",
+    "legalNotice": "إشعار قانوني"
   },
   "drive": {
     "back": "رجوع",

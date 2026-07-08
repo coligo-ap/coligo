@@ -695,6 +695,7 @@
     "voucherCredited": "Crédité sur Coligo Pay"
   },
   "auth": {
+    "signupConsent": "En créant un compte, vous acceptez nos <cgu>Conditions générales</cgu> et notre <privacy>Politique de confidentialité</privacy>.",
     "signIn": "Se connecter",
     "forgotPassword": "Mot de passe oublié",
     "forgotPasswordIntro": "Indique l'email de ton compte Coligo. On t'enverra un lien pour définir un nouveau mot de passe.",
@@ -926,7 +927,8 @@
     "contactUs": "Nous contacter",
     "legal": "Légal",
     "terms": "Conditions générales",
-    "privacy": "Confidentialité"
+    "privacy": "Confidentialité",
+    "legalNotice": "Mentions légales"
   },
   "drive": {
     "back": "Retour",

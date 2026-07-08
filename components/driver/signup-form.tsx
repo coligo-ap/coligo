@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Loader2 } from "lucide-react";
@@ -114,6 +115,27 @@ export function DriverSignupForm() {
         {pending && <Loader2 className="size-4 animate-spin" />}
         {tr("Créer mon compte", "إنشاء حسابي")}
       </Button>
+
+      <p className="text-subtle text-center text-xs">
+        {tr(
+          "En créant un compte, vous acceptez les ",
+          "بإنشاء حساب، فإنك توافق على "
+        )}
+        <Link
+          href="/cgu"
+          className="text-primary-700 font-medium hover:underline"
+        >
+          {tr("Conditions générales", "الشروط العامة")}
+        </Link>
+        {tr(" et la ", " و")}
+        <Link
+          href="/confidentialite"
+          className="text-primary-700 font-medium hover:underline"
+        >
+          {tr("Politique de confidentialité", "سياسة الخصوصية")}
+        </Link>
+        .
+      </p>
     </form>
   );
 }

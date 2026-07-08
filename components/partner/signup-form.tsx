@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import { ArrowRight, FileText, Phone, Store, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -169,6 +170,24 @@ export function PartnerSignupForm() {
       <p className="text-subtle text-center text-xs">
         Votre demande sera examinée par Coligo. Vous ajouterez vos documents
         (registre de commerce, pièce d&apos;identité) juste après.
+      </p>
+
+      <p className="text-subtle text-center text-xs">
+        En envoyant votre demande, vous acceptez les{" "}
+        <Link
+          href="/cgu"
+          className="text-primary-700 font-medium hover:underline"
+        >
+          Conditions générales
+        </Link>{" "}
+        et la{" "}
+        <Link
+          href="/confidentialite"
+          className="text-primary-700 font-medium hover:underline"
+        >
+          Politique de confidentialité
+        </Link>
+        .
       </p>
     </form>
   );

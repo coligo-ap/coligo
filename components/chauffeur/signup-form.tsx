@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import { ArrowRight, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -196,6 +197,24 @@ export function ChauffeurSignupForm({
             </>
           )}
         </Button>
+
+        <p className="text-subtle text-center text-xs">
+          En créant un compte, vous acceptez les{" "}
+          <Link
+            href="/cgu"
+            className="text-primary-700 font-medium hover:underline"
+          >
+            Conditions générales
+          </Link>{" "}
+          et la{" "}
+          <Link
+            href="/confidentialite"
+            className="text-primary-700 font-medium hover:underline"
+          >
+            Politique de confidentialité
+          </Link>
+          .
+        </p>
       </form>
     </>
   );

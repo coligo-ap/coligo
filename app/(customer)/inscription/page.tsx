@@ -172,6 +172,27 @@ function CustomerSignupInner() {
                       </>
                     )}
                   </Button>
+
+                  <p className="text-subtle pt-1 text-center text-xs">
+                    {t.rich("signupConsent", {
+                      cgu: (chunks) => (
+                        <Link
+                          href="/cgu"
+                          className="text-primary-700 font-medium hover:underline"
+                        >
+                          {chunks}
+                        </Link>
+                      ),
+                      privacy: (chunks) => (
+                        <Link
+                          href="/confidentialite"
+                          className="text-primary-700 font-medium hover:underline"
+                        >
+                          {chunks}
+                        </Link>
+                      ),
+                    })}
+                  </p>
                 </form>
 
                 <div className="mt-5">
