@@ -26,6 +26,7 @@ export const APP_CONFIG = {
   contact: {
     supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@coligo.app",
     salesEmail: process.env.NEXT_PUBLIC_SALES_EMAIL ?? "hello@coligo.app",
+    contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "contact@coligo.app",
   },
 
   brand: {

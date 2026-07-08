@@ -2,10 +2,26 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { LEGAL } from "@/lib/config/legal";
+import { getFeatureFlags, isVisible } from "@/lib/data/feature-flags";
 
 export const metadata = { title: "Politique de confidentialité" };
 
-export default function ConfidentialitePage() {
+// Le document s'adapte aux services réellement proposés (voir /admin/controle) :
+// un service masqué (« hidden ») disparaît des traitements décrits.
+export default async function ConfidentialitePage() {
+  const flags = await getFeatureFlags();
+  const drive = isVisible(flags.drive);
+  const pay = isVisible(flags.coligo_pay);
+  const onlinePay = isVisible(flags.online_payment);
+  const delivery = isVisible(flags.express) || isVisible(flags.tour);
+
+  const partnerRoles = [
+    "commerçants",
+    ...(delivery ? ["livreurs"] : []),
+    ...(drive ? ["chauffeurs"] : []),
+    ...(pay ? ["agents"] : []),
+  ].join(", ");
+
   return (
     <main className="bg-surface-2 min-h-screen">
       <div className="mx-auto max-w-2xl px-4 py-10">
@@ -30,7 +46,7 @@ export default function ConfidentialitePage() {
               {LEGAL.platform} sont traitées sous la responsabilité de M.{" "}
               {LEGAL.ownerFullName}, {LEGAL.status.toLowerCase()} immatriculé au{" "}
               {LEGAL.registrationLabel} sous le n°{" "}
-              <strong>{LEGAL.registrationNumber}</strong>, {LEGAL.country}.
+              <strong>{LEGAL.registrationNumber}</strong>, {LEGAL.address}.
               Contact :{" "}
               <a
                 href={`mailto:${APP_CONFIG.contact.supportEmail}`}
@@ -60,16 +76,19 @@ export default function ConfidentialitePage() {
             <ul className="list-disc space-y-1 pl-5">
               <li>
                 <strong>Identification et contact</strong> : nom, prénom, numéro
-                de téléphone, adresse e-mail, adresses de livraison.
+                de téléphone, adresse e-mail
+                {delivery ? ", adresses de livraison" : ""}.
               </li>
               <li>
-                <strong>Données de transaction</strong> : commandes, courses,
-                paiements, soldes et opérations Coligo Pay, remboursements,
-                factures et relevés.
+                <strong>Données de transaction</strong> : commandes
+                {drive ? ", courses" : ""}, paiements
+                {pay ? ", soldes et opérations Coligo Pay" : ""},
+                remboursements, factures et relevés.
               </li>
               <li>
                 <strong>Géolocalisation</strong> : position de l&apos;appareil,
-                uniquement avec votre autorisation (voir article 5).
+                uniquement avec votre autorisation (voir l&apos;article «
+                Géolocalisation »).
               </li>
               <li>
                 <strong>Données techniques</strong> : modèle d&apos;appareil,
@@ -77,17 +96,19 @@ export default function ConfidentialitePage() {
                 de connexion et de sécurité.
               </li>
               <li>
-                <strong>
-                  Partenaires (commerçants, livreurs, chauffeurs, agents)
-                </strong>{" "}
-                : documents professionnels requis pour la validation du compte
-                (immatriculation, pièce d&apos;identité, permis, assurance,
-                documents du véhicule), coordonnées de versement (CCP / RIB),
-                notations et statistiques d&apos;activité.
+                <strong>Partenaires ({partnerRoles})</strong> : documents
+                professionnels requis pour la validation du compte
+                (immatriculation, pièce d&apos;identité
+                {delivery || drive
+                  ? ", permis, assurance, documents du véhicule"
+                  : ""}
+                ), coordonnées de versement (CCP / RIB), notations et
+                statistiques d&apos;activité.
               </li>
               <li>
                 <strong>Échanges</strong> : messages du chat intégré
-                (client-livreur, support), réclamations et avis.
+                {delivery ? " (client-livreur, support)" : " (support)"},
+                réclamations et avis.
               </li>
             </ul>
           </Section>
@@ -96,9 +117,10 @@ export default function ConfidentialitePage() {
             <ul className="list-disc space-y-1 pl-5">
               <li>
                 <strong>Exécution du service</strong> (base contractuelle) :
-                création du compte, mise en relation, traitement des commandes,
-                livraisons et courses, paiements et versements, facturation,
-                support et traitement des réclamations.
+                création du compte, mise en relation, traitement des commandes
+                {delivery ? ", livraisons" : ""}
+                {drive ? " et courses" : ""}, paiements et versements,
+                facturation, support et traitement des réclamations.
               </li>
               <li>
                 <strong>Sécurité et prévention de la fraude</strong> (intérêt
@@ -122,13 +144,17 @@ export default function ConfidentialitePage() {
           <Section title="5. Géolocalisation">
             <p>
               La position n&apos;est utilisée que lorsque vous l&apos;autorisez
-              via votre appareil : affichage des commerces et points de recharge
-              à proximité, calcul des frais et délais de livraison, suivi en
-              temps réel des livraisons et courses en cours, et attribution des
-              demandes aux partenaires proches. Les partenaires en service
-              partagent leur position pendant leur activité pour permettre ce
-              fonctionnement. Vous pouvez révoquer l&apos;autorisation à tout
-              moment dans les réglages de votre appareil.
+              via votre appareil : affichage des commerces
+              {pay ? " et points de recharge" : ""} à proximité
+              {delivery
+                ? ", calcul des frais et délais de livraison, suivi en temps réel des livraisons"
+                : ""}
+              {drive ? (delivery ? " et courses" : ", suivi des courses") : ""}
+              {delivery || drive
+                ? ", et attribution des demandes aux partenaires proches. Les partenaires en service partagent leur position pendant leur activité pour permettre ce fonctionnement."
+                : "."}{" "}
+              Vous pouvez révoquer l&apos;autorisation à tout moment dans les
+              réglages de votre appareil.
             </p>
           </Section>
 
@@ -140,14 +166,22 @@ export default function ConfidentialitePage() {
             <ul className="list-disc space-y-1 pl-5">
               <li>
                 avec les parties à votre transaction (le commerçant voit la
-                commande ; le livreur ou chauffeur voit le prénom,
-                l&apos;adresse de livraison et, sauf masquage, le téléphone) ;
+                commande
+                {delivery
+                  ? " ; le livreur voit le prénom, l'adresse de livraison et, sauf masquage, le téléphone"
+                  : ""}
+                {drive
+                  ? " ; le chauffeur voit le prénom et le point de rendez-vous"
+                  : ""}
+                ) ;
               </li>
               <li>
                 avec les prestataires techniques : hébergement (
-                {LEGAL.hosting.web}; {LEGAL.hosting.data}), prestataires de
-                paiement agréés en Algérie pour les paiements par carte,
-                services d&apos;envoi de notifications ;
+                {LEGAL.hosting.web} ; {LEGAL.hosting.data})
+                {onlinePay
+                  ? ", prestataires de paiement agréés en Algérie pour les paiements par carte"
+                  : ""}
+                , services d&apos;envoi de notifications ;
               </li>
               <li>
                 avec les autorités algériennes habilitées, sur réquisition
@@ -222,7 +256,8 @@ export default function ConfidentialitePage() {
                 .
               </li>
               <li>
-                Pour toute autre demande, écrivez à{" "}
+                Pour toute autre demande (y compris la suppression de données
+                déterminées sans supprimer le compte), écrivez à{" "}
                 <a
                   href={`mailto:${APP_CONFIG.contact.supportEmail}`}
                   className="text-primary-700 font-medium hover:underline"

@@ -9,10 +9,29 @@ import {
 } from "lucide-react";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { LEGAL } from "@/lib/config/legal";
+import { getFeatureFlags, isVisible } from "@/lib/data/feature-flags";
 
 export const metadata = { title: "Nous contacter" };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const flags = await getFeatureFlags();
+  const drive = isVisible(flags.drive);
+  const pay = isVisible(flags.coligo_pay);
+  const delivery = isVisible(flags.express) || isVisible(flags.tour);
+
+  const supportAudience = [
+    "clients",
+    ...(delivery ? ["livreurs"] : []),
+    ...(drive ? ["chauffeurs"] : []),
+    ...(pay ? ["agents"] : []),
+  ].join(", ");
+
+  const partnerRoles = [
+    "commerçant",
+    ...(delivery ? ["livreur"] : []),
+    ...(drive ? ["chauffeur"] : []),
+  ].join(", ");
+
   return (
     <main className="bg-surface-2 min-h-screen">
       <div className="mx-auto max-w-2xl px-4 py-10">
@@ -38,17 +57,21 @@ export default function ContactPage() {
         <div className="mt-6 space-y-4">
           <Card
             icon={<MessageCircle className="text-primary-600 size-5" />}
-            title="Une commande ou une course en cours ?"
+            title={
+              drive
+                ? "Une commande ou une course en cours ?"
+                : "Une commande en cours ?"
+            }
           >
             Le plus rapide : le <strong>chat intégré</strong> de
             l&apos;application (depuis le suivi de commande ou la page
             d&apos;aide de votre espace). Vous êtes mis en relation directement
-            avec le livreur ou avec le support.
+            {delivery ? " avec le livreur ou" : ""} avec le support.
           </Card>
 
           <Card
             icon={<Mail className="text-primary-600 size-5" />}
-            title="Support général (clients, livreurs, chauffeurs, agents)"
+            title={`Support général (${supportAudience})`}
           >
             Écrivez-nous à{" "}
             <a
@@ -57,16 +80,24 @@ export default function ContactPage() {
             >
               {APP_CONFIG.contact.supportEmail}
             </a>{" "}
-            en précisant votre numéro de commande ou de course si votre demande
-            en concerne une. Nous répondons dans les meilleurs délais.
+            en précisant votre numéro de commande{drive ? " ou de course" : ""}{" "}
+            si votre demande en concerne une. Pour toute autre question générale
+            :{" "}
+            <a
+              href={`mailto:${APP_CONFIG.contact.contactEmail}`}
+              className="text-primary-700 font-medium hover:underline"
+            >
+              {APP_CONFIG.contact.contactEmail}
+            </a>
+            . Nous répondons dans les meilleurs délais.
           </Card>
 
           <Card
             icon={<Store className="text-primary-600 size-5" />}
             title="Devenir commerçant ou partenaire"
           >
-            Vous êtes commerçant, livreur, chauffeur ou souhaitez devenir Agent
-            Coligo Pay ? Écrivez à{" "}
+            Vous êtes {partnerRoles}
+            {pay ? " ou souhaitez devenir Agent Coligo Pay" : ""} ? Écrivez à{" "}
             <a
               href={`mailto:${APP_CONFIG.contact.salesEmail}`}
               className="text-primary-700 font-medium hover:underline"
@@ -111,7 +142,7 @@ export default function ContactPage() {
             {LEGAL.platform} est exploitée par M. {LEGAL.ownerFullName},{" "}
             {LEGAL.status.toLowerCase()} immatriculé au{" "}
             {LEGAL.registrationLabel} sous le n° {LEGAL.registrationNumber},{" "}
-            {LEGAL.country} — voir les{" "}
+            {LEGAL.address} — voir les{" "}
             <Link
               href="/mentions-legales"
               className="text-primary-700 font-medium hover:underline"

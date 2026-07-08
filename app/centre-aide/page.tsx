@@ -10,40 +10,65 @@ import {
   Wallet,
 } from "lucide-react";
 import { APP_CONFIG } from "@/lib/config/app-config";
+import { getFeatureFlags, isVisible } from "@/lib/data/feature-flags";
 
 export const metadata = { title: "Centre d'aide" };
 
 type Faq = { q: string; a: React.ReactNode };
 type Section = { icon: React.ReactNode; title: string; items: Faq[] };
 
-const SECTIONS: Section[] = [
-  {
+// La FAQ s'adapte aux services actifs (voir /admin/controle) : un service
+// masqué (« hidden ») n'apparaît pas.
+function buildSections(opts: {
+  drive: boolean;
+  pay: boolean;
+  onlinePay: boolean;
+  delivery: boolean;
+}): Section[] {
+  const { drive, pay, onlinePay, delivery } = opts;
+  const sections: Section[] = [];
+
+  sections.push({
     icon: <ShoppingBag className="text-primary-600 size-4" />,
-    title: "Commandes & livraison",
+    title: delivery ? "Commandes & livraison" : "Commandes & retrait",
     items: [
       {
         q: "Comment passer une commande ?",
         a: (
           <>
             Choisissez un commerce près de chez vous, ajoutez vos produits au
-            panier puis validez : vous choisissez la <strong>livraison</strong>,
-            le <strong>retrait sur place</strong> ou une commande{" "}
-            <strong>programmée</strong>. Le détail des frais s&apos;affiche
-            toujours avant la confirmation.
+            panier puis validez :{" "}
+            {delivery ? (
+              <>
+                vous choisissez la <strong>livraison</strong>, le{" "}
+                <strong>retrait sur place</strong> ou une commande{" "}
+                <strong>programmée</strong>
+              </>
+            ) : (
+              <>
+                vous retirez <strong>sur place</strong>, immédiatement ou via
+                une commande <strong>programmée</strong>
+              </>
+            )}
+            . Le détail des frais s&apos;affiche toujours avant la confirmation.
           </>
         ),
       },
-      {
-        q: "Comment suivre ma livraison ?",
-        a: (
-          <>
-            Depuis <strong>Mes commandes</strong>, ouvrez la commande en cours :
-            vous suivez chaque étape en temps réel (préparation, livreur en
-            route, arrivée) sur la carte, et vous pouvez discuter avec le
-            livreur via le chat intégré.
-          </>
-        ),
-      },
+      ...(delivery
+        ? [
+            {
+              q: "Comment suivre ma livraison ?",
+              a: (
+                <>
+                  Depuis <strong>Mes commandes</strong>, ouvrez la commande en
+                  cours : vous suivez chaque étape en temps réel (préparation,
+                  livreur en route, arrivée) sur la carte, et vous pouvez
+                  discuter avec le livreur via le chat intégré.
+                </>
+              ),
+            },
+          ]
+        : []),
       {
         q: "Comment fonctionne le retrait sur place ?",
         a: (
@@ -60,8 +85,11 @@ const SECTIONS: Section[] = [
           <>
             Signalez-le au support au plus vite depuis la commande concernée ou
             via la page <strong>Nous contacter</strong>, en précisant le numéro
-            de commande. Après vérification, un remboursement (en solde Coligo
-            Pay ou selon le mode de paiement) peut être appliqué.
+            de commande. Après vérification, un remboursement
+            {pay
+              ? " (en solde Coligo Pay ou selon le mode de paiement)"
+              : ""}{" "}
+            peut être appliqué.
           </>
         ),
       },
@@ -76,98 +104,118 @@ const SECTIONS: Section[] = [
         ),
       },
     ],
-  },
-  {
-    icon: <Car className="text-primary-600 size-4" />,
-    title: "Coligo Drive (trajets)",
-    items: [
-      {
-        q: "Comment réserver une course ?",
-        a: (
-          <>
-            Ouvrez <strong>Drive</strong>, indiquez votre destination : le prix
-            est <strong>annoncé avant la confirmation</strong>, sans surprise.
-            Un chauffeur proche accepte, vous suivez son arrivée sur la carte.
-          </>
-        ),
-      },
-      {
-        q: "Le prix peut-il changer pendant la course ?",
-        a: (
-          <>
-            Non : le prix annoncé à la réservation est le prix payé, sauf
-            modification de la destination en cours de route demandée par vous.
-          </>
-        ),
-      },
-      {
-        q: "Mon numéro est-il visible par le chauffeur ?",
-        a: (
-          <>
-            Par défaut, votre numéro est <strong>masqué</strong> : les appels et
-            messages passent par l&apos;application.
-          </>
-        ),
-      },
-      {
-        q: "J'ai oublié un objet dans un véhicule.",
-        a: (
-          <>
-            Contactez le support avec la référence de la course : nous faisons
-            le lien avec le chauffeur pour organiser la restitution.
-          </>
-        ),
-      },
-    ],
-  },
-  {
-    icon: <Wallet className="text-primary-600 size-4" />,
-    title: "Coligo Pay",
-    items: [
-      {
-        q: "C'est quoi le solde Coligo Pay ?",
-        a: (
-          <>
-            Un <strong>solde prépayé</strong> utilisable pour régler vos
-            commandes et courses dans l&apos;application. Ce n&apos;est pas un
-            compte bancaire : il ne produit pas d&apos;intérêts et
-            s&apos;utilise uniquement sur Coligo.
-          </>
-        ),
-      },
-      {
-        q: "Comment recharger mon solde ?",
-        a: (
-          <>
-            Rendez-vous chez un <strong>Agent Coligo Pay</strong> près de chez
-            vous (visibles sur la carte dans l&apos;application) : vous payez en
-            espèces, votre solde est crédité immédiatement.
-          </>
-        ),
-      },
-      {
-        q: "Puis-je récupérer mon solde en espèces ?",
-        a: (
-          <>
-            Le solde sert d&apos;abord à payer sur la plateforme. En cas de
-            besoin, contactez le support : après vérification d&apos;identité,
-            un remboursement est possible selon la procédure indiquée.
-          </>
-        ),
-      },
-      {
-        q: "Le paiement par carte est-il disponible ?",
-        a: (
-          <>
-            Lorsqu&apos;il est activé, le paiement en ligne s&apos;effectue par
-            carte CIB / Edahabia via les prestataires agréés en Algérie. Coligo
-            ne stocke jamais vos données de carte.
-          </>
-        ),
-      },
-    ],
-  },
-  {
+  });
+
+  if (drive) {
+    sections.push({
+      icon: <Car className="text-primary-600 size-4" />,
+      title: "Coligo Drive (trajets)",
+      items: [
+        {
+          q: "Comment réserver une course ?",
+          a: (
+            <>
+              Ouvrez <strong>Drive</strong>, indiquez votre destination : le
+              prix est <strong>annoncé avant la confirmation</strong>, sans
+              surprise. Un chauffeur proche accepte, vous suivez son arrivée sur
+              la carte.
+            </>
+          ),
+        },
+        {
+          q: "Le prix peut-il changer pendant la course ?",
+          a: (
+            <>
+              Non : le prix annoncé à la réservation est le prix payé, sauf
+              modification de la destination en cours de route demandée par
+              vous.
+            </>
+          ),
+        },
+        {
+          q: "Mon numéro est-il visible par le chauffeur ?",
+          a: (
+            <>
+              Par défaut, votre numéro est <strong>masqué</strong> : les appels
+              et messages passent par l&apos;application.
+            </>
+          ),
+        },
+        {
+          q: "J'ai oublié un objet dans un véhicule.",
+          a: (
+            <>
+              Contactez le support avec la référence de la course : nous faisons
+              le lien avec le chauffeur pour organiser la restitution.
+            </>
+          ),
+        },
+      ],
+    });
+  }
+
+  if (pay || onlinePay) {
+    sections.push({
+      icon: <Wallet className="text-primary-600 size-4" />,
+      title: "Paiements",
+      items: [
+        ...(pay
+          ? [
+              {
+                q: "C'est quoi le solde Coligo Pay ?",
+                a: (
+                  <>
+                    Un <strong>solde prépayé</strong> utilisable pour régler vos
+                    commandes{drive ? " et courses" : ""} dans
+                    l&apos;application. Ce n&apos;est pas un compte bancaire :
+                    il ne produit pas d&apos;intérêts et s&apos;utilise
+                    uniquement sur Coligo.
+                  </>
+                ),
+              },
+              {
+                q: "Comment recharger mon solde ?",
+                a: (
+                  <>
+                    Rendez-vous chez un <strong>Agent Coligo Pay</strong> près
+                    de chez vous (visibles sur la carte dans l&apos;application)
+                    : vous payez en espèces, votre solde est crédité
+                    immédiatement.
+                  </>
+                ),
+              },
+              {
+                q: "Puis-je récupérer mon solde en espèces ?",
+                a: (
+                  <>
+                    Le solde sert d&apos;abord à payer sur la plateforme. En cas
+                    de besoin, contactez le support : après vérification
+                    d&apos;identité, un remboursement est possible selon la
+                    procédure indiquée.
+                  </>
+                ),
+              },
+            ]
+          : []),
+        ...(onlinePay
+          ? [
+              {
+                q: "Le paiement par carte est-il disponible ?",
+                a: (
+                  <>
+                    Le paiement en ligne s&apos;effectue par carte CIB /
+                    Edahabia via les prestataires agréés en Algérie. Coligo ne
+                    stocke jamais vos données de carte.
+                  </>
+                ),
+              },
+            ]
+          : []),
+      ],
+    });
+  }
+
+  sections.push({
     icon: <UserRound className="text-primary-600 size-4" />,
     title: "Compte & sécurité",
     items: [
@@ -208,8 +256,9 @@ const SECTIONS: Section[] = [
         ),
       },
     ],
-  },
-  {
+  });
+
+  sections.push({
     icon: <Handshake className="text-primary-600 size-4" />,
     title: "Devenir partenaire",
     items: [
@@ -229,31 +278,53 @@ const SECTIONS: Section[] = [
           </>
         ),
       },
-      {
-        q: "Comment devenir livreur ou chauffeur ?",
-        a: (
-          <>
-            Inscrivez-vous depuis l&apos;espace partenaires avec vos documents
-            (pièce d&apos;identité, permis, assurance, véhicule). Après
-            validation, vous choisissez librement vos horaires de connexion.
-          </>
-        ),
-      },
-      {
-        q: "Comment devenir Agent Coligo Pay ?",
-        a: (
-          <>
-            Les commerces peuvent devenir points de recharge agréés et percevoir
-            une commission sur les recharges. Candidatez depuis l&apos;espace
-            partenaires ou écrivez-nous.
-          </>
-        ),
-      },
+      ...(delivery || drive
+        ? [
+            {
+              q: `Comment devenir ${[
+                ...(delivery ? ["livreur"] : []),
+                ...(drive ? ["chauffeur"] : []),
+              ].join(" ou ")} ?`,
+              a: (
+                <>
+                  Inscrivez-vous depuis l&apos;espace partenaires avec vos
+                  documents (pièce d&apos;identité, permis, assurance,
+                  véhicule). Après validation, vous choisissez librement vos
+                  horaires de connexion.
+                </>
+              ),
+            },
+          ]
+        : []),
+      ...(pay
+        ? [
+            {
+              q: "Comment devenir Agent Coligo Pay ?",
+              a: (
+                <>
+                  Les commerces peuvent devenir points de recharge agréés et
+                  percevoir une commission sur les recharges. Candidatez depuis
+                  l&apos;espace partenaires ou écrivez-nous.
+                </>
+              ),
+            },
+          ]
+        : []),
     ],
-  },
-];
+  });
 
-export default function CentreAidePage() {
+  return sections;
+}
+
+export default async function CentreAidePage() {
+  const flags = await getFeatureFlags();
+  const sections = buildSections({
+    drive: isVisible(flags.drive),
+    pay: isVisible(flags.coligo_pay),
+    onlinePay: isVisible(flags.online_payment),
+    delivery: isVisible(flags.express) || isVisible(flags.tour),
+  });
+
   return (
     <main className="bg-surface-2 min-h-screen">
       <div className="mx-auto max-w-2xl px-4 py-10">
@@ -276,7 +347,7 @@ export default function CentreAidePage() {
         </header>
 
         <div className="space-y-6">
-          {SECTIONS.map((section) => (
+          {sections.map((section) => (
             <section key={section.title}>
               <h2 className="text-muted mb-2 flex items-center gap-1.5 text-sm font-semibold tracking-wide uppercase">
                 {section.icon}

@@ -2,10 +2,33 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { LEGAL } from "@/lib/config/legal";
+import { getFeatureFlags, isVisible } from "@/lib/data/feature-flags";
 
 export const metadata = { title: "Mentions légales" };
 
-export default function MentionsLegalesPage() {
+export default async function MentionsLegalesPage() {
+  const flags = await getFeatureFlags();
+  const drive = isVisible(flags.drive);
+  const pay = isVisible(flags.coligo_pay);
+  const delivery = isVisible(flags.express) || isVisible(flags.tour);
+
+  const activityParts = [
+    "la commande de produits",
+    ...(delivery ? ["la livraison"] : []),
+    ...(drive ? ["le transport de personnes (Coligo Drive)"] : []),
+    ...(pay ? ["les services de solde prépayé associés (Coligo Pay)"] : []),
+  ];
+  const activity =
+    activityParts.length > 1
+      ? `${activityParts.slice(0, -1).join(", ")} et ${activityParts.at(-1)}`
+      : activityParts[0];
+
+  const partnerKinds = [
+    "commerçants",
+    ...(delivery ? ["livreurs"] : []),
+    ...(drive ? ["chauffeurs"] : []),
+  ].join(", ");
+
   return (
     <main className="bg-surface-2 min-h-screen">
       <div className="mx-auto max-w-2xl px-4 py-10">
@@ -40,10 +63,17 @@ export default function MentionsLegalesPage() {
                 {LEGAL.registrationNumber}.
               </li>
               <li>
-                <strong>Pays d&apos;exercice :</strong> {LEGAL.country}.
+                <strong>Adresse :</strong> {LEGAL.address}.
               </li>
               <li>
                 <strong>Contact :</strong>{" "}
+                <a
+                  href={`mailto:${APP_CONFIG.contact.contactEmail}`}
+                  className="text-primary-700 font-medium hover:underline"
+                >
+                  {APP_CONFIG.contact.contactEmail}
+                </a>{" "}
+                ·{" "}
                 <a
                   href={`mailto:${APP_CONFIG.contact.supportEmail}`}
                   className="text-primary-700 font-medium hover:underline"
@@ -68,11 +98,9 @@ export default function MentionsLegalesPage() {
           <Section title="Activité">
             <p>
               {LEGAL.platform} est une plateforme d&apos;intermédiation en ligne
-              mettant en relation clients, commerçants, livreurs et chauffeurs
-              partenaires indépendants pour la commande de produits, la
-              livraison, le transport de personnes (Coligo Drive) et les
-              services de solde prépayé associés (Coligo Pay). Les conditions
-              d&apos;utilisation détaillées figurent dans les{" "}
+              mettant en relation les clients et des partenaires indépendants (
+              {partnerKinds}) pour {activity}. Les conditions d&apos;utilisation
+              détaillées figurent dans les{" "}
               <Link
                 href="/cgu"
                 className="text-primary-700 font-medium hover:underline"

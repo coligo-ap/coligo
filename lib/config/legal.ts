@@ -15,6 +15,8 @@ export const LEGAL = {
     "loi n° 22-23 du 18 décembre 2022 portant statut de l'auto-entrepreneur",
   registrationLabel: "Registre national de l'auto-entrepreneur",
   registrationNumber: "10981022005702687",
+  /** Adresse professionnelle (siège de la micro-entreprise). */
+  address: "Akbou, Béjaïa 06001, Algérie",
   country: "Algérie",
   site: "https://coligo.app",
   /** Date affichée sur les documents légaux — mettre à jour à chaque révision. */
