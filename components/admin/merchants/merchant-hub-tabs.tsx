@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Banknote,
   ClipboardCheck,
+  FileSignature,
   Percent,
   Receipt,
   Store,
@@ -24,6 +25,11 @@ const TABS = [
   { href: "/admin/merchants/commandes", label: "Commandes", icon: Receipt },
   { href: "/admin/merchants/finances", label: "Versements", icon: Banknote },
   { href: "/admin/merchants/taux", label: "Taux & paiement", icon: Percent },
+  {
+    href: "/admin/merchants/contrats",
+    label: "Contrats",
+    icon: FileSignature,
+  },
 ] as const;
 
 export function MerchantHubTabs({
