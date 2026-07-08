@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   computeCart,
   isPromotionActive,
@@ -896,6 +897,28 @@ export async function createOrder(
         error: "Les tournées ne sont pas activées chez ce commerçant.",
       };
     }
+    // Kill-switch PLATEFORME (feature_flags) : l'insert passe par service_role
+    // (pour interdire tout insert direct forgé), or le trigger SQL
+    // `enforce_feature_delivery_mode` ne s'applique qu'aux rôles authenticated/
+    // anon → on applique donc la garde ICI, en amont (miroir de
+    // feature_blocked = status <> 'active').
+    if (
+      input.delivery_mode === "express" &&
+      features.express.status !== "active"
+    ) {
+      return {
+        ok: false,
+        error:
+          "La livraison express est momentanément indisponible. Choisis le retrait sur place ou réessaie plus tard.",
+      };
+    }
+    if (input.delivery_mode === "tour" && features.tour.status !== "active") {
+      return {
+        ok: false,
+        error:
+          "La livraison en tournée est momentanément indisponible. Choisis le retrait sur place ou réessaie plus tard.",
+      };
+    }
     if (merchDelivery.latitude == null || merchDelivery.longitude == null) {
       return {
         ok: false,
@@ -1145,11 +1168,23 @@ export async function createOrder(
 
   const totalWithDelivery = totalAfterWallets + deliveryFeeDa;
 
+  // ANTI-FRAUDE (durcissement) : la commande + ses lignes sont écrites via le
+  // client service_role (`writeDb`), JAMAIS le client utilisateur. Combiné au
+  // retrait des policies RLS INSERT côté client (mig 0349), un INSERT PostgREST
+  // direct par un client (rôle authenticated) est désormais REJETÉ → il est
+  // impossible de forger les montants (service_fee, total, net…). Le seul chemin
+  // de création passe par cette Server Action, qui recalcule TOUT depuis la DB.
+  // Les montants posés ici sont donc autoritaires ; les triggers de gating qui
+  // tournent aussi pour service_role (créneau, dette commerçant, feature online,
+  // dépense wallet, génération pickup_code) restent actifs ; ceux réservés à
+  // authenticated (zone, feature livraison) sont revalidés en TS plus haut.
+  const writeDb = createAdminClient();
+
   // Cast localisé : promo_id/promo_code/promo_financeur/gross_total_da/
   // net_total_da ne sont pas encore dans database.types.ts généré (Docker
   // requis pour gen types). On caste le builder en gardant le typage du retour.
   const { data: order, error: orderErr } = await (
-    supabase.from("orders") as unknown as {
+    writeDb.from("orders") as unknown as {
       insert: (v: Record<string, unknown>) => {
         select: (c: string) => {
           single: () => Promise<{
@@ -1308,13 +1343,13 @@ export async function createOrder(
       line_total_da: l.lineTotalDa,
     };
   });
-  const { data: insertedItems, error: itemsErr } = await supabase
+  const { data: insertedItems, error: itemsErr } = await writeDb
     .from("order_items")
     .insert(itemsRows)
     .select("id");
   if (itemsErr || !insertedItems) {
     // Compensation : si les items échouent, on annule la commande.
-    await supabase.from("orders").delete().eq("id", order.id);
+    await writeDb.from("orders").delete().eq("id", order.id);
     return {
       ok: false,
       error: `Erreur ajout articles : ${itemsErr?.message ?? "inconnue"}`,
@@ -1334,7 +1369,7 @@ export async function createOrder(
     }))
   );
   if (optionRows.length > 0) {
-    await supabase.from("order_item_options").insert(optionRows);
+    await writeDb.from("order_item_options").insert(optionRows);
   }
 
   // Snapshot des PROMOTIONS appliquées (type + titre FR/AR + montant + offerts),
@@ -1405,7 +1440,7 @@ export async function createOrder(
     });
   }
   if (promoSnapshotRows.length > 0) {
-    await supabase.from("order_promotions").insert(promoSnapshotRows);
+    await writeDb.from("order_promotions").insert(promoSnapshotRows);
   }
 
   // Code promo : journal d'usage (incrémente uses_count, idempotent via
@@ -1442,7 +1477,12 @@ export async function createOrder(
   let checkoutUrl: string | undefined;
   if (input.payment_method === "online") {
     if (totalWithDelivery === 0) {
-      await supabase
+      // Le wallet couvre tout (livraison comprise) → aucun paiement Chargily.
+      // Écriture via service_role : le client n'a aucune policy UPDATE sur
+      // orders (l'update user-client était un no-op silencieux → commande
+      // bloquée en 'pending'). protect_order_financial_fields ne bride que les
+      // rôles authenticated/anon, donc service_role peut confirmer.
+      await writeDb
         .from("orders")
         .update({ payment_status: "paid" })
         .eq("id", order.id);
