@@ -4,6 +4,7 @@ import { chargilyKeysPresence } from "@/lib/payments/chargily";
 import { FeatureFlagCard } from "@/components/admin/feature-flags-form";
 import { DispatchRadiiForm } from "@/components/admin/dispatch-radii-form";
 import { ChargilyModeCard } from "@/components/admin/chargily-mode-card";
+import { ColigoPayP2pCard } from "@/components/admin/coligo-pay-p2p-card";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ export default async function AdminControlePage() {
             express_dispatch_radius_km: number | string | null;
             drive_dispatch_radius_km: number | string | null;
             chargily_live_mode: boolean | null;
+            p2p_enabled: boolean | null;
           } | null;
         }>;
       };
@@ -70,7 +72,7 @@ export default async function AdminControlePage() {
     getFeatureFlags(),
     from("platform_settings")
       .select(
-        "express_dispatch_radius_km, drive_dispatch_radius_km, chargily_live_mode"
+        "express_dispatch_radius_km, drive_dispatch_radius_km, chargily_live_mode, p2p_enabled"
       )
       .eq("id", true)
       .maybeSingle(),
@@ -111,6 +113,13 @@ export default async function AdminControlePage() {
             hint={m.hint}
           />
         ))}
+      </section>
+
+      <section className="mt-8">
+        <h2 className="text-foreground mb-3 text-sm font-semibold tracking-tight">
+          Coligo Pay
+        </h2>
+        <ColigoPayP2pCard enabled={settings?.p2p_enabled === true} />
       </section>
 
       <section className="mt-8">

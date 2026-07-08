@@ -126,6 +126,39 @@ export async function setChargilyLiveMode(
   return { ok: true };
 }
 
+/**
+ * Active / désactive le transfert P2P Coligo Pay (boutons Envoyer / Recevoir
+ * côté client). Source unique = platform_settings.p2p_enabled, lue partout
+ * (lib/customer/p2p.ts, wallet-actions, wallet-qr-view, /coligo-pay/envoyer).
+ *
+ * Désactivé (défaut) = TOUTES les surfaces P2P sont masquées côté client — exigé
+ * par Google Play (une app à crédit fermé ne doit exposer aucun transfert
+ * d'argent entre utilisateurs, sinon = fonctionnalité financière régulée
+ * « Money transfer » → compte organisation obligatoire). N'activer qu'une fois
+ * le cadre réglementaire / le type de compte réglés. La garde DURE reste côté
+ * SQL (coligo_pay_transfer → p2p_disabled) : le flag ne fait que gérer l'UI.
+ */
+export async function setColigoPayP2p(
+  enabled: boolean
+): Promise<AdminFormState> {
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("platform_settings")
+    .update({
+      p2p_enabled: enabled,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", true);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/controle");
+  // Le wallet client dépend du flag → rafraîchir toutes les vues.
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 /** Rayons de dispatch (A) — express + drive — sur platform_settings. */
 export async function updateDispatchRadii(
   _prev: AdminFormState,
