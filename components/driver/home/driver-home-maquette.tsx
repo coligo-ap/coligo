@@ -27,7 +27,7 @@ import {
 } from "@/lib/driver/active-course-store";
 import { useWorkZone } from "@/lib/driver/work-zone";
 import { WorkZoneSheet } from "@/components/driver/home/work-zone-sheet";
-import { DriverBalancePill } from "@/components/driver/balance-pill";
+import { DriverBalanceAmount } from "@/components/driver/balance-pill";
 import { DriverDarkPill } from "@/components/driver/driver-dark-pill";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { playGo } from "@/lib/driver/sounds";
@@ -444,7 +444,8 @@ export function DriverHomeMaquette({
                 </span>
               </div>
             </div>
-            {/* Finance : gains du jour + solde portefeuille */}
+            {/* Finance : gains du jour + solde portefeuille — DEUX cartes au
+                format STRICTEMENT identique (label · montant · sous-label). */}
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -452,29 +453,44 @@ export function DriverHomeMaquette({
                   setMenuOpen(false);
                   router.push("/driver/gains");
                 }}
-                className="flex flex-col gap-0.5 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] p-3 text-left"
+                className="flex min-w-0 flex-col gap-0.5 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] p-3 text-left"
               >
                 <span className="text-[11px] font-medium text-[var(--muted)]">
                   {tr("Aujourd'hui", "اليوم")}
                 </span>
                 <span
-                  className="text-[17px] leading-none font-extrabold"
+                  className="truncate text-[17px] leading-none font-extrabold text-[var(--ink)]"
                   style={{ fontFamily: SORA }}
                 >
                   {grp(earnedToday)} {tr("DA", "دج")}
                 </span>
-                <span className="mt-0.5 text-[10px] text-[var(--muted)]">
+                <span className="mt-0.5 truncate text-[10px] text-[var(--muted)]">
                   {coursesToday}{" "}
                   {isAr ? "توصيلة" : "course" + (coursesToday > 1 ? "s" : "")}
                 </span>
               </button>
-              <div className="flex flex-col gap-1 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] p-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  router.push("/driver/recharger");
+                }}
+                className="flex min-w-0 flex-col gap-0.5 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] p-3 text-left"
+              >
                 <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--muted)]">
                   <Wallet className="size-3.5" />
                   {tr("Portefeuille", "المحفظة")}
                 </span>
-                <DriverBalancePill driverId={driverId} />
-              </div>
+                <span
+                  className="truncate text-[17px] leading-none font-extrabold text-[var(--ink)]"
+                  style={{ fontFamily: SORA }}
+                >
+                  <DriverBalanceAmount driverId={driverId} />
+                </span>
+                <span className="mt-0.5 truncate text-[10px] text-[var(--muted)]">
+                  Coligo Pay
+                </span>
+              </button>
             </div>
           </div>
         }

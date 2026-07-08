@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import {
   BadgeCheck,
+  ChevronDown,
   CreditCard,
   Crown,
   Landmark,
@@ -39,10 +41,9 @@ export function SubsHero({
 }) {
   return (
     <div
-      className="relative overflow-hidden rounded-[22px] p-5 text-white"
+      className="relative overflow-hidden rounded-[18px] p-4 text-white"
       style={{
         background: `linear-gradient(135deg, ${BRAND_VIOLET}, ${BRAND_VIOLET_D})`,
-        boxShadow: "0 18px 40px -14px rgba(108,43,217,.45)",
       }}
     >
       {/* Halo décoratif */}
@@ -56,14 +57,12 @@ export function SubsHero({
         Coligo
       </div>
       <h2
-        className="mt-1.5 text-[22px] leading-tight font-extrabold tracking-[-0.5px]"
+        className="mt-1 text-[19px] leading-tight font-extrabold tracking-[-0.4px]"
         style={{ fontFamily: SORA }}
       >
         {title}
       </h2>
-      <p className="mt-1 max-w-[300px] text-[12.5px] leading-snug opacity-90">
-        {subtitle}
-      </p>
+      <p className="mt-1 text-[12.5px] leading-snug opacity-90">{subtitle}</p>
     </div>
   );
 }
@@ -91,32 +90,31 @@ export type Benefit = {
 };
 
 export function BenefitsCarousel({ items }: { items: readonly Benefit[] }) {
+  // Grille 2 colonnes COMPACTE (plus de carrousel horizontal : tout est
+  // visible d'un coup d'œil, hauteur divisée par deux, aucun scroll caché).
   return (
-    <div
-      className="-mx-1 flex snap-x snap-mandatory [scrollbar-width:none] gap-2.5 overflow-x-auto px-1 py-1 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-      role="list"
-    >
+    <div className="grid grid-cols-2 gap-2" role="list">
       {items.map((b, i) => {
         const Icon = BENEFIT_ICONS[b.icon];
         return (
           <div
             key={i}
             role="listitem"
-            className="min-w-[72%] shrink-0 snap-start rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5 sm:min-w-[46%]"
+            className="rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3"
           >
-            <span
-              className="mb-2 grid size-9 place-items-center rounded-[11px]"
-              style={{ background: "var(--d-accent)", color: BRAND_VIOLET }}
-            >
-              <Icon className="size-[18px]" />
+            <span className="mb-1.5 flex items-center gap-1.5">
+              <Icon
+                className="size-4 shrink-0"
+                style={{ color: BRAND_VIOLET }}
+              />
+              <b
+                className="truncate text-[12.5px] text-[var(--d-ink)]"
+                style={{ fontFamily: SORA }}
+              >
+                {b.title}
+              </b>
             </span>
-            <b
-              className="block text-[13.5px] text-[var(--d-ink)]"
-              style={{ fontFamily: SORA }}
-            >
-              {b.title}
-            </b>
-            <span className="mt-0.5 block text-[11.5px] leading-snug text-[var(--d-muted)]">
+            <span className="block text-[11px] leading-snug text-[var(--d-muted)]">
               {b.text}
             </span>
           </div>
@@ -190,14 +188,47 @@ const STATUS_META: Record<
 };
 
 export function SubsHistory({ rows }: { rows: SubsHistoryRow[] }) {
+  // Section DÉPLIANTE : fermée par défaut (la page reste courte), le compteur
+  // et le dernier statut suffisent d'un coup d'œil. Ouverte d'office si un
+  // paiement est en attente (l'info importante ne doit pas être cachée).
+  const hasPending = rows.some((r) => r.status === "pending");
+  const [open, setOpen] = useState(hasPending);
   if (rows.length === 0) return null;
+  const last = rows[0];
+  const lastMeta = STATUS_META[last.status] ?? {
+    label: last.status,
+    tone: "muted" as const,
+  };
   return (
-    <div>
-      <p className="mb-1.5 px-1 text-[11px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-        Historique des abonnements
-      </p>
-      <div className="overflow-hidden rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)]">
-        {rows.map((r) => {
+    <div className="overflow-hidden rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)]">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 px-3.5 py-3 text-left"
+      >
+        <span className="min-w-0 flex-1">
+          <b
+            className="block text-[13px] text-[var(--d-ink)]"
+            style={{ fontFamily: SORA }}
+          >
+            Historique des abonnements
+          </b>
+          <span className="block truncate text-[11.5px] text-[var(--d-muted)]">
+            {rows.length} opération{rows.length > 1 ? "s" : ""}
+            {!open ? ` · dernier : ${last.title}` : ""}
+          </span>
+        </span>
+        {!open && (
+          <PartnerBadge tone={lastMeta.tone}>{lastMeta.label}</PartnerBadge>
+        )}
+        <ChevronDown
+          className="size-4 shrink-0 text-[var(--d-muted)] transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : "none" }}
+        />
+      </button>
+      {open &&
+        rows.map((r) => {
           const meta = STATUS_META[r.status] ?? {
             label: r.status,
             tone: "muted" as const,
@@ -205,7 +236,7 @@ export function SubsHistory({ rows }: { rows: SubsHistoryRow[] }) {
           return (
             <div
               key={r.id}
-              className="flex items-center gap-3 border-b border-[var(--d-line)] px-3.5 py-3 last:border-b-0"
+              className="flex items-center gap-3 border-t border-[var(--d-line)] px-3.5 py-3"
             >
               <span className="min-w-0 flex-1">
                 <b className="block truncate text-[13.5px] font-semibold text-[var(--d-ink)] tabular-nums">
@@ -219,7 +250,6 @@ export function SubsHistory({ rows }: { rows: SubsHistoryRow[] }) {
             </div>
           );
         })}
-      </div>
     </div>
   );
 }

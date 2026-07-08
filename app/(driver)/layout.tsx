@@ -14,7 +14,7 @@ import { PersistentDriverMap } from "@/components/driver/home/persistent-driver-
 import { createClient } from "@/lib/supabase/server";
 import { TawkChat } from "@/components/support/tawk-chat";
 import { DriverBlockedScreen } from "@/components/driver/driver-blocked-screen";
-import { InstallBanner } from "@/components/pwa/install-banner";
+import { DriverInstallBanner } from "@/components/driver/driver-install-banner";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
@@ -141,10 +141,9 @@ export default async function DriverLayout({
           Gelé: driver?.is_frozen,
         }}
       />
-      <InstallBanner
-        label="Installer l'application Livreur"
-        className="bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] sm:bottom-4"
-      />
+      {/* Bannière d'installation consciente de la route : jamais masquée par
+          la barre En ligne / le bandeau course de l'accueil. */}
+      <DriverInstallBanner />
       <OfflineSyncIndicator />
     </DriverThemeRoot>
   );

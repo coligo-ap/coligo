@@ -12,15 +12,34 @@ import { getMyWalletState } from "@/app/wallet/recharge-actions";
  * le cache au retour sur l'accueil, et se rafraîchit ~20 s + au focus. Cliquable
  * → page de recharge. (Auth + RLS appliqués par getMyWalletState.)
  */
-export function DriverBalancePill({ driverId }: { driverId: string }) {
-  const router = useRouter();
-  const { data: bal } = useQuery({
+function useDriverBalance(driverId: string) {
+  return useQuery({
     queryKey: ["driver-wallet", driverId],
     queryFn: async () => (await getMyWalletState())?.effectiveBalanceDa ?? 0,
     refetchInterval: 20_000,
     refetchOnWindowFocus: true,
     staleTime: 15_000,
   });
+}
+
+/**
+ * Montant SEUL (texte, sans pilule ni ombre) — pour les cartes uniformes
+ * (tiroir, listes) : même clé de cache que la pastille → zéro requête en plus.
+ * Rouge si solde négatif.
+ */
+export function DriverBalanceAmount({ driverId }: { driverId: string }) {
+  const { data: bal } = useDriverBalance(driverId);
+  const negative = bal != null && bal < 0;
+  return (
+    <span style={negative ? { color: "var(--red)" } : undefined}>
+      {bal == null ? "…" : formatDA(bal)}
+    </span>
+  );
+}
+
+export function DriverBalancePill({ driverId }: { driverId: string }) {
+  const router = useRouter();
+  const { data: bal } = useDriverBalance(driverId);
 
   const negative = bal != null && bal < 0;
 

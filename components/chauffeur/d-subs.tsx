@@ -445,10 +445,7 @@ function PlanCard({
               type="button"
               onClick={onChoose}
               className="drive-sora mt-2 w-full rounded-[14px] py-3 text-sm font-bold text-white active:scale-[0.99]"
-              style={{
-                background: VIOLET,
-                boxShadow: "0 14px 28px -12px rgba(108,43,217,.5)",
-              }}
+              style={{ background: VIOLET }}
             >
               Choisir {title}
             </button>

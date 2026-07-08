@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "next-intl";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Bike, ChevronDown, LifeBuoy } from "lucide-react";
+import { Bike, ChevronDown, LifeBuoy, Search, Zap } from "lucide-react";
 import { openSupportChat } from "@/components/support/tawk-chat";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { MoneyTabs } from "@/components/shared/money-tabs";
@@ -53,7 +53,7 @@ function DeliveryHistorySkeleton() {
   return (
     <div className="space-y-3">
       <div
-        className="h-7 w-44 animate-pulse rounded-lg"
+        className="h-11 animate-pulse rounded-[14px]"
         style={{ background: "var(--d-soft)" }}
       />
       <div className="flex gap-2">
@@ -69,7 +69,7 @@ function DeliveryHistorySkeleton() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="h-[74px] animate-pulse rounded-[15px] border"
+            className="h-[64px] animate-pulse rounded-[15px] border"
             style={{
               background: "var(--d-surface)",
               borderColor: "var(--d-line)",
@@ -82,10 +82,11 @@ function DeliveryHistorySkeleton() {
 }
 
 /**
- * HISTORIQUE livreur — MÊME maquette que « Mes courses » chauffeur (DHisto) :
- * accordéon PAR MOIS (mois le plus récent ouvert), lignes identiques (icône
- * carrée, trajet, méta date · montant, badge Livrée/Annulée). Les filtres de
- * statut (Toutes/Livrées/Annulées) sont conservés (fonctionnalité livreur).
+ * HISTORIQUE livreur — lignes COMPACTES (trajet · date · paiement · montant ·
+ * badge) qui se DÉPLIENT au tap (adresses, horaires, durée, détail financier,
+ * aide) : beaucoup plus d'informations sans submerger l'écran. Accordéon par
+ * mois conservé (mois le plus récent ouvert), recherche texte (accents
+ * ignorés) + filtres statut / paiement / type de course.
  * Données 100 % réelles, heures en fuseau Alger (anti-hydratation #418).
  */
 
@@ -109,10 +110,15 @@ type Row = {
 
 type Merchant = { id: string; name: string };
 type Filter = "all" | "delivered" | "cancelled";
+type PayFilter = "all" | "cash" | "online";
+type ModeFilter = "all" | "express" | "tour";
 
 function grp(n: number) {
   return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
+
+const fold = (s: string) =>
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 const TZ = "Africa/Algiers";
 const MONTHS_FR = [
@@ -158,6 +164,15 @@ function fmtDateTime(d: Date, isAr: boolean) {
   return `${date} ${time}`;
 }
 
+function fmtTime(iso: string | null) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: TZ,
+  });
+}
+
 export function DeliveryHistory({
   rows,
   merchants,
@@ -173,7 +188,11 @@ export function DeliveryHistory({
   }, [merchants, isAr]);
 
   const [filter, setFilter] = useState<Filter>("all");
+  const [pay, setPay] = useState<PayFilter>("all");
+  const [mode, setMode] = useState<ModeFilter>("all");
+  const [q, setQ] = useState("");
   const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
+  const [openId, setOpenId] = useState<string | null>(null);
   const defaultedRef = useRef(false);
 
   const counts = useMemo(
@@ -185,16 +204,24 @@ export function DeliveryHistory({
     [rows]
   );
 
+  const tokens = fold(q).split(/\s+/).filter(Boolean);
   const filtered = useMemo(
     () =>
-      rows.filter((r) =>
-        filter === "all"
-          ? true
-          : filter === "delivered"
-            ? r.status === "completed"
-            : r.status === "cancelled"
-      ),
-    [rows, filter]
+      rows.filter((r) => {
+        if (filter === "delivered" && r.status !== "completed") return false;
+        if (filter === "cancelled" && r.status !== "cancelled") return false;
+        if (pay !== "all" && r.payment_method !== pay) return false;
+        if (mode !== "all" && r.delivery_mode !== mode) return false;
+        if (tokens.length > 0) {
+          const hay = fold(
+            `${merchantNameOf(r.merchant_id)} ${r.delivery_address_text ?? ""} ${r.order_number ?? ""} ${r.customer_name ?? ""}`
+          );
+          if (!tokens.every((t) => hay.includes(t))) return false;
+        }
+        return true;
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, filter, pay, mode, q, merchantNameOf]
   );
 
   // Regroupe PAR MOIS (parité chauffeur), ordre décroissant conservé.
@@ -210,13 +237,15 @@ export function DeliveryHistory({
     return [...map.entries()];
   }, [filtered]);
 
-  // Ouvre le mois le plus récent par défaut (une seule fois).
+  // Ouvre le mois le plus récent par défaut (une seule fois). Une recherche
+  // active ouvre TOUS les mois (les résultats doivent être visibles).
   useEffect(() => {
     if (!defaultedRef.current && months.length > 0) {
       defaultedRef.current = true;
       setOpenMonths(new Set([months[0][0]]));
     }
   }, [months]);
+  const searching = tokens.length > 0;
 
   const toggle = (key: string) =>
     setOpenMonths((prev) => {
@@ -226,39 +255,94 @@ export function DeliveryHistory({
       return next;
     });
 
+  const chip = (on: boolean) =>
+    on
+      ? { background: "var(--d-ink)", color: "var(--d-surface)" }
+      : { background: "var(--d-soft)", color: "var(--d-muted)" };
+
   return (
     <>
-      {/* Filtres de statut (le titre vit dans les onglets du hub Argent). */}
-      <div className="mb-3 flex flex-wrap gap-2">
+      {/* Recherche (boutique, adresse, n° de commande, client). */}
+      <div className="relative mb-2.5">
+        <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-[var(--d-muted)] rtl:right-3.5 rtl:left-auto" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={tr(
+            "Rechercher une course (boutique, adresse, n°)…",
+            "ابحث عن توصيلة (متجر، عنوان، رقم)…"
+          )}
+          className="h-11 w-full rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] ps-10 pe-3 text-[13px] text-[var(--d-ink)] outline-none placeholder:text-[var(--d-muted)]"
+        />
+      </div>
+
+      {/* Filtres : statut · paiement · type — une seule rangée défilante. */}
+      <div className="scrollbar-hide -mx-4 mb-3 flex gap-2 overflow-x-auto px-4">
         {(
           [
             ["all", tr("Toutes", "الكل"), counts.all],
             ["delivered", tr("Livrées", "مُسلَّمة"), counts.delivered],
             ["cancelled", tr("Annulées", "مُلغاة"), counts.cancelled],
           ] as const
-        ).map(([key, label, count]) => {
-          const on = filter === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setFilter(key)}
-              className="rounded-full px-3.5 py-2 text-[12.5px] font-bold whitespace-nowrap transition-colors"
-              style={
-                on
-                  ? { background: "var(--d-ink)", color: "var(--d-surface)" }
-                  : { background: "var(--d-soft)", color: "var(--d-muted)" }
-              }
-            >
-              {label} · {count}
-            </button>
-          );
-        })}
+        ).map(([key, label, count]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setFilter(key)}
+            className="shrink-0 rounded-full px-3.5 py-2 text-[12.5px] font-bold whitespace-nowrap transition-colors"
+            style={chip(filter === key)}
+          >
+            {label} · {count}
+          </button>
+        ))}
+        <span
+          className="my-1 w-px shrink-0 self-stretch"
+          style={{ background: "var(--d-line)" }}
+        />
+        {(
+          [
+            ["cash", tr("Espèces", "نقداً")],
+            ["online", tr("Prépayé", "مدفوع مسبقاً")],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setPay(pay === key ? "all" : key)}
+            className="shrink-0 rounded-full px-3.5 py-2 text-[12.5px] font-bold whitespace-nowrap transition-colors"
+            style={chip(pay === key)}
+          >
+            {label}
+          </button>
+        ))}
+        <span
+          className="my-1 w-px shrink-0 self-stretch"
+          style={{ background: "var(--d-line)" }}
+        />
+        {(
+          [
+            ["express", "Express"],
+            ["tour", tr("Tournée", "جولة")],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setMode(mode === key ? "all" : key)}
+            className="shrink-0 rounded-full px-3.5 py-2 text-[12.5px] font-bold whitespace-nowrap transition-colors"
+            style={chip(mode === key)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {months.length === 0 ? (
         <p className="py-10 text-center text-sm text-[var(--d-muted)]">
-          {tr("Aucune course pour ce filtre.", "لا توجد توصيلات لهذا التصفية.")}
+          {tr(
+            "Aucune course ne correspond à ces critères.",
+            "لا توجد توصيلات مطابقة لهذه المعايير."
+          )}
         </p>
       ) : (
         months.map(([key, items]) => {
@@ -274,7 +358,7 @@ export function DeliveryHistory({
                 : 0),
             0
           );
-          const open = openMonths.has(key);
+          const open = searching || openMonths.has(key);
           return (
             <div key={key} className="mb-2.5">
               <button
@@ -307,6 +391,10 @@ export function DeliveryHistory({
                       r={r}
                       merchantName={merchantNameOf(r.merchant_id)}
                       isAr={isAr}
+                      open={openId === r.id}
+                      onToggle={() =>
+                        setOpenId((cur) => (cur === r.id ? null : r.id))
+                      }
                     />
                   ))}
                 </div>
@@ -319,43 +407,158 @@ export function DeliveryHistory({
   );
 }
 
-/** Une ligne de course (parité HistoRow chauffeur). */
+/** Ligne label → valeur du panneau détail. */
+function DetailLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 text-[12px]">
+      <span className="shrink-0 text-[var(--d-muted)]">{label}</span>
+      <span className="min-w-0 text-right font-semibold text-[var(--d-ink)]">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Une course : ligne COMPACTE (tap = déplier) + panneau détail (adresses,
+ * horaires, durée, financier, aide) — le livreur scanne vite, ouvre au besoin.
+ */
 function HistoRow({
   r,
   merchantName,
   isAr,
+  open,
+  onToggle,
 }: {
   r: Row;
   merchantName: string;
   isAr: boolean;
+  open: boolean;
+  onToggle: () => void;
 }) {
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const delivered = r.status === "completed";
   const cancelled = r.status === "cancelled";
   const gain = r.driver_net_da ?? r.delivery_fee_da ?? 0;
   const date = new Date(r.delivery_delivered_at ?? r.created_at);
+  const isExpress = r.delivery_mode !== "tour";
+
+  // Durée récupération → livraison (minutes), si les deux horodatages existent.
+  const durationMin =
+    r.delivery_picked_up_at && r.delivery_delivered_at
+      ? Math.max(
+          1,
+          Math.round(
+            (Date.parse(r.delivery_delivered_at) -
+              Date.parse(r.delivery_picked_up_at)) /
+              60_000
+          )
+        )
+      : null;
+
   return (
-    <div className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3">
-      <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)] text-[var(--d-ink)]">
-        <Bike className="size-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <b className="block truncate text-[13.5px] text-[var(--d-ink)]">
-          {merchantName} →{" "}
-          {r.delivery_address_text ?? tr("Adresse client", "عنوان الزبون")}
-        </b>
-        <small className="flex flex-wrap items-center gap-1 text-[11px] text-[var(--d-muted)]">
-          {fmtDateTime(date, isAr)}
+    <div className="mb-2 overflow-hidden rounded-[15px] border border-[var(--d-line)] bg-[var(--d-surface)]">
+      {/* ── Ligne compacte ── */}
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 p-3 text-left"
+      >
+        <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)] text-[var(--d-ink)]">
+          {isExpress ? <Zap className="size-4" /> : <Bike className="size-4" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <b className="block truncate text-[13px] text-[var(--d-ink)]">
+            {merchantName} →{" "}
+            {r.delivery_address_text ?? tr("Adresse client", "عنوان الزبون")}
+          </b>
+          <small className="block truncate text-[11px] text-[var(--d-muted)]">
+            {fmtDateTime(date, isAr)} ·{" "}
+            {r.payment_method === "cash"
+              ? tr("Espèces", "نقداً")
+              : tr("Prépayé", "مدفوع مسبقاً")}
+          </small>
+        </span>
+        <span className="flex shrink-0 flex-col items-end gap-1">
           {delivered && (
-            <>
-              {" "}
-              · +{grp(gain)} {tr("DA", "دج")}
-            </>
-          )}{" "}
-          ·{" "}
-          {r.payment_method === "cash"
-            ? tr("Espèces", "نقداً")
-            : tr("Prépayé", "مدفوع مسبقاً")}
+            <b
+              className="text-[13px] leading-none text-[var(--d-ink)]"
+              style={{ fontFamily: SORA }}
+            >
+              +{grp(gain)} {tr("DA", "دج")}
+            </b>
+          )}
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-extrabold"
+            style={
+              delivered
+                ? { background: "rgba(22,179,100,.12)", color: BRAND_GO }
+                : cancelled
+                  ? { background: "rgba(229,72,77,.12)", color: BRAND_RED }
+                  : { background: "var(--d-soft)", color: "var(--d-muted)" }
+            }
+          >
+            {delivered
+              ? tr("Livrée", "مُسلَّمة")
+              : cancelled
+                ? tr("Annulée", "مُلغاة")
+                : tr("En cours", "جارية")}
+          </span>
+        </span>
+        <ChevronDown
+          className="size-4 shrink-0 text-[var(--d-muted)] transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : "none" }}
+        />
+      </button>
+
+      {/* ── Panneau détail (accordion) ── */}
+      {open && (
+        <div className="space-y-1.5 border-t border-[var(--d-line)] px-3.5 py-3">
+          <DetailLine
+            label={tr("Commande", "الطلب")}
+            value={`${r.order_number ?? "—"} · ${isExpress ? "Express" : tr("Tournée", "جولة")}`}
+          />
+          <DetailLine label={tr("Boutique", "المتجر")} value={merchantName} />
+          <DetailLine
+            label={tr("Livraison", "التوصيل")}
+            value={r.delivery_address_text ?? "—"}
+          />
+          {r.customer_name && (
+            <DetailLine
+              label={tr("Client", "الزبون")}
+              value={r.customer_name}
+            />
+          )}
+          <DetailLine
+            label={tr("Horaires", "التوقيت")}
+            value={`${tr("récupérée", "استلام")} ${fmtTime(r.delivery_picked_up_at)} · ${tr("livrée", "تسليم")} ${fmtTime(r.delivery_delivered_at)}${durationMin != null ? ` · ${durationMin} min` : ""}`}
+          />
+          <DetailLine
+            label={tr("Total commande", "إجمالي الطلب")}
+            value={`${grp(r.total_da ?? 0)} ${tr("DA", "دج")}`}
+          />
+          <DetailLine
+            label={tr("Frais de livraison", "رسوم التوصيل")}
+            value={`${grp(r.delivery_fee_da ?? 0)} ${tr("DA", "دج")}`}
+          />
+          {delivered && (
+            <DetailLine
+              label={tr("Mon gain net", "ربحي الصافي")}
+              value={`+${grp(gain)} ${tr("DA", "دج")}`}
+            />
+          )}
+          {r.validated_without_code && (
+            <p
+              className="text-[11px] font-semibold"
+              style={{ color: BRAND_RED }}
+            >
+              {tr(
+                "Livraison validée sans code client (déclaration).",
+                "تم التسليم دون رمز الزبون (تصريح)."
+              )}
+            </p>
+          )}
           <button
             type="button"
             onClick={() =>
@@ -371,30 +574,14 @@ function HistoRow({
                 },
               })
             }
-            className="inline-flex items-center gap-0.5 font-bold"
+            className="mt-1 inline-flex items-center gap-1.5 rounded-[10px] border border-[var(--d-line)] px-3 py-1.5 text-[12px] font-bold"
             style={{ color: "#6c2bd9" }}
           >
-            <LifeBuoy className="size-3" />
-            {tr("Aide", "مساعدة")}
+            <LifeBuoy className="size-3.5" />
+            {tr("Aide sur cette course", "مساعدة بخصوص هذه التوصيلة")}
           </button>
-        </small>
-      </span>
-      <span
-        className="shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold"
-        style={
-          delivered
-            ? { background: "rgba(22,179,100,.12)", color: BRAND_GO }
-            : cancelled
-              ? { background: "rgba(229,72,77,.12)", color: BRAND_RED }
-              : { background: "var(--d-soft)", color: "var(--d-muted)" }
-        }
-      >
-        {delivered
-          ? tr("Livrée", "مُسلَّمة")
-          : cancelled
-            ? tr("Annulée", "مُلغاة")
-            : tr("En cours", "جارية")}
-      </span>
+        </div>
+      )}
     </div>
   );
 }
