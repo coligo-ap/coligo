@@ -141,7 +141,13 @@ public class IntroSplashView extends View {
     /** Le feu passe au vert AVANT le départ : c'est lui qui autorise la course. */
     private static final float GREEN_AT = 1190f;
     private static final float TRIP_DELAY = 1250f, TRIP_DUR = 740f;
-    private static final float PIN_DELAY = 2000f, PIN_DUR = 210f;
+    private static final float PIN_DELAY = 1990f, PIN_DUR = 190f;
+    /**
+     * Le cashback. Il ne peut pas exister avant la livraison, et l'entrée se
+     * ferme à 2220 : il lui reste 180 ms. C'est assez pour une pièce qui jaillit,
+     * pas pour une qui prend son temps.
+     */
+    private static final float COIN_DELAY = 2040f, COIN_DUR = 180f;
 
     /**
      * Durée de l'animation. Le contrat produit est « moins de 2,5 s, tout
@@ -169,7 +175,7 @@ public class IntroSplashView extends View {
      * roues avant doivent braquer. Le Canvas les pose lui-même.
      */
     private Drawable dCarTop;
-    private Drawable dShop, dHouse, dParcel, dPin;
+    private Drawable dShop, dHouse, dParcel, dPin, dCoin;
     private Drawable dBuildingA, dBuildingB, dBuildingC, dTree;
 
     /** La route. Un seul contour : moveTo → lineTo → arcTo → lineTo. */
@@ -260,6 +266,7 @@ public class IntroSplashView extends View {
         dHouse = load(context, R.drawable.ic_illu_house);
         dParcel = load(context, R.drawable.ic_illu_parcel);
         dPin = load(context, R.drawable.ic_illu_pin);
+        dCoin = load(context, R.drawable.ic_illu_coin);
         dBuildingA = load(context, R.drawable.ic_illu_building_a);
         dBuildingB = load(context, R.drawable.ic_illu_building_b);
         dBuildingC = load(context, R.drawable.ic_illu_building_c);
@@ -545,6 +552,7 @@ public class IntroSplashView extends View {
         drawCar(c, t);
         drawParcel(c, t);
         drawPin(c, t, now);
+        drawCoin(c, t);
     }
 
     /**
@@ -787,6 +795,28 @@ public class IntroSplashView extends View {
             ? 1f + 0.05f * (float) Math.sin((t - ENTRANCE_MS) / 260.0)
             : 1f;
         drawActor(c, dPin, houseX, y, size * pulse, 0f, Math.round(255 * a));
+    }
+
+    /**
+     * LE CASHBACK. La pièce jaillit du toit une fois le repère posé, à gauche de
+     * lui pour ne pas le bousculer, et continue de flotter pendant l'attente.
+     *
+     * Elle vient APRÈS la livraison, jamais avant : c'est ce qui la distingue
+     * d'une décoration. Une pièce qui tourne au-dessus de la scène pendant que
+     * la voiture roule ne dirait rien ; celle-ci dit « c'est livré, vous êtes
+     * remboursé ».
+     */
+    private void drawCoin(Canvas c, float t) {
+        float a = seg(t, COIN_DELAY, COIN_DUR);
+        if (a <= 0.004f) return;
+        float pop = easeBack(a);
+        float apex = houseFootY - 88f * density * (1f - 5.6f / 48f);
+        float bottom = lerp(apex + 12f * density, apex - 5f * density, pop);
+        if (t > ENTRANCE_MS) {
+            bottom -= 2.4f * density * (float) Math.sin((t - ENTRANCE_MS) / 420.0);
+        }
+        drawActor(c, dCoin, houseX - 30f * density, bottom,
+            30f * density * lerp(0.45f, 1f, pop), 0f, Math.round(255 * a));
     }
 
     /**

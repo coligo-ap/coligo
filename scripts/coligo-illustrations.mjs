@@ -53,6 +53,8 @@ const P = {
   kraft: "#E5B980",
   kraftD: "#C9974F",
   lamp: "#FFE9A8",
+  amber: "#FFC53D", // la pièce — déjà la couleur du feu orange
+  amberD: "#E9A417",
 };
 
 /**
@@ -192,6 +194,23 @@ export const ILLUS = {
     { rect: [9.4, 15.4, 29.2, 4.4, 0.8], fill: P.kraftD },
     { rect: [18.2, 25.4, 11.6, 11.6, 2], fill: P.violet },
     { d: "M21.6,31.2 L26.4,31.2", stroke: P.white, w: 1.7 },
+  ],
+
+  /**
+   * LE CASHBACK. Une pièce qui sort du toit une fois la commande livrée : c'est
+   * le dernier temps de la transaction, pas un ornement posé à côté.
+   *
+   * Un « % » plutôt qu'une flèche de retour : à trente points de large, une
+   * flèche courbe avec sa pointe devient une bouillie, deux disques et une barre
+   * restent lisibles. Le disque du dessous, décalé de deux points, donne
+   * l'épaisseur — une pièce plate ne roule pas.
+   */
+  ic_illu_coin: [
+    { circle: [24, 24.6, 19.4], fill: P.amberD },
+    { circle: [24, 22.6, 19.4], fill: P.amber },
+    { circle: [19.0, 17.8, 2.7], fill: P.white },
+    { circle: [29.0, 27.4, 2.7], fill: P.white },
+    { d: "M30.4,14.6 L17.6,30.6", stroke: P.white, w: 3.0 },
   ],
 
   /** Le repère de destination. Il tombe sur la maison quand la course s'achève. */

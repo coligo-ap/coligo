@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GÉNÉRÉ par scripts/coligo-illustrations.mjs — ne pas éditer à la main.
+     Boîte 48×48, l'objet pose sur la ligne y=44 (le sol de la scène). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M4.6,24.6 a19.4,19.4 0 1,0 38.8,0 a19.4,19.4 0 1,0 -38.8,0 Z"
+        android:fillColor="#FFE9A417" />
+    <path
+        android:pathData="M4.6,22.6 a19.4,19.4 0 1,0 38.8,0 a19.4,19.4 0 1,0 -38.8,0 Z"
+        android:fillColor="#FFFFC53D" />
+    <path
+        android:pathData="M16.3,17.8 a2.7,2.7 0 1,0 5.4,0 a2.7,2.7 0 1,0 -5.4,0 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M26.3,27.4 a2.7,2.7 0 1,0 5.4,0 a2.7,2.7 0 1,0 -5.4,0 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M30.4,14.6 L17.6,30.6"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
