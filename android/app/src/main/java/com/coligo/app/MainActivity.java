@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.ViewGroup;
 import android.webkit.WebView;
 
@@ -18,6 +19,8 @@ import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.WebViewListener;
 
 public class MainActivity extends BridgeActivity {
+
+  private static final String TAG = "ColigoIntro";
 
   /**
    * Garde-fou ultime. Si ni la page ni l'erreur ne se manifestent (réseau qui
@@ -105,9 +108,11 @@ public class MainActivity extends BridgeActivity {
               ViewGroup.LayoutParams.MATCH_PARENT,
               ViewGroup.LayoutParams.MATCH_PARENT));
 
+      Log.i(TAG, "overlay ajoute a la DecorView");
       intro.play(new Runnable() {
         @Override
         public void run() {
+          Log.i(TAG, "animation terminee");
           animationDone = true;
           maybeDismiss();
         }
@@ -145,8 +150,11 @@ public class MainActivity extends BridgeActivity {
           if (intro != null && !intro.isDismissed()) intro.dismiss(restoreBars);
         }
       }, HARD_TIMEOUT_MS);
-    } catch (Exception e) {
-      // Une intro ratée ne doit JAMAIS empêcher l'app de démarrer.
+    } catch (Throwable e) {
+      // Une intro ratée ne doit JAMAIS empêcher l'app de démarrer — mais elle
+      // ne doit pas non plus échouer en SILENCE : c'est exactement ce qui a
+      // masqué le wordmark invisible de la v7, invisible aussi dans logcat.
+      Log.e(TAG, "intro non installée", e);
       if (intro != null) intro.remove();
       intro = null;
       restoreBars.run();
@@ -177,6 +185,7 @@ public class MainActivity extends BridgeActivity {
     ui.post(new Runnable() {
       @Override
       public void run() {
+        if (!pageVisible) Log.i(TAG, "page visible");
         pageVisible = true;
         maybeDismiss();
       }
