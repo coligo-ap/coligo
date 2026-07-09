@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GÉNÉRÉ par scripts/coligo-illustrations.mjs — ne pas éditer à la main.
+     Boîte 48×48, l'objet pose sur la ligne y=44 (la route du circuit). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M8,22 C8,13 14.5,7.5 24,7.5 C33.5,7.5 40,13 40,22 Z"
+        android:fillColor="#FFF0B45E" />
+    <path
+        android:pathData="M15.8,14 a1.2,1.2 0 1,0 2.4,0 a1.2,1.2 0 1,0 -2.4,0 Z"
+        android:fillColor="#FFFFE7A8" />
+    <path
+        android:pathData="M22.8,11.5 a1.2,1.2 0 1,0 2.4,0 a1.2,1.2 0 1,0 -2.4,0 Z"
+        android:fillColor="#FFFFE7A8" />
+    <path
+        android:pathData="M29.8,14 a1.2,1.2 0 1,0 2.4,0 a1.2,1.2 0 1,0 -2.4,0 Z"
+        android:fillColor="#FFFFE7A8" />
+    <path
+        android:pathData="M8.6,22 h30.8 a1.6,1.6 0 0,1 1.6,1.6 v0.8 a1.6,1.6 0 0,1 -1.6,1.6 h-30.8 a1.6,1.6 0 0,1 -1.6,-1.6 v-0.8 a1.6,1.6 0 0,1 1.6,-1.6 Z"
+        android:fillColor="#FF3DD68C" />
+    <path
+        android:pathData="M9.8,25.5 h28.4 a1.8,1.8 0 0,1 1.8,1.8 v1.9 a1.8,1.8 0 0,1 -1.8,1.8 h-28.4 a1.8,1.8 0 0,1 -1.8,-1.8 v-1.9 a1.8,1.8 0 0,1 1.8,-1.8 Z"
+        android:fillColor="#FF7A4A2B" />
+    <path
+        android:pathData="M8.4,30.5 h31.2 a1.4,1.4 0 0,1 1.4,1.4 v0.8 a1.4,1.4 0 0,1 -1.4,1.4 h-31.2 a1.4,1.4 0 0,1 -1.4,-1.4 v-0.8 a1.4,1.4 0 0,1 1.4,-1.4 Z"
+        android:fillColor="#FFFFD98A" />
+    <path
+        android:pathData="M8,34 C8,39.5 14.5,43.5 24,43.5 C33.5,43.5 40,39.5 40,34 Z"
+        android:fillColor="#FFF0B45E" />
+</vector>

@@ -100,30 +100,7 @@ public class IntroSplashView extends View {
     public static final long ENTRANCE_MS = 1900;
     private static final long EXIT_MS = 340;
 
-    /**
-     * Le parcours Coligo, dans l'ordre de l'histoire : le commerçant prépare
-     * (fruits, boissons, sac kraft), le livreur file (scooter), le client
-     * attend, Coligo Drive le déplace (voiture), et il gagne du cashback.
-     */
-    private static final int[] CONVOY = {
-        R.drawable.ic_illu_pizza,
-        R.drawable.ic_illu_drink,
-        R.drawable.ic_illu_bag,
-        R.drawable.ic_illu_scooter,
-        R.drawable.ic_illu_person,
-        R.drawable.ic_illu_car,
-        R.drawable.ic_illu_cashback,
-    };
 
-    /**
-     * Micro-motion propre à chaque illustration — c'est ce qui sépare une frise
-     * d'icônes d'un vrai motion design. Amplitude du rebond (en dp) et gîte
-     * (en degrés) : les véhicules tanguent, le sac se balance, la pièce saute.
-     */
-    private static final float[] BOB = { 1.2f, 1.0f, 1.6f, 2.2f, 1.4f, 1.8f, 2.6f };
-    private static final float[] TILT = { 0f, 0f, 2.2f, 2.8f, 0f, 2.0f, 0f };
-    /** La pièce tourne sur elle-même : c'est la récompense, elle scintille. */
-    private static final int COIN_INDEX = 6;
 
     private final Bitmap bmp;
     private final Paint base = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
@@ -133,7 +110,14 @@ public class IntroSplashView extends View {
     private final Paint arcOuter = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint arcInner = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint roadPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Drawable[] convoy;
+    // Les acteurs de la scène. Les véhicules sont DÉCOMPOSÉS (carrosserie /
+    // roue) : un VectorDrawable se dessine d'un bloc, impossible d'animer une
+    // seule de ses formes. Sans ça, pas de roues qui tournent.
+    private Drawable dCarBody, dScooterBody, dWheel, dBag;
+    private Drawable dPizza, dBurger, dFries, dCoffee, dPin, dStar;
+    private Drawable dBuildingA, dBuildingB, dTree;
+    private final Paint steamPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path steamPath = new Path();
     /** Ombre portée : elle pose les objets sur la route au lieu de les laisser flotter. */
     private final Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF shadowRect = new RectF();
@@ -202,15 +186,33 @@ public class IntroSplashView extends View {
         centerLine.setStrokeCap(Paint.Cap.BUTT);
         centerLine.setColor(0xFFFFFFFF);
 
-        // Icônes du convoi : VectorDrawable générés depuis lucide
-        // (scripts/lucide-to-vector.mjs). Chargés une fois, dessinés au Canvas.
-        convoy = new Drawable[CONVOY.length];
-        for (int i = 0; i < CONVOY.length; i++) {
-            try {
-                convoy[i] = ContextCompat.getDrawable(context, CONVOY[i]);
-            } catch (Throwable t) {
-                Log.e(TAG, "icone convoi " + i + " illisible", t);
-            }
+        // Illustrations de la scène : VectorDrawable générés par
+        // scripts/coligo-illustrations.mjs. Chargés une fois.
+        dCarBody = load(context, R.drawable.ic_illu_car_body);
+        dScooterBody = load(context, R.drawable.ic_illu_scooter_body);
+        dWheel = load(context, R.drawable.ic_illu_wheel);
+        dBag = load(context, R.drawable.ic_illu_deliverybag);
+        dPizza = load(context, R.drawable.ic_illu_pizza);
+        dBurger = load(context, R.drawable.ic_illu_burger);
+        dFries = load(context, R.drawable.ic_illu_fries);
+        dCoffee = load(context, R.drawable.ic_illu_coffee);
+        dPin = load(context, R.drawable.ic_illu_pin);
+        dStar = load(context, R.drawable.ic_illu_star);
+        dBuildingA = load(context, R.drawable.ic_illu_building_a);
+        dBuildingB = load(context, R.drawable.ic_illu_building_b);
+        dTree = load(context, R.drawable.ic_illu_tree);
+
+        steamPaint.setStyle(Paint.Style.STROKE);
+        steamPaint.setStrokeCap(Paint.Cap.ROUND);
+        steamPaint.setColor(Color.WHITE);
+    }
+
+    private static Drawable load(Context c, int res) {
+        try {
+            return ContextCompat.getDrawable(c, res);
+        } catch (Throwable t) {
+            Log.e(TAG, "illustration " + res + " illisible", t);
+            return null;
         }
     }
 
@@ -405,8 +407,8 @@ public class IntroSplashView extends View {
         canvas.restoreToCount(layer);
         canvas.restore();
 
-        // --- le circuit Coligo ---------------------------------------------------
-        drawCircuit(canvas, t, now);
+        // --- la scène (ville, route, véhicules, gourmandises) --------------------
+        drawScene(canvas, t, now);
 
         if (!entranceReported && t >= ENTRANCE_MS) {
             entranceReported = true;
@@ -439,8 +441,10 @@ public class IntroSplashView extends View {
      * réellement dans le virage, il n'est pas simplement dessiné de travers.
      */
     private void buildRoute(int w, int h) {
-        float y0 = cy + markH * 1.30f;
-        float span = 118f * density;
+        // Assez bas pour que les toits de la ville passent SOUS le wordmark :
+        // avec y0 = 1.30 * markH, les immeubles recouvraient le « o ».
+        float y0 = cy + markH * 1.78f;
+        float span = 112f * density;
 
         route.reset();
         route.moveTo(-0.08f * w, y0 + 0.10f * span);
@@ -450,101 +454,262 @@ public class IntroSplashView extends View {
             0.56f * w, y0 - 0.14f * span);
         route.cubicTo(
             0.76f * w, y0 - 0.04f * span,
-            0.96f * w, y0 - 0.32f * span,
-            1.03f * w, y0 - 1.45f * span);
+            0.96f * w, y0 - 0.30f * span,
+            1.03f * w, y0 - 1.05f * span);
         routeMeasure.setPath(route, false);
         routeLen = routeMeasure.getLength();
     }
 
     /**
-     * Le circuit Coligo, dessiné sur l'itinéraire.
+     * LA SCÈNE. Un décor de dessin animé, composé, pas un tas d'objets.
      *
-     * C'est aussi l'indicateur de chargement : il tourne tant que la page n'a
-     * pas peint. Un écran qui bouge dit « je charge » ; un écran figé dit
+     * Trois plans, du fond vers l'avant :
+     *   1. la ville — immeubles et arbres alignés derrière la route, qui
+     *      dérivent en PARALLAXE (plus lentement que les véhicules) ;
+     *   2. la chaussée — goudron, liseré, ligne médiane en pointillés qui
+     *      défile ; c'est le défilement qui donne la vitesse ;
+     *   3. les véhicules — la voiture Drive emmène un client (visible à la
+     *      vitre), le scooter du livreur porte son sac. Leurs ROUES TOURNENT
+     *      vraiment : l'angle vient de la distance parcourue divisée par le
+     *      rayon, comme une roue qui roule sans glisser.
+     *
+     * Et autour, les gourmandises, chacune dans son coin, chacune avec sa
+     * micro-animation : la pizza pivote, le burger rebondit, les frites sautent,
+     * le café fume, le pin GPS rebondit, les étoiles d'avis scintillent.
+     *
+     * Tout tourne tant que la page n'a pas peint : c'est aussi l'indicateur de
+     * chargement. Un écran qui bouge dit « je charge » ; un écran figé dit
      * « j'ai planté ».
-     *
-     * Les sept objets sont répartis sur TOUTE la longueur de la route, jamais
-     * en file indienne : sinon l'intro (1,9 s) se terminerait avant que le
-     * scooter, la voiture et le cashback n'entrent en scène, et l'utilisateur
-     * ne verrait jamais la fin de l'histoire.
      */
-    private void drawCircuit(Canvas c, float t, long now) {
+    private void drawScene(Canvas c, float t, long now) {
         float roadA = seg(t, ROAD_DELAY, ROAD_DUR);
         if (roadA <= 0.004f || routeLen <= 0f) return;
 
-        kerb.setStrokeWidth(30f * density);
-        kerb.setAlpha(Math.round(255 * roadA));
+        float travel = (t - ROAD_DELAY) * (92f * density / 1000f); // px parcourus
+
+        drawCity(c, roadA, travel);
+        drawRoad(c, roadA, now);
+
+        float actorsA = seg(t, CONVOY_DELAY, CONVOY_FADE);
+        if (actorsA > 0.004f) {
+            drawVehicles(c, actorsA, travel, now);
+            drawProps(c, actorsA, t, now);
+        }
+    }
+
+    /** Plan lointain : la ville derrière la route, en parallaxe. */
+    private void drawCity(Canvas c, float a, float travel) {
+        float drift = travel * 0.28f; // la ville défile 3,5× moins vite
+        int count = 9;
+        float step = routeLen / count;
+        for (int i = 0; i < count; i++) {
+            float dist = (i * step + drift) % routeLen;
+            if (!routeMeasure.getPosTan(dist, pos, tan)) continue;
+            float x = pos[0], y = pos[1];
+            if (x < -140 * density || x > getWidth() + 140 * density) continue;
+
+            float edgeA = Math.min(1f, Math.min(dist, routeLen - dist) / (routeLen * 0.08f));
+            int alpha = Math.round(255 * a * edgeA);
+            if (alpha <= 2) continue;
+
+            // Un arbre sur trois : la ville respire, elle n'est pas un mur.
+            Drawable d;
+            float size;
+            switch (i % 3) {
+                case 0: d = dBuildingA; size = 74f * density; break;
+                case 1: d = dTree;      size = 46f * density; break;
+                default: d = dBuildingB; size = 62f * density; break;
+            }
+            if (d == null) continue;
+            // Posé derrière la chaussée, décalé vers le haut d'une demi-largeur.
+            drawActor(c, d, x, y - 16f * density, size, 0f, alpha);
+        }
+    }
+
+    /** Le goudron et sa ligne médiane. */
+    private void drawRoad(Canvas c, float a, long now) {
+        kerb.setStrokeWidth(34f * density);
+        kerb.setAlpha(Math.round(255 * a));
         c.drawPath(route, kerb);
 
-        asphalt.setStrokeWidth(25f * density);
-        asphalt.setAlpha(Math.round(255 * roadA));
+        asphalt.setStrokeWidth(29f * density);
+        asphalt.setAlpha(Math.round(255 * a));
         c.drawPath(route, asphalt);
 
         float dash = 13f * density, gap = 15f * density;
-        float phase = -((now % 1100L) / 1100f) * (dash + gap);
+        float phase = -((now % 1000L) / 1000f) * (dash + gap);
         centerLine.setStrokeWidth(2.4f * density);
-        centerLine.setAlpha(Math.round(120 * roadA));
+        centerLine.setAlpha(Math.round(130 * a));
         centerLine.setPathEffect(new DashPathEffect(new float[] { dash, gap }, phase));
         c.drawPath(route, centerLine);
         centerLine.setPathEffect(null);
+    }
 
-        float convoyA = seg(t, CONVOY_DELAY, CONVOY_FADE);
-        if (convoyA <= 0.004f) return;
+    /** La voiture et le scooter, roues en rotation, orientés sur la tangente. */
+    private void drawVehicles(Canvas c, float a, float travel, long now) {
+        drawVehicle(c, a, (travel) % routeLen, now, true);
+        drawVehicle(c, a, (travel + routeLen * 0.42f) % routeLen, now, false);
+    }
 
-        float icon = 32f * density;
-        float step = routeLen / convoy.length;
-        float speed = 30f * density / 1000f;
-        float offset = ((t - CONVOY_DELAY) * speed) % routeLen;
+    private void drawVehicle(Canvas c, float a, float dist, long now, boolean isCar) {
+        if (!routeMeasure.getPosTan(dist, pos, tan)) return;
+        float x = pos[0], y = pos[1];
+        float size = (isCar ? 78f : 72f) * density;
+        if (x < -size || x > getWidth() + size) return;
 
-        for (int i = 0; i < convoy.length; i++) {
-            Drawable d = convoy[i];
-            if (d == null) continue;
-            float dist = (i * step + offset) % routeLen;
-            if (!routeMeasure.getPosTan(dist, pos, tan)) continue;
+        float edgeA = Math.min(1f, Math.min(dist, routeLen - dist) / (routeLen * 0.07f));
+        float alpha = a * edgeA;
+        if (alpha <= 0.02f) return;
 
-            float x = pos[0], y = pos[1];
-            if (x < -icon || x > getWidth() + icon) continue;
+        float angle = (float) Math.toDegrees(Math.atan2(tan[1], tan[0]));
+        float bob = -1.1f * density * (float) Math.abs(Math.sin(now / 190.0));
 
-            float edge = routeLen * 0.10f;
-            float a = Math.min(1f, Math.min(dist, routeLen - dist) / edge);
-            if (a <= 0.02f) continue;
-            float alpha = a * convoyA;
+        c.save();
+        c.translate(x, y);
+        c.rotate(angle);
 
-            // Orientation sur la tangente : dans le virage, l'objet tourne avec
-            // la route. C'est la différence entre « posé dessus » et « dessiné
-            // dessus ».
-            float angle = (float) Math.toDegrees(Math.atan2(tan[1], tan[0]));
+        // ombre au sol
+        shadowPaint.setColor(0xFF0E0626);
+        shadowPaint.setAlpha(Math.round(110 * alpha));
+        shadowRect.set(-size * 0.32f, -10.6f * density, size * 0.32f, -5.4f * density);
+        c.drawOval(shadowRect, shadowPaint);
 
-            double ph = now / 260.0 + i * 1.9;
-            float bob = -BOB[i] * density * (float) Math.abs(Math.sin(ph));
-            float lift = -bob / (BOB[i] * density + 0.001f);
+        // Le trace passe au MILIEU de la bande de goudron. Les roues doivent
+        // toucher sa surface, pas sa moelle : on remonte d'une demi-chaussee.
+        c.translate(0, bob - 11f * density);
 
+        // Repères pris dans la boîte 48×48 de l'illustration : les roues du
+        // dessin sont en (14,37)/(35,37) pour la voiture, (14.5,37)/(36.5,37)
+        // pour le scooter. On les redessine à part, tournantes.
+        float k = size / 48f;
+        float wr = (isCar ? 5.6f : 6.3f) * k;               // rayon à l'écran
+        float wheelSize = wr * (48f / 21f);                  // la roue fait r=21 dans sa boîte
+        float spin = (float) Math.toDegrees(travelSpin(now, wr));
+
+        Drawable body = isCar ? dCarBody : dScooterBody;
+        float w1 = (isCar ? 14f : 14.5f) * k - size / 2f;
+        float w2 = (isCar ? 35f : 36.5f) * k - size / 2f;
+        // Le pied du dessin (y=44) est à y=0. Un point de la boîte se projette
+        // donc en (yBox - 44) * k. Avec  les roues montaient de 4
+        // unités et disparaissaient derrière la carrosserie.
+        float wy = (37f - 44f) * k;
+
+        drawWheel(c, w1, wy, wheelSize, spin, Math.round(255 * alpha));
+        drawWheel(c, w2, wy, wheelSize, spin, Math.round(255 * alpha));
+        drawActor(c, body, 0f, 0f, size, 0f, Math.round(255 * alpha));
+
+        // Le sac du livreur se BALANCE sur son support arrière.
+        if (!isCar && dBag != null) {
+            // Il pend au porte-bagages arrière et se balance autour de son
+            // point d'accroche — pas autour de son centre, sinon il patine.
+            float bx = (5.5f - 24f) * k;
+            float by = (20f - 44f) * k;
+            float swing = 5f * (float) Math.sin(now / 300.0);
+            float bs = 19f * k;
             c.save();
-            c.translate(x, y);
-            c.rotate(angle);
-
-            // Ombre à plat sur le goudron : elle écrase au contact, s'étire au
-            // saut. Sans elle, tout flotte.
-            shadowPaint.setColor(0xFF120830);
-            shadowPaint.setAlpha(Math.round(90 * alpha * (1f - 0.45f * lift)));
-            float sw = icon * (0.42f - 0.09f * lift);
-            shadowRect.set(-sw / 2f, -2.2f * density, sw / 2f, 2.2f * density);
-            c.drawOval(shadowRect, shadowPaint);
-
-            // L'objet POSE sur la route : dans la boîte 48×48 son pied est à
-            // y=44, soit 4/48 de la hauteur sous le bord bas.
-            float foot = icon * (4f / 48f);
-            c.translate(0, bob + foot);
-            if (TILT[i] != 0f) c.rotate(TILT[i] * (float) Math.sin(ph * 0.5));
-            if (i == COIN_INDEX) {
-                float spin = (float) Math.cos(now / 620.0);
-                c.scale(Math.max(0.14f, Math.abs(spin)), 1f);
-            }
-            int half = Math.round(icon / 2f);
-            d.setBounds(-half, -Math.round(icon), half, 0);
-            d.setAlpha(Math.round(255 * alpha));
-            d.draw(c);
+            c.translate(bx, by);
+            c.rotate(swing);
+            dBag.setBounds(Math.round(-bs / 2f), 0, Math.round(bs / 2f), Math.round(bs));
+            dBag.setAlpha(Math.round(255 * alpha));
+            dBag.draw(c);
             c.restore();
         }
+        c.restore();
     }
+
+    /** Angle de roulement : distance parcourue / rayon. Une roue qui ne glisse pas. */
+    private float travelSpin(long now, float radius) {
+        float travelled = (now % 100000L) * (92f * density / 1000f);
+        return travelled / Math.max(radius, 1f);
+    }
+
+    /** Les gourmandises, chacune dans son coin, chacune avec sa vie propre. */
+    private void drawProps(Canvas c, float a, float t, long now) {
+        int W = getWidth(), H = getHeight();
+        float big = 62f * density;
+
+        // pizza — elle pivote de quelques degrés, lentement
+        drawActor(c, dPizza, W * 0.16f, H * 0.20f, big,
+            7f * (float) Math.sin(now / 900.0), Math.round(255 * a));
+
+        // burger — il rebondit
+        float bounce = -5f * density * Math.abs((float) Math.sin(now / 420.0));
+        drawActor(c, dBurger, W * 0.85f, H * 0.18f + bounce, big, 0f, Math.round(255 * a));
+
+        // frites — elles sautent, plus haut et plus sec
+        float jump = -9f * density * Math.abs((float) Math.sin(now / 350.0));
+        drawActor(c, dFries, W * 0.13f, H * 0.34f + jump, big * 0.92f, 0f, Math.round(255 * a));
+
+        // café — immobile, mais il fume
+        float cx0 = W * 0.87f, cy0 = H * 0.33f;
+        drawActor(c, dCoffee, cx0, cy0, big * 0.92f, 0f, Math.round(255 * a));
+        drawSteam(c, cx0, cy0 - big * 0.78f, now, a);
+
+        // pin GPS — il rebondit au-dessus de la route
+        float pinBounce = -7f * density * Math.abs((float) Math.sin(now / 480.0));
+        drawActor(c, dPin, W * 0.82f, cy + markH * 1.16f + pinBounce, big * 0.78f, 0f,
+            Math.round(255 * a));
+
+        // étoiles d'avis — elles APPARAISSENT après la livraison, en cascade
+        for (int i = 0; i < 3; i++) {
+            float appear = seg(t, CONVOY_DELAY + 260 + i * 180, 380);
+            if (appear <= 0.01f) continue;
+            float pop = easeOut(appear);
+            float twinkle = 0.88f + 0.12f * (float) Math.sin(now / 260.0 + i * 2.1);
+            float s = big * 0.42f * pop * twinkle;
+            drawActor(c, dStar, W * (0.38f + i * 0.12f), H * 0.115f, s,
+                -12f + i * 12f, Math.round(255 * a * appear));
+        }
+    }
+
+    /** Trois volutes qui montent et s'effacent. */
+    private void drawSteam(Canvas c, float x, float yTop, long now, float a) {
+        steamPaint.setStrokeWidth(2.6f * density);
+        for (int i = 0; i < 3; i++) {
+            float u = (((now + i * 520L) % 1560L) / 1560f);
+            float rise = 26f * density * u;
+            int alpha = Math.round(150 * a * (1f - u) * Math.min(1f, u * 4f));
+            if (alpha <= 2) continue;
+            steamPaint.setAlpha(alpha);
+            float bx = x + (i - 1) * 8f * density;
+            steamPath.reset();
+            steamPath.moveTo(bx, yTop - rise);
+            steamPath.rQuadTo(5f * density, -6f * density, 0f, -12f * density);
+            steamPath.rQuadTo(-5f * density, -6f * density, 0f, -12f * density);
+            c.drawPath(steamPath, steamPaint);
+        }
+    }
+
+    /** La roue est CENTRÉE dans sa boîte : elle tourne autour de son moyeu. */
+    private void drawWheel(Canvas c, float x, float y, float size, float deg, int alpha) {
+        if (dWheel == null || alpha <= 2) return;
+        c.save();
+        c.translate(x, y);
+        c.rotate(deg);
+        int half = Math.round(size / 2f);
+        dWheel.setBounds(-half, -half, half, half);
+        dWheel.setAlpha(Math.min(255, alpha));
+        dWheel.draw(c);
+        c.restore();
+    }
+
+    /**
+     * Dessine une illustration dont le PIED est au point donné (le dessin pose
+     * sur y=44 de sa boîte 48×48), tournée de `deg` autour de ce pied.
+     */
+    private void drawActor(Canvas c, Drawable d, float x, float yFoot, float size,
+                           float deg, int alpha) {
+        if (d == null || alpha <= 2) return;
+        c.save();
+        c.translate(x, yFoot);
+        if (deg != 0f) c.rotate(deg);
+        float foot = size * (4f / 48f);
+        c.translate(0, foot);
+        int half = Math.round(size / 2f);
+        d.setBounds(-half, -Math.round(size), half, 0);
+        d.setAlpha(Math.min(255, alpha));
+        d.draw(c);
+        c.restore();
+    }
+
 }

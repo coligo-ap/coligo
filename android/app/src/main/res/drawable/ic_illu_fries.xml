@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GÉNÉRÉ par scripts/coligo-illustrations.mjs — ne pas éditer à la main.
+     Boîte 48×48, l'objet pose sur la ligne y=44 (la route du circuit). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M18,12 L20,26 L17,26 L15,12 Z"
+        android:fillColor="#FFFFC53D" />
+    <path
+        android:pathData="M24,8 L25,26 L22,26 L21,8 Z"
+        android:fillColor="#FFFFE7A8" />
+    <path
+        android:pathData="M30,12 L28,26 L31,26 L33,12 Z"
+        android:fillColor="#FFFFC53D" />
+    <path
+        android:pathData="M13,24 L35,24 L32,42 C31.8,43.2 30.9,44 29.7,44 L18.3,44 C17.1,44 16.2,43.2 16,42 Z"
+        android:fillColor="#FFE23B4E" />
+    <path
+        android:pathData="M16.5,28 h15 a1,1 0 0,1 1,1 v2.5 a1,1 0 0,1 -1,1 h-15 a1,1 0 0,1 -1,-1 v-2.5 a1,1 0 0,1 1,-1 Z"
+        android:fillColor="#FFFFFFFF" />
+</vector>
