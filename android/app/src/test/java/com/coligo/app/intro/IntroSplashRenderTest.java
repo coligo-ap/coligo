@@ -79,8 +79,13 @@ public class IntroSplashRenderTest {
             View.MeasureSpec.makeMeasureSpec(H, View.MeasureSpec.EXACTLY));
         view.layout(0, 0, W, H);
 
+        // On VIDE le dossier. Sans ça, changer la chronologie laisse les frames
+        // de l'ancienne derrière : on relit une planche qui mélange deux
+        // versions du dessin sans qu'aucune ne le dise.
         File out = new File("build/intro-frames");
         out.mkdirs();
+        File[] stale = out.listFiles();
+        if (stale != null) for (File f : stale) f.delete();
 
         view.play(null);
         final long t0 = android.os.SystemClock.uptimeMillis();
