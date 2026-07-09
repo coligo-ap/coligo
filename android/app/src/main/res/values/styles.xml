@@ -13,9 +13,9 @@
       Thème RÉEL de l'activité : `BridgeActivity.onCreate()` bascule dessus
       (setTheme) avant `super.onCreate()`, donc c'est SON windowBackground qui
       est peint pendant toute la vie de l'app — y compris pendant le chargement
-      de l'URL distante. Par défaut (DayNight) il valait blanc : entre la
-      disparition du splash système et la première frame web (~1 à 2,5 s de SSR
-      + réseau) l'écran devenait blanc. On le force au violet du splash.
+      de l'URL distante. En DayNight il bascule au NOIR sur un téléphone en
+      thème sombre, ce qui trancherait avec l'intro. On le fixe au blanc du
+      splash, quel que soit le thème système.
 
       La WebView, elle, est peinte par-dessus ; son propre fond est fixé à la
       même couleur via `android.backgroundColor` dans capacitor.config.ts.
@@ -36,10 +36,10 @@
       `windowSplashScreenBackground` absent et retombait sur l'icône du lanceur
       posée sur un fond par défaut.
 
-      Maintenant : fond violet plein, icône vide. Le violet est exactement la
-      couleur de la frame 0 de l'intro web (échantillonnée), et il est aussi
-      celui du windowBackground ci-dessus et du fond de WebView. L'utilisateur
-      ne voit donc qu'UNE couleur continue jusqu'à ce que l'animation démarre.
+      Maintenant : fond blanc plein, icône vide. C'est exactement la couleur de
+      la frame 0 de l'intro native, et aussi celle du windowBackground ci-dessus
+      et du fond de WebView. L'utilisateur ne voit donc qu'UNE couleur continue
+      jusqu'à ce que l'animation démarre.
     -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/coligo_splash</item>

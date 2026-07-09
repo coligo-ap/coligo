@@ -1,30 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- GÉNÉRÉ par scripts/coligo-illustrations.mjs — ne pas éditer à la main.
-     Boîte 48×48, l'objet pose sur la ligne y=44 (la route du circuit). -->
+     Boîte 48×48, l'objet pose sur la ligne y=44 (le sol de la scène). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
     <path
-        android:pathData="M12,6 h24 a2,2 0 0,1 2,2 v38 a2,2 0 0,1 -2,2 h-24 a2,2 0 0,1 -2,-2 v-38 a2,2 0 0,1 2,-2 Z"
-        android:fillColor="#FF3B2C6B" />
+        android:pathData="M8.8,2.6 h30.4 a1.2,1.2 0 0,1 1.2,1.2 v1 a1.2,1.2 0 0,1 -1.2,1.2 h-30.4 a1.2,1.2 0 0,1 -1.2,-1.2 v-1 a1.2,1.2 0 0,1 1.2,-1.2 Z"
+        android:fillColor="#FFD2D8E0" />
     <path
-        android:pathData="M16,12 h4 a1,1 0 0,1 1,1 v4 a1,1 0 0,1 -1,1 h-4 a1,1 0 0,1 -1,-1 v-4 a1,1 0 0,1 1,-1 Z"
-        android:fillColor="#FF6B5BAF" />
+        android:pathData="M11,6 h26 a1.6,1.6 0 0,1 1.6,1.6 v34.8 a1.6,1.6 0 0,1 -1.6,1.6 h-26 a1.6,1.6 0 0,1 -1.6,-1.6 v-34.8 a1.6,1.6 0 0,1 1.6,-1.6 Z"
+        android:fillColor="#FFE7EBF0" />
     <path
-        android:pathData="M28,12 h4 a1,1 0 0,1 1,1 v4 a1,1 0 0,1 -1,1 h-4 a1,1 0 0,1 -1,-1 v-4 a1,1 0 0,1 1,-1 Z"
-        android:fillColor="#FF8A76D8" />
+        android:pathData="M14.6,10.4 h4.4 a1,1 0 0,1 1,1 v3.4 a1,1 0 0,1 -1,1 h-4.4 a1,1 0 0,1 -1,-1 v-3.4 a1,1 0 0,1 1,-1 Z"
+        android:fillColor="#FFCBD5E1" />
     <path
-        android:pathData="M16,23 h4 a1,1 0 0,1 1,1 v4 a1,1 0 0,1 -1,1 h-4 a1,1 0 0,1 -1,-1 v-4 a1,1 0 0,1 1,-1 Z"
-        android:fillColor="#FF8A76D8" />
+        android:pathData="M27,10.4 h4.4 a1,1 0 0,1 1,1 v3.4 a1,1 0 0,1 -1,1 h-4.4 a1,1 0 0,1 -1,-1 v-3.4 a1,1 0 0,1 1,-1 Z"
+        android:fillColor="#FFD2D8E0" />
     <path
-        android:pathData="M28,23 h4 a1,1 0 0,1 1,1 v4 a1,1 0 0,1 -1,1 h-4 a1,1 0 0,1 -1,-1 v-4 a1,1 0 0,1 1,-1 Z"
-        android:fillColor="#FF6B5BAF" />
+        android:pathData="M14.6,19.4 h4.4 a1,1 0 0,1 1,1 v3.4 a1,1 0 0,1 -1,1 h-4.4 a1,1 0 0,1 -1,-1 v-3.4 a1,1 0 0,1 1,-1 Z"
+        android:fillColor="#FFD2D8E0" />
     <path
-        android:pathData="M16,34 h4 a1,1 0 0,1 1,1 v4 a1,1 0 0,1 -1,1 h-4 a1,1 0 0,1 -1,-1 v-4 a1,1 0 0,1 1,-1 Z"
-        android:fillColor="#FF6B5BAF" />
+        android:pathData="M27,19.4 h4.4 a1,1 0 0,1 1,1 v3.4 a1,1 0 0,1 -1,1 h-4.4 a1,1 0 0,1 -1,-1 v-3.4 a1,1 0 0,1 1,-1 Z"
+        android:fillColor="#FFCBD5E1" />
     <path
-        android:pathData="M28,34 h4 a1,1 0 0,1 1,1 v4 a1,1 0 0,1 -1,1 h-4 a1,1 0 0,1 -1,-1 v-4 a1,1 0 0,1 1,-1 Z"
-        android:fillColor="#FF8A76D8" />
+        android:pathData="M14.6,28.4 h4.4 a1,1 0 0,1 1,1 v3.4 a1,1 0 0,1 -1,1 h-4.4 a1,1 0 0,1 -1,-1 v-3.4 a1,1 0 0,1 1,-1 Z"
+        android:fillColor="#FFCBD5E1" />
+    <path
+        android:pathData="M27,28.4 h4.4 a1,1 0 0,1 1,1 v3.4 a1,1 0 0,1 -1,1 h-4.4 a1,1 0 0,1 -1,-1 v-3.4 a1,1 0 0,1 1,-1 Z"
+        android:fillColor="#FFD2D8E0" />
+    <path
+        android:pathData="M14.6,37.4 h4.4 a1,1 0 0,1 1,1 v3.4 a1,1 0 0,1 -1,1 h-4.4 a1,1 0 0,1 -1,-1 v-3.4 a1,1 0 0,1 1,-1 Z"
+        android:fillColor="#FFD2D8E0" />
+    <path
+        android:pathData="M27,37.4 h4.4 a1,1 0 0,1 1,1 v3.4 a1,1 0 0,1 -1,1 h-4.4 a1,1 0 0,1 -1,-1 v-3.4 a1,1 0 0,1 1,-1 Z"
+        android:fillColor="#FFCBD5E1" />
 </vector>

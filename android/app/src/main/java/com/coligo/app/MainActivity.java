@@ -12,6 +12,8 @@ import android.webkit.WebView;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.coligo.app.intro.IntroSplashView;
 import com.coligo.app.sunmi.SunmiPrinterPlugin;
@@ -34,9 +36,11 @@ public class MainActivity extends BridgeActivity {
   private boolean pageVisible;
   private final Handler ui = new Handler(Looper.getMainLooper());
 
-  /** Couleurs des barres système, à restaurer quand l'intro s'efface. */
+  /** État des barres système, à restaurer quand l'intro s'efface. */
   private int savedStatusBar;
   private int savedNavBar;
+  private boolean savedLightStatus;
+  private boolean savedLightNav;
   private boolean barsOverridden;
 
   @Override
@@ -100,6 +104,16 @@ public class MainActivity extends BridgeActivity {
       savedNavBar = getWindow().getNavigationBarColor();
       getWindow().setStatusBarColor(Color.TRANSPARENT);
       getWindow().setNavigationBarColor(Color.TRANSPARENT);
+
+      // La scène est BLANCHE. Les icônes système (heure, réseau, batterie) sont
+      // claires par défaut sur cette app : blanches sur blanc, elles
+      // disparaîtraient. On les passe en sombre le temps de l'intro.
+      WindowInsetsControllerCompat bars =
+          WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+      savedLightStatus = bars.isAppearanceLightStatusBars();
+      savedLightNav = bars.isAppearanceLightNavigationBars();
+      bars.setAppearanceLightStatusBars(true);
+      bars.setAppearanceLightNavigationBars(true);
       barsOverridden = true;
 
       intro = new IntroSplashView(this);
@@ -164,7 +178,7 @@ public class MainActivity extends BridgeActivity {
   /**
    * Remet les barres système dans leur état d'origine. Idempotent : appelé à la
    * fin du fondu, par le garde-fou, et par onDestroy — au pire des cas, la
-   * barre resterait transparente et laisserait voir le windowBackground violet,
+   * barre resterait transparente et laisserait voir le windowBackground blanc,
    * ce qui n'est pas cassé, juste moins joli.
    */
   private final Runnable restoreBars = new Runnable() {
@@ -175,6 +189,10 @@ public class MainActivity extends BridgeActivity {
       try {
         getWindow().setStatusBarColor(savedStatusBar);
         getWindow().setNavigationBarColor(savedNavBar);
+        WindowInsetsControllerCompat bars =
+            WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        bars.setAppearanceLightStatusBars(savedLightStatus);
+        bars.setAppearanceLightNavigationBars(savedLightNav);
       } catch (Exception ignored) {
         /* fenêtre déjà détruite */
       }

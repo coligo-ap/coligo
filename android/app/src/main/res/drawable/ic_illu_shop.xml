@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GÉNÉRÉ par scripts/coligo-illustrations.mjs — ne pas éditer à la main.
+     Boîte 48×48, l'objet pose sur la ligne y=44 (le sol de la scène). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M5,7.6 h38 a1.6,1.6 0 0,1 1.6,1.6 v1.2 a1.6,1.6 0 0,1 -1.6,1.6 h-38 a1.6,1.6 0 0,1 -1.6,-1.6 v-1.2 a1.6,1.6 0 0,1 1.6,-1.6 Z"
+        android:fillColor="#FFD2D8E0" />
+    <path
+        android:pathData="M7.2,11.4 h33.6 a1.6,1.6 0 0,1 1.6,1.6 v29.4 a1.6,1.6 0 0,1 -1.6,1.6 h-33.6 a1.6,1.6 0 0,1 -1.6,-1.6 v-29.4 a1.6,1.6 0 0,1 1.6,-1.6 Z"
+        android:fillColor="#FFE7EBF0" />
+    <path
+        android:pathData="M17.6,12.6 h12.8 a1.2,1.2 0 0,1 1.2,1.2 v1 a1.2,1.2 0 0,1 -1.2,1.2 h-12.8 a1.2,1.2 0 0,1 -1.2,-1.2 v-1 a1.2,1.2 0 0,1 1.2,-1.2 Z"
+        android:fillColor="#FF8A4DFF" />
+    <path
+        android:pathData="M6.2,17.4 h35.6 a1.6,1.6 0 0,1 1.6,1.6 v3.2 a1.6,1.6 0 0,1 -1.6,1.6 h-35.6 a1.6,1.6 0 0,1 -1.6,-1.6 v-3.2 a1.6,1.6 0 0,1 1.6,-1.6 Z"
+        android:fillColor="#FF6C2BD9" />
+    <path
+        android:pathData="M12.6,17.4 h3.4 v6.4 h-3.4 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M22.3,17.4 h3.4 v6.4 h-3.4 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M32,17.4 h3.4 v6.4 h-3.4 Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M9.8,26.6 h10.8 a1.4,1.4 0 0,1 1.4,1.4 v7.4 a1.4,1.4 0 0,1 -1.4,1.4 h-10.8 a1.4,1.4 0 0,1 -1.4,-1.4 v-7.4 a1.4,1.4 0 0,1 1.4,-1.4 Z"
+        android:fillColor="#FFCBD5E1" />
+    <path
+        android:pathData="M27.4,26.6 h9.2 a1.4,1.4 0 0,1 1.4,1.4 v14.6 a1.4,1.4 0 0,1 -1.4,1.4 h-9.2 a1.4,1.4 0 0,1 -1.4,-1.4 v-14.6 a1.4,1.4 0 0,1 1.4,-1.4 Z"
+        android:fillColor="#FF4B1FA6" />
+    <path
+        android:pathData="M34.5,35.6 a0.9,0.9 0 1,0 1.8,0 a0.9,0.9 0 1,0 -1.8,0 Z"
+        android:fillColor="#FFFFFFFF" />
+</vector>

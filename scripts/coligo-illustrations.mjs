@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 /**
- * Illustrations plates du CIRCUIT de l'écran de lancement natif.
+ * Illustrations plates de l'écran de lancement natif.
  *
- *   node scripts/coligo-illustrations.mjs           # génère les VectorDrawable
- *   node scripts/coligo-illustrations.mjs --preview # + planche PNG de contrôle
+ *   node scripts/coligo-illustrations.mjs
  *
  * Pourquoi ici et pas dans un outil de design : ces illustrations vivent dans
  * l'APK sous forme de VectorDrawable (aucun bitmap, aucune dépendance, net à
@@ -11,14 +10,23 @@
  * pas de `<circle>`, pas de `<rect>`. Ce script est donc la source de vérité :
  * on décrit avec des primitives lisibles, il convertit.
  *
- * Style : aplats colorés, silhouette d'abord, façon filtres Uber Eats. Boîte
- * 48×48, l'objet POSE sur la ligne y=44 — c'est la route du circuit. Si tu
- * changes une illustration, garde ce pied, sinon elle flottera.
+ * DIRECTION ARTISTIQUE — épuré, façon Bolt / Bolt Food.
+ *   Fond entièrement BLANC. Bâtiments gris clair. Goudron noir, marquage blanc.
+ *   Quelques arbres verts. Le violet Coligo est réservé aux acteurs de
+ *   l'histoire (boutique, voiture, porte du client, colis) : sur ce décor gris
+ *   neutre, l'œil suit le violet, donc il suit le récit.
+ *
+ *   Une illustration = un aplat + deux valeurs. Pas de dégradé, pas de contour,
+ *   pas de détail qu'on ne verrait pas à 40 dp de haut.
+ *
+ * Boîte 48×48, l'objet POSE sur la ligne y=44 — c'est le sol de la scène. Si tu
+ * changes une illustration, garde ce pied, sinon elle flottera. Pour la voiture,
+ * la ligne y=44 est le bas des pneus.
  *
  * Sortie : android/app/src/main/res/drawable/ic_illu_*.xml
  */
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,300 +34,184 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "android/app/src/main/res/drawable");
 
 const P = {
-  ink: "#2B2140",
-  inkSoft: "#3E3160",
   white: "#FFFFFF",
+  snow: "#F4F6F9", // face éclairée d'un immeuble
+  grey: "#E7EBF0", // corps d'immeuble
+  greyDk: "#D2D8E0", // toit, ombre propre
+  greyLn: "#B9C2CC", // menuiseries, antenne
+  glass: "#CBD5E1", // vitrages des bâtiments
+  tint: "#2F3A4C", // verre teinté, vu de dessus
+  violet: "#6C2BD9",
+  violetD: "#4B1FA6",
+  violetL: "#8A4DFF",
   rose: "#FF2D7A",
-  orange: "#FF6B4A",
-  orangeDark: "#E2543A",
-  amber: "#FFC53D",
-  amberDark: "#F0A81E",
-  cream: "#FFE7A8",
-  sky: "#59C1FF",
-  skyDark: "#3BA7EA",
-  green: "#3DD68C",
-  greenDark: "#22B573",
-  kraft: "#D9A566",
-  kraftDark: "#B8834A",
-  skin: "#FFC9A3",
-  cheese: "#FFD98A",
-  crust: "#F0B45E",
-  tomato: "#E23B4E",
+  green: "#23C87E",
+  greenD: "#16A667",
+  trunk: "#8D949E",
+  kraft: "#E5B980",
+  kraftD: "#C9974F",
+  lamp: "#FFE9A8",
 };
 
-/** Le parcours Coligo, dans l'ordre de l'histoire. */
 export const ILLUS = {
-  // Le commerçant prépare : fruits/plats, boissons, et emballe en sac kraft.
-  ic_illu_pizza: [
+  // ---------------------------------------------------------------- la voiture
+  /**
+   * Berline électrique VUE DE DESSUS, nez vers la DROITE — silhouette de Model 3 :
+   * museau tronqué sans calandre, épaules pleines, toit de verre entre deux
+   * lunettes.
+   *
+   * Vue de dessus, et pas de profil : la route est un RUBAN vu d'en haut. Une
+   * voiture de profil posée dessus tient tant qu'elle roule droit, puis se
+   * couche sur le flanc dès qu'elle prend le virage à 90° — deux projections sur
+   * la même surface. Le décor, lui, reste en élévation : ce mélange-là est la
+   * convention de la carte illustrée, et l'œil ne le relève pas.
+   *
+   * Dessinée SANS ses pneus : un VectorDrawable se dessine d'un bloc, on ne peut
+   * pas animer une seule de ses formes. Le Canvas pose les quatre pneus dessous,
+   * et fait BRAQUER les deux de devant dans le virage.
+   */
+  ic_illu_car_top: [
+    // Caisse longue : 41 unités sur 16, soit un rapport 2,6. À 2,0 — la version
+    // précédente — une voiture vue de dessus n'est plus une voiture, c'est un
+    // galet.
     {
-      d: "M24,7 L41,39 C41.6,40.2 40.8,41.5 39.5,41.3 L8.5,41.3 C7.2,41.5 6.4,40.2 7,39 Z",
-      fill: P.crust,
+      d:
+        "M4.4,24 C4.4,20.6 5.6,18.2 8.2,17.2 " +
+        "C14.4,15.6 32.6,15.6 38.4,17.6 " +
+        "C43.0,19.2 45.4,21.0 45.6,24 " +
+        "C45.4,27.0 43.0,28.8 38.4,30.4 " +
+        "C32.6,32.4 14.4,32.4 8.2,30.8 " +
+        "C5.6,29.8 4.4,27.4 4.4,24 Z",
+      fill: P.violet,
     },
-    { d: "M24,12 L37.5,38 L10.5,38 Z", fill: P.cheese },
-    { circle: [24, 22, 2.6], fill: P.tomato },
-    { circle: [18.5, 32, 2.6], fill: P.tomato },
-    { circle: [29.5, 32, 2.6], fill: P.tomato },
-    { circle: [24, 32, 1.6], fill: P.green },
+    { rect: [30.4, 14.6, 3.2, 1.9, 0.9], fill: P.violetD },
+    { rect: [30.4, 31.5, 3.2, 1.9, 0.9], fill: P.violetD },
+    // LE toit de verre d'un bout à l'autre — la signature de la Model 3, et la
+    // seule masse qui distingue une voiture vue de dessus d'une savonnette. En
+    // deux lunettes séparées par un pavillon violet foncé, la nuance
+    // disparaissait à 26 px de large : on ne lisait qu'une bande claire. Il
+    // laisse un capot devant et un coffre derrière : sans eux, la voiture n'a
+    // plus de sens de marche.
+    {
+      d:
+        "M15.2,19.6 C19.6,18.4 28.6,18.4 32.4,19.6 " +
+        "C33.8,20.2 34.4,21.8 34.5,24 " +
+        "C34.4,26.2 33.8,27.8 32.4,28.4 " +
+        "C28.6,29.6 19.6,29.6 15.2,28.4 " +
+        "C14.0,27.9 13.5,26.2 13.5,24 " +
+        "C13.5,21.8 14.0,20.1 15.2,19.6 Z",
+      fill: P.tint,
+    },
+    { rect: [23.8, 18.9, 1.3, 10.2, 0.5], fill: P.violet },
+    { rect: [42.0, 20.4, 2.4, 2.3, 1.0], fill: P.lamp },
+    { rect: [42.0, 25.3, 2.4, 2.3, 1.0], fill: P.lamp },
+    { rect: [5.4, 20.6, 2.2, 2.2, 1.0], fill: P.rose },
+    { rect: [5.4, 25.2, 2.2, 2.2, 1.0], fill: P.rose },
   ],
-  ic_illu_drink: [
-    { d: "M31,7 L26.5,18", stroke: P.rose, w: 2.6 },
-    { rect: [11, 14, 26, 4.6, 2.3], fill: P.rose },
-    {
-      d: "M13,18.6 L35,18.6 L32.2,42.4 C32.1,43.3 31.3,44 30.4,44 L17.6,44 C16.7,44 15.9,43.3 15.8,42.4 Z",
-      fill: P.white,
-    },
-    { d: "M14.3,29 L33.7,29 L33,35 L15,35 Z", fill: P.sky },
+
+  // ------------------------------------------------------- les deux extrémités
+  /** POINT A — la boutique. Store violet : c'est le seul commerce de la rue. */
+  ic_illu_shop: [
+    { rect: [3.4, 7.6, 41.2, 4.4, 1.6], fill: P.greyDk },
+    { rect: [5.6, 11.4, 36.8, 32.6, 1.6], fill: P.grey },
+    { rect: [16.4, 12.6, 15.2, 3.4, 1.2], fill: P.violetL },
+    { rect: [4.6, 17.4, 38.8, 6.4, 1.6], fill: P.violet },
+    { rect: [12.6, 17.4, 3.4, 6.4, 0], fill: P.white },
+    { rect: [22.3, 17.4, 3.4, 6.4, 0], fill: P.white },
+    { rect: [32.0, 17.4, 3.4, 6.4, 0], fill: P.white },
+    { rect: [8.4, 26.6, 13.6, 10.2, 1.4], fill: P.glass },
+    { rect: [26.0, 26.6, 12.0, 17.4, 1.4], fill: P.violetD },
+    { circle: [35.4, 35.6, 0.9], fill: P.white },
   ],
-  ic_illu_bag: [
+
+  /** POINT B — la maison du client. Porte violette : c'est là qu'on arrive. */
+  ic_illu_house: [
+    { d: "M24,5.6 L44.4,22.4 L3.6,22.4 Z", fill: P.violet },
+    { rect: [8.2, 22.4, 31.6, 21.6, 1.4], fill: P.grey },
+    { rect: [10.8, 26.4, 6.4, 6.4, 1.1], fill: P.glass },
+    { rect: [30.8, 26.4, 6.4, 6.4, 1.1], fill: P.glass },
+    { rect: [20.0, 30.2, 8.0, 13.8, 1.1], fill: P.violetD },
+    { circle: [26.3, 37.2, 0.85], fill: P.white },
+  ],
+
+  /** La commande, emballée. Elle naît sur le comptoir, elle finit dans la voiture. */
+  ic_illu_parcel: [
     {
-      d: "M18,14 C18,9.6 21.2,6.5 24,6.5 C26.8,6.5 30,9.6 30,14",
-      stroke: P.kraftDark,
-      w: 2.4,
+      d: "M18,15.4 C18,10.8 20.6,8.2 24,8.2 C27.4,8.2 30,10.8 30,15.4",
+      stroke: P.kraftD,
+      w: 2.2,
     },
     {
-      d: "M11,14 L37,14 L39,42 C39.1,43.2 38.2,44 37,44 L11,44 C9.8,44 8.9,43.2 9,42 Z",
+      d:
+        "M9.4,15.4 L38.6,15.4 L37.2,42.5 C37.15,43.3 36.5,44 35.6,44 " +
+        "L12.4,44 C11.5,44 10.85,43.3 10.8,42.5 Z",
       fill: P.kraft,
     },
-    { d: "M11,14 L37,14 L37.4,19.5 L10.6,19.5 Z", fill: P.kraftDark },
-    { d: "M20,14 C20,9.5 23,7 27,7 C27,11.5 24,14 20,14 Z", fill: P.green },
-    { d: "M27,7 C25,9 23.5,11 22.5,14", stroke: P.greenDark, w: 1.1 },
+    { rect: [9.4, 15.4, 29.2, 4.4, 0.8], fill: P.kraftD },
+    { rect: [18.2, 25.4, 11.6, 11.6, 2], fill: P.violet },
+    { d: "M21.6,31.2 L26.4,31.2", stroke: P.white, w: 1.7 },
   ],
 
-  // Le livreur express. Silhouette de Vespa, tournée vers la droite. L'ordre des
-  // formes fait la lecture : caisse → coque → marchepied → tablier → roues.
-  ic_illu_scooter: [
-    { rect: [2.5, 12.5, 10.5, 9.5, 2], fill: P.sky },
-    { rect: [2.5, 16, 10.5, 1.8, 0.4], fill: P.skyDark },
-    { rect: [4, 22, 8, 1.8, 0.9], fill: P.inkSoft },
-    {
-      d: "M8,34 C6.5,29 8,23.5 13.5,23 L23,23 C25.8,23 27,25.6 27,28.5 L27,34 Z",
-      fill: P.orange,
-    },
-    { rect: [11.5, 19.6, 13, 4.2, 2.1], fill: P.ink },
-    { d: "M20,31 L33,31 L33,34 L20,34 Z", fill: P.orangeDark },
-    {
-      d: "M30,34 L32.4,21.5 C32.7,19.9 34,18.8 35.6,18.8 L38.4,18.8 L36.4,34 Z",
-      fill: P.orange,
-    },
-    {
-      d: "M33.2,30.5 C35.5,29 38.6,29.2 40.6,31.2 L39.2,32.6 C37.8,31.2 35.6,31 34,32 Z",
-      fill: P.orangeDark,
-    },
-    { d: "M36.5,19 L43,17.2", stroke: P.ink, w: 2.6 },
-    { circle: [43.4, 17.1, 1.7], fill: P.inkSoft },
-    { circle: [38.6, 21.6, 2.3], fill: P.cream },
-    { circle: [14.5, 37, 6.3], fill: P.ink },
-    { circle: [14.5, 37, 2.5], fill: P.white },
-    { circle: [36.5, 37, 6.3], fill: P.ink },
-    { circle: [36.5, 37, 2.5], fill: P.white },
-  ],
-
-  // Le client qui attend, la main levée.
-  ic_illu_person: [
-    { circle: [24, 12.5, 6], fill: P.skin },
-    {
-      d: "M18,11.5 C18,7 20.8,4.5 24,4.5 C27.2,4.5 30,7 30,11.5 C28,9.5 26,9 24,9 C22,9 20,9.5 18,11.5 Z",
-      fill: P.ink,
-    },
-    {
-      d: "M13,44 L13,30 C13,24.5 17.5,20.5 24,20.5 C30.5,20.5 35,24.5 35,30 L35,44 Z",
-      fill: P.rose,
-    },
-    { d: "M35,29 L40,21", stroke: P.skin, w: 3.4 },
-    { circle: [40.5, 19.5, 2.2], fill: P.skin },
-    { d: "M20.5,21.5 C21.5,24 26.5,24 27.5,21.5", stroke: P.white, w: 1.6 },
-  ],
-
-  // Coligo Drive.
-  ic_illu_car: [
-    {
-      d: "M13,25 L16.5,16.5 C17,15.2 18.2,14.5 19.6,14.5 L30,14.5 C31.4,14.5 32.6,15.3 33.2,16.5 L37,25 Z",
-      fill: P.amber,
-    },
-    {
-      d: "M17,23.5 L19.4,17.6 C19.6,17.1 20,16.8 20.5,16.8 L24,16.8 L24,23.5 Z",
-      fill: P.sky,
-    },
-    {
-      d: "M26,16.8 L29.6,16.8 C30.1,16.8 30.5,17.1 30.7,17.6 L33,23.5 L26,23.5 Z",
-      fill: P.sky,
-    },
-    {
-      d: "M6,32 C6,27.5 8.5,25 13,25 L37,25 C41,25 44,27.5 44,32 L44,35 C44,36 43.2,36.5 42.2,36.5 L7.8,36.5 C6.8,36.5 6,36 6,35 Z",
-      fill: P.amberDark,
-    },
-    { rect: [6, 29.5, 38, 3, 1.2], fill: P.amber },
-    { circle: [41.5, 30.5, 1.8], fill: P.cream },
-    { circle: [8.5, 30.5, 1.6], fill: P.tomato },
-    { circle: [14, 37, 5.6], fill: P.ink },
-    { circle: [14, 37, 2.2], fill: P.white },
-    { circle: [35, 37, 5.6], fill: P.ink },
-    { circle: [35, 37, 2.2], fill: P.white },
-  ],
-
-  // La récompense.
-  ic_illu_cashback: [
-    { circle: [24, 26, 15], fill: P.amberDark },
-    { circle: [24, 24, 15], fill: P.amber },
-    { circle: [24, 24, 11], fill: P.cream },
-    { circle: [19.5, 19.5, 2.6], fill: P.amberDark },
-    { circle: [28.5, 28.5, 2.6], fill: P.amberDark },
-    { d: "M30,17 L18,31", stroke: P.amberDark, w: 2.6 },
-  ],
-
-  // ---------------------------------------------------------------------------
-  // LA SCÈNE. Les véhicules sont DÉCOMPOSÉS : carrosserie d'un côté, roue de
-  // l'autre. C'est la seule façon de faire tourner les roues — un VectorDrawable
-  // se dessine d'un bloc, on ne peut pas animer une de ses formes.
-  // ---------------------------------------------------------------------------
-
-  /** Roue générique, centrée dans sa boîte : elle tourne autour de son milieu. */
-  ic_illu_wheel: [
-    { circle: [24, 24, 21], fill: P.ink },
-    { circle: [24, 24, 8], fill: P.white },
-    { circle: [24, 24, 3.4], fill: P.inkSoft },
-    // rayons : c'est eux qui rendent la rotation LISIBLE. Sans eux, une roue
-    // qui tourne est une roue immobile.
-    { d: "M24,7 L24,15", stroke: P.inkSoft, w: 2.6 },
-    { d: "M24,33 L24,41", stroke: P.inkSoft, w: 2.6 },
-    { d: "M7,24 L15,24", stroke: P.inkSoft, w: 2.6 },
-    { d: "M33,24 L41,24", stroke: P.inkSoft, w: 2.6 },
-  ],
-
-  /** Voiture Drive, SANS roues, avec le client visible à la vitre. */
-  ic_illu_car_body: [
-    {
-      d: "M13,25 L16.5,16.5 C17,15.2 18.2,14.5 19.6,14.5 L30,14.5 C31.4,14.5 32.6,15.3 33.2,16.5 L37,25 Z",
-      fill: P.amber,
-    },
-    {
-      d: "M17,23.5 L19.4,17.6 C19.6,17.1 20,16.8 20.5,16.8 L24,16.8 L24,23.5 Z",
-      fill: P.sky,
-    },
-    {
-      d: "M26,16.8 L29.6,16.8 C30.1,16.8 30.5,17.1 30.7,17.6 L33,23.5 L26,23.5 Z",
-      fill: P.sky,
-    },
-    // le passager, derrière la vitre arrière
-    { circle: [20.8, 20.4, 2.1], fill: P.skin },
-    {
-      d: "M18.4,23.5 C18.6,21.6 19.6,20.9 20.8,20.9 C22,20.9 23,21.6 23.2,23.5 Z",
-      fill: P.rose,
-    },
-    {
-      d: "M6,32 C6,27.5 8.5,25 13,25 L37,25 C41,25 44,27.5 44,32 L44,35 C44,36 43.2,36.5 42.2,36.5 L7.8,36.5 C6.8,36.5 6,36 6,35 Z",
-      fill: P.amberDark,
-    },
-    { rect: [6, 29.5, 38, 3, 1.2], fill: P.amber },
-    { circle: [41.5, 30.5, 1.8], fill: P.cream },
-    { circle: [8.5, 30.5, 1.6], fill: P.tomato },
-  ],
-
-  /** Scooter SANS roues, avec le sac de livraison à l'arrière. */
-  ic_illu_scooter_body: [
-    {
-      d: "M8,34 C6.5,29 8,23.5 13.5,23 L23,23 C25.8,23 27,25.6 27,28.5 L27,34 Z",
-      fill: P.orange,
-    },
-    { rect: [11.5, 19.6, 13, 4.2, 2.1], fill: P.ink },
-    { d: "M20,31 L33,31 L33,34 L20,34 Z", fill: P.orangeDark },
-    {
-      d: "M30,34 L32.4,21.5 C32.7,19.9 34,18.8 35.6,18.8 L38.4,18.8 L36.4,34 Z",
-      fill: P.orange,
-    },
-    {
-      d: "M33.2,30.5 C35.5,29 38.6,29.2 40.6,31.2 L39.2,32.6 C37.8,31.2 35.6,31 34,32 Z",
-      fill: P.orangeDark,
-    },
-    { d: "M36.5,19 L43,17.2", stroke: P.ink, w: 2.6 },
-    { circle: [43.4, 17.1, 1.7], fill: P.inkSoft },
-    { circle: [38.6, 21.6, 2.3], fill: P.cream },
-  ],
-
-  /** Le sac de livraison, dessiné à part : il se BALANCE sur son support. */
-  ic_illu_deliverybag: [
-    { rect: [8, 10, 32, 30, 5], fill: P.sky },
-    { rect: [8, 19, 32, 5, 1], fill: P.skyDark },
-    { rect: [19, 4, 10, 7, 2], fill: P.skyDark },
-    { d: "M17,29 C19.5,33.5 28.5,33.5 31,29", stroke: P.white, w: 2.4 },
-  ],
-
-  // -------------------------------------------------------------- gourmandises
-  ic_illu_burger: [
-    { d: "M8,22 C8,13 14.5,7.5 24,7.5 C33.5,7.5 40,13 40,22 Z", fill: P.crust },
-    { circle: [17, 14, 1.2], fill: P.cream },
-    { circle: [24, 11.5, 1.2], fill: P.cream },
-    { circle: [31, 14, 1.2], fill: P.cream },
-    { rect: [7, 22, 34, 4, 1.6], fill: P.green },
-    { rect: [8, 25.5, 32, 5.5, 1.8], fill: "#7A4A2B" },
-    { rect: [7, 30.5, 34, 3.6, 1.4], fill: P.cheese },
-    {
-      d: "M8,34 C8,39.5 14.5,43.5 24,43.5 C33.5,43.5 40,39.5 40,34 Z",
-      fill: P.crust,
-    },
-  ],
-  ic_illu_fries: [
-    { d: "M18,12 L20,26 L17,26 L15,12 Z", fill: P.amber },
-    { d: "M24,8 L25,26 L22,26 L21,8 Z", fill: P.cream },
-    { d: "M30,12 L28,26 L31,26 L33,12 Z", fill: P.amber },
-    {
-      d: "M13,24 L35,24 L32,42 C31.8,43.2 30.9,44 29.7,44 L18.3,44 C17.1,44 16.2,43.2 16,42 Z",
-      fill: P.tomato,
-    },
-    { rect: [15.5, 28, 17, 4.5, 1], fill: P.white },
-  ],
-  ic_illu_coffee: [
-    {
-      d: "M11,20 L33,20 L31,40 C30.8,41.7 29.4,43 27.7,43 L16.3,43 C14.6,43 13.2,41.7 13,40 Z",
-      fill: P.white,
-    },
-    {
-      d: "M33,23 C38,23 40,26 40,29 C40,32 38,35 33,35",
-      stroke: P.white,
-      w: 2.6,
-    },
-    { rect: [9, 16.5, 26, 4, 2], fill: P.tomato },
-    { d: "M13.8,29 L30.2,29 L29.4,35 L14.6,35 Z", fill: "#7A4A2B" },
-  ],
-  /** Pin GPS : il rebondit au-dessus de la route. */
+  /** Le repère de destination. Il tombe sur la maison quand la course s'achève. */
   ic_illu_pin: [
     {
-      d: "M24,4 C15.7,4 9,10.7 9,19 C9,29.5 24,44 24,44 C24,44 39,29.5 39,19 C39,10.7 32.3,4 24,4 Z",
-      fill: P.rose,
+      d:
+        "M24,4 C15.7,4 9,10.7 9,19 C9,29.5 24,44 24,44 C24,44 39,29.5 39,19 " +
+        "C39,10.7 32.3,4 24,4 Z",
+      fill: P.violet,
     },
-    { circle: [24, 18.5, 6.2], fill: P.white },
-  ],
-  /** Étoile d'avis : elle apparaît après la livraison. */
-  ic_illu_star: [
-    {
-      d: "M24,4 L29.6,17.4 L44,18.7 L33.1,28.2 L36.4,42.3 L24,34.8 L11.6,42.3 L14.9,28.2 L4,18.7 L18.4,17.4 Z",
-      fill: P.amber,
-    },
+    { circle: [24, 18.6, 6.1], fill: P.white },
   ],
 
-  // ------------------------------------------------------------------- décor
+  // -------------------------------------------------------------------- décor
+  /** Immeuble haut. Grille de fenêtres à deux valeurs : il ne dort pas tout entier. */
   ic_illu_building_a: [
-    { rect: [10, 6, 28, 42, 2], fill: "#3B2C6B" },
-    { rect: [15, 12, 6, 6, 1], fill: "#6B5BAF" },
-    { rect: [27, 12, 6, 6, 1], fill: "#8A76D8" },
-    { rect: [15, 23, 6, 6, 1], fill: "#8A76D8" },
-    { rect: [27, 23, 6, 6, 1], fill: "#6B5BAF" },
-    { rect: [15, 34, 6, 6, 1], fill: "#6B5BAF" },
-    { rect: [27, 34, 6, 6, 1], fill: "#8A76D8" },
+    { rect: [7.6, 2.6, 32.8, 3.4, 1.2], fill: P.greyDk },
+    { rect: [9.4, 6.0, 29.2, 38.0, 1.6], fill: P.grey },
+    { rect: [13.6, 10.4, 6.4, 5.4, 1], fill: P.glass },
+    { rect: [26.0, 10.4, 6.4, 5.4, 1], fill: P.greyDk },
+    { rect: [13.6, 19.4, 6.4, 5.4, 1], fill: P.greyDk },
+    { rect: [26.0, 19.4, 6.4, 5.4, 1], fill: P.glass },
+    { rect: [13.6, 28.4, 6.4, 5.4, 1], fill: P.glass },
+    { rect: [26.0, 28.4, 6.4, 5.4, 1], fill: P.greyDk },
+    { rect: [13.6, 37.4, 6.4, 5.4, 1], fill: P.greyDk },
+    { rect: [26.0, 37.4, 6.4, 5.4, 1], fill: P.glass },
   ],
+
+  /**
+   * Immeuble bas et large. Son bandeau de toit fut violet : à côté du store de
+   * la boutique, ça faisait deux taches violettes voisines et l'œil ne savait
+   * plus laquelle était le commerce. Le décor reste gris — le violet appartient
+   * au récit.
+   */
   ic_illu_building_b: [
-    { rect: [8, 16, 32, 32, 2], fill: "#33265E" },
-    { rect: [20, 8, 8, 8, 1], fill: "#33265E" },
-    { rect: [13, 22, 7, 5, 1], fill: "#7C68C7" },
-    { rect: [28, 22, 7, 5, 1], fill: "#5B4C9C" },
-    { rect: [13, 32, 7, 5, 1], fill: "#5B4C9C" },
-    { rect: [28, 32, 7, 5, 1], fill: "#7C68C7" },
+    { rect: [3.6, 15.4, 40.8, 3.6, 1.3], fill: P.greyDk },
+    { rect: [5.6, 19.0, 36.8, 25.0, 1.6], fill: P.grey },
+    { rect: [9.4, 23.4, 7.2, 5.6, 1], fill: P.greyDk },
+    { rect: [20.4, 23.4, 7.2, 5.6, 1], fill: P.glass },
+    { rect: [31.4, 23.4, 7.2, 5.6, 1], fill: P.greyDk },
+    { rect: [9.4, 33.0, 7.2, 5.6, 1], fill: P.glass },
+    { rect: [20.4, 33.0, 7.2, 5.6, 1], fill: P.greyDk },
+    { rect: [31.4, 33.0, 7.2, 5.6, 1], fill: P.glass },
   ],
+
+  /** Tour vitrée : bandes verticales plutôt qu'une grille — la silhouette change. */
+  ic_illu_building_c: [
+    { d: "M24,5.4 L24,1.2", stroke: P.greyLn, w: 1.4 },
+    { rect: [9.4, 5.4, 29.2, 3.2, 1.2], fill: P.greyDk },
+    { rect: [11.4, 8.6, 25.2, 35.4, 1.6], fill: P.snow },
+    { rect: [14.6, 12.6, 4.4, 27.4, 1.6], fill: P.glass },
+    { rect: [21.8, 12.6, 4.4, 27.4, 1.6], fill: P.greyDk },
+    { rect: [29.0, 12.6, 4.4, 27.4, 1.6], fill: P.glass },
+  ],
+
+  /** Arbre. Trois masses, deux verts : de la vie, pas un buisson. */
   ic_illu_tree: [
-    { rect: [22, 30, 4, 18, 1], fill: "#4A3A2A" },
-    { circle: [24, 20, 12], fill: P.greenDark },
-    { circle: [17, 26, 8], fill: P.green },
-    { circle: [31, 26, 8], fill: P.green },
+    { rect: [22.4, 28.0, 3.2, 16.0, 1.2], fill: P.trunk },
+    { circle: [24, 18.4, 11.2], fill: P.greenD },
+    { circle: [17.2, 24.2, 7.4], fill: P.green },
+    { circle: [30.8, 24.2, 7.4], fill: P.green },
+    { circle: [24, 14.6, 6.8], fill: P.green },
   ],
 };
 
@@ -373,10 +265,22 @@ function toXml(shapes) {
 }
 
 mkdirSync(OUT, { recursive: true });
+
+// Les illustrations de la version précédente (pizza, burger, étoiles, scooter…)
+// ne racontaient rien : elles décoraient. Elles sont retirées de l'APK, pas
+// seulement du code — un drawable orphelin reste empaqueté.
+const keep = new Set(Object.keys(ILLUS).map((k) => k + ".xml"));
+for (const f of readdirSync(OUT)) {
+  if (f.startsWith("ic_illu_") && !keep.has(f)) {
+    unlinkSync(join(OUT, f));
+    console.log(`${f} — supprimé (obsolète)`);
+  }
+}
+
 for (const [name, shapes] of Object.entries(ILLUS)) {
   const xml = `<?xml version="1.0" encoding="utf-8"?>
 <!-- GÉNÉRÉ par scripts/coligo-illustrations.mjs — ne pas éditer à la main.
-     Boîte 48×48, l'objet pose sur la ligne y=44 (la route du circuit). -->
+     Boîte 48×48, l'objet pose sur la ligne y=44 (le sol de la scène). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
     android:height="48dp"

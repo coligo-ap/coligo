@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GÉNÉRÉ par scripts/coligo-illustrations.mjs — ne pas éditer à la main.
+     Boîte 48×48, l'objet pose sur la ligne y=44 (le sol de la scène). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M18,15.4 C18,10.8 20.6,8.2 24,8.2 C27.4,8.2 30,10.8 30,15.4"
+        android:strokeColor="#FFC9974F"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M9.4,15.4 L38.6,15.4 L37.2,42.5 C37.15,43.3 36.5,44 35.6,44 L12.4,44 C11.5,44 10.85,43.3 10.8,42.5 Z"
+        android:fillColor="#FFE5B980" />
+    <path
+        android:pathData="M10.2,15.4 h27.6 a0.8,0.8 0 0,1 0.8,0.8 v2.8 a0.8,0.8 0 0,1 -0.8,0.8 h-27.6 a0.8,0.8 0 0,1 -0.8,-0.8 v-2.8 a0.8,0.8 0 0,1 0.8,-0.8 Z"
+        android:fillColor="#FFC9974F" />
+    <path
+        android:pathData="M20.2,25.4 h7.6 a2,2 0 0,1 2,2 v7.6 a2,2 0 0,1 -2,2 h-7.6 a2,2 0 0,1 -2,-2 v-7.6 a2,2 0 0,1 2,-2 Z"
+        android:fillColor="#FF6C2BD9" />
+    <path
+        android:pathData="M21.6,31.2 L26.4,31.2"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

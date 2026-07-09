@@ -5,15 +5,21 @@
     <color name="colorAccent">#6C2BD9</color>
 
     <!--
-      Écran de lancement. Couleur ÉCHANTILLONNÉE au centre de la frame 0 de
-      l'intro web (components/brand/intro-splash.module.css) : le dégradé y vaut
-      exactement #4C1B9B au milieu de l'écran. Elle sert à la fois pour :
+      Écran de lancement. C'est la couleur de la frame 0 de l'intro NATIVE
+      (intro/IntroSplashView.java, constante SEAM) : depuis la refonte façon
+      Bolt, la scène se joue sur un fond entièrement BLANC. Elle sert à la fois
+      pour :
         - le splash système Android 12+ (windowSplashScreenBackground) ;
         - le fond de fenêtre avant ET après le splash (android:windowBackground) ;
         - le fond de la WebView pendant le chargement (capacitor.config.ts).
       Résultat : une seule couleur continue, du tap sur l'icône jusqu'à la
-      première frame de l'animation. Si le dégradé de l'intro change,
-      ré-échantillonner et mettre à jour ces trois endroits ensemble.
+      première frame de l'animation. QUATRE endroits à garder d'accord : ici,
+      SEAM côté Java, capacitor.config.ts, et scripts/build-client-aab.mjs (qui
+      réécrit le capacitor.config.json du flavor client).
+
+      L'intro WEB (components/brand/intro-splash.module.css) garde son dégradé
+      violet : elle ne tourne que dans la PWA installée, qui n'a ni ce thème ni
+      cette WebView. Les deux raccords sont indépendants.
     -->
-    <color name="coligo_splash">#4C1B9B</color>
+    <color name="coligo_splash">#FFFFFF</color>
 </resources>

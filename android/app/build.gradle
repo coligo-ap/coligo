@@ -58,8 +58,8 @@ android {
             applicationId "app.coligo.client"
             // Versionnage indépendant des APK pros. Play exige un versionCode
             // strictement croissant à chaque upload — incrémenter ICI.
-            versionCode 11
-            versionName "1.0.8"
+            versionCode 12
+            versionName "1.0.9"
         }
     }
     buildTypes {
@@ -69,6 +69,14 @@ android {
             }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    // Robolectric rend l'intro AVEC le vrai Skia et les vraies ressources
+    // (VectorDrawable, wordmark) : sans `includeAndroidResources`, il ne voit
+    // aucun drawable et la scène sort vide. Cf. IntroSplashRenderTest.
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
         }
     }
 }
@@ -86,6 +94,12 @@ dependencies {
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
+    // Rendu hors appareil de l'écran de lancement. Cette machine n'a pas
+    // d'hyperviseur : l'émulateur y est inexploitable. Robolectric en mode
+    // graphique NATIVE exécute le vrai Canvas Android sur la JVM, et son
+    // horloge est pilotable — on peut donc PHOTOGRAPHIER l'intro frame par
+    // frame au lieu de la publier à l'aveugle.
+    testImplementation "org.robolectric:robolectric:$robolectricVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
