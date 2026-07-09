@@ -2,6 +2,7 @@ package com.coligo.app;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -29,6 +30,11 @@ public class MainActivity extends BridgeActivity {
   private boolean animationDone;
   private boolean pageVisible;
   private final Handler ui = new Handler(Looper.getMainLooper());
+
+  /** Couleurs des barres système, à restaurer quand l'intro s'efface. */
+  private int savedStatusBar;
+  private int savedNavBar;
+  private boolean barsOverridden;
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -78,8 +84,20 @@ public class MainActivity extends BridgeActivity {
    */
   private void installIntro() {
     try {
-      ViewGroup root = findViewById(android.R.id.content);
+      // La DecorView, pas android.R.id.content : `content` s'arrête SOUS la
+      // barre de statut. Les nappes de couleur éclaircissent le haut de la
+      // scène, la barre resterait donc à sa couleur unie → une bande visible.
+      // On peint sous les barres, et on les rend transparentes le temps de
+      // l'intro. La DecorView dessine leur fond APRÈS ses enfants : sans cette
+      // transparence, l'overlay serait recouvert.
+      ViewGroup root = (ViewGroup) getWindow().getDecorView();
       if (root == null) return;
+
+      savedStatusBar = getWindow().getStatusBarColor();
+      savedNavBar = getWindow().getNavigationBarColor();
+      getWindow().setStatusBarColor(Color.TRANSPARENT);
+      getWindow().setNavigationBarColor(Color.TRANSPARENT);
+      barsOverridden = true;
 
       intro = new IntroSplashView(this);
       root.addView(intro,
@@ -124,15 +142,36 @@ public class MainActivity extends BridgeActivity {
       ui.postDelayed(new Runnable() {
         @Override
         public void run() {
-          if (intro != null && !intro.isDismissed()) intro.dismiss(null);
+          if (intro != null && !intro.isDismissed()) intro.dismiss(restoreBars);
         }
       }, HARD_TIMEOUT_MS);
     } catch (Exception e) {
       // Une intro ratée ne doit JAMAIS empêcher l'app de démarrer.
       if (intro != null) intro.remove();
       intro = null;
+      restoreBars.run();
     }
   }
+
+  /**
+   * Remet les barres système dans leur état d'origine. Idempotent : appelé à la
+   * fin du fondu, par le garde-fou, et par onDestroy — au pire des cas, la
+   * barre resterait transparente et laisserait voir le windowBackground violet,
+   * ce qui n'est pas cassé, juste moins joli.
+   */
+  private final Runnable restoreBars = new Runnable() {
+    @Override
+    public void run() {
+      if (!barsOverridden) return;
+      barsOverridden = false;
+      try {
+        getWindow().setStatusBarColor(savedStatusBar);
+        getWindow().setNavigationBarColor(savedNavBar);
+      } catch (Exception ignored) {
+        /* fenêtre déjà détruite */
+      }
+    }
+  };
 
   private void signalPageVisible() {
     ui.post(new Runnable() {
@@ -146,14 +185,17 @@ public class MainActivity extends BridgeActivity {
 
   private void maybeDismiss() {
     if (intro == null || intro.isDismissed()) return;
-    if (animationDone && pageVisible) intro.dismiss(null);
+    if (animationDone && pageVisible) intro.dismiss(restoreBars);
   }
 
+  // `public` et non `protected` : BridgeActivity l'expose en public, un
+  // override plus restrictif ne compile pas.
   // `public` et non `protected` : BridgeActivity l'expose en public, un
   // override plus restrictif ne compile pas.
   @Override
   public void onDestroy() {
     ui.removeCallbacksAndMessages(null);
+    restoreBars.run();
     intro = null;
     super.onDestroy();
   }
