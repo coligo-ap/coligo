@@ -41,6 +41,8 @@ const P = {
   greyLn: "#B9C2CC", // menuiseries, antenne
   glass: "#CBD5E1", // vitrages des bâtiments
   tint: "#2F3A4C", // verre teinté, vu de dessus
+  tintUp: "#3D4B60", // pare-brise : un cran plus clair que le toit
+  skin: "#F0C6A4", // les têtes, vues de dessus
   violet: "#6C2BD9",
   violetD: "#4B1FA6",
   violetL: "#8A4DFF",
@@ -52,6 +54,70 @@ const P = {
   kraftD: "#C9974F",
   lamp: "#FFE9A8",
 };
+
+/**
+ * La silhouette de Model 3 vue de dessus, déclinable en deux teintes.
+ *
+ * Ce qui la rend reconnaissable, dans l'ordre où l'œil le lit :
+ *  - le museau TRONQUÉ qui se rétrécit, sans calandre — aucune thermique n'a ce nez ;
+ *  - le toit de verre d'un seul tenant, du pare-brise à la lunette arrière ;
+ *  - les épaules pleines au milieu, la poupe qui se pince ;
+ *  - les rétroviseurs sur tige, seuls appendices de la caisse.
+ *
+ * Le pare-brise est d'un cran plus clair que le pavillon : sans lui, la voiture
+ * n'a pas de sens de marche tant qu'elle ne bouge pas. Caisse 41 unités sur 16,
+ * soit 2,6 — le rapport réel d'une Model 3 (4,69 m sur 1,85 m).
+ *
+ * `cabin` reçoit les formes à poser DANS l'habitacle (têtes des occupants) :
+ * elles doivent passer après le vitrage, sinon le verre les recouvre.
+ */
+const tesla = (bodyColor, cabin) => [
+  {
+    d:
+      "M4.6,24 C4.6,20.8 5.8,18.6 8.4,17.6 " +
+      "C14.6,15.7 30.0,15.5 36.0,17.2 " +
+      "C41.0,18.6 44.6,20.6 45.4,24 " +
+      "C44.6,27.4 41.0,29.4 36.0,30.8 " +
+      "C30.0,32.5 14.6,32.3 8.4,30.4 " +
+      "C5.8,29.4 4.6,27.2 4.6,24 Z",
+    fill: bodyColor,
+  },
+  // rétroviseurs : tige courte, coquille ovale
+  { rect: [29.0, 15.4, 1.3, 1.6, 0.6], fill: P.violetD },
+  { rect: [28.0, 13.4, 3.4, 2.1, 1.0], fill: P.violetD },
+  { rect: [29.0, 31.0, 1.3, 1.6, 0.6], fill: P.violetD },
+  { rect: [28.0, 32.5, 3.4, 2.1, 1.0], fill: P.violetD },
+  // le toit de verre, d'un bout à l'autre
+  {
+    d:
+      "M14.8,19.8 C19.4,18.5 28.8,18.5 32.6,19.8 " +
+      "C34.0,20.4 34.8,21.9 34.9,24 " +
+      "C34.8,26.1 34.0,27.6 32.6,28.2 " +
+      "C28.8,29.5 19.4,29.5 14.8,28.2 " +
+      "C13.6,27.7 13.1,26.1 13.1,24 " +
+      "C13.1,21.9 13.6,20.3 14.8,19.8 Z",
+    fill: P.tint,
+  },
+  // pare-brise
+  {
+    d:
+      "M30.2,19.2 C32.0,19.4 33.6,20.0 34.3,20.9 " +
+      "C34.8,21.6 35.0,22.7 35.0,24 " +
+      "C35.0,25.3 34.8,26.4 34.3,27.1 " +
+      "C33.6,28.0 32.0,28.6 30.2,28.8 Z",
+    fill: P.tintUp,
+  },
+  ...cabin,
+  // montant central
+  { rect: [23.4, 19.1, 1.2, 9.8, 0.5], fill: bodyColor },
+  // nervures de capot : elles courent vers le museau, elles le montrent
+  { d: "M37.8,21.2 L43.2,22.5", stroke: P.violetD, w: 0.6 },
+  { d: "M37.8,26.8 L43.2,25.5", stroke: P.violetD, w: 0.6 },
+  { rect: [42.2, 20.7, 2.2, 2.2, 1.0], fill: P.lamp },
+  { rect: [42.2, 25.1, 2.2, 2.2, 1.0], fill: P.lamp },
+  { rect: [5.6, 20.8, 2.1, 2.1, 1.0], fill: P.rose },
+  { rect: [5.6, 25.1, 2.1, 2.1, 1.0], fill: P.rose },
+];
 
 export const ILLUS = {
   // ---------------------------------------------------------------- la voiture
@@ -69,43 +135,20 @@ export const ILLUS = {
    * pas animer une seule de ses formes. Le Canvas pose les quatre pneus dessous,
    * et fait BRAQUER les deux de devant dans le virage.
    */
-  ic_illu_car_top: [
-    // Caisse longue : 41 unités sur 16, soit un rapport 2,6. À 2,0 — la version
-    // précédente — une voiture vue de dessus n'est plus une voiture, c'est un
-    // galet.
-    {
-      d:
-        "M4.4,24 C4.4,20.6 5.6,18.2 8.2,17.2 " +
-        "C14.4,15.6 32.6,15.6 38.4,17.6 " +
-        "C43.0,19.2 45.4,21.0 45.6,24 " +
-        "C45.4,27.0 43.0,28.8 38.4,30.4 " +
-        "C32.6,32.4 14.4,32.4 8.2,30.8 " +
-        "C5.6,29.8 4.4,27.4 4.4,24 Z",
-      fill: P.violet,
-    },
-    { rect: [30.4, 14.6, 3.2, 1.9, 0.9], fill: P.violetD },
-    { rect: [30.4, 31.5, 3.2, 1.9, 0.9], fill: P.violetD },
-    // LE toit de verre d'un bout à l'autre — la signature de la Model 3, et la
-    // seule masse qui distingue une voiture vue de dessus d'une savonnette. En
-    // deux lunettes séparées par un pavillon violet foncé, la nuance
-    // disparaissait à 26 px de large : on ne lisait qu'une bande claire. Il
-    // laisse un capot devant et un coffre derrière : sans eux, la voiture n'a
-    // plus de sens de marche.
-    {
-      d:
-        "M15.2,19.6 C19.6,18.4 28.6,18.4 32.4,19.6 " +
-        "C33.8,20.2 34.4,21.8 34.5,24 " +
-        "C34.4,26.2 33.8,27.8 32.4,28.4 " +
-        "C28.6,29.6 19.6,29.6 15.2,28.4 " +
-        "C14.0,27.9 13.5,26.2 13.5,24 " +
-        "C13.5,21.8 14.0,20.1 15.2,19.6 Z",
-      fill: P.tint,
-    },
-    { rect: [23.8, 18.9, 1.3, 10.2, 0.5], fill: P.violet },
-    { rect: [42.0, 20.4, 2.4, 2.3, 1.0], fill: P.lamp },
-    { rect: [42.0, 25.3, 2.4, 2.3, 1.0], fill: P.lamp },
-    { rect: [5.4, 20.6, 2.2, 2.2, 1.0], fill: P.rose },
-    { rect: [5.4, 25.2, 2.2, 2.2, 1.0], fill: P.rose },
+  ic_illu_car_top: [...tesla(P.violet, [])],
+
+  /**
+   * La MÊME voiture, aux couleurs d'une course Coligo Drive : caisse lavande,
+   * un conducteur, un passager à l'arrière. Elle remonte l'avenue en sens
+   * inverse pendant la livraison — la rue n'appartient pas qu'au colis.
+   *
+   * Deux têtes suffisent à dire « course ». Une seule aurait dit « voiture ».
+   */
+  ic_illu_car_ride: [
+    ...tesla(P.violetL, [
+      { circle: [29.6, 21.4, 1.9], fill: P.skin }, // conducteur, avant gauche
+      { circle: [19.2, 26.4, 1.8], fill: P.skin }, // passager, arrière droit
+    ]),
   ],
 
   // ------------------------------------------------------- les deux extrémités

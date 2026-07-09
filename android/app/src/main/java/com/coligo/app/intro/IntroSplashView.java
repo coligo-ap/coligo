@@ -142,6 +142,8 @@ public class IntroSplashView extends View {
     private static final float GREEN_AT = 1190f;
     private static final float TRIP_DELAY = 1250f, TRIP_DUR = 740f;
     private static final float PIN_DELAY = 2000f, PIN_DUR = 210f;
+    /** Une course Coligo Drive remonte l'avenue pendant la livraison. */
+    private static final float RIDE_DELAY = 820f, RIDE_DUR = 1560f;
 
     /**
      * Durée de l'animation. Le contrat produit est « moins de 2,5 s, tout
@@ -168,7 +170,7 @@ public class IntroSplashView extends View {
      * dessine d'un bloc, impossible d'animer une seule de ses formes — or les
      * roues avant doivent braquer. Le Canvas les pose lui-même.
      */
-    private Drawable dCarTop;
+    private Drawable dCarTop, dCarRide;
     private Drawable dShop, dHouse, dParcel, dPin;
     private Drawable dBuildingA, dBuildingB, dBuildingC, dTree;
 
@@ -185,7 +187,7 @@ public class IntroSplashView extends View {
     private final float[] pos2 = new float[2];
     private final float[] tan2 = new float[2];
 
-    private float routeLen, shopStop, carStop;
+    private float routeLen, shopStop, carStop, arcEnd;
     private float roadY, cornerX;
     private float shopX, shopFootY, cityFootY;
     private float houseX, houseFootY, lightX, lightFootY;
@@ -256,6 +258,7 @@ public class IntroSplashView extends View {
         marking.setColor(MARKING);
 
         dCarTop = load(context, R.drawable.ic_illu_car_top);
+        dCarRide = load(context, R.drawable.ic_illu_car_ride);
         dShop = load(context, R.drawable.ic_illu_shop);
         dHouse = load(context, R.drawable.ic_illu_house);
         dParcel = load(context, R.drawable.ic_illu_parcel);
@@ -293,23 +296,42 @@ public class IntroSplashView extends View {
         postInvalidateOnAnimation();
     }
 
-    /** Retrait IMMÉDIAT, sans fondu. */
+    /** Retrait IMMÉDIAT, sans fondu. Appelé hors passe de dessin. */
     public void remove() {
         dismissed = true;
-        detach();
+        detached = true;
+        detachNow();
     }
 
     public boolean isDismissed() {
         return dismissed;
     }
 
-    private void detach() {
+    /**
+     * Fin du fondu. On marque la vue morte — elle ne dessinera plus rien — et on
+     * REMET le démontage à plus tard.
+     *
+     * On est ici DANS `onDraw`, donc au milieu de l'enregistrement de la
+     * display-list. Y retirer la vue de la DecorView, y toucher aux barres
+     * système, et surtout y RECYCLER le bitmap encore référencé par le rendu
+     * matériel, c'est libérer des pixels sous les pieds de libhwui : crash
+     * natif, sans exception Java, sans dialogue — l'application disparaît, et
+     * Android Vitals ne remonte rien. C'était le cas. `post()` fait tout ça au
+     * tour de boucle suivant, quand la frame est finie.
+     */
+    private void scheduleDetach() {
         if (detached) return;
         detached = true;
+        post(this::detachNow);
+    }
+
+    private void detachNow() {
         if (getParent() instanceof android.view.ViewGroup) {
             ((android.view.ViewGroup) getParent()).removeView(this);
         }
-        if (bmp != null && !bmp.isRecycled()) bmp.recycle();
+        // Le bitmap n'est PAS recyclé : il est petit, la vue est jetée juste
+        // après, et le ramasse-miettes s'en charge sans risquer de le libérer
+        // pendant qu'une frame en vol le lit encore.
         if (onRemoved != null) {
             Runnable r = onRemoved;
             onRemoved = null;
@@ -380,16 +402,20 @@ public class IntroSplashView extends View {
         // à « vers le sud ». Exactement 90°.
         corner.set(cornerX - 2f * r, roadY, cornerX, roadY + 2f * r);
         route.arcTo(corner, -90f, 90f, false);
-        route.lineTo(cornerX, h * 0.945f);
+        // La route sort SOUS le bord bas. Elle y est invisible, mais la voiture de
+        // course a besoin d'exister hors champ avant d'entrer : `getPosTan` borne
+        // la distance, une abscisse au-delà du tracé la collerait au bord.
+        route.lineTo(cornerX, h * 1.10f);
 
         routeMeasure.setPath(route, false);
         routeLen = routeMeasure.getLength();
 
         // Sur le segment droit, l'abscisse curviligne EST l'abscisse écran.
         shopStop = (w * 0.165f + 12f * density) - (-0.22f * w);
-        // Assez haut pour que la voiture garée reste ENTIÈRE dans le cadre : à
-        // 30 dp du bout, elle était coupée par le bas de l'écran.
-        carStop = routeLen - 92f * density;
+        // Le point d'arrêt s'ancre sur une HAUTEUR d'écran, plus sur la fin du
+        // tracé : celle-ci est désormais hors champ.
+        arcEnd = (cornerX - r) - (-0.22f * w) + (float) (Math.PI / 2.0) * r;
+        carStop = arcEnd + (h * 0.855f - (roadY + r));
     }
 
     // --- courbes ------------------------------------------------------------
@@ -435,7 +461,7 @@ public class IntroSplashView extends View {
         if (dismissed) {
             float a = 1f - (now - exitStartMs) / (float) EXIT_MS;
             if (a <= 0f) {
-                detach();
+                scheduleDetach();
                 return;
             }
             setAlpha(a);
@@ -521,6 +547,7 @@ public class IntroSplashView extends View {
         drawNear(c, t);
         drawHouse(c, t);
         drawTrafficLight(c, t);
+        drawRide(c, t);
         drawCar(c, t);
         drawParcel(c, t);
         drawPin(c, t, now);
@@ -666,17 +693,44 @@ public class IntroSplashView extends View {
         } else {
             dist = lerp(shopStop, carStop, easeInOut(seg(t, TRIP_DELAY, TRIP_DUR)));
         }
-        if (!routeMeasure.getPosTan(dist, pos, tan)) return;
+        paintCar(c, dCarTop, dist, false);
+    }
+
+    /**
+     * LA COURSE. Une voiture Coligo Drive remonte l'avenue pendant que le colis
+     * descend : elle sort du bas du cadre, prend le virage dans l'autre sens et
+     * s'en va vers l'ouest. Elle emprunte le MÊME tracé, parcouru à l'envers —
+     * donc elle se range d'elle-même dans l'autre voie, et les deux voitures se
+     * croisent proprement au lieu de se superposer.
+     */
+    private void drawRide(Canvas c, float t) {
+        float u = seg(t, RIDE_DELAY, RIDE_DUR);
+        if (u <= 0f || u >= 1f) return;
+        paintCar(c, dCarRide, routeLen * (1f - u), true);
+    }
+
+    /**
+     * Pose une voiture à l'abscisse `dist` du tracé. `reverse` inverse le sens de
+     * marche : le cap est celui de la tangente retournée, et l'empattement se lit
+     * en amont. Le reste — voie, pneus, braquage — est identique, ce qui garantit
+     * que les deux voitures obéissent aux mêmes règles de circulation.
+     */
+    private void paintCar(Canvas c, Drawable body, float dist, boolean reverse) {
+        if (body == null || !routeMeasure.getPosTan(dist, pos, tan)) return;
 
         float size = 78f * density;
         float k = size / 48f;
-        float heading = (float) Math.toDegrees(Math.atan2(tan[1], tan[0]));
+        float sign = reverse ? -1f : 1f;
+        float heading = (float) Math.toDegrees(Math.atan2(sign * tan[1], sign * tan[0]));
 
         float wheelbase = 23f * k;
+        float ahead = reverse
+            ? Math.max(dist - wheelbase, 0f)
+            : Math.min(dist + wheelbase, routeLen);
         float steer = 0f;
-        if (routeMeasure.getPosTan(Math.min(dist + wheelbase, routeLen), pos2, tan2)) {
-            float ahead = (float) Math.toDegrees(Math.atan2(tan2[1], tan2[0]));
-            float d = ahead - heading;
+        if (routeMeasure.getPosTan(ahead, pos2, tan2)) {
+            float h2 = (float) Math.toDegrees(Math.atan2(sign * tan2[1], sign * tan2[0]));
+            float d = h2 - heading;
             while (d > 180f) d -= 360f;
             while (d < -180f) d += 360f;
             steer = Math.max(-32f, Math.min(32f, d));
@@ -689,10 +743,10 @@ public class IntroSplashView extends View {
         // voie. Le décalage est appliqué APRÈS la rotation, donc en +Y LOCAL,
         // c'est-à-dire toujours à droite du sens de marche : sous l'axe quand on
         // va vers l'est, à gauche de l'axe quand on descend vers le sud. Une
-        // seule constante donne la conduite à droite sur les deux tronçons — et
-        // gare la voiture du bon côté, celui de la maison. En -Y (la version
-        // précédente) elle roulait sur le trottoir, puis sortait de la route au
-        // sortir du virage.
+        // seule constante donne la conduite à droite quel que soit le tronçon et
+        // quel que soit le sens — et gare la voiture du bon côté, celui de la
+        // maison. En -Y (la version précédente) elle roulait sur le trottoir,
+        // puis sortait de la route au sortir du virage.
         c.translate(0f, LANE * density);
 
         // Les pneus D'ABORD : la carrosserie les recouvre à moitié, il ne dépasse
@@ -702,12 +756,10 @@ public class IntroSplashView extends View {
         drawTyre(c, 12.5f * k, -8.4f * k, k, steer);
         drawTyre(c, 12.5f * k, 8.4f * k, k, steer);
 
-        if (dCarTop != null) {
-            int half = Math.round(size / 2f);
-            dCarTop.setBounds(-half, -half, half, half);
-            dCarTop.setAlpha(255);
-            dCarTop.draw(c);
-        }
+        int half = Math.round(size / 2f);
+        body.setBounds(-half, -half, half, half);
+        body.setAlpha(255);
+        body.draw(c);
         c.restore();
     }
 
