@@ -67,11 +67,25 @@ les étapes du Dashboard Supabase. Je t'ai déjà donné les accès :
    (`email_confirm: true`), sinon l'utilisateur reste bloqué tant qu'il ne
    clique pas le lien de confirmation.
 
-### Push de code
+### Push de code — TOUT SUR `main` (PRODUCTION), PAS SUR `dev`
 
-L'utilisateur veut toujours commit + push sur `main` direct (pas de feature
-branch, pas de PR). Format de commit : `feat|fix|chore(scope): titre court`,
-corps optionnel, co-auteur `Claude Opus 4.7 (1M context) <noreply@anthropic.com>`.
+**Règle en vigueur depuis le 09/07/2026, jusqu'à signal contraire explicite du
+propriétaire.** La production **n'est pas encore ouverte au public** : elle sert
+d'environnement de développement et ne contient que des **données de test**.
+
+- **Toute évolution et tout correctif vont directement sur `main`** : commit +
+  push sur `main`, sans feature branch, sans PR, sans demander.
+- **Toute migration s'applique sur la DB de prod** (`npm run db:push`), en
+  premier. C'est la base de référence.
+- **L'environnement `dev` est en pause.** On ne développe plus dessus, on ne le
+  synchronise plus à chaque commit. On y reviendra **uniquement sur demande
+  explicite** du propriétaire (« remets dev et prod au même niveau »), puis, une
+  fois la prod réellement livrée au public, `dev` redeviendra l'environnement de
+  travail et `main` la cible de promotion.
+- Ne PAS proposer de repasser sur `dev` de sa propre initiative.
+
+Format de commit : `feat|fix|chore(scope): titre court`, corps optionnel,
+co-auteur `Claude Opus 4.8 <noreply@anthropic.com>`.
 
 ## Super-admin actuels (table `platform_admins`)
 

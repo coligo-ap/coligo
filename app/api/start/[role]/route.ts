@@ -11,6 +11,19 @@
  */
 export const dynamic = "force-dynamic";
 
+/**
+ * Edge, PAS Node. C'est la toute première requête que fait l'APK au lancement,
+ * et elle ne fait qu'une redirection : lire une variable d'env et renvoyer un
+ * 307. En lambda Node elle payait un démarrage à froid — mesuré sur coligo-dev :
+ * 2,08 s à froid contre 0,25 s à chaud. Deux secondes d'écran vide avant même
+ * que la vraie page ne commence à charger, et les testeurs ouvrent l'app trop
+ * rarement pour que la lambda reste chaude.
+ *
+ * À l'edge : pas de démarrage à froid, et le 307 part du POP le plus proche.
+ * Aucune dépendance Node ici (ni Supabase, ni fs) — juste process.env et Response.
+ */
+export const runtime = "edge";
+
 const DEFAULT_LANDING: Record<string, string> = {
   client: "/",
   commerce: "/dashboard",
