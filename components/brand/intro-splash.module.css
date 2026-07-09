@@ -23,6 +23,11 @@
   --violet: #6c2bd9;
   --violet-deep: #240a52;
   --rose: #ff2d7a;
+  /* Couleur de RACCORD avec l'écran de lancement natif. Doit rester égale à
+     @color/coligo_splash (android/app/src/main/res/values/colors.xml) et à
+     `android.backgroundColor` (capacitor.config.ts). C'est la valeur du dégradé
+     ci-dessous au centre exact de l'écran, échantillonnée sur la frame 0. */
+  --seam: #4c1b9b;
 
   display: none;
   position: fixed;
@@ -98,6 +103,21 @@ html[data-intro="on"] .overlay {
   opacity: 0.045;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/></filter><rect width='120' height='120' filter='url(%23n)'/></svg>");
+}
+
+/* Aplat de raccord. Le natif affiche une couleur PLEINE ; l'intro, un dégradé
+   (plus clair en haut). Sans ce calque, la bascule natif → web ferait un saut
+   de teinte dans le haut de l'écran. Il couvre le dégradé à la frame 0 puis se
+   dissout : le dégradé « éclot » depuis la couleur native.
+
+   Placé APRÈS .grain mais AVANT .stage → le « C » naît par-dessus l'aplat,
+   pendant que le décor apparaît derrière lui. */
+.seam {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--seam);
+  animation: seamOut 360ms ease-out both;
 }
 
 /* ---------------------------------------------------------------- scène ---- */
@@ -364,6 +384,15 @@ html[data-intro="on"] .overlay {
 }
 
 @keyframes overlayOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes seamOut {
   0% {
     opacity: 1;
   }

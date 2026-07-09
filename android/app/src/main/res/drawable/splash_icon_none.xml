@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Icône VIDE pour le splash système Android 12+.
+
+  Sans `windowSplashScreenAnimatedIcon`, Android affiche l'icône du lanceur au
+  centre de l'écran de lancement. Or l'intro web démarre sur un écran nu (le
+  « C » n'apparaît qu'en fondu) : l'icône native disparaîtrait à la seconde même
+  où le C commence à naître, et la couture se verrait.
+
+  On laisse donc l'écran de lancement entièrement violet, et c'est l'intro qui
+  fait entrer la marque. cf. components/brand/intro-splash.tsx
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+</shape>

@@ -3,4 +3,17 @@
     <color name="colorPrimary">#6C2BD9</color>
     <color name="colorPrimaryDark">#4B1FA6</color>
     <color name="colorAccent">#6C2BD9</color>
+
+    <!--
+      Écran de lancement. Couleur ÉCHANTILLONNÉE au centre de la frame 0 de
+      l'intro web (components/brand/intro-splash.module.css) : le dégradé y vaut
+      exactement #4C1B9B au milieu de l'écran. Elle sert à la fois pour :
+        - le splash système Android 12+ (windowSplashScreenBackground) ;
+        - le fond de fenêtre avant ET après le splash (android:windowBackground) ;
+        - le fond de la WebView pendant le chargement (capacitor.config.ts).
+      Résultat : une seule couleur continue, du tap sur l'icône jusqu'à la
+      première frame de l'animation. Si le dégradé de l'intro change,
+      ré-échantillonner et mettre à jour ces trois endroits ensemble.
+    -->
+    <color name="coligo_splash">#4C1B9B</color>
 </resources>

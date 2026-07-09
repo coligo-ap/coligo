@@ -9,14 +9,43 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <!--
+      Thème RÉEL de l'activité : `BridgeActivity.onCreate()` bascule dessus
+      (setTheme) avant `super.onCreate()`, donc c'est SON windowBackground qui
+      est peint pendant toute la vie de l'app — y compris pendant le chargement
+      de l'URL distante. Par défaut (DayNight) il valait blanc : entre la
+      disparition du splash système et la première frame web (~1 à 2,5 s de SSR
+      + réseau) l'écran devenait blanc. On le force au violet du splash.
+
+      La WebView, elle, est peinte par-dessus ; son propre fond est fixé à la
+      même couleur via `android.backgroundColor` dans capacitor.config.ts.
+    -->
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <item name="android:windowBackground">@color/coligo_splash</item>
     </style>
 
+    <!--
+      Écran de lancement (thème déclaré dans le manifest pour MainActivity).
 
+      Avant : `android:background` pointait sur @drawable/splash. Cet attribut
+      n'est PAS un attribut de fenêtre — il ne s'applique qu'aux vues — donc le
+      PNG n'était jamais affiché. Sur Android 12+, le système lisait un
+      `windowSplashScreenBackground` absent et retombait sur l'icône du lanceur
+      posée sur un fond par défaut.
+
+      Maintenant : fond violet plein, icône vide. Le violet est exactement la
+      couleur de la frame 0 de l'intro web (échantillonnée), et il est aussi
+      celui du windowBackground ci-dessus et du fond de WebView. L'utilisateur
+      ne voit donc qu'UNE couleur continue jusqu'à ce que l'animation démarre.
+    -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">@color/coligo_splash</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon_none</item>
+        <!-- Repli pour Android < 12, où le splash système n'existe pas : la
+             fenêtre de lancement prend directement ce fond. -->
+        <item name="android:windowBackground">@color/coligo_splash</item>
     </style>
 </resources>

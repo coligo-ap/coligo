@@ -177,6 +177,9 @@ export function IntroSplash() {
         <div className={`${styles.aurora} ${styles.auroraRose}`} />
         <div className={`${styles.aurora} ${styles.auroraViolet}`} />
         <div className={styles.grain} />
+        {/* Raccord avec l'écran de lancement natif : aplat #4C1B9B qui se
+            dissout pour laisser éclore le dégradé. cf. --seam dans le CSS. */}
+        <div className={styles.seam} />
 
         <div className={styles.stage}>
           <div className={styles.glow} />

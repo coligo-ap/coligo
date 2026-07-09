@@ -56,6 +56,18 @@ const config: CapacitorConfig = {
   android: {
     // Géré côté Android — pas d'override mode debug ici.
     allowMixedContent: false,
+    // Fond de la WebView PENDANT le chargement de l'URL distante. Par défaut
+    // elle est blanche : entre la disparition de l'écran de lancement (dès que
+    // l'activité dessine) et la première frame web (~1 à 2,5 s de SSR + réseau)
+    // l'utilisateur voyait un flash blanc. Ce violet est celui de l'écran de
+    // lancement natif ET de la frame 0 de l'intro → une seule couleur continue,
+    // du tap sur l'icône jusqu'à l'animation.
+    //
+    // Trois endroits doivent rester d'accord :
+    //   - ici (+ scripts/build-client-aab.mjs pour le flavor client) ;
+    //   - android/app/src/main/res/values/colors.xml → @color/coligo_splash ;
+    //   - components/brand/intro-splash.module.css → --seam.
+    backgroundColor: "#4C1B9B",
   },
 };
 

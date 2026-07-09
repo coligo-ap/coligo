@@ -70,7 +70,15 @@ writeFileSync(
       appName: "Coligo",
       webDir: "capacitor-webroot",
       server: { url: SERVER_URL, androidScheme: "https" },
-      android: { allowMixedContent: false },
+      android: {
+        allowMixedContent: false,
+        // Fond de la WebView PENDANT le chargement de l'URL distante. Sans lui
+        // elle est blanche : l'écran de lancement violet laissait place à un
+        // flash blanc de ~1 à 2,5 s avant la première frame web. Doit rester
+        // égal à @color/coligo_splash (android/.../values/colors.xml) et à la
+        // frame 0 de l'intro (components/brand/intro-splash.module.css).
+        backgroundColor: "#4C1B9B",
+      },
     },
     null,
     "\t"
