@@ -83,6 +83,7 @@
     "@capacitor/core": "^8.4.0",
     "@capacitor/geolocation": "^8.2.0",
     "@capacitor/ios": "^8.4.0",
+    "@capacitor/preferences": "^8.0.1",
     "@capacitor/push-notifications": "^8.1.1",
     "@capawesome/capacitor-app-update": "^8.0.3",
     "@dnd-kit/core": "^6.3.1",

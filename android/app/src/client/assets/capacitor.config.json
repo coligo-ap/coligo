@@ -4,7 +4,8 @@
   "webDir": "capacitor-webroot",
   "server": {
     "url": "https://coligo.app/api/start/client",
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "errorPath": "offline.html"
   },
   "android": {
     "allowMixedContent": false,

@@ -52,6 +52,15 @@ const config: CapacitorConfig = {
     //   cleartext: true,
     // et autoriser dans network_security_config.xml.
     androidScheme: "https",
+    // Sans connexion, le chargement du document principal échoue et la WebView
+    // affiche la page d'erreur de Chrome. Capacitor charge cette page-ci à la
+    // place (BridgeWebViewClient.onReceivedError, isForMainFrame). Elle est
+    // embarquée dans l'APK, servie sur https://localhost, et fonctionne à zéro
+    // octet téléchargé. Le service worker ne peut PAS jouer ce rôle : avec une
+    // server.url distante, le HTML est récupéré en Java par
+    // WebViewLocalServer.handleProxyRequest, la navigation principale ne passe
+    // donc jamais par lui. cf. capacitor-webroot/offline.html
+    errorPath: "offline.html",
   },
   android: {
     // Géré côté Android — pas d'override mode debug ici.

@@ -69,7 +69,13 @@ writeFileSync(
       appId: "app.coligo.client",
       appName: "Coligo",
       webDir: "capacitor-webroot",
-      server: { url: SERVER_URL, androidScheme: "https" },
+      server: {
+        url: SERVER_URL,
+        androidScheme: "https",
+        // Écran hors-ligne embarqué (capacitor-webroot/offline.html), chargé
+        // par Capacitor quand le document principal ne peut pas être récupéré.
+        errorPath: "offline.html",
+      },
       android: {
         allowMixedContent: false,
         // Fond de la WebView PENDANT le chargement de l'URL distante. Sans lui

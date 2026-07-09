@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Coligo — hors ligne</title>
+    <!--
+      ÉCRAN HORS LIGNE EMBARQUÉ DANS L'APK (`server.errorPath`).
+
+      Capacitor charge cette page quand le chargement du document principal
+      échoue (BridgeWebViewClient.onReceivedError, isForMainFrame). C'est le
+      SEUL recours possible : avec une `server.url` distante, le HTML est
+      récupéré en Java par WebViewLocalServer.handleProxyRequest — le service
+      worker ne voit jamais passer la navigation principale et ne peut donc pas
+      servir de repli.
+
+      Contraintes, toutes tenues ici :
+        - AUCUN réseau : pas de police Google, pas d'image, pas de CDN. Tout est
+          inline. La page doit s'afficher avec zéro octet téléchargé.
+        - ORIGINE DIFFÉRENTE : elle est servie sur `https://localhost`, pas sur
+          coligo.app. Elle ne peut lire NI localStorage, NI IndexedDB, NI le
+          Cache API de l'app. Le seul canal partagé est le pont Capacitor, d'où
+          la lecture de l'instantané via le plugin Preferences
+          (cf. lib/native/offline-snapshot.ts).
+        - Elle ne ment pas : si l'instantané est trop vieux (>24 h) ou absent,
+          elle n'affiche rien plutôt qu'une information périmée.
+    -->
+    <style>
+      :root {
+        --seam: #4c1b9b;
+        --rose: #ff2d7a;
+        --ink: #ffffff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+      body {
+        background:
+          radial-gradient(
+            120% 80% at 50% 0%,
+            #7c3aed 0%,
+            #5b21b6 38%,
+            #3b1177 72%,
+            #240a52 100%
+          )
+          fixed;
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 20px calc(32px + env(safe-area-inset-bottom, 0px));
+        min-height: 100vh;
+      }
+      .wrap {
+        width: 100%;
+        max-width: 380px;
+        text-align: center;
+      }
+      /* Le « C » de Coligo, tracé en SVG : aucune image à charger. */
+      .mark {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 22px;
+        opacity: 0.95;
+      }
+      h1 {
+        font-size: 22px;
+        font-weight: 800;
+        margin: 0 0 8px;
+        letter-spacing: -0.2px;
+      }
+      p.sub {
+        margin: 0;
+        font-size: 14.5px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.72);
+      }
+      /* Ondes : signal qui cherche. Purement CSS, compositeur uniquement. */
+      .waves {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        margin: 26px auto 4px;
+      }
+      .waves span {
+        position: absolute;
+        inset: 0;
+        border: 1.5px solid rgba(255, 255, 255, 0.35);
+        border-radius: 50%;
+        animation: pulse 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+      }
+      .waves span:nth-child(2) {
+        animation-delay: 0.85s;
+      }
+      .waves span:nth-child(3) {
+        animation-delay: 1.7s;
+      }
+      @keyframes pulse {
+        0% {
+          transform: scale(0.35);
+          opacity: 0;
+        }
+        18% {
+          opacity: 0.8;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 0;
+        }
+      }
+      .waves .dot {
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 12px;
+        height: 12px;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.9);
+        animation: none;
+      }
+
+      /* Carte « dernières informations connues ». Masquée tant qu'on n'a rien. */
+      #snapshot {
+        display: none;
+        margin-top: 26px;
+        text-align: start;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 16px;
+        padding: 14px 14px 6px;
+        backdrop-filter: blur(6px);
+      }
+      #snapshot .head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 11.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: rgba(255, 255, 255, 0.55);
+        margin-bottom: 10px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.09);
+      }
+      .row:first-of-type {
+        border-top: 0;
+      }
+      .badge {
+        flex: none;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.12);
+        display: grid;
+        place-items: center;
+        font-size: 15px;
+      }
+      .row .txt {
+        min-width: 0;
+        flex: 1;
+      }
+      .row .m {
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .row .s {
+        font-size: 12.5px;
+        color: rgba(255, 255, 255, 0.62);
+        margin-top: 1px;
+      }
+      .row .n {
+        flex: none;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        color: rgba(255, 255, 255, 0.7);
+        background: rgba(0, 0, 0, 0.18);
+        border-radius: 999px;
+        padding: 3px 8px;
+      }
+      #stale {
+        font-size: 11.5px;
+        color: rgba(255, 255, 255, 0.45);
+        padding: 8px 0 6px;
+      }
+
+      .actions {
+        margin-top: 28px;
+      }
+      button {
+        appearance: none;
+        border: 0;
+        width: 100%;
+        padding: 15px 18px;
+        border-radius: 14px;
+        background: #fff;
+        color: #3b1177;
+        font-size: 15.5px;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+        transition: transform 0.12s ease, opacity 0.12s ease;
+        -webkit-tap-highlight-color: transparent;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      button[disabled] {
+        opacity: 0.6;
+      }
+      .hint {
+        margin-top: 14px;
+        font-size: 12.5px;
+        color: rgba(255, 255, 255, 0.5);
+        min-height: 18px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .waves span {
+          animation: none;
+          opacity: 0.25;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <svg class="mark" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+        <path
+          d="M78 26a34 34 0 1 0 0 48"
+          stroke="#fff"
+          stroke-width="14"
+          stroke-linecap="round"
+        />
+      </svg>
+
+      <div class="waves" aria-hidden="true">
+        <span></span><span></span><span></span>
+        <i class="dot"></i>
+      </div>
+
+      <h1>Pas de connexion</h1>
+      <p class="sub">
+        Coligo a besoin d'Internet pour se charger.<br />Vérifie ton Wi-Fi ou tes
+        données mobiles.
+      </p>
+
+      <section id="snapshot" aria-label="Dernières informations connues">
+        <div class="head">
+          <span>Tes commandes en cours</span>
+          <span id="age"></span>
+        </div>
+        <div id="rows"></div>
+        <div id="stale">
+          Informations enregistrées hors ligne — elles ont pu changer.
+        </div>
+      </section>
+
+      <div class="actions">
+        <button id="retry" type="button">Réessayer</button>
+        <div class="hint" id="hint"></div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var START_URL = "https://coligo.app/api/start/client";
+        var SNAPSHOT_KEY = "coligo.offline.snapshot";
+        var MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+        var retry = document.getElementById("retry");
+        var hint = document.getElementById("hint");
+
+        // ---- Relance ------------------------------------------------------
+        var going = false;
+        function go() {
+          if (going) return;
+          going = true;
+          retry.disabled = true;
+          hint.textContent = "Reconnexion…";
+          window.location.replace(START_URL);
+        }
+        retry.addEventListener("click", function () {
+          if (navigator.onLine === false) {
+            // Ne pas relancer dans le vide : ça renverrait ici, en clignotant.
+            hint.textContent = "Toujours hors ligne.";
+            setTimeout(function () {
+              hint.textContent = "";
+            }, 2000);
+            return;
+          }
+          go();
+        });
+
+        // Retour du réseau : on repart tout seul, l'utilisateur n'a rien à faire.
+        window.addEventListener("online", go);
+
+        // `online` ment parfois (Wi-Fi capté mais pas d'Internet). Filet : on
+        // sonde doucement, et on ne repart que si la sonde aboutit vraiment.
+        var probing = false;
+        setInterval(function () {
+          if (going || probing || navigator.onLine === false) return;
+          probing = true;
+          fetch(START_URL, { method: "HEAD", cache: "no-store", mode: "no-cors" })
+            .then(function () {
+              go();
+            })
+            .catch(function () {
+              /* toujours coupé */
+            })
+            .finally(function () {
+              probing = false;
+            });
+        }, 5000);
+
+        // ---- Dernières informations connues -------------------------------
+        // Lecture via le pont natif : cette page est sur une AUTRE origine que
+        // coligo.app, donc localStorage/IndexedDB/Cache lui sont inaccessibles.
+        function prefs() {
+          var C = window.Capacitor;
+          return (C && C.Plugins && C.Plugins.Preferences) || null;
+        }
+
+        function ageLabel(ms) {
+          var min = Math.round(ms / 60000);
+          if (min < 1) return "à l'instant";
+          if (min < 60) return "il y a " + min + " min";
+          var h = Math.round(min / 60);
+          return "il y a " + h + " h";
+        }
+
+        // Icônes en SVG inline. Règle produit : JAMAIS d'emoji en dur — leur
+        // rendu dépend de la police système et casse l'identité visuelle.
+        // Tracés repris de lucide (bike / shopping-bag), stroke currentColor.
+        var ICONS = {
+          delivery:
+            '<circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM12 17.5V14l-3-3 4-3 2 3h2"/>',
+          pickup:
+            '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+        };
+
+        function iconSvg(fulfillment) {
+          var svg = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "svg"
+          );
+          svg.setAttribute("viewBox", "0 0 24 24");
+          svg.setAttribute("width", "17");
+          svg.setAttribute("height", "17");
+          svg.setAttribute("fill", "none");
+          svg.setAttribute("stroke", "currentColor");
+          svg.setAttribute("stroke-width", "1.8");
+          svg.setAttribute("stroke-linecap", "round");
+          svg.setAttribute("stroke-linejoin", "round");
+          svg.setAttribute("aria-hidden", "true");
+          svg.innerHTML =
+            fulfillment === "delivery" ? ICONS.delivery : ICONS.pickup;
+          return svg;
+        }
+
+        var rendered = false;
+        function render(snap) {
+          if (rendered) return;
+          if (!snap || snap.v !== 1) return;
+          var age = Date.now() - snap.at;
+          // Trop vieux = on se tait. Mieux vaut rien qu'une information fausse.
+          if (age > MAX_AGE_MS) return;
+          if (!snap.orders || snap.orders.length === 0) return;
+
+          var rows = document.getElementById("rows");
+          snap.orders.slice(0, 3).forEach(function (o) {
+            var row = document.createElement("div");
+            row.className = "row";
+
+            var b = document.createElement("div");
+            b.className = "badge";
+            b.appendChild(iconSvg(o.fulfillment));
+
+            var txt = document.createElement("div");
+            txt.className = "txt";
+            var m = document.createElement("div");
+            m.className = "m";
+            m.textContent = o.merchant;
+            var s = document.createElement("div");
+            s.className = "s";
+            s.textContent = o.label;
+            txt.appendChild(m);
+            txt.appendChild(s);
+
+            row.appendChild(b);
+            row.appendChild(txt);
+
+            if (o.number) {
+              var n = document.createElement("span");
+              n.className = "n";
+              n.textContent = "#" + o.number;
+              row.appendChild(n);
+            }
+            rows.appendChild(row);
+          });
+
+          document.getElementById("age").textContent = ageLabel(age);
+          document.getElementById("snapshot").style.display = "block";
+          rendered = true;
+        }
+
+        function loadSnapshot() {
+          var p = prefs();
+          if (!p) return; // hors APK, ou pont pas encore prêt
+          p.get({ key: SNAPSHOT_KEY })
+            .then(function (r) {
+              if (!r || !r.value) return;
+              try {
+                render(JSON.parse(r.value));
+              } catch (e) {
+                /* instantané illisible : on n'affiche rien */
+              }
+            })
+            .catch(function () {
+              /* plugin absent : on n'affiche rien */
+            });
+        }
+
+        // Le pont Capacitor est injecté dans le <head>, mais les plugins sont
+        // enregistrés juste après : on tente tout de suite, puis au chargement.
+        loadSnapshot();
+        window.addEventListener("load", function () {
+          if (!rendered) loadSnapshot();
+        });
+      })();
+    </script>
+  </body>
+</html>

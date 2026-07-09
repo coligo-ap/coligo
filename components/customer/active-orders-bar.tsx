@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -25,6 +25,7 @@ import {
   type ActiveOrderLite,
 } from "@/app/(customer)/commandes/actions";
 import type { OrderStatus } from "@/lib/types";
+import { writeOfflineSnapshot } from "@/lib/native/offline-snapshot";
 
 // =============================================================================
 // BANDEAU « COMMANDES EN COURS » — flotte AU-DESSUS de la bottom-nav (façon
@@ -53,6 +54,22 @@ const STATUS_BADGE_KEY: Partial<Record<OrderStatus, string>> = {
   ready: "badgeReady",
 };
 
+/**
+ * Libellé d'une commande active. Factorisé parce qu'il sert à DEUX endroits :
+ * la carte du bandeau, et l'instantané natif lu par l'écran hors-ligne. Les
+ * deux doivent dire exactement la même chose.
+ */
+function activeOrderLabel(
+  order: ActiveOrderLite,
+  t: (key: string) => string
+): string {
+  const delivering =
+    order.status === "ready" && order.fulfillment_type === "delivery";
+  return delivering
+    ? t("activeDelivering")
+    : t(STATUS_BADGE_KEY[order.status] ?? "badgePending");
+}
+
 const DISMISS_KEY = "coligo:active-orders-dismissed";
 
 function readDismissed(): Record<string, string> {
@@ -77,6 +94,7 @@ function hiddenOn(p: string): boolean {
 export function ActiveOrdersBar({ userId }: { userId: string }) {
   const pathname = usePathname() || "/";
   const hidden = hiddenOn(pathname);
+  const t = useTranslations("orders");
 
   const { data, refetch } = useQuery({
     queryKey: ["customer-active-orders", userId],
@@ -107,6 +125,22 @@ export function ActiveOrdersBar({ userId }: { userId: string }) {
       return next;
     });
   }, []);
+
+  // Miroir natif pour l'écran hors-ligne de l'APK (server.errorPath). On écrit
+  // les commandes BRUTES, pas la liste filtrée par `dismissed` : fermer une
+  // carte est un geste d'affichage, pas la disparition de la commande.
+  // `data === undefined` = requête pas encore résolue → on n'écrase rien.
+  useEffect(() => {
+    if (!data) return;
+    void writeOfflineSnapshot(
+      data.map((o) => ({
+        number: o.order_number,
+        label: activeOrderLabel(o, t),
+        merchant: o.merchant_name,
+        fulfillment: o.fulfillment_type,
+      }))
+    );
+  }, [data, t]);
 
   const orders = (data ?? []).filter((o) => dismissed[o.id] !== o.status);
   if (hidden || orders.length === 0) return null;
@@ -148,9 +182,8 @@ function ActiveOrderCard({
   const delivering = ready && order.fulfillment_type === "delivery";
 
   // Libellé : badges i18n existants, sauf « en livraison » (clé dédiée).
-  const label = delivering
-    ? t("activeDelivering")
-    : t(STATUS_BADGE_KEY[order.status] ?? "badgePending");
+  // Même source que l'instantané hors-ligne — cf. activeOrderLabel().
+  const label = activeOrderLabel(order, t);
 
   return (
     <Link
