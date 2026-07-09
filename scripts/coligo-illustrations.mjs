@@ -20,8 +20,8 @@
  *   pas de détail qu'on ne verrait pas à 40 dp de haut.
  *
  * Boîte 48×48, l'objet POSE sur la ligne y=44 — c'est le sol de la scène. Si tu
- * changes une illustration, garde ce pied, sinon elle flottera. Pour la voiture,
- * la ligne y=44 est le bas des pneus.
+ * changes une illustration, garde ce pied, sinon elle flottera. SEULE exception :
+ * la voiture, vue de dessus, que le Canvas centre dans sa boîte.
  *
  * Sortie : android/app/src/main/res/drawable/ic_illu_*.xml
  */
@@ -57,8 +57,7 @@ export const ILLUS = {
   // ---------------------------------------------------------------- la voiture
   /**
    * Berline électrique VUE DE DESSUS, nez vers la DROITE — silhouette de Model 3 :
-   * museau tronqué sans calandre, épaules pleines, toit de verre entre deux
-   * lunettes.
+   * museau tronqué sans calandre, épaules pleines, toit de verre d'un seul tenant.
    *
    * Vue de dessus, et pas de profil : la route est un RUBAN vu d'en haut. Une
    * voiture de profil posée dessus tient tant qu'elle roule droit, puis se
