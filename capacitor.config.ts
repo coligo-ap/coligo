@@ -52,15 +52,19 @@ const config: CapacitorConfig = {
     //   cleartext: true,
     // et autoriser dans network_security_config.xml.
     androidScheme: "https",
-    // Sans connexion, le chargement du document principal échoue et la WebView
-    // affiche la page d'erreur de Chrome. Capacitor charge cette page-ci à la
-    // place (BridgeWebViewClient.onReceivedError, isForMainFrame). Elle est
-    // embarquée dans l'APK, servie sur https://localhost, et fonctionne à zéro
-    // octet téléchargé. Le service worker ne peut PAS jouer ce rôle : avec une
-    // server.url distante, le HTML est récupéré en Java par
-    // WebViewLocalServer.handleProxyRequest, la navigation principale ne passe
-    // donc jamais par lui. cf. capacitor-webroot/offline.html
-    errorPath: "offline.html",
+    // PAS d'`errorPath` ici, volontairement.
+    //
+    // Sans connexion, la WebView affiche la page d'erreur de Chrome. Capacitor
+    // sait charger une page embarquée à la place (`server.errorPath`, chargée
+    // par BridgeWebViewClient.onReceivedError quand isForMainFrame). On le fait
+    // — mais SEULEMENT pour le flavor client, dans scripts/build-client-aab.mjs.
+    //
+    // Raison : `capacitor-webroot/offline.html` renvoie vers
+    // `/api/start/client` quand l'utilisateur réessaie. Cette config-ci sert
+    // les APK commerçant / livreur / chauffeur, qui atterrissent ailleurs
+    // (`/api/start/commerce`…) : ils repartiraient dans le mauvais espace.
+    // Pour l'étendre : mémoriser la dernière URL du rôle (Preferences) et la
+    // relire dans offline.html au lieu de l'URL client codée en dur.
   },
   android: {
     // Géré côté Android — pas d'override mode debug ici.
