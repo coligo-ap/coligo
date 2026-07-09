@@ -94,7 +94,7 @@ export async function notifyDriverAccountVerified(input: {
     await pushAndStoreForDriver({
       driverId: input.driverId,
       kind: "driver_account_verified",
-      title: "Votre compte est vérifié 🎉",
+      title: "Votre compte est vérifié",
       body: "L'équipe Coligo a validé votre compte. Vous pouvez commencer à générer des revenus dès maintenant.",
       route: "/driver/bienvenue",
     });
