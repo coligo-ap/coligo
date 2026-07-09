@@ -142,8 +142,6 @@ public class IntroSplashView extends View {
     private static final float GREEN_AT = 1190f;
     private static final float TRIP_DELAY = 1250f, TRIP_DUR = 740f;
     private static final float PIN_DELAY = 2000f, PIN_DUR = 210f;
-    /** Une course Coligo Drive remonte l'avenue pendant la livraison. */
-    private static final float RIDE_DELAY = 820f, RIDE_DUR = 1560f;
 
     /**
      * Durée de l'animation. Le contrat produit est « moins de 2,5 s, tout
@@ -170,7 +168,7 @@ public class IntroSplashView extends View {
      * dessine d'un bloc, impossible d'animer une seule de ses formes — or les
      * roues avant doivent braquer. Le Canvas les pose lui-même.
      */
-    private Drawable dCarTop, dCarRide;
+    private Drawable dCarTop;
     private Drawable dShop, dHouse, dParcel, dPin;
     private Drawable dBuildingA, dBuildingB, dBuildingC, dTree;
 
@@ -258,7 +256,6 @@ public class IntroSplashView extends View {
         marking.setColor(MARKING);
 
         dCarTop = load(context, R.drawable.ic_illu_car_top);
-        dCarRide = load(context, R.drawable.ic_illu_car_ride);
         dShop = load(context, R.drawable.ic_illu_shop);
         dHouse = load(context, R.drawable.ic_illu_house);
         dParcel = load(context, R.drawable.ic_illu_parcel);
@@ -402,18 +399,16 @@ public class IntroSplashView extends View {
         // à « vers le sud ». Exactement 90°.
         corner.set(cornerX - 2f * r, roadY, cornerX, roadY + 2f * r);
         route.arcTo(corner, -90f, 90f, false);
-        // La route sort SOUS le bord bas. Elle y est invisible, mais la voiture de
-        // course a besoin d'exister hors champ avant d'entrer : `getPosTan` borne
-        // la distance, une abscisse au-delà du tracé la collerait au bord.
-        route.lineTo(cornerX, h * 1.10f);
+        route.lineTo(cornerX, h);
 
         routeMeasure.setPath(route, false);
         routeLen = routeMeasure.getLength();
 
         // Sur le segment droit, l'abscisse curviligne EST l'abscisse écran.
         shopStop = (w * 0.165f + 12f * density) - (-0.22f * w);
-        // Le point d'arrêt s'ancre sur une HAUTEUR d'écran, plus sur la fin du
-        // tracé : celle-ci est désormais hors champ.
+        // Le point d'arrêt s'ancre sur une HAUTEUR d'écran, pas sur la fin du
+        // tracé : il doit tomber devant la porte du client, quelle que soit la
+        // longueur de la descente.
         arcEnd = (cornerX - r) - (-0.22f * w) + (float) (Math.PI / 2.0) * r;
         carStop = arcEnd + (h * 0.855f - (roadY + r));
     }
@@ -547,7 +542,6 @@ public class IntroSplashView extends View {
         drawNear(c, t);
         drawHouse(c, t);
         drawTrafficLight(c, t);
-        drawRide(c, t);
         drawCar(c, t);
         drawParcel(c, t);
         drawPin(c, t, now);
@@ -693,43 +687,16 @@ public class IntroSplashView extends View {
         } else {
             dist = lerp(shopStop, carStop, easeInOut(seg(t, TRIP_DELAY, TRIP_DUR)));
         }
-        paintCar(c, dCarTop, dist, false);
-    }
-
-    /**
-     * LA COURSE. Une voiture Coligo Drive remonte l'avenue pendant que le colis
-     * descend : elle sort du bas du cadre, prend le virage dans l'autre sens et
-     * s'en va vers l'ouest. Elle emprunte le MÊME tracé, parcouru à l'envers —
-     * donc elle se range d'elle-même dans l'autre voie, et les deux voitures se
-     * croisent proprement au lieu de se superposer.
-     */
-    private void drawRide(Canvas c, float t) {
-        float u = seg(t, RIDE_DELAY, RIDE_DUR);
-        if (u <= 0f || u >= 1f) return;
-        paintCar(c, dCarRide, routeLen * (1f - u), true);
-    }
-
-    /**
-     * Pose une voiture à l'abscisse `dist` du tracé. `reverse` inverse le sens de
-     * marche : le cap est celui de la tangente retournée, et l'empattement se lit
-     * en amont. Le reste — voie, pneus, braquage — est identique, ce qui garantit
-     * que les deux voitures obéissent aux mêmes règles de circulation.
-     */
-    private void paintCar(Canvas c, Drawable body, float dist, boolean reverse) {
-        if (body == null || !routeMeasure.getPosTan(dist, pos, tan)) return;
+        if (dCarTop == null || !routeMeasure.getPosTan(dist, pos, tan)) return;
 
         float size = 78f * density;
         float k = size / 48f;
-        float sign = reverse ? -1f : 1f;
-        float heading = (float) Math.toDegrees(Math.atan2(sign * tan[1], sign * tan[0]));
+        float heading = (float) Math.toDegrees(Math.atan2(tan[1], tan[0]));
 
         float wheelbase = 23f * k;
-        float ahead = reverse
-            ? Math.max(dist - wheelbase, 0f)
-            : Math.min(dist + wheelbase, routeLen);
         float steer = 0f;
-        if (routeMeasure.getPosTan(ahead, pos2, tan2)) {
-            float h2 = (float) Math.toDegrees(Math.atan2(sign * tan2[1], sign * tan2[0]));
+        if (routeMeasure.getPosTan(Math.min(dist + wheelbase, routeLen), pos2, tan2)) {
+            float h2 = (float) Math.toDegrees(Math.atan2(tan2[1], tan2[0]));
             float d = h2 - heading;
             while (d > 180f) d -= 360f;
             while (d < -180f) d += 360f;
@@ -757,9 +724,9 @@ public class IntroSplashView extends View {
         drawTyre(c, 12.5f * k, 8.4f * k, k, steer);
 
         int half = Math.round(size / 2f);
-        body.setBounds(-half, -half, half, half);
-        body.setAlpha(255);
-        body.draw(c);
+        dCarTop.setBounds(-half, -half, half, half);
+        dCarTop.setAlpha(255);
+        dCarTop.draw(c);
         c.restore();
     }
 

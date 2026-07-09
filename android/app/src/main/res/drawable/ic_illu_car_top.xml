@@ -28,6 +28,12 @@
         android:pathData="M30.2,19.2 C32.0,19.4 33.6,20.0 34.3,20.9 C34.8,21.6 35.0,22.7 35.0,24 C35.0,25.3 34.8,26.4 34.3,27.1 C33.6,28.0 32.0,28.6 30.2,28.8 Z"
         android:fillColor="#FF3D4B60" />
     <path
+        android:pathData="M27.6,21.8 a1.8,1.8 0 1,0 3.6,0 a1.8,1.8 0 1,0 -3.6,0 Z"
+        android:fillColor="#FFF0C6A4" />
+    <path
+        android:pathData="M17.5,26.3 a1.7,1.7 0 1,0 3.4,0 a1.7,1.7 0 1,0 -3.4,0 Z"
+        android:fillColor="#FFF0C6A4" />
+    <path
         android:pathData="M23.9,19.1 h0.2 a0.5,0.5 0 0,1 0.5,0.5 v8.8 a0.5,0.5 0 0,1 -0.5,0.5 h-0.2 a0.5,0.5 0 0,1 -0.5,-0.5 v-8.8 a0.5,0.5 0 0,1 0.5,-0.5 Z"
         android:fillColor="#FF6C2BD9" />
     <path

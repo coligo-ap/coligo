@@ -135,19 +135,19 @@ export const ILLUS = {
    * pas animer une seule de ses formes. Le Canvas pose les quatre pneus dessous,
    * et fait BRAQUER les deux de devant dans le virage.
    */
-  ic_illu_car_top: [...tesla(P.violet, [])],
-
-  /**
-   * La MÊME voiture, aux couleurs d'une course Coligo Drive : caisse lavande,
-   * un conducteur, un passager à l'arrière. Elle remonte l'avenue en sens
-   * inverse pendant la livraison — la rue n'appartient pas qu'au colis.
-   *
-   * Deux têtes suffisent à dire « course ». Une seule aurait dit « voiture ».
-   */
-  ic_illu_car_ride: [
-    ...tesla(P.violetL, [
-      { circle: [29.6, 21.4, 1.9], fill: P.skin }, // conducteur, avant gauche
-      { circle: [19.2, 26.4, 1.8], fill: P.skin }, // passager, arrière droit
+  ic_illu_car_top: [
+    ...tesla(P.violet, [
+      // COURSES + FOOD, dans un seul véhicule. Un chauffeur au volant et un
+      // passager à l'arrière : c'est une course. Le même véhicule embarque le
+      // sac du commerçant : c'est la livraison. Une deuxième voiture qui
+      // croiserait la première n'ajouterait rien — le sens ne vient pas du
+      // nombre de voitures, il vient de ce qu'elles transportent.
+      //
+      // Le chauffeur est à GAUCHE de sa voiture (conduite à droite) : le nez
+      // pointe vers +x, donc sa gauche est vers le haut de la boîte. Le passager
+      // s'assied à l'arrière droit, en diagonale — comme dans la vraie vie.
+      { circle: [29.4, 21.8, 1.8], fill: P.skin },
+      { circle: [19.2, 26.3, 1.7], fill: P.skin },
     ]),
   ],
 
