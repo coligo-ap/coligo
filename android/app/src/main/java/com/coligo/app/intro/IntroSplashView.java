@@ -13,9 +13,14 @@ import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.graphics.ColorFilter;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.Drawable;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
+
+import androidx.core.content.ContextCompat;
 
 import com.coligo.app.R;
 
@@ -44,9 +49,13 @@ import com.coligo.app.R;
  *     et dévoile « oligo » — un seul calque ;
  *   - un reflet spéculaire traverse les lettres, composé en SRC_ATOP dans une
  *     couche isolée : il n'éclaire QUE la matière des lettres ;
- *   - puis, tant que la page n'a pas peint, une BARRE DE CHARGEMENT sous la
- *     marque, et la marque respire. Jamais d'écran figé : un écran figé, pour
- *     l'utilisateur, c'est une application plantée.
+ *   - LE CIRCUIT : une route qui défile sous la marque, parcourue par un convoi
+ *     qui raconte Coligo dans l'ordre — le commerçant prépare (fruits, boissons,
+ *     sac kraft), le livreur file (scooter), le client attend, Drive le déplace
+ *     (voiture), il gagne du cashback (pièce, seul élément à l'accent rose).
+ *     Il tourne tant que la page n'a pas peint : c'est aussi l'indicateur de
+ *     chargement. Un écran qui bouge dit « je charge » ; un écran figé dit
+ *     « j'ai planté ».
  *
  * Repères mesurés sur coligo_wordmark.png (800×275) : le « C » occupe les
  * colonnes 0→162 ; son centre optique est à 10,13 % en x, 43,09 % en y.
@@ -71,8 +80,35 @@ public class IntroSplashView extends View {
     private static final float ARCS_DELAY = 40f, ARCS_DUR = 760f;
     private static final float SETTLE_DELAY = 580f, SETTLE_DUR = 500f;
     private static final float SHINE_DELAY = 860f, SHINE_DUR = 520f;
-    public static final long ENTRANCE_MS = (long) (SHINE_DELAY + SHINE_DUR);
+
+    // Le circuit : la route apparaît pendant que « oligo » se dévoile, et le
+    // convoi démarre juste après. On ne fait pas attendre pour l'animation, on
+    // l'installe PENDANT le reste de l'entrée.
+    private static final float ROAD_DELAY = 880f, ROAD_DUR = 420f;
+    private static final float CONVOY_DELAY = 980f, CONVOY_FADE = 420f;
+
+    /**
+     * Durée minimale à l'écran. Elle couvre l'entrée (1380 ms) PLUS une mesure
+     * de convoi, pour qu'on le voie vraiment même quand la page arrive vite.
+     * Au-delà, l'intro ne dure que ce que dure le chargement.
+     */
+    public static final long ENTRANCE_MS = 1900;
     private static final long EXIT_MS = 340;
+
+    /**
+     * Le parcours Coligo, dans l'ordre de l'histoire : le commerçant prépare
+     * (fruits, boissons, sac kraft), le livreur file (scooter), le client
+     * attend, Coligo Drive le déplace (voiture), et il gagne du cashback.
+     */
+    private static final int[] CONVOY = {
+        R.drawable.ic_intro_apple,
+        R.drawable.ic_intro_drink,
+        R.drawable.ic_intro_bag,
+        R.drawable.ic_intro_bike,
+        R.drawable.ic_intro_person,
+        R.drawable.ic_intro_car,
+        R.drawable.ic_intro_coin,
+    };
 
     private final Bitmap bmp;
     private final Paint base = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
@@ -81,11 +117,16 @@ public class IntroSplashView extends View {
     private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint arcOuter = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint arcInner = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint barPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint roadPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Drawable[] convoy;
+    /** Accent rose de marque, réservé au cashback. */
+    private final ColorFilter roseTint =
+        new PorterDuffColorFilter(0xFFFF2D7A, PorterDuff.Mode.SRC_IN);
+    /** Dégradé de la route, construit une fois la largeur connue. */
+    private LinearGradient roadShader;
     private final Rect markRect = new Rect();
     private final RectF ovalOuter = new RectF();
     private final RectF ovalInner = new RectF();
-    private final RectF barRect = new RectF();
 
     private long startMs;
     private long exitStartMs;
@@ -120,6 +161,21 @@ public class IntroSplashView extends View {
         arcInner.setStyle(Paint.Style.STROKE);
         arcInner.setStrokeCap(Paint.Cap.ROUND);
         arcInner.setColor(0xD9C4A5FF);
+
+        roadPaint.setStyle(Paint.Style.STROKE);
+        roadPaint.setStrokeCap(Paint.Cap.ROUND);
+        roadPaint.setColor(Color.WHITE);
+
+        // Icônes du convoi : VectorDrawable générés depuis lucide
+        // (scripts/lucide-to-vector.mjs). Chargés une fois, dessinés au Canvas.
+        convoy = new Drawable[CONVOY.length];
+        for (int i = 0; i < CONVOY.length; i++) {
+            try {
+                convoy[i] = ContextCompat.getDrawable(context, CONVOY[i]);
+            } catch (Throwable t) {
+                Log.e(TAG, "icone convoi " + i + " illisible", t);
+            }
+        }
     }
 
     /** Démarre l'horloge. `onDone` est appelé quand l'entrée est terminée. */
@@ -312,11 +368,8 @@ public class IntroSplashView extends View {
         canvas.restoreToCount(layer);
         canvas.restore();
 
-        // --- barre de chargement ------------------------------------------------
-        // Elle n'apparaît QUE si l'attente se prolonge : afficher un indicateur
-        // pour 200 ms agiterait l'écran pour rien.
-        float wait = t - ENTRANCE_MS;
-        if (wait > 0) drawLoadingBar(canvas, seg(wait, 120, 260), now);
+        // --- le circuit Coligo ---------------------------------------------------
+        drawCircuit(canvas, t, now);
 
         if (!entranceReported && t >= ENTRANCE_MS) {
             entranceReported = true;
@@ -339,28 +392,89 @@ public class IntroSplashView extends View {
         c.drawCircle(x, y, r, blobPaint);
     }
 
-    /** Piste + segment lumineux qui balaie : « ça charge », sans ambiguïté. */
-    private void drawLoadingBar(Canvas c, float a, long now) {
-        if (a <= 0.004f) return;
-        float w = markW * 0.44f;
-        float h = 3f * density;
-        float left = cx - w / 2f;
-        float top = cy + markH * 0.78f;
+    /**
+     * Le circuit : une route qui défile, et le convoi qui la parcourt.
+     *
+     * C'est aussi l'indicateur de chargement. Il n'attend pas la fin de
+     * l'entrée pour apparaître — la route se pose pendant que « oligo » se
+     * dévoile — et il continue de tourner tant que la page n'a pas peint. Un
+     * écran qui bouge dit « je charge » ; un écran figé dit « j'ai planté ».
+     *
+     * Le convoi raconte Coligo dans l'ordre : le commerçant prépare (fruits,
+     * boissons, sac kraft), le livreur file (scooter), le client attend, Drive
+     * le déplace (voiture), il gagne du cashback (pièce). Puis ça recommence.
+     */
+    private void drawCircuit(Canvas c, float t, long now) {
+        float roadA = seg(t, ROAD_DELAY, ROAD_DUR);
+        if (roadA <= 0.004f) return;
 
-        barPaint.setShader(null);
-        barPaint.setColor(Color.WHITE);
-        barPaint.setAlpha(Math.round(38 * a));
-        barRect.set(left, top, left + w, top + h);
-        c.drawRoundRect(barRect, h, h, barPaint);
+        float roadW = Math.min(getWidth() * 0.80f, 340f * density);
+        float left = cx - roadW / 2f;
+        float right = cx + roadW / 2f;
+        float y = cy + markH * 0.98f;
+        float icon = 23f * density;
 
-        float u = (now % 1250L) / 1250f;
-        float segW = w * 0.36f;
-        float x = left - segW + easeInOut(u) * (w + segW);
-        float x0 = Math.max(left, x);
-        float x1 = Math.min(left + w, x + segW);
-        if (x1 <= x0) return;
-        barPaint.setAlpha(Math.round(235 * a));
-        barRect.set(x0, top, x1, top + h);
-        c.drawRoundRect(barRect, h, h, barPaint);
+        // La route s'ESTOMPE aux deux bouts au lieu de se couper net : sans ce
+        // dégradé, les tirets s'arrêtent d'un coup et le convoi surgit du vide.
+        if (roadShader == null) {
+            roadShader = new LinearGradient(left, 0, right, 0,
+                new int[] { 0x00FFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00FFFFFF },
+                new float[] { 0f, 0.16f, 0.84f, 1f }, Shader.TileMode.CLAMP);
+        }
+        roadPaint.setShader(roadShader);
+
+        // Un trait continu très discret, et des tirets qui défilent — c'est le
+        // défilement qui donne la vitesse, pas les icônes.
+        roadPaint.setStrokeWidth(1.6f * density);
+        roadPaint.setAlpha(Math.round(30 * roadA));
+        c.drawLine(left, y, right, y, roadPaint);
+
+        float dash = 9f * density;
+        float gap = 11f * density;
+        float phase = ((now % 780L) / 780f) * (dash + gap);
+        roadPaint.setStrokeWidth(2f * density);
+        roadPaint.setAlpha(Math.round(76 * roadA));
+        for (float x = left - (dash + gap) + phase; x < right; x += dash + gap) {
+            float x0 = Math.max(left, x);
+            float x1 = Math.min(right, x + dash);
+            if (x1 > x0) c.drawLine(x0, y, x1, y, roadPaint);
+        }
+        roadPaint.setShader(null);
+
+        float convoyA = seg(t, CONVOY_DELAY, CONVOY_FADE);
+        if (convoyA <= 0.004f) return;
+
+        // Le convoi : assez serré pour qu'on lise l'histoire d'un coup d'œil
+        // (trois à quatre éléments visibles à la fois), assez lent pour qu'on
+        // reconnaisse chaque icône.
+        float spacing = roadW / 3.3f;
+        float total = spacing * convoy.length;
+        float speed = 62f * density / 1000f; // px par ms
+        float offset = ((t - CONVOY_DELAY) * speed) % total;
+
+        for (int i = 0; i < convoy.length; i++) {
+            Drawable d = convoy[i];
+            if (d == null) continue;
+            float x = left - spacing + ((i * spacing + offset) % total);
+            if (x < left - icon || x > right + icon) continue;
+
+            // Fondu aux deux bouts, calé sur celui de la route.
+            float edge = roadW * 0.16f;
+            float a = Math.min(1f, Math.min(x - left, right - x) / edge);
+            if (a <= 0.02f) continue;
+
+            // Chacun rebondit à son rythme : le convoi respire, il ne glisse pas.
+            float bob = -1.7f * density * (float) Math.abs(Math.sin(now / 250.0 + i * 1.7));
+
+            // Le cashback est la récompense : seul élément à l'accent rose.
+            d.setColorFilter(CONVOY[i] == R.drawable.ic_intro_coin ? roseTint : null);
+
+            int half = Math.round(icon / 2f);
+            int bottom = Math.round(y + bob) - Math.round(3 * density);
+            d.setBounds(Math.round(x) - half, bottom - Math.round(icon),
+                Math.round(x) + half, bottom);
+            d.setAlpha(Math.round(238 * a * convoyA));
+            d.draw(c);
+        }
     }
 }
