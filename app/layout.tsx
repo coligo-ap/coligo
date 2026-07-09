@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { dirFor, type Locale } from "@/i18n/locale";
 import { THEME_COOKIE } from "@/lib/theme/theme";
+import { NATIVE_COOKIE } from "@/lib/config/native";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { pwaMetadata } from "@/lib/config/pwa";
 import { Toaster } from "@/components/ui/toast";
@@ -160,11 +161,17 @@ export default async function RootLayout({
   const dir = dirFor(locale);
   // Thème : clair par défaut, sombre uniquement si choisi dans le header
   // (cookie) — on n'impose plus le réglage système de l'appareil.
-  const isDark = (await cookies()).get(THEME_COOKIE)?.value === "dark";
+  const cookieStore = await cookies();
+  const isDark = cookieStore.get(THEME_COOKIE)?.value === "dark";
+  // Posé par /api/start/<role>, la server.url des APK. Écrit dans le HTML pour
+  // que l'intro sache qu'elle tourne dans une app installée SANS attendre que
+  // le pont Capacitor soit injecté. cf. lib/config/native.ts
+  const isNativeApp = cookieStore.get(NATIVE_COOKIE)?.value === "1";
   return (
     <html
       lang={locale}
       dir={dir}
+      data-app={isNativeApp ? "native" : undefined}
       className={[
         fontDisplay.variable,
         fontBody.variable,

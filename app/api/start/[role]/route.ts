@@ -9,6 +9,8 @@
  *
  * role ∈ { client, commerce, driver, drive }.
  */
+import { NATIVE_COOKIE, NATIVE_COOKIE_MAX_AGE } from "@/lib/config/native";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -40,5 +42,23 @@ export async function GET(
     process.env[`APP_LANDING_${role.toUpperCase()}`] ||
     DEFAULT_LANDING[role] ||
     "/";
-  return Response.redirect(new URL(landing, req.url), 307);
+
+  const headers = new Headers({
+    Location: new URL(landing, req.url).toString(),
+  });
+
+  // Marque le WebView de l'APK. `; wv)` dans l'user-agent = WebView Android —
+  // Chrome l'y met, Capacitor ne le retire pas. On évite ainsi de marquer un
+  // navigateur qui ouvrirait cette URL à la main. Voir lib/config/native.ts.
+  const ua = req.headers.get("user-agent") ?? "";
+  if (/;\s*wv\)/i.test(ua)) {
+    headers.append(
+      "Set-Cookie",
+      `${NATIVE_COOKIE}=1; Path=/; Max-Age=${NATIVE_COOKIE_MAX_AGE}; SameSite=Lax; Secure`
+    );
+  }
+
+  // `Response.redirect()` renvoie des en-têtes immuables : impossible d'y
+  // ajouter un Set-Cookie. On construit la réponse à la main.
+  return new Response(null, { status: 307, headers });
 }

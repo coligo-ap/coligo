@@ -78,6 +78,12 @@ const GUARD_SCRIPT = `
     var forced = q.indexOf('intro=1') > -1;
 
     if (!forced) {
+      // Trois signaux, un seul suffit. Le premier est le SEUL fiable dans un
+      // APK : il vient du serveur (cookie posé par /api/start/<role>), donc il
+      // est déjà dans le HTML. Les deux autres dépendent du JS et peuvent
+      // arriver trop tard — le pont Capacitor n'est pas garanti injecté quand
+      // ce script s'exécute, et une détection ratée = <body> blanc à l'écran.
+      var marked = d.getAttribute('data-app') === 'native';
       var cap = window.Capacitor;
       var native = !!(cap && cap.isNativePlatform && cap.isNativePlatform());
       var standalone = false;
@@ -85,7 +91,7 @@ const GUARD_SCRIPT = `
         standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
           || window.navigator.standalone === true;
       } catch(e) {}
-      if (!native && !standalone) return;
+      if (!marked && !native && !standalone) return;
 
       // Pas de garde sur document.visibilityState : au démarrage à froid d'un
       // WebView Android, le document est parsé avant que la vue ne soit
