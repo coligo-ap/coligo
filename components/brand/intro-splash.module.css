@@ -1,0 +1,414 @@
+/* =============================================================================
+   Intro splash Coligo — 100 % CSS, aucune dépendance JS pour l'animation.
+   =============================================================================
+   L'overlay est masqué PAR DÉFAUT (display:none). Il n'apparaît que si le
+   script de garde a posé `data-intro="on"` sur <html> avant le premier paint.
+   Quand le script de fin retire l'attribut, l'overlay redevient display:none.
+   → JS désactivé / storage cassé / script en erreur = l'intro ne s'affiche
+     jamais et ne peut donc jamais bloquer l'app. Fail-safe par construction.
+
+   Repères géométriques (mesurés sur public/brand/logo-fr-white.png, 800×275) :
+     - le « C » occupe les colonnes 0→162, soit les 20,4 % gauche du wordmark ;
+     - son centre optique est à 10,13 % en x et 43,09 % en y de la boîte.
+   D'où `--c-x` / `--c-y` : on cale l'origine des transformations dessus, et on
+   décale le lockup de (50 % − 10,13 %) = 39,87 % pour amener le C au centre
+   exact de l'écran. Le C grandit puis glisse à sa place pendant que « oligo »
+   se dévoile — un seul et même calque, jamais deux logos superposés.
+   ========================================================================== */
+
+.overlay {
+  --c-x: 10.13%;
+  --c-y: 43.09%;
+  --wordmark: url("/brand/logo-fr-white.png");
+  --violet: #6c2bd9;
+  --violet-deep: #240a52;
+  --rose: #ff2d7a;
+
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  overflow: hidden;
+  place-items: center;
+  contain: layout paint style;
+  isolation: isolate;
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  background: radial-gradient(
+    118% 86% at 50% 6%,
+    #7c3aed 0%,
+    #5b21b6 34%,
+    #3b1177 68%,
+    var(--violet-deep) 100%
+  );
+}
+
+/* Seul aiguillage de visibilité. */
+html[data-intro="on"] .overlay {
+  display: grid;
+  animation: overlayOut 320ms cubic-bezier(0.4, 0, 1, 1) 1180ms both;
+}
+
+/* ---------------------------------------------------------------- décor ---- */
+/* Nappes colorées : uniquement des dégradés radiaux + transform (compositeur).
+   Pas de `filter: blur()` plein écran — trop cher sur les téléphones d'entrée
+   de gamme visés (Android Go). Les arrêts doux suffisent à faire le flou. */
+.aurora {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.auroraRose {
+  width: 78vmax;
+  height: 78vmax;
+  top: -26vmax;
+  left: -22vmax;
+  background: radial-gradient(
+    circle,
+    rgba(255, 45, 122, 0.5) 0%,
+    rgba(255, 45, 122, 0.16) 42%,
+    transparent 68%
+  );
+  animation: driftRose 5.4s cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
+}
+
+.auroraViolet {
+  width: 86vmax;
+  height: 86vmax;
+  right: -30vmax;
+  bottom: -34vmax;
+  background: radial-gradient(
+    circle,
+    rgba(138, 77, 255, 0.6) 0%,
+    rgba(138, 77, 255, 0.18) 45%,
+    transparent 70%
+  );
+  animation: driftViolet 6.2s cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
+}
+
+/* Grain fin : casse les bandes du dégradé et donne la texture « premium ».
+   Tuile 120×120 rasterisée une fois, mélangée en overlay à 4,5 %. */
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/></filter><rect width='120' height='120' filter='url(%23n)'/></svg>");
+}
+
+/* ---------------------------------------------------------------- scène ---- */
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  animation: stageOut 340ms cubic-bezier(0.32, 0, 0.67, 0) 1170ms both;
+}
+
+/* Halo derrière le C. Centré sur le centre optique du C, pas sur la boîte. */
+.glow {
+  position: absolute;
+  left: 50%;
+  top: var(--c-y);
+  width: min(72vw, 300px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  /* Teinté violet SATURÉ, jamais blanc : du blanc sur ce fond éclaircit mais
+     désature (mesuré rgb 128,90,183 — un lavande gris), et comme l'anneau rose
+     à 55 % reste chaud, le centre paraît terne par contraste. Vu à travers le
+     creux du « C », ça donnait un disque grisâtre. */
+  background: radial-gradient(
+    circle,
+    rgba(196, 140, 255, 0.3) 0%,
+    rgba(168, 109, 255, 0.26) 32%,
+    rgba(255, 45, 122, 0.16) 56%,
+    transparent 76%
+  );
+  animation: glowLife 940ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Deux arcs en orbite autour du C — l'idée de mouvement / livraison. */
+.ring {
+  position: absolute;
+  left: 50%;
+  top: var(--c-y);
+  width: min(56vw, 214px);
+  aspect-ratio: 1;
+  pointer-events: none;
+  overflow: visible;
+  animation: ringLife 860ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Circonférences exactes : r=86 → 540.35 ; r=104 → 653.45 (viewBox 240). */
+.ringOuter {
+  stroke-dasharray: 132 409;
+  stroke-dashoffset: 541;
+  animation: drawOuter 620ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both;
+}
+
+.ringInner {
+  stroke-dasharray: 60 594;
+  stroke-dashoffset: 0;
+  animation: drawInner 840ms linear both;
+}
+
+/* --------------------------------------------------------------- lockup ---- */
+/* Un seul calque. Départ : cadré sur le C, agrandi, centré écran.
+   Arrivée : wordmark complet, échelle 1, centré écran. */
+.lockup {
+  position: relative;
+  width: min(66vw, 296px);
+  aspect-ratio: 800 / 275;
+  transform-origin: var(--c-x) var(--c-y);
+  transform: translateX(39.87%) scale(1.62);
+  /* 79,7 % → on garde exactement les colonnes 0→162, la dernière du « C ».
+     À 79 % un liseré du « o » suivant dépassait à droite pendant la phase 1. */
+  clip-path: inset(0 79.7% 0 0);
+  will-change: transform, clip-path;
+  animation: lockupSettle 500ms cubic-bezier(0.65, 0, 0.1, 1) 580ms both;
+}
+
+/* Le wordmark n'est pas blanc pur au repos : le passage de lumière ne pourrait
+   pas l'éclaircir (on ne dépasse pas #fff en `screen`). Il démarre voilé à
+   86 %, et `markLight` l'amène à 100 % pile quand la lumière le traverse — la
+   marque « s'allume » au lieu de subir un reflet invisible. */
+.mark {
+  display: block;
+  width: 100%;
+  height: auto;
+  opacity: 0;
+  transform-origin: var(--c-x) var(--c-y);
+  will-change: transform, opacity, filter;
+  animation:
+    markIn 560ms cubic-bezier(0.16, 1, 0.3, 1) both,
+    /* `forwards` et non `both` : avec un remplissage arrière, markLight —
+       dernier de la liste — écraserait l'opacité de markIn dès la frame 0 et
+       le logo apparaîtrait d'un coup au lieu de se fondre. */
+    markLight 300ms ease-out 940ms forwards;
+}
+
+/* Passage de lumière spéculaire, découpé par la silhouette des lettres :
+   le masque réutilise le PNG déjà décodé pour <img class=mark>, donc zéro
+   requête réseau supplémentaire. Armé seulement quand l'image est décodée
+   (data-ready) — sinon un masque absent laisserait passer un rectangle blanc. */
+.sweep {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: linear-gradient(
+    100deg,
+    transparent 43%,
+    rgba(255, 255, 255, 0.98) 50%,
+    transparent 57%
+  );
+  background-size: 240% 100%;
+  background-repeat: no-repeat;
+  -webkit-mask-image: var(--wordmark);
+  mask-image: var(--wordmark);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.overlay[data-ready="1"] .sweep {
+  animation: sweepPass 520ms cubic-bezier(0.45, 0, 0.55, 1) 860ms both;
+}
+
+/* ------------------------------------------------------------ keyframes ---- */
+@keyframes markIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+    filter: blur(16px);
+  }
+  55% {
+    opacity: 0.86;
+  }
+  72% {
+    transform: scale(1.03);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0.86;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes markLight {
+  from {
+    opacity: 0.86;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lockupSettle {
+  0% {
+    transform: translateX(39.87%) scale(1.62);
+    clip-path: inset(0 79.7% 0 0);
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes drawOuter {
+  0% {
+    stroke-dashoffset: 541;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes drawInner {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -654;
+  }
+}
+
+@keyframes ringLife {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-90deg) scale(0.82);
+  }
+  22% {
+    opacity: 1;
+  }
+  66% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(-90deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-90deg) scale(1.14);
+  }
+}
+
+@keyframes glowLife {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  40% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.25);
+  }
+}
+
+@keyframes sweepPass {
+  0% {
+    opacity: 0;
+    background-position: -30% 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    background-position: 130% 0;
+  }
+}
+
+@keyframes driftRose {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(6vmax, 4vmax, 0) scale(1.12);
+  }
+}
+
+@keyframes driftViolet {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(-5vmax, -6vmax, 0) scale(1);
+  }
+}
+
+@keyframes stageOut {
+  0%,
+  55% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(1.06);
+  }
+}
+
+@keyframes overlayOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------- accessibilité / repli ---- */
+/* Mouvement réduit : on garde la marque, on supprime tout déplacement.
+   Durée totale ~880 ms au lieu de ~1500 ms. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-intro="on"] .overlay {
+    animation: overlayOut 260ms linear 620ms both;
+  }
+  .stage {
+    animation: none;
+  }
+  .ring,
+  .sweep,
+  .grain {
+    display: none;
+  }
+  .aurora {
+    animation: none;
+  }
+  .lockup {
+    transform: none;
+    clip-path: none;
+    animation: none;
+  }
+  .mark {
+    transform: none;
+    animation: calmIn 240ms ease-out both;
+  }
+  .glow {
+    animation: calmIn 240ms ease-out both;
+    transform: translate(-50%, -50%);
+  }
+  @keyframes calmIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}

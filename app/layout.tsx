@@ -14,6 +14,7 @@ import { CapacitorBootLog } from "@/components/pwa/capacitor-boot-log";
 import { AppUpdateBanner } from "@/components/pwa/app-update-banner";
 import { RouteProgressBar } from "@/components/shared/route-progress-bar";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { IntroSplash } from "@/components/brand/intro-splash";
 import { Suspense } from "react";
 import "./globals.css";
 
@@ -185,19 +186,30 @@ export default async function RootLayout({
           crossOrigin="anonymous"
         />
         <link rel="dns-prefetch" href="https://tiles.openfreemap.org" />
-        {/* CSS MapLibre — chargée via CDN parce que l'import
+        {/* CSS MapLibre — servie depuis /public parce que l'import
             `import "maplibre-gl/dist/maplibre-gl.css"` à l'intérieur d'un
             client component avec dynamic-import du JS n'était pas inclus
             dans le bundle prod (vérifié : 0 occurrence de `maplibre` dans
             le CSS Next.js). Ce lien garantit l'inclusion sur toutes les
-            pages, même celles qui ne montent pas encore la carte. */}
-        <link
-          rel="stylesheet"
-          href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css"
-          crossOrigin="anonymous"
-        />
+            pages, même celles qui ne montent pas encore la carte.
+
+            Autrefois servie par unpkg.com : tout <link rel=stylesheet> du
+            <head> bloque le premier paint, donc CHAQUE page attendait un
+            DNS + TLS + fetch vers un CDN tiers avant d'afficher le moindre
+            pixel (mesuré : premier style à ~1,6 s en local, bien pire sur
+            réseau mobile). En même origine, elle est multiplexée avec le
+            reste et ne coûte plus rien.
+
+            À recopier lors d'une montée de version de maplibre-gl :
+              cp node_modules/maplibre-gl/dist/maplibre-gl.css public/vendor/ */}
+        <link rel="stylesheet" href="/vendor/maplibre-gl.css" />
       </head>
       <body className="antialiased" suppressHydrationWarning>
+        {/* Intro de marque — PREMIER nœud du <body> pour être peinte dès la
+            frame 0, avant tout contenu applicatif. Ne s'affiche que dans une
+            app installée (APK / PWA standalone) et jamais deux fois de suite :
+            cf. components/brand/intro-splash.tsx. */}
+        <IntroSplash />
         <NextIntlClientProvider>
           <Suspense fallback={null}>
             <RouteProgressBar />
