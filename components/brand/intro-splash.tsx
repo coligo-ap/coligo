@@ -78,20 +78,29 @@ const GUARD_SCRIPT = `
     var forced = q.indexOf('intro=1') > -1;
 
     if (!forced) {
-      // Trois signaux, un seul suffit. Le premier est le SEUL fiable dans un
-      // APK : il vient du serveur (cookie posé par /api/start/<role>), donc il
-      // est déjà dans le HTML. Les deux autres dépendent du JS et peuvent
-      // arriver trop tard — le pont Capacitor n'est pas garanti injecté quand
-      // ce script s'exécute, et une détection ratée = <body> blanc à l'écran.
+      // Dans un APK, l'intro est NATIVE (IntroSplashView.java) : elle démarre à
+      // t=0 et tourne pendant le chargement de la page, au lieu de s'y ajouter
+      // après le premier paint. Rejouer l'intro web par-dessus ferait deux
+      // écrans à la suite — précisément ce qu'on a supprimé.
+      //
+      // Deux façons de reconnaître l'APK. Le cookie coligo_native (posé par
+      // /api/start/<role>, écrit dans le HTML par le layout) est le seul fiable
+      // avant le premier paint : le pont Capacitor n'est pas garanti injecté
+      // quand ce script s'exécute. On garde window.Capacitor en repli.
+      // (Pas de backtick dans ce commentaire : on est DANS une template literal.)
       var marked = d.getAttribute('data-app') === 'native';
       var cap = window.Capacitor;
       var native = !!(cap && cap.isNativePlatform && cap.isNativePlatform());
+      if (marked || native) return;
+
+      // Reste la PWA installée (écran d'accueil, sans coque native) : là, rien
+      // ne peut jouer une intro à part le web.
       var standalone = false;
       try {
         standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
           || window.navigator.standalone === true;
       } catch(e) {}
-      if (!marked && !native && !standalone) return;
+      if (!standalone) return;
 
       // Pas de garde sur document.visibilityState : au démarrage à froid d'un
       // WebView Android, le document est parsé avant que la vue ne soit
