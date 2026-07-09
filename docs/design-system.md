@@ -58,20 +58,33 @@ champs de saisie). Usage : `bg-[var(--d-surface)]`, `text-[var(--d-ink)]`, etc.
 > `text-white` n'est légitime **que** sur une surface **colorée pleine** (bouton
 > violet plein, badge coloré). Jamais sur une surface de thème.
 
-## Composants thémés réutilisables (`components/ui/themed.tsx`)
+## Composants thémés réutilisables
 
-Pour ne pas recoder le bug à la main, réutiliser :
+Pour ne pas recoder le bug à la main, réutiliser l'existant plutôt que du markup
+neuf. Deux familles, aucune ne code de couleur en dur :
 
-- `<AppText variant="title|body|muted|label">` — texte mappé sur les tokens.
-- `<AppCard>` — surface (`bg-surface` + `text-foreground` + `border-border`).
-- `<AppInput>` / `<SearchBar>` — champ thémé (fond, texte, placeholder, focus).
-- `<AppButton variant="primary|secondary|ghost">` — bouton thémé.
-- `<SheetSurface>` — surface de feuille (fixe `bg-` **et** `text-`, requis pour
-  les Portals). La feuille Drive existante (`Sheet` de `drive-modals.tsx`) porte
-  désormais aussi `text-[var(--d-ink)]` pour la même raison.
+**Primitives — `components/ui/`**
 
-Tous personnalisables par props (taille, variante, icône…) sans jamais exposer
-de couleur en dur.
+- `<Button>` / `<ActionButton>` — bouton thémé (variantes, état occupé).
+- `<Input>` / `<Label>` — champ et libellé thémés (fond, texte, placeholder, focus).
+- `<Badge>`, `<Separator>`, `<Pagination>`, `<InfoHint>`.
+- `useConfirm()` / `usePrompt()` (`confirm.tsx`) — jamais `window.confirm`.
+
+**Socle partenaire — `components/shared/partner-ui.tsx`** (livreur, chauffeur,
+agent : 34 fichiers l'utilisent)
+
+- `<PartnerHeroCard>`, `<PartnerStatTiles>`, `<PartnerEmptyState>` — surfaces.
+- `<PartnerMenuGroup>` / `<PartnerMenuRow>` — listes de réglages.
+- `<PartnerStatusChip>`, `<PartnerBadge>`, `<PartnerProgress>` — états.
+- `<PartnerInlineError>` — message d'erreur **sous le champ** (cf. règle « pas de
+  toast pour une soumission de formulaire » dans `CLAUDE.md`).
+- `<PartnerTabbar>`, `<PartnerBackHeader>`, `<PartnerSegmented>` — navigation.
+
+**Feuilles / modales** : `components/shared/partner-sheet.tsx` et
+`partner-drawer.tsx`. Une feuille montée dans un Portal doit fixer `bg-` **et**
+`text-` (sinon elle hérite du thème de la racine, pas de son espace) — la feuille
+Drive (`Sheet` de `drive-modals.tsx`) porte `text-[var(--d-ink)]` pour cette
+raison.
 
 ## Garde-fou lint
 
@@ -84,6 +97,6 @@ terminée.
 ## Checklist pour TOUT nouvel écran / composant
 
 1. Uniquement des tokens de thème pour les couleurs (jamais de hex/white en dur).
-2. Réutiliser les composants thémés (`AppInput`, `AppCard`, `SheetSurface`…).
+2. Réutiliser les composants thémés (`Input`, `PartnerHeroCard`, `PartnerSheet`…).
 3. **Tester en clair ET en sombre** avant livraison — aucun texte ne disparaît.
 4. Viser un contraste lisible (WCAG AA) sur chaque paire texte/fond.

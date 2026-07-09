@@ -48,7 +48,7 @@ Ajoute aussi le **mot de passe de la base** (Dashboard → Settings → Database
 SUPABASE_DB_PASSWORD=ton_mot_de_passe_base
 ```
 
-> La connection string du pooler est construite dans le code (`lib/config/database.ts`) ; seul le mot de passe est lu depuis l'environnement.
+> La connection string du pooler est construite dans le code (`scripts/_supabase.mjs`) ; seul le mot de passe est lu depuis l'environnement.
 
 ### 4. Appliquer les migrations (automatique)
 

@@ -6,7 +6,7 @@
  * CLI supabase via `node` directement — sans shell, donc aucun souci de
  * quoting Windows avec les caractères spéciaux de l'URL/mot de passe.
  *
- * Source de vérité de la connexion : alignée avec lib/config/database.ts.
+ * Ce fichier est la SOURCE DE VÉRITÉ de la connexion Postgres directe.
  */
 
 import { readFileSync } from "node:fs";

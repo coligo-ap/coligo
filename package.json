@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "clean": "node scripts/clean.mjs",
     "db:push": "node scripts/db-push.mjs",
     "db:status": "node scripts/db-status.mjs",
     "db:seed": "node scripts/db-seed.mjs",
@@ -75,7 +76,6 @@
     "test:all": "npm run test:offline:idempotency && npm run test:offline:scenarios && npm run test:offline:queue && npm run test:promo:money && npm run test:driver:money && npm run test:tour:money && npm run test:tour:e2e && npm run test:audit:cod && npm run test:audit:cancel && npm run test:noshow:claim && npm run test:merchant:guard && npm run test:vtc && npm run test:coligo:pay && npm run test:agent && npm run test:drive:money && npm run test:drive:demo && npm run verify:spec && npm run test:priority && npm run test:config && npm run test:zones && npm run test:slots && npm run test:offline:e2e:serve"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.104.1",
     "@capacitor-community/background-geolocation": "^1.2.26",
     "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor/android": "^8.4.0",
