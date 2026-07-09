@@ -1,28 +1,27 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getDriverGate } from "@/lib/auth/driver-gate";
 import { hashReferralCode } from "@/lib/drivers/referral-code";
 import { notifyMerchantNewDriverRequest } from "@/lib/fcm/triggers";
 
 /**
  * POST /api/drivers/submit-code — un livreur soumet un code de référence.
  *
- * Logique back uniquement (l'UI complète arrive au prompt 4 — PWA livreur).
- * Cet endpoint est conçu pour être appelable :
- *  - depuis un livreur AUTHENTIFIÉ (auth.uid()) → on lie via drivers.user_id.
- *  - depuis un onboarding livreur SANS user encore (étape 3 / prompt 4 :
- *    on créera un compte auth juste avant). À ce stade, l'endpoint exige
- *    la session (sinon refus 401).
+ * Endpoint historique (l'interface passe par la server action `driverSubmitCode`).
+ * Il reste exposé, donc il applique EXACTEMENT les mêmes règles : rejoindre un
+ * commerçant est une fonctionnalité opérationnelle, réservée aux comptes
+ * vérifiés par l'équipe Coligo. Un livreur en cours d'inscription reçoit un 403,
+ * et le trigger `merchant_drivers_verified_guard_trg` (mig 0352) refuserait de
+ * toute façon l'insertion.
  *
  * Le code en clair NE part jamais en log — on log seulement le hash et
  * le résultat (accepted/rejected).
  *
- * Payload : { code: "BOUL-K4Q7X9", full_name?, phone? }
- *  - full_name / phone : utilisés seulement si la ligne `drivers` n'existe
- *    pas encore pour ce user (création paresseuse du profil minimum).
+ * Payload : { code: "BOUL-K4Q7X9" }
  */
 
-type Body = { code?: unknown; full_name?: unknown; phone?: unknown };
+type Body = { code?: unknown };
 
 export async function POST(req: Request) {
   const ssr = await createClient();
@@ -31,6 +30,18 @@ export async function POST(req: Request) {
   } = await ssr.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  }
+
+  // Source de vérité : l'étape du parcours, relue en base à chaque appel.
+  const gate = await getDriverGate();
+  if (!gate) {
+    return NextResponse.json({ error: "not_a_driver" }, { status: 403 });
+  }
+  if (gate.isBlocked || gate.stage !== "active") {
+    return NextResponse.json(
+      { error: "account_not_verified" },
+      { status: 403 }
+    );
   }
 
   let body: Body;
@@ -63,45 +74,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "code_expired" }, { status: 410 });
   }
 
-  // 2) Profil livreur (création paresseuse si premier code soumis).
-  const { data: existingDriver } = await admin
-    .from("drivers")
-    .select("id, full_name")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  let driverId = existingDriver?.id ?? null;
-  let driverFullName = existingDriver?.full_name ?? "Livreur";
-  if (!driverId) {
-    const fullName =
-      typeof body.full_name === "string" && body.full_name.trim().length > 0
-        ? body.full_name.trim()
-        : (user.email?.split("@")[0] ?? "Livreur");
-    const phone =
-      typeof body.phone === "string" && body.phone.trim().length > 0
-        ? body.phone.trim()
-        : (user.phone ?? `pending-${user.id.slice(0, 8)}`);
-    const { data: created, error: createErr } = await admin
-      .from("drivers")
-      .insert({
-        user_id: user.id,
-        full_name: fullName,
-        phone,
-      })
-      .select("id")
-      .single();
-    if (createErr || !created) {
-      return NextResponse.json(
-        { error: `driver_create_failed:${createErr?.message ?? ""}` },
-        { status: 500 }
-      );
-    }
-    driverId = created.id;
-    driverFullName =
-      typeof body.full_name === "string" && body.full_name.trim().length > 0
-        ? body.full_name.trim()
-        : driverFullName;
-  }
+  // 2) Profil livreur : il existe forcément (le gate l'a résolu). Plus aucune
+  //    création paresseuse ici — un compte livreur naît uniquement du parcours
+  //    d'inscription, jamais d'un appel d'API.
+  const driverId = gate.id;
+  const driverFullName = gate.fullName;
 
   // 3) Crée (ou réactive) la relation merchant_drivers en `pending`.
   // Si le couple existe déjà :

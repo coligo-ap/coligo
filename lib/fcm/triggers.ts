@@ -43,6 +43,88 @@ async function tokensFor(
 }
 
 /**
+ * Notification INTERNE du livreur (centre de notifications de l'application) —
+ * doublée d'un push. La trace interne survit à un push manqué : le livreur
+ * retrouve l'information en rouvrant l'app, même des jours plus tard.
+ * Fire-and-forget.
+ */
+async function pushAndStoreForDriver(input: {
+  driverId: string;
+  kind: string;
+  title: string;
+  body: string;
+  route: string;
+}): Promise<void> {
+  const admin = createAdminClient();
+
+  await admin.from("driver_notifications").insert({
+    driver_id: input.driverId,
+    kind: input.kind,
+    title: input.title,
+    body: input.body,
+    route: input.route,
+  });
+
+  const { data: driver } = await admin
+    .from("drivers")
+    .select("user_id")
+    .eq("id", input.driverId)
+    .maybeSingle();
+  if (!driver?.user_id) return;
+
+  const tokens = await tokensFor(driver.user_id, "courier");
+  if (tokens.length === 0) return;
+
+  await sendFcm(
+    tokens,
+    { title: input.title, body: input.body },
+    { route: input.route, kind: input.kind }
+  );
+}
+
+/**
+ * L'équipe Coligo a VALIDÉ le compte du livreur : il peut commencer à livrer.
+ * Le push le ramène sur l'écran de félicitations (`/driver/bienvenue`).
+ * Fire-and-forget — un push perdu ne bloque jamais la validation.
+ */
+export async function notifyDriverAccountVerified(input: {
+  driverId: string;
+}): Promise<void> {
+  try {
+    await pushAndStoreForDriver({
+      driverId: input.driverId,
+      kind: "driver_account_verified",
+      title: "Votre compte est vérifié 🎉",
+      body: "L'équipe Coligo a validé votre compte. Vous pouvez commencer à générer des revenus dès maintenant.",
+      route: "/driver/bienvenue",
+    });
+  } catch (err) {
+    console.warn("[fcm] notifyDriverAccountVerified failed:", err);
+  }
+}
+
+/**
+ * L'équipe Coligo a REFUSÉ le dossier : le livreur repart sur le formulaire
+ * avec le motif affiché en tête. Fire-and-forget.
+ */
+export async function notifyDriverAccountRejected(input: {
+  driverId: string;
+  reason: string;
+}): Promise<void> {
+  try {
+    await pushAndStoreForDriver({
+      driverId: input.driverId,
+      kind: "driver_account_rejected",
+      title: "Votre dossier doit être corrigé",
+      body: `L'équipe Coligo n'a pas pu valider votre inscription : ${input.reason}`,
+      route: "/driver/inscription",
+    });
+  } catch (err) {
+    console.warn("[fcm] notifyDriverAccountRejected failed:", err);
+  }
+}
+
+/**
  * Notifie le commerçant qu'un livreur vient de soumettre son code de
  * référence — une nouvelle demande arrive sur /livreurs.
  * Fire-and-forget depuis driverSubmitCode.

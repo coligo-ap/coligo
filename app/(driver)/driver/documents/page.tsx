@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { DriverInfoSection } from "@/components/driver/profile/driver-info-section";
 import { PartnerBackHeader } from "@/components/shared/partner-ui";
@@ -15,6 +16,9 @@ export const dynamic = "force-dynamic";
  * Le contenu lourd (URLs signées des scans) est streamé via <Suspense>.
  */
 export default async function DriverDocumentsPage() {
+  // Fonctionnalité réservée aux comptes vérifiés par l'équipe Coligo :
+  // un livreur en cours d'inscription est renvoyé à son étape du parcours.
+  await requireActiveDriver();
   const driver = await getCurrentDriver();
   if (!driver) redirect("/driver/login");
 

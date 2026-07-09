@@ -16,7 +16,11 @@ import { formatDA } from "@/lib/utils";
 import { DriverFreezeButton } from "@/components/admin/driver-freeze-button";
 import { DriverBlockButton } from "@/components/admin/drivers/driver-block-button";
 import { DriverForceSignoutButton } from "@/components/admin/drivers/driver-force-signout-button";
-import { DriverVerifyToggle } from "@/components/admin/drivers/driver-verify-toggle";
+import {
+  DriverVerifyPanel,
+  type VerifyStage,
+} from "@/components/admin/drivers/driver-verify-panel";
+import { getNotifyDriverOnVerify } from "@/app/admin/drivers/actions";
 import {
   DriverProfileForm,
   type DriverProfile,
@@ -92,6 +96,15 @@ export default async function AdminDriverDetailPage({
     .eq("id", id)
     .maybeSingle();
   if (!driver) notFound();
+
+  // Étape du parcours d'inscription (cf. lib/auth/driver-gate) + valeur par
+  // défaut de l'interrupteur « Notifier automatiquement le livreur ».
+  const verifyStage: VerifyStage = driver.is_verified
+    ? "verified"
+    : driver.submitted_at
+      ? "pending"
+      : "kyc";
+  const notifyDefault = await getNotifyDriverOnVerify();
 
   const [{ data: docs }, { data: payouts }, { data: cap }] = await Promise.all([
     admin
@@ -345,22 +358,36 @@ export default async function AdminDriverDetailPage({
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <DriverVerifyToggle
+          <div className="flex flex-col items-stretch gap-2">
+            <DriverVerifyPanel
               driverId={driver.id}
               verified={driver.is_verified ?? false}
+              stage={verifyStage}
+              notifyDefault={notifyDefault}
             />
-            <DriverFreezeButton
-              driverId={driver.id}
-              frozen={driver.is_frozen ?? false}
-            />
-            <DriverBlockButton
-              driverId={driver.id}
-              blocked={driver.is_blocked ?? false}
-            />
-            <DriverForceSignoutButton driverId={driver.id} />
+            <div className="flex flex-wrap gap-2">
+              <DriverFreezeButton
+                driverId={driver.id}
+                frozen={driver.is_frozen ?? false}
+              />
+              <DriverBlockButton
+                driverId={driver.id}
+                blocked={driver.is_blocked ?? false}
+              />
+              <DriverForceSignoutButton driverId={driver.id} />
+            </div>
           </div>
         </div>
+
+        {/* Dossier refusé : le motif communiqué au livreur reste visible ici. */}
+        {driver.rejected_at && driver.rejection_reason && (
+          <p className="border-warning-200 bg-warning-50 text-warning-800 mt-3 rounded-[12px] border px-4 py-2.5 text-xs">
+            Dossier <strong>refusé</strong> le{" "}
+            {new Date(driver.rejected_at).toLocaleDateString("fr-FR")} — motif
+            communiqué : <em>{driver.rejection_reason}</em>. Le livreur peut
+            corriger puis retransmettre son dossier.
+          </p>
+        )}
         {driver.is_blocked ? (
           <p className="border-danger-200 bg-danger-50 text-danger-700 mt-3 rounded-[12px] border px-4 py-2.5 text-xs">
             Ce livreur est <strong>bloqué</strong> (sanction dure) : aucun accès

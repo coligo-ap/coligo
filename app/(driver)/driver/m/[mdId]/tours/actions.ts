@@ -2,12 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getDriverGate } from "@/lib/auth/driver-gate";
 
 export type TourActionState = { error?: string; ok?: boolean; tourId?: string };
 
 const START_TOUR_ERRORS: Record<string, string> = {
   link_not_active: "Accès refusé.",
   unauthorized: "Accès refusé.",
+  account_not_verified:
+    "Votre compte doit d'abord être vérifié par l'équipe Coligo.",
   slot_not_found: "Créneau introuvable.",
   slot_cancelled: "Ce créneau est annulé.",
   merchant_position_missing: "Position commerçant manquante.",
@@ -30,6 +33,13 @@ export async function startTour(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Session expirée." };
+
+  // Compte non activé → aucune tournée. Le RPC `start_tour` (mig 0352) refuse
+  // aussi ce cas : la garde ne fait qu'expliciter le message.
+  const gate = await getDriverGate();
+  if (!gate || gate.stage !== "active" || gate.isBlocked) {
+    return { error: START_TOUR_ERRORS.account_not_verified };
+  }
 
   // Cast localisé : start_tour (0164) pas encore dans database.types.ts généré
   // (Docker requis pour gen types).

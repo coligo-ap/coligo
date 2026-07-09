@@ -11,6 +11,22 @@ import {
   normalizePhone,
   phoneToEmail,
 } from "@/lib/auth/driver";
+import {
+  getDriverGate,
+  NOT_ACTIVE_ERROR,
+  type DriverGate,
+} from "@/lib/auth/driver-gate";
+import {
+  kycReport,
+  requiredDocTypes,
+  isAdult,
+  isMotorized,
+  VEHICLE_TYPES,
+  type DriverDocType,
+  type KycProfile,
+  type KycDocs,
+  type KycReport,
+} from "@/lib/driver/kyc";
 import { hashReferralCode } from "@/lib/drivers/referral-code";
 import type { GainsEntry } from "@/components/driver/gains/gains-view";
 import type { CompteData } from "@/components/driver/profile/compte-view";
@@ -23,6 +39,23 @@ import {
 } from "@/lib/fcm/triggers";
 
 export type DriverAuthState = { error?: string; ok?: boolean };
+
+/**
+ * GARDE SERVEUR des actions opérationnelles (mise en ligne, rejoindre un
+ * commerçant, tournées, courses…). Aucune de ces actions ne s'exécute pour un
+ * livreur dont le compte n'est pas ACTIF — même appelée directement, sans
+ * passer par l'interface. La base applique la même règle (mig 0352) : cette
+ * garde donne simplement un message clair au lieu d'une erreur SQL.
+ */
+async function assertActiveDriver(): Promise<
+  { ok: true; gate: DriverGate } | { ok: false; error: string }
+> {
+  const gate = await getDriverGate();
+  if (!gate) return { ok: false, error: "Session expirée." };
+  if (gate.isBlocked) return { ok: false, error: "Compte bloqué." };
+  if (gate.stage !== "active") return { ok: false, error: NOT_ACTIVE_ERROR };
+  return { ok: true, gate };
+}
 
 const signupSchema = z.object({
   first_name: z.string().trim().min(2, "Prénom trop court").max(40),
@@ -93,9 +126,12 @@ export async function driverSignup(
     return { error: `Profil livreur : ${driverErr.message}` };
   }
 
-  // Redirige vers `next` si présent et sûr, sinon /driver/codes par défaut.
-  const next = readSafeNext(formData.get("next"));
-  redirect(next ?? "/driver/codes");
+  // Le compte vient d'être créé : AUCUNE fonctionnalité métier n'est ouverte.
+  // Le livreur est envoyé sur son dossier de vérification d'identité — pas sur
+  // « Rejoindre un commerçant », qui reste inaccessible jusqu'à l'activation.
+  // Un éventuel `next` est volontairement ignoré ici (il serait de toute façon
+  // rejeté par la garde de la page cible).
+  redirect("/driver/inscription");
 }
 
 export async function driverLogin(
@@ -256,19 +292,19 @@ export async function driverSubmitCode(
     return { error: parsed.error.issues[0]?.message ?? "Code invalide" };
   }
 
+  // Rejoindre un commerçant est une fonctionnalité opérationnelle : interdite
+  // tant que l'équipe Coligo n'a pas vérifié le compte. Le trigger SQL
+  // `merchant_drivers_verified_guard_trg` refuserait de toute façon l'insertion.
+  const guard = await assertActiveDriver();
+  if (!guard.ok) return { error: guard.error };
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Session expirée." };
 
-  // Récupère le driver row (peut être absent si signup incomplet — rare).
-  const { data: driver } = await supabase
-    .from("drivers")
-    .select("id, full_name")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!driver) return { error: "Profil livreur introuvable." };
+  const driver = { id: guard.gate.id, full_name: guard.gate.fullName };
 
   const admin = createAdminClient();
   const { data: refRow } = await admin
@@ -328,6 +364,11 @@ export async function setAvailability(
   merchantDriverId: string,
   status: "offline" | "available"
 ): Promise<DriverAuthState> {
+  // Se mettre en ligne exige un compte activé (le retour hors ligne est libre).
+  if (status !== "offline") {
+    const guard = await assertActiveDriver();
+    if (!guard.ok) return { error: guard.error };
+  }
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_driver_availability", {
     p_merchant_driver_id: merchantDriverId,
@@ -353,6 +394,13 @@ export async function setGlobalAvailability(
   const supabase = await createClient();
   const driver = await getCurrentDriver();
   if (!driver) return { ok: false, changed: 0, error: "Session expirée." };
+  // Compte non activé : la mise en ligne est refusée, quoi qu'affiche l'écran.
+  if (status !== "offline") {
+    const guard = await assertActiveDriver();
+    if (!guard.ok) {
+      return { ok: false, changed: 0, error: "NOT_ACTIVE" };
+    }
+  }
   // Livreur gelé : ne peut PAS passer en ligne (le retour hors ligne reste ok).
   if (driver.is_frozen && status !== "offline") {
     return { ok: false, changed: 0, error: "FROZEN" };
@@ -637,6 +685,11 @@ export async function leaveAtDoor(input: {
 export async function driverHeartbeat(lat: number, lng: number): Promise<void> {
   try {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    // Un compte non activé n'est jamais « présent » : il ne doit apparaître ni
+    // dans le dispatch géolocalisé ni dans les cibles de push. (Le RPC applique
+    // aussi la règle — on évite juste l'aller-retour.)
+    const guard = await assertActiveDriver();
+    if (!guard.ok) return;
     const supabase = await createClient();
     const rpc = supabase.rpc.bind(supabase) as unknown as (
       fn: string,
@@ -787,6 +840,9 @@ export async function pullNextExpressNearby(
 ): Promise<{ orderId?: string }> {
   try {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return {};
+    // Aucune course n'est attribuée à un compte non activé.
+    const guard = await assertActiveDriver();
+    if (!guard.ok) return {};
     const supabase = await createClient();
     const rpc = supabase.rpc.bind(supabase) as unknown as (
       fn: string,
@@ -831,6 +887,443 @@ export async function saveDriverWorkZone(
   } catch {
     /* best effort — la zone locale reste la source pour l'UI */
   }
+}
+
+// =============================================================================
+// PARCOURS D'INSCRIPTION — vérification d'identité (KYC), envoi du dossier,
+// accusé de réception de l'activation et choix du mode d'activité (mig 0352).
+// =============================================================================
+// Toutes ces actions écrivent via service_role APRÈS avoir revalidé l'étape du
+// livreur côté serveur : les colonnes du parcours (`submitted_at`,
+// `verified_ack_at`, …) sont protégées en base contre toute écriture directe
+// par le livreur (trigger `drivers_self_update_guard`).
+
+const KYC_BUCKET = "driver-docs";
+const KYC_MAX_SCAN = 8 * 1024 * 1024;
+
+/** Pièces acceptées dans le dossier d'inscription. */
+const KYC_DOC_TYPES: DriverDocType[] = [
+  "cni",
+  "selfie",
+  "permis",
+  "carte_grise",
+  "assurance",
+];
+
+export type KycDocView = {
+  id: string;
+  docType: DriverDocType;
+  status: string;
+  reviewNote: string | null;
+  scanUrl: string | null;
+};
+
+export type DriverKycData = {
+  profile: KycProfile;
+  docs: KycDocView[];
+  report: KycReport;
+  rejectionReason: string | null;
+};
+
+/** Le livreur peut-il encore MODIFIER son dossier ? (avant envoi seulement) */
+async function requireEditableDossier(): Promise<
+  { ok: true; gate: DriverGate } | { ok: false; error: string }
+> {
+  const gate = await getDriverGate();
+  if (!gate) return { ok: false, error: "Session expirée." };
+  if (gate.isBlocked) return { ok: false, error: "Compte bloqué." };
+  if (gate.stage !== "kyc") {
+    return {
+      ok: false,
+      error:
+        "Votre dossier a déjà été transmis à l'équipe Coligo : il n'est plus modifiable.",
+    };
+  }
+  return { ok: true, gate };
+}
+
+/** Lit le dossier courant (profil + pièces + avancement). */
+export async function getDriverKyc(): Promise<DriverKycData | null> {
+  const gate = await getDriverGate();
+  if (!gate) return null;
+
+  const admin = createAdminClient();
+  const [{ data: prof }, { data: docRows }] = await Promise.all([
+    admin
+      .from("drivers")
+      .select(
+        `full_name, date_of_birth, phone, email, wilaya, address, id_card_number,
+         national_id_number, vehicle_type, vehicle_brand, vehicle_model,
+         vehicle_plate, vehicle_color, vehicle_year`
+      )
+      .eq("id", gate.id)
+      .maybeSingle(),
+    admin
+      .from("driver_documents")
+      .select("id, doc_type, status, review_note, file_url")
+      .eq("driver_id", gate.id)
+      .order("created_at", { ascending: false }),
+  ]);
+  if (!prof) return null;
+
+  const docs: KycDocView[] = await Promise.all(
+    (docRows ?? []).map(async (d) => {
+      let scanUrl: string | null = null;
+      if (d.file_url) {
+        const { data: s } = await admin.storage
+          .from(KYC_BUCKET)
+          .createSignedUrl(d.file_url, 3600);
+        scanUrl = s?.signedUrl ?? null;
+      }
+      return {
+        id: d.id,
+        docType: d.doc_type as DriverDocType,
+        status: d.status,
+        reviewNote: d.review_note,
+        scanUrl,
+      };
+    })
+  );
+
+  const profile = prof as KycProfile;
+  const present: KycDocs = {};
+  for (const d of docs) present[d.docType] = true;
+
+  return {
+    profile,
+    docs,
+    report: kycReport(profile, present),
+    rejectionReason: gate.rejectionReason,
+  };
+}
+
+const txt = (v: FormDataEntryValue | null): string | null => {
+  const s = (v == null ? "" : String(v)).trim();
+  return s === "" ? null : s;
+};
+const int = (v: FormDataEntryValue | null): number | null => {
+  const s = txt(v);
+  if (s == null) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? Math.trunc(n) : null;
+};
+
+const VEHICLE_TYPE_VALUES: string[] = VEHICLE_TYPES.map((v) => v.value);
+
+/**
+ * Enregistre les informations du dossier (sections « Informations personnelles »
+ * et « Véhicule »). Le dossier est enregistrable même INCOMPLET — le livreur
+ * peut reprendre plus tard. Ce qui est renseigné est en revanche validé tout de
+ * suite (âge minimum, wilaya réelle, type de véhicule connu). C'est
+ * `submitDriverDossier` qui exige un dossier complet.
+ */
+export async function saveDriverKycProfile(
+  _prev: DriverAuthState,
+  formData: FormData
+): Promise<DriverAuthState> {
+  const g = await requireEditableDossier();
+  if (!g.ok) return { error: g.error };
+
+  const fullName = txt(formData.get("full_name"));
+  if (fullName && fullName.length < 3)
+    return { error: "Nom complet trop court." };
+
+  const dob = txt(formData.get("date_of_birth"));
+  if (dob) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dob))
+      return { error: "Date de naissance invalide." };
+    if (!isAdult(dob))
+      return { error: "Vous devez avoir au moins 18 ans pour livrer." };
+  }
+
+  const wilaya = txt(formData.get("wilaya"));
+  if (wilaya && !isWilaya(wilaya)) return { error: "Wilaya invalide." };
+
+  const vehicleType = txt(formData.get("vehicle_type"));
+  if (vehicleType && !VEHICLE_TYPE_VALUES.includes(vehicleType))
+    return { error: "Type de véhicule invalide." };
+
+  // Changer de véhicule pour un non motorisé purge les champs devenus sans objet.
+  const motorized = isMotorized(vehicleType);
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("drivers")
+    .update({
+      full_name: fullName ?? g.gate.fullName,
+      date_of_birth: dob,
+      wilaya,
+      address: txt(formData.get("address")),
+      id_card_number: txt(formData.get("id_card_number")),
+      national_id_number: txt(formData.get("national_id_number")),
+      email: txt(formData.get("email")),
+      vehicle_type: vehicleType,
+      vehicle_brand: txt(formData.get("vehicle_brand")),
+      vehicle_model: txt(formData.get("vehicle_model")),
+      vehicle_plate: motorized ? txt(formData.get("vehicle_plate")) : null,
+      vehicle_color: txt(formData.get("vehicle_color")),
+      vehicle_year: int(formData.get("vehicle_year")),
+    })
+    .eq("id", g.gate.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/driver/inscription");
+  return { ok: true };
+}
+
+/**
+ * Dépose (ou remplace) une pièce du dossier. Tant que le dossier n'est pas
+ * transmis, le livreur peut corriger une photo floue : l'ancienne ligne et son
+ * fichier sont supprimés. Une fois transmis, plus aucune modification (garde
+ * `requireEditableDossier`).
+ *
+ * La pièce créée est RENVOYÉE au client (avec son URL signée d'aperçu) : le
+ * formulaire se met à jour sans `router.refresh()`. Un rafraîchissement du
+ * rendu serveur à chaque dépôt remonterait les champs de fichier au milieu de
+ * la saisie, et les pièces choisies pendant ce laps de temps seraient perdues.
+ */
+export async function uploadDriverKycDocument(
+  formData: FormData
+): Promise<{ ok: boolean; error?: string; doc?: KycDocView }> {
+  const g = await requireEditableDossier();
+  if (!g.ok) return { ok: false, error: g.error };
+
+  const docType = txt(formData.get("doc_type")) as DriverDocType | null;
+  if (!docType || !KYC_DOC_TYPES.includes(docType)) {
+    return { ok: false, error: "Type de pièce invalide." };
+  }
+
+  // Le selfie doit être une PHOTO (jamais un PDF) ; signature binaire vérifiée
+  // côté serveur — le type déclaré par le navigateur n'est jamais cru.
+  const v = await validateUploadedFile(formData.get("file"), {
+    kind: docType === "selfie" ? "image" : "image-pdf",
+    maxBytes: KYC_MAX_SCAN,
+  });
+  if (!v.ok) return { ok: false, error: v.error };
+
+  const admin = createAdminClient();
+  const path = `${g.gate.id}/${docType}-${globalThis.crypto.randomUUID()}.${v.ext}`;
+  const { error: upErr } = await admin.storage
+    .from(KYC_BUCKET)
+    .upload(path, v.bytes, { contentType: v.mime, upsert: false });
+  if (upErr) return { ok: false, error: `Envoi échoué : ${upErr.message}` };
+
+  // Remplace l'éventuelle pièce précédente du même type (fichier + ligne).
+  const { data: previous } = await admin
+    .from("driver_documents")
+    .select("id, file_url")
+    .eq("driver_id", g.gate.id)
+    .eq("doc_type", docType);
+
+  const { data: inserted, error } = await admin
+    .from("driver_documents")
+    .insert({
+      driver_id: g.gate.id,
+      doc_type: docType,
+      number: txt(formData.get("number")),
+      expires_at: txt(formData.get("expires_at")),
+      file_url: path,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+  if (error || !inserted) {
+    await admin.storage.from(KYC_BUCKET).remove([path]);
+    return { ok: false, error: error?.message ?? "Enregistrement impossible." };
+  }
+
+  for (const p of previous ?? []) {
+    await admin.from("driver_documents").delete().eq("id", p.id);
+    if (p.file_url) await admin.storage.from(KYC_BUCKET).remove([p.file_url]);
+  }
+
+  if (docType === "selfie") {
+    await admin
+      .from("drivers")
+      .update({ selfie_url: path })
+      .eq("id", g.gate.id);
+  }
+
+  const { data: signed } = await admin.storage
+    .from(KYC_BUCKET)
+    .createSignedUrl(path, 3600);
+
+  return {
+    ok: true,
+    doc: {
+      id: inserted.id,
+      docType,
+      status: "pending",
+      reviewNote: null,
+      scanUrl: signed?.signedUrl ?? null,
+    },
+  };
+}
+
+/** Retire une pièce du dossier (avant envoi uniquement). */
+export async function removeDriverKycDocument(
+  docType: string
+): Promise<{ ok: boolean; error?: string }> {
+  const g = await requireEditableDossier();
+  if (!g.ok) return { ok: false, error: g.error };
+  if (!KYC_DOC_TYPES.includes(docType as DriverDocType)) {
+    return { ok: false, error: "Type de pièce invalide." };
+  }
+
+  const admin = createAdminClient();
+  const { data: rows } = await admin
+    .from("driver_documents")
+    .select("id, file_url")
+    .eq("driver_id", g.gate.id)
+    .eq("doc_type", docType);
+
+  for (const r of rows ?? []) {
+    await admin.from("driver_documents").delete().eq("id", r.id);
+    if (r.file_url) await admin.storage.from(KYC_BUCKET).remove([r.file_url]);
+  }
+  if (docType === "selfie") {
+    await admin
+      .from("drivers")
+      .update({ selfie_url: null })
+      .eq("id", g.gate.id);
+  }
+
+  return { ok: true };
+}
+
+/**
+ * ENVOI DU DOSSIER. Le rapport KYC est recalculé ICI, à partir de la base :
+ * un dossier incomplet ne peut pas être transmis, même si le formulaire a été
+ * contourné. Le compte passe alors « en attente de validation » et le livreur
+ * n'a plus accès qu'à l'écran de suivi.
+ */
+export async function submitDriverDossier(): Promise<{
+  ok: boolean;
+  error?: string;
+  missing?: string[];
+}> {
+  const g = await requireEditableDossier();
+  if (!g.ok) return { ok: false, error: g.error };
+
+  const admin = createAdminClient();
+  const [{ data: prof }, { data: docRows }] = await Promise.all([
+    admin
+      .from("drivers")
+      .select(
+        `full_name, date_of_birth, phone, email, wilaya, address, id_card_number,
+         national_id_number, vehicle_type, vehicle_brand, vehicle_model,
+         vehicle_plate, vehicle_color, vehicle_year`
+      )
+      .eq("id", g.gate.id)
+      .maybeSingle(),
+    admin
+      .from("driver_documents")
+      .select("doc_type")
+      .eq("driver_id", g.gate.id),
+  ]);
+  if (!prof) return { ok: false, error: "Profil livreur introuvable." };
+
+  const present: KycDocs = {};
+  for (const d of docRows ?? []) present[d.doc_type as DriverDocType] = true;
+
+  const report = kycReport(prof as KycProfile, present);
+  if (!report.complete) {
+    return {
+      ok: false,
+      error: "Votre dossier est incomplet.",
+      missing: report.missing,
+    };
+  }
+  // Ceinture et bretelles : la liste des pièces attendues doit être couverte.
+  const missingDocs = requiredDocTypes(prof.vehicle_type).filter(
+    (t) => !present[t]
+  );
+  if (missingDocs.length > 0) {
+    return { ok: false, error: "Des pièces obligatoires sont manquantes." };
+  }
+
+  const { error } = await admin
+    .from("drivers")
+    .update({
+      submitted_at: new Date().toISOString(),
+      rejected_at: null,
+      rejection_reason: null,
+    })
+    .eq("id", g.gate.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/driver", "layout");
+  return { ok: true };
+}
+
+/**
+ * Marque toutes les notifications internes du livreur comme lues. Passe par une
+ * RPC SECURITY DEFINER : il n'existe AUCUNE policy UPDATE pour le livreur, donc
+ * il ne peut pas réécrire le contenu d'une notification. Best-effort.
+ */
+export async function markDriverNotificationsRead(): Promise<void> {
+  try {
+    const supabase = await createClient();
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ error: unknown }>;
+    await rpc("driver_mark_notifications_read", {});
+  } catch {
+    /* no-op : le badge se recalculera au prochain rendu */
+  }
+}
+
+/**
+ * Le livreur a vu l'écran « Compte vérifié ». On mémorise l'accusé afin de ne
+ * plus le lui présenter, tout en le laissant sur le choix du mode d'activité.
+ */
+export async function ackDriverVerified(): Promise<DriverAuthState> {
+  const gate = await getDriverGate();
+  if (!gate) return { error: "Session expirée." };
+  if (!gate.isVerified) return { error: NOT_ACTIVE_ERROR };
+  if (gate.stage !== "welcome") return { ok: true };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("drivers")
+    .update({ verified_ack_at: new Date().toISOString() })
+    .eq("id", gate.id)
+    .is("verified_ack_at", null);
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+/**
+ * Fin du parcours : le livreur a choisi son mode d'activité. Le compte devient
+ * ACTIF (`onboarding_done_at`) et toutes les fonctionnalités s'ouvrent.
+ * Renvoie la route de destination (rejoindre un commerçant, ou accueil Express).
+ */
+export async function finishDriverOnboarding(
+  mode: "merchant" | "express"
+): Promise<{ ok: boolean; route?: string; error?: string }> {
+  const gate = await getDriverGate();
+  if (!gate) return { ok: false, error: "Session expirée." };
+  if (gate.isBlocked) return { ok: false, error: "Compte bloqué." };
+  if (!gate.isVerified) return { ok: false, error: NOT_ACTIVE_ERROR };
+
+  const now = new Date().toISOString();
+  const admin = createAdminClient();
+  // L'accusé de lecture n'est posé qu'une fois (il date le 1ᵉʳ affichage des
+  // félicitations) ; la fin du parcours, elle, est toujours réécrite ici.
+  await admin
+    .from("drivers")
+    .update({ verified_ack_at: now })
+    .eq("id", gate.id)
+    .is("verified_ack_at", null);
+  const { error } = await admin
+    .from("drivers")
+    .update({ onboarding_done_at: now })
+    .eq("id", gate.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/driver", "layout");
+  return { ok: true, route: mode === "merchant" ? "/driver/codes" : "/driver" };
 }
 
 // =============================================================================
@@ -920,7 +1413,14 @@ export async function submitDriverDocument(
   if (driver.is_blocked) return { error: "Compte bloqué." };
 
   const docType = selfTxt(formData.get("doc_type"));
-  const allowed = ["cni", "permis", "carte_grise", "passeport", "autre"];
+  const allowed = [
+    "cni",
+    "permis",
+    "carte_grise",
+    "assurance",
+    "passeport",
+    "autre",
+  ];
   if (!docType || !allowed.includes(docType))
     return { error: "Type de pièce invalide." };
 

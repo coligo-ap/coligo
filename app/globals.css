@@ -268,23 +268,78 @@ body {
     transform: rotate(360deg);
   }
 }
-/* Barre indéterminée de l'écran de lancement livreur (splash). */
-@keyframes driver-splash-bar {
+/* Apparition douce des écrans du parcours d'inscription livreur. */
+@keyframes driver-rise {
   0% {
-    transform: translateX(-120%);
-  }
-  100% {
-    transform: translateX(420%);
-  }
-}
-@keyframes driver-splash-rise {
-  0% {
-    transform: translateY(8px);
+    transform: translateY(10px);
     opacity: 0;
   }
   100% {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   Animation de marque Coligo — jalons du parcours livreur (dossier transmis,
+   compte vérifié). 100 % CSS/SVG : aucun asset à charger, aucun emoji, et le
+   rendu est identique hors ligne (APK). Toutes les animations sont neutralisées
+   sous `prefers-reduced-motion` (cf. règle plus bas dans ce fichier).
+   -------------------------------------------------------------------------- */
+/* Disque de marque : entrée élastique. */
+@keyframes coligo-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+/* Halo qui se propage depuis le disque. */
+@keyframes coligo-halo {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+/* Tracé progressif de la coche / de la flèche. */
+@keyframes coligo-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+/* Confettis : chute + rotation, chacun décalé par une variable. */
+@keyframes coligo-confetti {
+  0% {
+    transform: translate3d(0, -12px, 0) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--dx), 150px, 0) rotate(var(--rot));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coligo-anim,
+  .coligo-anim * {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 

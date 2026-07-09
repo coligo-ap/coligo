@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { DeliveryHistoryLoader } from "@/components/driver/delivery-history";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,9 @@ export const dynamic = "force-dynamic";
  * de re-téléchargement à chaque visite.
  */
 export default async function DriverHistoryPage() {
+  // Fonctionnalité réservée aux comptes vérifiés par l'équipe Coligo :
+  // un livreur en cours d'inscription est renvoyé à son étape du parcours.
+  await requireActiveDriver();
   const driver = await getCurrentDriver();
   if (!driver) redirect("/driver/login");
   return (

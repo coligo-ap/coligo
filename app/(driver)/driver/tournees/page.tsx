@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ChevronRight, KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { PartnerEmptyState } from "@/components/shared/partner-ui";
 
@@ -25,6 +26,9 @@ type Counts = {
  * ligne (pas besoin de passer ici).
  */
 export default async function DriverToursHubPage() {
+  // Fonctionnalité réservée aux comptes vérifiés par l'équipe Coligo :
+  // un livreur en cours d'inscription est renvoyé à son étape du parcours.
+  await requireActiveDriver();
   const supabase = await createClient();
   const driver = await getCurrentDriver();
   if (!driver) redirect("/driver/login");

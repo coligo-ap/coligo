@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import {
   BarChart3,
+  Bell,
   CalendarDays,
   ChevronRight,
   Clock,
@@ -148,6 +149,13 @@ export function DriverHomeMaquette({
       if (next && r?.error === "FROZEN") {
         setDriverOnline(false);
         setFrozenMsg(true);
+        return;
+      }
+      // Compte dévalidé entre-temps par l'équipe Coligo : on repasse hors ligne
+      // et on renvoie le livreur à son étape du parcours (le serveur décide).
+      if (next && r?.error === "NOT_ACTIVE") {
+        setDriverOnline(false);
+        router.refresh();
         return;
       }
       // Rafraîchit les données serveur (compteurs…) seulement à la mise en
@@ -572,6 +580,14 @@ export function DriverHomeMaquette({
 
         {/* Activité & compte */}
         <DrawerSection title={tr("Mon activité", "نشاطي")}>
+          <DrawerRow
+            icon={<Bell className="size-4" />}
+            label={tr("Notifications", "الإشعارات")}
+            sublabel={tr("Messages de l'équipe Coligo", "رسائل فريق كوليغو")}
+            href="/driver/notifications"
+            onClick={() => setMenuOpen(false)}
+          />
+          <DrawerDivider />
           <DrawerRow
             icon={<BarChart3 className="size-4" />}
             label={tr("Mes gains", "أرباحي")}

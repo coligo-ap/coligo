@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { TourExecution } from "@/components/driver/tour-execution";
 import { PartnerBackHeader } from "@/components/shared/partner-ui";
@@ -12,6 +13,9 @@ export default async function DriverTourExecutionPage({
 }: {
   params: Promise<{ mdId: string; tourId: string }>;
 }) {
+  // Fonctionnalité réservée aux comptes vérifiés par l'équipe Coligo :
+  // un livreur en cours d'inscription est renvoyé à son étape du parcours.
+  await requireActiveDriver();
   const { mdId, tourId } = await params;
   const supabase = await createClient();
   const driver = await getCurrentDriver();

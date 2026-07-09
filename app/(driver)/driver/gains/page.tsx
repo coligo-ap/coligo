@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { getDriverSettlement } from "@/lib/driver/settlement-data";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { GainsLoader } from "@/components/driver/gains/gains-loader";
@@ -12,6 +13,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function DriverGainsPage() {
+  // Fonctionnalité réservée aux comptes vérifiés par l'équipe Coligo :
+  // un livreur en cours d'inscription est renvoyé à son étape du parcours.
+  await requireActiveDriver();
   // Page mince : on garde la barrière d'auth côté serveur (sécurité), mais on
   // ne charge PLUS les gains ici. La donnée est lue côté client via TanStack
   // Query (GainsLoader) → cache partagé entre navigations, réaffichage instantané

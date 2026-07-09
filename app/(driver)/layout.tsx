@@ -6,7 +6,6 @@ import { OfflineSyncIndicator } from "@/components/driver/offline-sync-indicator
 import { DriverDispatchMount } from "@/components/driver/driver-dispatch-mount";
 import { TourDispatchMount } from "@/components/driver/tour-dispatch-mount";
 import { PushRegistrar } from "@/components/native/push-registrar";
-import { DriverSplash } from "@/components/driver/driver-splash";
 import { ActiveCourseBanner } from "@/components/driver/active-course-banner";
 import { DriverCancelWatch } from "@/components/driver/driver-cancel-watch";
 import { DriverThemeRoot } from "@/components/driver/driver-theme-root";
@@ -16,6 +15,7 @@ import { TawkChat } from "@/components/support/tawk-chat";
 import { DriverBlockedScreen } from "@/components/driver/driver-blocked-screen";
 import { DriverInstallBanner } from "@/components/driver/driver-install-banner";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { getDriverGate } from "@/lib/auth/driver-gate";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
 /**
@@ -71,11 +71,19 @@ export default async function DriverLayout({
     );
   }
 
+  // Compte ACTIF = vérifié par l'équipe Coligo et parcours d'inscription
+  // terminé. Tant qu'il ne l'est pas, on ne monte AUCUN organe opérationnel :
+  // ni carte, ni réception Express, ni dispatch tournée, ni bandeau de course.
+  // Ces composants sont ce qui rendrait une mise en ligne possible depuis un
+  // écran d'inscription — ils n'existent tout simplement pas pour lui.
+  const gate = await getDriverGate();
+  const isActive = gate?.stage === "active";
+
   // Pins commerçants (coordonnées) pour la carte PERSISTANTE de l'accueil.
   // Requête UNE fois par session : le layout ne se re-rend pas entre onglets,
   // donc la carte (montée ici) n'est jamais recréée à chaque navigation.
   let mapPins: { id: string; name: string; lat: number; lng: number }[] = [];
-  if (driver) {
+  if (isActive && driver) {
     const supabase = await createClient();
     const { data } = await supabase
       .from("merchant_drivers")
@@ -111,24 +119,27 @@ export default async function DriverLayout({
     <DriverThemeRoot fontVars={`${fontSora.variable} ${fontJakarta.variable}`}>
       {/* Carte de l'accueil montée UNE fois (persiste entre onglets) ; en fond,
           affichée seulement sur /driver (cf. PersistentDriverMap). */}
-      {driver && <PersistentDriverMap pins={mapPins} />}
+      {isActive && <PersistentDriverMap pins={mapPins} />}
       {children}
       {/* Enregistre le token FCM du livreur (role=courier) → reçoit les push
           Express ET Tournée même app fermée / hors ligne (Android natif).
-          No-op sur web/PWA (isPushAvailable=false). Manquait → les livreurs ne
-          recevaient AUCUN push alors que l'envoi côté serveur les ciblait. */}
+          Monté DÈS la création du compte : c'est ce qui permet de le prévenir
+          que l'équipe Coligo a validé son inscription. */}
       {driver && <PushRegistrar role="courier" />}
-      {/* Écran de lancement (une fois par session). */}
-      <DriverSplash />
-      {/* Réception Express globale (pilotée par l'intention « en ligne »). */}
-      <DriverDispatchMount userId={driver?.user_id ?? null} />
-      {/* Notification TOURNÉE temps réel (bandeau in-app) chez les commerçants
-          où le livreur est inscrit — distinct de l'Express. */}
-      {driver && <TourDispatchMount />}
-      {/* Bandeau « Course en cours » réductible, épinglé sur tous les onglets. */}
-      <ActiveCourseBanner />
-      {/* STOP temps réel : pop-up si la course active est annulée (commerçant/admin). */}
-      <DriverCancelWatch />
+      {/* Organes opérationnels : réservés au compte activé. */}
+      {isActive && (
+        <>
+          {/* Réception Express globale (pilotée par l'intention « en ligne »). */}
+          <DriverDispatchMount userId={driver?.user_id ?? null} />
+          {/* Notification TOURNÉE temps réel (bandeau in-app) chez les commerçants
+              où le livreur est inscrit — distinct de l'Express. */}
+          <TourDispatchMount />
+          {/* Bandeau « Course en cours » réductible, épinglé sur tous les onglets. */}
+          <ActiveCourseBanner />
+          {/* STOP temps réel : pop-up si la course active est annulée. */}
+          <DriverCancelWatch />
+        </>
+      )}
       {/* Live chat support (Tawk.to) — lanceur masqué, ouvert via « Aide & support ».
           Contexte max pour l'agent : identité + statut du livreur. */}
       <TawkChat

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { PriorityCard } from "@/components/partner/priority-card";
 import { PartnerBackHeader } from "@/components/shared/partner-ui";
@@ -42,6 +43,9 @@ function fmtDate(iso: string | null) {
 }
 
 export default async function DriverAbonnementPage() {
+  // Fonctionnalité réservée aux comptes vérifiés par l'équipe Coligo :
+  // un livreur en cours d'inscription est renvoyé à son étape du parcours.
+  await requireActiveDriver();
   const driver = await getCurrentDriver();
   if (!driver) redirect("/driver/login");
 

@@ -6,6 +6,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { adminCan } from "@/lib/auth/admin";
 import { adminCancelOrder, type AdminFormState } from "@/app/admin/actions";
 import { validateUploadedFile } from "@/lib/security/file-validation";
+import {
+  notifyDriverAccountRejected,
+  notifyDriverAccountVerified,
+} from "@/lib/fcm/triggers";
 
 // =============================================================================
 // Gestion des profils livreurs (super-admin) — mig 0104.
@@ -105,9 +109,43 @@ export async function updateDriverProfile(
 // ---------------------------------------------------------------------------
 // 2. Vérification du profil (vérifié / non vérifié)
 // ---------------------------------------------------------------------------
+/** Réglage plateforme : notifier automatiquement le livreur à l'activation. */
+export async function getNotifyDriverOnVerify(): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("platform_settings")
+    .select("notify_driver_on_verify")
+    .eq("id", true)
+    .maybeSingle();
+  return data?.notify_driver_on_verify ?? true;
+}
+
+export async function setNotifyDriverOnVerify(
+  enabled: boolean
+): Promise<{ error?: string }> {
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("platform_settings")
+    .update({ notify_driver_on_verify: enabled })
+    .eq("id", true);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/drivers/parametres");
+  return {};
+}
+
+/**
+ * VALIDATION (ou retrait de validation) d'un compte livreur par l'équipe Coligo.
+ *
+ * À l'activation, si `notify` est vrai (par défaut : le réglage plateforme),
+ * le livreur reçoit IMMÉDIATEMENT une notification push et une notification
+ * interne. À sa prochaine ouverture — le jour même ou plus tard — la garde du
+ * parcours le conduit à l'écran de félicitations.
+ */
 export async function setDriverVerified(
   driverId: string,
-  verified: boolean
+  verified: boolean,
+  notify?: boolean
 ): Promise<{ error?: string }> {
   if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
@@ -117,10 +155,62 @@ export async function setDriverVerified(
       is_verified: verified,
       verified_at: verified ? new Date().toISOString() : null,
       verified_by: verified ? await adminEmail() : null,
+      // Une validation efface un éventuel refus antérieur. Un retrait de
+      // validation replace le livreur en attente (dossier toujours transmis).
+      ...(verified ? { rejected_at: null, rejection_reason: null } : {}),
     })
     .eq("id", driverId);
   if (error) return { error: error.message };
+
+  if (verified) {
+    const shouldNotify = notify ?? (await getNotifyDriverOnVerify());
+    if (shouldNotify) void notifyDriverAccountVerified({ driverId });
+  }
+
   await audit(verified ? "verify_driver" : "unverify_driver", driverId);
+  refreshDriver(driverId);
+  return {};
+}
+
+/**
+ * REFUS du dossier : le livreur repasse au formulaire d'inscription avec le
+ * motif affiché, et peut le retransmettre une fois corrigé. Le compte reste
+ * verrouillé (aucune fonctionnalité opérationnelle) entre-temps.
+ */
+export async function rejectDriverDossier(
+  driverId: string,
+  reason: string,
+  notify?: boolean
+): Promise<{ error?: string }> {
+  if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
+  const motif = reason.trim().slice(0, 300);
+  if (motif.length < 5) {
+    return {
+      error: "Indiquez un motif de refus compréhensible par le livreur.",
+    };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("drivers")
+    .update({
+      is_verified: false,
+      verified_at: null,
+      verified_by: null,
+      // `submitted_at` remis à zéro : le dossier redevient modifiable et le
+      // livreur retrouve son formulaire (étape « kyc »).
+      submitted_at: null,
+      rejected_at: new Date().toISOString(),
+      rejection_reason: motif,
+    })
+    .eq("id", driverId);
+  if (error) return { error: error.message };
+
+  const shouldNotify = notify ?? (await getNotifyDriverOnVerify());
+  if (shouldNotify)
+    void notifyDriverAccountRejected({ driverId, reason: motif });
+
+  await audit("reject_driver_dossier", driverId, motif);
   refreshDriver(driverId);
   return {};
 }

@@ -1404,6 +1404,7 @@ export type Database = {
           driver_fee_min_da: number;
           driver_float_cap_da: number;
           driver_settlement_cycle: "weekly" | "monthly";
+          notify_driver_on_verify: boolean;
           tour_delivery_commission_rate: number;
           vtc_base_da: number;
           vtc_per_km_da: number;
@@ -1445,6 +1446,7 @@ export type Database = {
           driver_fee_min_da?: number;
           driver_float_cap_da?: number;
           driver_settlement_cycle?: "weekly" | "monthly";
+          notify_driver_on_verify?: boolean;
           tour_delivery_commission_rate?: number;
           vtc_commission_rate?: number;
           updated_at?: string;
@@ -1473,6 +1475,7 @@ export type Database = {
           driver_fee_min_da?: number;
           driver_float_cap_da?: number;
           driver_settlement_cycle?: "weekly" | "monthly";
+          notify_driver_on_verify?: boolean;
           tour_delivery_commission_rate?: number;
           vtc_commission_rate?: number;
           updated_at?: string;
@@ -1550,6 +1553,12 @@ export type Database = {
           block_reason: string | null;
           frozen_at: string | null;
           freeze_reason: string | null;
+          submitted_at: string | null;
+          rejected_at: string | null;
+          rejection_reason: string | null;
+          verified_ack_at: string | null;
+          onboarding_done_at: string | null;
+          selfie_url: string | null;
         };
         Insert: {
           id?: string;
@@ -1586,6 +1595,12 @@ export type Database = {
           block_reason?: string | null;
           frozen_at?: string | null;
           freeze_reason?: string | null;
+          submitted_at?: string | null;
+          rejected_at?: string | null;
+          rejection_reason?: string | null;
+          verified_ack_at?: string | null;
+          onboarding_done_at?: string | null;
+          selfie_url?: string | null;
         };
         Update: {
           id?: string;
@@ -1622,6 +1637,45 @@ export type Database = {
           block_reason?: string | null;
           frozen_at?: string | null;
           freeze_reason?: string | null;
+          submitted_at?: string | null;
+          rejected_at?: string | null;
+          rejection_reason?: string | null;
+          verified_ack_at?: string | null;
+          onboarding_done_at?: string | null;
+          selfie_url?: string | null;
+        };
+        Relationships: [];
+      };
+      driver_notifications: {
+        Row: {
+          id: string;
+          driver_id: string;
+          kind: string;
+          title: string;
+          body: string;
+          route: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          driver_id: string;
+          kind: string;
+          title: string;
+          body: string;
+          route?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          driver_id?: string;
+          kind?: string;
+          title?: string;
+          body?: string;
+          route?: string | null;
+          read_at?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };

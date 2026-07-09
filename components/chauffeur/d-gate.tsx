@@ -18,7 +18,13 @@ import {
 } from "@/components/customer/drive/drive-modals";
 import { chauffeurLogout } from "@/app/(chauffeur)/actions";
 
-/** Dossier envoyé — en attente de validation par les SUPER ADMINS (s-dwait). */
+/**
+ * Dossier envoyé — en attente de validation (s-dwait).
+ *
+ * Règle produit : le rôle interne « super admin » n'est JAMAIS exposé aux
+ * partenaires. Toute communication vers un chauffeur ou un livreur est signée
+ * « l'équipe Coligo ».
+ */
 export function DWait() {
   return (
     // Overlay plein écran : recouvre la nav persistante de la coque `(app)`.
@@ -34,9 +40,9 @@ export function DWait() {
           Dossier envoyé ✓
         </h1>
         <p className="mx-auto mt-1 max-w-[290px] text-[13px] text-[var(--d-muted)]">
-          Les <b>super admins Coligo</b> vérifient vos documents. Vous ne
-          pourrez accéder à votre compte chauffeur qu&apos;après validation
-          (24–48 h). Vous serez notifié.
+          L&apos;<b>équipe Coligo</b> vérifie vos documents. Vous ne pourrez
+          accéder à votre compte chauffeur qu&apos;après validation (24–48 h).
+          Vous serez notifié.
         </p>
       </div>
 
@@ -44,7 +50,7 @@ export function DWait() {
         <Step state="ok" title="Dossier envoyé" sub="À l'instant" />
         <Step
           state="cur"
-          title="Vérification par les super admins"
+          title="Vérification par l'équipe Coligo"
           sub="Documents · selfie · véhicule"
         />
         <Step

@@ -20,17 +20,18 @@ export default function DriverSignupPage() {
             partenaire Coligo.
           </>
         ),
-        subtitle: "Inscrivez-vous en quelques secondes et commencez à livrer.",
+        subtitle:
+          "Créez votre compte, transmettez vos documents, et commencez à livrer dès la validation.",
         features: [
-          "Inscription rapide, sans paperasse",
-          "Rejoignez les commerçants par code",
+          "Inscription guidée, étape par étape",
+          "Vérification par l'équipe Coligo sous 24 à 48 h",
           "Recevez des courses près de chez vous",
           "Suivez vos gains en temps réel",
         ],
         imageUrl: HERO_IMG,
       }}
       cardTitle="Créer mon compte"
-      cardSubtitle="Renseignez vos informations pour créer votre compte livreur. Vous pourrez ensuite saisir le code d'un commerçant pour rejoindre sa boutique."
+      cardSubtitle="Renseignez vos informations pour créer votre compte livreur. Vous serez ensuite guidé pour transmettre vos documents à l'équipe Coligo."
       footer={
         <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
           Déjà inscrit ?{" "}

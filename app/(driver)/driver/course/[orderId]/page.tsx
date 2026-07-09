@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { ExpressCard } from "@/components/driver/express-card";
 
@@ -21,6 +22,9 @@ export default async function DriverCoursePage({
 }: {
   params: Promise<{ orderId: string }>;
 }) {
+  // Fonctionnalité réservée aux comptes vérifiés par l'équipe Coligo :
+  // un livreur en cours d'inscription est renvoyé à son étape du parcours.
+  await requireActiveDriver();
   const { orderId } = await params;
   const supabase = await createClient();
   const driver = await getCurrentDriver();

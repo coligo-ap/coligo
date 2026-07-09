@@ -17,9 +17,10 @@ function initials(name: string) {
   );
 }
 
-// Onglet « Inscriptions » du hub Livraison : livreurs ayant des pièces en
-// attente de validation. La revue des documents + la vérification se font sur la
-// fiche du livreur (DriverDocumentsManager + vérification).
+// Onglet « Inscriptions » du hub Livraison : livreurs ayant TRANSMIS leur
+// dossier et attendant la décision de l'équipe Coligo. Tant qu'ils n'ont pas
+// validé, ils n'ont accès à aucune fonctionnalité. La revue des documents et la
+// décision (valider / refuser) se font sur la fiche du livreur.
 export default async function DriverRegistrationsTab() {
   if (!(await isSuperAdmin())) redirect("/admin");
 
@@ -28,9 +29,10 @@ export default async function DriverRegistrationsTab() {
   return (
     <div className="space-y-4">
       <p className="text-muted text-sm">
-        Livreurs ayant déposé des pièces{" "}
-        <strong>en attente de validation</strong>. Ouvrez une fiche pour
-        examiner les documents et vérifier le livreur.
+        Livreurs ayant transmis leur dossier et{" "}
+        <strong>en attente de validation</strong>. Leur compte reste verrouillé
+        (aucune mise en ligne, aucune course) tant qu&apos;il n&apos;est pas
+        validé. Ouvrez une fiche pour examiner les documents et décider.
       </p>
 
       <section className="border-warning-200 bg-warning-50/60 rounded-[16px] border p-4 lg:p-5">
@@ -64,11 +66,6 @@ export default async function DriverRegistrationsTab() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">
                       {d.full_name}
-                      {d.is_verified && (
-                        <span className="text-success-700 ml-2 text-xs font-bold">
-                          (déjà vérifié)
-                        </span>
-                      )}
                     </p>
                     <p className="text-muted flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
                       <span className="flex items-center gap-1">
@@ -79,6 +76,10 @@ export default async function DriverRegistrationsTab() {
                         <FileText className="size-3" />
                         {d.pendingDocs} pièce{d.pendingDocs > 1 ? "s" : ""} à
                         examiner
+                      </span>
+                      <span>
+                        Transmis le{" "}
+                        {new Date(d.submitted_at).toLocaleDateString("fr-FR")}
                       </span>
                     </p>
                   </div>

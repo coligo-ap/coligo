@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { CalendarDays, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { PartnerBackHeader } from "@/components/shared/partner-ui";
 
@@ -20,6 +21,9 @@ export default async function DriverMerchantSpacePage({
 }: {
   params: Promise<{ mdId: string }>;
 }) {
+  // Fonctionnalité réservée aux comptes vérifiés par l'équipe Coligo :
+  // un livreur en cours d'inscription est renvoyé à son étape du parcours.
+  await requireActiveDriver();
   const { mdId } = await params;
   const supabase = await createClient();
   const driver = await getCurrentDriver();

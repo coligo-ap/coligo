@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { createClient } from "@/lib/supabase/server";
 import { DriverShell } from "@/components/driver/driver-shell";
 import {
@@ -32,6 +33,9 @@ export default async function DriverRelevePage({
 }: {
   searchParams: Promise<{ month?: string; from?: string; to?: string }>;
 }) {
+  // Fonctionnalité réservée aux comptes vérifiés par l'équipe Coligo :
+  // un livreur en cours d'inscription est renvoyé à son étape du parcours.
+  await requireActiveDriver();
   const params = await searchParams;
   const supabase = await createClient();
   const driver = await getCurrentDriver();

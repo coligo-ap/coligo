@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { DriverDashboardLive } from "@/components/driver/driver-dashboard-live";
 import { DriverHomeMaquette } from "@/components/driver/home/driver-home-maquette";
 import { IncomingRequests } from "@/components/driver/home/incoming-requests";
@@ -32,6 +33,10 @@ function startOfTodayAlgiers(): string {
 }
 
 export default async function DriverHomePage() {
+  // Barrière du parcours d'inscription : un compte non vérifié n'atteint JAMAIS
+  // l'accueil (donc jamais le bouton « En ligne »), même par URL directe ou en
+  // revenant en arrière depuis l'inscription. Il est renvoyé à son étape.
+  await requireActiveDriver();
   const supabase = await createClient();
   const driver = await getCurrentDriver();
   if (!driver) redirect("/driver/login");

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { CompteLoader } from "@/components/driver/profile/compte-loader";
 import type { CompteData } from "@/components/driver/profile/compte-view";
@@ -14,6 +15,9 @@ function initialsOf(name: string) {
 }
 
 export default async function DriverProfilePage() {
+  // Fonctionnalité réservée aux comptes vérifiés par l'équipe Coligo :
+  // un livreur en cours d'inscription est renvoyé à son étape du parcours.
+  await requireActiveDriver();
   // Page mince : barrière d'auth serveur (sécurité), puis le RÉSUMÉ est lu côté
   // client via TanStack Query (CompteLoader) → réaffichage instantané au retour.
   // Le « seed » (champs bon marché déjà connus) permet d'afficher le hero tout

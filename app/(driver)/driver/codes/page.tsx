@@ -1,38 +1,28 @@
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { createClient } from "@/lib/supabase/server";
 import { DriverSubmitCodeForm } from "@/components/driver/submit-code-form";
 import { DriverShell } from "@/components/driver/driver-shell";
-import { getCurrentDriver } from "@/lib/auth/driver";
+import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { PartnerBackHeader } from "@/components/shared/partner-ui";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * « Rejoindre un commerçant » — fonctionnalité OPÉRATIONNELLE, donc réservée
+ * aux comptes vérifiés par l'équipe Coligo. Un livreur non connecté est envoyé
+ * sur la connexion, un livreur en cours d'inscription sur son étape du parcours
+ * (`requireActiveDriver`). Le lien commerçant↔livreur est de toute façon refusé
+ * en base pour un compte non vérifié (trigger, mig 0352).
+ */
 export default async function DriverSubmitCodePage({
   searchParams,
 }: {
   searchParams: Promise<{ code?: string }>;
 }) {
+  const gate = await requireActiveDriver();
   const { code } = await searchParams;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Si pas connecté : on envoie le livreur sur /driver/signup en préservant
-  // le code (?code=XXX), pour qu'il puisse signup puis revenir ici.
-  if (!user) {
-    const next = code
-      ? `/driver/codes?code=${encodeURIComponent(code)}`
-      : "/driver/codes";
-    redirect(`/driver/signup?next=${encodeURIComponent(next)}`);
-  }
-
-  const driver = await getCurrentDriver();
-  const firstName = driver?.full_name.split(" ")[0];
 
   return (
-    <DriverShell driverFirstName={firstName}>
+    <DriverShell driverFirstName={gate.firstName}>
       <PartnerBackHeader
         href="/driver"
         title="Rejoindre un commerçant"
