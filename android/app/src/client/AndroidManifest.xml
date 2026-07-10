@@ -22,6 +22,14 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" tools:node="remove" />
 
+    <!-- IDENTIFIANT PUBLICITAIRE : la lib Google Sign-In (Credential Manager)
+         tire transitivement `AD_ID`, mais l'app ne lit JAMAIS l'advertising ID.
+         Play refuse l'upload si la permission est présente alors que la
+         déclaration « pas d'ID publicitaire » de la console dit le contraire :
+         on retire la permission plutôt que de déclarer un usage qui n'existe
+         pas. `tools:node="remove"` gagne sur le manifest de la librairie. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+
     <!-- allowBackup=false : la session Supabase (cookies/localStorage WebView)
          ne doit pas partir dans les sauvegardes cloud de l'appareil. -->
     <application
