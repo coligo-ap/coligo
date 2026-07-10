@@ -24,6 +24,7 @@ export function AuthScreen({
   cardSubtitle,
   installLabel,
   showPortal = false,
+  modeTabs,
   children,
   footer,
 }: {
@@ -40,9 +41,14 @@ export function AuthScreen({
   installLabel: string;
   /** Lien discret vers le portail super-admin (réservé au commerçant). */
   showPortal?: boolean;
+  /**
+   * Sélecteur « J'ai déjà un compte » / « Je crée mon compte », en TÊTE de la
+   * carte. C'est la première chose à lire : elle dit dans quel parcours on est.
+   */
+  modeTabs?: ReactNode;
   /** Le formulaire de connexion / création de compte. */
   children: ReactNode;
-  /** Bloc bas de carte (« Déjà inscrit ? … » etc.). */
+  /** Bloc bas de carte (mot de passe oublié, conditions générales…). */
   footer?: ReactNode;
 }) {
   return (
@@ -103,6 +109,7 @@ export function AuthScreen({
 
             {/* CARTE — mobile : bordée/ombrée ; desktop : transparente */}
             <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
+              {modeTabs}
               <div className="mb-6">
                 <h2 className="text-foreground mb-2 text-2xl font-bold lg:text-3xl">
                   {cardTitle}

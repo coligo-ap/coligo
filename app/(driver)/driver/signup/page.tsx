@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { DriverSignupForm } from "@/components/driver/signup-form";
 import { AuthScreen } from "@/components/shared/auth-screen";
+import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -32,16 +32,12 @@ export default function DriverSignupPage() {
       }}
       cardTitle="Créer mon compte"
       cardSubtitle="Renseignez vos informations pour créer votre compte livreur. Vous serez ensuite guidé pour transmettre vos documents à l'équipe Coligo."
-      footer={
-        <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
-          Déjà inscrit ?{" "}
-          <Link
-            href="/driver/login"
-            className="text-primary-700 font-medium hover:underline"
-          >
-            Se connecter
-          </Link>
-        </div>
+      modeTabs={
+        <AuthModeTabs
+          mode="signup"
+          loginHref="/driver/login"
+          signupHref="/driver/signup"
+        />
       }
     >
       <Suspense fallback={null}>

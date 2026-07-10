@@ -12,6 +12,7 @@ import { APP_CONFIG } from "@/lib/config/app-config";
 import { Mail, Lock, Store, ArrowRight, UserRound } from "lucide-react";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
+import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
 
 const initialState: AuthState = {};
@@ -90,6 +91,11 @@ export default function SignupPage() {
             </div>
 
             <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
+              <AuthModeTabs
+                mode="signup"
+                loginHref="/login"
+                signupHref="/signup"
+              />
               <div className="mb-6">
                 <h2 className="text-foreground mb-2 text-2xl font-bold lg:text-3xl">
                   Créer mon compte
@@ -262,16 +268,6 @@ export default function SignupPage() {
                   de {APP_CONFIG.name}.
                 </p>
               </form>
-
-              <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
-                Déjà inscrit ?{" "}
-                <Link
-                  href="/login"
-                  className="text-primary-700 font-medium hover:underline"
-                >
-                  Se connecter
-                </Link>
-              </div>
 
               <div className="border-border text-muted mt-6 border-t pt-4 text-center text-xs">
                 Tu es livreur ?{" "}

@@ -735,7 +735,9 @@
     "alreadyRegistered": "Déjà inscrit ?",
     "googleUnavailable": "Connexion Google indisponible.",
     "or": "ou",
-    "continueWithGoogle": "Continuer avec Google"
+    "continueWithGoogle": "Continuer avec Google",
+    "modeLogin": "J'ai déjà un compte",
+    "modeSignup": "Je crée mon compte"
   },
   "browse": {
     "all": "Tous",

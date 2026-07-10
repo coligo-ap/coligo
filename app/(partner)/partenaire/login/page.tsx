@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentPartner } from "@/lib/auth/partner";
 import { PartnerLoginForm } from "@/components/partner/login-form";
 import { AuthScreen } from "@/components/shared/auth-screen";
+import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -33,18 +33,14 @@ export default async function PartnerLoginPage() {
         ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Espace Agent Coligo Pay"
-      cardSubtitle="Connectez-vous pour gérer votre solde et vos ventes de crédit."
-      footer={
-        <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
-          Pas encore Agent Coligo Pay ?{" "}
-          <Link
-            href="/partenaire/signup"
-            className="text-primary-700 font-medium hover:underline"
-          >
-            Devenir partenaire
-          </Link>
-        </div>
+      cardTitle="Connexion"
+      cardSubtitle="Accédez à votre solde et à vos ventes de crédit."
+      modeTabs={
+        <AuthModeTabs
+          mode="login"
+          loginHref="/partenaire/login"
+          signupHref="/partenaire/signup"
+        />
       }
     >
       <PartnerLoginForm />

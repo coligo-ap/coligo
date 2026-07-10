@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentPartner } from "@/lib/auth/partner";
 import { PartnerSignupForm } from "@/components/partner/signup-form";
 import { AuthScreen } from "@/components/shared/auth-screen";
+import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -37,16 +37,12 @@ export default async function PartnerSignupPage() {
       }}
       cardTitle="Demande de partenariat"
       cardSubtitle="Renseignez les informations de votre point de recharge. Coligo examinera votre dossier avant activation."
-      footer={
-        <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
-          Déjà partenaire ?{" "}
-          <Link
-            href="/partenaire/login"
-            className="text-primary-700 font-medium hover:underline"
-          >
-            Se connecter
-          </Link>
-        </div>
+      modeTabs={
+        <AuthModeTabs
+          mode="signup"
+          loginHref="/partenaire/login"
+          signupHref="/partenaire/signup"
+        />
       }
     >
       <PartnerSignupForm />

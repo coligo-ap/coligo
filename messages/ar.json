@@ -735,7 +735,9 @@
     "alreadyRegistered": "مسجّل بالفعل؟",
     "googleUnavailable": "تسجيل الدخول عبر غوغل غير متاح.",
     "or": "أو",
-    "continueWithGoogle": "المتابعة عبر غوغل"
+    "continueWithGoogle": "المتابعة عبر غوغل",
+    "modeLogin": "لدي حساب بالفعل",
+    "modeSignup": "أُنشئ حسابي"
   },
   "browse": {
     "all": "الكل",

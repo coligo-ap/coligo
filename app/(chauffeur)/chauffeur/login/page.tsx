@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { ChauffeurLoginForm } from "@/components/chauffeur/login-form";
 import { AuthScreen } from "@/components/shared/auth-screen";
+import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Coligo Drive · Espace chauffeur" };
@@ -29,18 +29,14 @@ export default function ChauffeurLoginPage() {
         ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Espace chauffeur"
-      cardSubtitle="Connectez-vous pour recevoir des courses."
-      footer={
-        <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
-          Nouveau chauffeur ?{" "}
-          <Link
-            href="/chauffeur/signup"
-            className="text-primary-700 font-medium hover:underline"
-          >
-            Créer un compte
-          </Link>
-        </div>
+      cardTitle="Connexion"
+      cardSubtitle="Accédez à vos courses et à vos gains."
+      modeTabs={
+        <AuthModeTabs
+          mode="login"
+          loginHref="/chauffeur/login"
+          signupHref="/chauffeur/signup"
+        />
       }
     >
       <ChauffeurLoginForm />

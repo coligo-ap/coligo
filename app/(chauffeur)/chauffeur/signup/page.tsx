@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ChauffeurSignupForm } from "@/components/chauffeur/signup-form";
 import { AuthScreen } from "@/components/shared/auth-screen";
+import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Coligo Drive · Inscription chauffeur" };
@@ -42,16 +42,12 @@ export default async function ChauffeurSignupPage() {
       }}
       cardTitle="Créer mon compte"
       cardSubtitle="Renseignez vos informations pour créer votre compte chauffeur, puis ajoutez vos documents."
-      footer={
-        <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
-          Déjà inscrit ?{" "}
-          <Link
-            href="/chauffeur/login"
-            className="text-primary-700 font-medium hover:underline"
-          >
-            Se connecter
-          </Link>
-        </div>
+      modeTabs={
+        <AuthModeTabs
+          mode="signup"
+          loginHref="/chauffeur/login"
+          signupHref="/chauffeur/signup"
+        />
       }
     >
       <ChauffeurSignupForm connectedPhone={connectedPhone} />

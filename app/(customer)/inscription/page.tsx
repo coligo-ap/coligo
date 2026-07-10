@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/shared/logo";
+import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { InstallBanner } from "@/components/pwa/install-banner";
@@ -40,10 +41,15 @@ function CustomerSignupInner() {
   const rawNext = params.get("next") ?? "";
   const next =
     rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
+  // Les deux liens du sélecteur de mode conservent la destination demandée.
   const loginHref =
     next === "/"
       ? "/se-connecter"
       : `/se-connecter?next=${encodeURIComponent(next)}`;
+  const signupHref =
+    next === "/"
+      ? "/inscription"
+      : `/inscription?next=${encodeURIComponent(next)}`;
 
   return (
     <>
@@ -78,6 +84,13 @@ function CustomerSignupInner() {
               </div>
 
               <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
+                <AuthModeTabs
+                  mode="signup"
+                  loginHref={loginHref}
+                  signupHref={signupHref}
+                  loginLabel={t("modeLogin")}
+                  signupLabel={t("modeSignup")}
+                />
                 <h2 className="text-foreground mb-1 text-2xl font-bold lg:text-3xl">
                   {t("welcome")}
                 </h2>
@@ -197,16 +210,6 @@ function CustomerSignupInner() {
 
                 <div className="mt-5">
                   <SocialAuth next={next} />
-                </div>
-
-                <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
-                  {t("alreadyRegistered")}{" "}
-                  <Link
-                    href={loginHref}
-                    className="text-primary-700 font-medium hover:underline"
-                  >
-                    {t("signIn")}
-                  </Link>
                 </div>
 
                 <div className="mt-6 text-center text-xs">

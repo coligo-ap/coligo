@@ -12,6 +12,7 @@ import { APP_CONFIG } from "@/lib/config/app-config";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
+import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 
 const initialState: AuthState = {};
 
@@ -105,9 +106,14 @@ function LoginContent() {
             </div>
 
             <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
+              <AuthModeTabs
+                mode="login"
+                loginHref="/login"
+                signupHref="/signup"
+              />
               <div className="mb-6">
                 <h2 className="text-foreground mb-2 text-2xl font-bold lg:text-3xl">
-                  Espace commerçant
+                  Connexion
                 </h2>
                 <p className="text-muted text-sm lg:text-base">
                   Connectez-vous pour gérer vos commandes.
@@ -179,16 +185,6 @@ function LoginContent() {
                   )}
                 </Button>
               </form>
-
-              <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
-                Pas encore inscrit ?{" "}
-                <Link
-                  href="/signup"
-                  className="text-primary-700 font-medium hover:underline"
-                >
-                  Créer un compte commerçant
-                </Link>
-              </div>
             </div>
           </div>
         </main>

@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { DriverLoginForm } from "@/components/driver/login-form";
 import { AuthScreen } from "@/components/shared/auth-screen";
+import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -43,18 +43,14 @@ export default async function DriverLoginPage() {
         ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Espace livreur"
-      cardSubtitle="Connectez-vous pour accéder à vos livraisons."
-      footer={
-        <div className="border-border text-muted mt-6 border-t pt-6 text-center text-sm">
-          Nouveau livreur ?{" "}
-          <Link
-            href="/driver/signup"
-            className="text-primary-700 font-medium hover:underline"
-          >
-            Créer un compte
-          </Link>
-        </div>
+      cardTitle="Connexion"
+      cardSubtitle="Accédez à vos livraisons et à vos gains."
+      modeTabs={
+        <AuthModeTabs
+          mode="login"
+          loginHref="/driver/login"
+          signupHref="/driver/signup"
+        />
       }
     >
       <Suspense fallback={null}>
