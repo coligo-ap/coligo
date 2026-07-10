@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { PhoneField } from "@/components/ui/phone-field";
 import { Button } from "@/components/ui/button";
 import { Portal } from "@/components/ui/portal";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
@@ -1154,11 +1155,15 @@ function RecipientBlock({
             placeholder={t("recipientNamePlaceholder")}
             maxLength={80}
           />
-          <Input
-            type="tel"
-            value={value.phoneOverride}
-            onChange={(e) => update({ phoneOverride: e.target.value })}
-            placeholder={t("recipientPhonePlaceholder")}
+          {/* Le numéro du destinataire n'était jusqu'ici jamais validé : une
+              saisie incomplète partait telle quelle jusqu'au livreur. Le champ
+              partagé ne remonte qu'une forme canonique, ou rien. */}
+          <PhoneField
+            label={null}
+            defaultValue={value.phoneOverride}
+            onValueChange={(canonical) =>
+              update({ phoneOverride: canonical ?? "" })
+            }
           />
         </div>
       )}

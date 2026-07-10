@@ -6,6 +6,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { Crosshair, Loader2, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneField } from "@/components/ui/phone-field";
 import { getPosition } from "@/lib/native/geolocation";
 import { toast } from "@/components/ui/toast";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
@@ -215,16 +216,12 @@ export function AddressForm({
             required
           />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="addr_phone">{t("altPhone")}</Label>
-          <Input
-            id="addr_phone"
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder={t("phonePlaceholder")}
-          />
-        </div>
+        <PhoneField
+          name="phone_override"
+          label={t("altPhone")}
+          defaultValue={initial?.phone_override ?? ""}
+          onValueChange={(canonical) => setPhone(canonical ?? "")}
+        />
       </div>
 
       <div className="space-y-1.5">
@@ -244,12 +241,14 @@ export function AddressForm({
         })}
       </p>
 
-      {/* Hidden inputs pour FormData côté <form action={…}>. */}
+      {/* Hidden inputs pour FormData côté <form action={…}>.
+          `phone_override` est émis par `PhoneField` lui-même, sous sa forme
+          canonique — ne pas le redéclarer ici, `FormData.get` ne retiendrait
+          que le premier des deux. */}
       <input type="hidden" name="lat" value={lat} />
       <input type="hidden" name="lng" value={lng} />
       <input type="hidden" name="label" value={label} />
       <input type="hidden" name="address_text" value={text} />
-      <input type="hidden" name="phone_override" value={phone} />
     </div>
   );
 }

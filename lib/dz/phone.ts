@@ -28,22 +28,19 @@ export const DZ_PHONE_ERROR =
 
 // ---------------------------------------------------------------------------
 // Indicatifs pays (sélecteur du champ téléphone) — l'ALGÉRIE est par défaut.
+//
+// Liste VOLONTAIREMENT COURTE : l'Algérie, plus les cinq pays d'où viennent nos
+// utilisateurs de la diaspora. Ajouter un pays ici l'ouvre partout, puisque
+// `PhoneField` est le seul champ téléphone de l'application.
 // ---------------------------------------------------------------------------
 export type CountryCode = { dial: string; flag: string; name: string };
 export const COUNTRY_CODES: CountryCode[] = [
   { dial: "+213", flag: "🇩🇿", name: "Algérie" },
-  { dial: "+216", flag: "🇹🇳", name: "Tunisie" },
-  { dial: "+212", flag: "🇲🇦", name: "Maroc" },
   { dial: "+33", flag: "🇫🇷", name: "France" },
   { dial: "+34", flag: "🇪🇸", name: "Espagne" },
   { dial: "+39", flag: "🇮🇹", name: "Italie" },
   { dial: "+32", flag: "🇧🇪", name: "Belgique" },
-  { dial: "+49", flag: "🇩🇪", name: "Allemagne" },
-  { dial: "+44", flag: "🇬🇧", name: "Royaume-Uni" },
-  { dial: "+1", flag: "🇺🇸", name: "USA / Canada" },
-  { dial: "+90", flag: "🇹🇷", name: "Turquie" },
-  { dial: "+971", flag: "🇦🇪", name: "Émirats" },
-  { dial: "+966", flag: "🇸🇦", name: "Arabie S." },
+  { dial: "+31", flag: "🇳🇱", name: "Pays-Bas" },
 ];
 export const DEFAULT_DIAL = "+213";
 
@@ -80,4 +77,57 @@ export function normalizeContactPhone(
   if (dz) return dz;
   const s = (raw ?? "").replace(/[^\d+]/g, "");
   return /^\+\d{8,15}$/.test(s) ? s : null;
+}
+
+/**
+ * Inverse de `composePhone` : sépare une valeur stockée en (indicatif, national)
+ * pour ré-alimenter le sélecteur du champ.
+ *
+ * Un indicatif inconnu (pays retiré de `COUNTRY_CODES`) n'est PAS deviné : on
+ * retombe sur l'Algérie et on laisse la valeur brute dans le champ national, où
+ * elle sera signalée invalide. Mieux vaut une erreur visible qu'un numéro
+ * silencieusement réattribué au mauvais pays.
+ */
+export function splitPhone(raw: string | null | undefined): {
+  dial: string;
+  national: string;
+} {
+  const value = (raw ?? "").trim();
+  if (!value) return { dial: DEFAULT_DIAL, national: "" };
+
+  if (value.startsWith("+")) {
+    // Indicatif le plus long d'abord : +3 ne doit jamais gagner contre +33.
+    const match = [...COUNTRY_CODES]
+      .sort((a, b) => b.dial.length - a.dial.length)
+      .find((c) => value.startsWith(c.dial));
+    if (match) {
+      return { dial: match.dial, national: value.slice(match.dial.length) };
+    }
+    return { dial: DEFAULT_DIAL, national: value };
+  }
+
+  // Forme locale algérienne (`0XXXXXXXXX`) ou saisie libre.
+  return { dial: DEFAULT_DIAL, national: value };
+}
+
+/**
+ * Groupe les chiffres pour la lecture pendant la frappe. L'Algérie se lit par
+ * paires (`06 12 34 56 78`) ; ailleurs on ne devine pas le découpage national,
+ * on se contente d'espacer par blocs de trois.
+ */
+export function formatNational(dial: string, national: string): string {
+  const digits = national.replace(/\D/g, "");
+  if (!digits) return "";
+  const groups =
+    dial === "+213"
+      ? digits.replace(/(\d{2})(?=\d)/g, "$1 ")
+      : digits.replace(/(\d{3})(?=\d)/g, "$1 ");
+  return groups.trimEnd();
+}
+
+/** Message d'erreur adapté au pays choisi, affiché SOUS le champ. */
+export function phoneErrorFor(dial: string): string {
+  return dial === "+213"
+    ? DZ_PHONE_ERROR
+    : "Numéro invalide pour l'indicatif sélectionné.";
 }

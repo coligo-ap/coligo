@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneField } from "@/components/ui/phone-field";
 import { WILAYAS } from "@/lib/dz/wilayas";
 import { driverSignup, type DriverAuthState } from "@/app/(driver)/actions";
 
@@ -48,19 +49,15 @@ export function DriverSignupForm() {
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="phone">{tr("Téléphone", "الهاتف")}</Label>
-        <Input
-          id="phone"
-          name="phone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="+213 6XX XX XX XX"
-          required
-          disabled={pending}
-        />
-      </div>
+      <PhoneField
+        label={tr("Téléphone", "الهاتف")}
+        required
+        disabled={pending}
+        hint={tr(
+          "C'est ton identifiant de connexion.",
+          "هذا هو معرّف تسجيل الدخول الخاص بك."
+        )}
+      />
 
       <div className="space-y-1.5">
         <Label htmlFor="email">{tr("Email", "البريد الإلكتروني")}</Label>

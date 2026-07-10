@@ -1,26 +1,23 @@
 /**
- * Auth livreur — utilise Supabase auth avec un email synthétique dérivé du
- * téléphone (le livreur ne fournit jamais d'email).
+ * Auth livreur — Supabase auth avec un email synthétique dérivé du téléphone
+ * (le livreur ne fournit jamais d'email pour se connecter).
  *
- * Format : <chiffres-du-tel>@drivers.coligo.local
- *   "+213612345678" → "213612345678@drivers.coligo.local"
+ * Format : <chiffres-du-numéro-canonique>@drivers.coligo.local
+ *   "0612345678" et "+213 612345678" → "0612345678@drivers.coligo.local"
+ *   "+33603044619"                   → "33603044619@drivers.coligo.local"
  *
- * On accepte tout format saisi (espaces, +, etc.) et on normalise.
+ * La dérivation vit dans `lib/auth/phone-identity.ts` (source unique).
  */
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { DRIVER_DOMAIN, phoneToAuthEmail } from "@/lib/auth/phone-identity";
 
-const DOMAIN = "drivers.coligo.local";
+export { canonicalPhone } from "@/lib/auth/phone-identity";
 
-export function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length === 0) throw new Error("phone_empty");
-  return digits;
-}
-
-export function phoneToEmail(rawPhone: string): string {
-  return `${normalizePhone(rawPhone)}@${DOMAIN}`;
+/** `null` si le numéro est invalide — l'appelant affiche l'erreur sous le champ. */
+export function phoneToEmail(rawPhone: string): string | null {
+  return phoneToAuthEmail(rawPhone, DRIVER_DOMAIN);
 }
 
 /**

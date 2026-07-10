@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { adminCan } from "@/lib/auth/admin";
+import { phoneToPartnerEmail } from "@/lib/auth/partner";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { validateUploadedFile, MB } from "@/lib/security/file-validation";
@@ -111,12 +112,13 @@ export async function createPartner(input: {
   // owner_id = id du compte auth si login demandé, sinon uuid (point passif).
   let ownerId = crypto.randomUUID();
   if (input.loginPassword?.trim()) {
-    const digits = (input.phone ?? "").replace(/\D/g, "");
-    if (digits.length < 6)
-      return { error: "Téléphone requis pour créer un accès." };
+    // Même dérivation que l'inscription en libre-service, sans quoi un point
+    // créé ici par l'équipe et le même point créé par son gérant donneraient
+    // deux comptes distincts.
+    const email = phoneToPartnerEmail(input.phone ?? "");
+    if (!email) return { error: "Téléphone requis pour créer un accès." };
     if (input.loginPassword.trim().length < 6)
       return { error: "Mot de passe trop court (6 caractères min)." };
-    const email = `${digits}@partners.coligo.local`;
     const { data: created, error: authErr } = await admin.auth.admin.createUser(
       {
         email,

@@ -6,10 +6,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { validateUploadedFile, MB } from "@/lib/security/file-validation";
 import {
-  normalizePhone,
+  canonicalPhone,
   phoneToChauffeurEmail,
   getCurrentChauffeur,
 } from "@/lib/auth/chauffeur";
+import { DZ_PHONE_ERROR } from "@/lib/dz/phone";
 import { isWilaya } from "@/lib/dz/wilayas";
 import { signSelfiePath } from "@/lib/drive/avatar-server";
 import {
@@ -65,8 +66,11 @@ export async function chauffeurSignup(
   }
 
   const supabase = await createClient();
-  const phone = normalizePhone(parsed.data.phone);
+  // Numéro canonique et email synthétique dérivent de la MÊME normalisation :
+  // saisir « 0550100004 » ou « +213 550100004 » mène au même compte.
+  const phone = canonicalPhone(parsed.data.phone);
   const authEmail = phoneToChauffeurEmail(parsed.data.phone);
+  if (!phone || !authEmail) return { error: DZ_PHONE_ERROR };
 
   const { data: signup, error } = await supabase.auth.signUp({
     email: authEmail,
@@ -117,8 +121,10 @@ export async function chauffeurLogin(
     return { error: parsed.error.issues[0]?.message ?? "Données invalides" };
   }
   const supabase = await createClient();
+  const email = phoneToChauffeurEmail(parsed.data.phone);
+  if (!email) return { error: "Téléphone ou mot de passe incorrect." };
   const { error } = await supabase.auth.signInWithPassword({
-    email: phoneToChauffeurEmail(parsed.data.phone),
+    email,
     password: parsed.data.password,
   });
   if (error) return { error: "Téléphone ou mot de passe incorrect." };

@@ -1,22 +1,20 @@
 /**
  * Auth CHAUFFEUR VTC — population SÉPARÉE des livreurs. Email synthétique dérivé
  * du téléphone, domaine DISTINCT pour l'isolation des rôles (middleware) :
- *   "+213612345678" → "213612345678@chauffeurs.coligo.local"
+ *   "0612345678" et "+213 612345678" → "0612345678@chauffeurs.coligo.local"
+ *
+ * La dérivation vit dans `lib/auth/phone-identity.ts` (source unique).
  */
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { CHAUFFEUR_DOMAIN, phoneToAuthEmail } from "@/lib/auth/phone-identity";
 
-export const CHAUFFEUR_DOMAIN = "chauffeurs.coligo.local";
+export { CHAUFFEUR_DOMAIN, canonicalPhone } from "@/lib/auth/phone-identity";
 
-export function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length === 0) throw new Error("phone_empty");
-  return digits;
-}
-
-export function phoneToChauffeurEmail(rawPhone: string): string {
-  return `${normalizePhone(rawPhone)}@${CHAUFFEUR_DOMAIN}`;
+/** `null` si le numéro est invalide — l'appelant affiche l'erreur sous le champ. */
+export function phoneToChauffeurEmail(rawPhone: string): string | null {
+  return phoneToAuthEmail(rawPhone, CHAUFFEUR_DOMAIN);
 }
 
 export type CurrentChauffeur = {

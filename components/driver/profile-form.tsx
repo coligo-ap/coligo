@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneField } from "@/components/ui/phone-field";
 import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import {
@@ -47,17 +48,12 @@ export function DriverProfileForm({
           disabled={pending}
         />
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="phone">{tr("Téléphone", "الهاتف")}</Label>
-        <Input
-          id="phone"
-          name="phone"
-          type="tel"
-          defaultValue={initialPhone}
-          required
-          disabled={pending}
-        />
-      </div>
+      <PhoneField
+        label={tr("Téléphone", "الهاتف")}
+        defaultValue={initialPhone}
+        required
+        disabled={pending}
+      />
       {state.error && btnState === "error" && (
         <p className="text-danger-600 text-sm">{state.error}</p>
       )}

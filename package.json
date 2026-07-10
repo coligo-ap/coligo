@@ -53,6 +53,7 @@
     "test:drive:restore": "node scripts/test-drive-client-restore.mjs",
     "test:coligo:pay": "node scripts/test-coligo-pay.mjs",
     "test:agent": "node scripts/test-agent-signup.mjs",
+    "test:phone": "node --experimental-strip-types scripts/test-phone-identity.mjs",
     "test:load": "node scripts/loadtest/run.mjs",
     "test:load:full": "node scripts/loadtest/run.mjs --full",
     "test:load:purge": "node scripts/loadtest/purge.mjs",
@@ -73,7 +74,7 @@
     "test:pickup:expiry": "node --experimental-strip-types scripts/test-pickup-slot-expiry.mjs",
     "test:tour:schedule": "node scripts/test-tour-schedule.mjs",
     "test:slots": "npm run test:slot:expiry && npm run test:pickup:expiry && npm run test:tour:schedule",
-    "test:all": "npm run test:offline:idempotency && npm run test:offline:scenarios && npm run test:offline:queue && npm run test:promo:money && npm run test:driver:money && npm run test:tour:money && npm run test:tour:e2e && npm run test:audit:cod && npm run test:audit:cancel && npm run test:noshow:claim && npm run test:merchant:guard && npm run test:vtc && npm run test:coligo:pay && npm run test:agent && npm run test:drive:money && npm run test:drive:demo && npm run verify:spec && npm run test:priority && npm run test:config && npm run test:zones && npm run test:slots && npm run test:offline:e2e:serve"
+    "test:all": "npm run test:phone && npm run test:offline:idempotency && npm run test:offline:scenarios && npm run test:offline:queue && npm run test:promo:money && npm run test:driver:money && npm run test:tour:money && npm run test:tour:e2e && npm run test:audit:cod && npm run test:audit:cancel && npm run test:noshow:claim && npm run test:merchant:guard && npm run test:vtc && npm run test:coligo:pay && npm run test:agent && npm run test:drive:money && npm run test:drive:demo && npm run verify:spec && npm run test:priority && npm run test:config && npm run test:zones && npm run test:slots && npm run test:offline:e2e:serve"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",

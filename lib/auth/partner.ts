@@ -11,17 +11,13 @@
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { PARTNER_DOMAIN, phoneToAuthEmail } from "@/lib/auth/phone-identity";
 
-export const PARTNER_DOMAIN = "partners.coligo.local";
+export { PARTNER_DOMAIN, canonicalPhone } from "@/lib/auth/phone-identity";
 
-export function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length === 0) throw new Error("phone_empty");
-  return digits;
-}
-
-export function phoneToPartnerEmail(rawPhone: string): string {
-  return `${normalizePhone(rawPhone)}@${PARTNER_DOMAIN}`;
+/** `null` si le numéro est invalide — l'appelant affiche l'erreur sous le champ. */
+export function phoneToPartnerEmail(rawPhone: string): string | null {
+  return phoneToAuthEmail(rawPhone, PARTNER_DOMAIN);
 }
 
 export type CurrentPartner = {

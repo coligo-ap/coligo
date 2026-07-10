@@ -7,10 +7,11 @@ import { validateUploadedFile } from "@/lib/security/file-validation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  canonicalPhone,
   getCurrentDriver,
-  normalizePhone,
   phoneToEmail,
 } from "@/lib/auth/driver";
+import { DZ_PHONE_ERROR } from "@/lib/dz/phone";
 import {
   getDriverGate,
   NOT_ACTIVE_ERROR,
@@ -95,10 +96,13 @@ export async function driverSignup(
   }
 
   const supabase = await createClient();
-  const phone = normalizePhone(parsed.data.phone);
   // L'auth livreur reste basée sur le TÉLÉPHONE (email synthétisé) ; l'email
-  // réel saisi est stocké sur la table métier `drivers`.
+  // réel saisi est stocké sur la table métier `drivers`. Le numéro canonique et
+  // l'email dérivent de la MÊME normalisation : « 0603044620 » et
+  // « +213 603044620 » désignent donc bien le même compte.
+  const phone = canonicalPhone(parsed.data.phone);
   const authEmail = phoneToEmail(parsed.data.phone);
+  if (!phone || !authEmail) return { error: DZ_PHONE_ERROR };
   const fullName = `${parsed.data.first_name} ${parsed.data.last_name}`;
 
   const { data: signup, error } = await supabase.auth.signUp({
@@ -148,6 +152,7 @@ export async function driverLogin(
 
   const supabase = await createClient();
   const email = phoneToEmail(parsed.data.phone);
+  if (!email) return { error: "Téléphone ou mot de passe incorrect." };
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password: parsed.data.password,
@@ -244,7 +249,8 @@ export async function updateDriverProfile(
 
   // Le téléphone est sous contrainte UNIQUE — si déjà pris, on remonte
   // l'erreur clairement.
-  const phone = normalizePhone(parsed.data.phone);
+  const phone = canonicalPhone(parsed.data.phone);
+  if (!phone) return { error: DZ_PHONE_ERROR };
   const { error } = await supabase
     .from("drivers")
     .update({

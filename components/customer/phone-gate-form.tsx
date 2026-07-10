@@ -2,18 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  CheckCircle2,
-  Loader2,
-  Lock,
-  Mail,
-  Phone,
-  User as UserIcon,
-} from "lucide-react";
+import { Loader2, Lock, Mail, User as UserIcon } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
-import { COUNTRY_CODES, DEFAULT_DIAL, composePhone } from "@/lib/dz/phone";
+import { PhoneField } from "@/components/ui/phone-field";
 import { updateProfile } from "@/app/(customer)/compte/actions";
 
 /**
@@ -33,14 +26,13 @@ export function PhoneGateForm({
 }) {
   const router = useRouter();
   const [name, setName] = useState(fullName);
-  const [dial, setDial] = useState(DEFAULT_DIAL);
-  const [national, setNational] = useState("");
+  // `PhoneField` ne remonte que la valeur CANONIQUE : elle vaut `null` tant que
+  // le numéro est incomplet, et c'est le champ lui-même qui affiche l'erreur.
+  const [composed, setComposed] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
 
-  const composed = composePhone(dial, national);
   const valid = composed !== null && name.trim().length >= 2;
-  const showError = national.trim().length > 0 && composed === null;
 
   const submit = () =>
     start(async () => {
@@ -108,69 +100,15 @@ export function PhoneGateForm({
                 </div>
 
                 {/* Téléphone : indicatif pays (Algérie par défaut) + numéro */}
-                <div className="space-y-1.5">
-                  <label className="text-foreground text-sm font-medium">
-                    Téléphone <span className="text-danger-600">*</span>
-                  </label>
-                  <div
-                    className={
-                      "bg-surface-2 flex items-center gap-1.5 rounded-[12px] border pr-3.5 transition focus-within:ring-2 " +
-                      (showError
-                        ? "border-danger-500 focus-within:border-danger-500 focus-within:ring-danger-500/15"
-                        : "border-border focus-within:border-primary-400 focus-within:ring-primary-100")
-                    }
-                  >
-                    <select
-                      value={dial}
-                      onChange={(e) => setDial(e.target.value)}
-                      aria-label="Indicatif pays"
-                      className="text-foreground h-[46px] shrink-0 rounded-l-[12px] bg-transparent pr-1 pl-3 text-sm font-semibold outline-none"
-                    >
-                      {COUNTRY_CODES.map((c) => (
-                        <option key={c.dial + c.name} value={c.dial}>
-                          {c.flag} {c.dial}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="text-border">|</span>
-                    <Phone className="text-muted size-4 shrink-0" />
-                    <input
-                      value={national}
-                      onChange={(e) => setNational(e.target.value)}
-                      type="tel"
-                      inputMode="tel"
-                      autoFocus
-                      placeholder={
-                        dial === "+213" ? "06 12 34 56 78" : "Numéro"
-                      }
-                      aria-invalid={showError}
-                      className="text-foreground w-full bg-transparent py-3 text-sm font-semibold outline-none placeholder:font-medium"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && valid && !pending) submit();
-                      }}
-                    />
-                    {composed !== null && (
-                      <CheckCircle2 className="text-success-600 size-4 shrink-0" />
-                    )}
-                  </div>
-                  <p className="px-0.5 text-[11.5px] font-medium">
-                    {showError ? (
-                      <span className="text-danger-600">
-                        {dial === "+213"
-                          ? "Mobile algérien invalide — ex. 06 12 34 56 78."
-                          : "Numéro invalide."}
-                      </span>
-                    ) : composed !== null ? (
-                      <span className="text-success-600">Numéro valide ✓</span>
-                    ) : (
-                      <span className="text-muted">
-                        {dial === "+213"
-                          ? "Mobile algérien (05/06/07)."
-                          : "Saisis ton numéro national."}
-                      </span>
-                    )}
-                  </p>
-                </div>
+                <PhoneField
+                  required
+                  autoFocus
+                  hint="Mobile algérien (05/06/07)."
+                  onValueChange={setComposed}
+                  onEnter={() => {
+                    if (valid && !pending) submit();
+                  }}
+                />
 
                 {/* Erreur EN LIGNE (ex. email déjà associé) — pas de toast. */}
                 {err && (

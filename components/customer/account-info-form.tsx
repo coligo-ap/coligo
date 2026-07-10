@@ -2,15 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import {
-  Check,
-  CheckCircle2,
-  Loader2,
-  Mail,
-  Phone,
-  User as UserIcon,
-} from "lucide-react";
-import { isValidContactPhone } from "@/lib/dz/phone";
+import { Check, Loader2, Mail, Phone, User as UserIcon } from "lucide-react";
+import { isValidContactPhone, normalizeContactPhone } from "@/lib/dz/phone";
+import { PhoneField } from "@/components/ui/phone-field";
 import { CustomerLogoutButton } from "@/components/customer/logout-button";
 import {
   confirmEmailChange,
@@ -38,7 +32,13 @@ export function AccountInfoForm({
 }) {
   const t = useTranslations("account");
   const [name, setName] = useState(initialName);
-  const [phone, setPhone] = useState(initialPhone);
+  // `phone` ne contient QUE la forme canonique (ou ""). `phoneRaw` garde la
+  // frappe, sans quoi « en cours de saisie » et « champ vide » seraient
+  // indiscernables et l'erreur s'afficherait dès le premier chiffre.
+  const [phone, setPhone] = useState(
+    () => normalizeContactPhone(initialPhone) ?? ""
+  );
+  const [phoneRaw, setPhoneRaw] = useState(initialPhone);
   const [pending, start] = useTransition();
   // Retour EN LIGNE (au-dessus du bouton) plutôt que toast (cf. CLAUDE.md).
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(
@@ -47,10 +47,14 @@ export function AccountInfoForm({
 
   // Validation EN DIRECT du numéro (mobile algérien ou international).
   const phoneValid = isValidContactPhone(phone);
-  const phoneShowError = phone.trim().length > 0 && !phoneValid;
+  const phoneShowError = phoneRaw.trim().length > 0 && !phoneValid;
 
+  // Comparaison sur la forme canonique : un numéro déjà stocké en `+213…` se
+  // normalise en `0…` au montage, ce qui marquerait le formulaire « modifié »
+  // sans que l'utilisateur ait rien touché.
   const dirty =
-    name.trim() !== initialName.trim() || phone.trim() !== initialPhone.trim();
+    name.trim() !== initialName.trim() ||
+    phone !== (normalizeContactPhone(initialPhone) ?? "");
 
   return (
     <>
@@ -72,11 +76,6 @@ export function AccountInfoForm({
             label={t("phone")}
             icon={<Phone className="size-4" />}
             invalid={phoneShowError}
-            trailing={
-              phoneValid ? (
-                <CheckCircle2 className="text-success-600 size-4 shrink-0" />
-              ) : undefined
-            }
             footer={
               phoneShowError ? (
                 <span className="text-danger-600">
@@ -92,14 +91,14 @@ export function AccountInfoForm({
               )
             }
           >
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              type="tel"
-              inputMode="tel"
-              placeholder="06 12 34 56 78"
-              aria-invalid={phoneShowError}
-              className="text-foreground w-full bg-transparent text-sm font-bold outline-none placeholder:font-medium"
+            <PhoneField
+              variant="bare"
+              label={null}
+              defaultValue={initialPhone}
+              onValueChange={(canonical, raw) => {
+                setPhone(canonical ?? "");
+                setPhoneRaw(raw);
+              }}
             />
           </Field>
 

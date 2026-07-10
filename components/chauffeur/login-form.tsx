@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneField } from "@/components/ui/phone-field";
 import {
   chauffeurLogin,
   type ChauffeurAuthState,
@@ -21,19 +22,7 @@ export function ChauffeurLoginForm() {
   const [state, action, pending] = useActionState(chauffeurLogin, initial);
   return (
     <form action={action} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="phone">Téléphone</Label>
-        <Input
-          id="phone"
-          name="phone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="07 / 06 / 05 XX XX XX XX"
-          required
-          disabled={pending}
-        />
-      </div>
+      <PhoneField required disabled={pending} />
 
       <div className="space-y-1.5">
         <Label htmlFor="password">Mot de passe</Label>

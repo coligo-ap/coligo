@@ -5,11 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  PARTNER_DOMAIN,
-  normalizePhone,
-  phoneToPartnerEmail,
-} from "@/lib/auth/partner";
+import { phoneToPartnerEmail } from "@/lib/auth/partner";
 
 export type PartnerAuthState = { error?: string };
 
@@ -71,12 +67,8 @@ export async function partnerSignup(
     return { error: "Confirmez la position de votre point sur la carte." };
   }
 
-  let email: string;
-  try {
-    email = `${normalizePhone(v.phone)}@${PARTNER_DOMAIN}`;
-  } catch {
-    return { error: "Téléphone invalide." };
-  }
+  const email = phoneToPartnerEmail(v.phone);
+  if (!email) return { error: "Téléphone invalide." };
 
   const admin = createAdminClient();
 
@@ -212,12 +204,8 @@ export async function partnerLogin(
   if (!parsed.success) return { error: "Téléphone et mot de passe requis." };
 
   const supabase = await createClient();
-  let email: string;
-  try {
-    email = phoneToPartnerEmail(parsed.data.phone);
-  } catch {
-    return { error: "Téléphone invalide." };
-  }
+  const email = phoneToPartnerEmail(parsed.data.phone);
+  if (!email) return { error: "Téléphone invalide." };
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password: parsed.data.password,

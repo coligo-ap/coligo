@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneField } from "@/components/ui/phone-field";
 import { partnerLogin, type PartnerAuthState } from "@/app/(partner)/actions";
 
 const initial: PartnerAuthState = {};
@@ -13,18 +14,7 @@ export function PartnerLoginForm() {
   const [state, action, pending] = useActionState(partnerLogin, initial);
   return (
     <form action={action} className="space-y-3">
-      <div className="space-y-1.5">
-        <Label htmlFor="phone">Téléphone</Label>
-        <Input
-          id="phone"
-          name="phone"
-          type="tel"
-          inputMode="tel"
-          placeholder="+213 6XX XX XX XX"
-          required
-          disabled={pending}
-        />
-      </div>
+      <PhoneField required disabled={pending} />
       <div className="space-y-1.5">
         <Label htmlFor="password">Mot de passe</Label>
         <Input

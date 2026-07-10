@@ -6,6 +6,7 @@ import { ArrowRight, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneField } from "@/components/ui/phone-field";
 import {
   chauffeurLogout,
   chauffeurSignup,
@@ -94,21 +95,11 @@ export function ChauffeurSignupForm({
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="phone">
-            Téléphone <span className="text-rose-600">*</span>
-          </Label>
-          <Input
-            id="phone"
-            name="phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            placeholder="07 / 06 / 05 XX XX XX XX"
-            required
-            disabled={pending}
-          />
-        </div>
+        <PhoneField
+          required
+          disabled={pending}
+          hint="C'est ton identifiant de connexion."
+        />
 
         <div className="space-y-1.5">
           <Label htmlFor="birth_date">

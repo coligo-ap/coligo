@@ -2,10 +2,11 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, FileText, Phone, Store, UserRound } from "lucide-react";
+import { ArrowRight, FileText, Store, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneField } from "@/components/ui/phone-field";
 import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
 import { partnerSignup, type PartnerAuthState } from "@/app/(partner)/actions";
 
@@ -105,28 +106,11 @@ export function PartnerSignupForm() {
 
       {/* Identifiants de connexion */}
       <div className="border-surface-3 space-y-3 border-t pt-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="phone">
-            Téléphone <span className="text-rose-600">*</span>
-          </Label>
-          <div className="relative">
-            <Phone className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-            <Input
-              id="phone"
-              name="phone"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="07 / 06 / 05 XX XX XX XX"
-              required
-              disabled={pending}
-              className="pl-9"
-            />
-          </div>
-          <p className="text-subtle text-xs">
-            Ce numéro vous servira d&apos;identifiant de connexion.
-          </p>
-        </div>
+        <PhoneField
+          required
+          disabled={pending}
+          hint="Ce numéro vous servira d'identifiant de connexion."
+        />
 
         <div className="space-y-1.5">
           <Label htmlFor="password">
