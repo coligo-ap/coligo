@@ -56,6 +56,14 @@ async function fundOperator(ownerType, ownerId, amount = 500000) {
     "INSERT INTO operator_wallet_entries (wallet_id, type, amount_da, note) VALUES ($1,'topup_manual',$2,'test')",
     [wid, amount]
   );
+  // `operator_can_operate` refuse un portefeuille non `active` AVANT de regarder
+  // le solde : créditer ne suffit pas. Le portefeuille du livreur de test traîne
+  // un statut `suspended` posé hors des tests, et le garde répond alors
+  // « Solde insuffisant », ce qui envoie chercher au mauvais endroit.
+  // Tout est annulé au ROLLBACK.
+  await c.query("UPDATE operator_wallets SET status='active' WHERE id=$1", [
+    wid,
+  ]);
 }
 await fundOperator("merchant", M);
 await fundOperator("driver", DRIVER);
@@ -416,7 +424,9 @@ try {
   ok("slot_orders_count (SECURITY DEFINER)", cnt3, 1);
 
   // ====== E) No-show TOURNÉE online payé — pas de double paiement course ======
-  console.log("\n=== E) No-show tournée online payé ===");
+  console.log(
+    "\n=== E) Tournée online payée : no-show refusé, dépôt à l'adresse ==="
+  );
   const slot4 = (
     await c.query(
       `INSERT INTO delivery_slots (merchant_id, slot_date, start_time, end_time, max_orders, status)
@@ -443,27 +453,81 @@ try {
     "e2e-ns-tour",
   ]);
   await impersonateNone();
-  ok("no-show accepté", ns.rows[0].ok, true);
+  // Le no-show a été RETIRÉ du parcours ONLINE (mig 0326/0327) : une commande
+  // déjà payée ne peut plus être annulée par le livreur — il dépose à l'adresse.
+  // Ce test vérifiait l'ancien comportement ; il vérifie désormais la règle.
+  ok("no-show REFUSÉ sur une commande en ligne", ns.rows[0].ok, false);
+  ok("motif : dépôt à l'adresse", ns.rows[0].reason, "use_leave_at_door");
   ok(
-    "commande annulée",
+    "la commande n'est PAS annulée",
+    (await c.query("SELECT status FROM orders WHERE id=$1", [o3.id])).rows[0]
+      .status !== "cancelled",
+    true
+  );
+
+  // ── Dépôt à l'adresse : le seul chemin ouvert. Ses gardes-fous d'abord. ──
+  await impersonateDriver();
+  const lad1 = await c.query(
+    "SELECT * FROM driver_leave_at_door($1,$2,$3,$4)",
+    [o3.id, "https://x/p.jpg", "devant la porte", "e2e-lad-1"]
+  );
+  await impersonateNone();
+  ok("dépôt refusé sans appel au client", lad1.rows[0].reason, "call_required");
+
+  await c.query(
+    "UPDATE orders SET delivery_call_attempted_at = now() WHERE id=$1",
+    [o3.id]
+  );
+  await impersonateDriver();
+  const lad2 = await c.query(
+    "SELECT * FROM driver_leave_at_door($1,$2,$3,$4)",
+    [o3.id, "https://x/p.jpg", "devant la porte", "e2e-lad-2"]
+  );
+  await impersonateNone();
+  ok(
+    "dépôt refusé sans message au client",
+    lad2.rows[0].reason,
+    "message_required"
+  );
+
+  await c.query(
+    `INSERT INTO order_messages (order_id, sender_role, sender_user_id, body)
+     VALUES ($1,'courier',$2,'Je suis devant chez vous')`,
+    [o3.id, DRIVER_USER]
+  );
+  await impersonateDriver();
+  const lad3 = await c.query(
+    "SELECT * FROM driver_leave_at_door($1,$2,$3,$4)",
+    [o3.id, "", null, "e2e-lad-3"]
+  );
+  await impersonateNone();
+  ok(
+    "dépôt refusé sans photo de preuve",
+    lad3.rows[0].reason,
+    "photo_required"
+  );
+
+  // ── Toutes les conditions réunies ──
+  await impersonateDriver();
+  const lad = await c.query("SELECT * FROM driver_leave_at_door($1,$2,$3,$4)", [
+    o3.id,
+    "https://x/p.jpg",
+    "devant la porte",
+    "e2e-lad-ok",
+  ]);
+  await impersonateNone();
+  ok("dépôt à l'adresse accepté", lad.rows[0].ok, true);
+  ok(
+    "commande livrée",
     (await c.query("SELECT status FROM orders WHERE id=$1", [o3.id])).rows[0]
       .status,
-    "cancelled"
+    "completed"
   );
   ok(
-    "tour_stop marqué failed",
+    "tour_stop marqué delivered",
     (await c.query("SELECT status FROM tour_stops WHERE order_id=$1", [o3.id]))
       .rows[0].status,
-    "failed"
-  );
-  ok(
-    "tournée complétée après échec",
-    (
-      await c.query("SELECT status FROM delivery_tours WHERE id=$1", [
-        stE.tour_id,
-      ])
-    ).rows[0].status,
-    "completed"
+    "delivered"
   );
   // LE fix : la plateforme ne paie PAS la course au livreur tournée (il est
   // payé par son commerçant, qui reçoit delivery_revenue).
@@ -473,11 +537,10 @@ try {
     0
   );
   ok(
-    "commerçant crédité delivery_revenue (online payé, no-show)",
+    "commerçant crédité delivery_revenue (online payé, déposé à l'adresse)",
     await wallet(o3.id, "delivery_revenue"),
     D
   );
-  ok("pas de cashback gagné sur no-show", await cashbackCredit(o3.id), 0);
   ok(
     "pas de snapshot driver_fee express sur la commande tournée",
     (
