@@ -81,7 +81,7 @@ export function DGains() {
   const dueSub = `${dueParts.join(" + ") || "montant dû"} · avant le 5 du mois · CCP / BaridiMob`;
 
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
+    <div className="drive-jakarta drive-page pt-safe pb-safe-nav min-h-screen bg-[var(--d-surface)] px-5">
       {/* Hub Argent : Gains · Courses · Coligo Pay dans une même page. */}
       <MoneyTabs base="/chauffeur" />
 
@@ -312,7 +312,7 @@ export function DHisto() {
   };
 
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
+    <div className="drive-jakarta drive-page pt-safe pb-safe-nav min-h-screen bg-[var(--d-surface)] px-5">
       {/* Hub Argent : Gains · Courses · Coligo Pay dans une même page. */}
       <MoneyTabs base="/chauffeur" />
 

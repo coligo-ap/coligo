@@ -119,7 +119,7 @@ export default async function ChauffeurAbonnementPage() {
     .map(({ when: _when, ...row }) => row);
 
   return (
-    <div className="drive-jakarta pt-4 pb-24">
+    <div className="drive-jakarta pt-safe pb-safe-nav">
       <div className="mx-auto max-w-[560px] space-y-3 px-4">
         {/* Héro vendeur (composant partagé livreur/chauffeur). */}
         <SubsHero

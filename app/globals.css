@@ -1359,3 +1359,28 @@ body {
   scroll-margin-bottom: 32px;
   animation: alert-focus-blink 0.85s ease-in-out 7;
 }
+
+/* ───────────────────────── Zone sûre — espaces partenaires ─────────────────
+ *
+ * L'app Android est une WebView à ras bord (`viewport-fit=cover`, cf.
+ * `app/layout.tsx`). Sans ces retraits, le contenu passe SOUS la barre de statut
+ * et SOUS la gesture bar. Le commerçant les pose déjà sur son en-tête et sa
+ * barre du bas ; le livreur et le chauffeur n'avaient rien sur leurs pages.
+ *
+ * Deux règles apprises à ce sujet :
+ *
+ *  1. TOUJOURS `calc(env(…) + marge)`, JAMAIS `max(marge, env(…))`. Dès que la
+ *     barre système dépasse la marge, `max()` renvoie sa hauteur exacte et le
+ *     contenu vient s'y COLLER, sans respiration.
+ *  2. Le retrait bas doit couvrir la barre d'onglets ENTIÈRE, qui vaut désormais
+ *     `66px + env(safe-area-inset-bottom)` (cf. `PartnerTabbar`).
+ */
+.pt-safe {
+  padding-top: calc(1rem + env(safe-area-inset-top));
+}
+.pt-safe-lg {
+  padding-top: calc(52px + env(safe-area-inset-top));
+}
+.pb-safe-nav {
+  padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+}

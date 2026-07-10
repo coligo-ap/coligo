@@ -581,7 +581,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
       {/* Bandeau haut épuré : menu (GAUCHE) · revenu du jour (CENTRE) · GPS
           (DROITE). Toutes les options sont désormais dans le tiroir → l'accueil
           reste dégagé sur la carte (style Uber). */}
-      <div className="absolute inset-x-3 top-3 z-10 grid grid-cols-3 items-start gap-2">
+      {/* Zone sûre : sans elle, le bandeau passe SOUS la barre de statut sur
+          l'app Android (viewport-fit=cover, WebView à ras bord). */}
+      <div className="absolute inset-x-3 top-[calc(env(safe-area-inset-top)+12px)] z-10 grid grid-cols-3 items-start gap-2">
         {/* GAUCHE — bouton menu (ouvre le tiroir). Pas de pastille de comptage
             ici : les demandes en attente sont déjà signalées par la carte de
             réception et la barre « Voir N demandes » → on évite le doublon de

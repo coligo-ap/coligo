@@ -26,7 +26,7 @@ function Bar({ className = "" }: { className?: string }) {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-[100dvh] bg-[var(--d-surface)]">
-      <main className="mx-auto max-w-md px-5 pt-4 pb-24">
+      <main className="pt-safe pb-safe-nav mx-auto max-w-md px-5">
         <div className="space-y-4 pt-1">{children}</div>
       </main>
       <DriverBottomNav />

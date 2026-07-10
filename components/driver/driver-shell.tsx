@@ -4,7 +4,7 @@ import { PullToRefresh } from "./pull-to-refresh";
 /**
  * Chrome des pages « consultables » de l'espace livreur — PARITÉ MAQUETTE
  * CHAUFFEUR : fond = surface (blanc en clair, sombre en dark), contenu
- * `px-5 pt-4 pb-24` (mêmes paddings que les pages chauffeur `drive-page`),
+ * `px-5 pt-safe pb-safe-nav` (mêmes paddings que les pages chauffeur `drive-page`),
  * barre d'onglets persistante partagée.
  *
  * Pas d'auth ici : chaque page protégée appelle déjà `getCurrentDriver()`.
@@ -19,7 +19,9 @@ export function DriverShell({
   return (
     <div className="min-h-[100dvh] bg-[var(--d-surface)] text-[var(--d-ink)]">
       <PullToRefresh>
-        <main className="mx-auto max-w-md px-5 pt-4 pb-24">{children}</main>
+        <main className="pt-safe pb-safe-nav mx-auto max-w-md px-5">
+          {children}
+        </main>
       </PullToRefresh>
       <DriverBottomNav />
     </div>

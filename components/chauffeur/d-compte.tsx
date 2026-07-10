@@ -166,7 +166,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         : { label: "En vérification", tone: "pending" as const };
 
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
+    <div className="drive-jakarta drive-page pt-safe pb-safe-nav min-h-screen bg-[var(--d-surface)] px-5">
       <h1 className="drive-sora mb-3.5 text-[21px] font-extrabold tracking-[-0.5px]">
         Compte
       </h1>

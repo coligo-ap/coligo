@@ -12,7 +12,7 @@ import { MoneyTabs } from "@/components/shared/money-tabs";
  */
 export default function ChauffeurRechargerPage() {
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
+    <div className="drive-jakarta drive-page pt-safe pb-safe-nav min-h-screen bg-[var(--d-surface)] px-5">
       {/* Hub Argent : Gains · Courses · Coligo Pay dans une même page. */}
       <MoneyTabs base="/chauffeur" />
       <Suspense fallback={null}>

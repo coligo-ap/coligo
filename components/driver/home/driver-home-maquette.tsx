@@ -305,7 +305,10 @@ export function DriverHomeMaquette({
       )}
 
       {/* Bandeau haut épuré (PARITÉ CHAUFFEUR) : menu · revenu du jour · GPS. */}
-      <div className="fixed inset-x-3 top-[max(12px,env(safe-area-inset-top))] z-[46] grid grid-cols-3 items-start gap-2">
+      {/* `calc(env + 12px)` et NON `max(12px, env)` : dès que la barre de statut
+          dépasse 12 px, `max()` renvoie sa hauteur exacte et le bandeau vient s'y
+          coller, sans marge. On veut 12 px SOUS elle. */}
+      <div className="fixed inset-x-3 top-[calc(env(safe-area-inset-top)+12px)] z-[46] grid grid-cols-3 items-start gap-2">
         {/* GAUCHE — bouton menu (ouvre le tiroir). */}
         <div className="flex justify-start">
           <PartnerMenuButton

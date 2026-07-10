@@ -399,7 +399,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   // Hors ligne : AUCUNE écoute. On invite explicitement à passer en ligne.
   if (!online) {
     return (
-      <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-[18px] pt-[52px] pb-24">
+      <div className="drive-jakarta drive-page pt-safe-lg pb-safe-nav min-h-screen bg-[var(--d-surface)] px-[18px]">
         <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
           Demandes de courses
         </h1>
@@ -613,7 +613,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
 
   /* ── Liste des demandes / propositions ── */
   return (
-    <div className="drive-jakarta drive-page flex min-h-screen flex-col bg-[var(--d-surface)] pb-24">
+    <div className="drive-jakarta drive-page pb-safe-nav flex min-h-screen flex-col bg-[var(--d-surface)]">
       {/* En-tête (remonté pour gagner de la place en bas) */}
       <div className="px-[18px] pt-[28px]">
         <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">

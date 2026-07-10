@@ -42,7 +42,7 @@ function RideCardSkeleton() {
 /** Page Drive — demandes / propositions. */
 export function DriveSkeleton() {
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-[18px] pt-[52px] pb-24">
+    <div className="drive-jakarta drive-page pt-safe-lg pb-safe-nav min-h-screen bg-[var(--d-surface)] px-[18px]">
       <Bar className="h-6 w-52" />
       <Bar className="mt-2 h-3 w-32" />
       <div className="mt-2.5 flex gap-1.5">
@@ -71,7 +71,7 @@ export function HomeSkeleton() {
     <div className="drive-jakarta drive-screen bg-[var(--d-page)]">
       <div className="absolute inset-0 bg-[var(--d-page)]" />
       {/* Bandeau haut : courses dispo · revenu · GPS */}
-      <div className="absolute inset-x-3 top-3 z-10 grid grid-cols-3 items-start gap-2">
+      <div className="absolute inset-x-3 top-[calc(env(safe-area-inset-top)+12px)] z-10 grid grid-cols-3 items-start gap-2">
         <div className="flex justify-start">
           <div className="h-[44px] w-[86px] animate-pulse rounded-[16px] bg-[var(--d-surface)] shadow-lg" />
         </div>
@@ -94,7 +94,7 @@ export function HomeSkeleton() {
 /** Pages internes simples (gains, compte, etc.). */
 export function PageSkeleton() {
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-[18px] pt-[52px] pb-24">
+    <div className="drive-jakarta drive-page pt-safe-lg pb-safe-nav min-h-screen bg-[var(--d-surface)] px-[18px]">
       <Bar className="h-6 w-44" />
       <Bar className="mt-2 h-3 w-28" />
       <Bar className="mt-4 h-28 w-full !rounded-[16px]" />

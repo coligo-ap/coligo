@@ -55,36 +55,56 @@ export function PartnerTabbar({
   const pathname = usePathname();
   const isAr = useLocale() === "ar";
   return (
+    /*
+     * La zone sûre s'AJOUTE à la barre, elle ne la rogne pas.
+     *
+     * Avant : `height: 66px` était posé sur la <nav> elle-même, et le
+     * `padding-bottom: env(safe-area-inset-bottom)` en était retranché
+     * (`box-sizing: border-box`). Sur un téléphone à gesture bar de 48 px il ne
+     * restait que 18 px pour des icônes qui en font 37 : elles débordaient
+     * SOUS la barre système. C'est le montage du commerçant qui est correct
+     * (cf. `merchant/mobile-bottom-nav.tsx`) : le rembourrage va sur la <nav>,
+     * la hauteur sur la grille intérieure. La barre grandit.
+     *
+     * Le plancher de 9 px du rembourrage disparaît : il ne servait qu'à
+     * compenser ce rognage. Sans lui, la barre fait exactement `height` sur le
+     * web (où `env()` vaut 0) — aucun changement — et `height + inset` dans
+     * l'app.
+     */
     <nav
       aria-label={ariaLabel}
-      className="fixed inset-x-0 bottom-0 z-40 grid border-t border-[var(--d-line)] bg-[var(--d-surface)] pb-[max(env(safe-area-inset-bottom),9px)]"
-      style={{
-        height,
-        gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
-      }}
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--d-line)] bg-[var(--d-surface)] pb-[env(safe-area-inset-bottom)]"
     >
-      {items.map((tab) => {
-        const Icon = tab.icon;
-        const active = tab.exact
-          ? pathname === tab.href
-          : [tab.href, ...(tab.match ?? [])].some((p) =>
-              pathname.startsWith(p)
-            );
-        return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            // prefetch complet : routes dynamiques (gate dans la coque) — sans
-            // ce flag, chaque tap attendrait un aller-retour serveur.
-            prefetch
-            className="flex flex-col items-center justify-center gap-[3px] text-[10px] font-semibold whitespace-nowrap"
-            style={{ color: active ? BRAND_VIOLET : "var(--d-muted)" }}
-          >
-            <Icon className="size-[22px]" />
-            {isAr ? tab.labelAr : tab.label}
-          </Link>
-        );
-      })}
+      <div
+        className="grid"
+        style={{
+          height,
+          gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
+        }}
+      >
+        {items.map((tab) => {
+          const Icon = tab.icon;
+          const active = tab.exact
+            ? pathname === tab.href
+            : [tab.href, ...(tab.match ?? [])].some((p) =>
+                pathname.startsWith(p)
+              );
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              // prefetch complet : routes dynamiques (gate dans la coque) — sans
+              // ce flag, chaque tap attendrait un aller-retour serveur.
+              prefetch
+              className="flex flex-col items-center justify-center gap-[3px] text-[10px] font-semibold whitespace-nowrap"
+              style={{ color: active ? BRAND_VIOLET : "var(--d-muted)" }}
+            >
+              <Icon className="size-[22px]" />
+              {isAr ? tab.labelAr : tab.label}
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 }
