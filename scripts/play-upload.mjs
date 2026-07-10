@@ -1,5 +1,7 @@
 // Upload du .aab client sur Google Play via l'API Android Publisher.
-// Usage : node scripts/play-upload.mjs [--track internal] [--status draft|completed] [--aab <chemin>]
+// Usage : node scripts/play-upload.mjs [--track alpha] [--status completed] [--also internal] [--aab <chemin>]
+// Release standard (alpha pour le chrono prod + interne pour se tester vite) :
+//   node scripts/build-client-aab.mjs && node scripts/play-upload.mjs --track alpha --status completed --also internal
 // Auth : clé du compte de service play-publisher (play-service-account.json à la racine, gitignorée).
 // Par défaut : canal de test interne, release en brouillon (déployable depuis Play Console).
 import { readFileSync } from "node:fs";
@@ -17,6 +19,15 @@ const opt = (name, dflt) => {
 };
 const track = opt("track", "internal");
 const status = opt("status", "draft");
+// Pistes SUPPLÉMENTAIRES à servir avec le même bundle, dans le même edit
+// (répétable : --also internal --also beta). Sert à publier alpha + interne
+// d'un coup : l'interne est dispo en minutes pour se tester soi-même, l'alpha
+// fait tourner le chrono 14 j/12 testeurs de l'accès prod.
+const alsoTracks = args.reduce(
+  (acc, a, i) => (a === "--also" && args[i + 1] ? [...acc, args[i + 1]] : acc),
+  []
+);
+const allTracks = [track, ...alsoTracks];
 const aabPath = resolve(
   root,
   opt(
@@ -55,7 +66,7 @@ async function api(method, url, body, headers = {}) {
 }
 
 console.log(`AAB    : ${aabPath}`);
-console.log(`Canal  : ${track} (release ${status})`);
+console.log(`Pistes : ${allTracks.join(" + ")} (release ${status})`);
 
 const edit = await api("POST", `${base}/edits`);
 
@@ -69,10 +80,12 @@ console.log(
   `Bundle uploadé : versionCode ${bundle.versionCode} (sha256 ${bundle.sha256.slice(0, 12)}…)`
 );
 
-await api("PUT", `${base}/edits/${edit.id}/tracks/${track}`, {
-  track,
-  releases: [{ status, versionCodes: [String(bundle.versionCode)] }],
-});
+for (const t of allTracks) {
+  await api("PUT", `${base}/edits/${edit.id}/tracks/${t}`, {
+    track: t,
+    releases: [{ status, versionCodes: [String(bundle.versionCode)] }],
+  });
+}
 
 // Tant que la fiche Play n'est pas complète, l'envoi en review est refusé →
 // on committe alors sans review (la release reste visible dans Play Console).
@@ -103,10 +116,14 @@ try {
   // brouillon → on repose la release en draft puis on recommitte.
   if (!String(e.message).includes("draft app")) throw e;
   finalStatus = "draft";
-  await api("PUT", `${base}/edits/${edit.id}/tracks/${track}`, {
-    track,
-    releases: [{ status: "draft", versionCodes: [String(bundle.versionCode)] }],
-  });
+  for (const t of allTracks) {
+    await api("PUT", `${base}/edits/${edit.id}/tracks/${t}`, {
+      track: t,
+      releases: [
+        { status: "draft", versionCodes: [String(bundle.versionCode)] },
+      ],
+    });
+  }
   await commitEdit();
   console.log(
     "(appli encore en brouillon → release posée en brouillon, à déployer depuis Play Console)"
@@ -114,5 +131,5 @@ try {
 }
 
 console.log(
-  `OK — versionCode ${bundle.versionCode} (${finalStatus}) sur le canal ${track}.`
+  `OK — versionCode ${bundle.versionCode} (${finalStatus}) sur : ${allTracks.join(", ")}.`
 );
