@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useLocale } from "next-intl";
 import { Crosshair, MapPin, X } from "lucide-react";
+import { Portal } from "@/components/ui/portal";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import {
   useWorkZone,
@@ -49,119 +50,124 @@ export function WorkZoneSheet({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[110] flex items-end justify-center sm:items-center"
-      style={{ background: "rgba(8,9,16,.55)" }}
-      onClick={onClose}
-    >
+    // Portalisée vers le `body`, comme la feuille équivalente du chauffeur : la
+    // page d'accueil livreur empile des couches (carte, bandeaux, barre de nav)
+    // et un `z-index` élevé resterait piégé dans leur contexte d'empilement.
+    <Portal>
       <div
-        className="w-full max-w-md overflow-hidden rounded-t-[22px] bg-[var(--surface)] pb-[env(safe-area-inset-bottom)] text-[var(--ink)] shadow-2xl sm:rounded-[22px] sm:pb-0"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-[110] flex items-end justify-center sm:items-center"
+        style={{ background: "rgba(8,9,16,.55)" }}
+        onClick={onClose}
       >
-        {/* En-tête */}
-        <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3.5">
-          <div className="flex items-center gap-2">
-            <MapPin
-              className="size-[18px]"
-              style={{ color: "var(--violet)" }}
+        <div
+          className="w-full max-w-md overflow-hidden rounded-t-[22px] bg-[var(--surface)] pb-[max(0px,env(safe-area-inset-bottom))] text-[var(--ink)] shadow-2xl sm:rounded-[22px] sm:pb-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* En-tête */}
+          <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3.5">
+            <div className="flex items-center gap-2">
+              <MapPin
+                className="size-[18px]"
+                style={{ color: "var(--violet)" }}
+              />
+              <h2 className="mq-sora text-[16px] font-extrabold">
+                {tr("Ma zone de travail", "منطقة عملي")}
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={tr("Fermer", "إغلاق")}
+              className="-mr-1 p-1 text-[var(--muted)] hover:text-[var(--ink)]"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
+
+          <div className="p-4">
+            <p className="mb-3 text-[13px] leading-snug text-[var(--muted)]">
+              {tr(
+                "Choisissez le centre de votre zone et un rayon. Vous ne recevrez que les courses Express de ce périmètre, où que vous soyez.",
+                "اختر مركز منطقتك ونصف القطر. لن تصلك إلا توصيلات السريع ضمن هذا المحيط، أينما كنت."
+              )}
+            </p>
+
+            {/* Carte de sélection du centre (réutilise le picker partagé). */}
+            <MapPositionPicker
+              initial={current ? { lat: current.lat, lng: current.lng } : null}
+              autoLocate={!current}
+              searchEnabled
+              searchPlaceholder={tr(
+                "Rechercher un quartier, une ville…",
+                "ابحث عن حيّ أو مدينة…"
+              )}
+              gpsLabel={tr("Ma position", "موقعي")}
+              height={260}
+              onChange={(pos) => setCenter(pos)}
             />
-            <h2 className="mq-sora text-[16px] font-extrabold">
-              {tr("Ma zone de travail", "منطقة عملي")}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={tr("Fermer", "إغلاق")}
-            className="-mr-1 p-1 text-[var(--muted)] hover:text-[var(--ink)]"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
 
-        <div className="p-4">
-          <p className="mb-3 text-[13px] leading-snug text-[var(--muted)]">
-            {tr(
-              "Choisissez le centre de votre zone et un rayon. Vous ne recevrez que les courses Express de ce périmètre, où que vous soyez.",
-              "اختر مركز منطقتك ونصف القطر. لن تصلك إلا توصيلات السريع ضمن هذا المحيط، أينما كنت."
-            )}
-          </p>
-
-          {/* Carte de sélection du centre (réutilise le picker partagé). */}
-          <MapPositionPicker
-            initial={current ? { lat: current.lat, lng: current.lng } : null}
-            autoLocate={!current}
-            searchEnabled
-            searchPlaceholder={tr(
-              "Rechercher un quartier, une ville…",
-              "ابحث عن حيّ أو مدينة…"
-            )}
-            gpsLabel={tr("Ma position", "موقعي")}
-            height={260}
-            onChange={(pos) => setCenter(pos)}
-          />
-
-          {/* Sélecteur de rayon */}
-          <div className="mt-4">
-            <div className="mb-2 text-[12px] font-bold tracking-wide text-[var(--muted)] uppercase">
-              {tr("Rayon de la zone", "نصف قطر المنطقة")}
+            {/* Sélecteur de rayon */}
+            <div className="mt-4">
+              <div className="mb-2 text-[12px] font-bold tracking-wide text-[var(--muted)] uppercase">
+                {tr("Rayon de la zone", "نصف قطر المنطقة")}
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {ZONE_RADIUS_OPTIONS.map((r) => {
+                  const active = r === radius;
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRadius(r)}
+                      className="h-11 rounded-[12px] border text-[14px] font-bold transition"
+                      style={
+                        active
+                          ? {
+                              borderColor: "var(--violet)",
+                              background: "var(--violet)",
+                              color: "#fff",
+                            }
+                          : {
+                              borderColor: "var(--line)",
+                              background: "var(--soft)",
+                              color: "var(--ink)",
+                            }
+                      }
+                    >
+                      {r} km
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="grid grid-cols-4 gap-2">
-              {ZONE_RADIUS_OPTIONS.map((r) => {
-                const active = r === radius;
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRadius(r)}
-                    className="h-11 rounded-[12px] border text-[14px] font-bold transition"
-                    style={
-                      active
-                        ? {
-                            borderColor: "var(--violet)",
-                            background: "var(--violet)",
-                            color: "#fff",
-                          }
-                        : {
-                            borderColor: "var(--line)",
-                            background: "var(--soft)",
-                            color: "var(--ink)",
-                          }
-                    }
-                  >
-                    {r} km
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* Actions */}
-          <div className="mt-5 flex flex-col gap-2.5">
-            <button
-              type="button"
-              onClick={activate}
-              disabled={!center}
-              className="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-bold text-white disabled:opacity-50"
-              style={{
-                background: "var(--violet)",
-                boxShadow: "0 14px 28px -12px var(--violet-glow)",
-              }}
-            >
-              <MapPin className="size-[18px]" />
-              {tr("Activer cette zone", "تفعيل هذه المنطقة")}
-            </button>
-            <button
-              type="button"
-              onClick={useAroundMe}
-              className="inline-flex h-[48px] w-full items-center justify-center gap-2 rounded-[14px] border border-[var(--line)] text-[14px] font-semibold text-[var(--ink)]"
-            >
-              <Crosshair className="size-[16px]" />
-              {tr("Autour de moi (position GPS)", "حولي (موقع GPS)")}
-            </button>
+            {/* Actions */}
+            <div className="mt-5 flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={activate}
+                disabled={!center}
+                className="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-bold text-white disabled:opacity-50"
+                style={{
+                  background: "var(--violet)",
+                  boxShadow: "0 14px 28px -12px var(--violet-glow)",
+                }}
+              >
+                <MapPin className="size-[18px]" />
+                {tr("Activer cette zone", "تفعيل هذه المنطقة")}
+              </button>
+              <button
+                type="button"
+                onClick={useAroundMe}
+                className="inline-flex h-[48px] w-full items-center justify-center gap-2 rounded-[14px] border border-[var(--line)] text-[14px] font-semibold text-[var(--ink)]"
+              >
+                <Crosshair className="size-[16px]" />
+                {tr("Autour de moi (position GPS)", "حولي (موقع GPS)")}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Portal>
   );
 }
