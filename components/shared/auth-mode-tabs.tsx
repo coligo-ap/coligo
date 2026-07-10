@@ -31,15 +31,17 @@ export function AuthModeTabs({
   loginLabel?: string;
   signupLabel?: string;
 }) {
+  // `min-h-[44px]` : cible tactile minimale au doigt. Le `py-2` seul donnait
+  // 39 px — assez pour l'œil, pas pour le pouce.
   const base =
-    "flex-1 rounded-[10px] px-3 py-2.5 text-center text-[13.5px] font-semibold transition";
+    "flex min-h-[44px] flex-1 items-center justify-center rounded-[10px] px-3 py-2 text-center text-[13.5px] font-semibold transition";
   const active = "bg-white text-foreground shadow-sm";
   const idle = "text-muted hover:text-foreground";
 
   return (
     <nav
       aria-label="Connexion ou création de compte"
-      className="bg-surface-2 border-border mb-6 flex gap-1 rounded-[12px] border p-1"
+      className="bg-surface-2 border-border mb-3 flex gap-1 rounded-[12px] border p-1"
     >
       <Link
         href={loginHref}

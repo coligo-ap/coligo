@@ -53,10 +53,7 @@ export function DriverSignupForm() {
         label={tr("Téléphone", "الهاتف")}
         required
         disabled={pending}
-        hint={tr(
-          "C'est ton identifiant de connexion.",
-          "هذا هو معرّف تسجيل الدخول الخاص بك."
-        )}
+        hint={tr("Ton identifiant de connexion.", "معرّف تسجيل الدخول.")}
       />
 
       <div className="space-y-1.5">

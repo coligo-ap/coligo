@@ -23,7 +23,7 @@ export function PartnerSignupForm() {
   const [locationValid, setLocationValid] = useState(false);
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="space-y-3">
       <div className="space-y-1.5">
         <Label htmlFor="displayName">
           Nom du point de recharge <span className="text-rose-600">*</span>
@@ -109,7 +109,7 @@ export function PartnerSignupForm() {
         <PhoneField
           required
           disabled={pending}
-          hint="Ce numéro vous servira d'identifiant de connexion."
+          hint="Votre identifiant de connexion."
         />
 
         <div className="space-y-1.5">
@@ -152,8 +152,7 @@ export function PartnerSignupForm() {
       </Button>
 
       <p className="text-subtle text-center text-xs">
-        Votre demande sera examinée par Coligo. Vous ajouterez vos documents
-        (registre de commerce, pièce d&apos;identité) juste après.
+        Vous ajouterez vos documents juste après.
       </p>
 
       <p className="text-subtle text-center text-xs">

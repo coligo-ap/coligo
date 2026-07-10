@@ -13,6 +13,7 @@ import { Mail, Lock, ArrowRight } from "lucide-react";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
 import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
+import { AuthCard } from "@/components/shared/auth-card";
 
 const initialState: AuthState = {};
 
@@ -98,96 +99,83 @@ function LoginContent() {
         </aside>
 
         {/* Formulaire à droite */}
-        <main className="bg-surface-2 flex items-center justify-center p-4 lg:col-span-3 lg:bg-white lg:p-12">
-          <div className="w-full max-w-md">
-            {/* Logo mobile uniquement */}
-            <div className="mb-8 flex justify-center lg:hidden">
-              <Logo variant="amber" size="lg" />
-            </div>
-
-            <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
-              <AuthModeTabs
-                mode="login"
-                loginHref="/login"
-                signupHref="/signup"
-              />
-              <div className="mb-6">
-                <h2 className="text-foreground mb-2 text-2xl font-bold lg:text-3xl">
-                  Connexion
-                </h2>
-                <p className="text-muted text-sm lg:text-base">
-                  Connectez-vous pour gérer vos commandes.
-                </p>
-              </div>
-
-              <form action={formAction} className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="vous@exemple.dz"
-                      required
-                      disabled={pending}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Mot de passe</Label>
-                    <Link
-                      href="/login/mot-de-passe-oublie"
-                      className="text-muted hover:text-primary-700 text-xs"
-                    >
-                      Oublié ?
-                    </Link>
-                  </div>
-                  <div className="relative">
-                    <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      autoComplete="current-password"
-                      placeholder="••••••••"
-                      required
-                      disabled={pending}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
-
-                {(state.error || urlErrorMessage) && (
-                  <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
-                    {state.error ?? urlErrorMessage}
-                  </div>
-                )}
-
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full"
+        <AuthCard
+          modeTabs={
+            <AuthModeTabs
+              mode="login"
+              loginHref="/login"
+              signupHref="/signup"
+            />
+          }
+          title="Connexion"
+          subtitle="Gérez vos commandes."
+        >
+          <form action={formAction} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="vous@exemple.dz"
+                  required
                   disabled={pending}
-                >
-                  {pending ? (
-                    "Connexion…"
-                  ) : (
-                    <>
-                      Se connecter
-                      <ArrowRight className="size-4" />
-                    </>
-                  )}
-                </Button>
-              </form>
+                  className="pl-9"
+                />
+              </div>
             </div>
-          </div>
-        </main>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Mot de passe</Label>
+                <Link
+                  href="/login/mot-de-passe-oublie"
+                  className="text-muted hover:text-primary-700 text-xs"
+                >
+                  Oublié ?
+                </Link>
+              </div>
+              <div className="relative">
+                <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  required
+                  disabled={pending}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            {(state.error || urlErrorMessage) && (
+              <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+                {state.error ?? urlErrorMessage}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={pending}
+            >
+              {pending ? (
+                "Connexion…"
+              ) : (
+                <>
+                  Se connecter
+                  <ArrowRight className="size-4" />
+                </>
+              )}
+            </Button>
+          </form>
+        </AuthCard>
       </div>
       <AuthFooter showPortal />
       {/* Petit popup d'installation, persistant jusqu'à l'install (fermable). */}

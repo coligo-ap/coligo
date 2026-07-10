@@ -754,7 +754,8 @@ export function MapPositionPicker({
         onClick={useGps}
         disabled={loading || !mapReady}
         className={cn(
-          "bg-surface border-border absolute right-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow disabled:opacity-60",
+          // `min-h-[44px]` : pastille flottante sur la carte, visée au pouce.
+          "bg-surface border-border absolute right-2 inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow disabled:opacity-60",
           // En plein écran, on remonte le bouton GPS au-dessus de la barre
           // « Confirmer ma position ».
           fullscreen ? "bottom-24" : "bottom-2"

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/shared/logo";
 import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
+import { AuthCard } from "@/components/shared/auth-card";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { SocialAuth } from "@/components/customer/social-auth";
@@ -114,104 +115,96 @@ function CustomerLoginInner() {
           </aside>
 
           {/* Formulaire */}
-          <main className="bg-surface-2 flex items-center justify-center p-4 lg:col-span-3 lg:bg-white lg:p-12">
-            <div className="w-full max-w-md">
-              <div className="mb-8 flex justify-center lg:hidden">
-                <Logo variant="amber" size="lg" />
+          <AuthCard
+            modeTabs={
+              <AuthModeTabs
+                mode="login"
+                loginHref={loginHref}
+                signupHref={signupHref}
+                loginLabel={t("modeLogin")}
+                signupLabel={t("modeSignup")}
+              />
+            }
+            title={t("welcomeBack")}
+            subtitle={t("loginSubtitle")}
+          >
+            <form action={formAction} className="space-y-3">
+              <input type="hidden" name="next" value={next} />
+              <div className="space-y-1.5">
+                <Label htmlFor="email">{t("email")}</Label>
+                <div className="relative">
+                  <Mail className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="vous@exemple.dz"
+                    required
+                    disabled={pending}
+                    className="ps-9"
+                  />
+                </div>
               </div>
 
-              <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
-                <AuthModeTabs
-                  mode="login"
-                  loginHref={loginHref}
-                  signupHref={signupHref}
-                  loginLabel={t("modeLogin")}
-                  signupLabel={t("modeSignup")}
-                />
-                <h2 className="text-foreground mb-1 text-2xl font-bold lg:text-3xl">
-                  {t("welcomeBack")}
-                </h2>
-                <p className="text-muted mb-6 text-sm">{t("loginSubtitle")}</p>
-
-                <form action={formAction} className="space-y-4">
-                  <input type="hidden" name="next" value={next} />
-                  <div className="space-y-1.5">
-                    <Label htmlFor="email">{t("email")}</Label>
-                    <div className="relative">
-                      <Mail className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        autoComplete="email"
-                        placeholder="vous@exemple.dz"
-                        required
-                        disabled={pending}
-                        className="ps-9"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">{t("password")}</Label>
-                      <Link
-                        href="/mot-de-passe-oublie"
-                        className="text-muted hover:text-primary-700 text-xs"
-                      >
-                        {t("forgotShort")}
-                      </Link>
-                    </div>
-                    <div className="relative">
-                      <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                      <Input
-                        id="password"
-                        name="password"
-                        type="password"
-                        autoComplete="current-password"
-                        placeholder="••••••••"
-                        required
-                        disabled={pending}
-                        className="ps-9"
-                      />
-                    </div>
-                  </div>
-
-                  {(state.error || oauthError) && (
-                    <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
-                      {state.error ?? t("googleAuthFailed")}
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full"
-                    disabled={pending}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">{t("password")}</Label>
+                  <Link
+                    href="/mot-de-passe-oublie"
+                    className="text-muted hover:text-primary-700 text-xs"
                   >
-                    {pending ? (
-                      t("signingIn")
-                    ) : (
-                      <>
-                        {t("signIn")}{" "}
-                        <ArrowRight className="size-4 rtl:-scale-x-100" />
-                      </>
-                    )}
-                  </Button>
-                </form>
-
-                <div className="mt-5">
-                  <SocialAuth next={next} />
-                </div>
-
-                <div className="mt-6 text-center text-xs">
-                  <Link href="/" className="text-muted hover:text-foreground">
-                    {t("backToHome")}
+                    {t("forgotShort")}
                   </Link>
                 </div>
+                <div className="relative">
+                  <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    required
+                    disabled={pending}
+                    className="ps-9"
+                  />
+                </div>
               </div>
+
+              {(state.error || oauthError) && (
+                <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+                  {state.error ?? t("googleAuthFailed")}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                disabled={pending}
+              >
+                {pending ? (
+                  t("signingIn")
+                ) : (
+                  <>
+                    {t("signIn")}{" "}
+                    <ArrowRight className="size-4 rtl:-scale-x-100" />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-3">
+              <SocialAuth next={next} />
             </div>
-          </main>
+
+            <div className="mt-4 text-center text-xs">
+              <Link href="/" className="text-muted hover:text-foreground">
+                {t("backToHome")}
+              </Link>
+            </div>
+          </AuthCard>
         </div>
         <AuthFooter />
       </div>

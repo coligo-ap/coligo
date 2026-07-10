@@ -44,7 +44,7 @@ export default async function DriverLoginPage() {
         imageUrl: HERO_IMG,
       }}
       cardTitle="Connexion"
-      cardSubtitle="Accédez à vos livraisons et à vos gains."
+      cardSubtitle="Vos livraisons et vos gains."
       modeTabs={
         <AuthModeTabs
           mode="login"

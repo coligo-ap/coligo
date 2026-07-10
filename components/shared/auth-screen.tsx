@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
-import { Logo } from "@/components/shared/logo";
 import {
   AuthFooter,
   AuthNavBar,
   type AuthVariant,
 } from "@/components/shared/auth-nav";
 import { InstallBanner } from "@/components/pwa/install-banner";
+import { Logo } from "@/components/shared/logo";
+import { AuthCard } from "@/components/shared/auth-card";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
 /**
@@ -99,32 +100,12 @@ export function AuthScreen({
           </p>
         </aside>
 
-        {/* PANNEAU FORMULAIRE DROITE */}
-        <main className="bg-surface-2 flex items-center justify-center p-4 py-8 lg:col-span-3 lg:bg-white lg:p-12">
-          <div className="w-full max-w-md">
-            {/* Logo mobile uniquement */}
-            <div className="mb-8 flex justify-center lg:hidden">
-              <Logo variant="amber" size="lg" />
-            </div>
-
-            {/* CARTE — mobile : bordée/ombrée ; desktop : transparente */}
-            <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
-              {modeTabs}
-              <div className="mb-6">
-                <h2 className="text-foreground mb-2 text-2xl font-bold lg:text-3xl">
-                  {cardTitle}
-                </h2>
-                <p className="text-muted text-sm lg:text-base">
-                  {cardSubtitle}
-                </p>
-              </div>
-
-              {children}
-
-              {footer}
-            </div>
-          </div>
-        </main>
+        {/* PANNEAU FORMULAIRE DROITE — carte partagée avec les portails
+            commerçant et client, qui n'ont pas de `AuthScreen`. */}
+        <AuthCard modeTabs={modeTabs} title={cardTitle} subtitle={cardSubtitle}>
+          {children}
+          {footer}
+        </AuthCard>
       </div>
       <AuthFooter showPortal={showPortal} />
       <InstallBanner label={installLabel} />

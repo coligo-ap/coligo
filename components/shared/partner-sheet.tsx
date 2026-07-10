@@ -70,8 +70,10 @@ const PARTNER_ROLES: PartnerRole[] = [
  * + bottom sheet de sélection du profil partenaire. Remplace les anciens
  * boutons « Je suis commerçant / Je suis chauffeur » du bandeau d'auth.
  */
+// `min-h-[44px]` : ce bouton vit dans le bandeau des écrans d'auth, où il est la
+// seule cible tactile à côté du logo. Il faisait 30 px de haut.
 const DEFAULT_TRIGGER_CLASS =
-  "border-primary-600 text-primary-700 hover:bg-primary-600/10 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium transition-colors lg:text-sm";
+  "border-primary-600 text-primary-700 hover:bg-primary-600/10 inline-flex min-h-[44px] items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium transition-colors lg:text-sm";
 
 export function PartnerSheetButton({
   label = "Espaces partenaires",

@@ -31,7 +31,7 @@ export default async function ChauffeurSignupPage() {
             Coligo Drive.
           </>
         ),
-        subtitle: "Inscrivez-vous et commencez à transporter des passagers.",
+        subtitle: "Transportez des passagers avec Coligo Drive.",
         features: [
           "Inscription rapide en quelques étapes",
           "Choisissez la gamme de votre véhicule",
@@ -41,7 +41,7 @@ export default async function ChauffeurSignupPage() {
         imageUrl: HERO_IMG,
       }}
       cardTitle="Créer mon compte"
-      cardSubtitle="Renseignez vos informations pour créer votre compte chauffeur, puis ajoutez vos documents."
+      cardSubtitle="Vos informations, puis vos documents."
       modeTabs={
         <AuthModeTabs
           mode="signup"

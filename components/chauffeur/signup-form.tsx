@@ -65,8 +65,8 @@ export function ChauffeurSignupForm({
         </div>
       )}
 
-      <form action={action} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+      <form action={action} className="space-y-3">
+        <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1.5">
             <Label htmlFor="last_name">
               Nom <span className="text-rose-600">*</span>
@@ -98,7 +98,7 @@ export function ChauffeurSignupForm({
         <PhoneField
           required
           disabled={pending}
-          hint="C'est ton identifiant de connexion."
+          hint="Ton identifiant de connexion."
         />
 
         <div className="space-y-1.5">
@@ -157,8 +157,8 @@ export function ChauffeurSignupForm({
                 disabled={pending}
                 className={
                   gamme === k
-                    ? "border-primary-600 bg-primary-50 text-primary-700 rounded-[10px] border px-2 py-2 text-sm font-semibold"
-                    : "border-border text-foreground hover:bg-surface-2 rounded-[10px] border px-2 py-2 text-sm"
+                    ? "border-primary-600 bg-primary-50 text-primary-700 min-h-[44px] rounded-[10px] border px-2 text-sm font-semibold"
+                    : "border-border text-foreground hover:bg-surface-2 min-h-[44px] rounded-[10px] border px-2 text-sm"
                 }
               >
                 {label}

@@ -31,7 +31,7 @@ export default function DriverSignupPage() {
         imageUrl: HERO_IMG,
       }}
       cardTitle="Créer mon compte"
-      cardSubtitle="Renseignez vos informations pour créer votre compte livreur."
+      cardSubtitle="Quelques informations, et c'est parti."
       modeTabs={
         <AuthModeTabs
           mode="signup"

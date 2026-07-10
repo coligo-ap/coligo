@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/shared/logo";
 import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
+import { AuthCard } from "@/components/shared/auth-card";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { InstallBanner } from "@/components/pwa/install-banner";
@@ -77,149 +78,141 @@ function CustomerSignupInner() {
             </p>
           </aside>
 
-          <main className="bg-surface-2 flex items-center justify-center p-4 lg:col-span-3 lg:bg-white lg:p-12">
-            <div className="w-full max-w-md">
-              <div className="mb-8 flex justify-center lg:hidden">
-                <Logo variant="amber" size="lg" />
-              </div>
+          <AuthCard
+            modeTabs={
+              <AuthModeTabs
+                mode="signup"
+                loginHref={loginHref}
+                signupHref={signupHref}
+                loginLabel={t("modeLogin")}
+                signupLabel={t("modeSignup")}
+              />
+            }
+            title={t("welcome")}
+            subtitle={t("signupSubtitle")}
+          >
+            <form action={formAction} className="space-y-3">
+              <input type="hidden" name="next" value={next} />
+              <Field
+                id="full_name"
+                label={t("fullName")}
+                icon={User}
+                inputProps={{
+                  name: "full_name",
+                  required: true,
+                  minLength: 2,
+                  maxLength: 80,
+                  autoComplete: "name",
+                  placeholder: t("fullNamePlaceholder"),
+                }}
+                disabled={pending}
+              />
 
-              <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
-                <AuthModeTabs
-                  mode="signup"
-                  loginHref={loginHref}
-                  signupHref={signupHref}
-                  loginLabel={t("modeLogin")}
-                  signupLabel={t("modeSignup")}
-                />
-                <h2 className="text-foreground mb-1 text-2xl font-bold lg:text-3xl">
-                  {t("welcome")}
-                </h2>
-                <p className="text-muted mb-6 text-sm">{t("signupSubtitle")}</p>
+              <Field
+                id="phone"
+                label={t("phone")}
+                hint={t("phoneHint")}
+                icon={Phone}
+                inputProps={{
+                  name: "phone",
+                  type: "tel",
+                  required: true,
+                  autoComplete: "tel",
+                  placeholder: "0550 12 34 56",
+                  inputMode: "tel",
+                }}
+                disabled={pending}
+              />
 
-                <form action={formAction} className="space-y-4">
-                  <input type="hidden" name="next" value={next} />
-                  <Field
-                    id="full_name"
-                    label={t("fullName")}
-                    icon={User}
-                    inputProps={{
-                      name: "full_name",
-                      required: true,
-                      minLength: 2,
-                      maxLength: 80,
-                      autoComplete: "name",
-                      placeholder: t("fullNamePlaceholder"),
-                    }}
-                    disabled={pending}
-                  />
+              <Field
+                id="email"
+                label={t("email")}
+                icon={Mail}
+                inputProps={{
+                  name: "email",
+                  type: "email",
+                  required: true,
+                  autoComplete: "email",
+                  placeholder: "vous@exemple.dz",
+                }}
+                disabled={pending}
+              />
 
-                  <Field
-                    id="phone"
-                    label={t("phone")}
-                    hint={t("phoneHint")}
-                    icon={Phone}
-                    inputProps={{
-                      name: "phone",
-                      type: "tel",
-                      required: true,
-                      autoComplete: "tel",
-                      placeholder: "0550 12 34 56",
-                      inputMode: "tel",
-                    }}
-                    disabled={pending}
-                  />
+              <Field
+                id="password"
+                label={t("password")}
+                hint={t("passwordHint")}
+                icon={Lock}
+                inputProps={{
+                  name: "password",
+                  type: "password",
+                  required: true,
+                  minLength: 8,
+                  autoComplete: "new-password",
+                  placeholder: "••••••••",
+                }}
+                disabled={pending}
+              />
 
-                  <Field
-                    id="email"
-                    label={t("email")}
-                    icon={Mail}
-                    inputProps={{
-                      name: "email",
-                      type: "email",
-                      required: true,
-                      autoComplete: "email",
-                      placeholder: "vous@exemple.dz",
-                    }}
-                    disabled={pending}
-                  />
-
-                  <Field
-                    id="password"
-                    label={t("password")}
-                    hint={t("passwordHint")}
-                    icon={Lock}
-                    inputProps={{
-                      name: "password",
-                      type: "password",
-                      required: true,
-                      minLength: 8,
-                      autoComplete: "new-password",
-                      placeholder: "••••••••",
-                    }}
-                    disabled={pending}
-                  />
-
-                  {state.error && (
-                    <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
-                      {state.error}
-                    </div>
-                  )}
-                  {state.success && (
-                    <div className="border-success-200 bg-success-50 text-success-800 rounded-[10px] border px-3 py-2.5 text-sm">
-                      {state.success}
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full"
-                    disabled={pending}
-                  >
-                    {pending ? (
-                      t("creating")
-                    ) : (
-                      <>
-                        {t("createMyAccount")}{" "}
-                        <ArrowRight className="size-4 rtl:-scale-x-100" />
-                      </>
-                    )}
-                  </Button>
-
-                  <p className="text-subtle pt-1 text-center text-xs">
-                    {t.rich("signupConsent", {
-                      cgu: (chunks) => (
-                        <Link
-                          href="/cgu"
-                          className="text-primary-700 font-medium hover:underline"
-                        >
-                          {chunks}
-                        </Link>
-                      ),
-                      privacy: (chunks) => (
-                        <Link
-                          href="/confidentialite"
-                          className="text-primary-700 font-medium hover:underline"
-                        >
-                          {chunks}
-                        </Link>
-                      ),
-                    })}
-                  </p>
-                </form>
-
-                <div className="mt-5">
-                  <SocialAuth next={next} />
+              {state.error && (
+                <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+                  {state.error}
                 </div>
-
-                <div className="mt-6 text-center text-xs">
-                  <Link href="/" className="text-muted hover:text-foreground">
-                    {t("backToHome")}
-                  </Link>
+              )}
+              {state.success && (
+                <div className="border-success-200 bg-success-50 text-success-800 rounded-[10px] border px-3 py-2.5 text-sm">
+                  {state.success}
                 </div>
-              </div>
+              )}
+
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                disabled={pending}
+              >
+                {pending ? (
+                  t("creating")
+                ) : (
+                  <>
+                    {t("createMyAccount")}{" "}
+                    <ArrowRight className="size-4 rtl:-scale-x-100" />
+                  </>
+                )}
+              </Button>
+
+              <p className="text-subtle pt-1 text-center text-xs">
+                {t.rich("signupConsent", {
+                  cgu: (chunks) => (
+                    <Link
+                      href="/cgu"
+                      className="text-primary-700 font-medium hover:underline"
+                    >
+                      {chunks}
+                    </Link>
+                  ),
+                  privacy: (chunks) => (
+                    <Link
+                      href="/confidentialite"
+                      className="text-primary-700 font-medium hover:underline"
+                    >
+                      {chunks}
+                    </Link>
+                  ),
+                })}
+              </p>
+            </form>
+
+            <div className="mt-3">
+              <SocialAuth next={next} />
             </div>
-          </main>
+
+            <div className="mt-4 text-center text-xs">
+              <Link href="/" className="text-muted hover:text-foreground">
+                {t("backToHome")}
+              </Link>
+            </div>
+          </AuthCard>
         </div>
         <AuthFooter />
       </div>

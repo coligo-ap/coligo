@@ -36,7 +36,7 @@ export default async function PartnerSignupPage() {
         imageUrl: HERO_IMG,
       }}
       cardTitle="Demande de partenariat"
-      cardSubtitle="Renseignez les informations de votre point de recharge. Coligo examinera votre dossier avant activation."
+      cardSubtitle="Votre point de recharge. Dossier examiné avant activation."
       modeTabs={
         <AuthModeTabs
           mode="signup"

@@ -30,7 +30,7 @@ export default function ChauffeurLoginPage() {
         imageUrl: HERO_IMG,
       }}
       cardTitle="Connexion"
-      cardSubtitle="Accédez à vos courses et à vos gains."
+      cardSubtitle="Vos courses et vos gains."
       modeTabs={
         <AuthModeTabs
           mode="login"

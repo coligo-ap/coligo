@@ -34,7 +34,7 @@ export default async function PartnerLoginPage() {
         imageUrl: HERO_IMG,
       }}
       cardTitle="Connexion"
-      cardSubtitle="Accédez à votre solde et à vos ventes de crédit."
+      cardSubtitle="Votre solde et vos ventes de crédit."
       modeTabs={
         <AuthModeTabs
           mode="login"

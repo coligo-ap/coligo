@@ -21,7 +21,7 @@ const initial: ChauffeurAuthState = {};
 export function ChauffeurLoginForm() {
   const [state, action, pending] = useActionState(chauffeurLogin, initial);
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="space-y-3">
       <PhoneField required disabled={pending} />
 
       <div className="space-y-1.5">

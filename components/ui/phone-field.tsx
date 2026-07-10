@@ -129,7 +129,9 @@ export function PhoneField({
         aria-invalid={Boolean(shownError)}
         aria-describedby={shownError ? `${fieldId}-error` : undefined}
         placeholder={dial === "+213" ? "06 12 34 56 78" : "Numéro"}
-        className="text-foreground placeholder:text-subtle w-full bg-transparent text-sm font-semibold outline-none disabled:cursor-not-allowed"
+        // `h-full` : sans lui, l'input ne fait que la hauteur de sa ligne (20 px)
+        // dans un conteneur de 48 — on ne peut le viser qu'au pixel près.
+        className="text-foreground placeholder:text-subtle h-full w-full bg-transparent text-sm font-semibold outline-none disabled:cursor-not-allowed"
       />
 
       {valid && (
