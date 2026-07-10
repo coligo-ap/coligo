@@ -42,6 +42,13 @@ async function fund(ownerType, ownerId, amount = 500000) {
     "INSERT INTO operator_wallet_entries (wallet_id, type, amount_da, note) VALUES ($1,'topup_manual',$2,'verify')",
     [wid, amount]
   );
+  // `operator_can_operate` refuse un portefeuille non `active` AVANT même de
+  // regarder le solde : créditer ne suffit pas. Le livreur de test traînait un
+  // statut `suspended` posé hors des tests, ce qui faisait échouer l'attribution
+  // sur « Solde insuffisant » — un message trompeur. Tout est annulé au ROLLBACK.
+  await c.query("UPDATE operator_wallets SET status='active' WHERE id=$1", [
+    wid,
+  ]);
 }
 const orderField = async (id, col) =>
   (await c.query(`SELECT ${col} v FROM orders WHERE id=$1`, [id])).rows[0].v;

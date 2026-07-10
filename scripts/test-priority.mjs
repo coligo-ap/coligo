@@ -182,6 +182,11 @@ try {
     await candidate("drive", RLAT, RLNG, 8, chB),
     false
   );
+  // La course 1 doit être CLOSE avant d'en ouvrir une seconde : un client n'a
+  // droit qu'à une course active à la fois (index unique
+  // `uq_rides_one_active_per_customer`, postérieur à ce test). Sans cela,
+  // l'insertion ci-dessous viole la contrainte au lieu de tester le dispatch.
+  await c.query("UPDATE rides SET status='cancelled' WHERE id=$1", [ride1.id]);
   const ride2 = await mkRide();
   const offB3 = await offer(B_USER, ride2.id, 500);
   ok(
