@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.ViewGroup;
+import android.webkit.CookieManager;
 import android.webkit.WebView;
 
 import androidx.core.app.ActivityCompat;
@@ -215,12 +216,38 @@ public class MainActivity extends BridgeActivity {
     if (animationDone && pageVisible) intro.dismiss(restoreBars);
   }
 
-  // `public` et non `protected` : BridgeActivity l'expose en public, un
-  // override plus restrictif ne compile pas.
+  /**
+   * Écrit les cookies de la WebView sur le disque.
+   *
+   * POURQUOI : Android garde les cookies en mémoire et ne les persiste qu'à
+   * intervalles. Un « swipe kill » tue le processus avant cette écriture — et
+   * la session Supabase, qui vit dans des cookies (`@supabase/ssr`), disparaît.
+   * L'utilisateur rouvrait l'app déconnecté, alors que ses cookies portent bien
+   * un `Max-Age` de 380 jours (cf. `lib/supabase/session-config.ts`).
+   *
+   * `onPause()` est le dernier point de vie GARANTI par Android : `onStop()` et
+   * `onDestroy()` peuvent ne jamais être appelés si le système tue le processus.
+   */
+  private void flushCookies() {
+    try {
+      CookieManager.getInstance().flush();
+    } catch (Throwable e) {
+      // Une WebView pas encore initialisée ne doit pas faire tomber l'activité.
+      Log.w(TAG, "flush des cookies impossible", e);
+    }
+  }
+
+  @Override
+  public void onPause() {
+    super.onPause();
+    flushCookies();
+  }
+
   // `public` et non `protected` : BridgeActivity l'expose en public, un
   // override plus restrictif ne compile pas.
   @Override
   public void onDestroy() {
+    flushCookies();
     ui.removeCallbacksAndMessages(null);
     restoreBars.run();
     intro = null;
