@@ -31,7 +31,7 @@ export default function DriverSignupPage() {
         imageUrl: HERO_IMG,
       }}
       cardTitle="Créer mon compte"
-      cardSubtitle="Renseignez vos informations pour créer votre compte livreur. Vous serez ensuite guidé pour transmettre vos documents à l'équipe Coligo."
+      cardSubtitle="Renseignez vos informations pour créer votre compte livreur."
       modeTabs={
         <AuthModeTabs
           mode="signup"
