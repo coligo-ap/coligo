@@ -20,6 +20,7 @@ import {
 import {
   kycReport,
   requiredDocTypes,
+  idDocKindOf,
   isAdult,
   isMotorized,
   VEHICLE_TYPES,
@@ -1052,6 +1053,11 @@ export async function saveDriverKycProfile(
   // Changer de véhicule pour un non motorisé purge les champs devenus sans objet.
   const motorized = isMotorized(vehicleType);
 
+  // ON N'ÉCRIT QUE CE QUE LE FORMULAIRE A ENVOYÉ. Adresse, numéro de pièce,
+  // NIN et année du véhicule ne sont plus demandés au livreur, mais restent
+  // affichés côté super-admin : un `update` inconditionnel les remettrait à
+  // `null` au premier enregistrement, effaçant ce que les livreurs déjà inscrits
+  // avaient saisi.
   const admin = createAdminClient();
   const { error } = await admin
     .from("drivers")
@@ -1059,16 +1065,24 @@ export async function saveDriverKycProfile(
       full_name: fullName ?? g.gate.fullName,
       date_of_birth: dob,
       wilaya,
-      address: txt(formData.get("address")),
-      id_card_number: txt(formData.get("id_card_number")),
-      national_id_number: txt(formData.get("national_id_number")),
       email: txt(formData.get("email")),
       vehicle_type: vehicleType,
       vehicle_brand: txt(formData.get("vehicle_brand")),
       vehicle_model: txt(formData.get("vehicle_model")),
       vehicle_plate: motorized ? txt(formData.get("vehicle_plate")) : null,
       vehicle_color: txt(formData.get("vehicle_color")),
-      vehicle_year: int(formData.get("vehicle_year")),
+      ...(formData.has("address")
+        ? { address: txt(formData.get("address")) }
+        : {}),
+      ...(formData.has("id_card_number")
+        ? { id_card_number: txt(formData.get("id_card_number")) }
+        : {}),
+      ...(formData.has("national_id_number")
+        ? { national_id_number: txt(formData.get("national_id_number")) }
+        : {}),
+      ...(formData.has("vehicle_year")
+        ? { vehicle_year: int(formData.get("vehicle_year")) }
+        : {}),
     })
     .eq("id", g.gate.id);
   if (error) return { error: error.message };
@@ -1241,9 +1255,12 @@ export async function submitDriverDossier(): Promise<{
     };
   }
   // Ceinture et bretelles : la liste des pièces attendues doit être couverte.
-  const missingDocs = requiredDocTypes(prof.vehicle_type).filter(
-    (t) => !present[t]
-  );
+  // La nature de la pièce d'identité se relit de ce qui a été déposé — c'est la
+  // même règle que celle affichée au livreur, jamais une seconde définition.
+  const missingDocs = requiredDocTypes(
+    prof.vehicle_type,
+    idDocKindOf(present)
+  ).filter((t) => !present[t]);
   if (missingDocs.length > 0) {
     return { ok: false, error: "Des pièces obligatoires sont manquantes." };
   }

@@ -41,6 +41,27 @@ export function isMotorized(vehicleType: string | null | undefined): boolean {
   return VEHICLE_TYPES.some((v) => v.value === vehicleType && v.motorized);
 }
 
+/**
+ * Natures acceptées pour LA pièce d'identité. Le livreur en choisit une et
+ * dépose la photo correspondante ; le choix n'a pas de colonne dédiée, il se
+ * relit de la pièce effectivement déposée (`idDocKindOf`). Un livreur qui
+ * reprend son dossier plus tard retrouve donc son choix sans qu'on l'ait stocké.
+ */
+export const ID_DOC_KINDS = [
+  { value: "cni", label: "Carte d'identité" },
+  { value: "passeport", label: "Passeport" },
+  { value: "permis", label: "Permis de conduire" },
+] as const satisfies readonly { value: DriverDocType; label: string }[];
+
+export type IdDocKind = (typeof ID_DOC_KINDS)[number]["value"];
+
+export const DEFAULT_ID_DOC_KIND: IdDocKind = "cni";
+
+/** Retrouve la nature de pièce choisie, d'après ce qui a été déposé. */
+export function idDocKindOf(docs: KycDocs): IdDocKind {
+  return ID_DOC_KINDS.find((k) => docs[k.value])?.value ?? DEFAULT_ID_DOC_KIND;
+}
+
 export type KycProfile = {
   full_name: string | null;
   date_of_birth: string | null;
@@ -130,7 +151,18 @@ function section(
  * l'envoi est autorisé. Appelée à l'identique côté client (affichage) et côté
  * serveur (autorisation d'envoi) — jamais deux règles différentes.
  */
-export function kycReport(profile: KycProfile, docs: KycDocs): KycReport {
+export function kycReport(
+  profile: KycProfile,
+  docs: KycDocs,
+  /**
+   * Nature de pièce d'identité choisie. Le formulaire passe la sélection en
+   * cours — sinon l'écran annoncerait « identité complète » alors que
+   * l'emplacement affiché est vide, parce qu'une AUTRE pièce acceptée (le
+   * permis, déposé pour le véhicule) suffirait. Le serveur, lui, n'a pas cette
+   * sélection : il relit la pièce réellement déposée.
+   */
+  idKind: IdDocKind = idDocKindOf(docs)
+): KycReport {
   const motorized = isMotorized(profile.vehicle_type);
 
   const personal = section("personal", "Informations personnelles", [
@@ -158,19 +190,13 @@ export function kycReport(profile: KycProfile, docs: KycDocs): KycReport {
       required: true,
       done: filled(profile.wilaya),
     },
+    // Une seule pièce d'identité, de la nature choisie par le livreur.
     {
-      key: "address",
-      label: "Adresse",
+      key: "doc_id",
+      label: DOC_LABELS.cni,
       required: true,
-      done: filled(profile.address),
+      done: !!docs[idKind],
     },
-    {
-      key: "id_card_number",
-      label: "Numéro de pièce d'identité",
-      required: true,
-      done: filled(profile.id_card_number),
-    },
-    { key: "doc_cni", label: DOC_LABELS.cni, required: true, done: !!docs.cni },
     {
       key: "doc_selfie",
       label: DOC_LABELS.selfie,
@@ -182,12 +208,6 @@ export function kycReport(profile: KycProfile, docs: KycDocs): KycReport {
       label: "Adresse e-mail",
       required: false,
       done: filled(profile.email),
-    },
-    {
-      key: "national_id_number",
-      label: "Numéro national (NIN)",
-      required: false,
-      done: filled(profile.national_id_number),
     },
   ]);
 
@@ -217,6 +237,12 @@ export function kycReport(profile: KycProfile, docs: KycDocs): KycReport {
       done: filled(profile.vehicle_plate),
     },
     {
+      key: "vehicle_color",
+      label: "Couleur",
+      required: motorized,
+      done: filled(profile.vehicle_color),
+    },
+    {
       key: "doc_permis",
       label: DOC_LABELS.permis,
       required: motorized,
@@ -233,18 +259,6 @@ export function kycReport(profile: KycProfile, docs: KycDocs): KycReport {
       label: DOC_LABELS.assurance,
       required: motorized,
       done: !!docs.assurance,
-    },
-    {
-      key: "vehicle_color",
-      label: "Couleur",
-      required: false,
-      done: filled(profile.vehicle_color),
-    },
-    {
-      key: "vehicle_year",
-      label: "Année de mise en circulation",
-      required: false,
-      done: filled(profile.vehicle_year),
     },
   ]);
 
@@ -265,12 +279,24 @@ export function kycReport(profile: KycProfile, docs: KycDocs): KycReport {
   };
 }
 
-/** Pièces attendues dans le dossier, selon le type de véhicule. */
+/**
+ * Pièces attendues, selon le type de véhicule et la nature de pièce d'identité
+ * choisie. Un livreur motorisé qui présente son permis comme pièce d'identité ne
+ * le dépose qu'une fois : `permis` figure alors dans les deux exigences.
+ */
 export function requiredDocTypes(
-  vehicleType: string | null | undefined
+  vehicleType: string | null | undefined,
+  idKind: IdDocKind = DEFAULT_ID_DOC_KIND
 ): DriverDocType[] {
-  const base: DriverDocType[] = ["cni", "selfie"];
+  const base: DriverDocType[] = [idKind, "selfie"];
   return isMotorized(vehicleType)
-    ? [...base, "permis", "carte_grise", "assurance"]
+    ? [
+        ...new Set<DriverDocType>([
+          ...base,
+          "permis",
+          "carte_grise",
+          "assurance",
+        ]),
+      ]
     : base;
 }
