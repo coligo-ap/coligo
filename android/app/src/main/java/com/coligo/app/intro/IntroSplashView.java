@@ -170,6 +170,17 @@ public class IntroSplashView extends View {
     private final Paint flat = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     /**
+     * Pastille de version, coin bas-gauche. Repère de build DISCRET pour le test
+     * terrain : d'un coup d'œil on sait quelle APK tourne (utile quand le Play
+     * Store met du temps à servir la dernière version). Lue depuis BuildConfig du
+     * flavor — donc toujours exacte, jamais à recopier à la main.
+     */
+    private final Paint versionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final String versionLabel =
+        "v" + com.coligo.app.BuildConfig.VERSION_NAME
+            + " (" + com.coligo.app.BuildConfig.VERSION_CODE + ")";
+
+    /**
      * Les acteurs. La voiture est dessinée SANS ses pneus : un VectorDrawable se
      * dessine d'un bloc, impossible d'animer une seule de ses formes — or les
      * roues avant doivent braquer. Le Canvas les pose lui-même.
@@ -236,6 +247,12 @@ public class IntroSplashView extends View {
         setClickable(true);
         setFocusable(true);
         density = context.getResources().getDisplayMetrics().density;
+
+        // Gris tendre à 35 % sur le fond blanc de l'intro : lisible mais discret,
+        // ne mange pas la scène.
+        versionPaint.setColor(0x59000000);
+        versionPaint.setTextSize(11f * density);
+        versionPaint.setTextAlign(Paint.Align.LEFT);
 
         Bitmap b = null;
         try {
@@ -476,6 +493,7 @@ public class IntroSplashView extends View {
             // Pas de marque : on garde au moins la scène, jamais un écran mort.
             // Et la trace est dans logcat.
             drawScene(canvas, t, now);
+            drawVersion(canvas);
             postInvalidateOnAnimation();
             return;
         }
@@ -483,6 +501,7 @@ public class IntroSplashView extends View {
         drawWordmark(canvas, t);
         drawScene(canvas, t, now);
         drawDots(canvas, t, now);
+        drawVersion(canvas);
 
         if (!entranceReported && t >= ENTRANCE_MS) {
             entranceReported = true;
@@ -836,6 +855,17 @@ public class IntroSplashView extends View {
             flat.setAlpha(Math.round(255 * a * (0.28f + 0.72f * bob)));
             c.drawCircle(cx + (i - 1) * gapX, y, r * (0.82f + 0.18f * bob), flat);
         }
+    }
+
+    /**
+     * La pastille de version, ancrée au coin bas-gauche. Dessinée EN DERNIER, par-
+     * dessus la scène, pour rester lisible même si un arbre du premier plan passe
+     * dessous. Décalée du bord d'assez pour ne pas tomber sous la barre de
+     * navigation gestuelle.
+     */
+    private void drawVersion(Canvas c) {
+        if (getHeight() == 0) return;
+        c.drawText(versionLabel, 14f * density, getHeight() - 20f * density, versionPaint);
     }
 
     // ------------------------------------------------------------------ outils
