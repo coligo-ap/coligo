@@ -61,6 +61,7 @@
     "test:load:purge": "node scripts/loadtest/purge.mjs",
     "android:assets": "node scripts/android-assets.mjs",
     "play:cert": "node scripts/play-signing-cert.mjs",
+    "play:status": "node scripts/play-status.mjs",
     "build:client:aab": "node scripts/build-client-aab.mjs",
     "cap:sync": "cap sync android",
     "cap:sync:prod": "node scripts/cap-sync.mjs prod",
