@@ -130,7 +130,12 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 {req.title}
               </h2>
               {req.message && (
-                <p className="text-muted mt-1.5 text-sm leading-relaxed">
+                // `whitespace-pre-line` : les messages longs (avertissement
+                // no-show, conséquences financières…) sont écrits en plusieurs
+                // paragraphes séparés par des sauts de ligne. Sans lui, ils
+                // s'écrasent en un bloc compact, illisible au moment précis où
+                // l'utilisateur doit lire.
+                <p className="text-muted mt-1.5 text-sm leading-relaxed whitespace-pre-line">
                   {req.message}
                 </p>
               )}

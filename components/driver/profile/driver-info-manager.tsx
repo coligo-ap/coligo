@@ -10,7 +10,8 @@ import {
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { toast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm";
+import { PartnerInlineError } from "@/components/shared/partner-ui";
 import {
   saveDriverVehicleSelf,
   submitDriverDocument,
@@ -22,17 +23,18 @@ import {
 
 type ActionState = { ok?: boolean; error?: string };
 
+/**
+ * Ce que le livreur voit et modifie de son véhicule. `vehicle_year`,
+ * `national_id_number`, `id_card_number` et `address` n'en font plus partie :
+ * ils restent en base, consultables par le super-admin.
+ */
 export type SelfVehicle = {
   vehicle_type: string | null;
   vehicle_brand: string | null;
   vehicle_model: string | null;
   vehicle_color: string | null;
-  vehicle_year: number | null;
   vehicle_plate: string | null;
-  national_id_number: string | null;
-  id_card_number: string | null;
   wilaya: string | null;
-  address: string | null;
 };
 export type SelfDoc = {
   id: string;
@@ -385,23 +387,17 @@ function VehicleSection({
     verified ? proposeVehicleChange : saveDriverVehicleSelf,
     {}
   );
+  // Pas de toast de succès : le bouton passe au vert et affiche « ✓ Envoyée »
+  // ou « ✓ Enregistré ». Un toast en plus répéterait la même information au
+  // même instant, sur le même écran.
   useEffect(() => {
     if (state.ok) {
       setOk(true);
-      toast.success(
-        verified
-          ? tr(
-              "Demande envoyée — en cours de vérification",
-              "تم إرسال الطلب — قيد التحقق"
-            )
-          : tr("Enregistré", "تم الحفظ")
-      );
       router.refresh();
       const t = setTimeout(() => setOk(false), 2500);
       return () => clearTimeout(t);
     }
-    if (state.error) toast.error(state.error);
-  }, [state, router, verified]);
+  }, [state, router]);
 
   const badge = <StatusPill verified={verified} pending={pending} />;
 
@@ -471,41 +467,16 @@ function VehicleSection({
             onChange={set("vehicle_color")}
           />
         </Row>
-        <Row>
-          <CField
-            name="vehicle_year"
-            label={tr("Année", "السنة")}
-            type="number"
-            value={v.vehicle_year ? String(v.vehicle_year) : ""}
-            onChange={set("vehicle_year")}
-          />
-          <CField
-            name="wilaya"
-            label={tr("Wilaya", "الولاية")}
-            value={v.wilaya}
-            onChange={set("wilaya")}
-          />
-        </Row>
-        <Row>
-          <CField
-            name="id_card_number"
-            label={tr("N° carte d'identité", "رقم بطاقة التعريف")}
-            value={v.id_card_number}
-            onChange={set("id_card_number")}
-          />
-          <CField
-            name="national_id_number"
-            label={tr("N° national", "الرقم الوطني")}
-            value={v.national_id_number}
-            onChange={set("national_id_number")}
-          />
-        </Row>
+        {/* Année du véhicule, n° de pièce, n° national et adresse ne sont plus
+            demandés au livreur : ils restent en base et visibles du super-admin.
+            Les actions serveur n'écrivent que les clés réellement soumises. */}
         <CField
-          name="address"
-          label={tr("Adresse", "العنوان")}
-          value={v.address}
-          onChange={set("address")}
+          name="wilaya"
+          label={tr("Wilaya", "الولاية")}
+          value={v.wilaya}
+          onChange={set("wilaya")}
         />
+        <PartnerInlineError>{state.error}</PartnerInlineError>
         <SubmitBtn
           idle={
             verified
@@ -536,17 +507,7 @@ function VehicleReadonly({ v }: { v: SelfVehicle }) {
       />
       <KV k={tr("Immatriculation", "رقم التسجيل")} v={v.vehicle_plate} />
       <KV k={tr("Couleur", "اللون")} v={v.vehicle_color} />
-      <KV
-        k={tr("Année", "السنة")}
-        v={v.vehicle_year ? String(v.vehicle_year) : null}
-      />
-      <KV
-        k={tr("N° carte d'identité", "رقم بطاقة التعريف")}
-        v={v.id_card_number}
-      />
-      <KV k={tr("N° national", "الرقم الوطني")} v={v.national_id_number} />
       <KV k={tr("Wilaya", "الولاية")} v={v.wilaya} />
-      <KV k={tr("Adresse", "العنوان")} v={v.address} />
     </>
   );
 }
@@ -658,16 +619,11 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
     });
   };
 
+  // Succès annoncé par le bouton (« ✓ Envoyée ») ; erreur affichée sous lui.
   useEffect(() => {
     if (state.ok) {
       setOk(true);
       clearPreview();
-      toast.success(
-        tr(
-          "Pièce envoyée — en cours de vérification",
-          "تم إرسال الوثيقة — قيد التحقق"
-        )
-      );
       router.refresh();
       const t = setTimeout(() => {
         setOk(false);
@@ -675,7 +631,6 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
       }, 1300);
       return () => clearTimeout(t);
     }
-    if (state.error) toast.error(state.error);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, router]);
 
@@ -915,6 +870,7 @@ function DocsSection({ documents }: { documents: SelfDoc[] }) {
               "بمجرد الإرسال، تصبح الوثيقة «قيد التحقق» ولا يمكن تعديلها أو حذفها."
             )}
           </p>
+          <PartnerInlineError>{state.error}</PartnerInlineError>
           <div style={{ display: "flex", gap: 8 }}>
             <SubmitBtn
               idle={tr("Envoyer", "إرسال")}
@@ -963,21 +919,19 @@ function PayoutsSection({
   const [adding, setAdding] = useState(false);
   const [del, startDel] = useTransition();
   const [ok, setOk] = useState(false);
+  // Confirmation DESSINÉE (cf. components/ui/confirm.tsx), plus la boîte native
+  // du navigateur : l'espace livreur monte désormais son `ConfirmProvider`.
+  const confirm = useConfirm();
+  // Échec de suppression : affiché dans la carte du moyen concerné, pas en toast.
+  const [delError, setDelError] = useState<string | null>(null);
   const [state, action] = useActionState<ActionState, FormData>(
     verified ? proposePayoutChange : addDriverPayoutSelf,
     {}
   );
+  // Succès annoncé par le bouton (« ✓ Envoyée » / « ✓ Ajouté »).
   useEffect(() => {
     if (state.ok) {
       setOk(true);
-      toast.success(
-        verified
-          ? tr(
-              "Demande envoyée — en cours de vérification",
-              "تم إرسال الطلب — قيد التحقق"
-            )
-          : tr("Moyen ajouté", "تمت إضافة الطريقة")
-      );
       router.refresh();
       const t = setTimeout(() => {
         setOk(false);
@@ -985,8 +939,7 @@ function PayoutsSection({
       }, 1300);
       return () => clearTimeout(t);
     }
-    if (state.error) toast.error(state.error);
-  }, [state, router, verified]);
+  }, [state, router]);
 
   return (
     <Section
@@ -1027,16 +980,26 @@ function PayoutsSection({
             <button
               type="button"
               onClick={() => {
-                if (!confirm(tr("Supprimer ce moyen ?", "حذف هذه الطريقة؟")))
-                  return;
-                startDel(async () => {
-                  const r = await deleteDriverPayoutSelf(p.id);
-                  if (r.error) toast.error(r.error);
-                  else {
-                    toast.success(tr("Supprimé", "تم الحذف"));
-                    router.refresh();
-                  }
-                });
+                void (async () => {
+                  const yes = await confirm({
+                    title: tr("Supprimer ce moyen ?", "حذف هذه الطريقة؟"),
+                    message: tr(
+                      "Vos versements ne pourront plus être envoyés vers ce compte.",
+                      "لن تُرسل مدفوعاتك إلى هذا الحساب بعد الآن."
+                    ),
+                    confirmLabel: tr("Supprimer", "حذف"),
+                    danger: true,
+                  });
+                  if (!yes) return;
+                  setDelError(null);
+                  startDel(async () => {
+                    const r = await deleteDriverPayoutSelf(p.id);
+                    // Succès : la ligne disparaît de la liste — pas besoin de
+                    // l'annoncer une seconde fois.
+                    if (r.error) setDelError(r.error);
+                    else router.refresh();
+                  });
+                })();
               }}
               disabled={del}
               style={{
@@ -1052,6 +1015,8 @@ function PayoutsSection({
           )}
         </div>
       ))}
+
+      <PartnerInlineError>{delError}</PartnerInlineError>
 
       {verified && pending ? null : adding ? (
         <form
@@ -1085,6 +1050,7 @@ function PayoutsSection({
             <input type="checkbox" name="is_default" />{" "}
             {tr("Par défaut", "افتراضي")}
           </label>
+          <PartnerInlineError>{state.error}</PartnerInlineError>
           <div style={{ display: "flex", gap: 8 }}>
             <SubmitBtn
               idle={

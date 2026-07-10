@@ -1364,6 +1364,27 @@ const selfTxt = (v: FormDataEntryValue | null): string | null => {
   const s = (v == null ? "" : String(v)).trim();
   return s === "" ? null : s;
 };
+/**
+ * Champs que le livreur ne saisit PLUS (ils restent en base, affichés au
+ * super-admin). Tant qu'un formulaire ne les envoie pas, on ne les écrit pas :
+ * les inclure inconditionnellement les remettrait à `null`. Le jour où un écran
+ * les repose, il suffit qu'il les soumette.
+ */
+function legacyProfileKeys(formData: FormData): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of [
+    "national_id_number",
+    "id_card_number",
+    "address",
+  ] as const) {
+    if (formData.has(key)) out[key] = selfTxt(formData.get(key));
+  }
+  if (formData.has("vehicle_year")) {
+    out.vehicle_year = selfInt(formData.get("vehicle_year"));
+  }
+  return out;
+}
+
 const selfInt = (v: FormDataEntryValue | null): number | null => {
   const s = selfTxt(v);
   if (s == null) return null;
@@ -1402,12 +1423,11 @@ export async function saveDriverVehicleSelf(
       vehicle_brand: selfTxt(formData.get("vehicle_brand")),
       vehicle_model: selfTxt(formData.get("vehicle_model")),
       vehicle_color: selfTxt(formData.get("vehicle_color")),
-      vehicle_year: selfInt(formData.get("vehicle_year")),
       vehicle_plate: selfTxt(formData.get("vehicle_plate")),
-      national_id_number: selfTxt(formData.get("national_id_number")),
-      id_card_number: selfTxt(formData.get("id_card_number")),
       wilaya: selfTxt(formData.get("wilaya")),
-      address: selfTxt(formData.get("address")),
+      // Ces quatre-là ne sont plus demandés au livreur mais restent visibles du
+      // super-admin : un `update` inconditionnel les remettrait à `null`.
+      ...legacyProfileKeys(formData),
     })
     .eq("id", g.driverId);
   if (error) {
@@ -1577,17 +1597,16 @@ export async function proposeVehicleChange(
   const supabase = await createClient();
   if (await hasPendingReq(supabase, driver.id, "vehicle"))
     return { error: "Une demande véhicule est déjà en cours de vérification." };
+  // Le super-admin applique ce payload tel quel (`update(p)`) : une clé absente
+  // est donc PRÉSERVÉE en base, une clé à `null` l'écrase.
   const payload = {
     vehicle_type: selfTxt(formData.get("vehicle_type")),
     vehicle_brand: selfTxt(formData.get("vehicle_brand")),
     vehicle_model: selfTxt(formData.get("vehicle_model")),
     vehicle_color: selfTxt(formData.get("vehicle_color")),
-    vehicle_year: selfInt(formData.get("vehicle_year")),
     vehicle_plate: selfTxt(formData.get("vehicle_plate")),
-    national_id_number: selfTxt(formData.get("national_id_number")),
-    id_card_number: selfTxt(formData.get("id_card_number")),
     wilaya: selfTxt(formData.get("wilaya")),
-    address: selfTxt(formData.get("address")),
+    ...legacyProfileKeys(formData),
   };
   const { error } = await supabase.from("driver_change_requests").insert({
     driver_id: driver.id,

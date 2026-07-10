@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useLocale } from "next-intl";
 import { toast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm";
 import { QrScanner } from "@/components/scanner/qr-scanner";
 import { enqueueValidation } from "@/lib/driver-offline/db";
 import {
@@ -46,6 +47,8 @@ export function DeliveryValidationDialog({
   onSuccess: () => void;
 }) {
   const isAr = useLocale() === "ar";
+  // Confirmations DESSINÉES (le `ConfirmProvider` est monté dans (driver)/layout).
+  const confirm = useConfirm();
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [code, setCode] = useState("");
   const [pending, start] = useTransition();
@@ -149,15 +152,20 @@ export function DeliveryValidationDialog({
   const onValidateClick = () => {
     if (isOnline) return submit(false);
     if (code.length >= 4) return submit(false);
-    if (
-      confirm(
-        tr(
+    void (async () => {
+      const yes = await confirm({
+        title: tr(
           "Confirmer la remise au client (paiement cash) ?",
           "تأكيد التسليم للزبون (الدفع نقداً)؟"
-        )
-      )
-    )
-      submit(true);
+        ),
+        message: tr(
+          "Vous validez sans le code du client.",
+          "أنت تؤكّد بدون رمز الزبون."
+        ),
+        confirmLabel: tr("Confirmer", "تأكيد"),
+      });
+      if (yes) submit(true);
+    })();
   };
 
   // No-show ESPÈCES (mig 0327) : commande annulée. En EXPRESS l'avance au
@@ -175,18 +183,32 @@ export function DeliveryValidationDialog({
       return;
     }
     if (!noShowReady) return; // bouton déjà désactivé, garde-fou
-    const confirmMsg = tr(
-      "Client absent ou commande refusée ?\n\n" +
-        "Vérifie que tu as bien APPELÉ et CONTACTÉ le client (message) et " +
-        "attendu sur place. La commande sera ANNULÉE.\n\n" +
-        "Ton avance au commerçant est remboursable APRÈS validation du support " +
-        "— la course n'est pas payée (règle no-show espèces). GARDE la commande " +
-        "avec toi : le support te dira quoi en faire. Suivi dans Relevé.",
-      "الزبون غائب أو الطلب مرفوض؟\n\n" +
-        "تأكّد أنك اتصلت وتواصلت مع الزبون (رسالة) وانتظرت في المكان. سيتم إلغاء الطلب.\n\n" +
-        "يُسترجع ما دفعته للتاجر بعد موافقة الدعم — التوصيلة غير مدفوعة (قاعدة الغياب النقدي). احتفظ بالطلب معك: الدعم سيخبرك بما تفعله. المتابعة في كشف الحساب."
-    );
-    if (!confirm(confirmMsg)) return;
+    void (async () => {
+      const yes = await confirm({
+        title: tr(
+          "Client absent ou commande refusée ?",
+          "الزبون غائب أو الطلب مرفوض؟"
+        ),
+        // Les sauts de ligne sont conservés (`whitespace-pre-line`) : cet
+        // avertissement engage l'argent du livreur, il doit rester lisible.
+        message: tr(
+          "Vérifie que tu as bien APPELÉ et CONTACTÉ le client (message) et " +
+            "attendu sur place. La commande sera ANNULÉE.\n\n" +
+            "Ton avance au commerçant est remboursable APRÈS validation du support " +
+            "— la course n'est pas payée (règle no-show espèces). GARDE la commande " +
+            "avec toi : le support te dira quoi en faire. Suivi dans Relevé.",
+          "تأكّد أنك اتصلت وتواصلت مع الزبون (رسالة) وانتظرت في المكان. سيتم إلغاء الطلب.\n\n" +
+            "يُسترجع ما دفعته للتاجر بعد موافقة الدعم — التوصيلة غير مدفوعة (قاعدة الغياب النقدي). احتفظ بالطلب معك: الدعم سيخبرك بما تفعله. المتابعة في كشف الحساب."
+        ),
+        confirmLabel: tr("Signaler l'absence", "الإبلاغ عن الغياب"),
+        danger: true,
+      });
+      if (!yes) return;
+      doNoShow();
+    })();
+  };
+
+  const doNoShow = () => {
     start(async () => {
       const r = await reportNoShow({ orderId, reason: "no_show" });
       if (!r.ok) {

@@ -32,7 +32,7 @@ export async function DriverInfoSection({
     supabase
       .from("drivers")
       .select(
-        "vehicle_type, vehicle_brand, vehicle_model, vehicle_color, vehicle_year, vehicle_plate, national_id_number, id_card_number, wilaya, address"
+        "vehicle_type, vehicle_brand, vehicle_model, vehicle_color, vehicle_plate, wilaya"
       )
       .eq("id", driverId)
       .maybeSingle(),
@@ -84,24 +84,16 @@ export async function DriverInfoSection({
     vehicle_brand?: string | null;
     vehicle_model?: string | null;
     vehicle_color?: string | null;
-    vehicle_year?: number | null;
     vehicle_plate?: string | null;
-    national_id_number?: string | null;
-    id_card_number?: string | null;
     wilaya?: string | null;
-    address?: string | null;
   };
   const vehicle: SelfVehicle = {
     vehicle_type: pv.vehicle_type ?? null,
     vehicle_brand: pv.vehicle_brand ?? null,
     vehicle_model: pv.vehicle_model ?? null,
     vehicle_color: pv.vehicle_color ?? null,
-    vehicle_year: pv.vehicle_year ?? null,
     vehicle_plate: pv.vehicle_plate ?? null,
-    national_id_number: pv.national_id_number ?? null,
-    id_card_number: pv.id_card_number ?? null,
     wilaya: pv.wilaya ?? null,
-    address: pv.address ?? null,
   };
 
   return (

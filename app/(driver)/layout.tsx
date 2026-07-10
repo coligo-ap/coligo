@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { pwaMetadata } from "@/lib/config/pwa";
 import { Sora, Plus_Jakarta_Sans } from "next/font/google";
 import "./maquette.css";
+import { ConfirmProvider } from "@/components/ui/confirm";
 import { OfflineSyncIndicator } from "@/components/driver/offline-sync-indicator";
 import { DriverDispatchMount } from "@/components/driver/driver-dispatch-mount";
 import { TourDispatchMount } from "@/components/driver/tour-dispatch-mount";
@@ -117,45 +118,52 @@ export default async function DriverLayout({
 
   return (
     <DriverThemeRoot fontVars={`${fontSora.variable} ${fontJakarta.variable}`}>
-      {/* Carte de l'accueil montée UNE fois (persiste entre onglets) ; en fond,
-          affichée seulement sur /driver (cf. PersistentDriverMap). */}
-      {isActive && <PersistentDriverMap pins={mapPins} />}
-      {children}
-      {/* Enregistre le token FCM du livreur (role=courier) → reçoit les push
+      {/* Sans ce fournisseur, `useConfirm()` retombe SILENCIEUSEMENT sur la boîte
+          de dialogue native du navigateur. Le livreur était le seul espace à ne
+          pas le monter (client, commerçant et admin le font). Il enveloppe TOUT
+          l'espace, pas seulement `children` : le bandeau de course et la veille
+          d'annulation sont des frères de `children` et doivent en bénéficier. */}
+      <ConfirmProvider>
+        {/* Carte de l'accueil montée UNE fois (persiste entre onglets) ; en fond,
+            affichée seulement sur /driver (cf. PersistentDriverMap). */}
+        {isActive && <PersistentDriverMap pins={mapPins} />}
+        {children}
+        {/* Enregistre le token FCM du livreur (role=courier) → reçoit les push
           Express ET Tournée même app fermée / hors ligne (Android natif).
           Monté DÈS la création du compte : c'est ce qui permet de le prévenir
           que l'équipe Coligo a validé son inscription. */}
-      {driver && <PushRegistrar role="courier" />}
-      {/* Organes opérationnels : réservés au compte activé. */}
-      {isActive && (
-        <>
-          {/* Réception Express globale (pilotée par l'intention « en ligne »). */}
-          <DriverDispatchMount userId={driver?.user_id ?? null} />
-          {/* Notification TOURNÉE temps réel (bandeau in-app) chez les commerçants
+        {driver && <PushRegistrar role="courier" />}
+        {/* Organes opérationnels : réservés au compte activé. */}
+        {isActive && (
+          <>
+            {/* Réception Express globale (pilotée par l'intention « en ligne »). */}
+            <DriverDispatchMount userId={driver?.user_id ?? null} />
+            {/* Notification TOURNÉE temps réel (bandeau in-app) chez les commerçants
               où le livreur est inscrit — distinct de l'Express. */}
-          <TourDispatchMount />
-          {/* Bandeau « Course en cours » réductible, épinglé sur tous les onglets. */}
-          <ActiveCourseBanner />
-          {/* STOP temps réel : pop-up si la course active est annulée. */}
-          <DriverCancelWatch />
-        </>
-      )}
-      {/* Live chat support (Tawk.to) — lanceur masqué, ouvert via « Aide & support ».
+            <TourDispatchMount />
+            {/* Bandeau « Course en cours » réductible, épinglé sur tous les onglets. */}
+            <ActiveCourseBanner />
+            {/* STOP temps réel : pop-up si la course active est annulée. */}
+            <DriverCancelWatch />
+          </>
+        )}
+        {/* Live chat support (Tawk.to) — lanceur masqué, ouvert via « Aide & support ».
           Contexte max pour l'agent : identité + statut du livreur. */}
-      <TawkChat
-        role="livreur"
-        name={driver?.full_name ?? null}
-        phone={driver?.phone ?? null}
-        attributes={{
-          "ID livreur": driver?.id,
-          Vérifié: driver?.is_verified,
-          Gelé: driver?.is_frozen,
-        }}
-      />
-      {/* Bannière d'installation consciente de la route : jamais masquée par
+        <TawkChat
+          role="livreur"
+          name={driver?.full_name ?? null}
+          phone={driver?.phone ?? null}
+          attributes={{
+            "ID livreur": driver?.id,
+            Vérifié: driver?.is_verified,
+            Gelé: driver?.is_frozen,
+          }}
+        />
+        {/* Bannière d'installation consciente de la route : jamais masquée par
           la barre En ligne / le bandeau course de l'accueil. */}
-      <DriverInstallBanner />
-      <OfflineSyncIndicator />
+        <DriverInstallBanner />
+        <OfflineSyncIndicator />
+      </ConfirmProvider>
     </DriverThemeRoot>
   );
 }
