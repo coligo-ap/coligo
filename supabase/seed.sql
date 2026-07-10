@@ -25,7 +25,21 @@ BEGIN
   END IF;
 
   -- Nettoyage des commandes seed précédentes (order_items en cascade).
-  DELETE FROM public.orders WHERE merchant_id = v_merchant AND notes = 'seed';
+  --
+  -- MAIS PAS celles qu'une suite de tests a déjà fait vivre : `order_events` est
+  -- append-only (triggers `oe_no_delete` / `oe_no_update`) et la clé étrangère
+  -- est `ON DELETE CASCADE`. Supprimer une commande qui porte des événements fait
+  -- donc échouer tout le seed — et il devient impossible de le rejouer une fois
+  -- que `test:offline:idempotency` est passé dessus.
+  --
+  -- Ces commandes-là sont de toute façon terminales (completed/cancelled) : les
+  -- laisser ne gêne personne, le seed en réinsère dix fraîches par-dessus.
+  DELETE FROM public.orders o
+   WHERE o.merchant_id = v_merchant
+     AND o.notes = 'seed'
+     AND NOT EXISTS (
+       SELECT 1 FROM public.order_events e WHERE e.order_id = o.id
+     );
 
   -- 1. pending — Karim Boudjemaa
   INSERT INTO public.orders (merchant_id, customer_name, customer_phone, status, total_da, pickup_slot_at, notes, created_at)
