@@ -39,7 +39,10 @@ export async function signInWithGoogleNative(input: {
     // Le message de Supabase est technique (audience, nonce, expiration) : on
     // n'expose que le nécessaire, et le détail part dans les logs serveur.
     console.error("signInWithIdToken (google, natif) :", error.message);
-    return { error: "La connexion avec Google a échoué. Réessaie." };
+    // DIAGNOSTIC TEMPORAIRE : on remonte le vrai message Supabase (audience,
+    // nonce, expiration…) pour distinguer un échec SERVEUR d'un échec NATIF.
+    // À RETIRER → revenir à « La connexion avec Google a échoué. Réessaie. »
+    return { error: `Google (serveur): ${error.message}` };
   }
 
   const to = await provisionSocialUser(supabase, safeNext(input.next));

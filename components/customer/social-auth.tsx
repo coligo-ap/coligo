@@ -68,7 +68,11 @@ export function SocialAuth({ next }: { next?: string }) {
         return;
       }
       console.error("connexion Google :", e);
-      setError(t("googleAuthFailed"));
+      // DIAGNOSTIC TEMPORAIRE (login Google natif) : on affiche le détail
+      // technique pour identifier la cause exacte sur téléphone. À RETIRER une
+      // fois le problème réglé → revenir à `setError(t("googleAuthFailed"))`.
+      const detail = e instanceof Error ? e.message : String(e);
+      setError(`${t("googleAuthFailed")} [natif: ${detail}]`);
       setLoading(false);
       return;
     }
