@@ -4,38 +4,75 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { toast } from "@/components/ui/toast";
+import {
+  canUseNativeGoogle,
+  NativeGoogleError,
+} from "@/lib/native/google-signin";
+import { signInWithGoogleNative } from "@/app/auth/actions";
 
 /**
- * Connexion sociale client (Google). Redirige vers le provider puis revient sur
- * /auth/callback qui crée le profil et renvoie vers `next`. Le provider doit
- * être activé dans le Dashboard Supabase + les URLs de redirection allowlistées.
+ * Connexion Google du client. DEUX chemins, selon l'environnement :
+ *
+ *  • APK (Capacitor) → Sign-In Google NATIF. La WebView a son propre magasin de
+ *    cookies, isolé de Chrome, et Google refuse l'OAuth dans une WebView
+ *    embarquée : passer par le navigateur poserait la session au mauvais
+ *    endroit. Le natif rend un `id_token`, échangé côté serveur.
+ *  • Web (PWA / navigateur) → OAuth classique, redirection vers Google puis
+ *    retour sur `/auth/callback`.
+ *
+ * Les deux provisionnent le profil par `provisionSocialUser`, jamais deux fois.
+ * Le provider doit être activé dans le Dashboard Supabase + les URLs de
+ * redirection allowlistées.
  */
 export function SocialAuth({ next }: { next?: string }) {
   const t = useTranslations("auth");
   const [loading, setLoading] = useState(false);
+  // Erreur INLINE sous le bouton (cf. CLAUDE.md : pas de toast sur une action
+  // de bouton). L'utilisateur regarde le bouton, pas le coin de l'écran.
+  const [error, setError] = useState<string | null>(null);
+
+  /** APK : feuille Google native → jeton → session posée par l'action serveur. */
+  async function signInNative() {
+    const { nativeGoogleIdToken } = await import("@/lib/native/google-signin");
+    const { idToken, nonce } = await nativeGoogleIdToken();
+    // En cas de succès l'action `redirect()` : la promesse ne revient jamais.
+    const res = await signInWithGoogleNative({ idToken, nonce, next });
+    if (res?.error) setError(res.error);
+  }
+
+  /** Web : redirection vers Google, retour sur /auth/callback. */
+  async function signInWeb() {
+    const supabase = createClient();
+    const params =
+      next && next !== "/" ? `?next=${encodeURIComponent(next)}` : "";
+    const { error: err } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback${params}`,
+      },
+    });
+    // Succès → le navigateur part vers Google, ce code ne reprend pas la main.
+    if (err) throw new Error(err.message);
+  }
 
   async function signInGoogle() {
     setLoading(true);
+    setError(null);
     try {
-      const supabase = createClient();
-      const params =
-        next && next !== "/" ? `?next=${encodeURIComponent(next)}` : "";
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback${params}`,
-        },
-      });
-      if (error) {
+      if (canUseNativeGoogle()) await signInNative();
+      else await signInWeb();
+    } catch (e) {
+      // Fermer la feuille Google n'est pas une erreur : on se tait.
+      if (e instanceof NativeGoogleError && e.cancelled) {
         setLoading(false);
-        toast.error(error.message);
+        return;
       }
-      // Succès → le navigateur est redirigé vers Google automatiquement.
-    } catch {
+      console.error("connexion Google :", e);
+      setError(t("googleAuthFailed"));
       setLoading(false);
-      toast.error(t("googleUnavailable"));
+      return;
     }
+    setLoading(false);
   }
 
   return (
@@ -59,6 +96,15 @@ export function SocialAuth({ next }: { next?: string }) {
         )}
         {t("continueWithGoogle")}
       </button>
+
+      {error && (
+        <p
+          role="alert"
+          className="text-danger-600 text-center text-xs font-medium"
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 }
