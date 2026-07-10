@@ -396,8 +396,16 @@ try {
     !blocked.ok && /service_zone_blocked/.test(blocked.err || "")
   );
 
-  const allowedIns = await sp(() => insOrder(FAR_LAT, FAR_LNG));
-  okTrue("client autorisé hors de la zone bloquée", allowedIns.ok);
+  // Hors zone bloquée, le trigger laisse passer — mais la RLS refuse : depuis la
+  // mig 0349 (`orders_insert_server_only`), la policy `orders_insert_own_customer`
+  // n'existe plus, un client ne crée JAMAIS une commande en direct. C'est une
+  // garantie plus forte que celle que ce test vérifiait autrefois : le
+  // contournement est fermé quelle que soit la zone.
+  const farIns = await sp(() => insOrder(FAR_LAT, FAR_LNG));
+  okTrue(
+    "client ne peut PAS insérer en direct, même hors zone bloquée (RLS, mig 0349)",
+    !farIns.ok && /row-level security/i.test(farIns.err || "")
+  );
 
   await c.query("RESET ROLE");
 
@@ -574,6 +582,13 @@ try {
     0
   );
   await c.query("UPDATE drivers SET is_frozen=false WHERE id=$1", [DRIVER]);
+
+  // `providers_online_near` compte TOUS les chauffeurs en ligne du périmètre, pas
+  // seulement le nôtre : les chauffeurs de démo (`npm run seed:drive`) en
+  // mettent plusieurs en ligne sur Alger et faussaient l'assertion « hors ligne
+  // ⇒ 0 ». On isole le scénario en les couchant tous, dans la transaction —
+  // le ROLLBACK final les rétablit.
+  await c.query("UPDATE chauffeur_presence SET is_online=false");
 
   // Chauffeur en ligne près du centre.
   await c.query(
