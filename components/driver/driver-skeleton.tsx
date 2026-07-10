@@ -104,27 +104,3 @@ export function BackPageSkeleton() {
     </Shell>
   );
 }
-
-/**
- * Écrans hors application (connexion, création de compte, téléchargement) :
- * PAS de barre du bas — l'utilisateur n'est pas encore dans l'espace livreur.
- * C'est le seul squelette qui ne reprend pas le chrome de `DriverShell`.
- */
-export function AuthPageSkeleton() {
-  return (
-    <div className="flex min-h-[100dvh] flex-col bg-[var(--d-surface)]">
-      <div className="border-b border-[var(--d-line)] px-5 py-4">
-        <Bar className="h-8 w-28 !rounded-lg" />
-      </div>
-      <div className="flex flex-1 items-center justify-center px-5 py-10">
-        <div className="w-full max-w-sm space-y-4">
-          <Bar className="h-7 w-48 !rounded-lg" />
-          <Bar className="h-4 w-64 !rounded" />
-          <Bar className="mt-6 h-12 w-full !rounded-[14px]" />
-          <Bar className="h-12 w-full !rounded-[14px]" />
-          <Bar className="h-12 w-full !rounded-[14px]" />
-        </div>
-      </div>
-    </div>
-  );
-}
