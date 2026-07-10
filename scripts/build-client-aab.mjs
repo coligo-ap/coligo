@@ -151,6 +151,56 @@ if (!packages.includes("app.coligo.client")) {
 }
 console.log("✔ google-services.json contient app.coligo.client");
 
+// 3b. Préflight Sign-In Google natif.
+//
+// Le plugin vit dans l'APK, mais le CLIENT ID vit dans le bundle web servi par
+// `SERVER_URL` : la WebView charge le JS de Vercel, pas un JS embarqué. Publier
+// un AAB alors que la variable `NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID` n'a pas encore
+// été déployée donne un bouton Google qui retombe silencieusement sur l'OAuth
+// navigateur — lequel ne peut PAS fonctionner dans une WebView (magasin de
+// cookies isolé, et Google refuse les WebViews embarquées).
+//
+// On vérifie donc sur la VRAIE page, pas sur la config Vercel.
+{
+  const origin = new URL(SERVER_URL).origin;
+  const page = `${origin}/se-connecter`;
+  const RE_CLIENT_ID = /\d{6,}-[a-z0-9]{20,}\.apps\.googleusercontent\.com/;
+
+  let clientId = null;
+  try {
+    const html = await (await fetch(page)).text();
+    const chunks = [
+      ...html.matchAll(/src="(\/_next\/static\/chunks\/[^"]+)"/g),
+    ].map((m) => m[1]);
+    for (const c of chunks) {
+      const js = await (await fetch(origin + c)).text();
+      const hit = RE_CLIENT_ID.exec(js);
+      if (hit) {
+        clientId = hit[0];
+        break;
+      }
+    }
+  } catch (e) {
+    console.error(`✖ ${page} injoignable : ${e.message}`);
+    process.exit(1);
+  }
+
+  if (!clientId) {
+    console.error(`
+✖ Aucun client ID Google trouvé dans le bundle servi par ${origin}.
+
+  Le Sign-In Google natif serait MORT dans l'app publiée : le bouton
+  retomberait sur l'OAuth navigateur, qui ne peut PAS fonctionner dans une
+  WebView (magasin de cookies isolé, et Google refuse les WebViews embarquées).
+
+  → Poser NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID sur Vercel (production),
+    puis REDÉPLOYER : les variables NEXT_PUBLIC_* sont figées au build.
+`);
+    process.exit(1);
+  }
+  console.log(`✔ client ID Google servi par ${origin} : ${clientId}`);
+}
+
 // 4. Bundle release signé.
 if (!existsSync(join(ANDROID, "keystore.properties"))) {
   console.error(
