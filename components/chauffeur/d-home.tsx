@@ -658,7 +658,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
       {/* ── Barre de mise en ligne docké (SEUL contrôle conservé sur l'accueil) ──
           Toutes les options sont passées dans le tiroir gauche. Ici, on ne garde
           que le bouton de disponibilité — large, lisible, façon Uber. */}
-      <div className="absolute inset-x-3 bottom-[78px] z-10 flex flex-col gap-2">
+      <div className="above-nav absolute inset-x-3 z-10 flex flex-col gap-2">
         {/* Raccourci « Voir les demandes » (en ligne + demandes en attente). */}
         {online && reqCount > 0 && (
           <button

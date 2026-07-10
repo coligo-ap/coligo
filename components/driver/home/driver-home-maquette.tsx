@@ -363,7 +363,7 @@ export function DriverHomeMaquette({
           Masquée quand une course est active : le bandeau « Course en cours »
           (global) occupe cet emplacement. */}
       {!activeCourse && (
-        <div className="fixed inset-x-3 bottom-[78px] z-[46] mx-auto max-w-md">
+        <div className="above-nav fixed inset-x-3 z-[46] mx-auto max-w-md">
           <button
             type="button"
             role="switch"

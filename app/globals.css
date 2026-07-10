@@ -1375,12 +1375,33 @@ body {
  *  2. Le retrait bas doit couvrir la barre d'onglets ENTIÈRE, qui vaut désormais
  *     `66px + env(safe-area-inset-bottom)` (cf. `PartnerTabbar`).
  */
+
+/*
+ * HAUTEUR RÉELLE de la barre d'onglets partenaire (`PartnerTabbar`) : 66 px de
+ * contenu, plus la zone sûre du bas. TOUT ce qui flotte au-dessus d'elle s'y
+ * réfère — bandeau « course en cours », barre « En ligne », carte « Hors ligne »,
+ * proposition de course. Sans cette variable, chacun codait `bottom-[78px]` en
+ * dur et se retrouvait SOUS la barre dès qu'un téléphone ajoutait sa gesture bar.
+ */
+:root {
+  --partner-nav-h: calc(66px + env(safe-area-inset-bottom));
+}
+
 .pt-safe {
   padding-top: calc(1rem + env(safe-area-inset-top));
 }
 .pt-safe-lg {
   padding-top: calc(52px + env(safe-area-inset-top));
 }
+/* Le contenu s'arrête au-dessus de la barre, avec 30 px de respiration. */
 .pb-safe-nav {
-  padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--partner-nav-h) + 30px);
+}
+/* Îlot flottant juste au-dessus de la barre (bandeaux, indicateurs). */
+.above-nav {
+  bottom: calc(var(--partner-nav-h) + 12px);
+}
+/* Écran plein qui doit LAISSER VOIR la barre (proposition de course). */
+.over-nav {
+  bottom: var(--partner-nav-h);
 }

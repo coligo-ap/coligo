@@ -73,7 +73,7 @@ export function OfflineSyncIndicator() {
   if (online && pendingCount === 0) return null;
 
   return (
-    <div className="border-warning-200 bg-warning-50 text-warning-700 fixed bottom-3 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold shadow">
+    <div className="border-warning-200 bg-warning-50 text-warning-700 above-nav fixed left-1/2 z-[45] flex -translate-x-1/2 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold shadow">
       {syncing ? (
         <Loader2 className="size-3.5 animate-spin" />
       ) : !online ? (

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "next-intl";
 import { watchPosition, type Coords } from "@/lib/native/geolocation";
+import { DeliveryRouteMap } from "./delivery-route-map";
 import { haversineKm } from "@/lib/delivery/distance";
 import { cashToCollectDa, isPrepaid } from "@/lib/delivery/cash";
 import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
@@ -142,12 +143,36 @@ export function ExpressOffer({
     transform: `scaleX(${Math.max(0, left / OFFER_SECONDS)})`,
   };
 
+  const clientPos =
+    order.delivery_lat != null && order.delivery_lng != null
+      ? { lat: order.delivery_lat, lng: order.delivery_lng }
+      : null;
+  const merchantPos =
+    merchantLat != null && merchantLng != null
+      ? { lat: merchantLat, lng: merchantLng }
+      : null;
+
   return (
-    <div className="mq-screen fixed inset-0 z-[90]">
-      {/* Fond carte (gradient maquette) — la vraie carte est en dessous. */}
-      <div className="mq-map" />
+    /*
+     * `over-nav` : l'écran s'arrête AU-DESSUS de la barre d'onglets, qui reste
+     * visible et utilisable. Le positionnement vit dans `maquette.css` : une
+     * classe Tailwind `fixed` (0,1,0) perdrait contre `[data-space] .mq-screen`
+     * (0,2,0), dont le `position: relative` gagnait — cet écran n'était même pas
+     * fixe, il paraissait plein grâce à `min-height: 100dvh`.
+     */
+    <div className="mq-screen over-nav z-[90]">
+      {/*
+       * La VRAIE carte, avec l'itinéraire complet : position actuelle →
+       * commerçant → client. Avant, un simple dégradé (`.mq-map`) la remplaçait
+       * et masquait tout : le livreur acceptait une course à l'aveugle.
+       */}
+      {clientPos ? (
+        <DeliveryRouteMap target={clientPos} via={merchantPos} fill />
+      ) : (
+        <div className="mq-map" />
+      )}
       <div
-        className="absolute inset-0"
+        className="pointer-events-none absolute inset-0"
         style={{ background: "rgba(8,9,16,.18)" }}
       />
 

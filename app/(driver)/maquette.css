@@ -103,6 +103,24 @@
   box-sizing: border-box;
 }
 
+/*
+ * Écran plein qui LAISSE VOIR la barre d'onglets (proposition de course).
+ *
+ * La règle vit ici, et pas en classes Tailwind, parce que
+ * `[data-space="driver"] .mq-screen` (0,2,0) est PLUS SPÉCIFIQUE que `.fixed`
+ * (0,1,0) : son `position: relative` gagnait, et l'écran n'était donc même pas
+ * fixe. Il paraissait plein écran grâce à `min-height: 100dvh`, et son `z-index`
+ * le faisait peindre par-dessus la barre.
+ */
+[data-space="driver"] .mq-screen.over-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: var(--partner-nav-h);
+  min-height: 0;
+}
+
 /* ---------- carte (SVG) ---------- */
 [data-space="driver"] .mq-map {
   position: absolute;
@@ -295,7 +313,8 @@
     right: auto;
     transform: translateX(-50%);
     width: min(calc(100% - 24px), 460px);
-    bottom: max(88px, calc(env(safe-area-inset-bottom) + 88px));
+    /* 22 px au-dessus de la barre d'onglets, quelle que soit la zone sûre. */
+    bottom: calc(var(--partner-nav-h) + 22px);
     border-radius: 24px;
     border: 1px solid var(--line);
   }
@@ -596,7 +615,8 @@
   position: absolute;
   left: 8px;
   right: 8px;
-  bottom: max(8px, env(safe-area-inset-bottom));
+  /* L'écran de proposition s'arrête déjà au-dessus de la barre : 8 px suffisent. */
+  bottom: 8px;
   z-index: 65;
   background: var(--surface);
   border: 2px solid var(--violet);

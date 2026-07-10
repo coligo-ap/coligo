@@ -28,7 +28,7 @@ export function ActiveCourseBanner() {
   }
 
   return (
-    <div className="fixed inset-x-2.5 bottom-[78px] z-[46] mx-auto max-w-md">
+    <div className="above-nav fixed inset-x-2.5 z-[46] mx-auto max-w-md">
       <button
         type="button"
         onClick={() => router.push(`/driver/course/${course.orderId}`)}

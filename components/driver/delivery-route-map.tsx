@@ -10,9 +10,12 @@ import { useRoute } from "@/lib/delivery/use-route";
 import { MAP_STYLE_URL } from "@/lib/config/map";
 
 /**
- * Carte montrant la position du livreur (live via watchPosition) et la cible
- * (commerçant ou client). Trace le VRAI itinéraire routier (OSRM) + affiche
- * l'ETA « À ~X min · Y km ». Façon UberEats/Yassir.
+ * Carte montrant la position du livreur (live via watchPosition) et sa cible.
+ * Trace le VRAI itinéraire routier (OSRM) + affiche l'ETA « ~X min · Y km ».
+ *
+ * DEUX JAMBES quand `via` est fourni : livreur → commerçant (trait plein) puis
+ * commerçant → client (trait clair). C'est ce que le livreur doit voir AVANT
+ * d'accepter une course : où il va chercher, et où il livre ensuite.
  *
  * - Itinéraire le long des rues via lib/delivery/routing.ts ; repli sur une
  *   ligne droite (en pointillés) si le routage est indisponible.
@@ -23,14 +26,20 @@ type LatLng = { lat: number; lng: number };
 
 export function DeliveryRouteMap({
   target,
+  via,
   label,
   height = 220,
+  fill = false,
 }: {
   target: LatLng;
+  /** Étape intermédiaire (le commerçant). Trace alors deux jambes. */
+  via?: LatLng | null;
   /** Libellé optionnel au-dessus de la carte (ex. « Vers le client »). */
   label?: string;
   /** Hauteur en px ou string CSS. Inline pour échapper à la purge Tailwind. */
   height?: number | string;
+  /** Remplit son parent : ni cadre, ni libellé, ni bouton Google Maps. */
+  fill?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
@@ -41,7 +50,10 @@ export function DeliveryRouteMap({
   const [mapError, setMapError] = useState<string | null>(null);
 
   const from = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
-  const { path } = useRoute(from, target, true);
+  // Jambe 1 : du livreur vers son PREMIER arrêt (le commerçant s'il y en a un).
+  const { path } = useRoute(from, via ?? target, true);
+  // Jambe 2 : du commerçant vers le client. Le hook s'auto-désactive sans `via`.
+  const { path: path2 } = useRoute(via ?? null, target, Boolean(via));
 
   // Init de la carte une fois
   useEffect(() => {
@@ -60,6 +72,16 @@ export function DeliveryRouteMap({
           attributionControl: { compact: true },
         });
         mapRef.current = map;
+
+        // Marqueur du commerçant (étape intermédiaire) — pastille violette.
+        if (via) {
+          const viaEl = document.createElement("div");
+          viaEl.innerHTML =
+            '<div style="background:#6c2bd9;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:13px;">🏪</div>';
+          new Marker({ element: viaEl })
+            .setLngLat([via.lng, via.lat])
+            .addTo(map);
+        }
 
         // Marqueur cible — rouge vif.
         const targetEl = document.createElement("div");
@@ -92,6 +114,29 @@ export function DeliveryRouteMap({
             layout: { "line-cap": "round", "line-join": "round" },
             paint: { "line-color": "#6c2bd9", "line-width": 5 },
           });
+          // Seconde jambe, dessinée SOUS la première : plus claire, plus fine.
+          map.addSource("route-2", {
+            type: "geojson",
+            data: {
+              type: "Feature",
+              properties: {},
+              geometry: { type: "LineString", coordinates: [] },
+            },
+          });
+          map.addLayer(
+            {
+              id: "route-line-2",
+              type: "line",
+              source: "route-2",
+              layout: { "line-cap": "round", "line-join": "round" },
+              paint: {
+                "line-color": "#a78bfa",
+                "line-width": 4,
+                "line-dasharray": [1.5, 1.2],
+              },
+            },
+            "route-line"
+          );
         };
         if (map.loaded()) onLoad();
         else map.once("load", onLoad);
@@ -117,7 +162,8 @@ export function DeliveryRouteMap({
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [target.lat, target.lng]);
+    // `via` est lu à l'init (marqueur du commerçant) : il en est une dépendance.
+  }, [target.lat, target.lng, via?.lat, via?.lng]);
 
   // Met à jour le marqueur livreur + recadre quand la position change.
   useEffect(() => {
@@ -141,12 +187,13 @@ export function DeliveryRouteMap({
         const bounds = new LngLatBounds()
           .extend([coords.longitude, coords.latitude])
           .extend([target.lng, target.lat]);
+        if (via) bounds.extend([via.lng, via.lat]);
         map.fitBounds(bounds, { padding: 60, duration: 600, maxZoom: 15 });
       } catch {
         /* fallback : reste sur le marqueur cible */
       }
     });
-  }, [coords, target.lat, target.lng]);
+  }, [coords, target.lat, target.lng, via?.lat, via?.lng]);
 
   // Trace l'itinéraire routier (ou la ligne droite de repli) dès qu'on l'a.
   useEffect(() => {
@@ -174,6 +221,25 @@ export function DeliveryRouteMap({
     else map.once("idle", apply);
   }, [path]);
 
+  // Trace la seconde jambe (commerçant → client).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !path2) return;
+    const apply = () => {
+      const src = map.getSource("route-2") as
+        | import("maplibre-gl").GeoJSONSource
+        | undefined;
+      if (!src) return;
+      src.setData({
+        type: "Feature",
+        properties: {},
+        geometry: { type: "LineString", coordinates: path2.coordinates },
+      });
+    };
+    if (map.isStyleLoaded()) apply();
+    else map.once("idle", apply);
+  }, [path2]);
+
   const distanceKm =
     path?.distanceKm ??
     (coords
@@ -186,15 +252,23 @@ export function DeliveryRouteMap({
   const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}&travelmode=driving`;
 
   return (
-    <div className="space-y-2">
-      {label && (
+    <div className={fill ? "absolute inset-0" : "space-y-2"}>
+      {label && !fill && (
         <p className="text-muted text-xs font-semibold tracking-wide uppercase">
           {label}
         </p>
       )}
       <div
-        className="bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
-        style={{ height: typeof height === "number" ? `${height}px` : height }}
+        className={
+          fill
+            ? "bg-surface-2 absolute inset-0 overflow-hidden"
+            : "bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
+        }
+        style={
+          fill
+            ? undefined
+            : { height: typeof height === "number" ? `${height}px` : height }
+        }
       >
         <div
           ref={containerRef}
@@ -237,15 +311,17 @@ export function DeliveryRouteMap({
           </div>
         )}
       </div>
-      <a
-        href={gmapsUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="border-border bg-surface flex w-full items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2 text-sm font-semibold"
-      >
-        <ExternalLink className="size-4" />
-        Ouvrir l&apos;itinéraire dans Google Maps
-      </a>
+      {!fill && (
+        <a
+          href={gmapsUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="border-border bg-surface flex w-full items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2 text-sm font-semibold"
+        >
+          <ExternalLink className="size-4" />
+          Ouvrir l&apos;itinéraire dans Google Maps
+        </a>
+      )}
     </div>
   );
 }

@@ -83,7 +83,7 @@ export function HomeSkeleton() {
         </div>
       </div>
       {/* Feuille RÉDUITE : poignée + toggle « En ligne » */}
-      <div className="absolute right-0 bottom-[66px] left-0 z-10 rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-1.5 pb-5">
+      <div className="over-nav absolute right-0 left-0 z-10 rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-1.5 pb-5">
         <span className="mx-auto mb-2 block h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
         <Bar className="h-[58px] w-full !rounded-[16px]" />
       </div>
