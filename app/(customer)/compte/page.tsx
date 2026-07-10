@@ -30,6 +30,7 @@ import {
   getMyTopupBalance,
 } from "@/lib/customer/cashback";
 import { WILAYAS } from "@/lib/config/wilayas";
+import { AppVersionLabel } from "@/components/customer/app-version-label";
 
 export const dynamic = "force-dynamic";
 
@@ -335,6 +336,9 @@ export default async function CustomerAccountPage({
             {t("deleteAccount")}
           </Link>
         </div>
+
+        {/* Version installée (APK uniquement) — utile au support. */}
+        <AppVersionLabel />
       </div>
     </CustomerShell>
   );
