@@ -281,27 +281,14 @@ function OfferCard({
     <button
       type="button"
       onClick={onOpen}
-      className={cn(
-        "border-border bg-surface relative flex w-[168px] shrink-0 snap-start flex-col overflow-hidden rounded-[18px] border p-3 text-start shadow-[0_1px_2px_rgba(20,20,50,0.05),0_10px_24px_-16px_rgba(40,35,90,0.25)] transition-all duration-150 active:scale-[0.97]",
-        meta.ring
-      )}
+      className="border-border relative flex w-[168px] shrink-0 snap-start flex-col overflow-hidden rounded-[18px] border bg-white p-3 text-start shadow-[0_1px_2px_rgba(20,20,50,0.04)] transition-all duration-150 active:scale-[0.97]"
       style={{ minHeight: 118 }}
     >
-      {/* Voile teinté très léger, du haut vers le blanc — identité par type
-          sans « bloc de couleur » lourd. */}
-      <span
-        className={cn(
-          "pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b to-transparent",
-          meta.wash
-        )}
-        aria-hidden
-      />
-
       <span className="relative flex items-center gap-1.5">
         <span
           className={cn(
-            "grid size-7 shrink-0 place-items-center rounded-[9px] bg-gradient-to-br text-white shadow-sm",
-            meta.pill
+            "bg-surface-2 grid size-7 shrink-0 place-items-center rounded-[9px]",
+            meta.value
           )}
         >
           <Icon className="size-4" />
@@ -328,8 +315,7 @@ function OfferCard({
       ) : (
         <span
           className={cn(
-            "relative mt-2 truncate text-[21px] leading-tight font-black",
-            meta.value
+            "text-foreground relative mt-2 truncate text-[21px] leading-tight font-black"
           )}
         >
           {value.text}
