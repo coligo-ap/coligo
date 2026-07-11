@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { WifiOff, RefreshCw } from "lucide-react";
+import { WifiOff } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
+import { OfflineRetry } from "@/components/shared/offline-retry";
 import { OfflineOrdersFallback } from "@/components/merchant/offline-orders-fallback";
 
 export const metadata = {
@@ -25,13 +25,7 @@ export default function OfflinePage() {
           Vérifiez votre Wi-Fi ou vos données mobiles, puis réessayez.
         </p>
 
-        <Link
-          href="/dashboard"
-          className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex h-10 items-center justify-center gap-2 rounded-[10px] px-5 text-sm font-medium text-white transition-colors"
-        >
-          <RefreshCw className="size-4" />
-          Réessayer
-        </Link>
+        <OfflineRetry />
       </div>
 
       {/* Affichage dégradé : dernières commandes connues du commerçant

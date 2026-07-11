@@ -118,12 +118,18 @@ self.addEventListener("fetch", (event) => {
           if (cachedPage) return cachedPage;
           const precache = await caches.open(PRECACHE_CACHE);
           const offline = await precache.match(OFFLINE_URL);
+          // Dernier recours (si `/offline` n'a pas pu être précaché) : plus jamais
+          // un « Offline » brut en texte blanc — une page de marque minimale,
+          // cohérente avec le reste (auto-rechargement au retour du réseau).
           return (
             offline ||
-            new Response("Offline", {
-              status: 503,
-              headers: { "Content-Type": "text/plain; charset=utf-8" },
-            })
+            new Response(
+              '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Hors ligne — Coligo</title><style>html,body{margin:0;height:100%}body{display:flex;align-items:center;justify-content:center;background:#f7f7fb;color:#1a1a2e;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:24px;text-align:center}.c{max-width:340px}.i{width:56px;height:56px;margin:0 auto 16px;border-radius:50%;background:#efeaff;display:flex;align-items:center;justify-content:center}h1{font-size:20px;font-weight:800;margin:0 0 8px}p{color:#6b6b80;font-size:14px;line-height:1.5;margin:0 0 20px}button{appearance:none;border:0;background:#6c2bd9;color:#fff;font:600 14px/1 inherit;padding:13px 22px;border-radius:12px;cursor:pointer}</style></head><body><div class="c"><div class="i"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6c2bd9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.82a15 15 0 0 1 20 0M5 12.859a10 10 0 0 1 14 0M8.5 16.429a5 5 0 0 1 7 0"/><line x1="1" y1="1" x2="23" y2="23"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></div><h1>Pas de connexion</h1><p>Vérifiez votre Wi-Fi ou vos données mobiles. On réessaie tout seul dès le retour du réseau.</p><button onclick="location.reload()">Réessayer</button></div><script>addEventListener("online",function(){location.reload()})</script></body></html>',
+              {
+                status: 503,
+                headers: { "Content-Type": "text/html; charset=utf-8" },
+              }
+            )
           );
         }
       })()

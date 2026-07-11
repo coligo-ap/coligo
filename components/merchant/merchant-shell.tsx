@@ -7,6 +7,8 @@ import { MerchantMobileBottomNav } from "@/components/merchant/mobile-bottom-nav
 import { MobileDrawer } from "@/components/merchant/mobile-drawer";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import { RouteRefreshOnFocus } from "@/components/shared/route-refresh-on-focus";
+import { ConnectionGuard } from "@/components/shared/connection-guard";
+import { OfflineDim } from "@/components/shared/offline-dim";
 import { MerchantQueryProvider } from "@/components/merchant/merchant-query-provider";
 import { ConfirmProvider } from "@/components/ui/confirm";
 import { OrderRealtimeBridge } from "@/components/merchant/order-realtime-bridge";
@@ -139,6 +141,9 @@ export async function MerchantShell({
           {/* Refresh doux des données au retour au premier plan (complément du
           Router Cache : retour instantané puis maj asynchrone du RSC). */}
           <RouteRefreshOnFocus />
+          {/* Garde de connexion PARTAGÉ (comme client/livreur/chauffeur) :
+              bannière unique « hors ligne » + jamais de faux « en ligne ». */}
+          <ConnectionGuard />
           {/* Desktop sidebar */}
           <MerchantSidebar merchantName={merchant.name} />
 
@@ -159,8 +164,10 @@ export async function MerchantShell({
               pauseInput={pauseInput}
             />
 
-            {/* Content */}
-            <main className="flex-1 pb-20 lg:pb-0">{children}</main>
+            {/* Content — flouté hors ligne (contenu périmé), coque nette. */}
+            <main className="flex-1 pb-20 lg:pb-0">
+              <OfflineDim>{children}</OfflineDim>
+            </main>
           </div>
 
           {/* Mobile bottom nav + drawer (le hamburger du header ouvre le drawer) */}
