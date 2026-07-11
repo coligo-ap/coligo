@@ -153,8 +153,17 @@ export function MarketplaceGrid({
 
   // État dérivé du cache (aucun re-fetch au montage si la clé est encore fraîche).
   const emptyZone = shouldFetch ? (zoneQuery.data?.emptyZone ?? false) : false;
+  // PREMIER chargement de la zone (aucune donnée encore, pas d'erreur) : on ne
+  // montre JAMAIS le fallback à la place — il liste d'AUTRES villes (ex. un
+  // commerce à 123 km sous « Commerces près de toi ») pendant que la vraie
+  // liste charge → l'utilisateur croit que SA ville n'a aucun commerce.
+  // → squelettes le temps du fetch ; le fallback ne sert qu'en cas d'ÉCHEC
+  // réseau avéré (mieux que rien) ou de zone réellement vide (bandeau dédié).
+  const zoneLoading = shouldFetch && !zoneQuery.data && !zoneQuery.isError;
   const items =
-    !shouldFetch || emptyZone ? fallback : (zoneQuery.data?.items ?? fallback);
+    !shouldFetch || emptyZone
+      ? fallback
+      : (zoneQuery.data?.items ?? (zoneQuery.isError ? fallback : []));
   const pending = shouldFetch && zoneQuery.isFetching;
   // Promos : celles du SSR + celles ramenées par le fetch de zone.
   const promos = useMemo<Record<string, PromoLabel>>(
@@ -224,7 +233,14 @@ export function MarketplaceGrid({
         return 0;
       });
     }
-    return sorted;
+    // RÈGLE PRODUIT (toutes branches, recherche texte et mode unifié compris) :
+    // les commerces FERMÉS restent AFFICHÉS mais toujours EN BAS de la liste.
+    // Partition STABLE : l'ordre interne de chaque groupe (pertinence, score,
+    // note, distance…) est préservé — on ne fait que descendre les fermés.
+    return sorted
+      .map((m, i) => ({ m, i, rank: openRank(m) }))
+      .sort((a, b) => (a.rank !== b.rank ? a.rank - b.rank : a.i - b.i))
+      .map((s) => s.m);
   }, [
     filters.openNow,
     filters.deliveryOnly,
@@ -308,7 +324,19 @@ export function MarketplaceGrid({
         </div>
       )}
 
-      {visible.length === 0 ? (
+      {zoneLoading ? (
+        /* Premier chargement de la zone : squelettes (jamais la liste d'une
+           autre ville pendant que la vraie liste arrive). */
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="animate-pulse">
+              <div className="bg-surface-3 h-[150px] rounded-[16px]" />
+              <div className="bg-surface-3 mt-2.5 h-4 w-2/3 rounded" />
+              <div className="bg-surface-3 mt-1.5 h-3 w-1/2 rounded" />
+            </div>
+          ))}
+        </div>
+      ) : visible.length === 0 ? (
         <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-12 text-center text-sm">
           {hasActiveFilter ? (
             <>

@@ -11,12 +11,46 @@ import { useConfirm } from "@/components/ui/confirm";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { AddressForm } from "@/components/customer/address-picker";
+import { writeStoredLocation } from "@/lib/customer/location-store";
+import { reverseGeocode } from "@/app/(customer)/actions";
 import {
   addAddress,
   deleteAddress,
   setDefaultAddress,
   type AddressActionState,
 } from "@/app/(customer)/adresses/actions";
+
+/**
+ * Synchronise la ZONE marketplace avec une adresse choisie : l'accueil (et la
+ * recherche) basculent sur les commerces AUTOUR de cette adresse — comme Uber
+ * Eats quand on change d'adresse de livraison. Best-effort (le reverse-geocode
+ * wilaya/commune peut échouer : les coordonnées suffisent au classement).
+ */
+async function syncMarketplaceZone(
+  lat: number,
+  lng: number,
+  address: string | null
+) {
+  let w: string | null = null;
+  let c: string | null = null;
+  try {
+    const r = await reverseGeocode({ latitude: lat, longitude: lng });
+    if (r.ok) {
+      w = r.wilaya_code ?? null;
+      c = r.commune ?? null;
+    }
+  } catch {
+    /* coords seules = déjà suffisant (chemin proximité) */
+  }
+  writeStoredLocation({
+    latitude: lat,
+    longitude: lng,
+    wilaya_code: w,
+    commune: c,
+    address,
+    source: "manual",
+  });
+}
 
 type Addr = {
   id: string;
@@ -45,13 +79,23 @@ export function AddressesPanel({ addresses }: { addresses: Addr[] }) {
   // voie "Enregistré ✓") puis on ferme le form et on refresh.
   useEffect(() => {
     if (state.ok && adding && !pending) {
+      // Nouvelle adresse = nouvelle zone d'achat : l'accueil marketplace bascule
+      // sur les commerces autour de cette adresse (sinon « je mets une adresse à
+      // Akbou et je ne vois pas les commerces d'Akbou »).
+      if (state.saved) {
+        void syncMarketplaceZone(
+          state.saved.lat,
+          state.saved.lng,
+          state.saved.address
+        );
+      }
       const t = setTimeout(() => {
         setAdding(false);
         router.refresh();
       }, 1200);
       return () => clearTimeout(t);
     }
-  }, [state.ok, adding, pending, router]);
+  }, [state.ok, state.saved, adding, pending, router]);
 
   return (
     <div className="space-y-4">
@@ -160,6 +204,12 @@ function AddressRow({ addr }: { addr: Addr }) {
                     setNote({ ok: false, text: r.error });
                     return;
                   }
+                  // Adresse par défaut = zone d'achat : l'accueil bascule.
+                  void syncMarketplaceZone(
+                    addr.lat,
+                    addr.lng,
+                    addr.address_text
+                  );
                   router.refresh();
                 })
               }

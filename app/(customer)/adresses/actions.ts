@@ -5,7 +5,13 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireCustomer } from "@/lib/auth/customer";
 
-export type AddressActionState = { error?: string; ok?: boolean };
+export type AddressActionState = {
+  error?: string;
+  ok?: boolean;
+  /** Adresse enregistrée — permet au panneau de synchroniser la ZONE
+   *  marketplace (l'accueil bascule sur les commerces autour de l'adresse). */
+  saved?: { lat: number; lng: number; address: string | null };
+};
 
 const addressSchema = z.object({
   label: z.string().min(1).max(60),
@@ -58,7 +64,14 @@ export async function addAddress(
   if (error) return { error: error.message };
   revalidatePath("/adresses");
   revalidatePath("/checkout");
-  return { ok: true };
+  return {
+    ok: true,
+    saved: {
+      lat: parsed.data.lat,
+      lng: parsed.data.lng,
+      address: parsed.data.address_text || null,
+    },
+  };
 }
 
 /**
