@@ -3,7 +3,6 @@
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Info, Moon, Plus, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { ActionNote, useActionNote } from "@/components/shared/action-note";

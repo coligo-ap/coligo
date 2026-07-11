@@ -47,6 +47,7 @@ export function ExpressRun({
   onPickup,
   onArrived,
   onValidate,
+  actionError,
 }: {
   order: RunOrder;
   itemCount: number;
@@ -59,6 +60,8 @@ export function ExpressRun({
   onPickup: () => void;
   onArrived: () => void;
   onValidate: () => void;
+  /** Erreur d'action (trop loin, GPS, pickup…) affichée EN LIGNE sous le CTA. */
+  actionError?: string | null;
 }) {
   const [eta, setEta] = useState<{ min: number; km: number } | null>(null);
   const [showChat, setShowChat] = useState(false);
@@ -289,6 +292,21 @@ export function ExpressRun({
           {pending ? "…" : cta.label}
           {/* libellé bilingue via tr() ci-dessus */}
         </button>
+
+        {/* Erreur d'action EN LIGNE (trop loin, GPS désactivé…) sous le CTA. */}
+        {actionError && (
+          <p
+            style={{
+              marginTop: 8,
+              textAlign: "center",
+              fontSize: 12.5,
+              fontWeight: 600,
+              color: "var(--red)",
+            }}
+          >
+            {actionError}
+          </p>
+        )}
 
         {/* Actions secondaires (masquées en mode réduit). */}
         {!collapsed && (

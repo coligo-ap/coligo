@@ -51,6 +51,9 @@ export function DeliveryValidationDialog({
   const confirm = useConfirm();
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [code, setCode] = useState("");
+  // Erreur affichée EN LIGNE dans la fenêtre (pas de toast) : la fenêtre reste
+  // ouverte, le livreur voit « code incorrect », etc. au point d'action.
+  const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -85,12 +88,14 @@ export function DeliveryValidationDialog({
 
   const submit = (skip: boolean) =>
     start(async () => {
+      setError(null);
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         await enqueueValidation({
           orderId,
           code: code || null,
           skipCode: skip,
         });
+        // Synchro offline = événement asynchrone légitime (toast conservé).
         toast.success(
           tr(
             "Validation enregistrée — sera synchronisée",
@@ -120,7 +125,7 @@ export function DeliveryValidationDialog({
             "already_delivered",
           ].includes(r.reason)
         ) {
-          toast.error(reasonLabel(r.reason, isAr));
+          setError(reasonLabel(r.reason, isAr));
           return;
         }
         await enqueueValidation({
@@ -128,6 +133,7 @@ export function DeliveryValidationDialog({
           code: code || null,
           skipCode: skip,
         });
+        // Mise en file offline = événement asynchrone légitime (toast conservé).
         toast.success(
           tr(
             "Validation en attente — synchro auto",
@@ -137,15 +143,17 @@ export function DeliveryValidationDialog({
         onSuccess();
         return;
       }
-      toast.success(tr("Livraison validée ✓", "تم تأكيد التسليم ✓"));
+      // Succès : la fenêtre se ferme et PostDeliveryFeedback (« Livraison
+      // validée ») s'affiche aussitôt → pas de toast redondant.
       onSuccess();
     });
 
   const handleScannedText = (text: string) => {
     const digits = text.match(/\d{4,6}/)?.[0];
     if (digits) {
+      // Les cases du code se remplissent = retour visuel (pas de toast).
+      setError(null);
       setCode(digits.slice(0, 4));
-      toast.success(tr("Code détecté", "تم اكتشاف الرمز"));
     }
   };
 
@@ -173,8 +181,9 @@ export function DeliveryValidationDialog({
   // en TOURNÉE tout reste à la charge du commerçant. (L'ONLINE n'utilise plus
   // ce bouton : il passe par le dépôt à l'adresse ci-dessous.)
   const onNoShow = () => {
+    setError(null);
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      toast.error(
+      setError(
         tr(
           "Connexion requise pour signaler un client absent.",
           "يلزم اتصال بالإنترنت للإبلاغ عن غياب الزبون."
@@ -209,12 +218,15 @@ export function DeliveryValidationDialog({
   };
 
   const doNoShow = () => {
+    setError(null);
     start(async () => {
       const r = await reportNoShow({ orderId, reason: "no_show" });
       if (!r.ok) {
-        toast.error(reasonLabel(r.reason, isAr));
+        setError(reasonLabel(r.reason, isAr));
         return;
       }
+      // Confirmation SPÉCIFIQUE au no-show (remboursement de l'avance) qui doit
+      // survivre à la fermeture de la fenêtre → toast conservé (légitime).
       toast.success(
         tr(
           "Signalé — le support examine le remboursement de ton avance (voir Relevé).",
@@ -228,12 +240,13 @@ export function DeliveryValidationDialog({
   // Photo de preuve du dépôt : upload direct dans le bucket public
   // `delivery-proofs` (policy : livreur authentifié). Path par commande.
   async function handleProofFile(file: File) {
+    setError(null);
     if (!file.type.startsWith("image/")) {
-      toast.error(tr("Le fichier doit être une photo.", "يجب أن يكون صورة."));
+      setError(tr("Le fichier doit être une photo.", "يجب أن يكون صورة."));
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      toast.error(
+      setError(
         tr(
           "Photo trop lourde (max 8 Mo).",
           "الصورة كبيرة جداً (8 م.ب كحد أقصى)."
@@ -246,11 +259,11 @@ export function DeliveryValidationDialog({
       const supabase = createClient();
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `${orderId}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage
+      const { error: upErr } = await supabase.storage
         .from("delivery-proofs")
         .upload(path, file, { upsert: false, contentType: file.type });
-      if (error) {
-        toast.error(tr(`Échec de l'envoi : ${error.message}`, "فشل الإرسال."));
+      if (upErr) {
+        setError(tr(`Échec de l'envoi : ${upErr.message}`, "فشل الإرسال."));
         return;
       }
       const {
@@ -263,8 +276,9 @@ export function DeliveryValidationDialog({
   }
 
   const onLeaveAtDoor = () => {
+    setError(null);
     if (!proofUrl) {
-      toast.error(
+      setError(
         tr(
           "Prends d'abord une photo du colis déposé.",
           "التقط أولاً صورة للطرد بعد وضعه."
@@ -281,15 +295,10 @@ export function DeliveryValidationDialog({
           note: leaveNote.trim() || undefined,
         });
         if (!r.ok) {
-          toast.error(reasonLabel(r.reason, isAr));
+          setError(reasonLabel(r.reason, isAr));
           return;
         }
-        toast.success(
-          tr(
-            "Commande déposée et validée — le client est notifié.",
-            "تم إيداع الطلب وتأكيده — تم إشعار الزبون."
-          )
-        );
+        // Succès : fenêtre fermée + PostDeliveryFeedback → pas de toast redondant.
         onSuccess();
       } finally {
         setLeaving(false);
@@ -363,9 +372,10 @@ export function DeliveryValidationDialog({
             autoComplete="one-time-code"
             maxLength={4}
             value={code}
-            onChange={(e) =>
-              setCode(e.target.value.replace(/\D/g, "").slice(0, 4))
-            }
+            onChange={(e) => {
+              setCode(e.target.value.replace(/\D/g, "").slice(0, 4));
+              setError(null);
+            }}
             disabled={pending}
             className="absolute inset-0 size-full cursor-pointer opacity-0"
           />
@@ -404,6 +414,28 @@ export function DeliveryValidationDialog({
             ? tr("Validation…", "جارٍ التأكيد…")
             : tr("Valider la livraison", "تأكيد التسليم")}
         </button>
+
+        {/* Erreur EN LIGNE (code incorrect, trop d'essais, photo, etc.) — la
+            fenêtre reste ouverte, le livreur corrige sur place. */}
+        {error && (
+          <div
+            style={{
+              width: "100%",
+              marginTop: 10,
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: "1.5px solid #fda29b",
+              background: "#fffbfa",
+              color: "#b42318",
+              fontWeight: 600,
+              fontSize: 13,
+              textAlign: "center",
+              lineHeight: 1.4,
+            }}
+          >
+            {error}
+          </div>
+        )}
 
         {/* Client absent — minuteur 8 min depuis l'arrivée. ONLINE : dépôt à
             l'adresse avec photo (client déjà payé). ESPÈCES : commande annulée. */}

@@ -52,6 +52,7 @@ export function ExpressOffer({
   onTimeout,
   refusing,
   driverFeeConfig,
+  error,
 }: {
   order: OfferOrder;
   merchantName: string;
@@ -62,6 +63,8 @@ export function ExpressOffer({
   onTimeout?: () => void;
   refusing: boolean;
   driverFeeConfig?: DriverFeeConfig;
+  /** Erreur d'action (refus impossible…) affichée EN LIGNE sous les boutons. */
+  error?: string | null;
 }) {
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
@@ -287,6 +290,20 @@ export function ExpressOffer({
               {mm}:{ss}
             </span>
           </button>
+
+          {error && (
+            <p
+              style={{
+                marginTop: 10,
+                textAlign: "center",
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: "#ffd7d3",
+              }}
+            >
+              {error}
+            </p>
+          )}
         </div>
       </div>
     </div>

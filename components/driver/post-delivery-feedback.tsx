@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useLocale } from "next-intl";
 import { Check, Flag, Loader2, Star } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { rateCustomer, reportCustomer } from "@/app/(driver)/actions";
 
 /**
@@ -38,10 +38,12 @@ export function PostDeliveryFeedback({
   const [reporting, setReporting] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
   const [details, setDetails] = useState("");
+  const [note, setNote] = useActionNote();
   const [pending, start] = useTransition();
 
   const submit = () =>
     start(async () => {
+      setNote(null);
       let okAll = true;
       if (rating > 0) {
         const r = await rateCustomer({
@@ -59,13 +61,19 @@ export function PostDeliveryFeedback({
         });
         if (!r.ok && r.reason !== "already_reported") okAll = false;
       }
-      if (okAll)
-        toast.success(tr("Merci pour ton retour ✓", "شكراً على ملاحظتك ✓"));
-      else
-        toast.error(
-          tr("Une partie n'a pas pu être enregistrée.", "تعذّر حفظ جزء منها.")
-        );
-      onDone();
+      // Succès : on ferme (le « merci » n'a pas besoin de survivre). En cas
+      // d'échec partiel, on GARDE la fenêtre ouverte avec un message inline.
+      if (okAll) {
+        onDone();
+        return;
+      }
+      setNote({
+        ok: false,
+        text: tr(
+          "Une partie n'a pas pu être enregistrée.",
+          "تعذّر حفظ جزء منها."
+        ),
+      });
     });
 
   return (
@@ -169,6 +177,8 @@ export function PostDeliveryFeedback({
             />
           </div>
         )}
+
+        <ActionNote note={note} className="mt-3 text-center" />
 
         <div className="mt-5 flex flex-col gap-2">
           <button

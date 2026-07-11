@@ -3,7 +3,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { toast } from "@/components/ui/toast";
 import {
   declineExpress,
   confirmArrival,
@@ -72,6 +71,9 @@ export function ExpressCard({
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [pending, start] = useTransition();
+  // Erreur d'action EN LIGNE, affichée dans l'écran plein courant (offre ou
+  // course) près du bouton concerné — pas de toast (cf. CLAUDE.md).
+  const [actionError, setActionError] = useState<string | null>(null);
   const [showValidate, setShowValidate] = useState(false);
   // Retour post-livraison (noter + signaler le client) une fois validée.
   const [feedbackOrder, setFeedbackOrder] = useState<{
@@ -99,6 +101,7 @@ export function ExpressCard({
 
   const acceptOffer = () => {
     if (!currentOrder) return;
+    setActionError(null);
     try {
       const raw = localStorage.getItem(ACCEPTED_KEY);
       const set = raw ? (JSON.parse(raw) as string[]) : [];
@@ -107,18 +110,17 @@ export function ExpressCard({
     } catch {
       /* localStorage indispo → on accepte quand même en mémoire */
     }
+    // Passage à l'écran « course en cours » = retour visuel (pas de toast).
     setAccepted(true);
-    toast.success(
-      tr("Course acceptée — en route", "تم قبول التوصيلة — في الطريق")
-    );
   };
 
   const refuseOffer = () => {
     if (!currentOrder) return;
+    setActionError(null);
     start(async () => {
       const r = await declineExpress(currentOrder.id);
       if (!r.ok) {
-        toast.error(
+        setActionError(
           r.reason === "already_picked_up"
             ? tr(
                 "Trop tard : commande déjà récupérée.",
@@ -131,14 +133,9 @@ export function ExpressCard({
         );
         return;
       }
-      // La course repart automatiquement vers un autre livreur en ligne.
+      // La course repart automatiquement vers un autre livreur ; retour à
+      // l'accueil (sans course active) = retour visuel (pas de toast).
       clearActiveCourse();
-      toast.success(
-        tr(
-          "Course refusée — proposée à un autre livreur",
-          "تم رفض التوصيلة — عُرضت على سائق آخر"
-        )
-      );
       router.push("/driver");
     });
   };
@@ -166,18 +163,14 @@ export function ExpressCard({
 
   const onPickup = () => {
     if (!currentOrder) return;
+    setActionError(null);
     start(async () => {
       const r = await markOrderPickedUp(currentOrder.id);
       if (!r.ok) {
-        toast.error(r.reason ?? tr("Erreur", "خطأ"));
+        setActionError(r.reason ?? tr("Erreur", "خطأ"));
         return;
       }
-      toast.success(
-        tr(
-          "Commande récupérée — en route vers le client",
-          "تم استلام الطلب — في الطريق إلى الزبون"
-        )
-      );
+      // L'étape passe de « Récupérer » à « Livrer » = retour visuel (pas de toast).
       router.refresh();
     });
   };
@@ -186,12 +179,13 @@ export function ExpressCard({
   // l'adresse exacte pour démarrer le minuteur d'attente (anti-fraude no-show).
   const onArrived = () => {
     if (!currentOrder) return;
+    setActionError(null);
     start(async () => {
       let pos: { latitude: number; longitude: number };
       try {
         pos = await getPosition();
       } catch {
-        toast.error(
+        setActionError(
           tr(
             "Active la localisation pour confirmer ton arrivée.",
             "فعّل تحديد الموقع لتأكيد وصولك."
@@ -205,7 +199,7 @@ export function ExpressCard({
         lng: pos.longitude,
       });
       if (!r.ok) {
-        toast.error(
+        setActionError(
           r.reason === "too_far"
             ? tr(
                 "Tu es trop loin de l'adresse du client. Rapproche-toi pour confirmer.",
@@ -220,7 +214,8 @@ export function ExpressCard({
         );
         return;
       }
-      toast.success(tr("Arrivée signalée au client", "تم إشعار الزبون بوصولك"));
+      // Le bouton passe à « Scanner / Saisir le code » + minuteur no-show =
+      // retour visuel (pas de toast).
       router.refresh();
     });
   };
@@ -238,6 +233,7 @@ export function ExpressCard({
           onTimeout={refuseOffer}
           refusing={pending}
           driverFeeConfig={driverFeeConfig}
+          error={actionError}
         />
       )}
 
@@ -257,6 +253,7 @@ export function ExpressCard({
             onPickup={onPickup}
             onArrived={onArrived}
             onValidate={() => setShowValidate(true)}
+            actionError={actionError}
           />
           {pickedUp && <DriverLocationBroadcaster orderId={currentOrder.id} />}
           {/* Réduire la navigation → revient sur un onglet ; le bandeau

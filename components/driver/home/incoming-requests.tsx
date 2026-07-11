@@ -16,7 +16,6 @@ import { declineExpress } from "@/app/(driver)/actions";
 import { useDriverOnline } from "@/lib/driver/online-store";
 import { useIncomingSignal } from "@/lib/driver/incoming-store";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
-import { toast } from "@/components/ui/toast";
 
 /**
  * DEMANDES DE COURSE sur l'ACCUEIL (façon UberEats) — liste dépliable.
@@ -81,6 +80,11 @@ export function IncomingRequests({
   const [express, setExpress] = useState<ExpressReq[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Erreur de refus affichée EN LIGNE dans la carte concernée (pas de toast).
+  const [refuseErr, setRefuseErr] = useState<{
+    id: string;
+    msg: string;
+  } | null>(null);
 
   // Charge les courses express EN ATTENTE (attribuées, pas encore récupérées).
   const load = useCallback(async () => {
@@ -219,15 +223,19 @@ export function IncomingRequests({
   const accept = (id: string) => router.push(`/driver/course/${id}`);
   const refuse = (id: string) => {
     setBusyId(id);
+    setRefuseErr(null);
     void (async () => {
       try {
         const r = await declineExpress(id);
         if (!r.ok) {
-          toast.error(tr("Impossible de refuser.", "تعذّر الرفض."));
+          setRefuseErr({
+            id,
+            msg: tr("Impossible de refuser.", "تعذّر الرفض."),
+          });
           return;
         }
+        // Succès : la carte disparaît de la liste = retour visuel (pas de toast).
         setExpress((prev) => prev.filter((o) => o.id !== id));
-        toast.success(tr("Course refusée.", "تم رفض التوصيلة."));
       } finally {
         setBusyId(null);
       }
@@ -457,6 +465,14 @@ export function IncomingRequests({
                       {tr("Accepter", "قبول")}
                     </button>
                   </div>
+                  {refuseErr?.id === o.id && (
+                    <p
+                      className="mt-2 text-[12px] font-semibold"
+                      style={{ color: "var(--red)" }}
+                    >
+                      {refuseErr.msg}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
