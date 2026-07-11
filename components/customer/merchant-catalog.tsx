@@ -340,7 +340,7 @@ export function MerchantCatalog({
               "sticky top-[calc(env(safe-area-inset-top)+56px)] z-20 -mx-4 mb-4 transition-shadow lg:-mx-6",
               stuck
                 ? "border-border border-b bg-white/90 shadow-[0_2px_6px_rgba(0,0,0,0.04)] backdrop-blur-xl"
-                : "bg-surface-2"
+                : "bg-white"
             )}
           >
             <div
@@ -484,10 +484,9 @@ export function MerchantCatalog({
                   gravity: "auto",
                 }) ?? g.category.image_url)
               : null;
-            // ── Tuile AVEC image : photo plein cadre, titre INTÉGRÉ sur la
-            //    photo (pas de zone texte séparée) — lisible grâce à un FONDU
-            //    sombre bas → transparent + ombre portée sur le texte, sans
-            //    masquer l'image. Badge promo en surimpression haut-start. ──
+            // ── Tuile AVEC image — style BOLT FOOD : carte BLANCHE, photo
+            //    PROPRE (object-contain, jamais de voile sombre qui l'efface),
+            //    titre NOIR sous la photo. Badge promo discret sur la photo. ──
             if (img) {
               return (
                 <button
@@ -495,39 +494,32 @@ export function MerchantCatalog({
                   type="button"
                   onClick={() => setOpenCat(g.key)}
                   aria-label={title}
-                  className="group relative block aspect-[3/4] overflow-hidden rounded-[8px] shadow-[0_4px_14px_-8px_rgba(40,35,90,0.35)] transition-transform duration-150 active:scale-[0.97] sm:aspect-[4/5]"
+                  className="group border-border flex flex-col overflow-hidden rounded-[14px] border bg-white transition-transform duration-150 active:scale-[0.97]"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={img}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
-                  />
-                  {/* Fondu de lisibilité EN HAUT (jamais toute la photo) —
-                      titre en tête de tuile, comme les tuiles sans image. */}
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-0 top-0 h-[45%] bg-gradient-to-b from-black/75 via-black/30 to-transparent"
-                  />
-                  {/* Bloc titre COMPACT (interligne serré, sans écart) : la
-                      photo reste le plus visible possible. */}
-                  <span className="absolute inset-x-0 top-0 flex flex-col items-center px-2 pt-1.5 text-center">
-                    <span className="line-clamp-2 text-[12.5px] leading-tight font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
+                  <span className="relative block aspect-square w-full bg-white p-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.04]"
+                    />
+                    {promoCount > 0 && (
+                      <span className="bg-accent-600 absolute start-1.5 top-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold whitespace-nowrap text-white shadow-sm">
+                        <BadgePercent className="size-3 shrink-0" />
+                        {t("categoryPromoCount", { count: promoCount })}
+                      </span>
+                    )}
+                  </span>
+                  <span className="flex flex-col items-center px-1.5 pb-2 text-center">
+                    <span className="text-foreground line-clamp-2 text-[12px] leading-tight font-bold">
                       {title}
                     </span>
-                    <span className="text-[10px] leading-tight font-semibold text-white/85">
+                    <span className="text-subtle text-[10px] leading-tight font-semibold">
                       {t("productCount", { count: g.items.length })}
                     </span>
                   </span>
-                  {/* Badge promo en bas (le haut est occupé par le titre). */}
-                  {promoCount > 0 && (
-                    <span className="bg-accent-600 absolute start-1.5 bottom-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold whitespace-nowrap text-white shadow-sm">
-                      <BadgePercent className="size-3 shrink-0" />
-                      {t("categoryPromoCount", { count: promoCount })}
-                    </span>
-                  )}
                 </button>
               );
             }

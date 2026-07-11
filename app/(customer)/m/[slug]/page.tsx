@@ -143,114 +143,118 @@ export default async function MerchantPublicPage({
     // hideHeader : la fiche porte sa propre topbar fixe (← retour · ♡ · panier)
     // posée sur le hero immersif, donc on masque le header global du shell.
     <CustomerShell hideHeader>
-      <div className="mx-auto max-w-[1100px] px-4 pt-4 pb-4 lg:px-6 lg:pt-6 lg:pb-8">
-        {/* En-tête compact style Uber Eats : cover plate + 2 boutons ronds
+      {/* Fond BLANC pur sur toute la fiche (style Bolt Food) — le gris clair
+          global (bg-surface-2 du chrome) reste sur les autres pages. */}
+      <div className="min-h-screen bg-white">
+        <div className="mx-auto max-w-[1100px] px-4 pt-4 pb-4 lg:px-6 lg:pt-6 lg:pb-8">
+          {/* En-tête compact style Uber Eats : cover plate + 2 boutons ronds
             par-dessus + bande d'infos compacte sous la cover (3 lignes max).
             Le bouton "Retour" est intégré sur la cover — plus de ligne séparée. */}
-        <MerchantCompactHeader
-          merchantId={m.id}
-          initialFavorite={isFavorite}
-          isAuth={isAuth}
-          name={m.name}
-          category={m.category}
-          description_fr={m.description_fr}
-          description_ar={m.description_ar}
-          cover_url={m.cover_url}
-          logo_url={m.logo_url}
-          commune={m.commune}
-          wilaya_name={wilayaName}
-          min_order_da={m.min_order_da}
-          prep_time_min={m.prep_time_min}
-          opening_hours={m.opening_hours}
-          pause={{
-            orders_paused: m.orders_paused,
-            paused_until: m.paused_until,
-            closure_start: m.closure_start,
-            closure_end: m.closure_end,
-          }}
-          rating_avg={m.rating_avg}
-          rating_count={m.rating_count}
-          reviews={reviews}
-          tags={m.tags}
-        />
-
-        {/* Offres & réductions — carrousel COMPACT et CLASSÉ (codes, cadeaux,
-            livraison offerte, ventes flash à compte à rebours, anti-gaspi).
-            Une seule bande, pas d'empilement de cartes → visuel épuré. */}
-        {railOffers.length > 0 && (
-          <div className="mt-3">
-            <MerchantOffersRail
-              merchant={{
-                id: m.id,
-                slug: m.slug,
-                name: m.name,
-                logo_url: m.logo_url,
-              }}
-              offers={railOffers}
-              productsById={productsById}
-              promoPriceById={promoPriceById}
-            />
-          </div>
-        )}
-
-        {/* Retrait/Livraison + bascule liste/catégories sur la MÊME ligne
-            (gain de place). La bascule pilote le catalogue via un store
-            partagé et se masque s'il n'y a qu'un groupe. */}
-        <div className="mt-3 flex items-stretch gap-2">
-          <div className="min-w-0 flex-1">
-            <ShopModeToggle
-              merchant={{
-                id: m.id,
-                slug: m.slug,
-                name: m.name,
-                logo_url: m.logo_url,
-              }}
-              deliveryEnabled={!!m.delivery_enabled}
-            />
-          </div>
-          <CatalogViewToggle
+          <MerchantCompactHeader
             merchantId={m.id}
-            defaultDisplay={m.catalog_display}
-          />
-        </div>
-
-        {/* Bandeau + pop-up « fermé / en pause » → propose de programmer une
-            commande pour plus tard (façon Deliveroo / Uber Eats). */}
-        <div className="mt-3">
-          <MerchantClosedNotice
-            openingHours={m.opening_hours}
-            maxDaysAhead={m.max_days_ahead}
+            initialFavorite={isFavorite}
+            isAuth={isAuth}
+            name={m.name}
+            category={m.category}
+            description_fr={m.description_fr}
+            description_ar={m.description_ar}
+            cover_url={m.cover_url}
+            logo_url={m.logo_url}
+            commune={m.commune}
+            wilaya_name={wilayaName}
+            min_order_da={m.min_order_da}
+            prep_time_min={m.prep_time_min}
+            opening_hours={m.opening_hours}
             pause={{
               orders_paused: m.orders_paused,
               paused_until: m.paused_until,
               closure_start: m.closure_start,
               closure_end: m.closure_end,
             }}
+            rating_avg={m.rating_avg}
+            rating_count={m.rating_count}
+            reviews={reviews}
+            tags={m.tags}
           />
-        </div>
 
-        {/* Catalogue : chips sticky + sections produits en lignes compactes
+          {/* Offres & réductions — carrousel COMPACT et CLASSÉ (codes, cadeaux,
+            livraison offerte, ventes flash à compte à rebours, anti-gaspi).
+            Une seule bande, pas d'empilement de cartes → visuel épuré. */}
+          {railOffers.length > 0 && (
+            <div className="mt-3">
+              <MerchantOffersRail
+                merchant={{
+                  id: m.id,
+                  slug: m.slug,
+                  name: m.name,
+                  logo_url: m.logo_url,
+                }}
+                offers={railOffers}
+                productsById={productsById}
+                promoPriceById={promoPriceById}
+              />
+            </div>
+          )}
+
+          {/* Retrait/Livraison + bascule liste/catégories sur la MÊME ligne
+            (gain de place). La bascule pilote le catalogue via un store
+            partagé et se masque s'il n'y a qu'un groupe. */}
+          <div className="mt-3 flex items-stretch gap-2">
+            <div className="min-w-0 flex-1">
+              <ShopModeToggle
+                merchant={{
+                  id: m.id,
+                  slug: m.slug,
+                  name: m.name,
+                  logo_url: m.logo_url,
+                }}
+                deliveryEnabled={!!m.delivery_enabled}
+              />
+            </div>
+            <CatalogViewToggle
+              merchantId={m.id}
+              defaultDisplay={m.catalog_display}
+            />
+          </div>
+
+          {/* Bandeau + pop-up « fermé / en pause » → propose de programmer une
+            commande pour plus tard (façon Deliveroo / Uber Eats). */}
+          <div className="mt-3">
+            <MerchantClosedNotice
+              openingHours={m.opening_hours}
+              maxDaysAhead={m.max_days_ahead}
+              pause={{
+                orders_paused: m.orders_paused,
+                paused_until: m.paused_until,
+                closure_start: m.closure_start,
+                closure_end: m.closure_end,
+              }}
+            />
+          </div>
+
+          {/* Catalogue : chips sticky + sections produits en lignes compactes
             (image 64px à gauche, prix violet, bouton + à droite). */}
-        <div className="mt-4 pb-32 lg:pb-12">
-          <MerchantCatalog
-            merchant={{
-              id: m.id,
-              slug: m.slug,
-              name: m.name,
-              logo_url: m.logo_url,
-            }}
-            products={catalog.products}
-            categories={catalog.categories}
-            promoPriceById={promoPriceById}
-            quantityOfferByProduct={quantityOfferByProduct}
-            promoCarousels={promoCarousels}
-            defaultDisplay={m.catalog_display}
-          />
+          <div className="mt-4 pb-32 lg:pb-12">
+            <MerchantCatalog
+              merchant={{
+                id: m.id,
+                slug: m.slug,
+                name: m.name,
+                logo_url: m.logo_url,
+              }}
+              products={catalog.products}
+              categories={catalog.categories}
+              promoPriceById={promoPriceById}
+              quantityOfferByProduct={quantityOfferByProduct}
+              promoCarousels={promoCarousels}
+              defaultDisplay={m.catalog_display}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* CTA panier sticky en bas (mobile + desktop), si panier de ce commerce */}
-      <MerchantCartCta merchantId={m.id} minOrderDa={m.min_order_da} />
+        {/* CTA panier sticky en bas (mobile + desktop), si panier de ce commerce */}
+        <MerchantCartCta merchantId={m.id} minOrderDa={m.min_order_da} />
+      </div>
     </CustomerShell>
   );
 }

@@ -6,7 +6,6 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowLeft,
   ChevronDown,
-  ChevronUp,
   MapPin,
   Search,
   ShoppingBasket,
@@ -317,13 +316,14 @@ export function MerchantCompactHeader({
             </span>
           </div>
         )}
-        {/* Dégradé : sombre en haut (barre système + topbar) puis fondu vers le
-            fond clair de la page en bas (la couverture se fond dans le blanc). */}
+        {/* Photo de couverture PROPRE (style Bolt Food) : plus de voile sombre
+            qui « efface » la photo. Seul un léger scrim tout en HAUT garantit la
+            lisibilité des boutons ronds (retour/♡/panier) sur photo claire. */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, rgba(8,8,18,.58) 0%, rgba(8,8,18,.12) 20%, transparent 44%, rgba(8,8,18,.30) 70%, rgba(8,8,18,.20) 88%, #f7f7fb 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,.30) 0%, rgba(0,0,0,.06) 26%, transparent 40%)",
           }}
         />
       </div>
@@ -332,7 +332,10 @@ export function MerchantCompactHeader({
               placés ENTIÈREMENT sous la couverture, dans la zone BLANCHE : le nom
               est donc toujours noir sur blanc (lisible quelle que soit la photo de
               couverture, claire ou sombre). ───── */}
-      <div className="relative z-[1] mt-2.5 flex items-center gap-3.5 lg:mt-3">
+      {/* Feuille BLANCHE à coins arrondis qui CHEVAUCHE la couverture (style
+          Bolt Food) : la photo reste pleine et propre, le contenu démarre sur
+          une carte blanche nette. */}
+      <div className="relative z-[1] -mx-4 -mt-5 flex items-center gap-3.5 rounded-t-[24px] bg-white px-4 pt-3.5 lg:-mx-6 lg:px-6">
         {logoOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
