@@ -54,7 +54,7 @@ export function RelevePeriodPicker({
   selectedMonth,
   customFrom,
   customTo,
-  basePath = "/driver/releve",
+  basePath = "/driver/gains",
   currentLabel = "Période en cours (non réglé)",
 }: {
   firstMonth: string | null;

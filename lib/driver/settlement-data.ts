@@ -25,7 +25,17 @@ export type SettlementData = {
   method: string | null;
   details: string | null;
   dueLabel: string | null;
+  /** Agrégats par mode de paiement — filtre client de « Gains et Relevés ».
+   *  netDa = gains livreur (driver_payout) ; coligoDa = part Coligo
+   *  (driver_fee) sur ces mêmes livraisons. */
+  byMethod: {
+    all: MethodSlice;
+    cash: MethodSlice;
+    online: MethodSlice;
+  };
 };
+
+export type MethodSlice = { count: number; netDa: number; coligoDa: number };
 
 type LedgerRow = {
   order_id: string | null;
@@ -157,11 +167,24 @@ export async function getDriverSettlement(
   let driverFee = 0;
   const deliveryOrderIds = new Set<string>();
 
+  // Tranches par mode de paiement (filtre client Tous/Espèces/En ligne).
+  const slice = () => ({ count: 0, netDa: 0, coligoDa: 0 });
+  const byMethod = { all: slice(), cash: slice(), online: slice() };
+  const countedByMethod = {
+    cash: new Set<string>(),
+    online: new Set<string>(),
+  };
+  const methodOf = (o: OrderSnap | undefined): "cash" | "online" =>
+    o?.payment_method === "online" ? "online" : "cash";
+
   for (const e of ledger) {
     const o = e.order_id ? orderById.get(e.order_id) : undefined;
     if (e.type === "driver_payout") {
       grossDriver += e.amount_da;
       if (e.order_id) deliveryOrderIds.add(e.order_id);
+      const m = methodOf(o);
+      byMethod[m].netDa += e.amount_da;
+      if (e.order_id) countedByMethod[m].add(e.order_id);
       // « À recevoir » : prépayé OU no-show (la plateforme doit au livreur).
       if (o?.payment_method === "online" || o?.delivery_failed_at) {
         toReceive += e.amount_da;
@@ -176,6 +199,20 @@ export async function getDriverSettlement(
       driverFee += o?.driver_fee_da ?? 0;
     }
   }
+  // Part Coligo par tranche : snapshot `driver_fee_da` de CHAQUE livraison de
+  // la période (les écritures « owes » n'existent que pour le COD — un calcul
+  // par écritures oublierait la part Coligo des livraisons prépayées).
+  for (const id of deliveryOrderIds) {
+    const o = orderById.get(id);
+    byMethod[methodOf(o)].coligoDa += o?.driver_fee_da ?? 0;
+  }
+  byMethod.cash.count = countedByMethod.cash.size;
+  byMethod.online.count = countedByMethod.online.size;
+  byMethod.all = {
+    count: deliveryOrderIds.size,
+    netDa: byMethod.cash.netDa + byMethod.online.netDa,
+    coligoDa: byMethod.cash.coligoDa + byMethod.online.coligoDa,
+  };
 
   const netDa = toReceive - toReverse;
   const direction: SettlementData["direction"] =
@@ -215,6 +252,7 @@ export async function getDriverSettlement(
         : direction === "receive"
           ? `Versement au prochain cycle ${cycle}`
           : null,
+    byMethod,
   };
 }
 

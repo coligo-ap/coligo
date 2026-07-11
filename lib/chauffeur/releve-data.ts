@@ -17,7 +17,16 @@ export type ChauffeurReleve = {
   commissionDa: number;
   subFeesDa: number;
   netDa: number;
+  /** Tranches par mode de paiement — filtre client de « Gains et Relevés ».
+   *  cash = espèces ; online = Coligo Pay + carte. */
+  byMethod: {
+    all: RideSlice;
+    cash: RideSlice;
+    online: RideSlice;
+  };
 };
+
+export type RideSlice = { count: number; netDa: number; coligoDa: number };
 
 /** Mois courant (Alger ≈ UTC+1 sans DST — bornes UTC du mois civil local). */
 export function currentMonthPeriod(): SettlementPeriod {
@@ -54,7 +63,7 @@ export async function getChauffeurReleve(
     admin
       .from("rides")
       .select(
-        "agreed_price_da, boost_amount_da, commission_da, chauffeur_net_da"
+        "agreed_price_da, boost_amount_da, commission_da, chauffeur_net_da, payment_method"
       )
       .eq("chauffeur_id", chauffeurId)
       .eq("status", "completed")
@@ -75,6 +84,7 @@ export async function getChauffeurReleve(
     boost_amount_da: number | null;
     commission_da: number | null;
     chauffeur_net_da: number | null;
+    payment_method: string | null;
   };
   const rows = (rides ?? []) as RideRow[];
   const gross = rows.reduce(
@@ -82,21 +92,34 @@ export async function getChauffeurReleve(
     0
   );
   const commission = rows.reduce((s, r) => s + (r.commission_da ?? 0), 0);
-  // Net = snapshot si présent, sinon brut − commission (courses d'avant le
-  // snapshot net).
-  const net = rows.reduce(
-    (s, r) =>
-      s +
-      (r.chauffeur_net_da ??
-        (r.agreed_price_da ?? 0) +
-          (r.boost_amount_da ?? 0) -
-          (r.commission_da ?? 0)),
-    0
-  );
+  // Net d'une course = snapshot si présent, sinon brut − commission (courses
+  // d'avant le snapshot net).
+  const rideNet = (r: RideRow) =>
+    r.chauffeur_net_da ??
+    (r.agreed_price_da ?? 0) +
+      (r.boost_amount_da ?? 0) -
+      (r.commission_da ?? 0);
+  const net = rows.reduce((s, r) => s + rideNet(r), 0);
   const subFees = ((subs ?? []) as { amount_da: number }[]).reduce(
     (s, p) => s + p.amount_da,
     0
   );
+
+  // Tranches par mode de paiement (cash vs coligo_pay/card).
+  const slice = (): RideSlice => ({ count: 0, netDa: 0, coligoDa: 0 });
+  const byMethod = { all: slice(), cash: slice(), online: slice() };
+  for (const r of rows) {
+    const m =
+      r.payment_method && r.payment_method !== "cash" ? "online" : "cash";
+    byMethod[m].count += 1;
+    byMethod[m].netDa += rideNet(r);
+    byMethod[m].coligoDa += r.commission_da ?? 0;
+  }
+  byMethod.all = {
+    count: rows.length,
+    netDa: net,
+    coligoDa: commission,
+  };
 
   return {
     periodLabel: period.label,
@@ -105,6 +128,7 @@ export async function getChauffeurReleve(
     commissionDa: commission,
     subFeesDa: subFees,
     netDa: net,
+    byMethod,
   };
 }
 

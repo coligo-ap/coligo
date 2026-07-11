@@ -305,9 +305,9 @@ export function OperatorRecharge({
     owner === "merchant"
       ? "/finances"
       : owner === "chauffeur"
-        ? "/chauffeur/releve"
+        ? "/chauffeur/gains"
         : owner === "driver"
-          ? "/driver/releve"
+          ? "/driver/gains"
           : null;
 
   // Classification TRAÇABLE d'une écriture (recharge / commission / cashback).

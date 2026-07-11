@@ -224,8 +224,8 @@ export function CompteView({
         />
         <PartnerMenuRow
           icon={<ReceiptText className="size-4" />}
-          label={tr("Relevé & versement", "كشف الحساب والتسديد")}
-          href="/driver/releve"
+          label={tr("Gains et Relevés", "الأرباح والكشوف")}
+          href="/driver/gains"
         />
         <PartnerMenuRow
           icon={<Zap className="size-4" />}
