@@ -6,6 +6,10 @@ import { getCurrentMerchantId } from "@/lib/auth/merchant";
 import { productSchema, firstZodError } from "@/lib/validation/product";
 import { productsStoragePathFromPublicUrl } from "@/lib/images/storage-path";
 import type { Category, ProductWithCategory } from "@/lib/types";
+import {
+  saveProductOptions,
+  type OptionGroupInput,
+} from "@/app/(merchant)/catalog/options/actions";
 
 export type ProductFormState = {
   error?: string;
@@ -63,6 +67,56 @@ export async function fetchCatalog(): Promise<{
   };
 }
 
+/**
+ * Brouillon d'options soumis AVEC la création du produit (champ caché
+ * `options_json` de l'onglet « Options & variantes »). Normalisation
+ * DÉFENSIVE : le JSON vient du client — toute forme inattendue est ignorée
+ * plutôt que de faire planter l'action ; les valeurs sont re-bornées ensuite
+ * par `saveProductOptions` (et la RLS borne la propriété).
+ */
+function parseDraftOptions(formData: FormData): OptionGroupInput[] {
+  const raw = formData.get("options_json");
+  if (typeof raw !== "string" || !raw || raw.length > 100_000) return [];
+  let json: unknown;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(json)) return [];
+  return json.slice(0, 30).flatMap((g): OptionGroupInput[] => {
+    if (!g || typeof g !== "object") return [];
+    const grp = g as Record<string, unknown>;
+    if (typeof grp.name_fr !== "string") return [];
+    const options = Array.isArray(grp.options)
+      ? (grp.options as unknown[])
+          .slice(0, 60)
+          .flatMap((x): OptionGroupInput["options"] => {
+            if (!x || typeof x !== "object") return [];
+            const opt = x as Record<string, unknown>;
+            if (typeof opt.name_fr !== "string") return [];
+            return [
+              {
+                name_fr: opt.name_fr,
+                name_ar: typeof opt.name_ar === "string" ? opt.name_ar : null,
+                price_delta_da: Number(opt.price_delta_da) || 0,
+                is_available: opt.is_available !== false,
+              },
+            ];
+          })
+      : [];
+    return [
+      {
+        name_fr: grp.name_fr,
+        name_ar: typeof grp.name_ar === "string" ? grp.name_ar : null,
+        min_select: Number(grp.min_select) || 0,
+        max_select: Number(grp.max_select) || 1,
+        options,
+      },
+    ];
+  });
+}
+
 function parseForm(formData: FormData) {
   return productSchema.safeParse({
     name_fr: formData.get("name_fr"),
@@ -89,6 +143,18 @@ export async function createProduct(
     return { error: firstZodError(parsed.error) };
   }
 
+  // Options du brouillon — validées AVANT l'insert produit (même règle que
+  // l'éditeur : un groupe nommé exige au moins une option nommée), pour ne
+  // jamais créer le produit puis échouer sur ses options.
+  const draftGroups = parseDraftOptions(formData);
+  for (const g of draftGroups) {
+    if (g.name_fr.trim() && !g.options.some((o) => o.name_fr.trim())) {
+      return {
+        error: `Le groupe d'options « ${g.name_fr.trim()} » doit avoir au moins une option.`,
+      };
+    }
+  }
+
   const merchantId = await getCurrentMerchantId();
   if (!merchantId) {
     return { error: "Session expirée, reconnectez-vous." };
@@ -110,14 +176,31 @@ export async function createProduct(
   const { data: lastPos } = await posQuery.maybeSingle();
   const position = ((lastPos?.position as number | undefined) ?? -1) + 1;
 
-  const { error } = await supabase.from("products").insert({
-    merchant_id: merchantId,
-    position,
-    ...parsed.data,
-  });
+  const { data: created, error } = await supabase
+    .from("products")
+    .insert({
+      merchant_id: merchantId,
+      position,
+      ...parsed.data,
+    })
+    .select("id")
+    .single();
 
-  if (error) {
-    return { error: `Erreur lors de la création : ${error.message}` };
+  if (error || !created) {
+    return {
+      error: `Erreur lors de la création : ${error?.message ?? "produit non retourné"}`,
+    };
+  }
+
+  // Options du brouillon → mêmes écritures que la page d'édition. Échec ici
+  // = produit DÉJÀ créé : on le dit explicitement pour éviter une re-création.
+  if (draftGroups.some((g) => g.name_fr.trim())) {
+    const res = await saveProductOptions(created.id, draftGroups);
+    if (res.error) {
+      return {
+        error: `Produit créé, mais options non enregistrées (${res.error}). Ouvrez le produit depuis le catalogue pour les ajouter.`,
+      };
+    }
   }
 
   revalidatePath("/catalog");

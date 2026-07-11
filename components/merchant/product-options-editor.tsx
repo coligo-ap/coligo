@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { ChevronDown, Loader2, Plus, Trash2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -69,14 +69,21 @@ function toInput(groups: GroupState[]): OptionGroupInput[] {
 
 export function ProductOptionsEditor({
   productId,
-  initialGroups,
+  initialGroups = [],
   defaultOpen = false,
+  onDraftChange,
 }: {
-  productId: string;
-  initialGroups: LoadedOptionGroup[];
+  /** Absent en mode BROUILLON (création : le produit n'existe pas encore). */
+  productId?: string;
+  initialGroups?: LoadedOptionGroup[];
   /** Ouvert d'emblée (onglet dédié « Options & variantes »). */
   defaultOpen?: boolean;
+  /** Mode BROUILLON (page de création) : pas de bouton Enregistrer — chaque
+   *  changement remonte au parent, qui le soumet AVEC le formulaire produit
+   *  (champ caché `options_json` → `createProduct`). */
+  onDraftChange?: (groups: OptionGroupInput[]) => void;
 }) {
+  const isDraft = !!onDraftChange;
   const [groups, setGroups] = useState<GroupState[]>(() =>
     fromLoaded(initialGroups)
   );
@@ -86,6 +93,13 @@ export function ProductOptionsEditor({
   // Section repliée par défaut hors onglet dédié : la plupart des produits n'ont
   // pas d'options, le compteur dans l'en-tête suffit pour savoir s'il y en a.
   const [open, setOpen] = useState(defaultOpen);
+
+  // Brouillon : remonte l'état au parent à chaque frappe (panneau monté en
+  // permanence dans les onglets → aucune perte de saisie).
+  useEffect(() => {
+    onDraftChange?.(toInput(groups));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups]);
 
   const groupCount = groups.length;
   const optionCount = groups.reduce((n, g) => n + g.options.length, 0);
@@ -152,6 +166,7 @@ export function ProductOptionsEditor({
   }
 
   function save() {
+    if (!productId) return; // brouillon : soumis avec le formulaire produit
     setError(null);
     // Validation légère : un groupe nommé doit avoir au moins une option nommée.
     for (const g of groups) {
@@ -389,20 +404,26 @@ export function ProductOptionsEditor({
             </div>
           )}
 
-          <Button type="button" onClick={save} disabled={pending}>
-            {pending ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                Enregistrement…
-              </>
-            ) : (
-              <>
-                <Check className="size-4" />
-                Enregistrer les options
-              </>
-            )}
-          </Button>
-          <ActionNote note={note} className="mt-2" />
+          {isDraft ? (
+            <p className="text-subtle text-xs">Enregistrées avec le produit.</p>
+          ) : (
+            <>
+              <Button type="button" onClick={save} disabled={pending}>
+                {pending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Enregistrement…
+                  </>
+                ) : (
+                  <>
+                    <Check className="size-4" />
+                    Enregistrer les options
+                  </>
+                )}
+              </Button>
+              <ActionNote note={note} className="mt-2" />
+            </>
+          )}
         </div>
       )}
     </section>

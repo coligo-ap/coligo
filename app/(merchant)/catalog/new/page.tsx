@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ProductForm } from "@/components/merchant/product-form";
+import { ProductCreateTabs } from "@/components/merchant/product-create-tabs";
 import { getMerchantCategories } from "@/lib/data/catalog";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ export default async function NewProductPage({
     : undefined;
 
   return (
-    <ProductForm
+    <ProductCreateTabs
       merchantId={merchant.id}
       categories={categories}
       initialCategoryId={initialCategoryId}

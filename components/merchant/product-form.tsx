@@ -39,6 +39,7 @@ import {
   deleteProducts,
   type ProductFormState,
 } from "@/app/(merchant)/catalog/actions";
+import type { OptionGroupInput } from "@/app/(merchant)/catalog/options/actions";
 import { quickCreateCategory } from "@/app/(merchant)/catalog/categories/actions";
 import { TranslateArButton } from "@/components/merchant/translate-ar-button";
 
@@ -58,6 +59,7 @@ export function ProductForm({
   categories,
   initialCategoryId,
   hideHeader = false,
+  draftOptions,
 }: {
   merchantId: string;
   product?: Product;
@@ -66,6 +68,9 @@ export function ProductForm({
   /** En mode onglets (`ProductEditTabs`) le shell fournit déjà retour / titre /
    *  supprimer → on masque l'en-tête interne du formulaire. */
   hideHeader?: boolean;
+  /** CRÉATION en onglets (`ProductCreateTabs`) : brouillon d'options saisi
+   *  dans l'onglet « Options & variantes », soumis AVEC le produit. */
+  draftOptions?: OptionGroupInput[];
 }) {
   const isEdit = !!product;
 
@@ -153,6 +158,14 @@ export function ProductForm({
       )}
 
       <form action={formAction} className="space-y-6">
+        {/* Options saisies dans l'onglet dédié (création seulement) */}
+        {!isEdit && draftOptions && (
+          <input
+            type="hidden"
+            name="options_json"
+            value={JSON.stringify(draftOptions)}
+          />
+        )}
         {/* Image */}
         <section className="border-border bg-surface rounded-[16px] border p-5">
           <Label className="mb-2 block">Photo du produit</Label>
