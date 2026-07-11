@@ -115,6 +115,9 @@ export function DriveView({ userId }: { userId: string }) {
   // Dernier prix recommandé servi : si le prix courant lui est égal, le client
   // n'a pas ajusté → un raffinement OSRM peut suivre le recommandé affiné.
   const lastRecoRef = useRef<number>(0);
+  // Distance (km) du dernier devis servi — garde de STABILITÉ : un
+  // micro-déplacement d'adresse qui ne change pas la distance garde le devis.
+  const lastQuoteKmRef = useRef<number>(0);
   // Miroir SYNCHRONE du prix courant : lu dans les calculs ASYNCHRONES (devis
   // serveur en différé) pour décider de suivre le recommandé affiné SANS
   // dépendre d'une valeur `price` capturée (périmée) dans la closure de l'effet.
@@ -167,6 +170,25 @@ export function DriveView({ userId }: { userId: string }) {
     void getSosContacts().then(setSosContactsState);
   }, []);
 
+  // Persistance SESSION du parcours : arrivé à l'écran PRIX, un rechargement
+  // de la page doit y RESTER (trajet restauré), pas repartir à la sélection
+  // d'adresses. Écrit à chaque changement pertinent, TTL 30 min.
+  const JOURNEY_KEY = "coligo:drive:journey";
+  useEffect(() => {
+    try {
+      if (screen === "price" && pickup && dest) {
+        sessionStorage.setItem(
+          JOURNEY_KEY,
+          JSON.stringify({ pickup, dest, at: Date.now() })
+        );
+      }
+      // (La purge ne se fait QUE sur abandon explicite — resetAll — jamais au
+      // montage : au premier rendu screen vaut "home" AVANT la restauration.)
+    } catch {
+      /* sessionStorage indispo */
+    }
+  }, [screen, pickup, dest]);
+
   /* ───────── Boot : contexte + course active + GPS ───────── */
   useEffect(() => {
     void (async () => {
@@ -214,6 +236,31 @@ export function DriveView({ userId }: { userId: string }) {
           setPayMode("card");
           setRequestError(t("price.cardFailed"));
           setScreen("price");
+        }
+      } else if (!ride) {
+        // Pas de course active : si le client était sur l'écran PRIX (trajet
+        // choisi) avant un rechargement, on l'y remet directement.
+        try {
+          const raw = sessionStorage.getItem("coligo:drive:journey");
+          if (raw) {
+            const j = JSON.parse(raw) as {
+              pickup?: Pt;
+              dest?: Pt;
+              at?: number;
+            };
+            if (
+              j.pickup &&
+              j.dest &&
+              typeof j.at === "number" &&
+              Date.now() - j.at < 30 * 60_000
+            ) {
+              setPickup(j.pickup);
+              setDest(j.dest);
+              setScreen("price");
+            }
+          }
+        } catch {
+          /* parcours illisible → accueil normal */
         }
       } else if (ride) {
         // Reprise d'une course « searching » (le client était parti puis revenu
@@ -398,8 +445,23 @@ export function DriveView({ userId }: { userId: string }) {
     // SANS attendre l'écran prix → en arrivant sur l'écran prix, les prix par
     // gamme sont DÉJÀ là.
     if (distanceKm <= 0 || !pickup || !dest) return;
-    const trajKey = `${pickup.lat.toFixed(5)},${pickup.lng.toFixed(5)},${dest.lat.toFixed(5)},${dest.lng.toFixed(5)}`;
-    const isNewTraj = trajKey !== lastTrajRef.current;
+    // STABILITE (regle Bolt) : le trajet est QUANTIFIE (~110 m, toFixed(3)) et
+    // un deplacement qui ne change presque pas la DISTANCE (< 150 m) garde le
+    // devis existant. Sans cela, bouger l'adresse d'1 m relançait un devis,
+    // qui pouvait retomber sur le bareme de repli local (different du bareme
+    // serveur demande/offre) -> le prix sautait (ex. 150 -> 210 DA) sans
+    // raison perceptible pour le client.
+    const trajKey = `${pickup.lat.toFixed(3)},${pickup.lng.toFixed(3)},${dest.lat.toFixed(3)},${dest.lng.toFixed(3)}`;
+    let isNewTraj = trajKey !== lastTrajRef.current;
+    if (
+      isNewTraj &&
+      quotes != null &&
+      Math.abs(distanceKm - lastQuoteKmRef.current) < 0.15
+    ) {
+      // Micro-changement d'adresse, meme distance -> meme prix (devis garde).
+      lastTrajRef.current = trajKey;
+      isNewTraj = false;
+    }
 
     // PRIX FINAL DIRECT — le client ne doit voir QU'UNE valeur, jamais un
     // « premier prix » remplacé ensuite. On n'affiche donc AUCUNE estimation
@@ -447,6 +509,7 @@ export function DriveView({ userId }: { userId: string }) {
       if (cancelled) return; // une réponse en retard ne doit pas écraser la neuve
       if (q == null) q = fallbackQuotes(distanceKm); // jamais bloqué
       setQuotes(q);
+      lastQuoteKmRef.current = distanceKm;
       const reco = q[gamme]?.recommended ?? q.classic.recommended;
       // Prix initialisé au recommandé tant que le client n'a pas ajusté (priceRef
       // = valeur courante, pas une closure périmée).
@@ -817,6 +880,11 @@ export function DriveView({ userId }: { userId: string }) {
   }, [refreshActive]);
 
   const resetAll = useCallback(() => {
+    try {
+      sessionStorage.removeItem("coligo:drive:journey");
+    } catch {
+      /* indispo */
+    }
     setActive(null);
     setScreen("home");
     setDest(null);
