@@ -1,0 +1,620 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  MessageSquare,
+  Phone,
+  Share2,
+} from "lucide-react";
+import { formatDA } from "@/lib/utils";
+import { haversineKm } from "@/lib/delivery/distance";
+import { useRoadPath } from "@/lib/drive/use-road-path";
+import { DriveMap } from "./drive-map";
+import { ChAvatar } from "./ch-avatar";
+import {
+  CancelModal,
+  ChatModal,
+  GhostBtn,
+  ReportModal,
+  ShareModal,
+  SosContactsSheet,
+  SOSModal,
+  GO,
+  ROSE,
+  RED,
+  VIOLET,
+  type SosContact,
+} from "./drive-modals";
+import {
+  cancelDriveRide,
+  getRideMessages,
+  markRideMessagesRead,
+  getSosContacts,
+  reportDriveRide,
+  setSosContacts as saveSosContacts,
+  type DriveActiveRide,
+  type DriveContext,
+} from "@/app/(customer)/drive/actions";
+import { useUnreadRideMessages } from "@/lib/drive/use-unread-messages";
+import { useRideCall } from "@/lib/call/use-ride-call";
+import { RidePhoneShareToggle } from "@/components/customer/drive/ride-phone-share-toggle";
+
+export function EnrouteScreen({
+  ctx,
+  ride,
+  onCancelled,
+}: {
+  ctx: DriveContext;
+  ride: DriveActiveRide;
+  onCancelled: (reason: string) => void;
+}) {
+  const t = useTranslations("drive.enroute");
+  const tc = useTranslations("drive");
+  // Appel in-app (audio + cam optionnelle) avec le chauffeur — numéro masqué.
+  const call = useRideCall({
+    rideId: ride.id,
+    role: "client",
+    peerName: ride.chauffeur?.name ?? "Chauffeur",
+  });
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [sosOpen, setSosOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  // Contacts d'urgence enregistrés (appel rapide, alerte, partage).
+  const [sosContacts, setSosContacts] = useState<SosContact[]>([]);
+  const [contactsOpen, setContactsOpen] = useState(false);
+  const [midReportOpen, setMidReportOpen] = useState(false);
+  const [midReported, setMidReported] = useState(false);
+  useEffect(() => {
+    void getSosContacts().then(setSosContacts);
+  }, []);
+
+  // Messages non lus du chauffeur (compteur + notification in-app + « reçu »).
+  const { unread, lastIncoming, markSeen } = useUnreadRideMessages(
+    ride.id,
+    "chauffeur",
+    getRideMessages,
+    true,
+    markRideMessagesRead
+  );
+  const [msgBanner, setMsgBanner] = useState<string | null>(null);
+  const lastMsgId = lastIncoming?.id ?? null;
+  const lastMsgBody = lastIncoming?.body ?? null;
+  const notifiedRef = useRef<string | null>(null);
+  const seededRef = useRef(false);
+  useEffect(() => {
+    // 1re salve chargée : mémoriser sans notifier les messages déjà présents.
+    if (!seededRef.current && lastMsgId !== null) {
+      seededRef.current = true;
+      notifiedRef.current = lastMsgId;
+      return;
+    }
+    if (chatOpen) return;
+    if (lastMsgId && lastMsgId !== notifiedRef.current) {
+      notifiedRef.current = lastMsgId;
+      setMsgBanner(lastMsgBody);
+      const id = setTimeout(() => setMsgBanner(null), 6000);
+      return () => clearTimeout(id);
+    }
+  }, [lastMsgId, lastMsgBody, chatOpen]);
+  useEffect(() => {
+    if (chatOpen) {
+      markSeen();
+      setMsgBanner(null);
+      void markRideMessagesRead(ride.id, true);
+    }
+  }, [chatOpen, markSeen, ride.id]);
+
+  const ch = ride.chauffeur;
+  const chPos =
+    ch?.lat != null && ch?.lng != null ? { lat: ch.lat, lng: ch.lng } : null;
+  const pickupPos =
+    ride.pickup_lat != null
+      ? { lat: ride.pickup_lat, lng: ride.pickup_lng! }
+      : null;
+  const destPos =
+    ride.dest_lat != null ? { lat: ride.dest_lat, lng: ride.dest_lng! } : null;
+  const inProgress = ride.status === "in_progress";
+
+  const etaApproachMin =
+    chPos && pickupPos
+      ? Math.max(1, Math.round(haversineKm(chPos, pickupPos) * 2.2))
+      : null;
+  const etaRideMin =
+    chPos && destPos
+      ? Math.max(1, Math.round(haversineKm(chPos, destPos) * 2.2))
+      : null;
+
+  const pill = inProgress
+    ? t("pillInProgress", { min: etaRideMin ?? "…" })
+    : ride.status === "arrived"
+      ? t("pillArrived", { name: ch?.name ?? "" })
+      : t("pillArriving", { name: ch?.name ?? "", min: etaApproachMin ?? "…" });
+
+  /* Détection d'itinéraire anormal (écart fort vs route prévue). */
+  const [devAlert, setDevAlert] = useState(false);
+  const devSince = useRef<number | null>(null);
+  const devMuteUntil = useRef(0);
+  useEffect(() => {
+    if (!inProgress || !chPos || !pickupPos || !destPos) return;
+    const corridor =
+      haversineKm(pickupPos, chPos) +
+      haversineKm(chPos, destPos) -
+      haversineKm(pickupPos, destPos);
+    const now = Date.now();
+    if (corridor > ctx.deviationKm) {
+      if (devSince.current == null) devSince.current = now;
+      if (
+        now - devSince.current > ctx.deviationMin * 60_000 &&
+        now > devMuteUntil.current
+      )
+        setDevAlert(true);
+    } else {
+      devSince.current = null;
+      setDevAlert(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ch?.lat, ch?.lng, inProgress]);
+
+  const shareUrl = ride.share_token
+    ? `${typeof window !== "undefined" ? window.location.origin : "https://coligo.app"}/t/${ride.share_token}`
+    : null;
+  const prepaid = ride.payment_method !== "cash";
+
+  // Tracés routiers réels (suivent les rues, throttlés) : approche voiture →
+  // client tant que la course n'a pas démarré, course (position courante ou
+  // départ) → destination. Ligne droite en attendant la 1re réponse.
+  const rideFrom = inProgress ? chPos : pickupPos;
+  const approachPath = useRoadPath(
+    !inProgress ? chPos : null,
+    !inProgress ? pickupPos : null
+  );
+  const ridePath = useRoadPath(rideFrom, destPos);
+
+  return (
+    <div className="drive-jakarta drive-screen z-40 bg-[var(--d-page)]">
+      <DriveMap
+        markers={[
+          ...(chPos ? [{ id: "car", pos: chPos, kind: "car" as const }] : []),
+          ...(pickupPos
+            ? [
+                {
+                  id: "me",
+                  pos: pickupPos,
+                  kind: "pin" as const,
+                  label: "A" as const,
+                },
+              ]
+            : []),
+          ...(destPos
+            ? [
+                {
+                  id: "dest",
+                  pos: destPos,
+                  kind: "pin" as const,
+                  label: "B" as const,
+                },
+              ]
+            : []),
+        ]}
+        approach={
+          !inProgress && chPos && pickupPos
+            ? (approachPath ?? [chPos, pickupPos])
+            : null
+        }
+        route={rideFrom && destPos ? (ridePath ?? [rideFrom, destPos]) : null}
+        padding={{ top: 90, bottom: 440, left: 60, right: 60 }}
+      />
+      {/* Pill statut */}
+      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
+        <span
+          className="size-2 animate-pulse rounded-full"
+          style={{ background: inProgress ? GO : VIOLET }}
+        />
+        <span className="drive-sora">{pill}</span>
+      </div>
+
+      {/* Notification in-app : nouveau message du chauffeur (chat fermé). */}
+      {msgBanner && (
+        <button
+          type="button"
+          onClick={() => {
+            setChatOpen(true);
+            setMsgBanner(null);
+          }}
+          className="drive-up absolute top-16 right-2.5 left-2.5 z-40 flex items-center gap-2.5 rounded-[16px] border-2 bg-[var(--d-surface)] px-3.5 py-3 text-left shadow-xl"
+          style={{ borderColor: VIOLET }}
+        >
+          <span
+            className="grid size-9 shrink-0 place-items-center rounded-full"
+            style={{ background: "var(--d-accent)" }}
+          >
+            <MessageSquare className="size-4" style={{ color: VIOLET }} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <b className="block text-[13px]">{t("message")}</b>
+            <span className="block truncate text-[12px] text-[var(--d-muted)]">
+              {msgBanner}
+            </span>
+          </span>
+          <span
+            className="shrink-0 text-[11px] font-extrabold"
+            style={{ color: VIOLET }}
+          >
+            Voir
+          </span>
+        </button>
+      )}
+
+      {/* Itinéraire anormal : « Tout va bien ? » */}
+      {devAlert && (
+        <div className="drive-up absolute top-16 right-2.5 left-2.5 z-30 rounded-[20px] border-2 border-[#F59E0B] bg-[var(--d-surface)] p-3.5 shadow-[0_18px_44px_-14px_rgba(245,158,11,.45)]">
+          <div className="flex items-start gap-2.5">
+            <span className="grid size-[38px] shrink-0 place-items-center rounded-[12px] bg-[rgba(245,158,11,.15)]">
+              <AlertTriangle className="size-5 text-[#F59E0B]" />
+            </span>
+            <span>
+              <b className="block text-sm">{t("devTitle")}</b>
+              <span className="text-[11.5px] leading-snug text-[var(--d-muted)]">
+                {t("devSub")}
+              </span>
+            </span>
+          </div>
+          <div className="mt-2.5 flex gap-2">
+            <button
+              type="button"
+              className="drive-sora h-[42px] flex-1 rounded-[12px] bg-[var(--d-soft)] text-[13px] font-bold"
+              onClick={() => {
+                setDevAlert(false);
+                devSince.current = null;
+                devMuteUntil.current = Date.now() + 5 * 60_000;
+              }}
+            >
+              {t("devOk")}
+            </button>
+            <button
+              type="button"
+              className="drive-sora h-[42px] flex-1 rounded-[12px] text-[13px] font-bold text-white"
+              style={{ background: RED }}
+              onClick={() => {
+                setDevAlert(false);
+                setSosOpen(true);
+              }}
+            >
+              SOS
+            </button>
+          </div>
+          <div className="mt-1.5 flex justify-center gap-4 text-[11.5px] font-bold">
+            <button
+              type="button"
+              style={{ color: RED }}
+              onClick={() => {
+                setDevAlert(false);
+                setMidReportOpen(true);
+              }}
+            >
+              {t("devReport")}
+            </button>
+            <button
+              type="button"
+              style={{ color: VIOLET }}
+              onClick={() => {
+                setDevAlert(false);
+                setSosOpen(true);
+              }}
+            >
+              {t("devSupport")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Feuille bas : fiche chauffeur v3 */}
+      <div className="absolute inset-x-0 bottom-0 z-10 max-h-[62vh] overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[max(20px,env(safe-area-inset-bottom))]">
+        <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
+
+        {ride.proxy_name && (
+          <div
+            className="mb-2.5 rounded-[13px] px-3 py-2.5 text-[12.5px] font-bold"
+            style={{ background: "rgba(236,72,153,.13)", color: ROSE }}
+          >
+            <span className="flex items-center gap-2">
+              <BadgeCheck className="size-4 shrink-0" />
+              {t("proxBadge", { name: ride.proxy_name })}
+            </span>
+            {/* Envoi du lien de suivi au proche (sans compte) — checklist B9 */}
+            {shareUrl && ride.proxy_phone && (
+              <span className="mt-1.5 flex gap-1.5">
+                <button
+                  type="button"
+                  className="flex-1 rounded-[9px] px-2 py-1.5 text-[11px] font-bold text-white"
+                  style={{ background: GO }}
+                  onClick={() =>
+                    window.open(
+                      `https://wa.me/${ride.proxy_phone!.replace(/\D/g, "")}?text=${encodeURIComponent(
+                        tc("share.message", {
+                          name: ch?.name ?? "—",
+                          url: shareUrl,
+                        })
+                      )}`,
+                      "_blank"
+                    )
+                  }
+                >
+                  {t("proxSendWa")}
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-[9px] bg-[var(--d-surface)] px-2 py-1.5 text-[11px] font-bold"
+                  style={{ color: ROSE }}
+                  onClick={() =>
+                    window.open(
+                      `sms:${ride.proxy_phone}?body=${encodeURIComponent(
+                        tc("share.message", {
+                          name: ch?.name ?? "—",
+                          url: shareUrl,
+                        })
+                      )}`,
+                      "_self"
+                    )
+                  }
+                >
+                  {t("proxSendSms")}
+                </button>
+              </span>
+            )}
+          </div>
+        )}
+
+        {ch && (
+          <div className="mb-3 rounded-[22px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
+            <div className="flex items-center gap-3">
+              <ChAvatar
+                name={ch.name}
+                url={ch.avatar_url}
+                size={58}
+                female={ch.is_female}
+                ringColor={ch.badge_color}
+                textClassName="text-[22px]"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="drive-sora flex items-center gap-1.5 text-[17px] font-extrabold">
+                  {ch.name}
+                  <BadgeCheck
+                    className="size-4 shrink-0"
+                    style={{ color: VIOLET }}
+                  />
+                  {ch.is_premium && (
+                    <span className="rounded-full bg-[#E8B53C] px-2 py-0.5 text-[10px] font-extrabold text-[#3a2c00]">
+                      👑
+                    </span>
+                  )}
+                </span>
+                <span className="mt-1.5 flex flex-wrap gap-1.5">
+                  {ch.rating != null && (
+                    <span className="rounded-full bg-[rgba(245,158,11,.16)] px-2.5 py-1 text-[11px] font-bold text-[#B45309]">
+                      ★ {String(ch.rating).replace(".", ",")}
+                    </span>
+                  )}
+                  <span className="rounded-full bg-[var(--d-soft)] px-2.5 py-1 text-[11px] font-bold text-[var(--d-muted)]">
+                    {t("ridesChip", { rides: ch.rides })}
+                  </span>
+                  {ch.is_female && (
+                    <span
+                      className="rounded-full px-2.5 py-1 text-[11px] font-bold"
+                      style={{
+                        background: "rgba(236,72,153,.13)",
+                        color: ROSE,
+                      }}
+                    >
+                      {tc("search.tagFemale")}
+                    </span>
+                  )}
+                </span>
+              </span>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-2.5 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5">
+              <span className="truncate text-[12.5px] font-bold">
+                {ch.vehicle ?? "—"}
+              </span>
+              {ch.plate && (
+                <span className="drive-sora drive-plate shrink-0 rounded-[7px] border-2 px-2.5 py-1 text-[12.5px] font-extrabold tracking-[2px] text-[var(--d-ink)]">
+                  {ch.plate}
+                </span>
+              )}
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setChatOpen(true)}
+                className="relative flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
+              >
+                <MessageSquare className="size-4" /> {t("message")}
+                {unread > 0 && (
+                  <span
+                    className="drive-badge absolute -top-1.5 -right-1.5 grid min-w-[20px] place-items-center rounded-full px-1.5 text-[11px] font-extrabold text-white"
+                    style={{ background: RED }}
+                  >
+                    {unread}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => call.start(false)}
+                className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
+                style={{ background: VIOLET }}
+              >
+                <Phone className="size-4" /> {t("call")}
+              </button>
+            </div>
+            {/* Toggle « Afficher mon numéro au chauffeur » (gating serveur). */}
+            <RidePhoneShareToggle rideId={ride.id} />
+          </div>
+        )}
+
+        {/* Prix convenu */}
+        <div
+          className="mb-2.5 flex items-center justify-between rounded-[14px] px-4 py-3"
+          style={{ background: "var(--d-accent)" }}
+        >
+          <span className="text-xs font-bold" style={{ color: VIOLET }}>
+            {t("agreedPrice")}
+          </span>
+          <span
+            className="drive-sora text-[17px] font-extrabold"
+            style={{ color: VIOLET }}
+          >
+            {formatDA(ride.agreed_price_da ?? ride.proposed_price_da)}
+          </span>
+        </div>
+
+        {/* Prépayée (séquestre) : CODE PIN à communiquer à l'ARRIVÉE du
+            chauffeur — sa saisie DÉMARRE la course ; l'argent reste bloqué
+            et n'est libéré au chauffeur qu'à la fin (mig 0145). */}
+        {prepaid && (
+          <div
+            className="mb-2.5 rounded-[13px] px-3 py-2.5 text-[12.5px] leading-relaxed font-bold"
+            style={{ background: "rgba(22,179,100,.12)", color: GO }}
+          >
+            {inProgress ? (
+              <>🔒 {t("prepaidOnboard")}</>
+            ) : (
+              <>
+                🔒 {t("prepaid")}{" "}
+                {ride.end_code && (
+                  <>
+                    {t("pinLabel")}{" "}
+                    <b className="text-[15px] tracking-[4px]">
+                      {ride.end_code.split("").join(" ")}
+                    </b>{" "}
+                    — {t("pinGive")}
+                  </>
+                )}
+                <span className="mt-1 block text-[11px] font-semibold text-[var(--d-muted)]">
+                  {t("escrowNote")}
+                </span>
+              </>
+            )}
+            {/* Coligo Pay partiel : le complément se règle en espèces. */}
+            {ride.payment_method === "coligo_pay" && ride.cash_due_da > 0 && (
+              <span className="mt-1.5 block border-t border-[rgba(22,179,100,.25)] pt-1.5 text-[12px]">
+                💵 {t("cashDue", { amount: ride.cash_due_da })}
+              </span>
+            )}
+          </div>
+        )}
+
+        {midReported && (
+          <p
+            className="mb-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+            style={{ background: "rgba(22,179,100,.12)", color: GO }}
+          >
+            {t("devReported")}
+          </p>
+        )}
+
+        {/* Sécurité : partager + SOS */}
+        <div className="mb-2.5 flex gap-2">
+          <button
+            type="button"
+            onClick={() => shareUrl && setShareOpen(true)}
+            className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-[12.5px] font-bold"
+          >
+            <Share2 className="size-4" /> {t("shareTrip")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSosOpen(true)}
+            className="flex h-[46px] w-[86px] items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] text-[12.5px] font-bold"
+            style={{ borderColor: RED, color: RED }}
+          >
+            <AlertTriangle className="size-4" /> SOS
+          </button>
+        </div>
+
+        {!inProgress && (
+          <GhostBtn danger onClick={() => setCancelOpen(true)}>
+            {t("cancelRide")}
+          </GhostBtn>
+        )}
+      </div>
+
+      <CancelModal
+        open={cancelOpen}
+        ctx="client_enroute"
+        onClose={() => setCancelOpen(false)}
+        onConfirm={async (reason) => {
+          setCancelOpen(false);
+          await cancelDriveRide(ride.id, reason);
+          onCancelled(reason);
+        }}
+      />
+      {shareUrl && ch && (
+        <ShareModal
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          shareUrl={shareUrl}
+          chName={ch.name}
+          chRating={
+            ch.rating != null ? String(ch.rating).replace(".", ",") : null
+          }
+          chCar={ch.vehicle}
+          chPlate={ch.plate}
+          emergencyContacts={sosContacts}
+        />
+      )}
+      <SOSModal
+        open={sosOpen}
+        onClose={() => setSosOpen(false)}
+        rideId={ride.id}
+        side="client"
+        shareUrl={shareUrl}
+        position={chPos ?? pickupPos}
+        contacts={sosContacts}
+        onManageContacts={() => {
+          setSosOpen(false);
+          setContactsOpen(true);
+        }}
+      />
+      <SosContactsSheet
+        open={contactsOpen}
+        onClose={() => setContactsOpen(false)}
+        contacts={sosContacts}
+        onSave={async (next) => {
+          const res = await saveSosContacts(next);
+          if (res.ok) setSosContacts(next);
+          return res;
+        }}
+      />
+      {/* Signalement EN COURS de course (alerte itinéraire anormal) */}
+      <ReportModal
+        open={midReportOpen}
+        onClose={() => setMidReportOpen(false)}
+        side="client"
+        onConfirm={async (reason) => {
+          setMidReportOpen(false);
+          await reportDriveRide(ride.id, reason);
+          setMidReported(true);
+        }}
+      />
+      <ChatModal
+        open={chatOpen}
+        onClose={() => {
+          setChatOpen(false);
+          markSeen();
+        }}
+        rideId={ride.id}
+        side="customer"
+      />
+
+      {/* Appel in-app (sonnerie entrante/sortante + fenêtre d'appel Agora). */}
+      {call.ui}
+    </div>
+  );
+}
+
+/* ════════════════ FIN DE COURSE ════════════════ */

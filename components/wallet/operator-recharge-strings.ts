@@ -1,0 +1,232 @@
+/* ───────────────────────── i18n local (FR / AR) ─────────────────────────
+   Dictionnaire autonome : les espaces partenaires (livreur / chauffeur /
+   commerçant) ne montent pas les messages next-intl. On suit néanmoins la
+   langue de l'app (useLocale) et on bascule RTL en arabe « comme le reste ». */
+export type Lang = "fr" | "ar";
+export type Owner = "driver" | "chauffeur" | "merchant" | "partner";
+
+export const OWNER_BADGE: Record<Lang, Record<Owner, string>> = {
+  fr: {
+    driver: "Livreur",
+    chauffeur: "Chauffeur",
+    merchant: "Commerçant",
+    partner: "Agent Coligo Pay",
+  },
+  ar: {
+    driver: "موصِّل",
+    chauffeur: "سائق",
+    merchant: "تاجر",
+    partner: "وكيل Coligo Pay",
+  },
+};
+
+export const OWNER_CTX: Record<Lang, Record<Owner, string>> = {
+  fr: {
+    driver:
+      "Un solde est nécessaire pour accepter des livraisons. La commission Coligo est prélevée sur votre solde à chaque livraison terminée.",
+    chauffeur:
+      "Un solde est nécessaire pour accepter des courses. La commission Coligo est prélevée sur votre solde à chaque course terminée.",
+    merchant:
+      "Un solde est nécessaire pour recevoir des commandes. La commission Coligo est prélevée sur votre solde à chaque commande terminée.",
+    partner:
+      "Un solde est nécessaire pour vendre des recharges. La commission Coligo est prélevée sur votre solde à chaque opération.",
+  },
+  ar: {
+    driver:
+      "يلزم وجود رصيد لقبول عمليات التوصيل. تُقتطع عمولة Coligo من رصيدك عند كل عملية توصيل منتهية.",
+    chauffeur:
+      "يلزم وجود رصيد لقبول الرحلات. تُقتطع عمولة Coligo من رصيدك عند كل رحلة منتهية.",
+    merchant:
+      "يلزم وجود رصيد لاستقبال الطلبات. تُقتطع عمولة Coligo من رصيدك عند كل طلب منتهٍ.",
+    partner:
+      "يلزم وجود رصيد لبيع التعبئات. تُقتطع عمولة Coligo من رصيدك عند كل عملية.",
+  },
+};
+
+export const ENTRY_LABEL: Record<Lang, Record<string, string>> = {
+  fr: {
+    topup_chargily: "Recharge carte",
+    topup_manual: "Recharge validée",
+    topup_partner: "Recharge chez un agent",
+    recharge_sale: "Revente de crédit",
+    bonus: "Bonus",
+    fee_debit: "Commission",
+    service_fee: "Frais de service",
+    cod_settle: "Régularisation",
+    adjustment: "Ajustement",
+  },
+  ar: {
+    topup_chargily: "شحن بالبطاقة",
+    topup_manual: "شحن مُصادق عليه",
+    topup_partner: "شحن لدى وكيل",
+    recharge_sale: "بيع رصيد",
+    bonus: "مكافأة",
+    fee_debit: "عمولة",
+    service_fee: "رسوم الخدمة",
+    cod_settle: "تسوية",
+    adjustment: "تعديل",
+  },
+};
+
+// Libellés des opérations FINANCE reflétées dans la Coligo Pay commerçant
+// (écritures `finance_mirror` : le `note` porte le type finance sous-jacent).
+export const FINANCE_LABEL: Record<Lang, Record<string, string>> = {
+  fr: {
+    sale: "Vente (commande)",
+    commission: "Commission Coligo",
+    service_fee: "Frais de service",
+    tour_delivery_commission: "Commission livraison",
+    payout: "Versement",
+    adjustment: "Ajustement",
+    wallet_redemption: "Paiement par cashback",
+    cashback: "Cashback",
+  },
+  ar: {
+    sale: "بيع (طلب)",
+    commission: "عمولة Coligo",
+    service_fee: "رسوم الخدمة",
+    tour_delivery_commission: "عمولة التوصيل",
+    payout: "تحويل",
+    adjustment: "تعديل",
+    wallet_redemption: "دفع عبر الكاش باك",
+    cashback: "كاش باك",
+  },
+};
+
+export const STR = {
+  fr: {
+    title: "Mon portefeuille",
+    balanceLabel: "Solde du portefeuille",
+    rechargeTitle: "Recharger mon solde",
+    mCard: "Carte",
+    mCardDelay: "Instantané",
+    fast: "Rapide",
+    mCcp: "Virement",
+    mCcpDelay: "CCP · 24h",
+    mCash: "Espèces",
+    mCashDelay: "Chez un agent",
+    amountLabel: "Montant à recharger",
+    otherAmount: "Autre montant en DA (min. 100)",
+    payCard: "Payer par carte",
+    cardNote:
+      "Paiement Edahabia / CIB via Chargily Pay. Solde crédité instantanément après confirmation.",
+    checking: "Confirmation du paiement en cours…",
+    confirmed: "Recharge confirmée !",
+    failed: "Paiement non abouti — réessayez.",
+    step1: "Virez le montant vers le CCP de Coligo (ci-dessous)",
+    step2: "Saisissez le montant exact envoyé",
+    step3: "Joignez la preuve (reçu ou confirmation de virement)",
+    step4: "L'équipe Coligo vérifie et crédite votre solde",
+    ccpRef: "Référence : votre numéro de téléphone",
+    ccpUnset: "CCP non configuré — contactez le support",
+    bankLabel: "Compte bancaire (virement)",
+    bankRibRef: "RIB · référence : votre numéro de téléphone",
+    copied: "Copié",
+    amountSent: "Montant envoyé en DA",
+    addProof: "Ajouter la preuve de virement",
+    proofHint: "Reçu CCP / BaridiMob · capture d'écran ou photo",
+    proofAdded: "Preuve ajoutée ✓",
+    proofReplace: "· touchez pour remplacer",
+    sendRequest: "Envoyer la demande",
+    ccpNote:
+      "Vérifiée par l'équipe Coligo sous 24 h. Votre solde est crédité après validation du montant reçu.",
+    sentMsg:
+      "Demande envoyée · en vérification (24 h). Votre solde sera crédité après validation.",
+    cashTitle: "Recharger en espèces chez un agent Coligo Pay",
+    cityPlaceholder: "Ville ou commune",
+    useMyPos: "Utiliser ma position",
+    list: "Liste",
+    map: "Carte",
+    locating: "Localisation…",
+    searching: "Recherche…",
+    search: "Chercher",
+    around: "Autour de vous",
+    itinerary: "Itinéraire",
+    openNow: "Ouvert",
+    closedNow: "Fermé",
+    tapPoint: "Touchez un point sur la carte pour voir ses informations.",
+    emptyTitle: "Aucun agent à proximité",
+    emptySub: "Cherchez une autre ville, ou rechargez par carte / virement.",
+    cityNotFound: "Ville introuvable. Vérifiez l'orthographe.",
+    cashNote:
+      "Remettez l'espèce à l'agent : votre solde est crédité immédiatement.",
+    opsTitle: "Dernières opérations",
+    minAmount: "Montant minimum : 100 DA.",
+    payUnavailable: "Paiement carte indisponible.",
+    uploadFail: "Téléversement échoué",
+    requestFail: "Échec de la demande.",
+    genericErr: "Une erreur est survenue.",
+    openWith: "Ouvrir l'itinéraire avec",
+    openWithSub: "Votre choix sera mémorisé pour la prochaine fois.",
+    cancel: "Annuler",
+    chargily: "Chargily",
+    support: "Un souci de recharge ou de paiement ? Contacter le support",
+  },
+  ar: {
+    title: "محفظتي",
+    balanceLabel: "رصيد المحفظة",
+    rechargeTitle: "إعادة شحن رصيدي",
+    mCard: "بطاقة",
+    mCardDelay: "فوري",
+    fast: "سريع",
+    mCcp: "تحويل",
+    mCcpDelay: "CCP · 24س",
+    mCash: "نقدًا",
+    mCashDelay: "لدى وكيل",
+    amountLabel: "المبلغ المراد شحنه",
+    otherAmount: "مبلغ آخر بالدينار (100 كحد أدنى)",
+    payCard: "الدفع بالبطاقة",
+    cardNote:
+      "الدفع عبر الذهبية / CIB بواسطة Chargily Pay. يُضاف الرصيد فورًا بعد التأكيد.",
+    checking: "جارٍ تأكيد الدفع…",
+    confirmed: "تم تأكيد الشحن!",
+    failed: "لم يتم الدفع — حاول مجددًا.",
+    step1: "حوّل المبلغ إلى حساب CCP الخاص بـ Coligo (أدناه)",
+    step2: "أدخل المبلغ المُرسل بالضبط",
+    step3: "أرفق الإثبات (وصل أو تأكيد التحويل)",
+    step4: "يتحقق فريق Coligo ويشحن رصيدك",
+    ccpRef: "المرجع: رقم هاتفك",
+    ccpUnset: "حساب CCP غير مُعدّ — تواصل مع الدعم",
+    bankLabel: "حساب بنكي (تحويل)",
+    bankRibRef: "RIB · المرجع: رقم هاتفك",
+    copied: "تم النسخ",
+    amountSent: "المبلغ المُرسل بالدينار",
+    addProof: "أضف إثبات التحويل",
+    proofHint: "وصل CCP / BaridiMob · لقطة شاشة أو صورة",
+    proofAdded: "تمت إضافة الإثبات ✓",
+    proofReplace: "· المس للاستبدال",
+    sendRequest: "إرسال الطلب",
+    ccpNote:
+      "يتحقق فريق Coligo خلال 24 ساعة. يُضاف رصيدك بعد التأكد من المبلغ المُستلَم.",
+    sentMsg:
+      "تم إرسال الطلب · قيد التحقق (24 ساعة). سيُضاف رصيدك بعد المصادقة.",
+    cashTitle: "اشحن نقدًا لدى وكيل Coligo Pay",
+    cityPlaceholder: "مدينة أو بلدية",
+    useMyPos: "استخدم موقعي",
+    list: "قائمة",
+    map: "خريطة",
+    locating: "تحديد الموقع…",
+    searching: "بحث…",
+    search: "بحث",
+    around: "حولك",
+    itinerary: "المسار",
+    openNow: "مفتوح",
+    closedNow: "مغلق",
+    tapPoint: "المس نقطة على الخريطة لعرض معلوماتها.",
+    emptyTitle: "لا يوجد وكيل قريب",
+    emptySub: "ابحث عن مدينة أخرى، أو اشحن بالبطاقة / التحويل.",
+    cityNotFound: "المدينة غير موجودة. تحقق من الكتابة.",
+    cashNote: "سلّم النقود للوكيل: يُضاف رصيدك فورًا.",
+    opsTitle: "آخر العمليات",
+    minAmount: "الحد الأدنى للمبلغ: 100 دج.",
+    payUnavailable: "الدفع بالبطاقة غير متاح.",
+    uploadFail: "فشل الرفع",
+    requestFail: "فشل الطلب.",
+    genericErr: "حدث خطأ.",
+    openWith: "افتح المسار باستخدام",
+    openWithSub: "سيُحفظ اختيارك للمرة القادمة.",
+    cancel: "إلغاء",
+    chargily: "Chargily",
+    support: "مشكلة في الشحن أو الدفع؟ تواصل مع الدعم",
+  },
+} as const;
