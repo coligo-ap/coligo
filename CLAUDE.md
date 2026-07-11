@@ -15,6 +15,29 @@ N'utiliser un **toast QUE** quand il n'y a aucun contexte visuel adapté (ex.
 soumission de formulaire, validation de champ ou action sur un bouton →
 **message inline** (rouge erreur / vert succès), pas de toast.
 
+## UX — états des boutons : LOADING immédiat + état LOCAL par élément (obligatoire)
+
+Règle **obligatoire pour tout développement**. Tout bouton qui déclenche une
+action asynchrone (Server Action, fetch, mutation, upload…) doit gérer ses états
+explicitement :
+
+- **loading immédiat** : au clic, le bouton passe TOUT DE SUITE en `pending`,
+  devient `disabled`, et montre un indicateur (spinner `Loader2` / « … » / texte).
+  L'utilisateur voit que son clic est pris en compte → pas de double-clic ;
+- à la réponse : retour normal, ou **succès** (✓ vert) / **erreur** inline
+  (bouton re-cliquable + message). Aucun bouton ne reste statique pendant l'appel.
+
+**État LOCAL par élément — JAMAIS un état global qui bloque toute la page.** Dans
+une liste (cartes, lignes), cliquer le bouton d'un élément ne met en chargement
+QUE ce bouton ; les autres restent pleinement utilisables (pas de spinner, pas de
+`disabled`, aucun changement d'état). Chaque élément a son propre
+`useTransition()` / `pending`. Une action sur un composant ne doit jamais
+impacter visuellement/fonctionnellement un composant non concerné.
+
+Chaque action = son propre `pending` (ex. `ProductCard` : `dupPending`,
+`delPending`, `pending` dispo séparés). En cas de doute, préférer un état local
+par élément plutôt qu'un état partagé.
+
 ## UX — JAMAIS de doublon d'information sur une même page
 
 Une information (statut, montant, créneau, adresse…) s'affiche **UNE seule
@@ -51,6 +74,33 @@ gauche**. Règles :
 - pour un menu dont le bouton peut être n'importe où, préférer un centrage
   (`left-1/2 -translate-x-1/2`) ou une feuille ancrée en bas plutôt qu'un
   ancrage latéral fragile.
+
+## UX — écran chargé de VARIANTES → nav sous-page + édition en feuille (style Bolt / Bolt Food)
+
+Quand un écran empile plusieurs sous-sections lourdes (ex. fiche produit :
+détails + **options / variantes / groupes**), NE PAS tout mettre à la suite en un
+long défilement. Découper en **sous-pages navigables** avec une **nav segmentée**
+en haut :
+
+- barre segmentée `[Détails] · [Options & variantes]` (badge de compteur sur
+  l'onglet), un seul tap pour passer de l'une à l'autre — plus de scroll infini ;
+- **les panneaux restent MONTÉS** (l'inactif en `hidden`), jamais `key={tab}` qui
+  remonterait et **perdrait la saisie** en cours ; le panneau qui (ré)apparaît
+  reçoit une classe d'animation (`@keyframes` local) → **fondu doux** à chaque
+  activation (transition soignée sans dépendance) ;
+- l'en-tête (retour + titre + action destructive) est **partagé** au-dessus des
+  onglets. Réf. : `components/merchant/product-editor-tabs.tsx`.
+
+Corollaire — **action destructive en HAUT, pas en bas** : le bouton « Supprimer »
+d'une fiche se place **sur la ligne du titre** (compact, icône + label ≥ `sm`),
+jamais tout en bas (inutile de dérouler toute la page pour supprimer).
+
+Corollaire — **regrouper les boutons d'un en-tête derrière « Modifier »** : quand
+une ligne (ex. en-tête de catégorie catalogue) accumule photo + renommer +
+supprimer, remplacer par **UN** bouton « Modifier » ouvrant une **feuille**
+(`Portal`, ancrée en bas sur mobile / centrée ≥ `sm`) qui regroupe tout (renommer,
+photo add/change/remove, supprimer). Réf. : `CategoryEditSheet` dans
+`components/merchant/catalog-categories.tsx`. Toujours : expert front, style Bolt.
 
 ## Accès production Supabase (à utiliser SANS REDEMANDER)
 

@@ -70,9 +70,12 @@ function toInput(groups: GroupState[]): OptionGroupInput[] {
 export function ProductOptionsEditor({
   productId,
   initialGroups,
+  defaultOpen = false,
 }: {
   productId: string;
   initialGroups: LoadedOptionGroup[];
+  /** Ouvert d'emblée (onglet dédié « Options & variantes »). */
+  defaultOpen?: boolean;
 }) {
   const [groups, setGroups] = useState<GroupState[]>(() =>
     fromLoaded(initialGroups)
@@ -80,9 +83,9 @@ export function ProductOptionsEditor({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useActionNote();
-  // Section repliée par défaut : la plupart des produits n'ont pas d'options,
-  // le compteur dans l'en-tête suffit pour savoir s'il y en a.
-  const [open, setOpen] = useState(false);
+  // Section repliée par défaut hors onglet dédié : la plupart des produits n'ont
+  // pas d'options, le compteur dans l'en-tête suffit pour savoir s'il y en a.
+  const [open, setOpen] = useState(defaultOpen);
 
   const groupCount = groups.length;
   const optionCount = groups.reduce((n, g) => n + g.options.length, 0);

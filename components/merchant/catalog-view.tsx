@@ -42,7 +42,6 @@ import {
   reorderCategories,
   deleteCategories,
   quickCreateCategory,
-  renameCategory,
 } from "@/app/(merchant)/catalog/categories/actions";
 import { ALL, NONE } from "./catalog-shared";
 import { ToolsMenu, BulkBar, EmptyState } from "./catalog-toolbar";
@@ -50,7 +49,6 @@ import {
   CategoryChip,
   SortableCategory,
   CategorySection,
-  CategoryPhotoButton,
 } from "./catalog-categories";
 import { ProductItems, DroppableCategory } from "./catalog-products";
 
@@ -702,38 +700,15 @@ export function CatalogView({
     });
   }
 
-  // Renommage INLINE d'une catégorie (optimiste + repli si erreur serveur).
-  async function promptRename(id: string, current: string) {
-    const name = await prompt({
-      title: "Renommer la catégorie",
-      initialValue: current,
-      confirmLabel: "Renommer",
-    });
-    if (name === null) return;
-    const clean = name.trim();
-    if (!clean || clean === current) return;
-    setCats((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, title: clean } : c))
-    );
-    startTransition(async () => {
-      const res = await renameCategory(id, clean);
-      if (res.error) {
-        setNote({ ok: false, text: res.error });
-        setCats((prev) =>
-          prev.map((c) => (c.id === id ? { ...c, title: current } : c))
-        );
-        return;
-      }
-      // Succès : le nouveau nom est déjà affiché (optimiste) = feedback visuel.
-      refresh();
-    });
-  }
-
   // Photo de catégorie : reflet local immédiat après ajout/remplacement/retrait.
   function updateCategoryImageLocal(id: string, url: string | null) {
     setCats((prev) =>
       prev.map((c) => (c.id === id ? { ...c, image_url: url } : c))
     );
+  }
+  // Nom de catégorie : reflet local immédiat après renommage (feuille d'édition).
+  function updateCategoryTitleLocal(id: string, title: string) {
+    setCats((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)));
   }
   const uploadMerchantId =
     cats[0]?.merchant_id ?? products[0]?.merchant_id ?? "";
@@ -929,24 +904,6 @@ export function CatalogView({
                             count={g.items.length}
                             open={expanded.has(g.key)}
                             onToggle={() => toggleExpanded(g.key)}
-                            onRename={
-                              g.key !== NONE
-                                ? () => promptRename(g.key, g.title)
-                                : null
-                            }
-                            photoAction={
-                              g.key !== NONE && !selectMode ? (
-                                <CategoryPhotoButton
-                                  categoryId={g.key}
-                                  merchantId={uploadMerchantId}
-                                  image={g.image}
-                                  onChanged={(url) => {
-                                    updateCategoryImageLocal(g.key, url);
-                                    refresh();
-                                  }}
-                                />
-                              ) : null
-                            }
                             addHref={
                               g.key !== NONE
                                 ? `/catalog/new?category=${g.key}`
@@ -956,23 +913,23 @@ export function CatalogView({
                             selectable={g.key !== NONE}
                             selected={selCats.has(g.key)}
                             onToggleSelect={() => toggleSelCat(g.key)}
-                            onDelete={
-                              g.key !== NONE
-                                ? async () => {
-                                    if (
-                                      await confirm({
-                                        title: "Supprimer cette catégorie ?",
-                                        message:
-                                          "Les produits liés deviendront « sans catégorie ».",
-                                        confirmLabel: "Supprimer",
-                                        danger: true,
-                                      })
-                                    )
-                                      bulk(
-                                        () => deleteCategories([g.key]),
-                                        "Catégorie supprimée",
-                                        () => removeCategoriesLocal([g.key])
-                                      );
+                            edit={
+                              g.key !== NONE && !selectMode
+                                ? {
+                                    categoryId: g.key,
+                                    merchantId: uploadMerchantId,
+                                    onRenamed: (t) => {
+                                      updateCategoryTitleLocal(g.key, t);
+                                      refresh();
+                                    },
+                                    onImageChanged: (url) => {
+                                      updateCategoryImageLocal(g.key, url);
+                                      refresh();
+                                    },
+                                    onDeleted: () => {
+                                      removeCategoriesLocal([g.key]);
+                                      refresh();
+                                    },
                                   }
                                 : null
                             }

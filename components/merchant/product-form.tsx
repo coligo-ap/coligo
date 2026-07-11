@@ -57,11 +57,15 @@ export function ProductForm({
   product,
   categories,
   initialCategoryId,
+  hideHeader = false,
 }: {
   merchantId: string;
   product?: Product;
   categories: Category[];
   initialCategoryId?: string;
+  /** En mode onglets (`ProductEditTabs`) le shell fournit déjà retour / titre /
+   *  supprimer → on masque l'en-tête interne du formulaire. */
+  hideHeader?: boolean;
 }) {
   const isEdit = !!product;
 
@@ -127,19 +131,26 @@ export function ProductForm({
 
   return (
     <div className="mx-auto max-w-2xl p-4 lg:p-6 lg:px-8">
-      {/* Header */}
-      <header className="mb-6">
-        <Link
-          href="/catalog"
-          className="text-muted hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm"
-        >
-          <ArrowLeft className="size-4" />
-          Retour au catalogue
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
-          {isEdit ? "Modifier le produit" : "Nouveau produit"}
-        </h1>
-      </header>
+      {/* Header (masqué en mode onglets : le shell le fournit) */}
+      {!hideHeader && (
+        <header className="mb-6">
+          <Link
+            href="/catalog"
+            className="text-muted hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm"
+          >
+            <ArrowLeft className="size-4" />
+            Retour au catalogue
+          </Link>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">
+              {isEdit ? "Modifier le produit" : "Nouveau produit"}
+            </h1>
+            {/* Supprimer : sur la ligne du titre (plus besoin de dérouler tout
+                le formulaire pour supprimer). */}
+            {isEdit && <DeleteProduct productId={product!.id} />}
+          </div>
+        </header>
+      )}
 
       <form action={formAction} className="space-y-6">
         {/* Image */}
@@ -420,13 +431,11 @@ export function ProductForm({
           </Link>
         </div>
       </form>
-
-      {isEdit && <DeleteProduct productId={product!.id} />}
     </div>
   );
 }
 
-function DeleteProduct({ productId }: { productId: string }) {
+export function DeleteProduct({ productId }: { productId: string }) {
   const router = useRouter();
   const confirm = useConfirm();
   const queryClient = useQueryClient();
@@ -460,21 +469,23 @@ function DeleteProduct({ productId }: { productId: string }) {
   }
 
   return (
-    <div className="border-border mt-8 border-t pt-6">
+    <div className="flex shrink-0 flex-col items-end">
       <button
         type="button"
         onClick={onDelete}
         disabled={pending}
-        className="text-danger-600 hover:bg-danger-50 inline-flex items-center gap-2 rounded-[10px] px-3 py-2 text-sm font-medium disabled:opacity-50"
+        title="Supprimer ce produit"
+        aria-label="Supprimer ce produit"
+        className="text-danger-600 hover:bg-danger-50 border-danger-200 inline-flex h-9 items-center gap-1.5 rounded-[10px] border px-3 text-sm font-medium disabled:opacity-50"
       >
         {pending ? (
           <Loader2 className="size-4 animate-spin" />
         ) : (
           <Trash2 className="size-4" />
         )}
-        Supprimer ce produit
+        <span className="hidden sm:inline">Supprimer</span>
       </button>
-      <ActionNote note={note} className="mt-1.5" />
+      <ActionNote note={note} className="mt-1.5 text-right" />
     </div>
   );
 }
