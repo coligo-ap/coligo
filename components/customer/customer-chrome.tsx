@@ -8,6 +8,8 @@ import { CustomerHeader } from "@/components/customer/customer-header";
 import { CustomerFooter } from "@/components/customer/customer-footer";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { ActiveOrdersBar } from "@/components/customer/active-orders-bar";
+import { ConnectionGuard } from "@/components/shared/connection-guard";
+import { OfflineDim } from "@/components/shared/offline-dim";
 import { PushRegistrar } from "@/components/native/push-registrar";
 import { AppUrlListener } from "@/components/native/app-url-listener";
 import { AppUpdateManager } from "@/components/native/app-update-manager";
@@ -78,6 +80,10 @@ export function CustomerChrome({
       <ClientThemeScope />
       {/* Refresh doux des données au retour au premier plan. */}
       <RouteRefreshOnFocus />
+      {/* Garde de connexion : feedback + reprise auto quand le réseau coupe ou
+          devient instable — jamais d'écran muet en session (cf. offline.html qui
+          ne couvre QUE l'échec au cold start). */}
+      <ConnectionGuard />
 
       {!noHeader && (
         <CustomerHeader
@@ -91,7 +97,12 @@ export function CustomerChrome({
         <CartMonoProvider>{children}</CartMonoProvider>
       ) : (
         <main className="pb-20 lg:pb-0">
-          <CartMonoProvider>{children}</CartMonoProvider>
+          {/* Hors ligne : le contenu (souvent périmé) est flouté/atténué mais
+              reste là ; header + nav du bas + bandeau restent nets et
+              utilisables. On ne fige jamais tout l'écran. */}
+          <OfflineDim>
+            <CartMonoProvider>{children}</CartMonoProvider>
+          </OfflineDim>
         </main>
       )}
 

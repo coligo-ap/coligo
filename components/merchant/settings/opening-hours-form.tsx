@@ -6,7 +6,7 @@ import { Copy, Info, Moon, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { cn } from "@/lib/utils";
 import {
   DAY_KEYS,
@@ -46,6 +46,7 @@ export function OpeningHoursForm({
     ok: state.ok,
     error: state.error,
   });
+  const [note, setNote] = useActionNote();
   useEffect(() => {
     if (state.ok && !pending) router.refresh();
   }, [state.ok, pending, router]);
@@ -80,7 +81,7 @@ export function OpeningHoursForm({
         DAY_KEYS.map((d) => [d, src.map((s) => ({ ...s }))])
       ) as OpeningHours
     );
-    toast.success("Horaires copiés sur tous les jours");
+    setNote({ ok: true, text: "Horaires copiés sur tous les jours" });
   }
 
   return (
@@ -196,6 +197,8 @@ export function OpeningHoursForm({
       {state.error && btnState === "error" && (
         <p className="text-danger-600 text-sm">{state.error}</p>
       )}
+
+      <ActionNote note={note} />
 
       <ActionButton
         type="submit"

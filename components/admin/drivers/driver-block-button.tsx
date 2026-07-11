@@ -4,7 +4,8 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Ban, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
+import { useConfirm, usePrompt } from "@/components/ui/confirm";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { toggleDriverBlocked } from "@/app/admin/actions";
 
 /**
@@ -19,42 +20,55 @@ export function DriverBlockButton({
   blocked: boolean;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
+  const prompt = usePrompt();
   const [pending, start] = useTransition();
+  const [fb, setFb] = useActionNote();
   return (
-    <Button
-      size="sm"
-      type="button"
-      variant={blocked ? "secondary" : "destructive"}
-      onClick={() => {
-        const note = blocked
-          ? undefined
-          : (prompt("Raison du blocage (dangereux / suspect / violation…)") ??
-            undefined);
-        if (
-          !confirm(
-            blocked
-              ? "Débloquer ce livreur ? Il retrouvera l'accès complet."
-              : "Bloquer ce livreur ? Il perdra TOUT accès (sanction dure)."
+    <div className="inline-flex flex-col items-start gap-1">
+      <Button
+        size="sm"
+        type="button"
+        variant={blocked ? "secondary" : "destructive"}
+        onClick={async () => {
+          const note = blocked
+            ? undefined
+            : ((await prompt({
+                title: "Raison du blocage",
+                placeholder: "Dangereux / suspect / violation du contrat…",
+              })) ?? undefined);
+          if (
+            !(await confirm({
+              title: blocked
+                ? "Débloquer ce livreur ?"
+                : "Bloquer ce livreur ?",
+              message: blocked
+                ? "Il retrouvera l'accès complet."
+                : "Il perdra TOUT accès (sanction dure).",
+              confirmLabel: blocked ? "Débloquer" : "Bloquer",
+              danger: !blocked,
+            }))
           )
-        )
-          return;
-        start(async () => {
-          const r = await toggleDriverBlocked(driverId, !blocked, note);
-          if (r.error) toast.error(r.error);
-          else toast.success(blocked ? "Livreur débloqué" : "Livreur bloqué");
-          router.refresh();
-        });
-      }}
-      disabled={pending}
-    >
-      {pending ? (
-        <Loader2 className="size-3.5 animate-spin" />
-      ) : blocked ? (
-        <ShieldCheck className="size-3.5" />
-      ) : (
-        <Ban className="size-3.5" />
-      )}
-      {blocked ? "Débloquer" : "Bloquer"}
-    </Button>
+            return;
+          start(async () => {
+            const r = await toggleDriverBlocked(driverId, !blocked, note);
+            // Succès : le libellé bascule (Bloquer ↔ Débloquer) via refresh (visuel).
+            if (r.error) setFb({ ok: false, text: r.error });
+            else router.refresh();
+          });
+        }}
+        disabled={pending}
+      >
+        {pending ? (
+          <Loader2 className="size-3.5 animate-spin" />
+        ) : blocked ? (
+          <ShieldCheck className="size-3.5" />
+        ) : (
+          <Ban className="size-3.5" />
+        )}
+        {blocked ? "Débloquer" : "Bloquer"}
+      </Button>
+      <ActionNote note={fb} />
+    </div>
   );
 }

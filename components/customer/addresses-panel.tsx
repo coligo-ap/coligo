@@ -7,8 +7,9 @@ import { ChevronLeft, MapPin, Plus, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Portal } from "@/components/ui/portal";
 import { ActionButton } from "@/components/ui/action-button";
+import { useConfirm } from "@/components/ui/confirm";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { AddressForm } from "@/components/customer/address-picker";
 import {
   addAddress,
@@ -122,62 +123,81 @@ export function AddressesPanel({ addresses }: { addresses: Addr[] }) {
 function AddressRow({ addr }: { addr: Addr }) {
   const t = useTranslations("account");
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, start] = useTransition();
+  const [note, setNote] = useActionNote();
   return (
-    <li className="border-border bg-surface flex items-start gap-3 rounded-[14px] border p-4">
-      <MapPin className="text-primary-600 mt-0.5 size-5" />
-      <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-2 text-sm font-semibold">
-          {addr.label}
-          {addr.is_default && (
-            <span className="bg-success-100 text-success-700 rounded-full px-2 py-0.5 text-xs">
-              {t("default")}
-            </span>
-          )}
-        </p>
-        {/* Partie B : on n'affiche JAMAIS le GPS brut — l'adresse lisible suffit
+    <li className="border-border bg-surface rounded-[14px] border p-4">
+      <div className="flex items-start gap-3">
+        <MapPin className="text-primary-600 mt-0.5 size-5" />
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            {addr.label}
+            {addr.is_default && (
+              <span className="bg-success-100 text-success-700 rounded-full px-2 py-0.5 text-xs">
+                {t("default")}
+              </span>
+            )}
+          </p>
+          {/* Partie B : on n'affiche JAMAIS le GPS brut — l'adresse lisible suffit
             (repli neutre si aucune adresse résolue). Le téléphone alternatif
             reste utile pour le livreur. */}
-        <p className="text-muted mt-0.5 text-xs">
-          {addr.address_text || t("mapPoint")}
-          {addr.phone_override ? ` · ${addr.phone_override}` : ""}
-        </p>
-      </div>
-      <div className="flex flex-col gap-1">
-        {!addr.is_default && (
+          <p className="text-muted mt-0.5 text-xs">
+            {addr.address_text || t("mapPoint")}
+            {addr.phone_override ? ` · ${addr.phone_override}` : ""}
+          </p>
+        </div>
+        <div className="flex flex-col gap-1">
+          {!addr.is_default && (
+            <Button
+              size="sm"
+              type="button"
+              variant="secondary"
+              onClick={() =>
+                start(async () => {
+                  const r = await setDefaultAddress(addr.id);
+                  if (r.error) {
+                    setNote({ ok: false, text: r.error });
+                    return;
+                  }
+                  router.refresh();
+                })
+              }
+              disabled={pending}
+            >
+              <Star className="size-3.5" />
+            </Button>
+          )}
           <Button
             size="sm"
             type="button"
             variant="secondary"
-            onClick={() =>
+            onClick={async () => {
+              if (
+                !(await confirm({
+                  title: t("deleteAddressConfirm"),
+                  confirmLabel: t("confirm"),
+                  cancelLabel: t("cancel"),
+                  danger: true,
+                }))
+              )
+                return;
               start(async () => {
-                const r = await setDefaultAddress(addr.id);
-                if (r.error) toast.error(r.error);
+                const r = await deleteAddress(addr.id);
+                if (r.error) {
+                  setNote({ ok: false, text: r.error });
+                  return;
+                }
                 router.refresh();
-              })
-            }
+              });
+            }}
             disabled={pending}
           >
-            <Star className="size-3.5" />
+            <Trash2 className="size-3.5" />
           </Button>
-        )}
-        <Button
-          size="sm"
-          type="button"
-          variant="secondary"
-          onClick={() => {
-            if (!confirm(t("deleteAddressConfirm"))) return;
-            start(async () => {
-              const r = await deleteAddress(addr.id);
-              if (r.error) toast.error(r.error);
-              router.refresh();
-            });
-          }}
-          disabled={pending}
-        >
-          <Trash2 className="size-3.5" />
-        </Button>
+        </div>
       </div>
+      <ActionNote note={note} className="mt-2" />
     </li>
   );
 }

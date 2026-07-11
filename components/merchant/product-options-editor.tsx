@@ -5,7 +5,7 @@ import { ChevronDown, Loader2, Plus, Trash2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { TranslateArButton } from "@/components/merchant/translate-ar-button";
 import {
   saveProductOptions,
@@ -79,6 +79,7 @@ export function ProductOptionsEditor({
   );
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useActionNote();
   // Section repliée par défaut : la plupart des produits n'ont pas d'options,
   // le compteur dans l'en-tête suffit pour savoir s'il y en a.
   const [open, setOpen] = useState(false);
@@ -164,7 +165,7 @@ export function ProductOptionsEditor({
         setError(res.error);
         return;
       }
-      toast.success("Options enregistrées");
+      setNote({ ok: true, text: "Options enregistrées" });
     });
   }
 
@@ -398,6 +399,7 @@ export function ProductOptionsEditor({
               </>
             )}
           </Button>
+          <ActionNote note={note} className="mt-2" />
         </div>
       )}
     </section>

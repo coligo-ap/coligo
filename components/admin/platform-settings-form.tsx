@@ -2,12 +2,12 @@
 
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InfoHint } from "@/components/ui/info-hint";
-import { toast } from "@/components/ui/toast";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import type { PlatformSettings } from "@/lib/types";
 import { rateToPct } from "@/lib/validation/platform";
 import {
@@ -65,12 +65,16 @@ export function PlatformSettingsForm({
     updatePlatformSettings,
     initialState
   );
+  const fb = useFormActionFeedback({
+    pending,
+    ok: state.ok,
+    error: state.error,
+  });
 
   useEffect(() => {
-    if (state.ok) {
-      toast.success("Taux mis à jour");
-      router.refresh();
-    }
+    // Succès porté par le bouton (ActionButton) — pas de toast. On rafraîchit
+    // seulement les données serveur.
+    if (state.ok) router.refresh();
   }, [state, router]);
 
   return (
@@ -294,10 +298,11 @@ export function PlatformSettingsForm({
 
       {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
 
-      <Button type="submit" disabled={pending}>
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        Enregistrer
-      </Button>
+      <ActionButton
+        type="submit"
+        state={fb}
+        labels={{ idle: "Enregistrer", success: "Taux mis à jour ✓" }}
+      />
     </form>
   );
 }

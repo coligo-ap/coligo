@@ -79,6 +79,7 @@ import {
   type DriveQuote,
 } from "@/app/(customer)/drive/actions";
 import { joinZoneWaitlist } from "@/lib/zones/actions";
+import { withTimeout } from "@/lib/async/with-timeout";
 import { useGeoClientConfig } from "@/lib/geo/use-geo-client-config";
 import { AvailabilityNotice } from "@/components/zones/availability-notice";
 import { DriveAiBar } from "./drive-ai-bar";
@@ -627,6 +628,16 @@ export function DriveView({ userId }: { userId: string }) {
   // OSRM met à jour les devis en silence → le prix ne repasse jamais en loader.
   const priceStale = pricing;
 
+  // WATCHDOG anti-blocage : le calcul de devis a un timeout interne de 3,5 s +
+  // repli local, mais une course d'effets (annulation + retour anticipé avant
+  // `setPricing(false)`) pouvait le laisser à `true` → bouton « Proposer » figé
+  // en spinner. Garde-fou : au-delà de 5 s, on force la sortie de l'état devis.
+  useEffect(() => {
+    if (!pricing) return;
+    const t = setTimeout(() => setPricing(false), 5000);
+    return () => clearTimeout(t);
+  }, [pricing]);
+
   const pickGamme = (g: Gamme) => {
     setGamme(g);
     const q = quotes?.[g];
@@ -746,14 +757,21 @@ export function DriveView({ userId }: { userId: string }) {
         return;
       }
       setSubmitting(true);
-      const res = await requestDriveRide(payload);
+      // Garde-temps 15 s : un Server Action qui ne se règle jamais (serverless
+      // froid, réseau qui stalle) laisserait le spinner tourner à l'infini — le
+      // `finally` ne s'exécute pas sur une promesse jamais réglée. Au-delà : on
+      // rejette, message inline, bouton réactivé (le `finally` libère tout).
+      const res = await withTimeout(requestDriveRide(payload), 15000);
       if (!res.ok) {
         setRequestError(res.error ?? t("requestFailed"));
         return;
       }
       // CARTE : payer AVANT que la demande soit diffusée (Chargily Pay existant).
       if (payMode === "card" && res.rideId) {
-        const checkout = await createRideCardCheckout(res.rideId);
+        const checkout = await withTimeout(
+          createRideCardCheckout(res.rideId),
+          15000
+        );
         if (checkout.ok && checkout.url) {
           window.open(checkout.url, "_blank");
         } else {
@@ -835,8 +853,11 @@ export function DriveView({ userId }: { userId: string }) {
       }
       setOfflineQueued(true);
       try {
-        const res = await requestDriveRide(
-          pending.payload as Parameters<typeof requestDriveRide>[0]
+        const res = await withTimeout(
+          requestDriveRide(
+            pending.payload as Parameters<typeof requestDriveRide>[0]
+          ),
+          15000
         );
         if (res.ok) {
           await clearPendingRide();

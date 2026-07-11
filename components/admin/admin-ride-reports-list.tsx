@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Car, Loader2, MapPin, Phone, ShieldAlert, User } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { cn } from "@/lib/utils";
 import { resolveRideReport } from "@/app/admin/actions";
 
@@ -47,9 +48,11 @@ const fmt = (iso: string) =>
   });
 
 export function AdminRideReportsList({ rows }: { rows: RideReportRow[] }) {
+  const router = useRouter();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("all");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [, start] = useTransition();
+  const [note, setNote] = useActionNote();
 
   const filtered = useMemo(
     () => (filter === "all" ? rows : rows.filter((r) => r.status === filter)),
@@ -65,13 +68,15 @@ export function AdminRideReportsList({ rows }: { rows: RideReportRow[] }) {
     start(async () => {
       const r = await resolveRideReport({ reportId: id, status });
       setPendingId(null);
-      if (r.error) toast.error(r.error);
-      else toast.success("Mis à jour");
+      // Succès : le statut du signalement change dans la liste via refresh.
+      if (r.error) setNote({ ok: false, text: r.error });
+      else router.refresh();
     });
   };
 
   return (
     <div className="space-y-4">
+      <ActionNote note={note} />
       <div className="flex flex-wrap items-center gap-1.5">
         {FILTERS.map((f) => (
           <button

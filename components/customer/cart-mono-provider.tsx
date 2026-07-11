@@ -9,7 +9,6 @@ import {
   readAllCarts,
   type AddItemInput,
 } from "@/lib/customer/cart-store";
-import { toast } from "@/components/ui/toast";
 
 // =============================================================================
 // Panier MONO-COMMERÇANT (volet 4) — un panier ne contient des articles que
@@ -78,7 +77,8 @@ export function CartMonoProvider({ children }: { children: React.ReactNode }) {
     if (!pending) return;
     clearAllCarts();
     addItem(pending.merchant, pending.item);
-    toast.success(t("monoSwitched", { name: pending.merchant.name }));
+    // Confirmation VISUELLE : la modale se ferme et la barre panier persistante
+    // affiche le nouveau commerce (pas de toast, cf. CLAUDE.md).
     setPending(null);
   };
 

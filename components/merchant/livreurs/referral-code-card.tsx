@@ -14,7 +14,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
+import { useConfirm } from "@/components/ui/confirm";
 import {
   regenerateReferralCode,
   resetAllDriverAccess,
@@ -35,60 +36,72 @@ export function ReferralCodeCard({
   activeDriverCount?: number;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
+  const [note, setNote] = useActionNote();
   const [revealedCode, setRevealedCode] = useState<string | null>(null);
   const [expiry, setExpiry] = useState<string>(
     expiresAt ? new Date(expiresAt).toISOString().slice(0, 10) : ""
   );
 
-  const onGenerate = () =>
+  const onGenerate = async () => {
+    const ok = await confirm({
+      title: hasActiveCode
+        ? "Générer un nouveau code ?"
+        : "Générer un nouveau code de référence ?",
+      message: hasActiveCode
+        ? "L'ancien cessera de fonctionner pour les NOUVELLES demandes. Tes livreurs actuels gardent leur accès."
+        : undefined,
+      confirmLabel: "Générer",
+    });
+    if (!ok) return;
     startTransition(async () => {
-      const ok = confirm(
-        hasActiveCode
-          ? "Générer un nouveau code ? L'ancien cessera de fonctionner pour les NOUVELLES demandes. Tes livreurs actuels gardent leur accès."
-          : "Générer un nouveau code de référence ?"
-      );
-      if (!ok) return;
       const res = await regenerateReferralCode({
         expiresAt: expiry ? new Date(expiry).toISOString() : null,
       });
       if (res.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
       if (res.newCode) {
         setRevealedCode(res.newCode);
       }
-      toast.success(res.success ?? "Code généré");
+      setNote({ ok: true, text: res.success ?? "Code généré" });
       router.refresh();
     });
+  };
 
-  const onResetAccess = () =>
+  const onResetAccess = async () => {
+    const ok = await confirm({
+      title: `Réinitialiser les accès de ${activeDriverCount} livreur(s) actif(s) ?`,
+      message:
+        "Ils repasseront « en attente » et devront re-soumettre le code pour reprendre les tournées. À n'utiliser qu'en cas de départ massif ou de code soupçonné fuité.",
+      confirmLabel: "Réinitialiser",
+      danger: true,
+    });
+    if (!ok) return;
     startTransition(async () => {
-      const ok = confirm(
-        `Réinitialiser les accès de ${activeDriverCount} livreur(s) actif(s) ? Ils repasseront « en attente » et devront re-soumettre le code pour reprendre les tournées. À n'utiliser qu'en cas de départ massif ou de code soupçonné fuité.`
-      );
-      if (!ok) return;
       const res = await resetAllDriverAccess();
-      if (res.error) toast.error(res.error);
-      else toast.success(res.success ?? "Accès réinitialisés");
+      if (res.error) setNote({ ok: false, text: res.error });
+      else setNote({ ok: true, text: res.success ?? "Accès réinitialisés" });
       router.refresh();
     });
+  };
 
   const onSaveExpiry = () =>
     startTransition(async () => {
       const res = await setReferralCodeExpiration(
         expiry ? new Date(expiry).toISOString() : null
       );
-      if (res.error) toast.error(res.error);
-      else toast.success(res.success ?? "Expiration mise à jour");
+      if (res.error) setNote({ ok: false, text: res.error });
+      else setNote({ ok: true, text: res.success ?? "Expiration mise à jour" });
       router.refresh();
     });
 
   const copy = () => {
     if (!revealedCode) return;
     void navigator.clipboard.writeText(revealedCode).then(() => {
-      toast.success("Code copié");
+      setNote({ ok: true, text: "Code copié" });
     });
   };
 
@@ -196,6 +209,8 @@ export function ReferralCodeCard({
           Réinitialiser les accès
         </Button>
       </div>
+
+      <ActionNote note={note} className="text-[12px]" />
     </section>
   );
 }
@@ -213,6 +228,7 @@ function ShareCodePanel({
   code: string;
   onCopy: () => void;
 }) {
+  const [note, setNote] = useActionNote();
   const link =
     typeof window !== "undefined"
       ? `${window.location.origin}/driver/codes?code=${encodeURIComponent(code)}`
@@ -222,7 +238,7 @@ function ShareCodePanel({
 
   const copyLink = () => {
     void navigator.clipboard.writeText(link).then(() => {
-      toast.success("Lien copié");
+      setNote({ ok: true, text: "Lien copié" });
     });
   };
 
@@ -328,6 +344,8 @@ function ShareCodePanel({
         Le livreur peut soit cliquer le lien (s&apos;il est inscrit, le code est
         validé directement), soit saisir le code à la main.
       </p>
+
+      <ActionNote note={note} className="text-[12px]" />
     </div>
   );
 }

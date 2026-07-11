@@ -11,7 +11,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { useConfirm } from "@/components/ui/confirm";
 import {
   ArrowLeft,
@@ -70,11 +70,10 @@ export function ProductForm({
   const [state, formAction, pending] = useActionState(action, initialState);
 
   useEffect(() => {
-    if (state.ok) {
-      toast.success(isEdit ? "Produit mis à jour" : "Produit créé");
-      router.push("/catalog");
-    }
-  }, [state, isEdit, router]);
+    // Succès : navigation vers le catalogue (le produit y apparaît = feedback
+    // visuel) ; l'erreur est affichée inline sous le formulaire. Pas de toast.
+    if (state.ok) router.push("/catalog");
+  }, [state, router]);
 
   // Liste locale de catégories (permet l'ajout « à la volée »).
   const [cats, setCats] = useState<{ id: string; title: string }[]>(
@@ -432,6 +431,7 @@ function DeleteProduct({ productId }: { productId: string }) {
   const confirm = useConfirm();
   const queryClient = useQueryClient();
   const [pending, startTransition] = useTransition();
+  const [note, setNote] = useActionNote();
 
   async function onDelete() {
     if (
@@ -447,10 +447,10 @@ function DeleteProduct({ productId }: { productId: string }) {
     startTransition(async () => {
       const res = await deleteProducts([productId]);
       if (res?.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
-      toast.success("Produit supprimé");
+      // Succès : navigation vers le catalogue (produit disparu = feedback visuel).
       // Invalide le cache catalogue (TanStack) → la liste se met à jour SANS
       // attendre un refetch hasardeux ; sinon le produit semblait « rester ».
       queryClient.invalidateQueries({ queryKey: ["merchant-catalog"] });
@@ -474,6 +474,7 @@ function DeleteProduct({ productId }: { productId: string }) {
         )}
         Supprimer ce produit
       </button>
+      <ActionNote note={note} className="mt-1.5" />
     </div>
   );
 }
@@ -500,8 +501,9 @@ function QuickCategory({
         setError(res.error ?? "Échec.");
         return;
       }
+      // Succès : la catégorie est ajoutée à la liste (onCreated) et le mini-form
+      // se ferme = feedback visuel ; l'erreur est déjà inline. Pas de toast.
       onCreated({ id: res.id, title: res.title! });
-      toast.success(`Catégorie « ${res.title} » créée`);
       setTitle("");
       setOpen(false);
     });

@@ -1,14 +1,16 @@
 "use client";
 
-import { Share2 } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { useState } from "react";
+import { Check, Share2 } from "lucide-react";
 
 /**
  * Bouton « Partager » de la barre du haut (fiche commerçant). Utilise l'API de
  * partage native (`navigator.share`) si disponible — feuille de partage système
  * (WhatsApp, SMS, etc.) — sinon copie le lien de la page courante dans le
- * presse-papiers et affiche un toast. Style passé via `className` pour coller
- * aux autres boutons ronds de la barre.
+ * presse-papiers. Bouton rond (icône seule) : le retour « copié » se fait EN
+ * PLACE — l'icône passe à une coche verte ~1,6 s (pas de toast, cf. CLAUDE.md) —
+ * avec une région live sr-only pour l'accessibilité. Style passé via `className`
+ * pour coller aux autres boutons ronds de la barre.
  */
 export function ShareButton({
   title,
@@ -21,6 +23,8 @@ export function ShareButton({
   copiedMsg: string;
   className?: string;
 }) {
+  const [copied, setCopied] = useState(false);
+
   const onShare = async () => {
     const url = window.location.href;
     if (typeof navigator !== "undefined" && navigator.share) {
@@ -33,7 +37,8 @@ export function ShareButton({
     }
     try {
       await navigator.clipboard.writeText(url);
-      toast.success(copiedMsg);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
     } catch {
       /* presse-papiers indisponible — silencieux */
     }
@@ -43,10 +48,17 @@ export function ShareButton({
     <button
       type="button"
       onClick={onShare}
-      aria-label={label}
+      aria-label={copied ? copiedMsg : label}
       className={className}
     >
-      <Share2 className="size-[18px]" />
+      {copied ? (
+        <Check className="text-success-600 size-[18px]" />
+      ) : (
+        <Share2 className="size-[18px]" />
+      )}
+      <span className="sr-only" role="status" aria-live="polite">
+        {copied ? copiedMsg : ""}
+      </span>
     </button>
   );
 }

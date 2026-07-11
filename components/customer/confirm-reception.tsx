@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronsRight, Loader2, PackageCheck } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { confirmDeliveryReception } from "@/app/(customer)/commandes/actions";
 
 /**
@@ -40,6 +40,8 @@ export function ConfirmReception({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [armed, setArmed] = useState(false);
+  const [done, setDone] = useState(false);
+  const [note, setNote] = useActionNote();
   const [x, setX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const trackRef = useRef<HTMLDivElement | null>(null);
@@ -71,12 +73,13 @@ export function ConfirmReception({
     start(async () => {
       const r = await confirmDeliveryReception(orderId);
       if (r.ok) {
-        toast.success(labels.success);
-        setArmed(false);
-        router.refresh();
+        // Confirmation EN LIGNE dans la fenêtre. La carte disparaît au refresh
+        // (commande livrée) : on laisse le client la lire avant.
+        setDone(true);
+        setNote({ ok: true, text: labels.success });
+        setTimeout(() => router.refresh(), 1500);
       } else {
-        toast.error(r.error ?? "Erreur");
-        setArmed(false);
+        setNote({ ok: false, text: r.error ?? "Erreur" });
       }
     });
 
@@ -132,11 +135,12 @@ export function ConfirmReception({
             <p className="text-muted mt-1.5 text-center text-[13px] font-medium">
               {labels.body}
             </p>
+            <ActionNote note={note} className="mt-3 text-center" />
             <div className="mt-5 flex flex-col gap-2">
               <button
                 type="button"
                 onClick={doConfirm}
-                disabled={pending}
+                disabled={pending || done}
                 className="bg-success-600 hover:bg-success-700 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-50"
               >
                 {pending ? (
@@ -149,7 +153,7 @@ export function ConfirmReception({
               <button
                 type="button"
                 onClick={() => setArmed(false)}
-                disabled={pending}
+                disabled={pending || done}
                 className="text-muted h-11 w-full text-[14px] font-semibold disabled:opacity-50"
               >
                 {labels.cancel}

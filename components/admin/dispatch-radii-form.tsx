@@ -2,11 +2,10 @@
 
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { updateDispatchRadii, type AdminFormState } from "@/app/admin/actions";
 
 const initialState: AdminFormState = {};
@@ -23,14 +22,15 @@ export function DispatchRadiiForm({
     updateDispatchRadii,
     initialState
   );
+  const fb = useFormActionFeedback({
+    pending,
+    ok: state.ok,
+    error: state.error,
+  });
 
   useEffect(() => {
-    if (state.ok) {
-      toast.success("Rayons mis à jour");
-      router.refresh();
-    } else if (state.error) {
-      toast.error(state.error);
-    }
+    // Feedback porté par le bouton + message inline ci-dessous (pas de toast).
+    if (state.ok) router.refresh();
   }, [state, router]);
 
   return (
@@ -74,11 +74,14 @@ export function DispatchRadiiForm({
           />
         </div>
       </div>
+      {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
       <div className="flex justify-end">
-        <Button type="submit" disabled={pending} size="sm">
-          {pending && <Loader2 className="size-4 animate-spin" />}
-          Enregistrer
-        </Button>
+        <ActionButton
+          type="submit"
+          size="sm"
+          state={fb}
+          labels={{ idle: "Enregistrer", success: "Rayons mis à jour ✓" }}
+        />
       </div>
     </form>
   );

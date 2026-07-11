@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2, Star } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { cn } from "@/lib/utils";
 import { submitDriverReview } from "@/app/(customer)/commandes/reviews/actions";
 
@@ -37,6 +37,7 @@ export function DriverReviewCard({
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
   const [comment, setComment] = useState("");
+  const [note, setNote] = useActionNote();
   const [pending, start] = useTransition();
 
   if (submitted != null) {
@@ -67,20 +68,21 @@ export function DriverReviewCard({
 
   const submit = () => {
     if (rating < 1) {
-      toast.error(t("chooseRating"));
+      setNote({ ok: false, text: t("chooseRating") });
       return;
     }
     start(async () => {
+      setNote(null);
       const res = await submitDriverReview({
         order_id: orderId,
         rating,
         comment: comment.trim() || null,
       });
       if (!res.ok) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
-      toast.success(t("driverReviewThanks"));
+      // Merci porté par la vue « yourDriverReview » (submitted != null).
       setSubmitted(rating);
     });
   };
@@ -153,6 +155,7 @@ export function DriverReviewCard({
           t("rateDriver")
         )}
       </button>
+      <ActionNote note={note} className="mt-2 text-center" />
     </div>
   );
 }

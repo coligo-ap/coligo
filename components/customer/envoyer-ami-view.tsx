@@ -14,7 +14,6 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react";
-import { toast } from "@/components/ui/toast";
 import { cn, formatDA } from "@/lib/utils";
 import {
   executeTransfer,
@@ -68,6 +67,8 @@ export function EnvoyerAmiView({
 
   const [step, setStep] = useState<Step>("search");
   const [busy, setBusy] = useState(false);
+  // Erreur d'action affichée EN LIGNE dans l'étape active (pas de toast).
+  const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [amount, setAmount] = useState("");
@@ -95,6 +96,7 @@ export function EnvoyerAmiView({
   }
 
   function pick(r: Recipient) {
+    setError(null);
     setRecipient(r);
     setAmount("");
     setNote("");
@@ -106,23 +108,25 @@ export function EnvoyerAmiView({
   async function doSearch() {
     const q = query.trim();
     if (q.length < 4) return;
+    setError(null);
     setBusy(true);
     const res = await searchRecipient(q);
     setBusy(false);
     if (!res.ok) {
-      toast.error(errMsg(res.error));
+      setError(errMsg(res.error));
       return;
     }
     pick({ handle: res.handle, name: res.name });
   }
 
   function goConfirm() {
+    setError(null);
     if (amountNum <= 0) {
-      toast.error(t("invalidAmount"));
+      setError(t("invalidAmount"));
       return;
     }
     if (amountNum > balanceDa) {
-      toast.error(t("qrErrInsufficient"));
+      setError(t("qrErrInsufficient"));
       return;
     }
     setPin("");
@@ -131,6 +135,7 @@ export function EnvoyerAmiView({
 
   async function doSend() {
     if (!recipient || pin.length !== 4) return;
+    setError(null);
     setBusy(true);
     const res = await executeTransfer({
       handle: recipient.handle,
@@ -141,7 +146,7 @@ export function EnvoyerAmiView({
     });
     setBusy(false);
     if (!res.ok) {
-      toast.error(errMsg(res.error));
+      setError(errMsg(res.error));
       if (["not_found", "self"].includes(res.error)) {
         setStep("search");
         setRecipient(null);
@@ -159,6 +164,7 @@ export function EnvoyerAmiView({
           type="button"
           aria-label={t("qrTitle")}
           onClick={() => {
+            setError(null);
             if (step === "search") router.push("/coligo-pay");
             else if (step === "amount") setStep("search");
             else if (step === "confirm") setStep("amount");
@@ -187,6 +193,7 @@ export function EnvoyerAmiView({
             onSearch={doSearch}
             recents={recents}
             onPick={pick}
+            error={error}
           />
         )}
 
@@ -200,6 +207,7 @@ export function EnvoyerAmiView({
             setNote={setNote}
             balanceDa={balanceDa}
             onContinue={goConfirm}
+            error={error}
           />
         )}
 
@@ -218,6 +226,7 @@ export function EnvoyerAmiView({
             setPin={setPin}
             busy={busy}
             onSend={doSend}
+            error={error}
           />
         )}
 
@@ -276,6 +285,7 @@ function SearchStep({
   onSearch,
   recents,
   onPick,
+  error,
 }: {
   t: (k: string) => string;
   query: string;
@@ -284,6 +294,7 @@ function SearchStep({
   onSearch: () => void;
   recents: RecentRecipient[];
   onPick: (r: RecentRecipient) => void;
+  error: string | null;
 }) {
   return (
     <div className="space-y-5">
@@ -319,6 +330,11 @@ function SearchStep({
         <p className="text-muted mt-2 px-1 text-[11.5px] font-medium">
           {t("sendSearchHint")}
         </p>
+        {error && (
+          <p className="text-danger-600 mt-2 px-1 text-[12.5px] font-semibold">
+            {error}
+          </p>
+        )}
       </div>
 
       <div>
@@ -369,6 +385,7 @@ function AmountStep({
   setNote,
   balanceDa,
   onContinue,
+  error,
 }: {
   t: (k: string, v?: Record<string, string>) => string;
   recipient: Recipient;
@@ -378,6 +395,7 @@ function AmountStep({
   setNote: (v: string) => void;
   balanceDa: number;
   onContinue: () => void;
+  error: string | null;
 }) {
   const amountNum = Number(amount) || 0;
   const over = amountNum > balanceDa;
@@ -442,6 +460,12 @@ function AmountStep({
         </Key>
       </div>
 
+      {error && (
+        <p className="text-danger-600 mt-4 text-center text-[12.5px] font-semibold">
+          {error}
+        </p>
+      )}
+
       <button
         type="button"
         disabled={amountNum <= 0 || over}
@@ -488,6 +512,7 @@ function ConfirmStep({
   setPin,
   busy,
   onSend,
+  error,
 }: {
   t: (k: string, v?: Record<string, string>) => string;
   senderName: string;
@@ -502,6 +527,7 @@ function ConfirmStep({
   setPin: (v: string) => void;
   busy: boolean;
   onSend: () => void;
+  error: string | null;
 }) {
   return (
     <div className="space-y-4">
@@ -573,6 +599,11 @@ function ConfirmStep({
             placeholder="••••"
             className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 w-full rounded-[14px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
           />
+          {error && (
+            <p className="text-danger-600 mt-2 text-center text-[12.5px] font-semibold">
+              {error}
+            </p>
+          )}
           <button
             type="button"
             disabled={busy || pin.length !== 4 || locked}
@@ -615,24 +646,27 @@ function InlineCreatePin({
   const [a, setA] = useState("");
   const [b, setB] = useState("");
   const [busy, setBusy] = useState(false);
+  // Erreur EN LIGNE dans la carte de création du PIN (pas de toast).
+  const [err, setErr] = useState<string | null>(null);
 
   async function save() {
+    setErr(null);
     if (!/^\d{4}$/.test(a)) {
-      toast.error(t("qrErrPinNotSet"));
+      setErr(t("qrErrPinNotSet"));
       return;
     }
     if (a !== b) {
-      toast.error(t("qrPinMismatch"));
+      setErr(t("qrPinMismatch"));
       return;
     }
     setBusy(true);
     const res = await setWalletPin(a);
     setBusy(false);
     if (!res.ok) {
-      toast.error(t("qrErrPinNotSet"));
+      setErr(t("qrErrPinNotSet"));
       return;
     }
-    toast.success(t("qrPinSaved"));
+    // Succès : onCreated() bascule vers la saisie du PIN (retour visuel).
     onCreated();
   }
 
@@ -649,18 +683,27 @@ function InlineCreatePin({
         <input
           inputMode="numeric"
           value={a}
-          onChange={(e) => setA(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          onChange={(e) => {
+            setA(e.target.value.replace(/\D/g, "").slice(0, 4));
+            setErr(null);
+          }}
           placeholder={t("qrPinLabel")}
           className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 rounded-[12px] border py-3 text-center text-lg font-black tracking-[0.4em] tabular-nums outline-none"
         />
         <input
           inputMode="numeric"
           value={b}
-          onChange={(e) => setB(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          onChange={(e) => {
+            setB(e.target.value.replace(/\D/g, "").slice(0, 4));
+            setErr(null);
+          }}
           placeholder={t("qrPinConfirmLabel")}
           className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 rounded-[12px] border py-3 text-center text-lg font-black tracking-[0.4em] tabular-nums outline-none"
         />
       </div>
+      {err && (
+        <p className="text-danger-600 mt-2 text-[12px] font-semibold">{err}</p>
+      )}
       <button
         type="button"
         disabled={busy || a.length !== 4 || b.length !== 4}

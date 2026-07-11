@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPosition } from "@/lib/native/geolocation";
-import { toast } from "@/components/ui/toast";
 import {
   geocodeSearch,
   listFavoritePlaces,
@@ -133,6 +132,8 @@ export function MapPositionPicker({
   const [loading, setLoading] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  // Erreur GPS affichée EN LIGNE (chip sur la carte), pas de toast (CLAUDE.md).
+  const [geoErr, setGeoErr] = useState<string | null>(null);
   // Mode plein écran : la même carte passe en overlay fixe pour ajuster
   // précisément la position, puis retour au checkout.
   const [fullscreen, setFullscreen] = useState(false);
@@ -491,6 +492,7 @@ export function MapPositionPicker({
 
   const useGps = async () => {
     setLoading(true);
+    setGeoErr(null);
     try {
       const pos = await getPosition();
       const map = mapRef.current;
@@ -509,7 +511,8 @@ export function MapPositionPicker({
         onChangeRef.current({ lat: pos.latitude, lng: pos.longitude });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Géoloc indisponible");
+      setGeoErr(err instanceof Error ? err.message : "Géoloc indisponible");
+      window.setTimeout(() => setGeoErr(null), 4000);
     } finally {
       setLoading(false);
     }
@@ -746,6 +749,19 @@ export function MapPositionPicker({
               fill="currentColor"
             />
           </span>
+        </div>
+      )}
+
+      {/* Erreur GPS EN LIGNE (permission refusée / indispo) — chip centré
+          au-dessus des contrôles, auto-effacé après 4 s. */}
+      {geoErr && (
+        <div
+          className={cn(
+            "border-danger-200 bg-danger-50 text-danger-700 absolute left-1/2 z-20 max-w-[calc(100%-1rem)] -translate-x-1/2 rounded-full border px-3.5 py-2 text-center text-[12px] font-semibold shadow",
+            fullscreen ? "bottom-36" : "bottom-14"
+          )}
+        >
+          {geoErr}
         </div>
       )}
 

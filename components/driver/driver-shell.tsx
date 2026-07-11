@@ -1,5 +1,6 @@
 import { DriverBottomNav } from "./driver-bottom-nav";
 import { PullToRefresh } from "./pull-to-refresh";
+import { DriverContentDim } from "./driver-content-dim";
 
 /**
  * Chrome des pages « consultables » de l'espace livreur — PARITÉ MAQUETTE
@@ -20,7 +21,7 @@ export function DriverShell({
     <div className="min-h-[100dvh] bg-[var(--d-surface)] text-[var(--d-ink)]">
       <PullToRefresh>
         <main className="pt-safe pb-safe-nav mx-auto max-w-md px-5">
-          {children}
+          <DriverContentDim>{children}</DriverContentDim>
         </main>
       </PullToRefresh>
       <DriverBottomNav />

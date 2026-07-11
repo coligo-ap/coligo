@@ -24,7 +24,6 @@ import {
   Zap,
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
-import { toast } from "@/components/ui/toast";
 import { clearCart, useCart, useOtherCarts } from "@/lib/customer/cart-store";
 import { useCustomerLocation } from "@/lib/customer/location-store";
 import { CartConflictModal } from "@/components/customer/cart-conflict-modal";
@@ -117,6 +116,9 @@ export function CheckoutView({
   });
   const [conflictDismissed, setConflictDismissed] = useState(false);
   const showConflict = otherCarts.length > 0 && !conflictDismissed;
+  // Erreur de soumission EN LIGNE (sous le bouton) — pas de toast (cf. CLAUDE.md).
+  // `note`/`setNote` sont déjà pris par la note client → nom distinct.
+  const [submitError, setSubmitError] = useState<string | null>(null);
   // Cashback NON sélectionné par défaut (le client l'active via le toggle).
   const [useCashback, setUseCashback] = useState(false);
   const [useTopup, setUseTopup] = useState(true);
@@ -361,8 +363,12 @@ export function CheckoutView({
   }
 
   function submit() {
+    // Filet défensif : le bouton est déjà désactivé (canSubmit) et `blockReason`
+    // affiche la raison sous le bouton. Si on arrive ici, on double l'info EN
+    // LIGNE plutôt qu'en toast.
+    setSubmitError(null);
     if (pickupType === "slot" && chosenSlotIdx == null) {
-      toast.error(t("errPickupSlot"));
+      setSubmitError(t("errPickupSlot"));
       return;
     }
     if (delivery.fulfillment === "delivery") {
@@ -370,15 +376,15 @@ export function CheckoutView({
       const hasConfirmedCustom =
         !!delivery.customPosition && delivery.positionConfirmed;
       if (!hasSavedAddress && !hasConfirmedCustom) {
-        toast.error(t("errConfirmPosition"));
+        setSubmitError(t("errConfirmPosition"));
         return;
       }
       if (!delivery.mode) {
-        toast.error(t("errChooseMode"));
+        setSubmitError(t("errChooseMode"));
         return;
       }
       if (delivery.mode === "tour" && !delivery.slotId) {
-        toast.error(t("errTourSlot"));
+        setSubmitError(t("errTourSlot"));
         return;
       }
       const phoneForDelivery = (
@@ -387,7 +393,7 @@ export function CheckoutView({
         ""
       ).trim();
       if (phoneForDelivery === "") {
-        toast.error(t("errPhoneRequired"));
+        setSubmitError(t("errPhoneRequired"));
         return;
       }
     }
@@ -468,7 +474,7 @@ export function CheckoutView({
         promo_code: appliedPromo?.code ?? null,
       });
       if (!res.ok) {
-        toast.error(res.error);
+        setSubmitError(res.error);
         return;
       }
       if (payment === "online" && res.checkout_url) {
@@ -1328,6 +1334,13 @@ export function CheckoutView({
             <p className="text-warning-700 mt-2 flex items-center justify-center gap-1.5 text-center text-[11px] font-bold">
               <AlertTriangle className="size-3.5" />
               {blockReason}
+            </p>
+          )}
+          {/* Erreur de création de commande (stock, prix, etc.) — EN LIGNE. */}
+          {submitError && (
+            <p className="text-danger-600 mt-2 flex items-center justify-center gap-1.5 text-center text-[12px] font-bold">
+              <AlertTriangle className="size-3.5" />
+              {submitError}
             </p>
           )}
         </div>

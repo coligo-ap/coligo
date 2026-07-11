@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useConfirm } from "@/components/ui/confirm";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { cn, formatDA } from "@/lib/utils";
 import { PAYOUT_STATUS_META, type PayoutStatus } from "@/lib/types";
 import {
@@ -182,6 +182,7 @@ function MerchantRow({ payout }: { payout: MerchantPayout }) {
   const router = useRouter();
   const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
+  const [note, setNote] = useActionNote();
   const meta = PAYOUT_STATUS_META[payout.status];
   const open = payout.status === "pending" || payout.status === "approved";
 
@@ -189,16 +190,18 @@ function MerchantRow({ payout }: { payout: MerchantPayout }) {
     startTransition(async () => {
       const res = await processPayout(payout.id, action);
       if (res.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
-      toast.success(
-        action === "pay"
-          ? "Versement marqué payé"
-          : action === "approve"
-            ? "Demande approuvée"
-            : "Demande refusée"
-      );
+      setNote({
+        ok: true,
+        text:
+          action === "pay"
+            ? "Versement marqué payé"
+            : action === "approve"
+              ? "Demande approuvée"
+              : "Demande refusée",
+      });
       router.refresh();
     });
 
@@ -277,6 +280,7 @@ function MerchantRow({ payout }: { payout: MerchantPayout }) {
           </Button>
         </div>
       )}
+      <ActionNote note={note} className="mt-2" />
     </li>
   );
 }
@@ -318,13 +322,14 @@ function PartnerRow({ partner }: { partner: PartnerPayable }) {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [pending, startTransition] = useTransition();
+  const [fb, setFb] = useActionNote();
   const canPay = partner.balance_da > 0;
 
   const submit = () =>
     startTransition(async () => {
       const amt = Math.round(Number(amount));
       if (!Number.isFinite(amt) || amt <= 0) {
-        toast.error("Montant invalide.");
+        setFb({ ok: false, text: "Montant invalide." });
         return;
       }
       const res = await recordPartnerPayout({
@@ -333,10 +338,10 @@ function PartnerRow({ partner }: { partner: PartnerPayable }) {
         note: note.trim(),
       });
       if (res.error) {
-        toast.error(res.error);
+        setFb({ ok: false, text: res.error });
         return;
       }
-      toast.success("Versement partenaire enregistré");
+      // Succès : le formulaire se ferme (feedback visuel).
       setOpen(false);
       setAmount("");
       setNote("");
@@ -414,6 +419,7 @@ function PartnerRow({ partner }: { partner: PartnerPayable }) {
             )}
             Enregistrer
           </Button>
+          <ActionNote note={fb} className="mt-2" />
         </div>
       )}
     </li>

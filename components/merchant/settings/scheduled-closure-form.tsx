@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { CalendarClock, Loader2, Save, Trash2 } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { setScheduledClosure } from "@/app/(merchant)/actions";
 
 /**
@@ -35,11 +35,12 @@ export function ScheduledClosureForm({
   const [start, setStart] = useState(toInput(initialStart));
   const [end, setEnd] = useState(toInput(initialEnd));
   const [pending, startTransition] = useTransition();
+  const [note, setNote] = useActionNote();
   const hasClosure = Boolean(initialStart && initialEnd);
 
   function save() {
     if (!start || !end) {
-      toast.error("Indiquez une date de début ET de fin.");
+      setNote({ ok: false, text: "Indiquez une date de début ET de fin." });
       return;
     }
     const startIso = new Date(start).toISOString();
@@ -47,10 +48,10 @@ export function ScheduledClosureForm({
     startTransition(async () => {
       const r = await setScheduledClosure(startIso, endIso);
       if (!r.ok) {
-        toast.error(r.error ?? "Échec de l'enregistrement.");
+        setNote({ ok: false, text: r.error ?? "Échec de l'enregistrement." });
         return;
       }
-      toast.success("Fermeture programmée enregistrée.");
+      setNote({ ok: true, text: "Fermeture programmée enregistrée." });
     });
   }
 
@@ -58,12 +59,12 @@ export function ScheduledClosureForm({
     startTransition(async () => {
       const r = await setScheduledClosure(null, null);
       if (!r.ok) {
-        toast.error(r.error ?? "Échec.");
+        setNote({ ok: false, text: r.error ?? "Échec." });
         return;
       }
       setStart("");
       setEnd("");
-      toast.success("Fermeture programmée annulée.");
+      setNote({ ok: true, text: "Fermeture programmée annulée." });
     });
   }
 
@@ -123,6 +124,8 @@ export function ScheduledClosureForm({
           </button>
         )}
       </div>
+
+      <ActionNote note={note} className="mt-2" />
     </div>
   );
 }

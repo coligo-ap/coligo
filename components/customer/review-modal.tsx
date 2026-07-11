@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { cn } from "@/lib/utils";
 import { submitReview } from "@/app/(customer)/commandes/reviews/actions";
 
@@ -28,25 +28,27 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
   const [rating, setRating] = useState<number>(0);
   const [hovered, setHovered] = useState<number>(0);
   const [comment, setComment] = useState<string>("");
+  const [note, setNote] = useActionNote();
   const [pending, start] = useTransition();
   const t = useTranslations("reviews");
 
   function submit() {
     if (rating < 1) {
-      toast.error(t("pickRatingError"));
+      setNote({ ok: false, text: t("pickRatingError") });
       return;
     }
     start(async () => {
+      setNote(null);
       const res = await submitReview({
         order_id: orderId,
         rating,
         comment: comment.trim() || null,
       });
       if (!res.ok) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
-      toast.success(t("thanksForReview"));
+      // Modale fermée + parent rafraîchi (l'avis apparaît) = retour visuel.
       onClose();
     });
   }
@@ -134,6 +136,8 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
         <p className="text-subtle mt-1 text-end text-[10px]">
           {comment.length}/{MAX_COMMENT}
         </p>
+
+        <ActionNote note={note} className="mt-2 text-center" />
 
         <div className="mt-4 flex gap-2">
           <Button

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Check, Copy, Share2 } from "lucide-react";
-import { toast } from "@/components/ui/toast";
 
 // =============================================================================
 // MyPayTag — puce « identifiant Coligo Pay » (tag/@handle) INTÉGRÉE dans le hero
@@ -19,11 +18,11 @@ export function MyPayTag({ handle, name }: { handle: string; name: string }) {
   async function copy() {
     try {
       await navigator.clipboard.writeText(`@${handle}`);
+      // Le bouton passe à « Copié ✓ » — c'est le retour visuel (pas de toast).
       setCopied(true);
-      toast.success(t("copied"));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error(t("copyFailed"));
+      /* presse-papiers indisponible — le bouton ne change pas (silencieux) */
     }
   }
 

@@ -10,6 +10,7 @@ import { PushRegistrar } from "@/components/native/push-registrar";
 import { ActiveCourseBanner } from "@/components/driver/active-course-banner";
 import { DriverCancelWatch } from "@/components/driver/driver-cancel-watch";
 import { DriverThemeRoot } from "@/components/driver/driver-theme-root";
+import { ConnectionGuard } from "@/components/shared/connection-guard";
 import { PersistentDriverMap } from "@/components/driver/home/persistent-driver-map";
 import { createClient } from "@/lib/supabase/server";
 import { TawkChat } from "@/components/support/tawk-chat";
@@ -124,6 +125,10 @@ export default async function DriverLayout({
           l'espace, pas seulement `children` : le bandeau de course et la veille
           d'annulation sont des frères de `children` et doivent en bénéficier. */}
       <ConfirmProvider>
+        {/* Garde de connexion : bandeau persistant + reprise SONDÉE (jamais « en
+            ligne » sans paquet confirmé) — mode Avion inclus. z-[300], au-dessus
+            de la carte / du bandeau de course / des dialogues. */}
+        <ConnectionGuard />
         {/* Carte de l'accueil montée UNE fois (persiste entre onglets) ; en fond,
             affichée seulement sur /driver (cf. PersistentDriverMap). */}
         {isActive && <PersistentDriverMap pins={mapPins} />}

@@ -13,7 +13,7 @@ import {
   Slash,
   X,
 } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,13 +44,14 @@ export function AgentReviewPanel({ agent }: { agent: AgentInfo }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [rejecting, setRejecting] = useState(false);
+  const [note, setNote] = useActionNote();
 
   const run = (fn: () => Promise<{ ok?: true; error?: string }>, ok: string) =>
     start(async () => {
       const r = await fn();
-      if (r.error) toast.error(r.error);
+      if (r.error) setNote({ ok: false, text: r.error });
       else {
-        toast.success(ok);
+        setNote({ ok: true, text: ok });
         router.refresh();
       }
     });
@@ -171,6 +172,8 @@ export function AgentReviewPanel({ agent }: { agent: AgentInfo }) {
         )}
       </div>
 
+      <ActionNote note={note} />
+
       {/* ===== Édition des informations ===== */}
       <AgentEditForm agent={agent} pending={pending} run={run} />
 
@@ -180,10 +183,9 @@ export function AgentReviewPanel({ agent }: { agent: AgentInfo }) {
           docTitle="le dossier"
           onConfirm={async (note) => {
             const r = await rejectAgent(agent.id, note ?? "");
-            if (!r.error) {
-              toast.success("Dossier refusé — motif transmis à l'agent");
-              router.refresh();
-            }
+            // Succès : le statut passe à « refusé » via refresh (visuel).
+            // L'erreur est gérée par DecisionNoteDialog via `r`.
+            if (!r.error) router.refresh();
             return r;
           }}
           onClose={() => setRejecting(false)}

@@ -56,6 +56,7 @@ import {
   setChauffeurOnlineLocal,
   useChauffeurOnline,
 } from "@/lib/chauffeur/online-store";
+import { useNetworkOffline } from "@/lib/connectivity/network-store";
 import {
   useHomeDirOn,
   setHomeDirOn,
@@ -211,6 +212,8 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   const online = useChauffeurOnline();
   const onlineRef = useRef(online);
   onlineRef.current = online;
+  // Réseau confirmé (garde de connexion) : pas de mise en ligne sans Internet.
+  const netOffline = useNetworkOffline();
   // Hygiène connexions (quota Realtime Free PARTAGÉ) : on n'ouvre le canal de
   // dispatch QUE au premier plan ; en arrière-plan, le FCM réveille l'app.
   const visible = usePageVisible();
@@ -222,6 +225,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   // attente longtemps alors que l'état avait déjà changé.
   const toggleOnline = () => {
     const next = !onlineRef.current;
+    // Hors ligne : mise en ligne refusée (le dispatch a besoin d'Internet). Le
+    // passage HORS LIGNE reste permis. Le bouton est déjà désactivé dans ce cas.
+    if (next && netOffline) return;
     setChauffeurOnlineLocal(next); // UI instantanée
     onlineRef.current = next;
     if (!next) {
@@ -680,7 +686,8 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           aria-checked={online}
           aria-label={tr("Disponibilité", "التوفر")}
           onClick={() => toggleOnline()}
-          className="flex w-full items-center gap-3 rounded-[20px] border px-4 py-3.5 text-start shadow-xl transition-colors"
+          disabled={!online && netOffline}
+          className="flex w-full items-center gap-3 rounded-[20px] border px-4 py-3.5 text-start shadow-xl transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           style={{
             borderColor: online ? "rgba(22,179,100,.35)" : "var(--d-line)",
             background: online ? "rgba(22,179,100,.07)" : "var(--d-surface)",
@@ -705,10 +712,15 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             <span className="block truncate text-[12px] text-[var(--d-muted)]">
               {online
                 ? tr("En recherche des courses…", "البحث عن الطلبات…")
-                : tr(
-                    "Activez pour recevoir les courses",
-                    "فعّل لاستقبال الطلبات"
-                  )}
+                : netOffline
+                  ? tr(
+                      "Reconnexion nécessaire pour passer en ligne",
+                      "الاتصال بالإنترنت مطلوب للاتصال"
+                    )
+                  : tr(
+                      "Activez pour recevoir les courses",
+                      "فعّل لاستقبال الطلبات"
+                    )}
             </span>
           </span>
           {/* Switch iOS-like (RTL-safe) */}

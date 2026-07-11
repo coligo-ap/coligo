@@ -31,7 +31,7 @@ import {
   StickyNote,
   X,
 } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { cn, formatDA } from "@/lib/utils";
 import {
   updateOrderStatus,
@@ -491,12 +491,13 @@ function CardActions({
   // carte glisse ensuite dans sa nouvelle colonne via le refresh ; le filet
   // 2,5 s réarme le bouton si le refresh traîne.
   const [done, setDone] = useState<string | null>(null);
+  const [errNote, setErrNote] = useActionNote();
 
   const move = (to: OrderWithItems["status"], note?: string, okMsg?: string) =>
     start(async () => {
       const res = await updateOrderStatus(order.id, to, undefined, note);
       if (res.error) {
-        toast.error(res.error);
+        setErrNote({ ok: false, text: res.error });
         // Board périmé (commande déjà annulée/avancée) → re-synchroniser pour
         // retirer la carte morte plutôt que de la laisser cliquable.
         if (res.stale) {
@@ -517,14 +518,14 @@ function CardActions({
     start(async () => {
       const res = await cancelOrderByMerchant(order.id, reason);
       if (res.error) {
-        toast.error(res.error);
+        setErrNote({ ok: false, text: res.error });
         if (res.stale) {
           setRefusing(false);
           router.refresh();
         }
         return;
       }
-      toast.success("Commande annulée");
+      // Succès : la carte disparaît du board via refresh (feedback visuel).
       setRefusing(false);
       router.refresh();
     });
@@ -534,181 +535,190 @@ function CardActions({
   const pickedUp = !!order.delivery_picked_up_at;
   const canCancel = !pickedUp;
 
-  // ─── Sélecteur de MOTIF d'annulation — partagé par toutes les colonnes ───
-  if (refusing) {
-    return (
-      <div className="space-y-1">
-        <p className="text-muted px-0.5 text-[11px] font-semibold tracking-wide uppercase">
-          Motif de l&apos;annulation
-        </p>
-        <div className="grid grid-cols-1 gap-0.5">
-          {REFUSAL_REASONS.map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => cancel(r)}
-              disabled={pending}
-              className="hover:bg-danger-50 text-foreground rounded-[8px] px-2 py-1.5 text-left text-xs disabled:opacity-50"
-            >
-              {r}
-            </button>
-          ))}
+  const cta = (() => {
+    // ─── Sélecteur de MOTIF d'annulation — partagé par toutes les colonnes ───
+    if (refusing) {
+      return (
+        <div className="space-y-1">
+          <p className="text-muted px-0.5 text-[11px] font-semibold tracking-wide uppercase">
+            Motif de l&apos;annulation
+          </p>
+          <div className="grid grid-cols-1 gap-0.5">
+            {REFUSAL_REASONS.map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => cancel(r)}
+                disabled={pending}
+                className="hover:bg-danger-50 text-foreground rounded-[8px] px-2 py-1.5 text-left text-xs disabled:opacity-50"
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setRefusing(false)}
+            className="text-muted w-full pt-0.5 text-center text-[11px] hover:underline"
+          >
+            Retour
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setRefusing(false)}
-          className="text-muted w-full pt-0.5 text-center text-[11px] hover:underline"
-        >
-          Retour
-        </button>
-      </div>
-    );
-  }
+      );
+    }
 
-  // Petit bouton « Annuler » secondaire (appel de confirmation client) — caché
-  // dès que la commande est récupérée.
-  const cancelLink = canCancel ? (
-    <button
-      type="button"
-      onClick={() => setRefusing(true)}
-      disabled={pending}
-      className="text-danger-700 hover:bg-danger-50 mt-1.5 inline-flex w-full items-center justify-center gap-1 rounded-[10px] py-1.5 text-[12px] font-semibold disabled:opacity-50"
-    >
-      <X className="size-3.5" />
-      Annuler (client injoignable)
-    </button>
-  ) : null;
-
-  // ─── Colonne À CONFIRMER : Accepter / Refuser (motif) ───
-  if (column === "pending") {
-    return (
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => move("preparing", undefined, "Acceptée")}
-          disabled={pending || !!done}
-          className={cn(
-            "bg-success-600 hover:bg-success-700 inline-flex flex-1 items-center justify-center gap-1 rounded-[10px] py-2 text-sm font-bold text-white",
-            done ? "disabled:opacity-100" : "disabled:opacity-50"
-          )}
-        >
-          {done ? (
-            <>
-              <Check className="size-4" />
-              {done}
-            </>
-          ) : pending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <>
-              <Check className="size-4" />
-              Accepter
-            </>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => setRefusing(true)}
-          disabled={pending}
-          className="border-danger-200 text-danger-700 hover:bg-danger-50 inline-flex items-center justify-center gap-1 rounded-[10px] border px-3 py-2 text-sm font-semibold disabled:opacity-50"
-        >
-          <X className="size-4" />
-        </button>
-      </div>
-    );
-  }
-
-  // ─── Colonne EN PRÉPARATION : Marquer prête (+ annuler) ───
-  if (column === "preparing") {
-    return (
-      <div>
-        <button
-          type="button"
-          onClick={() => move("ready", undefined, "Commande prête")}
-          disabled={pending || !!done}
-          className={cn(
-            "inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white",
-            done
-              ? "bg-success-600 disabled:opacity-100"
-              : "bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
-          )}
-        >
-          {done ? (
-            <>
-              <Check className="size-4" />
-              {done}
-            </>
-          ) : pending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <>
-              <Check className="size-4" />
-              Marquer prête
-            </>
-          )}
-        </button>
-        {cancelLink}
-      </div>
-    );
-  }
-
-  // ─── Colonne PRÊTES ───
-  const isDelivery = order.fulfillment_type === "delivery";
-  if (isDelivery) {
-    // Phase en direct : « En attente d'un livreur » → « Livreur en route » →
-    // « En livraison » → « Livreur arrivé ». La commande sort du board une fois
-    // livrée (status=completed). Le commerçant suit la course sans rafraîchir.
-    const phase = deliveryPhase(order);
-    const isActive = phase != null && phase.key !== "awaiting_driver";
-    return (
-      <div>
-        <p
-          className={cn(
-            "flex items-center gap-1.5 rounded-[10px] px-2.5 py-2 text-xs font-medium",
-            isActive
-              ? "text-primary-700 bg-primary-50"
-              : "text-muted bg-surface-3"
-          )}
-        >
-          <Bike className="size-3.5 shrink-0" />
-          {phase?.label ?? "En attente d'un livreur"}
-        </p>
-        {/* Annuler tant que le livreur n'a PAS récupéré la commande. */}
-        {cancelLink}
-      </div>
-    );
-  }
-  // Retrait espèces : confirmation directe. Retrait en ligne : code client.
-  if (order.payment_method === "cash") {
-    return (
-      <div>
-        <button
-          type="button"
-          onClick={() => move("completed", undefined, "Retrait confirmé")}
-          disabled={pending}
-          className="bg-success-600 hover:bg-success-700 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white disabled:opacity-50"
-        >
-          {pending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Check className="size-4" />
-          )}
-          Confirmer le retrait
-        </button>
-        {cancelLink}
-      </div>
-    );
-  }
-  return (
-    <div>
-      <Link
-        href="/orders/validate"
-        className="bg-primary-600 hover:bg-primary-700 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white"
+    // Petit bouton « Annuler » secondaire (appel de confirmation client) — caché
+    // dès que la commande est récupérée.
+    const cancelLink = canCancel ? (
+      <button
+        type="button"
+        onClick={() => setRefusing(true)}
+        disabled={pending}
+        className="text-danger-700 hover:bg-danger-50 mt-1.5 inline-flex w-full items-center justify-center gap-1 rounded-[10px] py-1.5 text-[12px] font-semibold disabled:opacity-50"
       >
-        <QrCode className="size-4" />
-        Valider le code
-      </Link>
-      {cancelLink}
-    </div>
+        <X className="size-3.5" />
+        Annuler (client injoignable)
+      </button>
+    ) : null;
+
+    // ─── Colonne À CONFIRMER : Accepter / Refuser (motif) ───
+    if (column === "pending") {
+      return (
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => move("preparing", undefined, "Acceptée")}
+            disabled={pending || !!done}
+            className={cn(
+              "bg-success-600 hover:bg-success-700 inline-flex flex-1 items-center justify-center gap-1 rounded-[10px] py-2 text-sm font-bold text-white",
+              done ? "disabled:opacity-100" : "disabled:opacity-50"
+            )}
+          >
+            {done ? (
+              <>
+                <Check className="size-4" />
+                {done}
+              </>
+            ) : pending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <>
+                <Check className="size-4" />
+                Accepter
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setRefusing(true)}
+            disabled={pending}
+            className="border-danger-200 text-danger-700 hover:bg-danger-50 inline-flex items-center justify-center gap-1 rounded-[10px] border px-3 py-2 text-sm font-semibold disabled:opacity-50"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      );
+    }
+
+    // ─── Colonne EN PRÉPARATION : Marquer prête (+ annuler) ───
+    if (column === "preparing") {
+      return (
+        <div>
+          <button
+            type="button"
+            onClick={() => move("ready", undefined, "Commande prête")}
+            disabled={pending || !!done}
+            className={cn(
+              "inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white",
+              done
+                ? "bg-success-600 disabled:opacity-100"
+                : "bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
+            )}
+          >
+            {done ? (
+              <>
+                <Check className="size-4" />
+                {done}
+              </>
+            ) : pending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <>
+                <Check className="size-4" />
+                Marquer prête
+              </>
+            )}
+          </button>
+          {cancelLink}
+        </div>
+      );
+    }
+
+    // ─── Colonne PRÊTES ───
+    const isDelivery = order.fulfillment_type === "delivery";
+    if (isDelivery) {
+      // Phase en direct : « En attente d'un livreur » → « Livreur en route » →
+      // « En livraison » → « Livreur arrivé ». La commande sort du board une fois
+      // livrée (status=completed). Le commerçant suit la course sans rafraîchir.
+      const phase = deliveryPhase(order);
+      const isActive = phase != null && phase.key !== "awaiting_driver";
+      return (
+        <div>
+          <p
+            className={cn(
+              "flex items-center gap-1.5 rounded-[10px] px-2.5 py-2 text-xs font-medium",
+              isActive
+                ? "text-primary-700 bg-primary-50"
+                : "text-muted bg-surface-3"
+            )}
+          >
+            <Bike className="size-3.5 shrink-0" />
+            {phase?.label ?? "En attente d'un livreur"}
+          </p>
+          {/* Annuler tant que le livreur n'a PAS récupéré la commande. */}
+          {cancelLink}
+        </div>
+      );
+    }
+    // Retrait espèces : confirmation directe. Retrait en ligne : code client.
+    if (order.payment_method === "cash") {
+      return (
+        <div>
+          <button
+            type="button"
+            onClick={() => move("completed", undefined, "Retrait confirmé")}
+            disabled={pending}
+            className="bg-success-600 hover:bg-success-700 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white disabled:opacity-50"
+          >
+            {pending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Check className="size-4" />
+            )}
+            Confirmer le retrait
+          </button>
+          {cancelLink}
+        </div>
+      );
+    }
+    return (
+      <div>
+        <Link
+          href="/orders/validate"
+          className="bg-primary-600 hover:bg-primary-700 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white"
+        >
+          <QrCode className="size-4" />
+          Valider le code
+        </Link>
+        {cancelLink}
+      </div>
+    );
+  })();
+
+  return (
+    <>
+      {cta}
+      <ActionNote note={errNote} className="mt-1.5 text-center" />
+    </>
   );
 }

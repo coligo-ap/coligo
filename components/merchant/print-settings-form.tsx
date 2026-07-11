@@ -14,7 +14,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import {
   type AutoPrintMode,
   type PrintSettings,
@@ -34,6 +34,7 @@ type Props = {
 export function PrintSettingsForm({ initial, merchantName }: Props) {
   const [state, setState] = useState<PrintSettings>(initial);
   const [pending, startTransition] = useTransition();
+  const [note, setNote] = useActionNote();
   const [previewCash, setPreviewCash] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [printing, setPrinting] = useState(false);
@@ -47,8 +48,8 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
   function save() {
     startTransition(async () => {
       const res = await setPrintSettings(state);
-      if (res.error) toast.error(res.error);
-      else toast.success(res.success ?? "Réglages enregistrés.");
+      if (res.error) setNote({ ok: false, text: res.error });
+      else setNote({ ok: true, text: res.success ?? "Réglages enregistrés." });
     });
   }
 
@@ -61,7 +62,7 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
         copies: state.print_copies,
       });
     } catch {
-      toast.error("Impression impossible.");
+      setNote({ ok: false, text: "Impression impossible." });
     } finally {
       setPrinting(false);
     }
@@ -181,6 +182,8 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
           {previewCash ? "Test : cash" : "Test : payé en ligne"}
         </button>
       </div>
+
+      <ActionNote note={note} />
 
       {showPreview && (
         <div className="space-y-2">

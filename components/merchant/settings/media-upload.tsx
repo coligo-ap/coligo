@@ -5,7 +5,7 @@ import { ImagePlus, Loader2, Trash2, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 
 type Props = {
   merchantId: string;
@@ -40,13 +40,15 @@ export function MediaUpload({
   const [url, setUrl] = useState<string | null>(initialUrl);
   const [busy, setBusy] = useState(false);
   const [, startTransition] = useTransition();
+  const [note, setNote] = useActionNote();
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
     if (file.size > MAX_BYTES[bucket]) {
-      toast.error(
-        `Image trop lourde (max ${Math.round(MAX_BYTES[bucket] / 1024 / 1024)} Mo)`
-      );
+      setNote({
+        ok: false,
+        text: `Image trop lourde (max ${Math.round(MAX_BYTES[bucket] / 1024 / 1024)} Mo)`,
+      });
       return;
     }
     setBusy(true);
@@ -59,7 +61,7 @@ export function MediaUpload({
         .from(bucket)
         .upload(filename, file, { upsert: false, contentType: file.type });
       if (upErr) {
-        toast.error(`Upload échoué : ${upErr.message}`);
+        setNote({ ok: false, text: `Upload échoué : ${upErr.message}` });
         return;
       }
       const { data: pub } = supabase.storage
@@ -70,13 +72,11 @@ export function MediaUpload({
       // Persiste l'URL côté DB.
       const res = await onPersistUrl(publicUrl);
       if (res.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
+      // Succès : l'aperçu affiche la nouvelle image (setUrl) = feedback visuel.
       setUrl(publicUrl);
-      toast.success(
-        variant === "logo" ? "Logo mis à jour" : "Cover mise à jour"
-      );
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -92,11 +92,11 @@ export function MediaUpload({
     startTransition(async () => {
       const res = await onPersistUrl(null);
       if (res.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
+      // Succès : l'aperçu redevient vide (setUrl null) = feedback visuel.
       setUrl(null);
-      toast.success("Image supprimée");
     });
   }
 
@@ -162,6 +162,8 @@ export function MediaUpload({
           </button>
         )}
       </div>
+
+      <ActionNote note={note} />
     </div>
   );
 }

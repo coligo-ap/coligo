@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, RefreshCw, Users, UserCheck, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
+import { usePrompt } from "@/components/ui/confirm";
 import { reassignDelivery } from "@/app/admin/drivers/actions";
 
 export type CandidateDriver = { id: string; full_name: string };
@@ -23,9 +24,11 @@ export function OrderReassign({
   candidates: CandidateDriver[];
 }) {
   const router = useRouter();
+  const prompt = usePrompt();
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState("");
   const [pending, start] = useTransition();
+  const [note, setNote] = useActionNote();
 
   const run = (
     mode: "pool" | "driver" | "cancel",
@@ -40,15 +43,9 @@ export function OrderReassign({
         targetDriverId,
         reason,
       });
-      if (r.error) toast.error(r.error);
+      // Succès : le panneau se ferme et la commande change d'état via refresh.
+      if (r.error) setNote({ ok: false, text: r.error });
       else {
-        toast.success(
-          mode === "cancel"
-            ? "Commande annulée"
-            : mode === "pool"
-              ? "Commande remise au réseau"
-              : "Commande réattribuée"
-        );
         setOpen(false);
         router.refresh();
       }
@@ -124,9 +121,13 @@ export function OrderReassign({
         variant="destructive"
         className="w-full justify-start"
         disabled={pending}
-        onClick={() => {
+        onClick={async () => {
           const reason =
-            prompt("Raison de l'annulation ?") ?? "Annulation plateforme";
+            (await prompt({
+              title: "Annuler la commande",
+              message: "Raison de l'annulation ?",
+              placeholder: "Ex. commerçant injoignable",
+            })) ?? "Annulation plateforme";
           run("cancel", undefined, reason);
         }}
       >
@@ -141,6 +142,7 @@ export function OrderReassign({
       >
         Fermer
       </button>
+      <ActionNote note={note} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { InstallBanner } from "@/components/pwa/install-banner";
 import { Logo } from "@/components/shared/logo";
 import { AuthCard } from "@/components/shared/auth-card";
 import { APP_CONFIG } from "@/lib/config/app-config";
+import { cn } from "@/lib/utils";
 
 /**
  * Chrome d'authentification UNIFIÉ, repris À L'IDENTIQUE du portail commerçant
@@ -24,22 +25,32 @@ export function AuthScreen({
   cardTitle,
   cardSubtitle,
   installLabel,
+  installClassName,
   showPortal = false,
   modeTabs,
   children,
   footer,
+  bottomNav,
 }: {
   navVariant: AuthVariant;
-  /** Panneau marketing gauche (desktop only) : photo + titre + arguments. */
+  /**
+   * Panneau marketing gauche (desktop only) : logo + titre + sous-titre, puis
+   * SOIT une liste d'arguments (`features`), SOIT une grille de chiffres-clés
+   * (`stats`). `imageUrl` optionnel : sans photo, le dégradé primaire tient lieu
+   * de fond (parcours d'inscription client).
+   */
   hero: {
     title: ReactNode;
     subtitle: string;
-    features: string[];
-    imageUrl: string;
+    features?: string[];
+    stats?: { value: string; label: string }[];
+    imageUrl?: string;
   };
   cardTitle: string;
   cardSubtitle: string;
-  installLabel: string;
+  installLabel?: string;
+  /** Position custom du bandeau d'installation (client : au-dessus de sa nav). */
+  installClassName?: string;
   /** Lien discret vers le portail super-admin (réservé au commerçant). */
   showPortal?: boolean;
   /**
@@ -49,66 +60,101 @@ export function AuthScreen({
   modeTabs?: ReactNode;
   /** Le formulaire de connexion / création de compte. */
   children: ReactNode;
-  /** Bloc bas de carte (mot de passe oublié, conditions générales…). */
+  /** Bloc bas de carte (mot de passe oublié, conditions générales, OAuth…). */
   footer?: ReactNode;
+  /** Barre de navigation basse persistante (client) — rendue sous le châssis. */
+  bottomNav?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col">
-      <AuthNavBar variant={navVariant} />
-      <div className="flex flex-1 flex-col lg:grid lg:grid-cols-5">
-        {/* PANNEAU MARKETING GAUCHE (DESKTOP) — photo + dégradé noir + texte blanc */}
-        <aside className="relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:col-span-2 lg:flex">
-          {/* Dégradé de repli (si la photo ne charge pas) */}
-          <div
-            aria-hidden
-            className="from-primary-500 via-primary-600 to-primary-800 absolute inset-0 bg-gradient-to-br"
-          />
-          {/* Photo d'ambiance */}
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url("${hero.imageUrl}")` }}
-          />
-          {/* Voile noir pour la lisibilité du texte */}
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/35"
-          />
+    <>
+      <div
+        className={cn(
+          "flex min-h-screen flex-col",
+          bottomNav && "pb-20 lg:pb-0"
+        )}
+      >
+        <AuthNavBar variant={navVariant} />
+        <div className="flex flex-1 flex-col lg:grid lg:grid-cols-5">
+          {/* PANNEAU MARKETING GAUCHE (DESKTOP) — photo + dégradé noir + texte blanc */}
+          <aside className="relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:col-span-2 lg:flex">
+            {/* Dégradé de repli (si la photo ne charge pas / hero sans photo) */}
+            <div
+              aria-hidden
+              className="from-primary-500 via-primary-600 to-primary-800 absolute inset-0 bg-gradient-to-br"
+            />
+            {hero.imageUrl && (
+              <>
+                {/* Photo d'ambiance */}
+                <div
+                  aria-hidden
+                  className="absolute inset-0 bg-cover bg-center"
+                  style={{ backgroundImage: `url("${hero.imageUrl}")` }}
+                />
+                {/* Voile noir pour la lisibilité du texte */}
+                <div
+                  aria-hidden
+                  className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/35"
+                />
+              </>
+            )}
 
-          <div className="relative z-10">
-            <Logo variant="amber" size="xl" iconOnly className="!gap-0" />
-          </div>
-
-          <div className="relative z-10">
-            <h1 className="mb-4 text-4xl leading-tight font-bold drop-shadow-md">
-              {hero.title}
-            </h1>
-            <p className="mb-8 text-lg text-white/90 drop-shadow">
-              {hero.subtitle}
-            </p>
-
-            <div className="space-y-4 text-sm">
-              {hero.features.map((f) => (
-                <Feature key={f} title={f} />
-              ))}
+            <div className="relative z-10">
+              <Logo variant="amber" size="xl" iconOnly className="!gap-0" />
             </div>
-          </div>
 
-          <p className="relative z-10 text-xs text-white/70">
-            © {new Date().getFullYear()} {APP_CONFIG.name} · Tous droits
-            réservés
-          </p>
-        </aside>
+            <div className="relative z-10">
+              <h1 className="mb-4 text-4xl leading-tight font-bold drop-shadow-md">
+                {hero.title}
+              </h1>
+              <p className="mb-8 text-lg text-white/90 drop-shadow">
+                {hero.subtitle}
+              </p>
 
-        {/* PANNEAU FORMULAIRE DROITE — carte partagée avec les portails
-            commerçant et client, qui n'ont pas de `AuthScreen`. */}
-        <AuthCard modeTabs={modeTabs} title={cardTitle} subtitle={cardSubtitle}>
-          {children}
-          {footer}
-        </AuthCard>
+              {hero.stats ? (
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {hero.stats.map((s) => (
+                    <Stat key={s.label} value={s.value} label={s.label} />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4 text-sm">
+                  {hero.features?.map((f) => (
+                    <Feature key={f} title={f} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <p className="relative z-10 text-xs text-white/70">
+              © {new Date().getFullYear()} {APP_CONFIG.name} · Tous droits
+              réservés
+            </p>
+          </aside>
+
+          {/* PANNEAU FORMULAIRE DROITE */}
+          <AuthCard
+            modeTabs={modeTabs}
+            title={cardTitle}
+            subtitle={cardSubtitle}
+          >
+            {children}
+            {footer}
+          </AuthCard>
+        </div>
+        <AuthFooter showPortal={showPortal} />
+        <InstallBanner label={installLabel} className={installClassName} />
       </div>
-      <AuthFooter showPortal={showPortal} />
-      <InstallBanner label={installLabel} />
+      {bottomNav}
+    </>
+  );
+}
+
+/** Chiffre-clé du panneau marketing (grille 2×2 : inscription commerçant/client). */
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-[12px] bg-black/35 p-3 ring-1 ring-white/15 backdrop-blur">
+      <div className="text-xl font-bold tabular-nums">{value}</div>
+      <div className="text-xs text-white/80">{label}</div>
     </div>
   );
 }

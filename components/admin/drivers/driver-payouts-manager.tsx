@@ -6,7 +6,8 @@ import { Loader2, Plus, Trash2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import {
   upsertDriverPayoutMethod,
   deleteDriverPayoutMethod,
@@ -39,21 +40,24 @@ export function DriverPayoutsManager({
   methods: DriverPayout[];
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [adding, setAdding] = useState(false);
   const [delPending, startDel] = useTransition();
+  const [note, setNote] = useActionNote();
   const [state, formAction, pending] = useActionState<AdminFormState, FormData>(
     upsertDriverPayoutMethod.bind(null, driverId),
     {}
   );
 
   useEffect(() => {
+    // Succès : le form se ferme et la nouvelle ligne apparaît (feedback visuel).
     if (state.ok) {
-      toast.success("Moyen de versement enregistré");
       setAdding(false);
       router.refresh();
     } else if (state.error) {
-      toast.error(state.error);
+      setNote({ ok: false, text: state.error });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, router]);
 
   return (
@@ -87,15 +91,20 @@ export function DriverPayoutsManager({
             aria-label="Supprimer"
             className="text-danger-600 hover:bg-danger-50 rounded-[8px] p-1.5"
             disabled={delPending}
-            onClick={() => {
-              if (!confirm("Supprimer ce moyen de versement ?")) return;
+            onClick={async () => {
+              if (
+                !(await confirm({
+                  title: "Supprimer ce moyen de versement ?",
+                  confirmLabel: "Supprimer",
+                  danger: true,
+                }))
+              )
+                return;
               startDel(async () => {
                 const r = await deleteDriverPayoutMethod(driverId, m.id);
-                if (r.error) toast.error(r.error);
-                else {
-                  toast.success("Moyen supprimé");
-                  router.refresh();
-                }
+                // Succès : la ligne disparaît (feedback visuel) → pas de note.
+                if (r.error) setNote({ ok: false, text: r.error });
+                else router.refresh();
               });
             }}
           >
@@ -176,6 +185,7 @@ export function DriverPayoutsManager({
           Ajouter un moyen
         </Button>
       )}
+      <ActionNote note={note} />
     </div>
   );
 }

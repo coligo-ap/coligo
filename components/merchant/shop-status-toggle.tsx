@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Clock, Loader2, Power } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { cn } from "@/lib/utils";
 import { setShopPause, type ShopPauseMode } from "@/app/(merchant)/actions";
 import {
@@ -22,6 +22,7 @@ import {
 export function ShopStatusToggle({ input }: { input: MerchantPauseInput }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [note, setNote] = useActionNote();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -72,12 +73,13 @@ export function ShopStatusToggle({ input }: { input: MerchantPauseInput }) {
     start(async () => {
       const r = await setShopPause(mode);
       if (!r.ok) {
-        toast.error(r.error ?? "Impossible de changer le statut.");
+        setNote({
+          ok: false,
+          text: r.error ?? "Impossible de changer le statut.",
+        });
         return;
       }
-      toast.success(
-        mode === "open" ? "Boutique ouverte ✓" : "Statut mis à jour"
-      );
+      // Succès : le libellé/statut de la boutique change via refresh (visuel).
       router.refresh();
     });
   }
@@ -117,10 +119,16 @@ export function ShopStatusToggle({ input }: { input: MerchantPauseInput }) {
         <ChevronDown className="size-3.5 opacity-70" />
       </button>
 
+      {note && (
+        <div className="border-border bg-surface absolute top-full right-0 z-40 mt-1 w-max max-w-[240px] rounded-[8px] border px-2 py-1 shadow-lg">
+          <ActionNote note={note} />
+        </div>
+      )}
+
       {menuOpen && (
         <div
           role="menu"
-          className="border-border absolute right-0 z-50 mt-1.5 w-60 overflow-hidden rounded-[14px] border bg-white shadow-lg"
+          className="border-border absolute right-0 z-50 mt-1.5 w-60 max-w-[calc(100vw-2rem)] overflow-hidden rounded-[14px] border bg-white shadow-lg"
         >
           {closed ? (
             <MenuItem onClick={() => act("open")} highlight>

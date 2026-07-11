@@ -63,6 +63,7 @@ import {
   type DriveOffer,
 } from "@/app/(customer)/drive/actions";
 import { clearPendingRide } from "@/lib/drive/offline-db";
+import { withTimeout } from "@/lib/async/with-timeout";
 import { useUnreadRideMessages } from "@/lib/drive/use-unread-messages";
 import { useRideCall } from "@/lib/call/use-ride-call";
 import { RidePhoneShareToggle } from "@/components/customer/drive/ride-phone-share-toggle";
@@ -259,6 +260,26 @@ function SearchScreen({
   const waitingCard =
     !!ride && ride.payment_method === "card" && !ride.online_paid;
 
+  // Annulation AVANT choix du chauffeur : directe, sans motif, retour immédiat à
+  // l'écran prix (séquestre recrédité serveur ; la course n'entre pas dans
+  // l'historique — jamais attribuée). Garde-temps 8 s : `cancelDriveRide` qui ne
+  // se règle jamais laisserait le bouton figé (le `finally` ne tourne pas sur une
+  // promesse jamais réglée). Au-delà : on relâche et on réessaie.
+  const handleCancel = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      if (rideId) await withTimeout(cancelDriveRide(rideId, null), 8000);
+      else await clearPendingRide();
+      onBackToPrice();
+    } catch {
+      setError(t("genericError"));
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, rideId, onBackToPrice, t]);
+
   const stopRef = useRef(false);
   // Retour d'arrière-plan : relance le poll des offres + le ré-abonnement Realtime
   // dès la reprise (cf. DriveRide / CLAUDE.md) → les offres reçues pendant
@@ -398,26 +419,56 @@ function SearchScreen({
         />
       )}
       <div className="absolute inset-x-0 top-[230px] bottom-0 z-10 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[max(2rem,env(safe-area-inset-bottom))] shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
-        <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
-
-        {/* Statut de recherche */}
-        <div
-          className="mb-2.5 flex items-center gap-2 text-[13px] font-bold"
-          style={{ color: VIOLET }}
-        >
-          {!offlineQueued && (
-            <span
-              className="size-3.5 animate-spin rounded-full border-2 border-[var(--d-accent)]"
-              style={{ borderTopColor: VIOLET }}
-            />
+        {/* En-tête STICKY : poignée + statut + bouton ROUGE « Annuler ». Reste
+            épinglé en haut du sheet → toujours accessible même si la liste des
+            offres est longue (plus besoin de scroller jusqu'en bas pour annuler). */}
+        <div className="sticky top-0 z-30 -mx-5 -mt-3.5 mb-3 rounded-t-[28px] bg-[var(--d-surface)] px-5 pt-3.5 pb-3">
+          <div className="mx-auto mb-3 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
+          <div className="flex items-center gap-3">
+            <div
+              className="flex min-w-0 flex-1 items-center gap-2 text-[13px] font-bold"
+              style={{ color: VIOLET }}
+            >
+              {!offlineQueued && (
+                <span
+                  className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-[var(--d-accent)]"
+                  style={{ borderTopColor: VIOLET }}
+                />
+              )}
+              <span className="truncate">
+                {offlineQueued
+                  ? t("offlineTitle")
+                  : waitingCard
+                    ? t("waitingCard")
+                    : offers.length > 0
+                      ? t("responded", { count: offers.length })
+                      : t("incoming")}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={busy}
+              aria-label={t("cancelSearch")}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-[13px] px-4 py-2.5 text-[13px] font-extrabold text-white shadow-md transition-transform active:scale-95 disabled:opacity-60"
+              style={{ background: RED }}
+            >
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <X className="size-4" />
+              )}
+              {t("cancelSearch")}
+            </button>
+          </div>
+          {error && (
+            <p
+              className="mt-2 text-[12px] font-semibold"
+              style={{ color: RED }}
+            >
+              {error}
+            </p>
           )}
-          {offlineQueued
-            ? t("offlineTitle")
-            : waitingCard
-              ? t("waitingCard")
-              : offers.length > 0
-                ? t("responded", { count: offers.length })
-                : t("incoming")}
         </div>
 
         {/* CARTE : payer AVANT diffusion — la demande ne part aux chauffeurs
@@ -704,31 +755,6 @@ function SearchScreen({
             );
           })}
         </div>
-
-        {/* Annulation AVANT choix du chauffeur : directe, sans motif demandé,
-            retour immédiat à l'écran prix (séquestre recrédité côté serveur).
-            La course n'apparaît pas dans l'historique (jamais attribuée). */}
-        <GhostBtn
-          onClick={async () => {
-            if (busy) return;
-            setBusy(true);
-            setError(null);
-            try {
-              if (rideId) await cancelDriveRide(rideId, null);
-              else await clearPendingRide();
-              onBackToPrice();
-            } catch {
-              // Échec d'annulation (réseau / action) : on relâche TOUJOURS `busy`
-              // via finally → le bouton « Annuler » reste cliquable et réessayable
-              // immédiatement, plus besoin d'actualiser la page.
-              setError(t("genericError"));
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          {t("cancelSearch")}
-        </GhostBtn>
       </div>
       {/* Retour arrière vers l'écran prix tant qu'aucune offre */}
       {!ride && !offlineQueued && (

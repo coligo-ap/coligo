@@ -15,7 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import {
   upsertDriverDocument,
   deleteDriverDocument,
@@ -75,6 +76,7 @@ export function DriverDocumentsManager({
   documents: DriverDocument[];
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [editing, setEditing] = useState<Editing>(null);
   // Pièce en cours de refus (boîte de motif prédéfini/libre).
   const [rejecting, setRejecting] = useState<{
@@ -82,19 +84,21 @@ export function DriverDocumentsManager({
     label: string;
   } | null>(null);
   const [delPending, startDel] = useTransition();
+  const [note, setNote] = useActionNote();
   const [state, formAction, pending] = useActionState<AdminFormState, FormData>(
     upsertDriverDocument.bind(null, driverId),
     {}
   );
 
   useEffect(() => {
+    // Succès : le form se ferme et la pièce apparaît/maj (feedback visuel).
     if (state.ok) {
-      toast.success("Pièce enregistrée");
       setEditing(null);
       router.refresh();
     } else if (state.error) {
-      toast.error(state.error);
+      setNote({ ok: false, text: state.error });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, router]);
 
   const doc = editing && editing !== "new" ? editing : null;
@@ -104,6 +108,8 @@ export function DriverDocumentsManager({
       {documents.length === 0 && editing === null && (
         <p className="text-muted text-sm">Aucune pièce enregistrée.</p>
       )}
+
+      <ActionNote note={note} />
 
       {documents.map((d) =>
         // La pièce en cours d'édition est masquée au profit du formulaire.
@@ -189,11 +195,9 @@ export function DriverDocumentsManager({
                           d.id,
                           "approved"
                         );
-                        if (r.error) toast.error(r.error);
-                        else {
-                          toast.success("Pièce validée");
-                          router.refresh();
-                        }
+                        // Succès : le badge passe à « Vérifiée » (visuel).
+                        if (r.error) setNote({ ok: false, text: r.error });
+                        else router.refresh();
                       });
                     }}
                   >
@@ -228,15 +232,20 @@ export function DriverDocumentsManager({
                 aria-label="Supprimer"
                 className="text-danger-600 hover:bg-danger-50 rounded-[8px] p-1.5"
                 disabled={delPending}
-                onClick={() => {
-                  if (!confirm("Supprimer cette pièce et son scan ?")) return;
+                onClick={async () => {
+                  if (
+                    !(await confirm({
+                      title: "Supprimer cette pièce et son scan ?",
+                      confirmLabel: "Supprimer",
+                      danger: true,
+                    }))
+                  )
+                    return;
                   startDel(async () => {
                     const r = await deleteDriverDocument(driverId, d.id);
-                    if (r.error) toast.error(r.error);
-                    else {
-                      toast.success("Pièce supprimée");
-                      router.refresh();
-                    }
+                    // Succès : la ligne disparaît (feedback visuel) → pas de note.
+                    if (r.error) setNote({ ok: false, text: r.error });
+                    else router.refresh();
                   });
                 }}
               >
@@ -372,10 +381,9 @@ export function DriverDocumentsManager({
               "rejected",
               note
             );
-            if (!r.error) {
-              toast.success("Pièce refusée — motif transmis au livreur");
-              router.refresh();
-            }
+            // Succès : le badge passe à « Refusée » (visuel). L'erreur est
+            // gérée par la boîte de motif (DecisionNoteDialog) via `r`.
+            if (!r.error) router.refresh();
             return r;
           }}
           onClose={() => setRejecting(null)}

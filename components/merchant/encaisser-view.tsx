@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Loader2, QrCode, RefreshCw } from "lucide-react";
 import { QrZoom } from "@/components/shared/qr-zoom";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { formatDA } from "@/lib/utils";
 import {
   createPayRequest,
@@ -26,6 +26,7 @@ export function EncaisserView() {
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
+  const [note, setNote] = useActionNote();
 
   const [req, setReq] = useState<{
     token: string;
@@ -38,18 +39,20 @@ export function EncaisserView() {
   async function generate() {
     const value = Math.floor(Number(amount));
     if (!Number.isFinite(value) || value < 10) {
-      toast.error("Montant minimum : 10 DA.");
+      setNote({ ok: false, text: "Montant minimum : 10 DA." });
       return;
     }
     setBusy(true);
     const res = await createPayRequest(value);
     setBusy(false);
     if (!res.ok) {
-      toast.error(
-        res.error === "below_min"
-          ? "Montant minimum : 10 DA."
-          : "Impossible de générer le QR. Réessaie."
-      );
+      setNote({
+        ok: false,
+        text:
+          res.error === "below_min"
+            ? "Montant minimum : 10 DA."
+            : "Impossible de générer le QR. Réessaie.",
+      });
       return;
     }
     setReq({
@@ -129,6 +132,7 @@ export function EncaisserView() {
               </>
             )}
           </button>
+          <ActionNote note={note} className="mt-2 text-center text-[13px]" />
         </div>
       )}
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Check, Loader2, PartyPopper, Printer, Timer, X } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { formatDA } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { formatQtyUnit } from "@/lib/ticket/ticket-format";
@@ -123,6 +123,7 @@ export function NewOrderOverlay({
   canPrint = false,
 }: Props) {
   const [acting, startActing] = useTransition();
+  const [note, setNote] = useActionNote();
   const [refusing, setRefusing] = useState(false);
   const initial = autoAccept ? AUTO_ACCEPT_SECONDS : AUTO_REFUSE_SECONDS;
   const [secondsLeft, setSecondsLeft] = useState(initial);
@@ -251,7 +252,7 @@ export function NewOrderOverlay({
         opId(orderId, "accept")
       );
       if (res.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         // Board périmé (déjà annulée/avancée) : on passe à la commande suivante
         // au lieu de réafficher indéfiniment une commande qu'on ne peut plus
         // accepter. Sinon on autorise un nouvel essai.
@@ -277,7 +278,7 @@ export function NewOrderOverlay({
           reason
         );
         if (res.error) {
-          toast.error(res.error);
+          setNote({ ok: false, text: res.error });
           // Déjà annulée/terminée (board périmé) → on enchaîne sur la suivante.
           if (res.stale) onResolved();
           else resolvedRef.current = false;
@@ -478,6 +479,7 @@ export function NewOrderOverlay({
 
         {/* ─── Actions (fixe, en bas) ─── */}
         <div className="border-border shrink-0 border-t p-4">
+          <ActionNote note={note} className="mb-2 text-center text-[12px]" />
           {autoAccept ? (
             <AutoAcceptControls
               secondsLeft={secondsLeft}

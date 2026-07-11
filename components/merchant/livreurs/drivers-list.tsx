@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Trash2, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
+import { useConfirm } from "@/components/ui/confirm";
 import { cn } from "@/lib/utils";
 import {
   acceptDriverRequest,
@@ -107,19 +108,27 @@ function DriverRow({
   variant: "pending" | "active" | "blocked";
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
+  const [note, setNote] = useActionNote();
 
-  const run = (
+  const run = async (
     fn: (id: string) => Promise<DriverActionResult>,
-    confirmMsg?: string
-  ) =>
+    ask?: {
+      title: string;
+      message?: string;
+      confirmLabel?: string;
+      danger?: boolean;
+    }
+  ) => {
+    if (ask && !(await confirm(ask))) return;
     startTransition(async () => {
-      if (confirmMsg && !confirm(confirmMsg)) return;
       const r = await fn(driver.driver_id);
-      if (r.error) toast.error(r.error);
-      else toast.success(r.success ?? "OK");
-      router.refresh();
+      // Succès : le livreur change d'onglet / disparaît via refresh (visuel).
+      if (r.error) setNote({ ok: false, text: r.error });
+      else router.refresh();
     });
+  };
 
   return (
     <li className="flex items-center gap-3 py-3">
@@ -136,7 +145,10 @@ function DriverRow({
             size="sm"
             type="button"
             onClick={() =>
-              run(acceptDriverRequest, "Accepter ce livreur dans ta boutique ?")
+              run(acceptDriverRequest, {
+                title: "Accepter ce livreur dans ta boutique ?",
+                confirmLabel: "Accepter",
+              })
             }
             disabled={pending}
           >
@@ -151,7 +163,13 @@ function DriverRow({
             size="sm"
             type="button"
             variant="secondary"
-            onClick={() => run(refuseDriverRequest, "Refuser la demande ?")}
+            onClick={() =>
+              run(refuseDriverRequest, {
+                title: "Refuser la demande ?",
+                confirmLabel: "Refuser",
+                danger: true,
+              })
+            }
             disabled={pending}
           >
             <X className="size-4" />
@@ -167,10 +185,12 @@ function DriverRow({
             type="button"
             variant="secondary"
             onClick={() =>
-              run(
-                blockDriver,
-                "Bloquer ce livreur : son accès est révoqué immédiatement. Continuer ?"
-              )
+              run(blockDriver, {
+                title: "Bloquer ce livreur ?",
+                message: "Son accès est révoqué immédiatement.",
+                confirmLabel: "Bloquer",
+                danger: true,
+              })
             }
             disabled={pending}
           >
@@ -185,7 +205,13 @@ function DriverRow({
             size="sm"
             type="button"
             variant="secondary"
-            onClick={() => run(removeDriver, "Retirer ce livreur ?")}
+            onClick={() =>
+              run(removeDriver, {
+                title: "Retirer ce livreur ?",
+                confirmLabel: "Retirer",
+                danger: true,
+              })
+            }
             disabled={pending}
           >
             <Trash2 className="size-4" />
@@ -210,7 +236,13 @@ function DriverRow({
             size="sm"
             type="button"
             variant="secondary"
-            onClick={() => run(removeDriver, "Retirer ce livreur ?")}
+            onClick={() =>
+              run(removeDriver, {
+                title: "Retirer ce livreur ?",
+                confirmLabel: "Retirer",
+                danger: true,
+              })
+            }
             disabled={pending}
           >
             <Trash2 className="size-4" />
@@ -218,6 +250,7 @@ function DriverRow({
           </Button>
         </div>
       )}
+      <ActionNote note={note} className="w-full" />
     </li>
   );
 }

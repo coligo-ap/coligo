@@ -15,6 +15,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { formatDA } from "@/lib/utils";
+import { useConfirm } from "@/components/ui/confirm";
 import type { AdminCandidateDriver } from "@/lib/data/admin-orders";
 import {
   adminCancelOrder,
@@ -71,6 +72,7 @@ export function OrderAdminPanel({
   order: PanelOrder;
   candidates: AdminCandidateDriver[];
 }) {
+  const confirm = useConfirm();
   const [pending, start] = useTransition();
   const [modal, setModal] = useState<ModalKind | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
@@ -180,11 +182,15 @@ export function OrderAdminPanel({
           <button
             type="button"
             disabled={pending}
-            onClick={() => {
+            onClick={async () => {
               if (
-                !window.confirm(
-                  "Confirmer un no-show EN LIGNE ?\n\nLa commande sera traitée COMME LIVRÉE : livreur et commerçant payés, cashback conservé. Action tracée."
-                )
+                !(await confirm({
+                  title: "Confirmer un no-show EN LIGNE ?",
+                  message:
+                    "La commande sera traitée COMME LIVRÉE : livreur et commerçant payés, cashback conservé. Action tracée.",
+                  confirmLabel: "Confirmer le no-show",
+                  danger: true,
+                }))
               )
                 return;
               run(

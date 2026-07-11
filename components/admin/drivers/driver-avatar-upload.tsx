@@ -9,7 +9,8 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Loader2, Trash2 } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import {
   updateDriverAvatar,
   removeDriverAvatar,
@@ -31,6 +32,7 @@ export function DriverAvatarUpload({
   initials: string;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const formRef = useRef<HTMLFormElement>(null);
   const [removing, startRemove] = useTransition();
   const [state, formAction, pending] = useActionState<AdminFormState, FormData>(
@@ -39,16 +41,19 @@ export function DriverAvatarUpload({
   );
   // Aperçu local instantané pendant l'upload.
   const [preview, setPreview] = useState<string | null>(null);
+  const [note, setNote] = useActionNote();
 
   useEffect(() => {
+    // Succès : la nouvelle photo s'affiche (feedback visuel) → pas de note.
     if (state.ok) {
-      toast.success("Photo mise à jour");
       setPreview(null);
       router.refresh();
     } else if (state.error) {
-      toast.error(state.error);
+      setNote({ ok: false, text: state.error });
       setPreview(null);
     }
+    // setNote est stable (issu d'un useState) — pas besoin en dépendance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, router]);
 
   const shown = preview ?? avatarUrl;
@@ -104,15 +109,20 @@ export function DriverAvatarUpload({
           type="button"
           disabled={removing || pending}
           className="text-danger-600 inline-flex items-center gap-1 text-xs font-semibold disabled:opacity-50"
-          onClick={() => {
-            if (!confirm("Retirer la photo de profil ?")) return;
+          onClick={async () => {
+            if (
+              !(await confirm({
+                title: "Retirer la photo de profil ?",
+                confirmLabel: "Retirer",
+                danger: true,
+              }))
+            )
+              return;
             startRemove(async () => {
               const r = await removeDriverAvatar(driverId);
-              if (r.error) toast.error(r.error);
-              else {
-                toast.success("Photo retirée");
-                router.refresh();
-              }
+              // Succès : la photo disparaît (feedback visuel) → pas de note.
+              if (r.error) setNote({ ok: false, text: r.error });
+              else router.refresh();
             });
           }}
         >
@@ -124,6 +134,7 @@ export function DriverAvatarUpload({
           Retirer
         </button>
       )}
+      <ActionNote note={note} />
     </form>
   );
 }

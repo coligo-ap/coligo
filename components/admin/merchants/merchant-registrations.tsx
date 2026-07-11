@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useConfirm, usePrompt } from "@/components/ui/confirm";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import type { AdminMerchant } from "@/lib/data/platform";
 import { decideMerchantApproval } from "@/app/admin/actions";
 
@@ -111,17 +111,14 @@ function RegistrationCard({ merchant }: { merchant: AdminMerchant }) {
   const confirm = useConfirm();
   const prompt = usePrompt();
   const [pending, startTransition] = useTransition();
+  const [note, setNote] = useActionNote();
   const isRejected = merchant.approval_status === "rejected";
 
   const run = (decision: "approve" | "reject", reason?: string) =>
     startTransition(async () => {
       const res = await decideMerchantApproval(merchant.id, decision, reason);
-      if (res.error) return toast.error(res.error);
-      toast.success(
-        decision === "approve"
-          ? `« ${merchant.name} » approuvé — la boutique est en ligne`
-          : `« ${merchant.name} » refusé`
-      );
+      // Succès : la fiche change de statut (approuvé/refusé) via refresh.
+      if (res.error) return setNote({ ok: false, text: res.error });
       router.refresh();
     });
 
@@ -219,6 +216,7 @@ function RegistrationCard({ merchant }: { merchant: AdminMerchant }) {
             {isRejected ? "Réexaminer & approuver" : "Approuver"}
           </Button>
         </div>
+        <ActionNote note={note} className="mt-2" />
       </div>
     </li>
   );

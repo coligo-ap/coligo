@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { QrScanner } from "@/components/scanner/qr-scanner";
 import { OrderQr } from "@/components/customer/order-qr";
-import { toast } from "@/components/ui/toast";
 import { cn, formatDA } from "@/lib/utils";
 import {
   executePayment,
@@ -78,6 +77,8 @@ export function WalletQrView({
   const [hasPin, setHasPin] = useState(initialHasPin);
   const [step, setStep] = useState<Step>("scan");
   const [busy, setBusy] = useState(false);
+  // Erreur d'action affichée EN LIGNE dans l'étape active (pas de toast).
+  const [error, setError] = useState<string | null>(null);
 
   const [codeMode, setCodeMode] = useState(false);
   const [codeInput, setCodeInput] = useState("");
@@ -116,6 +117,7 @@ export function WalletQrView({
     async (raw: string) => {
       if (busy || step !== "scan") return;
       const v = raw.trim();
+      setError(null);
       setBusy(true);
       try {
         const userMatch = v.match(/^coligo:user:(.+)$/i);
@@ -123,13 +125,13 @@ export function WalletQrView({
           // QR ami → transfert P2P. Bloqué tant que le P2P n'est pas activé
           // (aucune surface de transfert d'argent exposée pour la review Play).
           if (!p2pEnabled) {
-            toast.error(t("comingSoon"));
+            setError(t("comingSoon"));
             return;
           }
           const handle = userMatch[1].trim();
           const res = await resolveReceiver(handle);
           if (!res.ok) {
-            toast.error(
+            setError(
               res.error === "not_found"
                 ? t("qrErrReceiverNotFound")
                 : errMsg(res.error)
@@ -153,7 +155,7 @@ export function WalletQrView({
         if (token.length < 8) return;
         const res = await resolvePayRequest(token);
         if (!res.ok) {
-          toast.error(errMsg(res.error));
+          setError(errMsg(res.error));
           return;
         }
         setPending({
@@ -174,9 +176,10 @@ export function WalletQrView({
 
   function confirmAmount() {
     if (!pending || pending.kind !== "transfer") return;
+    setError(null);
     const amount = Math.floor(Number(amountInput));
     if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error(t("invalidAmount"));
+      setError(t("invalidAmount"));
       return;
     }
     setPending({ ...pending, amountDa: amount });
@@ -186,6 +189,7 @@ export function WalletQrView({
 
   async function confirmExecute() {
     if (!pending || pin.length !== 4) return;
+    setError(null);
     setBusy(true);
     try {
       if (pending.kind === "pay") {
@@ -195,7 +199,7 @@ export function WalletQrView({
           clientOperationId: pending.opId,
         });
         if (!res.ok) {
-          toast.error(errMsg(res.error));
+          setError(errMsg(res.error));
           if (["used", "expired", "not_found"].includes(res.error))
             resetToScan();
           else setPin("");
@@ -215,7 +219,7 @@ export function WalletQrView({
           clientOperationId: pending.opId,
         });
         if (!res.ok) {
-          toast.error(errMsg(res.error));
+          setError(errMsg(res.error));
           if (["not_found", "self"].includes(res.error)) resetToScan();
           else setPin("");
           return;
@@ -234,6 +238,7 @@ export function WalletQrView({
 
   function resetToScan() {
     setStep("scan");
+    setError(null);
     setPending(null);
     setReceipt(null);
     setPin("");
@@ -307,7 +312,6 @@ export function WalletQrView({
               labelConfirm={t("qrPinConfirmLabel")}
               labelCta={t("qrCreatePinCta")}
               msgMismatch={t("qrPinMismatch")}
-              msgSaved={t("qrPinSaved")}
               msgInvalid={t("qrErrPinNotSet")}
             />
           ) : (
@@ -320,6 +324,12 @@ export function WalletQrView({
               <p className="mt-6 max-w-[280px] text-center text-[13.5px] font-bold opacity-90">
                 {t("qrScanAny")}
               </p>
+
+              {error && (
+                <p className="bg-danger-50 text-danger-700 mt-4 max-w-[280px] rounded-[12px] px-3.5 py-2.5 text-center text-[12.5px] font-semibold">
+                  {error}
+                </p>
+              )}
 
               {!codeMode ? (
                 <button
@@ -399,6 +409,11 @@ export function WalletQrView({
               />
               <span className="text-muted shrink-0 text-sm font-bold">DA</span>
             </div>
+            {error && (
+              <p className="text-danger-600 mt-3 text-[12.5px] font-semibold">
+                {error}
+              </p>
+            )}
             <button
               type="button"
               disabled={amountInput === ""}
@@ -453,6 +468,12 @@ export function WalletQrView({
               placeholder="••••"
               className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 mt-2 w-full rounded-[14px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
             />
+
+            {error && (
+              <p className="text-danger-600 mt-2 text-[12.5px] font-semibold">
+                {error}
+              </p>
+            )}
 
             <button
               type="button"
@@ -573,7 +594,6 @@ function CreatePinPanel({
   labelConfirm,
   labelCta,
   msgMismatch,
-  msgSaved,
   msgInvalid,
 }: {
   onCreated: () => void;
@@ -583,30 +603,32 @@ function CreatePinPanel({
   labelConfirm: string;
   labelCta: string;
   msgMismatch: string;
-  msgSaved: string;
   msgInvalid: string;
 }) {
   const [pin, setPin] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
+  // Erreur EN LIGNE dans la carte de création du PIN (pas de toast).
+  const [err, setErr] = useState<string | null>(null);
 
   async function save() {
+    setErr(null);
     if (!/^\d{4}$/.test(pin)) {
-      toast.error(msgInvalid);
+      setErr(msgInvalid);
       return;
     }
     if (pin !== confirm) {
-      toast.error(msgMismatch);
+      setErr(msgMismatch);
       return;
     }
     setBusy(true);
     const res = await setWalletPin(pin);
     setBusy(false);
     if (!res.ok) {
-      toast.error(msgInvalid);
+      setErr(msgInvalid);
       return;
     }
-    toast.success(msgSaved);
+    // Succès : onCreated() bascule vers le scanner (retour visuel).
     onCreated();
   }
 
@@ -624,7 +646,10 @@ function CreatePinPanel({
       <input
         inputMode="numeric"
         value={pin}
-        onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+        onChange={(e) => {
+          setPin(e.target.value.replace(/\D/g, "").slice(0, 4));
+          setErr(null);
+        }}
         placeholder="••••"
         className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 mt-1.5 w-full rounded-[13px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
       />
@@ -634,12 +659,18 @@ function CreatePinPanel({
       <input
         inputMode="numeric"
         value={confirm}
-        onChange={(e) =>
-          setConfirm(e.target.value.replace(/\D/g, "").slice(0, 4))
-        }
+        onChange={(e) => {
+          setConfirm(e.target.value.replace(/\D/g, "").slice(0, 4));
+          setErr(null);
+        }}
         placeholder="••••"
         className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 mt-1.5 w-full rounded-[13px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
       />
+      {err && (
+        <p className="text-danger-600 mt-2 text-[12.5px] font-semibold">
+          {err}
+        </p>
+      )}
       <button
         type="button"
         disabled={busy || pin.length !== 4 || confirm.length !== 4}

@@ -15,7 +15,6 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
 import { Portal } from "@/components/ui/portal";
 import { useGeolocation } from "@/lib/hooks/use-geolocation";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
@@ -59,6 +58,8 @@ export function LocationPicker({ onClose, initial }: Props) {
 
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState<null | "gps">(null);
+  // Erreur GPS affichée EN LIGNE (pas de toast, cf. CLAUDE.md).
+  const [geoErr, setGeoErr] = useState<string | null>(null);
 
   // Recherche d'emplacement (forward geocoding).
   const [q, setQ] = useState("");
@@ -122,6 +123,7 @@ export function LocationPicker({ onClose, initial }: Props) {
     label?: string | null;
   }) {
     setSaving(true);
+    setGeoErr(null);
     try {
       let w: string | null = null;
       let c: string | null = null;
@@ -162,7 +164,8 @@ export function LocationPicker({ onClose, initial }: Props) {
         lng: p.lng,
         label: address ?? ([c, w].filter(Boolean).join(", ") || "—"),
       });
-      toast.success(t("locationSaved"));
+      // Emplacement enregistré → le picker se ferme, la barre de localisation
+      // de l'app affiche la nouvelle adresse (retour visuel, pas de toast).
       onClose?.();
     } finally {
       setSaving(false);
@@ -171,10 +174,11 @@ export function LocationPicker({ onClose, initial }: Props) {
 
   async function useGps() {
     setBusy("gps");
+    setGeoErr(null);
     try {
       const gps = await geo.requestOnce();
       if (!gps) {
-        toast.error(
+        setGeoErr(
           geo.error?.kind === "denied"
             ? t("permissionDenied")
             : t("geolocFailed")
@@ -231,6 +235,13 @@ export function LocationPicker({ onClose, initial }: Props) {
           </button>
         )}
       </div>
+
+      {/* Erreur GPS EN LIGNE (permission refusée / géoloc indispo). */}
+      {geoErr && (
+        <p className="border-danger-200 bg-danger-50 text-danger-700 rounded-[12px] border px-3.5 py-2.5 text-[13px] font-semibold">
+          {geoErr}
+        </p>
+      )}
 
       {/* Zone dynamique à HAUTEUR FIXE : la carte ne « saute » plus selon le
           nombre de résultats (pendant la recherche, 0 résultat, ou liste

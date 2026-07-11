@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, FileWarning, X } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import {
   AdminDocViewer,
   DecisionNoteDialog,
@@ -48,6 +48,7 @@ export function AgentDocumentsManager({
     label: string;
   } | null>(null);
   const [, startTransition] = useTransition();
+  const [note, setNote] = useActionNote();
 
   if (documents.length === 0) {
     return (
@@ -60,6 +61,7 @@ export function AgentDocumentsManager({
 
   return (
     <div className="space-y-3">
+      <ActionNote note={note} />
       {documents.map((d) => {
         const label = KIND_LABEL[d.kind] ?? d.kind;
         const meta = STATUS_META[d.status];
@@ -119,11 +121,9 @@ export function AgentDocumentsManager({
                         d.id,
                         "approved"
                       );
-                      if (r.error) toast.error(r.error);
-                      else {
-                        toast.success("Pièce validée");
-                        router.refresh();
-                      }
+                      // Succès : le badge passe à « Vérifiée » (visuel).
+                      if (r.error) setNote({ ok: false, text: r.error });
+                      else router.refresh();
                     })
                   }
                 >
@@ -154,10 +154,9 @@ export function AgentDocumentsManager({
               "rejected",
               note
             );
-            if (!r.error) {
-              toast.success("Pièce refusée — motif transmis à l'agent");
-              router.refresh();
-            }
+            // Succès : le badge passe à « Refusée » (visuel). Erreur gérée par
+            // DecisionNoteDialog via `r`.
+            if (!r.error) router.refresh();
             return r;
           }}
           onClose={() => setRejecting(null)}

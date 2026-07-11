@@ -22,7 +22,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
 import { cn, formatDA } from "@/lib/utils";
 import {
   PROMOTION_TYPE_META,
@@ -148,11 +147,10 @@ export function PromotionForm({
   const [state, formAction, pending] = useActionState(action, initialState);
 
   useEffect(() => {
-    if (state.ok) {
-      toast.success(isEdit ? "Promotion mise à jour" : "Promotion créée");
-      router.push("/promotions");
-    }
-  }, [state, isEdit, router]);
+    // Succès : navigation vers la liste des promotions (la promo y apparaît /
+    // est à jour = feedback visuel) ; l'erreur est affichée inline. Pas de toast.
+    if (state.ok) router.push("/promotions");
+  }, [state, router]);
 
   // Étape 1 (création uniquement) : choix du type.
   if (!type) {

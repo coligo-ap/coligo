@@ -2,11 +2,10 @@
 
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { updateDriverProfile } from "@/app/admin/drivers/actions";
 import type { AdminFormState } from "@/app/admin/actions";
 
@@ -43,14 +42,15 @@ export function DriverProfileForm({ driver }: { driver: DriverProfile }) {
     updateDriverProfile.bind(null, driver.id),
     {}
   );
+  const fb = useFormActionFeedback({
+    pending,
+    ok: state.ok,
+    error: state.error,
+  });
 
   useEffect(() => {
-    if (state.ok) {
-      toast.success("Profil mis à jour");
-      router.refresh();
-    } else if (state.error) {
-      toast.error(state.error);
-    }
+    // Feedback porté par le bouton + message inline (pas de toast).
+    if (state.ok) router.refresh();
   }, [state, router]);
 
   return (
@@ -164,10 +164,15 @@ export function DriverProfileForm({ driver }: { driver: DriverProfile }) {
         />
       </div>
 
-      <Button type="submit" disabled={pending}>
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        Enregistrer le profil
-      </Button>
+      {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
+      <ActionButton
+        type="submit"
+        state={fb}
+        labels={{
+          idle: "Enregistrer le profil",
+          success: "Profil mis à jour ✓",
+        }}
+      />
     </form>
   );
 }

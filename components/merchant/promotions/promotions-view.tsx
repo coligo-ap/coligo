@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { cn, formatDA } from "@/lib/utils";
 import {
   PROMOTION_STATUS_META,
@@ -167,6 +167,7 @@ function PromotionCard({ promo }: { promo: PromotionListItem }) {
   const router = useRouter();
   const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
+  const [note, setNote] = useActionNote();
   const Icon = TYPE_ICON[promo.type];
   const statusMeta = PROMOTION_STATUS_META[promo.effectiveStatus];
   const isDisabled = promo.status === "disabled";
@@ -174,10 +175,8 @@ function PromotionCard({ promo }: { promo: PromotionListItem }) {
   function onToggle() {
     startTransition(async () => {
       const res = await togglePromotion(promo.id, promo.status);
-      if (res.error) return toast.error(res.error);
-      toast.success(
-        isDisabled ? "Promotion réactivée" : "Promotion désactivée"
-      );
+      // Succès : le badge de statut change via refresh (feedback visuel).
+      if (res.error) return setNote({ ok: false, text: res.error });
       router.refresh();
     });
   }
@@ -194,8 +193,8 @@ function PromotionCard({ promo }: { promo: PromotionListItem }) {
       return;
     startTransition(async () => {
       const res = await deletePromotion(promo.id);
-      if (res.error) return toast.error(res.error);
-      toast.success("Promotion supprimée");
+      // Succès : la promo disparaît de la liste via refresh (feedback visuel).
+      if (res.error) return setNote({ ok: false, text: res.error });
       router.refresh();
     });
   }
@@ -283,6 +282,7 @@ function PromotionCard({ promo }: { promo: PromotionListItem }) {
           Supprimer
         </button>
       </div>
+      <ActionNote note={note} />
     </li>
   );
 }

@@ -13,9 +13,11 @@ import {
   Snowflake,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import {
   Pager,
   SearchInput,
@@ -174,15 +176,20 @@ function MerchantRow({
   categoryOptions: MerchantCategoryOption[];
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
   const action = updateMerchantRates.bind(null, merchant.id);
   const [state, formAction, saving] = useActionState(action, initialState);
+  const fb = useFormActionFeedback({
+    pending: saving,
+    ok: state.ok,
+    error: state.error,
+  });
+  const [note, setNote] = useActionNote();
 
   useEffect(() => {
-    if (state.ok) {
-      toast.success("Taux du commerçant mis à jour");
-      router.refresh();
-    }
+    // Succès porté par le bouton (ActionButton) — pas de toast.
+    if (state.ok) router.refresh();
   }, [state, router]);
 
   const debt = merchant.balance < 0 ? -merchant.balance : 0;
@@ -190,10 +197,8 @@ function MerchantRow({
   function onToggleFreeze() {
     startTransition(async () => {
       const res = await toggleMerchantFrozen(merchant.id, !merchant.is_frozen);
-      if (res.error) return toast.error(res.error);
-      toast.success(
-        merchant.is_frozen ? "Commerçant dégelé" : "Commerçant gelé"
-      );
+      // Succès : le badge « Gelé » apparaît/disparaît après refresh (visuel).
+      if (res.error) return setNote({ ok: false, text: res.error });
       router.refresh();
     });
   }
@@ -201,19 +206,23 @@ function MerchantRow({
   const [seeding, startSeed] = useTransition();
   const template = getCatalogTemplate(merchant.category);
 
-  function onSeedCatalog() {
+  async function onSeedCatalog() {
     if (
-      !confirm(
-        `Remplir automatiquement le catalogue de « ${merchant.name} » avec le modèle ${template?.label} ?\n\nLes produits/catégories déjà présents ne seront pas dupliqués. Le commerçant pourra tout ajuster (prix, photos, détails).`
-      )
+      !(await confirm({
+        title: `Remplir le catalogue de « ${merchant.name} » ?`,
+        message: `Modèle ${template?.label}. Les produits/catégories déjà présents ne seront pas dupliqués. Le commerçant pourra tout ajuster (prix, photos, détails).`,
+        confirmLabel: "Remplir",
+      }))
     )
       return;
     startSeed(async () => {
       const res = await seedMerchantCatalog(merchant.id);
-      if (!res.ok) return toast.error(res.error);
-      toast.success(
-        `Catalogue rempli (${res.label}) : +${res.categoriesAdded} catégories, +${res.productsAdded} produits`
-      );
+      if (!res.ok) return setNote({ ok: false, text: res.error });
+      // Résultat chiffré non visible ailleurs → note inline informative.
+      setNote({
+        ok: true,
+        text: `Catalogue rempli (${res.label}) : +${res.categoriesAdded} catégories, +${res.productsAdded} produits`,
+      });
       router.refresh();
     });
   }
@@ -328,10 +337,15 @@ function MerchantRow({
           );
         })()}
         <div className="flex items-center gap-3">
-          <Button type="submit" size="sm" disabled={saving}>
-            {saving && <Loader2 className="size-3.5 animate-spin" />}
-            Enregistrer les taux
-          </Button>
+          <ActionButton
+            type="submit"
+            size="sm"
+            state={fb}
+            labels={{
+              idle: "Enregistrer les taux",
+              success: "Taux mis à jour ✓",
+            }}
+          />
           <span className="text-subtle text-xs">
             Vide = hérite du taux global.
           </span>
@@ -373,6 +387,8 @@ function MerchantRow({
           </span>
         )}
       </div>
+
+      <ActionNote note={note} className="mt-3" />
     </li>
   );
 }

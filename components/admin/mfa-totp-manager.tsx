@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm";
 import { createClient } from "@/lib/supabase/client";
 
 type ActiveFactor = {
@@ -44,6 +45,7 @@ type EnrollState = {
 
 export function MfaTotpManager({ activeFactor }: Props) {
   const router = useRouter();
+  const confirm = useConfirm();
   const supabase = createClient();
   const [enroll, setEnroll] = useState<EnrollState | null>(null);
   const [code, setCode] = useState("");
@@ -126,9 +128,13 @@ export function MfaTotpManager({ activeFactor }: Props) {
 
   async function disable() {
     if (!activeFactor) return;
-    const ok = confirm(
-      "Désactiver la 2FA ? Le compte super-admin sera protégé uniquement par mot de passe."
-    );
+    const ok = await confirm({
+      title: "Désactiver la 2FA ?",
+      message:
+        "Le compte super-admin sera protégé uniquement par mot de passe.",
+      confirmLabel: "Désactiver",
+      danger: true,
+    });
     if (!ok) return;
     setError(null);
     startTransition(async () => {

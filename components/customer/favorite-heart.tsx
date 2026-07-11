@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "@/components/ui/toast";
 import { toggleFavorite } from "@/app/(customer)/actions";
 
 /**
@@ -59,13 +58,12 @@ export function FavoriteHeart({
     start(async () => {
       const res = await toggleFavorite(merchantId);
       if (res.error) {
-        setFav(!optimistic); // revert
+        // Revert du cœur = signal visuel d'échec (pas de toast, cf. CLAUDE.md).
+        setFav(!optimistic);
         if (res.error === "auth") {
           router.push(
             `/se-connecter?next=${encodeURIComponent(pathname || "/")}`
           );
-        } else {
-          toast.error(t("favoriteUpdateError"));
         }
         return;
       }

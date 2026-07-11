@@ -40,7 +40,6 @@ import {
 } from "@/app/(customer)/actions";
 import { saveCustomerAddress } from "@/app/(customer)/adresses/actions";
 import { useGeolocation } from "@/lib/hooks/use-geolocation";
-import { toast } from "@/components/ui/toast";
 import type {
   CheckoutDeliveryContext,
   CheckoutMerchantPosition,
@@ -1042,6 +1041,7 @@ function SaveAddressInline({
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState("");
   const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   if (saved) {
@@ -1066,33 +1066,43 @@ function SaveAddressInline({
   }
 
   return (
-    <div className="flex gap-2">
-      <Input
-        value={label}
-        onChange={(e) => setLabel(e.target.value)}
-        placeholder={t("addressLabelPlaceholder")}
-        className="h-10 flex-1"
-        maxLength={60}
-      />
-      <button
-        type="button"
-        disabled={pending || label.trim() === ""}
-        onClick={() =>
-          start(async () => {
-            const res = await saveCustomerAddress({
-              label,
-              lat,
-              lng,
-              address_text: addressText,
-            });
-            if (res.ok) setSaved(true);
-            else toast.error(res.error ?? t("saveFailed"));
-          })
-        }
-        className="bg-foreground text-background shrink-0 rounded-[10px] px-4 text-sm font-extrabold disabled:opacity-40"
-      >
-        {pending ? <Loader2 className="size-4 animate-spin" /> : t("save")}
-      </button>
+    <div className="space-y-1.5">
+      <div className="flex gap-2">
+        <Input
+          value={label}
+          onChange={(e) => {
+            setLabel(e.target.value);
+            setErr(null);
+          }}
+          placeholder={t("addressLabelPlaceholder")}
+          className="h-10 flex-1"
+          maxLength={60}
+        />
+        <button
+          type="button"
+          disabled={pending || label.trim() === ""}
+          onClick={() =>
+            start(async () => {
+              setErr(null);
+              const res = await saveCustomerAddress({
+                label,
+                lat,
+                lng,
+                address_text: addressText,
+              });
+              if (res.ok) setSaved(true);
+              else setErr(res.error ?? t("saveFailed"));
+            })
+          }
+          className="bg-foreground text-background shrink-0 rounded-[10px] px-4 text-sm font-extrabold disabled:opacity-40"
+        >
+          {pending ? <Loader2 className="size-4 animate-spin" /> : t("save")}
+        </button>
+      </div>
+      {/* Erreur EN LIGNE sous le champ (pas de toast, cf. CLAUDE.md). */}
+      {err && (
+        <p className="text-danger-600 px-1 text-[12px] font-semibold">{err}</p>
+      )}
     </div>
   );
 }

@@ -6,7 +6,8 @@ import { Ban, CheckCircle2, Clock, Plus, Power, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InfoHint } from "@/components/ui/info-hint";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
+import { useConfirm } from "@/components/ui/confirm";
 import { WILAYAS, getWilayaName } from "@/lib/config/wilayas";
 import { getCommunes } from "@/lib/config/communes";
 import { SERVICE_LABELS, type ServiceKind } from "@/lib/zones/service-zones";
@@ -129,6 +130,7 @@ export function ZonesManager({
 function ServiceDefaultsPanel({ def }: { def: ServiceDefaultRow }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [note, setNote] = useActionNote();
   const [serviceActive, setServiceActive] = useState(def.service_active);
   const [defaultAllow, setDefaultAllow] = useState(def.default_allow);
   const [maxKm, setMaxKm] = useState(
@@ -148,7 +150,7 @@ function ServiceDefaultsPanel({ def }: { def: ServiceDefaultRow }) {
         default_allow: defaultAllow,
         max_distance_km: maxKm === "" ? null : Number(maxKm),
       });
-      if (r.error) toast.error(r.error);
+      if (r.error) setNote({ ok: false, text: r.error });
       else router.refresh();
     });
 
@@ -237,6 +239,7 @@ function ServiceDefaultsPanel({ def }: { def: ServiceDefaultRow }) {
           </span>
         )}
       </div>
+      <ActionNote note={note} className="mt-2" />
     </div>
   );
 }
@@ -262,108 +265,119 @@ function RulesList({ rules }: { rules: ZoneRuleRow[] }) {
 
 function RuleRow({ rule }: { rule: ZoneRuleRow }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, start] = useTransition();
+  const [note, setNote] = useActionNote();
   const [priority, setPriority] = useState(String(rule.priority));
   const isBlock = rule.mode === "block";
 
   const act = (fn: () => Promise<{ error?: string; ok?: boolean }>) =>
     start(async () => {
       const r = await fn();
-      if (r.error) toast.error(r.error);
+      if (r.error) setNote({ ok: false, text: r.error });
       else router.refresh();
     });
 
   return (
-    <div
-      className={
-        "bg-surface border-border flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[12px] border p-3 " +
-        (rule.active ? "" : "opacity-55")
-      }
-    >
-      <span
+    <>
+      <div
         className={
-          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold " +
-          (isBlock
-            ? "bg-danger-50 text-danger-700"
-            : "bg-success-50 text-success-700")
+          "bg-surface border-border flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[12px] border p-3 " +
+          (rule.active ? "" : "opacity-55")
         }
       >
-        {isBlock ? (
-          <Ban className="size-3" />
-        ) : (
-          <CheckCircle2 className="size-3" />
-        )}
-        {isBlock ? "Bloque" : "Autorise"}
-      </span>
-
-      <div className="min-w-0 flex-1">
-        <div className="text-foreground flex items-center gap-2 text-sm font-bold">
-          {rule.label}
-          {rule.coming_soon && (
-            <span className="text-warning-700 inline-flex items-center gap-1 text-[11px] font-semibold">
-              <Clock className="size-3" /> Bientôt
-            </span>
+        <span
+          className={
+            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold " +
+            (isBlock
+              ? "bg-danger-50 text-danger-700"
+              : "bg-success-50 text-success-700")
+          }
+        >
+          {isBlock ? (
+            <Ban className="size-3" />
+          ) : (
+            <CheckCircle2 className="size-3" />
           )}
-        </div>
-        <div className="text-muted text-xs">
-          {SCOPE_LABELS[rule.scope]} · {scopeSummary(rule)}
-          {rule.service === "drive" && (
-            <> · {DIRECTION_LABELS[rule.direction]}</>
-          )}
-        </div>
-      </div>
+          {isBlock ? "Bloque" : "Autorise"}
+        </span>
 
-      {/* Priorité */}
-      <label className="text-muted flex items-center gap-1 text-xs">
-        Priorité
-        <InfoHint
-          title="Priorité"
-          text="Si plusieurs règles visent le même endroit, la priorité la plus haute gagne (à égalité, la plus précise l'emporte)."
-          example="Une règle « autoriser Akbou » en priorité 20 passe devant un « bloquer Béjaïa » en priorité 10."
-          align="end"
-        />
-        <Input
-          type="number"
-          value={priority}
-          onChange={(e) => setPriority(e.target.value)}
-          onBlur={() => {
-            if (Number(priority) !== rule.priority)
-              act(() => updateZoneRulePriority(rule.id, Number(priority)));
+        <div className="min-w-0 flex-1">
+          <div className="text-foreground flex items-center gap-2 text-sm font-bold">
+            {rule.label}
+            {rule.coming_soon && (
+              <span className="text-warning-700 inline-flex items-center gap-1 text-[11px] font-semibold">
+                <Clock className="size-3" /> Bientôt
+              </span>
+            )}
+          </div>
+          <div className="text-muted text-xs">
+            {SCOPE_LABELS[rule.scope]} · {scopeSummary(rule)}
+            {rule.service === "drive" && (
+              <> · {DIRECTION_LABELS[rule.direction]}</>
+            )}
+          </div>
+        </div>
+
+        {/* Priorité */}
+        <label className="text-muted flex items-center gap-1 text-xs">
+          Priorité
+          <InfoHint
+            title="Priorité"
+            text="Si plusieurs règles visent le même endroit, la priorité la plus haute gagne (à égalité, la plus précise l'emporte)."
+            example="Une règle « autoriser Akbou » en priorité 20 passe devant un « bloquer Béjaïa » en priorité 10."
+            align="end"
+          />
+          <Input
+            type="number"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
+            onBlur={() => {
+              if (Number(priority) !== rule.priority)
+                act(() => updateZoneRulePriority(rule.id, Number(priority)));
+            }}
+            className="h-8 w-16"
+          />
+        </label>
+
+        {/* Activer/désactiver */}
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => act(() => toggleZoneRule(rule.id, !rule.active))}
+          className={
+            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold " +
+            (rule.active
+              ? "border-success-200 text-success-700"
+              : "border-border text-muted")
+          }
+        >
+          <Power className="size-3.5" />
+          {rule.active ? "Active" : "Inactive"}
+        </button>
+
+        {/* Supprimer */}
+        <button
+          type="button"
+          disabled={pending}
+          onClick={async () => {
+            if (
+              await confirm({
+                title: `Supprimer la règle « ${rule.label} » ?`,
+                confirmLabel: "Supprimer",
+                danger: true,
+              })
+            )
+              act(() => deleteZoneRule(rule.id));
           }}
-          className="h-8 w-16"
-        />
-      </label>
-
-      {/* Activer/désactiver */}
-      <button
-        type="button"
-        disabled={pending}
-        onClick={() => act(() => toggleZoneRule(rule.id, !rule.active))}
-        className={
-          "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold " +
-          (rule.active
-            ? "border-success-200 text-success-700"
-            : "border-border text-muted")
-        }
-      >
-        <Power className="size-3.5" />
-        {rule.active ? "Active" : "Inactive"}
-      </button>
-
-      {/* Supprimer */}
-      <button
-        type="button"
-        disabled={pending}
-        onClick={() => {
-          if (confirm(`Supprimer la règle « ${rule.label} » ?`))
-            act(() => deleteZoneRule(rule.id));
-        }}
-        className="text-danger-600 hover:bg-danger-50 inline-flex size-8 items-center justify-center rounded-full"
-        aria-label="Supprimer"
-      >
-        <Trash2 className="size-4" />
-      </button>
-    </div>
+          className="text-danger-600 hover:bg-danger-50 inline-flex size-8 items-center justify-center rounded-full"
+          aria-label="Supprimer"
+        >
+          <Trash2 className="size-4" />
+        </button>
+      </div>
+      <ActionNote note={note} className="ps-1" />
+    </>
   );
 }
 

@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CheckCircle2, Landmark, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Building2, CheckCircle2, Landmark } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
+import { ActionButton } from "@/components/ui/action-button";
+import { useActionButton } from "@/lib/hooks/use-action-button";
 import {
   updatePaymentAccount,
   type PaymentAccount,
@@ -42,21 +42,27 @@ export function PaymentAccountsEditor({
 
 function AccountCard({ initial }: { initial: PaymentAccount }) {
   const router = useRouter();
-  const [busy, start] = useTransition();
+  const { state, run } = useActionButton();
   const [v, setV] = useState(initial);
+  const [err, setErr] = useState<string | null>(null);
   const field = (k: keyof PaymentAccount) => ({
     value: v[k] as string,
     onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
       setV({ ...v, [k]: e.target.value }),
   });
 
-  const save = () =>
-    start(async () => {
-      const res = await updatePaymentAccount(v);
-      if (res.error) toast.error(res.error);
-      else toast.success(`Compte « ${SCOPE_LABEL[v.scope]} » enregistré`);
-      router.refresh();
-    });
+  const save = () => {
+    setErr(null);
+    void run(
+      async () => {
+        const res = await updatePaymentAccount(v);
+        if (res.error) setErr(res.error);
+        else router.refresh();
+        return res;
+      },
+      (res) => !res.error
+    );
+  };
 
   return (
     <div className="border-border bg-surface rounded-[14px] border p-4">
@@ -103,14 +109,16 @@ function AccountCard({ initial }: { initial: PaymentAccount }) {
         </div>
       </div>
 
-      <Button size="sm" className="mt-3" disabled={busy} onClick={save}>
-        {busy ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <CheckCircle2 className="size-4" />
-        )}
-        Enregistrer
-      </Button>
+      {err && <p className="text-danger-600 mt-2 text-sm">{err}</p>}
+
+      <ActionButton
+        size="sm"
+        className="mt-3"
+        state={state}
+        onClick={save}
+        idleIcon={<CheckCircle2 className="size-4" />}
+        labels={{ idle: "Enregistrer", success: "Enregistré ✓" }}
+      />
     </div>
   );
 }

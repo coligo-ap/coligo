@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { AdminDocViewer } from "@/components/admin/doc-viewer";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import { formatDA } from "@/lib/utils";
@@ -143,6 +143,7 @@ export function RechargesManager({
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
+  const [note, setNote] = useActionNote();
 
   const run = (
     fn: () => Promise<{ ok?: true; error?: string }>,
@@ -150,15 +151,16 @@ export function RechargesManager({
   ) =>
     start(async () => {
       const res = await fn();
-      if (res.error) toast.error(res.error);
+      if (res.error) setNote({ ok: false, text: res.error });
       else {
-        toast.success(okMsg);
+        setNote({ ok: true, text: okMsg });
         router.refresh();
       }
     });
 
   return (
     <div className="space-y-4">
+      <ActionNote note={note} />
       {/* Bandeau explicatif du flux */}
       <div className="border-primary-200 bg-primary-50 rounded-[16px] border p-4">
         <p className="text-primary-800 mb-2 text-sm font-bold">
@@ -257,14 +259,9 @@ export function RechargesManager({
                       status === "approved"
                         ? await approveTopup(r.id)
                         : await rejectTopup(r.id, note ?? "");
-                    if (!res.error) {
-                      toast.success(
-                        status === "approved"
-                          ? "Recharge créditée"
-                          : "Demande refusée"
-                      );
-                      router.refresh();
-                    }
+                    // Succès : la demande quitte la liste « en attente » via
+                    // refresh (visuel). L'erreur est gérée par AdminDocViewer (res).
+                    if (!res.error) router.refresh();
                     return res;
                   }}
                 />
@@ -561,6 +558,7 @@ function PartnerItem({
   const [docFile, setDocFile] = useState<File | null>(null);
   const router = useRouter();
   const [uploading, startUpload] = useTransition();
+  const [fb, setFb] = useActionNote();
   const doUpload = () => {
     if (!docFile) return;
     const fd = new FormData();
@@ -569,9 +567,9 @@ function PartnerItem({
     fd.set("file", docFile);
     startUpload(async () => {
       const res = await uploadPartnerDoc(fd);
-      if (res.error) toast.error(res.error);
+      // Succès : le document apparaît dans la liste via refresh (visuel).
+      if (res.error) setFb({ ok: false, text: res.error });
       else {
-        toast.success("Document ajouté");
         setDocFile(null);
         router.refresh();
       }
@@ -701,6 +699,7 @@ function PartnerItem({
               Téléverser
             </Button>
           </div>
+          <ActionNote note={fb} className="mt-2" />
         </div>
       )}
       {credit && (

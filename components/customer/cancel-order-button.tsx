@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Loader2, ShieldAlert, Wallet, X } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { formatDA } from "@/lib/utils";
 import { cancelMyOrder } from "@/app/(customer)/commandes/actions";
 
@@ -33,6 +33,8 @@ export function CancelOrderButton({
   const t = useTranslations("orders");
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
+  const [done, setDone] = useState(false);
+  const [note, setNote] = useActionNote();
   const [pending, startTransition] = useTransition();
 
   const onlinePaid = paymentMethod === "online" && paymentStatus === "paid";
@@ -52,19 +54,23 @@ export function CancelOrderButton({
     startTransition(async () => {
       const res = await cancelMyOrder(orderId);
       if (!res.ok) {
-        toast.error(res.error);
-        setConfirming(false);
+        // Erreur EN LIGNE : le panneau reste ouvert, le client peut réessayer.
+        setNote({ ok: false, text: res.error });
         return;
       }
-      toast.success(
-        res.refundedToColigoPay > 0
-          ? t("cancelledWithRefund", {
-              amount: formatDA(res.refundedToColigoPay),
-            })
-          : t("cancelled")
-      );
-      setConfirming(false);
-      router.refresh();
+      // Confirmation EN LIGNE. La carte disparaît au refresh (la commande n'est
+      // plus « en attente ») : on laisse le client lire le remboursement avant.
+      setDone(true);
+      setNote({
+        ok: true,
+        text:
+          res.refundedToColigoPay > 0
+            ? t("cancelledWithRefund", {
+                amount: formatDA(res.refundedToColigoPay),
+              })
+            : t("cancelled"),
+      });
+      setTimeout(() => router.refresh(), 1600);
     });
   }
 
@@ -93,11 +99,12 @@ export function CancelOrderButton({
           {t("cancelRefundOutro")}
         </p>
       )}
+      <ActionNote note={note} className="mt-2" />
       <div className="mt-2.5 flex gap-2">
         <button
           type="button"
           onClick={() => setConfirming(false)}
-          disabled={pending}
+          disabled={pending || done}
           className="border-border text-foreground hover:bg-surface-2 inline-flex h-10 flex-1 items-center justify-center rounded-[10px] border bg-white text-[13px] font-bold disabled:opacity-50"
         >
           {t("back")}
@@ -105,7 +112,7 @@ export function CancelOrderButton({
         <button
           type="button"
           onClick={doCancel}
-          disabled={pending}
+          disabled={pending || done}
           className="bg-danger-600 hover:bg-danger-700 inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-[13px] font-bold text-white disabled:opacity-60"
         >
           {pending ? (

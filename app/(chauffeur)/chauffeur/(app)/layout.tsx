@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { DNav } from "@/components/chauffeur/d-ui";
 import { ChauffeurGateGuard } from "@/components/chauffeur/gate-guard";
+import { ChauffeurContentDim } from "@/components/chauffeur/chauffeur-content-dim";
 import { HomeSkeleton } from "@/components/chauffeur/d-skeleton";
 import { PushRegistrar } from "@/components/native/push-registrar";
 
@@ -27,7 +28,9 @@ export default function ChauffeurAppLayout({
   return (
     <>
       <Suspense fallback={<HomeSkeleton />}>
-        <ChauffeurGateGuard>{children}</ChauffeurGateGuard>
+        <ChauffeurContentDim>
+          <ChauffeurGateGuard>{children}</ChauffeurGateGuard>
+        </ChauffeurContentDim>
       </Suspense>
       <DNav />
       {/* Token push + branchement du TAP sur notification → navigation Next.js

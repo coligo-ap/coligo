@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/ui/pagination";
-import { toast } from "@/components/ui/toast";
 import { cn, formatDA } from "@/lib/utils";
 import {
   PAYMENT_METHOD_META,
@@ -968,8 +967,9 @@ function PayoutForm({
   );
 
   useEffect(() => {
+    // Succès : le formulaire se ferme et la demande apparaît dans la liste des
+    // versements via refresh = feedback visuel ; l'erreur est inline. Pas de toast.
     if (state.ok) {
-      toast.success("Demande de versement envoyée");
       formRef.current?.reset();
       onClose();
       router.refresh();

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { setGlobalAvailability, driverLogout } from "@/app/(driver)/actions";
 import { useDriverOnline, setDriverOnline } from "@/lib/driver/online-store";
+import { useNetworkOffline } from "@/lib/connectivity/network-store";
 import {
   getActiveCourse,
   useActiveCourse,
@@ -91,6 +92,9 @@ export function DriverHomeMaquette({
   freezeReason?: string | null;
 }) {
   const online = useDriverOnline();
+  // Réseau confirmé (alimenté par le garde de connexion). On ne peut pas passer
+  // « en ligne » sans Internet : le dispatch en a besoin.
+  const netOffline = useNetworkOffline();
   const activeCourse = useActiveCourse();
   const [, start] = useTransition();
   const router = useRouter();
@@ -131,6 +135,10 @@ export function DriverHomeMaquette({
 
   const toggle = () => {
     const next = !online;
+    // Hors ligne : on refuse la MISE EN LIGNE (le dispatch ne marcherait pas).
+    // Le passage HORS LIGNE reste permis. Garde-fou : le bouton est déjà
+    // désactivé dans ce cas, ceci couvre une éventuelle course entre états.
+    if (next && netOffline) return;
     // Compte gelé : refus immédiat de la mise en ligne (le passage HORS LIGNE
     // reste toujours permis).
     if (next && isFrozen) {
@@ -370,7 +378,8 @@ export function DriverHomeMaquette({
             aria-checked={online}
             aria-label={tr("Disponibilité", "التوفر")}
             onClick={toggle}
-            className="flex w-full items-center gap-3 rounded-[20px] border px-4 py-3.5 text-start shadow-xl transition-colors"
+            disabled={!online && netOffline}
+            className="flex w-full items-center gap-3 rounded-[20px] border px-4 py-3.5 text-start shadow-xl transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             style={{
               borderColor: online ? "rgba(22,179,100,.35)" : "var(--line)",
               background: online ? "rgba(22,179,100,.07)" : "var(--surface)",
@@ -401,10 +410,15 @@ export function DriverHomeMaquette({
                       "En recherche d'une commande à livrer…",
                       "البحث عن طلب للتوصيل…"
                     )
-                  : tr(
-                      "Activez pour recevoir les commandes",
-                      "فعّل لاستقبال الطلبات"
-                    )}
+                  : netOffline
+                    ? tr(
+                        "Reconnexion nécessaire pour passer en ligne",
+                        "الاتصال بالإنترنت مطلوب للاتصال"
+                      )
+                    : tr(
+                        "Activez pour recevoir les commandes",
+                        "فعّل لاستقبال الطلبات"
+                      )}
               </span>
             </span>
             {/* Switch iOS-like (RTL-safe) */}

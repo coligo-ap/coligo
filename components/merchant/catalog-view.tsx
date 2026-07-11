@@ -56,7 +56,7 @@ import {
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { cn, formatDA } from "@/lib/utils";
 import {
   PRODUCT_UNIT_META,
@@ -163,6 +163,7 @@ export function CatalogView({
       : new Set([categories[0]?.id ?? NONE])
   );
   const [, startTransition] = useTransition();
+  const [note, setNote] = useActionNote();
 
   // Persistance de l'état d'AFFICHAGE du catalogue (recherche, filtre catégorie,
   // tri, vue groupée, catégories dépliées) pour la SESSION : en allant éditer /
@@ -501,7 +502,7 @@ export function CatalogView({
       startTransition(async () => {
         const res = await reorderCategories(next.map((c) => c.id));
         if (res?.error) {
-          toast.error(res.error);
+          setNote({ ok: false, text: res.error });
           return;
         }
         // Réconcilie avec le serveur : ce qui s'affiche = ce qui est enregistré.
@@ -544,13 +545,13 @@ export function CatalogView({
           to === NONE ? null : to
         );
         if (r1?.error) {
-          toast.error(r1.error);
+          setNote({ ok: false, text: r1.error });
           return;
         }
       }
       const r2 = await reorderProducts(destIds);
       if (r2?.error) {
-        toast.error(r2.error);
+        setNote({ ok: false, text: r2.error });
         return;
       }
       // Réconcilie avec le serveur : ce qui s'affiche = ce qui est enregistré.
@@ -583,7 +584,7 @@ export function CatalogView({
     startTransition(async () => {
       const res = await reorderProducts(newIds);
       if (res?.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
       refresh();
@@ -617,12 +618,12 @@ export function CatalogView({
     startTransition(async () => {
       const r1 = await bulkAssignCategory([productId], newCat);
       if (r1?.error) {
-        toast.error(r1.error);
+        setNote({ ok: false, text: r1.error });
         return;
       }
       const r2 = await reorderProducts(destIds);
       if (r2?.error) {
-        toast.error(r2.error);
+        setNote({ ok: false, text: r2.error });
         return;
       }
       refresh();
@@ -643,12 +644,13 @@ export function CatalogView({
     startTransition(async () => {
       const res = await deleteProducts(ids);
       if (res?.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
-      toast.success(
-        `${ids.length} produit${ids.length > 1 ? "s" : ""} supprimé${ids.length > 1 ? "s" : ""}`
-      );
+      setNote({
+        ok: true,
+        text: `${ids.length} produit${ids.length > 1 ? "s" : ""} supprimé${ids.length > 1 ? "s" : ""}`,
+      });
       removeProductsLocal(ids);
       clearSelection();
       refresh();
@@ -668,12 +670,13 @@ export function CatalogView({
     startTransition(async () => {
       const res = await deleteCategories(ids);
       if (res?.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
-      toast.success(
-        `${ids.length} catégorie${ids.length > 1 ? "s" : ""} supprimée${ids.length > 1 ? "s" : ""}`
-      );
+      setNote({
+        ok: true,
+        text: `${ids.length} catégorie${ids.length > 1 ? "s" : ""} supprimée${ids.length > 1 ? "s" : ""}`,
+      });
       removeCategoriesLocal(ids);
       clearSelection();
       refresh();
@@ -687,10 +690,10 @@ export function CatalogView({
     startTransition(async () => {
       const res = await fn();
       if (res?.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
-      toast.success(successMsg);
+      setNote({ ok: true, text: successMsg });
       onOptimistic?.();
       clearSelection();
       refresh();
@@ -709,7 +712,7 @@ export function CatalogView({
     startTransition(async () => {
       const res = await quickCreateCategory(clean);
       if (res.error || !res.id) {
-        toast.error(res.error ?? "Échec de la création.");
+        setNote({ ok: false, text: res.error ?? "Échec de la création." });
         return;
       }
       setCats((prev) => [
@@ -725,7 +728,7 @@ export function CatalogView({
           updated_at: new Date().toISOString(),
         },
       ]);
-      toast.success(`Catégorie « ${res.title ?? clean} » créée`);
+      // Succès : la catégorie apparaît dans la liste (setCats) = feedback visuel.
       refresh();
     });
   }
@@ -746,13 +749,13 @@ export function CatalogView({
     startTransition(async () => {
       const res = await renameCategory(id, clean);
       if (res.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         setCats((prev) =>
           prev.map((c) => (c.id === id ? { ...c, title: current } : c))
         );
         return;
       }
-      toast.success("Catégorie renommée");
+      // Succès : le nouveau nom est déjà affiché (optimiste) = feedback visuel.
       refresh();
     });
   }
@@ -815,6 +818,10 @@ export function CatalogView({
           </Link>
         </div>
       </header>
+
+      {/* Retour d'action inline (erreurs / résultats de suppression en masse…) —
+          remplace les toasts (règle produit). Auto-effacé. */}
+      <ActionNote note={note} className="mb-3 text-[13px]" />
 
       {/* Barre recherche + outils */}
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -1153,7 +1160,11 @@ function ToolsMenu({
             onClick={() => setOpen(false)}
             aria-hidden
           />
-          <div className="border-border bg-surface absolute right-0 z-40 mt-2 w-60 rounded-[12px] border p-1 shadow-lg">
+          {/* Ancré au bord de DÉBUT du bouton → le menu s'ouvre vers l'INTÉRIEUR
+              (le bouton est à gauche de la barre sur mobile ; `right-0` faisait
+              sortir le menu de 240px hors de l'écran à gauche). `start-0` reste
+              correct en RTL. */}
+          <div className="border-border bg-surface absolute start-0 z-40 mt-2 w-60 max-w-[calc(100vw-2rem)] rounded-[12px] border p-1 shadow-lg">
             <button
               type="button"
               className={item}
@@ -1449,6 +1460,7 @@ function CategoryPhotoButton({
     null
   );
   const [busy, setBusy] = useState(false);
+  const [note, setNote] = useActionNote();
   const fileRef = useRef<HTMLInputElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -1465,15 +1477,15 @@ function CategoryPhotoButton({
 
   async function handleFile(file: File) {
     if (!file.type.startsWith("image/")) {
-      toast.error("Le fichier doit être une image.");
+      setNote({ ok: false, text: "Le fichier doit être une image." });
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image trop lourde (max 5 Mo).");
+      setNote({ ok: false, text: "Image trop lourde (max 5 Mo)." });
       return;
     }
     if (!merchantId) {
-      toast.error("Session invalide, rechargez la page.");
+      setNote({ ok: false, text: "Session invalide, rechargez la page." });
       return;
     }
     setBusy(true);
@@ -1485,7 +1497,7 @@ function CategoryPhotoButton({
         .from("products")
         .upload(path, file, { upsert: false, contentType: file.type });
       if (upErr) {
-        toast.error(`Échec de l'upload : ${upErr.message}`);
+        setNote({ ok: false, text: `Échec de l'upload : ${upErr.message}` });
         return;
       }
       const {
@@ -1494,10 +1506,10 @@ function CategoryPhotoButton({
 
       const res = await setCategoryImage(categoryId, publicUrl);
       if (res.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
-      toast.success(image ? "Photo remplacée" : "Photo ajoutée");
+      // Succès : la nouvelle photo s'affiche (onChanged) = feedback visuel.
       onChanged(publicUrl);
     } finally {
       setBusy(false);
@@ -1519,10 +1531,10 @@ function CategoryPhotoButton({
     try {
       const res = await setCategoryImage(categoryId, null);
       if (res.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
-      toast.success("Photo retirée");
+      // Succès : la photo disparaît (onChanged) = feedback visuel.
       onChanged(null);
     } finally {
       setBusy(false);
@@ -1563,6 +1575,12 @@ function CategoryPhotoButton({
           <ImagePlus className="size-4" />
         )}
       </button>
+
+      {note && (
+        <div className="border-border bg-surface absolute top-full right-0 z-30 mt-1 w-max max-w-[220px] rounded-[8px] border px-2 py-1 shadow-lg">
+          <ActionNote note={note} />
+        </div>
+      )}
 
       {/* Menu portalisé vers le body : la section catégorie est en
           `overflow-hidden` (coins arrondis) et clippait un menu absolu,
@@ -1769,6 +1787,7 @@ function ProductCard({
   const [pending, startTransition] = useTransition();
   const [dupPending, startDup] = useTransition();
   const [delPending, startDel] = useTransition();
+  const [note, setNote] = useActionNote();
 
   const stock = stockState(product.stock_qty, lowStockThreshold);
 
@@ -1777,22 +1796,21 @@ function ProductCard({
     setAvailable(next);
     startTransition(async () => {
       const res = await toggleProductAvailability(product.id, next);
+      // Succès : l'interrupteur reflète déjà l'état (optimiste) = feedback visuel.
       if (res?.error) {
         setAvailable(!next);
-        toast.error(res.error);
-        return;
+        setNote({ ok: false, text: res.error });
       }
-      toast.success(next ? "Produit disponible" : "Produit masqué");
     });
   }
   function onDuplicate() {
     startDup(async () => {
       const res = await duplicateProduct(product.id);
       if (res?.error || !res?.id) {
-        toast.error(res?.error ?? "Échec de la duplication.");
+        setNote({ ok: false, text: res?.error ?? "Échec de la duplication." });
         return;
       }
-      toast.success("Produit dupliqué");
+      // Succès : navigation vers le nouveau produit = feedback visuel.
       router.push(`/catalog/${res.id}`);
     });
   }
@@ -1809,10 +1827,10 @@ function ProductCard({
     startDel(async () => {
       const res = await deleteProducts([product.id]);
       if (res?.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
-      toast.success("Produit supprimé");
+      // Succès : la carte disparaît de la liste (onDeleted) = feedback visuel.
       onDeleted(product.id);
     });
   }
@@ -2026,6 +2044,7 @@ function ProductCard({
           <span className="hidden lg:inline">Suppr.</span>
         </button>
       </div>
+      <ActionNote note={note} className="px-3 pb-2" />
     </div>
   );
 }

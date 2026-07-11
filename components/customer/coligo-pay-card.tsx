@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { formatDA, cn } from "@/lib/utils";
 import { createTopup } from "@/app/(customer)/cashback/actions";
 
@@ -71,19 +71,21 @@ export function TopupModal({
   const [amount, setAmount] = useState<number>(1000);
   const [custom, setCustom] = useState<string>("");
   const [pending, start] = useTransition();
+  const [note, setNote] = useActionNote();
   const t = useTranslations("wallet");
   const cap = Math.min(maxPerRecharge, remaining30d);
 
   function submit() {
     const value = custom ? Number(custom) : amount;
     if (!Number.isFinite(value) || value <= 0) {
-      toast.error(t("invalidAmount"));
+      setNote({ ok: false, text: t("invalidAmount") });
       return;
     }
     start(async () => {
+      setNote(null);
       const res = await createTopup(value);
       if (!res.ok) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
       window.location.href = res.checkout_url;
@@ -172,6 +174,7 @@ export function TopupModal({
             })
           )}
         </Button>
+        <ActionNote note={note} className="mt-2 text-center" />
         <p className="text-muted mt-3 text-center text-[11px]">
           {t("chargilyRedirectNote")}
         </p>

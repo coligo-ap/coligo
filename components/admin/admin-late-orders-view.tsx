@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn, formatDA } from "@/lib/utils";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { adminCancelOrder, adminValidateDelivery } from "@/app/admin/actions";
 import type { AdminLateOrder } from "@/lib/data/platform";
 
@@ -134,6 +134,7 @@ function LateOrderCard({
   const router = useRouter();
   const prompt = usePrompt();
   const [pending, start] = useTransition();
+  const [note, setNote] = useActionNote();
   const ref = o.order_number ?? o.id.slice(0, 6).toUpperCase();
   const isDelivery = o.fulfillment_type === "delivery";
 
@@ -143,9 +144,9 @@ function LateOrderCard({
   ) =>
     start(async () => {
       const res = await fn();
-      if (res.error) toast.error(res.error);
+      if (res.error) setNote({ ok: false, text: res.error });
       else {
-        toast.success(okMsg);
+        setNote({ ok: true, text: okMsg });
         router.refresh();
       }
     });
@@ -299,6 +300,7 @@ function LateOrderCard({
           Gérer
         </Link>
       </div>
+      <ActionNote note={note} className="mt-2" />
     </div>
   );
 }

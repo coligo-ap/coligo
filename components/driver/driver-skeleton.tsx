@@ -66,6 +66,37 @@ export function PageSkeleton() {
 }
 
 /**
+ * ACCUEIL (carte plein écran + barre « en ligne » dockée + barre du bas).
+ * NE PAS réutiliser `PageSkeleton` ici : l'accueil n'a NI titre NI tuiles NI
+ * liste — c'est une carte. Un squelette liste par-dessus la carte persistante
+ * (montée dans le layout) produisait un saut visuel violent à l'arrivée du
+ * contenu réel (signalé par le user : « le loading ne correspond pas »).
+ *
+ * Ici, on ne COUVRE PAS la carte : elle est déjà montée dans le layout
+ * (`PersistentDriverMap`, persiste entre onglets) et reste visible DERRIÈRE.
+ * On rend juste — en fragment transparent — le skeleton de la SEULE barre
+ * « en ligne » à sa position réelle (`above-nav`) et la barre du bas conservée.
+ * Résultat : la carte est là instantanément, seul l'overlay maquette se streame.
+ */
+export function HomeSkeleton() {
+  return (
+    <>
+      <div className="above-nav fixed inset-x-3 z-[46] mx-auto max-w-md">
+        <div className="flex items-center gap-3 rounded-[20px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5 shadow-xl">
+          <span className="size-11 shrink-0 animate-pulse rounded-full bg-[var(--d-soft)]" />
+          <div className="flex-1 space-y-1.5">
+            <span className="block h-4 w-24 animate-pulse rounded bg-[var(--d-soft)]" />
+            <span className="block h-3 w-40 animate-pulse rounded bg-[var(--d-soft)]" />
+          </div>
+          <span className="h-[30px] w-[52px] shrink-0 animate-pulse rounded-full bg-[var(--d-soft)]" />
+        </div>
+      </div>
+      <DriverBottomNav />
+    </>
+  );
+}
+
+/**
  * Pages d'argent (gains, recharger) : la barre d'onglets `MoneyTabs` puis un
  * grand total, puis deux tuiles. Reprend la forme du squelette client de
  * `gains-loader.tsx` pour qu'aucun saut ne se produise entre les deux.

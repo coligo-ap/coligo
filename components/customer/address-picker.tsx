@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PhoneField } from "@/components/ui/phone-field";
 import { getPosition } from "@/lib/native/geolocation";
-import { toast } from "@/components/ui/toast";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import { MAP_STYLE_URL } from "@/lib/config/map";
 
@@ -44,6 +43,8 @@ export function AddressPicker({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const [loading, setLoading] = useState(false);
+  // Erreur GPS affichée EN LIGNE sous la carte (pas de toast, cf. CLAUDE.md).
+  const [geoErr, setGeoErr] = useState<string | null>(null);
 
   const start = initial ?? defaultCenter ?? DEFAULT_CENTER;
 
@@ -94,6 +95,7 @@ export function AddressPicker({
 
   const useGps = async () => {
     setLoading(true);
+    setGeoErr(null);
     try {
       const pos = await getPosition();
       mapRef.current?.flyTo({
@@ -101,7 +103,7 @@ export function AddressPicker({
         zoom: 16,
       });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("geolocUnavailable"));
+      setGeoErr(err instanceof Error ? err.message : t("geolocUnavailable"));
     } finally {
       setLoading(false);
     }
@@ -142,6 +144,11 @@ export function AddressPicker({
           {t("myPosition")}
         </button>
       </div>
+      {geoErr && (
+        <p className="text-danger-600 text-center text-[12px] font-semibold">
+          {geoErr}
+        </p>
+      )}
     </div>
   );
 }

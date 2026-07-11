@@ -64,6 +64,29 @@ export function AuthPageSkeleton() {
 }
 
 /**
+ * Carte centrée sur fond `bg-surface-2` — la forme partagée des écrans d'auth
+ * secondaires (mot de passe oublié, réinitialisation, challenge 2FA). Ils sont
+ * en `force-dynamic` : sans frontière, le tap laisse un écran blanc le temps de
+ * l'aller-retour serveur. Titre + sous-titre + trois champs, comme les formulaires
+ * qu'elle remplace.
+ */
+export function CenteredCardSkeleton() {
+  return (
+    <div className="bg-surface-2 flex min-h-screen items-center justify-center p-4">
+      <div className="border-border w-full max-w-md rounded-[16px] border bg-white p-6 shadow-sm">
+        <Bar className="mb-2 h-7 w-52" />
+        <Bar className="mb-6 h-4 w-full max-w-[18rem]" />
+        <div className="space-y-3">
+          <Bar className="h-12 w-full !rounded-[12px]" />
+          <Bar className="h-12 w-full !rounded-[12px]" />
+          <Bar className="h-11 w-full !rounded-[12px]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Page de téléchargement de l'APK (`AppDownloadPage`) : lien de retour, en-tête
  * avec icône, puis la liste des avantages. Pas de châssis d'espace.
  */

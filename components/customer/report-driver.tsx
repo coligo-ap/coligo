@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { AlertTriangle, Check, Loader2, ShieldAlert } from "lucide-react";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { reportDriver } from "@/app/(customer)/commandes/reviews/actions";
 
 /**
@@ -32,6 +32,7 @@ export function ReportDriver({ orderId }: { orderId: string }) {
   const [done, setDone] = useState(false);
   const [reasonFr, setReasonFr] = useState<string | null>(null);
   const [details, setDetails] = useState("");
+  const [note, setNote] = useActionNote();
   const [pending, start] = useTransition();
 
   const submit = () => {
@@ -43,11 +44,11 @@ export function ReportDriver({ orderId }: { orderId: string }) {
         details: details.trim() || null,
       });
       if (r.ok) {
-        toast.success(t("reportSent"));
+        // Confirmation portée par le badge « signalement envoyé » (vue done).
         setDone(true);
         setOpen(false);
       } else {
-        toast.error(r.error);
+        setNote({ ok: false, text: r.error });
         if (r.error?.includes("déjà")) setDone(true);
       }
     });
@@ -115,6 +116,8 @@ export function ReportDriver({ orderId }: { orderId: string }) {
               placeholder={t("reportDetailsPlaceholder")}
               className="border-border bg-surface-2 text-foreground mt-3 w-full resize-none rounded-[12px] border px-3 py-2.5 text-[13px] outline-none"
             />
+
+            <ActionNote note={note} className="mt-3 text-center" />
 
             <div className="mt-4 flex flex-col gap-2">
               <button

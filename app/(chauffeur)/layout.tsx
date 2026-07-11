@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Sora } from "next/font/google";
 import { pwaMetadata } from "@/lib/config/pwa";
 import { RouteRefreshOnFocus } from "@/components/shared/route-refresh-on-focus";
+import { ConnectionGuard } from "@/components/shared/connection-guard";
 import { TawkChat } from "@/components/support/tawk-chat";
 import { getCurrentChauffeur } from "@/lib/auth/chauffeur";
 
@@ -45,6 +46,10 @@ export default async function ChauffeurLayout({
       {/* Refresh doux des données au retour au premier plan (complément du
           Router Cache : retour instantané puis maj asynchrone du RSC). */}
       <RouteRefreshOnFocus />
+      {/* Garde de connexion : bandeau persistant + reprise SONDÉE (jamais « en
+          ligne » sans paquet confirmé), mode Avion inclus. z-[300], au-dessus
+          de la carte Drive et des feuilles. */}
+      <ConnectionGuard />
       {/* Contexte support : rôle Chauffeur + identité, mémorisé (Tawk chargé
           seulement au clic « Aide »). */}
       <TawkChat

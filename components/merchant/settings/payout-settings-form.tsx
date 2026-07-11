@@ -2,11 +2,11 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Banknote } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Banknote } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/toast";
+import { ActionButton } from "@/components/ui/action-button";
+import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { PAYOUT_METHODS } from "@/lib/types";
 import {
   updatePayoutSettings,
@@ -35,12 +35,15 @@ export function PayoutSettingsForm({
     initial
   );
   const [auto, setAuto] = useState(payoutAuto);
+  const fb = useFormActionFeedback({
+    pending,
+    ok: state.ok,
+    error: state.error,
+  });
 
   useEffect(() => {
-    if (state.ok) {
-      toast.success(state.success ?? "Enregistré");
-      router.refresh();
-    }
+    // Succès porté par le bouton (ActionButton) — pas de toast.
+    if (state.ok) router.refresh();
   }, [state, router]);
 
   const autoOn = auto !== "none";
@@ -117,14 +120,12 @@ export function PayoutSettingsForm({
 
       {state.error && <p className="text-danger-600 text-sm">{state.error}</p>}
 
-      <Button type="submit" disabled={pending}>
-        {pending ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Banknote className="size-4" />
-        )}
-        Enregistrer
-      </Button>
+      <ActionButton
+        type="submit"
+        state={fb}
+        idleIcon={<Banknote className="size-4" />}
+        labels={{ idle: "Enregistrer", success: "Enregistré ✓" }}
+      />
     </form>
   );
 }

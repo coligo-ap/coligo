@@ -1,9 +1,10 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Ban, Loader2, LogOut, ShieldCheck } from "lucide-react";
 import { useConfirm, usePrompt } from "@/components/ui/confirm";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import {
   blockIp,
   disconnectIp,
@@ -31,7 +32,9 @@ export function IpActions({
 }) {
   const confirm = useConfirm();
   const prompt = usePrompt();
+  const router = useRouter();
   const [pending, start] = useTransition();
+  const [note, setNote] = useActionNote();
 
   const onDisconnect = () =>
     start(async () => {
@@ -45,8 +48,12 @@ export function IpActions({
       )
         return;
       const r = await disconnectIp(ip);
-      if (r.error) toast.error(r.error);
-      else toast.success(`${r.count ?? 0} session(s) déconnectée(s)`);
+      if (r.error) setNote({ ok: false, text: r.error });
+      else
+        setNote({
+          ok: true,
+          text: `${r.count ?? 0} session(s) déconnectée(s)`,
+        });
     });
 
   const onBlock = () =>
@@ -60,8 +67,9 @@ export function IpActions({
       });
       if (message === null) return; // annulé
       const r = await blockIp(ip, message);
-      if (r.error) toast.error(r.error);
-      else toast.success("IP bloquée");
+      // Succès : la puce bascule sur « Débloquer » après refresh = feedback visuel.
+      if (r.error) setNote({ ok: false, text: r.error });
+      else router.refresh();
     });
 
   const onUnblock = () =>
@@ -74,49 +82,52 @@ export function IpActions({
       )
         return;
       const r = await unblockIp(ip);
-      if (r.error) toast.error(r.error);
-      else toast.success("IP débloquée");
+      if (r.error) setNote({ ok: false, text: r.error });
+      else router.refresh();
     });
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {showDisconnect && (
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onDisconnect}
-          title="Déconnecter tous les comptes vus sur cette IP"
-          className="border-border hover:bg-surface-2 text-foreground inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
-        >
-          {pending ? (
-            <Loader2 className="size-3 animate-spin" />
-          ) : (
-            <LogOut className="size-3" />
-          )}
-          Déconnecter l&apos;IP
-        </button>
-      )}
-      {blocked ? (
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onUnblock}
-          className="border-success-200 text-success-700 hover:bg-success-50 inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
-        >
-          <ShieldCheck className="size-3" />
-          Débloquer l&apos;IP
-        </button>
-      ) : (
-        <button
-          type="button"
-          disabled={pending}
-          onClick={onBlock}
-          className="border-danger-200 text-danger-700 hover:bg-danger-50 inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
-        >
-          <Ban className="size-3" />
-          Bloquer l&apos;IP
-        </button>
-      )}
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {showDisconnect && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={onDisconnect}
+            title="Déconnecter tous les comptes vus sur cette IP"
+            className="border-border hover:bg-surface-2 text-foreground inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
+          >
+            {pending ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <LogOut className="size-3" />
+            )}
+            Déconnecter l&apos;IP
+          </button>
+        )}
+        {blocked ? (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={onUnblock}
+            className="border-success-200 text-success-700 hover:bg-success-50 inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
+          >
+            <ShieldCheck className="size-3" />
+            Débloquer l&apos;IP
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={onBlock}
+            className="border-danger-200 text-danger-700 hover:bg-danger-50 inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
+          >
+            <Ban className="size-3" />
+            Bloquer l&apos;IP
+          </button>
+        )}
+      </div>
+      <ActionNote note={note} />
     </div>
   );
 }
@@ -125,6 +136,7 @@ export function IpActions({
 export function UserDisconnect({ userId }: { userId: string }) {
   const confirm = useConfirm();
   const [pending, start] = useTransition();
+  const [note, setNote] = useActionNote();
   const onClick = () =>
     start(async () => {
       if (
@@ -137,23 +149,30 @@ export function UserDisconnect({ userId }: { userId: string }) {
       )
         return;
       const r = await disconnectUser(userId);
-      if (r.error) toast.error(r.error);
-      else toast.success(`${r.count ?? 0} session(s) déconnectée(s)`);
+      if (r.error) setNote({ ok: false, text: r.error });
+      else
+        setNote({
+          ok: true,
+          text: `${r.count ?? 0} session(s) déconnectée(s)`,
+        });
     });
   return (
-    <button
-      type="button"
-      disabled={pending}
-      onClick={onClick}
-      title="Déconnecter ce compte"
-      className="border-border hover:bg-surface-2 text-muted hover:text-foreground inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
-    >
-      {pending ? (
-        <Loader2 className="size-3 animate-spin" />
-      ) : (
-        <LogOut className="size-3" />
-      )}
-      Déconnecter le compte
-    </button>
+    <div className="space-y-1">
+      <button
+        type="button"
+        disabled={pending}
+        onClick={onClick}
+        title="Déconnecter ce compte"
+        className="border-border hover:bg-surface-2 text-muted hover:text-foreground inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
+      >
+        {pending ? (
+          <Loader2 className="size-3 animate-spin" />
+        ) : (
+          <LogOut className="size-3" />
+        )}
+        Déconnecter le compte
+      </button>
+      <ActionNote note={note} />
+    </div>
   );
 }

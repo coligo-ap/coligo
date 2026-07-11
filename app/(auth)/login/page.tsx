@@ -6,14 +6,10 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Logo } from "@/components/shared/logo";
 import { login, type AuthState } from "@/app/(merchant)/actions";
-import { APP_CONFIG } from "@/lib/config/app-config";
 import { Mail, Lock, ArrowRight } from "lucide-react";
-import { InstallBanner } from "@/components/pwa/install-banner";
-import { AuthFooter, AuthNavBar } from "@/components/shared/auth-nav";
+import { AuthScreen } from "@/components/shared/auth-screen";
 import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
-import { AuthCard } from "@/components/shared/auth-card";
 
 const initialState: AuthState = {};
 
@@ -47,160 +43,93 @@ function LoginContent() {
   const urlErrorMessage = urlError ? ERROR_MESSAGES[urlError] : null;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <AuthNavBar variant="merchant" />
-      <div className="flex flex-1 flex-col lg:grid lg:grid-cols-5">
-        {/* Colonne marketing à gauche (desktop only) — photo pro + ombre noire
-            (même traitement que les cartes commerçants de la marketplace) +
-            texte en blanc par-dessus. */}
-        <aside className="relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:col-span-2 lg:flex">
-          {/* Fond de secours (si la photo ne charge pas) */}
-          <div
-            aria-hidden
-            className="from-primary-500 via-primary-600 to-primary-800 absolute inset-0 bg-gradient-to-br"
-          />
-          {/* Photo professionnelle */}
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url("${HERO_IMG}")` }}
-          />
-          {/* Ombre noire (dégradé) pour la lisibilité du texte blanc */}
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/35"
-          />
-
-          <div className="relative z-10">
-            <Logo variant="amber" size="xl" iconOnly className="!gap-0" />
-          </div>
-
-          <div className="relative z-10">
-            <h1 className="mb-4 text-4xl leading-tight font-bold drop-shadow-md">
-              Gérez vos commandes <br />
-              en temps réel.
-            </h1>
-            <p className="mb-8 text-lg text-white/90 drop-shadow">
-              La plateforme pensée pour les commerces de proximité algériens.
-            </p>
-
-            <div className="space-y-4 text-sm">
-              <Feature title="Recevez vos commandes en direct" />
-              <Feature title="Gérez votre catalogue et vos horaires" />
-              <Feature title="Suivez votre chiffre d'affaires en temps réel" />
-              <Feature title="Récupérez vos paiements simplement" />
-            </div>
-          </div>
-
-          <p className="relative z-10 text-xs text-white/70">
-            © {new Date().getFullYear()} {APP_CONFIG.name} · Tous droits
-            réservés
-          </p>
-        </aside>
-
-        {/* Formulaire à droite */}
-        <AuthCard
-          modeTabs={
-            <AuthModeTabs
-              mode="login"
-              loginHref="/login"
-              signupHref="/signup"
-            />
-          }
-          title="Connexion"
-          subtitle="Gérez vos commandes."
-        >
-          <form action={formAction} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="vous@exemple.dz"
-                  required
-                  disabled={pending}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Mot de passe</Label>
-                <Link
-                  href="/login/mot-de-passe-oublie"
-                  className="text-muted hover:text-primary-700 text-xs"
-                >
-                  Oublié ?
-                </Link>
-              </div>
-              <div className="relative">
-                <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  required
-                  disabled={pending}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-
-            {(state.error || urlErrorMessage) && (
-              <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
-                {state.error ?? urlErrorMessage}
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full"
+    <AuthScreen
+      navVariant="merchant"
+      installLabel="Installer l'application Commerçant"
+      showPortal
+      hero={{
+        title: (
+          <>
+            Gérez vos commandes <br />
+            en temps réel.
+          </>
+        ),
+        subtitle:
+          "La plateforme pensée pour les commerces de proximité algériens.",
+        features: [
+          "Recevez vos commandes en direct",
+          "Gérez votre catalogue et vos horaires",
+          "Suivez votre chiffre d'affaires en temps réel",
+          "Récupérez vos paiements simplement",
+        ],
+        imageUrl: HERO_IMG,
+      }}
+      cardTitle="Connexion"
+      cardSubtitle="Gérez vos commandes."
+      modeTabs={
+        <AuthModeTabs mode="login" loginHref="/login" signupHref="/signup" />
+      }
+    >
+      <form action={formAction} className="space-y-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="email">Email</Label>
+          <div className="relative">
+            <Mail className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="vous@exemple.dz"
+              required
               disabled={pending}
-            >
-              {pending ? (
-                "Connexion…"
-              ) : (
-                <>
-                  Se connecter
-                  <ArrowRight className="size-4" />
-                </>
-              )}
-            </Button>
-          </form>
-        </AuthCard>
-      </div>
-      <AuthFooter showPortal />
-      {/* Petit popup d'installation, persistant jusqu'à l'install (fermable). */}
-      <InstallBanner label="Installer l'application Commerçant" />
-    </div>
-  );
-}
+              className="pl-9"
+            />
+          </div>
+        </div>
 
-function Feature({ title }: { title: string }) {
-  return (
-    <div className="flex items-center gap-3 drop-shadow">
-      <div className="bg-primary-500 flex size-6 shrink-0 items-center justify-center rounded-full ring-2 ring-white/25">
-        <svg
-          className="size-3.5 text-white"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-        >
-          <path
-            fillRule="evenodd"
-            d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-            clipRule="evenodd"
-          />
-        </svg>
-      </div>
-      <span>{title}</span>
-    </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Mot de passe</Label>
+            <Link
+              href="/login/mot-de-passe-oublie"
+              className="text-muted hover:text-primary-700 text-xs"
+            >
+              Oublié ?
+            </Link>
+          </div>
+          <div className="relative">
+            <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="••••••••"
+              required
+              disabled={pending}
+              className="pl-9"
+            />
+          </div>
+        </div>
+
+        {(state.error || urlErrorMessage) && (
+          <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+            {state.error ?? urlErrorMessage}
+          </div>
+        )}
+
+        <Button type="submit" size="lg" className="w-full" disabled={pending}>
+          {pending ? (
+            "Connexion…"
+          ) : (
+            <>
+              Se connecter
+              <ArrowRight className="size-4" />
+            </>
+          )}
+        </Button>
+      </form>
+    </AuthScreen>
   );
 }

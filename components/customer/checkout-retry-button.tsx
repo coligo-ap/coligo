@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { retryOnlineOrderPayment } from "@/app/(customer)/checkout/actions";
 
 // =============================================================================
@@ -16,31 +16,36 @@ import { retryOnlineOrderPayment } from "@/app/(customer)/checkout/actions";
 export function CheckoutRetryButton({ orderId }: { orderId: string }) {
   const t = useTranslations("checkout");
   const [pending, start] = useTransition();
+  const [note, setNote] = useActionNote();
   return (
-    <Button
-      type="button"
-      size="lg"
-      onClick={() =>
-        start(async () => {
-          const res = await retryOnlineOrderPayment(orderId);
-          if (!res.ok) {
-            toast.error(res.error);
-            return;
-          }
-          window.location.href = res.checkout_url;
-        })
-      }
-      disabled={pending}
-      className="w-full"
-    >
-      {pending ? (
-        <Loader2 className="size-4 animate-spin" />
-      ) : (
-        <>
-          <RefreshCcw className="size-4" />
-          {t("retryPayment")}
-        </>
-      )}
-    </Button>
+    <div className="space-y-2">
+      <Button
+        type="button"
+        size="lg"
+        onClick={() =>
+          start(async () => {
+            setNote(null);
+            const res = await retryOnlineOrderPayment(orderId);
+            if (!res.ok) {
+              setNote({ ok: false, text: res.error });
+              return;
+            }
+            window.location.href = res.checkout_url;
+          })
+        }
+        disabled={pending}
+        className="w-full"
+      >
+        {pending ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <>
+            <RefreshCcw className="size-4" />
+            {t("retryPayment")}
+          </>
+        )}
+      </Button>
+      <ActionNote note={note} className="text-center" />
+    </div>
   );
 }

@@ -12,9 +12,10 @@ import {
   Trash2,
   UserCog,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { toast } from "@/components/ui/toast";
 import { useConfirm, usePrompt } from "@/components/ui/confirm";
+import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import {
   createStaffAdmin,
   updateAdminDomains,
@@ -90,6 +91,7 @@ function CreateForm() {
   const [password, setPassword] = useState("");
   const [domains, setDomains] = useState<string[]>([]);
   const [pending, start] = useTransition();
+  const [note, setNote] = useActionNote();
 
   const toggle = (k: string) =>
     setDomains((d) => (d.includes(k) ? d.filter((x) => x !== k) : [...d, k]));
@@ -98,10 +100,10 @@ function CreateForm() {
     start(async () => {
       const res = await createStaffAdmin({ email, label, password, domains });
       if (res.error) {
-        toast.error(res.error);
+        setNote({ ok: false, text: res.error });
         return;
       }
-      toast.success("Administrateur créé.");
+      // Succès : le panneau se ferme (feedback visuel), pas de toast.
       setEmail("");
       setLabel("");
       setPassword("");
@@ -185,6 +187,7 @@ function CreateForm() {
         </div>
       </div>
 
+      <ActionNote note={note} className="pt-1" />
       <div className="flex items-center gap-2 pt-1">
         <button
           type="button"
@@ -221,11 +224,13 @@ function AdminCard({
   admin: AdminRow;
   selfEmail: string;
 }) {
+  const router = useRouter();
   const confirm = useConfirm();
   const prompt = usePrompt();
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string[]>(admin.domains);
+  const [note, setNote] = useActionNote();
 
   const isSelf = admin.email.toLowerCase() === selfEmail;
   const isOwner = admin.role === "owner";
@@ -233,13 +238,14 @@ function AdminCard({
   const run = (fn: () => Promise<{ error?: string; ok?: boolean }>) =>
     start(async () => {
       const res = await fn();
-      if (res.error) toast.error(res.error);
-      else toast.success("Modification appliquée.");
+      // Succès : la liste se met à jour (rôle/domaines/retrait) via refresh.
+      if (res.error) setNote({ ok: false, text: res.error });
+      else router.refresh();
     });
 
   const saveDomains = () => {
     if (draft.length === 0) {
-      toast.error("Choisis au moins un domaine.");
+      setNote({ ok: false, text: "Choisis au moins un domaine." });
       return;
     }
     run(() => updateAdminDomains(admin.email, draft));
@@ -407,6 +413,8 @@ function AdminCard({
           <ActionBtn icon={Trash2} label="Retirer" danger onClick={doDelete} />
         )}
       </div>
+
+      <ActionNote note={note} className="mt-2" />
     </div>
   );
 }

@@ -30,6 +30,28 @@ ligne délai). Règles :
 - si deux blocs montrent la même donnée, garder celui « d'un coup d'œil »
   (héro) et supprimer l'autre, ou fusionner.
 
+## UX — RIEN ne doit sortir du champ visible (mobile en priorité)
+
+Tout élément flottant — **menu déroulant, popover, tooltip, feuille, bulle,
+sélecteur** — doit s'ouvrir **VERS L'INTÉRIEUR** de l'écran, jamais déborder
+hors du viewport. Bug vécu : le menu « Outils/Filtres » du catalogue commerçant
+(`absolute right-0 w-60`) était ancré à droite alors que le bouton est **à
+gauche** de la barre sur mobile → le menu de 240px partait 240px **hors écran à
+gauche**. Règles :
+
+- ancrer le panneau au bord du bouton du côté où il y a **de la place** :
+  bouton à gauche ⇒ `start-0` (s'ouvre vers la droite), bouton à droite ⇒
+  `end-0`. Utiliser les propriétés **logiques** (`start`/`end`, `ms`/`me`), pas
+  `left`/`right`, pour rester correct en **RTL** (arabe) ;
+- ajouter un garde-fou de largeur : `max-w-[calc(100vw-2rem)]` (ou
+  `max-w-[100vw]`) sur tout panneau flottant large, pour qu'il ne dépasse
+  JAMAIS la largeur de l'écran quelle que soit la position du bouton ;
+- vérifier **sur mobile** (viewport ~360px) : ouvrir chaque popup/menu et
+  s'assurer qu'il est entièrement visible et tapable ;
+- pour un menu dont le bouton peut être n'importe où, préférer un centrage
+  (`left-1/2 -translate-x-1/2`) ou une feuille ancrée en bas plutôt qu'un
+  ancrage latéral fragile.
+
 ## Accès production Supabase (à utiliser SANS REDEMANDER)
 
 Pour toute tâche d'admin/DB, **fais-le toi-même** au lieu de me lister
