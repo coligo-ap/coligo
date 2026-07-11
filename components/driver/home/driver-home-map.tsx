@@ -6,6 +6,7 @@ import {
   useDriverPosition,
   refreshDriverPosition,
 } from "@/lib/native/use-driver-position";
+import { useDriverOnline } from "@/lib/driver/online-store";
 import { MAP_STYLE_URL } from "@/lib/config/map";
 import { getDemandZones } from "@/app/(driver)/actions";
 import {
@@ -41,6 +42,12 @@ export function DriverHomeMap({
   const meMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
   const coords = useDriverPosition();
   const followedOnce = useRef(false);
+  // EN LIGNE → vagues radar sur ma position (style Bolt) : montre que la
+  // recherche de demandes est active. Réf pour l'état initial du marqueur
+  // (créé dans un effet async), effet dédié pour les bascules GO/STOP.
+  const online = useDriverOnline();
+  const onlineRef = useRef(online);
+  onlineRef.current = online;
   // Force un fix GPS FRAIS au montage (prompt de permission au besoin) → la
   // carte se cale sur la vraie position du livreur sans rester sur le centre par
   // défaut en attendant le 1er relevé du watch (parité avec l'accueil chauffeur).
@@ -229,8 +236,12 @@ export function DriverHomeMap({
         el.style.cssText =
           "position:relative;width:20px;height:20px;cursor:pointer";
         // Pulse et point partagent le MÊME centre (left/top 50% + marges
-        // négatives) → l'onde reste bien concentrique au point.
+        // négatives) → l'onde reste bien concentrique au point. Les vagues
+        // RADAR (data-radar) ne s'affichent qu'EN LIGNE (cf. effet dédié).
+        const wave = (delay: string) =>
+          `<div style="position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(108,43,217,.28);animation:me-radar-wave 2.4s ease-out ${delay} infinite"></div>`;
         el.innerHTML = `
+          <div data-radar style="display:${onlineRef.current ? "block" : "none"}">${wave("0s")}${wave(".8s")}${wave("1.6s")}</div>
           <div style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:rgba(108,43,217,.25);animation:driver-me-pulse 2s infinite"></div>
           <div style="position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#6c2bd9;border:3px solid #fff;box-shadow:0 0 0 2px rgba(108,43,217,.6),0 4px 12px rgba(0,0,0,.3)"></div>`;
         el.addEventListener("click", (e) => {
@@ -251,6 +262,14 @@ export function DriverHomeMap({
       }
     });
   }, [coords]);
+
+  // Bascule GO/STOP → montre/cache les vagues radar SANS recréer le marqueur.
+  useEffect(() => {
+    const radar = meMarkerRef.current
+      ?.getElement()
+      .querySelector<HTMLElement>("[data-radar]");
+    if (radar) radar.style.display = online ? "block" : "none";
+  }, [online, coords]);
 
   // Rafraîchit les zones de forte demande (temps réel léger : 60 s).
   useEffect(() => {

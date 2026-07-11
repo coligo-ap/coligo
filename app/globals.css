@@ -262,6 +262,22 @@ body {
     opacity: 0;
   }
 }
+/* Vagues RADAR sur la position du partenaire EN LIGNE en attente de demandes
+   (style Bolt) : 3 ondes décalées qui s'étendent largement — le livreur/
+   chauffeur voit que la recherche de demandes est active. */
+@keyframes me-radar-wave {
+  0% {
+    transform: scale(0.45);
+    opacity: 0.7;
+  }
+  70% {
+    opacity: 0.22;
+  }
+  100% {
+    transform: scale(4.6);
+    opacity: 0;
+  }
+}
 /* Timer ring de l'offre de course (écran 2). */
 @keyframes driver-spin {
   to {

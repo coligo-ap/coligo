@@ -102,6 +102,9 @@ type Marker = {
   /** Étiquette A (départ) / B (arrivée) — affichée sur l'épingle pour bien
    *  comprendre le trajet sur la carte. */
   label?: "A" | "B";
+  /** kind "me" seulement : vagues RADAR (partenaire EN LIGNE en attente de
+   *  demandes, style Bolt) — rassure : la recherche est active. */
+  radar?: boolean;
 };
 
 export function DriveMap({
@@ -404,11 +407,17 @@ export function DriveMap({
     if (!map || !ready) return;
     void import("maplibre-gl").then(({ Marker: Mk }) => {
       const seen = new Set<string>();
+      const setRadar = (host: HTMLElement, on: boolean) => {
+        const r = host.querySelector<HTMLElement>("[data-radar]");
+        if (r) r.style.display = on ? "block" : "none";
+      };
       for (const m of markers) {
         seen.add(m.id);
         const existing = markerObjs.current.get(m.id);
         if (existing) {
           existing.setLngLat([m.pos.lng, m.pos.lat]);
+          // Vagues radar togglées SANS recréer le marqueur (l'élément vit).
+          if (m.kind === "me") setRadar(existing.getElement(), !!m.radar);
           continue;
         }
         const el = document.createElement("div");
@@ -423,8 +432,18 @@ export function DriveMap({
             m.label +
             "</span></div>";
         } else if (m.kind === "me") {
+          // Vagues radar DERRIÈRE le point (3 ondes décalées), montrées quand
+          // le partenaire est en ligne en attente (m.radar) — cf. globals.css.
+          const wave = (delay: string) =>
+            `<div style="position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(108,43,217,.28);animation:me-radar-wave 2.4s ease-out ${delay} infinite"></div>`;
+          el.style.position = "relative";
           el.innerHTML =
-            '<div style="width:20px;height:20px;border-radius:50%;background:#6C2BD9;border:4px solid #fff;box-shadow:0 0 0 6px rgba(108,43,217,.38)"></div>';
+            `<div data-radar style="display:${m.radar ? "block" : "none"}">` +
+            wave("0s") +
+            wave(".8s") +
+            wave("1.6s") +
+            "</div>" +
+            '<div style="position:relative;width:20px;height:20px;border-radius:50%;background:#6C2BD9;border:4px solid #fff;box-shadow:0 0 0 6px rgba(108,43,217,.38)"></div>';
         } else if (m.kind === "car") {
           el.innerHTML =
             '<div style="width:38px;height:38px;border-radius:50%;background:#0B0C12;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 8px 18px -4px rgba(0,0,0,.4)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14l-1.5-5.5a2 2 0 0 0-1.9-1.5H8.4a2 2 0 0 0-1.9 1.5L5 17Z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/></svg></div>';

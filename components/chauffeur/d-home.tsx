@@ -571,7 +571,13 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
   return (
     <div className="drive-jakarta drive-screen bg-[var(--d-page)]">
       <DriveMap
-        markers={me ? [{ id: "me", pos: me, kind: "me" }] : []}
+        // Vagues radar sur ma position quand je suis EN LIGNE sans course en
+        // cours (style Bolt) : la recherche de demandes est visiblement active.
+        markers={
+          me
+            ? [{ id: "me", pos: me, kind: "me", radar: online && !current }]
+            : []
+        }
         heatZones={home?.heatZones ?? []}
         focusTarget={focusMe}
         fallbackCenter={presenceCenter}
