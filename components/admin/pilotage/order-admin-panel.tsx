@@ -23,6 +23,7 @@ import {
   adminDecideNoCompensation,
   adminMarkDeliveryFailed,
   adminReassignOrderDriver,
+  adminRequeueCancelledDelivery,
   adminRefundCustomer,
   adminRefundMerchant,
   adminValidateDelivery,
@@ -92,6 +93,9 @@ export function OrderAdminPanel({
     !!order.driverId &&
     order.pickedUp;
   const canReassign = order.isDelivery && !terminal;
+  // Remise au canal : livraison ANNULÉE non livrée (le serveur re-vérifie
+  // livrée/remboursée — ici seulement le gate visuel).
+  const canRequeue = order.isDelivery && order.status === "cancelled";
   const canRefundCustomer = order.refundRemainingDa > 0;
 
   // Livreurs proposables pour l'indemnisation : porteur actuel + ceux du ledger.
@@ -237,6 +241,33 @@ export function OrderAdminPanel({
             {order.driverId
               ? "Retirer / réattribuer le livreur"
               : "Attribuer un livreur"}
+          </button>
+        )}
+        {/* Livraison ANNULÉE → remise au canal de proposition (façon Uber).
+            La RPC refuse serveur-side si livrée ou déjà remboursée. */}
+        {canRequeue && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={async () => {
+              if (
+                !(await confirm({
+                  title: "Remettre cette livraison au canal ?",
+                  message:
+                    "La commande annulée repasse « prête » : l'attribution et les refus sont purgés, et elle est re-proposée immédiatement au réseau de livreurs.",
+                  confirmLabel: "Remettre au canal",
+                }))
+              )
+                return;
+              run(
+                () => adminRequeueCancelledDelivery({ orderId: order.id }),
+                "Commande remise au canal — réseau re-notifié."
+              );
+            }}
+            className={btn("neutral")}
+          >
+            <RefreshCw className="size-3.5" />
+            Remettre au canal (annulée)
           </button>
         )}
       </div>

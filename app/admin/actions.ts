@@ -1141,6 +1141,63 @@ export async function adminReassignOrderDriver(input: {
 }
 
 /**
+ * Remise au CANAL DE PROPOSITION d'une livraison ANNULÉE (façon Uber) : la
+ * commande repasse 'ready', l'attribution et les refus sont purgés (fresh
+ * start) et le réseau est re-notifié comme pour une nouvelle course express.
+ * La RPC (0358) refuse si livrée ou déjà remboursée (aucun risque financier).
+ */
+export async function adminRequeueCancelledDelivery(input: {
+  orderId: string;
+  reason?: string | null;
+}): Promise<AdminFormState> {
+  if (!(await adminCan("pilotage"))) return { error: "Accès refusé." };
+
+  const supabase = await createClient();
+  const rpc = supabase.rpc.bind(supabase) as unknown as AdminRpc;
+  const { data, error } = await rpc("admin_requeue_cancelled_delivery", {
+    p_order_id: input.orderId,
+    p_reason: input.reason ?? null,
+  });
+  if (error) return { error: error.message };
+
+  const res = (data ?? {}) as { ok?: boolean; reason?: string };
+  if (!res.ok) {
+    const map: Record<string, string> = {
+      forbidden: "Accès refusé.",
+      order_not_found: "Commande introuvable.",
+      not_delivery: "Ce n'est pas une commande de livraison.",
+      not_cancelled: "La commande n'est pas annulée.",
+      already_delivered: "Commande déjà livrée : rien à re-proposer.",
+      already_refunded:
+        "Un remboursement a déjà été émis : remise au canal impossible.",
+    };
+    return { error: map[res.reason ?? ""] ?? "Remise au canal impossible." };
+  }
+
+  await logAdmin(
+    supabase,
+    "requeue_cancelled_order",
+    input.orderId,
+    input.reason ?? null,
+    {
+      oldValue: { status: "cancelled" },
+      newValue: { status: "ready" },
+    }
+  );
+
+  // Re-broadcast au réseau comme une NOUVELLE course express (best-effort).
+  try {
+    const { notifyDriversNewExpress } = await import("@/lib/fcm/triggers");
+    await notifyDriversNewExpress({ orderId: input.orderId });
+  } catch {
+    /* noop */
+  }
+
+  refreshOrder(input.orderId);
+  return { ok: true };
+}
+
+/**
  * Indemnise un livreur sur une commande (montant personnalisable + motif
  * OBLIGATOIRE). UNE indemnité max par commande (garde structurelle en base).
  * L'écriture arrive « à recevoir » sur le prochain relevé du livreur.
