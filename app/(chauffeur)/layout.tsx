@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Sora } from "next/font/google";
 import { pwaMetadata } from "@/lib/config/pwa";
 import { RouteRefreshOnFocus } from "@/components/shared/route-refresh-on-focus";
 import { ConnectionGuard } from "@/components/shared/connection-guard";
+import { ConfirmProvider } from "@/components/ui/confirm";
 import { TawkChat } from "@/components/support/tawk-chat";
 import { getCurrentChauffeur } from "@/lib/auth/chauffeur";
 
@@ -63,7 +64,9 @@ export default async function ChauffeurLayout({
           "Plaque véhicule": chauffeur?.vehicle_plate,
         }}
       />
-      {children}
+      {/* PIÈGE latent réparé : sans ce provider, le premier useConfirm()
+          introduit ici retomberait SILENCIEUSEMENT sur la boîte native. */}
+      <ConfirmProvider>{children}</ConfirmProvider>
     </div>
   );
 }

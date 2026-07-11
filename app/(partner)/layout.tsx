@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { TawkChat } from "@/components/support/tawk-chat";
+import { ConfirmProvider } from "@/components/ui/confirm";
 import { getCurrentPartner } from "@/lib/auth/partner";
 
 // Espace point de recharge partenaire — confiné à /partenaire par le middleware
@@ -25,7 +26,9 @@ export default async function PartnerLayout({
           Vérifié: partner?.isVerified,
         }}
       />
-      {children}
+      {/* Provider monté PRÉVENTIVEMENT : sans lui, le premier useConfirm()
+          introduit ici retomberait SILENCIEUSEMENT sur la boîte native. */}
+      <ConfirmProvider>{children}</ConfirmProvider>
     </div>
   );
 }
