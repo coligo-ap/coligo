@@ -9,6 +9,7 @@ import {
   PayMethodsRow,
   SubsHero,
   SubsHistory,
+  SubsTabs,
   type SubsHistoryRow,
 } from "@/components/partner/subs-ui";
 
@@ -16,10 +17,10 @@ export const dynamic = "force-dynamic";
 
 /**
  * Abonnements chauffeur — MÊMES composants que la page livreur (subs-ui
- * partagé : héro vendeur, carrousel d'avantages, réassurance paiement,
- * historique), les DONNÉES s'adaptent : Pass Prioritaire + plans de
- * commission (liste + paiement rendus par DSubs, logique inchangée —
- * webhook seul fait foi).
+ * partagé), les DONNÉES s'adaptent : Pass Prioritaire + plans de commission
+ * (liste + paiement rendus par DSubs, logique inchangée — webhook seul fait
+ * foi). Découpé en SOUS-PAGES (Offres · Avantages · Historique, style Bolt) :
+ * copy minimale, un seul sujet à l'écran, panneaux montés en permanence.
  */
 
 // Libellés de plans (local : d-ui est un module client, non importable ici
@@ -120,55 +121,79 @@ export default async function ChauffeurAbonnementPage() {
 
   return (
     <div className="drive-jakarta pt-safe pb-safe-nav">
-      <div className="mx-auto max-w-[560px] space-y-3 px-4">
-        {/* Héro vendeur (composant partagé livreur/chauffeur). */}
+      {/* Héro compact (copy minimale) partagé au-dessus des onglets. */}
+      <div className="mx-auto max-w-[560px] px-4 pb-3">
         <SubsHero
           title="Roulez prioritaire, gardez plus."
-          subtitle="Le Pass vous met en tête des demandes proches ; les plans réduisent votre commission. Sans engagement, changez quand vous voulez."
-        />
-
-        {/* Avantages en carrousel (scroll horizontal). */}
-        <BenefitsCarousel
-          items={[
-            {
-              icon: "zap",
-              title: "Proposé en premier",
-              text: "Les demandes proches vous sont proposées avant les autres chauffeurs.",
-            },
-            {
-              icon: "crown",
-              title: "Gardez plus",
-              text: "Plans à commission réduite — plus de gains sur chaque course.",
-            },
-            {
-              icon: "badge",
-              title: "Badge visible",
-              text: "Votre badge s'affiche chez le client — confiance immédiate.",
-            },
-            {
-              icon: "shield",
-              title: "Zéro blocage",
-              text: "La priorité accélère, elle ne vous enlève jamais une course.",
-            },
-          ]}
+          subtitle="Priorité sur les demandes, commission réduite. Sans engagement."
         />
       </div>
 
-      {/* Offres (Prioritaire → Gratuit → plans) + paiement — logique DSubs
-          inchangée. Suspense : requis par useSearchParams (?card=…). */}
-      <div className="mt-3">
-        <Suspense fallback={null}>
-          <DSubs hideIntro />
-        </Suspense>
-      </div>
-
-      <div className="mx-auto mt-3 max-w-[560px] space-y-3 px-4">
-        {/* Réassurance moyens de paiement. */}
-        <PayMethodsRow />
-
-        {/* Historique unifié (plans + Pass). */}
-        <SubsHistory rows={history} />
-      </div>
+      <SubsTabs
+        navClassName="mx-auto max-w-[560px] px-4"
+        tabs={[
+          {
+            id: "offres",
+            label: "Offres",
+            // Prioritaire → Gratuit → plans + paiement — logique DSubs
+            // inchangée. Suspense : requis par useSearchParams (?card=…).
+            content: (
+              <div className="mt-3">
+                <Suspense fallback={null}>
+                  <DSubs hideIntro />
+                </Suspense>
+              </div>
+            ),
+          },
+          {
+            id: "avantages",
+            label: "Avantages",
+            content: (
+              <div className="mx-auto mt-3 max-w-[560px] space-y-3 px-4">
+                <BenefitsCarousel
+                  items={[
+                    {
+                      icon: "zap",
+                      title: "Proposé en premier",
+                      text: "Les demandes proches, avant les autres.",
+                    },
+                    {
+                      icon: "crown",
+                      title: "Gardez plus",
+                      text: "Commission réduite sur chaque course.",
+                    },
+                    {
+                      icon: "badge",
+                      title: "Badge visible",
+                      text: "Confiance immédiate côté client.",
+                    },
+                    {
+                      icon: "shield",
+                      title: "Zéro blocage",
+                      text: "Jamais une course en moins.",
+                    },
+                  ]}
+                />
+                <PayMethodsRow />
+              </div>
+            ),
+          },
+          {
+            id: "historique",
+            label: "Historique",
+            badge: history.length,
+            content: (
+              <div className="mx-auto mt-3 max-w-[560px] px-4">
+                <SubsHistory
+                  rows={history}
+                  defaultOpen
+                  emptyText="Aucune opération pour l'instant."
+                />
+              </div>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }

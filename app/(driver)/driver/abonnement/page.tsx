@@ -11,6 +11,7 @@ import {
   PayMethodsRow,
   SubsHero,
   SubsHistory,
+  SubsTabs,
   type SubsHistoryRow,
 } from "@/components/partner/subs-ui";
 
@@ -18,9 +19,10 @@ export const dynamic = "force-dynamic";
 
 /**
  * SOUS-PAGE « Abonnement & Pass » livreur — MÊMES composants que la page
- * chauffeur (subs-ui partagé : héro vendeur, carrousel d'avantages,
- * réassurance paiement, historique), seules les DONNÉES changent : le livreur
- * n'a que le Pass Prioritaire (géré par la PriorityCard partagée).
+ * chauffeur (subs-ui partagé), seules les DONNÉES changent : le livreur n'a
+ * que le Pass Prioritaire (PriorityCard partagée). Découpé en SOUS-PAGES
+ * (Pass · Avantages · Historique, style Bolt) : copy minimale, un seul sujet
+ * à l'écran, panneaux montés en permanence.
  */
 
 const METHOD_LABEL: Record<string, string> = {
@@ -89,46 +91,73 @@ export default async function DriverAbonnementPage() {
       <PartnerBackHeader href="/driver/parametres" title="Abonnement & Pass" />
 
       <div className="space-y-3">
-        {/* Héro vendeur (composant partagé livreur/chauffeur). */}
+        {/* Héro compact (copy minimale) partagé au-dessus des onglets. */}
         <SubsHero
           title="Passe devant, gagne plus."
-          subtitle="Le Pass Prioritaire te propose les courses proches en premier — plus de courses, plus de gains, sans jamais te bloquer."
+          subtitle="Les courses proches, proposées en premier. Sans engagement."
         />
 
-        {/* Avantages en carrousel (scroll horizontal). */}
-        <BenefitsCarousel
-          items={[
+        <SubsTabs
+          tabs={[
             {
-              icon: "zap",
-              title: "Proposé en premier",
-              text: "Les courses proches te sont proposées avant les autres livreurs.",
+              id: "pass",
+              label: "Pass",
+              // Souscription / statut / renouvellement (carte partagée).
+              content: (
+                <div className="mt-3">
+                  <PriorityCard />
+                </div>
+              ),
             },
             {
-              icon: "badge",
-              title: "Badge Prioritaire",
-              text: "Visible par le client — inspire confiance et fidélise.",
+              id: "avantages",
+              label: "Avantages",
+              content: (
+                <div className="mt-3 space-y-3">
+                  <BenefitsCarousel
+                    items={[
+                      {
+                        icon: "zap",
+                        title: "Proposé en premier",
+                        text: "Les courses proches, avant les autres.",
+                      },
+                      {
+                        icon: "badge",
+                        title: "Badge Prioritaire",
+                        text: "Visible par le client.",
+                      },
+                      {
+                        icon: "shield",
+                        title: "Zéro blocage",
+                        text: "Jamais une course en moins.",
+                      },
+                      {
+                        icon: "wallet",
+                        title: "Activation immédiate",
+                        text: "Coligo Pay ou carte.",
+                      },
+                    ]}
+                  />
+                  <PayMethodsRow />
+                </div>
+              ),
             },
             {
-              icon: "shield",
-              title: "Zéro blocage",
-              text: "La priorité accélère, elle ne t'enlève jamais une course.",
-            },
-            {
-              icon: "wallet",
-              title: "Activation immédiate",
-              text: "Paie avec Coligo Pay ou ta carte — actif tout de suite.",
+              id: "historique",
+              label: "Historique",
+              badge: history.length,
+              content: (
+                <div className="mt-3">
+                  <SubsHistory
+                    rows={history}
+                    defaultOpen
+                    emptyText="Aucune opération pour l'instant."
+                  />
+                </div>
+              ),
             },
           ]}
         />
-
-        {/* Souscription / statut / renouvellement (carte partagée). */}
-        <PriorityCard />
-
-        {/* Réassurance moyens de paiement. */}
-        <PayMethodsRow />
-
-        {/* Historique unifié. */}
-        <SubsHistory rows={history} />
       </div>
     </DriverShell>
   );
