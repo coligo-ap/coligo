@@ -76,7 +76,9 @@ export function CustomerChrome({
   const noHeader = bare || isNoHeader(pathname);
 
   return (
-    <div data-space="client" className="bg-surface-2 min-h-screen">
+    // Fond BLANC uniforme (style Bolt Food) sur TOUT l'espace client — les
+    // cartes portent la hiérarchie par leurs BORDURES, plus par l'ombre.
+    <div data-space="client" className="min-h-screen bg-white">
       <ClientThemeScope />
       {/* Refresh doux des données au retour au premier plan. */}
       <RouteRefreshOnFocus />

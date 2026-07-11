@@ -2,8 +2,10 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import {
+  AlertTriangle,
   ArrowDownToLine,
   CheckCircle2,
+  Clock,
   Gift,
   HandCoins,
   Info,
@@ -13,6 +15,7 @@ import {
   Send,
   ShieldCheck,
   Store,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,8 +37,6 @@ import {
   setPin as setPinAction,
   type PartnerStats,
 } from "@/app/(partner)/actions";
-
-const BRAND = "linear-gradient(135deg,#5B2EFF 0%,#6C2BD9 100%)";
 
 const ENTRY_LABEL: Record<string, string> = {
   topup_chargily: "Recharge carte",
@@ -91,26 +92,23 @@ export function PartnerDashboard({
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-4">
       {/* ===== HERO ===== */}
-      <div
-        className="relative overflow-hidden rounded-[20px] p-5 text-white shadow-lg"
-        style={{ background: BRAND }}
-      >
+      <div className="border-border relative overflow-hidden rounded-[20px] border bg-white p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="flex size-10 items-center justify-center rounded-2xl bg-white/20">
+            <span className="bg-primary-50 text-primary-700 flex size-10 items-center justify-center rounded-2xl">
               <Store className="size-5" />
             </span>
             <div>
-              <p className="flex items-center gap-1.5 text-[15px] leading-tight font-bold">
+              <p className="text-foreground flex items-center gap-1.5 text-[15px] leading-tight font-bold">
                 {displayName}
                 {isVerified && (
                   <BadgeCheck
-                    className="size-4 text-white/90"
+                    className="text-success-600 size-4"
                     aria-label="Vérifié"
                   />
                 )}
               </p>
-              <p className="text-xs text-white/70">
+              <p className="text-muted text-xs">
                 {address ?? "Agent Coligo Pay"}
               </p>
             </div>
@@ -118,15 +116,15 @@ export function PartnerDashboard({
           <form action={partnerLogout}>
             <button
               type="submit"
-              className="flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium hover:bg-white/25"
+              className="border-border text-muted hover:bg-surface-2 flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium"
             >
               <LogOut className="size-3.5" /> Quitter
             </button>
           </form>
         </div>
 
-        <p className="mt-4 text-xs text-white/70">Solde disponible</p>
-        <p className="text-3xl font-extrabold tabular-nums">
+        <p className="text-muted mt-4 text-xs">Solde disponible</p>
+        <p className="text-foreground text-3xl font-extrabold tabular-nums">
           {stats ? formatDA(stats.balanceDa) : "…"}
         </p>
 
@@ -149,21 +147,30 @@ export function PartnerDashboard({
         </div>
 
         {status === "pending" && (
-          <div className="mt-3 rounded-[12px] bg-white/15 p-2.5 text-xs font-semibold">
-            ⏳ Demande en cours d&apos;examen. Complétez votre dossier
-            ci-dessous — Coligo l&apos;active dès validation.
+          <div className="border-warning-200 bg-warning-50 text-warning-800 mt-3 flex items-start gap-2 rounded-[12px] border p-2.5 text-xs font-semibold">
+            <Clock className="mt-0.5 size-3.5 shrink-0" />
+            <span>
+              Demande en cours d&apos;examen. Complétez votre dossier ci-dessous
+              — Coligo l&apos;active dès validation.
+            </span>
           </div>
         )}
         {status === "rejected" && (
-          <div className="mt-3 rounded-[12px] bg-white/15 p-2.5 text-xs font-semibold">
-            ❌ Dossier refusé{rejectedReason ? ` : ${rejectedReason}` : ""}.
-            Corrigez vos pièces ci-dessous puis renvoyez.
+          <div className="border-danger-200 bg-danger-50 text-danger-700 mt-3 flex items-start gap-2 rounded-[12px] border p-2.5 text-xs font-semibold">
+            <XCircle className="mt-0.5 size-3.5 shrink-0" />
+            <span>
+              Dossier refusé{rejectedReason ? ` : ${rejectedReason}` : ""}.
+              Corrigez vos pièces ci-dessous puis renvoyez.
+            </span>
           </div>
         )}
         {(status === "suspended" || status === "disabled") && (
-          <div className="mt-3 rounded-[12px] bg-white/15 p-2.5 text-xs font-semibold">
-            ⚠️ Compte {status === "suspended" ? "suspendu" : "désactivé"} —
-            contactez Coligo pour le réactiver.
+          <div className="border-warning-200 bg-warning-50 text-warning-800 mt-3 flex items-start gap-2 rounded-[12px] border p-2.5 text-xs font-semibold">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+            <span>
+              Compte {status === "suspended" ? "suspendu" : "désactivé"} —
+              contactez Coligo pour le réactiver.
+            </span>
           </div>
         )}
       </div>
@@ -284,11 +291,13 @@ function HeroChip({
   value: string;
 }) {
   return (
-    <div className="rounded-[12px] bg-white/15 p-2">
-      <span className="flex items-center gap-1 text-[10px] text-white/70">
+    <div className="border-border bg-surface-2 rounded-[12px] border p-2">
+      <span className="text-muted flex items-center gap-1 text-[10px]">
         {icon} {label}
       </span>
-      <p className="mt-0.5 text-sm font-bold tabular-nums">{value}</p>
+      <p className="text-foreground mt-0.5 text-sm font-bold tabular-nums">
+        {value}
+      </p>
     </div>
   );
 }

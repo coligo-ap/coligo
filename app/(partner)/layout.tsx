@@ -13,7 +13,7 @@ export default async function PartnerLayout({
   // Identité Agent Coligo Pay (contexte support Tawk — best-effort).
   const partner = await getCurrentPartner();
   return (
-    <div className="bg-surface-2 min-h-screen">
+    <div className="min-h-screen bg-white">
       {/* Contexte support : rôle « Agent Coligo Pay » + identité. */}
       <TawkChat
         role="agent"
