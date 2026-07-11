@@ -121,7 +121,9 @@
     "discountAppliedAria": "Réduction appliquée",
     "promoOffersTitle": "Offres du moment",
     "offertCarousel": "Achat offert",
-    "offered": "Offert"
+    "offered": "Offert",
+    "moreInfo": "Plus d'infos",
+    "practicalInfo": "Infos pratiques"
   },
   "cart": {
     "monoTitle": "Commencer un nouveau panier ?",

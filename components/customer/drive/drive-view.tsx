@@ -1004,6 +1004,7 @@ export function DriveView({ userId }: { userId: string }) {
       zoneBlock={zoneBlock}
       zoneJoined={zoneJoined}
       isDesktop={isDesktop}
+      routePath={route?.path ?? null}
       aiConfirming={aiConfirming}
       depOpen={depOpen}
       contactsOpen={contactsOpen}

@@ -28,6 +28,7 @@ import {
   setChauffeurOnlineLocal,
   useChauffeurOnline,
 } from "@/lib/chauffeur/online-store";
+import { useRoadPath } from "@/lib/drive/use-road-path";
 import { useSearchRadius } from "@/lib/chauffeur/work-zone";
 import { usePageVisible } from "@/lib/realtime/use-page-visible";
 import { setDispatchActive } from "@/lib/realtime/dispatch-presence";
@@ -180,6 +181,22 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const [sent, setSent] = useState<Record<string, number>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [mapReq, setMapReq] = useState<NearbyRide | null>(null);
+  // Itinéraires RÉELS (OSRM) pour la carte de l'offre : la course ET l'approche
+  // suivent les vraies routes (jamais une ligne droite — les routes ne sont pas
+  // droites). Repli transitoire ligne droite le temps du calcul.
+  const mapPickupPos =
+    mapReq?.pickup_lat != null
+      ? { lat: mapReq.pickup_lat, lng: mapReq.pickup_lng! }
+      : null;
+  const mapDestPos =
+    mapReq?.dest_lat != null
+      ? { lat: mapReq.dest_lat, lng: mapReq.dest_lng! }
+      : null;
+  const mapMePos = coords
+    ? { lat: coords.latitude, lng: coords.longitude }
+    : null;
+  const mapRoutePath = useRoadPath(mapPickupPos, mapDestPos);
+  const mapApproachPath = useRoadPath(mapMePos, mapPickupPos);
   // Net estimé : taux de commission du plan (free 8 % / pro / premium).
   const [planRate, setPlanRate] = useState(0.08);
   const [chId, setChId] = useState<string | null>(null);
@@ -543,8 +560,8 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
                 ]
               : []),
           ]}
-          approach={me && pickup ? [me, pickup] : null}
-          route={pickup && dest ? [pickup, dest] : null}
+          approach={me && pickup ? (mapApproachPath ?? [me, pickup]) : null}
+          route={pickup && dest ? (mapRoutePath ?? [pickup, dest]) : null}
           padding={{ top: 100, bottom: 280, left: 50, right: 50 }}
         />
         <div className="pointer-events-none absolute top-[88px] left-1/2 z-10 flex -translate-x-1/2 gap-2">

@@ -20,7 +20,7 @@ import {
 } from "@/app/(customer)/drive/actions";
 import type { DriveIntentDraft } from "@/app/(customer)/drive/ai-actions";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
-import { DriveMap } from "./drive-map";
+import { DriveMap, type LatLng } from "./drive-map";
 import {
   DepModal,
   PrimaryBtn,
@@ -46,6 +46,7 @@ export function DriveHomeScreen({
   zoneBlock,
   zoneJoined,
   isDesktop,
+  routePath,
   aiConfirming,
   depOpen,
   contactsOpen,
@@ -68,6 +69,8 @@ export function DriveHomeScreen({
   zoneBlock: string | null;
   zoneJoined: boolean;
   isDesktop: boolean;
+  /** Tracé routier RÉEL (OSRM) du trajet A→B — jamais une ligne droite. */
+  routePath: LatLng[] | null;
   aiConfirming: boolean;
   depOpen: boolean;
   contactsOpen: boolean;
@@ -327,7 +330,7 @@ export function DriveHomeScreen({
                         ]
                       : []),
                   ]}
-                  route={pickup && dest ? [pickup, dest] : null}
+                  route={pickup && dest ? (routePath ?? [pickup, dest]) : null}
                   padding={{ top: 60, bottom: 60, left: 60, right: 60 }}
                   className="absolute inset-0"
                 />

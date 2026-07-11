@@ -211,8 +211,14 @@ export function MobileDrawer({
 
         <Separator />
 
-        {/* Déconnexion (Server Action existante) */}
-        <form action={logout} className="p-3">
+        {/* Déconnexion (Server Action existante). RÈGLE safe-area : le panneau
+            est fixed inset-y-0 → sans ce padding, le bouton passe DERRIÈRE la
+            barre système du bas (gestes/boutons Android). calc(env()+x), jamais
+            max() (max colle le bouton à la barre). */}
+        <form
+          action={logout}
+          className="p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"
+        >
           <DrawerLogoutButton />
         </form>
       </aside>

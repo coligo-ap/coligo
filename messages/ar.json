@@ -121,7 +121,9 @@
     "discountAppliedAria": "تم تطبيق خصم",
     "promoOffersTitle": "عروض اللحظة",
     "offertCarousel": "اشترِ واحصل مجانًا",
-    "offered": "مجاني"
+    "offered": "مجاني",
+    "moreInfo": "مزيد من المعلومات",
+    "practicalInfo": "معلومات عملية"
   },
   "cart": {
     "monoTitle": "بدء سلة جديدة؟",

@@ -6,11 +6,19 @@ import { haversineKm } from "@/lib/delivery/distance";
 import { DriveMap } from "./drive-map";
 import { VIOLET, GO } from "./drive-modals";
 import { getShareRide, type ShareRide } from "@/app/t/[token]/actions";
+import { useRoadPath } from "@/lib/drive/use-road-path";
 
 /** Suivi public en direct (position, plaque, note, ETA) — aucun compte requis. */
 export function ShareTrackView({ token }: { token: string }) {
   const [ride, setRide] = useState<ShareRide>(null);
   const [loaded, setLoaded] = useState(false);
+  // Itinéraire RÉEL (OSRM) voiture → destination : le tracé suit les routes,
+  // jamais une ligne droite (hook AVANT les retours anticipés — règle hooks).
+  const carPosLive =
+    ride?.ch_lat != null ? { lat: ride.ch_lat, lng: ride.ch_lng! } : null;
+  const destPosLive =
+    ride?.dest_lat != null ? { lat: ride.dest_lat, lng: ride.dest_lng! } : null;
+  const roadPath = useRoadPath(carPosLive, destPosLive);
 
   useEffect(() => {
     let stop = false;
@@ -72,7 +80,11 @@ export function ShareTrackView({ token }: { token: string }) {
               ]
             : []),
         ]}
-        route={carPos && destPos && !finished ? [carPos, destPos] : null}
+        route={
+          carPos && destPos && !finished
+            ? (roadPath ?? [carPos, destPos])
+            : null
+        }
         padding={{ top: 90, bottom: 260, left: 60, right: 60 }}
       />
       <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">

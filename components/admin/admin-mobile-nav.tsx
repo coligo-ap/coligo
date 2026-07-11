@@ -130,7 +130,9 @@ export function AdminMobileNav({
               </button>
             </div>
 
-            <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
+            {/* RÈGLE safe-area : panneau fixed inset-y-0 → le dernier item ne doit
+                jamais finir DERRIÈRE la barre système du bas. */}
+            <nav className="flex-1 space-y-0.5 overflow-y-auto p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
               {items.map((d) => (
                 <MobileItem
                   key={d.href}

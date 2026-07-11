@@ -107,7 +107,6 @@ export function MerchantCompactHeader({
   // Libellés de catégorie pilotés en base (renommages admin répercutés).
   const dbCategories = useCategories();
   const [showHours, setShowHours] = useState(false);
-  const [expandDesc, setExpandDesc] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const cart = useCart();
   const cartCount = totalUnits(cart);
@@ -187,7 +186,6 @@ export function MerchantCompactHeader({
   const categoryLabel = category
     ? categoryLabelFrom(dbCategories, category, locale)
     : null;
-  const hasDescription = Boolean(description_fr || description_ar);
   const addressLine = [commune, wilaya_name].filter(Boolean).join(", ");
 
   // Barre de recherche visible : ouverte manuellement (icône) OU au scroll.
@@ -377,6 +375,17 @@ export function MerchantCompactHeader({
               />
             </span>
           </div>
+          {/* Plus d'infos (style Bolt Food) : les informations secondaires
+              (description, tags, panier min, adresse, horaires) sont REGROUPEES
+              dans une feuille dediee au lieu d'encombrer la fiche. */}
+          <button
+            type="button"
+            onClick={() => setShowHours(true)}
+            className="text-foreground mt-1 inline-flex items-center gap-0.5 text-[13px] font-bold"
+          >
+            {t("moreInfo")}
+            <ChevronDown className="size-3.5 -rotate-90 rtl:rotate-90" />
+          </button>
         </div>
       </div>
 
@@ -420,65 +429,7 @@ export function MerchantCompactHeader({
             label={t("prepLabel")}
           />
         )}
-        {min_order_da > 0 && (
-          <InfoCell
-            icon={<ShoppingBasket className="size-3.5" />}
-            value={formatDA(min_order_da)}
-            label={t("minBasketLabel")}
-          />
-        )}
-        {addressLine && (
-          <InfoCell
-            icon={<MapPin className="size-3.5" />}
-            value={commune ?? addressLine}
-            label={wilaya_name ?? t("locationLabel")}
-          />
-        )}
       </div>
-
-      {/* Pilules de spécialités (tags) — situent l'offre d'un coup d'œil. */}
-      {tags.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {tags.slice(0, 6).map((code) => (
-            <span
-              key={code}
-              className="bg-primary-50 text-primary-700 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
-            >
-              {getTagLabel(code, locale)}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Description repliable (1 ligne par défaut). */}
-      {hasDescription && (
-        <div className="mt-2">
-          {description_fr && (
-            <p
-              className={cn(
-                "text-foreground text-xs",
-                !expandDesc && "line-clamp-1"
-              )}
-            >
-              {description_fr}
-            </p>
-          )}
-          {expandDesc && description_ar && (
-            <p className="text-foreground mt-1 text-xs" dir="rtl">
-              {description_ar}
-            </p>
-          )}
-          {(description_fr && description_fr.length > 80) || description_ar ? (
-            <button
-              type="button"
-              onClick={() => setExpandDesc((v) => !v)}
-              className="text-primary-700 mt-0.5 text-[11px] font-medium hover:underline"
-            >
-              {expandDesc ? t("seeLess") : t("seeMore")}
-            </button>
-          ) : null}
-        </div>
-      )}
 
       {/* Planning de la semaine — POP-UP (feuille animée) au lieu d'un
           accordéon qui pousse toute la page. Aujourd'hui surligné + statut. */}
@@ -489,6 +440,11 @@ export function MerchantCompactHeader({
           isOpen={isOpen}
           name={name}
           addressLine={addressLine}
+          descriptionFr={description_fr}
+          descriptionAr={description_ar}
+          tags={tags}
+          minOrderDa={min_order_da}
+          prepTimeMin={prep_time_min}
           onClose={() => setShowHours(false)}
         />
       )}
@@ -504,6 +460,11 @@ function HoursSheet({
   isOpen,
   name,
   addressLine,
+  descriptionFr,
+  descriptionAr,
+  tags = [],
+  minOrderDa = 0,
+  prepTimeMin = 0,
   onClose,
 }: {
   openingHours: OpeningHours;
@@ -511,6 +472,11 @@ function HoursSheet({
   isOpen: boolean;
   name: string;
   addressLine: string;
+  descriptionFr?: string | null;
+  descriptionAr?: string | null;
+  tags?: string[];
+  minOrderDa?: number;
+  prepTimeMin?: number;
   onClose: () => void;
 }) {
   const t = useTranslations("merchant");
@@ -539,7 +505,7 @@ function HoursSheet({
           <header className="flex items-start justify-between gap-3 px-5 pt-2 pb-3 sm:pt-5">
             <div className="min-w-0">
               <h2 className="font-display text-foreground truncate text-lg font-bold">
-                {t("hoursLabel")}
+                {t("moreInfo")}
               </h2>
               <p
                 className={cn(
@@ -568,6 +534,86 @@ function HoursSheet({
           </header>
 
           <div className="overflow-y-auto px-5 pb-5">
+            {/* Description (FR puis AR) - regroupee ici, hors de la fiche. */}
+            {(descriptionFr || descriptionAr) && (
+              <div className="mb-4">
+                {descriptionFr && (
+                  <p className="text-foreground text-[13px] leading-relaxed">
+                    {descriptionFr}
+                  </p>
+                )}
+                {descriptionAr && (
+                  <p
+                    className="text-foreground mt-1 text-[13px] leading-relaxed"
+                    dir="rtl"
+                  >
+                    {descriptionAr}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Specialites */}
+            {tags.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-1.5">
+                {tags.slice(0, 8).map((code) => (
+                  <span
+                    key={code}
+                    className="bg-primary-50 text-primary-700 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+                  >
+                    {getTagLabel(code, locale)}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Infos pratiques : panier min - preparation - adresse. */}
+            {(minOrderDa > 0 || prepTimeMin > 0 || addressLine) && (
+              <div className="mb-4">
+                <p className="text-muted mb-1.5 text-[11px] font-bold tracking-wide uppercase">
+                  {t("practicalInfo")}
+                </p>
+                <ul className="border-border divide-border divide-y rounded-[14px] border">
+                  {minOrderDa > 0 && (
+                    <li className="flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px]">
+                      <span className="text-muted inline-flex items-center gap-2 font-semibold">
+                        <ShoppingBasket className="size-4" />
+                        {t("minBasketLabel")}
+                      </span>
+                      <span className="text-foreground font-bold">
+                        {formatDA(minOrderDa)}
+                      </span>
+                    </li>
+                  )}
+                  {prepTimeMin > 0 && (
+                    <li className="flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px]">
+                      <span className="text-muted inline-flex items-center gap-2 font-semibold">
+                        <Timer className="size-4" />
+                        {t("prepLabel")}
+                      </span>
+                      <span className="text-foreground font-bold">
+                        ~{t("prepMinutes", { count: prepTimeMin })}
+                      </span>
+                    </li>
+                  )}
+                  {addressLine && (
+                    <li className="flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px]">
+                      <span className="text-muted inline-flex items-center gap-2 font-semibold">
+                        <MapPin className="size-4" />
+                        {t("locationLabel")}
+                      </span>
+                      <span className="text-foreground text-end font-bold">
+                        {addressLine}
+                      </span>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+
+            <p className="text-muted mb-1.5 text-[11px] font-bold tracking-wide uppercase">
+              {t("hoursLabel")}
+            </p>
             <ul className="border-border divide-border divide-y rounded-[14px] border">
               {DAY_KEYS.map((d) => {
                 const slots = openingHours[d] ?? [];
