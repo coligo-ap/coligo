@@ -18,7 +18,7 @@ export function Block({
   return (
     <section
       className={cn(
-        "bg-surface co-rise overflow-hidden rounded-[20px] shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]",
+        "border-border co-rise overflow-hidden rounded-[20px] border bg-white",
         className
       )}
       style={{ animationDelay: `${delay}s` }}

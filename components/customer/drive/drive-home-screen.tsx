@@ -91,7 +91,7 @@ export function DriveHomeScreen({
   const router = useRouter();
 
   return (
-    <div className="drive-jakarta drive-screen z-40 flex min-h-[100dvh] flex-col bg-[var(--d-page)]">
+    <div className="drive-jakarta drive-screen z-40 flex min-h-[100dvh] flex-col bg-white">
       {/* En-tête Coligo Drive — barre propre (PLUS DE CARTE EN FOND : l'écran
           s'ouvre instantanément, MapLibre n'est initialisé que sur les écrans
           choix-sur-carte / prix / course). */}

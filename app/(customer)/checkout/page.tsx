@@ -22,17 +22,20 @@ export default async function CheckoutPage() {
 
   return (
     <CustomerShell>
-      <CheckoutView
-        customer={{
-          full_name: customer?.full_name ?? "",
-          phone: customer?.phone ?? "",
-          latitude: customer?.latitude ?? null,
-          longitude: customer?.longitude ?? null,
-        }}
-        onlinePaymentStatus={flags.online_payment.status}
-        coligoPayStatus={flags.coligo_pay.status}
-        cashbackStatus={flags.cashback.status}
-      />
+      {/* Fond BLANC pur (style Bolt Food) sur tout le checkout. */}
+      <div className="min-h-screen bg-white">
+        <CheckoutView
+          customer={{
+            full_name: customer?.full_name ?? "",
+            phone: customer?.phone ?? "",
+            latitude: customer?.latitude ?? null,
+            longitude: customer?.longitude ?? null,
+          }}
+          onlinePaymentStatus={flags.online_payment.status}
+          coligoPayStatus={flags.coligo_pay.status}
+          cashbackStatus={flags.cashback.status}
+        />
+      </div>
     </CustomerShell>
   );
 }

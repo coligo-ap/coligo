@@ -104,241 +104,240 @@ export default async function CustomerAccountPage({
 
   return (
     <CustomerShell hideHeader>
-      <div className="mx-auto max-w-2xl pb-24">
-        {/* HERO profil violet dégradé + anneaux décoratifs. */}
-        <section className="from-primary-400 via-primary-600 to-primary-800 relative overflow-hidden bg-gradient-to-br px-5 pt-[calc(env(safe-area-inset-top)+1.75rem)] pb-16 text-white">
-          <span className="pointer-events-none absolute -end-12 -top-16 size-52 rounded-full border border-white/15" />
-          <span className="pointer-events-none absolute end-2 -top-8 size-32 rounded-full border border-white/10" />
-
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-extrabold tracking-widest uppercase opacity-85">
-              {t("myAccount")}
-            </p>
-            <Link
-              href="/compte/infos"
-              aria-label={t("settings")}
-              className="grid size-9 place-items-center rounded-full bg-white/15 backdrop-blur transition-colors hover:bg-white/25"
-            >
-              <Settings className="size-[18px]" />
-            </Link>
-          </div>
-
-          <div className="mt-5 flex items-center gap-3.5">
-            <div className="grid size-16 shrink-0 place-items-center rounded-2xl border border-white/30 bg-white/20 text-2xl font-black backdrop-blur">
-              {initial}
+      {/* Fond BLANC pur (style Bolt Food) sur toute la page compte. */}
+      <div className="min-h-screen bg-white">
+        <div className="mx-auto max-w-2xl pb-24">
+          {/* En-tête BOLT : blanc, grand titre NOIR, identité en ligne plate
+            (plus de héro violet dégradé — la couleur vit dans les icônes). */}
+          <section className="bg-white px-5 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-foreground text-[26px] leading-tight font-black tracking-tight">
+                {t("myAccount")}
+              </h1>
+              <Link
+                href="/compte/infos"
+                aria-label={t("settings")}
+                className="bg-surface-2 text-foreground hover:bg-surface-3 grid size-9 place-items-center rounded-full transition-colors"
+              >
+                <Settings className="size-[18px]" />
+              </Link>
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-[22px] leading-tight font-black tracking-tight">
-                {customer?.full_name || t("myAccount")}
-              </p>
-              {customer?.phone && (
-                <p className="mt-0.5 flex items-center gap-1.5 text-xs font-bold opacity-90">
-                  <Phone className="size-3.5" />
-                  {customer.phone}
+
+            <div className="mt-4 flex items-center gap-3.5">
+              <div className="bg-primary-50 text-primary-700 grid size-14 shrink-0 place-items-center rounded-2xl text-xl font-black">
+                {initial}
+              </div>
+              <div className="min-w-0">
+                <p className="text-foreground truncate text-[17px] leading-tight font-extrabold tracking-tight">
+                  {customer?.full_name || t("myAccount")}
                 </p>
-              )}
-              {verified && (
-                // Vérifié = concept de réussite → vert (pastille blanche + coche
-                // verte pour rester lisible sur le héro violet).
-                <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10.5px] font-extrabold text-[#00854f] shadow-sm">
-                  <BadgeCheck className="size-3" />
-                  {t("verifiedAccount")}
-                </span>
-              )}
+                {customer?.phone && (
+                  <p className="text-muted mt-0.5 flex items-center gap-1.5 text-xs font-semibold">
+                    <Phone className="size-3.5" />
+                    {customer.phone}
+                  </p>
+                )}
+                {verified && (
+                  <span className="bg-success-100 text-success-700 mt-1.5 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-extrabold">
+                    <BadgeCheck className="size-3" />
+                    {t("verifiedAccount")}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Cartes soldes (cashback + Coligo Pay) qui CHEVAUCHENT le bas du hero.
+          {/* Cartes soldes (cashback + Coligo Pay) qui CHEVAUCHENT le bas du hero.
             Masquées si la fonctionnalité est retirée, grisées si bientôt/maintenance. */}
-        {visibleCount > 0 && (
-          <div
-            className={`relative z-10 -mt-11 grid gap-3 px-4 ${visibleCount === 2 ? "grid-cols-2" : "grid-cols-1"}`}
-          >
-            {cashbackVisible &&
-              (cashbackActive ? (
-                <Link
-                  href="/cashback"
-                  className="rounded-[18px] bg-white p-3.5 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)] transition-transform active:scale-[.97]"
-                >
-                  <div className="flex items-center justify-between">
+          {visibleCount > 0 && (
+            <div
+              className={`grid gap-3 px-4 ${visibleCount === 2 ? "grid-cols-2" : "grid-cols-1"}`}
+            >
+              {cashbackVisible &&
+                (cashbackActive ? (
+                  <Link
+                    href="/cashback"
+                    className="border-border rounded-[18px] border bg-white p-3.5 transition-transform active:scale-[.97]"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600">
+                        <Gift className="size-[18px]" />
+                      </span>
+                      <ChevronRight className="text-subtle size-4 rtl:-scale-x-100" />
+                    </div>
+                    <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
+                      {t("cashbackTitle")}
+                    </p>
+                    <p
+                      className={`mt-0.5 text-xl font-black tabular-nums ${cashbackBalance > 0 ? "text-foreground" : "text-subtle"}`}
+                    >
+                      <WalletBalanceValue
+                        kind="cashback"
+                        userId={user.id}
+                        initial={cashbackBalance}
+                      />
+                    </p>
+                  </Link>
+                ) : (
+                  <div className="border-border rounded-[18px] border bg-white p-3.5 opacity-60">
                     <span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600">
                       <Gift className="size-[18px]" />
                     </span>
-                    <ChevronRight className="text-subtle size-4 rtl:-scale-x-100" />
+                    <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
+                      {t("cashbackTitle")}
+                    </p>
+                    <p className="text-subtle mt-0.5 text-sm font-bold">
+                      {disabledLabel(flags.cashback.status)}
+                    </p>
                   </div>
-                  <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
-                    {t("cashbackTitle")}
-                  </p>
-                  <p
-                    className={`mt-0.5 text-xl font-black tabular-nums ${cashbackBalance > 0 ? "text-foreground" : "text-subtle"}`}
+                ))}
+              {payVisible &&
+                (payActive ? (
+                  <Link
+                    href="/coligo-pay"
+                    className="border-border rounded-[18px] border bg-white p-3.5 transition-transform active:scale-[.97]"
                   >
-                    <WalletBalanceValue
-                      kind="cashback"
-                      userId={user.id}
-                      initial={cashbackBalance}
-                    />
-                  </p>
-                </Link>
-              ) : (
-                <div className="rounded-[18px] bg-white p-3.5 opacity-60 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)]">
-                  <span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600">
-                    <Gift className="size-[18px]" />
-                  </span>
-                  <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
-                    {t("cashbackTitle")}
-                  </p>
-                  <p className="text-subtle mt-0.5 text-sm font-bold">
-                    {disabledLabel(flags.cashback.status)}
-                  </p>
-                </div>
-              ))}
-            {payVisible &&
-              (payActive ? (
-                <Link
-                  href="/coligo-pay"
-                  className="rounded-[18px] bg-white p-3.5 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)] transition-transform active:scale-[.97]"
-                >
-                  <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="bg-primary-50 text-primary-600 grid size-9 place-items-center rounded-xl">
+                        <Wallet className="size-[18px]" />
+                      </span>
+                      <ChevronRight className="text-subtle size-4 rtl:-scale-x-100" />
+                    </div>
+                    <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
+                      Coligo Pay
+                    </p>
+                    <p
+                      className={`mt-0.5 text-xl font-black tabular-nums ${topupBalance > 0 ? "text-foreground" : "text-subtle"}`}
+                    >
+                      <WalletBalanceValue
+                        kind="topup"
+                        userId={user.id}
+                        initial={topupBalance}
+                      />
+                    </p>
+                  </Link>
+                ) : (
+                  <div className="border-border rounded-[18px] border bg-white p-3.5 opacity-60">
                     <span className="bg-primary-50 text-primary-600 grid size-9 place-items-center rounded-xl">
                       <Wallet className="size-[18px]" />
                     </span>
-                    <ChevronRight className="text-subtle size-4 rtl:-scale-x-100" />
+                    <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
+                      Coligo Pay
+                    </p>
+                    <p className="text-subtle mt-0.5 text-sm font-bold">
+                      {disabledLabel(flags.coligo_pay.status)}
+                    </p>
                   </div>
-                  <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
-                    Coligo Pay
-                  </p>
-                  <p
-                    className={`mt-0.5 text-xl font-black tabular-nums ${topupBalance > 0 ? "text-foreground" : "text-subtle"}`}
-                  >
-                    <WalletBalanceValue
-                      kind="topup"
-                      userId={user.id}
-                      initial={topupBalance}
-                    />
-                  </p>
-                </Link>
-              ) : (
-                <div className="rounded-[18px] bg-white p-3.5 opacity-60 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)]">
-                  <span className="bg-primary-50 text-primary-600 grid size-9 place-items-center rounded-xl">
-                    <Wallet className="size-[18px]" />
-                  </span>
-                  <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
-                    Coligo Pay
-                  </p>
-                  <p className="text-subtle mt-0.5 text-sm font-bold">
-                    {disabledLabel(flags.coligo_pay.status)}
-                  </p>
-                </div>
-              ))}
+                ))}
+            </div>
+          )}
+
+          {completePhone && !customer?.phone && (
+            <Link
+              href="/compte/infos"
+              className="border-warning-200 bg-warning-50 text-warning-800 mx-4 mt-4 block rounded-[14px] border px-4 py-3 text-sm font-medium"
+            >
+              {t.rich("completePhoneBanner", {
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
+            </Link>
+          )}
+
+          {/* Section COMPTE */}
+          <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
+            {t("sectionAccount")}
+          </p>
+          <div className="divide-border border-border mx-4 divide-y overflow-hidden rounded-[16px] border bg-white">
+            <MenuRow
+              href="/compte/infos"
+              tone="info"
+              icon={<UserIcon className="size-[19px]" />}
+              title={t("personalInfo")}
+              subtitle={t("personalInfoDesc")}
+            />
+            <MenuRow
+              href="/adresses"
+              tone="info"
+              icon={<MapPin className="size-[19px]" />}
+              title={t("myAddresses")}
+              subtitle={addressLabel}
+            />
           </div>
-        )}
 
-        {completePhone && !customer?.phone && (
-          <Link
-            href="/compte/infos"
-            className="border-warning-200 bg-warning-50 text-warning-800 mx-4 mt-4 block rounded-[14px] border px-4 py-3 text-sm font-medium"
-          >
-            {t.rich("completePhoneBanner", {
-              strong: (chunks) => <strong>{chunks}</strong>,
-            })}
-          </Link>
-        )}
+          {/* Section ACTIVITÉ */}
+          <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
+            {t("sectionActivity")}
+          </p>
+          <div className="divide-border border-border mx-4 divide-y overflow-hidden rounded-[16px] border bg-white">
+            <MenuRow
+              href="/commandes"
+              tone="orders"
+              icon={<Receipt className="size-[19px]" />}
+              title={t("myOrders")}
+              subtitle={t("ordersTracking")}
+              pill={
+                ongoingCount > 0
+                  ? t("ordersInProgress", { count: ongoingCount })
+                  : undefined
+              }
+            />
+            <MenuRow
+              href="/favoris"
+              tone="fav"
+              icon={<Heart className="size-[19px] fill-current" />}
+              title={t("myFavorites")}
+              subtitle={t("favoritesDesc")}
+            />
+            <MenuRow
+              href="/codes-promo"
+              tone="promo"
+              icon={<Ticket className="size-[19px]" />}
+              title={t("promosCodes")}
+              subtitle={t("promosCodesDesc")}
+            />
+          </div>
 
-        {/* Section COMPTE */}
-        <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
-          {t("sectionAccount")}
-        </p>
-        <div className="divide-border mx-4 divide-y overflow-hidden rounded-[20px] bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
-          <MenuRow
-            href="/compte/infos"
-            tone="info"
-            icon={<UserIcon className="size-[19px]" />}
-            title={t("personalInfo")}
-            subtitle={t("personalInfoDesc")}
-          />
-          <MenuRow
-            href="/adresses"
-            tone="info"
-            icon={<MapPin className="size-[19px]" />}
-            title={t("myAddresses")}
-            subtitle={addressLabel}
-          />
+          {/* Section PRÉFÉRENCES — langue (FR / العربية), choix enregistré. */}
+          <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
+            {t("sectionPreferences")}
+          </p>
+          <div className="divide-border border-border mx-4 divide-y overflow-hidden rounded-[16px] border bg-white">
+            <CustomerLanguageRow title={t("language")} />
+          </div>
+
+          {/* Section AIDE — live chat support (Tawk.to) */}
+          <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
+            {t("sectionHelp")}
+          </p>
+          <div className="divide-border border-border mx-4 divide-y overflow-hidden rounded-[16px] border bg-white">
+            <CustomerSupportRow
+              title={t("helpSupport")}
+              subtitle={t("helpSupportDesc")}
+            />
+          </div>
+
+          {/* Installer la PWA client (masqué si déjà installée / APK) */}
+          <div className="px-4 pt-3">
+            <InstallAppButton />
+          </div>
+
+          <div className="px-4">
+            <CustomerLogoutButton />
+          </div>
+
+          {/* Suppression de compte (exigence Google Play) — lien discret. */}
+          <div className="pt-4 text-center">
+            <Link
+              href="/compte/supprimer"
+              className="text-muted hover:text-danger-700 text-xs font-semibold underline-offset-2 hover:underline"
+            >
+              {t("deleteAccount")}
+            </Link>
+          </div>
+
+          {/* Version installée (APK uniquement) — utile au support. */}
+          <AppVersionLabel />
         </div>
-
-        {/* Section ACTIVITÉ */}
-        <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
-          {t("sectionActivity")}
-        </p>
-        <div className="divide-border mx-4 divide-y overflow-hidden rounded-[20px] bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
-          <MenuRow
-            href="/commandes"
-            tone="orders"
-            icon={<Receipt className="size-[19px]" />}
-            title={t("myOrders")}
-            subtitle={t("ordersTracking")}
-            pill={
-              ongoingCount > 0
-                ? t("ordersInProgress", { count: ongoingCount })
-                : undefined
-            }
-          />
-          <MenuRow
-            href="/favoris"
-            tone="fav"
-            icon={<Heart className="size-[19px] fill-current" />}
-            title={t("myFavorites")}
-            subtitle={t("favoritesDesc")}
-          />
-          <MenuRow
-            href="/codes-promo"
-            tone="promo"
-            icon={<Ticket className="size-[19px]" />}
-            title={t("promosCodes")}
-            subtitle={t("promosCodesDesc")}
-          />
-        </div>
-
-        {/* Section PRÉFÉRENCES — langue (FR / العربية), choix enregistré. */}
-        <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
-          {t("sectionPreferences")}
-        </p>
-        <div className="divide-border mx-4 divide-y overflow-hidden rounded-[20px] bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
-          <CustomerLanguageRow title={t("language")} />
-        </div>
-
-        {/* Section AIDE — live chat support (Tawk.to) */}
-        <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
-          {t("sectionHelp")}
-        </p>
-        <div className="divide-border mx-4 divide-y overflow-hidden rounded-[20px] bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
-          <CustomerSupportRow
-            title={t("helpSupport")}
-            subtitle={t("helpSupportDesc")}
-          />
-        </div>
-
-        {/* Installer la PWA client (masqué si déjà installée / APK) */}
-        <div className="px-4 pt-3">
-          <InstallAppButton />
-        </div>
-
-        <div className="px-4">
-          <CustomerLogoutButton />
-        </div>
-
-        {/* Suppression de compte (exigence Google Play) — lien discret. */}
-        <div className="pt-4 text-center">
-          <Link
-            href="/compte/supprimer"
-            className="text-muted hover:text-danger-700 text-xs font-semibold underline-offset-2 hover:underline"
-          >
-            {t("deleteAccount")}
-          </Link>
-        </div>
-
-        {/* Version installée (APK uniquement) — utile au support. */}
-        <AppVersionLabel />
       </div>
     </CustomerShell>
   );
