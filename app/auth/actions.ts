@@ -2,7 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { provisionSocialUser, safeNext } from "@/lib/auth/social-provision";
+import {
+  provisionSocialUser,
+  safeNext,
+  type SocialIntent,
+} from "@/lib/auth/social-provision";
 
 export type NativeGoogleState = { error?: string };
 
@@ -25,6 +29,8 @@ export async function signInWithGoogleNative(input: {
   /** Nonce BRUT (Supabase le hache lui-même pour le comparer au jeton). */
   nonce: string;
   next?: string;
+  /** Portail d'origine — "merchant" cible l'espace commerçant (cf. provision). */
+  intent?: SocialIntent;
 }): Promise<NativeGoogleState> {
   const idToken = input.idToken?.trim();
   if (!idToken) return { error: "Jeton Google manquant." };
@@ -42,6 +48,10 @@ export async function signInWithGoogleNative(input: {
     return { error: "La connexion avec Google a échoué. Réessaie." };
   }
 
-  const to = await provisionSocialUser(supabase, safeNext(input.next));
+  const to = await provisionSocialUser(
+    supabase,
+    safeNext(input.next),
+    input.intent === "merchant" ? "merchant" : "customer"
+  );
   redirect(to);
 }

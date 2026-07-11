@@ -278,7 +278,10 @@ export async function updateSession(request: NextRequest) {
       path.startsWith("/dashboard") ||
       path.startsWith("/offline") ||
       path === "/login" ||
-      path === "/signup" ||
+      // /signup + /signup/boutique (complétion Google commerçant) : un compte
+      // qui a AUSSI un profil client sans numéro ne doit pas être détourné
+      // vers /compte/telephone pendant qu'il crée sa boutique.
+      path.startsWith("/signup") ||
       path === "/se-connecter" ||
       path === "/inscription" ||
       path.startsWith("/compte/telephone");

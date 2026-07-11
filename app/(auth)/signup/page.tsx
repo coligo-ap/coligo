@@ -12,6 +12,7 @@ import { Mail, Lock, Store, ArrowRight, UserRound } from "lucide-react";
 import { AuthScreen } from "@/components/shared/auth-screen";
 import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
+import { SocialAuth } from "@/components/customer/social-auth";
 
 const initialState: AuthState = {};
 
@@ -57,23 +58,37 @@ export default function SignupPage() {
         <AuthModeTabs mode="signup" loginHref="/login" signupHref="/signup" />
       }
       footer={
-        <div className="border-border text-muted mt-6 border-t pt-4 text-center text-xs">
-          Tu es livreur ?{" "}
-          <Link
-            href="/driver/login"
-            className="text-primary-700 font-medium hover:underline"
-          >
-            Se connecter
-          </Link>{" "}
-          ·{" "}
-          <Link
-            href="/driver/signup"
-            className="text-primary-700 font-medium hover:underline"
-          >
-            S&apos;inscrire
-          </Link>{" "}
-          en tant que livreur
-        </div>
+        <>
+          <div className="mt-3">
+            {/* Inscription Google — le compte est créé par Google, la boutique
+                se complète ensuite sur /signup/boutique (mêmes champs). */}
+            <SocialAuth
+              intent="merchant"
+              labels={{
+                or: "ou plus rapide",
+                button: "S'inscrire avec Google",
+                error: "La connexion Google a échoué. Réessayez.",
+              }}
+            />
+          </div>
+          <div className="border-border text-muted mt-6 border-t pt-4 text-center text-xs">
+            Tu es livreur ?{" "}
+            <Link
+              href="/driver/login"
+              className="text-primary-700 font-medium hover:underline"
+            >
+              Se connecter
+            </Link>{" "}
+            ·{" "}
+            <Link
+              href="/driver/signup"
+              className="text-primary-700 font-medium hover:underline"
+            >
+              S&apos;inscrire
+            </Link>{" "}
+            en tant que livreur
+          </div>
+        </>
       }
     >
       <form action={formAction} className="space-y-3">

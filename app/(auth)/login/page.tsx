@@ -10,6 +10,7 @@ import { login, type AuthState } from "@/app/(merchant)/actions";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 import { AuthScreen } from "@/components/shared/auth-screen";
 import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
+import { SocialAuth } from "@/components/customer/social-auth";
 
 const initialState: AuthState = {};
 
@@ -21,6 +22,9 @@ const HERO_IMG =
   "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1400&q=80";
 
 const ERROR_MESSAGES: Record<string, string> = {
+  oauth: "La connexion Google a échoué. Réessayez.",
+  customer_account:
+    "Ce compte Google est déjà un compte client Coligo. Utilisez un autre compte Google pour votre boutique.",
   confirm_failed: "Le lien de confirmation est invalide ou expiré.",
   no_merchant:
     "Aucune boutique n'est associée à ce compte. Recréez un compte ou contactez le support.",
@@ -68,6 +72,13 @@ function LoginContent() {
       cardSubtitle="Gérez vos commandes."
       modeTabs={
         <AuthModeTabs mode="login" loginHref="/login" signupHref="/signup" />
+      }
+      footer={
+        <div className="mt-3">
+          {/* Connexion Google — même porte que le client, intention commerçant :
+              boutique existante → /dashboard, sinon complétion /signup/boutique. */}
+          <SocialAuth intent="merchant" next="/dashboard" />
+        </div>
       }
     >
       <form action={formAction} className="space-y-3">

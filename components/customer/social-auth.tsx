@@ -23,9 +23,36 @@ import { signInWithGoogleNative } from "@/app/auth/actions";
  * Les deux provisionnent le profil par `provisionSocialUser`, jamais deux fois.
  * Le provider doit être activé dans le Dashboard Supabase + les URLs de
  * redirection allowlistées.
+ *
+ * `intent="merchant"` (portail commerçant /login + /signup) : la même porte
+ * Google, mais le provisioning cible l'espace COMMERÇANT — boutique existante
+ * → /dashboard, sinon complétion de la boutique sur /signup/boutique. Les
+ * `labels` FR figés gardent l'espace commerçant hors i18n (client seul traduit).
  */
-export function SocialAuth({ next }: { next?: string }) {
+export function SocialAuth({
+  next,
+  intent = "customer",
+  labels,
+}: {
+  next?: string;
+  intent?: "customer" | "merchant";
+  labels?: { or: string; button: string; error: string };
+}) {
   const t = useTranslations("auth");
+  // Espace commerçant non traduit (client seul) → libellés FR figés par défaut.
+  const merchantDefaults =
+    intent === "merchant"
+      ? {
+          or: "ou",
+          button: "Continuer avec Google",
+          error: "La connexion Google a échoué. Réessayez.",
+        }
+      : null;
+  const or = labels?.or ?? merchantDefaults?.or ?? t("or");
+  const buttonLabel =
+    labels?.button ?? merchantDefaults?.button ?? t("continueWithGoogle");
+  const errorLabel =
+    labels?.error ?? merchantDefaults?.error ?? t("googleAuthFailed");
   const [loading, setLoading] = useState(false);
   // Erreur INLINE sous le bouton (cf. CLAUDE.md : pas de toast sur une action
   // de bouton). L'utilisateur regarde le bouton, pas le coin de l'écran.
@@ -36,15 +63,17 @@ export function SocialAuth({ next }: { next?: string }) {
     const { nativeGoogleIdToken } = await import("@/lib/native/google-signin");
     const { idToken, nonce } = await nativeGoogleIdToken();
     // En cas de succès l'action `redirect()` : la promesse ne revient jamais.
-    const res = await signInWithGoogleNative({ idToken, nonce, next });
+    const res = await signInWithGoogleNative({ idToken, nonce, next, intent });
     if (res?.error) setError(res.error);
   }
 
   /** Web : redirection vers Google, retour sur /auth/callback. */
   async function signInWeb() {
     const supabase = createClient();
-    const params =
-      next && next !== "/" ? `?next=${encodeURIComponent(next)}` : "";
+    const qs = new URLSearchParams();
+    if (next && next !== "/") qs.set("next", next);
+    if (intent !== "customer") qs.set("intent", intent);
+    const params = qs.size > 0 ? `?${qs.toString()}` : "";
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -68,7 +97,7 @@ export function SocialAuth({ next }: { next?: string }) {
         return;
       }
       console.error("connexion Google :", e);
-      setError(t("googleAuthFailed"));
+      setError(errorLabel);
       setLoading(false);
       return;
     }
@@ -79,7 +108,7 @@ export function SocialAuth({ next }: { next?: string }) {
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <span className="border-border h-px flex-1 border-t" />
-        <span className="text-subtle text-xs font-medium">{t("or")}</span>
+        <span className="text-subtle text-xs font-medium">{or}</span>
         <span className="border-border h-px flex-1 border-t" />
       </div>
 
@@ -94,7 +123,7 @@ export function SocialAuth({ next }: { next?: string }) {
         ) : (
           <GoogleIcon className="size-5" />
         )}
-        {t("continueWithGoogle")}
+        {buttonLabel}
       </button>
 
       {error && (

@@ -6,7 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import {
   loginSchema,
   signupSchema,
+  shopSchema,
   firstZodError,
+  type ShopInput,
 } from "@/lib/validation/auth";
 import { suggestedMinOrderForCategory } from "@/lib/config/payment-limits";
 import { getAllCategories } from "@/lib/data/categories";
@@ -187,6 +189,157 @@ function slugifyShopName(name: string): string {
 }
 
 /**
+ * Valide les champs boutique DÉRIVÉS du formulaire (multi-catégories +
+ * position carte) — partagé entre l'inscription email (`signup`) et la
+ * complétion après connexion Google (`completeSocialSignup`). Validé AVANT
+ * toute écriture : on ne crée jamais un compte auth sur des données refusées.
+ */
+async function parseShopExtras(
+  formData: FormData,
+  data: Pick<ShopInput, "latitude" | "longitude" | "category">
+): Promise<
+  | { error: string }
+  | {
+      lat: number;
+      lng: number;
+      catList: string[];
+      primaryCategory: string | null;
+    }
+> {
+  // PHASE 2 multi-catégories : liste depuis `categories` (JSON, 1re =
+  // principale). À l'inscription, CHAQUE code doit être ACTIF (mig 0311) —
+  // masqué / « bientôt disponible » refusé même si le client force la valeur.
+  let catList: string[] = [];
+  try {
+    const raw = formData.get("categories");
+    if (typeof raw === "string" && raw) {
+      catList = (JSON.parse(raw) as unknown[])
+        .filter((x): x is string => typeof x === "string")
+        .slice(0, 8);
+    }
+  } catch {
+    /* champ absent → repli catégorie simple */
+  }
+  if (catList.length === 0 && data.category) catList = [data.category];
+  catList = [...new Set(catList)];
+  if (catList.length > 0) {
+    const allCats = await getAllCategories();
+    for (const code of catList) {
+      const cat = allCats.find((c) => c.code === code);
+      if (!cat || cat.status !== "active" || !cat.showSignup) {
+        return { error: "Une des catégories choisies n'est pas disponible." };
+      }
+    }
+  }
+
+  // Position carte → nombres bornés (obligatoire, choisie sur la carte).
+  const lat = Number(data.latitude);
+  const lng = Number(data.longitude);
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    lat < -90 ||
+    lat > 90 ||
+    lng < -180 ||
+    lng > 180
+  ) {
+    return { error: "Position sur la carte invalide — replacez le repère." };
+  }
+
+  return { lat, lng, catList, primaryCategory: catList[0] ?? data.category };
+}
+
+/**
+ * Crée la ligne `merchants` (+ liaisons multi-catégories) pour `userId` —
+ * partagé inscription email / complétion Google. Renvoie un message d'erreur
+ * affichable, ou null si la boutique est créée.
+ */
+async function insertShopForUser(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  data: Pick<
+    ShopInput,
+    "merchantName" | "managerName" | "address" | "wilayaCode" | "city"
+  >,
+  extras: {
+    lat: number;
+    lng: number;
+    catList: string[];
+    primaryCategory: string | null;
+  }
+): Promise<string | null> {
+  const { merchantName, managerName, address, wilayaCode, city } = data;
+  const { lat, lng, catList, primaryCategory } = extras;
+
+  // Slug public unique (URL de la boutique). En cas de collision (même nom de
+  // commerce), on suffixe aléatoirement et on réessaie.
+  const slugBase = slugifyShopName(merchantName);
+  let slug = slugBase;
+  let merchantError: { code?: string; message: string } | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error } = await supabase.from("merchants").insert({
+      user_id: userId,
+      name: merchantName,
+      manager_name: managerName,
+      slug,
+      latitude: lat,
+      longitude: lng,
+      address,
+      category: primaryCategory,
+      wilaya_code: wilayaCode,
+      city,
+      // Validation obligatoire (mig 0273) : créé EN ATTENTE. is_active=false
+      // ⇒ invisible des clients (merchants_public) et bloqué au checkout (RLS
+      // commande) jusqu'à l'approbation du super-admin.
+      is_active: false,
+      // Pré-remplit le minimum de commande selon le panier moyen de la catégorie
+      // (étude pouvoir d'achat algérien). Le commerçant peut le monter dans ses
+      // réglages ; le plancher Coligo s'applique côté checkout.
+      min_order_da: suggestedMinOrderForCategory(primaryCategory),
+    });
+    merchantError = error;
+    if (!error) break;
+    if (error.code === "23505" && error.message.includes("slug")) {
+      slug = `${slugBase}-${Math.random().toString(36).slice(2, 6)}`;
+      continue;
+    }
+    break;
+  }
+
+  if (merchantError) return merchantError.message;
+
+  // Liaisons multi-catégories (mig 0312) — via service_role (l'inscription
+  // sans session confirmée n'a pas de auth.uid pour la RLS owner) ; codes
+  // déjà validés ACTIFS par parseShopExtras, FK = catégories existantes. La
+  // PRINCIPALE est déjà créée par le trigger (source='primary') : on n'insère
+  // QUE les secondaires, en upsert ignoreDuplicates — un insert brut incluant
+  // la principale ferait échouer TOUT le lot (PK) et perdrait les secondaires
+  // en silence. Best-effort.
+  if (catList.length > 1) {
+    const { data: createdShop } = await supabase
+      .from("merchants")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (createdShop) {
+      const adminDb = createAdminClient();
+      await adminDb.from("merchant_category_links" as never).upsert(
+        catList
+          .filter((code) => code !== primaryCategory)
+          .map((code) => ({
+            merchant_id: createdShop.id,
+            code,
+            source: "manual",
+          })) as never,
+        { onConflict: "merchant_id,code", ignoreDuplicates: true }
+      );
+    }
+  }
+
+  return null;
+}
+
+/**
  * Inscription d'un nouveau commerçant.
  */
 export async function signup(
@@ -210,64 +363,15 @@ export async function signup(
     return { error: firstZodError(parsed.error) };
   }
 
-  const {
-    email,
-    password,
-    merchantName,
-    managerName,
-    latitude,
-    longitude,
-    address,
-    category,
-    wilayaCode,
-    city,
-  } = parsed.data;
+  const { email, password } = parsed.data;
 
   // Les domaines internes livreur/chauffeur ne sont pas des emails valides ici.
   if (email.toLowerCase().endsWith(".coligo.local")) {
     return { error: "Adresse email invalide." };
   }
 
-  // PHASE 2 multi-catégories : liste depuis `categories` (JSON, 1re =
-  // principale). À l'inscription, CHAQUE code doit être ACTIF (mig 0311) —
-  // masqué / « bientôt disponible » refusé même si le client force la valeur.
-  let catList: string[] = [];
-  try {
-    const raw = formData.get("categories");
-    if (typeof raw === "string" && raw) {
-      catList = (JSON.parse(raw) as unknown[])
-        .filter((x): x is string => typeof x === "string")
-        .slice(0, 8);
-    }
-  } catch {
-    /* champ absent → repli catégorie simple */
-  }
-  if (catList.length === 0 && category) catList = [category];
-  catList = [...new Set(catList)];
-  if (catList.length > 0) {
-    const allCats = await getAllCategories();
-    for (const code of catList) {
-      const cat = allCats.find((c) => c.code === code);
-      if (!cat || cat.status !== "active" || !cat.showSignup) {
-        return { error: "Une des catégories choisies n'est pas disponible." };
-      }
-    }
-  }
-  const primaryCategory = catList[0] ?? category;
-
-  // Position carte → nombres bornés (obligatoire, choisie sur la carte).
-  const lat = Number(latitude);
-  const lng = Number(longitude);
-  if (
-    !Number.isFinite(lat) ||
-    !Number.isFinite(lng) ||
-    lat < -90 ||
-    lat > 90 ||
-    lng < -180 ||
-    lng > 180
-  ) {
-    return { error: "Position sur la carte invalide — replacez le repère." };
-  }
+  const extras = await parseShopExtras(formData, parsed.data);
+  if ("error" in extras) return { error: extras.error };
 
   const supabase = await createClient();
 
@@ -275,7 +379,7 @@ export async function signup(
     email,
     password,
     options: {
-      data: { merchant_name: merchantName },
+      data: { merchant_name: parsed.data.merchantName },
     },
   });
 
@@ -339,73 +443,16 @@ export async function signup(
     hasSession = true;
   }
 
-  // Slug public unique (URL de la boutique). En cas de collision (même nom de
-  // commerce), on suffixe aléatoirement et on réessaie.
-  const slugBase = slugifyShopName(merchantName);
-  let slug = slugBase;
-  let merchantError: { code?: string; message: string } | null = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const { error } = await supabase.from("merchants").insert({
-      user_id: userId,
-      name: merchantName,
-      manager_name: managerName,
-      slug,
-      latitude: lat,
-      longitude: lng,
-      address,
-      category: primaryCategory,
-      wilaya_code: wilayaCode,
-      city,
-      // Validation obligatoire (mig 0273) : créé EN ATTENTE. is_active=false
-      // ⇒ invisible des clients (merchants_public) et bloqué au checkout (RLS
-      // commande) jusqu'à l'approbation du super-admin.
-      is_active: false,
-      // Pré-remplit le minimum de commande selon le panier moyen de la catégorie
-      // (étude pouvoir d'achat algérien). Le commerçant peut le monter dans ses
-      // réglages ; le plancher Coligo s'applique côté checkout.
-      min_order_da: suggestedMinOrderForCategory(primaryCategory),
-    });
-    merchantError = error;
-    if (!error) break;
-    if (error.code === "23505" && error.message.includes("slug")) {
-      slug = `${slugBase}-${Math.random().toString(36).slice(2, 6)}`;
-      continue;
-    }
-    break;
-  }
-
-  if (merchantError) {
+  const shopError = await insertShopForUser(
+    supabase,
+    userId,
+    parsed.data,
+    extras
+  );
+  if (shopError) {
     return {
-      error: `Compte créé mais erreur création boutique : ${merchantError.message}. Réessayez avec les mêmes email et mot de passe — l'inscription reprendra où elle s'est arrêtée.`,
+      error: `Compte créé mais erreur création boutique : ${shopError}. Réessayez avec les mêmes email et mot de passe — l'inscription reprendra où elle s'est arrêtée.`,
     };
-  }
-
-  // Liaisons multi-catégories (mig 0312) — via service_role (l'inscription
-  // sans session confirmée n'a pas de auth.uid pour la RLS owner) ; codes
-  // déjà validés ACTIFS ci-dessus, FK = catégories existantes. La PRINCIPALE
-  // est déjà créée par le trigger (source='primary') : on n'insère QUE les
-  // secondaires, en upsert ignoreDuplicates — un insert brut incluant la
-  // principale ferait échouer TOUT le lot (PK) et perdrait les secondaires
-  // en silence. Best-effort.
-  if (catList.length > 1) {
-    const { data: createdShop } = await supabase
-      .from("merchants")
-      .select("id")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (createdShop) {
-      const adminDb = createAdminClient();
-      await adminDb.from("merchant_category_links" as never).upsert(
-        catList
-          .filter((code) => code !== primaryCategory)
-          .map((code) => ({
-            merchant_id: createdShop.id,
-            code,
-            source: "manual",
-          })) as never,
-        { onConflict: "merchant_id,code", ignoreDuplicates: true }
-      );
-    }
   }
 
   if (!hasSession) {
@@ -413,6 +460,63 @@ export async function signup(
       success:
         "Compte créé ! Vérifiez votre email pour activer le compte, puis connectez-vous.",
     };
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/dashboard");
+}
+
+/**
+ * Complétion d'inscription commerçant APRÈS une connexion Google (portail
+ * /login ou /signup, `intent=merchant`) : l'utilisateur est déjà authentifié,
+ * il ne reste qu'à créer la boutique (mêmes règles que `signup` : catégories
+ * actives, position carte, créée EN ATTENTE de validation).
+ */
+export async function completeSocialSignup(
+  _prevState: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  const parsed = shopSchema.safeParse({
+    merchantName: formData.get("merchantName"),
+    managerName: formData.get("managerName"),
+    latitude: formData.get("latitude"),
+    longitude: formData.get("longitude"),
+    address: formData.get("address"),
+    category: formData.get("category"),
+    wilayaCode: formData.get("wilayaCode"),
+    city: formData.get("city"),
+  });
+  if (!parsed.success) {
+    return { error: firstZodError(parsed.error) };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "Session expirée — reconnectez-vous avec Google." };
+  }
+
+  // Boutique déjà créée (double soumission, retour arrière) → on n'écrase rien.
+  const { data: existingShop } = await supabase
+    .from("merchants")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (existingShop) redirect("/dashboard");
+
+  const extras = await parseShopExtras(formData, parsed.data);
+  if ("error" in extras) return { error: extras.error };
+
+  const shopError = await insertShopForUser(
+    supabase,
+    user.id,
+    parsed.data,
+    extras
+  );
+  if (shopError) {
+    return { error: `Erreur création boutique : ${shopError}. Réessayez.` };
   }
 
   revalidatePath("/", "layout");
