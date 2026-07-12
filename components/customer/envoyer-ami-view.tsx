@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -15,8 +15,10 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
+import { PinResetPanel } from "@/components/customer/pin-reset-panel";
 import {
   executeTransfer,
+  getWalletPinStatus,
   searchRecipient,
   setWalletPin,
   type RecentRecipient,
@@ -75,7 +77,20 @@ export function EnvoyerAmiView({
   const [note, setNote] = useState("");
   const [pin, setPin] = useState("");
   const [hasPin, setHasPin] = useState(initialHasPin);
+  const [lockedState, setLockedState] = useState(locked);
+  const [showReset, setShowReset] = useState(false);
   const [opId, setOpId] = useState("");
+
+  // RE-SYNCHRONISE le statut du PIN au montage (props RSC possiblement
+  // périmées via le Router Cache) — cf. wallet-qr-view : jamais « crée un
+  // code » sur une simple erreur réseau.
+  useEffect(() => {
+    void getWalletPinStatus().then((s) => {
+      if (!s.known) return;
+      setHasPin(s.hasPin);
+      setLockedState(s.locked);
+    });
+  }, []);
 
   const amountNum = Number(amount) || 0;
 
@@ -211,7 +226,21 @@ export function EnvoyerAmiView({
           />
         )}
 
-        {step === "confirm" && recipient && (
+        {step === "confirm" && recipient && showReset && (
+          <div className="flex justify-center pt-4">
+            <PinResetPanel
+              onDone={() => {
+                setShowReset(false);
+                setHasPin(true);
+                setLockedState(false);
+                setPin("");
+                setError(null);
+              }}
+              onCancel={() => setShowReset(false)}
+            />
+          </div>
+        )}
+        {step === "confirm" && recipient && !showReset && (
           <ConfirmStep
             t={t}
             senderName={senderName}
@@ -219,9 +248,10 @@ export function EnvoyerAmiView({
             amountNum={amountNum}
             note={note}
             balanceDa={balanceDa}
-            locked={locked}
+            locked={lockedState}
             hasPin={hasPin}
             onPinCreated={() => setHasPin(true)}
+            onForgot={() => setShowReset(true)}
             pin={pin}
             setPin={setPin}
             busy={busy}
@@ -508,6 +538,7 @@ function ConfirmStep({
   locked,
   hasPin,
   onPinCreated,
+  onForgot,
   pin,
   setPin,
   busy,
@@ -523,6 +554,8 @@ function ConfirmStep({
   locked: boolean;
   hasPin: boolean;
   onPinCreated: () => void;
+  /** Ouvre la récupération du PIN par email (« Code oublié ? »). */
+  onForgot: () => void;
   pin: string;
   setPin: (v: string) => void;
   busy: boolean;
@@ -578,9 +611,19 @@ function ConfirmStep({
 
       {/* PIN obligatoire */}
       {locked ? (
-        <div className="border-danger-200 bg-danger-50 text-danger-700 flex items-center gap-2 rounded-[14px] border px-4 py-3 text-sm font-semibold">
-          <Lock className="size-4 shrink-0" />
-          {t("qrErrPinLocked")}
+        <div className="border-danger-200 bg-danger-50 text-danger-700 rounded-[14px] border px-4 py-3 text-sm font-semibold">
+          <span className="flex items-center gap-2">
+            <Lock className="size-4 shrink-0" />
+            {t("qrErrPinLocked")}
+          </span>
+          {/* Sortie de secours : le reset par email lève aussi le verrouillage. */}
+          <button
+            type="button"
+            onClick={onForgot}
+            className="text-primary-600 mt-2 text-[12.5px] font-bold underline"
+          >
+            {t("pinForgot")}
+          </button>
         </div>
       ) : !hasPin ? (
         <InlineCreatePin t={t} onCreated={onPinCreated} />
@@ -618,6 +661,13 @@ function ConfirmStep({
                 {t("sendConfirmCta", { amount: formatDA(amountNum) })}
               </>
             )}
+          </button>
+          <button
+            type="button"
+            onClick={onForgot}
+            className="text-primary-600 mt-3 block w-full text-center text-[12.5px] font-bold"
+          >
+            {t("pinForgot")}
           </button>
         </div>
       )}
@@ -663,6 +713,12 @@ function InlineCreatePin({
     const res = await setWalletPin(a);
     setBusy(false);
     if (!res.ok) {
+      if (res.error === "pin_exists") {
+        // Un PIN existe déjà (état local périmé) : le serveur a refusé
+        // d'écraser (mig 0360) → on bascule sur la saisie du PIN existant.
+        onCreated();
+        return;
+      }
       setErr(t("qrErrPinNotSet"));
       return;
     }

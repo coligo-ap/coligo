@@ -10,6 +10,8 @@
 // =============================================================================
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient as createBareClient } from "@supabase/supabase-js";
 
 // Les fonctions 0084 ne sont pas (encore) dans les types générés : on relaie via
 // le même garde-fou `as never` que lib/data/platform.ts pour le nom de RPC.
@@ -40,6 +42,9 @@ type JsonOk = { ok: boolean; error?: string };
 export type PinStatus = {
   hasPin: boolean;
   locked: boolean;
+  /** false = la RPC a ÉCHOUÉ : ne PAS en déduire « pas de PIN » (l'UI ne doit
+   *  jamais proposer de re-créer un PIN sur une simple erreur réseau). */
+  known: boolean;
 };
 
 /** Statut du PIN Coligo Pay (défini ? verrouillé ?) — sans exposer le hash. */
@@ -52,24 +57,216 @@ export async function getWalletPinStatus(): Promise<PinStatus> {
   return {
     hasPin: !!res?.has_pin,
     locked: !!res?.locked,
+    known: res?.ok === true,
   };
 }
 
-/** Définit / change le PIN (4 chiffres). */
+/**
+ * Définit le PIN (création) ou le CHANGE — l'ancien PIN est alors OBLIGATOIRE
+ * (mig 0360 : un PIN existant ne s'écrase jamais sans preuve ; mêmes compteurs
+ * anti-bruteforce que la vérification). Le journal est écrit par la SQL.
+ */
 export async function setWalletPin(
-  pin: string
+  pin: string,
+  currentPin?: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  // Sait-on déjà s'il existait un PIN ? → pour journaliser set vs changed.
-  const before = await callRpc<{ has_pin?: boolean }>("coligo_pay_pin_status");
-  const res = await callRpc<JsonOk>("coligo_pay_set_pin", { p_pin: pin });
-  if (res?.ok) {
-    await callRpc("coligo_log_security_event", {
-      p_event: before?.has_pin ? "pin_changed" : "pin_set",
-      p_detail: null,
-    });
-    return { ok: true };
-  }
+  const res = await callRpc<JsonOk>("coligo_pay_set_pin", {
+    p_pin: pin,
+    p_current_pin: currentPin ?? null,
+  });
+  if (res?.ok) return { ok: true };
   return { ok: false, error: res?.error ?? "unknown" };
+}
+
+// ─── PIN oublié : preuve par email (code OTP) puis reset service_role ───────
+
+const RESET_MAX_SENDS_PER_HOUR = 4;
+const RESET_MIN_SECONDS_BETWEEN_SENDS = 60;
+
+type Throttle = {
+  fails: number;
+  lock_level: number;
+  locked_until: string | null;
+  sends_window: string | null;
+  sends_count: number;
+  updated_at: string;
+};
+
+function lockedMinutes(t: Pick<Throttle, "locked_until"> | null): number {
+  if (!t?.locked_until) return 0;
+  const ms = new Date(t.locked_until).getTime() - Date.now();
+  return ms > 0 ? Math.ceil(ms / 60000) : 0;
+}
+
+/**
+ * Envoie un code de vérification à l'EMAIL DU COMPTE (jamais choisi par le
+ * client). Anti-abus : 60 s entre envois, 4 envois/heure (+ limites Supabase).
+ */
+export async function requestPinResetCode(): Promise<
+  { ok: true; email: string } | { ok: false; error: string }
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return { ok: false, error: "no_session" };
+
+  // Réservé aux clients (le PIN Coligo Pay est un objet client).
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!customer) return { ok: false, error: "not_customer" };
+
+  const admin = createAdminClient();
+  // tenant-scope-ok : ligne de throttle du user de LA session courante.
+  const { data: th } = (await admin
+    .from("pin_reset_throttle" as never)
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle()) as { data: Throttle | null };
+
+  const mins = lockedMinutes(th);
+  if (mins > 0) return { ok: false, error: `locked:${mins}` };
+
+  const now = Date.now();
+  const windowStart = th?.sends_window
+    ? new Date(th.sends_window).getTime()
+    : 0;
+  const inWindow = now - windowStart < 3600_000;
+  const sends = inWindow ? (th?.sends_count ?? 0) : 0;
+  if (inWindow && sends >= RESET_MAX_SENDS_PER_HOUR) {
+    return { ok: false, error: "too_many_sends" };
+  }
+  if (
+    th?.updated_at &&
+    inWindow &&
+    sends > 0 &&
+    now - new Date(th.updated_at).getTime() <
+      RESET_MIN_SECONDS_BETWEEN_SENDS * 1000
+  ) {
+    return { ok: false, error: "wait" };
+  }
+
+  // Client Supabase ISOLÉ (pas de cookies) : l'OTP envoyé ne touche pas la
+  // session en cours. shouldCreateUser:false → jamais de création de compte.
+  const bare = createBareClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false } }
+  );
+  const { error } = await bare.auth.signInWithOtp({
+    email: user.email,
+    options: { shouldCreateUser: false },
+  });
+  if (error) {
+    console.error("[coligo-pay] envoi code reset PIN:", error.message);
+    return {
+      ok: false,
+      error: error.message.toLowerCase().includes("rate")
+        ? "too_many_sends"
+        : "send_failed",
+    };
+  }
+
+  await admin.from("pin_reset_throttle" as never).upsert({
+    user_id: user.id,
+    sends_window: inWindow
+      ? (th?.sends_window ?? new Date(now).toISOString())
+      : new Date(now).toISOString(),
+    sends_count: sends + 1,
+    updated_at: new Date(now).toISOString(),
+  } as never);
+
+  return { ok: true, email: user.email };
+}
+
+/**
+ * Valide le code reçu par email puis pose le NOUVEAU PIN. La preuve de l'email
+ * est vérifiée par Supabase (verifyOtp) ; le reset passe par la fonction
+ * service_role (jamais appelable par le client). 3 codes faux → 10 puis 20 min.
+ */
+export async function resetPinWithEmailCode(input: {
+  code: string;
+  newPin: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const code = (input.code ?? "").replace(/\D/g, "");
+  const newPin = (input.newPin ?? "").trim();
+  if (!/^\d{4}$/.test(newPin)) return { ok: false, error: "invalid_pin" };
+  if (code.length < 6) return { ok: false, error: "bad_code" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return { ok: false, error: "no_session" };
+
+  const admin = createAdminClient();
+  // tenant-scope-ok : ligne de throttle du user de LA session courante.
+  const { data: th } = (await admin
+    .from("pin_reset_throttle" as never)
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle()) as { data: Throttle | null };
+  const mins = lockedMinutes(th);
+  if (mins > 0) return { ok: false, error: `locked:${mins}` };
+
+  // Vérification du code sur un client ISOLÉ : la session créée par verifyOtp
+  // est jetée, les cookies de la vraie session ne bougent pas.
+  const bare = createBareClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false } }
+  );
+  const { error } = await bare.auth.verifyOtp({
+    email: user.email,
+    token: code,
+    type: "email",
+  });
+  if (error) {
+    const fails = (th?.fails ?? 0) + 1;
+    if (fails >= 3) {
+      const lock_level = (th?.lock_level ?? 0) + 1;
+      const minutes = lock_level <= 1 ? 10 : 20;
+      await admin.from("pin_reset_throttle" as never).upsert({
+        user_id: user.id,
+        fails: 0,
+        lock_level,
+        locked_until: new Date(Date.now() + minutes * 60_000).toISOString(),
+        updated_at: new Date().toISOString(),
+      } as never);
+      return { ok: false, error: `locked:${minutes}` };
+    }
+    await admin.from("pin_reset_throttle" as never).upsert({
+      user_id: user.id,
+      fails,
+      updated_at: new Date().toISOString(),
+    } as never);
+    return { ok: false, error: "bad_code" };
+  }
+
+  // Email prouvé → reset via la fonction réservée à service_role.
+  const rpc = admin.rpc.bind(admin) as unknown as Rpc;
+  const { data, error: rpcErr } = await rpc("coligo_pay_service_reset_pin", {
+    p_user_id: user.id,
+    p_new_pin: newPin,
+  });
+  const res = data as JsonOk | null;
+  if (rpcErr || !res?.ok) {
+    console.error(
+      "[coligo-pay] service_reset_pin:",
+      rpcErr?.message ?? res?.error
+    );
+    return { ok: false, error: res?.error ?? "unknown" };
+  }
+
+  // Succès → on efface le throttle.
+  await admin
+    .from("pin_reset_throttle" as never)
+    .delete()
+    .eq("user_id", user.id);
+  return { ok: true };
 }
 
 /** Vérifie le PIN (déverrouillage de l'écran de paiement). */

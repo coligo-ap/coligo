@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -16,10 +16,12 @@ import {
 } from "lucide-react";
 import { QrScanner } from "@/components/scanner/qr-scanner";
 import { OrderQr } from "@/components/customer/order-qr";
+import { PinResetPanel } from "@/components/customer/pin-reset-panel";
 import { cn, formatDA } from "@/lib/utils";
 import {
   executePayment,
   executeTransfer,
+  getWalletPinStatus,
   resolvePayRequest,
   resolveReceiver,
   setWalletPin,
@@ -75,10 +77,25 @@ export function WalletQrView({
 
   const [tab, setTab] = useState<Tab>(initialTab);
   const [hasPin, setHasPin] = useState(initialHasPin);
+  const [lockedState, setLockedState] = useState(locked);
+  const [showReset, setShowReset] = useState(false);
   const [step, setStep] = useState<Step>("scan");
   const [busy, setBusy] = useState(false);
   // Erreur d'action affichée EN LIGNE dans l'étape active (pas de toast).
   const [error, setError] = useState<string | null>(null);
+
+  // RE-SYNCHRONISE le statut du PIN au montage : les props serveur peuvent
+  // sortir du Router Cache (staleTimes) et dire « pas de PIN » alors qu'il en
+  // existe un — c'était le bug « on me redemande de créer un code à chaque
+  // fois » (et chaque re-création écrasait l'ancien). On n'applique QUE les
+  // réponses sûres (known) : jamais de « crée un code » sur une erreur réseau.
+  useEffect(() => {
+    void getWalletPinStatus().then((s) => {
+      if (!s.known) return;
+      setHasPin(s.hasPin);
+      setLockedState(s.locked);
+    });
+  }, []);
 
   const [codeMode, setCodeMode] = useState(false);
   const [codeInput, setCodeInput] = useState("");
@@ -301,11 +318,33 @@ export function WalletQrView({
       {/* ── PAYER / ENVOYER : scanner ─────────────────────────────────────── */}
       {tab === "pay" && step === "scan" && (
         <div className="flex flex-1 flex-col items-center px-6 pt-6">
-          {locked ? (
-            <LockedPanel label={t("qrErrPinLocked")} />
+          {showReset ? (
+            <div className="mt-4 w-full max-w-[320px]">
+              <PinResetPanel
+                onDone={() => {
+                  setShowReset(false);
+                  setHasPin(true);
+                  setLockedState(false);
+                  setError(null);
+                }}
+                onCancel={() => setShowReset(false)}
+              />
+            </div>
+          ) : lockedState ? (
+            <LockedPanel
+              label={t("qrErrPinLocked")}
+              forgotLabel={t("pinForgot")}
+              onForgot={() => setShowReset(true)}
+            />
           ) : !hasPin ? (
             <CreatePinPanel
               onCreated={() => setHasPin(true)}
+              onExists={() => {
+                // Un PIN existe déjà (état local périmé) : on bascule sur la
+                // saisie — le serveur a refusé d'écraser (mig 0360).
+                setHasPin(true);
+                setError(t("qrErrPinExists"));
+              }}
               labelTitle={t("qrCreatePinTitle")}
               labelDesc={t("qrCreatePinDesc")}
               labelPin={t("qrPinLabel")}
@@ -435,7 +474,20 @@ export function WalletQrView({
       )}
 
       {/* ── CONFIRMATION + PIN ────────────────────────────────────────────── */}
-      {step === "confirm" && pending && (
+      {step === "confirm" && pending && showReset && (
+        <div className="flex flex-1 flex-col items-center justify-center px-6 pb-10">
+          <PinResetPanel
+            onDone={() => {
+              setShowReset(false);
+              setLockedState(false);
+              setPin("");
+              setError(null);
+            }}
+            onCancel={() => setShowReset(false)}
+          />
+        </div>
+      )}
+      {step === "confirm" && pending && !showReset && (
         <div className="flex flex-1 flex-col items-center justify-center px-6 pb-10">
           <div className="bg-surface w-full max-w-[320px] rounded-[26px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
             <div className="bg-primary-50 text-primary-600 mx-auto grid size-14 place-items-center rounded-2xl">
@@ -491,8 +543,15 @@ export function WalletQrView({
             </button>
             <button
               type="button"
+              onClick={() => setShowReset(true)}
+              className="text-primary-600 mt-3 text-[12.5px] font-bold"
+            >
+              {t("pinForgot")}
+            </button>
+            <button
+              type="button"
               onClick={resetToScan}
-              className="text-muted mt-3 text-sm font-bold"
+              className="text-muted mt-2 block w-full text-sm font-bold"
             >
               {t("cancel")}
             </button>
@@ -573,7 +632,15 @@ export function WalletQrView({
   );
 }
 
-function LockedPanel({ label }: { label: string }) {
+function LockedPanel({
+  label,
+  forgotLabel,
+  onForgot,
+}: {
+  label: string;
+  forgotLabel?: string;
+  onForgot?: () => void;
+}) {
   return (
     <div className="mt-10 flex flex-col items-center text-center">
       <span className="grid size-16 place-items-center rounded-full bg-white/15">
@@ -582,12 +649,23 @@ function LockedPanel({ label }: { label: string }) {
       <p className="mt-4 max-w-[260px] text-[14px] font-bold opacity-90">
         {label}
       </p>
+      {/* Sortie de secours : le reset par email LÈVE aussi le verrouillage. */}
+      {onForgot && forgotLabel && (
+        <button
+          type="button"
+          onClick={onForgot}
+          className="mt-4 rounded-[13px] bg-white/15 px-5 py-3 text-[13px] font-extrabold"
+        >
+          {forgotLabel}
+        </button>
+      )}
     </div>
   );
 }
 
 function CreatePinPanel({
   onCreated,
+  onExists,
   labelTitle,
   labelDesc,
   labelPin,
@@ -597,6 +675,9 @@ function CreatePinPanel({
   msgInvalid,
 }: {
   onCreated: () => void;
+  /** Le serveur signale qu'un PIN existe déjà (état local périmé) — mig 0360
+   *  refuse d'écraser : l'appelant bascule sur la saisie du PIN existant. */
+  onExists?: () => void;
   labelTitle: string;
   labelDesc: string;
   labelPin: string;
@@ -625,6 +706,10 @@ function CreatePinPanel({
     const res = await setWalletPin(pin);
     setBusy(false);
     if (!res.ok) {
+      if (res.error === "pin_exists" && onExists) {
+        onExists();
+        return;
+      }
       setErr(msgInvalid);
       return;
     }
