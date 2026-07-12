@@ -1343,6 +1343,14 @@
     "searching": "جارٍ البحث عن المنتج…",
     "notFound": "منتج غير معروف ({ean}) — اكتب اسمه.",
     "scanError": "تعذّر المسح. أعد المحاولة.",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "foundCount": "{count, plural, one {# منتج متوفر} other {# منتجات متوفرة}}",
+    "atMerchant": "عند {name}",
+    "add": "أضف",
+    "added": "أُضيف",
+    "view": "عرض",
+    "scanAgain": "مسح منتج آخر",
+    "noMatch": "« {name} » غير متوفر عند أي تاجر حاليًا.",
+    "searchInstead": "ابحث عن « {name} » نصيًا"
   }
 }

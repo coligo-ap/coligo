@@ -1,56 +1,94 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Loader2, ScanBarcode, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  Check,
+  ChevronRight,
+  Loader2,
+  ScanBarcode,
+  ShoppingBag,
+  X,
+} from "lucide-react";
+import { cn, formatDA } from "@/lib/utils";
+import { isFractionalUnit, minQtyFor } from "@/lib/units";
 import { Portal } from "@/components/ui/portal";
 import { QrScanner } from "@/components/scanner/qr-scanner";
-import { scanBarcode } from "@/app/(customer)/barcode-actions";
+import { useCartAdd } from "@/components/customer/cart-mono-provider";
+import {
+  setSearchOpen,
+  setSearchQuery,
+} from "@/lib/customer/merchant-search-store";
+import {
+  scanBarcodeFind,
+  type ScanFindResult,
+} from "@/app/(customer)/barcode-actions";
+import type { MatchedProduct } from "@/lib/barcode/match";
 import type { BarcodeSurface } from "@/lib/barcode/resolve";
 
 // =============================================================================
-// BarcodeScanButton — icône « scanner un code-barres » posée DANS une barre de
-// recherche (accueil marketplace / fiche commerçant). Ouvre un plein écran
-// caméra (QrScanner mode "barcode" : EAN-13/8, UPC), résout le code côté
-// serveur (catalogue local → OpenFoodFacts) puis remonte le NOM du produit à
-// l'appelant, qui l'injecte dans sa recherche. Non résolu → message inline,
-// on continue de scanner. Le rendu du bouton est GATÉ côté serveur (feature
-// flag par surface) : ce composant n'est monté que si la surface est active.
+// BarcodeScanButton — scan TEMPS RÉEL façon Picnic, front Bolt : la caméra
+// reste ouverte ; dès qu'un code est lu, le produit résolu s'affiche dans un
+// panneau blanc SOUS la caméra avec les produits correspondants (prix, « chez
+// {commerçant} » sur l'accueil), bouton AJOUTER AU PANIER direct (produit
+// simple) ou « Voir » (options/poids → boutique avec recherche préremplie),
+// et « Scanner un autre produit » pour enchaîner. Non résolu → message +
+// repli recherche texte. Rendu GATÉ côté serveur (feature flag par surface).
 // =============================================================================
+
+type Panel =
+  | { kind: "scanning" }
+  | { kind: "searching"; ean: string }
+  | { kind: "found"; name: string; products: MatchedProduct[] }
+  | { kind: "no-match"; name: string }
+  | { kind: "not-found"; ean: string };
 
 export function BarcodeScanButton({
   surface,
+  merchantId = null,
   onFound,
   className,
 }: {
   surface: BarcodeSurface;
-  /** Reçoit le NOM résolu — l'appelant l'injecte dans sa recherche. */
+  /** Fiche commerçant : borne les résultats à CE commerce. */
+  merchantId?: string | null;
+  /** Repli « recherche texte » : reçoit le nom résolu. */
   onFound: (name: string) => void;
   className?: string;
 }) {
   const t = useTranslations("barcode");
   const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [panel, setPanel] = useState<Panel>({ kind: "scanning" });
+  // Ignore les détections tant qu'un résultat est affiché (le client lit) —
+  // « Scanner un autre produit » réarme.
+  const armedRef = useRef(true);
+
+  function reset() {
+    setPanel({ kind: "scanning" });
+    armedRef.current = true;
+  }
 
   async function handleScan(raw: string) {
-    if (busy) return;
+    if (!armedRef.current) return;
     const ean = raw.replace(/\D/g, "");
     if (ean.length < 8) return;
-    setBusy(true);
-    setError(null);
-    const res = await scanBarcode({ ean, surface });
-    setBusy(false);
-    if (res.ok) {
-      setOpen(false);
-      onFound(res.name);
+    armedRef.current = false;
+    setPanel({ kind: "searching", ean });
+    const res: ScanFindResult = await scanBarcodeFind({
+      ean,
+      surface,
+      merchantId,
+    });
+    if (!res.ok) {
+      setPanel({ kind: "not-found", ean });
       return;
     }
-    // Non résolu → message inline avec le code lu, on laisse scanner.
-    setError(
-      res.error === "not_found" ? t("notFound", { ean }) : t("scanError")
-    );
+    if (res.products.length === 0) {
+      setPanel({ kind: "no-match", name: res.name });
+      return;
+    }
+    setPanel({ kind: "found", name: res.name, products: res.products });
   }
 
   return (
@@ -58,7 +96,7 @@ export function BarcodeScanButton({
       <button
         type="button"
         onClick={() => {
-          setError(null);
+          reset();
           setOpen(true);
         }}
         aria-label={t("button")}
@@ -87,32 +125,204 @@ export function BarcodeScanButton({
               </button>
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6">
+            {/* Caméra TOUJOURS montée (scan continu). */}
+            <div className="flex min-h-0 flex-1 items-start justify-center px-6 pt-2">
               <QrScanner
                 mode="barcode"
                 oneShot={false}
                 onScan={(text) => void handleScan(text)}
-                className="aspect-square w-full max-w-[300px] overflow-hidden rounded-[24px]"
+                className="aspect-square w-full max-w-[280px] overflow-hidden rounded-[24px]"
               />
-              <p className="mt-4 max-w-[300px] text-center text-[13px] font-semibold text-white/85">
-                {t("hint")}
-              </p>
-              {busy && (
-                <p className="mt-3 inline-flex items-center gap-2 text-[13px] font-bold text-white">
-                  <Loader2 className="size-4 animate-spin" />
+            </div>
+
+            {/* Panneau RÉSULTAT temps réel (blanc, coins arrondis, style Bolt). */}
+            <div className="max-h-[46vh] overflow-y-auto rounded-t-[24px] bg-white px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+              {panel.kind === "scanning" && (
+                <p className="text-muted py-3 text-center text-[13px] font-semibold">
+                  {t("hint")}
+                </p>
+              )}
+
+              {panel.kind === "searching" && (
+                <p className="text-foreground inline-flex w-full items-center justify-center gap-2 py-3 text-[13.5px] font-bold">
+                  <Loader2 className="text-primary-600 size-4 animate-spin" />
                   {t("searching")}
                 </p>
               )}
-              {error && !busy && (
-                <p className="bg-danger-50 text-danger-700 mt-3 max-w-[300px] rounded-[12px] px-3.5 py-2 text-center text-[12.5px] font-semibold">
-                  {error}
+
+              {panel.kind === "found" && (
+                <>
+                  <p className="text-foreground text-[14px] font-extrabold">
+                    {panel.name}
+                  </p>
+                  <p className="text-muted mb-2 text-[11.5px] font-medium">
+                    {t("foundCount", { count: panel.products.length })}
+                  </p>
+                  <ul className="divide-border divide-y">
+                    {panel.products.map((p) => (
+                      <ResultRow
+                        key={p.product_id}
+                        product={p}
+                        surface={surface}
+                        onNavigate={() => setOpen(false)}
+                      />
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              {panel.kind === "no-match" && (
+                <div className="py-2 text-center">
+                  <p className="text-foreground text-[13.5px] font-bold">
+                    {t("noMatch", { name: panel.name })}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      onFound(panel.name);
+                    }}
+                    className="text-primary-700 mt-2 text-[13px] font-bold underline"
+                  >
+                    {t("searchInstead", { name: panel.name })}
+                  </button>
+                </div>
+              )}
+
+              {panel.kind === "not-found" && (
+                <p className="text-foreground py-2 text-center text-[13.5px] font-bold">
+                  {t("notFound", { ean: panel.ean })}
                 </p>
               )}
+
+              {panel.kind !== "scanning" && (
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="border-border text-foreground mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border text-[13.5px] font-extrabold"
+                >
+                  <ScanBarcode className="size-4" />
+                  {t("scanAgain")}
+                </button>
+              )}
             </div>
-            <div className="h-[calc(env(safe-area-inset-bottom)+1rem)]" />
           </div>
         </Portal>
       )}
     </>
+  );
+}
+
+/** Ligne de résultat : photo · nom (+ « chez {commerçant} » sur l'accueil) ·
+ *  prix · Ajouter (direct) ou Voir (options/poids → boutique préremplie). */
+function ResultRow({
+  product,
+  surface,
+  onNavigate,
+}: {
+  product: MatchedProduct;
+  surface: BarcodeSurface;
+  onNavigate: () => void;
+}) {
+  const t = useTranslations("barcode");
+  const router = useRouter();
+  const { requestAdd } = useCartAdd();
+  const [added, setAdded] = useState(false);
+
+  const simple = !product.has_options && !isFractionalUnit(product.unit);
+
+  function addToCart() {
+    if (added) return;
+    requestAdd(
+      {
+        id: product.merchant.id,
+        slug: product.merchant.slug,
+        name: product.merchant.name,
+        logo_url: product.merchant.logo_url,
+      },
+      {
+        product_id: product.product_id,
+        name: product.name_fr,
+        name_ar: product.name_ar,
+        unit: product.unit,
+        min_qty: product.min_qty,
+        max_qty: product.max_qty,
+        unit_price_da: product.price_da,
+        image_url: product.image_url,
+        category_title: product.category,
+        options: [],
+        quantity: minQtyFor(product.unit, product.min_qty),
+      }
+    );
+    setAdded(true);
+  }
+
+  /** Options/poids : direction la boutique, recherche préremplie sur CE nom. */
+  function view() {
+    setSearchQuery(product.name_fr);
+    setSearchOpen(true);
+    onNavigate();
+    if (surface === "marketplace") {
+      router.push(`/m/${product.merchant.slug}`);
+    }
+  }
+
+  return (
+    <li className="flex items-center gap-3 py-2.5">
+      {product.image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={product.image_url}
+          alt=""
+          className="bg-surface-2 size-11 shrink-0 rounded-[10px] object-contain"
+        />
+      ) : (
+        <span className="bg-surface-2 text-subtle grid size-11 shrink-0 place-items-center rounded-[10px]">
+          <ShoppingBag className="size-5" />
+        </span>
+      )}
+      <span className="min-w-0 flex-1">
+        <span className="text-foreground line-clamp-1 text-[13.5px] font-bold">
+          {product.name_fr}
+        </span>
+        {surface === "marketplace" && (
+          <span className="text-muted line-clamp-1 text-[11.5px] font-medium">
+            {t("atMerchant", { name: product.merchant.name })}
+          </span>
+        )}
+        <span className="text-primary-700 text-[13px] font-extrabold tabular-nums">
+          {formatDA(product.price_da)}
+        </span>
+      </span>
+      {simple ? (
+        <button
+          type="button"
+          onClick={addToCart}
+          disabled={added}
+          className={cn(
+            "inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3.5 text-[12.5px] font-extrabold text-white transition-colors",
+            added ? "bg-success-600" : "bg-primary-600 hover:bg-primary-700"
+          )}
+        >
+          {added ? (
+            <>
+              <Check className="size-4" />
+              {t("added")}
+            </>
+          ) : (
+            t("add")
+          )}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={view}
+          className="border-border text-foreground inline-flex h-9 shrink-0 items-center gap-0.5 rounded-full border px-3 text-[12.5px] font-extrabold"
+        >
+          {t("view")}
+          <ChevronRight className="size-3.5 rtl:rotate-180" />
+        </button>
+      )}
+    </li>
   );
 }

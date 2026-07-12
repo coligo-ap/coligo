@@ -291,6 +291,7 @@ export function MerchantCompactHeader({
               {barcode_scan_enabled && (
                 <BarcodeScanButton
                   surface="merchant"
+                  merchantId={merchantId}
                   onFound={(name) => {
                     setSearchOpen(true);
                     setSearchQuery(name);

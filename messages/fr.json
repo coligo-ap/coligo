@@ -1343,6 +1343,14 @@
     "searching": "Recherche du produit…",
     "notFound": "Produit non reconnu ({ean}) — tapez son nom.",
     "scanError": "Scan impossible. Réessayez.",
-    "close": "Fermer"
+    "close": "Fermer",
+    "foundCount": "{count, plural, one {# produit disponible} other {# produits disponibles}}",
+    "atMerchant": "chez {name}",
+    "add": "Ajouter",
+    "added": "Ajouté",
+    "view": "Voir",
+    "scanAgain": "Scanner un autre produit",
+    "noMatch": "« {name} » n'est disponible chez aucun commerçant pour l'instant.",
+    "searchInstead": "Chercher « {name} » en texte"
   }
 }
