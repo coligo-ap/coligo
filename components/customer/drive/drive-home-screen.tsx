@@ -1,6 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -104,13 +105,17 @@ export function DriveHomeScreen({
             <Car className="size-[18px]" /> Coligo Drive
           </p>
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => router.push("/drive/historique")}
+            {/* <Link> PRÉFETCHÉ (règle « nav client ultra rapide ») : la route
+                + son loading.tsx sont déjà en cache au tap → écran instantané.
+                Un router.push sur onClick ne préfetche rien : premier tap =
+                aller-retour serveur complet, ressenti « le bouton bugue ». */}
+            <Link
+              href="/drive/historique"
+              prefetch
               className="flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 text-xs font-bold"
             >
               <History className="size-3.5" /> {t("history")}
-            </button>
+            </Link>
             <button
               type="button"
               onClick={() => setContactsOpen(true)}
