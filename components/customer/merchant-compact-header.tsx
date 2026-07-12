@@ -24,7 +24,11 @@ import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
 import { categoryLabelFrom, useCategories } from "@/lib/hooks/use-categories";
 import { getTagLabel } from "@/lib/config/merchant-tags";
-import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
+import {
+  currentClosingTime,
+  isOpenNow,
+  nowInAlgiers,
+} from "@/lib/merchant/opening-hours";
 import {
   computePauseState,
   type MerchantPauseInput,
@@ -172,6 +176,9 @@ export function MerchantCompactHeader({
   // (chip de la fiche + 1re ligne de « Plus d'infos », façon Bolt).
   const todaySlots = opening_hours[todayKey] ?? [];
   const todayLabel = todaySlots.map((s) => `${s.open}–${s.close}`).join(", ");
+  // Fermeture du créneau EN COURS → pastille « Ouvert · jusqu'à HH:MM » sur la
+  // couverture (façon Bolt). `now` retick 1×/min → le libellé reste juste.
+  const closingAt = isOpen ? currentClosingTime(opening_hours) : null;
 
   // Topbar : transparente sur la photo, puis verre dépoli + nom dès qu'on
   // dépasse le hero (≈150 px). On écoute le scroll de la fenêtre.
@@ -351,6 +358,28 @@ export function MerchantCompactHeader({
               "linear-gradient(180deg, rgba(0,0,0,.30) 0%, rgba(0,0,0,.06) 26%, transparent 40%)",
           }}
         />
+        {/* Statut d'ouverture SUR la couverture (côté start — le centre est
+            occupé par le logo à cheval) : « Ouvert · jusqu'à HH:MM » façon
+            Bolt, verre dépoli lisible sur toute photo. Tap → Plus d'infos. */}
+        <button
+          type="button"
+          onClick={() => setShowHours(true)}
+          className="absolute start-3 bottom-8 z-[2] inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[12px] font-extrabold shadow-[0_4px_14px_-4px_rgba(0,0,0,.35)] backdrop-blur transition-transform active:scale-[0.96] lg:start-5"
+        >
+          <span
+            className={cn(
+              "size-1.5 shrink-0 rounded-full",
+              isOpen ? "bg-success-500" : "bg-rose-500"
+            )}
+          />
+          <span className={isOpen ? "text-success-700" : "text-rose-600"}>
+            {isOpen
+              ? closingAt
+                ? t("openUntil", { time: closingAt })
+                : t("openNowShort")
+              : t("closedShort")}
+          </span>
+        </button>
       </div>
 
       {/* ───── EN-TÊTE CENTRÉ façon Bolt Food Market : feuille BLANCHE à coins
@@ -387,9 +416,9 @@ export function MerchantCompactHeader({
           />
         </div>
 
-        {/* NOM + catégorie + « Plus d'infos », tous CENTRÉS (Bolt). */}
+        {/* NOM (grand, centré) + « Plus d'infos » juste dessous (Bolt). */}
         <div className="px-10 pt-9 text-center lg:pt-10">
-          <h1 className="text-foreground text-xl leading-tight font-black tracking-tight text-pretty lg:text-2xl">
+          <h1 className="text-foreground text-[24px] leading-tight font-black tracking-tight text-pretty lg:text-[28px]">
             {name}
           </h1>
           {categoryLabel && (
@@ -400,58 +429,48 @@ export function MerchantCompactHeader({
           <button
             type="button"
             onClick={() => setShowHours(true)}
-            className="text-foreground mt-1 inline-flex items-center gap-0.5 text-[13px] font-bold"
+            className="text-foreground mt-1.5 inline-flex items-center gap-1 text-[15px] font-extrabold"
           >
             {t("moreInfo")}
-            <ChevronDown className="size-3.5 -rotate-90 rtl:rotate-90" />
+            <ChevronDown className="size-4 -rotate-90 rtl:rotate-90" />
           </button>
         </div>
 
-        {/* ───── CARROUSEL D'INFOS (chips horizontales, style Bolt) : avis ·
-                statut + créneaux du jour (tap → « Plus d'infos ») · retrait
-                gratuit · temps de préparation. ───── */}
-        <div className="mt-3 flex snap-x [scrollbar-width:none] gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden">
-          <MerchantReviewsDialog
-            ratingAvg={rating_avg}
-            ratingCount={rating_count}
-            reviews={reviews}
-            variant="chip"
-          />
-          <button
-            type="button"
-            onClick={() => setShowHours(true)}
-            aria-expanded={showHours}
-            className="border-border bg-surface inline-flex shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold whitespace-nowrap transition-transform active:scale-[0.96]"
-          >
-            <span
-              className={cn(
-                "size-1.5 shrink-0 rounded-full",
-                isOpen ? "bg-success-500" : "bg-rose-500"
-              )}
+        {/* ───── RANGÉE D'INFOS façon Bolt (capture food.bolt.eu) : 3 COLONNES
+                centrées séparées par de fins filets — icône + valeur en GRAS
+                sur la 1re ligne, libellé gris dessous. Pas de pilules. ───── */}
+        <div className="divide-border mx-auto mt-4 flex max-w-[440px] items-stretch divide-x">
+          <div className="flex min-w-0 flex-1 items-center justify-center">
+            <MerchantReviewsDialog
+              ratingAvg={rating_avg}
+              ratingCount={rating_count}
+              reviews={reviews}
+              variant="stat"
             />
-            <span className={isOpen ? "text-success-700" : "text-rose-600"}>
-              {isOpen ? t("openNowShort") : t("closedNowShort")}
-            </span>
-            {todayLabel && (
-              <span className="text-muted font-semibold tabular-nums">
-                · {todayLabel}
-              </span>
-            )}
-            <ChevronDown className="text-muted size-3.5 shrink-0" />
-          </button>
+          </div>
           <button
             type="button"
             onClick={() => setShowHours(true)}
-            className="border-border bg-surface text-foreground inline-flex shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold whitespace-nowrap transition-transform active:scale-[0.96]"
+            className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-opacity active:opacity-70"
           >
-            <ShoppingBasket className="text-primary-600 size-4" />
-            {t("pickupFree")}
+            <span className="text-foreground inline-flex items-center gap-1 text-[15px] font-extrabold">
+              <ShoppingBasket className="size-4" />
+              {t("statFree")}
+            </span>
+            <span className="text-muted text-[12px] font-medium">
+              {t("statPickup")}
+            </span>
           </button>
           {prep_time_min > 0 && (
-            <span className="border-border bg-surface text-foreground inline-flex shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold whitespace-nowrap">
-              <Timer className="text-primary-600 size-4" />~
-              {t("prepMinutes", { count: prep_time_min })}
-            </span>
+            <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5">
+              <span className="text-foreground inline-flex items-center gap-1 text-[15px] font-extrabold tabular-nums">
+                <Timer className="size-4" />
+                {prep_time_min}
+              </span>
+              <span className="text-muted text-[12px] font-medium">
+                {t("statMin")}
+              </span>
+            </div>
           )}
         </div>
       </div>

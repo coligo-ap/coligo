@@ -353,12 +353,14 @@ export function MerchantCatalog({
                 ref={stripRef}
                 className="snap-x [scrollbar-width:none] overflow-x-auto px-4 py-2 lg:px-6 [&::-webkit-scrollbar]:hidden"
               >
-                <div className="flex min-w-max gap-1.5">
+                {/* PILULES TEXTE PLATES façon Bolt : fond gris, texte noir gras,
+                    active = pleine (violet marque) — plus d'images ni bordures. */}
+                <div className="flex min-w-max gap-2">
                   {display === "categories" && openCat !== null && (
                     <button
                       type="button"
                       onClick={() => setOpenCat(null)}
-                      className="border-border bg-surface text-foreground hover:border-primary-300 inline-flex shrink-0 snap-start items-center rounded-[10px] border px-3 py-1.5 text-[13px] font-bold whitespace-nowrap shadow-[0_2px_6px_-3px_rgba(40,35,90,0.12)] transition-colors active:scale-[0.96]"
+                      className="bg-surface-2 text-foreground hover:bg-surface-3 inline-flex shrink-0 snap-start items-center rounded-full px-4 py-2 text-[13.5px] font-bold whitespace-nowrap transition-colors active:scale-[0.96]"
                     >
                       {t("allChip")}
                     </button>
@@ -369,17 +371,6 @@ export function MerchantCatalog({
                       ? openCat === g.key
                       : activeKey === g.key;
                     const title = g.category?.title ?? t("otherCategory");
-                    // Visuel d'ANCRAGE systématique : photo de la catégorie
-                    // (optimisée) ou tuile initiale — chaque chip devient
-                    // scannable d'un coup d'œil, même sans image.
-                    const img = g.category?.image_url
-                      ? (cldUrl(g.category.image_url, {
-                          width: 64,
-                          height: 64,
-                          crop: "fill",
-                          gravity: "auto",
-                        }) ?? g.category.image_url)
-                      : null;
                     return (
                       <button
                         key={g.key}
@@ -398,33 +389,12 @@ export function MerchantCatalog({
                           }
                         }}
                         className={cn(
-                          "inline-flex shrink-0 snap-start items-center gap-2 rounded-[10px] border py-1.5 ps-1.5 pe-3 text-[13px] font-bold whitespace-nowrap transition-colors active:scale-[0.96]",
+                          "inline-flex shrink-0 snap-start items-center rounded-full px-4 py-2 text-[13.5px] font-bold whitespace-nowrap transition-colors active:scale-[0.96]",
                           active
-                            ? "border-primary-600 bg-primary-600 text-white shadow-[0_6px_16px_-4px_rgba(108,43,217,0.45)]"
-                            : "border-border bg-surface text-foreground hover:border-primary-300 shadow-[0_2px_6px_-3px_rgba(40,35,90,0.12)]"
+                            ? "bg-primary-600 text-white"
+                            : "bg-surface-2 text-foreground hover:bg-surface-3"
                         )}
                       >
-                        {img ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={img}
-                            alt=""
-                            loading="lazy"
-                            decoding="async"
-                            className="size-7 shrink-0 rounded-[7px] object-cover"
-                          />
-                        ) : (
-                          <span
-                            className={cn(
-                              "grid size-7 shrink-0 place-items-center rounded-[7px] text-[12px] font-black",
-                              active
-                                ? "bg-white/20 text-white"
-                                : "bg-primary-50 text-primary-700"
-                            )}
-                          >
-                            {title.charAt(0).toUpperCase()}
-                          </span>
-                        )}
                         {title}
                       </button>
                     );
@@ -510,50 +480,10 @@ export function MerchantCatalog({
                   gravity: "auto",
                 }) ?? g.category.image_url)
               : null;
-            // ── Tuile AVEC image — style BOLT FOOD : carte BLANCHE, photo
-            //    PROPRE (object-contain, jamais de voile sombre qui l'efface),
-            //    titre NOIR sous la photo. Badge promo discret sur la photo. ──
-            if (img) {
-              return (
-                <button
-                  key={g.key}
-                  type="button"
-                  onClick={() => {
-                    setOpenCat(g.key);
-                    setActiveKey(g.key);
-                  }}
-                  aria-label={title}
-                  className="group border-border flex flex-col overflow-hidden rounded-[14px] border bg-white transition-transform duration-150 active:scale-[0.97]"
-                >
-                  <span className="relative block aspect-square w-full bg-white p-1.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={img}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.04]"
-                    />
-                    {promoCount > 0 && (
-                      <span className="bg-accent-600 absolute start-1.5 top-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold whitespace-nowrap text-white shadow-sm">
-                        <BadgePercent className="size-3 shrink-0" />
-                        {t("categoryPromoCount", { count: promoCount })}
-                      </span>
-                    )}
-                  </span>
-                  <span className="flex flex-col items-center px-1.5 pb-2 text-center">
-                    <span className="text-foreground line-clamp-2 text-[12px] leading-tight font-bold">
-                      {title}
-                    </span>
-                    <span className="text-subtle text-[10px] leading-tight font-semibold">
-                      {t("productCount", { count: g.items.length })}
-                    </span>
-                  </span>
-                </button>
-              );
-            }
-            // ── Tuile SANS image : design d'origine (fond teinté, titre en
-            //    haut, chevron filigrane). ──
+            // ── Tuile façon BOLT (capture food.bolt.eu/…/bolt-market) : carte
+            //    GRISE PLATE (ni bordure ni ombre), TITRE noir gras EN HAUT à
+            //    gauche, PHOTO en bas (object-contain sur le fond gris). Sans
+            //    photo : grande initiale en filigrane à la place. ──
             return (
               <button
                 key={g.key}
@@ -563,37 +493,41 @@ export function MerchantCatalog({
                   setActiveKey(g.key);
                 }}
                 aria-label={title}
-                // PAS de variante dark: (système) ici — le sombre APPLICATIF
-                // est géré par le remap .theme-dark de bg-primary-50
-                // (globals.css) ; une dark: système s'activerait selon l'OS
-                // même quand l'app est en clair (texte illisible).
-                className="bg-primary-50 group flex aspect-[3/4] flex-col overflow-hidden rounded-[8px] p-3 text-center transition-transform duration-150 active:scale-[0.97] sm:aspect-[4/5]"
+                className="bg-surface-2 group relative flex aspect-[3/4] flex-col overflow-hidden rounded-[16px] p-2.5 text-start transition-transform duration-150 active:scale-[0.97]"
               >
-                {/* Titre en haut, centré (2 lignes max) — typographie Yassir. */}
-                <span className="text-foreground line-clamp-2 block text-[13.5px] leading-snug font-bold">
+                <span
+                  className={cn(
+                    "text-foreground line-clamp-2 block text-[13px] leading-snug font-bold",
+                    promoCount > 0 && "pe-8"
+                  )}
+                >
                   {title}
                 </span>
-                <span className="text-subtle mt-0.5 block text-[10.5px] font-semibold">
-                  {t("productCount", { count: g.items.length })}
+                <span className="relative mt-auto block h-[62%] w-full">
+                  {img ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={img}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.04]"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className="text-primary-600/15 grid h-full w-full place-items-center text-6xl font-black"
+                    >
+                      {title.charAt(0).toUpperCase()}
+                    </span>
+                  )}
                 </span>
                 {promoCount > 0 && (
-                  <span className="bg-accent-600 mt-1.5 inline-flex items-center gap-1 self-center rounded-full px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
+                  <span className="bg-accent-600 absolute end-1.5 top-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold whitespace-nowrap text-white shadow-sm">
                     <BadgePercent className="size-3 shrink-0" />
                     {t("categoryPromoCount", { count: promoCount })}
                   </span>
                 )}
-                {/* Chevron filigrane dans l'espace RESTANT (flex-1 +
-                    overflow-hidden + max-h) → ne chevauche JAMAIS le
-                    texte/badge et ne déborde pas de la tuile. */}
-                <span
-                  aria-hidden
-                  className="grid min-h-0 flex-1 place-items-center overflow-hidden"
-                >
-                  <ChevronLeft
-                    strokeWidth={3.5}
-                    className="text-primary-600/15 size-12 max-h-full rotate-180 transition-transform duration-200 group-hover:translate-x-1 sm:size-16 rtl:-rotate-0 rtl:group-hover:-translate-x-1"
-                  />
-                </span>
               </button>
             );
           })}

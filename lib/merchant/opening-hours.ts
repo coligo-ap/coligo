@@ -176,6 +176,31 @@ export function isOpenNow(
 }
 
 /**
+ * Heure de FERMETURE (« HH:MM ») du créneau actuellement actif — pour le badge
+ * « Ouvert · jusqu'à 22:30 » façon Bolt. `null` si le commerce est fermé au
+ * moment donné. Gère les créneaux overnight (démarrés hier soir inclus).
+ */
+export function currentClosingTime(
+  hours: OpeningHours | null | undefined,
+  at: Date = nowInAlgiers()
+): string | null {
+  if (!hours) return null;
+  const now = hhmm(at);
+
+  const todayKey = JS_DAY_TO_KEY[at.getDay()];
+  const active = (hours[todayKey] ?? []).find((s) => slotContainsNow(s, now));
+  if (active) return active.close;
+
+  const yesterday = new Date(at);
+  yesterday.setDate(at.getDate() - 1);
+  const yKey = JS_DAY_TO_KEY[yesterday.getDay()];
+  const overnight = (hours[yKey] ?? []).find((s) =>
+    overnightFromYesterdayStillOpen(s, now)
+  );
+  return overnight ? overnight.close : null;
+}
+
+/**
  * Renvoie le prochain créneau d'ouverture (jour + slot) après `at`.
  * Considère un créneau overnight encore actif comme "déjà en cours" → renverra
  * le suivant.

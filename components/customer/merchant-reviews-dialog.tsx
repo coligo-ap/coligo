@@ -20,8 +20,9 @@ type Props = {
   ratingAvg: number;
   ratingCount: number;
   reviews: ReviewWithCustomer[];
-  /** "chip" = pastille du carrousel d'infos (fiche Bolt) ; défaut = colonne. */
-  variant?: "column" | "chip";
+  /** "stat" = colonne de la rangée d'infos Bolt (★ valeur / « (n) » dessous) ;
+   *  "chip" = pastille ; défaut = colonne alignée à droite (héritage). */
+  variant?: "column" | "chip" | "stat";
 };
 
 const CHIP_CLS =
@@ -40,6 +41,19 @@ export function MerchantReviewsDialog({
   // affichent ainsi 5 étoiles tant qu'ils n'ont pas reçu de vrai avis. Statique
   // (non cliquable : pas d'avis à lister).
   if (ratingCount === 0) {
+    if (variant === "stat") {
+      return (
+        <span className="flex flex-col items-center gap-0.5">
+          <span className="text-foreground inline-flex items-center gap-1 text-[15px] font-extrabold tabular-nums">
+            <Star className="size-4 fill-amber-400 text-amber-400" />
+            5.0
+          </span>
+          <span className="text-muted text-[12px] font-medium">
+            {t("newMerchant")}
+          </span>
+        </span>
+      );
+    }
     if (variant === "chip") {
       return (
         <span className={CHIP_CLS}>
@@ -66,7 +80,25 @@ export function MerchantReviewsDialog({
 
   return (
     <>
-      {variant === "chip" ? (
+      {variant === "stat" ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex flex-col items-center gap-0.5 transition-opacity active:opacity-70"
+          aria-label={t("ratingAriaLabel", {
+            count: ratingCount,
+            rating: ratingAvg.toFixed(1),
+          })}
+        >
+          <span className="text-foreground inline-flex items-center gap-1 text-[15px] font-extrabold tabular-nums">
+            <Star className="size-4 fill-amber-400 text-amber-400" />
+            {ratingAvg.toFixed(1)}
+          </span>
+          <span className="text-muted text-[12px] font-medium tabular-nums">
+            ({ratingCount})
+          </span>
+        </button>
+      ) : variant === "chip" ? (
         <button
           type="button"
           onClick={() => setOpen(true)}
