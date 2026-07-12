@@ -482,11 +482,11 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    const rpc = admin.rpc.bind(admin) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
     if (event.type === "checkout.paid") {
-      const rpc = admin.rpc.bind(admin) as unknown as (
-        fn: string,
-        args: Record<string, unknown>
-      ) => Promise<{ data: unknown; error: { message: string } | null }>;
       const { error } = await rpc("drive_sub_mark_paid", {
         p_payment_id: paymentId,
         p_reviewer: "chargily",
@@ -497,6 +497,21 @@ export async function POST(req: NextRequest) {
           { ok: false, error: error.message },
           { status: 200 }
         );
+      }
+    } else if (
+      event.type === "checkout.failed" ||
+      event.type === "checkout.canceled" ||
+      event.type === "checkout.expired"
+    ) {
+      // Règle produit : carte = accepté OU refusé IMMÉDIATEMENT — un échec ne
+      // laisse jamais de tentative « en attente » (parité avec le Pass, étape E).
+      const { error } = await rpc("drive_sub_reject", {
+        p_payment_id: paymentId,
+        p_note: "Paiement carte échoué ou annulé (Chargily)",
+        p_reviewer: "chargily",
+      });
+      if (error) {
+        console.error("[chargily/webhook] drive_sub reject failed:", error);
       }
     }
     return NextResponse.json({ ok: true });

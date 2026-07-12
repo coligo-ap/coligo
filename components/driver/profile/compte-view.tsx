@@ -10,7 +10,6 @@ import {
   FileCheck,
   Globe,
   LifeBuoy,
-  LogOut,
   Moon,
   ReceiptText,
   Smartphone,
@@ -34,7 +33,7 @@ import {
   BRAND_GO,
   BRAND_RED,
   BRAND_VIOLET,
-  PartnerInlineError,
+  PartnerLogoutRow,
   PartnerMenuGroup,
   PartnerMenuRow,
   PartnerProgress,
@@ -82,7 +81,6 @@ export function CompteView({
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const dark = useDriverDark();
   const soundOn = useDriverSound();
-  const [logoutErr, setLogoutErr] = useState<string | null>(null);
   const router = useRouter();
   const [, startLang] = useTransition();
   // Langue : bascule FR ⇄ AR et ENREGISTRE le choix (cookie NEXT_LOCALE, 1 an)
@@ -314,40 +312,25 @@ export function CompteView({
         />
       </PartnerMenuGroup>
 
-      {/* Déconnexion — ligne bordée + erreur INLINE (parité d-compte). */}
-      <button
-        type="button"
-        onClick={() => {
+      {/* Déconnexion — pending immédiat + erreur INLINE (composant partagé,
+          même retour visuel que le compte client). */}
+      <PartnerLogoutRow
+        label={tr("Se déconnecter", "تسجيل الخروج")}
+        pendingLabel={tr("Déconnexion en cours…", "جارٍ تسجيل الخروج…")}
+        onLogout={async () => {
           // Course en cours → déconnexion bloquée (terminer d'abord). Le
           // serveur revérifie ; ici pré-contrôle client immédiat.
           if (getActiveCourse()) {
-            setLogoutErr(
-              tr(
-                "Terminez votre course en cours avant de vous déconnecter.",
-                "أنهِ توصيلتك الجارية قبل تسجيل الخروج."
-              )
+            return tr(
+              "Terminez votre course en cours avant de vous déconnecter.",
+              "أنهِ توصيلتك الجارية قبل تسجيل الخروج."
             );
-            return;
           }
-          setLogoutErr(null);
           setDriverOnline(false);
-          void driverLogout().then((res) => {
-            if (res?.error) setLogoutErr(res.error);
-          });
+          const res = await driverLogout();
+          return res?.error ?? null;
         }}
-        className="mt-3 flex w-full items-center gap-3 rounded-[16px] border border-[var(--d-line)] px-3.5 py-3.5 text-left text-[13.5px] font-semibold"
-        style={{ color: BRAND_RED }}
-      >
-        <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-          <LogOut className="size-4" style={{ color: BRAND_RED }} />
-        </span>
-        {tr("Se déconnecter", "تسجيل الخروج")}
-      </button>
-      {logoutErr ? (
-        <div className="mt-2">
-          <PartnerInlineError>{logoutErr}</PartnerInlineError>
-        </div>
-      ) : null}
+      />
 
       {/* Application : une ligne discrète (le détail vit sur /driver/telecharger). */}
       <div className="mt-3">

@@ -5,9 +5,6 @@ import { DSubs } from "@/components/chauffeur/d-subs";
 import { getCurrentChauffeur } from "@/lib/auth/chauffeur";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  BenefitsCarousel,
-  PayMethodsRow,
-  SubsHero,
   SubsHistory,
   SubsTabs,
   type SubsHistoryRow,
@@ -16,11 +13,11 @@ import {
 export const dynamic = "force-dynamic";
 
 /**
- * Abonnements chauffeur — MÊMES composants que la page livreur (subs-ui
- * partagé), les DONNÉES s'adaptent : Pass Prioritaire + plans de commission
- * (liste + paiement rendus par DSubs, logique inchangée — webhook seul fait
- * foi). Découpé en SOUS-PAGES (Offres · Avantages · Historique, style Bolt) :
- * copy minimale, un seul sujet à l'écran, panneaux montés en permanence.
+ * Abonnements chauffeur — style Bolt STRICT : un titre, deux sous-pages
+ * (Offres · Historique), zéro texte marketing. Les avantages vivent SUR les
+ * cartes d'offre (PriorityCard / PlanCard) — plus de héro ni d'onglet
+ * « Avantages » qui répétaient la même information. Logique DSubs inchangée
+ * (webhook seul fait foi).
  */
 
 // Libellés de plans (local : d-ui est un module client, non importable ici
@@ -121,12 +118,11 @@ export default async function ChauffeurAbonnementPage() {
 
   return (
     <div className="drive-jakarta pt-safe pb-safe-nav">
-      {/* Héro compact (copy minimale) partagé au-dessus des onglets. */}
+      {/* Titre sobre (style Bolt) — les cartes d'offre portent le discours. */}
       <div className="mx-auto max-w-[560px] px-4 pb-3">
-        <SubsHero
-          title="Roulez prioritaire, gardez plus."
-          subtitle="Priorité sur les demandes, commission réduite. Sans engagement."
-        />
+        <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]">
+          Abonnement
+        </h1>
       </div>
 
       <SubsTabs
@@ -142,39 +138,6 @@ export default async function ChauffeurAbonnementPage() {
                 <Suspense fallback={null}>
                   <DSubs hideIntro />
                 </Suspense>
-              </div>
-            ),
-          },
-          {
-            id: "avantages",
-            label: "Avantages",
-            content: (
-              <div className="mx-auto mt-3 max-w-[560px] space-y-3 px-4">
-                <BenefitsCarousel
-                  items={[
-                    {
-                      icon: "zap",
-                      title: "Proposé en premier",
-                      text: "Les demandes proches, avant les autres.",
-                    },
-                    {
-                      icon: "crown",
-                      title: "Gardez plus",
-                      text: "Commission réduite sur chaque course.",
-                    },
-                    {
-                      icon: "badge",
-                      title: "Badge visible",
-                      text: "Confiance immédiate côté client.",
-                    },
-                    {
-                      icon: "shield",
-                      title: "Zéro blocage",
-                      text: "Jamais une course en moins.",
-                    },
-                  ]}
-                />
-                <PayMethodsRow />
               </div>
             ),
           },

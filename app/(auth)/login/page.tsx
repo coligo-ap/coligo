@@ -68,7 +68,7 @@ function LoginContent() {
         ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Connexion"
+      cardTitle="Connexion · espace commerçant"
       cardSubtitle="Gérez vos commandes."
       modeTabs={
         <AuthModeTabs mode="login" loginHref="/login" signupHref="/signup" />

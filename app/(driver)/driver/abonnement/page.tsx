@@ -7,9 +7,6 @@ import { DriverShell } from "@/components/driver/driver-shell";
 import { PriorityCard } from "@/components/partner/priority-card";
 import { PartnerBackHeader } from "@/components/shared/partner-ui";
 import {
-  BenefitsCarousel,
-  PayMethodsRow,
-  SubsHero,
   SubsHistory,
   SubsTabs,
   type SubsHistoryRow,
@@ -18,11 +15,10 @@ import {
 export const dynamic = "force-dynamic";
 
 /**
- * SOUS-PAGE « Abonnement & Pass » livreur — MÊMES composants que la page
- * chauffeur (subs-ui partagé), seules les DONNÉES changent : le livreur n'a
- * que le Pass Prioritaire (PriorityCard partagée). Découpé en SOUS-PAGES
- * (Pass · Avantages · Historique, style Bolt) : copy minimale, un seul sujet
- * à l'écran, panneaux montés en permanence.
+ * SOUS-PAGE « Abonnement & Pass » livreur — style Bolt STRICT : deux
+ * sous-pages (Pass · Historique), zéro texte marketing. Les avantages vivent
+ * SUR la PriorityCard partagée — plus de héro ni d'onglet « Avantages » qui
+ * répétaient la même information.
  */
 
 const METHOD_LABEL: Record<string, string> = {
@@ -91,54 +87,16 @@ export default async function DriverAbonnementPage() {
       <PartnerBackHeader href="/driver/parametres" title="Abonnement & Pass" />
 
       <div className="space-y-3">
-        {/* Héro compact (copy minimale) partagé au-dessus des onglets. */}
-        <SubsHero
-          title="Passe devant, gagne plus."
-          subtitle="Les courses proches, proposées en premier. Sans engagement."
-        />
-
         <SubsTabs
           tabs={[
             {
               id: "pass",
               label: "Pass",
-              // Souscription / statut / renouvellement (carte partagée).
+              // Souscription / statut / renouvellement (carte partagée —
+              // avantages, prix et paiement portés par la carte elle-même).
               content: (
                 <div className="mt-3">
                   <PriorityCard />
-                </div>
-              ),
-            },
-            {
-              id: "avantages",
-              label: "Avantages",
-              content: (
-                <div className="mt-3 space-y-3">
-                  <BenefitsCarousel
-                    items={[
-                      {
-                        icon: "zap",
-                        title: "Proposé en premier",
-                        text: "Les courses proches, avant les autres.",
-                      },
-                      {
-                        icon: "badge",
-                        title: "Badge Prioritaire",
-                        text: "Visible par le client.",
-                      },
-                      {
-                        icon: "shield",
-                        title: "Zéro blocage",
-                        text: "Jamais une course en moins.",
-                      },
-                      {
-                        icon: "wallet",
-                        title: "Activation immédiate",
-                        text: "Coligo Pay ou carte.",
-                      },
-                    ]}
-                  />
-                  <PayMethodsRow />
                 </div>
               ),
             },

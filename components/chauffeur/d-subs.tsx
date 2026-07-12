@@ -126,7 +126,7 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
     setPaying(null);
     setStep("choice");
     setMsg(
-      `Reçu CCP transmis · abonnement ${p.title} en vérification (24 h) — il sera activé par l'équipe Coligo.`
+      `Virement déclaré — l'abonnement ${p.title} démarrera à l'approbation par l'équipe Coligo.`
     );
     load();
   };
@@ -143,7 +143,7 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
     setPaying(null);
     setStep("choice");
     setMsg(
-      "Paiement carte en cours — RIEN n'est activé tant que la banque n'a pas confirmé. Cette page se mettra à jour automatiquement."
+      "Confirmation bancaire en cours — la page se met à jour toute seule."
     );
     load();
   };
@@ -184,19 +184,17 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
             className="size-4 shrink-0 animate-spin"
             style={{ color: VIOLET }}
           />
-          Confirmation du paiement par la banque en cours… rien n&apos;est
-          activé pour l&apos;instant.
+          Confirmation bancaire en cours…
         </Banner>
       )}
       {cardReturn === "confirmed" && (
         <Banner tone="ok">
-          ✓ Paiement confirmé — abonnement {labelOf(fin.plan)} actif.
+          Paiement confirmé — abonnement {labelOf(fin.plan)} actif.
         </Banner>
       )}
       {cardReturn === "failed" && (
         <Banner tone="err">
-          Paiement refusé ou annulé — aucun montant débité, l&apos;abonnement
-          n&apos;a PAS été activé. Vous pouvez réessayer.
+          Paiement refusé — rien n&apos;a été débité ni activé.
         </Banner>
       )}
       {fin.pendingSub && cardReturn !== "checking" && (
@@ -204,14 +202,15 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
           <span>
             {fin.pendingSub.method === "ccp" ? (
               <>
-                Reçu CCP {labelOf(fin.pendingSub.plan)} ({fin.pendingSub.amount}{" "}
-                DA) en vérification par l&apos;équipe Coligo (24 h).
+                Virement {labelOf(fin.pendingSub.plan)} ({fin.pendingSub.amount}{" "}
+                DA) en vérification — l&apos;abonnement démarre à
+                l&apos;approbation par l&apos;équipe Coligo.
               </>
             ) : (
               <>
                 Paiement carte {labelOf(fin.pendingSub.plan)} (
                 {fin.pendingSub.amount} DA) <b>non finalisé</b> — rien
-                n&apos;est activé tant que la banque n&apos;a pas confirmé.
+                n&apos;est activé.
               </>
             )}
             <button
@@ -238,7 +237,7 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
         header="linear-gradient(90deg,#64748B,#475569)"
         advantages={[
           fin.freeRate <= 0
-            ? "0 % de commission — tout est à vous 🎉"
+            ? "0 % de commission"
             : `Commission ${pct(fin.freeRate)} par course`,
         ]}
       />
@@ -288,9 +287,6 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
         </SheetTitle>
         {step === "choice" ? (
           <>
-            <p className="mb-2.5 text-[13px] text-[var(--d-muted)]">
-              Choisissez votre moyen de paiement :
-            </p>
             <button
               type="button"
               onClick={() => setStep("ccp")}
@@ -305,7 +301,7 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
               <span>
                 Virement CCP / BaridiMob
                 <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
-                  Vers le compte de la plateforme
+                  Activé après vérification par l&apos;équipe Coligo
                 </small>
               </span>
             </button>

@@ -16,7 +16,6 @@ import {
   Globe,
   Home,
   Loader2,
-  LogOut,
   Moon,
   Pencil,
   ShieldAlert,
@@ -49,6 +48,7 @@ import { PLAN_LABEL, fmtPct } from "./d-ui";
 import { Portal } from "@/components/ui/portal";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import {
+  PartnerLogoutRow,
   PartnerMenuGroup,
   PartnerMenuRow,
   PartnerStatusChip,
@@ -79,7 +79,6 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
       router.refresh();
     });
   const [fin, setFin] = useState<ChauffeurFinances | null>(null);
-  const [logoutErr, setLogoutErr] = useState<string | null>(null);
   const [homeAddr, setHomeAddr] = useState(gate.homeAddr);
   const [sosContacts, setSosContactsState] = useState<SosContact[]>([]);
   const [contactsOpen, setContactsOpen] = useState(false);
@@ -323,38 +322,19 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         <SoundRow />
       </PartnerMenuGroup>
 
-      {/* Déconnexion — erreur INLINE sous le bouton (règle produit, pas de toast). */}
-      <button
-        type="button"
-        onClick={() => {
+      {/* Déconnexion — pending immédiat + erreur INLINE (composant partagé,
+          même retour visuel que le compte client). */}
+      <PartnerLogoutRow
+        onLogout={async () => {
           // Course en cours → déconnexion bloquée par le serveur (terminer
           // d'abord). Sinon : hors ligne (intention locale ; le serveur met
           // déjà chauffeur_presence.is_online=false) → re-login hors ligne.
-          setLogoutErr(null);
-          void chauffeurLogout().then((res) => {
-            if (res?.error) {
-              setLogoutErr(res.error);
-              return;
-            }
-            setChauffeurOnlineLocal(false);
-          });
+          const res = await chauffeurLogout();
+          if (res?.error) return res.error;
+          setChauffeurOnlineLocal(false);
+          return null;
         }}
-        className="mt-3 flex w-full items-center gap-3 rounded-[16px] border border-[var(--d-line)] px-3.5 py-3.5 text-left text-[13.5px] font-semibold"
-        style={{ color: "#E5484D" }}
-      >
-        <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-          <LogOut className="size-4" style={{ color: "#E5484D" }} />
-        </span>
-        Se déconnecter
-      </button>
-      {logoutErr && (
-        <p
-          className="mt-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
-          style={{ background: "rgba(229,72,77,.1)", color: "#E5484D" }}
-        >
-          {logoutErr}
-        </p>
-      )}
+      />
 
       {/* Télécharger l'app Android « Coligo Drive » */}
       <Link

@@ -85,8 +85,8 @@ export function PriorityCard() {
     if (error || !res?.ok) {
       setMsg(
         res?.error === "insufficient_wallet"
-          ? "Solde Coligo Pay insuffisant — payez par carte ou rechargez votre portefeuille."
-          : "Échec de la souscription. Réessayez ou contactez le support."
+          ? "Solde insuffisant — payez par carte ou rechargez."
+          : "Échec de la souscription. Réessayez."
       );
       await load();
       return;
@@ -105,9 +105,7 @@ export function PriorityCard() {
       return;
     }
     window.open(res.url, "_blank");
-    setMsg(
-      "Paiement carte en cours — rien n'est activé tant que la banque n'a pas confirmé. Cette carte se met à jour automatiquement."
-    );
+    setMsg("Confirmation bancaire en cours…");
     setPolling(true);
     let tries = 0;
     pollRef.current = setInterval(async () => {
@@ -172,8 +170,7 @@ export function PriorityCard() {
           <li className="flex items-start gap-2">
             <Zap className="text-primary-600 mt-0.5 size-4 shrink-0" />
             <span>
-              <b>Proposé en premier</b> sur les courses proches — la priorité
-              accélère, sans jamais te bloquer une course.
+              <b>Proposé en premier</b> sur les courses proches.
             </span>
           </li>
           <li className="flex items-start gap-2">
@@ -249,7 +246,7 @@ export function PriorityCard() {
                   ) : (
                     <Wallet className="size-4" />
                   )}
-                  Payer avec mon solde Coligo Pay · instantané
+                  Payer avec Coligo Pay · instantané
                 </button>
                 <button
                   type="button"
@@ -262,7 +259,7 @@ export function PriorityCard() {
                   ) : (
                     <CreditCard className="size-4" />
                   )}
-                  Ou payer par carte bancaire
+                  Payer par carte
                 </button>
               </>
             ) : (
@@ -278,7 +275,7 @@ export function PriorityCard() {
                   ) : (
                     <CreditCard className="size-4" />
                   )}
-                  Payer par carte bancaire · activation immédiate
+                  Payer par carte · immédiat
                 </button>
                 <Link
                   href={rechargeHref}
@@ -286,7 +283,7 @@ export function PriorityCard() {
                   className="border-primary-600 text-primary-700 flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-bold"
                 >
                   <Wallet className="size-4" />
-                  Recharger mon portefeuille (CIB / CCP / agent)
+                  Recharger Coligo Pay
                 </Link>
               </>
             )}
@@ -309,7 +306,7 @@ export function PriorityCard() {
             className="text-muted hover:text-primary-700 flex w-full items-center justify-center gap-1.5 text-xs font-semibold"
           >
             <LifeBuoy className="size-3.5" />
-            Un souci de paiement ? Contacter le support
+            Contacter le support
           </button>
         )}
       </div>

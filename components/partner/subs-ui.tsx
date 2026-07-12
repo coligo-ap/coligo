@@ -1,35 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import {
-  BadgeCheck,
-  ChevronDown,
-  CreditCard,
-  Crown,
-  Landmark,
-  ShieldCheck,
-  Sparkles,
-  Wallet,
-  Zap,
-  type LucideIcon,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   BRAND_VIOLET,
-  BRAND_VIOLET_D,
   PartnerBadge,
   SORA,
 } from "@/components/shared/partner-ui";
 
 /**
  * UI PARTAGÉE de la page « Abonnement & Pass » (livreur ET chauffeur) —
- * mêmes composants, seules les DONNÉES changent selon l'espace :
- *  - SubsTabs : nav sous-page segmentée (Offres · Avantages · Historique) —
- *    panneaux MONTÉS en permanence (l'inactif en `hidden`, cf. règle CLAUDE.md
+ * style Bolt STRICT : les avantages et le paiement vivent SUR les cartes
+ * d'offre (PriorityCard / PlanCard), jamais répétés ailleurs.
+ *  - SubsTabs : nav sous-page segmentée (Offres · Historique) — panneaux
+ *    MONTÉS en permanence (l'inactif en `hidden`, cf. règle CLAUDE.md
  *    « écran chargé → sous-pages ») ;
- *  - SubsHero : héro dégradé compact qui « vend » l'offre ;
- *  - BenefitsCarousel : grille d'avantages compacte ;
- *  - PayMethodsRow : réassurance moyens de paiement (Coligo Pay · carte · CCP) ;
  *  - SubsHistory : historique unifié des souscriptions (badges statut).
+ * (Héro marketing, grille d'avantages et réassurance paiement SUPPRIMÉS :
+ * ils dupliquaient les cartes d'offre — règle « zéro doublon ».)
  */
 
 /* ─────────────────────── Nav sous-page segmentée ─────────────────────── */
@@ -92,138 +80,6 @@ export function SubsTabs({
           {t.content}
         </div>
       ))}
-    </div>
-  );
-}
-
-/* ─────────────────────────── Héro ─────────────────────────── */
-
-export function SubsHero({
-  title,
-  subtitle,
-}: {
-  title: React.ReactNode;
-  subtitle: React.ReactNode;
-}) {
-  return (
-    <div
-      className="relative overflow-hidden rounded-[18px] p-4 text-white"
-      style={{
-        background: `linear-gradient(135deg, ${BRAND_VIOLET}, ${BRAND_VIOLET_D})`,
-      }}
-    >
-      {/* Halo décoratif */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-10 -right-10 size-36 rounded-full"
-        style={{ background: "rgba(255,255,255,.08)" }}
-      />
-      <div className="flex items-center gap-2 text-[11px] font-bold tracking-[0.5px] uppercase opacity-90">
-        <Sparkles className="size-3.5" />
-        Coligo
-      </div>
-      <h2
-        className="mt-1 text-[19px] leading-tight font-extrabold tracking-[-0.4px]"
-        style={{ fontFamily: SORA }}
-      >
-        {title}
-      </h2>
-      <p className="mt-1 text-[12.5px] leading-snug opacity-90">{subtitle}</p>
-    </div>
-  );
-}
-
-/* ─────────────────────── Carrousel d'avantages ─────────────────────── */
-
-/**
- * ⚠️ FRONTIÈRE RSC : les pages abonnement sont des Server Components — on ne
- * peut PAS leur faire passer une fonction composant (icône Lucide) en prop
- * (« Functions cannot be passed to Client Components », crash runtime que le
- * build ne voit pas). L'icône est donc une CLÉ sérialisable, résolue ICI.
- */
-const BENEFIT_ICONS = {
-  zap: Zap,
-  crown: Crown,
-  badge: BadgeCheck,
-  shield: ShieldCheck,
-  wallet: Wallet,
-} satisfies Record<string, LucideIcon>;
-
-export type Benefit = {
-  icon: keyof typeof BENEFIT_ICONS;
-  title: string;
-  text: string;
-};
-
-export function BenefitsCarousel({ items }: { items: readonly Benefit[] }) {
-  // Grille 2 colonnes COMPACTE (plus de carrousel horizontal : tout est
-  // visible d'un coup d'œil, hauteur divisée par deux, aucun scroll caché).
-  return (
-    <div className="grid grid-cols-2 gap-2" role="list">
-      {items.map((b, i) => {
-        const Icon = BENEFIT_ICONS[b.icon];
-        return (
-          <div
-            key={i}
-            role="listitem"
-            className="rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3"
-          >
-            <span className="mb-1.5 flex items-center gap-1.5">
-              <Icon
-                className="size-4 shrink-0"
-                style={{ color: BRAND_VIOLET }}
-              />
-              <b
-                className="truncate text-[12.5px] text-[var(--d-ink)]"
-                style={{ fontFamily: SORA }}
-              >
-                {b.title}
-              </b>
-            </span>
-            <span className="block text-[11px] leading-snug text-[var(--d-muted)]">
-              {b.text}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ─────────────────── Réassurance moyens de paiement ─────────────────── */
-
-const PAY_METHODS = [
-  { icon: Wallet, label: "Coligo Pay", sub: "instantané" },
-  { icon: CreditCard, label: "CIB / Edahabia", sub: "en ligne" },
-  { icon: Landmark, label: "CCP / BaridiMob", sub: "virement" },
-] as const;
-
-export function PayMethodsRow() {
-  return (
-    <div className="rounded-[16px] border border-[var(--d-line)] bg-[var(--d-soft)] p-3">
-      <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-        <ShieldCheck className="size-3.5" />
-        Paiement sécurisé
-      </p>
-      <div className="grid grid-cols-3 gap-2">
-        {PAY_METHODS.map((m) => {
-          const Icon = m.icon;
-          return (
-            <div
-              key={m.label}
-              className="flex flex-col items-center gap-1 rounded-[12px] bg-[var(--d-surface)] px-1 py-2 text-center"
-            >
-              <Icon className="size-4" style={{ color: BRAND_VIOLET }} />
-              <b className="text-[10.5px] leading-tight text-[var(--d-ink)]">
-                {m.label}
-              </b>
-              <span className="text-[9.5px] text-[var(--d-muted)]">
-                {m.sub}
-              </span>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }

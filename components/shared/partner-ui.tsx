@@ -1,9 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  LogOut,
+  type LucideIcon,
+} from "lucide-react";
 
 /**
  * SOCLE UI PARTAGÉ LIVREUR + CHAUFFEUR (style Uber / maquettes Coligo).
@@ -440,6 +447,70 @@ export function PartnerHeroCard({
 /* ─────────────────────────── Divers ─────────────────────────── */
 
 /** Message d'erreur INLINE (règle produit : pas de toast pour les actions). */
+/**
+ * Ligne « Se déconnecter » PARTAGÉE livreur/chauffeur — même retour visuel
+ * que le compte client : au clic le bouton passe TOUT DE SUITE en pending
+ * (« Déconnexion en cours… », spinner) ; en cas de succès l'écran est démonté
+ * par la redirection serveur (on laisse le pending), sinon erreur INLINE.
+ * `onLogout` fait les pré-contrôles de l'espace et renvoie un message
+ * d'erreur affichable, ou null si la déconnexion part.
+ */
+export function PartnerLogoutRow({
+  label = "Se déconnecter",
+  pendingLabel = "Déconnexion en cours…",
+  onLogout,
+}: {
+  label?: string;
+  pendingLabel?: string;
+  onLogout: () => Promise<string | null>;
+}) {
+  const [pending, setPending] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  return (
+    <>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => {
+          if (pending) return;
+          setErr(null);
+          setPending(true);
+          void onLogout()
+            .then((e) => {
+              if (e) {
+                setErr(e);
+                setPending(false);
+              }
+            })
+            .catch(() => {
+              setErr("Échec de la déconnexion. Réessayez.");
+              setPending(false);
+            });
+        }}
+        className="mt-3 flex w-full items-center gap-3 rounded-[16px] border border-[var(--d-line)] px-3.5 py-3.5 text-left text-[13.5px] font-semibold disabled:opacity-70"
+        style={{ color: BRAND_RED }}
+      >
+        <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+          {pending ? (
+            <Loader2
+              className="size-4 animate-spin"
+              style={{ color: BRAND_RED }}
+            />
+          ) : (
+            <LogOut className="size-4" style={{ color: BRAND_RED }} />
+          )}
+        </span>
+        {pending ? pendingLabel : label}
+      </button>
+      {err && (
+        <div className="mt-2">
+          <PartnerInlineError>{err}</PartnerInlineError>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function PartnerInlineError({
   children,
 }: {

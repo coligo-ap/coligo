@@ -33,7 +33,7 @@ export default async function PartnerLoginPage() {
         ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Connexion"
+      cardTitle="Connexion · espace Agent Coligo Pay"
       cardSubtitle="Votre solde et vos ventes de crédit."
       modeTabs={
         <AuthModeTabs

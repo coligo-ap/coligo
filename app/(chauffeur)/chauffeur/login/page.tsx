@@ -29,7 +29,7 @@ export default function ChauffeurLoginPage() {
         ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Connexion"
+      cardTitle="Connexion · espace chauffeur"
       cardSubtitle="Vos courses et vos gains."
       modeTabs={
         <AuthModeTabs

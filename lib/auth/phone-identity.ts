@@ -12,6 +12,16 @@
  * déjà pris. On passe désormais par la forme canonique de `composePhone()`
  * (`0XXXXXXXXX` en Algérie, `+CC…` ailleurs), qui est aussi celle stockée en
  * base : les comptes déjà créés restent donc joignables à l'identique.
+ *
+ * ⚠️ INVARIANT (règle produit) : l'identifiant est composé de l'INDICATIF PAYS
+ * ET du numéro, jamais du numéro seul.
+ *  - numéro étranger → les chiffres GARDENT l'indicatif : « +33 603044619 »
+ *    → `33603044619@…` ≠ « 0603044619 » → `0603044619@…` (aucune collision :
+ *    un E.164 ne commence jamais par 0) ;
+ *  - numéro algérien → forme canonique nationale `0X…`, équivalente à
+ *    `+213X…` : les DEUX saisies donnent LE MÊME compte. Ne jamais re-dériver
+ *    ailleurs (toujours passer par `phoneToAuthEmail`), et ne jamais changer
+ *    le format DZ (les emails synthétiques existants en dépendent).
  */
 
 import { normalizeContactPhone } from "@/lib/dz/phone";
