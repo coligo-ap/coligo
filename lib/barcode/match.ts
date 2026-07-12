@@ -76,14 +76,9 @@ type Row = {
   } | null;
 };
 
-export async function findMatchingProducts(input: {
-  resolvedName: string;
-  merchantId?: string | null;
-  limit?: number;
-}): Promise<MatchedProduct[]> {
-  const tokens = nameTokens(input.resolvedName);
-  if (tokens.length === 0) return [];
-
+/** Base de requête commune : produits DISPONIBLES de commerces ACTIFS (mêmes
+ *  contours que la vitrine publique), avec commerçant embarqué. */
+function baseQuery(merchantId?: string | null) {
   const admin = createAdminClient();
   let query = admin
     .from("products")
@@ -95,14 +90,63 @@ export async function findMatchingProducts(input: {
     .is("archived_at", null)
     .eq("is_available", true)
     .eq("merchants.is_active", true)
-    // Au moins UN token dans le nom (les tokens sont déjà [a-z0-9] → sûrs
-    // dans la syntaxe .or de PostgREST).
-    .or(tokens.map((t) => `name_fr.ilike.%${t}%`).join(","))
-    .or("stock_qty.is.null,stock_qty.gt.0")
-    .limit(60);
-  if (input.merchantId) query = query.eq("merchant_id", input.merchantId);
+    .or("stock_qty.is.null,stock_qty.gt.0");
+  if (merchantId) query = query.eq("merchant_id", merchantId);
+  return query;
+}
 
-  const { data } = await query;
+function toMatched(rows: Row[]): MatchedProduct[] {
+  return rows
+    .filter((r) => r.merchants)
+    .map((r) => ({
+      product_id: r.id,
+      name_fr: r.name_fr,
+      name_ar: r.name_ar,
+      unit: r.unit,
+      min_qty: r.min_qty,
+      max_qty: r.max_qty,
+      price_da: r.price_da,
+      image_url: r.image_url,
+      category: r.category,
+      has_options: (r.product_option_groups?.length ?? 0) > 0,
+      merchant: {
+        id: r.merchants!.id,
+        slug: r.merchants!.slug,
+        name: r.merchants!.name,
+        logo_url: r.merchants!.logo_url,
+      },
+    }));
+}
+
+/**
+ * Match EXACT par code-barres (phase 2, mig 0362) — PRIORITAIRE : le
+ * commerçant a scanné/saisi l'EAN sur sa fiche produit, aucune ambiguïté.
+ * Fonctionne même quand le code est inconnu du catalogue et d'OpenFoodFacts.
+ */
+export async function findExactBarcodeProducts(
+  barcode: string,
+  merchantId?: string | null
+): Promise<MatchedProduct[]> {
+  const { data } = await baseQuery(merchantId)
+    // Colonne barcode (mig 0362) absente des types générés → cast.
+    .eq("barcode" as never, barcode)
+    .limit(20);
+  return toMatched((data ?? []) as unknown as Row[]);
+}
+
+export async function findMatchingProducts(input: {
+  resolvedName: string;
+  merchantId?: string | null;
+  limit?: number;
+}): Promise<MatchedProduct[]> {
+  const tokens = nameTokens(input.resolvedName);
+  if (tokens.length === 0) return [];
+
+  // Au moins UN token dans le nom (les tokens sont déjà [a-z0-9] → sûrs
+  // dans la syntaxe .or de PostgREST).
+  const { data } = await baseQuery(input.merchantId)
+    .or(tokens.map((t) => `name_fr.ilike.%${t}%`).join(","))
+    .limit(60);
   const rows = (data ?? []) as unknown as Row[];
 
   // Score = proportion de tokens retrouvés dans le nom du produit ; bonus si
@@ -120,22 +164,5 @@ export async function findMatchingProducts(input: {
     .sort((a, b) => b.score - a.score || a.r.price_da - b.r.price_da)
     .slice(0, input.limit ?? 8);
 
-  return scored.map(({ r }) => ({
-    product_id: r.id,
-    name_fr: r.name_fr,
-    name_ar: r.name_ar,
-    unit: r.unit,
-    min_qty: r.min_qty,
-    max_qty: r.max_qty,
-    price_da: r.price_da,
-    image_url: r.image_url,
-    category: r.category,
-    has_options: (r.product_option_groups?.length ?? 0) > 0,
-    merchant: {
-      id: r.merchants!.id,
-      slug: r.merchants!.slug,
-      name: r.merchants!.name,
-      logo_url: r.merchants!.logo_url,
-    },
-  }));
+  return toMatched(scored.map(({ r }) => r));
 }

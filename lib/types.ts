@@ -298,6 +298,9 @@ export type Product = {
   max_qty: number | null;
   position: number;
   image_url: string | null;
+  /** Code-barres EAN/UPC (phase 2 scan, mig 0362) — optionnel : les lectures
+   *  historiques ne le sélectionnent pas toutes. */
+  barcode?: string | null;
   is_available: boolean;
   created_at: string;
   updated_at: string;

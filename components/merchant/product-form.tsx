@@ -42,6 +42,7 @@ import {
 import type { OptionGroupInput } from "@/app/(merchant)/catalog/options/actions";
 import { quickCreateCategory } from "@/app/(merchant)/catalog/categories/actions";
 import { TranslateArButton } from "@/components/merchant/translate-ar-button";
+import { BarcodeField } from "@/components/merchant/barcode-field";
 
 const SELECT_CLASS =
   "appearance-none flex h-12 w-full rounded-[12px] border border-border-strong bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 disabled:cursor-not-allowed disabled:opacity-50";
@@ -354,6 +355,14 @@ export function ProductForm({
               <p className="text-subtle text-xs">0 = épuisé</p>
             </Field>
           </div>
+
+          {/* Code-barres (scan caméra ou douchette) — match exact du scan client. */}
+          <Field label="Code-barres (EAN)">
+            <BarcodeField
+              defaultValue={product?.barcode ?? null}
+              disabled={pending}
+            />
+          </Field>
 
           {/* Quantités imposées au client (dans l'unité de vente). */}
           <div className="grid gap-4 sm:grid-cols-2">

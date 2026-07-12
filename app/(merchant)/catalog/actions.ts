@@ -130,6 +130,7 @@ function parseForm(formData: FormData) {
     min_qty: formData.get("min_qty"),
     max_qty: formData.get("max_qty"),
     image_url: formData.get("image_url"),
+    barcode: formData.get("barcode") ?? undefined,
     is_available: formData.get("is_available"),
   });
 }
@@ -182,7 +183,8 @@ export async function createProduct(
       merchant_id: merchantId,
       position,
       ...parsed.data,
-    })
+      // `barcode` (mig 0362) absent des types générés (Docker requis) → cast.
+    } as never)
     .select("id")
     .single();
 
@@ -221,7 +223,7 @@ export async function updateProduct(
   // RLS garantit que l'update ne touche qu'un produit du commerçant connecté.
   const { error } = await supabase
     .from("products")
-    .update(parsed.data)
+    .update(parsed.data as never)
     .eq("id", productId);
 
   if (error) {

@@ -52,6 +52,18 @@ export const productSchema = z
     /** Quantité maximum par commande (somme des lignes). NULL = pas de max. */
     max_qty: optionalQty,
     image_url: optionalImageUrl,
+    /** Code-barres produit (EAN-8/13, UPC) — scanné ou saisi, NULL = absent.
+     *  Alimente le match EXACT du scan client (phase 2, mig 0362). */
+    barcode: z
+      .string()
+      .optional()
+      .transform((v) => {
+        const digits = (v ?? "").replace(/\D/g, "");
+        return digits ? digits : null;
+      })
+      .refine((v) => v === null || (v.length >= 8 && v.length <= 14), {
+        message: "Code-barres invalide (8 à 14 chiffres).",
+      }),
     is_available: z
       .union([
         z.literal("on"),

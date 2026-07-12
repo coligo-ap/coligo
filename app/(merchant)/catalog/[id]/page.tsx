@@ -35,8 +35,8 @@ export default async function EditProductPage({
     .from("products")
     .select(
       `id, merchant_id, name_fr, name_ar, description_fr, description_ar,
-       price_da, unit, category, category_id, stock_qty, image_url,
-       is_available, created_at, updated_at`
+       price_da, unit, category, category_id, stock_qty, min_qty, max_qty,
+       barcode, image_url, is_available, created_at, updated_at`
     )
     .eq("id", id)
     .eq("merchant_id", merchant.id)
@@ -53,7 +53,7 @@ export default async function EditProductPage({
   return (
     <ProductEditTabs
       merchantId={merchant.id}
-      product={product as Product}
+      product={product as unknown as Product}
       categories={categories}
       initialGroups={optionGroups}
     />

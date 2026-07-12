@@ -6,7 +6,11 @@ import {
   resolveBarcode,
   type BarcodeSurface,
 } from "@/lib/barcode/resolve";
-import { findMatchingProducts, type MatchedProduct } from "@/lib/barcode/match";
+import {
+  findExactBarcodeProducts,
+  findMatchingProducts,
+  type MatchedProduct,
+} from "@/lib/barcode/match";
 
 // =============================================================================
 // Scan code-barres côté CLIENT (phase 1) — relaye vers lib/barcode/resolve
@@ -66,12 +70,29 @@ export async function scanBarcodeFind(input: {
   const ean = (input.ean ?? "").replace(/\D/g, "");
   if (!isValidBarcode(ean)) return { ok: false, error: "invalid" };
 
-  const hit = await resolveBarcode(ean, surface);
-  if (!hit) return { ok: false, error: "not_found" };
+  const merchantId = surface === "merchant" ? (input.merchantId ?? null) : null;
 
-  const products = await findMatchingProducts({
-    resolvedName: [hit.brand, hit.name].filter(Boolean).join(" "),
-    merchantId: surface === "merchant" ? (input.merchantId ?? null) : null,
-  });
-  return { ok: true, name: hit.name, products };
+  // 1) Match EXACT par products.barcode (phase 2) — PRIORITAIRE, et suffisant
+  //    même si le code est inconnu du catalogue et d'OpenFoodFacts.
+  // 2) Résolution du NOM (toujours : journal + auto-enrichissement) → matching
+  //    flou en complément, dédoublonné derrière les matchs exacts.
+  const [exact, hit] = await Promise.all([
+    findExactBarcodeProducts(ean, merchantId),
+    resolveBarcode(ean, surface),
+  ]);
+  const fuzzy = hit
+    ? await findMatchingProducts({
+        resolvedName: [hit.brand, hit.name].filter(Boolean).join(" "),
+        merchantId,
+      })
+    : [];
+  const seen = new Set(exact.map((p) => p.product_id));
+  const products = [
+    ...exact,
+    ...fuzzy.filter((p) => !seen.has(p.product_id)),
+  ].slice(0, 8);
+
+  const name = hit?.name ?? exact[0]?.name_fr;
+  if (!name) return { ok: false, error: "not_found" };
+  return { ok: true, name, products };
 }
