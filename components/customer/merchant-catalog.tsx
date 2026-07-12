@@ -495,12 +495,7 @@ export function MerchantCatalog({
                 aria-label={title}
                 className="bg-surface-2 group relative flex aspect-[3/4] flex-col overflow-hidden rounded-[16px] p-2.5 text-start transition-transform duration-150 active:scale-[0.97]"
               >
-                <span
-                  className={cn(
-                    "text-foreground line-clamp-2 block text-[13px] leading-snug font-bold",
-                    promoCount > 0 && "pe-8"
-                  )}
-                >
+                <span className="text-foreground line-clamp-2 block text-[13px] leading-snug font-bold">
                   {title}
                 </span>
                 <span className="relative mt-auto block h-[62%] w-full">
@@ -511,7 +506,7 @@ export function MerchantCatalog({
                       alt=""
                       loading="lazy"
                       decoding="async"
-                      className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.04]"
+                      className="h-full w-full object-contain mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.04]"
                     />
                   ) : (
                     <span
@@ -523,7 +518,7 @@ export function MerchantCatalog({
                   )}
                 </span>
                 {promoCount > 0 && (
-                  <span className="bg-accent-600 absolute end-1.5 top-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold whitespace-nowrap text-white shadow-sm">
+                  <span className="bg-accent-600 absolute end-1.5 bottom-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold whitespace-nowrap text-white shadow-sm">
                     <BadgePercent className="size-3 shrink-0" />
                     {t("categoryPromoCount", { count: promoCount })}
                   </span>
