@@ -3,16 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Car, ClipboardList, Home, User, Wallet } from "lucide-react";
+import { Car, CircleUserRound, House, ReceiptText, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Nav Coligo (PROMPT Drive §1) : Accueil · Commandes · Drive · Pay · Compte.
+// Icônes ALIGNÉES sur la tab bar Bolt Food (capture réelle) : maison à porte,
+// REÇU à zigzag pour les commandes (leur « Orders »), personne dans un cercle
+// pour le compte. Drive/Pay restent propres à Coligo (voiture / portefeuille).
 const ITEMS = [
-  { href: "/", key: "home", icon: Home },
-  { href: "/commandes", key: "orders", icon: ClipboardList },
+  { href: "/", key: "home", icon: House },
+  { href: "/commandes", key: "orders", icon: ReceiptText },
   { href: "/drive", key: "drive", icon: Car },
   { href: "/coligo-pay", key: "pay", icon: Wallet },
-  { href: "/compte", key: "account", icon: User },
+  { href: "/compte", key: "account", icon: CircleUserRound },
 ] as const;
 
 /**
@@ -44,12 +47,21 @@ export function CustomerBottomNav({
             href={item.href}
             prefetch
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] transition-colors",
+              // Icônes GRANDES façon Bolt (26 px) et padding réduit : l'espace
+              // du composant sert à l'icône, pas à de l'air (règle produit).
+              "flex flex-col items-center justify-center gap-1 py-1.5 text-[11px] transition-colors",
               active ? "text-primary-700" : "text-muted hover:text-foreground"
             )}
           >
-            <Icon className={cn("size-5", active && "fill-primary-100")} />
-            <span className="font-medium">{t(item.key)}</span>
+            <Icon className="size-[26px]" strokeWidth={active ? 2.4 : 1.8} />
+            <span
+              className={cn(
+                "leading-none",
+                active ? "font-bold" : "font-medium"
+              )}
+            >
+              {t(item.key)}
+            </span>
           </Link>
         );
       })}
