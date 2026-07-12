@@ -39,6 +39,12 @@ export function useAppNotifications(source: NotifSource, enabled = true) {
   const [userId, setUserId] = useState<string | null>(null);
   const [resyncNonce, setResyncNonce] = useState(0);
   useResumeResync(() => setResyncNonce((n) => n + 1));
+  // Nom de canal UNIQUE PAR INSTANCE — le client Supabase est un SINGLETON :
+  // deux montages du même hook (ex. cloche desktop + mobile du header client)
+  // avec un topic identique renvoient le canal DÉJÀ SOUSCRIT du premier, et
+  // son `.on()` jette « cannot add postgres_changes callbacks after
+  // subscribe() » → error boundary racine = app cassée après login (bug vécu).
+  const chanIdRef = useRef(`notif-${Math.random().toString(36).slice(2, 10)}`);
 
   // user_id requis pour le filtre Realtime (RLS scope déjà la lecture).
   useEffect(() => {
@@ -78,7 +84,7 @@ export function useAppNotifications(source: NotifSource, enabled = true) {
     const supabase = createClient();
     const table = audience ? "user_notifications" : "driver_notifications";
     const ch = supabase
-      .channel(`notif-${table}-${userId}`)
+      .channel(`${chanIdRef.current}-${table}-${userId}-${resyncNonce}`)
       .on(
         "postgres_changes",
         audience

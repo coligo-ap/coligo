@@ -82,8 +82,11 @@ export function RideChatSheet({
   useEffect(() => {
     void poll();
     const supabase = createClient();
+    // Topic suffixé par le nonce : `removeChannel` est ASYNCHRONE — au retour
+    // d'arrière-plan, un topic identique renverrait le canal encore souscrit
+    // (le `.on()` jetterait). Un nom neuf par (ré)abonnement écarte la course.
     const ch = supabase
-      .channel(`ride-chat-${side}-${rideId}`)
+      .channel(`ride-chat-${side}-${rideId}-${resyncNonce}`)
       .on(
         "postgres_changes",
         {
