@@ -4,8 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
-import { getPosition, watchPosition } from "@/lib/native/geolocation";
+import {
+  getPosition,
+  watchPosition,
+  type WatchHandle,
+} from "@/lib/native/geolocation";
 import { haversineKm } from "@/lib/delivery/distance";
+import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import {
   readStoredLocation,
   readDriveDeparture,
@@ -280,20 +285,23 @@ export function DriveView({ userId }: { userId: string }) {
   // Départ = position actuelle (GPS) par défaut. Quasi instantané : un fix
   // « rapide » (cache OS / réseau) s'affiche tout de suite, puis le GPS haute
   // précision affine en arrière-plan tant que le départ reste « Ma position ».
+  // `gpsNonce` : au retour d'arrière-plan on RELANCE l'acquisition (le client a
+  // pu bouger / accorder la permission entre-temps).
+  const [gpsNonce, setGpsNonce] = useState(0);
+  useResumeResync(() => setGpsNonce((n) => n + 1));
   useEffect(() => {
     let cancelled = false;
     let bestAcc = Infinity;
     let lastFix: { lat: number; lng: number } | null = null;
     let lastRev: { lat: number; lng: number } | null = null;
-    // Amorçage INSTANTANÉ du départ depuis la dernière position connue : d'abord
-    // le cache DÉPART de Drive (réouverture, surtout PWA), sinon la position
-    // marketplace partagée. → au montage, le départ s'affiche TOUT DE SUITE au
-    // lieu de « Localisation… », puis le GPS RÉEL (position actuelle) prend le
-    // dessus.
+    // Amorçage INSTANTANÉ du départ depuis la dernière VRAIE position connue :
+    // 1) le cache DÉPART de Drive (< 6 h — toujours issu d'un fix GPS géocodé) ;
+    // 2) sinon la position marketplace UNIQUEMENT si elle a été DÉTECTÉE par
+    //    GPS (`source === "gps"`). Une zone CHOISIE à la main dans le header
+    //    (« Boumerdès ») est un filtre marketplace, PAS une position : elle ne
+    //    doit JAMAIS s'afficher comme « Ma position » (bug vécu : départ figé
+    //    sur Boumerdès alors que le client est ailleurs).
     const driveDep = readDriveDeparture();
-    // On n'amorce depuis le cache Drive que s'il est RÉCENT (< 6 h) : au-delà le
-    // client a pu changer de zone → on laisse le GPS résoudre la position
-    // actuelle plutôt que d'afficher une vieille position.
     const freshDriveDep =
       driveDep &&
       Date.now() - new Date(driveDep.updated_at).getTime() < 6 * 3_600_000
@@ -302,7 +310,9 @@ export function DriveView({ userId }: { userId: string }) {
     const stored = readStoredLocation();
     const seed =
       freshDriveDep ??
-      (stored?.latitude != null && stored?.longitude != null
+      (stored?.source === "gps" &&
+      stored.latitude != null &&
+      stored.longitude != null
         ? {
             latitude: stored.latitude,
             longitude: stored.longitude,
@@ -321,6 +331,18 @@ export function DriveView({ userId }: { userId: string }) {
             }
       );
     }
+    // Arrêt du watch : au 1er fix PRÉCIS (≤ 150 m) ou au plafond de 60 s —
+    // plus jamais de coupure sèche à 15 s sans aucun fix reçu (le prompt de
+    // permission ou un GPS lent dépassent facilement 15 s → le départ restait
+    // figé sur le seed).
+    let watchRef: WatchHandle | null = null;
+    let capId: ReturnType<typeof setTimeout> | null = null;
+    const stopWatch = () => {
+      watchRef?.stop();
+      watchRef = null;
+      if (capId) clearTimeout(capId);
+      capId = null;
+    };
     const apply = (lat: number, lng: number, accuracy: number) => {
       if (cancelled) return;
       // On accepte un fix s'il est PLUS précis OU s'il est nettement AILLEURS que
@@ -331,6 +353,7 @@ export function DriveView({ userId }: { userId: string }) {
       if (accuracy >= bestAcc && !moved) return;
       bestAcc = moved ? accuracy : Math.min(bestAcc, accuracy);
       lastFix = { lat, lng };
+      if (accuracy <= 150) stopWatch();
       setPickup((prev) =>
         prev && !prev.gps
           ? prev
@@ -361,31 +384,32 @@ export function DriveView({ userId }: { userId: string }) {
     };
     // DÉPART INSTANTANÉ : on accepte le DERNIER fix connu de l'OS (cache jusqu'à
     // 5 min) → 0 ms s'il existe, la position s'affiche tout de suite sans attendre
-    // un fix frais (plus de « Localisation… », surtout en PWA Drive ouverte
-    // directement). C'est PROVISOIRE : le watch haute précision (maximumAge:0)
+    // un fix frais. C'est PROVISOIRE : le watch haute précision (maximumAge:0)
     // ci-dessous récupère la position ACTUELLE exacte et, si le client a bougé,
     // apply() remplace le fix en cache éloigné (anti « vieille position »).
+    // Timeout 6 s (avant 2,5 s : trop court, le prompt de permission le crevait
+    // systématiquement) — le cache OS répond en ~0 ms quand il existe.
     void getPosition({
       enableHighAccuracy: false,
-      timeout: 2_500,
+      timeout: 6_000,
       maximumAge: 300_000,
     })
       .then((p) => apply(p.latitude, p.longitude, p.accuracy ?? 9_999))
       .catch(() => {
         /* géoloc refusée : le client choisira sur la carte */
       });
-    const watch = watchPosition(
+    watchRef = watchPosition(
       (p) => apply(p.latitude, p.longitude, p.accuracy ?? 9_999),
       undefined,
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 15_000 }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 20_000 }
     );
-    const stopId = setTimeout(() => watch?.stop(), 15_000);
+    capId = setTimeout(stopWatch, 60_000);
     return () => {
       cancelled = true;
-      clearTimeout(stopId);
-      watch?.stop();
+      stopWatch();
     };
-  }, []);
+    // gpsNonce : reprise au premier plan → nouvelle acquisition complète.
+  }, [gpsNonce]);
 
   const crowKm = useMemo(
     () =>
