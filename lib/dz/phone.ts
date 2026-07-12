@@ -48,13 +48,29 @@ export const DEFAULT_DIAL = "+213";
  * Compose un numéro à partir d'un indicatif + numéro national saisi.
  *  - Algérie (+213) → renvoie la forme locale `0XXXXXXXXX` (mobile validé).
  *  - Autres pays → E.164 `+CC<national>` (6 à 13 chiffres) ; null si invalide.
+ *
+ * La saisie nationale est tolérante — MÊME numéro, MÊME identifiant, que
+ * l'utilisateur tape « 0603044618 », « 603044618 », « +33 6 03… » ou
+ * « 0033 6… » alors que l'indicatif est déjà sélectionné :
+ *  - le 0 initial « de politesse » est retiré (hors Algérie, où il fait partie
+ *    de la forme canonique locale) ;
+ *  - l'indicatif répété dans le champ (autofill du navigateur, copier-coller
+ *    d'un carnet d'adresses) est détecté et retiré — sinon on fabriquait
+ *    `+3333603…`, un identifiant différent du même numéro. On ne le retire que
+ *    si la saisie est trop longue pour être un numéro national seul (> 10
+ *    chiffres), pour ne jamais amputer un vrai numéro qui COMMENCE par ces
+ *    chiffres-là (ex. mobile italien `393…` sous +39).
  */
 export function composePhone(
   dial: string,
   national: string | null | undefined
 ): string | null {
   if (dial === "+213") return normalizeDzPhone(national);
-  const n = (national ?? "").replace(/\D/g, "").replace(/^0+/, "");
+  let n = (national ?? "").replace(/\D/g, "").replace(/^0+/, "");
+  const cc = dial.slice(1);
+  if (n.startsWith(cc) && n.length > 10) {
+    n = n.slice(cc.length).replace(/^0+/, "");
+  }
   if (n.length >= 6 && n.length <= 13) return dial + n;
   return null;
 }

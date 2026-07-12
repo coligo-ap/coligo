@@ -79,6 +79,42 @@ console.log("\n3. Hors Algérie — E.164 conservé");
   );
 }
 
+console.log(
+  "\n3 bis. Indicatif sélectionné — avec/sans 0 et indicatif répété = MÊME numéro"
+);
+{
+  // Règle produit : le 0 initial est optionnel (« comme chez les grands
+  // opérateurs »), et un indicatif recollé dans le champ (autofill,
+  // copier-coller) ne doit JAMAIS produire un autre identifiant.
+  const frVariants = [
+    "0603044618",
+    "603044618",
+    "6 03 04 46 18",
+    "+33 6 03 04 46 18",
+    "0033 603 044 618",
+    "33 603 044 618",
+  ];
+  const composedFr = new Set(frVariants.map((v) => composePhone("+33", v)));
+  ok(
+    composedFr.size === 1 && [...composedFr][0] === "+33603044618",
+    `FR : six saisies → un seul numéro (${[...composedFr][0]})`
+  );
+
+  const dzVariants = ["0603044618", "603044618", "+213 603 04 46 18"];
+  const composedDz = new Set(dzVariants.map((v) => composePhone("+213", v)));
+  ok(
+    composedDz.size === 1 && [...composedDz][0] === "0603044618",
+    "DZ : avec ou sans 0, avec ou sans indicatif → la forme locale 0X…"
+  );
+
+  // Garde-fou : un vrai numéro qui COMMENCE par les chiffres de l'indicatif
+  // (mobile italien 393… sous +39) n'est pas amputé.
+  ok(
+    composePhone("+39", "3934567890") === "+393934567890",
+    "IT : un national commençant par 39 n'est pas confondu avec l'indicatif"
+  );
+}
+
 console.log("\n4. Refus des numéros invalides");
 {
   for (const bad of ["", "abc", "012345", "0412345678", "+1"]) {
