@@ -821,6 +821,131 @@ export async function notifyChauffeursNewRide(input: {
 }
 
 /**
+ * VTC — la demande N'EST PLUS À PRENDRE (client a choisi un chauffeur, course
+ * annulée pendant la recherche…) : broadcast `ride_gone` aux chauffeurs qui la
+ * voyaient, pour qu'elle DISPARAISSE de leur écran IMMÉDIATEMENT au lieu
+ * d'attendre le poll (jusqu'à 15 s pendant lesquelles un chauffeur pouvait
+ * encore proposer sur une course déjà prise).
+ *
+ * Audience volontairement LARGE (présents autour du départ dans le rayon de
+ * diffusion + auteurs d'une offre) SANS re-filtrer zone/direction : retirer un
+ * id absent d'une liste est un no-op côté client, rater un destinataire
+ * laisserait une course fantôme. Broadcast Realtime uniquement — AUCUN FCM
+ * (retrait silencieux d'interface, pas une nouvelle information à notifier).
+ *
+ * `winnerUserId` accompagne le message : le chauffeur RETENU qui le reçoit
+ * bascule immédiatement sur sa course (ceinture en plus du canal my-offers).
+ */
+export async function notifyChauffeursRideGone(input: {
+  rideId: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    type RideGoneRow = {
+      status: string;
+      chauffeur_id: string | null;
+      customer_id: string | null;
+      pickup_lat: number | null;
+      pickup_lng: number | null;
+      gamme: string | null;
+      female_only: boolean | null;
+      dispatch_radius_km: number | null;
+    };
+    const ridesTable = admin.from("rides") as unknown as {
+      select: (s: string) => {
+        eq: (
+          c: string,
+          v: string
+        ) => { maybeSingle: () => Promise<{ data: RideGoneRow | null }> };
+      };
+    };
+    const { data: ride } = await ridesTable
+      .select(
+        "status, chauffeur_id, customer_id, pickup_lat, pickup_lng, gamme, female_only, dispatch_radius_km"
+      )
+      .eq("id", input.rideId)
+      .maybeSingle();
+    if (!ride || ride.pickup_lat == null || ride.pickup_lng == null) return;
+
+    const rpc = admin.rpc.bind(admin) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+    // Gagnant → payload, pour sa bascule instantanée. UNIQUEMENT si la course
+    // est réellement attribuée/active : une course ANNULÉE garde son
+    // chauffeur_id, et il ne faut pas l'envoyer « sur sa course » dans ce cas
+    // (son écran course gère déjà l'annulation via l'issue backend).
+    let winnerUserId: string | null = null;
+    if (
+      ride.chauffeur_id &&
+      ["accepted", "arriving", "arrived", "in_progress"].includes(ride.status)
+    ) {
+      const { data: winner } = await admin
+        .from("chauffeurs")
+        .select("user_id")
+        .eq("id", ride.chauffeur_id)
+        .maybeSingle();
+      winnerUserId = winner?.user_id ?? null;
+    }
+
+    const { data: settings } = await admin
+      .from("platform_settings")
+      .select("drive_default_radius_km")
+      .eq("id", true)
+      .maybeSingle();
+    const defaultRadius = Math.min(
+      20,
+      Math.max(
+        5,
+        Number(
+          (settings as { drive_default_radius_km?: number } | null)
+            ?.drive_default_radius_km ?? 10
+        )
+      )
+    );
+    const dispatchRadius = Math.min(
+      25,
+      Math.max(5, Number(ride.dispatch_radius_km ?? defaultRadius))
+    );
+
+    // Présence élargie (10 min) : couvrir aussi un chauffeur dont le heartbeat
+    // date un peu mais qui a l'écran demandes encore ouvert.
+    const { data: near } = await rpc("chauffeurs_present_near", {
+      p_lat: ride.pickup_lat,
+      p_lng: ride.pickup_lng,
+      p_radius_km: dispatchRadius,
+      p_within_min: 10,
+      p_gamme: ride.gamme ?? "classic",
+      p_female_only: ride.female_only ?? false,
+      p_customer_id: ride.customer_id ?? null,
+    });
+    const userIds = new Set(
+      ((near as { user_id: string }[] | null) ?? []).map((r) => r.user_id)
+    );
+
+    // + Auteurs d'une offre sur la course (leur carte « Proposition » doit
+    //   disparaître aussi, même s'ils sont sortis du rayon depuis).
+    const { data: offerers } = await admin
+      .from("ride_offers")
+      .select("chauffeurs(user_id)")
+      .eq("ride_id", input.rideId);
+    for (const row of (offerers ?? []) as unknown as {
+      chauffeurs: { user_id: string | null } | null;
+    }[]) {
+      if (row.chauffeurs?.user_id) userIds.add(row.chauffeurs.user_id);
+    }
+
+    void broadcastToChauffeurs([...userIds], "ride_gone", {
+      rideId: input.rideId,
+      winnerUserId,
+    });
+  } catch (err) {
+    console.warn("[fcm] notifyChauffeursRideGone failed:", err);
+  }
+}
+
+/**
  * APPEL IN-APP Drive (Agora) — fait « sonner » le pair même APP FERMÉE / en
  * arrière-plan. Le signaling temps réel (Supabase broadcast) ne marche qu'au
  * premier plan ; ce push réveille l'appelé et, au clic, l'ouvre sur l'écran de

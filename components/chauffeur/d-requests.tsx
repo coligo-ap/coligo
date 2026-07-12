@@ -353,6 +353,26 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
           supabase
             .channel(`chauffeur:${userId}`, { config: { private: true } })
             .on("broadcast", { event: "new_ride" }, () => void poll())
+            // La demande n'est plus à prendre (client a choisi quelqu'un,
+            // recherche annulée…) : RETRAIT IMMÉDIAT de l'écran — pas
+            // d'attente du poll, un chauffeur ne doit jamais proposer sur une
+            // course déjà prise. Si C'EST MOI le retenu : bascule instantanée
+            // sur ma course (ceinture en plus du canal my-offers).
+            .on("broadcast", { event: "ride_gone" }, (msg) => {
+              const p = (msg as { payload?: Record<string, unknown> })
+                .payload as
+                | { rideId?: string; winnerUserId?: string | null }
+                | undefined;
+              if (!p?.rideId) return;
+              if (p.winnerUserId && p.winnerUserId === userId) {
+                router.replace("/chauffeur/course");
+                return;
+              }
+              lastNearbyCache = lastNearbyCache.filter(
+                (x) => x.id !== p.rideId
+              );
+              setReqs((list) => list.filter((x) => x.id !== p.rideId));
+            })
             .subscribe()
         );
       }

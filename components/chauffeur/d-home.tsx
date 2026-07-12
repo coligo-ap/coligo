@@ -358,6 +358,19 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         supabase
           .channel(`chauffeur:${gate.userId}`, { config: { private: true } })
           .on("broadcast", { event: "new_ride" }, () => void tick())
+          // Demande plus à prendre → compteur/popup resynchronisés TOUT DE
+          // SUITE (cohérence compteur = liste = push). Si c'est moi le
+          // retenu : bascule immédiate sur ma course.
+          .on("broadcast", { event: "ride_gone" }, (msg) => {
+            const p = (msg as { payload?: Record<string, unknown> }).payload as
+              | { winnerUserId?: string | null }
+              | undefined;
+            if (p?.winnerUserId && p.winnerUserId === gate.userId) {
+              router.replace("/chauffeur/course");
+              return;
+            }
+            void tick();
+          })
           .subscribe(),
         supabase
           .channel(`home-my-offers-${gate.id}`)

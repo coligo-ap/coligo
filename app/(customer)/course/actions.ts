@@ -1,7 +1,10 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { notifyChauffeursNewRide } from "@/lib/fcm/triggers";
+import {
+  notifyChauffeursNewRide,
+  notifyChauffeursRideGone,
+} from "@/lib/fcm/triggers";
 
 /**
  * Le client demande une course VTC (négociation). Crée la course via la RPC
@@ -190,6 +193,12 @@ export async function acceptOffer(
   const row = (Array.isArray(data) ? data[0] : data) as {
     ok?: boolean;
     reason?: string;
+    ride_id?: string;
   };
+  // Course attribuée → la demande DISPARAÎT immédiatement chez les autres
+  // chauffeurs (retrait temps réel, sans attendre leur poll).
+  if (row?.ok && row.ride_id) {
+    void notifyChauffeursRideGone({ rideId: row.ride_id });
+  }
   return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
 }

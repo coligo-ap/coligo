@@ -3,7 +3,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chauffeurAvatarUrls } from "@/lib/drive/avatar-server";
-import { notifyChauffeursNewRide, notifyRideMessage } from "@/lib/fcm/triggers";
+import {
+  notifyChauffeursNewRide,
+  notifyChauffeursRideGone,
+  notifyRideMessage,
+} from "@/lib/fcm/triggers";
 import { notifyRideEvent } from "@/lib/notifications/notify";
 import {
   evaluateZone,
@@ -666,6 +670,10 @@ export async function acceptDriveOffer(
   if (row?.ok && row.ride_id) {
     // Cloche + push chauffeur : le client vient de confirmer SA proposition.
     void notifyRideEvent(row.ride_id, "ride_accepted");
+    // Et la demande DISPARAÎT immédiatement chez tous les autres chauffeurs
+    // (retrait temps réel `ride_gone`, sans attendre leur poll) ; le retenu,
+    // lui, bascule sur sa course à réception du même message.
+    void notifyChauffeursRideGone({ rideId: row.ride_id });
     return { ok: true, rideId: row.ride_id };
   }
   return { ok: false, error: row?.reason };
@@ -686,7 +694,12 @@ export async function cancelDriveRide(
     reason?: string;
   };
   // Notifie le chauffeur attribué s'il y en a un (no-op avant attribution).
-  if (row?.ok) void notifyRideEvent(rideId, "ride_cancelled_by_customer");
+  if (row?.ok) {
+    void notifyRideEvent(rideId, "ride_cancelled_by_customer");
+    // Recherche annulée → la demande DISPARAÎT immédiatement des écrans des
+    // chauffeurs qui la voyaient (retrait temps réel, sans attendre leur poll).
+    void notifyChauffeursRideGone({ rideId });
+  }
   return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
 }
 
