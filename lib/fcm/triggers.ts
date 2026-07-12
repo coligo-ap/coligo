@@ -23,6 +23,7 @@ import {
   broadcastToChauffeurs,
   broadcastToCouriers,
 } from "@/lib/realtime/broadcast";
+import { storeAndPushNotification } from "@/lib/notifications/notify";
 import { sendFcm } from "./send";
 
 async function tokensFor(
@@ -476,12 +477,24 @@ export async function notifyCustomerRefund(input: {
       .maybeSingle();
     if (!customer?.user_id) return;
 
-    const tokens = await tokensFor(customer.user_id, "customer");
-    if (tokens.length === 0) return;
-
     const ref = order.order_number
       ? ` de la commande #${order.order_number}`
       : "";
+    // Trace interne (cloche client, mig 0363) + push — la trace survit à un
+    // push manqué.
+    void storeAndPushNotification({
+      userId: customer.user_id,
+      audience: "customer",
+      kind: "order_refund",
+      title: "Remboursement effectué",
+      body: `${formatDA(input.amountDa)} ont été crédités sur votre Coligo Pay au titre${ref}.`,
+      route: `/commandes/${input.orderId}`,
+      push: false,
+    });
+
+    const tokens = await tokensFor(customer.user_id, "customer");
+    if (tokens.length === 0) return;
+
     await sendFcm(
       tokens,
       {
@@ -580,6 +593,17 @@ export async function notifyCustomerStatusChange(input: {
       .eq("id", order.customer_id)
       .maybeSingle();
     if (!customer?.user_id) return;
+
+    // Trace interne (cloche client, mig 0363) — même sans appareil enregistré.
+    void storeAndPushNotification({
+      userId: customer.user_id,
+      audience: "customer",
+      kind: "order_status",
+      title: tmpl.title,
+      body: tmpl.body,
+      route: `/commandes/${input.orderId}`,
+      push: false,
+    });
 
     const tokens = await tokensFor(customer.user_id, "customer");
     if (tokens.length === 0) return;
@@ -1179,6 +1203,16 @@ export async function notifyCustomerEnRoute(input: {
       .maybeSingle();
     if (!customer?.user_id) return;
 
+    void storeAndPushNotification({
+      userId: customer.user_id,
+      audience: "customer",
+      kind: "order_en_route",
+      title: "Votre livreur est en route",
+      body: "Le livreur a récupéré votre commande et arrive bientôt.",
+      route: `/commandes/${input.orderId}`,
+      push: false,
+    });
+
     const tokens = await tokensFor(customer.user_id, "customer");
     if (tokens.length === 0) return;
 
@@ -1221,6 +1255,16 @@ export async function notifyCustomerArrived(input: {
       .eq("id", order.customer_id)
       .maybeSingle();
     if (!customer?.user_id) return;
+
+    void storeAndPushNotification({
+      userId: customer.user_id,
+      audience: "customer",
+      kind: "order_arrived",
+      title: "Votre livreur est arrivé",
+      body: "Le livreur est à votre porte. Descendez récupérer votre commande.",
+      route: `/commandes/${input.orderId}`,
+      push: false,
+    });
 
     const tokens = await tokensFor(customer.user_id, "customer");
     if (tokens.length === 0) return;
@@ -1375,25 +1419,32 @@ export async function notifyRideClosedByAdmin(input: {
         .eq("id", ride.chauffeur_id)
         .maybeSingle();
       if (ch?.user_id) {
+        const tmpl =
+          input.outcome === "completed"
+            ? {
+                title: "Course clôturée ✓",
+                body: "Le support a clôturé ta course : elle est comptée comme terminée et tes gains sont crédités. Tu peux reprendre les courses.",
+              }
+            : {
+                title: "Course annulée",
+                body: "Le support a annulé ta course en cours. Ne poursuis pas le trajet — contacte le support si besoin.",
+              };
+        void storeAndPushNotification({
+          userId: ch.user_id,
+          audience: "chauffeur",
+          kind: "ride_closed_admin",
+          title: tmpl.title,
+          body: tmpl.body,
+          route: "/chauffeur",
+          push: false,
+        });
         const tokens = await tokensFor(ch.user_id, "chauffeur");
         if (tokens.length > 0) {
-          await sendFcm(
-            tokens,
-            input.outcome === "completed"
-              ? {
-                  title: "Course clôturée ✓",
-                  body: "Le support a clôturé ta course : elle est comptée comme terminée et tes gains sont crédités. Tu peux reprendre les courses.",
-                }
-              : {
-                  title: "Course annulée",
-                  body: "Le support a annulé ta course en cours. Ne poursuis pas le trajet — contacte le support si besoin.",
-                },
-            {
-              route: "/chauffeur",
-              kind: "drive_ride_closed_admin",
-              rideId: input.rideId,
-            }
-          );
+          await sendFcm(tokens, tmpl, {
+            route: "/chauffeur",
+            kind: "drive_ride_closed_admin",
+            rideId: input.rideId,
+          });
         }
       }
     }
@@ -1405,24 +1456,34 @@ export async function notifyRideClosedByAdmin(input: {
       .eq("id", ride.customer_id)
       .maybeSingle();
     if (cust?.user_id) {
+      const tmpl =
+        input.outcome === "completed"
+          ? {
+              title: "Course terminée",
+              body: "Votre course a été clôturée par le support Coligo.",
+            }
+          : {
+              title: "Course annulée par le support",
+              body:
+                input.refundedDa && input.refundedDa > 0
+                  ? `Votre course a été annulée — ${formatDA(input.refundedDa)} recrédités sur votre Coligo Pay.`
+                  : "Votre course a été annulée par le support Coligo.",
+            };
+      void storeAndPushNotification({
+        userId: cust.user_id,
+        audience: "customer",
+        kind: "ride_closed_admin",
+        title: tmpl.title,
+        body: tmpl.body,
+        route: "/drive",
+        push: false,
+      });
       const tokens = await tokensFor(cust.user_id, "customer");
       if (tokens.length > 0) {
-        await sendFcm(
-          tokens,
-          input.outcome === "completed"
-            ? {
-                title: "Course terminée",
-                body: "Votre course a été clôturée par le support Coligo.",
-              }
-            : {
-                title: "Course annulée par le support",
-                body:
-                  input.refundedDa && input.refundedDa > 0
-                    ? `Votre course a été annulée — ${formatDA(input.refundedDa)} recrédités sur votre Coligo Pay.`
-                    : "Votre course a été annulée par le support Coligo.",
-              },
-          { route: "/drive", kind: "drive_ride_closed_admin" }
-        );
+        await sendFcm(tokens, tmpl, {
+          route: "/drive",
+          kind: "drive_ride_closed_admin",
+        });
       }
     }
   } catch (err) {
@@ -1490,6 +1551,15 @@ export async function notifyRideCustomerRefund(input: {
       .eq("id", ride.customer_id)
       .maybeSingle();
     if (!cust?.user_id) return;
+    void storeAndPushNotification({
+      userId: cust.user_id,
+      audience: "customer",
+      kind: "ride_refund",
+      title: "Remboursement effectué",
+      body: `${formatDA(input.amountDa)} ont été crédités sur votre Coligo Pay au titre de votre course Drive.`,
+      route: "/drive",
+      push: false,
+    });
     const tokens = await tokensFor(cust.user_id, "customer");
     if (tokens.length === 0) return;
     await sendFcm(
@@ -1521,6 +1591,15 @@ export async function notifyChauffeurCompensation(input: {
       .eq("id", input.chauffeurId)
       .maybeSingle();
     if (!ch?.user_id) return;
+    void storeAndPushNotification({
+      userId: ch.user_id,
+      audience: "chauffeur",
+      kind: "ride_compensation",
+      title: "Indemnité créditée",
+      body: `Le support t'a crédité ${formatDA(input.amountDa)} sur ton portefeuille opérateur.`,
+      route: "/chauffeur",
+      push: false,
+    });
     const tokens = await tokensFor(ch.user_id, "chauffeur");
     if (tokens.length === 0) return;
     await sendFcm(

@@ -63,6 +63,11 @@ function HistoRow({ r }: { r: ChauffeurHistoryRide }) {
               {" "}
               · {formatDA(r.price_da)}
               {r.net_da != null && <> · net +{formatDA(r.net_da)}</>}
+              {r.tip_da > 0 && (
+                <span className="font-bold" style={{ color: GO }}>
+                  · pourboire +{r.tip_da}
+                </span>
+              )}
               {r.gamme === "confort" && " · Confort"}
               {r.boosted && <Zap className="size-3" style={{ color: GO }} />}
             </>

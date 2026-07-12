@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Copy,
   Loader2,
+  Lock,
   MessageCircle,
   MessageSquare,
   Navigation,
@@ -15,6 +16,7 @@ import {
   PhoneCall,
   Share2,
   Smartphone,
+  Star,
   X,
   Zap,
 } from "lucide-react";
@@ -372,7 +374,7 @@ export function DCourse() {
       <div className="drive-jakarta drive-screen bg-[var(--d-surface)] px-5 pt-12">
         <div className="flex flex-col items-center text-center">
           <span
-            className="mb-3 grid size-16 place-items-center rounded-full"
+            className="drive-pop mb-3 grid size-16 place-items-center rounded-full"
             style={{ background: "rgba(229,72,77,.1)" }}
           >
             <X className="size-7" style={{ color: RED }} />
@@ -415,7 +417,7 @@ export function DCourse() {
       <div className="drive-jakarta drive-screen overflow-y-auto bg-[var(--d-surface)] px-5 pt-10 pb-8">
         <div className="text-center">
           <span
-            className="mx-auto mb-3 grid size-16 place-items-center rounded-full"
+            className="drive-pop mx-auto mb-3 grid size-16 place-items-center rounded-full"
             style={{ background: "rgba(22,179,100,.12)" }}
           >
             <Check className="size-7" style={{ color: GO }} />
@@ -617,11 +619,17 @@ export function DCourse() {
                 {nextOff.customer_name[0]?.toUpperCase()}
               </span>
               <span className="min-w-0 flex-1">
-                <b className="block text-[13.5px]">
+                <b className="flex items-center gap-1 text-[13.5px]">
                   {nextOff.customer_name}
-                  {nextOff.customer_rating != null
-                    ? ` · ★ ${String(nextOff.customer_rating).replace(".", ",")}`
-                    : ""}
+                  {nextOff.customer_rating != null && (
+                    <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#B45309]">
+                      <Star
+                        className="size-3 shrink-0"
+                        style={{ color: "#E8B53C", fill: "#E8B53C" }}
+                      />
+                      {String(nextOff.customer_rating).replace(".", ",")}
+                    </span>
+                  )}
                 </b>
                 <span className="text-[11px] text-[var(--d-muted)]">
                   À {fmtkm(nextOff.pickup_dist_km)} de votre point de dépose ·
@@ -668,7 +676,38 @@ export function DCourse() {
       )}
 
       <div className="absolute inset-x-0 bottom-0 z-10 max-h-[60vh] overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[max(20px,env(safe-area-inset-bottom))]">
-        <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
+        <div className="mx-auto mb-3 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
+
+        {/* Tracker d'étapes (progression visuelle, parité écran client). */}
+        <div className="mb-3 flex items-center gap-1.5">
+          {(["arriving", "arrived", "in_progress"] as const).map((step, i) => {
+            const order = {
+              accepted: 0,
+              arriving: 0,
+              arrived: 1,
+              in_progress: 2,
+            } as const;
+            const cur = order[ride.status as keyof typeof order] ?? 0;
+            const active = i === cur;
+            return (
+              <span
+                key={step}
+                className="h-[4px] flex-1 overflow-hidden rounded-full bg-[var(--d-soft)]"
+              >
+                <span
+                  className={
+                    active ? "drive-track-active block h-full" : "block h-full"
+                  }
+                  style={{
+                    background:
+                      i <= cur ? (inProgress ? GO : VIOLET) : "transparent",
+                    width: i <= cur ? "100%" : 0,
+                  }}
+                />
+              </span>
+            );
+          })}
+        </div>
 
         {queued && (
           <div
@@ -705,8 +744,12 @@ export function DCourse() {
               </b>
               <span className="mt-1 flex flex-wrap gap-1.5">
                 {ride.customer_rating != null && (
-                  <span className="rounded-full bg-[rgba(245,158,11,.16)] px-2.5 py-1 text-[11px] font-bold text-[#B45309]">
-                    ★ {String(ride.customer_rating).replace(".", ",")}
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(245,158,11,.16)] px-2.5 py-1 text-[11px] font-bold text-[#B45309]">
+                    <Star
+                      className="size-3 shrink-0"
+                      style={{ color: "#E8B53C", fill: "#E8B53C" }}
+                    />
+                    {String(ride.customer_rating).replace(".", ",")}
                   </span>
                 )}
                 {ride.proxy_name && (
@@ -824,39 +867,42 @@ export function DCourse() {
 
         {ride.prepaid && (
           <p
-            className="mb-2.5 rounded-[13px] px-3 py-2.5 text-[12.5px] leading-relaxed font-bold"
+            className="mb-2.5 flex items-start gap-1.5 rounded-[13px] px-3 py-2.5 text-[12.5px] leading-relaxed font-bold"
             style={{ background: "rgba(22,179,100,.12)", color: GO }}
           >
-            {inProgress ? (
-              ride.cash_due_da > 0 ? (
-                <>
-                  🔒 Course Coligo Pay partielle —{" "}
-                  {formatDA(ride.agreed_price_da - ride.cash_due_da)} en
-                  séquestre (versés sur votre solde à la fin) ·{" "}
-                  <b>encaissez {formatDA(ride.cash_due_da)} en espèces</b>{" "}
-                  auprès du client à l&apos;arrivée.
-                </>
-              ) : (
-                <>
-                  🔒 Course prépayée — montant en séquestre, versé sur votre
-                  solde à la fin de la course. Rien à encaisser.
-                </>
-              )
-            ) : (
-              <>
-                🔒 Course prépayée — à votre arrivée, demandez le{" "}
-                <b>code PIN (4 chiffres)</b> au client : sa saisie démarre la
-                course.{" "}
-                {ride.cash_due_da > 0 ? (
+            <Lock className="mt-0.5 size-3.5 shrink-0" />
+            <span>
+              {inProgress ? (
+                ride.cash_due_da > 0 ? (
                   <>
-                    Complément à encaisser en espèces :{" "}
-                    <b>{formatDA(ride.cash_due_da)}</b>.
+                    Course Coligo Pay partielle —{" "}
+                    {formatDA(ride.agreed_price_da - ride.cash_due_da)} en
+                    séquestre (versés sur votre solde à la fin) ·{" "}
+                    <b>encaissez {formatDA(ride.cash_due_da)} en espèces</b>{" "}
+                    auprès du client à l&apos;arrivée.
                   </>
                 ) : (
-                  <>Rien à encaisser.</>
-                )}
-              </>
-            )}
+                  <>
+                    Course prépayée — montant en séquestre, versé sur votre
+                    solde à la fin de la course. Rien à encaisser.
+                  </>
+                )
+              ) : (
+                <>
+                  Course prépayée — à votre arrivée, demandez le{" "}
+                  <b>code PIN (4 chiffres)</b> au client : sa saisie démarre la
+                  course.{" "}
+                  {ride.cash_due_da > 0 ? (
+                    <>
+                      Complément à encaisser en espèces :{" "}
+                      <b>{formatDA(ride.cash_due_da)}</b>.
+                    </>
+                  ) : (
+                    <>Rien à encaisser.</>
+                  )}
+                </>
+              )}
+            </span>
           </p>
         )}
 

@@ -850,6 +850,19 @@ body {
 .drive-pop {
   animation: drive-pop 0.35s ease both;
 }
+/* Segment ACTIF du tracker d'étapes (suivi de course) : respiration douce. */
+@keyframes drive-track {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.drive-track-active {
+  animation: drive-track 1.6s ease-in-out infinite;
+}
 /* Bouton « Accepter » (vert) des propositions : léger halo pulsé pour pousser
    à l'acceptation directe sans être agressif. */
 @keyframes drive-go-pulse {

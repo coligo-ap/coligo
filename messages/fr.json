@@ -21,6 +21,11 @@
     "myAccount": "Mon compte",
     "language": "Langue"
   },
+  "notifs": {
+    "title": "Notifications",
+    "close": "Fermer",
+    "empty": "Rien pour l'instant"
+  },
   "home": {
     "searchPlaceholder": "Rechercher sur Coligo",
     "clearSearch": "Effacer la recherche",
@@ -1108,6 +1113,7 @@
       "payNow": "Payer maintenant (CIB / Edahabia)"
     },
     "enroute": {
+      "see": "Voir",
       "pillArriving": "{name} arrive · {min} min",
       "pillArrived": "{name} est arrivé",
       "pillInProgress": "Course en cours · {min} min restantes",
@@ -1192,13 +1198,22 @@
     },
     "chat": {
       "title": "Messages",
-      "sub": "Messages rapides · numéros masqués",
+      "sub": "Numéros masqués",
       "quick": ["Je suis en bas", "J'arrive", "Merci !", "Où êtes-vous ?"],
+      "quickDriver": [
+        "J'arrive",
+        "Je suis là",
+        "Je suis garé devant",
+        "2 minutes"
+      ],
       "ph": "Écrire un message…",
       "close": "Fermer",
       "sent": "Envoyé",
       "delivered": "Reçu",
-      "read": "Lu"
+      "read": "Lu",
+      "empty": "Dites bonjour — les messages restent privés.",
+      "sendError": "Envoi impossible. Réessayez.",
+      "sendLabel": "Envoyer"
     },
     "cancel": {
       "confirm": "Confirmer l'annulation",
@@ -1258,8 +1273,14 @@
       "cashback": "+{amount} DA de cashback",
       "cashbackSub": "Utilisable sur Drive ET vos livraisons Coligo",
       "rateTitle": "Notez le chauffeur",
-      "favOn": "♥ {name} est dans vos favoris · appuyer pour retirer",
-      "favOff": "♡ Ajouter {name} à mes favoris",
+      "rateLabels": ["Décevant", "Moyen", "Correct", "Très bien", "Excellent"],
+      "rated": "Merci pour votre note !",
+      "tipTitle": "Un pourboire pour {name} ?",
+      "tipSub": "100 % pour lui · Coligo Pay (solde : {balance} DA)",
+      "tipSent": "Pourboire de {amount} DA envoyé — merci pour lui !",
+      "tipErr": "Pourboire impossible — réessayez.",
+      "favOn": "Retirer des favoris",
+      "favOff": "Ajouter aux favoris",
       "reportBtn": "Signaler un problème avec ce chauffeur",
       "reportOk": "Signalement transmis (« {reason} »). Examen sous 24 h — le chauffeur peut être suspendu. Vous serez informé(e) de la décision.",
       "finish": "Terminer"
@@ -1277,7 +1298,7 @@
       "tabRides": "Courses",
       "tabFavs": "Favoris",
       "emptyRides": "Aucune course pour le moment.",
-      "emptyFavs": "Aucun favori — touchez le ♥ sur un chauffeur lors d'une course.",
+      "emptyFavs": "Aucun favori — touchez le cœur sur un chauffeur en fin de course.",
       "ridesCount": "{count} courses",
       "removeFav": "Retirer des favoris"
     },

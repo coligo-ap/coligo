@@ -6,7 +6,10 @@ import {
   AlertTriangle,
   ArrowDownUp,
   CreditCard,
+  Crown,
+  Heart,
   Loader2,
+  Star,
   WifiOff,
   X,
   Zap,
@@ -436,7 +439,8 @@ export function SearchScreen({
             if (o.is_favorite)
               tag = (
                 <Tag color={VIOLET} soft="var(--d-accent)">
-                  ♥ {t("tagFav")}
+                  <Heart className="size-2.5 shrink-0" fill="currentColor" />
+                  {t("tagFav")}
                 </Tag>
               );
             else if (sort === "best" && o.rank_score === maxScore)
@@ -490,18 +494,30 @@ export function SearchScreen({
                   >
                     {o.name}
                     {o.rating != null && (
-                      <span className="text-[11px] text-[#E8B53C]">
-                        ★ {String(o.rating).replace(".", ",")}
+                      <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#B45309]">
+                        <Star
+                          className="size-3 shrink-0"
+                          style={{ color: "#E8B53C", fill: "#E8B53C" }}
+                        />
+                        {String(o.rating).replace(".", ",")}
                       </span>
                     )}
                     {o.is_premium && (
-                      <span className="rounded-full bg-[#E8B53C] px-2 py-0.5 text-[9.5px] font-extrabold text-[#3a2c00]">
-                        👑 Premium
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#E8B53C] px-2 py-0.5 text-[9.5px] font-extrabold text-[#3a2c00]">
+                        <Crown
+                          className="size-2.5 shrink-0"
+                          fill="currentColor"
+                        />
+                        Premium
                       </span>
                     )}
                     {o.is_priority && (
-                      <span className="rounded-full bg-gradient-to-r from-[#5B2EFF] to-[#6C2BD9] px-2 py-0.5 text-[9.5px] font-extrabold text-white">
-                        ⚡ Prioritaire
+                      <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#5B2EFF] to-[#6C2BD9] px-2 py-0.5 text-[9.5px] font-extrabold text-white">
+                        <Zap
+                          className="size-2.5 shrink-0"
+                          fill="currentColor"
+                        />
+                        Prioritaire
                       </span>
                     )}
                     <DriverBadgePill
@@ -543,8 +559,11 @@ export function SearchScreen({
                     type="button"
                     disabled={busy}
                     onClick={() => void choose(o.id)}
-                    className="mt-1 rounded-[11px] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
-                    style={{ background: VIOLET }}
+                    className="drive-shine mt-1 rounded-[12px] px-3.5 py-2 text-xs font-extrabold text-white transition-transform active:scale-95 disabled:opacity-50"
+                    style={{
+                      background: VIOLET,
+                      boxShadow: "0 8px 18px -8px rgba(108,43,217,.7)",
+                    }}
                   >
                     {t("choose")}
                   </button>
@@ -579,7 +598,7 @@ function Tag({
 }) {
   return (
     <span
-      className="rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
       style={{ background: soft, color }}
     >
       {children}

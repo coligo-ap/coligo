@@ -1504,6 +1504,8 @@ export type ChauffeurHistoryRide = {
   when: string;
   price_da: number;
   net_da: number | null;
+  /** Pourboire client (mig 0363), inclus dans les gains. */
+  tip_da: number;
   gamme: string;
   boosted: boolean;
   completed: boolean;
@@ -1527,7 +1529,7 @@ export async function getChauffeurHistory(
   const { data } = await admin
     .from("rides")
     .select(
-      "id, dest_text, created_at, status, agreed_price_da, proposed_price_da, chauffeur_net_da, gamme, boost_amount_da, cancelled_by, customers(full_name)"
+      "id, dest_text, created_at, status, agreed_price_da, proposed_price_da, chauffeur_net_da, tip_da, gamme, boost_amount_da, cancelled_by, customers(full_name)"
     )
     .eq("chauffeur_id", ch.id)
     .in("status", ["completed", "cancelled"])
@@ -1542,6 +1544,7 @@ export async function getChauffeurHistory(
       when: r.created_at,
       price_da: r.agreed_price_da ?? r.proposed_price_da ?? 0,
       net_da: r.chauffeur_net_da,
+      tip_da: (r as unknown as { tip_da?: number }).tip_da ?? 0,
       gamme: r.gamme,
       boosted: (r.boost_amount_da ?? 0) > 0,
       completed: r.status === "completed",

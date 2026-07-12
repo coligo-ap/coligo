@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { ArrowRight, Bell, Check, MapPin, X } from "lucide-react";
+import { ArrowRight, Bell, Check, MapPin, Star, X } from "lucide-react";
 import { GO, ROSE, VIOLET } from "@/components/customer/drive/drive-modals";
 import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
 import { isChauffeurSoundOn } from "@/lib/chauffeur/sound-store";
@@ -157,8 +157,12 @@ export function DIncoming({
                 <div className="drive-sora flex items-center gap-1.5 text-[12.5px] font-bold">
                   <span className="truncate">{ride.customer_name}</span>
                   {ride.customer_rating != null && (
-                    <span className="text-[10px] text-[#E8B53C]">
-                      ★ {String(ride.customer_rating).replace(".", ",")}
+                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#B45309]">
+                      <Star
+                        className="size-2.5 shrink-0"
+                        style={{ color: "#E8B53C", fill: "#E8B53C" }}
+                      />
+                      {String(ride.customer_rating).replace(".", ",")}
                     </span>
                   )}
                   <span className="ml-auto shrink-0 text-[9.5px] font-medium text-[var(--d-muted)]">

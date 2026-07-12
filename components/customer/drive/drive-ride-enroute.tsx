@@ -5,9 +5,13 @@ import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
   BadgeCheck,
+  Banknote,
+  Crown,
+  Lock,
   MessageSquare,
   Phone,
   Share2,
+  Star,
 } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { haversineKm } from "@/lib/delivery/distance";
@@ -245,7 +249,7 @@ export function EnrouteScreen({
             className="shrink-0 text-[11px] font-extrabold"
             style={{ color: VIOLET }}
           >
-            Voir
+            {t("see")}
           </span>
         </button>
       )}
@@ -315,7 +319,39 @@ export function EnrouteScreen({
 
       {/* Feuille bas : fiche chauffeur v3 */}
       <div className="absolute inset-x-0 bottom-0 z-10 max-h-[62vh] overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[max(20px,env(safe-area-inset-bottom))]">
-        <div className="mx-auto mb-3.5 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
+        <div className="mx-auto mb-3 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
+
+        {/* Tracker d'étapes (autre FORME que le pill : progression visuelle).
+            arriving → arrivé → en course : segments remplis, actif animé. */}
+        <div className="mb-3 flex items-center gap-1.5">
+          {(["arriving", "arrived", "in_progress"] as const).map((step, i) => {
+            const order = {
+              accepted: 0,
+              arriving: 0,
+              arrived: 1,
+              in_progress: 2,
+            } as const;
+            const cur = order[ride.status as keyof typeof order] ?? 0;
+            const active = i === cur;
+            return (
+              <span
+                key={step}
+                className="h-[4px] flex-1 overflow-hidden rounded-full bg-[var(--d-soft)]"
+              >
+                <span
+                  className={
+                    active ? "drive-track-active block h-full" : "block h-full"
+                  }
+                  style={{
+                    background:
+                      i <= cur ? (inProgress ? GO : VIOLET) : "transparent",
+                    width: i <= cur ? "100%" : 0,
+                  }}
+                />
+              </span>
+            );
+          })}
+        </div>
 
         {ride.proxy_name && (
           <div
@@ -389,15 +425,22 @@ export function EnrouteScreen({
                     style={{ color: VIOLET }}
                   />
                   {ch.is_premium && (
-                    <span className="rounded-full bg-[#E8B53C] px-2 py-0.5 text-[10px] font-extrabold text-[#3a2c00]">
-                      👑
+                    <span className="grid size-5 place-items-center rounded-full bg-[#E8B53C]">
+                      <Crown
+                        className="size-3 text-[#3a2c00]"
+                        fill="currentColor"
+                      />
                     </span>
                   )}
                 </span>
                 <span className="mt-1.5 flex flex-wrap gap-1.5">
                   {ch.rating != null && (
-                    <span className="rounded-full bg-[rgba(245,158,11,.16)] px-2.5 py-1 text-[11px] font-bold text-[#B45309]">
-                      ★ {String(ch.rating).replace(".", ",")}
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(245,158,11,.16)] px-2.5 py-1 text-[11px] font-bold text-[#B45309]">
+                      <Star
+                        className="size-3 shrink-0"
+                        style={{ color: "#E8B53C", fill: "#E8B53C" }}
+                      />
+                      {String(ch.rating).replace(".", ",")}
                     </span>
                   )}
                   <span className="rounded-full bg-[var(--d-soft)] px-2.5 py-1 text-[11px] font-bold text-[var(--d-muted)]">
@@ -482,19 +525,27 @@ export function EnrouteScreen({
             style={{ background: "rgba(22,179,100,.12)", color: GO }}
           >
             {inProgress ? (
-              <>🔒 {t("prepaidOnboard")}</>
+              <span className="flex items-start gap-1.5">
+                <Lock className="mt-0.5 size-3.5 shrink-0" />
+                <span>{t("prepaidOnboard")}</span>
+              </span>
             ) : (
               <>
-                🔒 {t("prepaid")}{" "}
-                {ride.end_code && (
-                  <>
-                    {t("pinLabel")}{" "}
-                    <b className="text-[15px] tracking-[4px]">
-                      {ride.end_code.split("").join(" ")}
-                    </b>{" "}
-                    — {t("pinGive")}
-                  </>
-                )}
+                <span className="flex items-start gap-1.5">
+                  <Lock className="mt-0.5 size-3.5 shrink-0" />
+                  <span>
+                    {t("prepaid")}{" "}
+                    {ride.end_code && (
+                      <>
+                        {t("pinLabel")}{" "}
+                        <b className="text-[15px] tracking-[4px]">
+                          {ride.end_code.split("").join(" ")}
+                        </b>{" "}
+                        — {t("pinGive")}
+                      </>
+                    )}
+                  </span>
+                </span>
                 <span className="mt-1 block text-[11px] font-semibold text-[var(--d-muted)]">
                   {t("escrowNote")}
                 </span>
@@ -502,8 +553,9 @@ export function EnrouteScreen({
             )}
             {/* Coligo Pay partiel : le complément se règle en espèces. */}
             {ride.payment_method === "coligo_pay" && ride.cash_due_da > 0 && (
-              <span className="mt-1.5 block border-t border-[rgba(22,179,100,.25)] pt-1.5 text-[12px]">
-                💵 {t("cashDue", { amount: ride.cash_due_da })}
+              <span className="mt-1.5 flex items-center gap-1.5 border-t border-[rgba(22,179,100,.25)] pt-1.5 text-[12px]">
+                <Banknote className="size-3.5 shrink-0" />
+                {t("cashDue", { amount: ride.cash_due_da })}
               </span>
             )}
           </div>

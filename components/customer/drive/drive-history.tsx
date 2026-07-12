@@ -8,7 +8,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { Car, ChevronLeft, Heart } from "lucide-react";
+import { Car, ChevronLeft, Heart, Star } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { VIOLET, ROSE } from "./drive-modals";
@@ -145,15 +145,15 @@ export function DriveHistoryView({
       <div className="mb-3 flex gap-2">
         {(
           [
-            ["c", t("tabRides")],
-            ["f", `♥ ${t("tabFavs")}`],
+            ["c", t("tabRides"), Car],
+            ["f", t("tabFavs"), Heart],
           ] as const
-        ).map(([k, label]) => (
+        ).map(([k, label, Icon]) => (
           <button
             key={k}
             type="button"
             onClick={() => setTab(k)}
-            className="flex-1 rounded-[12px] border-[1.5px] px-1.5 py-2.5 text-xs font-bold"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-[12px] border-[1.5px] px-1.5 py-2.5 text-xs font-bold transition-colors"
             style={
               tab === k
                 ? {
@@ -164,6 +164,7 @@ export function DriveHistoryView({
                 : { borderColor: "var(--d-line)", color: "var(--d-muted)" }
             }
           >
+            <Icon className="size-3.5" />
             {label}
           </button>
         ))}
@@ -175,10 +176,11 @@ export function DriveHistoryView({
             {t("emptyRides")}
           </p>
         ) : (
-          history.rides.map((r) => (
+          history.rides.map((r, i) => (
             <div
               key={r.id}
-              className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] p-3"
+              className="drive-rise mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3"
+              style={{ animationDelay: `${Math.min(i, 8) * 0.03}s` }}
             >
               <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)]">
                 <Car className="size-4" />
@@ -197,21 +199,27 @@ export function DriveHistoryView({
                       }
                     ),
                     r.chauffeur_name,
-                    formatDA(r.price_da),
                   ]
                     .filter(Boolean)
                     .join(" · ")}
                 </small>
               </span>
-              <span
-                className="shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold"
-                style={
-                  r.completed
-                    ? { background: "rgba(22,179,100,.12)", color: "#16B364" }
-                    : { background: "rgba(229,72,77,.12)", color: "#E5484D" }
-                }
-              >
-                {r.completed ? tc("status.completed") : tc("status.cancelled")}
+              <span className="shrink-0 text-end">
+                <span className="drive-sora block text-[14px] font-extrabold">
+                  {formatDA(r.price_da)}
+                </span>
+                <span
+                  className="mt-0.5 inline-block rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
+                  style={
+                    r.completed
+                      ? { background: "rgba(22,179,100,.12)", color: "#16B364" }
+                      : { background: "rgba(229,72,77,.12)", color: "#E5484D" }
+                  }
+                >
+                  {r.completed
+                    ? tc("status.completed")
+                    : tc("status.cancelled")}
+                </span>
               </span>
             </div>
           ))
@@ -228,11 +236,17 @@ export function DriveHistoryView({
           >
             <ChAvatar name={f.name} url={f.avatar_url} size={38} />
             <span className="min-w-0 flex-1">
-              <b className="block text-[13.5px]">
+              <b className="flex items-center gap-1.5 text-[13.5px]">
                 {f.name}
-                {f.rating != null
-                  ? ` · ★ ${String(f.rating).replace(".", ",")}`
-                  : ""}
+                {f.rating != null && (
+                  <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#B45309]">
+                    <Star
+                      className="size-3 shrink-0"
+                      style={{ color: "#E8B53C", fill: "#E8B53C" }}
+                    />
+                    {String(f.rating).replace(".", ",")}
+                  </span>
+                )}
               </b>
               <small className="text-[11px] text-[var(--d-muted)]">
                 {[f.vehicle, t("ridesCount", { count: f.rides_count })]
