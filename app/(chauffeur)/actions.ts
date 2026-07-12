@@ -988,6 +988,44 @@ export async function cancelRideAction(
   return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
 }
 
+/**
+ * Issue RÉELLE d'une course que le chauffeur suivait — le backend fait foi.
+ *
+ * RÈGLE PRODUIT : l'UI ne déduit JAMAIS un statut de l'absence de course
+ * active (« plus de course ⇒ annulée » a affiché « Course annulée » après une
+ * course TERMINÉE et notée). Toute fin de flux interroge cette action et
+ * n'affiche que ce qu'elle répond :
+ *  - `completed` → écran de fin (gains) ;
+ *  - `cancelled` → écran « Course annulée » ;
+ *  - `active`    → la course est toujours en cours (course au poll, on resynce) ;
+ *  - `null`      → la course n'est plus rattachée à ce chauffeur (réattribuée,
+ *    purgée…) : AUCUN écran d'état — retour neutre aux demandes.
+ */
+export async function getChauffeurRideOutcome(
+  rideId: string
+): Promise<"completed" | "cancelled" | "active" | null> {
+  const ch = await getCurrentChauffeur();
+  if (!ch) return null;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("rides")
+    .select("status")
+    .eq("id", rideId)
+    // Self-guard service_role : uniquement SA course.
+    .eq("chauffeur_id", ch.id)
+    .maybeSingle();
+  if (!data) return null;
+  if (data.status === "completed") return "completed";
+  if (data.status === "cancelled") return "cancelled";
+  if (
+    ["accepted", "arriving", "arrived", "in_progress"].includes(data.status)
+  ) {
+    return "active";
+  }
+  // `searching` (re-dispatch) ou statut inconnu : plus une course « à lui ».
+  return null;
+}
+
 /** Dernière course terminée (écran gains de fin de course). */
 export async function getChauffeurLastDone(sinceMin = 20): Promise<{
   id: string;

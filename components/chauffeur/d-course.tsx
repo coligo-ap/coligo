@@ -56,6 +56,7 @@ import {
   getB2BNext,
   getChauffeurActiveRide,
   getChauffeurLastDone,
+  getChauffeurRideOutcome,
   getChauffeurRideMessages,
   markChauffeurMessagesRead,
   sendChauffeurRideMessage,
@@ -82,6 +83,18 @@ export function DCourse() {
   const [matchSeen, setMatchSeen] = useState(false);
   const [done, setDone] =
     useState<Awaited<ReturnType<typeof getChauffeurLastDone>>>(null);
+  // Écran « Course annulée » : UNIQUEMENT sur confirmation du backend
+  // (`getChauffeurRideOutcome`). Jamais déduit de l'absence de course active —
+  // ce raccourci affichait « annulée » après une course TERMINÉE et notée.
+  const [ended, setEnded] = useState<"cancelled" | null>(null);
+  // Course qu'on était en train de suivre — pour demander son issue réelle au
+  // backend quand elle disparaît de la liste active.
+  const followedRideId = useRef<string | null>(null);
+  // CONCLUSION « rien à afficher ici » (pas de course, pas d'issue, pas de
+  // récap) : on repart sur les demandes. État explicite — jamais déduit en
+  // cours de synchronisation, pour ne pas rediriger pendant qu'une réponse
+  // backend est en vol.
+  const [noCtx, setNoCtx] = useState(false);
   const [cancelCtx, setCancelCtx] = useState<
     "driver_match" | "driver_pickup" | null
   >(null);
@@ -226,18 +239,57 @@ export function DCourse() {
     const c = coordsRef.current;
     if (c) void chauffeurHeartbeat(c.latitude, c.longitude, true);
     const r = await getChauffeurActiveRide();
+    if (r) {
+      followedRideId.current = r.id;
+      setEnded(null);
+      setNoCtx(false);
+      setRide(r);
+      setBooted(true);
+      return r;
+    }
+    // Plus de course active : on demande au backend l'ISSUE RÉELLE de celle
+    // qu'on suivait avant d'afficher quoi que ce soit. AUCUN état par défaut.
+    const followed = followedRideId.current;
+    if (followed) {
+      const outcome = await getChauffeurRideOutcome(followed);
+      if (outcome === "active") return r; // course entre deux requêtes — le prochain tick resynce
+      followedRideId.current = null;
+      if (outcome === "completed") setDone(await getChauffeurLastDone());
+      else if (outcome === "cancelled") setEnded("cancelled");
+      // `null` : plus rattachée à ce chauffeur → aucun écran d'état.
+      else setNoCtx(true);
+    }
     setRide(r);
     setBooted(true);
     return r;
   }, []);
   useEffect(() => {
-    void refresh();
+    void (async () => {
+      const r = await refresh();
+      // Arrivée sur la page SANS course active ni issue connue : montrer le
+      // récap de la course tout juste terminée s'il y en a une (retour après
+      // la note, app relancée…), sinon repartir sur les demandes. Jamais
+      // d'écran d'état inventé.
+      if (!r && !followedRideId.current) {
+        const d = await getChauffeurLastDone(10);
+        if (d) setDone((prev) => prev ?? d);
+        else setNoCtx(true);
+      }
+    })();
     // Poll = FILET LENT seulement (le Realtime ci-dessous fait l'instantané).
     // Avant : 6 s. La sync ne doit PAS marteler le serveur — façon Uber, on
     // s'appuie sur le push DB temps réel et le poll ne sert qu'au rattrapage.
     const id = setInterval(refresh, 20000);
     return () => clearInterval(id);
   }, [refresh]);
+
+  // Conclusion « rien à afficher » (pas de course, pas d'issue, pas de récap) :
+  // on repart sur la liste des demandes au lieu d'inventer un état.
+  useEffect(() => {
+    if (noCtx && !ride && !done && !ended) {
+      router.replace("/chauffeur/demandes");
+    }
+  }, [noCtx, ride, done, ended, router]);
 
   // TEMPS RÉEL (façon Uber) : tout changement de SA course (annulation client,
   // statut, prix convenu) rafraîchit INSTANTANÉMENT — plus besoin de poller vite.
@@ -333,6 +385,8 @@ export function DCourse() {
       return;
     }
     const d = await getChauffeurLastDone();
+    // Issue connue (terminée ici même) : plus rien à demander au backend.
+    followedRideId.current = null;
     setDone(d);
     setRide(null);
     setBusy(false);
@@ -369,29 +423,39 @@ export function DCourse() {
   }
 
   if (!ride) {
-    // Course annulée par le client pendant le flux → retour aux demandes.
-    return (
-      <div className="drive-jakarta drive-screen bg-[var(--d-surface)] px-5 pt-12">
-        <div className="flex flex-col items-center text-center">
-          <span
-            className="drive-pop mb-3 grid size-16 place-items-center rounded-full"
-            style={{ background: "rgba(229,72,77,.1)" }}
+    // Course annulée — UNIQUEMENT quand le backend l'a confirmé
+    // (`getChauffeurRideOutcome` → "cancelled"). Jamais par défaut.
+    if (ended === "cancelled") {
+      return (
+        <div className="drive-jakarta drive-screen bg-[var(--d-surface)] px-5 pt-12">
+          <div className="flex flex-col items-center text-center">
+            <span
+              className="drive-pop mb-3 grid size-16 place-items-center rounded-full"
+              style={{ background: "rgba(229,72,77,.1)" }}
+            >
+              <X className="size-7" style={{ color: RED }} />
+            </span>
+            <h1 className="drive-sora text-[21px] font-extrabold">
+              Course annulée
+            </h1>
+            <p className="mt-1 max-w-[280px] text-[13px] text-[var(--d-muted)]">
+              La course a été remise dans la liste des demandes. Aucun frais.
+            </p>
+          </div>
+          <PrimaryBtn
+            onClick={() => router.replace("/chauffeur/demandes")}
+            className="mt-5"
           >
-            <X className="size-7" style={{ color: RED }} />
-          </span>
-          <h1 className="drive-sora text-[21px] font-extrabold">
-            Course annulée
-          </h1>
-          <p className="mt-1 max-w-[280px] text-[13px] text-[var(--d-muted)]">
-            La course a été remise dans la liste des demandes. Aucun frais.
-          </p>
+            Voir les autres demandes
+          </PrimaryBtn>
         </div>
-        <PrimaryBtn
-          onClick={() => router.replace("/chauffeur/demandes")}
-          className="mt-5"
-        >
-          Voir les autres demandes
-        </PrimaryBtn>
+      );
+    }
+    // Aucun contexte de course (et pas d'issue backend) : retour neutre aux
+    // demandes — le spinner ne dure que le temps de la redirection.
+    return (
+      <div className="grid min-h-screen place-items-center bg-[var(--d-page)]">
+        <Loader2 className="size-6 animate-spin" style={{ color: VIOLET }} />
       </div>
     );
   }
