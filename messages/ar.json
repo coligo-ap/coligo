@@ -128,6 +128,7 @@
     "closedNowShort": "مغلق حاليًا",
     "openUntil": "يغلق على {time}",
     "closedShort": "مغلق",
+    "openShort": "مفتوح",
     "statFree": "مجاني",
     "statPickup": "استلام",
     "statMin": "دقيقة",
@@ -962,6 +963,7 @@
     "badgeCheap": "الأرخص",
     "open": "مفتوح",
     "closedShort": "مغلق",
+    "openShort": "مفتوح",
     "closedSection": "مغلقة حالياً",
     "empty": "لا يوجد منتج « {q} » بالقرب منك حالياً."
   },

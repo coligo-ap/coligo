@@ -128,6 +128,7 @@
     "closedNowShort": "Fermé actuellement",
     "openUntil": "Ferme à {time}",
     "closedShort": "Fermé",
+    "openShort": "Ouvert",
     "statFree": "Gratuit",
     "statPickup": "retrait",
     "statMin": "min",
@@ -962,6 +963,7 @@
     "badgeCheap": "Moins cher",
     "open": "Ouvert",
     "closedShort": "Fermé",
+    "openShort": "Ouvert",
     "closedSection": "Fermés pour le moment",
     "empty": "Aucun produit « {q} » près de toi pour le moment."
   },

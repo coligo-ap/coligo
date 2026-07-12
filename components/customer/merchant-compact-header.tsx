@@ -367,8 +367,11 @@ export function MerchantCompactHeader({
           )}
         >
           <span className="size-1.5 shrink-0 rounded-full bg-white" />
+          {/* Libellé COURT (« Ouvert ») : « Ouvert maintenant » ne tient pas à
+              côté du logo centré sur 390 px sans le toucher ni se tronquer —
+              le libellé complet vit dans Plus d'infos. */}
           <span className="truncate">
-            {isOpen ? t("openNowShort") : t("closedShort")}
+            {isOpen ? t("openShort") : t("closedShort")}
           </span>
         </button>
       </div>
