@@ -18,7 +18,9 @@ export type FeatureKey =
   | "coligo_pay"
   | "cashback"
   | "express"
-  | "tour";
+  | "tour"
+  | "barcode_marketplace"
+  | "barcode_merchant";
 export type FeatureStatus = "active" | "hidden" | "coming_soon" | "maintenance";
 
 export type FeatureFlag = {
@@ -37,6 +39,8 @@ export const FEATURE_KEYS: FeatureKey[] = [
   "cashback",
   "express",
   "tour",
+  "barcode_marketplace",
+  "barcode_merchant",
 ];
 
 function defaultFlag(key: FeatureKey): FeatureFlag {
@@ -57,14 +61,9 @@ export type FeatureFlags = Record<FeatureKey, FeatureFlag>;
  * (React cache) → un seul SELECT même si plusieurs composants l'utilisent.
  */
 export const getFeatureFlags = cache(async (): Promise<FeatureFlags> => {
-  const out = {
-    drive: defaultFlag("drive"),
-    online_payment: defaultFlag("online_payment"),
-    coligo_pay: defaultFlag("coligo_pay"),
-    cashback: defaultFlag("cashback"),
-    express: defaultFlag("express"),
-    tour: defaultFlag("tour"),
-  } satisfies FeatureFlags;
+  const out = Object.fromEntries(
+    FEATURE_KEYS.map((k) => [k, defaultFlag(k)])
+  ) as FeatureFlags;
   try {
     const supabase = await createClient();
     // `feature_flags` (mig 0182) pas encore dans database.types.ts généré

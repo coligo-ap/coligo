@@ -54,6 +54,9 @@ type Props = {
   /** Bouton fermer optionnel (affiché en haut à droite). */
   onClose?: () => void;
   className?: string;
+  /** "qr" (défaut) ou "barcode" (EAN-13/8, UPC — recherche produit).
+   *  Statique par montage (les moteurs sont initialisés une fois). */
+  mode?: "qr" | "barcode";
 };
 
 type Status = "starting" | "scanning" | "error" | "unsupported";
@@ -117,14 +120,30 @@ function isCapacitorNative(): boolean {
  *    travail parasite par frame, détection plus rapide.
  * Retourne `null` si l'import échoue (repli géré par l'appelant).
  */
-async function makeZxingReader(): Promise<
-  import("@zxing/browser").BrowserQRCodeReader | null
-> {
+type ZxingReader =
+  | import("@zxing/browser").BrowserQRCodeReader
+  | import("@zxing/browser").BrowserMultiFormatReader;
+
+async function makeZxingReader(
+  mode: "qr" | "barcode" = "qr"
+): Promise<ZxingReader | null> {
   try {
-    const [{ BrowserQRCodeReader }, { DecodeHintType, BarcodeFormat }] =
-      await Promise.all([import("@zxing/browser"), import("@zxing/library")]);
+    const [
+      { BrowserQRCodeReader, BrowserMultiFormatReader },
+      { DecodeHintType, BarcodeFormat },
+    ] = await Promise.all([import("@zxing/browser"), import("@zxing/library")]);
     const hints = new Map<number, unknown>();
     hints.set(DecodeHintType.TRY_HARDER, true);
+    if (mode === "barcode") {
+      // Codes-barres PRODUIT (recherche par scan) : EAN-13/8 + UPC-A/E.
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E,
+      ]);
+      return new BrowserMultiFormatReader(hints);
+    }
     hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
     return new BrowserQRCodeReader(hints);
   } catch (err) {
@@ -186,6 +205,7 @@ export function QrScanner({
   oneShot = true,
   onClose,
   className,
+  mode = "qr",
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -519,8 +539,14 @@ export function QrScanner({
         if (det) {
           try {
             const formats = (await det.Static.getSupportedFormats?.()) ?? [];
-            if (formats.includes("qr_code")) {
-              nativeDetector = new det.Ctor({ formats: ["qr_code"] });
+            // Formats selon le MODE : QR (défaut) ou codes-barres produit.
+            const wanted =
+              mode === "barcode"
+                ? ["ean_13", "ean_8", "upc_a", "upc_e"]
+                : ["qr_code"];
+            const usable = wanted.filter((f) => formats.includes(f));
+            if (usable.length > 0) {
+              nativeDetector = new det.Ctor({ formats: usable });
             }
           } catch {
             nativeDetector = null;
@@ -529,10 +555,9 @@ export function QrScanner({
 
         // zxing : fallback (PWA sans BarcodeDetector) ET moteur natif Capacitor.
         // Configuré TRY_HARDER (cf. makeZxingReader) pour une détection robuste.
-        let zxingReader: import("@zxing/browser").BrowserQRCodeReader | null =
-          null;
+        let zxingReader: ZxingReader | null = null;
         if (!nativeDetector) {
-          zxingReader = await makeZxingReader();
+          zxingReader = await makeZxingReader(mode);
           if (!zxingReader) {
             if (abort) return;
             setStatus("error");
@@ -628,7 +653,7 @@ export function QrScanner({
                       msg: err instanceof Error ? err.message : String(err),
                     });
                     nativeDetector = null;
-                    zxingReader = await makeZxingReader();
+                    zxingReader = await makeZxingReader(mode);
                     if (!zxingReader && !stoppedRef.current) {
                       setStatus("error");
                       setErrMessage(

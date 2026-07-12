@@ -32,6 +32,7 @@ import {
 import { Portal } from "@/components/ui/portal";
 import { MerchantReviewsDialog } from "@/components/customer/merchant-reviews-dialog";
 import { MerchantMapCard } from "@/components/customer/merchant-map-card";
+import { BarcodeScanButton } from "@/components/customer/barcode-scan-button";
 import { FavoriteHeart } from "@/components/customer/favorite-heart";
 import { ShareButton } from "@/components/customer/share-button";
 import { totalUnits, useCart } from "@/lib/customer/cart-store";
@@ -81,6 +82,8 @@ type Props = {
   reviews: ReviewWithCustomer[];
   /** Sous-spécialités (volet 1) — affichées en pilules. */
   tags?: string[];
+  /** Scan code-barres dans la recherche (flag `barcode_merchant`, serveur). */
+  barcode_scan_enabled?: boolean;
   /** « Plus d'infos » façon Bolt : services, carte + itinéraire, contact. */
   phone_public?: string | null;
   address?: string | null;
@@ -114,6 +117,7 @@ export function MerchantCompactHeader({
   rating_count,
   reviews,
   tags = [],
+  barcode_scan_enabled = false,
   phone_public = null,
   address = null,
   latitude = null,
@@ -283,6 +287,15 @@ export function MerchantCompactHeader({
                 >
                   <X className="size-4" />
                 </button>
+              )}
+              {barcode_scan_enabled && (
+                <BarcodeScanButton
+                  surface="merchant"
+                  onFound={(name) => {
+                    setSearchOpen(true);
+                    setSearchQuery(name);
+                  }}
+                />
               )}
             </div>
           ) : (

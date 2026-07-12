@@ -13,6 +13,7 @@ import {
   splitOpenFirst,
 } from "@/lib/data/merchant-ranking";
 import { getAuthUser } from "@/lib/auth/session";
+import { getFeatureFlags } from "@/lib/data/feature-flags";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
@@ -42,9 +43,11 @@ export default async function CustomerHomePage() {
   // (Les visiteurs anon n'ont pas de coords serveur : la grille refait la
   // requête par proximité dès le montage avec la position du localStorage.)
   // Session + profil mémoïsés (partagés avec CustomerShell → pas de double auth).
-  const [authUser, customer] = await Promise.all([
+  // Flags mémoïsés aussi (React cache — déjà lus par le layout).
+  const [authUser, customer, flags] = await Promise.all([
     getAuthUser(),
     getCurrentCustomerFull(),
+    getFeatureFlags(),
   ]);
   const isAuth = !!authUser;
   const customerCoords: {
@@ -114,9 +117,12 @@ export default async function CustomerHomePage() {
 
       <div className="bg-surface min-h-screen">
         <div className="mx-auto max-w-[1400px] px-4 lg:px-6">
-          {/* Recherche pleine largeur (sticky sous le header). */}
+          {/* Recherche pleine largeur (sticky sous le header) + scan
+              code-barres (flag barcode_marketplace, piloté /admin/controle). */}
           <Suspense fallback={null}>
-            <MarketplaceSearchBar />
+            <MarketplaceSearchBar
+              scanEnabled={flags.barcode_marketplace.status === "active"}
+            />
           </Suspense>
 
           {/* Catégories rondes (mécanique Uber Eats). */}

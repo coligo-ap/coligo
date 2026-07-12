@@ -46,6 +46,16 @@ const FEATURE_META: { key: FeatureKey; label: string; hint: string }[] = [
     label: "Livraison en tournée",
     hint: "Coupé = plus aucune nouvelle commande en tournée (refus au checkout). Les tournées déjà planifiées vont au bout.",
   },
+  {
+    key: "barcode_marketplace",
+    label: "Scan code-barres — accueil marketplace",
+    hint: "Icône scan dans la recherche de l'accueil : le client scanne un produit → recherche chez tous les commerçants. Catalogue géré dans l'onglet Codes-barres.",
+  },
+  {
+    key: "barcode_merchant",
+    label: "Scan code-barres — fiche commerçant",
+    hint: "Icône scan dans la recherche d'une boutique : le client scanne un produit → recherche dans le catalogue de CE commerçant.",
+  },
 ];
 
 export default async function AdminControlePage() {

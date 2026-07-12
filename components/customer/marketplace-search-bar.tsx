@@ -7,6 +7,7 @@ import {
   useFilterParams,
   applyFilters,
 } from "@/lib/customer/marketplace-filters";
+import { BarcodeScanButton } from "@/components/customer/barcode-scan-button";
 
 // =============================================================================
 // MarketplaceSearchBar — barre de recherche pleine largeur (style Uber Eats),
@@ -17,7 +18,12 @@ import {
 // elle communique avec la grille uniquement via l'URL param `q` (découplage).
 // =============================================================================
 
-export function MarketplaceSearchBar() {
+export function MarketplaceSearchBar({
+  scanEnabled = false,
+}: {
+  /** Scan code-barres (feature flag `barcode_marketplace`, décidé serveur). */
+  scanEnabled?: boolean;
+}) {
   const params = useFilterParams();
   const t = useTranslations("home");
 
@@ -74,6 +80,15 @@ export function MarketplaceSearchBar() {
             >
               <X className="size-4" />
             </button>
+          )}
+          {scanEnabled && (
+            <BarcodeScanButton
+              surface="marketplace"
+              onFound={(name) => {
+                setQBuffer(name);
+                pushQuery(name);
+              }}
+            />
           )}
         </div>
       </form>

@@ -16,6 +16,7 @@ import { MerchantCartCta } from "@/components/customer/merchant-cart-cta";
 import { MerchantClosedNotice } from "@/components/customer/merchant-closed-notice";
 import { ShopModeToggle } from "@/components/customer/shop-mode-toggle";
 import { getMerchantReviews } from "@/lib/data/reviews";
+import { getFeatureFlags } from "@/lib/data/feature-flags";
 import {
   discountedUnitPrice,
   isPromotionActive,
@@ -38,12 +39,13 @@ export default async function MerchantPublicPage({
   const reviews = await getMerchantReviews(m.id, 20);
 
   const supabase = await createClient();
-  const [catalog, promotions, favoriteIds, { data: authData }] =
+  const [catalog, promotions, favoriteIds, { data: authData }, flags] =
     await Promise.all([
       listMerchantProducts(m.id),
       listMerchantPromotions(m.id),
       getMyFavoriteIds(),
       supabase.auth.getUser(),
+      getFeatureFlags(),
     ]);
   const isAuth = !!authData?.user;
   const isFavorite = favoriteIds.has(m.id);
@@ -175,6 +177,7 @@ export default async function MerchantPublicPage({
             rating_count={m.rating_count}
             reviews={reviews}
             tags={m.tags}
+            barcode_scan_enabled={flags.barcode_merchant.status === "active"}
             phone_public={m.phone_public}
             address={m.address}
             latitude={m.latitude}

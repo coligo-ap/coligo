@@ -6,6 +6,7 @@ import {
   MapPinned,
   Percent,
   Power,
+  ScanBarcode,
   Settings2,
   ShieldPlus,
   Tags,
@@ -18,6 +19,7 @@ const TABS = [
   { href: "/admin/config", label: "Configuration", icon: Settings2 },
   { href: "/admin/zones", label: "Zones", icon: MapPinned },
   { href: "/admin/categories", label: "Catégories", icon: Tags },
+  { href: "/admin/codes-barres", label: "Codes-barres", icon: ScanBarcode },
 ] as const;
 
 // L'onglet « Admins » (gestion des super-admins + attribution des domaines) est
