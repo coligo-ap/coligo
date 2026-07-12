@@ -24,11 +24,7 @@ import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
 import { categoryLabelFrom, useCategories } from "@/lib/hooks/use-categories";
 import { getTagLabel } from "@/lib/config/merchant-tags";
-import {
-  currentClosingTime,
-  isOpenNow,
-  nowInAlgiers,
-} from "@/lib/merchant/opening-hours";
+import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
 import {
   computePauseState,
   type MerchantPauseInput,
@@ -176,9 +172,6 @@ export function MerchantCompactHeader({
   // (chip de la fiche + 1re ligne de « Plus d'infos », façon Bolt).
   const todaySlots = opening_hours[todayKey] ?? [];
   const todayLabel = todaySlots.map((s) => `${s.open}–${s.close}`).join(", ");
-  // Fermeture du créneau EN COURS → pastille « Ouvert · jusqu'à HH:MM » sur la
-  // couverture (façon Bolt). `now` retick 1×/min → le libellé reste juste.
-  const closingAt = isOpen ? currentClosingTime(opening_hours) : null;
 
   // Topbar : transparente sur la photo, puis verre dépoli + nom dès qu'on
   // dépasse le hero (≈150 px). On écoute le scroll de la fenêtre.
@@ -359,25 +352,22 @@ export function MerchantCompactHeader({
           }}
         />
         {/* Statut d'ouverture SUR la couverture (côté start — le centre est
-            occupé par le logo à cheval) : « Ouvert · jusqu'à HH:MM » façon
-            Bolt, verre dépoli lisible sur toute photo. Tap → Plus d'infos. */}
+            occupé par le logo à cheval) : fond VERT BOLT (#2B8659, échantillonné
+            sur leur CTA réel), texte BLANC « Ouvert maintenant ». Fermé → fond
+            rose, « Fermé ». Tap → Plus d'infos (horaires complets).
+            ⚠️ max-w = moitié d'écran MOINS la moitié du logo (72 px) : la
+            pastille ne peut JAMAIS passer sous/derrière le logo centré. */}
         <button
           type="button"
           onClick={() => setShowHours(true)}
-          className="absolute start-3 bottom-8 z-[2] inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[12px] font-extrabold shadow-[0_4px_14px_-4px_rgba(0,0,0,.35)] backdrop-blur transition-transform active:scale-[0.96] lg:start-5"
+          className={cn(
+            "absolute start-3 bottom-8 z-[2] inline-flex max-w-[calc(50%-44px)] items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-extrabold text-white shadow-[0_4px_14px_-4px_rgba(0,0,0,.35)] transition-transform active:scale-[0.96] lg:start-5",
+            isOpen ? "bg-[#2B8659]" : "bg-rose-600"
+          )}
         >
-          <span
-            className={cn(
-              "size-1.5 shrink-0 rounded-full",
-              isOpen ? "bg-success-500" : "bg-rose-500"
-            )}
-          />
-          <span className={isOpen ? "text-success-700" : "text-rose-600"}>
-            {isOpen
-              ? closingAt
-                ? t("openUntil", { time: closingAt })
-                : t("openNowShort")
-              : t("closedShort")}
+          <span className="size-1.5 shrink-0 rounded-full bg-white" />
+          <span className="truncate">
+            {isOpen ? t("openNowShort") : t("closedShort")}
           </span>
         </button>
       </div>

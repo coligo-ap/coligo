@@ -126,7 +126,7 @@
     "practicalInfo": "Infos pratiques",
     "openNowShort": "Ouvert maintenant",
     "closedNowShort": "Fermé actuellement",
-    "openUntil": "Ouvert · jusqu'à {time}",
+    "openUntil": "Ferme à {time}",
     "closedShort": "Fermé",
     "statFree": "Gratuit",
     "statPickup": "retrait",

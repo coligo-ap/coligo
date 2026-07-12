@@ -11,7 +11,6 @@ import {
   roundQty,
 } from "@/lib/units";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn, formatDA } from "@/lib/utils";
 import {
   useCart,
@@ -204,33 +203,34 @@ export function ProductDetailSheet({
       role="dialog"
       aria-modal
     >
-      <div className="bg-surface flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[20px]">
-        {/* Image en grand — photo entière sur fond blanc (façon Yassir). */}
-        <div className="border-border relative aspect-[16/10] w-full overflow-hidden border-b bg-white">
+      <div className="flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-[24px] bg-white pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[24px]">
+        {/* Image TRÈS grande sur fond blanc pur, sans filet (capture Bolt) ;
+            X = cercle GRIS clair en haut à droite. */}
+        <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-white">
           {product.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={product.image_url}
               alt=""
-              className="h-full w-full object-contain p-4"
+              className="h-full w-full object-contain p-6"
             />
           ) : (
-            <div className="from-primary-500/10 to-surface-3 flex h-full w-full items-center justify-center bg-gradient-to-br">
-              <ShoppingBag className="text-subtle size-12" />
+            <div className="flex h-full w-full items-center justify-center">
+              <ShoppingBag className="text-subtle size-14" />
             </div>
           )}
           <button
             type="button"
             onClick={onClose}
-            className="bg-foreground/60 hover:bg-foreground/80 absolute top-3 right-3 flex size-9 items-center justify-center rounded-full text-white backdrop-blur"
+            className="bg-surface-2 text-foreground hover:bg-surface-3 absolute end-3 top-3 flex size-10 items-center justify-center rounded-full"
             aria-label={t("close")}
           >
             <X className="size-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5">
-          <h2 className="text-foreground text-xl leading-tight font-bold">
+        <div className="flex-1 overflow-y-auto px-5 pb-5">
+          <h2 className="text-foreground text-[22px] leading-tight font-extrabold tracking-tight">
             {product.name_fr}
           </h2>
           {product.name_ar && (
@@ -242,36 +242,39 @@ export function ProductDetailSheet({
             </p>
           )}
 
-          <div className="mt-2 flex items-baseline gap-2">
+          {/* PRIX très grand (Bolt) + barré si promo ; prix à l'unité de vente
+              sur une LIGNE GRISE dédiée dessous (comme leur « 0,99 €/l »). */}
+          <div className="mt-2 flex items-baseline gap-2.5">
             <span
               className={cn(
-                "text-2xl font-bold tabular-nums",
+                "text-[26px] leading-none font-extrabold tabular-nums",
                 hasPromo ? "text-success-700" : "text-foreground"
               )}
             >
               {formatDA(basePrice)}
             </span>
             {hasPromo && (
-              <span className="text-subtle text-sm tabular-nums line-through">
+              <span className="text-subtle text-[15px] tabular-nums line-through">
                 {formatDA(product.price_da)}
               </span>
             )}
-            {product.unit && product.unit !== "piece" && (
-              <span className="text-muted text-xs">
-                / {formatQty(1, product.unit, locale).replace(/^1\s*/, "")}
-              </span>
-            )}
           </div>
+          {product.unit && product.unit !== "piece" && (
+            <p className="text-muted mt-1 text-[13px] font-medium tabular-nums">
+              {formatDA(basePrice)} /{" "}
+              {formatQty(1, product.unit, locale).replace(/^1\s*/, "")}
+            </p>
+          )}
 
           {(product.description_fr || product.description_ar) && (
-            <div className="mt-4 space-y-2">
+            <div className="mt-3 space-y-2">
               {product.description_fr && (
-                <p className="text-foreground text-sm">
+                <p className="text-muted text-sm leading-relaxed">
                   {product.description_fr}
                 </p>
               )}
               {product.description_ar && (
-                <p className="text-foreground text-sm" dir="rtl">
+                <p className="text-muted text-sm leading-relaxed" dir="rtl">
                   {product.description_ar}
                 </p>
               )}
@@ -379,21 +382,23 @@ export function ProductDetailSheet({
           )}
         </div>
 
-        {/* Footer fixe : qty + CTA */}
-        <div className="border-border bg-surface flex items-center gap-3 border-t p-4">
-          <div className="bg-surface-2 inline-flex items-center gap-3 rounded-full p-1">
+        {/* Pied sticky façon Bolt (capture) : stepper PILULE blanche bordée
+            (− qté +) à gauche, gros bouton ARRONDI à droite avec le libellé
+            en 1re ligne et le TOTAL dessous. */}
+        <div className="flex items-center gap-3 bg-white p-4 pt-2">
+          <div className="border-border-strong inline-flex h-14 shrink-0 items-center rounded-full border bg-white px-2">
             <button
               type="button"
               onClick={() => setQty((q) => Math.max(minQ, roundQty(q - step)))}
-              className="text-foreground hover:bg-surface-3 flex size-8 items-center justify-center rounded-full"
+              className="text-foreground hover:bg-surface-2 flex size-10 items-center justify-center rounded-full"
               aria-label={t("removeOne")}
             >
-              <Minus className="size-4" />
+              <Minus className="size-5" />
             </button>
             <span
               className={cn(
-                "text-foreground text-center text-sm font-bold tabular-nums",
-                fractional ? "min-w-[5ch]" : "min-w-[1.5ch]"
+                "text-foreground text-center text-[17px] font-bold tabular-nums",
+                fractional ? "min-w-[5ch]" : "min-w-[2ch]"
               )}
             >
               {fractional ? formatQty(qty, product.unit, locale) : qty}
@@ -401,23 +406,33 @@ export function ProductDetailSheet({
             <button
               type="button"
               onClick={() => setQty((q) => Math.min(maxQ, roundQty(q + step)))}
-              className="bg-primary-600 hover:bg-primary-700 flex size-8 items-center justify-center rounded-full text-white"
+              className="text-foreground hover:bg-surface-2 flex size-10 items-center justify-center rounded-full"
               aria-label={t("addOne")}
             >
-              <Plus className="size-4" />
+              <Plus className="size-5" />
             </button>
           </div>
-          <Button
+          <button
             type="button"
-            className="flex-1"
-            size="lg"
             disabled={!canAdd}
             onClick={addOrUpdate}
+            className="bg-primary-600 hover:bg-primary-700 flex h-14 min-w-0 flex-1 flex-col items-center justify-center rounded-full px-4 leading-tight text-white transition-colors disabled:opacity-50"
           >
-            {!canAdd
-              ? t("chooseRequired", { name: missing[0].name_fr })
-              : `${inCart ? t("update") : t("add")} · ${formatDA(lineTotal)}`}
-          </Button>
+            {!canAdd ? (
+              <span className="truncate text-[14px] font-extrabold">
+                {t("chooseRequired", { name: missing[0].name_fr })}
+              </span>
+            ) : (
+              <>
+                <span className="truncate text-[15px] font-extrabold">
+                  {inCart ? t("update") : t("add")}
+                </span>
+                <span className="text-[13px] font-semibold tabular-nums opacity-95">
+                  {formatDA(lineTotal)}
+                </span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

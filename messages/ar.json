@@ -126,7 +126,7 @@
     "practicalInfo": "معلومات عملية",
     "openNowShort": "مفتوح الآن",
     "closedNowShort": "مغلق حاليًا",
-    "openUntil": "مفتوح · حتى {time}",
+    "openUntil": "يغلق على {time}",
     "closedShort": "مغلق",
     "statFree": "مجاني",
     "statPickup": "استلام",
