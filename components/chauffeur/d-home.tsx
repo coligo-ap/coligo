@@ -33,6 +33,7 @@ import { DriveMap, type LatLng } from "@/components/customer/drive/drive-map";
 import { ChauffeurDarkPill } from "@/components/chauffeur/chauffeur-dark-pill";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
+import { NotificationBell } from "@/components/shared/notification-bell";
 import {
   VIOLET,
   GO,
@@ -631,8 +632,13 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           )}
         </div>
 
-        {/* DROITE — GPS (recentrer) */}
-        <div className="flex justify-end">
+        {/* DROITE — cloche (notifications temps réel, mig 0363) + GPS. */}
+        <div className="flex items-start justify-end gap-2">
+          <NotificationBell
+            source={{ table: "user_notifications", audience: "chauffeur" }}
+            className="grid size-[44px] place-items-center rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+            iconClassName="size-5"
+          />
           <button
             type="button"
             onClick={() => void recenter()}

@@ -16,7 +16,6 @@ import { DriveMap } from "./drive-map";
 import { ChAvatar } from "./ch-avatar";
 import {
   CancelModal,
-  ChatModal,
   GhostBtn,
   ReportModal,
   ShareModal,
@@ -28,10 +27,12 @@ import {
   VIOLET,
   type SosContact,
 } from "./drive-modals";
+import { RideChatSheet } from "@/components/drive/ride-chat-sheet";
 import {
   cancelDriveRide,
   getRideMessages,
   markRideMessagesRead,
+  sendRideMessage,
   getSosContacts,
   reportDriveRide,
   setSosContacts as saveSosContacts,
@@ -601,15 +602,30 @@ export function EnrouteScreen({
           setMidReported(true);
         }}
       />
-      <ChatModal
-        open={chatOpen}
-        onClose={() => {
-          setChatOpen(false);
-          markSeen();
-        }}
-        rideId={ride.id}
-        side="customer"
-      />
+      {chatOpen && (
+        <RideChatSheet
+          rideId={ride.id}
+          side="customer"
+          peerName={ch?.name ?? "—"}
+          peerAvatar={
+            ch ? (
+              <ChAvatar
+                name={ch.name}
+                url={ch.avatar_url}
+                size={40}
+                female={ch.is_female}
+              />
+            ) : undefined
+          }
+          fetchMessages={getRideMessages}
+          sendMessage={sendRideMessage}
+          markRead={markRideMessagesRead}
+          onClose={() => {
+            setChatOpen(false);
+            markSeen();
+          }}
+        />
+      )}
 
       {/* Appel in-app (sonnerie entrante/sortante + fenêtre d'appel Agora). */}
       {call.ui}

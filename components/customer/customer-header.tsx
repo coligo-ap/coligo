@@ -11,6 +11,7 @@ import { useCart, totalUnits } from "@/lib/customer/cart-store";
 import { LocationPicker } from "@/components/customer/location-picker";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ThemeSwitcher } from "@/components/shared/theme-switcher";
+import { NotificationBell } from "@/components/shared/notification-bell";
 import { CustomerDrawer } from "@/components/customer/customer-drawer";
 
 type Props = {
@@ -86,6 +87,14 @@ export function CustomerHeader({
           <LanguageSwitcher />
           <ThemeSwitcher />
 
+          {isAuth && (
+            <NotificationBell
+              source={{ table: "user_notifications", audience: "customer" }}
+              className="hover:bg-surface-2 rounded-full p-2"
+              iconClassName="size-5"
+            />
+          )}
+
           <Link
             href="/cart"
             className="hover:bg-surface-2 relative rounded-full p-2"
@@ -143,6 +152,12 @@ export function CustomerHeader({
             <div className="flex shrink-0 items-center gap-2">
               <LanguageSwitcher compact />
               <ThemeSwitcher />
+              {isAuth && (
+                <NotificationBell
+                  source={{ table: "user_notifications", audience: "customer" }}
+                  className="bg-surface-2 text-foreground grid size-[38px] place-items-center rounded-full"
+                />
+              )}
               {isAuth ? (
                 <Link
                   href="/compte"

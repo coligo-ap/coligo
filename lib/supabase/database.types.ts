@@ -154,6 +154,8 @@ export type Database = {
           escrow_da: number;
           cash_due_da: number;
           card_failed_at: string | null;
+          // Pourboire (mig 0363)
+          tip_da: number;
         };
         Insert: {
           id?: string;
@@ -1679,6 +1681,34 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          audience: string;
+          kind: string;
+          title: string;
+          body: string;
+          route: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          audience: string;
+          kind?: string;
+          title: string;
+          body?: string;
+          route?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["user_notifications"]["Insert"]
+        >;
+        Relationships: [];
+      };
       driver_documents: {
         Row: {
           id: string;
@@ -1871,8 +1901,10 @@ export type Database = {
           order_id: string;
           sender_role: "customer" | "courier";
           sender_user_id: string;
-          code: string;
+          code: string | null;
+          body: string | null;
           created_at: string;
+          delivered_at: string | null;
           read_at: string | null;
         };
         Insert: {

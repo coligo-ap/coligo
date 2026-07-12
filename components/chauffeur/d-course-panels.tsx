@@ -1,17 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  BadgeCheck,
-  Check,
-  CheckCheck,
-  Loader2,
-  Send,
-  Star,
-  Zap,
-} from "lucide-react";
+import { useState } from "react";
+import { BadgeCheck, Check, Star, Zap } from "lucide-react";
 import { formatDA } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
 import {
   clearNavPref,
   getNavPref,
@@ -32,11 +23,8 @@ import {
 import { fmtPct } from "./d-ui";
 import {
   getChauffeurLastDone,
-  getChauffeurRideMessages,
-  markChauffeurMessagesRead,
   rateClientAction,
   reportClientAction,
-  sendChauffeurRideMessage,
   type B2BNext,
 } from "@/app/(chauffeur)/actions";
 
@@ -104,164 +92,9 @@ export function NavAppSheet({
   );
 }
 
-/* ════════ Chat chauffeur (messages rapides) ════════ */
-
-type ChatRow = {
-  id: string;
-  sender: string;
-  body: string;
-  created_at: string;
-  delivered_at: string | null;
-  read_at: string | null;
-};
-
-/** Accusé de lecture WhatsApp-like sous le message de l'utilisateur. */
-function Receipt({ m, light }: { m: ChatRow; light?: boolean }) {
-  const read = !!m.read_at;
-  const delivered = !!m.delivered_at;
-  const label = read ? "Lu" : delivered ? "Reçu" : "Envoyé";
-  const color = read ? "#7CF0B2" : light ? "rgba(255,255,255,.8)" : "#9CA3AF";
-  return (
-    <span
-      className="mt-0.5 flex items-center justify-end gap-0.5 text-[9.5px] font-semibold"
-      style={{ color }}
-    >
-      {label}
-      {delivered || read ? (
-        <CheckCheck className="size-3" />
-      ) : (
-        <Check className="size-3" />
-      )}
-    </span>
-  );
-}
-
-export function DChat({
-  rideId,
-  onClose,
-}: {
-  rideId: string;
-  onClose: () => void;
-}) {
-  const [msgs, setMsgs] = useState<ChatRow[]>([]);
-  const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
-  const [pending, setPending] = useState<string | null>(null);
-
-  useEffect(() => {
-    let stop = false;
-    const poll = async () => {
-      const m = await getChauffeurRideMessages(rideId);
-      if (stop) return;
-      setMsgs(m);
-      // Chat ouvert = je lis : marquer les messages du client comme lus.
-      void markChauffeurMessagesRead(rideId, true);
-    };
-    void poll();
-    // TEMPS RÉEL : nouveau message du client → instantané (`ride_messages` est
-    // publiée Realtime). Le poll devient un FILET LENT (avant 3,5 s → 30 s) — on
-    // ne martèle plus le serveur pour le chat.
-    const supabase = createClient();
-    const ch = supabase
-      .channel(`ch-msg-${rideId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "ride_messages",
-          filter: `ride_id=eq.${rideId}`,
-        },
-        () => void poll()
-      )
-      .subscribe();
-    const id = setInterval(poll, 30000);
-    return () => {
-      stop = true;
-      clearInterval(id);
-      void supabase.removeChannel(ch);
-    };
-  }, [rideId]);
-
-  const send = async (body: string) => {
-    if (sending || !body.trim()) return;
-    setSending(true);
-    setPending(body);
-    await sendChauffeurRideMessage(rideId, body);
-    setMsgs(await getChauffeurRideMessages(rideId));
-    setText("");
-    setPending(null);
-    setSending(false);
-  };
-
-  return (
-    <Sheet open onClose={onClose}>
-      <SheetTitle>Messages</SheetTitle>
-      <p className="mb-2 text-[12px] text-[var(--d-muted)]">
-        Messages rapides · numéros masqués
-      </p>
-      <div className="mb-2 max-h-[34vh] space-y-1.5 overflow-y-auto">
-        {msgs.map((m) => {
-          const mine = m.sender === "chauffeur";
-          return (
-            <div key={m.id} className={mine ? "ml-auto w-fit max-w-[80%]" : ""}>
-              <div
-                className="max-w-full rounded-[14px] px-3 py-2 text-[13px] font-medium"
-                style={
-                  mine
-                    ? { background: VIOLET, color: "#fff" }
-                    : { background: "var(--d-soft)" }
-                }
-              >
-                {m.body}
-              </div>
-              {mine && <Receipt m={m} light />}
-            </div>
-          );
-        })}
-      </div>
-      <div className="mb-2 flex flex-wrap gap-1.5">
-        {["J'arrive", "Je suis là", "Je suis garé devant", "2 minutes"].map(
-          (q) => (
-            <button
-              key={q}
-              type="button"
-              disabled={sending}
-              onClick={() => void send(q)}
-              className="flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 text-xs font-bold disabled:opacity-50"
-            >
-              {pending === q && <Loader2 className="size-3 animate-spin" />}
-              {q}
-            </button>
-          )
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && void send(text)}
-          placeholder="Écrire un message…"
-          className="h-11 flex-1 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 text-sm font-semibold outline-none"
-        />
-        <button
-          type="button"
-          disabled={sending || !text.trim()}
-          onClick={() => void send(text)}
-          className="grid size-11 shrink-0 place-items-center rounded-[14px] text-white disabled:opacity-40"
-          style={{ background: VIOLET }}
-        >
-          {sending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Send className="size-4" />
-          )}
-        </button>
-      </div>
-      <GhostBtn onClick={onClose}>Fermer</GhostBtn>
-    </Sheet>
-  );
-}
+/* NB : le chat de course (ex-DChat) vit désormais dans
+   `components/drive/ride-chat-sheet.tsx` — feuille plein écran PARTAGÉE avec
+   le client (accusés Lu, temps réel, réponses rapides). */
 
 /* ════════ Fin de course (s-ddone) ════════ */
 

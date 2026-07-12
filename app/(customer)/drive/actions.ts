@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { chauffeurAvatarUrls } from "@/lib/drive/avatar-server";
 import { notifyChauffeursNewRide, notifyRideMessage } from "@/lib/fcm/triggers";
+import { notifyRideEvent } from "@/lib/notifications/notify";
 import {
   evaluateZone,
   logZoneBlock,
@@ -662,9 +663,12 @@ export async function acceptDriveOffer(
     reason?: string;
     ride_id?: string;
   };
-  return row?.ok
-    ? { ok: true, rideId: row.ride_id }
-    : { ok: false, error: row?.reason };
+  if (row?.ok && row.ride_id) {
+    // Cloche + push chauffeur : le client vient de confirmer SA proposition.
+    void notifyRideEvent(row.ride_id, "ride_accepted");
+    return { ok: true, rideId: row.ride_id };
+  }
+  return { ok: false, error: row?.reason };
 }
 
 export async function cancelDriveRide(
@@ -681,6 +685,8 @@ export async function cancelDriveRide(
     ok?: boolean;
     reason?: string;
   };
+  // Notifie le chauffeur attribué s'il y en a un (no-op avant attribution).
+  if (row?.ok) void notifyRideEvent(rideId, "ride_cancelled_by_customer");
   return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
 }
 
@@ -862,6 +868,10 @@ export type DriveLastRide = {
   cashback_da: number;
   my_rating: number | null;
   cancelled_reason: string | null;
+  /** Pourboire déjà laissé (0 = aucun) — mig 0363. */
+  tip_da: number;
+  /** Solde Coligo Pay courant (module pourboire masqué si insuffisant). */
+  wallet_balance_da: number;
   chauffeur: {
     id: string;
     name: string;
@@ -888,7 +898,7 @@ export async function getDriveLastRide(sinceMin = 30): Promise<DriveLastRide> {
   const { data: r } = await admin
     .from("rides")
     .select(
-      "id, status, pickup_text, dest_text, agreed_price_da, proposed_price_da, boost_amount_da, payment_method, cash_due_da, commission_rate_applied, cashback_da, chauffeur_rating, chauffeur_id, completed_at, cancelled_at, chauffeurs(first_name, full_name)"
+      "id, status, pickup_text, dest_text, agreed_price_da, proposed_price_da, boost_amount_da, payment_method, cash_due_da, commission_rate_applied, cashback_da, chauffeur_rating, chauffeur_id, tip_da, completed_at, cancelled_at, chauffeurs(first_name, full_name)"
     )
     .eq("customer_id", cust.id)
     .in("status", ["completed", "cancelled"])
@@ -907,6 +917,10 @@ export async function getDriveLastRide(sinceMin = 30): Promise<DriveLastRide> {
       .maybeSingle();
     isFav = !!fav;
   }
+  // Solde Coligo Pay : conditionne l'affichage du module pourboire.
+  const { data: bal } = await supabase.rpc("customer_topup_balance", {
+    p_customer_id: cust.id,
+  });
   const ch = r.chauffeurs as unknown as {
     first_name: string | null;
     full_name: string;
@@ -928,6 +942,8 @@ export async function getDriveLastRide(sinceMin = 30): Promise<DriveLastRide> {
     cashback_da: r.cashback_da ?? 0,
     my_rating: r.chauffeur_rating ?? null,
     cancelled_reason: null,
+    tip_da: (r as unknown as { tip_da?: number }).tip_da ?? 0,
+    wallet_balance_da: typeof bal === "number" ? bal : 0,
     chauffeur:
       r.chauffeur_id && ch
         ? {
@@ -958,6 +974,34 @@ export async function rateDriveRide(
     reason?: string;
   };
   return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
+}
+
+/**
+ * Pourboire Coligo Pay (mig 0363) : serveur autoritaire (solde, bornes 20-2000,
+ * une seule fois, 24 h) — le montant est débité du wallet client et crédité au
+ * chauffeur (`ride_ledger.chauffeur_tip`), avec cloche + push au chauffeur.
+ */
+export async function tipDriveRide(
+  rideId: string,
+  amountDa: number
+): Promise<{ ok: boolean; error?: string }> {
+  const rpc = await rpcClient();
+  const { data, error } = await rpc("drive_tip_ride", {
+    p_ride_id: rideId,
+    p_amount_da: Math.round(amountDa),
+  });
+  if (error) return { ok: false, error: error.message };
+  const row = (Array.isArray(data) ? data[0] : data) as {
+    ok?: boolean;
+    reason?: string;
+  };
+  if (row?.ok) {
+    void notifyRideEvent(rideId, "ride_tip", {
+      amountDa: Math.round(amountDa),
+    });
+    return { ok: true };
+  }
+  return { ok: false, error: row?.reason };
 }
 
 export async function reportDriveRide(

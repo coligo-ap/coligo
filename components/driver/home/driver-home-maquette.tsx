@@ -34,6 +34,7 @@ import { DriverDarkPill } from "@/components/driver/driver-dark-pill";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { playGo } from "@/lib/driver/sounds";
 import { BRAND_GO, SORA } from "@/components/shared/partner-ui";
+import { NotificationBell } from "@/components/shared/notification-bell";
 import {
   PartnerDrawer,
   PartnerMenuButton,
@@ -351,8 +352,13 @@ export function DriverHomeMaquette({
           </button>
         </div>
 
-        {/* DROITE — GPS (recentrer, écouté par la carte persistante). */}
-        <div className="flex justify-end">
+        {/* DROITE — cloche (notifications temps réel, mig 0364) + GPS. */}
+        <div className="flex items-start justify-end gap-2">
+          <NotificationBell
+            source={{ table: "driver_notifications" }}
+            className="grid size-[44px] place-items-center rounded-[16px] border border-[var(--line)] bg-[var(--surface)] shadow-lg"
+            iconClassName="size-5"
+          />
           <button
             type="button"
             onClick={recenter}

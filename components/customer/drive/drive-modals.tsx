@@ -1,31 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
   Check,
-  CheckCheck,
   Copy,
   Crosshair,
-  Loader2,
   MapPin,
   MessageCircle,
   Phone,
-  Send,
   Share2,
   Smartphone,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Portal } from "@/components/ui/portal";
-import {
-  getRideMessages,
-  markRideMessagesRead,
-  sendRideMessage,
-  sosDriveRide,
-  type RideMessage,
-} from "@/app/(customer)/drive/actions";
+import { sosDriveRide } from "@/app/(customer)/drive/actions";
 
 /* Couleurs maquette (PROMPT-drive §0) — violet ALIGNÉ sur la marque Coligo
    (#6C2BD9 unifié partout : client, livreur, chauffeur). */
@@ -674,141 +665,9 @@ export function DepModal({
   );
 }
 
-/* ─────────────── Messages rapides (client ↔ chauffeur) ─────────────── */
-
-export function ChatModal({
-  open,
-  onClose,
-  rideId,
-  side,
-}: {
-  open: boolean;
-  onClose: () => void;
-  rideId: string;
-  side: "customer" | "chauffeur";
-}) {
-  const t = useTranslations("drive.chat");
-  const [msgs, setMsgs] = useState<RideMessage[]>([]);
-  const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
-  const [pending, setPending] = useState<string | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    let stop = false;
-    const poll = async () => {
-      const m = await getRideMessages(rideId);
-      if (stop) return;
-      setMsgs(m);
-      // Chat ouvert = je lis : marquer les messages reçus comme lus.
-      void markRideMessagesRead(rideId, true);
-    };
-    void poll();
-    const id = setInterval(poll, 3500);
-    return () => {
-      stop = true;
-      clearInterval(id);
-    };
-  }, [open, rideId]);
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [msgs.length]);
-
-  const quick = t.raw("quick") as string[];
-  const send = async (body: string) => {
-    if (sending || !body.trim()) return;
-    setSending(true);
-    setPending(body);
-    const res = await sendRideMessage(rideId, body);
-    if (res.ok) {
-      setText("");
-      setMsgs(await getRideMessages(rideId));
-    }
-    setPending(null);
-    setSending(false);
-  };
-
-  return (
-    <Sheet open={open} onClose={onClose}>
-      <SheetTitle>{t("title")}</SheetTitle>
-      <p className="mb-2 text-[12px] text-[var(--d-muted)]">{t("sub")}</p>
-      <div className="mb-2 max-h-[34vh] space-y-1.5 overflow-y-auto">
-        {msgs.map((m) => {
-          const mine = m.sender === side;
-          const read = !!m.read_at;
-          const delivered = !!m.delivered_at;
-          return (
-            <div key={m.id} className={mine ? "ml-auto w-fit max-w-[80%]" : ""}>
-              <div
-                className={cn(
-                  "max-w-full rounded-[14px] px-3 py-2 text-[13px] font-medium",
-                  mine ? "text-white" : "bg-[var(--d-soft)]"
-                )}
-                style={mine ? { background: VIOLET } : undefined}
-              >
-                {m.body}
-              </div>
-              {mine && (
-                <span
-                  className="mt-0.5 flex items-center justify-end gap-0.5 text-[9.5px] font-semibold"
-                  style={{
-                    color: read ? "#16B364" : "var(--d-muted)",
-                  }}
-                >
-                  {read ? t("read") : delivered ? t("delivered") : t("sent")}
-                  {delivered || read ? (
-                    <CheckCheck className="size-3" />
-                  ) : (
-                    <Check className="size-3" />
-                  )}
-                </span>
-              )}
-            </div>
-          );
-        })}
-        <div ref={bottomRef} />
-      </div>
-      <div className="mb-2 flex flex-wrap gap-1.5">
-        {quick.map((q) => (
-          <button
-            key={q}
-            type="button"
-            disabled={sending}
-            onClick={() => void send(q)}
-            className="flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 text-xs font-bold disabled:opacity-50"
-          >
-            {pending === q && <Loader2 className="size-3 animate-spin" />}
-            {q}
-          </button>
-        ))}
-      </div>
-      <div className="flex items-center gap-2">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && void send(text)}
-          placeholder={t("ph")}
-          className="h-11 flex-1 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 text-sm font-semibold outline-none"
-        />
-        <button
-          type="button"
-          disabled={sending || !text.trim()}
-          onClick={() => void send(text)}
-          className="grid size-11 shrink-0 place-items-center rounded-[14px] text-white disabled:opacity-40"
-          style={{ background: VIOLET }}
-        >
-          {sending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Send className="size-4" />
-          )}
-        </button>
-      </div>
-      <GhostBtn onClick={onClose}>{t("close")}</GhostBtn>
-    </Sheet>
-  );
-}
+/* NB : la conversation de course (ex-ChatModal) vit désormais dans
+   `components/drive/ride-chat-sheet.tsx` — feuille plein écran partagée
+   client + chauffeur (accusés Lu, temps réel, réponses rapides). */
 
 /* ─────────────── Petits éléments partagés ─────────────── */
 

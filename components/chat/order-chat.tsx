@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Loader2, Phone, Send } from "lucide-react";
+import { Check, CheckCheck, Loader2, Phone, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { sendOrderMessage, sendOrderText } from "@/lib/chat/actions";
+import {
+  markOrderMessagesRead,
+  sendOrderMessage,
+  sendOrderText,
+} from "@/lib/chat/actions";
 import {
   labelFor,
   quickFor,
@@ -31,6 +35,8 @@ type Msg = {
   code: string | null;
   body: string | null;
   created_at: string;
+  delivered_at?: string | null;
+  read_at?: string | null;
 };
 
 function hhmm(iso: string): string {
@@ -79,10 +85,14 @@ export function OrderChat({
     const load = async () => {
       const { data } = await supabase
         .from("order_messages")
-        .select("id, sender_role, code, body, created_at")
+        .select(
+          "id, sender_role, code, body, created_at, delivered_at, read_at"
+        )
         .eq("order_id", orderId)
         .order("created_at", { ascending: true });
       if (data) merge(data as unknown as Msg[]);
+      // Chat affiché = je lis : l'expéditeur voit « Lu » (mig 0363).
+      void markOrderMessagesRead(orderId, true);
     };
     void load();
 
@@ -96,7 +106,13 @@ export function OrderChat({
           table: "order_messages",
           filter: `order_id=eq.${orderId}`,
         },
-        (payload) => merge([payload.new as unknown as Msg])
+        (payload) => {
+          const row = payload.new as unknown as Msg;
+          merge([row]);
+          // Message reçu pendant que le chat est affiché → lu immédiatement.
+          if (row.sender_role !== role)
+            void markOrderMessagesRead(orderId, true);
+        }
       )
       .subscribe();
 
@@ -207,11 +223,21 @@ export function OrderChat({
                     {m.body ?? labelFor(m.code ?? "", locale)}
                   </span>
                   <span
-                    className={`ml-2 align-middle text-[10px] font-medium ${
+                    className={`ms-2 inline-flex items-center gap-0.5 align-middle text-[10px] font-medium ${
                       mine ? "text-white/70" : "text-muted"
                     }`}
                   >
                     {hhmm(m.created_at)}
+                    {/* Accusés Envoyé / Reçu / Lu (mig 0363) — mes messages. */}
+                    {mine &&
+                      (m.delivered_at || m.read_at ? (
+                        <CheckCheck
+                          className="size-3"
+                          style={m.read_at ? { color: "#7CF0B2" } : undefined}
+                        />
+                      ) : (
+                        <Check className="size-3" />
+                      ))}
                   </span>
                 </div>
               </div>

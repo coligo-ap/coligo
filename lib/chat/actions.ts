@@ -79,3 +79,27 @@ export async function sendOrderText(
   }
   return { ok: row.ok, reason: row.reason ?? undefined };
 }
+
+/**
+ * Marque les messages de l'AUTRE camp comme reçus (p_read=false) ou lus
+ * (p_read=true) — l'expéditeur voit « Reçu / Lu » (mig 0363, patron du chat
+ * Drive 0175). RPC SECURITY DEFINER : ne touche que les horodatages.
+ */
+export async function markOrderMessagesRead(
+  orderId: string,
+  read = true
+): Promise<void> {
+  try {
+    const supabase = await createClient();
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    await rpc("mark_order_messages_read", {
+      p_order_id: orderId,
+      p_read: read,
+    });
+  } catch {
+    /* best-effort */
+  }
+}

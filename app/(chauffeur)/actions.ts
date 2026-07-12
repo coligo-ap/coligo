@@ -15,9 +15,9 @@ import { isWilaya } from "@/lib/dz/wilayas";
 import { signSelfiePath } from "@/lib/drive/avatar-server";
 import {
   notifyFemaleDriverOnline,
-  notifyRideCustomer,
   notifyRideMessage,
 } from "@/lib/fcm/triggers";
+import { notifyRideEvent } from "@/lib/notifications/notify";
 
 export type ChauffeurAuthState = { error?: string; ok?: boolean };
 
@@ -945,8 +945,11 @@ export async function setRideStatus(
     ok?: boolean;
     reason?: string;
   };
-  if (row?.ok && status === "arrived") {
-    void notifyRideCustomer(rideId, "arrived");
+  if (row?.ok) {
+    // Cloche client (+ push) à chaque étape clé — badge temps réel, mig 0363.
+    if (status === "arriving") void notifyRideEvent(rideId, "ride_arriving");
+    else if (status === "arrived") void notifyRideEvent(rideId, "ride_arrived");
+    else void notifyRideEvent(rideId, "ride_started");
   }
   return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
 }
@@ -963,6 +966,7 @@ export async function completeRideAction(
     ok?: boolean;
     reason?: string;
   };
+  if (row?.ok) void notifyRideEvent(rideId, "ride_completed");
   return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
 }
 
@@ -980,6 +984,7 @@ export async function cancelRideAction(
     ok?: boolean;
     reason?: string;
   };
+  if (row?.ok) void notifyRideEvent(rideId, "ride_cancelled_by_chauffeur");
   return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
 }
 
@@ -995,6 +1000,8 @@ export async function getChauffeurLastDone(sinceMin = 20): Promise<{
   payment_method: string;
   /** Complément encaissé en espèces (Coligo Pay partiel, mig 0163). */
   cash_due_da: number;
+  /** Pourboire client (mig 0363) — peut arriver APRÈS la fin (realtime). */
+  tip_da: number;
   my_rating: number | null;
 } | null> {
   const ch = await getCurrentChauffeur();
@@ -1004,7 +1011,7 @@ export async function getChauffeurLastDone(sinceMin = 20): Promise<{
   const { data } = await admin
     .from("rides")
     .select(
-      "id, pickup_text, dest_text, agreed_price_da, commission_da, chauffeur_net_da, commission_rate_applied, payment_method, cash_due_da, client_rating, completed_at"
+      "id, pickup_text, dest_text, agreed_price_da, commission_da, chauffeur_net_da, commission_rate_applied, payment_method, cash_due_da, tip_da, client_rating, completed_at"
     )
     .eq("chauffeur_id", ch.id)
     .eq("status", "completed")
@@ -1027,6 +1034,7 @@ export async function getChauffeurLastDone(sinceMin = 20): Promise<{
     payment_method: data.payment_method,
     cash_due_da:
       data.payment_method === "coligo_pay" ? (data.cash_due_da ?? 0) : 0,
+    tip_da: (data as unknown as { tip_da?: number }).tip_da ?? 0,
     my_rating: data.client_rating ?? null,
   };
 }

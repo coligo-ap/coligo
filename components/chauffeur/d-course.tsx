@@ -43,7 +43,8 @@ import {
   VIOLET,
   type SosContact,
 } from "@/components/customer/drive/drive-modals";
-import { NavAppSheet, DChat, DoneScreen } from "./d-course-panels";
+import { NavAppSheet, DoneScreen } from "./d-course-panels";
+import { RideChatSheet } from "@/components/drive/ride-chat-sheet";
 import {
   cancelRideAction,
   chauffeurHeartbeat,
@@ -55,6 +56,7 @@ import {
   getChauffeurLastDone,
   getChauffeurRideMessages,
   markChauffeurMessagesRead,
+  sendChauffeurRideMessage,
   offerRide,
   setRideStatus,
   type B2BNext,
@@ -985,8 +987,13 @@ export function DCourse() {
         }}
       />
       {chatOpen && (
-        <DChat
+        <RideChatSheet
           rideId={ride.id}
+          side="chauffeur"
+          peerName={ride.customer_name}
+          fetchMessages={getChauffeurRideMessages}
+          sendMessage={sendChauffeurRideMessage}
+          markRead={markChauffeurMessagesRead}
           onClose={() => {
             setChatOpen(false);
             markSeen();
