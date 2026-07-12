@@ -355,13 +355,14 @@ export function MerchantCompactHeader({
             occupé par le logo à cheval) : fond VERT BOLT (#2B8659, échantillonné
             sur leur CTA réel), texte BLANC « Ouvert maintenant ». Fermé → fond
             rose, « Fermé ». Tap → Plus d'infos (horaires complets).
-            ⚠️ max-w = moitié d'écran MOINS la moitié du logo (72 px) : la
-            pastille ne peut JAMAIS passer sous/derrière le logo centré. */}
+            ⚠️ max-w = 50 % − demi-logo (44 px, anneau compris) − 12 px d'ÉCART
+            VISIBLE : la pastille ne touche JAMAIS le logo centré. Padding
+            serré (règle produit : pas d'air superflu texte ↔ carte). */}
         <button
           type="button"
           onClick={() => setShowHours(true)}
           className={cn(
-            "absolute start-3 bottom-8 z-[2] inline-flex max-w-[calc(50%-44px)] items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-extrabold text-white shadow-[0_4px_14px_-4px_rgba(0,0,0,.35)] transition-transform active:scale-[0.96] lg:start-5",
+            "absolute start-3 bottom-8 z-[2] inline-flex max-w-[calc(50%-56px)] items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-extrabold text-white shadow-[0_4px_14px_-4px_rgba(0,0,0,.35)] transition-transform active:scale-[0.96] lg:start-5",
             isOpen ? "bg-[#2B8659]" : "bg-rose-600"
           )}
         >
