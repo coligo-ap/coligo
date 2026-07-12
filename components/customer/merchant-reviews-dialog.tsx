@@ -20,12 +20,18 @@ type Props = {
   ratingAvg: number;
   ratingCount: number;
   reviews: ReviewWithCustomer[];
+  /** "chip" = pastille du carrousel d'infos (fiche Bolt) ; défaut = colonne. */
+  variant?: "column" | "chip";
 };
+
+const CHIP_CLS =
+  "border-border bg-surface inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold whitespace-nowrap transition-transform active:scale-[0.96]";
 
 export function MerchantReviewsDialog({
   ratingAvg,
   ratingCount,
   reviews,
+  variant = "column",
 }: Props) {
   const [open, setOpen] = useState(false);
   const t = useTranslations("reviews");
@@ -34,6 +40,15 @@ export function MerchantReviewsDialog({
   // affichent ainsi 5 étoiles tant qu'ils n'ont pas reçu de vrai avis. Statique
   // (non cliquable : pas d'avis à lister).
   if (ratingCount === 0) {
+    if (variant === "chip") {
+      return (
+        <span className={CHIP_CLS}>
+          <Star className="size-4 fill-amber-400 text-amber-400" />
+          <span className="text-foreground tabular-nums">5.0</span>
+          <span className="text-muted font-medium">{t("newMerchant")}</span>
+        </span>
+      );
+    }
     return (
       <span className="flex flex-col items-end leading-tight">
         <span className="inline-flex items-center gap-1">
@@ -51,25 +66,45 @@ export function MerchantReviewsDialog({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex flex-col items-end leading-tight transition-opacity active:opacity-70"
-        aria-label={t("ratingAriaLabel", {
-          count: ratingCount,
-          rating: ratingAvg.toFixed(1),
-        })}
-      >
-        <span className="inline-flex items-center gap-1">
+      {variant === "chip" ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={CHIP_CLS}
+          aria-label={t("ratingAriaLabel", {
+            count: ratingCount,
+            rating: ratingAvg.toFixed(1),
+          })}
+        >
           <Star className="size-4 fill-amber-400 text-amber-400" />
-          <span className="text-foreground text-sm font-bold tabular-nums">
+          <span className="text-foreground tabular-nums">
             {ratingAvg.toFixed(1)}
           </span>
-        </span>
-        <span className="text-muted mt-0.5 text-[11px] font-medium">
-          {t("reviewsCount", { count: ratingCount })}
-        </span>
-      </button>
+          <span className="text-muted font-medium">
+            {t("reviewsCount", { count: ratingCount })}
+          </span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex flex-col items-end leading-tight transition-opacity active:opacity-70"
+          aria-label={t("ratingAriaLabel", {
+            count: ratingCount,
+            rating: ratingAvg.toFixed(1),
+          })}
+        >
+          <span className="inline-flex items-center gap-1">
+            <Star className="size-4 fill-amber-400 text-amber-400" />
+            <span className="text-foreground text-sm font-bold tabular-nums">
+              {ratingAvg.toFixed(1)}
+            </span>
+          </span>
+          <span className="text-muted mt-0.5 text-[11px] font-medium">
+            {t("reviewsCount", { count: ratingCount })}
+          </span>
+        </button>
+      )}
 
       {open && (
         <Portal>

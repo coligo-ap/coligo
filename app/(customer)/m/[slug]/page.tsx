@@ -175,6 +175,16 @@ export default async function MerchantPublicPage({
             rating_count={m.rating_count}
             reviews={reviews}
             tags={m.tags}
+            phone_public={m.phone_public}
+            address={m.address}
+            latitude={m.latitude}
+            longitude={m.longitude}
+            delivery_enabled={!!m.delivery_enabled}
+            express_enabled={!!m.express_enabled}
+            tours_enabled={!!m.tours_enabled}
+            accepts_cash={!!m.accepts_cash}
+            accepts_online={!!m.accepts_online}
+            delivery_radius_km={m.delivery_radius_km}
           />
 
           {/* Offres & réductions — carrousel COMPACT et CLASSÉ (codes, cadeaux,

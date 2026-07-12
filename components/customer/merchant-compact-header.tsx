@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ChevronDown,
   MapPin,
+  Phone,
   Search,
   ShoppingBasket,
   ShoppingCart,
@@ -30,6 +31,7 @@ import {
 } from "@/lib/merchant/pause-state";
 import { Portal } from "@/components/ui/portal";
 import { MerchantReviewsDialog } from "@/components/customer/merchant-reviews-dialog";
+import { MerchantMapCard } from "@/components/customer/merchant-map-card";
 import { FavoriteHeart } from "@/components/customer/favorite-heart";
 import { ShareButton } from "@/components/customer/share-button";
 import { totalUnits, useCart } from "@/lib/customer/cart-store";
@@ -79,6 +81,17 @@ type Props = {
   reviews: ReviewWithCustomer[];
   /** Sous-spécialités (volet 1) — affichées en pilules. */
   tags?: string[];
+  /** « Plus d'infos » façon Bolt : services, carte + itinéraire, contact. */
+  phone_public?: string | null;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  delivery_enabled?: boolean;
+  express_enabled?: boolean;
+  tours_enabled?: boolean;
+  accepts_cash?: boolean;
+  accepts_online?: boolean;
+  delivery_radius_km?: number | null;
 };
 
 export function MerchantCompactHeader({
@@ -101,6 +114,16 @@ export function MerchantCompactHeader({
   rating_count,
   reviews,
   tags = [],
+  phone_public = null,
+  address = null,
+  latitude = null,
+  longitude = null,
+  delivery_enabled = false,
+  express_enabled = false,
+  tours_enabled = false,
+  accepts_cash = true,
+  accepts_online = false,
+  delivery_radius_km = null,
 }: Props) {
   const t = useTranslations("merchant");
   const locale = useLocale();
@@ -145,6 +168,10 @@ export function MerchantCompactHeader({
   const isOpen = isOpenNow(opening_hours) && !pauseState.closedNow;
   // Jour courant en heure d'Algérie (pour surligner « Aujourd'hui »).
   const todayKey = DAY_KEYS[(nowInAlgiers().getDay() + 6) % 7];
+  // Créneaux DU JOUR — résumé « Ouvert maintenant · 08:00–15:00, 18:00–00:00 »
+  // (chip de la fiche + 1re ligne de « Plus d'infos », façon Bolt).
+  const todaySlots = opening_hours[todayKey] ?? [];
+  const todayLabel = todaySlots.map((s) => `${s.open}–${s.close}`).join(", ");
 
   // Topbar : transparente sur la photo, puis verre dépoli + nom dès qu'on
   // dépasse le hero (≈150 px). On écoute le scroll de la fenêtre.
@@ -326,58 +353,50 @@ export function MerchantCompactHeader({
         />
       </div>
 
-      {/* ───── AVATAR + COLONNE (NOM, puis CATÉGORIE grise + NOTE ★ à droite),
-              placés ENTIÈREMENT sous la couverture, dans la zone BLANCHE : le nom
-              est donc toujours noir sur blanc (lisible quelle que soit la photo de
-              couverture, claire ou sombre). ───── */}
-      {/* Feuille BLANCHE à coins arrondis qui CHEVAUCHE la couverture (style
-          Bolt Food) : la photo reste pleine et propre, le contenu démarre sur
-          une carte blanche nette. */}
-      <div className="relative z-[1] -mx-4 -mt-5 flex items-center gap-3.5 rounded-t-[24px] bg-white px-4 pt-3.5 lg:-mx-6 lg:px-6">
-        {logoOptimized ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={logoOptimized}
-            alt=""
-            loading="eager"
-            decoding="async"
-            className="size-[68px] shrink-0 rounded-2xl bg-white object-cover shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-[3px] ring-white lg:size-[76px]"
-          />
-        ) : (
-          <div className="bg-primary-100 text-primary-700 flex size-[68px] shrink-0 items-center justify-center rounded-2xl text-2xl font-black shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-[3px] ring-white lg:size-[76px]">
-            {name.charAt(0)}
-          </div>
-        )}
-        <div className="min-w-0 flex-1 pb-0.5">
-          {/* NOM + ♡ FAVORI sur la MÊME ligne (cœur au coin, RTL-safe via flex). */}
-          <div className="flex items-start justify-between gap-2">
-            <h1 className="text-foreground min-w-0 text-xl leading-tight font-black tracking-tight text-pretty lg:text-2xl">
-              {name}
-            </h1>
-            <FavoriteHeart
-              merchantId={merchantId}
-              initialFavorite={initialFavorite}
-              isAuth={isAuth}
-              variant="card"
-              className="bg-surface-2 size-9 shrink-0 shadow-none"
+      {/* ───── EN-TÊTE CENTRÉ façon Bolt Food Market : feuille BLANCHE à coins
+              arrondis qui chevauche la couverture, LOGO centré À CHEVAL entre
+              la photo et la feuille, NOM centré, « Plus d'infos » juste
+              dessous. Le ♡ favori reste accessible au coin de la feuille. ───── */}
+      <div className="relative z-[1] -mx-4 -mt-5 rounded-t-[24px] bg-white px-4 pt-2 lg:-mx-6 lg:px-6">
+        {/* LOGO centré, moitié sur la couverture / moitié sur la feuille. */}
+        <div className="pointer-events-none absolute inset-x-0 -top-9 flex justify-center lg:-top-10">
+          {logoOptimized ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoOptimized}
+              alt=""
+              loading="eager"
+              decoding="async"
+              className="size-[72px] rounded-2xl bg-white object-cover shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-4 ring-white lg:size-[80px]"
             />
-          </div>
-          {/* Catégorie (gris clair) juste sous le nom + note à droite, même ligne. */}
-          <div className="flex items-start justify-between gap-2">
-            <span className="text-muted min-w-0 truncate pt-0.5 text-[13px] font-medium">
+          ) : (
+            <div className="bg-primary-100 text-primary-700 flex size-[72px] items-center justify-center rounded-2xl text-2xl font-black shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-4 ring-white lg:size-[80px]">
+              {name.charAt(0)}
+            </div>
+          )}
+        </div>
+
+        {/* ♡ favori au coin de la feuille (n'empiète pas sur le nom centré). */}
+        <div className="absolute end-3 top-2.5 lg:end-5">
+          <FavoriteHeart
+            merchantId={merchantId}
+            initialFavorite={initialFavorite}
+            isAuth={isAuth}
+            variant="card"
+            className="bg-surface-2 size-9 shrink-0 shadow-none"
+          />
+        </div>
+
+        {/* NOM + catégorie + « Plus d'infos », tous CENTRÉS (Bolt). */}
+        <div className="px-10 pt-9 text-center lg:pt-10">
+          <h1 className="text-foreground text-xl leading-tight font-black tracking-tight text-pretty lg:text-2xl">
+            {name}
+          </h1>
+          {categoryLabel && (
+            <p className="text-muted mt-0.5 truncate text-[13px] font-medium">
               {categoryLabel}
-            </span>
-            <span className="shrink-0">
-              <MerchantReviewsDialog
-                ratingAvg={rating_avg}
-                ratingCount={rating_count}
-                reviews={reviews}
-              />
-            </span>
-          </div>
-          {/* Plus d'infos (style Bolt Food) : les informations secondaires
-              (description, tags, panier min, adresse, horaires) sont REGROUPEES
-              dans une feuille dediee au lieu d'encombrer la fiche. */}
+            </p>
+          )}
           <button
             type="button"
             onClick={() => setShowHours(true)}
@@ -387,64 +406,84 @@ export function MerchantCompactHeader({
             <ChevronDown className="size-3.5 -rotate-90 rtl:rotate-90" />
           </button>
         </div>
-      </div>
 
-      {/* ───── BANDE D'INFOS unifiée (une seule carte, cellules séparées par un
-              filet, RTL-safe via border-inline-start) : statut Ouvert/Fermé
-              (tap → horaires) · préparation · panier min · localisation.
-              Remplace 3 blocs empilés → un seul coup d'œil, zéro doublon. ───── */}
-      <div className="border-border [&>*+*]:border-border mt-3 flex [scrollbar-width:none] overflow-x-auto rounded-[14px] border bg-white [&::-webkit-scrollbar]:hidden [&>*+*]:border-s">
-        <button
-          type="button"
-          onClick={() => setShowHours(true)}
-          aria-expanded={showHours}
-          className="hover:bg-surface-2 flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-2 py-2.5 transition-colors active:scale-[0.98]"
-        >
-          {/* Statut seul en haut (propre) ; l'affordance ⌄ est COLLÉE au
-              libellé « Horaires » → on comprend que c'est LA carte horaires
-              qui s'ouvre (pas le temps de préparation voisin). */}
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 text-[13px] font-extrabold",
-              isOpen ? "text-success-700" : "text-rose-600"
-            )}
+        {/* ───── CARROUSEL D'INFOS (chips horizontales, style Bolt) : avis ·
+                statut + créneaux du jour (tap → « Plus d'infos ») · retrait
+                gratuit · temps de préparation. ───── */}
+        <div className="mt-3 flex snap-x [scrollbar-width:none] gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden">
+          <MerchantReviewsDialog
+            ratingAvg={rating_avg}
+            ratingCount={rating_count}
+            reviews={reviews}
+            variant="chip"
+          />
+          <button
+            type="button"
+            onClick={() => setShowHours(true)}
+            aria-expanded={showHours}
+            className="border-border bg-surface inline-flex shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold whitespace-nowrap transition-transform active:scale-[0.96]"
           >
             <span
               className={cn(
-                "size-1.5 rounded-full",
+                "size-1.5 shrink-0 rounded-full",
                 isOpen ? "bg-success-500" : "bg-rose-500"
               )}
             />
-            {isOpen ? t("openNow") : t("closed")}
-          </span>
-          <span className="text-primary-700 inline-flex items-center gap-0.5 text-[10.5px] font-bold">
-            {t("hoursLabel")}
-            <ChevronDown className="size-3" />
-          </span>
-        </button>
-        {prep_time_min > 0 && (
-          <InfoCell
-            icon={<Timer className="size-3.5" />}
-            value={`~${t("prepMinutes", { count: prep_time_min })}`}
-            label={t("prepLabel")}
-          />
-        )}
+            <span className={isOpen ? "text-success-700" : "text-rose-600"}>
+              {isOpen ? t("openNowShort") : t("closedNowShort")}
+            </span>
+            {todayLabel && (
+              <span className="text-muted font-semibold tabular-nums">
+                · {todayLabel}
+              </span>
+            )}
+            <ChevronDown className="text-muted size-3.5 shrink-0" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowHours(true)}
+            className="border-border bg-surface text-foreground inline-flex shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold whitespace-nowrap transition-transform active:scale-[0.96]"
+          >
+            <ShoppingBasket className="text-primary-600 size-4" />
+            {t("pickupFree")}
+          </button>
+          {prep_time_min > 0 && (
+            <span className="border-border bg-surface text-foreground inline-flex shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold whitespace-nowrap">
+              <Timer className="text-primary-600 size-4" />~
+              {t("prepMinutes", { count: prep_time_min })}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Planning de la semaine — POP-UP (feuille animée) au lieu d'un
-          accordéon qui pousse toute la page. Aujourd'hui surligné + statut. */}
+      {/* « Plus d'infos » — POP-UP (feuille animée), ORDRE Bolt Food Market :
+          1. horaires (résumé du jour, tap → semaine) · 2. services ·
+          3. carte + adresse + itinéraire · 4. description / contact / infos. */}
       {showHours && (
-        <HoursSheet
+        <MoreInfoSheet
           openingHours={opening_hours}
           todayKey={todayKey}
           isOpen={isOpen}
+          todayLabel={todayLabel}
           name={name}
           addressLine={addressLine}
+          address={address}
+          latitude={latitude}
+          longitude={longitude}
+          phonePublic={phone_public}
           descriptionFr={description_fr}
           descriptionAr={description_ar}
           tags={tags}
           minOrderDa={min_order_da}
           prepTimeMin={prep_time_min}
+          services={{
+            delivery: delivery_enabled,
+            express: express_enabled,
+            tours: tours_enabled,
+            cash: accepts_cash,
+            online: accepts_online,
+            radiusKm: delivery_radius_km,
+          }}
           onClose={() => setShowHours(false)}
         />
       )}
@@ -452,35 +491,62 @@ export function MerchantCompactHeader({
   );
 }
 
-/** Pop-up des horaires : statut du moment, planning de la semaine (Aujourd'hui
- *  surligné), adresse en pied. Feuille bas-d'écran mobile / dialog desktop. */
-function HoursSheet({
+type MoreInfoServices = {
+  delivery: boolean;
+  express: boolean;
+  tours: boolean;
+  cash: boolean;
+  online: boolean;
+  radiusKm: number | null;
+};
+
+/** Feuille « Plus d'infos » façon Bolt Food Market — ORDRE :
+ *  1. « Ouvert maintenant · créneaux du jour » (tap → planning de la semaine) ;
+ *  2. badges SERVICES (retrait gratuit, express, tournée, paiements) ;
+ *  3. CARTE d'emplacement + adresse + bouton Itinéraire (plein écran au tap) ;
+ *  4. description, téléphone, infos pratiques, spécialités. */
+function MoreInfoSheet({
   openingHours,
   todayKey,
   isOpen,
+  todayLabel,
   name,
   addressLine,
+  address,
+  latitude,
+  longitude,
+  phonePublic,
   descriptionFr,
   descriptionAr,
   tags = [],
   minOrderDa = 0,
   prepTimeMin = 0,
+  services,
   onClose,
 }: {
   openingHours: OpeningHours;
   todayKey: (typeof DAY_KEYS)[number];
   isOpen: boolean;
+  todayLabel: string;
   name: string;
   addressLine: string;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  phonePublic?: string | null;
   descriptionFr?: string | null;
   descriptionAr?: string | null;
   tags?: string[];
   minOrderDa?: number;
   prepTimeMin?: number;
+  services: MoreInfoServices;
   onClose: () => void;
 }) {
   const t = useTranslations("merchant");
   const locale = useLocale();
+  // Planning de la semaine REPLIÉ par défaut (Bolt) : la 1re ligne résume le
+  // jour, un tap déplie les 7 jours.
+  const [showWeek, setShowWeek] = useState(false);
   return (
     <Portal>
       <div
@@ -534,9 +600,134 @@ function HoursSheet({
           </header>
 
           <div className="overflow-y-auto px-5 pb-5">
-            {/* Description (FR puis AR) - regroupee ici, hors de la fiche. */}
+            {/* 1) HORAIRES — résumé du jour, tap → planning de la semaine. */}
+            <button
+              type="button"
+              onClick={() => setShowWeek((v) => !v)}
+              aria-expanded={showWeek}
+              className="border-border flex w-full items-center gap-2 rounded-[14px] border px-3.5 py-3 text-start"
+            >
+              <span
+                className={cn(
+                  "size-2 shrink-0 rounded-full",
+                  isOpen ? "bg-success-500" : "bg-rose-500"
+                )}
+              />
+              <span className="min-w-0 flex-1 text-[13.5px]">
+                <b className={isOpen ? "text-success-700" : "text-rose-600"}>
+                  {isOpen ? t("openNowShort") : t("closedNowShort")}
+                </b>
+                {todayLabel && (
+                  <span className="text-foreground font-semibold tabular-nums">
+                    {" "}
+                    · {todayLabel}
+                  </span>
+                )}
+              </span>
+              <ChevronDown
+                className={cn(
+                  "text-muted size-4 shrink-0 transition-transform",
+                  showWeek && "rotate-180"
+                )}
+              />
+            </button>
+            {showWeek && (
+              <ul className="border-border divide-border mt-2 divide-y rounded-[14px] border">
+                {DAY_KEYS.map((d) => {
+                  const slots = openingHours[d] ?? [];
+                  const isToday = d === todayKey;
+                  return (
+                    <li
+                      key={d}
+                      className={cn(
+                        "flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px] first:rounded-t-[13px] last:rounded-b-[13px]",
+                        isToday && "bg-primary-50"
+                      )}
+                    >
+                      <span className="inline-flex items-center gap-1.5 font-semibold">
+                        {dayLongLabel(d, locale)}
+                        {isToday && (
+                          <span
+                            className={cn(
+                              "rounded-full px-1.5 py-px text-[9px] font-extrabold",
+                              isOpen
+                                ? "bg-success-100 text-success-700"
+                                : "bg-stone-200 text-stone-600"
+                            )}
+                          >
+                            {t("today")}
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-end tabular-nums",
+                          isToday
+                            ? "text-foreground font-bold"
+                            : slots.length === 0
+                              ? "font-medium text-rose-500"
+                              : "text-muted"
+                        )}
+                      >
+                        {slots.length === 0
+                          ? t("closed")
+                          : slots
+                              .map((s) => `${s.open}–${s.close}`)
+                              .join(" · ")}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            {/* 2) SERVICES — badges (retrait, livraisons, paiements). */}
+            <p className="text-muted mt-4 mb-1.5 text-[11px] font-bold tracking-wide uppercase">
+              {t("servicesLabel")}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              <ServiceBadge label={t("pickupFree")} strong />
+              {services.delivery && services.express && (
+                <ServiceBadge
+                  label={t("deliveryExpress")}
+                  sub={t("feeByDistance")}
+                />
+              )}
+              {services.delivery && services.tours && (
+                <ServiceBadge label={t("deliveryTour")} sub={t("feeByZone")} />
+              )}
+              {services.delivery && services.radiusKm != null && (
+                <ServiceBadge
+                  label={t("deliveryRadius", { km: services.radiusKm })}
+                />
+              )}
+              {services.online && <ServiceBadge label={t("payOnline")} />}
+              {services.cash && <ServiceBadge label={t("payCash")} />}
+            </div>
+
+            {/* 3) CARTE — emplacement exact + adresse + Itinéraire (plein
+                écran au tap). Repli : simple ligne adresse si pas de GPS. */}
+            {latitude != null && longitude != null ? (
+              <div className="mt-4">
+                <MerchantMapCard
+                  lat={latitude}
+                  lng={longitude}
+                  name={name}
+                  address={address || addressLine || null}
+                />
+              </div>
+            ) : (
+              addressLine && (
+                <p className="text-muted mt-4 flex items-center gap-1.5 text-[12.5px] font-semibold">
+                  <MapPin className="text-primary-600 size-4 shrink-0" />
+                  {address || addressLine}
+                </p>
+              )
+            )}
+
+            {/* 4) Description (FR puis AR). */}
             {(descriptionFr || descriptionAr) && (
-              <div className="mb-4">
+              <div className="mt-4">
                 {descriptionFr && (
                   <p className="text-foreground text-[13px] leading-relaxed">
                     {descriptionFr}
@@ -553,27 +744,29 @@ function HoursSheet({
               </div>
             )}
 
-            {/* Specialites */}
-            {tags.length > 0 && (
-              <div className="mb-4 flex flex-wrap gap-1.5">
-                {tags.slice(0, 8).map((code) => (
-                  <span
-                    key={code}
-                    className="bg-primary-50 text-primary-700 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
-                  >
-                    {getTagLabel(code, locale)}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Infos pratiques : panier min - preparation - adresse. */}
-            {(minOrderDa > 0 || prepTimeMin > 0 || addressLine) && (
-              <div className="mb-4">
+            {/* Téléphone (si public) + infos pratiques. */}
+            {(phonePublic || minOrderDa > 0 || prepTimeMin > 0) && (
+              <div className="mt-4">
                 <p className="text-muted mb-1.5 text-[11px] font-bold tracking-wide uppercase">
                   {t("practicalInfo")}
                 </p>
                 <ul className="border-border divide-border divide-y rounded-[14px] border">
+                  {phonePublic && (
+                    <li>
+                      <a
+                        href={`tel:${phonePublic}`}
+                        className="flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px]"
+                      >
+                        <span className="text-muted inline-flex items-center gap-2 font-semibold">
+                          <Phone className="size-4" />
+                          {t("phoneLabel")}
+                        </span>
+                        <span className="text-primary-700 font-bold tabular-nums">
+                          {phonePublic}
+                        </span>
+                      </a>
+                    </li>
+                  )}
                   {minOrderDa > 0 && (
                     <li className="flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px]">
                       <span className="text-muted inline-flex items-center gap-2 font-semibold">
@@ -596,76 +789,22 @@ function HoursSheet({
                       </span>
                     </li>
                   )}
-                  {addressLine && (
-                    <li className="flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px]">
-                      <span className="text-muted inline-flex items-center gap-2 font-semibold">
-                        <MapPin className="size-4" />
-                        {t("locationLabel")}
-                      </span>
-                      <span className="text-foreground text-end font-bold">
-                        {addressLine}
-                      </span>
-                    </li>
-                  )}
                 </ul>
               </div>
             )}
 
-            <p className="text-muted mb-1.5 text-[11px] font-bold tracking-wide uppercase">
-              {t("hoursLabel")}
-            </p>
-            <ul className="border-border divide-border divide-y rounded-[14px] border">
-              {DAY_KEYS.map((d) => {
-                const slots = openingHours[d] ?? [];
-                const isToday = d === todayKey;
-                return (
-                  <li
-                    key={d}
-                    className={cn(
-                      "flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px] first:rounded-t-[13px] last:rounded-b-[13px]",
-                      isToday && "bg-primary-50"
-                    )}
+            {/* Spécialités. */}
+            {tags.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {tags.slice(0, 8).map((code) => (
+                  <span
+                    key={code}
+                    className="bg-primary-50 text-primary-700 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
                   >
-                    <span className="inline-flex items-center gap-1.5 font-semibold">
-                      {dayLongLabel(d, locale)}
-                      {isToday && (
-                        <span
-                          className={cn(
-                            "rounded-full px-1.5 py-px text-[9px] font-extrabold",
-                            isOpen
-                              ? "bg-success-100 text-success-700"
-                              : "bg-stone-200 text-stone-600"
-                          )}
-                        >
-                          {t("today")}
-                        </span>
-                      )}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-end tabular-nums",
-                        isToday
-                          ? "text-foreground font-bold"
-                          : slots.length === 0
-                            ? "font-medium text-rose-500"
-                            : "text-muted"
-                      )}
-                    >
-                      {slots.length === 0
-                        ? t("closed")
-                        : slots.map((s) => `${s.open}–${s.close}`).join(" · ")}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-
-            {/* Localisation — l'info complémentaire utile au même endroit. */}
-            {addressLine && (
-              <p className="text-muted mt-3 flex items-center gap-1.5 text-[12.5px] font-semibold">
-                <MapPin className="text-primary-600 size-4 shrink-0" />
-                {addressLine}
-              </p>
+                    {getTagLabel(code, locale)}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -674,26 +813,27 @@ function HoursSheet({
   );
 }
 
-/** Cellule de la bande d'infos : valeur en gras (avec petite icône) + libellé
- *  gris dessous. Centrée, compacte, tronquée proprement. */
-function InfoCell({
-  icon,
-  value,
+/** Badge de service (feuille « Plus d'infos ») : libellé + précision grise. */
+function ServiceBadge({
   label,
+  sub,
+  strong = false,
 }: {
-  icon: React.ReactNode;
-  value: string;
   label: string;
+  sub?: string;
+  strong?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-2 py-2.5 text-center">
-      <span className="text-foreground inline-flex max-w-full items-center gap-1 text-[13px] font-extrabold tabular-nums">
-        <span className="text-primary-600 shrink-0">{icon}</span>
-        <span className="truncate">{value}</span>
-      </span>
-      <span className="text-muted max-w-full truncate text-[10.5px] font-medium">
-        {label}
-      </span>
-    </div>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold",
+        strong
+          ? "bg-success-100 text-success-700"
+          : "bg-surface-2 text-foreground"
+      )}
+    >
+      {label}
+      {sub && <span className="text-muted font-medium">· {sub}</span>}
+    </span>
   );
 }

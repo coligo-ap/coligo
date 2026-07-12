@@ -330,84 +330,110 @@ export function MerchantCatalog({
       {/* Recherche : UNE seule barre (header). Bascule liste/catégories : sur
           la ligne Retrait/Livraison (CatalogViewToggle, store partagé). */}
 
-      {/* CHIPS catégories — sticky type Uber Eats (masquées pendant une recherche). */}
-      {!q && display === "list" && groups.length > 1 && (
-        <>
-          {/* Sentinelle utilisée pour détecter l'état "stuck" (cf. effect). */}
-          <div ref={stickySentinelRef} aria-hidden className="h-px w-full" />
-          <div
-            className={cn(
-              "sticky top-[calc(env(safe-area-inset-top)+56px)] z-20 -mx-4 mb-4 transition-shadow lg:-mx-6",
-              stuck
-                ? "border-border border-b bg-white/90 shadow-[0_2px_6px_rgba(0,0,0,0.04)] backdrop-blur-xl"
-                : "bg-white"
-            )}
-          >
+      {/* CHIPS catégories — sticky type Uber Eats / Bolt (masquées pendant une
+          recherche). Visibles en mode LISTE (scroll vers la section) ET dans le
+          DRILL-DOWN catégories (bascule directe de catégorie, chip « Tout » en
+          tête pour revenir à la grille) — navigation rapide façon Bolt. */}
+      {!q &&
+        groups.length > 1 &&
+        (display === "list" ||
+          (display === "categories" && openCat !== null)) && (
+          <>
+            {/* Sentinelle utilisée pour détecter l'état "stuck" (cf. effect). */}
+            <div ref={stickySentinelRef} aria-hidden className="h-px w-full" />
             <div
-              ref={stripRef}
-              className="snap-x [scrollbar-width:none] overflow-x-auto px-4 py-2 lg:px-6 [&::-webkit-scrollbar]:hidden"
+              className={cn(
+                "sticky top-[calc(env(safe-area-inset-top)+56px)] z-20 -mx-4 mb-4 transition-shadow lg:-mx-6",
+                stuck
+                  ? "border-border border-b bg-white/90 shadow-[0_2px_6px_rgba(0,0,0,0.04)] backdrop-blur-xl"
+                  : "bg-white"
+              )}
             >
-              <div className="flex min-w-max gap-1.5">
-                {groups.map((g) => {
-                  const active = activeKey === g.key;
-                  const title = g.category?.title ?? t("otherCategory");
-                  // Visuel d'ANCRAGE systématique : photo de la catégorie
-                  // (optimisée) ou tuile initiale — chaque chip devient
-                  // scannable d'un coup d'œil, même sans image.
-                  const img = g.category?.image_url
-                    ? (cldUrl(g.category.image_url, {
-                        width: 64,
-                        height: 64,
-                        crop: "fill",
-                        gravity: "auto",
-                      }) ?? g.category.image_url)
-                    : null;
-                  return (
+              <div
+                ref={stripRef}
+                className="snap-x [scrollbar-width:none] overflow-x-auto px-4 py-2 lg:px-6 [&::-webkit-scrollbar]:hidden"
+              >
+                <div className="flex min-w-max gap-1.5">
+                  {display === "categories" && openCat !== null && (
                     <button
-                      key={g.key}
                       type="button"
-                      ref={(el) => {
-                        if (el) chipRefs.current.set(g.key, el);
-                        else chipRefs.current.delete(g.key);
-                      }}
-                      onClick={() => scrollToGroup(g.key)}
-                      className={cn(
-                        "inline-flex shrink-0 snap-start items-center gap-2 rounded-[10px] border py-1.5 ps-1.5 pe-3 text-[13px] font-bold whitespace-nowrap transition-colors active:scale-[0.96]",
-                        active
-                          ? "border-primary-600 bg-primary-600 text-white shadow-[0_6px_16px_-4px_rgba(108,43,217,0.45)]"
-                          : "border-border bg-surface text-foreground hover:border-primary-300 shadow-[0_2px_6px_-3px_rgba(40,35,90,0.12)]"
-                      )}
+                      onClick={() => setOpenCat(null)}
+                      className="border-border bg-surface text-foreground hover:border-primary-300 inline-flex shrink-0 snap-start items-center rounded-[10px] border px-3 py-1.5 text-[13px] font-bold whitespace-nowrap shadow-[0_2px_6px_-3px_rgba(40,35,90,0.12)] transition-colors active:scale-[0.96]"
                     >
-                      {img ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={img}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          className="size-7 shrink-0 rounded-[7px] object-cover"
-                        />
-                      ) : (
-                        <span
-                          className={cn(
-                            "grid size-7 shrink-0 place-items-center rounded-[7px] text-[12px] font-black",
-                            active
-                              ? "bg-white/20 text-white"
-                              : "bg-primary-50 text-primary-700"
-                          )}
-                        >
-                          {title.charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                      {title}
+                      {t("allChip")}
                     </button>
-                  );
-                })}
+                  )}
+                  {groups.map((g) => {
+                    const drill = display === "categories" && openCat !== null;
+                    const active = drill
+                      ? openCat === g.key
+                      : activeKey === g.key;
+                    const title = g.category?.title ?? t("otherCategory");
+                    // Visuel d'ANCRAGE systématique : photo de la catégorie
+                    // (optimisée) ou tuile initiale — chaque chip devient
+                    // scannable d'un coup d'œil, même sans image.
+                    const img = g.category?.image_url
+                      ? (cldUrl(g.category.image_url, {
+                          width: 64,
+                          height: 64,
+                          crop: "fill",
+                          gravity: "auto",
+                        }) ?? g.category.image_url)
+                      : null;
+                    return (
+                      <button
+                        key={g.key}
+                        type="button"
+                        ref={(el) => {
+                          if (el) chipRefs.current.set(g.key, el);
+                          else chipRefs.current.delete(g.key);
+                        }}
+                        onClick={() => {
+                          if (display === "categories" && openCat !== null) {
+                            // Drill-down : bascule DIRECTE de catégorie (Bolt).
+                            setOpenCat(g.key);
+                            setActiveKey(g.key);
+                          } else {
+                            scrollToGroup(g.key);
+                          }
+                        }}
+                        className={cn(
+                          "inline-flex shrink-0 snap-start items-center gap-2 rounded-[10px] border py-1.5 ps-1.5 pe-3 text-[13px] font-bold whitespace-nowrap transition-colors active:scale-[0.96]",
+                          active
+                            ? "border-primary-600 bg-primary-600 text-white shadow-[0_6px_16px_-4px_rgba(108,43,217,0.45)]"
+                            : "border-border bg-surface text-foreground hover:border-primary-300 shadow-[0_2px_6px_-3px_rgba(40,35,90,0.12)]"
+                        )}
+                      >
+                        {img ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={img}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            className="size-7 shrink-0 rounded-[7px] object-cover"
+                          />
+                        ) : (
+                          <span
+                            className={cn(
+                              "grid size-7 shrink-0 place-items-center rounded-[7px] text-[12px] font-black",
+                              active
+                                ? "bg-white/20 text-white"
+                                : "bg-primary-50 text-primary-700"
+                            )}
+                          >
+                            {title.charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                        {title}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
 
       {/* ACHAT OFFERT — carrousel dédié des offres quantité, EN PREMIER
           (masqué en recherche ET dans une catégorie ouverte : le drill-down ne
@@ -492,7 +518,10 @@ export function MerchantCatalog({
                 <button
                   key={g.key}
                   type="button"
-                  onClick={() => setOpenCat(g.key)}
+                  onClick={() => {
+                    setOpenCat(g.key);
+                    setActiveKey(g.key);
+                  }}
                   aria-label={title}
                   className="group border-border flex flex-col overflow-hidden rounded-[14px] border bg-white transition-transform duration-150 active:scale-[0.97]"
                 >
@@ -529,7 +558,10 @@ export function MerchantCatalog({
               <button
                 key={g.key}
                 type="button"
-                onClick={() => setOpenCat(g.key)}
+                onClick={() => {
+                  setOpenCat(g.key);
+                  setActiveKey(g.key);
+                }}
                 aria-label={title}
                 // PAS de variante dark: (système) ici — le sombre APPLICATIF
                 // est géré par le remap .theme-dark de bg-primary-50
