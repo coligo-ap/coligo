@@ -35,6 +35,17 @@ export function CatalogViewToggle({
     } catch {
       /* préférence non mémorisée, sans gravité */
     }
+    // Descend DIRECTEMENT à la section concernée (grille de catégories ou
+    // liste de produits) : sans ça, la bascule se joue sous le pli (carrousels
+    // au-dessus) et l'utilisateur ne voit pas le changement. Double rAF :
+    // on défile APRÈS le re-render de la nouvelle vue.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() =>
+        document
+          .getElementById("catalog-sections")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" })
+      )
+    );
   }
 
   return (

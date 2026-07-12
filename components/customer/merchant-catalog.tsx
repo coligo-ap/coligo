@@ -459,7 +459,10 @@ export function MerchantCatalog({
       {!q && display === "categories" && openCat === null && (
         // Colonnes RESPONSIVES : 3 en mobile → 6 en desktop (conteneur 1100px),
         // sinon les tuiles aspect-[3/4] deviennent démesurées sur grand écran.
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <div
+          id="catalog-sections"
+          className="grid scroll-mt-[calc(env(safe-area-inset-top)+64px)] grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+        >
           {groups.map((g) => {
             const title = g.category?.title ?? t("otherCategory");
             // Promos/réductions remontées sur la tuile : incite à ouvrir la
@@ -588,7 +591,10 @@ export function MerchantCatalog({
 
       {/* MODE LISTE (ou recherche active) : sections déroulées historiques. */}
       {(q.length > 0 || display === "list") && (
-        <div className="space-y-6">
+        <div
+          id="catalog-sections"
+          className="scroll-mt-[calc(env(safe-area-inset-top)+118px)] space-y-6"
+        >
           {visibleGroups.map((g) => (
             <section
               key={g.key}
