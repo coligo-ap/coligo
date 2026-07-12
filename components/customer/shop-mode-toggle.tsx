@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Bike, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { setCartMode, useCartFor } from "@/lib/customer/cart-store";
 
@@ -13,11 +12,12 @@ type Merchant = {
 };
 
 /**
- * Toggle Retrait / Livraison sur la FICHE BOUTIQUE (pilule glissante, style
- * Uber). Le choix est PERSISTÉ dans le panier de ce commerce (cart.mode) →
- * conservé jusqu'au panier et pré-rempli au checkout. La position de livraison
- * reste choisie plus tard (au checkout) : ici on ne fait que mémoriser le mode.
- * « Livraison » n'est proposé que si le commerçant l'a activée.
+ * Bascule Retrait / Livraison — SEGMENTÉ façon Bolt Food (leur Delivery/Pickup) :
+ * piste grise arrondie SANS icônes ni ombre interne, pilule blanche glissante
+ * sous le segment actif, et DEUX lignes par segment (libellé gras + précision
+ * grise : « gratuit » / « à votre adresse »). Le choix est PERSISTÉ dans le
+ * panier de ce commerce (cart.mode) et pré-rempli au checkout. « Livraison »
+ * n'est proposée que si le commerçant l'a activée.
  */
 export function ShopModeToggle({
   merchant,
@@ -33,56 +33,66 @@ export function ShopModeToggle({
   const mode =
     cart.mode === "delivery" && deliveryEnabled ? "delivery" : "pickup";
 
+  const seg =
+    "relative z-[1] flex min-w-0 flex-1 flex-col items-center justify-center rounded-full px-1 py-1.5 leading-tight transition-colors";
+
   return (
-    <div className="bg-surface-2 relative flex rounded-[16px] p-1.5 shadow-[inset_0_1px_3px_rgba(0,0,0,0.04)]">
-      {/* Glider : pastille blanche qui glisse sous l'onglet actif. */}
+    <div className="bg-surface-2 relative flex h-full rounded-full p-1">
+      {/* Pilule blanche qui glisse sous le segment actif (Bolt). */}
       <span
         aria-hidden
         className={cn(
-          "bg-surface absolute inset-y-1.5 start-1.5 w-[calc(50%-0.375rem)] rounded-[12px] shadow-[0_4px_12px_-2px_rgba(40,35,90,0.2)] transition-transform duration-[340ms] [transition-timing-function:cubic-bezier(.34,1.4,.64,1)]",
+          "absolute inset-y-1 start-1 w-[calc(50%-0.25rem)] rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.10)] transition-transform duration-[340ms] [transition-timing-function:cubic-bezier(.34,1.4,.64,1)]",
           mode === "delivery" && "translate-x-full rtl:-translate-x-full"
         )}
       />
-      {/* Libellés JAMAIS tronqués (« Retrait gratuit » doit se lire en entier)
-          ET icônes TOUJOURS visibles (compréhension immédiate) : sur les petits
-          écrans, on réduit la taille du texte/icône — jamais le mot. */}
       <button
         type="button"
         onClick={() => setCartMode(merchant, "pickup")}
         aria-pressed={mode === "pickup"}
-        className={cn(
-          "relative z-[1] flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[12px] px-1 py-3 text-[13px] font-extrabold whitespace-nowrap transition-colors max-[399px]:gap-1 max-[399px]:text-[11.5px]",
-          mode === "pickup" ? "text-foreground" : "text-muted"
-        )}
+        className={seg}
       >
-        <MapPin
+        <span
           className={cn(
-            "size-4 shrink-0 max-[399px]:size-3.5",
-            mode === "pickup" && "text-primary-600"
+            "text-[13.5px] font-extrabold whitespace-nowrap",
+            mode === "pickup" ? "text-foreground" : "text-muted"
           )}
-        />
-        <span>{t("freePickup")}</span>
+        >
+          {t("pickupLabel")}
+        </span>
+        <span
+          className={cn(
+            "text-[11px] font-medium whitespace-nowrap",
+            mode === "pickup" ? "text-success-700" : "text-subtle"
+          )}
+        >
+          {t("freeSub")}
+        </span>
       </button>
       <button
         type="button"
         onClick={() => deliveryEnabled && setCartMode(merchant, "delivery")}
         aria-pressed={mode === "delivery"}
         disabled={!deliveryEnabled}
-        className={cn(
-          "relative z-[1] flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[12px] px-1 py-3 text-[13px] font-extrabold whitespace-nowrap transition-colors disabled:opacity-40 max-[399px]:gap-1 max-[399px]:text-[11.5px]",
-          mode === "delivery" ? "text-foreground" : "text-muted"
-        )}
+        className={cn(seg, "disabled:opacity-45")}
       >
-        <Bike
+        <span
           className={cn(
-            "size-4 shrink-0 max-[399px]:size-3.5",
-            mode === "delivery" && "text-primary-600"
+            "text-[13.5px] font-extrabold whitespace-nowrap",
+            mode === "delivery" ? "text-foreground" : "text-muted"
           )}
-        />
-        <span>
+        >
+          {t("delivery")}
+        </span>
+        <span
+          className={cn(
+            "max-w-full truncate text-[11px] font-medium",
+            mode === "delivery" ? "text-muted" : "text-subtle"
+          )}
+        >
           {deliveryEnabled
-            ? `${t("delivery")}${deliveryFeeLabel ? ` ${deliveryFeeLabel}` : ""}`
-            : t("deliveryUnavailable")}
+            ? (deliveryFeeLabel ?? t("toYourAddress"))
+            : t("unavailableShort")}
         </span>
       </button>
     </div>
