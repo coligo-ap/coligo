@@ -24,6 +24,8 @@ import { IdvStatusPanel } from "./idv-status-panel";
 import { IdvStepper } from "./idv-stepper";
 import { IdvScanOverlay } from "./idv-scan-overlay";
 import { IdvScope } from "./idv-theme";
+import { IdvActionIntro } from "./idv-action-intro";
+import { IllusSelfie } from "./idv-illustrations";
 import {
   startIdvSelfie,
   submitIdvDocument,
@@ -40,7 +42,14 @@ import type { IdvVerificationView } from "@/lib/idv/user-data";
 
 const initialState: IdvSubmitState = {};
 
-type Step = "status" | "intro" | "capture" | "review" | "selfie";
+type Step =
+  | "status"
+  | "intro"
+  | "capture"
+  | "review"
+  /** Annonce du selfie, JUSTE avant de l'ouvrir (jamais 3 explications d'un coup). */
+  | "selfie-intro"
+  | "selfie";
 type Side = "front" | "back";
 
 type SelfieSession = {
@@ -234,9 +243,28 @@ export function IdvFlow({
                 }
               : undefined
           }
-          onStartSelfie={selfieReady ? () => void beginSelfie() : undefined}
+          onStartSelfie={
+            selfieReady ? () => setStep("selfie-intro") : undefined
+          }
           selfiePending={selfieStarting || selfiePending}
           selfieError={selfieError ?? selfieState.error ?? null}
+        />
+      </IdvScope>
+    );
+  }
+
+  if (step === "selfie-intro") {
+    return (
+      <IdvScope>
+        <IdvActionIntro
+          illustration={<IllusSelfie size={112} />}
+          eyebrow="Étape 2 sur 3"
+          title="Selfie rapide"
+          hint="Quelques gestes simples pour prouver que c'est bien vous : regardez l'objectif, puis suivez les consignes à l'écran."
+          cta="Commencer le selfie"
+          onStart={() => void beginSelfie()}
+          pending={selfieStarting}
+          error={selfieError}
         />
       </IdvScope>
     );

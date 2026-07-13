@@ -44,6 +44,7 @@ import {
   type KycDocView,
 } from "@/app/(driver)/actions";
 import { StepperHeader } from "./stepper-header";
+import { KycMethodStep } from "./kyc-method-step";
 
 /**
  * Dossier de vérification d'identité du livreur, en quatre étapes.
@@ -59,10 +60,14 @@ import { StepperHeader } from "./stepper-header";
  * définitions du « dossier complet ».
  */
 
-/** Les clés d'exigence de `kycReport`, réparties par étape. */
+/** Les clés d'exigence de `kycReport`, réparties par étape. Selon la méthode
+ *  choisie, l'étape « Vérification » exige soit l'identité vérifiée
+ *  automatiquement (`idv_verified`), soit les pièces (`doc_id`, `doc_selfie`) :
+ *  `kycReport` n'en produit qu'UNE des deux formes — les deux clés cohabitent
+ *  donc ici sans jamais être exigées ensemble. */
 const STEP_KEYS: readonly (readonly string[])[] = [
   ["full_name", "date_of_birth", "phone", "wilaya"],
-  ["doc_id", "doc_selfie"],
+  ["idv_verified", "doc_id", "doc_selfie"],
   [
     "vehicle_type",
     "vehicle_brand",
@@ -78,7 +83,7 @@ const STEP_KEYS: readonly (readonly string[])[] = [
 
 const STEP_TITLES = [
   "Informations personnelles",
-  "Identité",
+  "Vérification",
   "Véhicule",
   "Validation",
 ];
@@ -115,9 +120,16 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
     )
   );
 
+  // Le rapport CLIENT applique EXACTEMENT les mêmes règles que le serveur —
+  // méthode de vérification comprise (voie instantanée ⇒ « identité vérifiée »
+  // remplace les pièces à téléverser).
   const report = useMemo(
-    () => kycReport(profile, present, idKind),
-    [profile, present, idKind]
+    () =>
+      kycReport(profile, present, idKind, {
+        method: data.idv.method,
+        verified: data.idv.verified,
+      }),
+    [profile, present, idKind, data.idv.method, data.idv.verified]
   );
 
   const itemOf = useMemo(() => {
@@ -397,45 +409,51 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
         )}
 
         {step === 1 && (
-          <>
-            <Field label="Type de pièce d'identité" required>
-              <select
-                value={idKind}
-                onChange={(e) => onIdKindChange(e.target.value as IdDocKind)}
-                disabled={busy}
-                className={inputCls}
-              >
-                {ID_DOC_KINDS.map((k) => (
-                  <option key={k.value} value={k.value}>
-                    {k.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+          <KycMethodStep idv={data.idv}>
+            <>
+              <>
+                <Field label="Type de pièce d'identité" required>
+                  <select
+                    value={idKind}
+                    onChange={(e) =>
+                      onIdKindChange(e.target.value as IdDocKind)
+                    }
+                    disabled={busy}
+                    className={inputCls}
+                  >
+                    {ID_DOC_KINDS.map((k) => (
+                      <option key={k.value} value={k.value}>
+                        {k.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
 
-            <DocSlot
-              docType={idKind}
-              label={`Photo — ${idKindLabel.toLowerCase()}`}
-              doc={docOf(idKind)}
-              required
-              hint="Lisible, sans reflet, les quatre coins visibles"
-              busy={pendingDocs.includes(idKind)}
-              error={errorFor("doc_id")}
-              onUpload={onUpload}
-              onRemove={onRemove}
-            />
-            <DocSlot
-              docType="selfie"
-              doc={docOf("selfie")}
-              required
-              hint="Visage bien visible, sans lunettes de soleil"
-              capture
-              busy={pendingDocs.includes("selfie")}
-              error={errorFor("doc_selfie")}
-              onUpload={onUpload}
-              onRemove={onRemove}
-            />
-          </>
+                <DocSlot
+                  docType={idKind}
+                  label={`Photo — ${idKindLabel.toLowerCase()}`}
+                  doc={docOf(idKind)}
+                  required
+                  hint="Lisible, sans reflet, les quatre coins visibles"
+                  busy={pendingDocs.includes(idKind)}
+                  error={errorFor("doc_id")}
+                  onUpload={onUpload}
+                  onRemove={onRemove}
+                />
+                <DocSlot
+                  docType="selfie"
+                  doc={docOf("selfie")}
+                  required
+                  hint="Visage bien visible, sans lunettes de soleil"
+                  capture
+                  busy={pendingDocs.includes("selfie")}
+                  error={errorFor("doc_selfie")}
+                  onUpload={onUpload}
+                  onRemove={onRemove}
+                />
+              </>
+            </>
+          </KycMethodStep>
         )}
 
         {step === 2 && (

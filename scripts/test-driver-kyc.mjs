@@ -154,5 +154,46 @@ console.log("\n6. Le permis sert deux fois, il ne se dépose qu'une fois");
   );
 }
 
+// ── Voie « instantanée » (IDV, mig 0369) ───────────────────────────────────
+{
+  console.log(
+    "\n▸ Vérification INSTANTANÉE (IDV) — aucune pièce d'identité à envoyer"
+  );
+  const velo = { ...person, vehicle_type: "velo" };
+
+  ok(
+    !kycReport(velo, {}, "cni", { method: "instant", verified: false })
+      .complete,
+    "voie instantanée + identité NON vérifiée ⇒ dossier incomplet"
+  );
+  ok(
+    kycReport(velo, {}, "cni", { method: "instant", verified: true }).complete,
+    "voie instantanée + identité vérifiée ⇒ dossier complet SANS téléverser de pièce"
+  );
+  ok(
+    kycReport(velo, {}, "cni", {
+      method: "instant",
+      verified: false,
+    }).missing.some((m) => /identité vérifiée/i.test(m)),
+    "l'élément manquant annoncé est bien « identité vérifiée »"
+  );
+  ok(
+    requiredDocTypes("velo", "cni", "instant").length === 0,
+    "voie instantanée : aucune pièce d'identité ni selfie attendus"
+  );
+  ok(
+    requiredDocTypes("moto", "cni", "instant").join(",") ===
+      "permis,carte_grise,assurance",
+    "voie instantanée + motorisé : seules les pièces du VÉHICULE restent exigées"
+  );
+  ok(
+    kycReport(velo, { cni: true, selfie: true }, "cni", {
+      method: "manual",
+      verified: false,
+    }).complete,
+    "voie manuelle : le comportement d'avant est inchangé"
+  );
+}
+
 console.log(`\n${pass} réussis, ${fail} échoués`);
 process.exit(fail === 0 ? 0 : 1);

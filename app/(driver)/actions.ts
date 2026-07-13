@@ -6,7 +6,7 @@ import { z } from "zod";
 import { validateUploadedFile } from "@/lib/security/file-validation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { idvSubmissionBlock } from "@/lib/idv/compliance";
+import { getIdvCompliance, idvSubmissionBlock } from "@/lib/idv/compliance";
 import {
   canonicalPhone,
   getCurrentDriver,
@@ -20,6 +20,7 @@ import {
 } from "@/lib/auth/driver-gate";
 import {
   kycReport,
+  type KycMethod,
   requiredDocTypes,
   idDocKindOf,
   isAdult,
@@ -930,6 +931,21 @@ export type DriverKycData = {
   docs: KycDocView[];
   report: KycReport;
   rejectionReason: string | null;
+  /** Vérification d'identité : méthode choisie + état du parcours automatique. */
+  idv: {
+    /** La vérification automatique est-elle proposée à ce livreur ? */
+    available: boolean;
+    /** Le super-admin l'a rendue OBLIGATOIRE → aucun choix possible. */
+    forced: boolean;
+    /** Méthode retenue ('instant' | 'manual'), null tant qu'il n'a pas choisi. */
+    method: KycMethod | null;
+    /** Identité confirmée par le parcours automatique. */
+    verified: boolean;
+    /** Dossier en cours d'analyse ou de revue humaine. */
+    inProgress: boolean;
+    /** Route du parcours. */
+    route: string;
+  };
 };
 
 /** Le livreur peut-il encore MODIFIER son dossier ? (avant envoi seulement) */
@@ -955,22 +971,42 @@ export async function getDriverKyc(): Promise<DriverKycData | null> {
   if (!gate) return null;
 
   const admin = createAdminClient();
-  const [{ data: prof }, { data: docRows }] = await Promise.all([
-    admin
-      .from("drivers")
-      .select(
-        `full_name, date_of_birth, phone, email, wilaya, address, id_card_number,
+  const [{ data: prof }, { data: docRows }, idv, { data: methodRow }] =
+    await Promise.all([
+      admin
+        .from("drivers")
+        .select(
+          `full_name, date_of_birth, phone, email, wilaya, address, id_card_number,
          national_id_number, vehicle_type, vehicle_brand, vehicle_model,
          vehicle_plate, vehicle_color, vehicle_year`
-      )
-      .eq("id", gate.id)
-      .maybeSingle(),
-    admin
-      .from("driver_documents")
-      .select("id, doc_type, status, review_note, file_url")
-      .eq("driver_id", gate.id)
-      .order("created_at", { ascending: false }),
-  ]);
+        )
+        .eq("id", gate.id)
+        .maybeSingle(),
+      admin
+        .from("driver_documents")
+        .select("id, doc_type, status, review_note, file_url")
+        .eq("driver_id", gate.id)
+        .order("created_at", { ascending: false }),
+      getIdvCompliance("driver"),
+      // `kyc_method` (mig 0369) pas encore dans database.types.ts généré → cast.
+      (
+        admin.from.bind(admin) as unknown as (t: string) => {
+          select: (c: string) => {
+            eq: (
+              c: string,
+              v: string
+            ) => {
+              maybeSingle: () => Promise<{
+                data: { kyc_method: string | null } | null;
+              }>;
+            };
+          };
+        }
+      )("drivers")
+        .select("kyc_method")
+        .eq("id", gate.id)
+        .maybeSingle(),
+    ]);
   if (!prof) return null;
 
   const docs: KycDocView[] = await Promise.all(
@@ -996,12 +1032,73 @@ export async function getDriverKyc(): Promise<DriverKycData | null> {
   const present: KycDocs = {};
   for (const d of docs) present[d.docType] = true;
 
+  // Méthode retenue : imposée à « instant » quand l'IDV est obligatoire.
+  const stored = (methodRow?.kyc_method ?? null) as KycMethod | null;
+  const forced = idv.enabled && idv.required;
+  const method: KycMethod | null = forced
+    ? "instant"
+    : idv.enabled
+      ? stored
+      : "manual";
+
   return {
     profile,
     docs,
-    report: kycReport(profile, present),
+    report: kycReport(profile, present, idDocKindOf(present), {
+      method,
+      verified: idv.verified,
+    }),
     rejectionReason: gate.rejectionReason,
+    idv: {
+      available: idv.enabled,
+      forced,
+      method,
+      verified: idv.verified,
+      inProgress: idv.inProgress,
+      route: idv.route,
+    },
   };
+}
+
+/**
+ * Choix de la MÉTHODE de vérification d'identité (étape 2 de l'inscription).
+ * Le serveur ne fait jamais confiance au client : si le super-admin a rendu la
+ * vérification automatique OBLIGATOIRE, le choix est ignoré et « instant » est
+ * imposé ; si elle n'est pas publiée, seul « manual » existe.
+ */
+export async function setDriverKycMethod(
+  method: KycMethod
+): Promise<{ ok: boolean; error?: string; method?: KycMethod }> {
+  const g = await requireEditableDossier();
+  if (!g.ok) return { ok: false, error: g.error };
+  if (method !== "manual" && method !== "instant") {
+    return { ok: false, error: "Méthode inconnue." };
+  }
+
+  const idv = await getIdvCompliance("driver");
+  const effective: KycMethod = !idv.enabled
+    ? "manual"
+    : idv.required
+      ? "instant"
+      : method;
+
+  const admin = createAdminClient();
+  const { error } = await (
+    admin.from.bind(admin) as unknown as (t: string) => {
+      update: (v: Record<string, unknown>) => {
+        eq: (
+          c: string,
+          v: string
+        ) => Promise<{ error: { message: string } | null }>;
+      };
+    }
+  )("drivers")
+    .update({ kyc_method: effective })
+    .eq("id", g.gate.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/driver/inscription");
+  return { ok: true, method: effective };
 }
 
 const txt = (v: FormDataEntryValue | null): string | null => {
@@ -1246,12 +1343,54 @@ export async function submitDriverDossier(): Promise<{
   const present: KycDocs = {};
   for (const d of docRows ?? []) present[d.doc_type as DriverDocType] = true;
 
-  const report = kycReport(prof as KycProfile, present);
+  // Méthode de vérification retenue (relue en base : le client ne décide pas)
+  // + état réel du parcours automatique.
+  const idv = await getIdvCompliance("driver");
+  const { data: methodRow } = await (
+    admin.from.bind(admin) as unknown as (t: string) => {
+      select: (c: string) => {
+        eq: (
+          c: string,
+          v: string
+        ) => {
+          maybeSingle: () => Promise<{
+            data: { kyc_method: string | null } | null;
+          }>;
+        };
+      };
+    }
+  )("drivers")
+    .select("kyc_method")
+    .eq("id", g.gate.id)
+    .maybeSingle();
+  const method: KycMethod | null =
+    idv.enabled && idv.required
+      ? "instant"
+      : idv.enabled
+        ? ((methodRow?.kyc_method ?? null) as KycMethod | null)
+        : "manual";
+
+  const report = kycReport(prof as KycProfile, present, idDocKindOf(present), {
+    method,
+    verified: idv.verified,
+  });
   if (!report.complete) {
     return {
       ok: false,
       error: "Votre dossier est incomplet.",
       missing: report.missing,
+    };
+  }
+
+  // Voie « instantanée » choisie : l'identité doit être RÉELLEMENT confirmée —
+  // sans ça, un livreur pourrait choisir cette voie et n'envoyer aucune pièce.
+  if (method === "instant" && !idv.verified) {
+    return {
+      ok: false,
+      error: idv.inProgress
+        ? "Votre identité est en cours de vérification. Vous pourrez transmettre votre dossier dès qu'elle sera confirmée."
+        : "Terminez la vérification instantanée de votre identité (document + selfie).",
+      missing: ["Vérification d'identité"],
     };
   }
 
@@ -1264,7 +1403,8 @@ export async function submitDriverDossier(): Promise<{
   // même règle que celle affichée au livreur, jamais une seconde définition.
   const missingDocs = requiredDocTypes(
     prof.vehicle_type,
-    idDocKindOf(present)
+    idDocKindOf(present),
+    method
   ).filter((t) => !present[t]);
   if (missingDocs.length > 0) {
     return { ok: false, error: "Des pièces obligatoires sont manquantes." };

@@ -151,6 +151,9 @@ function section(
  * l'envoi est autorisé. Appelée à l'identique côté client (affichage) et côté
  * serveur (autorisation d'envoi) — jamais deux règles différentes.
  */
+/** Méthode de vérification d'identité choisie à l'inscription. */
+export type KycMethod = "manual" | "instant";
+
 export function kycReport(
   profile: KycProfile,
   docs: KycDocs,
@@ -161,9 +164,21 @@ export function kycReport(
    * permis, déposé pour le véhicule) suffirait. Le serveur, lui, n'a pas cette
    * sélection : il relit la pièce réellement déposée.
    */
-  idKind: IdDocKind = idDocKindOf(docs)
+  idKind: IdDocKind = idDocKindOf(docs),
+  /**
+   * Vérification d'identité AUTOMATIQUE (IDV). Quand le livreur a choisi la
+   * voie « instantanée », sa pièce d'identité et son selfie ne se téléversent
+   * PAS : ils sont capturés et contrôlés par le parcours IDV. L'exigence
+   * devient donc « identité vérifiée », et elle n'est satisfaite que lorsque
+   * le dossier IDV est approuvé — jamais sur simple déclaration.
+   */
+  idv: { method: KycMethod | null; verified: boolean } = {
+    method: null,
+    verified: false,
+  }
 ): KycReport {
   const motorized = isMotorized(profile.vehicle_type);
+  const instant = idv.method === "instant";
 
   const personal = section("personal", "Informations personnelles", [
     {
@@ -190,19 +205,31 @@ export function kycReport(
       required: true,
       done: filled(profile.wilaya),
     },
-    // Une seule pièce d'identité, de la nature choisie par le livreur.
-    {
-      key: "doc_id",
-      label: DOC_LABELS.cni,
-      required: true,
-      done: !!docs[idKind],
-    },
-    {
-      key: "doc_selfie",
-      label: DOC_LABELS.selfie,
-      required: true,
-      done: !!docs.selfie,
-    },
+    // Identité : soit vérifiée AUTOMATIQUEMENT (parcours IDV), soit prouvée
+    // par les pièces téléversées (examen par l'équipe Coligo).
+    ...(instant
+      ? [
+          {
+            key: "idv_verified",
+            label: "Identité vérifiée (document + selfie)",
+            required: true,
+            done: idv.verified,
+          },
+        ]
+      : [
+          {
+            key: "doc_id",
+            label: DOC_LABELS.cni,
+            required: true,
+            done: !!docs[idKind],
+          },
+          {
+            key: "doc_selfie",
+            label: DOC_LABELS.selfie,
+            required: true,
+            done: !!docs.selfie,
+          },
+        ]),
     {
       key: "email",
       label: "Adresse e-mail",
@@ -286,9 +313,11 @@ export function kycReport(
  */
 export function requiredDocTypes(
   vehicleType: string | null | undefined,
-  idKind: IdDocKind = DEFAULT_ID_DOC_KIND
+  idKind: IdDocKind = DEFAULT_ID_DOC_KIND,
+  /** « instant » : identité vérifiée par l'IDV → rien à téléverser pour elle. */
+  method: KycMethod | null = null
 ): DriverDocType[] {
-  const base: DriverDocType[] = [idKind, "selfie"];
+  const base: DriverDocType[] = method === "instant" ? [] : [idKind, "selfie"];
   return isMotorized(vehicleType)
     ? [
         ...new Set<DriverDocType>([

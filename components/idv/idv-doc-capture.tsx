@@ -48,6 +48,9 @@ const GUIDANCE_FR: Record<Guidance, string> = {
 /** Analyses consécutives « toutes vertes » avant le déclenchement auto. */
 const STEADY_FRAMES = 6;
 const ANALYSIS_FPS = 8;
+/** Côté minimal de l'image envoyée (le serveur refuse en dessous de 640 px).
+ *  On vise un peu au-dessus pour garder de la marge à la lecture de la MRZ. */
+const MIN_CAPTURE_SIDE = 720;
 
 /** Styles d'animation de la caméra (locaux, reduced-motion géré). */
 function CaptureStyles() {
@@ -139,7 +142,12 @@ export function IdvDocCapture({
     };
   }, []);
 
-  /** Capture : crop du gabarit (+6 % de marge) à la résolution native. */
+  /** Capture : crop du gabarit (+6 % de marge) à la résolution native, avec
+   *  une TAILLE MINIMALE garantie — si la zone du gabarit est trop petite en
+   *  pixels réels (flux 1080p en portrait : un passeport n'y occupe que ~550
+   *  px de haut), on ÉLARGIT la zone autour du document plutôt que d'envoyer
+   *  une image que le serveur refusera (« Image trop petite »). Si même le
+   *  capteur ne suffit pas, on prend la frame entière. */
   const takePhoto = useCallback(() => {
     const video = videoRef.current;
     const rect = guideRectInVideo();
@@ -149,10 +157,26 @@ export function IdvDocCapture({
     const margin = 0.06;
     const mx = rect.w * margin;
     const my = rect.h * margin;
-    const sx = Math.max(0, rect.x - mx);
-    const sy = Math.max(0, rect.y - my);
-    const sw = Math.min(video.videoWidth - sx, rect.w + 2 * mx);
-    const sh = Math.min(video.videoHeight - sy, rect.h + 2 * my);
+    let sx = Math.max(0, rect.x - mx);
+    let sy = Math.max(0, rect.y - my);
+    let sw = Math.min(video.videoWidth - sx, rect.w + 2 * mx);
+    let sh = Math.min(video.videoHeight - sy, rect.h + 2 * my);
+
+    // Élargissement symétrique jusqu'au minimum exigé (borné par la frame).
+    const grow = (
+      pos: number,
+      size: number,
+      limit: number,
+      needed: number
+    ): [number, number] => {
+      if (size >= needed) return [pos, size];
+      const target = Math.min(limit, needed);
+      const extra = target - size;
+      const newPos = Math.max(0, Math.min(pos - extra / 2, limit - target));
+      return [newPos, target];
+    };
+    [sx, sw] = grow(sx, sw, video.videoWidth, MIN_CAPTURE_SIDE);
+    [sy, sh] = grow(sy, sh, video.videoHeight, MIN_CAPTURE_SIDE);
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(sw);
     canvas.height = Math.round(sh);
@@ -272,8 +296,13 @@ export function IdvDocCapture({
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: "environment" },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            // Le document n'occupe qu'une PARTIE du capteur : sans une haute
+            // résolution, le recadrage du gabarit sort en dessous du minimum
+            // exigé par le serveur (« Image trop petite », bug vécu au scan
+            // d'un passeport). On demande le maximum ; le navigateur retombe
+            // seul sur ce que l'appareil sait faire.
+            width: { ideal: 2560 },
+            height: { ideal: 1440 },
           },
           audio: false,
         });
