@@ -22,6 +22,13 @@ import {
 import { assessDocQuality } from "../lib/idv/pipeline/quality.ts";
 import { computeCheckDigit, parseMrz } from "../lib/idv/mrz.ts";
 import { getMrzWorker, ocrMrzBand } from "../lib/idv/pipeline/mrz-ocr.ts";
+import {
+  drawChallenges,
+  evaluateLiveness,
+  issueChallengeToken,
+  verifyChallengeToken,
+  embeddingCosine,
+} from "../lib/idv/liveness.ts";
 import sharp from "sharp";
 
 let pass = 0,
@@ -291,6 +298,122 @@ ok(
       : `texte lu :\n${text.trim()}\nparse: ${JSON.stringify(parsed?.checks ?? null)}`
   );
   await (await getMrzWorker()).terminate();
+}
+
+// ── 8) Liveness actif : défis, géométrie, jeton anti-rejeu (étape 6) ───────
+{
+  // Fixture : visage centré 960×1280, yeux à ±60 px du milieu, nez au milieu.
+  const mkFace = ({ noseShift = 0, scale = 1, eyeDist = 120 } = {}) => {
+    const w = 300 * scale;
+    const midX = 480;
+    return {
+      x: midX - w / 2,
+      y: 640 - (w * 1.2) / 2,
+      w,
+      h: w * 1.2,
+      landmarks: [
+        [midX - eyeDist / 2, 580],
+        [midX + eyeDist / 2, 580],
+        [midX + noseShift, 660],
+        [midX - 40, 730],
+        [midX + 40, 730],
+      ],
+      imageW: 960,
+      imageH: 1280,
+    };
+  };
+
+  const challenges = ["center", "turn_left", "closer"];
+  const good = evaluateLiveness(challenges, [
+    mkFace(),
+    mkFace({ noseShift: 30 }), // nez vers la droite image = tourné vers SA gauche
+    mkFace({ scale: 1.35 }),
+  ]);
+  ok(
+    "liveness : séquence conforme → score 1",
+    good.passed && good.score === 1,
+    JSON.stringify(good.verdicts.map((v) => v.reason))
+  );
+
+  const wrongTurn = evaluateLiveness(challenges, [
+    mkFace(),
+    mkFace({ noseShift: -30 }), // tourné du MAUVAIS côté
+    mkFace({ scale: 1.35 }),
+  ]);
+  ok(
+    "liveness : rotation du mauvais côté → défi raté",
+    !wrongTurn.passed &&
+      wrongTurn.verdicts[1].reason === "head_turn_not_detected"
+  );
+
+  const photoTilt = evaluateLiveness(challenges, [
+    mkFace(),
+    // Photo inclinée : gros décalage du nez MAIS écart inter-yeux écrasé.
+    mkFace({ noseShift: 40, eyeDist: 55 }),
+    mkFace({ scale: 1.35 }),
+  ]);
+  ok(
+    "liveness : photo inclinée (yeux écrasés) → détectée",
+    photoTilt.verdicts[1].reason === "eye_distance_collapsed"
+  );
+
+  const staticAttack = evaluateLiveness(challenges, [
+    mkFace(),
+    mkFace(), // aucune rotation
+    mkFace(), // aucun rapprochement
+  ]);
+  ok(
+    "liveness : photo statique → 2 défis ratés",
+    staticAttack.score < 0.5,
+    `score ${staticAttack.score}`
+  );
+
+  const missing = evaluateLiveness(challenges, [
+    mkFace(),
+    null,
+    mkFace({ scale: 1.35 }),
+  ]);
+  ok(
+    "liveness : frame sans visage → no_face",
+    missing.verdicts[1].reason === "no_face"
+  );
+
+  const seq = drawChallenges();
+  ok(
+    "défis : centre d'abord + rotation aléatoire + rapprochement",
+    seq[0] === "center" &&
+      ["turn_left", "turn_right"].includes(seq[1]) &&
+      seq[2] === "closer"
+  );
+
+  const exp = Date.now() + 60_000;
+  const token = issueChallengeToken("secret-test", "verif-1", seq, exp);
+  ok(
+    "jeton : valide → accepté",
+    verifyChallengeToken("secret-test", token, "verif-1", seq, exp)
+  );
+  ok(
+    "jeton : défis modifiés → refusé",
+    !verifyChallengeToken(
+      "secret-test",
+      token,
+      "verif-1",
+      ["center", "turn_left", "turn_right"],
+      exp
+    )
+  );
+  ok(
+    "jeton : expiré → refusé",
+    !verifyChallengeToken("secret-test", token, "verif-1", seq, exp, exp + 1)
+  );
+  ok(
+    "jeton : autre dossier → refusé",
+    !verifyChallengeToken("secret-test", token, "verif-2", seq, exp)
+  );
+  ok(
+    "cosine embeddings : identité = 1",
+    Math.abs(embeddingCosine([0.6, 0.8], [0.6, 0.8]) - 1) < 1e-9
+  );
 }
 
 console.log(`\n${fail === 0 ? "✅" : "❌"} ${pass} OK / ${fail} KO`);

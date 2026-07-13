@@ -181,8 +181,25 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
    JAMAIS toucher les champs alphanumériques (bug attrapé par « ZE184226B »).
    5b (à venir) : PP-OCR det/rec ONNX arabe+latin pour le permis (sans MRZ)
    et le croisement zone visuelle ↔ MRZ.
-6. Selfie + liveness (défis actifs signés + MiniFASNet passif — conversion
-   ONNX maison des poids Apache-2.0).
+6. ✅ **Selfie + liveness ACTIF** : défis aléatoires (centre → tourner la tête
+   à gauche OU à droite → se rapprocher) **tirés et signés par le serveur**
+   (`startIdvSelfie`, jeton HMAC lié au dossier + TTL 5 min = anti-rejeu).
+   L'app ne fait qu'afficher la consigne, compter, capturer (caméra frontale,
+   aperçu miroir mais **frames non-miroir** — la géométrie serveur en dépend ;
+   pas de repli fichier : ce serait la négation du contrôle).
+   `POST /api/idv/analyze-selfie` (Bearer) calcule par frame : meilleur visage
+   YuNet (boîte + 5 repères) + embedding SFace. Le JUGEMENT vit dans
+   `lib/idv/liveness.ts` (pur, testé) : yaw = décalage nez ↔ milieu des yeux
+   normalisé par l'écart inter-yeux → une vraie rotation 3D produit la
+   parallaxe, une **photo inclinée écrase l'écart inter-yeux** (détecté :
+   `eye_distance_collapsed`) ; « closer » = grossissement ≥ 18 % ; cohérence
+   SFace entre frames (anti-échange de visage). Score vs `liveness_min` du
+   mode ; échec reprenable → coaching + reprise (tentatives bornées) ;
+   incohérence de visage / tentatives épuisées → policy `liveness_fail` du
+   mode (refus auto ou revue) ; pipeline injoignable → revue humaine.
+   `liveness_passive` (MiniFASNetV2 ONNX) = SKIPPED → **étape 6b** (conversion
+   des poids Apache-2.0). Selfie validé ⇒ `pending_review` en attendant le
+   face match automatique de l'étape 7.
 7. Face match (YuNet + SFace) + calibration des seuils + branchement du
    moteur de décision + notifications.
 8. Console super-admin — file de revue : côte à côte, approuver/refuser/

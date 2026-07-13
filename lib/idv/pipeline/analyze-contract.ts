@@ -40,3 +40,30 @@ export type AnalyzeDocumentResponse =
       documentExpiresAt: string | null;
     }
   | { ok: false; error: string };
+
+// ── Selfie (étape 6) : géométrie + embedding par frame, jugement côté action ─
+
+export type AnalyzeSelfieRequest = {
+  /** Chemins des frames dans idv-captures, ORDRE = défis (0 = centre). */
+  paths: string[];
+};
+
+export type AnalyzedFrame = {
+  face: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    score: number;
+    /** 5 repères YuNet (œil D, œil G, nez, bouche D, bouche G). */
+    landmarks: [number, number][];
+    imageW: number;
+    imageH: number;
+  } | null;
+  /** Embedding SFace L2-normalisé (128) — null si aucun visage. */
+  embedding: number[] | null;
+};
+
+export type AnalyzeSelfieResponse =
+  | { ok: true; frames: AnalyzedFrame[] }
+  | { ok: false; error: string };

@@ -17,10 +17,23 @@ import {
 import { logIdvAudit } from "@/lib/idv/audit";
 import { IDV_ACTIVE_STATUSES, type IdvStatus } from "@/lib/idv/types";
 import { IDV_DEFAULT_POLICY } from "@/lib/idv/decision";
+import {
+  CHALLENGE_TTL_MS,
+  drawChallenges,
+  embeddingCosine,
+  evaluateLiveness,
+  FRAME_CONSISTENCY_MIN,
+  issueChallengeToken,
+  verifyChallengeToken,
+  IDV_CHALLENGES,
+  type IdvChallenge,
+} from "@/lib/idv/liveness";
 import type {
   AnalyzeDocumentRequest,
   AnalyzeDocumentResponse,
   AnalyzedCheck,
+  AnalyzeSelfieRequest,
+  AnalyzeSelfieResponse,
 } from "@/lib/idv/pipeline/analyze-contract";
 
 // =============================================================================
@@ -99,25 +112,30 @@ type PolicySelect = {
   };
 };
 
-/** Policy d'échec du mode (colonne cachée aux clients → lecture admin). */
-async function loadModePolicy(
-  mode: string
-): Promise<Record<string, "reject" | "review">> {
+/** Paramètres de décision du mode (colonnes cachées aux clients → admin). */
+async function loadModeParams(mode: string): Promise<{
+  policy: Record<string, "reject" | "review">;
+  livenessMin: number;
+}> {
   const { data } = await table<PolicySelect>("idv_modes")
-    .select("policy")
+    .select("policy, liveness_min")
     .eq("key", mode)
     .maybeSingle();
-  return { ...IDV_DEFAULT_POLICY, ...((data?.policy ?? {}) as object) };
+  return {
+    policy: { ...IDV_DEFAULT_POLICY, ...((data?.policy ?? {}) as object) },
+    livenessMin: Number(data?.liveness_min ?? 0.7),
+  };
 }
 
 /**
- * Appelle la route interne d'analyse (la fonction qui embarque les modèles),
+ * Appelle une route interne d'analyse (la fonction qui embarque les modèles),
  * avec UNE relance. null = pipeline injoignable → l'appelant passe le dossier
  * en revue humaine (jamais bloquer un utilisateur sur une panne).
  */
-async function callAnalyzeDocument(
-  payload: AnalyzeDocumentRequest
-): Promise<Extract<AnalyzeDocumentResponse, { ok: true }> | null> {
+async function callIdvApi<T extends { ok: boolean }>(
+  route: string,
+  payload: unknown
+): Promise<Extract<T, { ok: true }> | null> {
   const secret = process.env.INTERNAL_IDV_SECRET;
   if (!secret) return null;
   const base =
@@ -127,7 +145,7 @@ async function callAnalyzeDocument(
         `https://${process.env.VERCEL_URL ?? ""}`);
   for (let tries = 0; tries < 2; tries++) {
     try {
-      const res = await fetch(`${base}/api/idv/analyze-document`, {
+      const res = await fetch(`${base}/api/idv/${route}`, {
         method: "POST",
         headers: {
           authorization: `Bearer ${secret}`,
@@ -138,15 +156,20 @@ async function callAnalyzeDocument(
         cache: "no-store",
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = (await res.json()) as AnalyzeDocumentResponse;
-      if (json.ok) return json;
-      throw new Error(json.error);
+      const json = (await res.json()) as T;
+      if (json.ok) return json as Extract<T, { ok: true }>;
+      throw new Error((json as { error?: string }).error);
     } catch {
       /* une relance puis dégradé */
     }
   }
   return null;
 }
+
+const callAnalyzeDocument = (payload: AnalyzeDocumentRequest) =>
+  callIdvApi<AnalyzeDocumentResponse>("analyze-document", payload);
+const callAnalyzeSelfie = (payload: AnalyzeSelfieRequest) =>
+  callIdvApi<AnalyzeSelfieResponse>("analyze-selfie", payload);
 
 /** Message inline pour les échecs REPRENABLES (photo à refaire). */
 function retryableMessage(
@@ -431,7 +454,7 @@ export async function submitIdvDocument(
 
   // 1) Échec DUR (document expiré / checksums MRZ invalides) → policy du mode.
   if (hardFailures.length > 0) {
-    const policy = await loadModePolicy(mode);
+    const { policy } = await loadModeParams(mode);
     const expired = hardFailures.some((c) => c.key === "doc_expiry");
     const reason = expired ? "document_expired" : "mrz_invalid";
     const action = expired ? policy.expired_document : policy.check_failed;
@@ -512,4 +535,305 @@ export async function submitIdvDocument(
   });
   revalidatePath("/driver/identite");
   return { ok: true, status: "doc_validated" };
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SELFIE + LIVENESS ACTIF (étape 6) — défis émis et jugés PAR LE SERVEUR.
+// ═════════════════════════════════════════════════════════════════════════════
+
+type CountSelect = {
+  select: (
+    cols: string,
+    opts: { count: "exact"; head: true }
+  ) => {
+    eq: (
+      c: string,
+      v: string
+    ) => {
+      eq: (c: string, v: string) => Promise<{ count: number | null }>;
+    };
+  };
+};
+
+export type IdvSelfieSession =
+  | { error: string }
+  | { challenges: IdvChallenge[]; token: string; expiresAt: number };
+
+/** Ouvre une session de défis liveness (jeton HMAC à expiration courte). */
+export async function startIdvSelfie(): Promise<IdvSelfieSession> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée — reconnectez-vous." };
+  const gate = await getIdvGate(PROFILE);
+  if (!gate.enabled) return { error: "Vérification indisponible." };
+  const secret = process.env.INTERNAL_IDV_SECRET;
+  if (!secret) return { error: "Vérification indisponible." };
+
+  const { data: verif } = await table<ActiveSelect>("idv_verifications")
+    .select("id, status")
+    .eq("user_id", user.id)
+    .eq("profile", PROFILE)
+    .in("status", IDV_ACTIVE_STATUSES)
+    .maybeSingle();
+  if (
+    !verif ||
+    (verif.status !== "doc_validated" && verif.status !== "resubmit_selfie")
+  ) {
+    return { error: "Validez d'abord votre document." };
+  }
+
+  const challenges = drawChallenges();
+  const expiresAt = Date.now() + CHALLENGE_TTL_MS;
+  const token = issueChallengeToken(
+    secret,
+    String(verif.id),
+    challenges,
+    expiresAt
+  );
+  return { challenges, token, expiresAt };
+}
+
+/** Message de coaching pour un échec REPRENABLE de liveness. */
+function livenessCoaching(reasons: (string | null)[]): string {
+  const map: Record<string, string> = {
+    no_face: "Visage non détecté — placez-vous face caméra, en pleine lumière",
+    face_off_center: "Placez votre visage dans l'ovale",
+    face_too_small: "Rapprochez le téléphone de votre visage",
+    head_turn_not_detected: "Tournez davantage la tête au moment demandé",
+    not_closer: "Rapprochez davantage le téléphone quand c'est demandé",
+    eye_distance_collapsed: "Gardez le téléphone bien face à vous",
+    no_reference: "Recommencez le selfie depuis le début",
+  };
+  for (const r of reasons) if (r && map[r]) return map[r];
+  return "Selfie non conforme — recommencez en suivant les consignes";
+}
+
+export async function submitIdvSelfie(
+  _prev: IdvSubmitState,
+  formData: FormData
+): Promise<IdvSubmitState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée — reconnectez-vous." };
+  const gate = await getIdvGate(PROFILE);
+  if (!gate.enabled) {
+    return { error: "La vérification d'identité n'est pas disponible." };
+  }
+  const secret = process.env.INTERNAL_IDV_SECRET;
+  if (!secret) return { error: "Vérification indisponible." };
+
+  const { data: verif } = await table<ActiveSelect>("idv_verifications")
+    .select("id, status, mode")
+    .eq("user_id", user.id)
+    .eq("profile", PROFILE)
+    .in("status", IDV_ACTIVE_STATUSES)
+    .maybeSingle();
+  if (
+    !verif ||
+    (verif.status !== "doc_validated" && verif.status !== "resubmit_selfie")
+  ) {
+    return {
+      error: "Dossier non prêt pour le selfie.",
+      status: verif?.status as IdvStatus | undefined,
+    };
+  }
+  const verifId = String(verif.id);
+  const keepStatus = verif.status as IdvStatus;
+
+  // ── Session de défis : jeton HMAC vérifié (anti-rejeu, anti-bricolage) ────
+  const challenges = String(formData.get("challenges") ?? "")
+    .split(",")
+    .filter(Boolean) as IdvChallenge[];
+  const expiresAt = Number(formData.get("expires_at"));
+  const token = String(formData.get("token") ?? "");
+  if (
+    challenges.some((c) => !IDV_CHALLENGES.includes(c)) ||
+    !verifyChallengeToken(secret, token, verifId, challenges, expiresAt)
+  ) {
+    return { error: "Session de vérification expirée — relancez le selfie." };
+  }
+
+  // ── Tentatives selfie bornées (comptées sur les contrôles liveness) ──────
+  const enabledModes = await getIdvModes();
+  const maxAttempts =
+    enabledModes.find((m) => m.key === verif.mode)?.max_attempts ?? 3;
+  const { count } = await table<CountSelect>("idv_checks")
+    .select("*", { count: "exact", head: true })
+    .eq("verification_id", verifId)
+    .eq("check_key", "liveness_active");
+  const selfieAttempt = (count ?? 0) + 1;
+  const applyStatus = async (patch: Row) =>
+    table<UpdateById>("idv_verifications").update(patch).eq("id", verifId);
+
+  if (selfieAttempt > maxAttempts) {
+    await applyStatus({ status: "pending_review" });
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "sent_to_review",
+      reason: "max_selfie_attempts_reached",
+      metadata: { selfieAttempt, maxAttempts },
+    });
+    revalidatePath("/driver/identite");
+    return { ok: true, status: "pending_review" };
+  }
+
+  // ── Frames : magic bytes + upload bucket privé ────────────────────────────
+  const paths: string[] = [];
+  for (let i = 0; i < challenges.length; i++) {
+    const v = await validateUploadedFile(formData.get(`frame_${i}`), {
+      kind: "image",
+      maxBytes: 4 * MB,
+    });
+    if (!v.ok) return { error: `Image ${i + 1} — ${v.error}` };
+    const path = `${user.id}/${verifId}/selfie-${selfieAttempt}-${i}.${v.ext}`;
+    const admin = createAdminClient();
+    const { error: upErr } = await admin.storage
+      .from(BUCKET)
+      .upload(path, v.bytes, { contentType: v.mime, upsert: true });
+    if (upErr) return { error: "Envoi du selfie impossible. Réessayez." };
+    paths.push(path);
+  }
+  await logIdvAudit({
+    verificationId: verifId,
+    actorType: "user",
+    actorId: user.id,
+    action: "selfie_uploaded",
+    metadata: { selfieAttempt, frames: paths.length },
+  });
+
+  // ── Analyse (géométrie + embeddings) puis JUGEMENT ici ────────────────────
+  const analysis = await callAnalyzeSelfie({ paths });
+  if (!analysis) {
+    await applyStatus({ status: "pending_review", selfie_frames: paths });
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "sent_to_review",
+      reason: "pipeline_unavailable",
+      metadata: { selfieAttempt },
+    });
+    revalidatePath("/driver/identite");
+    return { ok: true, status: "pending_review" };
+  }
+
+  const evaluation = evaluateLiveness(
+    challenges,
+    analysis.frames.map((f) => f.face)
+  );
+  // Cohérence : le MÊME visage sur toutes les frames (anti-échange).
+  let minCosine: number | null = null;
+  const ref = analysis.frames[0]?.embedding;
+  if (ref) {
+    for (let i = 1; i < analysis.frames.length; i++) {
+      const emb = analysis.frames[i]?.embedding;
+      if (!emb) continue;
+      const cos = embeddingCosine(ref, emb);
+      minCosine = minCosine === null ? cos : Math.min(minCosine, cos);
+    }
+  }
+  const consistencyOk =
+    minCosine === null || minCosine >= FRAME_CONSISTENCY_MIN;
+  const score =
+    Math.round(evaluation.score * (consistencyOk ? 1 : 0.5) * 1000) / 1000;
+  const { policy, livenessMin } = await loadModeParams(verif.mode as string);
+  const passed = evaluation.passed && consistencyOk && score >= livenessMin;
+
+  await table<PlainInsert>("idv_checks").insert({
+    verification_id: verifId,
+    attempt: selfieAttempt,
+    check_key: "liveness_active",
+    status: passed ? "passed" : "failed",
+    score,
+    details: {
+      challenges,
+      verdicts: evaluation.verdicts,
+      minCosine,
+      consistencyOk,
+      livenessMin,
+    },
+  });
+  await table<PlainInsert>("idv_checks").insert({
+    verification_id: verifId,
+    attempt: selfieAttempt,
+    check_key: "liveness_passive",
+    status: "skipped",
+    score: null,
+    details: { reason: "minifasnet_not_wired_yet" },
+  });
+
+  if (passed) {
+    // Décision automatique (face match document ↔ selfie) = étape 7 : en
+    // attendant, dossier complet → revue humaine.
+    await applyStatus({
+      selfie_path: paths[0],
+      selfie_frames: paths,
+      status: "pending_review",
+    });
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "selfie_processed",
+      reason: "liveness_passed",
+      metadata: { selfieAttempt, score, minCosine },
+    });
+    revalidatePath("/driver/identite");
+    return { ok: true, status: "pending_review" };
+  }
+
+  // Incohérence de visage entre frames = signal de fraude → policy directe.
+  // Sinon : coaching + reprise tant qu'il reste des tentatives, puis policy.
+  const exhausted = selfieAttempt >= maxAttempts;
+  if (!consistencyOk || exhausted) {
+    const reason = !consistencyOk ? "liveness_inconsistent" : "liveness_low";
+    if (policy.liveness_fail === "reject") {
+      await applyStatus({
+        selfie_frames: paths,
+        status: "rejected",
+        decision: "auto_rejected",
+        decision_reason: reason,
+        decided_at: new Date().toISOString(),
+      });
+      await logIdvAudit({
+        verificationId: verifId,
+        actorType: "system",
+        action: "auto_rejected",
+        reason,
+        metadata: { selfieAttempt, score, minCosine },
+      });
+      revalidatePath("/driver/identite");
+      return { ok: true, status: "rejected" };
+    }
+    await applyStatus({ selfie_frames: paths, status: "pending_review" });
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "sent_to_review",
+      reason,
+      metadata: { selfieAttempt, score, minCosine },
+    });
+    revalidatePath("/driver/identite");
+    return { ok: true, status: "pending_review" };
+  }
+
+  await logIdvAudit({
+    verificationId: verifId,
+    actorType: "system",
+    action: "selfie_processed",
+    reason: "liveness_retryable_failure",
+    metadata: {
+      selfieAttempt,
+      score,
+      verdicts: evaluation.verdicts.filter((v) => !v.passed),
+    },
+  });
+  revalidatePath("/driver/identite");
+  return {
+    error: livenessCoaching(evaluation.verdicts.map((v) => v.reason)),
+    status: keepStatus,
+  };
 }

@@ -1,9 +1,11 @@
 "use client";
 
 // =============================================================================
-// IDV — CONTRÔLEUR du parcours de capture du document (étape 4) :
-// statut → intro → capture (recto puis verso) → revue → envoi → statut.
-// Le serveur revalide tout (magic bytes, qualité) : ici on orchestre l'UX.
+// IDV — CONTRÔLEUR du parcours : statut → intro → capture document (recto puis
+// verso) → revue → envoi → « Document validé » → selfie à défis → statut.
+// Le serveur revalide et JUGE tout (magic bytes, qualité, MRZ, liveness) :
+// ici on orchestre l'UX. Les défis liveness sont tirés et signés par le
+// serveur (startIdvSelfie) — le client ne les invente jamais.
 // =============================================================================
 
 import {
@@ -17,11 +19,15 @@ import { useRouter } from "next/navigation";
 import { Loader2, RefreshCcw, Send } from "lucide-react";
 import { IdvIntro } from "./idv-intro";
 import { IdvDocCapture } from "./idv-doc-capture";
+import { IdvSelfieCapture } from "./idv-selfie-capture";
 import { IdvStatusPanel } from "./idv-status-panel";
 import {
+  startIdvSelfie,
   submitIdvDocument,
+  submitIdvSelfie,
   type IdvSubmitState,
 } from "@/app/(driver)/driver/identite/actions";
+import type { IdvChallenge } from "@/lib/idv/liveness";
 import type {
   IdvDocumentType,
   IdvModePublic,
@@ -31,8 +37,14 @@ import type { IdvVerificationView } from "@/lib/idv/user-data";
 
 const initialState: IdvSubmitState = {};
 
-type Step = "status" | "intro" | "capture" | "review";
+type Step = "status" | "intro" | "capture" | "review" | "selfie";
 type Side = "front" | "back";
+
+type SelfieSession = {
+  challenges: IdvChallenge[];
+  token: string;
+  expiresAt: number;
+};
 
 /** Ratio du gabarit : passeport (page photo TD3) ≈ 1.42, carte ID-1 ≈ 1.586. */
 function docRatio(doc: IdvDocumentType | undefined): number {
@@ -79,6 +91,15 @@ export function IdvFlow({
   /** L'erreur serveur ne doit plus s'afficher sur des photos REPRISES. */
   const [errorDismissed, setErrorDismissed] = useState(false);
 
+  // ── Selfie (étape 6) : session de défis émise par le serveur ──────────────
+  const [selfieState, selfieDispatch, selfiePending] = useActionState(
+    submitIdvSelfie,
+    initialState
+  );
+  const [session, setSession] = useState<SelfieSession | null>(null);
+  const [selfieStarting, setSelfieStarting] = useState(false);
+  const [selfieError, setSelfieError] = useState<string | null>(null);
+
   const doc = docTypes.find((d) => d.key === docKey);
 
   // Aperçus : URLs d'objets créées/révoquées proprement.
@@ -107,6 +128,13 @@ export function IdvFlow({
     }
   }, [state, router]);
 
+  // Résultat du selfie : statut mis à jour ; un échec REPRENABLE laisse le
+  // dossier en place (le bouton « Refaire le selfie » reste offert).
+  useEffect(() => {
+    if (selfieState.status) setStatusOverride(selfieState.status);
+    if (selfieState.ok) router.refresh();
+  }, [selfieState, router]);
+
   const submit = () => {
     if (!doc || !captures.front) return;
     const fd = new FormData();
@@ -126,13 +154,47 @@ export function IdvFlow({
     startTransition(() => dispatch(fd));
   };
 
+  // ── Selfie : le serveur tire les défis et signe la session ────────────────
+  const beginSelfie = async () => {
+    setSelfieStarting(true);
+    setSelfieError(null);
+    const res = await startIdvSelfie();
+    setSelfieStarting(false);
+    if ("error" in res) {
+      setSelfieError(res.error);
+      return;
+    }
+    setSession(res);
+    setStep("selfie");
+  };
+
+  const sendSelfie = (frames: Blob[], s: SelfieSession) => {
+    const fd = new FormData();
+    fd.set("challenges", s.challenges.join(","));
+    fd.set("token", s.token);
+    fd.set("expires_at", String(s.expiresAt));
+    frames.forEach((blob, i) =>
+      fd.set(
+        `frame_${i}`,
+        new File([blob], `frame-${i}.jpg`, { type: "image/jpeg" })
+      )
+    );
+    setStep("status");
+    setSession(null);
+    startTransition(() => selfieDispatch(fd));
+  };
+
+  const currentStatus = statusOverride ?? verification?.status ?? "draft";
+  const selfieReady =
+    currentStatus === "doc_validated" || currentStatus === "resubmit_selfie";
+
   // ── Écrans ────────────────────────────────────────────────────────────────
   if (step === "status") {
     return (
       <IdvStatusPanel
-        status={statusOverride ?? verification?.status ?? "draft"}
+        status={currentStatus}
         onRetryDocument={
-          (statusOverride ?? verification?.status) === "resubmit_document"
+          currentStatus === "resubmit_document"
             ? () => {
                 setCaptures({});
                 setSide("front");
@@ -140,6 +202,22 @@ export function IdvFlow({
               }
             : undefined
         }
+        onStartSelfie={selfieReady ? () => void beginSelfie() : undefined}
+        selfiePending={selfieStarting || selfiePending}
+        selfieError={selfieError ?? selfieState.error ?? null}
+      />
+    );
+  }
+
+  if (step === "selfie" && session) {
+    return (
+      <IdvSelfieCapture
+        challenges={session.challenges}
+        onDone={(frames) => sendSelfie(frames, session)}
+        onClose={() => {
+          setSession(null);
+          setStep("status");
+        }}
       />
     );
   }

@@ -38,10 +38,17 @@ function reachedStep(status: IdvStatus): number {
 export function IdvStatusPanel({
   status,
   onRetryDocument,
+  onStartSelfie,
+  selfiePending = false,
+  selfieError = null,
 }: {
   status: IdvStatus;
   /** Présent quand l'utilisateur peut reprendre la photo du document. */
   onRetryDocument?: () => void;
+  /** Présent quand l'étape selfie est accessible (doc validé / selfie redemandé). */
+  onStartSelfie?: () => void;
+  selfiePending?: boolean;
+  selfieError?: string | null;
 }) {
   const step = reachedStep(status);
 
@@ -57,7 +64,7 @@ export function IdvStatusPanel({
         />
       ),
       tone: "Document validé",
-      hint: "Étape suivante : le selfie — disponible très bientôt dans l'application.",
+      hint: "Étape suivante : un selfie rapide, avec quelques gestes simples.",
     },
     doc_processing: {
       icon: (
@@ -127,7 +134,7 @@ export function IdvStatusPanel({
         />
       ),
       tone: "Nouveau selfie demandé",
-      hint: "La reprise du selfie sera disponible très bientôt dans l'application.",
+      hint: "L'équipe Coligo a besoin d'un nouveau selfie de vérification.",
     },
   };
 
@@ -166,6 +173,35 @@ export function IdvStatusPanel({
             Reprendre la photo
           </button>
         )}
+        {(status === "doc_validated" || status === "resubmit_selfie") &&
+          onStartSelfie && (
+            <>
+              {selfieError && (
+                <p
+                  className="w-full rounded-[12px] px-3 py-2.5 text-sm"
+                  style={{
+                    background: "rgba(239,68,68,.12)",
+                    color: "var(--d-coral, #ef4444)",
+                  }}
+                >
+                  {selfieError}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={onStartSelfie}
+                disabled={selfiePending}
+                className="mt-1 rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                style={{ background: "var(--d-accent)" }}
+              >
+                {selfiePending
+                  ? "Préparation…"
+                  : status === "resubmit_selfie"
+                    ? "Refaire le selfie"
+                    : "Faire le selfie"}
+              </button>
+            </>
+          )}
       </div>
 
       {/* Tracker des 3 étapes. */}
