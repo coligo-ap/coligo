@@ -3,7 +3,6 @@ import { ShieldCheck } from "lucide-react";
 import { requireDriverStage } from "@/lib/auth/driver-gate";
 import { getDriverKyc } from "@/app/(driver)/actions";
 import { DriverKycForm } from "@/components/driver/onboarding/kyc-form";
-import { IdvCallout } from "@/components/idv/idv-callout";
 import { OnboardingScreen } from "@/components/driver/onboarding/onboarding-screen";
 
 export const dynamic = "force-dynamic";
@@ -31,14 +30,11 @@ export default async function DriverKycPage() {
       step={2}
       stepCount={4}
     >
-      {/* Vérification d'identité AUTOMATIQUE (IDV) : document + selfie +
-          comparaison des visages. La bannière s'efface d'elle-même si le
-          super-admin ne l'a pas publiée pour les livreurs, ou si l'identité
-          est déjà vérifiée. Quand elle est OBLIGATOIRE, l'envoi du dossier
-          est refusé tant qu'elle n'est pas passée (submitDriverDossier). */}
-      <div className="mb-4">
-        <IdvCallout profile="driver" />
-      </div>
+      {/* NB : pas de bannière IDV ici — la vérification d'identité a désormais
+          SON étape dans le formulaire (étape 2 « Vérification »), qui porte le
+          choix instantané / manuel et l'état du parcours. Une bannière en tête
+          ferait DOUBLON avec elle (règle projet : une information ne s'affiche
+          qu'une seule fois par écran). */}
       <DriverKycForm data={data} />
     </OnboardingScreen>
   );
