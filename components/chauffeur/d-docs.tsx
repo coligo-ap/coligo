@@ -99,6 +99,8 @@ async function compressImage(file: File): Promise<File> {
  * accepté pour le selfie. Chaque pièce envoyée s'affiche en APERÇU avec
  * Voir / Remplacer / Supprimer.
  */
+import { IdvCalloutClient } from "@/components/idv/idv-callout-client";
+
 export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
   const router = useRouter();
   const [docs, setDocs] = useState<Record<string, ChauffeurDocInfo>>({});
@@ -181,6 +183,13 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
           dossier.
         </p>
       )}
+      {/* Vérification d'identité AUTOMATIQUE (document + selfie + comparaison
+          des visages). S'efface d'elle-même si elle n'est pas publiée pour les
+          chauffeurs ou si l'identité est déjà vérifiée. Quand elle est
+          OBLIGATOIRE, l'envoi du dossier est refusé tant qu'elle n'est pas
+          passée (submitChauffeurDossier). */}
+      <IdvCalloutClient profile="chauffeur" />
+
       <p className="mb-3 text-[13px] text-[var(--d-muted)]">
         Photos nettes et lisibles. Votre dossier sera vérifié par l&apos;équipe
         Coligo.

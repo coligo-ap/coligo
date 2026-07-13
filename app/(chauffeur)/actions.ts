@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { idvSubmissionBlock } from "@/lib/idv/compliance";
 import { validateUploadedFile, MB } from "@/lib/security/file-validation";
 import {
   canonicalPhone,
@@ -326,6 +327,12 @@ export async function submitChauffeurDossier(): Promise<{
         ? "Le selfie en direct est obligatoire."
         : "Documents obligatoires manquants.",
     };
+  // VÉRIFICATION D'IDENTITÉ (IDV) — même garde que les autres espaces : si le
+  // super-admin l'a rendue obligatoire pour les chauffeurs, le dossier ne part
+  // pas tant que l'identité n'est pas confirmée.
+  const idvBlock = await idvSubmissionBlock("chauffeur");
+  if (idvBlock) return { ok: false, error: idvBlock.error };
+
   const admin = createAdminClient();
   await admin
     .from("chauffeurs")

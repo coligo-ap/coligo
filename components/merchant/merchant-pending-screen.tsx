@@ -1,6 +1,7 @@
 import { Clock, LogOut, MailQuestion, XCircle } from "lucide-react";
 import { logout } from "@/app/(merchant)/actions";
 import { Logo } from "@/components/shared/logo";
+import { IdvCallout } from "@/components/idv/idv-callout";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
 /**
@@ -9,7 +10,7 @@ import { APP_CONFIG } from "@/lib/config/app-config";
  * super-admin n'a pas validé, la boutique est invisible des clients et ne peut
  * pas recevoir de commande — ici on l'explique au lieu d'un dashboard vide.
  */
-export function MerchantPendingScreen({
+export async function MerchantPendingScreen({
   status,
   reason,
   merchantName,
@@ -47,6 +48,14 @@ export function MerchantPendingScreen({
             ? "Inscription non validée"
             : "Compte en cours de validation"}
         </h1>
+
+        {/* Vérification d'identité du TITULAIRE (IDV) : le commerçant peut la
+            faire pendant que l'équipe Coligo examine son inscription. La
+            bannière disparaît si elle n'est pas publiée pour ce profil ou si
+            l'identité est déjà vérifiée. */}
+        <div className="mt-4 text-left">
+          <IdvCallout profile="merchant" />
+        </div>
 
         <p className="text-muted mt-2 text-sm">
           {rejected ? (

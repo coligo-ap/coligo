@@ -116,3 +116,26 @@ export async function idvBlocksAccess(profile: IdvProfile): Promise<boolean> {
 export function idvRouteFor(profile: IdvProfile): string {
   return ROUTES[profile] ?? "/";
 }
+
+/**
+ * GARDE RÉUTILISABLE des envois de dossier (livreur, chauffeur, commerçant).
+ * Renvoie `null` si l'envoi peut se faire, sinon le message à afficher.
+ *
+ * Un seul endroit décide : si le super-admin a rendu la vérification
+ * OBLIGATOIRE pour ce profil et que l'identité n'est pas confirmée, le dossier
+ * ne part pas. Une vérification EN COURS d'examen n'est pas une identité
+ * confirmée : on le dit clairement plutôt que de laisser croire à un blocage.
+ * Fonctionnalité non publiée ou seulement facultative ⇒ aucun effet.
+ */
+export async function idvSubmissionBlock(
+  profile: IdvProfile
+): Promise<{ error: string; missing: string[] } | null> {
+  const c = await getIdvCompliance(profile);
+  if (!c.enabled || !c.required || c.verified) return null;
+  return {
+    error: c.inProgress
+      ? "Votre identité est en cours de vérification. Vous pourrez transmettre votre dossier dès qu'elle sera confirmée."
+      : "Vérifiez d'abord votre identité (document + selfie).",
+    missing: ["Vérification d'identité"],
+  };
+}
