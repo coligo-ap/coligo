@@ -96,6 +96,27 @@ function fixDigits(s: string): string {
   return out;
 }
 
+/**
+ * Réparation OCR SYMÉTRIQUE : dans une position censée être ALPHABÉTIQUE
+ * (code document, pays, nationalité, noms), corrige les confusions
+ * chiffre→lettre. Sur une carte réelle, tesseract lit « I<DZA… » comme
+ * « 1<DZA… » (attrapé par le test E2E).
+ */
+const LETTER_FIX: Record<string, string> = {
+  "0": "O",
+  "1": "I",
+  "2": "Z",
+  "5": "S",
+  "6": "G",
+  "8": "B",
+};
+
+function fixLetters(s: string): string {
+  let out = "";
+  for (const c of s) out += LETTER_FIX[c] ?? c;
+  return out;
+}
+
 /** yymmdd → ISO. Naissance : pivot 19xx/20xx ; expiration : toujours 20xx. */
 function toIsoDate(yymmdd: string, kind: "birth" | "expiry"): string | null {
   if (!/^\d{6}$/.test(yymmdd)) return null;
@@ -125,7 +146,10 @@ export function normalizeMrzLines(raw: string[]): string[] {
     .map((l) => l.toUpperCase().replace(/\s/g, ""))
     .filter(
       (l) =>
-        l.length >= 28 &&
+        // Les fillers '<' de FIN de ligne se perdent souvent à l'OCR (mesuré
+        // sur carte réelle) : on accepte les lignes tronquées, elles seront
+        // re-paddées — la zone perdue est du remplissage, pas de la donnée.
+        l.length >= 20 &&
         l.includes("<") &&
         [...l].every((c) => CHARSET.includes(c))
     );
@@ -154,14 +178,14 @@ function parseTd3(l1: string, l2: string): MrzResult {
       : checkDigitOk(personal, fixDigits(personalCd)),
   };
 
-  const names = parseNames(l1.slice(5));
+  const names = parseNames(fixLetters(l1.slice(5)));
   const sexChar = l2[20];
   const fields: MrzFields = {
-    document_code: stripFillers(l1.slice(0, 2)) ?? "P",
-    issuing_country: l1.slice(2, 5).replace(/</g, ""),
+    document_code: stripFillers(fixLetters(l1.slice(0, 2))) ?? "P",
+    issuing_country: fixLetters(l1.slice(2, 5)).replace(/</g, ""),
     ...names,
     document_number: docNumber.replace(/</g, ""),
-    nationality: l2.slice(10, 13).replace(/</g, ""),
+    nationality: fixLetters(l2.slice(10, 13)).replace(/</g, ""),
     birth_date: toIsoDate(birth, "birth"),
     sex: sexChar === "M" || sexChar === "F" ? sexChar : null,
     expiry_date: toIsoDate(expiry, "expiry"),
@@ -194,18 +218,18 @@ function parseTd1(l1: string, l2: string, l3: string): MrzResult {
     personal_number: null,
   };
 
-  const names = parseNames(l3);
+  const names = parseNames(fixLetters(l3));
   const sexChar = l2[7];
   // Champs optionnels ALPHANUMÉRIQUES : pas de réparation O→0.
   const personal = [stripFillers(optional1), stripFillers(optional2)]
     .filter(Boolean)
     .join("");
   const fields: MrzFields = {
-    document_code: stripFillers(l1.slice(0, 2)) ?? "I",
-    issuing_country: l1.slice(2, 5).replace(/</g, ""),
+    document_code: stripFillers(fixLetters(l1.slice(0, 2))) ?? "I",
+    issuing_country: fixLetters(l1.slice(2, 5)).replace(/</g, ""),
     ...names,
     document_number: docNumber.replace(/</g, ""),
-    nationality: l2.slice(15, 18).replace(/</g, ""),
+    nationality: fixLetters(l2.slice(15, 18)).replace(/</g, ""),
     birth_date: toIsoDate(birth, "birth"),
     sex: sexChar === "M" || sexChar === "F" ? sexChar : null,
     expiry_date: toIsoDate(expiry, "expiry"),
@@ -259,7 +283,7 @@ export function parseMrz(lines: string[]): MrzResult | null {
     return parseTd3(l1, l2);
   }
   const td1 = norm
-    .filter((l) => l.length >= 26 && l.length <= 34)
+    .filter((l) => l.length >= 20 && l.length <= 34)
     .map((l) => (l.length > 30 ? l.slice(0, 30) : l.padEnd(30, "<")));
   if (td1.length >= 3) {
     const [l1, l2, l3] = td1.slice(-3);

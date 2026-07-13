@@ -4,12 +4,20 @@ import { createWorker, type Worker } from "tesseract.js";
 
 // =============================================================================
 // IDV — OCR de la ZONE MRZ (tesseract.js, tessdata AUTOHÉBERGÉE dans
-// models/idv/tessdata — jamais de CDN au runtime). Whitelist stricte A-Z0-9<
-// (approche PassportEye). Le worker se charge UNE fois par instance.
+// models/idv/tessdata — jamais de CDN au runtime). Whitelist stricte A-Z0-9<.
+// Le worker se charge UNE fois par instance.
 //
-// Module AUTO-CONTENU (sharp + tesseract uniquement) : il sort du TEXTE brut
-// par zone candidate ; le parsing + checksums (lib/idv/mrz.ts, pur) sont
-// composés par l'appelant (route analyze-document, banc de test).
+// Stratégie MULTI-PASSES (calibrée sur cartes réelles, test E2E) : on essaie
+// plusieurs zones (bande basse puis image entière) × plusieurs prétraitements,
+// et on S'ARRÊTE dès qu'une MRZ aux checksums VALIDES sort. Sinon on garde la
+// meilleure lecture (score de checksums le plus haut) pour le diagnostic.
+//
+// PIÈGES mesurés :
+//   • une photo de carte est un JPEG : sans BINARISATION, tesseract confond
+//     tout (« D231458907 » lu « DZ3VA5O904 ») — le seuillage change tout ;
+//   • normalise()/sharpen() DÉGRADENT au contraire une image déjà propre ;
+//   • plus grand n'est pas toujours mieux : 1600 px suffit sur une bande nette,
+//     2400-3000 px + seuil est ce qui sauve les photos compressées.
 // =============================================================================
 
 let workerPromise: Promise<Worker> | null = null;
@@ -38,19 +46,36 @@ export function getMrzWorker(): Promise<Worker> {
 }
 
 export type MrzBand = { top: number; height: number } | null;
+/** Format MRZ attendu (dupliqué ici pour garder ce module SANS dépendance :
+ *  il est importé par le banc Node, qui ne résout pas les imports relatifs
+ *  sans extension). Le parseur est INJECTÉ par l'appelant. */
+export type MrzOcrFormat = "td1" | "td3";
 
-/** Zones candidates : la MRZ vit en bas du document — ~25 % (TD3, 2 lignes),
- *  ~40 % (TD1, 3 lignes) — puis repli sur l'image entière. */
-export function mrzBands(format: "td1" | "td3"): MrzBand[] {
+/** Zones candidates : la MRZ vit en bas du document — ~30 % (TD3, 2 lignes),
+ *  ~42 % (TD1, 3 lignes) — puis repli sur l'image entière. */
+export function mrzBands(format: MrzOcrFormat): MrzBand[] {
   return [
     format === "td3" ? { top: 0.7, height: 0.3 } : { top: 0.58, height: 0.42 },
     null,
   ];
 }
 
-/** Prépare une zone pour l'OCR : gris + largeur 1600, RIEN d'autre — mesuré
- *  au banc : normalise/sharpen DÉGRADENT la lecture tesseract (conf 43 → 0). */
-async function prepare(image: Buffer, band: MrzBand): Promise<Buffer> {
+/** Prétraitements essayés dans l'ordre (du plus fréquent au plus agressif). */
+type Preprocess = { label: string; width: number; threshold: number | null };
+
+const PREPROCESS: Preprocess[] = [
+  // Photo compressée (le cas réel) : agrandir puis BINARISER.
+  { label: "2400+seuil", width: 2400, threshold: 150 },
+  { label: "3000+seuil", width: 3000, threshold: 160 },
+  // Image déjà nette (scan, capture propre) : ne rien abîmer.
+  { label: "1600-brut", width: 1600, threshold: null },
+];
+
+async function prepare(
+  image: Buffer,
+  band: MrzBand,
+  pp: Preprocess
+): Promise<Buffer> {
   let img = sharp(image).rotate();
   if (band) {
     const meta = await img.metadata();
@@ -65,20 +90,59 @@ async function prepare(image: Buffer, band: MrzBand): Promise<Buffer> {
       });
     }
   }
-  return img
-    .grayscale()
-    .resize({ width: 1600, withoutEnlargement: false })
-    .png()
-    .toBuffer();
+  img = img.grayscale().resize({ width: pp.width, withoutEnlargement: false });
+  if (pp.threshold !== null) img = img.threshold(pp.threshold);
+  return img.png().toBuffer();
 }
 
-/** OCR d'une zone candidate → texte brut (lignes séparées par \n). */
+/** OCR d'une zone candidate avec un prétraitement donné → texte brut. */
 export async function ocrMrzBand(
   image: Buffer,
-  band: MrzBand
+  band: MrzBand,
+  preprocess: Preprocess = PREPROCESS[0]
 ): Promise<string> {
   const worker = await getMrzWorker();
-  const prepared = await prepare(image, band);
+  const prepared = await prepare(image, band, preprocess);
   const { data } = await worker.recognize(prepared);
   return data.text;
+}
+
+/** Résultat minimal attendu du parseur injecté (lib/idv/mrz.ts). */
+type ParsedLike = { valid: boolean; score: number };
+
+export type MrzReadResult<P extends ParsedLike> = {
+  /** null = aucune structure MRZ reconnaissable sur toutes les passes. */
+  parsed: P | null;
+  /** Passe qui a produit le résultat retenu (diagnostic). */
+  attempt: string | null;
+  rawText: string;
+};
+
+/**
+ * Lit la MRZ : toutes les zones × tous les prétraitements, sortie ANTICIPÉE
+ * dès que les checksums sont valides. Le meilleur résultat partiel est
+ * conservé (utile à l'admin en revue : « MRZ lue mais checksums KO » ≠
+ * « MRZ illisible »).
+ */
+export async function readMrz<P extends ParsedLike>(
+  image: Buffer,
+  format: MrzOcrFormat,
+  /** Parseur MRZ (lib/idv/mrz.ts `parseMrz`) — injecté pour garder ce module
+   *  autonome. */
+  parse: (lines: string[]) => P | null
+): Promise<MrzReadResult<P>> {
+  let best: MrzReadResult<P> = { parsed: null, attempt: null, rawText: "" };
+  for (const band of mrzBands(format)) {
+    for (const pp of PREPROCESS) {
+      const label = `${band ? "bande" : "pleine"}/${pp.label}`;
+      const rawText = await ocrMrzBand(image, band, pp);
+      const parsed = parse(rawText.split(/\r?\n/));
+      if (parsed?.valid) return { parsed, attempt: label, rawText };
+      if (parsed && (!best.parsed || parsed.score > best.parsed.score)) {
+        best = { parsed, attempt: label, rawText };
+      }
+      if (!best.rawText) best = { ...best, rawText };
+    }
+  }
+  return best;
 }

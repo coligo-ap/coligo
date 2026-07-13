@@ -29,7 +29,7 @@ const DB_PORT = 5432;
 const DB_NAME = "postgres";
 
 /** Charge .env.local sans écraser les variables déjà présentes (Vercel/CI). */
-function loadEnvLocal() {
+export function loadEnvLocal() {
   let content;
   try {
     content = readFileSync(join(ROOT, ".env.local"), "utf8");

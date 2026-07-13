@@ -21,7 +21,7 @@ import {
 } from "../lib/idv/pipeline/sface.ts";
 import { assessDocQuality } from "../lib/idv/pipeline/quality.ts";
 import { computeCheckDigit, parseMrz } from "../lib/idv/mrz.ts";
-import { getMrzWorker, ocrMrzBand } from "../lib/idv/pipeline/mrz-ocr.ts";
+import { getMrzWorker, readMrz } from "../lib/idv/pipeline/mrz-ocr.ts";
 import {
   drawChallenges,
   evaluateLiveness,
@@ -289,15 +289,15 @@ ok(
   </svg>`;
   const rendered = await sharp(Buffer.from(svg)).png().toBuffer();
   const t0 = performance.now();
-  const text = await ocrMrzBand(rendered, null);
+  const read = await readMrz(rendered, "td3", parseMrz);
   const ocrMs = Math.round(performance.now() - t0);
-  const parsed = parseMrz(text.split(/\r?\n/));
+  const parsed = read.parsed;
   ok(
     "OCR MRZ bout-en-bout : rendu → tesseract → checksums VALIDES",
     parsed?.valid === true && parsed.fields.document_number === "L898902C3",
     parsed?.valid
-      ? `${ocrMs} ms`
-      : `texte lu :\n${text.trim()}\nparse: ${JSON.stringify(parsed?.checks ?? null)}`
+      ? `${ocrMs} ms · passe ${read.attempt}`
+      : `texte lu :\n${read.rawText.trim()}\nparse: ${JSON.stringify(parsed?.checks ?? null)}`
   );
   await (await getMrzWorker()).terminate();
 }

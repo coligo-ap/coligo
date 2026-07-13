@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { decodeImage } from "@/lib/idv/pipeline/image";
 import { getIdvSession } from "@/lib/idv/pipeline/onnx";
 import { detectFaces } from "@/lib/idv/pipeline/yunet";
-import { mrzBands, ocrMrzBand } from "@/lib/idv/pipeline/mrz-ocr";
+import { readMrz } from "@/lib/idv/pipeline/mrz-ocr";
 import { parseMrz, type MrzResult } from "@/lib/idv/mrz";
 import type {
   AnalyzeDocumentRequest,
@@ -117,15 +117,14 @@ export async function POST(req: Request) {
     checks.push({ key: "doc_expiry", status: "skipped", score: null });
   } else {
     let parsed: MrzResult | null = null;
-    let rawText = "";
+    let attempt: string | null = null;
     try {
       // TD1 (carte) : la MRZ vit au VERSO ; TD3 (passeport) : page photo.
       const source = body.mrzFormat === "td1" && back ? back : front;
-      for (const band of mrzBands(body.mrzFormat)) {
-        rawText = await ocrMrzBand(source, band);
-        parsed = parseMrz(rawText.split(/\r?\n/));
-        if (parsed) break;
-      }
+      // Multi-passes (zones × prétraitements), sortie dès checksums valides.
+      const read = await readMrz(source, body.mrzFormat, parseMrz);
+      parsed = read.parsed;
+      attempt = read.attempt;
       if (!parsed) {
         checks.push({
           key: "mrz",
@@ -141,7 +140,7 @@ export async function POST(req: Request) {
           status: parsed.valid ? "passed" : "failed",
           score: parsed.score,
           retryable: false,
-          details: { checks: parsed.checks, format: parsed.format },
+          details: { checks: parsed.checks, format: parsed.format, attempt },
         });
         if (parsed.valid) {
           extracted = { ...parsed.fields, mrz_format: parsed.format };
