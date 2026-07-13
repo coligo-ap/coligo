@@ -10,6 +10,8 @@ import {
   Check,
   FileText,
   Loader2,
+  RefreshCw,
+  ScanFace,
   ShieldCheck,
   Trash2,
   Upload,
@@ -33,6 +35,7 @@ import {
   type IdDocKind,
   type KycDocs,
   type KycItem,
+  type KycMethod,
   type KycProfile,
 } from "@/lib/driver/kyc";
 import {
@@ -83,9 +86,25 @@ const STEP_KEYS: readonly (readonly string[])[] = [
 
 const STEP_TITLES = [
   "Informations personnelles",
-  "Vérification",
-  "Véhicule",
+  "Verification",
+  "Vehicule",
   "Validation",
+];
+
+/**
+ * VOLETS : chaque étape se découpe en écrans courts qui TIENNENT SANS
+ * DÉFILEMENT (une question à la fois, bouton d'action collé en bas) — le
+ * standard des néobanques. Ici : les exigences validées par chaque volet.
+ */
+const PANE_KEYS: readonly (readonly (readonly string[])[])[] = [
+  [["full_name"], ["date_of_birth"], ["wilaya"]],
+  [["idv_verified", "doc_id", "doc_selfie"]],
+  [
+    ["vehicle_type"],
+    ["vehicle_brand", "vehicle_model", "vehicle_plate", "vehicle_color"],
+    ["doc_permis", "doc_carte_grise", "doc_assurance"],
+  ],
+  [[]],
 ];
 
 export function DriverKycForm({ data }: { data: DriverKycData }) {
@@ -101,8 +120,20 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  // La méthode de vérification est HISSÉE ici : c'est le formulaire qui porte
+  // LE bouton d'action (un seul à l'écran), donc c'est lui qui doit savoir si
+  // le livreur passe par la voie instantanée ou par le dépôt de pièces.
+  // Vérification imposée par l'équipe Coligo ⇒ « instant », sans choix.
+  const [idvMethod, setIdvMethod] = useState<KycMethod | null>(
+    data.idv.forced ? "instant" : data.idv.method
+  );
+
   const busy = submitting || pendingDocs.length > 0;
   const motorized = isMotorized(profile.vehicle_type);
+
+  /** Voie instantanée retenue (choisie ou imposée) ⇒ l'étape « Vérification »
+   *  ne se valide QUE par une identité effectivement vérifiée. */
+  const idvPath = data.idv.available && idvMethod === "instant";
 
   // Avancement recalculé À CHAQUE FRAPPE à partir des mêmes règles que le
   // serveur (lib/driver/kyc) : jamais deux définitions du « dossier complet ».
@@ -126,10 +157,10 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
   const report = useMemo(
     () =>
       kycReport(profile, present, idKind, {
-        method: data.idv.method,
+        method: idvMethod,
         verified: data.idv.verified,
       }),
-    [profile, present, idKind, data.idv.method, data.idv.verified]
+    [profile, present, idKind, idvMethod, data.idv.verified]
   );
 
   const itemOf = useMemo(() => {
@@ -156,6 +187,22 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
     const first = [0, 1, 2].find((i) => !stepComplete(i));
     return first ?? 3;
   });
+  /** Volet courant DANS l'étape (écran court, sans défilement). */
+  const [pane, setPane] = useState(0);
+
+  /** Volets réellement affichés pour l'étape : le volet « pièces du véhicule »
+   *  n'existe pas pour un vélo (aucune pièce n'est demandée). */
+  const panesOf = (index: number): number[] => {
+    const all = PANE_KEYS[index].map((_, i) => i);
+    if (index !== 2) return all;
+    return isMotorized(profile.vehicle_type) ? all : [0, 1];
+  };
+
+  const paneComplete = (stepIndex: number, paneIndex: number) =>
+    (PANE_KEYS[stepIndex][paneIndex] ?? []).every((k) => {
+      const item = itemOf.get(k);
+      return !item || !item.required || item.done;
+    });
 
   // Les erreurs ne s'affichent qu'après une tentative d'avancer : on n'accuse
   // pas quelqu'un d'avoir mal rempli un champ qu'il n'a pas encore vu.
@@ -220,27 +267,67 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
       if (await saveProfile()) router.refresh();
     });
 
-  /** Enregistre puis avance — un pas en avant ne perd jamais la saisie. */
+  /** Enregistre puis avance : d'abord de VOLET en volet (écrans courts), puis
+   *  d'étape en étape. Un pas en avant ne perd jamais la saisie. */
   const onNext = () =>
     startSubmit(async () => {
-      if (!stepComplete(step)) {
+      // Vérification proposée mais pas encore tranchée : on ne laisse pas
+      // avancer sans réponse — et on le dit LÀ où se trouve l'action.
+      if (step === 1 && data.idv.available && !idvMethod) {
+        setError("Choisissez comment prouver votre identité.");
+        return;
+      }
+      const panes = panesOf(step);
+      const at = panes.indexOf(pane);
+      const isLastPane = at === panes.length - 1;
+
+      if (!paneComplete(step, pane)) {
         setShowErrors(true);
         return;
       }
       if (!(await saveProfile())) return;
       setShowErrors(false);
-      setStep((s) => Math.min(s + 1, 3));
+
+      if (!isLastPane) {
+        setPane(panes[at + 1]);
+        return;
+      }
+      if (!stepComplete(step)) {
+        setShowErrors(true);
+        return;
+      }
+      const next = Math.min(step + 1, 3);
+      setStep(next);
+      setPane(panesOf(next)[0] ?? 0);
     });
 
   const onBack = () => {
     setShowErrors(false);
-    setStep((s) => Math.max(s - 1, 0));
+    const panes = panesOf(step);
+    const at = panes.indexOf(pane);
+    if (at > 0) {
+      setPane(panes[at - 1]);
+      return;
+    }
+    const prev = Math.max(step - 1, 0);
+    setStep(prev);
+    const prevPanes = panesOf(prev);
+    setPane(prevPanes[prevPanes.length - 1] ?? 0);
   };
 
   const onGo = (index: number) => {
     setShowErrors(false);
     setStep(index);
+    setPane(panesOf(index)[0] ?? 0);
   };
+
+  /** Voie instantanée : on part vérifier son identité. Le brouillon est
+   *  enregistré avant de quitter l'écran — on ne perd jamais la saisie. */
+  const onVerifyIdentity = () =>
+    startSubmit(async () => {
+      await saveProfile();
+      router.push(data.idv.route);
+    });
 
   const onSubmitDossier = () =>
     startSubmit(async () => {
@@ -316,6 +403,69 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
   const idKindLabel =
     ID_DOC_KINDS.find((k) => k.value === idKind)?.label ?? "Pièce d'identité";
 
+  /**
+   * LE bouton d'action — il n'y en a qu'UN à l'écran, et son libellé est celui
+   * de la prochaine chose à faire. Sur l'étape « Vérification », la logique
+   * métier commande : on ne peut PAS avancer tant que l'identité n'est pas
+   * vérifiée, donc « Continuer » n'apparaît qu'une fois la vérification faite.
+   *   • voie instantanée, rien de fait   → « Vérifier mon identité »
+   *   • vérification en cours d'examen   → aucune suite possible : « Actualiser »
+   *   • identité vérifiée (ou voie manuelle) → « Continuer »
+   */
+  const primaryCls =
+    "flex h-[52px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-extrabold text-white transition-opacity disabled:opacity-40";
+  const primaryStyle = { background: BRAND_VIOLET, fontFamily: SORA };
+  const spinnerOr = (icon: React.ReactNode) =>
+    busy ? <Loader2 className="size-4 animate-spin" /> : icon;
+
+  const awaitingIdv = step === 1 && idvPath && !data.idv.verified;
+
+  const primary =
+    step === 3 ? (
+      <button
+        type="button"
+        onClick={onSubmitDossier}
+        disabled={busy || !report.complete}
+        className={primaryCls}
+        style={primaryStyle}
+      >
+        {spinnerOr(<ShieldCheck className="size-4" />)}
+        Transmettre mon dossier
+      </button>
+    ) : awaitingIdv && data.idv.inProgress ? (
+      <button
+        type="button"
+        onClick={() => router.refresh()}
+        disabled={busy}
+        className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[16px] border border-[var(--line)] bg-[var(--surface)] text-[15px] font-bold text-[var(--ink)] disabled:opacity-40"
+      >
+        <RefreshCw className="size-4" />
+        Actualiser
+      </button>
+    ) : awaitingIdv ? (
+      <button
+        type="button"
+        onClick={onVerifyIdentity}
+        disabled={busy}
+        className={primaryCls}
+        style={primaryStyle}
+      >
+        {spinnerOr(<ScanFace className="size-4" />)}
+        Vérifier mon identité
+      </button>
+    ) : (
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={busy}
+        className={primaryCls}
+        style={primaryStyle}
+      >
+        {spinnerOr(<ArrowRight className="size-4" />)}
+        Continuer
+      </button>
+    );
+
   return (
     <div className="space-y-4">
       {/* Dossier refusé : le motif remonte tout en haut, avant tout le reste. */}
@@ -347,69 +497,92 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
         onSubmit={(e) => e.preventDefault()}
         className="space-y-3 rounded-[18px] border border-[var(--line)] bg-[var(--surface)] p-4"
       >
-        {step === 0 && (
-          <>
+        {step === 0 && pane === 0 && (
+          <PaneQuestion
+            title="Comment vous appelez-vous ?"
+            hint="Tel qu'il figure sur votre pièce d'identité."
+          >
             <Field label="Nom complet" required error={errorFor("full_name")}>
               <input
                 value={profile.full_name ?? ""}
                 onChange={set("full_name")}
-                className={inputCls}
+                className={bigInputCls}
                 autoComplete="name"
+                placeholder="Prénom et nom"
               />
             </Field>
-            <Row>
-              <Field
-                label="Date de naissance"
-                required
-                hint="18 ans minimum"
-                error={errorFor("date_of_birth")}
-              >
-                <input
-                  type="date"
-                  value={profile.date_of_birth ?? ""}
-                  onChange={set("date_of_birth")}
-                  className={inputCls}
-                />
-              </Field>
-              <Field label="Téléphone" required hint="Non modifiable">
-                <input
-                  value={profile.phone ?? ""}
-                  readOnly
-                  disabled
-                  className={inputCls + " opacity-60"}
-                />
-              </Field>
-            </Row>
-            <Row>
-              <Field label="Wilaya" required error={errorFor("wilaya")}>
-                <select
-                  value={profile.wilaya ?? ""}
-                  onChange={set("wilaya")}
-                  className={inputCls}
-                >
-                  <option value="">Choisissez…</option>
-                  {WILAYAS.map((w, i) => (
-                    <option key={w} value={w}>
-                      {String(i + 1).padStart(2, "0")} · {w}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Adresse e-mail">
-                <input
-                  type="email"
-                  value={profile.email ?? ""}
-                  onChange={set("email")}
-                  className={inputCls}
-                  autoComplete="email"
-                />
-              </Field>
-            </Row>
-          </>
+            <Field label="Téléphone" hint="Votre identifiant de connexion">
+              <input
+                value={profile.phone ?? ""}
+                readOnly
+                disabled
+                className={bigInputCls + " opacity-60"}
+              />
+            </Field>
+          </PaneQuestion>
         )}
 
+        {step === 0 && pane === 1 && (
+          <PaneQuestion
+            title="Quelle est votre date de naissance ?"
+            hint="Vous devez avoir au moins 18 ans pour livrer."
+          >
+            <Field
+              label="Date de naissance"
+              required
+              error={errorFor("date_of_birth")}
+            >
+              <input
+                type="date"
+                value={profile.date_of_birth ?? ""}
+                onChange={set("date_of_birth")}
+                className={bigInputCls}
+              />
+            </Field>
+          </PaneQuestion>
+        )}
+
+        {step === 0 && pane === 2 && (
+          <PaneQuestion
+            title="Où livrez-vous ?"
+            hint="Votre wilaya détermine les commerçants qui vous seront proposés."
+          >
+            <Field label="Wilaya" required error={errorFor("wilaya")}>
+              <select
+                value={profile.wilaya ?? ""}
+                onChange={set("wilaya")}
+                className={bigInputCls}
+              >
+                <option value="">Choisissez…</option>
+                {WILAYAS.map((w, i) => (
+                  <option key={w} value={w}>
+                    {String(i + 1).padStart(2, "0")} · {w}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Adresse e-mail" hint="Facultatif">
+              <input
+                type="email"
+                value={profile.email ?? ""}
+                onChange={set("email")}
+                className={bigInputCls}
+                autoComplete="email"
+                placeholder="vous@exemple.com"
+              />
+            </Field>
+          </PaneQuestion>
+        )}
         {step === 1 && (
-          <KycMethodStep idv={data.idv}>
+          <KycMethodStep
+            idv={data.idv}
+            method={idvMethod}
+            onMethod={(m) => {
+              setIdvMethod(m);
+              setShowErrors(false);
+              setError(null);
+            }}
+          >
             <>
               <>
                 <Field label="Type de pièce d'identité" required>
@@ -456,131 +629,142 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
           </KycMethodStep>
         )}
 
-        {step === 2 && (
-          <>
-            <Field
-              label="Type de véhicule"
+        {step === 2 && pane === 0 && (
+          <PaneQuestion
+            title="Avec quoi livrez-vous ?"
+            hint="Les pièces demandées ensuite dépendent de votre véhicule."
+          >
+            <div className="grid grid-cols-2 gap-2">
+              {VEHICLE_TYPES.map((v) => {
+                const active = profile.vehicle_type === v.value;
+                return (
+                  <button
+                    key={v.value}
+                    type="button"
+                    onClick={() =>
+                      setProfile((p) => ({ ...p, vehicle_type: v.value }))
+                    }
+                    className="rounded-[16px] border p-3.5 text-left transition-colors"
+                    style={{
+                      borderColor: active ? BRAND_VIOLET : "var(--line)",
+                      background: active
+                        ? "rgba(108,43,217,.06)"
+                        : "var(--surface)",
+                      boxShadow: active
+                        ? `0 0 0 1px ${BRAND_VIOLET} inset`
+                        : undefined,
+                    }}
+                  >
+                    <p className="text-[14px] font-bold">{v.label}</p>
+                    <p className="mt-0.5 text-[11px] text-[var(--muted)]">
+                      {v.motorized
+                        ? "Permis, carte grise, assurance"
+                        : "Aucune pièce véhicule"}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+            {showErrors && errorFor("vehicle_type") && (
+              <p className="text-[12px] font-semibold text-red-600">
+                Choisissez votre véhicule.
+              </p>
+            )}
+          </PaneQuestion>
+        )}
+
+        {step === 2 && pane === 1 && (
+          <PaneQuestion
+            title="Votre véhicule"
+            hint="Ces informations figurent sur la carte grise."
+          >
+            <Row>
+              <Field
+                label="Marque"
+                required={motorized}
+                error={errorFor("vehicle_brand")}
+              >
+                <input
+                  value={profile.vehicle_brand ?? ""}
+                  onChange={set("vehicle_brand")}
+                  className={bigInputCls}
+                />
+              </Field>
+              <Field
+                label="Modèle"
+                required={motorized}
+                error={errorFor("vehicle_model")}
+              >
+                <input
+                  value={profile.vehicle_model ?? ""}
+                  onChange={set("vehicle_model")}
+                  className={bigInputCls}
+                />
+              </Field>
+            </Row>
+            <Row>
+              <Field
+                label="Immatriculation"
+                required={motorized}
+                error={errorFor("vehicle_plate")}
+              >
+                <input
+                  value={profile.vehicle_plate ?? ""}
+                  onChange={set("vehicle_plate")}
+                  className={bigInputCls}
+                />
+              </Field>
+              <Field
+                label="Couleur"
+                required={motorized}
+                error={errorFor("vehicle_color")}
+              >
+                <input
+                  value={profile.vehicle_color ?? ""}
+                  onChange={set("vehicle_color")}
+                  className={bigInputCls}
+                />
+              </Field>
+            </Row>
+          </PaneQuestion>
+        )}
+
+        {step === 2 && pane === 2 && (
+          <PaneQuestion
+            title="Pièces du véhicule"
+            hint="Photos nettes, documents en cours de validité."
+          >
+            <DocSlot
+              docType="permis"
+              doc={docOf("permis")}
               required
-              error={errorFor("vehicle_type")}
-            >
-              <select
-                value={profile.vehicle_type ?? ""}
-                onChange={set("vehicle_type")}
-                className={inputCls}
-              >
-                <option value="">Choisissez…</option>
-                {VEHICLE_TYPES.map((v) => (
-                  <option key={v.value} value={v.value}>
-                    {v.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            {!profile.vehicle_type && (
-              <p className="text-[12px] text-[var(--muted)]">
-                Choisissez votre véhicule : les documents demandés en dépendent.
-              </p>
-            )}
-
-            {profile.vehicle_type && !motorized && (
-              <p
-                className="rounded-[12px] px-3 py-2 text-[12px] font-semibold"
-                style={{ background: "var(--go-soft)", color: BRAND_GO }}
-              >
-                Véhicule non motorisé : ni permis, ni carte grise, ni assurance
-                ne sont demandés.
-              </p>
-            )}
-
-            {profile.vehicle_type && (
-              <>
-                <Row>
-                  <Field
-                    label="Marque"
-                    required={motorized}
-                    error={errorFor("vehicle_brand")}
-                  >
-                    <input
-                      value={profile.vehicle_brand ?? ""}
-                      onChange={set("vehicle_brand")}
-                      className={inputCls}
-                    />
-                  </Field>
-                  <Field
-                    label="Modèle"
-                    required={motorized}
-                    error={errorFor("vehicle_model")}
-                  >
-                    <input
-                      value={profile.vehicle_model ?? ""}
-                      onChange={set("vehicle_model")}
-                      className={inputCls}
-                    />
-                  </Field>
-                </Row>
-                <Row>
-                  <Field
-                    label="Immatriculation"
-                    required={motorized}
-                    error={errorFor("vehicle_plate")}
-                  >
-                    <input
-                      value={profile.vehicle_plate ?? ""}
-                      onChange={set("vehicle_plate")}
-                      className={inputCls}
-                    />
-                  </Field>
-                  <Field
-                    label="Couleur"
-                    required={motorized}
-                    error={errorFor("vehicle_color")}
-                  >
-                    <input
-                      value={profile.vehicle_color ?? ""}
-                      onChange={set("vehicle_color")}
-                      className={inputCls}
-                    />
-                  </Field>
-                </Row>
-              </>
-            )}
-
-            {motorized && (
-              <>
-                <DocSlot
-                  docType="permis"
-                  doc={docOf("permis")}
-                  required
-                  hint="En cours de validité"
-                  busy={pendingDocs.includes("permis")}
-                  error={errorFor("doc_permis")}
-                  onUpload={onUpload}
-                  onRemove={onRemove}
-                />
-                <DocSlot
-                  docType="carte_grise"
-                  doc={docOf("carte_grise")}
-                  required
-                  hint="Du véhicule déclaré ci-dessus"
-                  busy={pendingDocs.includes("carte_grise")}
-                  error={errorFor("doc_carte_grise")}
-                  onUpload={onUpload}
-                  onRemove={onRemove}
-                />
-                <DocSlot
-                  docType="assurance"
-                  doc={docOf("assurance")}
-                  required
-                  hint="Attestation en cours de validité"
-                  busy={pendingDocs.includes("assurance")}
-                  error={errorFor("doc_assurance")}
-                  onUpload={onUpload}
-                  onRemove={onRemove}
-                />
-              </>
-            )}
-          </>
+              hint="En cours de validité"
+              busy={pendingDocs.includes("permis")}
+              error={errorFor("doc_permis")}
+              onUpload={onUpload}
+              onRemove={onRemove}
+            />
+            <DocSlot
+              docType="carte_grise"
+              doc={docOf("carte_grise")}
+              required
+              hint="Du véhicule déclaré"
+              busy={pendingDocs.includes("carte_grise")}
+              error={errorFor("doc_carte_grise")}
+              onUpload={onUpload}
+              onRemove={onRemove}
+            />
+            <DocSlot
+              docType="assurance"
+              doc={docOf("assurance")}
+              required
+              hint="Attestation en cours de validité"
+              busy={pendingDocs.includes("assurance")}
+              error={errorFor("doc_assurance")}
+              onUpload={onUpload}
+              onRemove={onRemove}
+            />
+          </PaneQuestion>
         )}
 
         {step === 3 && <Review report={report} onGo={onGo} />}
@@ -588,38 +772,16 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
 
       <PartnerInlineError>{error}</PartnerInlineError>
 
-      <div className="space-y-2">
-        {step < 3 ? (
-          <button
-            type="button"
-            onClick={onNext}
-            disabled={busy}
-            className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-extrabold text-white transition-opacity disabled:opacity-40"
-            style={{ background: BRAND_VIOLET, fontFamily: SORA }}
-          >
-            {busy ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <ArrowRight className="size-4" />
-            )}
-            Continuer
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={onSubmitDossier}
-            disabled={busy || !report.complete}
-            className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-extrabold text-white transition-opacity disabled:opacity-40"
-            style={{ background: BRAND_VIOLET, fontFamily: SORA }}
-          >
-            {busy ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <ShieldCheck className="size-4" />
-            )}
-            Transmettre mon dossier
-          </button>
-        )}
+      {/* BARRE D'ACTION collée en bas : le bouton reste sous le pouce sans
+          jamais avoir à faire défiler l'écran. UN SEUL bouton principal, et il
+          dit exactement ce qui se passe ensuite (règle métier : on ne « continue »
+          pas tant que l'identité n'est pas vérifiée — le bouton est alors
+          « Vérifier mon identité », pas « Continuer »). */}
+      <div
+        className="sticky bottom-0 -mx-5 space-y-2 border-t border-[var(--line)] bg-[var(--d-page)]/95 px-5 pt-3 backdrop-blur"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
+      >
+        {primary}
 
         <div className="flex gap-2">
           {step > 0 && (
@@ -641,7 +803,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
           >
             {saved
               ? "✓ Brouillon enregistré"
-              : "Enregistrer et continuer plus tard"}
+              : "Enregistrer et reprendre plus tard"}
           </button>
         </div>
       </div>
@@ -653,6 +815,39 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
 
 const inputCls =
   "h-[44px] w-full rounded-[12px] border border-[var(--line)] bg-[var(--surface)] px-3 text-[14px] font-medium text-[var(--ink)] outline-none focus:border-[var(--violet)]";
+
+/** Champs GÉNÉREUX (cibles tactiles confortables, style néobanque). */
+const bigInputCls =
+  "h-[52px] w-full rounded-[14px] border border-[var(--line)] bg-[var(--surface)] px-3.5 text-[15px] font-medium text-[var(--ink)] outline-none focus:border-[var(--violet)]";
+
+/** Volet = UNE question, quelques champs, rien d'autre : l'écran tient sans
+ *  défilement, même sur un petit téléphone. */
+function PaneQuestion({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <h2
+          className="text-[19px] leading-tight font-extrabold tracking-[-0.4px]"
+          style={{ fontFamily: SORA }}
+        >
+          {title}
+        </h2>
+        {hint && (
+          <p className="mt-1 text-[12.5px] text-[var(--muted)]">{hint}</p>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
 
 /** Récapitulatif de l'étape 4 : ce qui est prêt, ce qui manque, et où corriger. */
 function Review({

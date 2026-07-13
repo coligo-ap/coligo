@@ -17,14 +17,18 @@ export function OnboardingScreen({
   stepCount,
   children,
   footer,
+  info,
 }: {
   icon: React.ReactNode;
   title: string;
+  /** UNE ligne, pas un paragraphe : le détail va dans `info` (bulle « i »). */
   subtitle: string;
   step: number;
   stepCount: number;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  /** Bulle d'information (mentions légales, précisions) — affichée à la demande. */
+  info?: React.ReactNode;
 }) {
   return (
     <div className="min-h-[100dvh] bg-[var(--d-page)] text-[var(--d-ink)]">
@@ -51,8 +55,9 @@ export function OnboardingScreen({
           >
             {title}
           </h1>
-          <p className="mx-auto mt-2 max-w-[330px] text-[13px] leading-relaxed text-[var(--muted)]">
+          <p className="mx-auto mt-2 flex max-w-[330px] items-center justify-center gap-1.5 text-[13px] leading-relaxed text-[var(--muted)]">
             {subtitle}
+            {info}
           </p>
         </header>
 

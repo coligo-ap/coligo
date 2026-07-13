@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-react";
 import { requireDriverStage } from "@/lib/auth/driver-gate";
 import { getDriverKyc } from "@/app/(driver)/actions";
 import { DriverKycForm } from "@/components/driver/onboarding/kyc-form";
+import { InfoNote } from "@/components/driver/onboarding/info-note";
 import { OnboardingScreen } from "@/components/driver/onboarding/onboarding-screen";
 
 export const dynamic = "force-dynamic";
@@ -25,8 +26,15 @@ export default async function DriverKycPage() {
   return (
     <OnboardingScreen
       icon={<ShieldCheck className="size-6" />}
-      title="Vérification de votre identité"
-      subtitle="Ces informations sont exigées par la loi et protègent les clients comme les livreurs. Elles restent confidentielles et ne sont consultées que par l'équipe Coligo."
+      title="Votre dossier livreur"
+      subtitle="Quelques minutes, rien de plus."
+      info={
+        <InfoNote title="Pourquoi ces informations ?">
+          Elles sont exigées par la loi et protègent les clients comme les
+          livreurs. Elles restent confidentielles et ne sont consultées que par
+          l&apos;équipe Coligo.
+        </InfoNote>
+      }
       step={2}
       stepCount={4}
     >

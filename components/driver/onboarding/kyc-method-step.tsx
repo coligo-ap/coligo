@@ -13,15 +13,7 @@
 // =============================================================================
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
-import {
-  BadgeCheck,
-  ChevronRight,
-  Clock,
-  FileText,
-  Loader2,
-  Zap,
-} from "lucide-react";
+import { BadgeCheck, Clock, FileText, Loader2, Zap } from "lucide-react";
 import { setDriverKycMethod } from "@/app/(driver)/actions";
 import type { KycMethod } from "@/lib/driver/kyc";
 
@@ -36,13 +28,18 @@ export type IdvChoiceState = {
 
 export function KycMethodStep({
   idv,
+  method,
+  onMethod,
   children,
 }: {
   idv: IdvChoiceState;
+  /** Méthode retenue (état HISSÉ dans le formulaire : c'est lui qui décide du
+   *  bouton d'action — il n'y en a JAMAIS deux à l'écran). */
+  method: KycMethod | null;
+  onMethod: (m: KycMethod) => void;
   /** Dépôt manuel des pièces (composant existant du formulaire). */
   children: React.ReactNode;
 }) {
-  const [method, setMethod] = useState<KycMethod | null>(idv.method);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -51,12 +48,12 @@ export function KycMethodStep({
 
   const choose = (m: KycMethod) => {
     setError(null);
-    setMethod(m);
+    onMethod(m);
     startTransition(async () => {
       const res = await setDriverKycMethod(m);
       if (!res.ok) {
         setError(res.error ?? "Choix impossible.");
-        setMethod(idv.method);
+        onMethod(idv.method ?? "manual");
       }
     });
   };
@@ -91,20 +88,18 @@ export function KycMethodStep({
           </div>
         </div>
       ) : (
-        <>
-          <p className="text-[13px] leading-relaxed text-[var(--muted)]">
-            Scannez votre pièce, faites un selfie : le résultat tombe en
-            quelques secondes.
-          </p>
-          <Link
-            href={idv.route}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full py-3 text-[14px] font-bold text-white"
-            style={{ background: "var(--d-violet, #6C2BD9)" }}
-          >
-            Vérifier mon identité
-            <ChevronRight className="size-4" />
-          </Link>
-        </>
+        <div className="flex items-center gap-2.5">
+          <Zap
+            className="size-5 shrink-0"
+            style={{ color: "var(--d-violet, #6C2BD9)" }}
+          />
+          <div>
+            <p className="text-[14px] font-bold">Scan + selfie</p>
+            <p className="text-[12px] text-[var(--muted)]">
+              Résultat en quelques secondes.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -115,7 +110,7 @@ export function KycMethodStep({
       <div className="space-y-3">
         <div
           className="flex items-start gap-2.5 rounded-[14px] p-3"
-          style={{ background: "rgba(108,43,217,.08)" }}
+          style={{ background: "var(--violet-soft)" }}
         >
           <Zap
             className="mt-0.5 size-5 shrink-0"
@@ -124,7 +119,7 @@ export function KycMethodStep({
           <div>
             <p className="text-[14px] font-bold">Vérification instantanée</p>
             <p className="text-[12px] text-[var(--muted)]">
-              Exigée pour tous les livreurs · 2 minutes
+              Exigée pour tous les livreurs · 2 min
             </p>
           </div>
         </div>
