@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentDriver } from "@/lib/auth/driver";
+import { getDriverGate, routeForStage } from "@/lib/auth/driver-gate";
 import { getIdvDocumentTypes, getIdvGate, getIdvModes } from "@/lib/idv/config";
 import { getMyIdvVerification } from "@/lib/idv/user-data";
 import { DriverShell } from "@/components/driver/driver-shell";
@@ -24,18 +25,26 @@ export default async function DriverIdentitePage() {
   const gate = await getIdvGate("driver");
   if (!gate.enabled) redirect("/driver");
 
-  const [docTypes, enabledModes, verification] = await Promise.all([
+  const [docTypes, enabledModes, verification, driverGate] = await Promise.all([
     getIdvDocumentTypes(),
     getIdvModes(),
     getMyIdvVerification("driver"),
+    getDriverGate(),
   ]);
+  // Le retour dépend de l'ÉTAPE réelle : un livreur en cours d'inscription
+  // revient à son dossier, un livreur actif à son compte. (Sinon le bouton
+  // « Retour » l'envoyait sur une page qui le redirige aussitôt.)
+  const backHref =
+    driverGate && driverGate.stage !== "active"
+      ? routeForStage(driverGate.stage)
+      : "/driver/parametres";
   // Modes proposables = autorisés pour le profil ∩ actifs.
   const modes = enabledModes.filter((m) => gate.allowedModes.includes(m.key));
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
       <PartnerBackHeader
-        href="/driver/parametres"
+        href={backHref}
         title="Vérification d'identité"
         subtitle="Document · selfie · validation"
       />

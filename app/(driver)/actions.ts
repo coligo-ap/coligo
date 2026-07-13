@@ -6,6 +6,7 @@ import { z } from "zod";
 import { validateUploadedFile } from "@/lib/security/file-validation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getIdvCompliance } from "@/lib/idv/compliance";
 import {
   canonicalPhone,
   getCurrentDriver,
@@ -1251,6 +1252,23 @@ export async function submitDriverDossier(): Promise<{
       ok: false,
       error: "Votre dossier est incomplet.",
       missing: report.missing,
+    };
+  }
+
+  // VÉRIFICATION D'IDENTITÉ automatique (IDV) : quand le super-admin l'a rendue
+  // OBLIGATOIRE pour les livreurs, le dossier ne part pas tant que l'identité
+  // n'est pas confirmée (document + selfie + comparaison des visages). Une
+  // vérification EN COURS d'examen n'est pas encore une identité confirmée :
+  // le livreur attend le résultat avant de transmettre. Fonctionnalité non
+  // publiée ou seulement facultative ⇒ aucun effet ici.
+  const idv = await getIdvCompliance("driver");
+  if (idv.enabled && idv.required && !idv.verified) {
+    return {
+      ok: false,
+      error: idv.inProgress
+        ? "Votre identité est en cours de vérification. Vous pourrez transmettre votre dossier dès qu'elle sera confirmée."
+        : "Vérifiez d'abord votre identité (document + selfie).",
+      missing: ["Vérification d'identité"],
     };
   }
   // Ceinture et bretelles : la liste des pièces attendues doit être couverte.

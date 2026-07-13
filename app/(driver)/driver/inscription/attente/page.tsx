@@ -2,6 +2,7 @@ import { Hourglass } from "lucide-react";
 import { requireDriverStage } from "@/lib/auth/driver-gate";
 import { OnboardingScreen } from "@/components/driver/onboarding/onboarding-screen";
 import { DriverPendingView } from "@/components/driver/onboarding/pending-view";
+import { IdvCallout } from "@/components/idv/idv-callout";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,13 @@ export default async function DriverPendingPage({
       step={3}
       stepCount={4}
     >
+      {/* Statut de la vérification d'identité automatique (IDV) : « vérifiée »,
+          « en cours d'examen », ou l'invitation à la faire si elle reste à
+          l'ordre du jour. S'efface d'elle-même si la fonctionnalité n'est pas
+          publiée pour les livreurs. */}
+      <div className="mb-4">
+        <IdvCallout profile="driver" />
+      </div>
       <DriverPendingView
         justSubmitted={sp.envoye === "1"}
         submittedAt={gate.submittedAt}
