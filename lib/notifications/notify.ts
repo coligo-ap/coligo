@@ -13,13 +13,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDA } from "@/lib/utils";
 import { sendFcm } from "@/lib/fcm/send";
 
-export type NotifAudience = "customer" | "chauffeur" | "driver";
+export type NotifAudience = "customer" | "chauffeur" | "driver" | "merchant";
 
 /** Rôle `device_tokens` correspondant à chaque audience de notification. */
-const FCM_ROLE: Record<NotifAudience, "customer" | "chauffeur" | "courier"> = {
+const FCM_ROLE: Record<
+  NotifAudience,
+  "customer" | "chauffeur" | "courier" | "merchant"
+> = {
   customer: "customer",
   chauffeur: "chauffeur",
   driver: "courier",
+  merchant: "merchant",
 };
 
 /**

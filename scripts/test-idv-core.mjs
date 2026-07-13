@@ -251,17 +251,23 @@ try {
   ok("2 modes seedés (express, standard)", modes.join(","), "express,standard");
   const docs = await c.query("SELECT count(*)::int n FROM idv_document_types");
   ok("3 types de documents DZ", docs.rows[0].n, 3);
+  // Le REQUIREMENT et le STATUT du flag sont pilotés par le super-admin en
+  // production : on teste la STRUCTURE (les 3 règles existent, le flag existe
+  // avec une valeur valide), jamais une valeur qu'un admin a le droit de
+  // changer — sinon le test devient rouge dès que la console est utilisée.
   const rules = await c.query(
-    "SELECT count(*)::int n FROM idv_profile_rules WHERE requirement = 'disabled'"
+    "SELECT count(*)::int n FROM idv_profile_rules WHERE requirement IN ('required','optional','disabled')"
   );
-  ok("3 profils seedés, tous DÉSACTIVÉS", rules.rows[0].n, 3);
+  ok("3 profils pilotables existent", rules.rows[0].n, 3);
   const flag = await c.query(
     "SELECT status FROM feature_flags WHERE key = 'identity_verification'"
   );
   ok(
-    "flag identity_verification = hidden (non publié)",
-    flag.rows[0]?.status,
-    "hidden"
+    "flag identity_verification présent, statut valide",
+    ["active", "hidden", "coming_soon", "maintenance"].includes(
+      flag.rows[0]?.status
+    ),
+    true
   );
   const bucket = await c.query(
     "SELECT public FROM storage.buckets WHERE id = 'idv-captures'"
@@ -343,6 +349,38 @@ try {
     "UPDATE idv_profile_rules SET requirement = 'required' WHERE profile = 'driver'"
   );
   await c.query("RESET ROLE");
+
+  // ── Multi-profils (étape 9) : les 3 profils sont pilotables séparément ────
+  const profiles = (
+    await c.query("SELECT profile FROM idv_profile_rules ORDER BY profile")
+  ).rows.map((r) => r.profile);
+  ok(
+    "3 profils pilotables (chauffeur, driver, merchant)",
+    profiles.join(","),
+    "chauffeur,driver,merchant"
+  );
+  // Un dossier par PROFIL pour le même utilisateur : autorisé (index partiel
+  // sur (user_id, profile)) — un chauffeur qui est aussi commerçant a deux
+  // dossiers distincts, et l'un n'invalide pas l'autre.
+  const anyUser2 = await c.query("SELECT id FROM auth.users LIMIT 1");
+  if (anyUser2.rows.length) {
+    const uid2 = anyUser2.rows[0].id;
+    await c.query("SAVEPOINT multi");
+    await c.query(
+      "INSERT INTO idv_verifications (user_id, profile, mode) VALUES ($1, 'chauffeur', 'standard'), ($1, 'merchant', 'express')",
+      [uid2]
+    );
+    const n = await c.query(
+      "SELECT count(*)::int n FROM idv_verifications WHERE user_id = $1",
+      [uid2]
+    );
+    ok(
+      "dossiers séparés par profil pour un même compte",
+      n.rows[0].n >= 3,
+      true
+    );
+    await c.query("ROLLBACK TO SAVEPOINT multi");
+  }
 } finally {
   await c.query("ROLLBACK");
   await c.end();

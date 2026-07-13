@@ -40,6 +40,8 @@ import {
 
 export const dynamic = "force-dynamic";
 
+import { IdvCallout } from "@/components/idv/idv-callout";
+
 export default async function SettingsPage() {
   const supabase = await createClient();
   const {
@@ -158,6 +160,13 @@ export default async function SettingsPage() {
           Profil vitrine, horaires, règles de commande, impression et compte.
         </p>
       </header>
+
+      {/* Vérification d'identité du titulaire (IDV) : la bannière s'efface
+          d'elle-même si la fonctionnalité n'est pas publiée pour ce profil ou
+          si l'identité est déjà vérifiée. */}
+      <div className="mb-3">
+        <IdvCallout profile="merchant" />
+      </div>
 
       <div className="space-y-3">
         <SettingsSection

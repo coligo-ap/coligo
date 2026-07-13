@@ -62,3 +62,50 @@ export async function getMyIdvVerification(
     .maybeSingle();
   return (data as IdvVerificationView | null) ?? null;
 }
+
+/**
+ * DERNIER dossier de l'utilisateur pour ce profil, quel que soit son statut
+ * (approuvé/refusé compris) — `getMyIdvVerification` ne voit que les dossiers
+ * VIVANTS, donc une identité déjà vérifiée y est invisible. Utilisé par la
+ * conformité d'espace (lib/idv/compliance.ts).
+ */
+export async function getMyLatestIdvVerification(
+  profile: IdvProfile
+): Promise<IdvVerificationView | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const admin = createAdminClient();
+  const from = admin.from.bind(admin) as unknown as (t: string) => {
+    select: (cols: string) => {
+      eq: (
+        c: string,
+        v: string
+      ) => {
+        eq: (
+          c: string,
+          v: string
+        ) => {
+          order: (
+            c: string,
+            o: { ascending: boolean }
+          ) => {
+            limit: (
+              n: number
+            ) => Promise<{ data: Record<string, unknown>[] | null }>;
+          };
+        };
+      };
+    };
+  };
+  const { data } = await from("idv_verifications")
+    .select("id, status, document_type, mode, attempt, updated_at")
+    .eq("user_id", user.id)
+    .eq("profile", profile)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  return (data?.[0] as IdvVerificationView | undefined) ?? null;
+}

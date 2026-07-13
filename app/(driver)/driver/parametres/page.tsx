@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { DriverShell } from "@/components/driver/driver-shell";
+import { IdvCallout } from "@/components/idv/idv-callout";
 import { CompteLoader } from "@/components/driver/profile/compte-loader";
 import type { CompteData } from "@/components/driver/profile/compte-view";
 
@@ -45,6 +46,12 @@ export default async function DriverProfilePage() {
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
+      {/* Appel à vérification d'identité (IDV) : la bannière s'efface d'elle-
+          même si la fonctionnalité n'est pas publiée ou l'identité déjà
+          vérifiée. */}
+      <div className="mb-3">
+        <IdvCallout profile="driver" />
+      </div>
       {/* Compte COMPACT : le dossier vit dans /driver/documents, l'abonnement
           Pass Prioritaire (gestion + historique) dans /driver/abonnement —
           le compte n'affiche plus que des lignes d'accès. */}

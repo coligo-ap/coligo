@@ -15,6 +15,7 @@ import {
   type DocQuality,
 } from "@/lib/idv/pipeline/quality";
 import { logIdvAudit } from "@/lib/idv/audit";
+import { getIdvCompliance, type IdvCompliance } from "@/lib/idv/compliance";
 import { IDV_ACTIVE_STATUSES, type IdvStatus } from "@/lib/idv/types";
 import {
   decideIdv,
@@ -22,7 +23,10 @@ import {
   type IdvCheckResult,
   type IdvThresholds,
 } from "@/lib/idv/decision";
-import { storeAndPushNotification } from "@/lib/notifications/notify";
+import {
+  storeAndPushNotification,
+  type NotifAudience,
+} from "@/lib/notifications/notify";
 import {
   CHALLENGE_TTL_MS,
   drawChallenges,
@@ -45,18 +49,76 @@ import type {
 } from "@/lib/idv/pipeline/analyze-contract";
 
 // =============================================================================
-// /driver/identite — SOUMISSION du document d'identité (étape 4 du chantier
-// IDV, docs/IDV-KYC.md). Le client guide la prise de vue ; ICI on refait les
-// contrôles qui font foi : magic bytes, qualité photo (netteté/exposition/
-// reflets), tentatives bornées. Écritures via service_role (aucune policy RLS
-// sur idv_*) → session vérifiée + périmètre user_id systématique.
-// OCR / MRZ / authenticité brancheront leurs contrôles au MÊME endroit
-// (étape 5) avant le passage à `doc_validated`.
+// ACTIONS IDV — parcours de vérification d'identité, PARTAGÉES par les trois
+// espaces (livreur, chauffeur, commerçant). Le client guide la prise de vue ;
+// ICI on refait tous les contrôles qui font foi : magic bytes, qualité photo,
+// analyse du document (MRZ + checksums + expiration), liveness à défis signés,
+// face match, puis la décision à seuils (docs/IDV-KYC.md).
+//
+// Écritures via service_role (aucune policy RLS sur idv_*) → session vérifiée,
+// PROFIL VALIDÉ (resolveProfile), périmètre user_id systématique.
 // =============================================================================
 
-const PROFILE = "driver";
 const BUCKET = "idv-captures";
 const MAX_DOC_BYTES = 8 * MB;
+
+// ── Profils : route, audience de notification, table qui prouve l'identité ──
+// Le profil vient du CLIENT (il choisit sa surface) mais n'est JAMAIS cru sur
+// parole : `resolveProfile` vérifie que l'utilisateur possède réellement ce
+// rôle (ligne dans drivers / chauffeurs / merchants). Un livreur ne peut donc
+// pas ouvrir un dossier « commerçant », ni contourner la règle d'un profil.
+const PROFILES = {
+  driver: {
+    route: "/driver/identite",
+    audience: "driver" as const,
+    table: "drivers",
+  },
+  chauffeur: {
+    route: "/chauffeur/identite",
+    audience: "chauffeur" as const,
+    table: "chauffeurs",
+  },
+  merchant: {
+    route: "/identite",
+    audience: "merchant" as const,
+    table: "merchants",
+  },
+} satisfies Record<
+  string,
+  { route: string; audience: NotifAudience; table: string }
+>;
+
+export type IdvProfileKey = keyof typeof PROFILES;
+
+type OwnershipSelect = {
+  select: (cols: string) => {
+    eq: (
+      c: string,
+      v: string
+    ) => { maybeSingle: () => Promise<{ data: Row | null }> };
+  };
+};
+
+/**
+ * Valide que l'utilisateur possède bien le profil demandé. null = profil
+ * inconnu ou usurpé → l'appelant refuse l'action.
+ */
+async function resolveProfile(
+  userId: string,
+  requested: unknown
+): Promise<IdvProfileKey | null> {
+  const key = String(requested ?? "") as IdvProfileKey;
+  if (!(key in PROFILES)) return null;
+  const { data } = await table<OwnershipSelect>(PROFILES[key].table)
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data ? key : null;
+}
+
+function revalidateIdv(profile: IdvProfileKey): void {
+  revalidatePath(PROFILES[profile].route);
+}
 
 export type IdvSubmitState = {
   error?: string;
@@ -196,6 +258,7 @@ const callFaceMatch = (payload: FaceMatchRequest) =>
 /** Annonce le résultat à l'utilisateur (cloche + push). Fire-and-forget. */
 async function notifyIdvOutcome(
   userId: string,
+  profile: IdvProfileKey,
   outcome: "approved" | "pending_review" | "rejected"
 ): Promise<void> {
   const copy = {
@@ -214,11 +277,11 @@ async function notifyIdvOutcome(
   }[outcome];
   await storeAndPushNotification({
     userId,
-    audience: "driver",
+    audience: PROFILES[profile].audience,
     kind: `idv_${outcome}`,
     title: copy.title,
     body: copy.body,
-    route: "/driver/identite",
+    route: PROFILES[profile].route,
   });
 }
 
@@ -267,7 +330,10 @@ export async function submitIdvDocument(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Session expirée — reconnectez-vous." };
 
-  const gate = await getIdvGate(PROFILE);
+  const profile = await resolveProfile(user.id, formData.get("profile"));
+  if (!profile) return { error: "Profil invalide." };
+
+  const gate = await getIdvGate(profile);
   if (!gate.enabled) {
     return { error: "La vérification d'identité n'est pas disponible." };
   }
@@ -320,7 +386,7 @@ export async function submitIdvDocument(
   const { data: existing } = await table<ActiveSelect>("idv_verifications")
     .select("id, status, attempt")
     .eq("user_id", user.id)
-    .eq("profile", PROFILE)
+    .eq("profile", profile)
     .in("status", IDV_ACTIVE_STATUSES)
     .maybeSingle();
 
@@ -346,7 +412,7 @@ export async function submitIdvDocument(
     )
       .insert({
         user_id: user.id,
-        profile: PROFILE,
+        profile,
         mode,
         document_type: docType.key,
       })
@@ -371,7 +437,7 @@ export async function submitIdvDocument(
       reason: "max_attempts_reached",
       metadata: { attempt, maxAttempts },
     });
-    revalidatePath("/driver/identite");
+    revalidateIdv(profile);
     return { ok: true, status: "pending_review" };
   }
 
@@ -450,7 +516,7 @@ export async function submitIdvDocument(
         back: backQuality?.reasons ?? null,
       },
     });
-    revalidatePath("/driver/identite");
+    revalidateIdv(profile);
     return {
       error: qualityMessage(frontQuality, backQuality),
       status: keepStatus,
@@ -474,7 +540,7 @@ export async function submitIdvDocument(
       reason: "pipeline_unavailable",
       metadata: { attempt },
     });
-    revalidatePath("/driver/identite");
+    revalidateIdv(profile);
     return { ok: true, status: "pending_review" };
   }
 
@@ -523,7 +589,7 @@ export async function submitIdvDocument(
         reason,
         metadata: { attempt, checks: hardFailures.map((c) => c.key) },
       });
-      revalidatePath("/driver/identite");
+      revalidateIdv(profile);
       return { ok: true, status: "rejected" };
     }
     await applyUpdate({ status: "pending_review" });
@@ -534,7 +600,7 @@ export async function submitIdvDocument(
       reason,
       metadata: { attempt, checks: hardFailures.map((c) => c.key) },
     });
-    revalidatePath("/driver/identite");
+    revalidateIdv(profile);
     return { ok: true, status: "pending_review" };
   }
 
@@ -548,7 +614,7 @@ export async function submitIdvDocument(
       reason: "technical_error",
       metadata: { attempt, checks: technicalErrors.map((c) => c.key) },
     });
-    revalidatePath("/driver/identite");
+    revalidateIdv(profile);
     return { ok: true, status: "pending_review" };
   }
 
@@ -562,7 +628,7 @@ export async function submitIdvDocument(
       reason: "retryable_failure",
       metadata: { attempt, checks: retryables.map((c) => c.key) },
     });
-    revalidatePath("/driver/identite");
+    revalidateIdv(profile);
     return {
       error: retryableMessage(retryables, mrzFormat),
       status: keepStatus,
@@ -584,7 +650,7 @@ export async function submitIdvDocument(
       mrz: docType.mrz_format ? "valid" : "skipped",
     },
   });
-  revalidatePath("/driver/identite");
+  revalidateIdv(profile);
   return { ok: true, status: "doc_validated" };
 }
 
@@ -611,13 +677,17 @@ export type IdvSelfieSession =
   | { challenges: IdvChallenge[]; token: string; expiresAt: number };
 
 /** Ouvre une session de défis liveness (jeton HMAC à expiration courte). */
-export async function startIdvSelfie(): Promise<IdvSelfieSession> {
+export async function startIdvSelfie(
+  requestedProfile: string
+): Promise<IdvSelfieSession> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Session expirée — reconnectez-vous." };
-  const gate = await getIdvGate(PROFILE);
+  const profile = await resolveProfile(user.id, requestedProfile);
+  if (!profile) return { error: "Profil invalide." };
+  const gate = await getIdvGate(profile);
   if (!gate.enabled) return { error: "Vérification indisponible." };
   const secret = process.env.INTERNAL_IDV_SECRET;
   if (!secret) return { error: "Vérification indisponible." };
@@ -625,7 +695,7 @@ export async function startIdvSelfie(): Promise<IdvSelfieSession> {
   const { data: verif } = await table<ActiveSelect>("idv_verifications")
     .select("id, status")
     .eq("user_id", user.id)
-    .eq("profile", PROFILE)
+    .eq("profile", profile)
     .in("status", IDV_ACTIVE_STATUSES)
     .maybeSingle();
   if (
@@ -670,7 +740,9 @@ export async function submitIdvSelfie(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Session expirée — reconnectez-vous." };
-  const gate = await getIdvGate(PROFILE);
+  const profile = await resolveProfile(user.id, formData.get("profile"));
+  if (!profile) return { error: "Profil invalide." };
+  const gate = await getIdvGate(profile);
   if (!gate.enabled) {
     return { error: "La vérification d'identité n'est pas disponible." };
   }
@@ -680,7 +752,7 @@ export async function submitIdvSelfie(
   const { data: verif } = await table<ActiveSelect>("idv_verifications")
     .select("id, status, mode")
     .eq("user_id", user.id)
-    .eq("profile", PROFILE)
+    .eq("profile", profile)
     .in("status", IDV_ACTIVE_STATUSES)
     .maybeSingle();
   if (
@@ -729,7 +801,7 @@ export async function submitIdvSelfie(
       reason: "max_selfie_attempts_reached",
       metadata: { selfieAttempt, maxAttempts },
     });
-    revalidatePath("/driver/identite");
+    revalidateIdv(profile);
     return { ok: true, status: "pending_review" };
   }
 
@@ -768,7 +840,7 @@ export async function submitIdvSelfie(
       reason: "pipeline_unavailable",
       metadata: { selfieAttempt },
     });
-    revalidatePath("/driver/identite");
+    revalidateIdv(profile);
     return { ok: true, status: "pending_review" };
   }
 
@@ -837,6 +909,7 @@ export async function submitIdvSelfie(
     });
     return finalizeIdvDecision({
       userId: user.id,
+      profile,
       verifId,
       attempt: selfieAttempt,
       thresholds,
@@ -867,7 +940,7 @@ export async function submitIdvSelfie(
         reason,
         metadata: { selfieAttempt, score, minCosine },
       });
-      revalidatePath("/driver/identite");
+      revalidateIdv(profile);
       return { ok: true, status: "rejected" };
     }
     await applyStatus({ selfie_frames: paths, status: "pending_review" });
@@ -878,7 +951,7 @@ export async function submitIdvSelfie(
       reason,
       metadata: { selfieAttempt, score, minCosine },
     });
-    revalidatePath("/driver/identite");
+    revalidateIdv(profile);
     return { ok: true, status: "pending_review" };
   }
 
@@ -893,7 +966,7 @@ export async function submitIdvSelfie(
       verdicts: evaluation.verdicts.filter((v) => !v.passed),
     },
   });
-  revalidatePath("/driver/identite");
+  revalidateIdv(profile);
   return {
     error: livenessCoaching(evaluation.verdicts.map((v) => v.reason)),
     status: keepStatus,
@@ -941,6 +1014,7 @@ type ChecksSelect = {
 
 async function finalizeIdvDecision(input: {
   userId: string;
+  profile: IdvProfileKey;
   verifId: string;
   attempt: number;
   thresholds: IdvThresholds;
@@ -951,6 +1025,7 @@ async function finalizeIdvDecision(input: {
 }): Promise<IdvSubmitState> {
   const {
     userId,
+    profile,
     verifId,
     attempt,
     thresholds,
@@ -974,8 +1049,8 @@ async function finalizeIdvDecision(input: {
       reason,
       metadata,
     });
-    await notifyIdvOutcome(userId, "pending_review");
-    revalidatePath("/driver/identite");
+    await notifyIdvOutcome(userId, profile, "pending_review");
+    revalidateIdv(profile);
     return { ok: true, status: "pending_review" as IdvStatus };
   };
 
@@ -1085,8 +1160,8 @@ async function finalizeIdvDecision(input: {
       reason: decision.reasons.join(","),
       metadata,
     });
-    await notifyIdvOutcome(userId, "approved");
-    revalidatePath("/driver/identite");
+    await notifyIdvOutcome(userId, profile, "approved");
+    revalidateIdv(profile);
     return { ok: true, status: "approved" };
   }
 
@@ -1106,10 +1181,28 @@ async function finalizeIdvDecision(input: {
       reason: decision.reasons.join(","),
       metadata,
     });
-    await notifyIdvOutcome(userId, "rejected");
-    revalidatePath("/driver/identite");
+    await notifyIdvOutcome(userId, profile, "rejected");
+    revalidateIdv(profile);
     return { ok: true, status: "rejected" };
   }
 
   return toReview(decision.reasons.join(","), metadata);
+}
+
+/**
+ * État de conformité IDV pour un composant CLIENT (compte chauffeur, qui vit
+ * côté client par choix de perf). Lecture seule, profil validé, aucune donnée
+ * sensible (ni scores, ni extractions).
+ */
+export async function fetchIdvCompliance(
+  requestedProfile: string
+): Promise<IdvCompliance | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const profile = await resolveProfile(user.id, requestedProfile);
+  if (!profile) return null;
+  return getIdvCompliance(profile);
 }

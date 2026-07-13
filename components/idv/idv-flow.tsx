@@ -26,7 +26,7 @@ import {
   submitIdvDocument,
   submitIdvSelfie,
   type IdvSubmitState,
-} from "@/app/(driver)/driver/identite/actions";
+} from "@/app/idv/actions";
 import type { IdvChallenge } from "@/lib/idv/liveness";
 import type {
   IdvDocumentType,
@@ -57,12 +57,15 @@ function sideLabel(doc: IdvDocumentType | undefined, side: Side): string {
 }
 
 export function IdvFlow({
+  profile,
   docTypes,
   modes,
   canChooseMode,
   defaultMode,
   verification,
 }: {
+  /** Espace d'où part le parcours — REVALIDÉ côté serveur (resolveProfile). */
+  profile: "driver" | "chauffeur" | "merchant";
   docTypes: IdvDocumentType[];
   modes: IdvModePublic[];
   canChooseMode: boolean;
@@ -138,6 +141,7 @@ export function IdvFlow({
   const submit = () => {
     if (!doc || !captures.front) return;
     const fd = new FormData();
+    fd.set("profile", profile);
     fd.set("document_type", doc.key);
     fd.set("mode", modeKey);
     fd.set(
@@ -158,7 +162,7 @@ export function IdvFlow({
   const beginSelfie = async () => {
     setSelfieStarting(true);
     setSelfieError(null);
-    const res = await startIdvSelfie();
+    const res = await startIdvSelfie(profile);
     setSelfieStarting(false);
     if ("error" in res) {
       setSelfieError(res.error);
@@ -170,6 +174,7 @@ export function IdvFlow({
 
   const sendSelfie = (frames: Blob[], s: SelfieSession) => {
     const fd = new FormData();
+    fd.set("profile", profile);
     fd.set("challenges", s.challenges.join(","));
     fd.set("token", s.token);
     fd.set("expires_at", String(s.expiresAt));

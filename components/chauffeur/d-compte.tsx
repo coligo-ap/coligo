@@ -67,6 +67,8 @@ import { setChauffeurOnlineLocal } from "@/lib/chauffeur/online-store";
 
 /** Compte chauffeur : statuts + stats en haut (sans aller en sous-page),
  *  informations groupées en catégories, et bascule clair/sombre. */
+import { IdvCalloutClient } from "@/components/idv/idv-callout-client";
+
 export function DCompte({ gate }: { gate: ChauffeurGate }) {
   const router = useRouter();
   const isAr = useLocale() === "ar";
@@ -169,6 +171,9 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
       <h1 className="drive-sora mb-3.5 text-[21px] font-extrabold tracking-[-0.5px]">
         Compte
       </h1>
+
+      {/* Vérification d'identité (IDV) : s'efface si non publiée ou déjà faite. */}
+      <IdvCalloutClient profile="chauffeur" />
 
       {/* Profil — l'avatar porte l'anneau de couleur du badge (toujours visible). */}
       <div className="mb-3 flex items-center gap-3">

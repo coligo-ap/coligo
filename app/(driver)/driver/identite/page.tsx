@@ -40,6 +40,7 @@ export default async function DriverIdentitePage() {
         subtitle="Document · selfie · validation"
       />
       <IdvFlow
+        profile="driver"
         docTypes={docTypes}
         modes={modes}
         canChooseMode={gate.userCanChooseMode && modes.length > 1}

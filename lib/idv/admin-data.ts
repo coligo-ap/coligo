@@ -163,24 +163,44 @@ export async function getIdvReviewQueue(limit = 50): Promise<IdvQueueItem[]> {
   const cases = (rows ?? []) as unknown as IdvQueueItem[];
   if (cases.length === 0) return [];
 
-  // Identités (livreurs) + derniers scores, en 2 requêtes groupées.
+  // Identités des TROIS profils (livreur, chauffeur, commerçant) + scores.
   const userIds = [...new Set(cases.map((c) => c.user_id))];
   const ids = cases.map((c) => c.id);
-  const [{ data: drivers }, { data: checks }] = await Promise.all([
+  const [
+    { data: drivers },
+    { data: chauffeurs },
+    { data: merchants },
+    { data: checks },
+  ] = await Promise.all([
     from("drivers").select("user_id, full_name, phone").in("user_id", userIds),
+    from("chauffeurs")
+      .select("user_id, full_name, phone")
+      .in("user_id", userIds),
+    // `merchants` porte le nom du COMMERCE (pas de colonne phone).
+    from("merchants").select("user_id, name").in("user_id", userIds),
     from("idv_checks")
       .select("verification_id, check_key, score, created_at")
       .in("verification_id", ids),
   ]);
-  const byUser = new Map(
-    (drivers ?? []).map((d) => [
-      String(d.user_id),
-      {
-        name: (d.full_name as string) ?? null,
-        phone: (d.phone as string) ?? null,
-      },
-    ])
-  );
+  const byUser = new Map<
+    string,
+    { name: string | null; phone: string | null }
+  >();
+  for (const row of [...(drivers ?? []), ...(chauffeurs ?? [])]) {
+    byUser.set(String(row.user_id), {
+      name: (row.full_name as string) ?? null,
+      phone: (row.phone as string) ?? null,
+    });
+  }
+  for (const row of merchants ?? []) {
+    // Un même utilisateur ne cumule pas les profils : pas d'écrasement utile.
+    if (!byUser.has(String(row.user_id))) {
+      byUser.set(String(row.user_id), {
+        name: (row.name as string) ?? null,
+        phone: null,
+      });
+    }
+  }
   const latest = new Map<
     string,
     { face: number | null; live: number | null }
@@ -266,7 +286,16 @@ export async function getIdvCaseDetail(
   if (!verif) return null;
   const verification = verif as unknown as IdvVerificationRow;
 
-  const [{ data: checks }, { data: audit }, { data: driver }] =
+  // Le nom vient de la table du PROFIL du dossier (le commerçant porte le nom
+  // du commerce et n'a pas de colonne `phone`).
+  const identity: Record<string, { table: string; cols: string }> = {
+    driver: { table: "drivers", cols: "full_name, phone" },
+    chauffeur: { table: "chauffeurs", cols: "full_name, phone" },
+    merchant: { table: "merchants", cols: "name" },
+  };
+  const idn = identity[verification.profile] ?? identity.driver;
+
+  const [{ data: checks }, { data: audit }, { data: personRow }] =
     await Promise.all([
       from("idv_checks")
         .select("id, attempt, check_key, status, score, details, created_at")
@@ -278,8 +307,8 @@ export async function getIdvCaseDetail(
         )
         .eq("verification_id", id)
         .order("id", { ascending: false }),
-      from("drivers")
-        .select("full_name, phone")
+      from(idn.table)
+        .select(idn.cols)
         .eq("user_id", verification.user_id)
         .maybeSingle(),
     ]);
@@ -304,10 +333,12 @@ export async function getIdvCaseDetail(
 
   return {
     verification,
-    person: driver
+    person: personRow
       ? {
-          name: (driver.full_name as string) ?? null,
-          phone: (driver.phone as string) ?? null,
+          name:
+            ((personRow.full_name ?? personRow.name) as string | undefined) ??
+            null,
+          phone: (personRow.phone as string | undefined) ?? null,
         }
       : null,
     checks: (checks ?? []) as unknown as IdvCaseCheck[],

@@ -16,6 +16,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireIdvVerified } from "@/lib/idv/compliance";
 
 /** Étapes du parcours, dans l'ordre. */
 export type DriverStage =
@@ -142,6 +143,10 @@ export async function requireActiveDriver(): Promise<DriverGate> {
   const gate = await getDriverGate();
   if (!gate) redirect("/driver/login");
   if (gate.stage !== "active") redirect(routeForStage(gate.stage));
+  // Vérification d'identité (IDV) : ne bloque QUE si le super-admin l'a rendue
+  // obligatoire pour ce profil ET que l'identité n'est pas confirmée. Sans
+  // exigence (ou fonctionnalité retirée), passe-plat total.
+  await requireIdvVerified("driver");
   return gate;
 }
 

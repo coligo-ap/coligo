@@ -228,5 +228,24 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
    ou un selfie avec message envoyé au livreur / commentaire interne) et
    **journal d'audit complet**. Transitions gardées (un dossier clos ne se
    re-décide pas), tout est tracé et l'utilisateur est notifié.
-9. Intégration profils (livreur, chauffeur, commerçant) + i18n AR + gating.
+9. ✅ **Les trois profils + gating d'accès** : actions IDV déplacées dans
+   `app/idv/actions.ts` (partagées), profil transmis par le client mais
+   **VALIDÉ serveur** (`resolveProfile` : l'utilisateur doit réellement
+   posséder une ligne dans `drivers` / `chauffeurs` / `merchants` — impossible
+   d'ouvrir le dossier d'un autre profil). Parcours disponibles sur
+   `/driver/identite`, `/chauffeur/identite`, `/identite` (commerçant), avec
+   bannière d'appel dans les comptes des trois espaces (variante serveur +
+   variante client pour le compte chauffeur, rendu client par perf) — elle
+   s'efface d'elle-même si la fonctionnalité n'est pas publiée, si le profil
+   n'est pas concerné ou si l'identité est déjà vérifiée.
+   **Gating** : `lib/idv/compliance.ts` (`requireIdvVerified`) branché dans
+   `requireActiveDriver`, `ChauffeurGateGuard` et le dashboard commerçant —
+   il ne bloque QUE si le super-admin a mis le profil sur « obligatoire » et
+   que l'identité n'est pas confirmée. Fail-safe : une panne de lecture ne
+   verrouille jamais un partenaire dehors. La file admin résout désormais les
+   noms des trois profils.
+   i18n : les espaces partenaires ne sont pas traduits (next-intl n'y est pas
+   utilisé) — les libellés AR restent portés par la DB (`label_ar`,
+   `description_ar` des modes et documents), prêts pour le jour où ces espaces
+   passeront en bilingue.
 10. Durcissement : tests E2E, monitoring d'intégrité, revue sécurité.
