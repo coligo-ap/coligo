@@ -5,6 +5,23 @@ distinct du « dossier KYC livreur » (driver_documents, mig 0352) : IDV vérifi
 **QUI est la personne** (document authentique + visage correspondant), pour
 n'importe quel profil, entièrement piloté par le super-admin.
 
+## RÈGLE LICENCES (exigence propriétaire, 13/07/2026)
+
+**Toute bibliothèque ET tout poids de modèle intégré doit être sous licence
+autorisant EXPLICITEMENT l'usage commercial** (Apache-2.0, MIT, BSD…). Vérifier
+la licence du CODE **et** des POIDS avant toute intégration ; si une
+restriction existe (ex. « research only »), proposer une alternative.
+C'est pour ça qu'**InsightFace est ÉCARTÉ** : code MIT, mais poids
+pré-entraînés « non-commercial research purposes only ».
+
+## RÈGLE INFRA : Vercel + Supabase, rien d'autre
+
+Pas de VPS, pas de service Docker auto-hébergé. Tout le ML serveur tourne dans
+les **fonctions Node de Vercel** (onnxruntime-node + petits modèles ONNX),
+qui restent dans les limites de la plateforme (~80 Mo de modèles < 250 Mo par
+fonction ; Fluid compute garde l'instance chaude, les modèles se chargent une
+fois par instance).
+
 ## Principe d'architecture : le client GUIDE, le serveur DÉCIDE
 
 ```
@@ -15,52 +32,58 @@ n'importe quel profil, entièrement piloté par le super-admin.
 └──────────────┬──────────────────────────────────────────────────┘
                │ upload sécurisé (magic bytes, lib/security)
 ┌──────────────▼──────────────────────────────────────────────────┐
-│ Next.js Server Actions — ORCHESTRATION + DÉCISION               │
-│ • crée/gère le dossier (idv_verifications, service_role)        │
-│ • appelle le service KYC (HMAC), stocke scores + extractions    │
+│ Vercel — Server Actions + route pipeline Node                   │
+│ ORCHESTRATION + ANALYSE + DÉCISION (onnxruntime-node, sharp) :  │
+│ • document : PP-OCR ONNX (ar+latin) + MRZ tesseract.js +        │
+│   checksums ICAO 9303 (implémentés en TS, spec publique)        │
+│ • visage : YuNet (détection) + SFace (embeddings)               │
+│ • anti-spoof passif : MiniFASNetV2 (converti ONNX)              │
 │ • moteur de décision à seuils : lib/idv/decision.ts (pur)       │
 │ • journal d'audit append-only (idv_audit_log)                   │
-└───────┬──────────────────────────────┬──────────────────────────┘
-        │                              │
-┌───────▼───────────────┐   ┌──────────▼──────────────────────────┐
-│ Supabase              │   │ Service KYC (Python FastAPI, Docker) │
-│ • tables idv_* + RLS  │   │ • OCR PaddleOCR (AR+FR+latin)        │
-│ • bucket privé        │   │ • MRZ : Tesseract OCR-B + checksums  │
-│   idv-captures        │   │   ICAO 9303 (lib mrz)                │
-│ • feature_flags       │   │ • Face : détection + embeddings      │
-│   identity_           │   │   (InsightFace SCRFD/ArcFace ONNX)   │
-│   verification        │   │ • Anti-spoof passif : MiniFASNet     │
-└───────────────────────┘   │ • Fraude doc : cohérence MRZ↔OCR,    │
-                            │   dates, qualité, écran/photocopie   │
-                            │ Stateless, scores normalisés [0,1]   │
-                            └──────────────────────────────────────┘
+│ Doc et selfie analysés en DEUX appels courts (< limites CPU).   │
+└──────────────┬──────────────────────────────────────────────────┘
+┌──────────────▼────────────────────────────────────────┐
+│ Supabase : tables idv_* + RLS, bucket privé           │
+│ idv-captures, feature_flags identity_verification     │
+└───────────────────────────────────────────────────────┘
 ```
 
 Pourquoi ce découpage :
 
-- **Vercel ne peut pas héberger les modèles** (limites de taille des functions,
-  cold starts) → un microservice Docker CPU auto-hébergé, déployable sur
-  n'importe quel petit VPS. Contrat d'API versionné, authentifié par HMAC.
-- **Les seuils vivent en DB** (idv_modes), la décision en TypeScript pur : le
-  service Python ne renvoie QUE des scores bruts normalisés → changer un seuil
-  ne redéploie rien.
-- **Dégradé** : service KYC injoignable ⇒ le dossier part en revue humaine
+- **Les seuils vivent en DB** (idv_modes), la décision en TypeScript pur :
+  changer un seuil ne redéploie rien. Les scores sont **normalisés [0,1]**
+  quel que soit le modèle — on peut changer de backend sans casser la config.
+- **Dégradé** : pipeline en échec technique ⇒ le dossier part en revue humaine
   (`pending_review`), on ne bloque jamais un utilisateur sur une panne.
 
-## Choix techniques (comparés)
+## Choix techniques — licences VÉRIFIÉES le 13/07/2026 (code + poids)
 
-| Besoin                          | Retenu                                                                                                                                                                                                                                      | Écarté et pourquoi                                               |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| OCR (AR + FR)                   | **PaddleOCR** (Apache-2.0)                                                                                                                                                                                                                  | Tesseract : faible sur photos de terrain ; EasyOCR : lent, lourd |
-| MRZ                             | **Tesseract OCR-B + lib `mrz`** (checksums ICAO 9303)                                                                                                                                                                                       | PaddleOCR généraliste moins fiable sur la police OCR-B           |
-| Visage (détection + embeddings) | **InsightFace** SCRFD + ArcFace ONNX — ⚠️ poids pré-entraînés « recherche non commerciale » ; abstraction backend pour basculer sur **dlib/face_recognition** (licence permissive, LFW 99,38 %) si besoin — décision à trancher à l'étape 7 | face-api.js : abandonné ; DeepFace : wrapper lourd               |
-| Liveness passif                 | **MiniFASNet** (Silent-Face-Anti-Spoofing, Apache-2.0)                                                                                                                                                                                      | modèles propriétaires = SaaS payant                              |
-| Liveness actif                  | **MediaPipe Tasks** (Apache-2.0) côté client : défis aléatoires ÉMIS ET VÉRIFIÉS PAR LE SERVEUR sur les frames                                                                                                                              | reconnaissance dans le navigateur seul = falsifiable             |
-| Guidage document                | Heuristiques canvas (netteté Laplacien, reflets) + OpenCV.js chargé à la demande, auto-hébergé (`public/vendor`, jamais de CDN)                                                                                                             | —                                                                |
-| Service                         | **FastAPI + onnxruntime CPU + Docker**                                                                                                                                                                                                      | Node/onnxruntime-node : écosystème OCR/vision bien plus pauvre   |
+| Besoin                            | Retenu                                                                                           | Licence vérifiée                                    | Écarté et pourquoi                                                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Détection visage (serveur)        | **YuNet** (opencv_zoo, ~345 Ko)                                                                  | MIT (LICENSE du dossier modèle)                     | SCRFD/RetinaFace : poids sur datasets research-only                                                                               |
+| Embeddings visage                 | **SFace** (opencv_zoo, ~37 Mo ONNX)                                                              | Apache-2.0 (LICENSE du dossier modèle)              | **InsightFace ArcFace : poids « non-commercial research only » → EXCLU** ; dlib : poids OK mais runtime C++ impossible sur Vercel |
+| Anti-spoof passif                 | **MiniFASNetV2** (Silent-Face-Anti-Spoofing, ~2 Mo, poids dans le repo → conversion ONNX maison) | Apache-2.0 (repo + poids inclus)                    | modèles propriétaires = SaaS payant                                                                                               |
+| OCR document (AR + FR)            | **PP-OCR det+rec ONNX** (PaddleOCR, ~15-25 Mo)                                                   | Apache-2.0 (code ET modèles, confirmé Baidu)        | EasyOCR : lent ; runtime Paddle C++ : pas Vercel                                                                                  |
+| MRZ                               | **tesseract.js** whitelist `A-Z0-9<` + checksums ICAO 9303 en TS                                 | Apache-2.0 (tesseract.js ET tessdata)               | lib Python `mrz` : plus de runtime Python                                                                                         |
+| Guidage + liveness actif (client) | **MediaPipe Tasks** (WASM) — défis émis et vérifiés PAR LE SERVEUR                               | Apache-2.0 (framework ET poids, model cards Google) | reconnaissance navigateur seule = falsifiable                                                                                     |
+| Runtime inference                 | **onnxruntime-node**                                                                             | MIT                                                 | —                                                                                                                                 |
+| Traitement d'image serveur        | **sharp**                                                                                        | Apache-2.0                                          | OpenCV serveur : natif lourd, inutile ici                                                                                         |
 
-Tous les **scores sont normalisés [0,1]** par le service (quel que soit le
-backend) — les seuils en DB restent valides si on change de modèle.
+Sources licences : [SFace](https://github.com/opencv/opencv_zoo/blob/main/models/face_recognition_sface/LICENSE),
+[YuNet](https://github.com/opencv/opencv_zoo/blob/main/models/face_detection_yunet/LICENSE),
+[Silent-Face-Anti-Spoofing](https://github.com/minivision-ai/Silent-Face-Anti-Spoofing/blob/master/LICENSE),
+[PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR/blob/main/LICENSE),
+[tesseract.js](https://github.com/naptha/tesseract.js/blob/master/LICENSE.md),
+[tessdata](https://github.com/tesseract-ocr/tessdata/blob/main/LICENSE),
+[MediaPipe](https://github.com/google-ai-edge/mediapipe/blob/master/LICENSE).
+
+Obligation Apache-2.0/MIT : conserver les notices de licence → un fichier
+`THIRD-PARTY-LICENSES` sera ajouté à l'étape 3.
+
+Note précision : SFace (LFW ≈ 99,6 %) est un cran sous ArcFace-r100, mais la
+zone intermédiaire part en revue humaine — c'est le filet. Les seuils par
+défaut seront **calibrés à l'étape 7** sur le modèle réel (c'est pour ça
+qu'ils sont en DB, pas dans le code).
 
 ## Modèle de données (mig 0367)
 
@@ -104,11 +127,16 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
    test `npm run test:idv`.
 2. Console super-admin — pilotage : `/admin/identite` (domaine Confiance) :
    règles par profil, modes, seuils, publication.
-3. Service KYC Python : squelette FastAPI + Docker + HMAC + contrat d'API.
+3. **Fondations du pipeline ML sur Vercel** : onnxruntime-node + sharp,
+   embarquement des modèles (outputFileTracingIncludes), chargement par
+   instance, contrat interne typé, `THIRD-PARTY-LICENSES`, bench cold start.
 4. Parcours client — capture document guidée + upload sécurisé.
-5. Pipeline document : OCR, MRZ, expiration, anti-fraude, extraction.
-6. Selfie + liveness (défis actifs signés + anti-spoof passif).
-7. Face match + branchement du moteur de décision + notifications.
+5. Pipeline document : PP-OCR, MRZ + checksums, expiration, anti-fraude,
+   extraction structurée.
+6. Selfie + liveness (défis actifs signés + MiniFASNet passif — conversion
+   ONNX maison des poids Apache-2.0).
+7. Face match (YuNet + SFace) + calibration des seuils + branchement du
+   moteur de décision + notifications.
 8. Console super-admin — file de revue : côte à côte, approuver/refuser/
    redemander, commentaires internes, audit.
 9. Intégration profils (livreur, chauffeur, commerçant) + i18n AR + gating.
