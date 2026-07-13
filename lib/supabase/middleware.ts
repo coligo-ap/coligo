@@ -405,6 +405,8 @@ const MERCHANT_ROOTS = [
   "/settings",
   "/telecharger",
   "/recharger", // Coligo Pay commerçant — sinon le commerçant est renvoyé au dashboard
+  "/identite", // Vérification d'identité du titulaire (IDV) — sinon le
+  // middleware la prend pour une page client et renvoie sur /dashboard.
 ];
 
 /**
