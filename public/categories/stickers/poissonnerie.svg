@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <defs>
+    <linearGradient id="fs" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6FB7FF"/><stop offset="1" stop-color="#2E7BD6"/>
+    </linearGradient>
+    <linearGradient id="fb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#BFE0FF"/><stop offset="1" stop-color="#8FC3F5"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="48" cy="76" rx="28" ry="5.5" fill="#0B0C12" opacity=".08"/>
+  <!-- corps -->
+  <path d="M18 48 q14 -20 36 -20 q16 0 24 12 q-2 5 -8 9 q6 4 8 9 q-8 12 -24 12 q-22 0 -36 -20Z" fill="url(#fs)" transform="translate(0,-1)"/>
+  <path d="M22 48 q12 -14 30 -15 q-8 12 0 28 q-18 -1 -30 -13Z" fill="url(#fb)" opacity=".55"/>
+  <!-- queue -->
+  <path d="M74 40 q8 -6 12 -14 q3 10 -1 21 q4 11 1 21 q-4 -8 -12 -14 q4 -7 0 -14Z" fill="#2E7BD6" transform="translate(-4,1)"/>
+  <!-- nageoire -->
+  <path d="M42 30 q6 -8 14 -9 q0 8 -5 12 Z" fill="#2E7BD6"/>
+  <path d="M44 66 q6 8 14 9 q0 -8 -5 -12 Z" fill="#2E7BD6"/>
+  <!-- écailles -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="2" opacity=".5">
+    <path d="M46 42 q4 5 0 10"/><path d="M54 40 q5 7 0 14"/><path d="M62 42 q4 5 0 10"/>
+  </g>
+  <circle cx="30" cy="45" r="3.6" fill="#0B2A4A"/>
+  <circle cx="31.2" cy="43.8" r="1.2" fill="#fff"/>
+  <path d="M22 55 q4 3 8 3" stroke="#0B2A4A" stroke-width="2" stroke-linecap="round" fill="none" opacity=".55"/>
+</svg>

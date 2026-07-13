@@ -10,28 +10,46 @@ import {
 } from "@/lib/customer/marketplace-filters";
 
 // =============================================================================
-// CategoryStrip — catégories rondes en scroll horizontal (mécanique Uber Eats).
-// AUTOCOLLANT EMOJI EN COULEUR dans un rond pastel ; la catégorie active a un
-// rond violet (marque) + un trait sous le libellé. Pilotée par l'URL param
-// `category` (comme la grille / la recherche) → tap = filtre instantané.
+// CategoryStrip — filtres catégories en scroll horizontal, façon BOLT FOOD :
+// tuile CARRÉ ARRONDI au fond neutre doux, AUTOCOLLANT (illustration propre,
+// objet centré sur fond transparent — jamais une photo chargée) qui flotte
+// dans la tuile, libellé court dessous. La catégorie active = tuile teintée +
+// bord violet (marque) + libellé accentué. Pilotée par l'URL param `category`
+// (comme la grille / la recherche) → tap = filtre instantané.
 // =============================================================================
 
-/** Libellé court pour un rond : on garde le 1er segment ("Supérette / Épicerie"
- *  → "Supérette" ; "مخبزة / حلويات" → "مخبزة"). */
+/** Libellé court pour une tuile : on garde le 1er segment ("Supérette /
+ *  Épicerie" → "Supérette" ; "مخبزة / حلويات" → "مخبزة"). */
 function shortLabel(code: string, locale: string): string {
   const full = getCategoryLabel(code, locale);
   return full.split(/[/–-]/)[0].trim();
 }
 
 /**
- * Catégories illustrées par une IMAGE (au lieu de l'emoji) dans le rond de
- * filtre. L'image SATURE le cercle (object-cover plein). Test produit : on
- * commence par « Supérette » (panier de nécessité : soda, farine, sucre, huile…).
+ * AUTOCOLLANTS par défaut des filtres (public/categories/stickers/*.svg) : jeu
+ * dessiné maison, style homogène (objet + dégradés doux + ombre au sol, fond
+ * transparent). L'image ADMIN (mig 0311, /admin/categories) reste prioritaire
+ * quand elle est définie. Un autocollant se rend en `contain` (il flotte dans
+ * la tuile) ; toute autre image (photo uploadée) reste en `cover`.
  */
 const CATEGORY_FILTER_IMAGE: Record<string, string> = {
-  superette: "/categories/superette.png",
-  boulangerie: "/categories/boulangerie.png",
+  superette: "/categories/stickers/superette.svg",
+  boulangerie: "/categories/stickers/boulangerie.svg",
+  pizzeria: "/categories/stickers/pizzeria.svg",
+  fast_food: "/categories/stickers/fast_food.svg",
+  restaurant: "/categories/stickers/restaurant.svg",
+  cafe: "/categories/stickers/cafe.svg",
+  glacier: "/categories/stickers/glacier.svg",
+  boucherie: "/categories/stickers/boucherie.svg",
+  poissonnerie: "/categories/stickers/poissonnerie.svg",
+  fruits_legumes: "/categories/stickers/fruits_legumes.svg",
+  produits_bio: "/categories/stickers/produits_bio.svg",
+  fleuriste: "/categories/stickers/fleuriste.svg",
+  pharmacie: "/categories/stickers/pharmacie.svg",
 };
+
+/** Un chemin d'autocollant local → rendu « objet flottant » (contain). */
+const isSticker = (src: string) => src.startsWith("/categories/stickers/");
 
 export function CategoryStrip({
   categories,
@@ -63,9 +81,10 @@ export function CategoryStrip({
   }
 
   return (
-    <div className="scrollbar-hide -mx-4 flex gap-4 overflow-x-auto border-b border-[var(--color-border)] px-4 pb-3.5 lg:mx-0 lg:px-0">
+    <div className="scrollbar-hide -mx-4 flex gap-2.5 overflow-x-auto border-b border-[var(--color-border)] px-4 pb-3 lg:mx-0 lg:px-0">
       <Tile
         emoji="🛍️"
+        imageSrc="/categories/stickers/tous.svg"
         label={t("all")}
         active={!active}
         onClick={() => go(null)}
@@ -116,18 +135,20 @@ function Tile({
     <button
       type="button"
       onClick={onClick}
-      className="relative flex shrink-0 flex-col items-center gap-1.5"
+      aria-pressed={active}
+      className="flex w-[72px] shrink-0 flex-col items-center gap-1.5"
     >
       <span
         className={cn(
-          "grid size-[54px] place-items-center overflow-hidden rounded-full border text-[26px] leading-none transition-colors",
+          // Tuile façon Bolt Food : carré arrondi doux, l'autocollant FLOTTE
+          // dedans (contain + padding) — jamais de photo pleine qui sature.
+          "grid size-[64px] place-items-center overflow-hidden rounded-[18px] border-[1.5px] text-[28px] leading-none transition-all",
           active
-            ? "border-primary-500 bg-primary-50 ring-primary-500/30 ring-2"
+            ? "border-primary-500 bg-primary-50 shadow-[0_4px_14px_-6px_rgba(108,43,217,.45)]"
             : "bg-surface-2 border-transparent"
         )}
       >
         {imageSrc ? (
-          // Image qui SATURE le cercle (remplit tout le rond, recadrée).
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={imageSrc}
@@ -135,7 +156,14 @@ function Tile({
             aria-hidden
             loading="lazy"
             decoding="async"
-            className="size-full object-cover"
+            className={cn(
+              "size-full",
+              isSticker(imageSrc)
+                ? // Autocollant : objet centré qui respire dans la tuile.
+                  "scale-[1.04] object-contain p-1.5"
+                : // Photo (upload admin) : plein cadre, comportement d'avant.
+                  "object-cover"
+            )}
           />
         ) : (
           <span aria-hidden>{emoji}</span>
@@ -143,7 +171,7 @@ function Tile({
       </span>
       <span
         className={cn(
-          "max-w-[68px] truncate text-[11.5px] leading-tight",
+          "max-w-[72px] truncate text-[11.5px] leading-tight",
           active
             ? "text-primary-700 font-extrabold"
             : "text-foreground font-semibold"
@@ -151,9 +179,6 @@ function Tile({
       >
         {label}
       </span>
-      {active && (
-        <span className="bg-primary-500 absolute right-2 -bottom-[14px] left-2 h-[2.5px] rounded-full" />
-      )}
     </button>
   );
 }
