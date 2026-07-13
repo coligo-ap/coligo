@@ -35,8 +35,6 @@ export default async function DriverKycPage() {
           l&apos;équipe Coligo.
         </InfoNote>
       }
-      step={2}
-      stepCount={4}
     >
       {/* NB : pas de bannière IDV ici — la vérification d'identité a désormais
           SON étape dans le formulaire (étape 2 « Vérification »), qui porte le

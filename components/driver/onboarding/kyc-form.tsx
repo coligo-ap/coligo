@@ -86,8 +86,8 @@ const STEP_KEYS: readonly (readonly string[])[] = [
 
 const STEP_TITLES = [
   "Informations personnelles",
-  "Verification",
-  "Vehicule",
+  "Vérification",
+  "Véhicule",
   "Validation",
 ];
 
@@ -511,7 +511,11 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
                 placeholder="Prénom et nom"
               />
             </Field>
-            <Field label="Téléphone" hint="Votre identifiant de connexion">
+            <Field
+              label="Téléphone"
+              locked
+              hint="Votre identifiant de connexion"
+            >
               <input
                 value={profile.phone ?? ""}
                 readOnly
@@ -956,12 +960,16 @@ function Row({ children }: { children: React.ReactNode }) {
 function Field({
   label,
   required,
+  locked,
   hint,
   error,
   children,
 }: {
   label: string;
   required?: boolean;
+  /** Champ en lecture seule (téléphone de connexion) : ni « obligatoire » ni
+   *  « facultatif » — on ne peut pas le remplir, la mention n'a aucun sens. */
+  locked?: boolean;
   hint?: string;
   /** Message affiché SOUS le champ, jamais dans un bandeau global. */
   error?: string | null;
@@ -973,7 +981,7 @@ function Field({
         <span className="text-[11.5px] font-bold text-[var(--muted)]">
           {label}
         </span>
-        {required ? (
+        {locked ? null : required ? (
           <span
             className="text-[11px] font-bold"
             style={{ color: BRAND_VIOLET }}

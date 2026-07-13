@@ -23,8 +23,11 @@ export function OnboardingScreen({
   title: string;
   /** UNE ligne, pas un paragraphe : le détail va dans `info` (bulle « i »). */
   subtitle: string;
-  step: number;
-  stepCount: number;
+  /** Rang de l'écran dans le parcours. OMIS quand l'écran porte DÉJÀ son propre
+   *  fil d'Ariane (le dossier livreur) : deux numérotations « étape x sur 4 »
+   *  sur le même écran se contredisent. */
+  step?: number;
+  stepCount?: number;
   children: React.ReactNode;
   footer?: React.ReactNode;
   /** Bulle d'information (mentions légales, précisions) — affichée à la demande. */
@@ -46,9 +49,11 @@ export function OnboardingScreen({
           >
             {icon}
           </span>
-          <p className="text-[11px] font-bold tracking-[2px] text-[var(--muted)] uppercase">
-            Étape {step} sur {stepCount}
-          </p>
+          {step != null && stepCount != null && (
+            <p className="text-[11px] font-bold tracking-[2px] text-[var(--muted)] uppercase">
+              Étape {step} sur {stepCount}
+            </p>
+          )}
           <h1
             className="mt-1 text-[22px] leading-tight font-extrabold text-[var(--ink)]"
             style={{ fontFamily: SORA }}

@@ -58,27 +58,25 @@ export function KycMethodStep({
     });
   };
 
-  // ── État du parcours automatique (commun aux deux cas) ────────────────────
+  // ── État du parcours automatique — UN SEUL bloc, jamais deux libellés qui
+  //    disent la même chose (règle projet : pas de doublon d'information).
   const instantPanel = (
     <div
-      className="rounded-[16px] border p-4"
-      style={{
-        borderColor: "var(--line)",
-        background: "var(--surface)",
-      }}
+      className="flex items-center gap-2.5 rounded-[16px] border p-4"
+      style={{ borderColor: "var(--line)", background: "var(--surface)" }}
     >
       {idv.verified ? (
-        <div className="flex items-center gap-2.5">
+        <>
           <BadgeCheck className="size-5 shrink-0 text-emerald-600" />
           <div>
             <p className="text-[14px] font-bold">Identité vérifiée</p>
             <p className="text-[12px] text-[var(--muted)]">
-              Aucune pièce d&apos;identité à envoyer.
+              Aucune pièce à envoyer.
             </p>
           </div>
-        </div>
+        </>
       ) : idv.inProgress ? (
-        <div className="flex items-center gap-2.5">
+        <>
           <Clock className="size-5 shrink-0 text-amber-500" />
           <div>
             <p className="text-[14px] font-bold">Vérification en cours</p>
@@ -86,47 +84,28 @@ export function KycMethodStep({
               Vous serez notifié dès qu&apos;elle sera confirmée.
             </p>
           </div>
-        </div>
+        </>
       ) : (
-        <div className="flex items-center gap-2.5">
+        <>
           <Zap
             className="size-5 shrink-0"
             style={{ color: "var(--d-violet, #6C2BD9)" }}
           />
           <div>
-            <p className="text-[14px] font-bold">Scan + selfie</p>
+            <p className="text-[14px] font-bold">Scan + selfie · 2 min</p>
             <p className="text-[12px] text-[var(--muted)]">
-              Résultat en quelques secondes.
+              {idv.forced
+                ? "Exigée pour tous les livreurs."
+                : "Résultat en quelques secondes."}
             </p>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
 
-  // ── Vérification OBLIGATOIRE : pas de choix, on l'annonce clairement ──────
-  if (idv.forced) {
-    return (
-      <div className="space-y-3">
-        <div
-          className="flex items-start gap-2.5 rounded-[14px] p-3"
-          style={{ background: "var(--violet-soft)" }}
-        >
-          <Zap
-            className="mt-0.5 size-5 shrink-0"
-            style={{ color: "var(--d-violet, #6C2BD9)" }}
-          />
-          <div>
-            <p className="text-[14px] font-bold">Vérification instantanée</p>
-            <p className="text-[12px] text-[var(--muted)]">
-              Exigée pour tous les livreurs · 2 min
-            </p>
-          </div>
-        </div>
-        {instantPanel}
-      </div>
-    );
-  }
+  // ── Vérification OBLIGATOIRE : pas de choix, donc rien d'autre à montrer. ──
+  if (idv.forced) return instantPanel;
 
   // ── Choix libre : deux cartes ─────────────────────────────────────────────
   const Card = ({
