@@ -8,7 +8,7 @@
 //   node --experimental-strip-types scripts/test-idv-core.mjs
 // =============================================================================
 import pg from "pg";
-import { getDbUrl } from "./_supabase.mjs";
+import { getDbUrl, loadEnvLocal } from "./_supabase.mjs";
 import { decideIdv } from "../lib/idv/decision.ts";
 import {
   validateModePatch,
@@ -384,6 +384,46 @@ try {
 } finally {
   await c.query("ROLLBACK");
   await c.end();
+}
+
+// ── 4) SÉCURITÉ : sondes ANON réelles (clé anon, API REST) ─────────────────
+// Règle du projet : tout ce qui est censé être fermé aux visiteurs doit être
+// testé EN ANON pour de vrai — une policy oubliée ne se voit pas autrement.
+{
+  loadEnvLocal();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const rest = (path) =>
+    fetch(`${url}/rest/v1/${path}`, {
+      headers: { apikey: anon, authorization: `Bearer ${anon}` },
+    });
+
+  for (const table of ["idv_verifications", "idv_checks", "idv_audit_log"]) {
+    const res = await rest(`${table}?select=id&limit=1`);
+    const body = await res.text();
+    ok(
+      `anon : ${table} INACCESSIBLE (HTTP ${res.status})`,
+      res.status !== 200 || body === "[]",
+      true
+    );
+  }
+  // Les seuils ne doivent JAMAIS sortir (anti-gaming), même sur la table de
+  // config lisible.
+  const seuils = await rest("idv_modes?select=face_match_approve&limit=1");
+  ok(
+    `anon : seuils de décision INACCESSIBLES (HTTP ${seuils.status})`,
+    seuils.status !== 200,
+    true
+  );
+  // Le bucket des captures reste privé.
+  const objet = await fetch(
+    `${url}/storage/v1/object/public/idv-captures/probe.jpg`
+  );
+  ok(
+    `anon : bucket idv-captures NON public (HTTP ${objet.status})`,
+    objet.status >= 400,
+    true
+  );
 }
 
 console.log(`\n${fail === 0 ? "✅" : "❌"} ${pass} OK / ${fail} KO`);

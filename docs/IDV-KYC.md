@@ -255,4 +255,28 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
    utilisé) — les libellés AR restent portés par la DB (`label_ar`,
    `description_ar` des modes et documents), prêts pour le jour où ces espaces
    passeront en bilingue.
-10. Durcissement : tests E2E, monitoring d'intégrité, revue sécurité.
+10. ✅ **Durcissement** :
+    - **E2E `npm run test:idv:e2e`** (16/16 contre la PROD) : fabrique une
+      carte réaliste (portrait imprimé + MRZ TD1 aux checksums valides), joue
+      les 3 routes, applique le moteur de décision. Il prouve : document lu et
+      extrait, même personne → approbation auto, imposteur → refus auto,
+      **attaque par photo → liveness refusé**, document expiré → refus,
+      routes internes → 401 sans secret. Nettoie le bucket.
+      **Il a immédiatement trouvé un vrai bug** : sur une photo de carte
+      compressée (JPEG), l'OCR lisait « D231458907 » comme « DZ3VA5O904 » →
+      MRZ jugée illisible. Corrigé : **binarisation + passes multiples**
+      (zones × prétraitements, sortie dès checksums valides) et **réparation
+      OCR symétrique** dans le parseur (« 1<DZA » → « I<DZA », fillers `<`
+      de fin perdus tolérés).
+    - **Monitoring d'intégrité (mig 0368)** : 7 invariants IDV branchés sur
+      `integrity_violations()` (cron quotidien + alerte super-admin) — identité
+      approuvée sans face match réussi, décision sans date / sans audit /
+      (manuelle) sans admin, dossier clos sans décision, deux dossiers vivants
+      pour un même (user, profil), approbation d'un document expiré.
+      Exécuté en prod : **0 violation**.
+    - **Revue sécurité** (ancrée dans `npm run test:idv`, 46/46, avec sondes
+      ANON réelles) : `anon` n'a **aucun** privilège sur les tables `idv_*`
+      (401 en REST), les **seuils de décision** restent invisibles même à un
+      utilisateur connecté (anti-gaming), le bucket des captures n'est pas
+      public (400), les routes internes exigent le secret, l'audit est
+      append-only, les tentatives sont bornées par mode.
