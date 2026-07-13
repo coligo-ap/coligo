@@ -16,13 +16,15 @@ const nextConfig: NextConfig = {
     "/api/idv/**": ["./models/idv/**"],
   },
   // …et les binaires onnxruntime des AUTRES plateformes (222 Mo sur 259) sont
-  // exclus, sinon la fonction dépasse la limite Vercel de 250 Mo. Vercel
-  // exécute du linux x64 : on ne garde que lui.
+  // exclus, sinon la fonction dépasse la limite Vercel de 250 Mo (vécu :
+  // 338,89 Mo → échec du build). Vercel exécute du linux x64 : on ne garde
+  // que lui. ⚠️ Le préfixe « ./ » est REQUIS par le matcher de Next — sans
+  // lui, l'exclusion est ignorée silencieusement.
   outputFileTracingExcludes: {
     "*": [
-      "node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
-      "node_modules/onnxruntime-node/bin/napi-v6/win32/**",
-      "node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**",
+      "./node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
+      "./node_modules/onnxruntime-node/bin/napi-v6/win32/**",
+      "./node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**",
     ],
   },
   // /search → / (la recherche vit sur l'accueil). Redirection HTTP RÉELLE,
