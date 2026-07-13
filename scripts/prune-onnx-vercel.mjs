@@ -7,7 +7,7 @@
 // reste du disque — le traçage n'a alors plus rien d'autre à embarquer.
 // En local (Windows/macOS), on ne touche à RIEN.
 // =============================================================================
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 if (process.env.VERCEL !== "1") {
@@ -30,6 +30,29 @@ for (const dir of ["darwin", "win32", join("linux", "arm64")]) {
     console.log(`prune-onnx: supprimé ${dir}`);
     pruned++;
   }
+}
+
+// Sur Linux, le POSTINSTALL d'onnxruntime-node télécharge en plus les
+// binaires GPU (CUDA/TensorRT, ~240 Mo) dans linux/x64 — inutiles sur
+// Vercel (CPU only) et responsables du dépassement des 250 Mo (vécu :
+// bin = 277 Mo APRÈS élagage des autres plateformes). On les supprime
+// (ceinture : ONNXRUNTIME_NODE_INSTALL_CUDA=skip est aussi posé en env).
+const linuxX64 = join(bin, "linux", "x64");
+if (existsSync(linuxX64)) {
+  for (const f of readdirSync(linuxX64)) {
+    if (/cuda|tensorrt|_gpu/i.test(f)) {
+      rmSync(join(linuxX64, f), { recursive: true, force: true });
+      console.log(`prune-onnx: supprimé linux/x64/${f} (GPU)`);
+      pruned++;
+    }
+  }
+  const restant = readdirSync(linuxX64).reduce(
+    (sum, f) => sum + statSync(join(linuxX64, f)).size,
+    0
+  );
+  console.log(
+    `prune-onnx: linux/x64 restant = ${(restant / 1e6).toFixed(1)} Mo (${readdirSync(linuxX64).join(", ")})`
+  );
 }
 console.log(
   pruned
