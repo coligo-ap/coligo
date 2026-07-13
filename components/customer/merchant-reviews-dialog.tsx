@@ -201,6 +201,7 @@ function ReviewItem({
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "Africa/Algiers",
   });
   return (
     <li className="border-border bg-surface-2 rounded-[12px] border p-3">

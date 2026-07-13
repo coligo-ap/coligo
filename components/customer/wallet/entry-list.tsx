@@ -68,6 +68,10 @@ export function WalletEntryList({ entries, emptyHint }: Props) {
                   year: "numeric",
                   hour: "2-digit",
                   minute: "2-digit",
+                  // Fuseau FIXE : serveur (UTC Vercel) et client (Alger)
+                  // rendent le MÊME texte → pas de mismatch d'hydratation
+                  // React #418 (bug vécu sur /coligo-pay).
+                  timeZone: "Africa/Algiers",
                 })}
                 {entry.order_id && (
                   <>

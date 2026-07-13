@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Bike, Clock, MapPin, Percent, Star, Tag } from "lucide-react";
@@ -48,7 +48,15 @@ function MerchantCardCompactImpl({
   const showPromo =
     promo ??
     (hasPromo ? { text: t("promo"), kind: "discount" as const } : null);
-  const open = isOpenNow(merchant.opening_hours, nowInAlgiers());
+  // Ouvert/fermé dépend de l'HEURE COURANTE → calculé APRÈS montage pour que
+  // le HTML serveur et la 1ʳᵉ hydratation soient identiques (sinon mismatch
+  // React #418 quand une frontière d'horaire est franchie entre les deux —
+  // même règle que merchant-card.tsx). `null` = pas encore déterminé : on
+  // rend l'état « ouvert » neutre (pas de grisage, pas de badge erroné).
+  const [open, setOpen] = useState<boolean | null>(null);
+  useEffect(() => {
+    setOpen(isOpenNow(merchant.opening_hours, nowInAlgiers()));
+  }, [merchant.opening_hours]);
 
   const wilayaName = merchant.wilaya_code
     ? WILAYAS.find((w) => w.code === merchant.wilaya_code)?.name
@@ -76,7 +84,7 @@ function MerchantCardCompactImpl({
       href={`/m/${merchant.slug}`}
       className={cn(
         "group border-border bg-surface isolate flex gap-3 rounded-[12px] border p-2.5 shadow-[0_1px_3px_rgba(20,20,50,0.05)] transition-transform active:scale-[.985]",
-        !open && "opacity-60"
+        open === false && "opacity-60"
       )}
     >
       {/* ─── Vignette photo (jamais vide) ─── */}
@@ -159,20 +167,23 @@ function MerchantCardCompactImpl({
 
         {/* Meta : ouvert/fermé · ETA · retrait gratuit / distance */}
         <div className="text-muted mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-1 pt-2 text-[12px] font-bold">
-          <span
-            className={cn(
-              "inline-flex items-center gap-1",
-              open ? "text-success-700" : "text-muted"
-            )}
-          >
+          {/* Badge rendu UNIQUEMENT une fois l'état réel connu (post-montage). */}
+          {open != null && (
             <span
               className={cn(
-                "size-[6px] rounded-full",
-                open ? "bg-success-600" : "bg-subtle"
+                "inline-flex items-center gap-1",
+                open ? "text-success-700" : "text-muted"
               )}
-            />
-            {open ? t("open") : t("closed")}
-          </span>
+            >
+              <span
+                className={cn(
+                  "size-[6px] rounded-full",
+                  open ? "bg-success-600" : "bg-subtle"
+                )}
+              />
+              {open ? t("open") : t("closed")}
+            </span>
+          )}
           {merchant.prep_time_min > 0 && (
             <>
               <Dot />

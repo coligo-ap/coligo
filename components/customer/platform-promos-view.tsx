@@ -180,7 +180,12 @@ function PromoCodeCard({ promo }: { promo: PlatformPromoCode }) {
     if (promo.ends_at) {
       const d = new Date(promo.ends_at).toLocaleDateString(
         locale === "ar" ? "ar-DZ" : "fr-DZ",
-        { day: "numeric", month: "long", year: "numeric" }
+        {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          timeZone: "Africa/Algiers",
+        }
       );
       list.push(t("condExpires", { date: d }));
     }
@@ -314,7 +319,12 @@ function VoucherCard({ voucher }: { voucher: CustomerVoucher }) {
     t("voucherDefault");
   const date = new Date(voucher.created_at).toLocaleDateString(
     locale === "ar" ? "ar-DZ" : "fr-DZ",
-    { day: "numeric", month: "long", year: "numeric" }
+    {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "Africa/Algiers",
+    }
   );
   return (
     <Link

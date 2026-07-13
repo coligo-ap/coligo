@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { useSearchParams } from "next/navigation";
 
 // =============================================================================
 // Filtres marketplace (accueil) — source de vérité = l'URL, mais mise à jour
@@ -19,9 +20,8 @@ import { useSyncExternalStore } from "react";
 const listeners = new Set<() => void>();
 let cachedSearch: string | null = null;
 let cachedParams = new URLSearchParams();
-const SERVER_SNAPSHOT = new URLSearchParams();
 
-function getSnapshot(): URLSearchParams {
+function getSnapshot(): URLSearchParams | null {
   const search = typeof window === "undefined" ? "" : window.location.search;
   if (search !== cachedSearch) {
     cachedSearch = search;
@@ -30,8 +30,14 @@ function getSnapshot(): URLSearchParams {
   return cachedParams;
 }
 
-function getServerSnapshot(): URLSearchParams {
-  return SERVER_SNAPSHOT;
+// Côté SERVEUR, le store externe n'a pas d'URL → `null`, et useFilterParams
+// retombe sur `useSearchParams()` (les VRAIS params de la requête). ⚠️ Un
+// ancien snapshot serveur VIDE rendait l'accueil NON filtré au SSR alors que
+// le client rendait la recherche/catégorie (« /?q=pizza ») : deux arbres
+// différents → erreurs d'hydratation React #418/#310 en prod (récupérées par
+// un re-render client = HTML serveur jeté, perf gâchée) — bug vécu.
+function getServerSnapshot(): URLSearchParams | null {
+  return null;
 }
 
 function emit() {
@@ -53,9 +59,27 @@ function subscribe(cb: () => void): () => void {
   };
 }
 
-/** Snapshot réactif des params d'URL (filtres). Remplace `useSearchParams()`. */
+/**
+ * Snapshot réactif des params d'URL (filtres).
+ *
+ * DEUX sources combinées, chacune pour ce qu'elle sait faire :
+ *  - `useSearchParams()` (router) : SEULE source correcte au SSR/hydratation
+ *    (params réels de la requête → le serveur rend le MÊME arbre que le
+ *    client) et mise à jour lors des navigations router ;
+ *  - le store externe (`history.replaceState` via applyFilters + popstate) :
+ *    réactivité instantanée aux filtres purement client, que le router ne
+ *    voit pas (zéro re-render RSC — c'est le but de ce module).
+ * Sur le client, le store fait foi (il reflète toujours l'URL vivante) ; au
+ * serveur il vaut `null` → repli sur les params du router.
+ */
 export function useFilterParams(): URLSearchParams {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const routerParams = useSearchParams();
+  const clientParams = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot
+  );
+  return clientParams ?? routerParams;
 }
 
 /**

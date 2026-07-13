@@ -81,7 +81,12 @@ export function MerchantOfferSheet({
   if (offer.ends_at) {
     const d = new Date(offer.ends_at).toLocaleDateString(
       locale === "ar" ? "ar-DZ" : "fr-DZ",
-      { day: "numeric", month: "long", year: "numeric" }
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "Africa/Algiers",
+      }
     );
     conditions.push(t("offerExpiresOn", { date: d }));
   }

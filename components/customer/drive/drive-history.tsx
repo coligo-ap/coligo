@@ -220,6 +220,7 @@ export function DriveHistoryView({
                       {
                         day: "numeric",
                         month: "short",
+                        timeZone: "Africa/Algiers",
                       }
                     ),
                     r.chauffeur_name,

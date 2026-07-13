@@ -467,6 +467,7 @@ export function CheckoutDeliverySection({
                                     weekday: "short",
                                     day: "2-digit",
                                     month: "short",
+                                    timeZone: "Africa/Algiers",
                                   }
                                 )}{" "}
                                 · {s.start_time.slice(0, 5)}–
