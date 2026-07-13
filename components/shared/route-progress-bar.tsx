@@ -6,11 +6,16 @@ import { probeConnectionAlive } from "@/lib/net/probe";
 
 /** Délai au bout duquel une navigation SPA non aboutie passe au VERDICT :
  *  sonde express → socket mort = bascule dure IMMÉDIATE ; réseau vivant mais
- *  lent = un unique sursis (`GRACE_MS`) avant la bascule quand même. */
-const STUCK_NAV_MS = 3_000;
+ *  lent = un unique sursis (`GRACE_MS`) avant la bascule quand même.
+ *  2 s : une nav saine aboutit en < 1 s (prefetch + loading.tsx) ; seul un
+ *  fetch RSC à froid la dépasse — et lui est couvert par le sursis. */
+const STUCK_NAV_MS = 2_000;
+/** Sonde du verdict : sur une connexion VIVANTE (socket réutilisé), le favicon
+ *  répond en < 600 ms même en 3G — 1,2 s suffit à trancher vite. */
+const VERDICT_PROBE_MS = 1_200;
 /** Sursis unique accordé quand la sonde confirme un réseau vivant (nav juste
  *  lente) — évite de punir une 3G lente par un rechargement complet. */
-const GRACE_MS = 3_500;
+const GRACE_MS = 3_000;
 /** Cadence des retentatives quand la bascule dure ne peut pas partir tout de
  *  suite (page cachée, réseau annoncé hors ligne) — on ne LÂCHE JAMAIS. */
 const RETRY_MS = 1_000;
@@ -149,7 +154,7 @@ export function RouteProgressBar() {
               window.location.assign(targetHref);
               return;
             }
-            void probeConnectionAlive(1500).then((alive) => {
+            void probeConnectionAlive(VERDICT_PROBE_MS).then((alive) => {
               if (navGen.current !== gen) return; // aboutie pendant la sonde
               if (alive) arm(GRACE_MS, true);
               else window.location.assign(targetHref);

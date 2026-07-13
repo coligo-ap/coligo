@@ -27,11 +27,12 @@
 // (stale-while-revalidate). Page jamais visitée : on attend le réseau jusqu'au
 // plafond dur `NAV_FETCH_TIMEOUT_MS`, puis /offline (auto-rechargée au retour
 // du réseau). Le réseau reste prioritaire dès qu'il répond dans les temps.
-const CACHE_VERSION = "coligo-v20";
+const CACHE_VERSION = "coligo-v21";
 /** Plafond DUR du fetch réseau d'une navigation (socket mort/figé). */
 const NAV_FETCH_TIMEOUT_MS = 8000;
-/** Budget accordé au réseau quand une copie en cache existe déjà. */
-const NAV_RACE_MS = 3500;
+/** Budget accordé au réseau quand une copie en cache existe déjà — au-delà,
+ *  la copie s'affiche et le réseau finit en arrière-plan (revalidation). */
+const NAV_RACE_MS = 2500;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const PRECACHE_CACHE = `${CACHE_VERSION}-precache`;
 const OFFLINE_URL = "/offline";

@@ -221,10 +221,10 @@ immédiatement ; le réseau ne bloque JAMAIS l'affichage.
     corriger, pas un état acceptable.
 11. **Retour arrière SANS rechargement complet** (A → B → A). Le Router Cache
     client est réglé via `experimental.staleTimes` (next.config.ts :
-    `dynamic: 30`) → revenir sur une page récemment visitée RÉUTILISE le segment
-    déjà rendu (instantané, état/scroll préservés, pas de re-fetch serveur ni de
-    flash `loading.tsx`). NE PAS remettre `dynamic` à 0. Pour la fraîcheur des
-    données : (a) les mutations invalident via `revalidatePath` / `router.refresh`
+    `dynamic: 300`, soit 5 min) → revenir sur une page visitée RÉUTILISE le
+    segment déjà rendu (instantané, état/scroll préservés, pas de re-fetch
+    serveur ni de flash `loading.tsx`). NE PAS redescendre ces valeurs. Pour la
+    fraîcheur des données : (a) les mutations invalident via `revalidatePath` / `router.refresh`
     (donc pas de données périmées après écriture) ; (b) le « stale-while-
     revalidate » au RETOUR au premier plan est assuré par `RouteRefreshOnFocus`
     (monté dans les coques : CustomerShell, layout chauffeur, MerchantShell) qui
@@ -259,6 +259,25 @@ données streamées). Concrètement, pour CHAQUE nouvelle page/navigation :
    rechargement complet, état/scroll préservés ;
 5. si une transition « rame » (> ~300 ms perçues), c'est un BUG à corriger
    immédiatement, pas un état acceptable.
+
+**RÈGLE OBLIGATOIRE — aller-retour entre pages = JAMAIS un rechargement
+complet.** Enchaîner drive → commandes → accueil → drive → compte… doit
+réutiliser les écrans déjà rendus, comme le font les frontends des grandes
+apps (Bolt, Uber). L'architecture à respecter sur TOUTE nouvelle page, en
+COUCHES :
+
+1. **Router Cache 5 min** (`staleTimes` ci-dessus) : le segment déjà visité se
+   re-affiche sans aller-retour serveur ni flash de squelette ;
+2. **Coques persistantes** (CustomerChrome, MerchantShell, layouts partenaires)
+   - **QueryClient TanStack monté au layout** : le cache de données SURVIT aux
+     navigations — un écran qui revient lit son cache (staleTime aligné ~5 min),
+     affiche l'ancien contenu INSTANTANÉMENT et revalide en silence
+     (`placeholderData: keepPreviousData`) ;
+3. **Cache module / sessionStorage PAR COMPTE** pour ce qui doit survivre à un
+   remontage (lieux du picker, demandes chauffeur, accueil chauffeur…) ;
+4. Le squelette (`loading.tsx`) n'est LÉGITIME qu'à la PREMIÈRE visite d'un
+   écran — le revoir à chaque retour sur une page déjà visitée est un BUG de
+   cache à corriger, pas un comportement acceptable.
 
 **Corollaire OBLIGATOIRE — toute LENTEUR signalée se traite « cache d'abord,
 réseau ensuite ».** Tout contenu réaffiché souvent (listes, favoris,

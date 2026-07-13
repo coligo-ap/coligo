@@ -17,15 +17,18 @@ const nextConfig: NextConfig = {
     // ── Router Cache (client) : fluidité du « retour arrière » ──────────────
     // Par défaut sur Next 15, `dynamic = 0` → revenir sur une page déjà visitée
     // RE-REND le Server Component depuis zéro (re-fetch réseau + flash du
-    // loading.tsx + perte de l'état UI). On garde les segments dynamiques en
-    // cache client 30 s : A → B → A réutilise le rendu déjà monté (instantané,
-    // scroll + état préservés, AUCUN aller-retour serveur). Les mutations
-    // (revalidatePath / router.refresh) invalident ce cache → pas de données
-    // périmées après une écriture. La fraîcheur « live » reste assurée par le
-    // polling / Realtime / TanStack Query des composants concernés.
+    // loading.tsx + perte de l'état UI). On garde les segments visités en cache
+    // client 5 MINUTES : naviguer drive → commandes → accueil → drive… réutilise
+    // les rendus déjà montés (instantané, AUCUN aller-retour serveur) — plus
+    // jamais la sensation « chaque page se recharge comme un F5 » (30 s était
+    // trop court : au-delà, chaque retour re-téléchargeait tout). La FRAÎCHEUR
+    // n'y perd rien : les mutations invalident ce cache (revalidatePath /
+    // router.refresh), le retour au premier plan re-streame la page courante
+    // (RouteRefreshOnFocus, sondé), et le « live » reste porté par polling /
+    // Realtime / TanStack Query. NE PAS redescendre ces valeurs.
     staleTimes: {
-      dynamic: 30,
-      static: 180,
+      dynamic: 300,
+      static: 300,
     },
   },
   images: {

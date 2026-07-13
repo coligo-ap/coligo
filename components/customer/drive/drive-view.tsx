@@ -93,7 +93,10 @@ export function DriveView({ userId }: { userId: string }) {
   const { data: ctx = null } = useQuery({
     queryKey: ["drive-context", userId],
     queryFn: getDriveContext,
-    staleTime: 60_000,
+    // Aligné sur la rétention du Router Cache (5 min) : au retour sur /drive,
+    // l'écran complet vient du cache sans AUCUN re-fetch ; au-delà, l'ancien
+    // contexte s'affiche d'abord et se revalide en silence.
+    staleTime: 300_000,
   });
   const [screen, setScreen] = useState<Screen>("home");
   // Assistant : carte de confirmation affichée → on masque le reste du trajet.

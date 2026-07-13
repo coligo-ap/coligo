@@ -42,7 +42,7 @@ export async function probeConnectionAlive(timeoutMs = 2000): Promise<boolean> {
  */
 export async function waitForConnection(
   attempts = 3,
-  delayMs = 1200
+  delayMs = 1000
 ): Promise<boolean> {
   for (let i = 0; i < attempts; i++) {
     if (await probeConnectionAlive()) return true;
