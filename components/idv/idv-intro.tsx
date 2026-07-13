@@ -73,8 +73,8 @@ export function IdvIntro({
             key={title}
             className="flex items-center gap-3 rounded-[16px] p-3"
             style={{
-              background: "var(--d-card)",
-              border: "1px solid var(--d-line)",
+              background: "var(--idv-card)",
+              border: "1px solid var(--idv-line)",
             }}
           >
             <Illus size={64} />
@@ -82,7 +82,7 @@ export function IdvIntro({
               <p className="text-sm font-semibold">
                 {i + 1}. {title}
               </p>
-              <p className="text-xs" style={{ color: "var(--d-muted)" }}>
+              <p className="text-xs" style={{ color: "var(--idv-muted)" }}>
                 {hint}
               </p>
             </div>
@@ -104,14 +104,14 @@ export function IdvIntro({
                 onClick={() => setDocKey(doc.key)}
                 className="flex w-full items-center gap-3 rounded-[14px] border p-3 text-left transition-colors"
                 style={{
-                  background: active ? "var(--d-soft)" : "var(--d-card)",
-                  borderColor: active ? "var(--d-accent)" : "var(--d-line)",
+                  background: active ? "var(--idv-soft)" : "var(--idv-card)",
+                  borderColor: active ? "var(--idv-accent)" : "var(--idv-line)",
                 }}
               >
                 <Icon
                   className="size-5 shrink-0"
                   style={{
-                    color: active ? "var(--d-accent)" : "var(--d-muted)",
+                    color: active ? "var(--idv-accent)" : "var(--idv-muted)",
                   }}
                 />
                 <span className="flex-1 text-sm font-medium">
@@ -120,8 +120,10 @@ export function IdvIntro({
                 <span
                   className="size-4 rounded-full border-2"
                   style={{
-                    borderColor: active ? "var(--d-accent)" : "var(--d-line)",
-                    background: active ? "var(--d-accent)" : "transparent",
+                    borderColor: active
+                      ? "var(--idv-accent)"
+                      : "var(--idv-line)",
+                    background: active ? "var(--idv-accent)" : "transparent",
                   }}
                 />
               </button>
@@ -144,15 +146,17 @@ export function IdvIntro({
                   onClick={() => setModeKey(m.key)}
                   className="rounded-[14px] border p-3 text-left"
                   style={{
-                    background: active ? "var(--d-soft)" : "var(--d-card)",
-                    borderColor: active ? "var(--d-accent)" : "var(--d-line)",
+                    background: active ? "var(--idv-soft)" : "var(--idv-card)",
+                    borderColor: active
+                      ? "var(--idv-accent)"
+                      : "var(--idv-line)",
                   }}
                 >
                   <p className="text-sm font-semibold">{m.label_fr}</p>
                   {m.description_fr && (
                     <p
                       className="mt-0.5 text-[11px] leading-snug"
-                      style={{ color: "var(--d-muted)" }}
+                      style={{ color: "var(--idv-muted)" }}
                     >
                       {m.description_fr}
                     </p>
@@ -169,7 +173,7 @@ export function IdvIntro({
         onClick={() => docKey && onStart(docKey, modeKey)}
         disabled={!docKey}
         className="flex w-full items-center justify-center gap-1.5 rounded-full py-3.5 text-sm font-semibold text-white transition-transform active:scale-[.98] disabled:opacity-50"
-        style={{ background: "var(--d-accent)" }}
+        style={{ background: "var(--idv-accent)" }}
       >
         Commencer
         <ChevronRight className="size-4" />
@@ -177,7 +181,7 @@ export function IdvIntro({
 
       <p
         className="flex items-center justify-center gap-1.5 text-[11px]"
-        style={{ color: "var(--d-muted)" }}
+        style={{ color: "var(--idv-muted)" }}
       >
         <Lock className="size-3.5" />
         Données chiffrées, visibles uniquement par l&apos;équipe Coligo

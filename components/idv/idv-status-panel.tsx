@@ -58,10 +58,7 @@ export function IdvStatusPanel({
   > = {
     doc_validated: {
       icon: (
-        <CircleCheck
-          className="size-10"
-          style={{ color: "var(--d-mint, #10b981)" }}
-        />
+        <CircleCheck className="size-10" style={{ color: "var(--idv-ok)" }} />
       ),
       tone: "Document validé",
       hint: "Étape suivante : un selfie rapide, avec quelques gestes simples.",
@@ -70,7 +67,7 @@ export function IdvStatusPanel({
       icon: (
         <Loader2
           className="size-10 animate-spin"
-          style={{ color: "var(--d-accent)" }}
+          style={{ color: "var(--idv-accent)" }}
         />
       ),
       tone: IDV_STATUS_LABELS_FR.doc_processing,
@@ -80,58 +77,39 @@ export function IdvStatusPanel({
       icon: (
         <Loader2
           className="size-10 animate-spin"
-          style={{ color: "var(--d-accent)" }}
+          style={{ color: "var(--idv-accent)" }}
         />
       ),
       tone: IDV_STATUS_LABELS_FR.selfie_processing,
       hint: "Quelques secondes…",
     },
     pending_review: {
-      icon: (
-        <Clock
-          className="size-10"
-          style={{ color: "var(--d-amber, #f59e0b)" }}
-        />
-      ),
+      icon: <Clock className="size-10" style={{ color: "var(--idv-warn)" }} />,
       tone: "Vérification manuelle en cours",
       hint: "L'équipe Coligo examine votre dossier. Vous serez notifié du résultat.",
     },
     approved: {
       icon: (
-        <BadgeCheck
-          className="size-10"
-          style={{ color: "var(--d-mint, #10b981)" }}
-        />
+        <BadgeCheck className="size-10" style={{ color: "var(--idv-ok)" }} />
       ),
       tone: "Identité vérifiée",
       hint: null,
     },
     rejected: {
-      icon: (
-        <XCircle
-          className="size-10"
-          style={{ color: "var(--d-coral, #ef4444)" }}
-        />
-      ),
+      icon: <XCircle className="size-10" style={{ color: "var(--idv-bad)" }} />,
       tone: "Vérification refusée",
       hint: "Contactez le support si vous pensez qu'il s'agit d'une erreur.",
     },
     resubmit_document: {
       icon: (
-        <RefreshCcw
-          className="size-10"
-          style={{ color: "var(--d-amber, #f59e0b)" }}
-        />
+        <RefreshCcw className="size-10" style={{ color: "var(--idv-warn)" }} />
       ),
       tone: "Nouveau document demandé",
       hint: "L'équipe Coligo a besoin d'une photo plus lisible de votre pièce.",
     },
     resubmit_selfie: {
       icon: (
-        <RefreshCcw
-          className="size-10"
-          style={{ color: "var(--d-amber, #f59e0b)" }}
-        />
+        <RefreshCcw className="size-10" style={{ color: "var(--idv-warn)" }} />
       ),
       tone: "Nouveau selfie demandé",
       hint: "L'équipe Coligo a besoin d'un nouveau selfie de vérification.",
@@ -139,7 +117,7 @@ export function IdvStatusPanel({
   };
 
   const c = content[status] ?? {
-    icon: <Clock className="size-10" style={{ color: "var(--d-muted)" }} />,
+    icon: <Clock className="size-10" style={{ color: "var(--idv-muted)" }} />,
     tone: IDV_STATUS_LABELS_FR[status] ?? status,
     hint: null,
   };
@@ -149,8 +127,8 @@ export function IdvStatusPanel({
       <div
         className="flex flex-col items-center gap-3 rounded-[16px] p-6 text-center"
         style={{
-          background: "var(--d-card)",
-          border: "1px solid var(--d-line)",
+          background: "var(--idv-card)",
+          border: "1px solid var(--idv-line)",
         }}
       >
         {c.icon}
@@ -158,7 +136,7 @@ export function IdvStatusPanel({
         {c.hint && (
           <p
             className="text-xs leading-relaxed"
-            style={{ color: "var(--d-muted)" }}
+            style={{ color: "var(--idv-muted)" }}
           >
             {c.hint}
           </p>
@@ -168,7 +146,7 @@ export function IdvStatusPanel({
             type="button"
             onClick={onRetryDocument}
             className="mt-1 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-            style={{ background: "var(--d-accent)" }}
+            style={{ background: "var(--idv-accent)" }}
           >
             Reprendre la photo
           </button>
@@ -181,7 +159,7 @@ export function IdvStatusPanel({
                   className="w-full rounded-[12px] px-3 py-2.5 text-sm"
                   style={{
                     background: "rgba(239,68,68,.12)",
-                    color: "var(--d-coral, #ef4444)",
+                    color: "var(--idv-bad)",
                   }}
                 >
                   {selfieError}
@@ -192,7 +170,7 @@ export function IdvStatusPanel({
                 onClick={onStartSelfie}
                 disabled={selfiePending}
                 className="mt-1 rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-                style={{ background: "var(--d-accent)" }}
+                style={{ background: "var(--idv-accent)" }}
               >
                 {selfiePending
                   ? "Préparation…"
@@ -219,11 +197,11 @@ export function IdvStatusPanel({
                   className="flex size-7 items-center justify-center rounded-full text-[11px] font-bold"
                   style={{
                     background: done
-                      ? "var(--d-mint, #10b981)"
+                      ? "var(--idv-ok)"
                       : current
-                        ? "var(--d-accent)"
-                        : "var(--d-soft)",
-                    color: done || current ? "#fff" : "var(--d-muted)",
+                        ? "var(--idv-accent)"
+                        : "var(--idv-soft)",
+                    color: done || current ? "#fff" : "var(--idv-muted)",
                   }}
                 >
                   {done ? <CircleCheck className="size-4" /> : i + 1}
@@ -231,7 +209,8 @@ export function IdvStatusPanel({
                 <span
                   className="text-[10px] font-medium"
                   style={{
-                    color: done || current ? "var(--d-ink)" : "var(--d-muted)",
+                    color:
+                      done || current ? "var(--idv-ink)" : "var(--idv-muted)",
                   }}
                 >
                   {label}
@@ -241,8 +220,7 @@ export function IdvStatusPanel({
                 <span
                   className="mx-1 mb-4 h-0.5 flex-1 rounded"
                   style={{
-                    background:
-                      i < step ? "var(--d-mint, #10b981)" : "var(--d-line)",
+                    background: i < step ? "var(--idv-ok)" : "var(--idv-line)",
                   }}
                 />
               )}

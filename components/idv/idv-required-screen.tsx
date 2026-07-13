@@ -6,6 +6,7 @@ import {
   IllusSelfie,
   IllusShield,
 } from "./idv-illustrations";
+import { IdvScope } from "./idv-theme";
 
 // =============================================================================
 // IDV — ÉCRAN BLOQUANT « vérification obligatoire ». Rendu À LA PLACE du
@@ -24,16 +25,16 @@ const STEPS = [
 
 export function IdvRequiredScreen({ route }: { route: string }) {
   return (
-    <div
+    <IdvScope
       className="pt-safe pb-safe mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-6"
-      style={{ background: "var(--d-surface)", color: "var(--d-ink)" }}
+      style={{ background: "var(--idv-card)", color: "var(--idv-ink)" }}
     >
       <IdvIllusStyles />
 
       <div className="flex flex-col items-center text-center">
         <ShieldCheck
           className="size-10"
-          style={{ color: "var(--d-accent)" }}
+          style={{ color: "var(--idv-accent)" }}
           aria-hidden
         />
         <h1 className="mt-3 text-xl font-bold tracking-tight">
@@ -41,7 +42,7 @@ export function IdvRequiredScreen({ route }: { route: string }) {
         </h1>
         <p
           className="mt-1.5 text-sm leading-relaxed"
-          style={{ color: "var(--d-muted)" }}
+          style={{ color: "var(--idv-muted)" }}
         >
           Cette étape est désormais obligatoire pour continuer à utiliser votre
           compte. Elle prend environ 2 minutes.
@@ -54,8 +55,8 @@ export function IdvRequiredScreen({ route }: { route: string }) {
             key={label}
             className="flex items-center gap-3 rounded-[16px] p-3"
             style={{
-              background: "var(--d-card)",
-              border: "1px solid var(--d-line)",
+              background: "var(--idv-card)",
+              border: "1px solid var(--idv-line)",
             }}
           >
             <Illus size={56} />
@@ -69,7 +70,7 @@ export function IdvRequiredScreen({ route }: { route: string }) {
       <Link
         href={route}
         className="mt-6 flex w-full items-center justify-center gap-1.5 rounded-full py-3.5 text-sm font-semibold text-white transition-transform active:scale-[.98]"
-        style={{ background: "var(--d-accent)" }}
+        style={{ background: "var(--idv-accent)" }}
       >
         Commencer la vérification
         <ChevronRight className="size-4" />
@@ -77,11 +78,11 @@ export function IdvRequiredScreen({ route }: { route: string }) {
 
       <p
         className="mt-3 flex items-center justify-center gap-1.5 text-[11px]"
-        style={{ color: "var(--d-muted)" }}
+        style={{ color: "var(--idv-muted)" }}
       >
         <Lock className="size-3.5" />
         Données chiffrées, visibles uniquement par l&apos;équipe Coligo
       </p>
-    </div>
+    </IdvScope>
   );
 }

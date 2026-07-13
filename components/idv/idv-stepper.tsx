@@ -56,11 +56,11 @@ export function IdvStepper({
   onDark?: boolean;
 }) {
   const index = STEPS.findIndex((s) => s.key === current);
-  const ink = onDark ? "#fff" : "var(--d-ink)";
-  const muted = onDark ? "rgba(255,255,255,.65)" : "var(--d-muted)";
-  const track = onDark ? "rgba(255,255,255,.22)" : "var(--d-line)";
-  const accent = onDark ? "#fff" : "var(--d-accent)";
-  const done = "var(--d-mint, #10b981)";
+  const ink = onDark ? "#fff" : "var(--idv-ink)";
+  const muted = onDark ? "rgba(255,255,255,.65)" : "var(--idv-muted)";
+  const track = onDark ? "rgba(255,255,255,.22)" : "var(--idv-line)";
+  const accent = onDark ? "#fff" : "var(--idv-accent)";
+  const done = "var(--idv-ok)";
 
   return (
     <div className="w-full">

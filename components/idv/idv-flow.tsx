@@ -23,6 +23,7 @@ import { IdvSelfieCapture } from "./idv-selfie-capture";
 import { IdvStatusPanel } from "./idv-status-panel";
 import { IdvStepper } from "./idv-stepper";
 import { IdvScanOverlay } from "./idv-scan-overlay";
+import { IdvScope } from "./idv-theme";
 import {
   startIdvSelfie,
   submitIdvDocument,
@@ -220,7 +221,7 @@ export function IdvFlow({
 
   if (step === "status") {
     return (
-      <>
+      <IdvScope>
         {overlay}
         <IdvStatusPanel
           status={currentStatus}
@@ -237,7 +238,7 @@ export function IdvFlow({
           selfiePending={selfieStarting || selfiePending}
           selfieError={selfieError ?? selfieState.error ?? null}
         />
-      </>
+      </IdvScope>
     );
   }
 
@@ -256,7 +257,7 @@ export function IdvFlow({
 
   if (step === "intro") {
     return (
-      <div className="space-y-4">
+      <IdvScope className="space-y-4">
         <IdvStepper
           current="document"
           hint="Choisissez votre document"
@@ -275,7 +276,7 @@ export function IdvFlow({
             setStep("capture");
           }}
         />
-      </div>
+      </IdvScope>
     );
   }
 
@@ -305,7 +306,7 @@ export function IdvFlow({
   // step === "review"
   const needsBack = doc?.sides === 2 && !captures.back;
   return (
-    <div className="space-y-4 pb-6">
+    <IdvScope className="space-y-4 pb-6">
       {overlay}
       <IdvStepper
         current="document"
@@ -326,11 +327,11 @@ export function IdvFlow({
               src={frontUrl}
               alt="Aperçu du recto"
               className="w-full rounded-[14px] border"
-              style={{ borderColor: "var(--d-line)" }}
+              style={{ borderColor: "var(--idv-line)" }}
             />
             <figcaption
               className="text-[11px]"
-              style={{ color: "var(--d-muted)" }}
+              style={{ color: "var(--idv-muted)" }}
             >
               {sideLabel(doc, "front")}
             </figcaption>
@@ -343,11 +344,11 @@ export function IdvFlow({
               src={backUrl}
               alt="Aperçu du verso"
               className="w-full rounded-[14px] border"
-              style={{ borderColor: "var(--d-line)" }}
+              style={{ borderColor: "var(--idv-line)" }}
             />
             <figcaption
               className="text-[11px]"
-              style={{ color: "var(--d-muted)" }}
+              style={{ color: "var(--idv-muted)" }}
             >
               Verso
             </figcaption>
@@ -360,7 +361,7 @@ export function IdvFlow({
           className="rounded-[12px] px-3 py-2.5 text-sm"
           style={{
             background: "rgba(239,68,68,.12)",
-            color: "var(--d-coral, #ef4444)",
+            color: "var(--idv-bad)",
           }}
         >
           {state.error}
@@ -388,7 +389,7 @@ export function IdvFlow({
             setStep("capture");
           }}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-full border py-3 text-sm font-semibold disabled:opacity-50"
-          style={{ borderColor: "var(--d-line)", color: "var(--d-ink)" }}
+          style={{ borderColor: "var(--idv-line)", color: "var(--idv-ink)" }}
         >
           <RefreshCcw className="size-4" />
           Reprendre
@@ -401,7 +402,7 @@ export function IdvFlow({
               setStep("capture");
             }}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-3 text-sm font-semibold text-white"
-            style={{ background: "var(--d-accent)" }}
+            style={{ background: "var(--idv-accent)" }}
           >
             Scanner le verso
           </button>
@@ -411,7 +412,7 @@ export function IdvFlow({
             onClick={submit}
             disabled={pending || !captures.front}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-3 text-sm font-semibold text-white disabled:opacity-60"
-            style={{ background: "var(--d-accent)" }}
+            style={{ background: "var(--idv-accent)" }}
           >
             {pending ? (
               <>
@@ -427,6 +428,6 @@ export function IdvFlow({
           </button>
         )}
       </div>
-    </div>
+    </IdvScope>
   );
 }

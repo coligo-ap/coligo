@@ -44,10 +44,10 @@ export function IdvIllusStyles() {
   );
 }
 
-const ACCENT = "var(--d-accent, #6C2BD9)";
-const SOFT = "var(--d-soft, rgba(108,43,217,.10))";
-const LINE = "var(--d-line, rgba(0,0,0,.12))";
-const CARD = "var(--d-card, #ffffff)";
+const ACCENT = "var(--idv-accent)";
+const SOFT = "var(--idv-soft)";
+const LINE = "var(--idv-line)";
+const CARD = "var(--idv-card)";
 
 /** Étape 1 — carte d'identité balayée par une ligne de scan. */
 export function IllusDocScan({ size = 76 }: { size?: number }) {
