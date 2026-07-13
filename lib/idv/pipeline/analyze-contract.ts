@@ -62,6 +62,9 @@ export type AnalyzedFrame = {
   } | null;
   /** Embedding SFace L2-normalisé (128) — null si aucun visage. */
   embedding: number[] | null;
+  /** Anti-spoof PASSIF (MiniFASNetV2) : p(visage vivant) ∈ [0,1].
+   *  null = pas de visage, ou modèle indisponible (dégradé non bloquant). */
+  passiveLiveness: number | null;
 };
 
 export type AnalyzeSelfieResponse =

@@ -15,9 +15,10 @@ source avant intégration — règle projet du 13/07/2026.
 
 Intégrité : SHA-256 épinglés dans `scripts/idv-fetch-models.mjs`.
 
-À venir (étapes 5b-6, mêmes exigences) : PP-OCR det/rec (PaddleOCR,
-Apache-2.0), MiniFASNetV2 (Silent-Face-Anti-Spoofing, Apache-2.0, conversion
-ONNX maison).
+Note MiniFASNetV2 : les conventions d'entrée ont été VÉRIFIÉES au banc (BGR
+brut 0-255, crop contextuel ×2.7, classe 1 = vivant) — la carte du modèle
+tiers en donnait de fausses. PP-OCR (PaddleOCR) n'a finalement PAS été
+nécessaire : le permis (seul document sans MRZ) est lu par tesseract `fra`.
 
 ## Runtimes serveur
 

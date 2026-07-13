@@ -4,7 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { decodeImage } from "@/lib/idv/pipeline/image";
 import { getIdvSession } from "@/lib/idv/pipeline/onnx";
 import { detectFaces } from "@/lib/idv/pipeline/yunet";
-import { readMrz } from "@/lib/idv/pipeline/mrz-ocr";
+import { ocrVisualZone, readMrz } from "@/lib/idv/pipeline/mrz-ocr";
+import { extractFromVisualZone } from "@/lib/idv/doc-ocr";
 import { parseMrz, type MrzResult } from "@/lib/idv/mrz";
 import type {
   AnalyzeDocumentRequest,
@@ -170,13 +171,64 @@ export async function POST(req: Request) {
     }
   }
 
-  // ── ocr_extract : PP-OCR généraliste (permis + croisement) — à brancher ──
-  checks.push({
-    key: "ocr_extract",
-    status: "skipped",
-    score: null,
-    details: { reason: "pp_ocr_not_wired_yet" },
-  });
+  // ── ocr_extract : zone VISUELLE (permis — aucun MRZ à contrôler) ─────────
+  // On ne l'exécute QUE si la MRZ n'a rien donné (document sans MRZ) : quand
+  // une MRZ valide existe, elle fait foi (checksums) et l'OCR visuel
+  // n'apporterait qu'un risque d'erreur.
+  if (extracted) {
+    checks.push({
+      key: "ocr_extract",
+      status: "skipped",
+      score: null,
+      details: { reason: "mrz_is_authoritative" },
+    });
+  } else {
+    try {
+      const text = await ocrVisualZone(front);
+      const fields = extractFromVisualZone(text);
+      const hasExpiry = Boolean(fields.expiry_date);
+      checks.push({
+        key: "ocr_extract",
+        status: hasExpiry ? "passed" : "failed",
+        score: hasExpiry ? 1 : 0,
+        // Un permis illisible se REPREND (ce n'est pas un signal de fraude).
+        retryable: !hasExpiry,
+        details: {
+          dates: fields.dates,
+          document_number: fields.document_number,
+        },
+      });
+      if (hasExpiry) {
+        extracted = {
+          expiry_date: fields.expiry_date,
+          birth_date: fields.birth_date,
+          document_number: fields.document_number,
+          source: "visual_zone",
+        };
+        documentExpiresAt = fields.expiry_date;
+        const today = new Date().toISOString().slice(0, 10);
+        const expired = fields.expiry_date! < today;
+        // Remplace le doc_expiry « skipped » posé plus haut (pas de MRZ).
+        const idx = checks.findIndex((c) => c.key === "doc_expiry");
+        const expiryCheck: AnalyzedCheck = {
+          key: "doc_expiry",
+          status: expired ? "failed" : "passed",
+          score: expired ? 0 : 1,
+          retryable: false,
+          details: { expiry_date: fields.expiry_date, source: "visual_zone" },
+        };
+        if (idx >= 0) checks[idx] = expiryCheck;
+        else checks.push(expiryCheck);
+      }
+    } catch (e) {
+      checks.push({
+        key: "ocr_extract",
+        status: "error",
+        score: null,
+        details: { error: e instanceof Error ? e.message : String(e) },
+      });
+    }
+  }
 
   const res: AnalyzeDocumentResponse = {
     ok: true,

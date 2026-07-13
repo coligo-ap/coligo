@@ -5,6 +5,7 @@ import { decodeImage, cropResize } from "@/lib/idv/pipeline/image";
 import { getIdvSession } from "@/lib/idv/pipeline/onnx";
 import { detectFaces } from "@/lib/idv/pipeline/yunet";
 import { embedFace, SFACE_INPUT_SIZE } from "@/lib/idv/pipeline/sface";
+import { passiveLivenessScore } from "@/lib/idv/pipeline/antispoof";
 import type {
   AnalyzeSelfieRequest,
   AnalyzeSelfieResponse,
@@ -59,6 +60,9 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   const { session: yunet } = await getIdvSession("yunet");
   const { session: sface } = await getIdvSession("sface");
+  // Anti-spoof passif : dégradé NON bloquant (si le modèle manque, on renvoie
+  // null et l'action traite le contrôle comme « non exécuté »).
+  const minifasnet = await getIdvSession("minifasnet").catch(() => null);
 
   const frames: AnalyzedFrame[] = [];
   for (const path of body.paths) {
@@ -69,12 +73,21 @@ export async function POST(req: Request) {
       const faces = await detectFaces(yunet, raw, { scoreThreshold: 0.6 });
       const best = faces[0] ?? null;
       if (!best) {
-        frames.push({ face: null, embedding: null });
+        frames.push({ face: null, embedding: null, passiveLiveness: null });
         continue;
       }
       const crop = await cropResize(raw, best, SFACE_INPUT_SIZE);
       const embedding = await embedFace(sface, crop);
+      let passiveLiveness: number | null = null;
+      if (minifasnet) {
+        passiveLiveness = await passiveLivenessScore(
+          minifasnet.session,
+          raw,
+          best
+        ).catch(() => null);
+      }
       frames.push({
+        passiveLiveness,
         face: {
           x: Math.round(best.x),
           y: Math.round(best.y),

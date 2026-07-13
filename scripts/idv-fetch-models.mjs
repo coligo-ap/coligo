@@ -53,6 +53,27 @@ const MODELS = [
     // .traineddata = format Tesseract, pas un protobuf ONNX.
     onnxMagic: false,
   },
+  {
+    file: "tessdata/fra.traineddata",
+    label: "Tesseract fra fast (OCR permis, Apache-2.0)",
+    urls: [
+      "https://github.com/tesseract-ocr/tessdata_fast/raw/main/fra.traineddata",
+    ],
+    sha256: "ced037562e8c80c13122dece28dd477d399af80911a28791a66a63ac1e3445ca",
+    minBytes: 1_000_000,
+    maxBytes: 12_000_000,
+    onnxMagic: false,
+  },
+  {
+    file: "minifasnet_v2.onnx",
+    label: "MiniFASNetV2 (anti-spoof passif, Apache-2.0)",
+    urls: [
+      "https://huggingface.co/garciafido/minifasnet-v2-anti-spoofing-onnx/resolve/main/minifasnet_v2.onnx",
+    ],
+    sha256: "d7b3cd9ba8a7ceb13baa8c4720902e27ca3112eff52f926c08804af6b6eecc7b",
+    minBytes: 1_000_000,
+    maxBytes: 4_000_000,
+  },
 ];
 
 const force = process.argv.includes("--force");

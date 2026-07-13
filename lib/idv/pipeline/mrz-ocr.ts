@@ -146,3 +146,62 @@ export async function readMrz<P extends ParsedLike>(
   }
   return best;
 }
+
+// ── OCR GÉNÉRALISTE (permis : zone visuelle, pas de MRZ — étape 5b) ─────────
+// Worker distinct : langue FRANÇAISE et AUCUNE whitelist (on lit du texte, pas
+// de l'OCR-B). tessdata fra autohébergée (Apache-2.0).
+
+let frWorkerPromise: Promise<Worker> | null = null;
+
+function getVisualWorker(): Promise<Worker> {
+  if (!frWorkerPromise) {
+    frWorkerPromise = (async () => {
+      const worker = await createWorker("fra", 1, {
+        langPath: join(process.cwd(), "models", "idv", "tessdata"),
+        gzip: false,
+        cacheMethod: "none",
+      });
+      // Page entière, texte libre : pas de whitelist (on perdrait les dates).
+      await worker.setParameters({
+        tessedit_pageseg_mode: "3" as never,
+      });
+      return worker;
+    })();
+    frWorkerPromise.catch(() => {
+      frWorkerPromise = null;
+    });
+  }
+  return frWorkerPromise;
+}
+
+/** Termine les workers (tests : sinon le process Node ne se ferme jamais). */
+export async function terminateOcrWorkers(): Promise<void> {
+  if (workerPromise) await (await workerPromise).terminate();
+  if (frWorkerPromise) await (await frWorkerPromise).terminate();
+  workerPromise = null;
+  frWorkerPromise = null;
+}
+
+/**
+ * OCR de la zone visuelle d'un document (permis). Deux passes : image nette
+ * agrandie, puis binarisée — on retient le texte le plus riche en dates.
+ */
+export async function ocrVisualZone(image: Buffer): Promise<string> {
+  const worker = await getVisualWorker();
+  const variants: (number | null)[] = [null, 160];
+  let best = "";
+  let bestDates = -1;
+  for (const threshold of variants) {
+    let img = sharp(image).rotate().grayscale().resize({ width: 2000 });
+    if (threshold !== null) img = img.threshold(threshold);
+    const { data } = await worker.recognize(await img.png().toBuffer());
+    const dates = (data.text.match(/\d{2}[/.\-\s]\d{2}[/.\-\s]\d{4}/g) ?? [])
+      .length;
+    if (dates > bestDates) {
+      bestDates = dates;
+      best = data.text;
+    }
+    if (dates >= 2) break; // assez pour naissance + expiration
+  }
+  return best;
+}

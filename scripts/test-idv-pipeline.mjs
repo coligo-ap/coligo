@@ -21,7 +21,13 @@ import {
 } from "../lib/idv/pipeline/sface.ts";
 import { assessDocQuality } from "../lib/idv/pipeline/quality.ts";
 import { computeCheckDigit, parseMrz } from "../lib/idv/mrz.ts";
-import { getMrzWorker, readMrz } from "../lib/idv/pipeline/mrz-ocr.ts";
+import {
+  ocrVisualZone,
+  readMrz,
+  terminateOcrWorkers,
+} from "../lib/idv/pipeline/mrz-ocr.ts";
+import { extractFromVisualZone } from "../lib/idv/doc-ocr.ts";
+import { passiveLivenessScore } from "../lib/idv/pipeline/antispoof.ts";
 import {
   drawChallenges,
   evaluateLiveness,
@@ -299,7 +305,7 @@ ok(
       ? `${ocrMs} ms · passe ${read.attempt}`
       : `texte lu :\n${read.rawText.trim()}\nparse: ${JSON.stringify(parsed?.checks ?? null)}`
   );
-  await (await getMrzWorker()).terminate();
+  await terminateOcrWorkers();
 }
 
 // ── 8) Liveness actif : défis, géométrie, jeton anti-rejeu (étape 6) ───────
@@ -520,6 +526,74 @@ if (sample) {
     "calibration : cos 0.363 (frontière OpenCV) → zone de revue humaine",
     opencvScore >= 0.35 && opencvScore < 0.6,
     `score ${opencvScore}`
+  );
+}
+
+// ── 10) PERMIS : OCR de la zone visuelle (étape 5b — document SANS MRZ) ────
+if (sample) {
+  const portrait = await sharp(sample)
+    .resize(160)
+    .jpeg({ quality: 70 })
+    .toBuffer();
+  const svg = `<svg width="1000" height="640" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="#eef2f7"/>
+    <text x="40" y="60" font-family="Arial" font-size="28" fill="#123">REPUBLIQUE ALGERIENNE DEMOCRATIQUE ET POPULAIRE</text>
+    <text x="40" y="100" font-family="Arial" font-size="24" fill="#123">PERMIS DE CONDUIRE</text>
+    <text x="260" y="200" font-family="Arial" font-size="26" fill="#000">1. BENALI</text>
+    <text x="260" y="245" font-family="Arial" font-size="26" fill="#000">2. KARIM</text>
+    <text x="260" y="290" font-family="Arial" font-size="26" fill="#000">3. 12/05/1990  ALGER</text>
+    <text x="260" y="335" font-family="Arial" font-size="26" fill="#000">4a. 15/04/2022</text>
+    <text x="260" y="380" font-family="Arial" font-size="26" fill="#000">4b. 15/04/2032</text>
+    <text x="260" y="425" font-family="Arial" font-size="26" fill="#000">5. 16DZ0034521</text>
+  </svg>`;
+  const permis = await sharp(Buffer.from(svg))
+    .composite([{ input: portrait, top: 160, left: 50 }])
+    .jpeg({ quality: 88 })
+    .toBuffer();
+  const fields = extractFromVisualZone(await ocrVisualZone(permis));
+  ok(
+    "permis (sans MRZ) : expiration + naissance extraites de la zone visuelle",
+    fields.expiry_date === "2032-04-15" && fields.birth_date === "1990-05-12",
+    `dates ${fields.dates.join(", ")}`
+  );
+  ok(
+    "permis : numéro de document extrait",
+    fields.document_number === "16DZ0034521",
+    String(fields.document_number)
+  );
+  await terminateOcrWorkers();
+}
+
+// ── 11) ANTI-SPOOF PASSIF (MiniFASNetV2, étape 6b) ────────────────────────
+if (sample) {
+  const { session: fas } = await getIdvSession("minifasnet");
+  const scoreOf = async (buf) => {
+    const img = await decodeImage(buf, 1280);
+    const f = (
+      await detectFaces(yunet.session, img, { scoreThreshold: 0.6 })
+    )[0];
+    if (!f) return null;
+    return passiveLivenessScore(fas, img, f);
+  };
+  const live = await scoreOf(sample);
+  ok(
+    "anti-spoof : vrai visage → p(vivant) élevé",
+    live !== null && live >= 0.5,
+    `p = ${live}`
+  );
+  // Attaque de présentation : photo TENUE devant l'objectif (cadre visible) —
+  // c'est le contexte élargi (×2.7) qui la trahit.
+  const held = await sharp(sample)
+    .resize(400)
+    .extend({ top: 60, bottom: 60, left: 60, right: 60, background: "#1a1a1a" })
+    .modulate({ brightness: 1.12 })
+    .jpeg({ quality: 45 })
+    .toBuffer();
+  const spoof = await scoreOf(held);
+  ok(
+    "anti-spoof : photo présentée à la caméra → ATTAQUE détectée",
+    spoof !== null && spoof < 0.5,
+    `p = ${spoof}`
   );
 }
 

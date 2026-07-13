@@ -15,6 +15,7 @@ import {
   type DocQuality,
 } from "@/lib/idv/pipeline/quality";
 import { logIdvAudit } from "@/lib/idv/audit";
+import { ANTISPOOF_LIVE_MIN } from "@/lib/idv/pipeline/antispoof";
 import { getIdvCompliance, type IdvCompliance } from "@/lib/idv/compliance";
 import { IDV_ACTIVE_STATUSES, type IdvStatus } from "@/lib/idv/types";
 import {
@@ -885,14 +886,50 @@ export async function submitIdvSelfie(
       livenessMin,
     },
   });
+  // ── Anti-spoof PASSIF (MiniFASNetV2) : photo imprimée / écran / rejeu ─────
+  // Score par frame → on retient le MINIMUM (une seule frame trahie suffit).
+  // Le modèle n'est PAS encore calibré sur des captures d'appareils réels :
+  // sous le seuil, on n'auto-refuse jamais — le dossier part en revue humaine
+  // (policy `check_failed` du mode, « revue » par défaut).
+  const passiveScores = analysis.frames
+    .map((f) => f.passiveLiveness)
+    .filter((v): v is number => typeof v === "number");
+  const passiveMin = passiveScores.length ? Math.min(...passiveScores) : null;
+  const passiveOk = passiveMin === null || passiveMin >= ANTISPOOF_LIVE_MIN;
   await table<PlainInsert>("idv_checks").insert({
     verification_id: verifId,
     attempt: selfieAttempt,
     check_key: "liveness_passive",
-    status: "skipped",
-    score: null,
-    details: { reason: "minifasnet_not_wired_yet" },
+    status: passiveMin === null ? "skipped" : passiveOk ? "passed" : "failed",
+    score: passiveMin,
+    details:
+      passiveMin === null
+        ? { reason: "model_unavailable" }
+        : {
+            per_frame: analysis.frames.map((f) => f.passiveLiveness),
+            threshold: ANTISPOOF_LIVE_MIN,
+            model: "minifasnet_v2",
+          },
   });
+
+  // Suspicion d'attaque passive (photo/écran) : le dossier ne peut PAS être
+  // approuvé automatiquement — il part en revue humaine avec le score.
+  if (passed && !passiveOk) {
+    await applyStatus({ selfie_path: paths[0], selfie_frames: paths });
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "sent_to_review",
+      reason: "passive_spoof_suspected",
+      metadata: { selfieAttempt, passiveMin, threshold: ANTISPOOF_LIVE_MIN },
+    });
+    await table<UpdateById>("idv_verifications")
+      .update({ status: "pending_review" })
+      .eq("id", verifId);
+    await notifyIdvOutcome(user.id, profile, "pending_review");
+    revalidateIdv(profile);
+    return { ok: true, status: "pending_review" };
+  }
 
   if (passed) {
     await applyStatus({

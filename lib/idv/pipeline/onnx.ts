@@ -13,6 +13,7 @@ import * as ort from "onnxruntime-node";
 export const IDV_MODELS = {
   yunet: "face_detection_yunet_2023mar.onnx",
   sface: "face_recognition_sface_2021dec.onnx",
+  minifasnet: "minifasnet_v2.onnx",
 } as const;
 export type IdvModelKey = keyof typeof IDV_MODELS;
 
