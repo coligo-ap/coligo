@@ -8,6 +8,15 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // /search → / (la recherche vit sur l'accueil). Redirection HTTP RÉELLE,
+  // AVANT tout rendu : l'ancienne page qui faisait redirect() pendant le
+  // rendu streamait d'abord sa coque (200 + script de redirection) → le
+  // client hydratait /search puis se faisait rediriger en plein vol =
+  // erreur React #310 en prod (bug vécu). Les query params (q, category…)
+  // sont transmis automatiquement.
+  async redirects() {
+    return [{ source: "/search", destination: "/", permanent: false }];
+  },
   experimental: {
     serverActions: {
       // Upload des documents chauffeur (photos téléphone) via server action :

@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import {
   listMerchantCategories,
   listPublicMerchants,
@@ -119,24 +118,18 @@ export default async function CustomerHomePage() {
         <div className="mx-auto max-w-[1400px] px-4 lg:px-6">
           {/* Recherche pleine largeur (sticky sous le header) + scan
               code-barres (flag barcode_marketplace, piloté /admin/controle). */}
-          <Suspense fallback={null}>
-            <MarketplaceSearchBar
-              scanEnabled={flags.barcode_marketplace.status === "active"}
-            />
-          </Suspense>
+          <MarketplaceSearchBar
+            scanEnabled={flags.barcode_marketplace.status === "active"}
+          />
 
           {/* Catégories rondes (mécanique Uber Eats). */}
           <div className="pt-1">
-            <Suspense fallback={null}>
-              <CategoryStrip categories={categories} />
-            </Suspense>
+            <CategoryStrip categories={categories} />
           </div>
 
           {/* Pilules de filtres : Tous / Livraison / Express / Mieux notés. */}
           <div className="pt-3.5 pb-1">
-            <Suspense fallback={null}>
-              <HomeFilterPills />
-            </Suspense>
+            <HomeFilterPills />
           </div>
 
           {/* Localisation manuelle — fallback si la géoloc auto échoue. */}
@@ -155,17 +148,23 @@ export default async function CustomerHomePage() {
           <PromoBanner banners={banners} geoFallback={!hasCoords} />
 
           {/* Commerces près de toi. */}
+          {/* ⚠️ PAS de <Suspense fallback={null}> autour de ces blocs (ni des
+              trois du dessus) : en PROD, plusieurs frontières sœurs streamées
+              avec fallback null provoquaient des erreurs d'hydratation
+              React #418/#310 dès qu'un paramètre de filtre était dans l'URL
+              (bug d'alignement dépendant de la COMPOSITION des enfants, pas du
+              contenu — bissection du 13/07/2026). La page est force-dynamic :
+              la frontière de route loading.tsx couvre déjà le streaming, et
+              useSearchParams n'exige un Suspense qu'en rendu STATIQUE. */}
           <section className="mt-3 pb-8">
-            <Suspense fallback={null}>
-              <MarketplaceSection
-                fallback={rankedFallback}
-                promoIds={promoIds}
-                promoLabels={promoLabels}
-                favoriteIds={favoriteIds}
-                isAuth={isAuth}
-                unified={rankingCtx.unified}
-              />
-            </Suspense>
+            <MarketplaceSection
+              fallback={rankedFallback}
+              promoIds={promoIds}
+              promoLabels={promoLabels}
+              favoriteIds={favoriteIds}
+              isAuth={isAuth}
+              unified={rankingCtx.unified}
+            />
           </section>
         </div>
       </div>
