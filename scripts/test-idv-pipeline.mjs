@@ -19,6 +19,8 @@ import {
   SFACE_INPUT_SIZE,
   SFACE_EMBEDDING_DIM,
 } from "../lib/idv/pipeline/sface.ts";
+import { assessDocQuality } from "../lib/idv/pipeline/quality.ts";
+import sharp from "sharp";
 
 let pass = 0,
   fail = 0;
@@ -143,6 +145,52 @@ ok(
   cosineSimilarity(a, b) < 0.99,
   `cos = ${cosineSimilarity(a, b).toFixed(4)}`
 );
+
+// ── 5) Qualité document (check doc_quality, étape 4) ───────────────────────
+{
+  // Image « document » synthétique : bruit fin = netteté maximale.
+  const docNoise = noise(1280, 800, 42);
+  const base = sharp(docNoise.data, {
+    raw: { width: 1280, height: 800, channels: 3 },
+  });
+  const sharpJpg = await base.clone().jpeg({ quality: 95 }).toBuffer();
+  const blurryJpg = await base
+    .clone()
+    .blur(10)
+    .jpeg({ quality: 95 })
+    .toBuffer();
+  const darkJpg = await base
+    .clone()
+    .linear(0.12, 0)
+    .jpeg({ quality: 95 })
+    .toBuffer();
+  const tinyJpg = await base.clone().resize(320, 200).jpeg().toBuffer();
+
+  const qSharp = await assessDocQuality(sharpJpg);
+  ok(
+    "qualité : image nette → passed",
+    qSharp.verdict === "passed",
+    `netteté ${qSharp.metrics.sharpness}, score ${qSharp.score}`
+  );
+  const qBlur = await assessDocQuality(blurryJpg);
+  ok(
+    "qualité : image floue → blurry",
+    qBlur.verdict === "failed" && qBlur.reasons.includes("blurry"),
+    `netteté ${qBlur.metrics.sharpness}`
+  );
+  const qDark = await assessDocQuality(darkJpg);
+  ok(
+    "qualité : image sombre → too_dark",
+    qDark.verdict === "failed" && qDark.reasons.includes("too_dark"),
+    `luminosité ${qDark.metrics.brightness}`
+  );
+  const qTiny = await assessDocQuality(tinyJpg);
+  ok(
+    "qualité : image trop petite → low_resolution",
+    qTiny.verdict === "failed" && qTiny.reasons.includes("low_resolution"),
+    `${qTiny.metrics.width}×${qTiny.metrics.height}`
+  );
+}
 
 console.log(`\n${fail === 0 ? "✅" : "❌"} ${pass} OK / ${fail} KO`);
 process.exit(fail === 0 ? 0 : 1);

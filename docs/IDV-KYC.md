@@ -149,12 +149,19 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
    `VERCEL_ANALYZE_BUILD_OUTPUT=1` (retirées ensuite).
    **Vérifié en PROD** (13/07) : cold start 903 ms (chargement + inférences),
    instance chaude 207 ms, 401 sans Bearer.
-4. Parcours client — capture document guidée + upload sécurisé.
-   **Exigence UX (proprio, 13/07)** : expliquer CHAQUE étape pas-à-pas avec
-   illustrations ANIMÉES soignées (Lottie locales + repli CSS, jamais de CDN,
-   pas d'emojis en dur), gabarit visuel du document en surimpression pendant
-   le scan (template carte/passeport), micro-animations de transition,
-   textes courts style Bolt — niveau frontend « grande app ».
+4. ✅ **Parcours client — capture document** (`/driver/identite`, surface
+   pilote livreur ; les autres profils à l'étape 9). Intro pas-à-pas avec
+   illustrations ANIMÉES (SVG + CSS locales, prefers-reduced-motion géré,
+   exigence UX proprio du 13/07), capture caméra plein écran : gabarit du
+   document en surimpression (ratio ID-1 / passeport), analyse temps réel de
+   la zone du gabarit (netteté Laplacien, lumière, reflets, stabilité) →
+   guidage + AUTO-CAPTURE, torche, déclencheur manuel, repli « choisir une
+   photo » ; la photo envoyée = CROP du gabarit. Serveur : magic bytes,
+   check `doc_quality` (lib/idv/pipeline/quality.ts — mêmes métriques que le
+   client mais SEUL verdict qui fait foi), tentatives bornées par le mode
+   (au-delà → pending_review), statuts draft → doc_validated (« Document
+   validé »), audit complet. L'étape 5 branchera OCR/MRZ/authenticité au
+   même endroit avant `doc_validated`.
 5. Pipeline document : PP-OCR, MRZ + checksums, expiration, anti-fraude,
    extraction structurée.
 6. Selfie + liveness (défis actifs signés + MiniFASNet passif — conversion
