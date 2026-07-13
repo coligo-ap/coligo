@@ -238,12 +238,19 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
    variante client pour le compte chauffeur, rendu client par perf) — elle
    s'efface d'elle-même si la fonctionnalité n'est pas publiée, si le profil
    n'est pas concerné ou si l'identité est déjà vérifiée.
-   **Gating** : `lib/idv/compliance.ts` (`requireIdvVerified`) branché dans
-   `requireActiveDriver`, `ChauffeurGateGuard` et le dashboard commerçant —
-   il ne bloque QUE si le super-admin a mis le profil sur « obligatoire » et
-   que l'identité n'est pas confirmée. Fail-safe : une panne de lecture ne
-   verrouille jamais un partenaire dehors. La file admin résout désormais les
-   noms des trois profils.
+   **Gating** : `lib/idv/compliance.ts` (`idvBlocksAccess`) branché dans le
+   layout livreur, `ChauffeurGateGuard` et le layout commerçant — il ne bloque
+   QUE si le super-admin a mis le profil sur « obligatoire » et que l'identité
+   n'est pas confirmée. Fail-safe : une panne de lecture ne verrouille jamais
+   un partenaire dehors. La file admin résout les noms des trois profils.
+   ⚠️ **PIÈGE VÉCU (mesuré en prod)** : la 1ʳᵉ version _redirigeait_ vers le
+   parcours → **erreur React #310 sur TOUTES les pages** de l'espace
+   (`redirect()` depuis une page streamée sous `loading.tsx`). Corrigé en
+   **RENDANT un écran bloquant** (`IdvRequiredScreen`), comme le font déjà
+   `DriverBlockedScreen` / `DFrozen` ; le middleware expose `x-pathname` pour
+   que les layouts laissent passer la page du parcours elle-même. Vérifié en
+   prod : blocage sur /driver, /driver/gains, /driver/parametres,
+   /driver/tournees, parcours accessible — **zéro erreur d'hydratation**.
    i18n : les espaces partenaires ne sont pas traduits (next-intl n'y est pas
    utilisé) — les libellés AR restent portés par la DB (`label_ar`,
    `description_ar` des modes et documents), prêts pour le jour où ces espaces
