@@ -1,14 +1,23 @@
 "use client";
 
 // =============================================================================
-// IDV — écran d'INTRO du parcours : les 3 étapes expliquées avec illustrations
-// animées, choix du document, choix du mode (si autorisé). Textes courts
-// style Bolt : l'utilisateur comprend en un coup d'œil ce qu'on va lui
-// demander et pourquoi.
+// IDV — INTRO du parcours, présentée ÉTAPE PAR ÉTAPE (une seule à l'écran).
+// Chaque étape occupe tout l'espace : son illustration animée, une phrase
+// courte, un bouton « Suivant ». L'utilisateur n'a jamais qu'UNE chose à lire
+// (repère Bolt / grands acteurs de la vérification d'identité) — plus de liste
+// des 3 étapes empilées sur la première page.
+// Après les 3 étapes : le choix du document (et du niveau, si autorisé).
 // =============================================================================
 
 import { useState } from "react";
-import { BookUser, Car, ChevronRight, IdCard, Lock } from "lucide-react";
+import {
+  ArrowRight,
+  BookUser,
+  Car,
+  ChevronRight,
+  IdCard,
+  Lock,
+} from "lucide-react";
 import {
   IdvIllusStyles,
   IllusDocScan,
@@ -23,23 +32,36 @@ const DOC_ICONS: Record<string, typeof IdCard> = {
   dz_permis: Car,
 };
 
-const STEPS = [
+const SLIDES = [
   {
     Illus: IllusDocScan,
     title: "Scannez votre pièce",
-    hint: "Cadrage guidé, photo auto",
+    hint: "Le cadrage est guidé, la photo se prend toute seule.",
   },
   {
     Illus: IllusSelfie,
     title: "Selfie rapide",
-    hint: "Quelques secondes",
+    hint: "Quelques gestes simples pour prouver que c'est bien vous.",
   },
   {
     Illus: IllusShield,
     title: "Vérification",
-    hint: "Résultat immédiat",
+    hint: "Votre pièce et votre visage sont comparés. Résultat immédiat.",
   },
 ] as const;
+
+function IntroStyles() {
+  return (
+    <style>{`
+      @keyframes idv-slide-in {
+        from { opacity: 0; transform: translateX(18px); }
+        to   { opacity: 1; transform: none; }
+      }
+      .idv-slide { animation: idv-slide-in .34s cubic-bezier(.22,1,.36,1); }
+      @media (prefers-reduced-motion: reduce) { .idv-slide { animation: none; } }
+    `}</style>
+  );
+}
 
 export function IdvIntro({
   docTypes,
@@ -55,6 +77,8 @@ export function IdvIntro({
   defaultMode: string;
   onStart: (docTypeKey: string, modeKey: string) => void;
 }) {
+  /** 0-2 = les 3 étapes expliquées, une par écran ; 3 = choix du document. */
+  const [slide, setSlide] = useState(0);
   const [docKey, setDocKey] = useState(docTypes[0]?.key ?? "");
   const [modeKey, setModeKey] = useState(
     modes.some((m) => m.key === defaultMode)
@@ -62,35 +86,79 @@ export function IdvIntro({
       : (modes[0]?.key ?? "")
   );
 
-  return (
-    <div className="space-y-5 pb-6">
-      <IdvIllusStyles />
+  // ── Les 3 étapes, UNE À LA FOIS ────────────────────────────────────────────
+  if (slide < SLIDES.length) {
+    const { Illus, title, hint } = SLIDES[slide];
+    return (
+      <div className="flex min-h-[60vh] flex-col">
+        <IdvIllusStyles />
+        <IntroStyles />
 
-      {/* Les 3 étapes, illustrées. */}
-      <div className="space-y-2.5">
-        {STEPS.map(({ Illus, title, hint }, i) => (
-          <div
-            key={title}
-            className="flex items-center gap-3 rounded-[16px] p-3"
-            style={{
-              background: "var(--idv-card)",
-              border: "1px solid var(--idv-line)",
-            }}
+        <div
+          key={slide}
+          className="idv-slide flex flex-1 flex-col items-center justify-center text-center"
+        >
+          <Illus size={132} />
+          <p
+            className="mt-6 text-[11px] font-semibold tracking-wide uppercase"
+            style={{ color: "var(--idv-accent)" }}
           >
-            <Illus size={64} />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold">
-                {i + 1}. {title}
-              </p>
-              <p className="text-xs" style={{ color: "var(--idv-muted)" }}>
-                {hint}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
+            Étape {slide + 1} sur {SLIDES.length}
+          </p>
+          <h2 className="mt-1 text-xl font-bold tracking-tight">{title}</h2>
+          <p
+            className="mt-2 max-w-[280px] text-sm leading-relaxed"
+            style={{ color: "var(--idv-muted)" }}
+          >
+            {hint}
+          </p>
+        </div>
 
-      {/* Choix du document. */}
+        {/* Points de progression. */}
+        <div className="mb-4 flex justify-center gap-1.5">
+          {SLIDES.map((s, i) => (
+            <span
+              key={s.title}
+              className="h-1.5 rounded-full transition-all duration-300"
+              style={{
+                width: i === slide ? 22 : 6,
+                background:
+                  i <= slide ? "var(--idv-accent)" : "var(--idv-line)",
+              }}
+            />
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setSlide((n) => n + 1)}
+          className="flex w-full items-center justify-center gap-1.5 rounded-full py-3.5 text-sm font-semibold text-white transition-transform active:scale-[.98]"
+          style={{ background: "var(--idv-accent)" }}
+        >
+          {slide === SLIDES.length - 1 ? "J'ai compris" : "Suivant"}
+          <ArrowRight className="size-4" />
+        </button>
+
+        {slide < SLIDES.length - 1 && (
+          <button
+            type="button"
+            onClick={() => setSlide(SLIDES.length)}
+            className="mt-2 py-1 text-xs"
+            style={{ color: "var(--idv-muted)" }}
+          >
+            Passer
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ── Choix du document (et du niveau) ──────────────────────────────────────
+  return (
+    <div className="idv-slide space-y-5 pb-6">
+      <IdvIllusStyles />
+      <IntroStyles />
+
       <div className="space-y-2">
         <p className="text-sm font-semibold">Votre document</p>
         <div className="space-y-2">
@@ -135,7 +203,6 @@ export function IdvIntro({
         </div>
       </div>
 
-      {/* Choix du mode (si le super-admin l'autorise). */}
       {canChooseMode && modes.length > 1 && (
         <div className="space-y-2">
           <p className="text-sm font-semibold">Niveau de vérification</p>
@@ -149,7 +216,7 @@ export function IdvIntro({
                   onClick={() => setModeKey(m.key)}
                   className="rounded-[14px] border p-3 text-left"
                   style={{
-                    background: active ? "var(--idv-soft)" : "var(--idv-card)",
+                    background: active ? "var(--idv-tint)" : "var(--idv-card)",
                     borderColor: active
                       ? "var(--idv-accent)"
                       : "var(--idv-line)",
