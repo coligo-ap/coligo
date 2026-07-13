@@ -26,30 +26,30 @@ function shortLabel(code: string, locale: string): string {
 }
 
 /**
- * IMAGES par défaut des filtres (public/categories/stickers/*.png) : rendus 3D
- * ultra propres — objet détouré sur fond transparent (Fluent Emoji 3D,
- * Microsoft, licence MIT — voir LICENSE.txt du dossier), le style des tuiles
- * Bolt Food. L'image ADMIN (mig 0311, /admin/categories) reste prioritaire
- * quand elle est définie. Une image du dossier se rend en `contain` (l'objet
- * flotte dans le rond) ; toute autre image (photo uploadée) reste en `cover`.
+ * PHOTOS par défaut des filtres (public/categories/photos/*.jpg) : vraies
+ * photos façon Uber Eats — plein cadre dans le rond (cover), recadrées carré
+ * 320px, licences CC0/PDM (CREDITS.txt du dossier). L'image ADMIN (mig 0311,
+ * /admin/categories) reste prioritaire quand elle est définie. Un chemin du
+ * dossier stickers/ (images détourées) se rendrait en `contain` ; les photos
+ * (ce jeu + uploads admin) se rendent en `cover`.
  */
 const CATEGORY_FILTER_IMAGE: Record<string, string> = {
-  superette: "/categories/stickers/superette.png",
-  boulangerie: "/categories/stickers/boulangerie.png",
-  pizzeria: "/categories/stickers/pizzeria.png",
-  fast_food: "/categories/stickers/fast_food.png",
-  restaurant: "/categories/stickers/restaurant.png",
-  cafe: "/categories/stickers/cafe.png",
-  glacier: "/categories/stickers/glacier.png",
-  boucherie: "/categories/stickers/boucherie.png",
-  poissonnerie: "/categories/stickers/poissonnerie.png",
-  fruits_legumes: "/categories/stickers/fruits_legumes.png",
-  produits_bio: "/categories/stickers/produits_bio.png",
-  fleuriste: "/categories/stickers/fleuriste.png",
-  pharmacie: "/categories/stickers/pharmacie.png",
+  superette: "/categories/photos/superette.jpg",
+  boulangerie: "/categories/photos/boulangerie.jpg",
+  pizzeria: "/categories/photos/pizzeria.jpg",
+  fast_food: "/categories/photos/fast_food.jpg",
+  restaurant: "/categories/photos/restaurant.jpg",
+  cafe: "/categories/photos/cafe.jpg",
+  glacier: "/categories/photos/glacier.jpg",
+  boucherie: "/categories/photos/boucherie.jpg",
+  poissonnerie: "/categories/photos/poissonnerie.jpg",
+  fruits_legumes: "/categories/photos/fruits_legumes.jpg",
+  produits_bio: "/categories/photos/produits_bio.jpg",
+  fleuriste: "/categories/photos/fleuriste.jpg",
+  pharmacie: "/categories/photos/pharmacie.jpg",
 };
 
-/** Un chemin d'autocollant local → rendu « objet flottant » (contain). */
+/** Un chemin d'image détourée locale → rendu « objet flottant » (contain). */
 const isSticker = (src: string) => src.startsWith("/categories/stickers/");
 
 export function CategoryStrip({
@@ -85,7 +85,7 @@ export function CategoryStrip({
     <div className="scrollbar-hide -mx-4 flex gap-2.5 overflow-x-auto border-b border-[var(--color-border)] px-4 pb-3 lg:mx-0 lg:px-0">
       <Tile
         emoji="🛍️"
-        imageSrc="/categories/stickers/tous.png"
+        imageSrc="/categories/photos/tous.jpg"
         label={t("all")}
         active={!active}
         onClick={() => go(null)}
@@ -137,13 +137,13 @@ function Tile({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="flex w-[72px] shrink-0 flex-col items-center gap-1.5"
+      className="flex w-[62px] shrink-0 flex-col items-center gap-1.5"
     >
       <span
         className={cn(
-          // Tuile RONDE (choix produit) : l'autocollant FLOTTE dedans
-          // (contain + padding) — jamais de photo pleine qui sature.
-          "grid size-[64px] place-items-center overflow-hidden rounded-full border-[1.5px] text-[28px] leading-none transition-all",
+          // Tuile RONDE compacte (56 px, gabarit Uber Eats) : photo pleine en
+          // cover, ou image détourée qui flotte en contain.
+          "grid size-[56px] place-items-center overflow-hidden rounded-full border-[1.5px] text-[24px] leading-none transition-all",
           active
             ? "border-primary-500 bg-primary-50 shadow-[0_4px_14px_-6px_rgba(108,43,217,.45)]"
             : "bg-surface-2 border-transparent"
@@ -173,7 +173,7 @@ function Tile({
       </span>
       <span
         className={cn(
-          "max-w-[72px] truncate text-[11.5px] leading-tight",
+          "max-w-[62px] truncate text-[11px] leading-tight",
           active
             ? "text-primary-700 font-extrabold"
             : "text-foreground font-semibold"

@@ -260,6 +260,19 @@ données streamées). Concrètement, pour CHAQUE nouvelle page/navigation :
 5. si une transition « rame » (> ~300 ms perçues), c'est un BUG à corriger
    immédiatement, pas un état acceptable.
 
+**Corollaire OBLIGATOIRE — toute LENTEUR signalée se traite « cache d'abord,
+réseau ensuite ».** Tout contenu réaffiché souvent (listes, favoris,
+historique, lieux précédents, demandes…) doit s'afficher INSTANTANÉMENT depuis
+un cache (TanStack Query, cache module SWR, ou sessionStorage PAR COMPTE — id
+lu depuis la session locale, jamais un aller-retour), puis se revalider en
+arrière-plan. Les écritures mettent le cache à jour de façon OPTIMISTE (le
+résultat du geste est visible tout de suite, le serveur confirme derrière).
+Jamais d'écran vide pendant un aller-retour réseau pour des données qu'on a
+déjà montrées une fois. Exemples en place : lieux précédents du picker
+(`location-picker.tsx`), historique Drive (TanStack), demandes chauffeur
+(`lastNearbyCache`). Sécurité : cache toujours CLÉ PAR COMPTE, données
+sensibles jamais en localStorage persistant.
+
 ## RÈGLE PRODUIT — navigation client ULTRA RAPIDE (non négociable)
 
 Objectif startup : **chaque tap doit donner un retour visuel immédiat.** Toute
