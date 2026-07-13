@@ -56,6 +56,11 @@ const FEATURE_META: { key: FeatureKey; label: string; hint: string }[] = [
     label: "Scan code-barres — fiche commerçant",
     hint: "Icône scan dans la recherche d'une boutique : le client scanne un produit → recherche dans le catalogue de CE commerçant.",
   },
+  {
+    key: "identity_verification",
+    label: "Vérification d'identité (IDV)",
+    hint: "Kill-switch du parcours automatisé document + selfie (scan, liveness, comparaison du visage). Masqué = retiré partout. Les règles par profil et les seuils se pilotent dans Confiance → Identité.",
+  },
 ];
 
 export default async function AdminControlePage() {
