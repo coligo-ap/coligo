@@ -238,7 +238,14 @@ export function IdvVerifyStep({
         </p>
       )}
 
-      {method === "instant" && <IdvStatusBlock idv={idv} />}
+      {/* La carte sélectionnée dit déjà « Scan + selfie · 2 min » : le bloc
+          d'état ne s'affiche QUE s'il apporte une information nouvelle (examen
+          en cours, identité vérifiée, tentative refusée). Sinon il ne ferait que
+          répéter la carte — doublon interdit. */}
+      {method === "instant" &&
+        (idv.verified || idv.inProgress || idv.rejected) && (
+          <IdvStatusBlock idv={idv} />
+        )}
       {method === "manual" && <div className="pt-1">{children}</div>}
     </IdvScope>
   );
