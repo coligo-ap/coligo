@@ -179,8 +179,14 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
    1600 seul, mesuré conf 43 vs 0) ; les fillers '<' de fin se perdent à
    l'OCR (tolérance de longueur 36-48/26-34) ; la réparation O→0 ne doit
    JAMAIS toucher les champs alphanumériques (bug attrapé par « ZE184226B »).
-   5b (à venir) : PP-OCR det/rec ONNX arabe+latin pour le permis (sans MRZ)
-   et le croisement zone visuelle ↔ MRZ.
+   5b ✅ (étape 11) : le **permis** (seul document sans MRZ) est lu par
+   **tesseract `fra`** (tessdata autohébergée, Apache-2.0) — PP-OCR s'est
+   révélé inutile. `lib/idv/doc-ocr.ts` (pur) extrait les dates (naissance =
+   la plus ancienne, expiration = la plus tardive) et le n° de document ; le
+   contrôle `doc_expiry` devient RÉEL pour le permis. Quand une MRZ existe,
+   elle reste prioritaire (checksums) et l'OCR visuel est sauté.
+   Vérifié en PROD : expiration 2032-04-15, naissance 1990-05-12,
+   n° 16DZ0034521 extraits d'un permis simulé (4,2 s).
 6. ✅ **Selfie + liveness ACTIF** : défis aléatoires (centre → tourner la tête
    à gauche OU à droite → se rapprocher) **tirés et signés par le serveur**
    (`startIdvSelfie`, jeton HMAC lié au dossier + TTL 5 min = anti-rejeu).
@@ -197,9 +203,20 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
    mode ; échec reprenable → coaching + reprise (tentatives bornées) ;
    incohérence de visage / tentatives épuisées → policy `liveness_fail` du
    mode (refus auto ou revue) ; pipeline injoignable → revue humaine.
-   `liveness_passive` (MiniFASNetV2 ONNX) = SKIPPED → **étape 6b** (conversion
-   des poids Apache-2.0). Selfie validé ⇒ `pending_review` en attendant le
-   face match automatique de l'étape 7.
+   6b ✅ (étape 11) : **anti-spoof PASSIF** branché — MiniFASNetV2 (ONNX,
+   Apache-2.0, SHA-256 épinglé, 1,7 Mo) détecte photo imprimée / écran / rejeu
+   **sans rien demander** à l'utilisateur. Conventions **vérifiées au banc**
+   (la carte du modèle tiers était FAUSSE) : entrée **BGR BRUT 0-255** (le
+   `/255` classait tout en attaque), **crop contextuel carré ×2.7** (c'est le
+   contexte — bord d'écran, cadre — qui trahit l'attaque), **classe 1 =
+   vivant**. PIÈGE : un crop rogné près du bord est redimensionné avec
+   DÉFORMATION et fait chuter un vrai visage (0.99 → 0.23) → on réduit le
+   rayon pour garder un carré entier. Seuil `ANTISPOOF_LIVE_MIN = 0.2` (marge
+   large : les attaques mesurent 0.000 ; un faux positif coûterait une revue
+   humaine inutile) — **à recalibrer sur des captures d'appareils réels**.
+   Suspicion ⇒ **revue humaine, jamais un refus automatique**.
+   Vérifié en PROD : selfie plein cadre p(vivant) = 0.987 ; photo présentée à
+   la caméra p(vivant) = 0.000.
 7. ✅ **Face match + DÉCISION AUTOMATIQUE** : `POST /api/idv/face-match`
    re-localise le portrait sur le recto (YuNet), embarque les deux visages
    (SFace) et renvoie le cosinus + un score NORMALISÉ [0,1]
