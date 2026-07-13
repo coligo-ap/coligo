@@ -108,18 +108,27 @@ export type IdvGate = {
   userCanChooseMode: boolean;
 };
 
-/** Clés de contrôles connues du pipeline (idv_checks.check_key). */
-export const IDV_CHECK_KEYS = [
-  "doc_quality",
-  "ocr_extract",
-  "mrz",
-  "doc_expiry",
-  "doc_authenticity",
-  "liveness_passive",
-  "liveness_active",
-  "face_match",
-] as const;
+/** Clés de contrôles connues du pipeline (idv_checks.check_key) — la SOURCE
+ *  vit dans settings-validation.ts (module pur), ré-exportée ici. */
+import { IDV_CHECK_KEYS } from "./settings-validation";
+
+export { IDV_CHECK_KEYS };
 export type IdvCheckKey = (typeof IDV_CHECK_KEYS)[number] | (string & {});
+
+/** Libellés FR des contrôles (console admin + détails de dossier). */
+export const IDV_CHECK_LABELS_FR: Record<
+  (typeof IDV_CHECK_KEYS)[number],
+  string
+> = {
+  doc_quality: "Qualité de l'image",
+  ocr_extract: "Extraction OCR",
+  mrz: "MRZ + sommes de contrôle",
+  doc_expiry: "Expiration du document",
+  doc_authenticity: "Authenticité renforcée",
+  liveness_passive: "Présence réelle (passif)",
+  liveness_active: "Présence réelle (défis)",
+  face_match: "Comparaison du visage",
+};
 
 /** Ligne dossier (accès service_role uniquement — jamais renvoyée brute au
  *  client : les server actions projettent les champs affichables). */

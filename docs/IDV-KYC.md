@@ -125,8 +125,11 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
 
 1. ✅ **Socle** : mig 0367, lib/idv (types, config, décision, audit), flag,
    test `npm run test:idv`.
-2. Console super-admin — pilotage : `/admin/identite` (domaine Confiance) :
-   règles par profil, modes, seuils, publication.
+2. ✅ **Console super-admin — pilotage** : `/admin/identite` (onglet Identité
+   du hub Confiance) : publication (flag, éditable si domaine plateforme),
+   règles par profil, modes & seuils (zones de décision visualisées), policy
+   d'échec, journal d'audit des réglages. Toute écriture : adminCan(confiance)
+   - validation pure (lib/idv/settings-validation) + diff audité.
 3. **Fondations du pipeline ML sur Vercel** : onnxruntime-node + sharp,
    embarquement des modèles (outputFileTracingIncludes), chargement par
    instance, contrat interne typé, `THIRD-PARTY-LICENSES`, bench cold start.

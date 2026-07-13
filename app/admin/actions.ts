@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminCan } from "@/lib/auth/admin";
+import { FEATURE_KEYS } from "@/lib/data/feature-flags";
 import { getCatalogTemplate } from "@/lib/config/catalog-templates";
 import {
   merchantRatesSchema,
@@ -14,14 +15,9 @@ import {
 
 export type AdminFormState = { error?: string; ok?: boolean };
 
-const FEATURE_KEYS = [
-  "drive",
-  "online_payment",
-  "coligo_pay",
-  "cashback",
-  "express",
-  "tour",
-];
+// SOURCE UNIQUE des clés (lib/data/feature-flags). L'ancienne liste locale
+// figée à 6 clés refusait les flags ajoutés ensuite (barcode_*, IDV) avec
+// « Fonctionnalité inconnue » au moment d'enregistrer.
 const FEATURE_STATUSES = ["active", "hidden", "coming_soon", "maintenance"];
 
 /**
@@ -37,7 +33,8 @@ export async function updateFeatureFlag(
 
   const key = String(formData.get("key") ?? "");
   const status = String(formData.get("status") ?? "");
-  if (!FEATURE_KEYS.includes(key)) return { error: "Fonctionnalité inconnue." };
+  if (!(FEATURE_KEYS as readonly string[]).includes(key))
+    return { error: "Fonctionnalité inconnue." };
   if (!FEATURE_STATUSES.includes(status)) return { error: "État invalide." };
 
   const clean = (v: FormDataEntryValue | null): string | null => {

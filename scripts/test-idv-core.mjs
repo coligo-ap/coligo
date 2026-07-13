@@ -10,6 +10,11 @@
 import pg from "pg";
 import { getDbUrl } from "./_supabase.mjs";
 import { decideIdv } from "../lib/idv/decision.ts";
+import {
+  validateModePatch,
+  validateProfileRulePatch,
+  settingsDiff,
+} from "../lib/idv/settings-validation.ts";
 
 let pass = 0,
   fail = 0;
@@ -116,7 +121,111 @@ ok(
   "all_checks_passed"
 );
 
-// ── 2) DB : socle mig 0367 ──────────────────────────────────────────────────
+// ── 2) Validation des réglages super-admin (pur, sans DB) ──────────────────
+const MODES = ["express", "standard"];
+const goodRule = {
+  requirement: "required",
+  allowed_modes: ["express", "standard", "express"],
+  default_mode: "standard",
+  user_can_choose_mode: true,
+};
+{
+  const r = validateProfileRulePatch(goodRule, MODES);
+  ok(
+    "règle valide → ok + doublons de modes dédupliqués",
+    r.ok && r.value.allowed_modes.join(","),
+    "express,standard"
+  );
+}
+ok(
+  "exigence inconnue → refus",
+  validateProfileRulePatch({ ...goodRule, requirement: "maybe" }, MODES).ok,
+  false
+);
+ok(
+  "aucun mode autorisé → refus",
+  validateProfileRulePatch({ ...goodRule, allowed_modes: [] }, MODES).ok,
+  false
+);
+ok(
+  "mode inexistant → refus",
+  validateProfileRulePatch({ ...goodRule, allowed_modes: ["premium"] }, MODES)
+    .ok,
+  false
+);
+ok(
+  "défaut hors des modes autorisés → refus",
+  validateProfileRulePatch(
+    { ...goodRule, allowed_modes: ["express"], default_mode: "standard" },
+    MODES
+  ).ok,
+  false
+);
+
+const goodMode = {
+  enabled: true,
+  face_match_approve: 0.6,
+  face_match_reject: 0.35,
+  liveness_min: 0.7,
+  doc_confidence_min: 0.6,
+  max_attempts: 3,
+  policy: {
+    liveness_fail: "review",
+    doc_low_confidence: "review",
+    expired_document: "reject",
+    check_failed: "review",
+  },
+  checks: { face_match: false, mrz: true },
+};
+{
+  const r = validateModePatch(goodMode);
+  ok(
+    "mode valide → ok + face_match FORCÉ actif",
+    r.ok && r.value.checks.face_match,
+    true
+  );
+}
+ok(
+  "refus ≥ approbation → refus",
+  validateModePatch({ ...goodMode, face_match_reject: 0.6 }).ok,
+  false
+);
+ok(
+  "seuil hors [0,1] → refus",
+  validateModePatch({ ...goodMode, liveness_min: 1.5 }).ok,
+  false
+);
+ok(
+  "tentatives max 0 → refus",
+  validateModePatch({ ...goodMode, max_attempts: 0 }).ok,
+  false
+);
+ok(
+  "policy invalide → refus",
+  validateModePatch({
+    ...goodMode,
+    policy: { ...goodMode.policy, expired_document: "ignore" },
+  }).ok,
+  false
+);
+ok(
+  "contrôle inconnu → refus",
+  validateModePatch({ ...goodMode, checks: { backdoor: true } }).ok,
+  false
+);
+{
+  const diff = settingsDiff(
+    { a: 1, b: [1, 2], c: "x" },
+    { a: 2, b: [1, 2], c: "y" }
+  );
+  ok(
+    "settingsDiff ne garde que les champs modifiés",
+    Object.keys(diff).join(","),
+    "a,c"
+  );
+}
+
+// ── 3) DB : socle mig 0367 ──────────────────────────────────────────────────
 const c = new pg.Client({ connectionString: getDbUrl() });
 await c.connect();
 await c.query("BEGIN");
