@@ -18,8 +18,43 @@ import {
   X,
   ZoomIn,
 } from "lucide-react";
+import { Check } from "lucide-react";
 import { Portal } from "@/components/ui/portal";
+import { IdvStepper } from "./idv-stepper";
 import type { IdvChallenge } from "@/lib/idv/liveness";
+
+/** Animations locales (reduced-motion géré). */
+function SelfieStyles() {
+  return (
+    <style>{`
+      @keyframes idv-instr-in {
+        from { opacity: 0; transform: translateY(8px) scale(.96); }
+        to   { opacity: 1; transform: none; }
+      }
+      @keyframes idv-count-pop {
+        0%   { transform: scale(1.5); opacity: 0; }
+        40%  { transform: scale(1); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      @keyframes idv-burst {
+        0%   { transform: scale(.5); opacity: .8; }
+        100% { transform: scale(1.8); opacity: 0; }
+      }
+      @keyframes idv-tick {
+        0%   { transform: scale(0); }
+        60%  { transform: scale(1.2); }
+        100% { transform: scale(1); }
+      }
+      .idv-instr { animation: idv-instr-in .34s cubic-bezier(.22,1,.36,1); }
+      .idv-count { animation: idv-count-pop .35s cubic-bezier(.22,1,.36,1); }
+      .idv-burst { animation: idv-burst .6s ease-out; }
+      .idv-tick  { animation: idv-tick .32s cubic-bezier(.22,1,.36,1); }
+      @media (prefers-reduced-motion: reduce) {
+        .idv-instr, .idv-count, .idv-burst, .idv-tick { animation: none; }
+      }
+    `}</style>
+  );
+}
 
 const CHALLENGE_UI: Record<
   IdvChallenge,
@@ -70,6 +105,8 @@ export function IdvSelfieCapture({
   const [flash, setFlash] = useState(false);
   /** Relance le compte du défi courant (frame indisponible). */
   const [retry, setRetry] = useState(0);
+  /** Salve verte affichée quand un défi vient d'être capturé. */
+  const [burst, setBurst] = useState(false);
 
   // ── Caméra frontale ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -150,10 +187,13 @@ export function IdvSelfieCapture({
         setTimeout(() => setFlash(false), 150);
         if (blob) {
           framesRef.current[stepIndex] = blob;
+          // Confirmation visuelle du défi accompli avant de passer au suivant.
+          setBurst(true);
+          setTimeout(() => setBurst(false), 620);
           if (stepIndex + 1 >= challenges.length) {
-            onDone([...framesRef.current]);
+            setTimeout(() => onDone([...framesRef.current]), 650);
           } else {
-            setStepIndex(stepIndex + 1);
+            setTimeout(() => setStepIndex(stepIndex + 1), 650);
           }
         } else {
           setRetry((r) => r + 1); // relance le compte de CE défi
@@ -173,6 +213,7 @@ export function IdvSelfieCapture({
   return (
     <Portal>
       <div className="fixed inset-0 z-[90] flex flex-col bg-black">
+        <SelfieStyles />
         {/* Aperçu MIROIR (naturel) — la capture, elle, reste non-miroir. */}
         <video
           ref={videoRef}
@@ -183,38 +224,89 @@ export function IdvSelfieCapture({
         />
         {flash && <div className="absolute inset-0 z-20 bg-white/80" />}
 
-        {/* Masque ovale. */}
+        {/* Masque ovale + ANNEAU DE PROGRESSION : un segment par défi, qui
+            passe au vert dès qu'il est accompli. L'utilisateur voit sa
+            vérification avancer sur son propre visage. */}
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <div
-            className="h-[46vh] w-[76vw] max-w-[420px] rounded-[50%] border-2 border-white/80"
-            style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,.55)" }}
-          />
+          <div className="relative flex items-center justify-center">
+            <div
+              className={`h-[46vh] w-[76vw] max-w-[420px] rounded-[50%] border-2 transition-colors duration-300 ${
+                burst ? "border-emerald-400" : "border-white/80"
+              }`}
+              style={{ boxShadow: "0 0 0 9999px rgba(0,0,0,.55)" }}
+            />
+
+            {/* Segments de progression, posés autour de l'ovale. */}
+            <div className="absolute -top-5 flex gap-1.5">
+              {challenges.map((c, i) => (
+                <span
+                  key={c + i}
+                  className="h-1.5 w-10 rounded-full transition-colors duration-300"
+                  style={{
+                    background:
+                      i < stepIndex || (i === stepIndex && burst)
+                        ? "#34d399"
+                        : i === stepIndex
+                          ? "rgba(255,255,255,.85)"
+                          : "rgba(255,255,255,.28)",
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Salve verte + coche : le défi vient d'être validé. */}
+            {burst && (
+              <span className="absolute flex items-center justify-center">
+                <span className="idv-burst absolute size-40 rounded-full bg-emerald-400/35" />
+                <span className="idv-tick flex size-16 items-center justify-center rounded-full bg-emerald-500 shadow-lg">
+                  <Check className="size-9 text-white" strokeWidth={3} />
+                </span>
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* En-tête. */}
-        <div className="relative z-30 flex items-start justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
-          <div className="text-white">
-            <p className="text-sm font-semibold">Selfie de vérification</p>
-            <p className="text-xs text-white/70">
-              Étape {Math.min(stepIndex + 1, challenges.length)} /{" "}
-              {challenges.length}
-            </p>
+        {/* En-tête + fil d'Ariane (visible par-dessus la caméra). */}
+        <div className="relative z-30 px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
+          <div className="flex items-start justify-between">
+            <div className="text-white">
+              <p className="text-sm font-semibold">Selfie de vérification</p>
+              <p className="text-xs text-white/70">
+                Geste {Math.min(stepIndex + 1, challenges.length)} sur{" "}
+                {challenges.length}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fermer"
+              className="rounded-full bg-white/15 p-2 text-white backdrop-blur"
+            >
+              <X className="size-5" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="rounded-full bg-white/15 p-2 text-white backdrop-blur"
-          >
-            <X className="size-5" />
-          </button>
+          <div className="mt-3">
+            <IdvStepper
+              current="selfie"
+              hint={phase === "live" ? ui.label : "Démarrage de la caméra…"}
+              progress={
+                challenges.length
+                  ? (stepIndex + (burst ? 1 : 0)) / challenges.length
+                  : 0
+              }
+              onDark
+            />
+          </div>
         </div>
 
         {/* Consigne + compte à rebours. */}
         <div className="relative z-30 mt-auto flex flex-col items-center gap-3 pb-[calc(env(safe-area-inset-bottom)+24px)]">
-          {phase === "live" && (
+          {phase === "live" && !burst && (
             <>
-              <div className="flex items-center gap-3 rounded-2xl bg-black/60 px-4 py-3 text-white backdrop-blur">
+              <div
+                key={`instr-${stepIndex}`}
+                className="idv-instr flex items-center gap-3 rounded-2xl bg-black/65 px-4 py-3 text-white backdrop-blur"
+              >
                 <Icon className="size-7 shrink-0 animate-pulse" />
                 <div>
                   <p className="text-sm font-semibold">{ui.label}</p>
@@ -223,11 +315,16 @@ export function IdvSelfieCapture({
               </div>
               <span
                 key={`${stepIndex}-${countdown}`}
-                className="text-4xl font-bold text-white tabular-nums drop-shadow"
+                className="idv-count text-4xl font-bold text-white tabular-nums drop-shadow"
               >
                 {countdown > 0 ? countdown : ""}
               </span>
             </>
+          )}
+          {phase === "live" && burst && (
+            <span className="rounded-full bg-emerald-500/90 px-3.5 py-1.5 text-sm font-medium text-white">
+              Parfait
+            </span>
           )}
           {phase === "starting" && (
             <span className="rounded-full bg-black/60 px-3.5 py-1.5 text-sm text-white backdrop-blur">

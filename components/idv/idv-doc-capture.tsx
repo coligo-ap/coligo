@@ -17,8 +17,16 @@
 // =============================================================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Image as ImageIcon, Loader2, X, Zap } from "lucide-react";
+import {
+  Camera,
+  Check,
+  Image as ImageIcon,
+  Loader2,
+  X,
+  Zap,
+} from "lucide-react";
 import { Portal } from "@/components/ui/portal";
+import { IdvStepper } from "./idv-stepper";
 
 type Guidance =
   | "starting"
@@ -41,10 +49,39 @@ const GUIDANCE_FR: Record<Guidance, string> = {
 const STEADY_FRAMES = 6;
 const ANALYSIS_FPS = 8;
 
+/** Styles d'animation de la caméra (locaux, reduced-motion géré). */
+function CaptureStyles() {
+  return (
+    <style>{`
+      @keyframes idv-scan-move {
+        0%, 100% { transform: translateY(-42%); opacity: .15; }
+        50%      { transform: translateY(42%); opacity: .85; }
+      }
+      @keyframes idv-lock-pop {
+        0%   { transform: scale(.6); opacity: 0; }
+        60%  { transform: scale(1.15); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      @keyframes idv-halo {
+        0%   { transform: scale(.9); opacity: .55; }
+        100% { transform: scale(1.35); opacity: 0; }
+      }
+      .idv-scanline { animation: idv-scan-move 2.4s ease-in-out infinite; }
+      .idv-lock     { animation: idv-lock-pop .38s cubic-bezier(.22,1,.36,1); }
+      .idv-halo     { animation: idv-halo .7s ease-out; }
+      @media (prefers-reduced-motion: reduce) {
+        .idv-scanline, .idv-lock, .idv-halo { animation: none; }
+      }
+    `}</style>
+  );
+}
+
 export function IdvDocCapture({
   title,
   sideLabel,
   ratio,
+  stepHint,
+  stepProgress = 0,
   onCapture,
   onClose,
 }: {
@@ -54,6 +91,10 @@ export function IdvDocCapture({
   sideLabel: string;
   /** Largeur / hauteur du gabarit (ID-1 ≈ 1.586, passeport ≈ 1.42). */
   ratio: number;
+  /** Sous-étape affichée dans le fil d'Ariane (« Recto », « Verso »…). */
+  stepHint?: string;
+  /** Progression de l'étape Document (0-1) pour le fil d'Ariane. */
+  stepProgress?: number;
   onCapture: (blob: Blob) => void;
   onClose: () => void;
 }) {
@@ -72,6 +113,10 @@ export function IdvDocCapture({
   const [torchOn, setTorchOn] = useState(false);
   const [hasTorch, setHasTorch] = useState(false);
   const [flash, setFlash] = useState(false);
+  /** Progression de l'auto-capture (0-1) : remplit l'anneau du déclencheur. */
+  const [steady, setSteady] = useState(0);
+  /** Coche de succès affichée juste après la prise. */
+  const [captured, setCaptured] = useState(false);
 
   /** Rect du gabarit dans les COORDONNÉES VIDÉO natives (object-cover). */
   const guideRectInVideo = useCallback(() => {
@@ -116,8 +161,16 @@ export function IdvDocCapture({
       .drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     canvas.toBlob(
       (blob) => {
-        if (blob) onCapture(blob);
-        else capturedRef.current = false;
+        if (!blob) {
+          capturedRef.current = false;
+          setFlash(false);
+          return;
+        }
+        // Retour de succès AVANT de passer à la suite (les grandes apps ne
+        // laissent jamais un écran « sauter » sans confirmation visuelle).
+        setFlash(false);
+        setCaptured(true);
+        setTimeout(() => onCapture(blob), 620);
       },
       "image/jpeg",
       0.92
@@ -206,6 +259,7 @@ export function IdvDocCapture({
       } else {
         steadyCountRef.current = 0;
       }
+      setSteady(Math.min(1, steadyCountRef.current / STEADY_FRAMES));
       setGuidance(next);
     };
 
@@ -287,6 +341,7 @@ export function IdvDocCapture({
         ref={containerRef}
         className="fixed inset-0 z-[90] flex flex-col bg-black"
       >
+        <CaptureStyles />
         <video
           ref={videoRef}
           playsInline
@@ -309,7 +364,8 @@ export function IdvDocCapture({
                 aspectRatio: String(ratio),
               }}
             >
-              {/* coins du viseur */}
+              {/* Coins du viseur : ils VERROUILLENT en vert dès que le
+                  document est bien tenu (retour immédiat, sans texte). */}
               {(
                 [
                   "left-0 top-0 border-l-4 border-t-4 rounded-tl-2xl",
@@ -320,13 +376,38 @@ export function IdvDocCapture({
               ).map((pos) => (
                 <span
                   key={pos}
-                  className={`absolute h-8 w-8 ${pos} ${
-                    guidance === "steady" && ready
+                  className={`absolute h-8 w-8 ${pos} transition-colors duration-200 ${
+                    captured
                       ? "border-emerald-400"
-                      : "border-white"
-                  } transition-colors duration-200`}
+                      : guidance === "steady" && ready
+                        ? "border-emerald-400"
+                        : "border-white"
+                  }`}
                 />
               ))}
+
+              {/* Ligne de scan : le document est « lu » sous les yeux de
+                  l'utilisateur tant qu'il n'est pas stable. */}
+              {ready && !captured && guidance !== "steady" && (
+                <span
+                  className="idv-scanline pointer-events-none absolute inset-x-3 top-1/2 h-[3px] rounded-full"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, transparent, rgba(167,139,250,.95), transparent)",
+                  }}
+                />
+              )}
+
+              {/* Confirmation de capture : coche + halo (aucun écran ne
+                  « saute » sans retour visuel). */}
+              {captured && (
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <span className="idv-halo absolute size-24 rounded-full bg-emerald-400/40" />
+                  <span className="idv-lock flex size-16 items-center justify-center rounded-full bg-emerald-500 shadow-lg">
+                    <Check className="size-9 text-white" strokeWidth={3} />
+                  </span>
+                </span>
+              )}
             </div>
             <div className="min-w-4 flex-1 self-stretch bg-black/55" />
           </div>
@@ -334,19 +415,31 @@ export function IdvDocCapture({
         </div>
 
         {/* En-tête (safe area haut). */}
-        <div className="relative z-30 flex items-start justify-between px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
-          <div className="text-white">
-            <p className="text-sm font-semibold">{title}</p>
-            <p className="text-xs text-white/70">{sideLabel}</p>
+        <div className="relative z-30 px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
+          <div className="flex items-start justify-between">
+            <div className="text-white">
+              <p className="text-sm font-semibold">{title}</p>
+              <p className="text-xs text-white/70">{sideLabel}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fermer"
+              className="rounded-full bg-white/15 p-2 text-white backdrop-blur"
+            >
+              <X className="size-5" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="rounded-full bg-white/15 p-2 text-white backdrop-blur"
-          >
-            <X className="size-5" />
-          </button>
+          {/* Fil d'Ariane : visible MÊME sur la caméra — on ne perd jamais
+              l'utilisateur dans le parcours. */}
+          <div className="mt-3">
+            <IdvStepper
+              current="document"
+              hint={stepHint ?? sideLabel}
+              progress={stepProgress}
+              onDark
+            />
+          </div>
         </div>
 
         {/* Message de guidage. */}
@@ -380,17 +473,45 @@ export function IdvDocCapture({
               />
             </label>
 
-            {/* Déclencheur manuel. */}
+            {/* Déclencheur : l'ANNEAU se remplit pendant que la stabilité se
+                confirme → l'auto-capture n'est jamais une surprise, on la voit
+                venir (repère des grandes apps de vérification). */}
             <button
               type="button"
               onClick={takePhoto}
               disabled={!ready}
               aria-label="Prendre la photo"
-              className="rounded-full border-4 border-white/90 bg-white/25 p-1 backdrop-blur transition-transform active:scale-95 disabled:opacity-40"
+              className="relative rounded-full transition-transform active:scale-95 disabled:opacity-40"
             >
-              <span className="block size-14 rounded-full bg-white">
+              <svg
+                viewBox="0 0 76 76"
+                className="size-[76px] -rotate-90"
+                aria-hidden
+              >
+                <circle
+                  cx="38"
+                  cy="38"
+                  r="34"
+                  fill="none"
+                  stroke="rgba(255,255,255,.55)"
+                  strokeWidth="4"
+                />
+                <circle
+                  cx="38"
+                  cy="38"
+                  r="34"
+                  fill="none"
+                  stroke={steady >= 1 ? "#34d399" : "#a78bfa"}
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 34}
+                  strokeDashoffset={2 * Math.PI * 34 * (1 - steady)}
+                  style={{ transition: "stroke-dashoffset .2s linear" }}
+                />
+              </svg>
+              <span className="absolute inset-0 m-auto flex size-14 items-center justify-center rounded-full bg-white">
                 {!ready && (
-                  <Loader2 className="m-auto size-6 animate-spin text-black/60" />
+                  <Loader2 className="size-6 animate-spin text-black/60" />
                 )}
               </span>
             </button>

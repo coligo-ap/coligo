@@ -121,10 +121,19 @@ function revalidateIdv(profile: IdvProfileKey): void {
   revalidatePath(PROFILES[profile].route);
 }
 
+/** Résumé d'un contrôle, tel que le CLIENT a le droit de le voir : le
+ *  résultat, jamais le score (les seuils restent invisibles — anti-gaming). */
+export type IdvCheckSummary = {
+  key: string;
+  status: "passed" | "failed" | "skipped" | "error";
+};
+
 export type IdvSubmitState = {
   error?: string;
   ok?: boolean;
   status?: IdvStatus;
+  /** Contrôles réellement exécutés — alimente l'écran d'analyse animé. */
+  checks?: IdvCheckSummary[];
 };
 
 // Tables idv_* pas encore dans database.types.ts généré → casts locaux.
@@ -562,6 +571,15 @@ export async function submitIdvDocument(
     baseUpdate.document_expires_at = analysis.documentExpiresAt;
   }
 
+  // Résumé client (jamais les scores) : qualité + contrôles du pipeline.
+  const summary: IdvCheckSummary[] = [
+    { key: "doc_quality", status: "passed" },
+    ...analysis.checks.map((c) => ({
+      key: c.key,
+      status: c.status as IdvCheckSummary["status"],
+    })),
+  ];
+
   const hardFailures = analysis.checks.filter(
     (c) => c.status === "failed" && !c.retryable
   );
@@ -591,7 +609,7 @@ export async function submitIdvDocument(
         metadata: { attempt, checks: hardFailures.map((c) => c.key) },
       });
       revalidateIdv(profile);
-      return { ok: true, status: "rejected" };
+      return { ok: true, status: "rejected", checks: summary };
     }
     await applyUpdate({ status: "pending_review" });
     await logIdvAudit({
@@ -602,7 +620,7 @@ export async function submitIdvDocument(
       metadata: { attempt, checks: hardFailures.map((c) => c.key) },
     });
     revalidateIdv(profile);
-    return { ok: true, status: "pending_review" };
+    return { ok: true, status: "pending_review", checks: summary };
   }
 
   // 2) Panne technique d'un contrôle → revue humaine, jamais de refus auto.
@@ -616,7 +634,7 @@ export async function submitIdvDocument(
       metadata: { attempt, checks: technicalErrors.map((c) => c.key) },
     });
     revalidateIdv(profile);
-    return { ok: true, status: "pending_review" };
+    return { ok: true, status: "pending_review", checks: summary };
   }
 
   // 3) Échec REPRENABLE (MRZ illisible, portrait absent) → photo à refaire.
@@ -633,6 +651,7 @@ export async function submitIdvDocument(
     return {
       error: retryableMessage(retryables, mrzFormat),
       status: keepStatus,
+      checks: summary,
     };
   }
 
@@ -652,7 +671,7 @@ export async function submitIdvDocument(
     },
   });
   revalidateIdv(profile);
-  return { ok: true, status: "doc_validated" };
+  return { ok: true, status: "doc_validated", checks: summary };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -912,6 +931,15 @@ export async function submitIdvSelfie(
           },
   });
 
+  // Résumé client des contrôles du selfie (résultats, jamais les scores).
+  const selfieSummary: IdvCheckSummary[] = [
+    { key: "liveness_active", status: passed ? "passed" : "failed" },
+    {
+      key: "liveness_passive",
+      status: passiveMin === null ? "skipped" : passiveOk ? "passed" : "failed",
+    },
+  ];
+
   // Suspicion d'attaque passive (photo/écran) : le dossier ne peut PAS être
   // approuvé automatiquement — il part en revue humaine avec le score.
   if (passed && !passiveOk) {
@@ -928,7 +956,7 @@ export async function submitIdvSelfie(
       .eq("id", verifId);
     await notifyIdvOutcome(user.id, profile, "pending_review");
     revalidateIdv(profile);
-    return { ok: true, status: "pending_review" };
+    return { ok: true, status: "pending_review", checks: selfieSummary };
   }
 
   if (passed) {
@@ -945,6 +973,7 @@ export async function submitIdvSelfie(
       metadata: { selfieAttempt, score, minCosine },
     });
     return finalizeIdvDecision({
+      summary: selfieSummary,
       userId: user.id,
       profile,
       verifId,
@@ -978,7 +1007,7 @@ export async function submitIdvSelfie(
         metadata: { selfieAttempt, score, minCosine },
       });
       revalidateIdv(profile);
-      return { ok: true, status: "rejected" };
+      return { ok: true, status: "rejected", checks: selfieSummary };
     }
     await applyStatus({ selfie_frames: paths, status: "pending_review" });
     await logIdvAudit({
@@ -989,7 +1018,7 @@ export async function submitIdvSelfie(
       metadata: { selfieAttempt, score, minCosine },
     });
     revalidateIdv(profile);
-    return { ok: true, status: "pending_review" };
+    return { ok: true, status: "pending_review", checks: selfieSummary };
   }
 
   await logIdvAudit({
@@ -1007,6 +1036,7 @@ export async function submitIdvSelfie(
   return {
     error: livenessCoaching(evaluation.verdicts.map((v) => v.reason)),
     status: keepStatus,
+    checks: selfieSummary,
   };
 }
 
@@ -1050,6 +1080,8 @@ type ChecksSelect = {
 };
 
 async function finalizeIdvDecision(input: {
+  /** Contrôles déjà exécutés (liveness) — complétés ici par face_match. */
+  summary: IdvCheckSummary[];
   userId: string;
   profile: IdvProfileKey;
   verifId: string;
@@ -1061,6 +1093,7 @@ async function finalizeIdvDecision(input: {
   selfiePath: string;
 }): Promise<IdvSubmitState> {
   const {
+    summary,
     userId,
     profile,
     verifId,
@@ -1071,6 +1104,12 @@ async function finalizeIdvDecision(input: {
     livenessScore,
     selfiePath,
   } = input;
+
+  /** Résumé enrichi du face match (résultat seul, jamais le score). */
+  const withFace = (status: IdvCheckSummary["status"]): IdvCheckSummary[] => [
+    ...summary,
+    { key: "face_match", status },
+  ];
 
   const toReview = async (
     reason: string,
@@ -1088,7 +1127,11 @@ async function finalizeIdvDecision(input: {
     });
     await notifyIdvOutcome(userId, profile, "pending_review");
     revalidateIdv(profile);
-    return { ok: true, status: "pending_review" as IdvStatus };
+    return {
+      ok: true,
+      status: "pending_review" as IdvStatus,
+      checks: withFace(reason === "face_not_comparable" ? "error" : "failed"),
+    };
   };
 
   const { data: verif } = await table<VerifSelect>("idv_verifications")
@@ -1199,7 +1242,7 @@ async function finalizeIdvDecision(input: {
     });
     await notifyIdvOutcome(userId, profile, "approved");
     revalidateIdv(profile);
-    return { ok: true, status: "approved" };
+    return { ok: true, status: "approved", checks: withFace("passed") };
   }
 
   if (decision.outcome === "reject") {
@@ -1220,7 +1263,7 @@ async function finalizeIdvDecision(input: {
     });
     await notifyIdvOutcome(userId, profile, "rejected");
     revalidateIdv(profile);
-    return { ok: true, status: "rejected" };
+    return { ok: true, status: "rejected", checks: withFace("failed") };
   }
 
   return toReview(decision.reasons.join(","), metadata);

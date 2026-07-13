@@ -21,6 +21,8 @@ import { IdvIntro } from "./idv-intro";
 import { IdvDocCapture } from "./idv-doc-capture";
 import { IdvSelfieCapture } from "./idv-selfie-capture";
 import { IdvStatusPanel } from "./idv-status-panel";
+import { IdvStepper } from "./idv-stepper";
+import { IdvScanOverlay } from "./idv-scan-overlay";
 import {
   startIdvSelfie,
   submitIdvDocument,
@@ -93,6 +95,10 @@ export function IdvFlow({
   const [statusOverride, setStatusOverride] = useState<IdvStatus | null>(null);
   /** L'erreur serveur ne doit plus s'afficher sur des photos REPRISES. */
   const [errorDismissed, setErrorDismissed] = useState(false);
+  /** Écran d'ANALYSE (contrôles animés) : « document » ou « selfie ». */
+  const [analyzing, setAnalyzing] = useState<"document" | "selfie" | null>(
+    null
+  );
 
   // ── Selfie (étape 6) : session de défis émise par le serveur ──────────────
   const [selfieState, selfieDispatch, selfiePending] = useActionState(
@@ -155,6 +161,7 @@ export function IdvFlow({
       );
     }
     setErrorDismissed(false);
+    setAnalyzing("document");
     startTransition(() => dispatch(fd));
   };
 
@@ -186,6 +193,7 @@ export function IdvFlow({
     );
     setStep("status");
     setSession(null);
+    setAnalyzing("selfie");
     startTransition(() => selfieDispatch(fd));
   };
 
@@ -193,24 +201,43 @@ export function IdvFlow({
   const selfieReady =
     currentStatus === "doc_validated" || currentStatus === "resubmit_selfie";
 
+  // Analyse en cours (ou verdicts à montrer) → écran d'analyse animé, posé
+  // PAR-DESSUS l'écran courant. Les états affichés viennent du serveur.
+  const analysisState = analyzing === "selfie" ? selfieState : state;
+  const analysisSettled =
+    Boolean(analysisState.ok) || Boolean(analysisState.error);
+
   // ── Écrans ────────────────────────────────────────────────────────────────
+  const overlay = analyzing ? (
+    <IdvScanOverlay
+      phase={analyzing}
+      previewUrl={analyzing === "document" ? frontUrl : null}
+      results={analysisSettled ? (analysisState.checks ?? []) : null}
+      errorMessage={analysisState.error ?? null}
+      onDone={() => setAnalyzing(null)}
+    />
+  ) : null;
+
   if (step === "status") {
     return (
-      <IdvStatusPanel
-        status={currentStatus}
-        onRetryDocument={
-          currentStatus === "resubmit_document"
-            ? () => {
-                setCaptures({});
-                setSide("front");
-                setStep("intro");
-              }
-            : undefined
-        }
-        onStartSelfie={selfieReady ? () => void beginSelfie() : undefined}
-        selfiePending={selfieStarting || selfiePending}
-        selfieError={selfieError ?? selfieState.error ?? null}
-      />
+      <>
+        {overlay}
+        <IdvStatusPanel
+          status={currentStatus}
+          onRetryDocument={
+            currentStatus === "resubmit_document"
+              ? () => {
+                  setCaptures({});
+                  setSide("front");
+                  setStep("intro");
+                }
+              : undefined
+          }
+          onStartSelfie={selfieReady ? () => void beginSelfie() : undefined}
+          selfiePending={selfieStarting || selfiePending}
+          selfieError={selfieError ?? selfieState.error ?? null}
+        />
+      </>
     );
   }
 
@@ -229,19 +256,26 @@ export function IdvFlow({
 
   if (step === "intro") {
     return (
-      <IdvIntro
-        docTypes={docTypes}
-        modes={modes}
-        canChooseMode={canChooseMode}
-        defaultMode={defaultMode}
-        onStart={(d, m) => {
-          setDocKey(d);
-          setModeKey(m);
-          setCaptures({});
-          setSide("front");
-          setStep("capture");
-        }}
-      />
+      <div className="space-y-4">
+        <IdvStepper
+          current="document"
+          hint="Choisissez votre document"
+          progress={0}
+        />
+        <IdvIntro
+          docTypes={docTypes}
+          modes={modes}
+          canChooseMode={canChooseMode}
+          defaultMode={defaultMode}
+          onStart={(d, m) => {
+            setDocKey(d);
+            setModeKey(m);
+            setCaptures({});
+            setSide("front");
+            setStep("capture");
+          }}
+        />
+      </div>
     );
   }
 
@@ -251,6 +285,14 @@ export function IdvFlow({
         title={doc?.label_fr ?? "Document"}
         sideLabel={sideLabel(doc, side)}
         ratio={docRatio(doc)}
+        stepHint={
+          doc?.sides === 2
+            ? side === "front"
+              ? "Recto — 1 sur 2"
+              : "Verso — 2 sur 2"
+            : "Page photo"
+        }
+        stepProgress={doc?.sides === 2 ? (side === "front" ? 0.25 : 0.6) : 0.4}
         onCapture={(blob) => {
           setCaptures((c) => ({ ...c, [side]: blob }));
           setStep("review");
@@ -264,6 +306,14 @@ export function IdvFlow({
   const needsBack = doc?.sides === 2 && !captures.back;
   return (
     <div className="space-y-4 pb-6">
+      {overlay}
+      <IdvStepper
+        current="document"
+        hint={
+          needsBack ? "Recto capturé — passez au verso" : "Vérifiez vos photos"
+        }
+        progress={needsBack ? 0.5 : 0.85}
+      />
       <p className="text-sm font-semibold">
         {needsBack ? "Recto capturé — au tour du verso" : "Vérifiez vos photos"}
       </p>
