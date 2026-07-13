@@ -69,10 +69,12 @@ export function IdvStepper({
         {STEPS.map((step, i) => {
           const isDone = i < index;
           const isCurrent = i === index;
+          // L'étape EN COURS montre toujours un minimum de remplissage : une
+          // barre vide donne l'impression que rien n'a commencé.
           const fill = isDone
             ? 1
             : isCurrent
-              ? Math.min(1, Math.max(0, progress))
+              ? Math.max(0.12, Math.min(1, progress))
               : 0;
           return (
             <div key={step.key} className="flex flex-1 flex-col gap-1">

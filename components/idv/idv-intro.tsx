@@ -104,8 +104,11 @@ export function IdvIntro({
                 onClick={() => setDocKey(doc.key)}
                 className="flex w-full items-center gap-3 rounded-[14px] border p-3 text-left transition-colors"
                 style={{
-                  background: active ? "var(--idv-soft)" : "var(--idv-card)",
+                  background: active ? "var(--idv-tint)" : "var(--idv-card)",
                   borderColor: active ? "var(--idv-accent)" : "var(--idv-line)",
+                  boxShadow: active
+                    ? "0 0 0 1px var(--idv-accent) inset"
+                    : undefined,
                 }}
               >
                 <Icon
