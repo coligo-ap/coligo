@@ -33,11 +33,59 @@ import {
 } from "@/app/(customer)/actions";
 // Reverse géocodage PRÉCIS (zoom 18 : rue/quartier) pour le libellé exact.
 import { reverseGeocode as reverseGeocodeAddress } from "@/lib/geo/geocode";
+import { createClient } from "@/lib/supabase/client";
 
 type Props = {
   onClose?: () => void;
   initial: CustomerLocation | null;
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cache SESSION des adresses enregistrées + lieux précédents, PAR COMPTE :
+// « Où veux-tu commander ? » les affiche INSTANTANÉMENT à l'ouverture (zéro
+// attente réseau), puis le serveur revalide en arrière-plan. Sans lui, chaque
+// ouverture re-téléchargeait favoris + historique → liste vide pendant
+// l'aller-retour. L'id du compte fait partie du cache (session locale, lue
+// sans réseau) → jamais les lieux d'un autre compte sur appareil partagé.
+// sessionStorage : survit aux navigations, meurt à la fermeture de l'onglet.
+// ─────────────────────────────────────────────────────────────────────────────
+const PLACES_CACHE_KEY = "coligo:places:v1";
+type PlacesCache = { uid: string; favs: FavPlace[]; recents: FavPlace[] };
+let placesCacheMem: PlacesCache | null = null;
+
+function readPlacesCache(uid: string): PlacesCache | null {
+  if (placesCacheMem?.uid === uid) return placesCacheMem;
+  try {
+    const raw = sessionStorage.getItem(PLACES_CACHE_KEY);
+    if (!raw) return null;
+    const c = JSON.parse(raw) as PlacesCache;
+    return c.uid === uid ? c : null;
+  } catch {
+    return null;
+  }
+}
+
+function writePlacesCache(c: PlacesCache) {
+  placesCacheMem = c;
+  try {
+    sessionStorage.setItem(PLACES_CACHE_KEY, JSON.stringify(c));
+  } catch {
+    /* sessionStorage indispo */
+  }
+}
+
+/** Ajout optimiste d'un lieu choisi en tête de l'historique du cache. */
+function pushRecentToCache(place: FavPlace) {
+  const c = placesCacheMem;
+  if (!c) return;
+  writePlacesCache({
+    ...c,
+    recents: [place, ...c.recents.filter((r) => r.label !== place.label)].slice(
+      0,
+      8
+    ),
+  });
+}
 
 type SearchHit = {
   display: string;
@@ -77,10 +125,22 @@ export function LocationPicker({ onClose, initial }: Props) {
     lng: number;
   } | null>(initialCoords);
 
-  // Charge favoris + historique à l'ouverture (best-effort, non connecté = vide).
+  // Favoris + historique : CACHE D'ABORD (affichage instantané à l'ouverture),
+  // serveur ensuite (revalidation silencieuse). Non connecté = vide.
   useEffect(() => {
     let alive = true;
     void (async () => {
+      // Session LOCALE (aucun réseau) → id du compte pour le cache.
+      const { data } = await createClient().auth.getSession();
+      const uid = data.session?.user.id ?? null;
+      if (!alive) return;
+      if (uid) {
+        const cached = readPlacesCache(uid);
+        if (cached) {
+          setFavs(cached.favs);
+          setRecents(cached.recents);
+        }
+      }
       const [f, r] = await Promise.all([
         listFavoritePlaces(),
         listRecentPlaces(),
@@ -88,6 +148,7 @@ export function LocationPicker({ onClose, initial }: Props) {
       if (!alive) return;
       setFavs(f);
       setRecents(r);
+      if (uid) writePlacesCache({ uid, favs: f, recents: r });
     })();
     return () => {
       alive = false;
@@ -159,11 +220,11 @@ export function LocationPicker({ onClose, initial }: Props) {
         latitude: p.lat,
         longitude: p.lng,
       });
-      void recordPlacePick({
-        lat: p.lat,
-        lng: p.lng,
-        label: address ?? ([c, w].filter(Boolean).join(", ") || "—"),
-      });
+      const pickedLabel = address ?? ([c, w].filter(Boolean).join(", ") || "—");
+      void recordPlacePick({ lat: p.lat, lng: p.lng, label: pickedLabel });
+      // Optimiste : le lieu choisi apparaît en tête des « précédents » dès la
+      // PROCHAINE ouverture, sans attendre l'aller-retour serveur.
+      pushRecentToCache({ label: pickedLabel, lat: p.lat, lng: p.lng });
       // Emplacement enregistré → le picker se ferme, la barre de localisation
       // de l'app affiche la nouvelle adresse (retour visuel, pas de toast).
       onClose?.();
