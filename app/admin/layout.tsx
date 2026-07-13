@@ -34,8 +34,13 @@ export default async function AdminLayout({
         <Suspense fallback={null}>
           <AlertFocusEffect />
         </Suspense>
-        <div className="bg-surface-2 min-h-screen">
-          <header className="border-border sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b bg-white px-4 lg:px-6">
+        {/* ZONES SÛRES Android/iOS (APK Capacitor edge-to-edge, viewport-fit=
+            cover) : l'en-tête prolonge son fond SOUS la barre de statut
+            (padding-top = inset), le contenu ne finit jamais DERRIÈRE la barre
+            système du bas, et les insets latéraux couvrent le paysage. RÈGLE :
+            calc(env() + x), jamais max(x, env()) — cf. CLAUDE.md. */}
+        <div className="bg-surface-2 min-h-screen pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
+          <header className="border-border sticky top-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center justify-between gap-4 border-b bg-white px-4 pt-[env(safe-area-inset-top)] lg:px-6">
             <div className="flex min-w-0 items-center gap-3 lg:gap-4">
               <AdminMobileNav domains={domains} isOwner={isOwner} />
               <span className="flex shrink-0 items-center gap-2 font-semibold">
@@ -60,7 +65,10 @@ export default async function AdminLayout({
           {/* Drawer desktop (sidebar repliable) + contenu. Sur mobile la nav
             reste le drawer hamburger ci-dessus. */}
           <AdminShell domains={domains} isOwner={isOwner}>
-            <main>{children}</main>
+            {/* Le bas de CHAQUE page admin reste au-dessus de la barre système. */}
+            <main className="pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+              {children}
+            </main>
           </AdminShell>
         </div>
       </AdminAlertsProvider>

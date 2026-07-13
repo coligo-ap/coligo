@@ -114,7 +114,9 @@ export function AdminMobileNav({
               slidIn ? "translate-x-0" : "-translate-x-full"
             )}
           >
-            <div className="border-border flex items-center justify-between gap-3 border-b p-4">
+            {/* Panneau inset-y-0 : l'en-tête du drawer descend SOUS la barre de
+                statut (padding-top = inset), sinon le titre est recouvert. */}
+            <div className="border-border flex items-center justify-between gap-3 border-b p-4 pt-[calc(env(safe-area-inset-top)+1rem)]">
               <span className="flex min-w-0 items-center gap-2 font-semibold">
                 <ShieldCheck className="text-primary-600 size-5 shrink-0" />
                 <span className="truncate">{APP_CONFIG.name} Admin</span>

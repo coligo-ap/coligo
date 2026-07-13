@@ -350,6 +350,31 @@ trajet « searching » dans `DriveView`). Et tout handler async qui pose un verr
 (`busy`/`submitting`) garde son `try/finally` (cf. [verrou busy/submitting]) pour ne
 jamais rester bloqué si la requête de reprise échoue/traîne.
 
+## RÈGLE OBLIGATOIRE — zones sûres Android/iOS (APK Capacitor, tout le projet)
+
+L'app tourne en WebView **edge-to-edge** (`viewport-fit=cover`) : sans
+précaution, le contenu passe SOUS la barre de statut (haut) et SOUS la barre
+système/gestes (bas) — bug vécu sur les pages super-admin. Pour CHAQUE espace
+et CHAQUE nouvel écran/coque :
+
+1. **En-tête sticky/fixed en haut** : `pt-[env(safe-area-inset-top)]` + hauteur
+   `calc(<h> + env(safe-area-inset-top))` — le FOND de l'en-tête se prolonge
+   sous la barre de statut, le contenu reste dessous (réf. :
+   `merchant/mobile-header.tsx`, `customer-header.tsx`, `app/admin/layout.tsx`).
+2. **Contenu défilant** : le bas de page se termine au-dessus de la barre
+   système → `pb-[calc(env(safe-area-inset-bottom)+<marge>)]` sur le `<main>`
+   ou le conteneur scrollable (jamais un contenu utile derrière la barre).
+3. **Barres/feuilles fixes en bas** (nav, sheets, panneaux `inset-y-0`) :
+   `padding-bottom: calc(env(safe-area-inset-bottom) + x)`. ⚠️ JAMAIS
+   `max(x, env(...))` : dès que l'inset dépasse x, le contenu COLLE à la barre.
+4. **Paysage / encoches latérales** : sur la racine de l'espace,
+   `pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]`.
+5. Les offsets `sticky top-*` / hauteurs `calc(100dvh - <header>)` doivent
+   inclure l'inset du haut s'ils s'alignent sur un en-tête qui l'inclut.
+
+Toute nouvelle coque/page se vérifie mentalement contre ces 5 points AVANT de
+livrer — ne plus jamais reproduire le bug « contenu sous les barres système ».
+
 ## Réutiliser les composants partagés (anti-duplication)
 
 Quand une fonctionnalité existe déjà (carte, feuille/sheet de course, sélecteur

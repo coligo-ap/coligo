@@ -65,7 +65,9 @@ export function AdminShell({
       {/* Drawer desktop (replié = icônes seules) */}
       <aside
         className={cn(
-          "border-border sticky top-14 hidden h-[calc(100dvh-56px)] shrink-0 flex-col gap-0.5 overflow-y-auto border-r bg-white p-2 transition-[width] duration-200 lg:flex",
+          // Offsets alignés sur l'en-tête (3.5rem + inset haut) : corrects
+          // aussi en APK edge-to-edge (tablette paysage) où l'inset n'est pas 0.
+          "border-border sticky top-[calc(3.5rem+env(safe-area-inset-top))] hidden h-[calc(100dvh-3.5rem-env(safe-area-inset-top))] shrink-0 flex-col gap-0.5 overflow-y-auto border-r bg-white p-2 transition-[width] duration-200 lg:flex",
           open ? "w-60" : "w-16",
           !hydrated && "transition-none"
         )}
