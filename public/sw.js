@@ -16,16 +16,22 @@
 // qu'en cas d'échec réseau. Correction : les manifests réels sont
 // `manifest-*.webmanifest` (l'ancien `/manifest.webmanifest` n'existe pas) et
 // les icônes vivent sous `/icons/`.
-// v19 : ANTI-GEL AU RÉVEIL — le fetch de navigation est BORNÉ (AbortController,
-// 7 s). Bug vécu : au retour d'une longue absence, le socket keep-alive à
+// v19 : ANTI-GEL AU RÉVEIL — le fetch de navigation est BORNÉ (AbortController).
+// Bug vécu : au retour d'une longue absence, le socket keep-alive à
 // moitié mort rendait ce fetch FANTÔME (ni succès ni échec) → même la
 // navigation DURE (location.assign du watchdog) restait suspendue DANS le
-// service worker : écran gelé « pour toujours ». Désormais : timeout → repli
-// sur la dernière copie en cache de la page, sinon /offline (qui se recharge
-// seul au retour du réseau). Le réseau reste prioritaire quand il répond.
-const CACHE_VERSION = "coligo-v19";
-/** Budget du fetch réseau d'une navigation avant repli (socket mort/figé). */
-const NAV_FETCH_TIMEOUT_MS = 7000;
+// service worker : écran gelé « pour toujours ».
+// v20 : COURSE réseau ⟷ cache. Page déjà en cache : le réseau a `NAV_RACE_MS`
+// pour répondre, sinon la copie en cache s'affiche TOUT DE SUITE pendant que
+// le réseau continue en arrière-plan et rafraîchit le cache
+// (stale-while-revalidate). Page jamais visitée : on attend le réseau jusqu'au
+// plafond dur `NAV_FETCH_TIMEOUT_MS`, puis /offline (auto-rechargée au retour
+// du réseau). Le réseau reste prioritaire dès qu'il répond dans les temps.
+const CACHE_VERSION = "coligo-v20";
+/** Plafond DUR du fetch réseau d'une navigation (socket mort/figé). */
+const NAV_FETCH_TIMEOUT_MS = 8000;
+/** Budget accordé au réseau quand une copie en cache existe déjà. */
+const NAV_RACE_MS = 3500;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const PRECACHE_CACHE = `${CACHE_VERSION}-precache`;
 const OFFLINE_URL = "/offline";
@@ -106,31 +112,48 @@ self.addEventListener("fetch", (event) => {
   // API / RSC / Supabase auth → jamais de cache, pas d'interception.
   if (isApiOrData(url)) return;
 
-  // Navigations (documents HTML) → network-first strict : le réseau fait foi
-  // (jamais de page périmée si le serveur répond). En cas d'échec réseau
-  // uniquement : dernière copie de CETTE page en cache, sinon `/offline`.
+  // Navigations (documents HTML) → réseau prioritaire, mais BORNÉ : page déjà
+  // en cache = course réseau (NAV_RACE_MS) puis copie servie tout de suite avec
+  // revalidation en arrière-plan ; page inconnue = réseau jusqu'au plafond dur,
+  // puis `/offline`.
   if (req.mode === "navigate") {
     event.respondWith(
       (async () => {
-        // BORNÉ : jamais de fetch de navigation illimité (voir en-tête v19).
+        // BORNÉ : jamais de fetch de navigation illimité (voir en-tête v19/v20).
+        const runtime = await caches.open(RUNTIME_CACHE);
+        const cachedPage = await runtime.match(req);
         const controller = new AbortController();
-        const timer = setTimeout(
+        const hardTimer = setTimeout(
           () => controller.abort(),
           NAV_FETCH_TIMEOUT_MS
         );
+        // Le fetch réseau rafraîchit TOUJOURS le cache quand il aboutit — même
+        // si la copie en cache a déjà été servie entre-temps (revalidation).
+        // On ne garde en repli que les vraies pages OK (pas les
+        // redirections/erreurs), pour un repli hors-ligne fidèle.
+        const network = fetch(req, { signal: controller.signal })
+          .then((res) => {
+            if (res && res.ok) runtime.put(req, res.clone());
+            return res;
+          })
+          .finally(() => clearTimeout(hardTimer));
         try {
-          const res = await fetch(req, { signal: controller.signal });
-          // On ne garde en repli que les vraies pages OK (pas les
-          // redirections/erreurs), pour un repli hors-ligne fidèle.
-          if (res && res.ok) {
-            const cache = await caches.open(RUNTIME_CACHE);
-            cache.put(req, res.clone());
+          if (cachedPage) {
+            // COURSE : réponse fraîche si le réseau tient dans NAV_RACE_MS,
+            // sinon la copie en cache TOUT DE SUITE — le réseau continue en
+            // arrière-plan (waitUntil) et mettra le cache à jour.
+            const winner = await Promise.race([
+              network.catch(() => null),
+              new Promise((resolve) =>
+                setTimeout(() => resolve("cache"), NAV_RACE_MS)
+              ),
+            ]);
+            if (winner && winner !== "cache") return winner;
+            event.waitUntil(network.catch(() => {}));
+            return cachedPage;
           }
-          return res;
+          return await network;
         } catch {
-          const runtime = await caches.open(RUNTIME_CACHE);
-          const cachedPage = await runtime.match(req);
-          if (cachedPage) return cachedPage;
           const precache = await caches.open(PRECACHE_CACHE);
           const offline = await precache.match(OFFLINE_URL);
           // Dernier recours (si `/offline` n'a pas pu être précaché) : plus jamais
@@ -146,8 +169,6 @@ self.addEventListener("fetch", (event) => {
               }
             )
           );
-        } finally {
-          clearTimeout(timer);
         }
       })()
     );

@@ -54,7 +54,7 @@ export function RouteRefreshOnFocus({
       if (hiddenFor < minHiddenMs || probing.current) return;
 
       probing.current = true;
-      void probeConnectionAlive(3500)
+      void probeConnectionAlive()
         .then((alive) => {
           // Toujours visible + connexion confirmée vivante → refresh sûr (le
           // socket répond, le fetch RSC ne restera pas fantôme).

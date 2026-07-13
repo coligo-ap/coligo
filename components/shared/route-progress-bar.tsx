@@ -2,12 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { probeConnectionAlive } from "@/lib/net/probe";
 
-/** Délai au-delà duquel une navigation SPA non aboutie est jugée COINCÉE. */
-const STUCK_NAV_MS = 5_000;
+/** Délai au bout duquel une navigation SPA non aboutie passe au VERDICT :
+ *  sonde express → socket mort = bascule dure IMMÉDIATE ; réseau vivant mais
+ *  lent = un unique sursis (`GRACE_MS`) avant la bascule quand même. */
+const STUCK_NAV_MS = 3_000;
+/** Sursis unique accordé quand la sonde confirme un réseau vivant (nav juste
+ *  lente) — évite de punir une 3G lente par un rechargement complet. */
+const GRACE_MS = 3_500;
 /** Cadence des retentatives quand la bascule dure ne peut pas partir tout de
  *  suite (page cachée, réseau annoncé hors ligne) — on ne LÂCHE JAMAIS. */
-const RETRY_MS = 1_500;
+const RETRY_MS = 1_000;
 
 /**
  * Mince barre de progression violette en haut de l'écran, visible UNIQUEMENT
@@ -41,8 +47,13 @@ export function RouteProgressBar() {
   const [progress, setProgress] = useState(0);
   // Navigation en attente : cible absolue + minuteur watchdog.
   const pendingNav = useRef<{ href: string; timer: number } | null>(null);
+  // Génération de navigation : invalide les sondes/minuteurs en vol quand la
+  // navigation aboutit (ou qu'un nouveau clic la remplace) — une sonde qui
+  // résout APRÈS coup ne doit jamais déclencher une bascule dure périmée.
+  const navGen = useRef(0);
 
   const clearWatchdog = () => {
+    navGen.current++;
     if (pendingNav.current) {
       clearTimeout(pendingNav.current.timer);
       pendingNav.current = null;
@@ -114,27 +125,39 @@ export function RouteProgressBar() {
       clearWatchdog();
       if (absHref && changesPath) {
         const targetHref = absHref;
-        // À l'échéance : bascule DURE (connexion neuve) vers la cible. Si la
-        // bascule ne peut pas partir à cet instant (page cachée, réseau annoncé
-        // hors ligne), on RÉESSAIE en boucle au lieu d'abandonner — l'effet
-        // pathname/searchParams désarme dès que la navigation aboutit. Bug
-        // vécu : l'ancien watchdog vérifiait `navigator.onLine` UNE fois et
-        // lâchait l'affaire → au réveil d'arrière-plan (onLine encore faux
-        // pendant un instant), plus AUCUN filet, écran gelé pour de bon.
-        const fireOrRetry = () => {
-          pendingNav.current = null;
-          const canGo =
-            document.visibilityState === "visible" &&
-            (typeof navigator === "undefined" || navigator.onLine !== false);
-          if (canGo) {
-            window.location.assign(targetHref);
-            return;
-          }
-          const timer = window.setTimeout(fireOrRetry, RETRY_MS);
+        const gen = navGen.current;
+        // VERDICT à l'échéance, au lieu d'une simple minuterie fixe :
+        //  - page cachée / réseau annoncé hors ligne → on repousse (RETRY_MS)
+        //    et on ne LÂCHE JAMAIS (bug vécu : l'ancien watchdog vérifiait
+        //    `navigator.onLine` UNE fois puis abandonnait → gel définitif) ;
+        //  - sinon, SONDE express (1,5 s) : socket MORT → bascule dure
+        //    IMMÉDIATE (connexion neuve) ; réseau VIVANT → la nav est juste
+        //    lente, un unique sursis (`GRACE_MS`) puis bascule quand même.
+        // L'effet pathname/searchParams désarme tout dès que la nav aboutit.
+        const arm = (delay: number, graceUsed: boolean) => {
+          const timer = window.setTimeout(() => {
+            if (navGen.current !== gen) return; // nav aboutie/remplacée
+            pendingNav.current = null;
+            const canGo =
+              document.visibilityState === "visible" &&
+              (typeof navigator === "undefined" || navigator.onLine !== false);
+            if (!canGo) {
+              arm(RETRY_MS, graceUsed);
+              return;
+            }
+            if (graceUsed) {
+              window.location.assign(targetHref);
+              return;
+            }
+            void probeConnectionAlive(1500).then((alive) => {
+              if (navGen.current !== gen) return; // aboutie pendant la sonde
+              if (alive) arm(GRACE_MS, true);
+              else window.location.assign(targetHref);
+            });
+          }, delay);
           pendingNav.current = { href: targetHref, timer };
         };
-        const timer = window.setTimeout(fireOrRetry, STUCK_NAV_MS);
-        pendingNav.current = { href: targetHref, timer };
+        arm(STUCK_NAV_MS, false);
       }
     };
     document.addEventListener("click", onClick, true);

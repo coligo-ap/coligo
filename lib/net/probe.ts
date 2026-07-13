@@ -15,7 +15,7 @@
 // s'abstient (ou on retente), on ne lance JAMAIS l'appel qui resterait fantôme.
 // =============================================================================
 
-export async function probeConnectionAlive(timeoutMs = 3500): Promise<boolean> {
+export async function probeConnectionAlive(timeoutMs = 2000): Promise<boolean> {
   if (typeof navigator !== "undefined" && navigator.onLine === false) {
     return false;
   }
@@ -42,7 +42,7 @@ export async function probeConnectionAlive(timeoutMs = 3500): Promise<boolean> {
  */
 export async function waitForConnection(
   attempts = 3,
-  delayMs = 2500
+  delayMs = 1200
 ): Promise<boolean> {
   for (let i = 0; i < attempts; i++) {
     if (await probeConnectionAlive()) return true;
