@@ -24,6 +24,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
+import CheckoutLoading from "@/app/(customer)/checkout/loading";
 import { clearCart, useCart, useOtherCarts } from "@/lib/customer/cart-store";
 import { useCustomerLocation } from "@/lib/customer/location-store";
 import { CartConflictModal } from "@/components/customer/cart-conflict-modal";
@@ -349,12 +350,9 @@ export function CheckoutView({
   }
 
   if (loading || !ctx) {
-    return (
-      <div className="mx-auto max-w-xl px-4 py-12 text-center lg:py-20">
-        <Loader2 className="text-primary-600 mx-auto size-6 animate-spin" />
-        <p className="text-muted mt-3 text-sm">{t("preparing")}</p>
-      </div>
-    );
+    // MÊME squelette que la frontière loading.tsx du segment (source unique) :
+    // structure visible en continu, pas de spinner nu entre les deux phases.
+    return <CheckoutLoading />;
   }
 
   if (ctx.error) {
