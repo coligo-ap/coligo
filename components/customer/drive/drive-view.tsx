@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { Loader2 } from "lucide-react";
+import { DriveHomeSkeleton } from "./drive-home-skeleton";
 import {
   getPosition,
   watchPosition,
@@ -970,12 +970,11 @@ export function DriveView({ userId }: { userId: string }) {
   // On n'attend QUE le contexte (cache TanStack → instantané au retour). La
   // course active est vérifiée en arrière-plan : l'écran d'accueil s'affiche
   // tout de suite et bascule sur la course si une est en cours.
+  // MÊME squelette que la frontière loading.tsx (source unique, nav du bas
+  // comprise) : à l'actualisation, la structure et la barre restent affichées
+  // en continu — plus de spinner plein écran qui « fait disparaître » la nav.
   if (!ctx) {
-    return (
-      <div className="grid min-h-[70vh] place-items-center bg-[var(--d-page)]">
-        <Loader2 className="size-6 animate-spin" style={{ color: VIOLET }} />
-      </div>
-    );
+    return <DriveHomeSkeleton />;
   }
 
   /* ════════════════ ÉCRAN COURSE (recherche → fin) ════════════════ */
