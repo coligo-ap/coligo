@@ -122,10 +122,13 @@ ok(
 );
 
 // ── 2) Validation des réglages super-admin (pur, sans DB) ──────────────────
-const MODES = ["express", "standard"];
+// Le validateur est GÉNÉRIQUE (il reçoit la liste des modes existants) : on le
+// teste avec un second mode fictif, pour vérifier la mécanique sans réintroduire
+// le niveau « rapide » supprimé en mig 0370.
+const MODES = ["standard", "futur"];
 const goodRule = {
   requirement: "required",
-  allowed_modes: ["express", "standard", "express"],
+  allowed_modes: ["standard", "futur", "standard"],
   default_mode: "standard",
   user_can_choose_mode: true,
 };
@@ -134,7 +137,7 @@ const goodRule = {
   ok(
     "règle valide → ok + doublons de modes dédupliqués",
     r.ok && r.value.allowed_modes.join(","),
-    "express,standard"
+    "standard,futur"
   );
 }
 ok(
@@ -156,7 +159,7 @@ ok(
 ok(
   "défaut hors des modes autorisés → refus",
   validateProfileRulePatch(
-    { ...goodRule, allowed_modes: ["express"], default_mode: "standard" },
+    { ...goodRule, allowed_modes: ["futur"], default_mode: "standard" },
     MODES
   ).ok,
   false
@@ -248,7 +251,9 @@ try {
   const modes = (
     await c.query("SELECT key FROM idv_modes ORDER BY position")
   ).rows.map((r) => r.key);
-  ok("2 modes seedés (express, standard)", modes.join(","), "express,standard");
+  // UN SEUL mode (mig 0370) : deux niveaux, c'est deux postures de sécurité —
+  // le plus faible finit toujours par être celui qu'on emprunte.
+  ok("un seul mode de vérification (le complet)", modes.join(","), "standard");
   const docs = await c.query("SELECT count(*)::int n FROM idv_document_types");
   ok("3 types de documents DZ", docs.rows[0].n, 3);
   // Le REQUIREMENT et le STATUT du flag sont pilotés par le super-admin en
@@ -292,7 +297,7 @@ try {
     );
     await expectError(
       "2e dossier actif même (user, profil) → refusé (index partiel)",
-      "INSERT INTO idv_verifications (user_id, profile, mode) VALUES ($1, 'driver', 'express')",
+      "INSERT INTO idv_verifications (user_id, profile, mode) VALUES ($1, 'driver', 'standard')",
       [uid]
     );
   } else {
@@ -326,7 +331,7 @@ try {
   ok(
     "authenticated lit les modes (colonnes publiques)",
     pubModes.rows.length,
-    2
+    1
   );
   const pubRules = await c.query(
     "SELECT profile, requirement FROM idv_profile_rules"
@@ -367,7 +372,7 @@ try {
     const uid2 = anyUser2.rows[0].id;
     await c.query("SAVEPOINT multi");
     await c.query(
-      "INSERT INTO idv_verifications (user_id, profile, mode) VALUES ($1, 'chauffeur', 'standard'), ($1, 'merchant', 'express')",
+      "INSERT INTO idv_verifications (user_id, profile, mode) VALUES ($1, 'chauffeur', 'standard'), ($1, 'merchant', 'standard')",
       [uid2]
     );
     const n = await c.query(

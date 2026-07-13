@@ -1,10 +1,12 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { idvSubmissionBlock } from "@/lib/idv/compliance";
+import { getIdvCompliance, idvSubmissionBlock } from "@/lib/idv/compliance";
+import type { KycMethod } from "@/lib/driver/kyc";
 import { validateUploadedFile, MB } from "@/lib/security/file-validation";
 import {
   canonicalPhone,
@@ -310,16 +312,138 @@ export async function deleteChauffeurDoc(
   return { ok: true };
 }
 
-/** Envoi du dossier : exige permis r/v + carte grise + plaque + selfie. */
+// ---------------------------------------------------------------------------
+// VÉRIFICATION D'IDENTITÉ — même système que le livreur (mig 0370).
+// Deux voies : INSTANTANÉE (scan + selfie, réponse en secondes) ou MANUELLE
+// (pièces examinées par l'équipe). La voie instantanée remplace le selfie en
+// direct : l'identité est déjà prouvée, redemander une photo n'apporte rien.
+// ---------------------------------------------------------------------------
+
+/** Colonne `kyc_method` (mig 0370) — pas encore dans database.types.ts généré. */
+function chauffeurMethodTable(admin: ReturnType<typeof createAdminClient>) {
+  return (
+    admin.from.bind(admin) as unknown as (t: string) => {
+      select: (c: string) => {
+        eq: (
+          c: string,
+          v: string
+        ) => {
+          maybeSingle: () => Promise<{
+            data: { kyc_method: string | null } | null;
+          }>;
+        };
+      };
+      update: (v: Record<string, unknown>) => {
+        eq: (
+          c: string,
+          v: string
+        ) => Promise<{ error: { message: string } | null }>;
+      };
+    }
+  )("chauffeurs");
+}
+
+export type ChauffeurIdvState = {
+  available: boolean;
+  forced: boolean;
+  method: KycMethod | null;
+  verified: boolean;
+  inProgress: boolean;
+  route: string;
+};
+
+/** État du parcours de vérification du chauffeur connecté (bloc + bouton). */
+export async function getChauffeurIdv(): Promise<ChauffeurIdvState> {
+  const off: ChauffeurIdvState = {
+    available: false,
+    forced: false,
+    method: "manual",
+    verified: false,
+    inProgress: false,
+    route: "/chauffeur/identite",
+  };
+  const ch = await getCurrentChauffeur();
+  if (!ch) return off;
+
+  const admin = createAdminClient();
+  const [idv, row] = await Promise.all([
+    getIdvCompliance("chauffeur"),
+    chauffeurMethodTable(admin)
+      .select("kyc_method")
+      .eq("id", ch.id)
+      .maybeSingle(),
+  ]);
+
+  const stored = (row?.data?.kyc_method ?? null) as KycMethod | null;
+  const forced = idv.enabled && idv.required;
+  return {
+    available: idv.enabled,
+    forced,
+    method: forced ? "instant" : idv.enabled ? stored : "manual",
+    verified: idv.verified,
+    inProgress: idv.inProgress,
+    route: idv.route,
+  };
+}
+
+/**
+ * Choix de la voie. Le serveur ne fait jamais confiance au client : quand
+ * l'équipe Coligo a rendu la vérification obligatoire, « instant » est imposé ;
+ * quand elle n'est pas publiée, seul « manual » existe.
+ */
+export async function setChauffeurKycMethod(
+  method: KycMethod
+): Promise<{ ok: boolean; error?: string; method?: KycMethod }> {
+  const ch = await getCurrentChauffeur();
+  if (!ch) return { ok: false, error: "Session chauffeur introuvable." };
+  if (method !== "manual" && method !== "instant")
+    return { ok: false, error: "Méthode inconnue." };
+
+  const idv = await getIdvCompliance("chauffeur");
+  const effective: KycMethod = !idv.enabled
+    ? "manual"
+    : idv.required
+      ? "instant"
+      : method;
+
+  const admin = createAdminClient();
+  const { error } = await chauffeurMethodTable(admin)
+    .update({ kyc_method: effective })
+    .eq("id", ch.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/chauffeur/documents");
+  return { ok: true, method: effective };
+}
+
+/** Envoi du dossier : exige permis r/v + carte grise + plaque, et l'identité —
+ *  prouvée soit par le selfie en direct (voie manuelle), soit par la
+ *  vérification automatique (voie instantanée). */
 export async function submitChauffeurDossier(): Promise<{
   ok: boolean;
   error?: string;
 }> {
   const ch = await getCurrentChauffeur();
   if (!ch) return { ok: false, error: "Session chauffeur introuvable." };
+
+  // La voie retenue est relue EN BASE : un client qui prétend « instant » sans
+  // vérification n'échappe pas au selfie, et réciproquement.
+  const idvState = await getChauffeurIdv();
+  const instant = idvState.available && idvState.method === "instant";
+  if (instant && !idvState.verified)
+    return {
+      ok: false,
+      error: idvState.inProgress
+        ? "Votre vérification d'identité est en cours d'examen."
+        : "Terminez la vérification de votre identité pour envoyer votre dossier.",
+    };
+
   const docs = await getChauffeurDocs();
   const have = new Set(docs.map((d) => d.kind));
-  const missing = REQUIRED_DOCS.filter((k) => !have.has(k));
+  const required = instant
+    ? REQUIRED_DOCS.filter((k) => k !== "selfie")
+    : REQUIRED_DOCS;
+  const missing = required.filter((k) => !have.has(k));
   if (missing.length > 0)
     return {
       ok: false,

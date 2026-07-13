@@ -58,6 +58,8 @@ export function IdvProfileRuleCard({
   const [allowed, setAllowed] = useState<string[]>(rule.allowed_modes);
   const [defaultMode, setDefaultMode] = useState(rule.default_mode);
   const [userChoose, setUserChoose] = useState(rule.user_can_choose_mode);
+  /** Tant qu'il n'existe qu'un mode, aucun « niveau de vérification » à choisir. */
+  const multiMode = modes.length > 1;
 
   useEffect(() => {
     if (state.ok) router.refresh();
@@ -113,7 +115,10 @@ export function IdvProfileRuleCard({
         ))}
       </div>
 
-      {active && (
+      {/* Un seul mode de vérification existe (le mode COMPLET) : il n'y a rien à
+          choisir, et surtout aucun niveau plus faible à proposer. La sélection ne
+          réapparaîtra que le jour où un second mode sera créé. */}
+      {active && multiMode && (
         <>
           <div className="space-y-1.5">
             <Label>Modes autorisés</Label>
@@ -176,10 +181,10 @@ export function IdvProfileRuleCard({
         </>
       )}
 
-      {/* En « Désactivé », les champs sont masqués mais la règle COMPLÈTE est
-          toujours soumise — un update partiel effacerait les colonnes
-          absentes (piège connu du projet). */}
-      {!active && (
+      {/* Champs masqués (règle désactivée, ou mode unique) : la règle COMPLÈTE
+          reste soumise — un update partiel effacerait les colonnes absentes
+          (piège connu du projet). */}
+      {(!active || !multiMode) && (
         <>
           {allowed.map((key) => (
             <input key={key} type="hidden" name="allowed_modes" value={key} />

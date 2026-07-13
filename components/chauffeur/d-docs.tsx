@@ -20,11 +20,18 @@ import {
 import {
   deleteChauffeurDoc,
   getChauffeurDocs,
+  setChauffeurKycMethod,
   submitChauffeurDossier,
   uploadChauffeurDoc,
   type ChauffeurDocInfo,
+  type ChauffeurIdvState,
   type DocKind,
 } from "@/app/(chauffeur)/actions";
+import {
+  IdvPrimaryButton,
+  IdvVerifyStep,
+  type IdvMethod,
+} from "@/components/idv/idv-verify-step";
 
 const DOCS: {
   kind: DocKind;
@@ -94,15 +101,27 @@ async function compressImage(file: File): Promise<File> {
 }
 
 /**
- * Documents + selfie EN DIRECT (maquette s-ddocs). Le selfie passe par un
- * flux caméra (getUserMedia, caméra frontale) — AUCUN import de fichier
- * accepté pour le selfie. Chaque pièce envoyée s'affiche en APERÇU avec
- * Voir / Remplacer / Supprimer.
+ * Documents du véhicule + IDENTITÉ du chauffeur.
+ *
+ * L'identité se prouve par l'UN des deux chemins — le MÊME système que le
+ * livreur et le commerçant (components/idv/idv-verify-step) :
+ *   • vérification INSTANTANÉE (scan du document + selfie analysés en secondes) ;
+ *   • vérification MANUELLE (selfie en direct, examiné par l'équipe Coligo).
+ * Le selfie en direct ne passe QUE par la caméra (aucun import de fichier).
+ * Un seul bouton d'action à l'écran : tant que la vérification bloque, il dit
+ * « Vérifier mon identité » ; « Envoyer mon dossier » n'apparaît qu'après.
  */
-import { IdvCalloutClient } from "@/components/idv/idv-callout-client";
-
-export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
+export function DDocs({
+  rejectedReason,
+  idv,
+}: {
+  rejectedReason?: string | null;
+  idv: ChauffeurIdvState;
+}) {
   const router = useRouter();
+  const [method, setMethod] = useState<IdvMethod | null>(
+    idv.forced ? "instant" : idv.method
+  );
   const [docs, setDocs] = useState<Record<string, ChauffeurDocInfo>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -159,6 +178,70 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
 
   const selfie = docs.selfie;
 
+  /** Voie MANUELLE : le selfie en direct (caméra seule, aucun import possible).
+   *  Passé en enfant de l'étape de vérification partagée — il ne s'affiche que
+   *  si c'est bien le chemin retenu. */
+  const selfieSection = (
+    <div className="text-center">
+      <p className="text-[13.5px] font-bold">
+        Photo de votre visage · en direct <span style={{ color: RED }}>*</span>
+      </p>
+      <div
+        className="mx-auto my-2.5 grid size-32 place-items-center overflow-hidden rounded-full border-[3px]"
+        style={
+          selfie
+            ? { borderColor: GO }
+            : {
+                borderColor: VIOLET,
+                borderStyle: "dashed",
+                background: "var(--d-accent)",
+              }
+        }
+      >
+        {busy === "selfie" ? (
+          <Loader2 className="size-10 animate-spin" style={{ color: VIOLET }} />
+        ) : selfie?.view_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={selfie.view_url}
+            alt="Votre visage"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <Camera className="size-12" style={{ color: VIOLET }} />
+        )}
+      </div>
+      {selfie && <StatusChip info={selfie} center />}
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setCameraOpen(true)}
+          className="drive-sora h-[46px] flex-1 rounded-[17px] bg-[var(--d-soft)] text-sm font-bold"
+        >
+          {selfie ? "Reprendre la photo" : "Ouvrir la caméra · capturer"}
+        </button>
+        {selfie && (
+          <button
+            type="button"
+            onClick={() => void remove("selfie")}
+            aria-label="Supprimer le selfie"
+            className="grid size-[46px] shrink-0 place-items-center rounded-[17px] border-[1.5px] border-[var(--d-line)]"
+            style={{ color: RED }}
+          >
+            <Trash2 className="size-4.5" />
+          </button>
+        )}
+      </div>
+      <p className="mt-1.5 text-[11px] text-[var(--d-muted)]">
+        Visage neutre, sans lunettes ni casquette.{" "}
+        <b>
+          Prise en direct uniquement — aucun import de fichier n&apos;est
+          accepté.
+        </b>
+      </p>
+    </div>
+  );
+
   return (
     <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-10">
       <div className="mb-2 flex items-center gap-3">
@@ -183,16 +266,21 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
           dossier.
         </p>
       )}
-      {/* Vérification d'identité AUTOMATIQUE (document + selfie + comparaison
-          des visages). S'efface d'elle-même si elle n'est pas publiée pour les
-          chauffeurs ou si l'identité est déjà vérifiée. Quand elle est
-          OBLIGATOIRE, l'envoi du dossier est refusé tant qu'elle n'est pas
-          passée (submitChauffeurDossier). */}
-      <IdvCalloutClient profile="chauffeur" />
+      {/* ÉTAPE IDENTITÉ — système partagé. Si la vérification automatique n'est
+          pas publiée pour les chauffeurs, le composant rend directement le
+          selfie en direct : l'écran d'avant, à l'identique. */}
+      <IdvVerifyStep
+        idv={idv}
+        method={method}
+        onMethod={setMethod}
+        saveMethod={setChauffeurKycMethod}
+      >
+        {selfieSection}
+      </IdvVerifyStep>
 
-      <p className="mb-3 text-[13px] text-[var(--d-muted)]">
-        Photos nettes et lisibles. Votre dossier sera vérifié par l&apos;équipe
-        Coligo.
+      <p className="mt-4 mb-2 text-[13px] font-bold">Documents du véhicule</p>
+      <p className="mb-3 text-[12px] text-[var(--d-muted)]">
+        Photos nettes et lisibles, documents en cours de validité.
       </p>
 
       {DOCS.map((d) => (
@@ -206,71 +294,6 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
         />
       ))}
 
-      {/* Selfie en direct (caméra uniquement) — la photo du visage est
-          OBLIGATOIRE et affichée une fois capturée. */}
-      <div className="mt-4 text-center">
-        <p className="text-[13.5px] font-bold">
-          Photo de votre visage · en direct{" "}
-          <span style={{ color: RED }}>*</span>
-        </p>
-        <div
-          className="mx-auto my-2.5 grid size-32 place-items-center overflow-hidden rounded-full border-[3px]"
-          style={
-            selfie
-              ? { borderColor: GO }
-              : {
-                  borderColor: VIOLET,
-                  borderStyle: "dashed",
-                  background: "var(--d-accent)",
-                }
-          }
-        >
-          {busy === "selfie" ? (
-            <Loader2
-              className="size-10 animate-spin"
-              style={{ color: VIOLET }}
-            />
-          ) : selfie?.view_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={selfie.view_url}
-              alt="Votre visage"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <Camera className="size-12" style={{ color: VIOLET }} />
-          )}
-        </div>
-        {selfie && <StatusChip info={selfie} center />}
-        <div className="mt-2 flex gap-2">
-          <button
-            type="button"
-            onClick={() => setCameraOpen(true)}
-            className="drive-sora h-[46px] flex-1 rounded-[17px] bg-[var(--d-soft)] text-sm font-bold"
-          >
-            {selfie ? "Reprendre la photo" : "Ouvrir la caméra · capturer"}
-          </button>
-          {selfie && (
-            <button
-              type="button"
-              onClick={() => void remove("selfie")}
-              aria-label="Supprimer le selfie"
-              className="grid size-[46px] shrink-0 place-items-center rounded-[17px] border-[1.5px] border-[var(--d-line)]"
-              style={{ color: RED }}
-            >
-              <Trash2 className="size-4.5" />
-            </button>
-          )}
-        </div>
-        <p className="mt-1.5 text-[11px] text-[var(--d-muted)]">
-          Visage neutre, sans lunettes ni casquette.{" "}
-          <b>
-            Prise en direct uniquement — aucun import de fichier n&apos;est
-            accepté.
-          </b>
-        </p>
-      </div>
-
       {error && (
         <p
           className="mt-3 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
@@ -279,14 +302,17 @@ export function DDocs({ rejectedReason }: { rejectedReason?: string | null }) {
           {error}
         </p>
       )}
-      <PrimaryBtn
-        onClick={() => void submit()}
-        disabled={submitting}
-        className="!mt-4"
-      >
-        {submitting ? <Loader2 className="size-5 animate-spin" /> : null}
-        Envoyer mon dossier
-      </PrimaryBtn>
+      {/* UN SEUL bouton : « Vérifier mon identité » (ou « Actualiser » pendant
+          l'examen) tant que la vérification bloque, « Envoyer mon dossier »
+          seulement une fois l'identité prouvée. */}
+      <div className="mt-4">
+        <IdvPrimaryButton idv={idv} method={method} busy={submitting}>
+          <PrimaryBtn onClick={() => void submit()} disabled={submitting}>
+            {submitting ? <Loader2 className="size-5 animate-spin" /> : null}
+            Envoyer mon dossier
+          </PrimaryBtn>
+        </IdvPrimaryButton>
+      </div>
 
       {cameraOpen && (
         <SelfieCamera

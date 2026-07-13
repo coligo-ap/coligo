@@ -10,8 +10,6 @@ import {
   Check,
   FileText,
   Loader2,
-  RefreshCw,
-  ScanFace,
   ShieldCheck,
   Trash2,
   Upload,
@@ -46,8 +44,25 @@ import {
   type DriverKycData,
   type KycDocView,
 } from "@/app/(driver)/actions";
+import {
+  IdvPrimaryButton,
+  IdvVerifyStep,
+  idvGate,
+  type IdvChoiceState,
+} from "@/components/idv/idv-verify-step";
+import { setDriverKycMethod } from "@/app/(driver)/actions";
 import { StepperHeader } from "./stepper-header";
-import { KycMethodStep } from "./kyc-method-step";
+
+/** Aucune vérification en jeu (étapes autres que « Vérification ») : le bouton
+ *  partagé rend alors simplement le bouton de l'écran. */
+const IDV_OFF: IdvChoiceState = {
+  available: false,
+  forced: false,
+  method: null,
+  verified: false,
+  inProgress: false,
+  route: "/driver/identite",
+};
 
 /**
  * Dossier de vérification d'identité du livreur, en quatre étapes.
@@ -131,9 +146,9 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
   const busy = submitting || pendingDocs.length > 0;
   const motorized = isMotorized(profile.vehicle_type);
 
-  /** Voie instantanée retenue (choisie ou imposée) ⇒ l'étape « Vérification »
-   *  ne se valide QUE par une identité effectivement vérifiée. */
-  const idvPath = data.idv.available && idvMethod === "instant";
+  /** Porte de vérification — MÊME définition que celle du chauffeur et du
+   *  commerçant (components/idv/idv-verify-step) : une seule règle métier. */
+  const gate = idvGate(data.idv, idvMethod);
 
   // Avancement recalculé À CHAQUE FRAPPE à partir des mêmes règles que le
   // serveur (lib/driver/kyc) : jamais deux définitions du « dossier complet ».
@@ -277,6 +292,8 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
         setError("Choisissez comment prouver votre identité.");
         return;
       }
+      // Filet : la porte partagée interdit d'avancer sans identité prouvée.
+      if (step === 1 && gate.blocked) return;
       const panes = panesOf(step);
       const at = panes.indexOf(pane);
       const isLastPane = at === panes.length - 1;
@@ -320,14 +337,6 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
     setStep(index);
     setPane(panesOf(index)[0] ?? 0);
   };
-
-  /** Voie instantanée : on part vérifier son identité. Le brouillon est
-   *  enregistré avant de quitter l'écran — on ne perd jamais la saisie. */
-  const onVerifyIdentity = () =>
-    startSubmit(async () => {
-      await saveProfile();
-      router.push(data.idv.route);
-    });
 
   const onSubmitDossier = () =>
     startSubmit(async () => {
@@ -418,8 +427,6 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
   const spinnerOr = (icon: React.ReactNode) =>
     busy ? <Loader2 className="size-4 animate-spin" /> : icon;
 
-  const awaitingIdv = step === 1 && idvPath && !data.idv.verified;
-
   const primary =
     step === 3 ? (
       <button
@@ -432,38 +439,26 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
         {spinnerOr(<ShieldCheck className="size-4" />)}
         Transmettre mon dossier
       </button>
-    ) : awaitingIdv && data.idv.inProgress ? (
-      <button
-        type="button"
-        onClick={() => router.refresh()}
-        disabled={busy}
-        className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[16px] border border-[var(--line)] bg-[var(--surface)] text-[15px] font-bold text-[var(--ink)] disabled:opacity-40"
-      >
-        <RefreshCw className="size-4" />
-        Actualiser
-      </button>
-    ) : awaitingIdv ? (
-      <button
-        type="button"
-        onClick={onVerifyIdentity}
-        disabled={busy}
-        className={primaryCls}
-        style={primaryStyle}
-      >
-        {spinnerOr(<ScanFace className="size-4" />)}
-        Vérifier mon identité
-      </button>
     ) : (
-      <button
-        type="button"
-        onClick={onNext}
-        disabled={busy}
-        className={primaryCls}
-        style={primaryStyle}
+      // À l'étape « Vérification », le bouton d'action APPARTIENT au système
+      // partagé : « Vérifier mon identité » / « Actualiser » tant que la
+      // vérification bloque, « Continuer » seulement une fois qu'elle est faite.
+      <IdvPrimaryButton
+        idv={step === 1 ? data.idv : IDV_OFF}
+        method={idvMethod}
+        busy={busy}
       >
-        {spinnerOr(<ArrowRight className="size-4" />)}
-        Continuer
-      </button>
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={busy}
+          className={primaryCls}
+          style={primaryStyle}
+        >
+          {spinnerOr(<ArrowRight className="size-4" />)}
+          Continuer
+        </button>
+      </IdvPrimaryButton>
     );
 
   return (
@@ -578,9 +573,10 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
           </PaneQuestion>
         )}
         {step === 1 && (
-          <KycMethodStep
+          <IdvVerifyStep
             idv={data.idv}
             method={idvMethod}
+            saveMethod={setDriverKycMethod}
             onMethod={(m) => {
               setIdvMethod(m);
               setShowErrors(false);
@@ -630,7 +626,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
                 />
               </>
             </>
-          </KycMethodStep>
+          </IdvVerifyStep>
         )}
 
         {step === 2 && pane === 0 && (

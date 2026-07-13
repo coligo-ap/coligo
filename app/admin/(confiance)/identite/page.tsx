@@ -126,7 +126,8 @@ export default async function AdminIdentitePage() {
         <div>
           <h2 className="font-bold tracking-tight">Profils concernés</h2>
           <p className="text-muted mt-0.5 text-sm">
-            Qui doit vérifier son identité, avec quels modes.
+            Qui doit vérifier son identité : obligatoire, facultatif, ou
+            désactivé.
           </p>
         </div>
         <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -146,10 +147,12 @@ export default async function AdminIdentitePage() {
       <section className="space-y-3">
         <div>
           <h2 className="font-bold tracking-tight">
-            Modes &amp; seuils de décision
+            Contrôles &amp; seuils de décision
           </h2>
           <p className="text-muted mt-0.5 text-sm">
-            Contrôles exécutés et zones de décision automatique de chaque mode.
+            {modes.length > 1
+              ? "Contrôles exécutés et zones de décision automatique de chaque mode."
+              : "Une seule vérification, la complète : tous les contrôles s'exécutent pour tout le monde."}{" "}
             Entre le refus et l&apos;approbation : revue humaine.
           </p>
         </div>
