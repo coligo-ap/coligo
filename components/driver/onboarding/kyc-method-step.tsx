@@ -62,8 +62,8 @@ export function KycMethodStep({
   //    disent la même chose (règle projet : pas de doublon d'information).
   const instantPanel = (
     <div
-      className="flex items-center gap-2.5 rounded-[16px] border p-4"
-      style={{ borderColor: "var(--line)", background: "var(--surface)" }}
+      className="flex items-center gap-2.5 rounded-[14px] p-3.5"
+      style={{ background: "var(--soft)" }}
     >
       {idv.verified ? (
         <>
@@ -95,7 +95,7 @@ export function KycMethodStep({
             <p className="text-[14px] font-bold">Scan + selfie · 2 min</p>
             <p className="text-[12px] text-[var(--muted)]">
               {idv.forced
-                ? "Exigée pour tous les livreurs."
+                ? "Vérification exigée pour tous les livreurs."
                 : "Résultat en quelques secondes."}
             </p>
           </div>
