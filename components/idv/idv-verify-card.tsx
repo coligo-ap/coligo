@@ -12,11 +12,8 @@
 // =============================================================================
 
 import { IdvScope } from "./idv-theme";
-import {
-  IdvPrimaryButton,
-  IdvStatusBlock,
-  type IdvChoiceState,
-} from "./idv-verify-step";
+import type { IdvChoiceState } from "@/lib/idv/ui-state";
+import { IdvPrimaryButton, IdvStatusBlock } from "./idv-verify-step";
 
 export function IdvVerifyCard({ idv }: { idv: IdvChoiceState }) {
   if (!idv.available) return null;

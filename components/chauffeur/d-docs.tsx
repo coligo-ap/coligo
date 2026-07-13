@@ -27,10 +27,10 @@ import {
   type ChauffeurIdvState,
   type DocKind,
 } from "@/app/(chauffeur)/actions";
+import type { IdvMethod } from "@/lib/idv/ui-state";
 import {
   IdvPrimaryButton,
   IdvVerifyStep,
-  type IdvMethod,
 } from "@/components/idv/idv-verify-step";
 
 const DOCS: {

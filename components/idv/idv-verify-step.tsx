@@ -31,85 +31,17 @@ import {
   ShieldAlert,
   Zap,
 } from "lucide-react";
+import {
+  idvGate,
+  type IdvChoiceState,
+  type IdvMethod,
+} from "@/lib/idv/ui-state";
 import { IdvScope } from "./idv-theme";
 
-export type IdvMethod = "manual" | "instant";
-
-/** État du parcours de vérification, tel que le serveur le voit. */
-export type IdvChoiceState = {
-  /** La vérification automatique est-elle publiée pour ce profil ? */
-  available: boolean;
-  /** Rendue OBLIGATOIRE par l'équipe Coligo → aucun choix possible. */
-  forced: boolean;
-  /** Voie retenue, `null` tant que rien n'a été choisi. */
-  method: IdvMethod | null;
-  /** Identité confirmée par le parcours automatique. */
-  verified: boolean;
-  /** Dossier en cours d'analyse ou de revue humaine. */
-  inProgress: boolean;
-  /** Route du parcours de vérification (propre à l'espace). */
-  route: string;
-  /** Dernière tentative refusée (le parcours reste ouvert : on peut réessayer). */
-  rejected?: boolean;
-};
-
-export type IdvGate = {
-  /** Voie effective : instantanée (choisie ou imposée), manuelle, ou aucune. */
-  path: "instant" | "manual" | "none";
-  /** L'avancement est-il BLOQUÉ par la vérification ? */
-  blocked: boolean;
-  /** Ce que doit faire LE bouton unique. `null` ⇒ le bouton de l'écran (continuer/envoyer). */
-  action: "verify" | "refresh" | null;
-};
-
-/**
- * Source de vérité du parcours — utilisée par le bouton ET par les formulaires
- * (le livreur s'en sert pour savoir si son étape est franchissable). Une seule
- * définition : impossible qu'un écran laisse passer ce qu'un autre bloque.
- */
-export function idvGate(
-  idv: IdvChoiceState,
-  method: IdvMethod | null
-): IdvGate {
-  const effective: IdvMethod | null = idv.forced ? "instant" : method;
-  if (!idv.available || effective !== "instant")
-    return {
-      path: effective === "manual" ? "manual" : "none",
-      blocked: false,
-      action: null,
-    };
-  if (idv.verified) return { path: "instant", blocked: false, action: null };
-  return {
-    path: "instant",
-    blocked: true,
-    action: idv.inProgress ? "refresh" : "verify",
-  };
-}
-
-/**
- * Traduit l'état serveur (`getIdvCompliance`) en état du système partagé.
- * Fonction PURE, volontairement posée ici : les bannières client ne doivent
- * surtout pas importer le module serveur `lib/idv/compliance` pour l'obtenir.
- */
-export function idvStateOf(c: {
-  enabled: boolean;
-  required: boolean;
-  verified: boolean;
-  inProgress: boolean;
-  status: string | null;
-  route: string;
-}): IdvChoiceState {
-  return {
-    available: c.enabled,
-    forced: c.required,
-    // Ces écrans n'offrent aucun dépôt de pièces : la voie est l'automatique.
-    method: "instant",
-    verified: c.verified,
-    inProgress: c.inProgress,
-    rejected: c.status === "rejected",
-    route: c.route,
-  };
-}
+// Types seulement : ré-exporter une FONCTION depuis un module « use client » la
+// rendrait inappelable côté serveur (elle y devient une référence client). Les
+// règles vivent dans lib/idv/ui-state.ts — importez-les de là.
+export type { IdvChoiceState, IdvGate, IdvMethod } from "@/lib/idv/ui-state";
 
 /* ───────────────────────────── Bloc d'état ───────────────────────────── */
 

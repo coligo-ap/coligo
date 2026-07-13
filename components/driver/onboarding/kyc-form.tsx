@@ -44,11 +44,10 @@ import {
   type DriverKycData,
   type KycDocView,
 } from "@/app/(driver)/actions";
+import { idvGate, type IdvChoiceState } from "@/lib/idv/ui-state";
 import {
   IdvPrimaryButton,
   IdvVerifyStep,
-  idvGate,
-  type IdvChoiceState,
 } from "@/components/idv/idv-verify-step";
 import { setDriverKycMethod } from "@/app/(driver)/actions";
 import { StepperHeader } from "./stepper-header";

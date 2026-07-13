@@ -1,7 +1,7 @@
 import { getIdvCompliance } from "@/lib/idv/compliance";
 import type { IdvProfile } from "@/lib/idv/types";
 import { IdvVerifyCard } from "./idv-verify-card";
-import { idvStateOf } from "./idv-verify-step";
+import { idvStateOf } from "@/lib/idv/ui-state";
 
 // =============================================================================
 // IDV — appel à vérification, posé dans les écrans « compte » des trois espaces

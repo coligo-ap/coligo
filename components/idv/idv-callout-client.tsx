@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { fetchIdvCompliance } from "@/app/idv/actions";
 import type { IdvCompliance } from "@/lib/idv/compliance";
 import { IdvVerifyCard } from "./idv-verify-card";
-import { idvStateOf } from "./idv-verify-step";
+import { idvStateOf } from "@/lib/idv/ui-state";
 
 // =============================================================================
 // IDV — appel à vérification, variante CLIENT (compte chauffeur, rendu côté
