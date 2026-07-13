@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getChauffeurGate } from "@/app/(chauffeur)/actions";
-import { requireIdvVerified } from "@/lib/idv/compliance";
+import { idvBlocksAccess, idvRouteFor } from "@/lib/idv/compliance";
+import { IdvRequiredScreen } from "@/components/idv/idv-required-screen";
 import { DBlocked, DFrozen } from "@/components/chauffeur/d-gate";
 import { ChauffeurGateProvider } from "./gate-context";
 
@@ -28,9 +29,10 @@ export async function ChauffeurGateGuard({
   if (!gate) redirect("/chauffeur/login");
   if (gate.isBlocked) return <DBlocked />;
   if (gate.isFrozen) return <DFrozen reason={gate.frozenReason} />;
-  // Vérification d'identité (IDV) : redirige vers le parcours UNIQUEMENT si le
-  // super-admin l'a rendue obligatoire pour les chauffeurs et qu'elle n'est pas
-  // encore confirmée. Sinon, aucun effet.
-  await requireIdvVerified("chauffeur");
+  // Vérification d'identité (IDV) OBLIGATOIRE et non confirmée → écran bloquant
+  // RENDU (jamais un redirect : cf. lib/idv/compliance.ts, React #310 en prod).
+  if (await idvBlocksAccess("chauffeur")) {
+    return <IdvRequiredScreen route={idvRouteFor("chauffeur")} />;
+  }
   return <ChauffeurGateProvider gate={gate}>{children}</ChauffeurGateProvider>;
 }

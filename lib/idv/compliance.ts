@@ -1,5 +1,4 @@
 import { cache } from "react";
-import { redirect } from "next/navigation";
 import { getIdvGate } from "./config";
 import { getMyLatestIdvVerification } from "./user-data";
 import type { IdvProfile, IdvStatus } from "./types";
@@ -99,14 +98,21 @@ export const getIdvCompliance = cache(
 );
 
 /**
- * Barrière d'espace : si le super-admin a rendu la vérification OBLIGATOIRE
- * pour ce profil et que l'identité n'est pas confirmée, l'utilisateur est
- * renvoyé vers son parcours. À appeler dans la garde de l'espace.
- * Ne bloque JAMAIS quand la fonctionnalité est retirée ou seulement
- * facultative.
+ * L'accès à l'espace doit-il être BLOQUÉ ? (vérification rendue obligatoire
+ * par le super-admin et identité non confirmée).
+ *
+ * ⚠️ On ne redirige PAS : l'appelant REND un écran bloquant à la place du
+ * contenu (composant `IdvRequiredScreen`, même pattern que les comptes
+ * bloqués/gelés). Un `redirect()` depuis une page streamée sous `loading.tsx`
+ * casse l'hydratation en production (React #310 — piège vécu, mesuré sur
+ * toutes les pages du livreur avant correction).
  */
-export async function requireIdvVerified(profile: IdvProfile): Promise<void> {
+export async function idvBlocksAccess(profile: IdvProfile): Promise<boolean> {
   const c = await getIdvCompliance(profile);
-  if (!c.enabled || !c.required || c.verified) return;
-  redirect(c.route);
+  return c.enabled && c.required && !c.verified;
+}
+
+/** Route du parcours IDV d'un profil (pour l'écran bloquant). */
+export function idvRouteFor(profile: IdvProfile): string {
+  return ROUTES[profile] ?? "/";
 }

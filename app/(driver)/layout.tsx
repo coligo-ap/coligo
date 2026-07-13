@@ -15,6 +15,9 @@ import { PersistentDriverMap } from "@/components/driver/home/persistent-driver-
 import { createClient } from "@/lib/supabase/server";
 import { TawkChat } from "@/components/support/tawk-chat";
 import { DriverBlockedScreen } from "@/components/driver/driver-blocked-screen";
+import { IdvRequiredScreen } from "@/components/idv/idv-required-screen";
+import { idvBlocksAccess, idvRouteFor } from "@/lib/idv/compliance";
+import { headers } from "next/headers";
 import { DriverInstallBanner } from "@/components/driver/driver-install-banner";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { getDriverGate } from "@/lib/auth/driver-gate";
@@ -80,6 +83,25 @@ export default async function DriverLayout({
   // écran d'inscription — ils n'existent tout simplement pas pour lui.
   const gate = await getDriverGate();
   const isActive = gate?.stage === "active";
+
+  // VÉRIFICATION D'IDENTITÉ obligatoire (IDV) et non confirmée → on RÉEND un
+  // écran bloquant à la place de tout l'espace (comme le blocage ci-dessus), et
+  // surtout PAS un redirect() : rediriger depuis une page streamée sous
+  // loading.tsx casse l'hydratation en prod (React #310, mesuré sur toutes les
+  // pages livreur). Le parcours lui-même (/driver/identite) reste accessible :
+  // il vit dans ce layout, mais l'écran l'y emmène par un <Link>.
+  const idvRoute = idvRouteFor("driver");
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const onIdvRoute = pathname.startsWith(idvRoute);
+  if (isActive && !onIdvRoute && (await idvBlocksAccess("driver"))) {
+    return (
+      <DriverThemeRoot
+        fontVars={`${fontSora.variable} ${fontJakarta.variable}`}
+      >
+        <IdvRequiredScreen route={idvRoute} />
+      </DriverThemeRoot>
+    );
+  }
 
   // Pins commerçants (coordonnées) pour la carte PERSISTANTE de l'accueil.
   // Requête UNE fois par session : le layout ne se re-rend pas entre onglets,

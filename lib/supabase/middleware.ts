@@ -73,6 +73,11 @@ function clientIp(request: NextRequest): string {
 }
 
 export async function updateSession(request: NextRequest) {
+  // Chemin courant exposé aux Server Components (les layouts ne le reçoivent
+  // pas). Utilisé par les gardes qui RENDENT un écran bloquant plutôt que de
+  // rediriger (IDV) : le layout doit laisser passer la page du parcours
+  // lui-même, sinon l'utilisateur ne pourrait jamais s'y rendre.
+  request.headers.set("x-pathname", request.nextUrl.pathname);
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(

@@ -8,8 +8,6 @@ import { formatDA } from "@/lib/utils";
 import { isUpcoming } from "@/lib/orders/scheduled";
 import { type OrderWithItems } from "@/lib/types";
 
-import { requireIdvVerified } from "@/lib/idv/compliance";
-
 export const dynamic = "force-dynamic";
 
 /**
@@ -19,10 +17,6 @@ export const dynamic = "force-dynamic";
  * Le board se rafraîchit via `OrderRealtimeBridge` (router.refresh()).
  */
 export default async function DashboardPage() {
-  // Vérification d'identité (IDV) : renvoie vers le parcours UNIQUEMENT si le
-  // super-admin l'a rendue obligatoire pour les commerçants et qu'elle n'est
-  // pas confirmée. Sans exigence, aucun effet.
-  await requireIdvVerified("merchant");
   const supabase = await createClient();
 
   const {
