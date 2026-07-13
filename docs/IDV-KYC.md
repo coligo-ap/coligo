@@ -200,8 +200,21 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
    `liveness_passive` (MiniFASNetV2 ONNX) = SKIPPED → **étape 6b** (conversion
    des poids Apache-2.0). Selfie validé ⇒ `pending_review` en attendant le
    face match automatique de l'étape 7.
-7. Face match (YuNet + SFace) + calibration des seuils + branchement du
-   moteur de décision + notifications.
+7. ✅ **Face match + DÉCISION AUTOMATIQUE** : `POST /api/idv/face-match`
+   re-localise le portrait sur le recto (YuNet), embarque les deux visages
+   (SFace) et renvoie le cosinus + un score NORMALISÉ [0,1]
+   (`lib/idv/face-match.ts`, ancres **calibrées sur mesures réelles** :
+   imposteurs cos 0.166-0.187 → score 0.03-0.07 ; même personne, portrait
+   « carte » dégradé ↔ selfie cos 0.742-0.766 → score 1 ; la frontière
+   « même identité » d'OpenCV, cos 0.363, tombe à 0.387 = **zone de revue
+   humaine** ⇒ on n'approuve automatiquement qu'au-dessus). L'action appelle
+   ensuite `decideIdv` (moteur pur de l'étape 1) avec les seuils + la policy
+   du mode : **approbation auto / revue humaine / refus auto**, décision +
+   raisons écrites sur le dossier, auditées, et l'utilisateur **notifié**
+   (cloche `user_notifications` + push FCM). Panne du pipeline, visage non
+   comparable, document expiré : jamais de refus « par accident » — revue
+   humaine ou policy explicite. Le banc rejoue la calibration : toute dérive
+   du modèle casse le test.
 8. Console super-admin — file de revue : côte à côte, approuver/refuser/
    redemander, commentaires internes, audit.
 9. Intégration profils (livreur, chauffeur, commerçant) + i18n AR + gating.

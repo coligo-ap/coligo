@@ -16,7 +16,13 @@ import {
 } from "@/lib/idv/pipeline/quality";
 import { logIdvAudit } from "@/lib/idv/audit";
 import { IDV_ACTIVE_STATUSES, type IdvStatus } from "@/lib/idv/types";
-import { IDV_DEFAULT_POLICY } from "@/lib/idv/decision";
+import {
+  decideIdv,
+  IDV_DEFAULT_POLICY,
+  type IdvCheckResult,
+  type IdvThresholds,
+} from "@/lib/idv/decision";
+import { storeAndPushNotification } from "@/lib/notifications/notify";
 import {
   CHALLENGE_TTL_MS,
   drawChallenges,
@@ -34,6 +40,8 @@ import type {
   AnalyzedCheck,
   AnalyzeSelfieRequest,
   AnalyzeSelfieResponse,
+  FaceMatchRequest,
+  FaceMatchResponse,
 } from "@/lib/idv/pipeline/analyze-contract";
 
 // =============================================================================
@@ -115,15 +123,27 @@ type PolicySelect = {
 /** Paramètres de décision du mode (colonnes cachées aux clients → admin). */
 async function loadModeParams(mode: string): Promise<{
   policy: Record<string, "reject" | "review">;
+  thresholds: IdvThresholds;
+  checks: Record<string, boolean>;
   livenessMin: number;
 }> {
   const { data } = await table<PolicySelect>("idv_modes")
-    .select("policy, liveness_min")
+    .select(
+      "policy, checks, liveness_min, face_match_approve, face_match_reject, doc_confidence_min"
+    )
     .eq("key", mode)
     .maybeSingle();
+  const thresholds: IdvThresholds = {
+    face_match_approve: Number(data?.face_match_approve ?? 0.6),
+    face_match_reject: Number(data?.face_match_reject ?? 0.35),
+    liveness_min: Number(data?.liveness_min ?? 0.7),
+    doc_confidence_min: Number(data?.doc_confidence_min ?? 0.6),
+  };
   return {
     policy: { ...IDV_DEFAULT_POLICY, ...((data?.policy ?? {}) as object) },
-    livenessMin: Number(data?.liveness_min ?? 0.7),
+    thresholds,
+    checks: (data?.checks ?? {}) as Record<string, boolean>,
+    livenessMin: thresholds.liveness_min,
   };
 }
 
@@ -170,6 +190,37 @@ const callAnalyzeDocument = (payload: AnalyzeDocumentRequest) =>
   callIdvApi<AnalyzeDocumentResponse>("analyze-document", payload);
 const callAnalyzeSelfie = (payload: AnalyzeSelfieRequest) =>
   callIdvApi<AnalyzeSelfieResponse>("analyze-selfie", payload);
+const callFaceMatch = (payload: FaceMatchRequest) =>
+  callIdvApi<FaceMatchResponse>("face-match", payload);
+
+/** Annonce le résultat à l'utilisateur (cloche + push). Fire-and-forget. */
+async function notifyIdvOutcome(
+  userId: string,
+  outcome: "approved" | "pending_review" | "rejected"
+): Promise<void> {
+  const copy = {
+    approved: {
+      title: "Identité vérifiée",
+      body: "Votre identité a été confirmée. Merci !",
+    },
+    pending_review: {
+      title: "Vérification en cours",
+      body: "L'équipe Coligo examine votre dossier. Vous serez notifié du résultat.",
+    },
+    rejected: {
+      title: "Vérification refusée",
+      body: "Votre identité n'a pas pu être confirmée. Contactez le support.",
+    },
+  }[outcome];
+  await storeAndPushNotification({
+    userId,
+    audience: "driver",
+    kind: `idv_${outcome}`,
+    title: copy.title,
+    body: copy.body,
+    route: "/driver/identite",
+  });
+}
 
 /** Message inline pour les échecs REPRENABLES (photo à refaire). */
 function retryableMessage(
@@ -740,7 +791,12 @@ export async function submitIdvSelfie(
     minCosine === null || minCosine >= FRAME_CONSISTENCY_MIN;
   const score =
     Math.round(evaluation.score * (consistencyOk ? 1 : 0.5) * 1000) / 1000;
-  const { policy, livenessMin } = await loadModeParams(verif.mode as string);
+  const {
+    policy,
+    thresholds,
+    checks: modeChecks,
+    livenessMin,
+  } = await loadModeParams(verif.mode as string);
   const passed = evaluation.passed && consistencyOk && score >= livenessMin;
 
   await table<PlainInsert>("idv_checks").insert({
@@ -767,12 +823,10 @@ export async function submitIdvSelfie(
   });
 
   if (passed) {
-    // Décision automatique (face match document ↔ selfie) = étape 7 : en
-    // attendant, dossier complet → revue humaine.
     await applyStatus({
       selfie_path: paths[0],
       selfie_frames: paths,
-      status: "pending_review",
+      status: "selfie_processing",
     });
     await logIdvAudit({
       verificationId: verifId,
@@ -781,8 +835,16 @@ export async function submitIdvSelfie(
       reason: "liveness_passed",
       metadata: { selfieAttempt, score, minCosine },
     });
-    revalidatePath("/driver/identite");
-    return { ok: true, status: "pending_review" };
+    return finalizeIdvDecision({
+      userId: user.id,
+      verifId,
+      attempt: selfieAttempt,
+      thresholds,
+      policy,
+      modeChecks,
+      livenessScore: score,
+      selfiePath: paths[0],
+    });
   }
 
   // Incohérence de visage entre frames = signal de fraude → policy directe.
@@ -836,4 +898,218 @@ export async function submitIdvSelfie(
     error: livenessCoaching(evaluation.verdicts.map((v) => v.reason)),
     status: keepStatus,
   };
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// DÉCISION AUTOMATIQUE (étape 7) — face match puis moteur à seuils.
+// Le dossier est complet : document validé + présence réelle établie. On
+// compare le PORTRAIT DU DOCUMENT au SELFIE, puis `decideIdv` (pur, testé)
+// tranche selon les seuils du mode : approbation auto / revue humaine /
+// refus auto. La zone intermédiaire va TOUJOURS en revue humaine.
+// ═════════════════════════════════════════════════════════════════════════════
+
+type VerifSelect = {
+  select: (cols: string) => {
+    eq: (
+      c: string,
+      v: string
+    ) => { maybeSingle: () => Promise<{ data: Row | null }> };
+  };
+};
+
+/** Score du dernier check `doc_quality` du dossier (confiance document). */
+type ChecksSelect = {
+  select: (cols: string) => {
+    eq: (
+      c: string,
+      v: string
+    ) => {
+      eq: (
+        c: string,
+        v: string
+      ) => {
+        order: (
+          c: string,
+          o: { ascending: boolean }
+        ) => {
+          limit: (n: number) => Promise<{ data: Row[] | null }>;
+        };
+      };
+    };
+  };
+};
+
+async function finalizeIdvDecision(input: {
+  userId: string;
+  verifId: string;
+  attempt: number;
+  thresholds: IdvThresholds;
+  policy: Record<string, "reject" | "review">;
+  modeChecks: Record<string, boolean>;
+  livenessScore: number;
+  selfiePath: string;
+}): Promise<IdvSubmitState> {
+  const {
+    userId,
+    verifId,
+    attempt,
+    thresholds,
+    policy,
+    modeChecks,
+    livenessScore,
+    selfiePath,
+  } = input;
+
+  const toReview = async (
+    reason: string,
+    metadata: Record<string, unknown>
+  ) => {
+    await table<UpdateById>("idv_verifications")
+      .update({ status: "pending_review" })
+      .eq("id", verifId);
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "sent_to_review",
+      reason,
+      metadata,
+    });
+    await notifyIdvOutcome(userId, "pending_review");
+    revalidatePath("/driver/identite");
+    return { ok: true, status: "pending_review" as IdvStatus };
+  };
+
+  const { data: verif } = await table<VerifSelect>("idv_verifications")
+    .select("doc_front_path, document_expires_at")
+    .eq("id", verifId)
+    .maybeSingle();
+  const docPath = verif?.doc_front_path as string | undefined;
+  if (!docPath) return toReview("missing_document_capture", { attempt });
+
+  // ── Face match : portrait du document ↔ selfie ────────────────────────────
+  const match = await callFaceMatch({ docPath, selfiePath });
+  if (!match) {
+    await table<PlainInsert>("idv_checks").insert({
+      verification_id: verifId,
+      attempt,
+      check_key: "face_match",
+      status: "error",
+      score: null,
+      details: { reason: "pipeline_unavailable" },
+    });
+    return toReview("pipeline_unavailable", { attempt });
+  }
+
+  const matchUsable = match.docFaceFound && match.selfieFaceFound;
+  await table<PlainInsert>("idv_checks").insert({
+    verification_id: verifId,
+    attempt,
+    check_key: "face_match",
+    status: matchUsable
+      ? match.score >= thresholds.face_match_approve
+        ? "passed"
+        : "failed"
+      : "error",
+    score: matchUsable ? match.score : null,
+    details: {
+      cosine: match.cosine,
+      docFaceFound: match.docFaceFound,
+      selfieFaceFound: match.selfieFaceFound,
+      thresholds,
+    },
+  });
+  if (!matchUsable) {
+    return toReview("face_not_comparable", {
+      attempt,
+      docFaceFound: match.docFaceFound,
+      selfieFaceFound: match.selfieFaceFound,
+    });
+  }
+
+  // ── Confiance document (dernier doc_quality du dossier) ───────────────────
+  const { data: qualityRows } = await table<ChecksSelect>("idv_checks")
+    .select("score")
+    .eq("verification_id", verifId)
+    .eq("check_key", "doc_quality")
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const docConfidence =
+    qualityRows?.[0]?.score != null ? Number(qualityRows[0].score) : null;
+
+  // ── Moteur de décision (pur, testé) ───────────────────────────────────────
+  const today = new Date().toISOString().slice(0, 10);
+  const expiresAt = verif?.document_expires_at as string | null;
+  const checkResults: IdvCheckResult[] = [
+    { key: "face_match", status: "passed", score: match.score },
+    { key: "liveness_active", status: "passed", score: livenessScore },
+  ];
+  const decision = decideIdv({
+    thresholds,
+    policy,
+    scores: {
+      face_match: match.score,
+      liveness: livenessScore,
+      doc_confidence: docConfidence,
+    },
+    checks: checkResults,
+    documentExpired: Boolean(expiresAt && expiresAt < today),
+    livenessRequired:
+      modeChecks.liveness_active === true ||
+      modeChecks.liveness_passive === true,
+  });
+
+  const metadata = {
+    attempt,
+    outcome: decision.outcome,
+    reasons: decision.reasons,
+    face_match: match.score,
+    cosine: match.cosine,
+    liveness: livenessScore,
+    doc_confidence: docConfidence,
+    thresholds,
+  };
+
+  if (decision.outcome === "approve") {
+    await table<UpdateById>("idv_verifications")
+      .update({
+        status: "approved",
+        decision: "auto_approved",
+        decision_reason: decision.reasons.join(","),
+        decided_at: new Date().toISOString(),
+      })
+      .eq("id", verifId);
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "auto_approved",
+      reason: decision.reasons.join(","),
+      metadata,
+    });
+    await notifyIdvOutcome(userId, "approved");
+    revalidatePath("/driver/identite");
+    return { ok: true, status: "approved" };
+  }
+
+  if (decision.outcome === "reject") {
+    await table<UpdateById>("idv_verifications")
+      .update({
+        status: "rejected",
+        decision: "auto_rejected",
+        decision_reason: decision.reasons.join(","),
+        decided_at: new Date().toISOString(),
+      })
+      .eq("id", verifId);
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "auto_rejected",
+      reason: decision.reasons.join(","),
+      metadata,
+    });
+    await notifyIdvOutcome(userId, "rejected");
+    revalidatePath("/driver/identite");
+    return { ok: true, status: "rejected" };
+  }
+
+  return toReview(decision.reasons.join(","), metadata);
 }

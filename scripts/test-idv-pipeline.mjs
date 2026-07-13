@@ -29,6 +29,8 @@ import {
   verifyChallengeToken,
   embeddingCosine,
 } from "../lib/idv/liveness.ts";
+import { normalizeFaceScore } from "../lib/idv/face-match.ts";
+import { decideIdv } from "../lib/idv/decision.ts";
 import sharp from "sharp";
 
 let pass = 0,
@@ -413,6 +415,111 @@ ok(
   ok(
     "cosine embeddings : identité = 1",
     Math.abs(embeddingCosine([0.6, 0.8], [0.6, 0.8]) - 1) < 1e-9
+  );
+}
+
+// ── 9) FACE MATCH : calibration réelle + décision automatique (étape 7) ────
+// Rejoue les mesures qui ont FIXÉ les ancres de normalisation : toute dérive
+// du modèle ou du pré-traitement fait échouer ce test.
+if (sample) {
+  const embedBuf = async (buf) => {
+    const img = await decodeImage(buf, 1280);
+    const faces = await detectFaces(yunet.session, img, {
+      scoreThreshold: 0.6,
+    });
+    if (!faces[0]) return null;
+    const crop = await cropResize(img, faces[0], SFACE_INPUT_SIZE);
+    return embedFace(sface.session, crop);
+  };
+
+  // Portrait « carte d'identité » : petit, imprimé, recompressé + selfie.
+  const idPortrait = await sharp(sample)
+    .resize(180)
+    .modulate({ brightness: 1.15, saturation: 0.6 })
+    .jpeg({ quality: 55 })
+    .toBuffer();
+  const selfieBuf = await sharp(sample)
+    .modulate({ brightness: 0.9 })
+    .jpeg({ quality: 92 })
+    .toBuffer();
+
+  const eDoc = await embedBuf(idPortrait);
+  const eSelfie = await embedBuf(selfieBuf);
+  const cosSame = cosineSimilarity(eDoc, eSelfie);
+  const scoreSame = normalizeFaceScore(cosSame);
+  ok(
+    "face match : MÊME personne (portrait carte dégradé ↔ selfie) → score élevé",
+    scoreSame >= 0.6,
+    `cos ${cosSame.toFixed(3)} → score ${scoreSame}`
+  );
+
+  // Personne DIFFÉRENTE (2e image d'exemple OpenCV, best effort).
+  let other = null;
+  try {
+    const otherPath = join(tmpdir(), "coligo-idv-other-face.jpg");
+    if (!existsSync(otherPath)) {
+      const r = await fetch(
+        "https://raw.githubusercontent.com/opencv/opencv/4.x/samples/data/messi5.jpg"
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      writeFileSync(otherPath, Buffer.from(await r.arrayBuffer()));
+    }
+    other = readFileSync(otherPath);
+  } catch (e) {
+    console.log(
+      `⚠️ 2e visage indisponible (${e.message}) — test imposteur sauté`
+    );
+  }
+  if (other) {
+    const eOther = await embedBuf(other);
+    const cosDiff = cosineSimilarity(eOther, eSelfie);
+    const scoreDiff = normalizeFaceScore(cosDiff);
+    ok(
+      "face match : personne DIFFÉRENTE → score sous le seuil de refus",
+      scoreDiff < 0.35,
+      `cos ${cosDiff.toFixed(3)} → score ${scoreDiff}`
+    );
+
+    // Décision automatique de bout en bout, seuils par défaut du mode.
+    const T = {
+      face_match_approve: 0.6,
+      face_match_reject: 0.35,
+      liveness_min: 0.7,
+      doc_confidence_min: 0.6,
+    };
+    ok(
+      "décision : même personne + liveness OK → APPROBATION auto",
+      decideIdv({
+        thresholds: T,
+        scores: { face_match: scoreSame, liveness: 1, doc_confidence: 0.9 },
+        livenessRequired: true,
+      }).outcome === "approve"
+    );
+    ok(
+      "décision : imposteur → REFUS auto",
+      decideIdv({
+        thresholds: T,
+        scores: { face_match: scoreDiff, liveness: 1, doc_confidence: 0.9 },
+        livenessRequired: true,
+      }).outcome === "reject"
+    );
+    ok(
+      "décision : document expiré malgré un bon match → refus (policy défaut)",
+      decideIdv({
+        thresholds: T,
+        scores: { face_match: scoreSame, liveness: 1, doc_confidence: 0.9 },
+        documentExpired: true,
+        livenessRequired: true,
+      }).outcome === "reject"
+    );
+  }
+
+  // Le seuil « même identité » d'OpenCV (0.363) doit tomber en zone de REVUE.
+  const opencvScore = normalizeFaceScore(0.363);
+  ok(
+    "calibration : cos 0.363 (frontière OpenCV) → zone de revue humaine",
+    opencvScore >= 0.35 && opencvScore < 0.6,
+    `score ${opencvScore}`
   );
 }
 

@@ -67,3 +67,24 @@ export type AnalyzedFrame = {
 export type AnalyzeSelfieResponse =
   | { ok: true; frames: AnalyzedFrame[] }
   | { ok: false; error: string };
+
+// ── Face match (étape 7) : portrait du document ↔ selfie ────────────────────
+
+export type FaceMatchRequest = {
+  /** Recto du document (le portrait y est re-localisé). */
+  docPath: string;
+  /** Frame selfie de référence (défi « center »). */
+  selfiePath: string;
+};
+
+export type FaceMatchResponse =
+  | {
+      ok: true;
+      /** Score NORMALISÉ [0,1] — comparable aux seuils DB (idv_modes). */
+      score: number;
+      /** Cosinus SFace brut ∈ [-1,1] (traçabilité / recalibrage). */
+      cosine: number;
+      docFaceFound: boolean;
+      selfieFaceFound: boolean;
+    }
+  | { ok: false; error: string };
