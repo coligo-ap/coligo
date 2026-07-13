@@ -31,6 +31,7 @@ import {
 import { useRoadPath } from "@/lib/drive/use-road-path";
 import { useSearchRadius } from "@/lib/chauffeur/work-zone";
 import { usePageVisible } from "@/lib/realtime/use-page-visible";
+import { onVisibleResumeSafe } from "@/lib/net/probe";
 import { setDispatchActive } from "@/lib/realtime/dispatch-presence";
 import { ensureRealtimeAuth } from "@/lib/realtime/ensure-auth";
 import {
@@ -295,14 +296,12 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     // FILET FIABLE (le dispatch push fait l'instantané, mais la réception NE DOIT
     // PAS en dépendre seule) : poll 15 s → réception garantie même broadcast raté.
     const id = setInterval(poll, 15000);
-    // RATTRAPAGE au retour au premier plan (broadcast manqué en arrière-plan).
-    const onVisible = () => {
-      if (document.visibilityState === "visible") void poll();
-    };
-    document.addEventListener("visibilitychange", onVisible);
+    // RATTRAPAGE au retour au premier plan (broadcast manqué en arrière-plan),
+    // SONDÉ après une longue absence (anti requête fantôme sur socket mort).
+    const offVisible = onVisibleResumeSafe(() => void poll());
     return () => {
       clearInterval(id);
-      document.removeEventListener("visibilitychange", onVisible);
+      offVisible();
     };
   }, [poll, online]);
   const gotFirstFix = useRef(false);

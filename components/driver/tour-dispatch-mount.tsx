@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { onVisibleResumeSafe } from "@/lib/net/probe";
 import { fetchDriverTourCounts } from "@/app/(driver)/actions";
 import { playNewOrder } from "@/lib/driver/sounds";
 import { vibrate } from "@/lib/hooks/use-alert-sound";
@@ -66,10 +67,8 @@ export function TourDispatchMount() {
 
     void tick();
     const poll = setInterval(tick, 30_000);
-    const onVisible = () => {
-      if (!document.hidden) void tickRef.current();
-    };
-    document.addEventListener("visibilitychange", onVisible);
+    // Retour au premier plan SONDÉ (anti requête fantôme sur socket mort).
+    const offVisible = onVisibleResumeSafe(() => void tickRef.current());
 
     // Realtime best-effort : toute commande en tournée → re-poll immédiat.
     const supabase = createClient();
@@ -101,7 +100,7 @@ export function TourDispatchMount() {
       alive = false;
       clearInterval(poll);
       if (hideTimer) clearTimeout(hideTimer);
-      document.removeEventListener("visibilitychange", onVisible);
+      offVisible();
       void supabase.removeChannel(channel);
     };
   }, []);

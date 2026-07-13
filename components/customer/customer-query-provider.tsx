@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { installProbedFocusManager } from "@/lib/net/tanstack-focus";
 
 /**
  * Provider TanStack Query de l'espace CLIENT — monté UNE SEULE FOIS dans le
@@ -20,19 +21,20 @@ export function CustomerQueryProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [client] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            // Fraîcheur raisonnable : pas de refetch au montage tant que < 30 s.
-            staleTime: 30_000,
-            gcTime: 5 * 60_000,
-            refetchOnWindowFocus: false,
-            retry: 1,
-          },
+  const [client] = useState(() => {
+    // Refetchs « au focus » gérés DERRIÈRE la sonde réseau (anti-gel au réveil).
+    installProbedFocusManager();
+    return new QueryClient({
+      defaultOptions: {
+        queries: {
+          // Fraîcheur raisonnable : pas de refetch au montage tant que < 30 s.
+          staleTime: 30_000,
+          gcTime: 5 * 60_000,
+          refetchOnWindowFocus: false,
+          retry: 1,
         },
-      })
-  );
+      },
+    });
+  });
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }

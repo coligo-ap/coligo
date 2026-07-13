@@ -16,7 +16,16 @@
 // qu'en cas d'échec réseau. Correction : les manifests réels sont
 // `manifest-*.webmanifest` (l'ancien `/manifest.webmanifest` n'existe pas) et
 // les icônes vivent sous `/icons/`.
-const CACHE_VERSION = "coligo-v18";
+// v19 : ANTI-GEL AU RÉVEIL — le fetch de navigation est BORNÉ (AbortController,
+// 7 s). Bug vécu : au retour d'une longue absence, le socket keep-alive à
+// moitié mort rendait ce fetch FANTÔME (ni succès ni échec) → même la
+// navigation DURE (location.assign du watchdog) restait suspendue DANS le
+// service worker : écran gelé « pour toujours ». Désormais : timeout → repli
+// sur la dernière copie en cache de la page, sinon /offline (qui se recharge
+// seul au retour du réseau). Le réseau reste prioritaire quand il répond.
+const CACHE_VERSION = "coligo-v19";
+/** Budget du fetch réseau d'une navigation avant repli (socket mort/figé). */
+const NAV_FETCH_TIMEOUT_MS = 7000;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const PRECACHE_CACHE = `${CACHE_VERSION}-precache`;
 const OFFLINE_URL = "/offline";
@@ -103,8 +112,14 @@ self.addEventListener("fetch", (event) => {
   if (req.mode === "navigate") {
     event.respondWith(
       (async () => {
+        // BORNÉ : jamais de fetch de navigation illimité (voir en-tête v19).
+        const controller = new AbortController();
+        const timer = setTimeout(
+          () => controller.abort(),
+          NAV_FETCH_TIMEOUT_MS
+        );
         try {
-          const res = await fetch(req);
+          const res = await fetch(req, { signal: controller.signal });
           // On ne garde en repli que les vraies pages OK (pas les
           // redirections/erreurs), pour un repli hors-ligne fidèle.
           if (res && res.ok) {
@@ -131,6 +146,8 @@ self.addEventListener("fetch", (event) => {
               }
             )
           );
+        } finally {
+          clearTimeout(timer);
         }
       })()
     );

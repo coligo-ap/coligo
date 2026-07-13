@@ -6,6 +6,7 @@ import {
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
+import { installProbedFocusManager } from "@/lib/net/tanstack-focus";
 import type { AdminAlert } from "@/lib/alerts/alert-model";
 
 // =============================================================================
@@ -65,14 +66,16 @@ export function AdminAlertsProvider({
   initial?: AdminAlert[];
   children: React.ReactNode;
 }) {
-  const [client] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: { retry: 1, gcTime: 5 * 60_000 },
-        },
-      })
-  );
+  const [client] = useState(() => {
+    // Refetchs « au focus » gérés DERRIÈRE la sonde réseau (anti-gel au réveil) —
+    // ce provider est le seul avec refetchOnWindowFocus: true.
+    installProbedFocusManager();
+    return new QueryClient({
+      defaultOptions: {
+        queries: { retry: 1, gcTime: 5 * 60_000 },
+      },
+    });
+  });
   return (
     <QueryClientProvider client={client}>
       <AlertsInner initial={initial}>{children}</AlertsInner>

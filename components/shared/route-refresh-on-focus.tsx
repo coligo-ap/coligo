@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { probeConnectionAlive } from "@/lib/net/probe";
 
 /**
  * Rafraîchissement DOUX en arrière-plan, complément du Router Cache
@@ -70,32 +71,4 @@ export function RouteRefreshOnFocus({
   }, [router, minHiddenMs]);
 
   return null;
-}
-
-/**
- * Teste que la connexion réseau répond réellement, de façon BORNÉE (le fetch est
- * abortable au bout de `timeoutMs`, contrairement à `router.refresh()`). On vise
- * `/favicon.ico` (servi statiquement, HORS middleware → pas d'`auth.getUser()`,
- * réponse minuscule). `cache: no-store` + cache-buster forcent un vrai
- * aller-retour réseau → on teste le SOCKET, pas le cache. Échec/timeout =
- * connexion encore froide → on n'arme pas de `router.refresh()` qui se bloquerait.
- */
-async function probeConnectionAlive(timeoutMs: number): Promise<boolean> {
-  if (typeof navigator !== "undefined" && navigator.onLine === false) {
-    return false;
-  }
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    await fetch(`/favicon.ico?_probe=${Date.now()}`, {
-      method: "GET",
-      cache: "no-store",
-      signal: controller.signal,
-    });
-    return true;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
-  }
 }

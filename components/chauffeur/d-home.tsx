@@ -66,6 +66,7 @@ import {
 import { isOpenDemande } from "@/lib/chauffeur/dispatch-filter";
 import { registerChauffeurCacheReset } from "@/lib/chauffeur/client-cache";
 import { usePageVisible } from "@/lib/realtime/use-page-visible";
+import { onVisibleResumeSafe } from "@/lib/net/probe";
 import { setDispatchActive } from "@/lib/realtime/dispatch-presence";
 import { ensureRealtimeAuth } from "@/lib/realtime/ensure-auth";
 import { getMyWalletState } from "@/app/wallet/recharge-actions";
@@ -303,15 +304,13 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     // abonnement global O(courses×chauffeurs) qu'on a supprimé).
     const id = setInterval(tick, 15_000);
     // RATTRAPAGE au retour au premier plan : un broadcast émis pendant que l'app
-    // était en arrière-plan (WebSocket suspendu) a pu être manqué → on resynchro
-    // une fois, immédiatement, plutôt que d'attendre le filet 45 s.
-    const onVisible = () => {
-      if (document.visibilityState === "visible") void tick();
-    };
-    document.addEventListener("visibilitychange", onVisible);
+    // était en arrière-plan (WebSocket suspendu) a pu être manqué → resync,
+    // SONDÉ après une longue absence (anti requête fantôme sur socket mort —
+    // un tick fantôme au réveil bloquait la file des Server Actions).
+    const offVisible = onVisibleResumeSafe(() => void tick());
     return () => {
       clearInterval(id);
-      document.removeEventListener("visibilitychange", onVisible);
+      offVisible();
     };
   }, [tick]);
 

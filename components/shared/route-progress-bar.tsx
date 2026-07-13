@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 /** Délai au-delà duquel une navigation SPA non aboutie est jugée COINCÉE. */
-const STUCK_NAV_MS = 10_000;
+const STUCK_NAV_MS = 5_000;
+/** Cadence des retentatives quand la bascule dure ne peut pas partir tout de
+ *  suite (page cachée, réseau annoncé hors ligne) — on ne LÂCHE JAMAIS. */
+const RETRY_MS = 1_500;
 
 /**
  * Mince barre de progression violette en haut de l'écran, visible UNIQUEMENT
@@ -111,17 +114,26 @@ export function RouteProgressBar() {
       clearWatchdog();
       if (absHref && changesPath) {
         const targetHref = absHref;
-        const timer = window.setTimeout(() => {
+        // À l'échéance : bascule DURE (connexion neuve) vers la cible. Si la
+        // bascule ne peut pas partir à cet instant (page cachée, réseau annoncé
+        // hors ligne), on RÉESSAIE en boucle au lieu d'abandonner — l'effet
+        // pathname/searchParams désarme dès que la navigation aboutit. Bug
+        // vécu : l'ancien watchdog vérifiait `navigator.onLine` UNE fois et
+        // lâchait l'affaire → au réveil d'arrière-plan (onLine encore faux
+        // pendant un instant), plus AUCUN filet, écran gelé pour de bon.
+        const fireOrRetry = () => {
           pendingNav.current = null;
-          const stillVisible =
+          const canGo =
             document.visibilityState === "visible" &&
             (typeof navigator === "undefined" || navigator.onLine !== false);
-          // Le pathname N'A PAS changé → la navigation SPA est bloquée. On
-          // bascule en navigation DURE (connexion neuve) vers la cible.
-          if (stillVisible) {
+          if (canGo) {
             window.location.assign(targetHref);
+            return;
           }
-        }, STUCK_NAV_MS);
+          const timer = window.setTimeout(fireOrRetry, RETRY_MS);
+          pendingNav.current = { href: targetHref, timer };
+        };
+        const timer = window.setTimeout(fireOrRetry, STUCK_NAV_MS);
         pendingNav.current = { href: targetHref, timer };
       }
     };
