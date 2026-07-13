@@ -138,7 +138,17 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
    sonde `POST /api/idv/selftest` (Bearer `INTERNAL_IDV_SECRET`, timings +
    cold start) ; `THIRD-PARTY-LICENSES.md` ; bench `npm run test:idv:pipeline`.
    PIÈGES appris : entrée YuNet FIXE 640×640 ; les poids SFace apparaissent
-   comme inputs du graphe (export MXNet) → ne nourrir que « data ».
+   comme inputs du graphe (export MXNet) → ne nourrir que « data » ;
+   **le postinstall Linux d'onnxruntime-node télécharge ~240 Mo de CUDA**
+   (invisible depuis Windows) → `ONNXRUNTIME_NODE_INSTALL_CUDA=skip` (env
+   Vercel) + élagage GPU dans scripts/prune-onnx-vercel.mjs, lancé avant
+   `next build` ; `outputFileTracingExcludes` est IGNORÉ pour les paquets
+   `serverExternalPackages` ; le cache de build Vercel réutilise des traces
+   .nft périmées (taille identique à l'octet entre builds) → en cas de
+   mystère de taille, rebuild avec `VERCEL_FORCE_NO_BUILD_CACHE=1` +
+   `VERCEL_ANALYZE_BUILD_OUTPUT=1` (retirées ensuite).
+   **Vérifié en PROD** (13/07) : cold start 903 ms (chargement + inférences),
+   instance chaude 207 ms, 401 sans Bearer.
 4. Parcours client — capture document guidée + upload sécurisé.
    **Exigence UX (proprio, 13/07)** : expliquer CHAQUE étape pas-à-pas avec
    illustrations ANIMÉES soignées (Lottie locales + repli CSS, jamais de CDN,
