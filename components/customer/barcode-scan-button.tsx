@@ -60,6 +60,10 @@ export function BarcodeScanButton({
   const t = useTranslations("barcode");
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>({ kind: "scanning" });
+  // Produits déjà résolus dans CETTE session de scan : réaffichés dans le
+  // panneau pendant le scan → l'espace sous la caméra ne reste jamais vide et
+  // un produit vu plus tôt reste ajoutable sans re-scanner.
+  const [recent, setRecent] = useState<MatchedProduct[]>([]);
   // Ignore les détections tant qu'un résultat est affiché (le client lit) —
   // « Scanner un autre produit » réarme.
   const armedRef = useRef(true);
@@ -89,6 +93,13 @@ export function BarcodeScanButton({
       return;
     }
     setPanel({ kind: "found", name: res.name, products: res.products });
+    setRecent((prev) => {
+      const ids = new Set(res.products.map((p) => p.product_id));
+      return [
+        ...res.products,
+        ...prev.filter((p) => !ids.has(p.product_id)),
+      ].slice(0, 8);
+    });
   }
 
   return (
@@ -97,6 +108,7 @@ export function BarcodeScanButton({
         type="button"
         onClick={() => {
           reset();
+          setRecent([]);
           setOpen(true);
         }}
         aria-label={t("button")}
@@ -125,8 +137,8 @@ export function BarcodeScanButton({
               </button>
             </div>
 
-            {/* Caméra TOUJOURS montée (scan continu). */}
-            <div className="flex min-h-0 flex-1 items-start justify-center px-6 pt-2">
+            {/* Caméra TOUJOURS montée (scan continu) — bloc FIXE en haut. */}
+            <div className="flex shrink-0 items-center justify-center px-6 py-3">
               <QrScanner
                 mode="barcode"
                 oneShot={false}
@@ -135,12 +147,33 @@ export function BarcodeScanButton({
               />
             </div>
 
-            {/* Panneau RÉSULTAT temps réel (blanc, coins arrondis, style Bolt). */}
-            <div className="max-h-[46vh] overflow-y-auto rounded-t-[24px] bg-white px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+            {/* Panneau RÉSULTAT temps réel (style Bolt) : occupe TOUT l'espace
+                restant sous la caméra (plus de vide noir inutilisable) et
+                affiche les scans récents en attendant le prochain code. */}
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-t-[24px] bg-white px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
               {panel.kind === "scanning" && (
-                <p className="text-muted py-3 text-center text-[13px] font-semibold">
-                  {t("hint")}
-                </p>
+                <>
+                  <p className="text-muted py-3 text-center text-[13px] font-semibold">
+                    {t("hint")}
+                  </p>
+                  {recent.length > 0 && (
+                    <>
+                      <p className="text-subtle mt-1 mb-1 text-[11px] font-extrabold tracking-wide uppercase">
+                        {t("recent")}
+                      </p>
+                      <ul className="divide-border divide-y">
+                        {recent.map((p) => (
+                          <ResultRow
+                            key={p.product_id}
+                            product={p}
+                            surface={surface}
+                            onNavigate={() => setOpen(false)}
+                          />
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </>
               )}
 
               {panel.kind === "searching" && (

@@ -1372,6 +1372,7 @@
     "view": "Voir",
     "scanAgain": "Scanner un autre produit",
     "noMatch": "« {name} » n'est disponible chez aucun commerçant pour l'instant.",
-    "searchInstead": "Chercher « {name} » en texte"
+    "searchInstead": "Chercher « {name} » en texte",
+    "recent": "Scannés récemment"
   }
 }

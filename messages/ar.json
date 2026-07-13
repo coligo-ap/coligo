@@ -1367,6 +1367,7 @@
     "view": "عرض",
     "scanAgain": "مسح منتج آخر",
     "noMatch": "« {name} » غير متوفر عند أي تاجر حاليًا.",
-    "searchInstead": "ابحث عن « {name} » نصيًا"
+    "searchInstead": "ابحث عن « {name} » نصيًا",
+    "recent": "مُسحت مؤخرًا"
   }
 }
