@@ -215,7 +215,18 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
    comparable, document expiré : jamais de refus « par accident » — revue
    humaine ou policy explicite. Le banc rejoue la calibration : toute dérive
    du modèle casse le test.
-8. Console super-admin — file de revue : côte à côte, approuver/refuser/
-   redemander, commentaires internes, audit.
+8. ✅ **Console super-admin — file de revue** : sous-onglets du domaine
+   Identité (Pilotage / **Dossiers à vérifier**, badge du nombre en attente).
+   `/admin/identite/dossiers` : file FIFO avec nom, téléphone, document, mode
+   et pastilles de score (visage / présence) colorées par zone de décision.
+   `/admin/identite/dossiers/[id]` : **selfie et document côte à côte** (URLs
+   signées 15 min sur le bucket privé, jamais public), verso + étapes du
+   liveness, informations extraites de la MRZ (avec alerte si expiré),
+   **tous les contrôles avec leur score et leur statut** (y compris les
+   `skipped` — honnêteté sur ce qui n'a pas tourné), panneau de décision
+   (approuver / refuser avec **motif obligatoire** / redemander un document
+   ou un selfie avec message envoyé au livreur / commentaire interne) et
+   **journal d'audit complet**. Transitions gardées (un dossier clos ne se
+   re-décide pas), tout est tracé et l'utilisateur est notifié.
 9. Intégration profils (livreur, chauffeur, commerçant) + i18n AR + gating.
 10. Durcissement : tests E2E, monitoring d'intégrité, revue sécurité.
