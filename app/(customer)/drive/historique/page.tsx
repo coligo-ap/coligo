@@ -1,19 +1,18 @@
-import { redirect } from "next/navigation";
-import { getCurrentCustomer } from "@/lib/auth/customer";
 import { DriveHistoryLoader } from "@/components/customer/drive/drive-history";
 
-export const dynamic = "force-dynamic";
-
 /**
- * Page serveur VOLONTAIREMENT LÉGÈRE : elle ne fait QUE l'auth (pas d'`await`
- * des données) → la navigation n'est plus bloquée par un fetch. L'historique est
- * chargé par TanStack Query côté client (DriveHistoryLoader) : affichage instantané
- * depuis le cache au retour + revalidation silencieuse, plus de squelette plein
- * écran ni de re-téléchargement à chaque visite.
+ * Page 100 % STATIQUE : AUCUN `await` serveur — même pas l'auth. Le prefetch du
+ * `<Link>` couvre alors TOUT le segment et le tap ouvre l'écran INSTANTANÉMENT
+ * (règle « passer d'une page à une autre = ultra rapide ») ; avant, la
+ * navigation attendait l'aller-retour d'auth (jusqu'à plusieurs secondes à
+ * froid, écran figé sur la barre de chargement).
+ *
+ * Sécurité inchangée : l'identité n'est utilisée ici QUE pour isoler le cache
+ * par compte (résolue côté client depuis la session locale, zéro réseau) ; les
+ * DONNÉES passent par l'action serveur `getDriveHistory`, qui se
+ * ré-authentifie à chaque appel (session + RLS). Un visiteur non connecté est
+ * renvoyé au login par le chargeur et ne peut rien lire.
  */
-export default async function DriveHistoriquePage() {
-  // Session mémoïsée (partagée avec la coque client → pas de double auth).
-  const customer = await getCurrentCustomer();
-  if (!customer) redirect("/se-connecter?next=/drive/historique");
-  return <DriveHistoryLoader customerId={customer.id} />;
+export default function DriveHistoriquePage() {
+  return <DriveHistoryLoader />;
 }

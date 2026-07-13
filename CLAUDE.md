@@ -241,6 +241,25 @@ expiré) ; **cache isolé par utilisateur** (clé de cache incluant l'`user.id`)
 pour qu'aucune donnée d'un autre compte n'apparaisse ; `client_operation_id` et
 contrôles existants conservés.
 
+## RÈGLE OBLIGATOIRE — passer d'une page à une autre = ULTRA RAPIDE, comme Bolt
+
+**Règle de code ET de conception, tous les espaces (client, chauffeur, livreur,
+commerçant, admin).** Le passage d'une page à une autre doit être ressenti
+comme INSTANTANÉ, au niveau de Bolt/Bolt Food : le tap donne un retour visuel
+immédiat (< 100 ms) et l'écran cible apparaît tout de suite (squelette puis
+données streamées). Concrètement, pour CHAQUE nouvelle page/navigation :
+
+1. `<Link prefetch>` (jamais `router.push` seul sur un bouton de nav, jamais
+   d'`<a>` interne) ;
+2. `loading.tsx` sur toute route qui `await` au serveur — sans lui le prefetch
+   ne sert à rien et le tap « ne fait rien » ;
+3. la page serveur n'`await` QUE l'auth (jamais les données) : les données
+   arrivent par streaming/TanStack Query, cache par utilisateur ;
+4. au retour (A → B → A) : réutilisation du segment (Router Cache), zéro
+   rechargement complet, état/scroll préservés ;
+5. si une transition « rame » (> ~300 ms perçues), c'est un BUG à corriger
+   immédiatement, pas un état acceptable.
+
 ## RÈGLE PRODUIT — navigation client ULTRA RAPIDE (non négociable)
 
 Objectif startup : **chaque tap doit donner un retour visuel immédiat.** Toute

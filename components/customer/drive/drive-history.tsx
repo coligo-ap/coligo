@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -9,6 +9,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { Car, ChevronLeft, Heart, Star } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { formatDA } from "@/lib/utils";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { VIOLET, ROSE } from "./drive-modals";
@@ -26,14 +27,39 @@ import {
  * chaque visite (la page serveur n'`await` plus les données : elle ne fait que
  * l'auth). Le squelette n'apparaît qu'au tout premier chargement (cache vide).
  *
- * Sécurité : cache en mémoire de l'onglet, clé incluant l'`customerId`, et action
+ * Sécurité : cache en mémoire de l'onglet, clé incluant l'id du compte, et action
  * serveur ré-authentifiée (getCurrentCustomer + RLS) → aucune fuite entre comptes.
  */
-export function DriveHistoryLoader({ customerId }: { customerId: string }) {
+export function DriveHistoryLoader() {
+  const router = useRouter();
   const queryClient = useQueryClient();
+  // Identité résolue LOCALEMENT (session du navigateur — pas d'aller-retour
+  // réseau) : elle ne sert qu'à ISOLER LE CACHE par compte. La page serveur
+  // n'`await` plus l'auth (navigation instantanée) ; la protection des données
+  // reste dans l'action serveur (ré-auth + RLS à chaque appel).
+  const [uid, setUid] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void createClient()
+      .auth.getSession()
+      .then(({ data }) => {
+        if (!alive) return;
+        const id = data.session?.user.id ?? null;
+        if (!id) {
+          router.replace("/se-connecter?next=/drive/historique");
+          return;
+        }
+        setUid(id);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [router]);
+
   const { data, isPending } = useQuery({
-    queryKey: ["drive-history", customerId],
+    queryKey: ["drive-history", uid],
     queryFn: () => getDriveHistory(),
+    enabled: uid != null,
     // Réaffichage immédiat de l'ancien contenu pendant la revalidation.
     placeholderData: keepPreviousData,
     // Fraîcheur raisonnable : pas de refetch au montage tant que < 60 s.
@@ -44,25 +70,23 @@ export function DriveHistoryLoader({ customerId }: { customerId: string }) {
   // de suite) puis persistance serveur + invalidation (revalidation en fond).
   const onRemoveFav = useCallback(
     (chauffeurId: string) => {
-      queryClient.setQueryData<DriveHistory>(
-        ["drive-history", customerId],
-        (old) =>
-          old
-            ? {
-                ...old,
-                favorites: old.favorites.filter(
-                  (x) => x.chauffeur_id !== chauffeurId
-                ),
-              }
-            : old
+      queryClient.setQueryData<DriveHistory>(["drive-history", uid], (old) =>
+        old
+          ? {
+              ...old,
+              favorites: old.favorites.filter(
+                (x) => x.chauffeur_id !== chauffeurId
+              ),
+            }
+          : old
       );
       void toggleFavoriteChauffeur(chauffeurId, false).then(() =>
         queryClient.invalidateQueries({
-          queryKey: ["drive-history", customerId],
+          queryKey: ["drive-history", uid],
         })
       );
     },
-    [queryClient, customerId]
+    [queryClient, uid]
   );
 
   // Squelette UNIQUEMENT au 1er chargement (cache vide) ; sinon on garde l'ancien

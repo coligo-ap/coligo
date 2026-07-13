@@ -179,6 +179,10 @@ export function DriveView({ userId }: { userId: string }) {
   // de la page doit y RESTER (trajet restauré), pas repartir à la sélection
   // d'adresses. Écrit à chaque changement pertinent, TTL 30 min.
   const JOURNEY_KEY = "coligo:drive:journey";
+  // Passe à true une fois le boot (restauration éventuelle) terminé : la purge
+  // ci-dessous ne doit JAMAIS courir au premier rendu (screen vaut "home"
+  // AVANT la restauration — on effacerait le parcours qu'on allait restaurer).
+  const bootDoneRef = useRef(false);
   useEffect(() => {
     try {
       if (screen === "price" && pickup && dest) {
@@ -186,9 +190,13 @@ export function DriveView({ userId }: { userId: string }) {
           JOURNEY_KEY,
           JSON.stringify({ pickup, dest, at: Date.now() })
         );
+      } else if (screen === "home" && bootDoneRef.current) {
+        // RETOUR EXPLICITE à la sélection d'adresses : le client a QUITTÉ
+        // l'écran prix — une actualisation doit le laisser sur la sélection,
+        // pas le renvoyer d'office au prix (bug vécu : back puis F5 →
+        // re-saut sur l'écran prix comme s'il avait retapé Continuer).
+        sessionStorage.removeItem(JOURNEY_KEY);
       }
-      // (La purge ne se fait QUE sur abandon explicite — resetAll — jamais au
-      // montage : au premier rendu screen vaut "home" AVANT la restauration.)
     } catch {
       /* sessionStorage indispo */
     }
@@ -278,6 +286,9 @@ export function DriveView({ userId }: { userId: string }) {
         setActive(ride);
         setScreen("ride");
       }
+      // Restauration terminée : la purge du parcours (retour explicite à la
+      // sélection) devient autorisée.
+      bootDoneRef.current = true;
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

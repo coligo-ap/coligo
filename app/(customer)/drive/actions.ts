@@ -217,6 +217,42 @@ export async function getDriveQuotes(
   const rpc = await rpcClient();
   const gammes = ["classic", "confort", "moto"] as const;
   const out = {} as Record<(typeof gammes)[number], DriveQuote>;
+
+  // UN SEUL aller-retour (mig 0366) : les 3 gammes + fourchettes d'un coup —
+  // le client attend CE prix à l'écran, chaque requête économisée se voit.
+  const { data, error } = await rpc("drive_quotes_all", {
+    p_distance_km: distanceKm,
+    p_pickup_lat: pickup?.lat ?? null,
+    p_pickup_lng: pickup?.lng ?? null,
+    p_duration_min: durationMin ?? null,
+  });
+  if (!error && Array.isArray(data)) {
+    for (const g of gammes) {
+      const row = (
+        data as {
+          gamme: string;
+          floor_da: number;
+          mini_da: number;
+          reco_da: number;
+          fast_da: number;
+          low_da: number | null;
+          high_da: number | null;
+        }[]
+      ).find((r) => r.gamme === g);
+      out[g] = {
+        recommended: row?.reco_da ?? 0,
+        floor: row?.floor_da ?? 0,
+        mini: row?.mini_da ?? 0,
+        fast: row?.fast_da ?? 0,
+        low: row?.low_da ?? 0,
+        high: row?.high_da ?? 0,
+      };
+    }
+    return out;
+  }
+
+  // Repli (déploiement en cours : app à jour AVANT la migration) : ancien
+  // chemin en 6 RPC, même résultat.
   await Promise.all(
     gammes.map(async (g) => {
       const [smart, range] = await Promise.all([
