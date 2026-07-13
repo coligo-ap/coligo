@@ -7,6 +7,8 @@ import { PartnerBackHeader } from "@/components/shared/partner-ui";
 import { IdvFlow } from "@/components/idv/idv-flow";
 
 export const dynamic = "force-dynamic";
+// L'action de soumission attend l'analyse (OCR MRZ + portrait) : marge large.
+export const maxDuration = 60;
 
 /**
  * Vérification d'identité automatisée du livreur (chantier IDV, étape 4).

@@ -41,6 +41,18 @@ const MODELS = [
     minBytes: 20_000_000,
     maxBytes: 60_000_000,
   },
+  {
+    file: "tessdata/eng.traineddata",
+    label: "Tesseract eng fast (OCR MRZ, Apache-2.0)",
+    urls: [
+      "https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata",
+    ],
+    sha256: "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+    minBytes: 2_000_000,
+    maxBytes: 12_000_000,
+    // .traineddata = format Tesseract, pas un protobuf ONNX.
+    onnxMagic: false,
+  },
 ];
 
 const force = process.argv.includes("--force");
@@ -62,7 +74,7 @@ function checkIntegrity(model, buf) {
   }
   // Un .onnx est un protobuf ModelProto : commence par le champ 1 varint
   // (ir_version), tag 0x08. Un pointeur LFS commencerait par "version http…".
-  if (buf[0] !== 0x08) {
+  if (model.onnxMagic !== false && buf[0] !== 0x08) {
     throw new Error(`${model.file} : magic ONNX absent (octet 0 = ${buf[0]})`);
   }
   const hash = sha256(buf);

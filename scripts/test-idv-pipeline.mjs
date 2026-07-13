@@ -20,6 +20,8 @@ import {
   SFACE_EMBEDDING_DIM,
 } from "../lib/idv/pipeline/sface.ts";
 import { assessDocQuality } from "../lib/idv/pipeline/quality.ts";
+import { computeCheckDigit, parseMrz } from "../lib/idv/mrz.ts";
+import { getMrzWorker, ocrMrzBand } from "../lib/idv/pipeline/mrz-ocr.ts";
 import sharp from "sharp";
 
 let pass = 0,
@@ -190,6 +192,105 @@ ok(
     qTiny.verdict === "failed" && qTiny.reasons.includes("low_resolution"),
     `${qTiny.metrics.width}×${qTiny.metrics.height}`
   );
+}
+
+// ── 6) MRZ — spécimens OFFICIELS ICAO Doc 9303 (étape 5) ───────────────────
+{
+  ok("checksum ICAO : L898902C3 → 6", computeCheckDigit("L898902C3") === 6);
+  ok("checksum ICAO : 740812 → 2", computeCheckDigit("740812") === 2);
+
+  // TD3 (passeport) — spécimen ERIKSSON, Doc 9303 partie 4.
+  const td3 = parseMrz([
+    "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<",
+    "L898902C36UTO7408122F1204159ZE184226B<<<<<10",
+  ]);
+  ok(
+    "TD3 spécimen : VALIDE, tous les checksums passent",
+    td3?.valid === true && td3.score === 1,
+    td3 ? JSON.stringify(td3.checks) : "parse null"
+  );
+  ok(
+    "TD3 spécimen : champs extraits",
+    td3?.fields.surname === "ERIKSSON" &&
+      td3?.fields.given_names === "ANNA MARIA" &&
+      td3?.fields.document_number === "L898902C3" &&
+      td3?.fields.birth_date === "1974-08-12" &&
+      td3?.fields.sex === "F" &&
+      td3?.fields.expiry_date === "2012-04-15" &&
+      td3?.fields.personal_number === "ZE184226B",
+    JSON.stringify(td3?.fields)
+  );
+
+  // Altération d'un chiffre → checksums KO (signal de fraude).
+  const tampered = parseMrz([
+    "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<",
+    "L898902C36UTO7508122F1204159ZE184226B<<<<<10",
+  ]);
+  ok(
+    "TD3 altéré (date de naissance) → INVALIDE",
+    tampered?.valid === false && tampered.checks.birth_date === false
+  );
+
+  // Réparation OCR : O lu à la place de 0 dans une zone numérique.
+  const repaired = parseMrz([
+    "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<",
+    "L898902C36UTO74O8122F12O4159ZE184226B<<<<<10",
+  ]);
+  ok(
+    "TD3 avec O↔0 dans les dates → réparé, checksums OK",
+    repaired?.checks.birth_date === true &&
+      repaired?.checks.expiry_date === true
+  );
+
+  // TD1 (carte ID) — spécimen Doc 9303 partie 5.
+  const td1 = parseMrz([
+    "I<UTOD231458907<<<<<<<<<<<<<<<",
+    "7408122F1204159UTO<<<<<<<<<<<6",
+    "ERIKSSON<<ANNA<MARIA<<<<<<<<<<",
+  ]);
+  ok(
+    "TD1 spécimen : VALIDE + champs",
+    td1?.valid === true &&
+      td1.format === "td1" &&
+      td1.fields.document_number === "D23145890" &&
+      td1.fields.surname === "ERIKSSON" &&
+      td1.fields.expiry_date === "2012-04-15",
+    td1 ? JSON.stringify(td1.checks) : "parse null"
+  );
+
+  // Lignes parasites autour : le parseur s'accroche aux bonnes.
+  const noisy = parseMrz([
+    "REPUBLIQUE ALGERIENNE",
+    "I<UTOD231458907<<<<<<<<<<<<<<<",
+    "7408122F1204159UTO<<<<<<<<<<<6",
+    "ERIKSSON<<ANNA<MARIA<<<<<<<<<<",
+  ]);
+  ok("TD1 avec lignes parasites → toujours parsé", noisy?.valid === true);
+}
+
+// ── 7) OCR MRZ BOUT-EN-BOUT : image rendue → tesseract → checksums ─────────
+{
+  const l1 = "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<";
+  const l2 = "L898902C36UTO7408122F1204159ZE184226B<<<<<10";
+  const esc = (s) => s.replace(/</g, "&lt;");
+  const svg = `<svg width="1240" height="230" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="white"/>
+    <text x="24" y="95" font-family="Courier New, Courier, monospace" font-size="42" fill="black">${esc(l1)}</text>
+    <text x="24" y="175" font-family="Courier New, Courier, monospace" font-size="42" fill="black">${esc(l2)}</text>
+  </svg>`;
+  const rendered = await sharp(Buffer.from(svg)).png().toBuffer();
+  const t0 = performance.now();
+  const text = await ocrMrzBand(rendered, null);
+  const ocrMs = Math.round(performance.now() - t0);
+  const parsed = parseMrz(text.split(/\r?\n/));
+  ok(
+    "OCR MRZ bout-en-bout : rendu → tesseract → checksums VALIDES",
+    parsed?.valid === true && parsed.fields.document_number === "L898902C3",
+    parsed?.valid
+      ? `${ocrMs} ms`
+      : `texte lu :\n${text.trim()}\nparse: ${JSON.stringify(parsed?.checks ?? null)}`
+  );
+  await (await getMrzWorker()).terminate();
 }
 
 console.log(`\n${fail === 0 ? "✅" : "❌"} ${pass} OK / ${fail} KO`);

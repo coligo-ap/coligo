@@ -16,6 +16,12 @@ import {
 } from "@/lib/idv/pipeline/quality";
 import { logIdvAudit } from "@/lib/idv/audit";
 import { IDV_ACTIVE_STATUSES, type IdvStatus } from "@/lib/idv/types";
+import { IDV_DEFAULT_POLICY } from "@/lib/idv/decision";
+import type {
+  AnalyzeDocumentRequest,
+  AnalyzeDocumentResponse,
+  AnalyzedCheck,
+} from "@/lib/idv/pipeline/analyze-contract";
 
 // =============================================================================
 // /driver/identite — SOUMISSION du document d'identité (étape 4 du chantier
@@ -84,6 +90,86 @@ function table<T>(t: string): T {
   return (admin.from.bind(admin) as unknown as (x: string) => T)(t);
 }
 
+type PolicySelect = {
+  select: (cols: string) => {
+    eq: (
+      c: string,
+      v: string
+    ) => { maybeSingle: () => Promise<{ data: Row | null }> };
+  };
+};
+
+/** Policy d'échec du mode (colonne cachée aux clients → lecture admin). */
+async function loadModePolicy(
+  mode: string
+): Promise<Record<string, "reject" | "review">> {
+  const { data } = await table<PolicySelect>("idv_modes")
+    .select("policy")
+    .eq("key", mode)
+    .maybeSingle();
+  return { ...IDV_DEFAULT_POLICY, ...((data?.policy ?? {}) as object) };
+}
+
+/**
+ * Appelle la route interne d'analyse (la fonction qui embarque les modèles),
+ * avec UNE relance. null = pipeline injoignable → l'appelant passe le dossier
+ * en revue humaine (jamais bloquer un utilisateur sur une panne).
+ */
+async function callAnalyzeDocument(
+  payload: AnalyzeDocumentRequest
+): Promise<Extract<AnalyzeDocumentResponse, { ok: true }> | null> {
+  const secret = process.env.INTERNAL_IDV_SECRET;
+  if (!secret) return null;
+  const base =
+    process.env.NODE_ENV === "development"
+      ? `http://localhost:${process.env.PORT ?? 3000}`
+      : (process.env.NEXT_PUBLIC_APP_URL ??
+        `https://${process.env.VERCEL_URL ?? ""}`);
+  for (let tries = 0; tries < 2; tries++) {
+    try {
+      const res = await fetch(`${base}/api/idv/analyze-document`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${secret}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(45_000),
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as AnalyzeDocumentResponse;
+      if (json.ok) return json;
+      throw new Error(json.error);
+    } catch {
+      /* une relance puis dégradé */
+    }
+  }
+  return null;
+}
+
+/** Message inline pour les échecs REPRENABLES (photo à refaire). */
+function retryableMessage(
+  checks: AnalyzedCheck[],
+  mrzFormat: "td1" | "td3" | null
+): string {
+  const parts: string[] = [];
+  for (const c of checks) {
+    if (c.key === "mrz") {
+      parts.push(
+        `Zone MRZ illisible — reprenez la photo${
+          mrzFormat === "td1" ? " du verso" : ""
+        }, document bien à plat`
+      );
+    } else if (c.key === "doc_face") {
+      parts.push(
+        "Portrait introuvable — reprenez le recto, net et sans reflet"
+      );
+    }
+  }
+  return parts.join(" · ") || "Document illisible — reprenez les photos";
+}
+
 function qualityMessage(front: DocQuality, back: DocQuality | null): string {
   const parts: string[] = [];
   if (front.verdict === "failed") {
@@ -118,6 +204,10 @@ export async function submitIdvDocument(
     (d) => d.key === String(formData.get("document_type") ?? "")
   );
   if (!docType) return { error: "Type de document invalide." };
+
+  // TD2 (2×36) : format prévu par le registre mais non implémenté par le
+  // parseur (aucun document algérien) → traité comme « sans MRZ ».
+  const mrzFormat = docType.mrz_format === "td2" ? null : docType.mrz_format;
 
   const enabledModes = await getIdvModes();
   const candidates = gate.allowedModes.filter((m) =>
@@ -254,43 +344,172 @@ export async function submitIdvDocument(
     details: { front: frontQuality, back: backQuality },
   });
 
-  const nextStatus: IdvStatus = passed
-    ? "doc_validated"
-    : existing?.status === "resubmit_document"
-      ? "resubmit_document"
-      : "draft";
-  const { error: updErr } = await table<UpdateById>("idv_verifications")
-    .update({
-      document_type: docType.key,
-      mode,
-      attempt,
-      doc_front_path: frontPath,
-      doc_back_path: backPath,
-      status: nextStatus,
-    })
-    .eq("id", verifId);
-  if (updErr)
-    return { error: "Enregistrement du dossier impossible. Réessayez." };
+  // Statut « en place » si la soumission échoue de façon reprenable.
+  const keepStatus: IdvStatus =
+    existing?.status === "resubmit_document" ? "resubmit_document" : "draft";
+  const baseUpdate: Row = {
+    document_type: docType.key,
+    mode,
+    attempt,
+    doc_front_path: frontPath,
+    doc_back_path: backPath,
+  };
 
+  const applyUpdate = async (patch: Row): Promise<boolean> => {
+    const { error } = await table<UpdateById>("idv_verifications")
+      .update({ ...baseUpdate, ...patch })
+      .eq("id", verifId);
+    return !error;
+  };
+
+  if (!passed) {
+    await applyUpdate({ status: keepStatus });
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "document_processed",
+      reason: "doc_quality_failed",
+      metadata: {
+        attempt,
+        score,
+        front: frontQuality.reasons,
+        back: backQuality?.reasons ?? null,
+      },
+    });
+    revalidatePath("/driver/identite");
+    return {
+      error: qualityMessage(frontQuality, backQuality),
+      status: keepStatus,
+    };
+  }
+
+  // ── Analyse du document (étape 5) : portrait, MRZ + checksums, expiration ─
+  const analysis = await callAnalyzeDocument({
+    frontPath,
+    backPath,
+    mrzFormat,
+  });
+
+  if (!analysis) {
+    // Dégradé : pipeline injoignable → revue humaine, jamais bloquant.
+    await applyUpdate({ status: "pending_review" });
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "sent_to_review",
+      reason: "pipeline_unavailable",
+      metadata: { attempt },
+    });
+    revalidatePath("/driver/identite");
+    return { ok: true, status: "pending_review" };
+  }
+
+  for (const c of analysis.checks) {
+    await table<PlainInsert>("idv_checks").insert({
+      verification_id: verifId,
+      attempt,
+      check_key: c.key,
+      status: c.status,
+      score: c.score,
+      details: c.details ?? null,
+    });
+  }
+
+  // Extraction persistée dès qu'elle existe (utile aussi en revue humaine).
+  if (analysis.extracted) {
+    baseUpdate.extracted = analysis.extracted;
+    baseUpdate.document_expires_at = analysis.documentExpiresAt;
+  }
+
+  const hardFailures = analysis.checks.filter(
+    (c) => c.status === "failed" && !c.retryable
+  );
+  const technicalErrors = analysis.checks.filter((c) => c.status === "error");
+  const retryables = analysis.checks.filter(
+    (c) => c.status === "failed" && c.retryable
+  );
+
+  // 1) Échec DUR (document expiré / checksums MRZ invalides) → policy du mode.
+  if (hardFailures.length > 0) {
+    const policy = await loadModePolicy(mode);
+    const expired = hardFailures.some((c) => c.key === "doc_expiry");
+    const reason = expired ? "document_expired" : "mrz_invalid";
+    const action = expired ? policy.expired_document : policy.check_failed;
+    if (action === "reject") {
+      await applyUpdate({
+        status: "rejected",
+        decision: "auto_rejected",
+        decision_reason: reason,
+        decided_at: new Date().toISOString(),
+      });
+      await logIdvAudit({
+        verificationId: verifId,
+        actorType: "system",
+        action: "auto_rejected",
+        reason,
+        metadata: { attempt, checks: hardFailures.map((c) => c.key) },
+      });
+      revalidatePath("/driver/identite");
+      return { ok: true, status: "rejected" };
+    }
+    await applyUpdate({ status: "pending_review" });
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "sent_to_review",
+      reason,
+      metadata: { attempt, checks: hardFailures.map((c) => c.key) },
+    });
+    revalidatePath("/driver/identite");
+    return { ok: true, status: "pending_review" };
+  }
+
+  // 2) Panne technique d'un contrôle → revue humaine, jamais de refus auto.
+  if (technicalErrors.length > 0) {
+    await applyUpdate({ status: "pending_review" });
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "sent_to_review",
+      reason: "technical_error",
+      metadata: { attempt, checks: technicalErrors.map((c) => c.key) },
+    });
+    revalidatePath("/driver/identite");
+    return { ok: true, status: "pending_review" };
+  }
+
+  // 3) Échec REPRENABLE (MRZ illisible, portrait absent) → photo à refaire.
+  if (retryables.length > 0) {
+    await applyUpdate({ status: keepStatus });
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "document_processed",
+      reason: "retryable_failure",
+      metadata: { attempt, checks: retryables.map((c) => c.key) },
+    });
+    revalidatePath("/driver/identite");
+    return {
+      error: retryableMessage(retryables, mrzFormat),
+      status: keepStatus,
+    };
+  }
+
+  // 4) Tout est bon → « Document validé ».
+  const updated = await applyUpdate({ status: "doc_validated" });
+  if (!updated)
+    return { error: "Enregistrement du dossier impossible. Réessayez." };
   await logIdvAudit({
     verificationId: verifId,
     actorType: "system",
     action: "document_processed",
-    reason: passed ? "doc_quality_passed" : "doc_quality_failed",
+    reason: "document_validated",
     metadata: {
       attempt,
-      score,
-      front: frontQuality.reasons,
-      back: backQuality?.reasons ?? null,
+      quality: score,
+      mrz: docType.mrz_format ? "valid" : "skipped",
     },
   });
-
   revalidatePath("/driver/identite");
-  if (!passed) {
-    return {
-      error: qualityMessage(frontQuality, backQuality),
-      status: nextStatus,
-    };
-  }
   return { ok: true, status: "doc_validated" };
 }

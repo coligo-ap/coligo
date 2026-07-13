@@ -162,8 +162,25 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
    (au-delà → pending_review), statuts draft → doc_validated (« Document
    validé »), audit complet. L'étape 5 branchera OCR/MRZ/authenticité au
    même endroit avant `doc_validated`.
-5. Pipeline document : PP-OCR, MRZ + checksums, expiration, anti-fraude,
-   extraction structurée.
+5. ✅ **Pipeline document** : route interne `POST /api/idv/analyze-document`
+   (Bearer, dans la fonction aux modèles) appelée par l'action AVANT
+   `doc_validated` — contrat typé versionné (analyze-contract.ts).
+   Contrôles : `doc_face` (portrait sur le recto, YuNet, seuil 0.6),
+   `mrz` (tesseract.js autohébergé, whitelist A-Z0-9<, bande basse →
+   parseur PUR lib/idv/mrz.ts : TD1/TD3 + CHECKSUMS ICAO 9303, réparation
+   O→0 sur zones numériques UNIQUEMENT, validé sur les spécimens officiels
+   ERIKSSON), `doc_expiry` (date MRZ), `ocr_extract` (PP-OCR : SKIPPED —
+   étape 5b pour le permis). Extraction structurée → `extracted` +
+   `document_expires_at`. Décision au stade document : échec REPRENABLE
+   (MRZ illisible, portrait absent) → reprise photo ; échec DUR (expiré,
+   checksums invalides) → policy du mode (refus auto / revue) ; panne
+   technique → revue humaine ; pipeline injoignable → revue humaine.
+   PIÈGES appris : normalise/sharpen DÉGRADENT tesseract (gris + resize
+   1600 seul, mesuré conf 43 vs 0) ; les fillers '<' de fin se perdent à
+   l'OCR (tolérance de longueur 36-48/26-34) ; la réparation O→0 ne doit
+   JAMAIS toucher les champs alphanumériques (bug attrapé par « ZE184226B »).
+   5b (à venir) : PP-OCR det/rec ONNX arabe+latin pour le permis (sans MRZ)
+   et le croisement zone visuelle ↔ MRZ.
 6. Selfie + liveness (défis actifs signés + MiniFASNet passif — conversion
    ONNX maison des poids Apache-2.0).
 7. Face match (YuNet + SFace) + calibration des seuils + branchement du

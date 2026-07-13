@@ -10,10 +10,16 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // ── Pipeline ML IDV (docs/IDV-KYC.md) ─────────────────────────────────────
   // Modules natifs : jamais bundlés par webpack/turbopack, chargés au runtime.
-  serverExternalPackages: ["onnxruntime-node", "sharp"],
-  // Les modèles ONNX (models/idv/, ~39 Mo) voyagent avec les fonctions IDV…
+  serverExternalPackages: ["onnxruntime-node", "sharp", "tesseract.js"],
+  // Les modèles ONNX + tessdata (models/idv/) voyagent avec les fonctions
+  // IDV, ainsi que tesseract.js (worker_threads : chemins résolus au runtime,
+  // le traçage statique ne les voit pas)…
   outputFileTracingIncludes: {
-    "/api/idv/**": ["./models/idv/**"],
+    "/api/idv/**": [
+      "./models/idv/**",
+      "./node_modules/tesseract.js/**",
+      "./node_modules/tesseract.js-core/**",
+    ],
   },
   // …et les binaires onnxruntime des AUTRES plateformes (222 Mo sur 259) sont
   // exclus, sinon la fonction dépasse la limite Vercel de 250 Mo (vécu :
