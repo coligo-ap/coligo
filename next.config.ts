@@ -8,6 +8,23 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // ── Pipeline ML IDV (docs/IDV-KYC.md) ─────────────────────────────────────
+  // Modules natifs : jamais bundlés par webpack/turbopack, chargés au runtime.
+  serverExternalPackages: ["onnxruntime-node", "sharp"],
+  // Les modèles ONNX (models/idv/, ~39 Mo) voyagent avec les fonctions IDV…
+  outputFileTracingIncludes: {
+    "/api/idv/**": ["./models/idv/**"],
+  },
+  // …et les binaires onnxruntime des AUTRES plateformes (222 Mo sur 259) sont
+  // exclus, sinon la fonction dépasse la limite Vercel de 250 Mo. Vercel
+  // exécute du linux x64 : on ne garde que lui.
+  outputFileTracingExcludes: {
+    "*": [
+      "node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
+      "node_modules/onnxruntime-node/bin/napi-v6/win32/**",
+      "node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**",
+    ],
+  },
   // /search → / (la recherche vit sur l'accueil). Redirection HTTP RÉELLE,
   // AVANT tout rendu : l'ancienne page qui faisait redirect() pendant le
   // rendu streamait d'abord sa coque (200 + script de redirection) → le

@@ -130,10 +130,21 @@ L'admin peut exiger `resubmit_document` / `resubmit_selfie`. Terminaux :
    règles par profil, modes & seuils (zones de décision visualisées), policy
    d'échec, journal d'audit des réglages. Toute écriture : adminCan(confiance)
    - validation pure (lib/idv/settings-validation) + diff audité.
-3. **Fondations du pipeline ML sur Vercel** : onnxruntime-node + sharp,
-   embarquement des modèles (outputFileTracingIncludes), chargement par
-   instance, contrat interne typé, `THIRD-PARTY-LICENSES`, bench cold start.
+3. ✅ **Fondations du pipeline ML sur Vercel** : onnxruntime-node + sharp ;
+   modèles YuNet + SFace épinglés SHA-256 (`npm run idv:models`) et embarqués
+   (`outputFileTracingIncludes`, binaires ORT non-linux exclus — 259 Mo → 37) ;
+   lib/idv/pipeline/ (sessions par instance, letterbox 640 YuNet validé sur
+   vrai visage, SFace RGB brut + L2 conformes à la source OpenCV) ; route
+   sonde `POST /api/idv/selftest` (Bearer `INTERNAL_IDV_SECRET`, timings +
+   cold start) ; `THIRD-PARTY-LICENSES.md` ; bench `npm run test:idv:pipeline`.
+   PIÈGES appris : entrée YuNet FIXE 640×640 ; les poids SFace apparaissent
+   comme inputs du graphe (export MXNet) → ne nourrir que « data ».
 4. Parcours client — capture document guidée + upload sécurisé.
+   **Exigence UX (proprio, 13/07)** : expliquer CHAQUE étape pas-à-pas avec
+   illustrations ANIMÉES soignées (Lottie locales + repli CSS, jamais de CDN,
+   pas d'emojis en dur), gabarit visuel du document en surimpression pendant
+   le scan (template carte/passeport), micro-animations de transition,
+   textes courts style Bolt — niveau frontend « grande app ».
 5. Pipeline document : PP-OCR, MRZ + checksums, expiration, anti-fraude,
    extraction structurée.
 6. Selfie + liveness (défis actifs signés + MiniFASNet passif — conversion
