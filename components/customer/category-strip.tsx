@@ -26,26 +26,27 @@ function shortLabel(code: string, locale: string): string {
 }
 
 /**
- * AUTOCOLLANTS par défaut des filtres (public/categories/stickers/*.svg) : jeu
- * dessiné maison, style homogène (objet + dégradés doux + ombre au sol, fond
- * transparent). L'image ADMIN (mig 0311, /admin/categories) reste prioritaire
- * quand elle est définie. Un autocollant se rend en `contain` (il flotte dans
- * la tuile) ; toute autre image (photo uploadée) reste en `cover`.
+ * IMAGES par défaut des filtres (public/categories/stickers/*.png) : rendus 3D
+ * ultra propres — objet détouré sur fond transparent (Fluent Emoji 3D,
+ * Microsoft, licence MIT — voir LICENSE.txt du dossier), le style des tuiles
+ * Bolt Food. L'image ADMIN (mig 0311, /admin/categories) reste prioritaire
+ * quand elle est définie. Une image du dossier se rend en `contain` (l'objet
+ * flotte dans le rond) ; toute autre image (photo uploadée) reste en `cover`.
  */
 const CATEGORY_FILTER_IMAGE: Record<string, string> = {
-  superette: "/categories/stickers/superette.svg",
-  boulangerie: "/categories/stickers/boulangerie.svg",
-  pizzeria: "/categories/stickers/pizzeria.svg",
-  fast_food: "/categories/stickers/fast_food.svg",
-  restaurant: "/categories/stickers/restaurant.svg",
-  cafe: "/categories/stickers/cafe.svg",
-  glacier: "/categories/stickers/glacier.svg",
-  boucherie: "/categories/stickers/boucherie.svg",
-  poissonnerie: "/categories/stickers/poissonnerie.svg",
-  fruits_legumes: "/categories/stickers/fruits_legumes.svg",
-  produits_bio: "/categories/stickers/produits_bio.svg",
-  fleuriste: "/categories/stickers/fleuriste.svg",
-  pharmacie: "/categories/stickers/pharmacie.svg",
+  superette: "/categories/stickers/superette.png",
+  boulangerie: "/categories/stickers/boulangerie.png",
+  pizzeria: "/categories/stickers/pizzeria.png",
+  fast_food: "/categories/stickers/fast_food.png",
+  restaurant: "/categories/stickers/restaurant.png",
+  cafe: "/categories/stickers/cafe.png",
+  glacier: "/categories/stickers/glacier.png",
+  boucherie: "/categories/stickers/boucherie.png",
+  poissonnerie: "/categories/stickers/poissonnerie.png",
+  fruits_legumes: "/categories/stickers/fruits_legumes.png",
+  produits_bio: "/categories/stickers/produits_bio.png",
+  fleuriste: "/categories/stickers/fleuriste.png",
+  pharmacie: "/categories/stickers/pharmacie.png",
 };
 
 /** Un chemin d'autocollant local → rendu « objet flottant » (contain). */
@@ -84,7 +85,7 @@ export function CategoryStrip({
     <div className="scrollbar-hide -mx-4 flex gap-2.5 overflow-x-auto border-b border-[var(--color-border)] px-4 pb-3 lg:mx-0 lg:px-0">
       <Tile
         emoji="🛍️"
-        imageSrc="/categories/stickers/tous.svg"
+        imageSrc="/categories/stickers/tous.png"
         label={t("all")}
         active={!active}
         onClick={() => go(null)}
@@ -140,9 +141,9 @@ function Tile({
     >
       <span
         className={cn(
-          // Tuile façon Bolt Food : carré arrondi doux, l'autocollant FLOTTE
-          // dedans (contain + padding) — jamais de photo pleine qui sature.
-          "grid size-[64px] place-items-center overflow-hidden rounded-[18px] border-[1.5px] text-[28px] leading-none transition-all",
+          // Tuile RONDE (choix produit) : l'autocollant FLOTTE dedans
+          // (contain + padding) — jamais de photo pleine qui sature.
+          "grid size-[64px] place-items-center overflow-hidden rounded-full border-[1.5px] text-[28px] leading-none transition-all",
           active
             ? "border-primary-500 bg-primary-50 shadow-[0_4px_14px_-6px_rgba(108,43,217,.45)]"
             : "bg-surface-2 border-transparent"
@@ -159,8 +160,9 @@ function Tile({
             className={cn(
               "size-full",
               isSticker(imageSrc)
-                ? // Autocollant : objet centré qui respire dans la tuile.
-                  "scale-[1.04] object-contain p-1.5"
+                ? // Autocollant : objet centré qui respire dans le rond (padding
+                  // suffisant pour qu'aucun bord ne soit rogné par le cercle).
+                  "object-contain p-1"
                 : // Photo (upload admin) : plein cadre, comportement d'avant.
                   "object-cover"
             )}
