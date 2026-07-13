@@ -53,6 +53,7 @@
   --d-soft: var(--soft);
   --d-accent: var(--violet-soft);
   --d-field: var(--violet-soft);
+  --d-violet: var(--violet);
 
   font-family:
     var(--font-jakarta),
@@ -83,6 +84,7 @@
      mode sombre chauffeur) — --violet-soft reste clair, inutilisable ici. */
   --d-accent: rgba(138, 77, 255, 0.16);
   --d-field: rgba(138, 77, 255, 0.12);
+  --d-violet: #b493f9;
 }
 
 [data-space="driver"] .mq-sora {

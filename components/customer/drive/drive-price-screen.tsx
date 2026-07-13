@@ -16,6 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import { formatDA } from "@/lib/utils";
+import { useRoadPath } from "@/lib/drive/use-road-path";
 import { AvailabilityNotice } from "@/components/zones/availability-notice";
 import { DriveMap, type LatLng } from "./drive-map";
 import { PrimaryBtn, ProxModal, GO, ROSE, VIOLET } from "./drive-modals";
@@ -139,6 +140,17 @@ export function DrivePriceScreen({
   const t = useTranslations("drive");
   const router = useRouter();
 
+  // Itinéraire de SECOURS : si l'estimation de DriveView est arrivée sans
+  // géométrie (OSRM en disjoncteur), on re-demande ici le tracé réel (retry
+  // après le cooldown ~60 s) → la carte montre la vraie route, pas une ligne
+  // droite, dès qu'OSRM répond. Ne double jamais l'appel quand le tracé existe.
+  const needPath = !route?.path;
+  const backupPath = useRoadPath(
+    needPath ? { lat: pickup.lat, lng: pickup.lng } : null,
+    needPath ? { lat: dest.lat, lng: dest.lng } : null,
+    { retryMs: 65_000 }
+  );
+
   const floorLabel = !quote
     ? null
     : price === quote.mini
@@ -159,7 +171,7 @@ export function DrivePriceScreen({
             { id: "me", pos: pickup, kind: "me", label: "A" },
             { id: "dest", pos: dest, kind: "pin", label: "B" },
           ]}
-          route={route?.path ?? [pickup, dest]}
+          route={route?.path ?? backupPath ?? [pickup, dest]}
           padding={{ top: 40, bottom: 30, left: 50, right: 50 }}
           className="absolute inset-0"
         />
@@ -217,7 +229,7 @@ export function DrivePriceScreen({
               setSchedOpen(true);
             }}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-[var(--d-line)] py-2.5 text-[13px] font-bold"
-            style={{ color: VIOLET }}
+            style={{ color: "var(--d-violet)" }}
           >
             <CalendarClock className="size-4" />
             {t("price.scheduleCta")}
@@ -296,13 +308,18 @@ export function DrivePriceScreen({
               onClick={() => pickGamme(g)}
               className="relative flex w-[108px] shrink-0 flex-col items-center rounded-[18px] border-[1.5px] px-2 pt-3 pb-2.5 text-center"
               style={
+                /* Fond TOKENISÉ dans les deux états (jamais #fff en dur : en
+                   sombre le texte hérité --d-ink est blanc → invisible). */
                 gamme === g
                   ? {
-                      borderColor: VIOLET,
+                      borderColor: "var(--d-violet)",
                       background: "var(--d-accent)",
                       boxShadow: "0 8px 20px -10px rgba(91,91,230,.42)",
                     }
-                  : { borderColor: "var(--d-line)", background: "#fff" }
+                  : {
+                      borderColor: "var(--d-line)",
+                      background: "var(--d-soft)",
+                    }
               }
             >
               {g === "confort" && (
@@ -326,7 +343,7 @@ export function DrivePriceScreen({
               />
               <b className="drive-sora mt-1 text-[13px]">{t(`gammes.${g}`)}</b>
               <span className="mt-0.5">
-                <b className="text-[12px]" style={{ color: VIOLET }}>
+                <b className="text-[12px]" style={{ color: "var(--d-violet)" }}>
                   {quotes ? formatDA(quotes[g].recommended) : "…"}
                 </b>
                 <span className="block text-[9px] font-semibold text-[var(--d-muted)]">
@@ -360,9 +377,9 @@ export function DrivePriceScreen({
                 style={
                   payMode === m
                     ? {
-                        borderColor: VIOLET,
+                        borderColor: "var(--d-violet)",
                         background: "var(--d-accent)",
-                        color: VIOLET,
+                        color: "var(--d-violet)",
                       }
                     : {
                         borderColor: "var(--d-line)",
@@ -398,7 +415,7 @@ export function DrivePriceScreen({
               type="button"
               onClick={() => router.push("/coligo-pay")}
               className="mt-1.5 text-[12px] font-extrabold underline underline-offset-2"
-              style={{ color: VIOLET }}
+              style={{ color: "var(--d-violet)" }}
             >
               {t("price.cpayRecharge")}
             </button>
@@ -433,9 +450,9 @@ export function DrivePriceScreen({
                     style={
                       on
                         ? {
-                            borderColor: VIOLET,
-                            background: "#fff",
-                            color: VIOLET,
+                            borderColor: "var(--d-violet)",
+                            background: "var(--d-accent)",
+                            color: "var(--d-violet)",
                           }
                         : {
                             borderColor: "var(--d-line)",
@@ -459,7 +476,7 @@ export function DrivePriceScreen({
               onClick={() => stepPrice(-1)}
               disabled={priceStale}
               className="grid size-[46px] place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-2xl font-bold disabled:opacity-40"
-              style={{ color: VIOLET }}
+              style={{ color: "var(--d-violet)" }}
             >
               −
             </button>
@@ -486,7 +503,7 @@ export function DrivePriceScreen({
               onClick={() => stepPrice(1)}
               disabled={priceStale}
               className="grid size-[46px] place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-2xl font-bold disabled:opacity-40"
-              style={{ color: VIOLET }}
+              style={{ color: "var(--d-violet)" }}
             >
               +
             </button>
@@ -537,7 +554,7 @@ export function DrivePriceScreen({
                   setBoostAmt((a) => Math.max(ctx.boostMin, a - ctx.boostStep))
                 }
                 className="grid size-10 place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-xl font-bold"
-                style={{ color: VIOLET }}
+                style={{ color: "var(--d-violet)" }}
               >
                 −
               </button>
@@ -551,7 +568,7 @@ export function DrivePriceScreen({
                 type="button"
                 onClick={() => setBoostAmt((a) => a + ctx.boostStep)}
                 className="grid size-10 place-items-center rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-xl font-bold"
-                style={{ color: VIOLET }}
+                style={{ color: "var(--d-violet)" }}
               >
                 +
               </button>

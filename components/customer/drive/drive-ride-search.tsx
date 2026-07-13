@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
+import { useRoadPath } from "@/lib/drive/use-road-path";
 import { DriveMap } from "./drive-map";
 import { ChAvatar } from "./ch-avatar";
 import { DriverBadgePill } from "@/components/drive/driver-badge";
@@ -60,6 +61,37 @@ export function SearchScreen({
   // Carte : tant que le webhook n'a pas confirmé, la demande n'est pas diffusée.
   const waitingCard =
     !!ride && ride.payment_method === "card" && !ride.online_paid;
+
+  // Trajet A → B sur la carte pendant la recherche : itinéraire ROUTIER réel
+  // (OSRM, retry après le cooldown du disjoncteur), repli ligne droite en
+  // attendant. Le client voit ce qu'il a demandé pendant que les offres tombent.
+  const pickupPos = useMemo(
+    () =>
+      ride?.pickup_lat != null && ride.pickup_lng != null
+        ? { lat: ride.pickup_lat, lng: ride.pickup_lng }
+        : null,
+    [ride?.pickup_lat, ride?.pickup_lng]
+  );
+  const destPos = useMemo(
+    () =>
+      ride?.dest_lat != null && ride.dest_lng != null
+        ? { lat: ride.dest_lat, lng: ride.dest_lng }
+        : null,
+    [ride?.dest_lat, ride?.dest_lng]
+  );
+  const roadPath = useRoadPath(pickupPos, destPos, { retryMs: 65_000 });
+  // Cadrage dans la BANDE VISIBLE au-dessus de la feuille d'offres (top 230px) :
+  // padding bas ≈ hauteur d'écran − bande, borné pour ne jamais dépasser la
+  // taille de la carte (fitBounds refuse un padding plus grand que le canvas).
+  const mapPadding = useMemo(() => {
+    const h = typeof window === "undefined" ? 740 : window.innerHeight;
+    return {
+      top: 64,
+      bottom: Math.max(120, h - 220),
+      left: 56,
+      right: 56,
+    };
+  }, []);
 
   // Annulation AVANT choix du chauffeur : directe, sans motif, retour immédiat à
   // l'écran prix (séquestre recrédité serveur ; la course n'entre pas dans
@@ -207,16 +239,23 @@ export function SearchScreen({
 
   return (
     <div className="drive-jakarta drive-screen z-40 bg-[var(--d-page)]">
-      {ride?.pickup_lat != null && (
+      {pickupPos && (
         <DriveMap
           markers={[
-            {
-              id: "me",
-              pos: { lat: ride.pickup_lat, lng: ride.pickup_lng! },
-              kind: "me",
-            },
+            { id: "me", pos: pickupPos, kind: "me", label: "A" },
+            ...(destPos
+              ? [
+                  {
+                    id: "dest",
+                    pos: destPos,
+                    kind: "pin" as const,
+                    label: "B" as const,
+                  },
+                ]
+              : []),
           ]}
-          padding={{ top: 80, bottom: 500, left: 60, right: 60 }}
+          route={destPos ? (roadPath ?? [pickupPos, destPos]) : null}
+          padding={mapPadding}
         />
       )}
       <div className="absolute inset-x-0 top-[230px] bottom-0 z-10 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[max(2rem,env(safe-area-inset-bottom))] shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">

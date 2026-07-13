@@ -1014,6 +1014,10 @@ body {
      (#EEEEFD / #F6F3FE) en style inline, donc figés clairs en mode sombre. */
   --d-accent: #eeeefd;
   --d-field: #f6f3fe;
+  /* Violet d'accent LISIBLE dans les deux thèmes (textes/bordures) : #6C2BD9
+     est trop sombre sur fond sombre → éclairci en dark (même teinte que la
+     remappe .text-primary-600/700 du client). */
+  --d-violet: #6c2bd9;
 }
 .drive-jakarta {
   --d-page: #e9ebf1;
@@ -1024,6 +1028,7 @@ body {
   --d-soft: #f4f5f9;
   --d-accent: #eeeefd;
   --d-field: #f6f3fe;
+  --d-violet: #6c2bd9;
   color: var(--d-ink);
 }
 /* Mode sombre = CHOIX utilisateur (interrupteur du header, cookie
@@ -1043,6 +1048,7 @@ body {
   --d-soft: #1f2230;
   --d-accent: rgba(138, 77, 255, 0.16);
   --d-field: rgba(138, 77, 255, 0.12);
+  --d-violet: #b493f9;
 }
 /* Plaque d'immatriculation : fixe (blanc/noir) dans LES DEUX thèmes (maquette .plate). */
 .drive-plate {
