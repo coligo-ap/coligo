@@ -1,6 +1,6 @@
 import { LayoutDashboard } from "lucide-react";
 import { getLateOrdersCountForAdmin } from "@/lib/data/platform";
-import { PilotageHubTabs } from "@/components/admin/pilotage/pilotage-hub-tabs";
+import { AdminHubTabs } from "@/components/admin/admin-hub-tabs";
 import { requireAdminDomain } from "@/lib/auth/admin";
 
 // Hub Pilotage (cockpit) : regroupe Vue d'ensemble / Commandes / Alertes en
@@ -23,7 +23,7 @@ export default async function PilotageHubLayout({
             <h1 className="text-lg font-bold tracking-tight">Pilotage</h1>
           </div>
           <div className="pb-2">
-            <PilotageHubTabs lateCount={lateCount} />
+            <AdminHubTabs domain="pilotage" pendingCount={lateCount} />
           </div>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Menu, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isItemActive } from "@/lib/admin/navigation";
 import {
   isAdminDomainActive,
   visibleDomains,
@@ -139,6 +140,7 @@ export function AdminMobileNav({
                 <MobileItem
                   key={d.href}
                   d={d}
+                  pathname={pathname}
                   active={isAdminDomainActive(pathname, d)}
                   onNavigate={() => setOpen(false)}
                 />
@@ -151,36 +153,81 @@ export function AdminMobileNav({
   );
 }
 
+/**
+ * Domaine du menu mobile : le domaine COURANT montre ses pages (sections
+ * comprises) ; les autres restent une ligne. Sur un téléphone, dérouler les huit
+ * domaines d'un coup ferait un mur de 40 liens — on montre le contexte, pas tout.
+ */
 function MobileItem({
   d,
   active,
   onNavigate,
+  pathname,
 }: {
   d: AdminDomain;
   active: boolean;
   onNavigate: () => void;
+  pathname: string;
 }) {
   const Icon = d.icon;
-  const summary = useDomainSummary(d.domain);
+  const summary = useDomainSummary(d.key);
   const critical = summary?.severity === "critical";
+  const pages = d.sections.flatMap((s) => s.items);
+
   return (
-    <Link
-      href={d.href}
-      onClick={onNavigate}
-      className={cn(
-        "flex min-h-[44px] items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors",
-        active
-          ? critical
-            ? "bg-danger-50 text-danger-700 font-medium"
-            : "bg-primary-50 text-primary-900 font-medium"
-          : critical
-            ? "text-danger-700 hover:bg-danger-50"
-            : "text-muted hover:bg-surface-2 hover:text-foreground"
+    <div>
+      <Link
+        href={d.href}
+        onClick={onNavigate}
+        className={cn(
+          "flex min-h-[44px] items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors",
+          active
+            ? critical
+              ? "bg-danger-50 text-danger-700 font-medium"
+              : "bg-primary-50 text-primary-900 font-medium"
+            : critical
+              ? "text-danger-700 hover:bg-danger-50"
+              : "text-muted hover:bg-surface-2 hover:text-foreground"
+        )}
+      >
+        <Icon className="size-5 shrink-0" />
+        <span className="flex-1">{d.label}</span>
+        <DomainBadge summary={summary} />
+      </Link>
+
+      {active && pages.length > 1 && (
+        <div className="border-border mt-0.5 mb-1 ml-[22px] border-l pl-2">
+          {d.sections.map((section, i) => (
+            <div key={section.label ?? i} className="py-0.5">
+              {section.label && (
+                <p className="text-muted px-2 pt-1.5 pb-0.5 text-[10px] font-bold tracking-wide uppercase">
+                  {section.label}
+                </p>
+              )}
+              {section.items.map((page) => {
+                const PageIcon = page.icon;
+                const on = isItemActive(pathname, page);
+                return (
+                  <Link
+                    key={page.href}
+                    href={page.href}
+                    onClick={onNavigate}
+                    className={cn(
+                      "flex min-h-[40px] items-center gap-2 rounded-[8px] px-2 py-1.5 text-[13px] transition-colors",
+                      on
+                        ? "text-primary-700 bg-primary-50/70 font-semibold"
+                        : "text-muted hover:bg-surface-2 hover:text-foreground"
+                    )}
+                  >
+                    <PageIcon className="size-4 shrink-0" />
+                    <span className="truncate">{page.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+        </div>
       )}
-    >
-      <Icon className="size-5 shrink-0" />
-      <span className="flex-1">{d.label}</span>
-      <DomainBadge summary={summary} />
-    </Link>
+    </div>
   );
 }

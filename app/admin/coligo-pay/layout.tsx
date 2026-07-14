@@ -1,7 +1,7 @@
 import { Wallet } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminDomain } from "@/lib/auth/admin";
-import { FinancesHubTabs } from "@/components/admin/coligo-pay/finances-hub-tabs";
+import { AdminHubTabs } from "@/components/admin/admin-hub-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +48,7 @@ export default async function FinancesHubLayout({
             </h1>
           </div>
           <div className="pb-2">
-            <FinancesHubTabs pendingCount={pendingCount} />
+            <AdminHubTabs domain="finances" pendingCount={pendingCount} />
           </div>
         </div>
       </div>

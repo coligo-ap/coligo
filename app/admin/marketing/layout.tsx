@@ -1,5 +1,5 @@
 import { Megaphone } from "lucide-react";
-import { MarketingHubTabs } from "@/components/admin/marketing/marketing-hub-tabs";
+import { AdminHubTabs } from "@/components/admin/admin-hub-tabs";
 import { requireAdminDomain } from "@/lib/auth/admin";
 
 // Hub Marketing & Communication : regroupe Bannières / Notifications en onglets.
@@ -22,7 +22,7 @@ export default async function MarketingHubLayout({
             </h1>
           </div>
           <div className="pb-2">
-            <MarketingHubTabs />
+            <AdminHubTabs domain="marketing" />
           </div>
         </div>
       </div>

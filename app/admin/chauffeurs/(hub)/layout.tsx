@@ -1,7 +1,7 @@
 import { Car } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminDomain } from "@/lib/auth/admin";
-import { DriveHubTabs } from "@/components/admin/drive/drive-hub-tabs";
+import { AdminHubTabs } from "@/components/admin/admin-hub-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ export default async function DriveHubLayout({
         <h1 className="text-2xl font-bold tracking-tight">Coligo Drive</h1>
       </header>
       <div className="border-border mb-6 border-b pb-3">
-        <DriveHubTabs pendingCount={pendingCount} />
+        <AdminHubTabs domain="drive" pendingCount={pendingCount} />
       </div>
       {children}
     </div>

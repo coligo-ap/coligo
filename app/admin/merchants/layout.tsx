@@ -1,7 +1,7 @@
 import { Store } from "lucide-react";
 import { getPendingMerchantsCountForAdmin } from "@/lib/data/platform";
 import { requireAdminDomain } from "@/lib/auth/admin";
-import { MerchantHubTabs } from "@/components/admin/merchants/merchant-hub-tabs";
+import { AdminHubTabs } from "@/components/admin/admin-hub-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ export default async function MerchantHubLayout({
         <h1 className="text-2xl font-bold tracking-tight">Commerçants</h1>
       </header>
       <div className="border-border mb-6 border-b pb-3">
-        <MerchantHubTabs pendingCount={pendingCount} />
+        <AdminHubTabs domain="commercants" pendingCount={pendingCount} />
       </div>
       {children}
     </div>

@@ -1,5 +1,5 @@
 import { Bike } from "lucide-react";
-import { DeliveryHubTabs } from "@/components/admin/delivery/delivery-hub-tabs";
+import { AdminHubTabs } from "@/components/admin/admin-hub-tabs";
 import { getDriverRegistrations } from "@/lib/data/admin-drivers";
 import { requireAdminDomain } from "@/lib/auth/admin";
 
@@ -23,7 +23,7 @@ export default async function DeliveryHubLayout({
         <h1 className="text-2xl font-bold tracking-tight">Livraison</h1>
       </header>
       <div className="border-border mb-6 border-b pb-3">
-        <DeliveryHubTabs pendingCount={pendingCount} />
+        <AdminHubTabs domain="livraison" pendingCount={pendingCount} />
       </div>
       {children}
     </div>

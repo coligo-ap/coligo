@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { LogOut, ShieldCheck } from "lucide-react";
 import { requireSuperAdmin, getAdminContext } from "@/lib/auth/admin";
 import { logout } from "@/app/(merchant)/actions";
@@ -6,6 +7,8 @@ import { Logo } from "@/components/shared/logo";
 import { AdminAlertsProvider } from "@/components/admin/admin-alerts-provider";
 import { AlertFocusEffect } from "@/components/admin/alert-focus";
 import { AdminNotificationCenter } from "@/components/admin/admin-notification-center";
+import { AdminSearchButton } from "@/components/admin/admin-search";
+import { AdminBreadcrumb } from "@/components/admin/admin-breadcrumb";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 import { AdminShell } from "@/components/admin/admin-sidebar";
 import { ConfirmProvider } from "@/components/ui/confirm";
@@ -43,13 +46,25 @@ export default async function AdminLayout({
           <header className="border-border sticky top-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center justify-between gap-4 border-b bg-white px-4 pt-[env(safe-area-inset-top)] lg:px-6">
             <div className="flex min-w-0 items-center gap-3 lg:gap-4">
               <AdminMobileNav domains={domains} isOwner={isOwner} />
-              <span className="flex shrink-0 items-center gap-2 font-semibold">
+              <Link
+                href="/admin"
+                className="flex shrink-0 items-center gap-2 font-semibold"
+              >
                 <Logo size="sm" className="hidden sm:flex" />
                 <ShieldCheck className="text-primary-600 size-5" />
                 <span className="hidden sm:inline">Admin</span>
+              </Link>
+              {/* Où suis-je, et comment je remonte : la question se pose sans
+                  cesse dans un dashboard de 60 pages. */}
+              <span aria-hidden className="text-border hidden sm:inline">
+                /
               </span>
+              <AdminBreadcrumb />
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
+              {/* Recherche de fonctionnalité (⌘K) — le raccourci de tous les
+                  dashboards sérieux : on tape ce qu'on veut faire, on y est. */}
+              <AdminSearchButton compact />
               <AdminNotificationCenter />
               <form action={logout}>
                 <button

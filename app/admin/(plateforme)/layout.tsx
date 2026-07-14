@@ -1,5 +1,5 @@
 import { Settings2 } from "lucide-react";
-import { PlateformeHubTabs } from "@/components/admin/plateforme/plateforme-hub-tabs";
+import { AdminHubTabs } from "@/components/admin/admin-hub-tabs";
 import { requireAdminDomain, isOwner } from "@/lib/auth/admin";
 
 // Hub Plateforme : regroupe Contrôle services / Taux / Configuration / Zones +
@@ -22,7 +22,7 @@ export default async function PlateformeHubLayout({
             <h1 className="text-lg font-bold tracking-tight">Plateforme</h1>
           </div>
           <div className="pb-2">
-            <PlateformeHubTabs isOwner={owner} />
+            <AdminHubTabs domain="plateforme" isOwner={owner} />
           </div>
         </div>
       </div>

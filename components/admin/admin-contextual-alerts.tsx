@@ -19,5 +19,5 @@ export function AdminContextualAlerts() {
   if (pathname.startsWith("/admin/alertes")) return null;
   const active = ADMIN_DOMAINS.find((d) => isAdminDomainActive(pathname, d));
   if (!active) return null;
-  return <DomainAlertBanner domain={active.domain} />;
+  return <DomainAlertBanner domain={active.key} />;
 }

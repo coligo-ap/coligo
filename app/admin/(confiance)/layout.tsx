@@ -1,5 +1,5 @@
 import { ShieldCheck } from "lucide-react";
-import { ConfianceHubTabs } from "@/components/admin/confiance/confiance-hub-tabs";
+import { AdminHubTabs } from "@/components/admin/admin-hub-tabs";
 import { requireAdminDomain } from "@/lib/auth/admin";
 
 // Hub Confiance & Sécurité : regroupe Signalements / Appareils / Sécurité en
@@ -22,7 +22,7 @@ export default async function ConfianceHubLayout({
             </h1>
           </div>
           <div className="pb-2">
-            <ConfianceHubTabs />
+            <AdminHubTabs domain="confiance" />
           </div>
         </div>
       </div>
