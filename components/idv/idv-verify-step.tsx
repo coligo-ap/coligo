@@ -218,11 +218,7 @@ export function IdvVerifyStep({
             style={{ color: "var(--idv-accent)" }}
           />
         }
-        title={
-          idv.rejected
-            ? "Réessayer la vérification"
-            : "Vérification instantanée"
-        }
+        title="Vérification instantanée"
         delay="Scan + selfie · 2 min"
       />
       <Card
