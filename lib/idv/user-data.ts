@@ -18,6 +18,8 @@ export type IdvVerificationView = {
   mode: string;
   attempt: number;
   updated_at: string;
+  /** Dossier passé en vérification MANUELLE après un refus automatique (0371). */
+  manual_fallback: boolean;
 };
 
 /** Dossier VIVANT de l'utilisateur connecté pour ce profil (ou null). */
@@ -55,7 +57,9 @@ export async function getMyIdvVerification(
     };
   };
   const { data } = await from("idv_verifications")
-    .select("id, status, document_type, mode, attempt, updated_at")
+    .select(
+      "id, status, document_type, mode, attempt, updated_at, manual_fallback"
+    )
     .eq("user_id", user.id)
     .eq("profile", profile)
     .in("status", IDV_ACTIVE_STATUSES)
@@ -102,7 +106,9 @@ export async function getMyLatestIdvVerification(
     };
   };
   const { data } = await from("idv_verifications")
-    .select("id, status, document_type, mode, attempt, updated_at")
+    .select(
+      "id, status, document_type, mode, attempt, updated_at, manual_fallback"
+    )
     .eq("user_id", user.id)
     .eq("profile", profile)
     .order("updated_at", { ascending: false })

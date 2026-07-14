@@ -12,7 +12,11 @@ import { idvStateOf } from "@/lib/idv/ui-state";
 // Le jumeau client est components/idv/idv-callout-client.tsx.
 // =============================================================================
 
-export async function IdvCallout({ profile }: { profile: IdvProfile }) {
-  const c = await getIdvCompliance(profile);
-  return <IdvVerifyCard idv={idvStateOf(c)} />;
+/** Les trois espaces réellement servis par la carte (IdvProfile est ouvert aux
+ *  profils futurs ; la carte, elle, s'adresse à un espace précis). */
+type IdvCardProfile = "driver" | "chauffeur" | "merchant";
+
+export async function IdvCallout({ profile }: { profile: IdvCardProfile }) {
+  const c = await getIdvCompliance(profile satisfies IdvProfile);
+  return <IdvVerifyCard idv={idvStateOf(c)} profile={profile} />;
 }

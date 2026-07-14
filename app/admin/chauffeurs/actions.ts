@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  currentIdvActor,
+  settleIdvOnDossierApproval,
+} from "@/lib/idv/fallback";
 import { adminCan } from "@/lib/auth/admin";
 
 // =============================================================================
@@ -131,6 +135,17 @@ export async function approveChauffeur(
     .select("user_id, first_name, full_name")
     .maybeSingle();
   if (error) return { error: error.message };
+
+  // Même règle que pour le livreur : valider le dossier, c'est avoir examiné les
+  // pièces — donc trancher le recours d'identité resté en attente (mig 0371).
+  if (data?.user_id) {
+    await settleIdvOnDossierApproval(
+      data.user_id,
+      "chauffeur",
+      await currentIdvActor()
+    );
+  }
+
   await audit("approve_chauffeur", chauffeurId);
   // FCM au chauffeur : compte activé.
   if (data?.user_id) {

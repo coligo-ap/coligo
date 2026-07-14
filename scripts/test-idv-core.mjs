@@ -386,6 +386,55 @@ try {
     );
     await c.query("ROLLBACK TO SAVEPOINT multi");
   }
+
+  // ── RECOURS après refus automatique (mig 0371) ───────────────────────────
+  // Un refus de la machine ne doit pas être une impasse : le dossier repart en
+  // revue humaine et se juge SUR PIÈCES — donc sans score de comparaison des
+  // visages. L'invariant « approuvé sans face_match » doit l'accepter, et
+  // continuer de mordre sur toutes les décisions AUTOMATIQUES.
+  const anyUser3 = await c.query("SELECT id FROM auth.users LIMIT 1");
+  if (anyUser3.rows.length) {
+    const uid3 = anyUser3.rows[0].id;
+    await c.query("SAVEPOINT fallback");
+
+    const hasCode = async (code) =>
+      (await c.query("SELECT code FROM integrity_violations()")).rows.some(
+        (r) => r.code === code
+      );
+
+    // 1) Dossier approuvé par un HUMAIN après recours, sans face_match.
+    const v = await c.query(
+      `INSERT INTO idv_verifications
+         (user_id, profile, mode, status, manual_fallback, decision, decision_reason, decided_at, decided_by)
+       VALUES ($1, 'driver', 'standard', 'approved', true, 'manual_approved', 'pièces vérifiées', now(), $1)
+       RETURNING id`,
+      [uid3]
+    );
+    await c.query(
+      `INSERT INTO idv_audit_log (verification_id, actor_type, actor_email, action)
+       VALUES ($1, 'admin', 'admin@coligo', 'manual_approved')`,
+      [v.rows[0].id]
+    );
+    ok(
+      "recours approuvé sur pièces (sans face_match) ⇒ AUCUNE violation",
+      await hasCode("idv_approved_without_face_match"),
+      false
+    );
+
+    // 2) Le même dossier SANS le marqueur de recours : la machine aurait alors
+    //    « approuvé » sans comparer les visages — l'invariant doit hurler.
+    await c.query(
+      "UPDATE idv_verifications SET manual_fallback = false WHERE id = $1",
+      [v.rows[0].id]
+    );
+    ok(
+      "approuvé AUTOMATIQUEMENT sans face_match ⇒ violation critique",
+      await hasCode("idv_approved_without_face_match"),
+      true
+    );
+
+    await c.query("ROLLBACK TO SAVEPOINT fallback");
+  }
 } finally {
   await c.query("ROLLBACK");
   await c.end();

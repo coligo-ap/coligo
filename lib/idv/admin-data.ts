@@ -119,6 +119,8 @@ export type IdvQueueItem = {
   status: IdvStatus;
   created_at: string;
   updated_at: string;
+  /** Recours après refus automatique : à juger sur pièces, pas sur les scores. */
+  manual_fallback: boolean;
   /** Nom lisible du partenaire (livreur), si trouvé. */
   person_name: string | null;
   person_phone: string | null;
@@ -155,7 +157,7 @@ export async function getIdvReviewQueue(limit = 50): Promise<IdvQueueItem[]> {
 
   const { data: rows } = await from("idv_verifications")
     .select(
-      "id, user_id, profile, mode, document_type, status, created_at, updated_at"
+      "id, user_id, profile, mode, document_type, status, created_at, updated_at, manual_fallback"
     )
     .eq("status", "pending_review")
     .order("created_at", { ascending: true })

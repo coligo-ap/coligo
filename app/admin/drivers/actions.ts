@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  currentIdvActor,
+  settleIdvOnDossierApproval,
+} from "@/lib/idv/fallback";
 import { adminCan } from "@/lib/auth/admin";
 import { adminCancelOrder, type AdminFormState } from "@/app/admin/actions";
 import { validateUploadedFile } from "@/lib/security/file-validation";
@@ -149,18 +153,32 @@ export async function setDriverVerified(
 ): Promise<{ error?: string }> {
   if (!(await adminCan("livraison"))) return { error: "Accès refusé." };
   const admin = createAdminClient();
-  const { error } = await admin
+  const actor = verified ? await adminEmail() : null;
+  const { data: row, error } = await admin
     .from("drivers")
     .update({
       is_verified: verified,
       verified_at: verified ? new Date().toISOString() : null,
-      verified_by: verified ? await adminEmail() : null,
+      verified_by: actor,
       // Une validation efface un éventuel refus antérieur. Un retrait de
       // validation replace le livreur en attente (dossier toujours transmis).
       ...(verified ? { rejected_at: null, rejection_reason: null } : {}),
     })
-    .eq("id", driverId);
+    .eq("id", driverId)
+    .select("user_id")
+    .maybeSingle();
   if (error) return { error: error.message };
+
+  // RECOURS d'identité en attente (mig 0371) : en validant le dossier, l'équipe
+  // VIENT d'examiner les pièces — c'est la vérification manuelle. Sans cela, le
+  // livreur validé buterait sur l'écran bloquant « vérifiez votre identité ».
+  if (verified && row?.user_id) {
+    await settleIdvOnDossierApproval(
+      row.user_id,
+      "driver",
+      await currentIdvActor()
+    );
+  }
 
   if (verified) {
     const shouldNotify = notify ?? (await getNotifyDriverOnVerify());

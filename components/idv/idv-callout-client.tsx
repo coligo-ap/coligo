@@ -35,7 +35,7 @@ export function IdvCalloutClient({
   if (!c || !c.enabled) return null;
   return (
     <div className="mb-3">
-      <IdvVerifyCard idv={idvStateOf(c)} />
+      <IdvVerifyCard idv={idvStateOf(c)} profile={profile} />
     </div>
   );
 }

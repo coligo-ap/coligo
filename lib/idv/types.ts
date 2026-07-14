@@ -140,6 +140,9 @@ export type IdvVerificationRow = {
   document_type: string | null;
   status: IdvStatus;
   attempt: number;
+  /** Dossier REFUSÉ par la machine puis confié à l'équipe (recours, mig 0371) :
+   *  il se juge sur pièces, il n'a donc aucun score de comparaison des visages. */
+  manual_fallback: boolean;
   doc_front_path: string | null;
   doc_back_path: string | null;
   selfie_path: string | null;

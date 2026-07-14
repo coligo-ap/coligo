@@ -54,7 +54,7 @@ export function IdvStatusBlock({ idv }: { idv: IdvChoiceState }) {
           style={{ color: "var(--idv-bad)" }}
         />,
         "Vérification refusée",
-        "Reprenez la vérification ou contactez le support.",
+        "Réessayez, ou faites examiner vos pièces par l'équipe Coligo.",
       ]
     : idv.verified
       ? [
@@ -203,7 +203,9 @@ export function IdvVerifyStep({
   return (
     <IdvScope className="space-y-2.5">
       <p className="text-[13px]" style={{ color: "var(--idv-muted)" }}>
-        Comment souhaitez-vous prouver votre identité ?
+        {idv.rejected
+          ? "La vérification automatique n'a pas abouti. Réessayez, ou confiez vos pièces à l'équipe Coligo."
+          : "Comment souhaitez-vous prouver votre identité ?"}
       </p>
 
       <Card
@@ -214,7 +216,11 @@ export function IdvVerifyStep({
             style={{ color: "var(--idv-accent)" }}
           />
         }
-        title="Vérification instantanée"
+        title={
+          idv.rejected
+            ? "Réessayer la vérification"
+            : "Vérification instantanée"
+        }
         delay="Scan + selfie · 2 min"
       />
       <Card
@@ -314,7 +320,7 @@ export function IdvPrimaryButton({
         ) : (
           <ScanFace className="size-4" />
         )}
-        Vérifier mon identité
+        {idv.rejected ? "Réessayer la vérification" : "Vérifier mon identité"}
       </button>
     </IdvScope>
   );

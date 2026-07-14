@@ -7,6 +7,7 @@ import { validateUploadedFile } from "@/lib/security/file-validation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getIdvCompliance, idvSubmissionBlock } from "@/lib/idv/compliance";
+import { openIdvManualFallback } from "@/lib/idv/fallback";
 import {
   canonicalPhone,
   getCurrentDriver,
@@ -943,6 +944,8 @@ export type DriverKycData = {
     verified: boolean;
     /** Dossier en cours d'analyse ou de revue humaine. */
     inProgress: boolean;
+    /** Refusé par la vérification automatique → recours par l'examen humain. */
+    rejected: boolean;
     /** Route du parcours. */
     route: string;
   };
@@ -1032,9 +1035,12 @@ export async function getDriverKyc(): Promise<DriverKycData | null> {
   const present: KycDocs = {};
   for (const d of docs) present[d.docType] = true;
 
-  // Méthode retenue : imposée à « instant » quand l'IDV est obligatoire.
+  // Méthode retenue : imposée à « instant » quand l'IDV est obligatoire — SAUF
+  // si la machine a déjà refusé ce livreur : le recours (examen humain sur
+  // pièces) rouvre alors le choix, sinon un refus à tort serait sans issue.
   const stored = (methodRow?.kyc_method ?? null) as KycMethod | null;
-  const forced = idv.enabled && idv.required;
+  const appealable = idv.rejected || idv.manualFallback;
+  const forced = idv.enabled && idv.required && !appealable;
   const method: KycMethod | null = forced
     ? "instant"
     : idv.enabled
@@ -1055,6 +1061,7 @@ export async function getDriverKyc(): Promise<DriverKycData | null> {
       method,
       verified: idv.verified,
       inProgress: idv.inProgress,
+      rejected: idv.rejected,
       route: idv.route,
     },
   };
@@ -1076,11 +1083,21 @@ export async function setDriverKycMethod(
   }
 
   const idv = await getIdvCompliance("driver");
+  // La vérification automatique a REFUSÉ : la voie manuelle redevient ouverte,
+  // même quand l'IDV est obligatoire — sinon un refus à tort (document abîmé,
+  // photo de nuit) enfermerait le livreur à vie, sans recours. Choisir « manuel »
+  // à ce moment-là, c'est demander l'examen par l'équipe Coligo.
+  const appealable = idv.rejected || idv.manualFallback;
   const effective: KycMethod = !idv.enabled
     ? "manual"
-    : idv.required
+    : idv.required && !appealable
       ? "instant"
       : method;
+
+  if (effective === "manual" && idv.rejected) {
+    const res = await openIdvManualFallback(g.gate.userId, "driver");
+    if (!res.ok) return { ok: false, error: res.error };
+  }
 
   const admin = createAdminClient();
   const { error } = await (
@@ -1396,7 +1413,7 @@ export async function submitDriverDossier(): Promise<{
 
   // VÉRIFICATION D'IDENTITÉ automatique (IDV) — garde PARTAGÉE par les trois
   // espaces (lib/idv/compliance) : un seul endroit décide.
-  const idvBlock = await idvSubmissionBlock("driver");
+  const idvBlock = await idvSubmissionBlock("driver", { method });
   if (idvBlock) return { ok: false, ...idvBlock };
   // Ceinture et bretelles : la liste des pièces attendues doit être couverte.
   // La nature de la pièce d'identité se relit de ce qui a été déposé — c'est la

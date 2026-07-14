@@ -30,6 +30,11 @@ export type IdvCompliance = {
   inProgress: boolean;
   /** L'utilisateur doit AGIR (déposer / reprendre une pièce). */
   actionNeeded: boolean;
+  /** La vérification automatique a REFUSÉ le dossier (recours possible). */
+  rejected: boolean;
+  /** Dossier basculé en vérification MANUELLE après un refus (mig 0371) :
+   *  l'équipe Coligo décide sur pièces. */
+  manualFallback: boolean;
   /** Route du parcours pour ce profil. */
   route: string;
 };
@@ -63,6 +68,8 @@ export const getIdvCompliance = cache(
           verified: false,
           inProgress: false,
           actionNeeded: false,
+          rejected: false,
+          manualFallback: false,
           route,
         };
       }
@@ -81,6 +88,8 @@ export const getIdvCompliance = cache(
           status === "selfie_processing" ||
           status === "pending_review",
         actionNeeded: status === null || NEEDS_USER_ACTION.includes(status),
+        rejected: status === "rejected",
+        manualFallback: verification?.manual_fallback === true,
         route,
       };
     } catch {
@@ -91,6 +100,8 @@ export const getIdvCompliance = cache(
         verified: false,
         inProgress: false,
         actionNeeded: false,
+        rejected: false,
+        manualFallback: false,
         route,
       };
     }
@@ -128,10 +139,16 @@ export function idvRouteFor(profile: IdvProfile): string {
  * Fonctionnalité non publiée ou seulement facultative ⇒ aucun effet.
  */
 export async function idvSubmissionBlock(
-  profile: IdvProfile
+  profile: IdvProfile,
+  opts?: { method?: "manual" | "instant" | null }
 ): Promise<{ error: string; missing: string[] } | null> {
   const c = await getIdvCompliance(profile);
   if (!c.enabled || !c.required || c.verified) return null;
+  // REPLI MANUEL (mig 0371) : la vérification automatique a refusé, l'utilisateur
+  // a demandé l'examen par l'équipe Coligo. Son dossier PART — ce sont ses pièces
+  // qui seront examinées. Sans cette porte, un refus à tort (document abîmé,
+  // photo de nuit) enfermerait le livreur à vie.
+  if (c.manualFallback && opts?.method === "manual") return null;
   return {
     error: c.inProgress
       ? "Votre identité est en cours de vérification. Vous pourrez transmettre votre dossier dès qu'elle sera confirmée."

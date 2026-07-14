@@ -98,6 +98,18 @@ export default async function AdminIdvCasePage({
         </p>
       </div>
 
+      {/* RECOURS (mig 0371) : la vérification automatique a refusé, la personne
+          a demandé l'examen humain. On le dit AVANT les scores — sinon l'équipe
+          jugerait sur des chiffres que la machine a déjà mal lus. */}
+      {v.manual_fallback && (
+        <div className="border-warning-200 bg-warning-50 text-warning-800 rounded-[14px] border p-3 text-sm">
+          <b className="block">Recours après refus automatique</b>
+          Ce dossier est à juger <b>sur pièces</b> : comparez vous-même le
+          selfie et le document. Les scores ci-dessous sont ceux de la tentative
+          refusée — ils ne décident plus.
+        </div>
+      )}
+
       {/* ── Comparaison CÔTE À CÔTE ──────────────────────────────────────── */}
       <section className="space-y-2">
         <h3 className="text-sm font-semibold">Selfie ↔ Document</h3>

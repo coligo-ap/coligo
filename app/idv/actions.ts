@@ -15,6 +15,7 @@ import {
   type DocQuality,
 } from "@/lib/idv/pipeline/quality";
 import { logIdvAudit } from "@/lib/idv/audit";
+import { openIdvManualFallback } from "@/lib/idv/fallback";
 import { ANTISPOOF_LIVE_MIN } from "@/lib/idv/pipeline/antispoof";
 import { getIdvCompliance, type IdvCompliance } from "@/lib/idv/compliance";
 import { IDV_ACTIVE_STATUSES, type IdvStatus } from "@/lib/idv/types";
@@ -1285,4 +1286,38 @@ export async function fetchIdvCompliance(
   const profile = await resolveProfile(user.id, requestedProfile);
   if (!profile) return null;
   return getIdvCompliance(profile);
+}
+
+/**
+ * REPLI MANUEL après un refus automatique (mig 0371).
+ *
+ * La machine se trompe : un document abîmé, une photo prise de nuit, un visage
+ * qui a changé. Un refus automatique ne doit donc jamais être une impasse.
+ * L'utilisateur refusé demande ici l'examen par l'équipe Coligo : son dossier
+ * REVIENT dans la file de revue humaine, avec les captures de sa tentative, et
+ * l'équipe tranche sur pièces.
+ *
+ * Ce que le serveur vérifie, et ne délègue jamais au client :
+ *   • le profil appartient bien à l'utilisateur ;
+ *   • le dernier dossier est bien REFUSÉ (on ne « repasse » pas en manuel un
+ *     dossier approuvé, ni un dossier déjà en cours d'examen) ;
+ *   • la décision précédente est effacée (un dossier rouvert n'est plus tranché),
+ *     et la trace de la bascule reste au journal d'audit.
+ */
+export async function requestIdvManualReview(
+  requestedProfile: string
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Session expirée." };
+
+  const profile = await resolveProfile(user.id, requestedProfile);
+  if (!profile) return { ok: false, error: "Profil inconnu." };
+
+  const res = await openIdvManualFallback(user.id, profile);
+  if (!res.ok) return res;
+  revalidateIdv(profile);
+  return { ok: true };
 }

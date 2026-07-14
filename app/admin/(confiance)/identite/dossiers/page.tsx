@@ -98,9 +98,20 @@ export default async function AdminIdvQueuePage() {
                     {DOC_LABEL[c.document_type ?? ""] ?? "Document"} · {c.mode}{" "}
                     · déposé le {dtf.format(new Date(c.created_at))}
                   </p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    <ScorePill label="Visage" score={c.face_match} />
-                    <ScorePill label="Présence" score={c.liveness} />
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    {/* RECOURS (mig 0371) : la machine a refusé, la personne a
+                        demandé un examen humain. Les scores ne veulent plus rien
+                        dire ici — ce dossier se juge sur PIÈCES. */}
+                    {c.manual_fallback ? (
+                      <span className="bg-warning-50 text-warning-700 rounded-full px-2 py-0.5 text-[11px] font-semibold">
+                        Recours — refusé automatiquement, à juger sur pièces
+                      </span>
+                    ) : (
+                      <>
+                        <ScorePill label="Visage" score={c.face_match} />
+                        <ScorePill label="Présence" score={c.liveness} />
+                      </>
+                    )}
                   </div>
                 </div>
                 <ChevronRight className="text-muted size-5 shrink-0" />

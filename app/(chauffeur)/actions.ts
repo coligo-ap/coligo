@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getIdvCompliance, idvSubmissionBlock } from "@/lib/idv/compliance";
+import { openIdvManualFallback } from "@/lib/idv/fallback";
 import type { KycMethod } from "@/lib/driver/kyc";
 import { validateUploadedFile, MB } from "@/lib/security/file-validation";
 import {
@@ -349,6 +350,7 @@ export type ChauffeurIdvState = {
   method: KycMethod | null;
   verified: boolean;
   inProgress: boolean;
+  rejected: boolean;
   route: string;
 };
 
@@ -360,6 +362,7 @@ export async function getChauffeurIdv(): Promise<ChauffeurIdvState> {
     method: "manual",
     verified: false,
     inProgress: false,
+    rejected: false,
     route: "/chauffeur/identite",
   };
   const ch = await getCurrentChauffeur();
@@ -375,13 +378,17 @@ export async function getChauffeurIdv(): Promise<ChauffeurIdvState> {
   ]);
 
   const stored = (row?.data?.kyc_method ?? null) as KycMethod | null;
-  const forced = idv.enabled && idv.required;
+  // Refusé par la machine ⇒ le choix se rouvre (recours par l'examen humain),
+  // même si la vérification est obligatoire.
+  const appealable = idv.rejected || idv.manualFallback;
+  const forced = idv.enabled && idv.required && !appealable;
   return {
     available: idv.enabled,
     forced,
     method: forced ? "instant" : idv.enabled ? stored : "manual",
     verified: idv.verified,
     inProgress: idv.inProgress,
+    rejected: idv.rejected,
     route: idv.route,
   };
 }
@@ -400,11 +407,18 @@ export async function setChauffeurKycMethod(
     return { ok: false, error: "Méthode inconnue." };
 
   const idv = await getIdvCompliance("chauffeur");
+  const appealable = idv.rejected || idv.manualFallback;
   const effective: KycMethod = !idv.enabled
     ? "manual"
-    : idv.required
+    : idv.required && !appealable
       ? "instant"
       : method;
+
+  // Choisir « manuel » après un refus automatique = demander l'examen humain.
+  if (effective === "manual" && idv.rejected) {
+    const res = await openIdvManualFallback(ch.user_id, "chauffeur");
+    if (!res.ok) return { ok: false, error: res.error };
+  }
 
   const admin = createAdminClient();
   const { error } = await chauffeurMethodTable(admin)
@@ -454,7 +468,9 @@ export async function submitChauffeurDossier(): Promise<{
   // VÉRIFICATION D'IDENTITÉ (IDV) — même garde que les autres espaces : si le
   // super-admin l'a rendue obligatoire pour les chauffeurs, le dossier ne part
   // pas tant que l'identité n'est pas confirmée.
-  const idvBlock = await idvSubmissionBlock("chauffeur");
+  const idvBlock = await idvSubmissionBlock("chauffeur", {
+    method: instant ? "instant" : "manual",
+  });
   if (idvBlock) return { ok: false, error: idvBlock.error };
 
   const admin = createAdminClient();
